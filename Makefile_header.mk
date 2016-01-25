@@ -898,11 +898,14 @@ endif
 
 ###############################################################################
 ###                                                                         ###
-###  IFORT compilation options.  This is the default compiler.              ###
+###  Define settings for the Intel Fortran Compiler (aka ifort)             ###
 ###                                                                         ###
 ###############################################################################
 
 ifeq ($(COMPILER),ifort) 
+
+  # Base set of compiler flags
+  FFLAGS             :=-cpp -w -auto -noalign -convert big_endian
 
   # Default optimization level for all routines (-O2)
   ifndef OPT
@@ -912,13 +915,12 @@ ifeq ($(COMPILER),ifort)
   # Pick compiler options for debug run or regular run 
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           :=-cpp -w -O0 -auto -noalign -convert big_endian
-    FFLAGS           += -g -check arg_temp_created -debug all
+    FFLAGS           += -g -O0 -convert big_endian
+    FFLAGS           += -check arg_temp_created -debug all
     TRACEBACK        := yes
     USER_DEFS        += -DDEBUG
   else
-    FFLAGS           :=-cpp -w $(OPT) -auto -noalign -convert big_endian
-    FFLAGS           += -vec-report0
+    FFLAGS           += $(OPT) -vec-report0
   endif
 
   # Prevent any optimizations that would change numerical results
@@ -1022,31 +1024,32 @@ endif
 
 ###############################################################################
 ###                                                                         ###
-###  Portland Group (PGF90) compilation options                             ###
+###  Define settings for the Portland Group Compiler (aka "pgfortran")      ###
 ###                                                                         ###
 ###############################################################################
 
 ifeq ($(COMPILER),pgfortran) 
 
+  # Base set of compiler flags
+  FFLAGS             :=-Kieee -byteswapio -Mpreprocess -m64
+
   # Default optimization level for all routines (-fast)
   ifndef OPT
-#    OPT              :=-fast -Mipa=fast,inline
     OPT              :=-O2
    endif
 
   # Pick compiler options for debug run or regular run 
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           :=-Kieee -byteswapio -Mpreprocess -m64 -g -O0
+    FFLAGS           += -g -O0
     USER_DEFS        += -DDEBUG
   else
-    FFLAGS           :=-Kieee -byteswapio -Mpreprocess -m64 $(OPT)
+    FFLAGS           += $(OPT)
   endif
 
   # Add options for medium memory model.  This is to prevent G-C from 
   # running out of memory at hi-res, especially when using netCDF I/O.
-#  FFLAGS             += -mcmodel=medium
-# FFLAGS             += -fPIC
+  FFLAGS             += -mcmodel=medium
 
   # Turn on OpenMP parallelization
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
@@ -1063,7 +1066,7 @@ ifeq ($(COMPILER),pgfortran)
   # Add option for "array out of bounds" checking
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(BOUNDS)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           += -C
+    FFLAGS           += -Mbounds
   endif
 
   # Also add traceback option
@@ -1082,6 +1085,12 @@ ifeq ($(COMPILER),pgfortran)
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(FPE)" =~ $(REGEXP) ]] && echo true),true)
     FFLAGS           += -Ktrap=fp
+  endif
+
+  # Switch to add detailed compiler prinotut
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(INFO)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -Minfo
   endif
 
   # Add flexible precision declaration
