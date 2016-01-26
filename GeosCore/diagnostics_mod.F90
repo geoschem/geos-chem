@@ -537,7 +537,7 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     ! For now, use ND24 for entire transport diagnostic group
     Collection = Input_Opt%DIAG_COLLECTION
-    OutOper    = Input_Opt%ND24_OUTPUT_TYPE
+    OutOper    = Input_Opt%TRANSPORT_OUTPUT_TYPE
 
     ! Loop over 3 types of transport fluxes
     DO M = 1, 3
@@ -658,7 +658,7 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     ! Use same output frequency and operations as for tracer concentrations.
     Collection = Input_Opt%DIAG_COLLECTION
-    OutOper    = Input_Opt%ND38_OUTPUT_TYPE ! Assume same for ND38 and ND39
+    OutOper    = Input_Opt%WETSCAV_OUTPUT_TYPE ! Assume same for ND38 and ND39
 
     ! Loop over # of soluble species 
     DO D = 1, State_Chm%nWetDep
@@ -794,7 +794,7 @@ CONTAINS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
-    OutOper    = Input_Opt%ND44_OUTPUT_TYPE
+    OutOper    = Input_Opt%DRYDEP_OUTPUT_TYPE
 
     ! Special cases if ISOPN or MMN since there are two 
     ! corresponding dry deposition species each, ISOPND and ISOPNB for
@@ -944,13 +944,9 @@ CONTAINS
     ! Assume successful return
     RC = GIGC_SUCCESS
 
-    !----------------------------------------------------------------
-    ! Create containers for drydep velocity [m/s]
-    !----------------------------------------------------------------
-    
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
-    OutOper    = Input_Opt%ND45_OUTPUT_TYPE
+    OutOper    = Input_Opt%TRACER_CONC_OUTPUT_TYPE
       
     ! Loop over # of depositing species
     DO N = 1, Input_Opt%N_TRACERS
@@ -960,7 +956,7 @@ CONTAINS
        IF ( ANY( Input_Opt%TINDEX(45,:) == N ) ) THEN
     
           !----------------------------------------------------------------
-          ! Create containers for drydep velocity [m/s]
+          ! Create containers for tracer concentrations
           !----------------------------------------------------------------
     
           ! Diagnostic container name and id
@@ -1073,7 +1069,6 @@ CONTAINS
 !
     INTEGER            :: Collection, N, Num2D, Num3D
     INTEGER            :: SpaceDim 
-    REAL(hp)           :: ScaleFact
     CHARACTER(LEN=15)  :: OutOper, OutUnit
     CHARACTER(LEN=30)  :: NameSuffix, DiagnName
     CHARACTER(LEN=255) :: MSG
@@ -1088,7 +1083,7 @@ CONTAINS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
-    OutOper    = Input_Opt%ND68_OUTPUT_TYPE
+    OutOper    = Input_Opt%MET_OUTPUT_TYPE
 
     ! Set number of 3D and 2D MET diagnostics
     Num3d = 12
@@ -1166,7 +1161,6 @@ CONTAINS
                           SpaceDim  =  SpaceDim,         &
                           OutUnit   = TRIM( OutUnit   ), &
                           OutOper   = TRIM( OutOper   ), &
-                          ScaleFact = ScaleFact,         &
                           RC        = RC )
 
        IF ( RC /= HCO_SUCCESS ) THEN
@@ -1281,7 +1275,6 @@ CONTAINS
                           SpaceDim  =  SpaceDim,         &
                           OutUnit   = TRIM( OutUnit   ), &
                           OutOper   = TRIM( OutOper   ), &
-                          ScaleFact = ScaleFact,         &
                           RC        = RC )
 
        IF ( RC /= HCO_SUCCESS ) THEN
@@ -2322,7 +2315,7 @@ CONTAINS
     CHARACTER(LEN=15)  :: OutOper
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DIAGNINIT_TRACER_EMIS (diagnostics_mod.F90)' 
+    CHARACTER(LEN=255) :: LOC = 'DiagnInit_Tracer_Emis (diagnostics_mod.F90)' 
 
     !=======================================================================
     ! DIAGNINIT_TRACER_EMIS begins here!
@@ -2334,7 +2327,7 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     ! Use same output frequency and operations as for tracer concentrations.
     Collection = Input_Opt%DIAG_COLLECTION
-    OutOper    = Input_Opt%ND45_OUTPUT_TYPE
+    OutOper    = Input_Opt%TRACER_EMIS_OUTPUT_TYPE
  
     ! Loop over # of species 
     DO N = 1, Input_Opt%N_TRACERS
