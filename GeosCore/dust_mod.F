@@ -416,9 +416,10 @@
 !               endif
 !debug-----
             ENDDO
+
 #if defined( BPCH )
          !========================================================      
-         ! ND44: Dry deposition diagnostic [#/cm2/s]
+         ! ND44: Dry deposition diagnostic [#/cm2/s] (bpch)
          !========================================================
             IF ( ND44 > 0 ) THEN
                AD44(I,J,Input_Opt%IDDEP(BIN),1) = 
@@ -426,6 +427,7 @@
                AD44(I,J,NN,1) = AD44(I,J,NN,1) + FLUXD
             ENDIF
 #endif
+
          ENDDO
       ENDDO
       ENDDO
@@ -633,6 +635,11 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if defined( NETCDF )
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
+      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -666,6 +673,7 @@
 !                              aerosols (T.D. Fairlie)
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
 !                              remove dependency on pressure_mod
+!  25 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostic
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -701,7 +709,15 @@
       REAL(fp)              :: VTS(LLPAR)  
 
       ! Molecules tracer / kg tracer, from Input Options
-      REAL(fp)              :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)              :: XNUMOL(Input_Opt%N_TRACERS) 
+
+#if defined( NETCDF )
+      ! For netcdf diagnostics (ND44 drydep flux)
+      INTEGER               :: drydep_id, trc_id, HCRC
+      CHARACTER(LEN=30)     :: DiagnName
+      REAL(fp), TARGET      :: DryDepFlux( IIPAR, JJPAR, NDSTBIN ) 
+      REAL(fp), POINTER     :: Ptr2D(:,:) => NULL()
+#endif
 !
 ! !DEFINED PARAMETERS:
 !      
@@ -723,6 +739,11 @@
 
       ! Dust settling timestep [s]
       DT_SETTL  = GET_TS_CHEM() * 60e+0_fp
+
+#if defined( NETCDF )
+      ! Initialize diagnostic array (ND44)
+      DryDepFlux = 0e+0_fp
+#endif
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -820,7 +841,7 @@
                ENDDO
 
                !========================================================      
-               ! ND44: Dry deposition diagnostic [#/cm2/s]
+               ! ND44: Dry deposition diagnostic [molec/cm2/s] 
                !========================================================
                IF ( ND44 > 0 ) THEN
 
@@ -834,23 +855,74 @@
                      TOT2 = TOT2 + TC(I,J,L,N)
                   ENDDO
 
-                  ! Convert dust flux from [kg/s] to [#/cm2/s]
+                  ! Convert dust flux from [kg/s] to [molec/cm2/s]
                   FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
                   FLUX = FLUX * XNUMOL(INDEX) / AREA_CM2 
 
 #if defined( BPCH )
-                  ! Save in AD44
+                  ! For bpch diagnostic, save in global array AD44
 !tdf                  AD44(I,J,Input_Opt%IDDEP(N),1) = 
 !tdf     &            AD44(I,J,Input_OPt%IDDEP(N),1) + FLUX
                   AD44(I,J,Input_Opt%IDDEP(N+IDISP),1) =
      &            AD44(I,J,Input_Opt%IDDEP(N+IDISP),1) + FLUX
 #endif
+#if defined( NETCDF )
+                  ! For netcdf diagnostic, store data in local array
+                  DryDepFlux(I,J,N) = FLUX
+#endif
                ENDIF
 
-            ENDDO
-         ENDDO
-      ENDDO
+            ENDDO 
+         ENDDO    
+      ENDDO       
 !$OMP END PARALLEL DO
+
+#if defined( NETCDF )
+      !========================================================      
+      ! ND44: Dry deposition diagnostic [molec/cm2/s] (netcdf) 
+      !========================================================
+      IF ( ND44 > 0 ) THEN
+
+         ! Loop over dust bins
+         DO N = 1, NDSTBIN
+
+            ! Get drydep id
+            drydep_id = Input_Opt%IDDEP(N+IDISP)
+
+            ! Get tracer id
+            trc_id = Input_Opt%NTRAIND( drydep_id )
+         
+            ! If this tracer number NN is scheduled for output in input.geos, 
+            ! then archive the latest depvel data into the diagnostic structure
+            IF ( ANY( Input_Opt%TINDEX(44,:) == trc_id ) ) THEN
+         
+               ! Define name of diagnostic
+               DiagnName = 'DRYDEP_FLX_' // 
+     &                     TRIM( Input_Opt%DEPNAME( drydep_id ) )
+               
+               ! Point to data
+               Ptr2D => DryDepFlux(:,:,N)
+               
+               ! Update diagnostic container
+               CALL Diagn_Update( am_I_Root,                           
+     &                            cName   = TRIM( DiagnName),         
+     &                            Array2D = Ptr2D,                      
+     &                            COL     = Input_Opt%DIAG_COLLECTION, 
+     &                            RC      = HCRC    )
+
+               ! Free the pointer
+               Ptr2D => NULL()
+               
+               ! Stop with error if the diagnostic was unsuccessful
+               IF ( HCRC /= HCO_SUCCESS ) THEN
+                  CALL ERROR_STOP( 'Cannot update drydep flux' //        
+     &                             ' diagnostic: ' // TRIM( DiagnName), 
+     &                             'DRY_SETTLING (dust_mod.F)')
+               ENDIF
+            ENDIF
+         ENDDO
+      ENDIF
+#endif
 
       END SUBROUTINE DRY_SETTLING
 !EOC

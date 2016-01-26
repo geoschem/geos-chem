@@ -246,7 +246,7 @@
 
 #if defined ( NETCDF )
       ! For netCDF diagnostics\
-      INTEGER                :: D, HCRC
+      INTEGER                :: trc_id, D, HCRC
       CHARACTER(LEN=60)      :: DiagnName
       REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
       REAL(fp), POINTER      :: TMP3D(:,:,:) => NULL()
@@ -495,14 +495,14 @@
          DO D = 1, State_Chm%nWetDep
 
             ! Get GEOS-Chem tracer number
-            N = GET_WETDEP_IDWETD( D )
+            trc_id = GET_WETDEP_IDWETD( D )
 
             ! Is this a tracer selected for this diagnostics type?
-            IF ( ANY( Input_Opt%TINDEX(38,:) == N ) ) THEN
+            IF ( ANY( Input_Opt%TINDEX(38,:) == trc_id ) ) THEN
 
                ! Loss rate [kg/kg total air per seconnd]
-               TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Tracers(:,:,:,N))
-     &               / DTIME 
+               TMP3D = ( BEFORE(:,:,:,trc_id) - 
+     &                 State_Chm%Tracers(:,:,:,trc_id)) / DTIME 
 
                ! Convert to [kg/s]
                ! Now use moist air mass rather than dry air mass (ewl, 6/23/15)
@@ -513,7 +513,7 @@
 
                ! Update diagnostics based on name
                DiagnName = 'WETSCAV_CONVLOSS_' 
-     &                     // TRIM( Input_Opt%TRACER_NAME(N) )
+     &                     // TRIM( Input_Opt%TRACER_NAME( trc_id ) )
 
                CALL Diagn_Update ( am_I_Root,
      &                             cName   = TRIM( DiagnName ),

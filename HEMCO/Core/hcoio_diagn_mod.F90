@@ -164,7 +164,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine HCOIO\_Diagn\_WriteOut writes diagnostics to 
 ! netCDF file. If the ForceWrite flag is set to TRUE, all diagnostics are
-! written out except they have already been written out during this time
+! written out except if they have already been written out during this time
 ! step. This option is usually only used at the end of a simulation run.
 ! If ForceWrite is False, only the diagnostics that are at the end of their
 ! time averaging interval are written. For example, if the current month

@@ -307,7 +307,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, J, L, L1, L2, N, NN
+    INTEGER            :: I, J, L, L1, L2, N, D, NN
     INTEGER            :: DRYDEPID
     INTEGER            :: PBL_TOP, DRYD_TOP, EMIS_TOP
     REAL(fp)           :: TS, TMP, FRQ, RKT, FRAC, FLUX, AREA_M2
@@ -319,18 +319,14 @@ CONTAINS
 
     ! For diagnostics
 #if defined( NETCDF )
-    INTEGER            :: cID, D, HCRC
-    LOGICAL            :: First_ISOPN, First_MMN
-    CHARACTER(LEN=30)  :: DryDepName, DiagnName
-    REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
+    INTEGER            :: cID, trc_id, HCRC
+    CHARACTER(LEN=30)  :: DiagnName
+    REAL(fp), TARGET   :: DryDepFlux( IIPAR, JJPAR, Input_Opt%NUMDEP ) 
     REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
 
-    ! drydep flux diagnostic
-    REAL(fp)           :: DepFluxes( IIPAR, JJPAR, Input_Opt%NUMDEP ) 
-    REAL(fp), TARGET   :: ThisDepFlux( IIPAR, JJPAR )
-
-    ! tracer emissions diagnostic
+    ! tracer emissions diagnostic (does not correspond to any bpch diags)
     REAL(fp), TARGET   :: EMIS( IIPAR, JJPAR, LLPAR, Input_Opt%N_TRACERS ) 
+    REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
     REAL(fp)           :: TOTFLUX( Input_Opt%N_TRACERS )
 #endif
 
@@ -398,9 +394,9 @@ CONTAINS
        FIRST = .FALSE.
     ENDIF
 
-    ! Init diagnostics
 #if defined( NETCDF )
-    DepFluxes   = 0.0_fp
+    ! Initialize local diagnostic variables
+    DryDepFlux  = 0.0_fp
     EMIS        = 0.0_fp
     TOTFLUX     = 0.0_fp
 #endif
@@ -414,7 +410,7 @@ CONTAINS
     ! Do for every tracer and grid box
 !$OMP PARALLEL DO                                                    &
 !$OMP DEFAULT ( SHARED )                                             &
-!$OMP PRIVATE( I, J, L, L1, L2, N, NN, PBL_TOP, FND, TMP, DRYDEPID ) &
+!$OMP PRIVATE( I, J, L, L1, L2, N, D, PBL_TOP, FND, TMP, DRYDEPID ) &
 !$OMP PRIVATE( FRQ, RKT, FRAC, FLUX, AREA_M2,   MWkg, ChemGridOnly ) & 
 !$OMP PRIVATE( DryDepSpec, EmisSpec, DRYD_TOP,  EMIS_TOP, PNOXLOSS ) &
 !$OMP PRIVATE( DENOM                                               )
@@ -434,12 +430,12 @@ CONTAINS
 
           ! Get dry deposition index DRYDEPID. This is the ID used by
           ! drydep_mod.F90 for this species. 
-          DO NN = 1, Input_Opt%NUMDEP
-             IF ( Input_Opt%NTRAIND(NN) == N ) THEN
-                DRYDEPID = NN
+          DO D = 1, Input_Opt%NUMDEP
+             IF ( Input_Opt%NTRAIND(D) == N ) THEN
+                DRYDEPID = D
                 EXIT
              ENDIF
-          ENDDO !NN
+          ENDDO ! D
 
           ! Check if this is a HEMCO drydep species 
           DryDepSpec = ( DRYDEPID > 0 )
@@ -630,21 +626,23 @@ CONTAINS
                       CALL SOIL_DRYDEP( I, J, L, N, FLUX )
                    ENDIF
 
-                   !----------------------------------------------
-                   ! Dry deposition flux diagnostic (ND44)
-                   !----------------------------------------------
-                   IF ( ND44 > 0 .and. DryDepID > 0 ) THEN
+      !========================================================      
+      ! ND44: Dry deposition diagnostic [molec/cm2/s]
+      !========================================================
 #if defined( BPCH )
-                      ! ND44 bpch diagnostics [molec/cm2/s]
+                   IF ( ND44 > 0 ) THEN
+                      ! For bpch diagnostic, store data in global AD44 array
                       AD44(I,J,DryDepID,1) = AD44(I,J,DryDepID,1) + FLUX
+                   ENDIF
 #endif
 #if defined( NETCDF )
-                      ! ND44 netcdf diagnostics - Now archive deposition 
-                      ! flux in molec/cm2/s to compare to bpch (ewl, 1/22/16)
-                      DepFluxes(I,J,DryDepID) = DepFluxes(I,J,DryDepID) &
+                   IF ( ND44 > 0 ) THEN
+                      ! For netcdf diagnostic, store data in local array
+                      ! Now use same units as bpch for comparison (ewl, 1/22/16)
+                      DryDepFlux(I,J,DryDepID) = DryDepFlux(I,J,DryDepID) &
                                                 + FLUX
-#endif
                    ENDIF
+#endif
 
                 ENDIF ! apply drydep
              ENDIF ! L <= PBLTOP
@@ -690,40 +688,31 @@ CONTAINS
 
 
 #if defined( NETCDF )
-    !-------------------------------------------------------------------
-    ! Update diagnostics that will get saved to netCDF files.
-    ! These are defined in diagnostics_mod.F90
-    ! 
-    ! NOTE: For now, this is only activated by compiling with NETCDF=y,
-    ! but in the future this will replace the bpch diagnostics!
-    !-------------------------------------------------------------------
+    !========================================================      
+    ! ND44: Dry deposition diagnostic [molec/cm2/s] (netcdf) 
+    !========================================================
     IF ( Input_Opt%ND44 > 0 ) THEN
 
        ! Assume success
        HCRC = HCO_SUCCESS
 
-       ! Special cases if ISOPN or MMN since there are two 
-       ! corresponding dry deposition species each, ISOPND and 
-       ! ISOPNB for ISOPN, and MACRN and MAVKN for MMN. Therefore, 
-       ! track when ISOPN and MMN are first encountered (ewl, 1/20/16)
-       First_ISOPN = .TRUE.
-       First_MMN = .TRUE.
-       
        ! Loop over all depositing species
        DO D = 1, Input_Opt%NUMDEP
        
           ! Get the corresponding GEOS-Chem tracer number
-          N = Input_Opt%NTRAIND(D)
+          trc_id = Input_Opt%NTRAIND( D )
        
-          ! If this tracer number NN is scheduled for output in input.geos, 
+          ! If this tracer number is scheduled for output in input.geos, 
           ! then archive the latest depvel data into the diagnostic structure
-          IF ( ANY( Input_Opt%TINDEX(44,:) == N ) ) THEN
+          IF ( ANY( Input_Opt%TINDEX(44,:) == trc_id ) ) THEN
        
-             ! Initialization
-             ThisDepFlux = 0.0e+0_fp
-             DiagnName = 'DRYDEP_FLX_' // TRIM( Input_OPt%DEPNAME(D) )
-             ThisDepFlux = DepFluxes(:,:,D)
-             Ptr2D => ThisDepFlux
+             ! Define diagnostic name
+             DiagnName = 'DRYDEP_FLX_' // TRIM( Input_OPt%DEPNAME( D ) )
+
+             ! Point to data
+             Ptr2D => DryDepFlux(:,:,D)
+
+             ! Update diagnostic container
              CALL Diagn_Update( am_I_Root,                           &
                                 cName     = TRIM( DiagnName),        &
                                 Array2D = Ptr2D,                     &

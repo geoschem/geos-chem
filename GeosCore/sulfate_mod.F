@@ -1526,7 +1526,7 @@
 !  06 Jan 2015 - M. Yannetti - Changed some variables to f8 as needed
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
 !                              remove dependency on pressure_mod.
-!  22 Jan 2016 - E. Lundgren - Update drydep netcdf diagnostics
+!  22 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1573,11 +1573,11 @@
       REAL(fp)               :: DEN !tdf
  
 #if defined( NETCDF )
-      ! for netcdf diagnostics (ND44)
-      INTEGER            :: HCRC
+      ! for netcdf diagnostics (ND44 drydep flux)
+      INTEGER            :: drydep_id, trc_id, HCRC
       CHARACTER(LEN=30)  :: DiagnName
-      REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
       REAL(fp), TARGET   :: DryDepFlux( IIPAR, JJPAR ) 
+      REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
 #endif
 
       ! Arrays
@@ -1613,6 +1613,11 @@
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
+
+#if defined( NETCDF )
+      ! Initialize diagnostic array (ND44)
+      DryDepFlux = 0e+0_fp
+#endif
 
       ! Store in IDDEP array
       IDDEP(1)  = DRYSO4s
@@ -1878,15 +1883,16 @@
             FLUX     = FLUX * XNUMOL(IDTRC(N)) / AREA_CM2 
 
 #if defined( BPCH )   
-            ! Store in AD44 array for bpch output
+            ! Store in global AD44 array for bpch diagnostic output
             AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
 #endif
 #if defined( NETCDF )
+            ! Store in local array for netcdf diagnostic
             DryDepFlux(I,J) = FLUX
 #endif
          ENDIF
-      ENDDO
-      ENDDO
+      ENDDO ! I
+      ENDDO ! J
 !$OMP END PARALLEL DO
 
 #if defined( NETCDF )
@@ -1898,28 +1904,39 @@
          ! Assume success
          HCRC = HCO_SUCCESS
          
-         ! Define diagnostic name
-         DiagnName = 'DRYDEP_FLX_' // 
-     &               TRIM( Input_Opt%TRACER_NAME( IDDEP(N) ) )
+         ! Get drydep id
+         drydep_id = IDDEP(N)
 
-         ! Point to the flux data
-         Ptr2D => DryDepFlux
+         ! Get tracer id
+         trc_id = Input_Opt%NTRAIND( drydep_id )
 
-         ! Update diagnostics container
-         CALL Diagn_Update( am_I_Root,                           
-     &                      cName   = TRIM( DiagnName),        
-     &                      Array2D = Ptr2D,                     
-     &                      COL     = Input_Opt%DIAG_COLLECTION, 
-     &                      RC      = HCRC                          )
-         
-         ! Free the pointer
-         Ptr2D => NULL()
-         
-         ! Stop with error if the diagnostics were unsuccessful
-         IF ( HCRC /= HCO_SUCCESS ) THEN
-            CALL ERROR_STOP( 'Cannot update drydep flux' //       
-     &                       ' diagnostic: ' // TRIM( DiagnName), 
-     &                       'DO_TEND (mixing_mod.F)')
+         ! If this tracer number NN is scheduled for output in input.geos, 
+         ! then archive the latest depvel data into the diagnostic structure
+         IF ( ANY( Input_Opt%TINDEX(44,:) == trc_id ) ) THEN
+
+           ! Define diagnostic name
+           DiagnName = 'DRYDEP_FLX_' // 
+     &                 TRIM( Input_Opt%DEPNAME( drydep_id ) )
+           
+           ! Point to the flux data
+           Ptr2D => DryDepFlux
+           
+           ! Update diagnostics container
+           CALL Diagn_Update( am_I_Root,                           
+     &                        cName   = TRIM( DiagnName),        
+     &                        Array2D = Ptr2D,                     
+     &                        COL     = Input_Opt%DIAG_COLLECTION, 
+     &                        RC      = HCRC                      )
+           
+           ! Free the pointer
+           Ptr2D => NULL()
+           
+           ! Stop with error if the diagnostics were unsuccessful
+           IF ( HCRC /= HCO_SUCCESS ) THEN
+              CALL ERROR_STOP( 'Cannot update drydep flux' //       
+     &                         ' diagnostic: ' // TRIM( DiagnName), 
+     &                         'GRAV_SETTLING (sulfate_mod.F)')
+           ENDIF
          ENDIF
       ENDIF
 #endif

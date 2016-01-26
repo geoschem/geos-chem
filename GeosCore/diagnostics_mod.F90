@@ -32,7 +32,7 @@ MODULE Diagnostics_Mod
   PUBLIC  :: Diagnostics_Init
   PUBLIC  :: Diagnostics_Final
   PUBLIC  :: DiagnUpdate_NTracers_3D    ! utility subroutine
-  PUBLIC  :: DiagnUpdate_Met            ! ND31, 55, 56, 57, 66, 67, 68, and 69
+  PUBLIC  :: DiagnUpdate_Met            ! ND31, 55, 57, 66, 67, 68, and 69
   PUBLIC  :: DiagnUpdate_Transport_Flux ! ND24, ND25, ND26
 #if defined( DEVEL )
   PUBLIC  :: CalcDobsonColumn           ! added by ck - no existing bpch diag
@@ -51,7 +51,7 @@ MODULE Diagnostics_Mod
   PRIVATE :: DiagnInit_WetScav          ! ND38 and 39 (add 37)
   PRIVATE :: DiagnInit_DryDep           ! ND44
   PRIVATE :: DiagnInit_Tracer_Conc      ! ND45
-  PRIVATE :: DiagnInit_Met              ! ND31, 55, 56, 57, 66, 67, 68, and 69
+  PRIVATE :: DiagnInit_Met              ! ND31, 55, 57, 66, 67, 68, and 69
 
 ! Specialty simulation diagnostic groups
   PRIVATE :: DiagnInit_Pb_Emiss      ! ND01 init
@@ -290,7 +290,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Meteorology state diagnostic (ND31, 55, 56, 57, 66, 67, 68, and 69)
+    ! Meteorology state diagnostic (ND31, 55, 57, 66, 67, 68, and 69)
     ! For now, use ND68 as indicator for entire diagnostic group
     IF ( Input_Opt%ND68 > 0 ) THEN
        CALL DiagnInit_Met( am_I_Root, Input_Opt, State_Met, RC )
@@ -1038,7 +1038,7 @@ CONTAINS
 ! !IROUTINE: diagninit_met
 !
 ! !DESCRIPTION: Subroutine DIAGNINIT\_MET initializes the meteorology state
-!  diagnostics (aka ND31, ND55, ND56, ND57, ND66, ND67, ND68, and ND69).
+!  diagnostics (aka ND31, ND55, ND57, ND66, ND67, ND68, and ND69).
 !\\
 !\\
 ! !INTERFACE:
@@ -1092,7 +1092,7 @@ CONTAINS
 
     ! Set number of 3D and 2D MET diagnostics
     Num3d = 12
-    Num2d = 28
+    Num2d = 25
 
     !----------------------------------------------------------------
     ! Create containers
@@ -1189,78 +1189,69 @@ CONTAINS
              NameSuffix = 'TRPAUSE_PRESS'   ! ND55, trcr 3
              OutUnit    = 'mb'
           CASE ( 4 )
-             NameSuffix = 'LFLASH_TOTAL'    ! ND56, trcr 1
-             OutUnit    = 'flashes/min/km2'
-          CASE ( 5 )
-             NameSuffix = 'LFLASH_INTRA'    ! ND56, trcr 2
-             OutUnit    = 'flashes/min/km2'
-          CASE ( 6 )
-             NameSuffix = 'LFLASH_CLDGND'  ! ND56, trcr 3
-             OutUnit    = 'flashes/min/km2'
-          CASE ( 7 )
              NameSuffix = 'HFLUX'           ! ND67, trcr 1
              OutUnit    = 'W/m2'
-          CASE ( 8 )
+          CASE ( 5 )
              NameSuffix = 'RADSWG'          ! ND67, trcr 2
              OutUnit    = 'W/m2'
-          CASE ( 9 )
+          CASE ( 6 )
              NameSuffix = 'PREACC'          ! ND67, trcr 3
              OutUnit    = 'mm/day'
-          CASE ( 10 )
+          CASE ( 7 )
              NameSuffix = 'PRECON'          ! ND67, trcr 4
              OutUnit    = 'mm/day'
-          CASE ( 11 )
+          CASE ( 8 )
              NameSuffix = 'TS'              ! ND67, trcr 5
              OutUnit    = 'K'
-          CASE ( 12 )
+          CASE ( 9 )
              NameSuffix = 'RADSWT'          ! ND67, trcr 6
              OutUnit    = 'W/m2'
-          CASE ( 13 )
+          CASE ( 10 )
              NameSuffix = 'USTAR'           ! ND67, trcr 7
              OutUnit    = 'm/s'
-          CASE ( 14 )
+          CASE ( 11 )
              NameSuffix = 'Z0'              ! ND67, trcr 8
              OutUnit    = 'm'
-          CASE ( 15 )
+          CASE ( 12 )
              NameSuffix = 'PBL'             ! ND67, trcr 9
              OutUnit    = 'hPa'
-          CASE ( 16 )
+          CASE ( 13 )
              NameSuffix = 'CLDFRC'          ! ND67, trcr 10
              OutUnit    = '0-1'
-          CASE ( 17 )
+          CASE ( 14 )
              NameSuffix = 'U10M'            ! ND67, trcr 11
              OutUnit    = 'm/s'
-          CASE ( 18 )
+          CASE ( 15 )
              NameSuffix = 'V10M'            ! ND67, trcr 12
              OutUnit    = 'm/s'
-          CASE ( 19 )
+          CASE ( 16 )
              NameSuffix = 'PS-PBL'          ! ND67, trcr 13
              OutUnit    = 'hPa'
-          CASE ( 20 )
+          CASE ( 17 )
              NameSuffix = 'ALBD'            ! ND67, trcr 14
              OutUnit    = 'unitless'
-          CASE ( 21 )
+          CASE ( 18 )
              NameSuffix = 'PHIS'            ! ND67, trcr 15
              OutUnit    = 'm'
-          CASE ( 22 )
+          CASE ( 19 )
              NameSuffix = 'CLTOP'           ! ND67, trcr 16
-             OutUnit    = 'levels'
-          CASE ( 23 )
+             OutUnit    = 'level'
+          CASE ( 20 )
              NameSuffix = 'TROPP'           ! ND67, trcr 17
              OutUnit    = 'hPa'
-          CASE ( 24 )
+          CASE ( 21 )
              NameSuffix = 'SLP'             ! ND67, trcr 18
              OutUnit    = 'hPa'
-          CASE ( 25 )
+          CASE ( 22 )
              NameSuffix = 'TSKIN'           ! ND67, trcr 19
              OutUnit    = 'K'
-          CASE ( 26 )
+          CASE ( 23 )
              NameSuffix = 'PARDF'           ! ND67, trcr 20
-             OutUnit    = 'W/2'
-          CASE ( 27 )
+             OutUnit    = 'W/m2'
+          CASE ( 24 )
              NameSuffix = 'PARDR'           ! ND67, trcr 21
              OutUnit    = 'W/m2'
-          CASE ( 28 )
+          CASE ( 25 )
              NameSuffix = 'GWETTOP'         ! ND67, trcr 22
              OutUnit    = 'unitless'
           CASE DEFAULT
@@ -2745,7 +2736,7 @@ CONTAINS
 ! !IROUTINE: diagnupdate_met
 !
 ! !DESCRIPTION: Subroutine DIAGNUPDATE\_MET updates the meteorology state
-!  diagnostics (aka ND31, ND55, ND56, ND57, ND66, ND67, ND68, and ND69).
+!  diagnostics (aka ND31, ND55, ND57, ND66, ND67, ND68, and ND69).
 !\\
 !\\
 ! !INTERFACE:
@@ -2799,7 +2790,7 @@ CONTAINS
 
     ! Set number of 3D and 2D MET diagnostics
     Num3d = 12
-    Num2d = 28
+    Num2d = 25
 
     !----------------------------------------------------------------
     ! Update containers
@@ -2896,78 +2887,69 @@ CONTAINS
              ! in chemgrid_mod.F
              CYCLE 
           CASE ( 4 )
-             NameSuffix = 'LFLASH_TOTAL'    ! ND56, trcr 1
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 5 )
-             NameSuffix = 'LFLASH_INTRA'    ! ND56, trcr 2
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 6 )
-             NameSuffix = 'LFLASH_CLDGND'   ! ND56, trcr 3
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 7 )
              NameSuffix = 'HFLUX'           ! ND67, trcr 1
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 8 )
+          CASE ( 5 )
              NameSuffix = 'RADSWG'          ! ND67, trcr 2
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 9 )
+          CASE ( 6 )
              NameSuffix = 'PREACC'          ! ND67, trcr 3
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 10 )
+          CASE ( 7 )
              NameSuffix = 'PRECON'          ! ND67, trcr 4
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 11 )
+          CASE ( 8 )
              NameSuffix = 'TS'              ! ND67, trcr 5
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 12 )
+          CASE ( 9 )
              NameSuffix = 'RADSWT'          ! ND67, trcr 6
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 13 )
+          CASE ( 10 )
              NameSuffix = 'USTAR'           ! ND67, trcr 7
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 14 )
+          CASE ( 11 )
              NameSuffix = 'Z0'              ! ND67, trcr 8
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 15 )
+          CASE ( 12 )
              NameSuffix = 'PBL'             ! ND67, trcr 9
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 16 )
+          CASE ( 13 )
              NameSuffix = 'CLDFRC'          ! ND67, trcr 10
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 17 )
+          CASE ( 14 )
              NameSuffix = 'U10M'            ! ND67, trcr 11
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 18 )
+          CASE ( 15 )
              NameSuffix = 'V10M'            ! ND67, trcr 12
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 19 )
+          CASE ( 16 )
              NameSuffix = 'PS-PBL'          ! ND67, trcr 13
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 20 )
+          CASE ( 17 )
              NameSuffix = 'ALBD'            ! ND67, trcr 14
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 21 )
+          CASE ( 18 )
              NameSuffix = 'PHIS'            ! ND67, trcr 15
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 22 )
+          CASE ( 19 )
              NameSuffix = 'CLTOP'           ! ND67, trcr 16
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 23 )
+          CASE ( 20 )
              NameSuffix = 'TROPP'           ! ND67, trcr 17
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 24 )
+          CASE ( 21 )
              NameSuffix = 'SLP'             ! ND67, trcr 18
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 25 )
+          CASE ( 22 )
              NameSuffix = 'TSKIN'           ! ND67, trcr 19
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 26 )
+          CASE ( 23 )
              NameSuffix = 'PARDF'           ! ND67, trcr 20
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 27 )
+          CASE ( 24 )
              NameSuffix = 'PARDR'           ! ND67, trcr 21
              Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 28 )
+          CASE ( 25 )
              NameSuffix = 'GWETTOP'         ! ND67, trcr 22
              Ptr2D => State_Met%TROPP  ! placeholder
           CASE DEFAULT

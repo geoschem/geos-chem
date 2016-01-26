@@ -1447,28 +1447,6 @@ CONTAINS
     LOGICAL                        :: Found, OnlyPos, VertSum, IsAssoc, IsNewTS
     LOGICAL                        :: InUse, SearchAll
 
-! Code in old Diagn_Update (ewl, 1/8/16)
-!    ! Pointers
-!    TYPE(DiagnCont), POINTER :: ThisDiagn     => NULL()
-!    REAL(sp),        POINTER :: Arr2D (:,:)   => NULL()
-!    REAL(sp),        POINTER :: Tmp2D (:,:)   => NULL()
-!    REAL(sp),        POINTER :: Arr3D (:,:,:) => NULL()
-!    REAL(sp)                 :: TmpScalar
-!
-!    ! Scalars
-!    CHARACTER(LEN=255)       :: LOC, MSG
-!    REAL(hp)                 :: Fact
-!    REAL(hp)                 :: Tmp
-!    CHARACTER(LEN=31)        :: DgnName
-!    INTEGER                  :: I, J, L, AS
-!    INTEGER                  :: DgncID,  DgnExtNr, DgnCat
-!    INTEGER                  :: DgnHier, DgnHcoID
-!    INTEGER                  :: MinResetFlag, ThisUpdateID
-!    INTEGER                  :: AutoFlag
-!    INTEGER                  :: PS, CNT
-!    LOGICAL                  :: Found, OnlyPos, VertSum, IsAssoc, IsNewTS
-! End old code (ewl, 1/8/16)
-
     !======================================================================
     ! Diagn_UpdateDriver begins here!
     !======================================================================
@@ -1524,82 +1502,12 @@ CONTAINS
 
     !-----------------------------------------------------------------
     ! Diagnostics levels to be used. By default, use only diagnostics
-    ! at the provided level. For instance, if a hierarchy number if 
+    ! at the provided level. For instance, if a hierarchy number is 
     ! given do not update diagnostics with the same species and 
     ! extension number but a hierarchy number of -1. If a diagnostics
     ! level is given, update all diagnostics up to this diagnostics
     ! level.  
     !-----------------------------------------------------------------
-
-! Code in old Diagn_Update (ewl, 1/8/16)
-!    !======================================================================
-!    ! Diagn_Update begins here!
-!    !======================================================================
-!
-!    ! Init
-!    LOC = 'Diagn_Update (hco_diagn_mod.F90)'
-!    RC  = HCO_SUCCESS
-!
-!    ! DEBUGGING, ewl - 2/2/15
-!    PRINT *, " "
-!    PRINT *, "Now in " // TRIM( LOC )
-!    ! END DEBUGGING
-!
-!    ! Get collection number
-!    PS = 1
-!    IF ( PRESENT(COL) ) PS = COL
-!    IF ( PS > MaxCollections ) THEN
-!       WRITE(MSG,*) 'Illegal diagnostics collection number:', PS
-!       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-!       RETURN
-!    ENDIF
-!
-!    ! Nothing to do if this collection is empty
-!    IF ( .NOT. Collections(PS)%InUse ) RETURN 
-!
-!    ! DEBUGGING - ewl, 2/2/15
-!    IF ( PRESENT( cName ) ) THEN
-!       PRINT *, "   Calling DiagnCont_Find for diagnostic " // TRIM( DgnName )
-!    ELSE
-!       PRINT *, "   Calling DiagnCont_Find for unnamed diagnostic."
-!    ENDIF
-!    PRINT *, "      DgncID: ", DgncID
-!    PRINT *, "      DgnExtNr: ", DgnExtNr
-!    PRINT *, "      DgnCat: ",DgnCat
-!    PRINT *, "      DgnHier: ", DgnHier
-!    PRINT *, "      DgnHcoID: ", DgnHcoID
-!    PRINT *, "      OnlyPos: ", OnlyPos
-!    PRINT *, "      AutoFlag: ", AutoFlag
-!    ! END DEBUGGING
-!
-!    CNT = 0 ! Count # of containers that are updated
-!    DO
-!
-!       ! Search for diagnostics that matches the given arguments.
-!       ! If ThisDiagn is empty (first call), the search will start
-!       ! at the first diagnostics container. Otherwise, the search
-!       ! will resume from this diagnostics container.
-!
-!
-!       CALL DiagnCont_Find( DgncID,    DgnExtNr, DgnCat,   DgnHier, &
-!                            DgnHcoID,  DgnName,  AutoFlag, Found,   &
-!                            ThisDiagn, RESUME=.TRUE., COL=PS         )
-!
-!       ! Exit while loop if no diagnostics found
-!       IF ( .NOT. Found ) THEN
-!
-!          ! DEBUGGING - ewl, 2/2/15
-!          PRINT *, "   No other diagnostic found. Exiting loop over containers."
-!          ! END DEBUGGING
-!
-!          EXIT
-!
-!       ENDIF
-!
-!       ! DEBUGGING - ewl, 2/5/15
-!       PRINT *, "   Diagnostic found. Counter = ", ThisDiagn%Counter
-!       ! END DEBUGGING
-! End of old code (ewl, 1/8/16)
 
     ! Get original diagnostics level
     OrigDgnLev = 999
@@ -1658,68 +1566,6 @@ CONTAINS
                                DgnHcoID,  DgnName,  AutoFlag, Found,   &
                                ThisDiagn, RESUME=.TRUE., COL=ThisColl%CollectionID )
    
-! <<<<<<< HEAD merge conflict old code (ewl, 1/8/16)
-!       !----------------------------------------------------------------------
-!       ! If data is in output format, set counter to zero. This will make
-!       ! sure that the new data is not added to the existing data.
-!       !----------------------------------------------------------------------
-!       IF ( ThisDiagn%IsOutFormat ) THEN
-!          ThisDiagn%Counter    = 0
-!
-!          ! DEBUGGING - ewl, 2/2/15
-!          PRINT *, "   ThisDiagn%IsOutFormat is true. Counter reset to 0."
-!          ! END DEBUGGING
-!          
-!       ENDIF
-!   
-!       !----------------------------------------------------------------------
-!       ! Determine scale factor to be applied to data. Diagnostics are
-!       ! stored in kg/m2, hence need to multiply HEMCO emissions, which
-!       ! are in kg/m2/s, by emission time step. Don't do anything for 
-!       ! data with non-standard units (e.g. unitless factors) or pointers.
-!       ! Note: conversion to final output units is done when writing out
-!       ! the diagnostics.
-!       !----------------------------------------------------------------------
-!       IF ( ThisDiagn%AvgFlag > 0 ) THEN
-!          Fact = 1.0_hp 
-!       ELSE
-!          Fact = Collections(PS)%TS
-!       ENDIF
-!       
-!       !----------------------------------------------------------------------
-!       ! Check if this is a new time step for this diagnostics. 
-!       !----------------------------------------------------------------------
-!       IsNewTS = .TRUE.
-!
-!       IF ( ThisDiagn%LastUpdateID == ThisUpdateID ) THEN
-!
-!          ! DEBUGGING - ewl, 2/2/15
-!          PRINT *, "   Not a new time step. Setting IsNewTS to FALSE."
-!          ! END DEBUGGING
-!          
-!          IsNewTS = .FALSE. 
-!          
-!       ENDIF
-!
-!       !----------------------------------------------------------------------
-!       ! Fill shadow arrays. Cast any input data to single precision, as this
-!       ! is the default diagnostics precision. 
-!       !----------------------------------------------------------------------
-!
-!       ! Only need to do this on first container. Afterwards, arrays are
-!       ! already set!
-!       IF ( CNT == 1 ) THEN
-!
-!          ! 3D array
-!          IF ( PRESENT(Array3D_SP) ) THEN
-!             Arr3D => Array3D_SP
-!          ELSEIF( PRESENT(Array3D) ) THEN
-!             IF ( ASSOCIATED(Array3D) ) THEN
-!                ALLOCATE( Arr3D( Collections(PS)%NX,  Collections(PS)%NY, &
-!                                 Collections(PS)%NZ), STAT=AS )
-!
-! End of old code (1/8/16)
-
           ! Exit while loop if no diagnostics found
           !IF ( .NOT. Found ) EXIT
           ! Now also check lower level diagnostics is specified so
@@ -2016,43 +1862,7 @@ CONTAINS
        IF ( SearchAll ) THEN
           ThisColl => ThisColl%NextCollection
        ELSE
-! <<<<<<< HEAD - merge conflict, old code (ewl, 1/8/16)
-!          WRITE(MSG,*) 'Space dimension must be 1-3: ',TRIM(ThisDiagn%cName), &
-!                       '--> dimension is ', ThisDiagn%SpaceDim
-!          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-!          RETURN
-!       ENDIF
-!   
-!       !----------------------------------------------------------------------
-!       ! Update counter ==> Do only if last update time is not equal to 
-!       ! current one! This allows the same diagnostics to be updated
-!       ! multiple time on the same time step without increasing the
-!       ! time step counter.
-!       !----------------------------------------------------------------------
-!       IF ( IsNewTS ) THEN
-!          ThisDiagn%Counter      = ThisDiagn%Counter + 1
-!          ThisDiagn%LastUpdateID = ThisUpdateID
-!
-!          ! DEBUGGING - ewl, 2/5/15
-!          PRINT *, "   IsNewTs is TRUE. New counter: ", ThisDiagn%Counter
-!          ! END DEBUGGING
-!
-!       ENDIF
-!   
-!       !----------------------------------------------------------------------
-!       ! Data is not in output format and hasn't been called yet by Diagn_Get.
-!       !----------------------------------------------------------------------
-!       ThisDiagn%IsOutFormat = .FALSE.
-!       ThisDiagn%nnGetCalls  = 0
-!
-!       ! Verbose mode 
-!       IF ( am_I_Root .AND. HCO_VERBOSE_CHECK() ) THEN
-!          WRITE(MSG,'(a,a,a,I3,a)') 'Successfully updated diagnostics: ', &
-!             TRIM(ThisDiagn%cName), ' (counter:', ThisDiagn%Counter, ')'
-!          CALL HCO_MSG ( MSG )
-! new code
           ThisColl => NULL()
-! end
        ENDIF
 
     ENDDO ! loop over collections
