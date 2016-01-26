@@ -32,7 +32,7 @@ MODULE Diagnostics_Mod
   PUBLIC  :: Diagnostics_Init
   PUBLIC  :: Diagnostics_Final
   PUBLIC  :: DiagnUpdate_NTracers_3D    ! utility subroutine
-  PUBLIC  :: DiagnUpdate_Met            ! ND31, 55, 57, 66, 67, 68, and 69
+  PUBLIC  :: DiagnUpdate_Met            ! ND31, 55, 57, 66, 67, and 68
   PUBLIC  :: DiagnUpdate_Transport_Flux ! ND24, ND25, ND26
 #if defined( DEVEL )
   PUBLIC  :: CalcDobsonColumn           ! added by ck - no existing bpch diag
@@ -51,7 +51,7 @@ MODULE Diagnostics_Mod
   PRIVATE :: DiagnInit_WetScav          ! ND38 and 39 (add 37)
   PRIVATE :: DiagnInit_DryDep           ! ND44
   PRIVATE :: DiagnInit_Tracer_Conc      ! ND45
-  PRIVATE :: DiagnInit_Met              ! ND31, 55, 57, 66, 67, 68, and 69
+  PRIVATE :: DiagnInit_Met              ! ND31, 55, 57, 66, 67, and 68
 
 ! Specialty simulation diagnostic groups
   PRIVATE :: DiagnInit_Pb_Emiss      ! ND01 init
@@ -290,7 +290,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Meteorology state diagnostic (ND31, 55, 57, 66, 67, 68, and 69)
+    ! Meteorology state diagnostic (ND31, 55, 57, 66, 67, and 68)
     ! For now, use ND68 as indicator for entire diagnostic group
     IF ( Input_Opt%ND68 > 0 ) THEN
        CALL DiagnInit_Met( am_I_Root, Input_Opt, State_Met, RC )
@@ -1034,7 +1034,7 @@ CONTAINS
 ! !IROUTINE: diagninit_met
 !
 ! !DESCRIPTION: Subroutine DIAGNINIT\_MET initializes the meteorology state
-!  diagnostics (aka ND31, ND55, ND57, ND66, ND67, ND68, and ND69).
+!  diagnostics (aka ND31, ND55, ND57, ND66, ND67, and ND68).
 !\\
 !\\
 ! !INTERFACE:
@@ -1130,7 +1130,7 @@ CONTAINS
              OutUnit    = 'v/v'
           CASE ( 11 )
              NameSuffix = 'NAIR'            ! ND68, trcr 4
-             OutUnit    = 'molec dry air/m3'
+             OutUnit    = 'molec/m3'
           CASE ( 12 )
              NameSuffix = 'PEDGE'           ! ND31, trcr 1
              OutUnit    = 'hPa'
@@ -2022,7 +2022,7 @@ CONTAINS
     CHARACTER(LEN=15)    :: OutOper
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
-    CHARACTER(LEN=255)   :: LOC = 'DIAGNINIT_WASH_FRAC (diagnostics_mod.F90)' 
+    CHARACTER(LEN=255)   :: LOC = 'DiagnInit_Wash_Frac (diagnostics_mod.F90)' 
 
     !=======================================================================
     ! DIAGNINIT_WASH_FRAC begins here!
@@ -2729,7 +2729,7 @@ CONTAINS
 ! !IROUTINE: diagnupdate_met
 !
 ! !DESCRIPTION: Subroutine DIAGNUPDATE\_MET updates the meteorology state
-!  diagnostics (aka ND31, ND55, ND57, ND66, ND67, ND68, and ND69).
+!  diagnostics (aka ND31, ND55, ND57, ND66, ND67, and ND68).
 !\\
 !\\
 ! !INTERFACE:
@@ -2741,7 +2741,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Update
-    USE PHYSCONSTANTS,      ONLY : XNUMOLAIR
+    USE PHYSCONSTANTS,      ONLY : XNUMOLAIR, SCALE_HEIGHT
 !
 ! !INPUT PARAMETERS:
 !
@@ -2766,9 +2766,10 @@ CONTAINS
     CHARACTER(LEN=30)  :: NameSuffix, DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DiagnUpdate_Met (diagnostics_mod.F90)'
-    REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
+    REAL(fp), TARGET   :: Temp2D( IIPAR, JJPAR )
+    REAL(fp), TARGET   :: Temp3D( IIPAR, JJPAR, LLPAR )
     REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
-    ! Need to define Arr2D and Arr3D
+    REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
 
     !=======================================================================
     ! DIAGNUPDATE_MET begins here!
@@ -2783,37 +2784,148 @@ CONTAINS
 
     ! Set number of 3D and 2D MET diagnostics
     Num3d = 12
-    Num2d = 25
+    Num2d = 22
 
     !----------------------------------------------------------------
-    ! Update containers
+    ! Update 2D containers
     !----------------------------------------------------------------
   
+    ! Loop over 2D diagnostics within Met category
+    DO N = 1, Num2D
+
+       ! Zero the temporary array in case it is used
+       Temp2D = 0.0e+0_fp
+
+       SELECT CASE ( N )
+          CASE ( 1 )
+             NameSuffix = 'HFLUX'           ! ND67, trcr 1
+             Ptr2D => Temp2D ! placeholder
+          CASE ( 2 )
+             NameSuffix = 'RADSWG'          ! ND67, trcr 2
+             Ptr2D => Temp2D ! placeholder
+          CASE ( 3 )
+             NameSuffix = 'PREACC'          ! ND67, trcr 3
+             Ptr2D => Temp2D ! placeholder
+          CASE ( 4 )
+             NameSuffix = 'PRECON'          ! ND67, trcr 4
+             Ptr2D => Temp2D ! placeholder
+          CASE ( 5 )
+             NameSuffix = 'TS'              ! ND67, trcr 5
+             Ptr2D => Temp2D ! placeholder
+          CASE ( 6 )
+             NameSuffix = 'RADSWT'          ! ND67, trcr 6
+             Ptr2D => Temp2D ! placeholder
+          CASE ( 7 )
+             NameSuffix = 'USTAR'           ! ND67, trcr 7
+             Ptr2D => Temp2D ! placeholder
+          CASE ( 8 )
+             NameSuffix = 'Z0'              ! ND67, trcr 8
+             Ptr2D => Temp2D ! placeholder
+          CASE ( 9 )
+             NameSuffix = 'PBL'             ! ND67, trcr 9
+             Ptr2D => Temp2D
+          CASE ( 10 )
+             NameSuffix = 'CLDFRC'          ! ND67, trcr 10
+             Ptr2D => Temp2D ! placeholder
+          CASE ( 11 )
+             NameSuffix = 'U10M'            ! ND67, trcr 11
+             Ptr2D => Temp2D ! placeholder
+          CASE ( 12 )
+             NameSuffix = 'V10M'            ! ND67, trcr 12
+             Ptr2D => Temp2D ! placeholder
+          CASE ( 13 )
+             NameSuffix = 'PS-PBL'          ! ND67, trcr 13
+             Temp2D = State_Met%PEDGE(:,:,1) *      &
+                      EXP( -State_Met%PBLH(:,:) / SCALE_HEIGHT ) 
+             Ptr2D => Temp2D
+          CASE ( 14 )
+             NameSuffix = 'ALBD'            ! ND67, trcr 14
+             Ptr2D => Temp2D ! placeholder
+          CASE ( 15 )
+             NameSuffix = 'PHIS'            ! ND67, trcr 15
+             Ptr2D => Temp2D ! placeholder
+          CASE ( 16 )
+             NameSuffix = 'CLTOP'           ! ND67, trcr 16
+             Ptr2D => Temp2D ! placeholder
+          CASE ( 17 )
+             NameSuffix = 'TROPP'           ! ND67, trcr 17
+             Ptr2D => State_Met%TROPP
+          CASE ( 18 )
+             NameSuffix = 'SLP'             ! ND67, trcr 18
+             Ptr2D => Temp2D ! placeholder
+          CASE ( 19 )
+             NameSuffix = 'TSKIN'           ! ND67, trcr 19
+             Ptr2D => Temp2D ! placeholder
+          CASE ( 20 )
+             NameSuffix = 'PARDF'           ! ND67, trcr 20
+             Ptr2D => Temp2D ! placeholder
+          CASE ( 21 )
+             NameSuffix = 'PARDR'           ! ND67, trcr 21
+             Ptr2D => Temp2D ! placeholder
+          CASE ( 22 )
+             NameSuffix = 'GWETTOP'         ! ND67, trcr 22
+             Ptr2D => Temp2D ! placeholder
+          CASE DEFAULT
+             IF ( N < Num2D ) THEN
+                MSG = 'Num2D is less than number of named 2D MET diagnostics'
+             ELSE
+                MSG = 'Undefined 2D diagnostic in MET diagnostic group'
+             ENDIF
+             CALL ERROR_STOP( MSG, LOC ) 
+       END SELECT
+
+       ! Diagnostic info
+       DiagnName = 'MET_' // NameSuffix
+
+       ! Update diagnostics
+       IF ( ASSOCIATED(Ptr2D) ) THEN 
+          CALL Diagn_Update( am_I_Root,                   &
+                             cName   = TRIM( DiagnName ), &
+                             Array2D = Ptr2D,             &
+                             RC      = RC )
+
+          ! Free the pointer
+          Ptr2D => NULL()
+ 
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot update 2D MET diagnostic ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC ) 
+          ENDIF
+       ENDIF
+    ENDDO
+
+    !----------------------------------------------------------------
+    ! Update 3D containers
+    !----------------------------------------------------------------
+
     ! Loop over 3D diagnostics within Met category
     DO N = 1, Num3D
+
+       ! Zero the temporary array in case it is used
+       Temp3D = 0.0e+0_fp
 
        SELECT CASE ( N )
           CASE ( 1 )
              NameSuffix = 'THETA'           ! ND57, trcr 1
-             Ptr3D => State_Met%T  ! placeholder
+             Ptr3D => Temp3D  ! placeholder
           CASE ( 2 )
              NameSuffix = 'UWND'            ! ND66, trcr 1 
-             Ptr3D => State_Met%T  ! placeholder
+             Ptr3D => Temp3D  ! placeholder
           CASE ( 3 )
              NameSuffix = 'VWND'            ! ND66, trcr 2
-             Ptr3D => State_Met%T  ! placeholder
+             Ptr3D => Temp3D  ! placeholder
           CASE ( 4 )
              NameSuffix = 'TMPU'            ! ND66, trcr 3
-             Ptr3D => State_Met%T  ! placeholder
+             Ptr3D => Temp3D  ! placeholder
           CASE ( 5 )
              NameSuffix = 'SPHU'            ! ND66, trcr 4
-             Ptr3D => State_Met%T  ! placeholder
+             Ptr3D => Temp3D  ! placeholder
           CASE ( 6 )
              NameSuffix = 'CLDMAS'          ! ND66, trcr 5
-             Ptr3D => State_Met%T  ! placeholder
+             Ptr3D => Temp3D  ! placeholder
           CASE ( 7 )
              NameSuffix = 'DTRAIN'          ! ND66, trcr 6
-             Ptr3D => State_Met%T  ! placeholder
+             Ptr3D => Temp3D  ! placeholder
           CASE ( 8 )
              NameSuffix = 'BXHEIGHT'        ! ND68, trcr 1
              Ptr3D => State_Met%BXHEIGHT 
@@ -2821,13 +2933,12 @@ CONTAINS
              NameSuffix = 'DRYAIRMASS'      ! ND68, trcr 2
              Ptr3D => State_Met%AD
           CASE ( 10 )
-             IF ( .NOT. ASSOCIATED(State_Met%AVGW) ) CYCLE
              NameSuffix = 'AVGW'            ! ND68, trcr 3
              Ptr3D => State_Met%AVGW
           CASE ( 11 )
              NameSuffix = 'NAIR'            ! ND68, trcr 4
-!             Arr3D = State_Met%AIRDEN * XNUMOLAIR
-             Ptr3D => State_Met%T  ! placeholder
+             Temp3D = State_Met%AIRDEN(:,:,:) * XNUMOLAIR
+             Ptr3D => Temp3D
           CASE ( 12 )
              NameSuffix = 'PEDGE'           ! ND31, trcr 1
              Ptr3D => State_Met%PEDGE
@@ -2855,120 +2966,6 @@ CONTAINS
  
           IF ( RC /= HCO_SUCCESS ) THEN
              MSG = 'Cannot update MET diagnostic ' // TRIM(DiagnName)
-             CALL ERROR_STOP( MSG, LOC ) 
-          ENDIF
-       ENDIF
-    ENDDO
-
-    ! Loop over 2D diagnostics within Met category
-    DO N = 1, Num2D
-
-       SELECT CASE ( N )
-          CASE ( 1 )
-             NameSuffix = 'TR-PAUSE_Level'  ! ND55, trcr 1
-             ! for now, update from main using existing diag_tropopause
-             ! in chemgrid_mod.F
-             CYCLE 
-          CASE ( 2 )
-             NameSuffix = 'TR-PAUSE_km'     ! ND55, trcr 2
-             ! for now, update from main using existing diag_tropopause
-             ! in chemgrid_mod.F
-             CYCLE 
-          CASE ( 3 )
-             NameSuffix = 'TR-PAUSE_mb'     ! ND55, trcr 3
-             ! for now, update from main using existing diag_tropopause
-             ! in chemgrid_mod.F
-             CYCLE 
-          CASE ( 4 )
-             NameSuffix = 'HFLUX'           ! ND67, trcr 1
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 5 )
-             NameSuffix = 'RADSWG'          ! ND67, trcr 2
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 6 )
-             NameSuffix = 'PREACC'          ! ND67, trcr 3
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 7 )
-             NameSuffix = 'PRECON'          ! ND67, trcr 4
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 8 )
-             NameSuffix = 'TS'              ! ND67, trcr 5
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 9 )
-             NameSuffix = 'RADSWT'          ! ND67, trcr 6
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 10 )
-             NameSuffix = 'USTAR'           ! ND67, trcr 7
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 11 )
-             NameSuffix = 'Z0'              ! ND67, trcr 8
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 12 )
-             NameSuffix = 'PBL'             ! ND67, trcr 9
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 13 )
-             NameSuffix = 'CLDFRC'          ! ND67, trcr 10
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 14 )
-             NameSuffix = 'U10M'            ! ND67, trcr 11
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 15 )
-             NameSuffix = 'V10M'            ! ND67, trcr 12
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 16 )
-             NameSuffix = 'PS-PBL'          ! ND67, trcr 13
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 17 )
-             NameSuffix = 'ALBD'            ! ND67, trcr 14
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 18 )
-             NameSuffix = 'PHIS'            ! ND67, trcr 15
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 19 )
-             NameSuffix = 'CLTOP'           ! ND67, trcr 16
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 20 )
-             NameSuffix = 'TROPP'           ! ND67, trcr 17
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 21 )
-             NameSuffix = 'SLP'             ! ND67, trcr 18
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 22 )
-             NameSuffix = 'TSKIN'           ! ND67, trcr 19
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 23 )
-             NameSuffix = 'PARDF'           ! ND67, trcr 20
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 24 )
-             NameSuffix = 'PARDR'           ! ND67, trcr 21
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE ( 25 )
-             NameSuffix = 'GWETTOP'         ! ND67, trcr 22
-             Ptr2D => State_Met%TROPP  ! placeholder
-          CASE DEFAULT
-             IF ( N < Num2D ) THEN
-                MSG = 'Num2D is less than number of named 2D MET diagnostics'
-             ELSE
-                MSG = 'Undefined 2D diagnostic in MET diagnostic group'
-             ENDIF
-             CALL ERROR_STOP( MSG, LOC ) 
-       END SELECT
-
-       ! Diagnostic info
-       DiagnName = 'MET_' // NameSuffix
-
-       ! Update diagnostics
-       IF ( ASSOCIATED(Ptr2D) ) THEN 
-          CALL Diagn_Update( am_I_Root,                   &
-                             cName   = TRIM( DiagnName ), &
-                             Array2D = Ptr2D,             &
-                             RC      = RC )
-
-          ! Free the pointer
-          Ptr2D => NULL()
- 
-          IF ( RC /= HCO_SUCCESS ) THEN
-             MSG = 'Cannot update 2D MET diagnostic ' // TRIM(DiagnName)
              CALL ERROR_STOP( MSG, LOC ) 
           ENDIF
        ENDIF

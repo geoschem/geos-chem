@@ -503,7 +503,6 @@
      &                     ( State_Met%PEDGE(I,J,1) 
      &                     * EXP( -State_Met%PBLH(I,J)
      &                     / SCALE_HEIGHT ) )
-
          ENDDO
          ENDDO
       ENDIF
