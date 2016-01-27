@@ -915,8 +915,7 @@ ifeq ($(COMPILER),ifort)
   # Pick compiler options for debug run or regular run 
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           += -g -O0 -convert big_endian
-    FFLAGS           += -check arg_temp_created -debug all
+    FFLAGS           += -g -O0 -check arg_temp_created -debug all
     TRACEBACK        := yes
     USER_DEFS        += -DDEBUG
   else
