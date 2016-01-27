@@ -2999,15 +2999,15 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-   LOGICAL,            INTENT(IN)  :: am_I_Root        ! Are we on root CPU?
-   REAL(fp),           INTENT(IN)  :: FLUX_EW(:,:,:,:) ! east-west mass flux
-   REAL(fp),           INTENT(IN)  :: FLUX_NS(:,:,:,:) ! north-south flux
-   REAL(fp),           INTENT(IN)  :: FLUX_VERT(:,:,:,:) ! up-down flux
-   TYPE(OptInput),     INTENT(IN)  :: Input_Opt   ! Input options object
+   LOGICAL,          INTENT(IN)  :: am_I_Root          ! Are we on root CPU?
+   REAL(fp),         INTENT(IN)  :: FLUX_EW(:,:,:,:)   ! zonal mass flux
+   REAL(fp),         INTENT(IN)  :: FLUX_NS(:,:,:,:)   ! meridional flux
+   REAL(fp),         INTENT(IN)  :: FLUX_VERT(:,:,:,:) ! vertical mass flux
+   TYPE(OptInput),   INTENT(IN)  :: Input_Opt          ! Input options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-   INTEGER,           INTENT(INOUT) :: RC          ! Success or failure
+   INTEGER,          INTENT(INOUT) :: RC               ! Success or failure
 !
 ! !REVISION HISTORY:
 !  12 Feb 2015 - E. Lundgren   - Initial version
@@ -3021,16 +3021,19 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-   INTEGER             :: M, NumLevels
-   CHARACTER(LEN=60)   :: DiagnPrefix
+   INTEGER             :: N, M, NumLevels
+   CHARACTER(LEN=60)   :: DiagnPrefix, DiagnName
    CHARACTER(LEN=255)  :: MSG
-   CHARACTER(LEN=255)  :: LOC = 'DiagnUpdate_Transport_Flux' &
+   CHARACTER(LEN=255)  :: LOC = 'DiagnUpdate_Transport_Flux'  &
                                  // ' (Transport_mod.F)'
 
    ! Array to hold input mass flux array with reverse-order levels
    ! and only levels that have data (ie. less than LLPAR if input.geos
    ! levels for the diagnostic are less than LLPAR).
-   REAL(fp)   :: FlxArray_ReverseLevels(IIPAR,JJPAR,LLPAR,NNPAR)
+   REAL(fp), TARGET  :: DiagnArray( IIPAR, JJPAR, Input_Opt%LD24, NNPAR )
+
+   ! Pointers
+   REAL(fp), POINTER :: Ptr3D(:,:,:)
 
    !=================================================================
    ! DIAGNUPDATE_TRANSPORT_FULX begins here!
@@ -3038,6 +3041,9 @@ CONTAINS
    
     ! Assume successful return
     RC = GIGC_SUCCESS
+
+    ! Get number of levels for transport diagnostics
+    NumLevels = Input_Opt%LD24
 
     ! Loop over diagnostics
     DO M = 1, 3
@@ -3047,29 +3053,49 @@ CONTAINS
        SELECT CASE ( M )
           CASE ( 1 )
              DiagnPrefix = 'TRANSPORT_FLX_EW_'
-             NumLevels = Input_Opt%LD24
-             FlxArray_ReverseLevels(:,:,1:NumLevels,:) = &
-                   FLUX_EW(:,:,LLPAR:LLPAR-NumLevels+1:-1,:)
+             DiagnArray  = FLUX_EW(:,:,LLPAR:LLPAR-NumLevels+1:-1,:)
           CASE ( 2 )
              DiagnPrefix = 'TRANSPORT_FLX_NS_'
-             NumLevels = Input_Opt%LD24
-             FlxArray_ReverseLevels(:,:,1:NumLevels,:) = &
-                   FLUX_NS(:,:,LLPAR:LLPAR-NumLevels+1:-1,:)
+             DiagnArray  = FLUX_NS(:,:,LLPAR:LLPAR-NumLevels+1:-1,:)
           CASE ( 3 )
              DiagnPrefix = 'TRANSPORT_FLX_VERT_'
-             NumLevels = Input_Opt%LD24
-             FlxArray_ReverseLevels(:,:,1:NumLevels,:) = &
-                   FLUX_VERT(:,:,LLPAR:LLPAR-NumLevels+1:-1,:)
+             DiagnArray  = FLUX_VERT(:,:,LLPAR:LLPAR-NumLevels+1:-1,:)
        END SELECT
 
-       ! Update the diagnostic container using routine in diagnostics module
-       ! For now, pass diagnostic number 24 which can be temporarily used to
-       ! to indicate which tracers to include for entire transport flux diag 
-       ! group
-       CALL DiagnUpdate_NTracers_3D( am_I_Root, DiagnPrefix, 24,  &
-                                     FlxArray_ReverseLevels, Input_Opt, &
-                                     RC )
-
+       ! Loop over tracers
+       DO N = 1, Input_Opt%N_TRACERS
+       
+          ! If this tracer number N is scheduled for output in input.geos, 
+          ! then update its diagnostic container for transport flux
+          IF ( ANY( Input_Opt%TINDEX(24,:) == N ) ) THEN
+            
+             !----------------------------------------------------------------
+             ! Update diagnostic container
+             !----------------------------------------------------------------
+         
+             ! Diagnostic container name
+             DiagnName = TRIM( DiagnPrefix )                      &
+                         // TRIM( Input_Opt%TRACER_NAME( N ) )
+       
+             ! Point to the array with levels corrected
+             Ptr3D => DiagnArray(:,:,:,N)
+       
+             ! Create container
+             CALL Diagn_Update( am_I_Root,                        &
+                                cName     = TRIM( DiagnName ),    &
+                                Array3D   = Ptr3D,                &
+                                RC        = RC )
+       
+             ! Free the pointer 
+             Ptr3D => NULL()
+       
+             ! Stop with error if the diagnostics update was unsuccessful.
+             IF ( RC /= HCO_SUCCESS ) THEN
+                MSG = 'Cannot update diagnostic: ' // TRIM( DiagnName )
+                CALL ERROR_STOP( MSG, LOC ) 
+             ENDIF  
+          ENDIF
+       ENDDO
     ENDDO
 
    END SUBROUTINE DiagnUpdate_Transport_Flux

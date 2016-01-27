@@ -392,6 +392,13 @@
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
 
+#if defined( NETCDF )
+      ! Initialize netcdf diagnostic arrays
+      MASSFLEW_NC = 0.0e+0_fp
+      MASSFLNS_NC = 0.0e+0_fp
+      MASSFLUP_NC = 0.0e+0_fp
+#endif
+
       ! Pick the proper # of tracers
 #if   defined( APM )
       N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
@@ -453,15 +460,19 @@
       p_STT     => State_Chm%Tracers(:,:,LLPAR:1:-1,:) ! v/v
       p_XMASS   => XMASS            (:,:,LLPAR:1:-1  )
       p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
+
+      ! Diagnostic arrays are vertically flipped at writeout
 #if defined( BPCH )
-      p_MFLEW   => MASSFLEW         (:,:,LLPAR:1:-1,:)
-      p_MFLNS   => MASSFLNS         (:,:,LLPAR:1:-1,:)
-      p_MFLUP   => MASSFLUP         (:,:,LLPAR:1:-1,:)
+      ! Point to global diag_mod arrays for bpch
+      p_MFLEW   => MASSFLEW
+      p_MFLNS   => MASSFLNS
+      p_MFLUP   => MASSFLUP
 #endif
 #if defined( NETCDF )
-      p_MFLEW   => MASSFLEW_NC      (:,:,LLPAR:1:-1,:)
-      p_MFLNS   => MASSFLNS_NC      (:,:,LLPAR:1:-1,:)
-      p_MFLUP   => MASSFLUP_NC      (:,:,LLPAR:1:-1,:)
+      ! Point to local arrays for netcdf
+      p_MFLEW   => MASSFLEW_NC
+      p_MFLNS   => MASSFLNS_NC
+      p_MFLUP   => MASSFLUP_NC
 #endif
 
       ! Convert tracer concentration from kg/kg dry air to 
@@ -491,7 +502,7 @@
      &                   A_M2, ND24, ND25, ND26 )
 
 #if defined( NETCDF )
-      IF ( Input_Opt%ND24 > 0 ) THEN
+      IF ( Input_Opt%ND24 > 0 ) THEN 
          CALL DiagnUpdate_Transport_Flux( am_I_Root, p_MFLEW, p_MFLNS, 
      &                                    p_MFLUP, Input_Opt, RC )
       ENDIF
@@ -666,6 +677,13 @@
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
 
+#if defined( NETCDF )
+      ! Initialize netcdf diagnostic arrays
+      MASSFLEW_NC = 0.0e+0_fp
+      MASSFLNS_NC = 0.0e+0_fp
+      MASSFLUP_NC = 0.0e+0_fp
+#endif
+
       ! Pick the proper # of tracers
 #if   defined( APM )
       N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
@@ -733,14 +751,14 @@
       p_XMASS   => XMASS            (:,:,LLPAR:1:-1  )
       p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
 #if defined( BPCH )
-      p_MFLEW   => MASSFLEW         (:,:,LLPAR:1:-1,:)
-      p_MFLNS   => MASSFLNS         (:,:,LLPAR:1:-1,:)
-      p_MFLUP   => MASSFLUP         (:,:,LLPAR:1:-1 ,:)
+      p_MFLEW   => MASSFLEW
+      p_MFLNS   => MASSFLNS
+      p_MFLUP   => MASSFLUP
 #endif
 #if defined( NETCDF )
-      p_MFLEW   => MASSFLEW_NC      (:,:,LLPAR:1:-1,:)
-      p_MFLNS   => MASSFLNS_NC      (:,:,LLPAR:1:-1,:)
-      p_MFLUP   => MASSFLUP_NC      (:,:,LLPAR:1:-1,:)
+      p_MFLEW   => MASSFLEW_NC
+      p_MFLNS   => MASSFLNS_NC
+      p_MFLUP   => MASSFLUP_NC
 #endif
 
 
@@ -953,6 +971,13 @@
       LPRT      = Input_Opt%LPRT
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
+
+#if defined( NETCDF )
+      ! Initialize netcdf diagnostic arrays
+      MASSFLEW_NC = 0.0e+0_fp
+      MASSFLNS_NC = 0.0e+0_fp
+      MASSFLUP_NC = 0.0e+0_fp
+#endif
 
       ! Pick the proper # of tracers
 #if   defined( APM )
