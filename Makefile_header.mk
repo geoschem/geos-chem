@@ -898,7 +898,7 @@ endif
 
 ###############################################################################
 ###                                                                         ###
-###  Define settings for the Intel Fortran Compiler (aka ifort)             ###
+###  Define settings for the INTEL FORTRAN COMPILER (aka ifort)             ###
 ###                                                                         ###
 ###############################################################################
 
@@ -1024,7 +1024,7 @@ endif
 
 ###############################################################################
 ###                                                                         ###
-###  Define settings for the Portland Group Compiler (aka "pgfortran")      ###
+###  Define settings for the PORTLAND GROUP COMPILER (aka "pgfortran")      ###
 ###                                                                         ###
 ###############################################################################
 
