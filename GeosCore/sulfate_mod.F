@@ -1915,7 +1915,7 @@
          IF ( ANY( Input_Opt%TINDEX(44,:) == trc_id ) ) THEN
 
            ! Define diagnostic name
-           DiagnName = 'DRYDEP_FLX_' // 
+           DiagnName = 'DRYDEP_FLX_CHEM_' // 
      &                 TRIM( Input_Opt%DEPNAME( drydep_id ) )
            
            ! Point to the flux data

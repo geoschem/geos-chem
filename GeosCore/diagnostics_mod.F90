@@ -779,9 +779,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: Collection, D, N, M
-    LOGICAL            :: First_ISOPN, First_MMN
     CHARACTER(LEN=15)  :: OutOper
-    CHARACTER(LEN=60)  :: DiagnName, DryDepName
+    CHARACTER(LEN=60)  :: Prefix, Units, DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DiagnInit_DruDep (diagnostics_mod.F)' 
     
@@ -796,95 +795,61 @@ CONTAINS
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%DRYDEP_OUTPUT_TYPE
 
-    ! Special cases if ISOPN or MMN since there are two 
-    ! corresponding dry deposition species each, ISOPND and ISOPNB for
-    ! ISOPN, and MACRN and MAVKN for MMN. Therefore, track when ISOPN and
-    ! MMN are first encountered. (ewl, 1/20/16)
-    First_ISOPN = .TRUE.
-    First_MMN = .TRUE.
+    ! Loop over 3 types of drydep diagnostics
+    DO M = 1, 3
 
-    ! Loop over # of depositing species
-    DO D = 1, Input_Opt%NUMDEP
-         
-       ! Corresponding GEOS-Chem tracer number
-       N = Input_Opt%NTRAIND(D)
+       SELECT CASE ( M )
+          CASE ( 1 )
+             Prefix = 'DRYDEP_VEL_'
+             Units = 'cm s-1'
+          CASE ( 2 )
+             Prefix = 'DRYDEP_FLX_CHEM_'
+             Units = 'molec cm-2 s-1'
+          CASE ( 3 )
+             Prefix = 'DRYDEP_FLX_MIX_'
+             Units = 'molec cm-2 s-2'
+       END SELECT
 
-       ! If this tracer number N is scheduled for output in input.geos, 
-       ! then define the diagnostic containers for drydep velocity & flux
-       IF ( ANY( Input_Opt%TINDEX(44,:) == N ) ) THEN
-
-          !----------------------------------------------------------------
-          ! Create containers for drydep velocity [m/s]
-          !----------------------------------------------------------------
-
-          IF ( N == IDTISOPN .AND. First_ISOPN ) THEN
-             DryDepName = 'ISOPND'
-             First_ISOPN = .FALSE.
-          ELSE IF ( N == IDTISOPN .AND. .NOT. First_ISOPN ) THEN
-             DryDepName = 'ISOPNB'
-          ELSE IF ( N == IDTMMN .AND. First_MMN ) THEN
-             DryDepName = 'MACRN'
-             First_MMN = .FALSE.
-          ELSE IF ( N == IDTMMN .AND. .NOT. First_MMN ) THEN
-             DryDepName = 'MAVKN'
-          ELSE
-             DryDepName =  Input_Opt%TRACER_NAME(N)
+       ! Loop over # of depositing species
+       DO D = 1, Input_Opt%NUMDEP
+            
+          ! Corresponding GEOS-Chem tracer number
+          N = Input_Opt%NTRAIND(D)
+       
+          ! If this tracer number N is scheduled for output in input.geos, 
+          ! then define the diagnostic containers for drydep velocity & flux
+          IF ( ANY( Input_Opt%TINDEX(44,:) == N ) ) THEN
+       
+             !----------------------------------------------------------------
+             ! Create diagnostic container
+             !----------------------------------------------------------------
+       
+             ! Diagnostic container name and id
+             DiagnName = TRIM( Prefix ) // TRIM( Input_Opt%DEPNAME(D) )
+             cId = cId + 1
+       
+             ! Create container
+             CALL Diagn_Create( am_I_Root,                     &
+                                Col       = Collection,        &
+                                cId       = cId,               & 
+                                cName     = TRIM( DiagnName ), &
+                                AutoFill  = 0,                 &
+                                ExtNr     = -1,                &
+                                Cat       = -1,                &
+                                Hier      = -1,                &
+                                HcoID     = -1,                &
+                                SpaceDim  =  2,                &
+                                OutUnit   = TRIM( Units ),     &
+                                OutOper   = TRIM( OutOper ),   &
+                                OkIfExist = .TRUE.,            &
+                                RC        = RC )
+       
+             IF ( RC /= HCO_SUCCESS ) THEN
+                MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+                CALL ERROR_STOP( MSG, LOC ) 
+             ENDIF
           ENDIF
-             
-          ! Diagnostic container name and id
-          DiagnName = 'DRYDEP_VEL_' // TRIM( DryDepName )
-          cId = cId + 1
-   
-          ! Create container
-          CALL Diagn_Create( am_I_Root,                     &
-                             Col       = Collection,        &
-                             cId       = cId,               & 
-                             cName     = TRIM( DiagnName ), &
-                             AutoFill  = 0,                 &
-                             ExtNr     = -1,                &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
-                             HcoID     = -1,                &
-                             SpaceDim  =  2,                &
-                             OutUnit   = 'cm/s-1',          &
-                             OutOper   = TRIM( OutOper   ), &
-                             OkIfExist = .TRUE.,            &
-                             RC        = RC )
-   
-          IF ( RC /= HCO_SUCCESS ) THEN
-             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-             CALL ERROR_STOP( MSG, LOC ) 
-          ENDIF
-          
-          !----------------------------------------------------------------
-          ! Create containers for drydep flux [kg/m2/s]
-          !----------------------------------------------------------------
-   
-          ! Diagnostic container name and id
-          DiagnName = 'DRYDEP_FLX_' // TRIM( DryDepName )
-          cId       = cId + 1
-   
-          ! Create container
-          CALL Diagn_Create( am_I_Root,                     &
-                             Col       = Collection,        &
-                             cId       = cId,               &
-                             cName     = TRIM( DiagnName ), &
-                             AutoFill  = 0,                 &
-                             ExtNr     = -1,                &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
-                             HcoID     = -1,                &
-                             SpaceDim  =  2,                &
-                             OutUnit   = 'molec cm-2 s-1',  &
-                             OutOper   = TRIM( OutOper   ), &
-                             OkIfExist = .TRUE.,            &
-                             RC        = RC )
-   
-          IF ( RC /= HCO_SUCCESS ) THEN
-             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-             CALL ERROR_STOP ( MSG, LOC ) 
-          ENDIF
-       ENDIF
+       ENDDO
     ENDDO
 
   END SUBROUTINE DiagnInit_DryDep

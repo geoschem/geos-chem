@@ -707,7 +707,7 @@ CONTAINS
           IF ( ANY( Input_Opt%TINDEX(44,:) == trc_id ) ) THEN
        
              ! Define diagnostic name
-             DiagnName = 'DRYDEP_FLX_' // TRIM( Input_OPt%DEPNAME( D ) )
+             DiagnName = 'DRYDEP_FLX_MIX_' // TRIM( Input_OPt%DEPNAME(D) )
 
              ! Point to data
              Ptr2D => DryDepFlux(:,:,D)

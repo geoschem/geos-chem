@@ -2659,7 +2659,8 @@ contains
              IF ( ANY( Input_Opt%TINDEX(44,:) == trc_id ) ) THEN
 
                 ! Update diagnostic container
-                DiagnName = 'DRYDEP_FLX_' // TRIM( Input_OPt%DEPNAME( D ) )
+                DiagnName = 'DRYDEP_FLX_MIX_'                &
+                            // TRIM( Input_OPt%DEPNAME(D) )
                 Ptr2D => DryDepFlux
                 CALL Diagn_Update( am_I_Root,                           &
                                    cName   = TRIM( DiagnName),          &
