@@ -47,7 +47,10 @@
                           PUBLIC :: T_STS ! Max temperature of STS formation (K)
       REAL(fp),           PUBLIC :: T_NAT_SUPERCOOL ! NAT supercooling (K)
       REAL(fp),           PUBLIC :: P_ICE_SUPERSAT ! Ice supersaturation (-)
-                          PUBLIC :: KHETI_SLA ! Reaction cofactors for SLA
+!------------------------------------------------------------------------------
+! Prior to 1/28/16:
+!                          PUBLIC :: KHETI_SLA ! Reaction cofactors for SLA
+!------------------------------------------------------------------------------
                           PUBLIC :: NDENS_AER ! See below
       INTEGER,            PUBLIC :: CFCYEAR ! Year for CFC emissions
 !
@@ -103,6 +106,10 @@
 !  14 Jan 2014 - C. Keller     - Now read and diagnose STATE_PSC through HEMCO.
 !  08 Apr 2015 - R. Yantosca   - Now make READ_PSC_FILE a PUBLIC routine
 !  08 May 2015 - C. Keller     - Added WRITE_STATE_PSC
+!  28 Jan 2016 - M. Sulprizio  - STATE_PSC and KHETI_SLA are now fields in
+!                                State_Chm instead of public arrays. These need
+!                                to be added to the derived type object to be
+!                                accessed in gckpp_HetRates.F90.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -185,8 +192,6 @@
       ! SAD_AER            : Aerosol surface area density (cm2/cm3)
       ! NDENS_AER          : Aerosol number density (#/m3)
       ! RHO_AER            : Aerosol mass density (kg/m3 aerosol)
-      ! STATE_PSC          : Gridbox PSC type (see Kirner et al)
-      ! KHETI_SLA          : Liquid aerosol reaction cofactors
       ! AERFRAC            : Mass fraction of species in liquid aerosols
       ! AERFRACIND         : Indices of liquid aerosol species
       ! NOX_O              : Monthly mean noontime O3P/O1D for NOx calcs
@@ -241,9 +246,12 @@
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: SAD_AER
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: NDENS_AER
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: RHO_AER
-      !INTEGER,DIMENSION(:,:,:),ALLOCATABLE  :: STATE_PSC
-      REAL(f4),DIMENSION(:,:,:),POINTER       :: STATE_PSC => NULL()
-      REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: KHETI_SLA
+!------------------------------------------------------------------------------
+! Prior to 1/28/16:
+!      !INTEGER,DIMENSION(:,:,:),ALLOCATABLE  :: STATE_PSC
+!      REAL(f4),DIMENSION(:,:,:),POINTER       :: STATE_PSC => NULL()
+!      REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: KHETI_SLA
+!------------------------------------------------------------------------------
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: AERFRAC
       INTEGER,DIMENSION(:),ALLOCATABLE      :: AERFRACIND
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: NOX_O
@@ -2600,6 +2608,7 @@
 
       ! Pointers
       REAL(fp), POINTER      :: STT(:,:,:,:)
+      REAL(f4), POINTER      :: STATE_PSC(:,:,:)
 
       !=================================================================
       ! SETTLE_STRAT_AER begins here!
@@ -2617,6 +2626,9 @@
 
       ! Initialize GEOS-Chem tracer array [kg]
       STT => State_Chm%Tracers
+
+      ! Initialize gridbox PSC type (see Kirner et al. 2011, GMD)
+      STATE_PSC => State_Chm%STATE_PSC
 
       ! Return if gravitational settling disabled
       IF (.not. LGRAVSTRAT) RETURN
@@ -2915,7 +2927,6 @@
                ! XPSC is the number of molecules tied up in solid particles
                ! per m3 in a grid box
                L = STARTPT
-               !IF (STATE_PSC(I,J,L).lt.2) THEN
                IF (STATE_PSC(I,J,L) < 2.0e+0_f4 ) THEN
                   XNO3_0 = 0e+0_fp
                   XNAT_0 = 0e+0_fp
@@ -2934,7 +2945,6 @@
                INVAIR_0 = AIRMW/State_Met%AD(I,J,L)
                IF (L .lt. (LLPAR-1)) THEN
                   INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+1)
-                  !IF (STATE_PSC(I,J,L+1).lt.2) THEN
                   IF (STATE_PSC(I,J,L+1) < 2.0e+0_f4 ) THEN
                      XNO3_ABOVE = 0e+0_fp
                      XNAT_ABOVE = 0e+0_fp
@@ -2992,7 +3002,6 @@
                   
                   IF (L.lt.(LLPAR-1)) THEN
                      INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+2)
-                     !IF (STATE_PSC(I,J,L+2).ge.2) THEN
                      IF (STATE_PSC(I,J,L+2) >= 2.0e+0_f4 ) THEN
                         XNO3_ABOVE = STT(I,J,L+2,IDTNIT)*INVAIR_ABOVE/ 
      &                                TRACER_MW_G(IDTNIT)
@@ -3164,9 +3173,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Free pointer
-      NULLIFY( STT )
-
       IF (LPRT) THEN
          CALL DEBUG_MSG( '### UCX: after SETTLE_STRAT_AER' )
          WRITE(6,'(a)') 'Max ice loss statistics:'
@@ -3187,6 +3193,9 @@
          WRITE(6,'(a,1x,2E12.4)') 'Sedquant and PSed variables   : ',
      &                         D_SEDQ, D_PSED
       ENDIF
+
+      ! Free pointers
+      NULLIFY( STT, STATE_PSC )
 
       END SUBROUTINE SETTLE_STRAT_AER
 !
@@ -3457,7 +3466,7 @@
       REAL(fp),PARAMETER      :: PSC_PMIN   =   5.0e+2_fp
 
       ! Allow PSC formation outsize Kirner limits?
-      LOGICAL,PARAMETER     :: PSC_FULL   =.FALSE.
+      LOGICAL,PARAMETER       :: PSC_FULL   =.FALSE.
 
       ! Saturation and nucleation properties of HNO3
       REAL(fp), PARAMETER     :: TSATHNO3_A = -2.7836e+0_fp
@@ -3523,26 +3532,28 @@
 
       ! Local properties
       REAL(fp), DIMENSION(11) :: GAMMA_BOX
-      INTEGER               :: STATE_LOCAL
+      INTEGER                 :: STATE_LOCAL
 
       ! Loop variables
-      INTEGER               :: I, J, L, K
+      INTEGER                 :: I, J, L, K
 
       ! SDE 2013-07-07: Debug variables
-      REAL(fp)                 :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
-      REAL(fp)                 :: D_MAXN, D_FRACN,D_PP,   D_PS
+      REAL(fp)                :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
+      REAL(fp)                :: D_MAXN, D_FRACN,D_PP,   D_PS
 
       ! Local variables for quantities from Input_Opt
-      LOGICAL                :: prtDebug
-      LOGICAL                :: LPRT
-      LOGICAL                :: LHOMNUCNAT
-      LOGICAL                :: LSOLIDPSC
-      LOGICAL                :: LACTIVEH2O
-      INTEGER                :: N_TRACERS
-      REAL(fp)                 :: TRACER_MW_G(Input_Opt%N_TRACERS)
+      LOGICAL                 :: prtDebug
+      LOGICAL                 :: LPRT
+      LOGICAL                 :: LHOMNUCNAT
+      LOGICAL                 :: LSOLIDPSC
+      LOGICAL                 :: LACTIVEH2O
+      INTEGER                 :: N_TRACERS
+      REAL(fp)                :: TRACER_MW_G(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL(fp), POINTER        :: STT(:,:,:,:)
+      REAL(fp), POINTER       :: STT(:,:,:,:)
+      REAL(fp), POINTER       :: KHETI_SLA(:,:,:,:)
+      REAL(f4), POINTER       :: STATE_PSC(:,:,:)
 
       !=================================================================
       ! CALC_STRAT_AER begins here!
@@ -3561,6 +3572,12 @@
 
       ! Initialize GEOS-Chem tracer array [kg]
       STT => State_Chm%Tracers
+
+      ! Initialize sticking coefficients for PSC reactions on SLA
+      KHETI_SLA => State_Chm%KHETI_SLA
+
+      ! Initialize gridbox PSC type (see Kirner et al. 2011, GMD)
+      STATE_PSC => State_Chm%STATE_PSC
 
       ! Do we have to print debug output?
       prtDebug = ( LPRT .and. am_I_Root )
@@ -3667,7 +3684,6 @@
                HOBr_BOX_L   = 0.0e+0_fp
                HOBr_BOX_G   = 0.0e+0_fp
 
-               !STATE_LOCAL  = STATE_PSC(I,J,L)
                STATE_LOCAL  = NINT(STATE_PSC(I,J,L))
 
                ! Calculate local air density
@@ -3763,7 +3779,6 @@
                ENDIF
 
                ! Store state
-               !STATE_PSC(I,J,L) = STATE_LOCAL
                STATE_PSC(I,J,L) = REAL(STATE_LOCAL,f4)
 
                ! Only continue if we want online solid PSCs
@@ -4135,8 +4150,8 @@
      &                               D_TK                    
       ENDIF
 
-      ! Free pointer
-      NULLIFY( STT )
+      ! Free pointers
+      NULLIFY( STT, STATE_PSC, KHETI_SLA )
 
       END SUBROUTINE CALC_STRAT_AER
 !EOC
@@ -5327,7 +5342,7 @@
 
       ! Get restart variable
       CALL HCO_RestartGet( am_I_Root, HcoState, 'STATE_PSC',  
-     &                     STATE_PSC, RC, FILLED=IT_EXISTS ) 
+     &                     State_Chm%STATE_PSC, RC, FILLED=IT_EXISTS ) 
       IF ( RC /= HCO_SUCCESS ) THEN
          MSG = 'Cannot get PSC restart variable'
          CALL ERROR_STOP ( MSG, 'READ_PSC_FILE (ucx_mod.F)' )
@@ -6830,10 +6845,13 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RHO_AER' )
       RHO_AER = 0e+0_fp
       
-      ALLOCATE( STATE_PSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'STATE_PSC' )
-      !STATE_PSC = 0e+0_fp
-      STATE_PSC     = 0.0e+0_f4
+!------------------------------------------------------------------------------
+! Prior to 1/28/16:
+!      ALLOCATE( STATE_PSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'STATE_PSC' )
+!      !STATE_PSC = 0e+0_fp
+!      STATE_PSC     = 0.0e+0_f4
+!------------------------------------------------------------------------------
       
       ! Mass fraction of tracers contained in liquid aerosol
       ! Indices: 1 - SO4
@@ -6857,10 +6875,13 @@
       AERFRACIND(6) = IDTHOBr
       AERFRACIND(7) = IDTH2O
     
-      ! Sticking coefficients for PSC reactions on SLA 
-      ALLOCATE( KHETI_SLA( IIPAR, JJPAR, LLPAR, 11 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'KHETI_SLA' )
-      KHETI_SLA = 0e+0_fp
+!------------------------------------------------------------------------------
+! Prior to 1/28/16:
+!      ! Sticking coefficients for PSC reactions on SLA 
+!      ALLOCATE( KHETI_SLA( IIPAR, JJPAR, LLPAR, 11 ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'KHETI_SLA' )
+!      KHETI_SLA = 0e+0_fp
+!------------------------------------------------------------------------------
      
       ! H2SO4 photolysis rate at the top of the chemgrid
       ALLOCATE( SO4_TOPPHOT( IIPAR,JJPAR ), STAT=AS )
@@ -6984,8 +7005,8 @@
 
       ! Define restart quantity    
       CALL GetHcoState( HcoState ) 
-      CALL HCO_RestartDefine ( am_I_Root, HcoState, 
-     &                       'STATE_PSC', STATE_PSC, 'count', RC )
+      CALL HCO_RestartDefine ( am_I_Root, HcoState, 'STATE_PSC',
+     &                         StateChm%STATE_PSC, 'count', RC )
       HcoState => NULL() 
 
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -7045,11 +7066,11 @@
       ! WRITE_STATE_PSC begins here!
       !=================================================================
 
-      ! Eventually write PSC_STATE to restart. 
+      ! Eventually write STATE_PSC to restart.
       CALL GetHcoState ( HcoState )
 
       CALL HCO_RestartWrite( am_I_Root,   HcoState, 
-     &                       'STATE_PSC', STATE_PSC, RC )
+     &                       'STATE_PSC', State_Chm%STATE_PSC, RC )
       HcoState => NULL()
       IF ( RC /= HCO_SUCCESS ) THEN
          RC = GIGC_FAILURE
@@ -7096,12 +7117,18 @@
       IF ( ALLOCATED( SAD_AER    ) ) DEALLOCATE( SAD_AER    )
       IF ( ALLOCATED( KG_AER     ) ) DEALLOCATE( KG_AER     )
       IF ( ALLOCATED( RHO_AER    ) ) DEALLOCATE( RHO_AER    )
-      !IF ( ALLOCATED( STATE_PSC  ) ) DEALLOCATE( STATE_PSC  )
-      IF ( ASSOCIATED( STATE_PSC ) ) DEALLOCATE( STATE_PSC  )
+!------------------------------------------------------------------------------
+! Prior to 1/28/16:
+!      !IF ( ALLOCATED( STATE_PSC  ) ) DEALLOCATE( STATE_PSC  )
+!      IF ( ASSOCIATED( STATE_PSC ) ) DEALLOCATE( STATE_PSC  )
+!------------------------------------------------------------------------------
       IF ( ALLOCATED( NDENS_AER  ) ) DEALLOCATE( NDENS_AER  )
       IF ( ALLOCATED( AERFRAC    ) ) DEALLOCATE( AERFRAC    )
       IF ( ALLOCATED( AERFRACIND ) ) DEALLOCATE( AERFRACIND )
-      IF ( ALLOCATED( KHETI_SLA  ) ) DEALLOCATE( KHETI_SLA  )
+!------------------------------------------------------------------------------
+! Prior to 1/28/16:
+!      IF ( ALLOCATED( KHETI_SLA  ) ) DEALLOCATE( KHETI_SLA  )
+!------------------------------------------------------------------------------
       IF ( ALLOCATED( UCX_MR     ) ) DEALLOCATE( UCX_MR     )
       IF ( ALLOCATED( UCX_MR_IN  ) ) DEALLOCATE( UCX_MR_IN  )
       IF ( ALLOCATED( UCX_REGRID ) ) DEALLOCATE( UCX_REGRID )

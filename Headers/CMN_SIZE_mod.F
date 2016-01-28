@@ -580,13 +580,6 @@
       ! NRH -- number of relative humidity bins (rvm, bmy, 2/27/02)
       INTEGER,    PARAMETER :: NRH = 5
 
-      !NBIOMAX -- biomass burning
-      ! increase NBIOMAX to 20 (hotp 7/31/09)
-      ! increase NBIOMAX to 24 for dicarbonyls (ccc, 2/02/10)
-      ! increase NBIOMAX to 25 fppr CH4 (kjw)
-      ! SOAupdate: add 1 for naphthalene, now 26 (hotp 7/21/10)
-      INTEGER,    PARAMETER :: NBIOMAX = 26
-
 #if   defined( TOMAS )
       INTEGER,    PARAMETER :: TOMASSPEC = 8
 
@@ -702,6 +695,7 @@
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  22 May 2015 - R. Yantosca - Updated comments, cosmetic changes
 !  22 May 2015 - R. Yantosca - Removed variables made obsolete by HEMCO
+!  28 Jan 2016 - M. Sulprizio- Remove NBIOMAX made obsolete by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
