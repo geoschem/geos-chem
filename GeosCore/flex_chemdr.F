@@ -236,40 +236,27 @@
       END DO
       END DO
 
-      ! Debug
-      write(*,'(3a,2e12.4)') '<> b copy STT to State_Chm%Species ',
-     &            NAMEGAS(66), ' = ', State_Chm%Species(10,10,10,66)
-      write(*,'(3a,2e12.4)') '<> b copy STT to State_Chm%Species ',
-     &            NAMEGAS(62), ' = ', State_Chm%Species(10,10,10,62)
-      write(*,*) 'STT = ', STT(10,10,10,1), ' kg'
-
-      ! Loop over tracers 
-      DO N=1,N_TRACERS
+      ! Loop over tracers and grid boxes
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Convert STT from kg to molec/cm3
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            STT(I,J,L,N) = STT(I,J,L,N) * Input_Opt%XNUMOL(N) /
-     &                     ( State_Met%AIRVOL(I,J,L) * 1e+6_fp *
-     &                        Input_Opt%TRACER_COEFF(N,1) )
-         ENDDO
-         ENDDO
-         ENDDO
+         STT(I,J,L,N) = STT(I,J,L,N) * Input_Opt%XNUMOL(N) /
+     &                  ( State_Met%AIRVOL(I,J,L) * 1e+6_fp *
+     &                  Input_Opt%TRACER_COEFF(N,1) )
 
-         ! Copy STT into State_Chm%Species [molec/cm3]
+         ! Copy STT to State_Chm%Species [molec/cm3]
          IF (STTTOCSPEC(N) .NE. 0) THEN 
-            State_Chm%Species(:,:,:,STTTOCSPEC(N))=STT(:,:,:,N)
+            State_Chm%Species(I,J,L,STTTOCSPEC(N)) = STT(I,J,L,N)
          ENDIF
+
+      ENDDO
+      ENDDO
+      ENDDO
       ENDDO
       
-      !     imje  Calculate photolysis rates
-      !=================================================================
-      ! Call photolysis routine to compute J-Values
-      !=================================================================
-      CALL FAST_JX( WAVELENGTH, am_I_Root, Input_Opt, State_Met, 
-     &              State_Chm,  RC )
-
       ! K -- L -- U -- D -- G -- E -- C -- O -- D -- E -- ! -- ! -- ! -- !
       ! THIS IS A TEMPORARY FIX AND NEEDS TO BE RESOLVED THROUGHOUT
       ! THE MODEL AS SOON AS IT APPEARS POSSIBLE TO DO SO!
@@ -324,12 +311,28 @@
       State_Chm%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
       ! E -- N -- D -- O -- F -- K -- L -- U -- D -- G -- E -- -- P -- T -- 1
  
-      ! Debug
-      write(*,*) 'STT = ', STT(10,10,10,1), ' molec/cm3'
-      write(*,'(3a,2e12.4)') '<> a copy STT to State_Chm%Species ',
-     &            NAMEGAS(66), ' = ', State_Chm%Species(10,10,10,66)
-      write(*,'(3a,2e12.4)') '<> a copy STT to State_Chm%Species ',
-     &            NAMEGAS(62), ' = ', State_Chm%Species(10,10,10,62)
+      ! Convert STT from molec/cm3 back to kg (required for gckpp_HetRates.F90)
+      ! NOTE: When we remove the tracer families we can get rid of this step
+      ! by converting units when we copy STT to State_Chm%Species and leaving
+      ! STT in units kg (mps, 1/28/16)
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         STT(I,J,L,N) = STT(I,J,L,N) / Input_Opt%XNUMOL(N) *
+     &                  ( State_Met%AIRVOL(I,J,L) * 1e+6_fp *
+     &                  Input_Opt%TRACER_COEFF(N,1) )
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+
+      !     imje  Calculate photolysis rates
+      !=================================================================
+      ! Call photolysis routine to compute J-Values
+      !=================================================================
+      CALL FAST_JX( WAVELENGTH, am_I_Root, Input_Opt, State_Met, 
+     &              State_Chm,  RC )
 
       ! mje Set up conditions for the integration
       ! mje chemical timestep and convert it to seconds.
@@ -538,6 +541,21 @@
 !         WRITE (6,*) SPC_NAMES(N), AVERAGEVAR(N)/MASS
 !      ENDDO	
 
+      ! Convert STT from kg to molec/cm3
+      ! NOTE: When we remove the tracer families we can get rid of this step
+      ! because STT will be left in units kg and we can convert units from
+      ! molec/cm3/s to kg when we copy State_Chm%Species to STT (mps, 1/28/16)
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         STT(I,J,L,N) = STT(I,J,L,N) * Input_Opt%XNUMOL(N) /
+     &                  ( State_Met%AIRVOL(I,J,L) * 1e+6_fp *
+     &                  Input_Opt%TRACER_COEFF(N,1) )
+      ENDDO
+      ENDDO
+      ENDDO
+
       ! K -- L -- U -- D -- G -- E -- -- P -- T -- 2
       ! Part 2: From Species to Tracers
       ! -- Process MMN family
@@ -560,23 +578,23 @@
 
       ! Loop over tracers
       DO N=1,N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-         ! Copy new tracer concentrations from State_Chm%Species to STT [molec/cm3]
+         ! Copy new tracer concentrations from State_Chm%Species to STT
+         ! [molec/cm3]
          IF (STTTOCSPEC(N) .NE. 0) THEN
-            STT(:,:,:,N)=State_Chm%Species(:,:,:,STTTOCSPEC(N))
+            STT(I,J,L,N) = State_Chm%Species(I,J,L,STTTOCSPEC(N))
          ENDIF
          
          ! Convert STT from molec/cm3 back to kg
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            STT(I,J,L,N) = STT(I,J,L,N) / Input_Opt%XNUMOL(N) *
-     &                     ( State_Met%AIRVOL(I,J,L) * 1e+6_fp *
-     &                        Input_Opt%TRACER_COEFF(N,1) )
-         ENDDO
-         ENDDO
-         ENDDO
-
+         STT(I,J,L,N) = STT(I,J,L,N) / Input_Opt%XNUMOL(N) *
+     &                  ( State_Met%AIRVOL(I,J,L) * 1e+6_fp *
+     &                  Input_Opt%TRACER_COEFF(N,1) )
+      ENDDO
+      ENDDO
+      ENDDO
       ENDDO
 
       !=================================================================
