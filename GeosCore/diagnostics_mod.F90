@@ -2694,7 +2694,10 @@ CONTAINS
 ! !IROUTINE: diagnupdate_met
 !
 ! !DESCRIPTION: Subroutine DIAGNUPDATE\_MET updates the meteorology state
-!  diagnostics (aka ND31, ND55, ND57, ND66, ND67, and ND68).
+!  diagnostics (aka ND31, ND55, ND57, ND66, ND67, and ND68). Only the subset
+!  of Met diagnostics which save State_Met data or are calculated from
+!  State_Met data are updated in this subroutine. All other Met diagnostics
+!  are updated within Met-field read modules.
 !\\
 !\\
 ! !INTERFACE:
@@ -2727,7 +2730,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: Collection, N, Num2D, Num3D
+    INTEGER            :: I, J, L, N, Collection, Num2D, Num3D
     CHARACTER(LEN=30)  :: NameSuffix, DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DiagnUpdate_Met (diagnostics_mod.F90)'
@@ -2747,9 +2750,10 @@ CONTAINS
     ! This is not currently used, but keep for possible later use/editing
     Collection = Input_Opt%DIAG_COLLECTION
 
-    ! Set number of 3D and 2D MET diagnostics
-    Num3d = 12
-    Num2d = 22
+    ! Set number of 3D and 2D MET diagnostics that are updated in 
+    ! this routine
+    Num3d = 6
+    Num2d = 2
 
     !----------------------------------------------------------------
     ! Update 2D containers
@@ -2763,73 +2767,13 @@ CONTAINS
 
        SELECT CASE ( N )
           CASE ( 1 )
-             NameSuffix = 'HFLUX'           ! ND67, trcr 1
-             Ptr2D => Temp2D ! placeholder
-          CASE ( 2 )
-             NameSuffix = 'RADSWG'          ! ND67, trcr 2
-             Ptr2D => Temp2D ! placeholder
-          CASE ( 3 )
-             NameSuffix = 'PREACC'          ! ND67, trcr 3
-             Ptr2D => Temp2D ! placeholder
-          CASE ( 4 )
-             NameSuffix = 'PRECON'          ! ND67, trcr 4
-             Ptr2D => Temp2D ! placeholder
-          CASE ( 5 )
-             NameSuffix = 'TS'              ! ND67, trcr 5
-             Ptr2D => Temp2D ! placeholder
-          CASE ( 6 )
-             NameSuffix = 'RADSWT'          ! ND67, trcr 6
-             Ptr2D => Temp2D ! placeholder
-          CASE ( 7 )
-             NameSuffix = 'USTAR'           ! ND67, trcr 7
-             Ptr2D => Temp2D ! placeholder
-          CASE ( 8 )
-             NameSuffix = 'Z0'              ! ND67, trcr 8
-             Ptr2D => Temp2D ! placeholder
-          CASE ( 9 )
-             NameSuffix = 'PBL'             ! ND67, trcr 9
-             Ptr2D => Temp2D
-          CASE ( 10 )
-             NameSuffix = 'CLDFRC'          ! ND67, trcr 10
-             Ptr2D => Temp2D ! placeholder
-          CASE ( 11 )
-             NameSuffix = 'U10M'            ! ND67, trcr 11
-             Ptr2D => Temp2D ! placeholder
-          CASE ( 12 )
-             NameSuffix = 'V10M'            ! ND67, trcr 12
-             Ptr2D => Temp2D ! placeholder
-          CASE ( 13 )
              NameSuffix = 'PS-PBL'          ! ND67, trcr 13
              Temp2D = State_Met%PEDGE(:,:,1) *      &
                       EXP( -State_Met%PBLH(:,:) / SCALE_HEIGHT ) 
              Ptr2D => Temp2D
-          CASE ( 14 )
-             NameSuffix = 'ALBD'            ! ND67, trcr 14
-             Ptr2D => Temp2D ! placeholder
-          CASE ( 15 )
-             NameSuffix = 'PHIS'            ! ND67, trcr 15
-             Ptr2D => Temp2D ! placeholder
-          CASE ( 16 )
-             NameSuffix = 'CLTOP'           ! ND67, trcr 16
-             Ptr2D => Temp2D ! placeholder
-          CASE ( 17 )
+          CASE ( 2 )
              NameSuffix = 'TROPP'           ! ND67, trcr 17
              Ptr2D => State_Met%TROPP
-          CASE ( 18 )
-             NameSuffix = 'SLP'             ! ND67, trcr 18
-             Ptr2D => Temp2D ! placeholder
-          CASE ( 19 )
-             NameSuffix = 'TSKIN'           ! ND67, trcr 19
-             Ptr2D => Temp2D ! placeholder
-          CASE ( 20 )
-             NameSuffix = 'PARDF'           ! ND67, trcr 20
-             Ptr2D => Temp2D ! placeholder
-          CASE ( 21 )
-             NameSuffix = 'PARDR'           ! ND67, trcr 21
-             Ptr2D => Temp2D ! placeholder
-          CASE ( 22 )
-             NameSuffix = 'GWETTOP'         ! ND67, trcr 22
-             Ptr2D => Temp2D ! placeholder
           CASE DEFAULT
              IF ( N < Num2D ) THEN
                 MSG = 'Num2D is less than number of named 2D MET diagnostics'
@@ -2869,42 +2813,37 @@ CONTAINS
        ! Zero the temporary array in case it is used
        Temp3D = 0.0e+0_fp
 
-       SELECT CASE ( N )
+       SELECT CASE ( N ) 
           CASE ( 1 )
-             NameSuffix = 'THETA'           ! ND57, trcr 1
-             Ptr3D => Temp3D  ! placeholder
+             NameSuffix = 'THETA'   ! Potential temp, ND57, trcr 1
+             !$OMP PARALLEL DO &
+             !$OMP DEFAULT( SHARED ) &
+             !$OMP PRIVATE( I, J, L )
+             DO L = 1, LLPAR
+             DO J = 1, JJPAR
+             DO I = 1, IIPAR
+                Temp3D(I,J,L) = State_Met%T(I,J,L)               &
+                                * ( State_MET%PEDGE(I,J,1)       & 
+                                / State_Met%PMID(I,J,L) )**0.286
+             ENDDO
+             ENDDO
+             ENDDO
+             !$OMP END PARALLEL DO
+             Ptr3D => Temp3D 
           CASE ( 2 )
-             NameSuffix = 'UWND'            ! ND66, trcr 1 
-             Ptr3D => Temp3D  ! placeholder
-          CASE ( 3 )
-             NameSuffix = 'VWND'            ! ND66, trcr 2
-             Ptr3D => Temp3D  ! placeholder
-          CASE ( 4 )
-             NameSuffix = 'TMPU'            ! ND66, trcr 3
-             Ptr3D => Temp3D  ! placeholder
-          CASE ( 5 )
-             NameSuffix = 'SPHU'            ! ND66, trcr 4
-             Ptr3D => Temp3D  ! placeholder
-          CASE ( 6 )
-             NameSuffix = 'CLDMAS'          ! ND66, trcr 5
-             Ptr3D => Temp3D  ! placeholder
-          CASE ( 7 )
-             NameSuffix = 'DTRAIN'          ! ND66, trcr 6
-             Ptr3D => Temp3D  ! placeholder
-          CASE ( 8 )
              NameSuffix = 'BXHEIGHT'        ! ND68, trcr 1
              Ptr3D => State_Met%BXHEIGHT 
-          CASE ( 9 )
+          CASE ( 3 )
              NameSuffix = 'DRYAIRMASS'      ! ND68, trcr 2
              Ptr3D => State_Met%AD
-          CASE ( 10 )
+          CASE ( 4 )
              NameSuffix = 'AVGW'            ! ND68, trcr 3
              Ptr3D => State_Met%AVGW
-          CASE ( 11 )
+          CASE ( 5 )
              NameSuffix = 'NAIR'            ! ND68, trcr 4
-             Temp3D = State_Met%AIRDEN(:,:,:) * XNUMOLAIR
+             Temp3D = State_Met%AIRDEN * XNUMOLAIR
              Ptr3D => Temp3D
-          CASE ( 12 )
+          CASE ( 6 )
              NameSuffix = 'PEDGE'           ! ND31, trcr 1
              Ptr3D => State_Met%PEDGE
           CASE DEFAULT
