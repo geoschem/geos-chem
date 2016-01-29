@@ -130,7 +130,8 @@ realclean:
 	@$(MAKE) -C SOA_SVPOA        clean
 	@$(MAKE) -C UCX              clean
 	@$(MAKE) -C NOx_Ox_HC_Aer_Br clean
-	@$(MAKE) -C TempFlex clean
+	@$(MAKE) -C TempFlex         clean
+	@$(MAKE) -C TempFlex_Benchmark clean
 
 help:
 	@$(MAKE) -C $(HELP) 

@@ -68,7 +68,10 @@
       PUBLIC  :: GET_STRAT_OPT
       PUBLIC  :: KG_STRAT_AER
       PUBLIC  :: RHO_STRAT_AER
-      PUBLIC  :: CHECK_NAT
+!------------------------------------------------------------------------------
+! Prior to 1/28/16:
+!      PUBLIC  :: CHECK_NAT
+!------------------------------------------------------------------------------
       PUBLIC  :: INIT_UCX
       PUBLIC  :: DIAGINIT_UCX
       PUBLIC  :: CLEANUP_UCX
@@ -110,6 +113,7 @@
 !                                State_Chm instead of public arrays. These need
 !                                to be added to the derived type object to be
 !                                accessed in gckpp_HetRates.F90.
+!  28 Jan 2016 - M. Sulprizio  - Move routine CHECK_NAT to gckpp_HetRates.F90 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4316,71 +4320,75 @@
 
       END SUBROUTINE GET_STRAT_OPT
 !EOC
-!------------------------------------------------------------------------------
-!               MIT Laboratory for Aviation and the Environment               !
-!------------------------------------------------------------------------------
-!BOP
+!==============================================================================
+! Prior to 1/28/16:
+! This routine has been moved to gckpp_HetRates.F90 (mps, 1/28/16)
+!!------------------------------------------------------------------------------
+!!               MIT Laboratory for Aviation and the Environment               !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: check_nat
+!!
+!! !DESCRIPTION: Subroutine CHECK\_NAT determines whether the solid PSC is 
+!!  composed of ice or NAT (needed for heterogeneous chemistry), or indeed
+!!  if there is any direct PSC calculation at all. This is important for
+!!  determining whether to use the JPP or Kirner scheme for ice cloud radii.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE CHECK_NAT( am_I_Root, I, J, L, IS_NAT, IS_PSC, 
+!     &                      IS_STRAT, Input_Opt, State_Met, State_Chm )
+!!
+!! !USES:
+!!
+!      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRAT
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!      USE GIGC_State_Met_Mod, ONLY : MetState
+!      USE TRACERID_MOD,       ONLY : IDTNIT
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,        INTENT(IN)  :: am_I_Root  ! Root CPU?
+!      INTEGER,        INTENT(IN)  :: I,J,L      ! Grid indices
+!      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input options
+!      TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
+!      TYPE(ChmState), INTENT(IN)  :: State_Chm  ! Chemistry State object
+!!
+!! !OUTPUT VARIABLES:
+!!
+!      LOGICAL,        INTENT(OUT) :: IS_NAT     ! Is surface NAT?
+!      LOGICAL,        INTENT(OUT) :: IS_PSC     ! Are there solid PSCs?
+!      LOGICAL,        INTENT(OUT) :: IS_STRAT   ! Are we in the strat?
+!!
+!! !REVISION HISTORY: 
+!!  17 Apr 2013 - S. D. Eastham - Initial version
+!!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
+!!                                objects via the arg list
+!!  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
+!!                                now done from DO_CHEMISTRY (chemistry_mod.F) 
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!      !=================================================================
+!      ! CHECK_NAT begins here!
+!      !=================================================================
 !
-! !IROUTINE: check_nat
+!      IS_STRAT = ITS_IN_THE_STRAT(I,J,L,State_Met)
 !
-! !DESCRIPTION: Subroutine CHECK\_NAT determines whether the solid PSC is 
-!  composed of ice or NAT (needed for heterogeneous chemistry), or indeed
-!  if there is any direct PSC calculation at all. This is important for
-!  determining whether to use the JPP or Kirner scheme for ice cloud radii.
-!\\
-!\\
-! !INTERFACE:
+!      IS_PSC   = ( ( Input_Opt%LPSCCHEM ) .and.
+!!     &             ( STATE_PSC(I,J,L) .ge. 2 ) .and. ( IS_STRAT ) )
+!     &             ( STATE_PSC(I,J,L) >= 2.0_f4 ) .and. ( IS_STRAT ) )
 !
-      SUBROUTINE CHECK_NAT( am_I_Root, I, J, L, IS_NAT, IS_PSC, 
-     &                      IS_STRAT, Input_Opt, State_Met, State_Chm )
+!      IS_NAT   = ( ( IS_PSC ) .and.
+!     &         ( State_Chm%Tracers(I,J,L,IDTNIT) .gt. TINY(1e+0_fp) ) )
 !
-! !USES:
-!
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRAT
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTNIT
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root  ! Root CPU?
-      INTEGER,        INTENT(IN)  :: I,J,L      ! Grid indices
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input options
-      TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
-      TYPE(ChmState), INTENT(IN)  :: State_Chm  ! Chemistry State object
-!
-! !OUTPUT VARIABLES:
-!
-      LOGICAL,        INTENT(OUT) :: IS_NAT     ! Is surface NAT?
-      LOGICAL,        INTENT(OUT) :: IS_PSC     ! Are there solid PSCs?
-      LOGICAL,        INTENT(OUT) :: IS_STRAT   ! Are we in the strat?
-!
-! !REVISION HISTORY: 
-!  17 Apr 2013 - S. D. Eastham - Initial version
-!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
-!                                objects via the arg list
-!  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
-!                                now done from DO_CHEMISTRY (chemistry_mod.F) 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-      !=================================================================
-      ! CHECK_NAT begins here!
-      !=================================================================
-
-      IS_STRAT = ITS_IN_THE_STRAT(I,J,L,State_Met)
-
-      IS_PSC   = ( ( Input_Opt%LPSCCHEM ) .and.
-!     &             ( STATE_PSC(I,J,L) .ge. 2 ) .and. ( IS_STRAT ) )
-     &             ( STATE_PSC(I,J,L) >= 2.0_f4 ) .and. ( IS_STRAT ) )
-
-      IS_NAT   = ( ( IS_PSC ) .and.
-     &         ( State_Chm%Tracers(I,J,L,IDTNIT) .gt. TINY(1e+0_fp) ) )
-
-      END SUBROUTINE CHECK_NAT
-!EOC
+!      END SUBROUTINE CHECK_NAT
+!!EOC
+!==============================================================================
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
 !------------------------------------------------------------------------------
@@ -5280,11 +5288,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PSC_FILE( am_I_Root, RC )
+      SUBROUTINE READ_PSC_FILE( am_I_Root, State_Chm, RC )
 !
 ! !USES:
 !
       USE GIGC_ErrCode_Mod
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD
       USE HCO_RESTART_MOD,    ONLY : HCO_RestartGet
@@ -5299,6 +5308,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       INTEGER,        INTENT(INOUT) :: RC
 ! 
 ! !REVISION HISTORY: 
@@ -6476,8 +6486,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_UCX( am_I_Root, Input_Opt )
-      !SUBROUTINE INIT_UCX( am_I_Root, Input_Opt, YYYYMMDD, HHMMSS )
+      SUBROUTINE INIT_UCX( am_I_Root, Input_Opt, State_Chm )
 !
 ! !USES:
 !
@@ -6485,6 +6494,7 @@
       USE ERROR_MOD,          ONLY : IS_SAFE_DIV
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_YEDGE
       USE TIME_MOD,           ONLY : GET_YEAR
       USE TRACERID_MOD
@@ -6492,9 +6502,8 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-!      INTEGER,        INTENT(IN) :: YYYYMMDD    ! YYYY/MM/DD GMT date
-!      INTEGER,        INTENT(IN) :: HHMMSS      ! hh:mm:ss   GMT time
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT VARIABLES:
 !
@@ -6951,7 +6960,7 @@
       ENDIF
 
       ! Initialize diagnostics
-      CALL DIAGINIT_UCX ( am_I_Root, Input_Opt, RC )
+      CALL DIAGINIT_UCX ( am_I_Root, Input_Opt, State_Chm, RC )
 
       END SUBROUTINE INIT_UCX
 !EOC
@@ -6968,12 +6977,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAGINIT_UCX( am_I_Root, Input_Opt, RC )
+      SUBROUTINE DIAGINIT_UCX( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_RESTART_MOD,    ONLY : HCO_RestartDefine
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
@@ -6984,6 +6994,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -7006,7 +7017,7 @@
       ! Define restart quantity    
       CALL GetHcoState( HcoState ) 
       CALL HCO_RestartDefine ( am_I_Root, HcoState, 'STATE_PSC',
-     &                         StateChm%STATE_PSC, 'count', RC )
+     &                         State_Chm%STATE_PSC, 'count', RC )
       HcoState => NULL() 
 
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -7037,23 +7048,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_STATE_PSC ( am_I_Root, RC )
+      SUBROUTINE WRITE_STATE_PSC ( am_I_Root, State_Chm, RC )
 !
 ! !USES:
 !
       USE GIGC_ErrCode_Mod
+      USE GIGC_State_Chm_Mod,   ONLY : ChmState
       USE HCO_ERROR_MOD
-      USE HCO_RESTART_MOD,  ONLY : HCO_RestartWrite
-      USE HCO_STATE_MOD,    ONLY : HCO_STATE
-      USE HCOI_GC_MAIN_MOD, ONLY : GetHcoState
+      USE HCO_RESTART_MOD,      ONLY : HCO_RestartWrite
+      USE HCO_STATE_MOD,        ONLY : HCO_STATE
+      USE HCOI_GC_MAIN_MOD,     ONLY : GetHcoState
 ! 
 ! !INPUT ARGUMENTS:
 !
-      LOGICAL, INTENT(IN)     :: am_I_Root
+      LOGICAL,        INTENT(IN)    :: am_I_Root
 ! 
 ! !INPUT/OUTPUT ARGUMENTS:
 !
-      INTEGER, INTENT(INOUT)  :: RC
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      INTEGER,        INTENT(INOUT) :: RC
 !
 ! !REVISION HISTORY: 
 !  08 May 2015 - C. Keller     - Initial version

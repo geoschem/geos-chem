@@ -743,8 +743,7 @@
 
       ! Initialize stratospheric routines
       IF ( LUCX ) THEN
-         !CALL INIT_UCX( am_I_Root, Input_Opt, NYMDb, NHMSb )
-         CALL INIT_UCX( am_I_Root, Input_Opt )
+         CALL INIT_UCX( am_I_Root, Input_Opt, State_Chm )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
          
          ! Set simple initial tracer conditions

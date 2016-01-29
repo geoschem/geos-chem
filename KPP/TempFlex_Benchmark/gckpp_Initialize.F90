@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Initialize.f90
-! Time                 : Mon Oct 26 15:30:42 2015
-! Working directory    : /n/home13/mslong/FlexChem/Flexchem/Mechanisms/v1101
+! Time                 : Wed Jan 27 16:09:22 2016
+! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/v11-01c_Benchmark
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 

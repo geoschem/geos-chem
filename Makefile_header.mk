@@ -372,7 +372,7 @@ endif
 
 # %%%%%  Default setting: CHEM=benchmark %%%%%
 ifeq ($(IS_CHEM_SET),0)
-  KPP_CHEM           :=TempFlex
+  KPP_CHEM           :=TempFlex_Benchmark
   IS_CHEM_SET        :=1
 endif
 

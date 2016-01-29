@@ -41,7 +41,6 @@
       USE TIME_MOD,             ONLY : GET_TS_CHEM
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : GET_YEAR
-      USE UCX_MOD,              ONLY : KH=>KHETI_SLA
 
       ! mje
       USE GCKPP_HETRATES,       ONLY : SET_HET
@@ -405,7 +404,7 @@
 
          call cpu_time(start)
          HET(:,:) = 0.
-!         CALL SET_HET(I,J,L,State_Chm,State_Met,Input_Opt,KH)
+!         CALL SET_HET(I,J,L,State_Chm,State_Met,Input_Opt)
 
          ! mje Set up the physical conditions for the current box
          ! mje These variables are defined by the KPP definition files gckpp.kpp
@@ -552,6 +551,7 @@
          STT(I,J,L,N) = STT(I,J,L,N) * Input_Opt%XNUMOL(N) /
      &                  ( State_Met%AIRVOL(I,J,L) * 1e+6_fp *
      &                  Input_Opt%TRACER_COEFF(N,1) )
+      ENDDO
       ENDDO
       ENDDO
       ENDDO
