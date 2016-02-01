@@ -1142,16 +1142,6 @@ CONTAINS
     ! Increase diagnostics counter and set container ID accordingly.
     ThisColl%nnDiagn = ThisColl%nnDiagn + 1
 
-!    ! DEBUGGING - ewl, 2/2/15
-!    PRINT *, " "
-!    PRINT *, " Creating diagnostic:", TRIM( cName )
-!    PRINT *, "   Collection: ", PS 
-!    PRINT *, "   Index in collection: ", ThisDiagn%cID
-!    PRINT *, "   Counter: ", ThisDiagn%Counter
-!    PRINT *, "   Success!"
-!    PRINT *, " "
-!    ! END DEBUGGING
-
     ! Verbose mode
     IF ( HCO_IsVerb( 1 ) ) THEN
        WRITE(MSG,*) 'Successfully added diagnostics to collection ' , PS
@@ -1867,14 +1857,6 @@ CONTAINS
 
     ENDDO ! loop over collections
 
-!    ! DEBUGGING - ewl, 2/2/15
-!    IF ( PRESENT ( cName ) ) THEN
-!       PRINT *, "Exiting Diagn_Update for diagnostic: " // TRIM( cName )
-!    ELSE
-!       PRINT *, "Exiting Diagn_Update for unnamed diagnostic."
-!    ENDIF
-!    ! END DEBUGGING
-
     ! Cleanup
     IF (PRESENT(Array3D_SP) ) THEN
        Arr3D => NULL()
@@ -1989,15 +1971,6 @@ CONTAINS
     CALL DiagnCollection_DefineID( PS, RC, COL=COL, ThisColl=ThisColl )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-!    ! DEBUGGING - ewl, 2/2/15
-!    PRINT *, "   In subroutine Diagn_Get in hco_diagn_mod.F90"
-!    IF ( PRESENT (cName) ) THEN
-!       PRINT *, "      Diag name passed as argument: " // TRIM( cName )
-!    ELSE
-!       PRINT *, "      Name not passed to subroutine."
-!    ENDIF
-!    ! END DEBUGGING
-
     ! Set AutoFill flag
     AF = -1
     IF ( PRESENT(AutoFill  ) ) AF = AutoFill
@@ -2023,31 +1996,11 @@ CONTAINS
 
        IF ( .NOT. FOUND ) THEN
 
-!          ! DEBUGGING - ewl, 2/2/15
-!          PRINT *, "      Diagnostic with name " // TRIM(cName) // " not found."
-!          ! END DEBUGGING
-          
           DgnCont => NULL()
        ELSE
-!<<<<<<< HEAD - merge conflict (ewl, 1/8/16)
-!
-!          ! DEBUGGING - ewl, 2/2/15
-!          PRINT *, "      Diagnostic found."
-!          ! END DEBUGGING
-!
-!          ! Don't consider container if not at the desired
-!          ! time interval or if counter is zero.
-!          IF ( DgnCont%ResetFlag <  MinResetFlag .OR. &
-!               DgnCont%Counter   == 0                  ) THEN
-!
-!             ! DEBUGGING - ewl, 2/2/15
-!             PRINT *, "      Diagnostic at wrong time interval or counter is 0."
-!             ! END DEBUGGING
-!
-!=======
+
           ! Don't consider container if counter is zero. 
           IF ( SKIPZERO .AND. DgnCont%Counter == 0 ) THEN
-!>>>>>>> 3b284a4fa7678e998e0607353d6e57e4287be0be
              DgnCont => NULL()
           ENDIF
        ENDIF
@@ -2057,46 +2010,15 @@ CONTAINS
    
     ! If container id is given, search for diagnostics with 
     ! the given container ID.
-!<<<<<<< HEAD - merge conflict (ewl, 1/8/16)
-!    IF ( PRESENT( cID ) ) THEN
-!
-!       ! DEBUGGING - ewl, 2/2/15
-!       PRINT *, "      Searching for diagnostic using id ", cID
-!       ! END DEBUGGING
-!
-!=======
     IF ( PRESENT( cID ) .AND. .NOT. CF ) THEN
-!>>>>>>> 3b284a4fa7678e998e0607353d6e57e4287be0be
        CALL DiagnCont_Find( cID, -1, -1, -1, -1, '', &
                             AF, FOUND, DgnCont, COL=PS )
        IF ( .NOT. FOUND ) THEN
-
-!          ! DEBUGGING - ewl, 2/2/15
-!          PRINT *, "      Diagnostic with that id not found."
-!          ! END DEBUGGING
-
           DgnCont => NULL()
        ELSE
-! <<<<<<< HEAD - merge conflict (ewl, 1/8/16)
-!
-!          ! DEBUGGING - ewl, 2/2/15
-!          PRINT *, "      Diagnostic with that id found."
-!          ! END DEBUGGING
-!
-!          ! Don't consider container if not at the desired
-!          ! time interval or if counter is zero.
-!          IF ( DgnCont%ResetFlag <  MinResetFlag .OR. &
-!               DgnCont%Counter   == 0                  ) THEN
-!=======
           ! Don't consider container if counter is zero. 
           IF ( SKIPZERO .AND. DgnCont%Counter == 0 ) THEN
-!>>>>>>> 3b284a4fa7678e998e0607353d6e57e4287be0be
              DgnCont => NULL()
-
-!             ! DEBUGGING - ewl, 2/2/15
-!             PRINT *, "      Diagnostic at wrong time interval or counter is 0."
-!             ! END DEBUGGING
-
           ENDIF
        ENDIF
        CF = .TRUE.
@@ -2107,70 +2029,15 @@ CONTAINS
     ! Number of updates since last output must be larger than zero!
     IF ( .NOT. CF ) THEN 
 
-!       ! DEBUGGING - ewl, 2/2/15
-!       PRINT *, "      No container selected yet."
-!       ! END DEBUGGING
-
        IF ( .NOT. ASSOCIATED( DgnCont ) ) THEN
-!<<<<<<< HEAD - merge conflict (ewl, 1/8/16)
-!          DgnCont => Collections(PS)%DiagnList
-!
-!          ! DEBUGGING - ewl, 2/2/15
-!          PRINT *, "      DgnCont not associated so pointing to head of list."
-!          ! END DEBUGGING
-!
-!=======
           DgnCont => ThisColl%DiagnList
-!>>>>>>> 3b284a4fa7678e998e0607353d6e57e4287be0be
        ELSE
           DgnCont => DgnCont%NextCont
-
-!          ! DEBUGGING - ewl, 2/2/15
-!          PRINT *, "      DiagCont associated so pointing to next container."
-!          ! END DEBUGGING
-
        ENDIF
-! <<<<<<< HEAD - merge conflict (ewl, 1/8/16)
-!
-!       DO WHILE ( ASSOCIATED ( DgnCont ) ) 
-!
-!          ! DEBUGGING - ewl, 2/2/15
-!          PRINT *, "         Next container is associated" 
-!          PRINT *, "            DgnCont%cName = ", DgnCont%Cname
-!          PRINT *, "            Counter = ", DgnCont%Counter
-!          ! END DEBUGGING
-!          
-!          IF ( DgnCont%Counter > 0 ) THEN
-!             
-!             ! DEBUGGING - ewl, 2/2/15
-!             PRINT *,"            Exiting do loop since counter > 0"
-!             ! END DEBUGGING
-!
-!             EXIT
-!          ENDIF
-!          DgnCont => DgnCont%NextCont
-!
-!       ENDDO
-!  
-!       ! If EndOfIntvOnly flag is enabled, make sure that the
-!       ! selected container is at the end of its interval.
-!       IF ( EndOfIntvOnly ) THEN
-!
-!          ! DEBUGGING - ewl, 2/2/15
-!          PRINT *, "      EndOfIntvOnly is TRUE"
-!          ! END DEBUGGING
-!
-!          ! If MinResetFlag > 0, search for first container with a
-!          ! ResetFlag equal or larger than MinResetFlag and where
-!          ! updates since last output (counter) is not zero.
-!          DO WHILE ( ASSOCIATED ( DgnCont ) ) 
-!             IF ( DgnCont%ResetFlag >= MinResetFlag .AND. &
-!                  DgnCont%Counter   >  0                   ) EXIT
-!=======
+
        DO WHILE ( ASSOCIATED ( DgnCont ) )
           ! Skip zero counters
           IF ( SKIPZERO .AND. DgnCont%Counter <= 0 ) THEN
-!>>>>>>> 3b284a4fa7678e998e0607353d6e57e4287be0be
              DgnCont => DgnCont%NextCont
              CYCLE
           ENDIF
@@ -2190,15 +2057,7 @@ CONTAINS
        ! Diagn_Get
        DgnCont%nnGetCalls = DgnCont%nnGetCalls + 1
 
-!       ! DEBUGGING - ewl, 2/2/15
-!       PRINT *, "      Diagnostic prepared for output and Diagn_Get is done."
-!       ! END DEBUGGING
-
     ENDIF
-
-!    ! DEBUGGING - ewl, 2/2/15
-!    PRINT *, "   Exiting Diagn_Get."
-!    ! END DEBUGGING
 
     ! Cleanup
     ThisColl => NULL()
