@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -14,7 +14,7 @@ MODULE Diagnostics_Mod
 !
 ! !USES:
 !
-  USE CMN_SIZE_Mod,       ONLY : IIPAR, JJPAR, LLPAR, NNPAR
+  USE CMN_SIZE_Mod
   USE Error_Mod,          ONLY : Error_Stop
   USE HCO_Error_Mod
   USE GIGC_ErrCode_Mod
@@ -100,12 +100,19 @@ MODULE Diagnostics_Mod
   ! Initialize GEOS-Chem diagnostics container id (ewl, 1/20/16)
   ! If we add containers, we will need to modify this to have a different
   ! container id variable per collection.
-  INTEGER, SAVE, PRIVATE       :: cId = 0                
+  INTEGER, SAVE, PRIVATE       :: cId = 0            
+
+  ! Logical indicator for whether diagnostics have been initialized.
+  ! This is used to skip setting diagnostics during Met-field initial read
+  ! which occurs before HEMCO and diagnostics are initialized.
+  LOGICAL, SAVE, PUBLIC        :: DIAGN_IS_INIT = .FALSE.
 #endif
 !
 ! !REVISION HISTORY:
 !  09 Jan 2015 - C. Keller   - Initial version. 
 !  14 Jan 2016 - E. Lundgren - Add several GEOS-Chem diagnostics
+!  29 Jan 2016 - E. Lundgren - Update diagnostics for recent HEMCO updates
+!                              and add logical flag to indicate init done
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -113,11 +120,12 @@ CONTAINS
 #if defined( NETCDF )
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Diagnostics_Init
+
 !
 ! !DESCRIPTION: Subroutine Diagnostics\_Init initializes the GEOS-Chem 
 ! diagnostics collections and populates them with diagnostics containers. 
@@ -172,6 +180,9 @@ CONTAINS
     !=======================================================================
     ! Diagnostics_Init begins here 
     !=======================================================================
+
+    ! Assume successful return
+    RC = GIGC_SUCCESS
 
     ! Define collection variables
     AM2    => AREA_M2(:,:,1)
@@ -426,13 +437,16 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! Set logical indicator that diagnostics are ready for updating
+    DIAGN_IS_INIT = .TRUE.
+
     ! Leave with success
     RC = GIGC_SUCCESS
 
   END SUBROUTINE Diagnostics_Init
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -640,7 +654,7 @@ CONTAINS
 !
     INTEGER            :: N, D
     INTEGER            :: Collection
-    CHARACTER(LEN=15)  :: OutOper, OutUnit
+    CHARACTER(LEN=15)  :: OutOper
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DiagnInit_WetScav (diagnostics_mod.F90)' 
@@ -801,13 +815,13 @@ CONTAINS
        SELECT CASE ( M )
           CASE ( 1 )
              Prefix = 'DRYDEP_VEL_'
-             Units = 'cm s-1'
+             Units  = 'cm s-1'
           CASE ( 2 )
              Prefix = 'DRYDEP_FLX_CHEM_'
-             Units = 'molec cm-2 s-1'
+             Units  = 'molec cm-2 s-1'
           CASE ( 3 )
              Prefix = 'DRYDEP_FLX_MIX_'
-             Units = 'molec cm-2 s-2'
+             Units  = 'molec cm-2 s-2'
        END SELECT
 
        ! Loop over # of depositing species
@@ -1034,7 +1048,7 @@ CONTAINS
 !
     INTEGER            :: Collection, N, Num2D, Num3D
     INTEGER            :: SpaceDim 
-    CHARACTER(LEN=15)  :: OutOper, OutUnit
+    CHARACTER(LEN=15)  :: OutOper, Units
     CHARACTER(LEN=30)  :: NameSuffix, DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DiagnInit_Met (diagnostics_mod.F90)' 
@@ -1063,42 +1077,41 @@ CONTAINS
 
        SELECT CASE ( N )
           CASE ( 1 )
-             NameSuffix = 'THETA'           ! ND57, trcr 1
-             OutUnit    = 'K'
+             NameSuffix = 'THETA'        ! ND57, trcr 1: potential temperature
+             Units      = 'K'
           CASE ( 2 )
-             NameSuffix = 'UWND'            ! ND66, trcr 1 
-             OutUnit    = 'm/s'
+             NameSuffix = 'UWND'         ! ND66, trcr 1: Zonal wind
+             Units      = 'm/s'
           CASE ( 3 )
-             NameSuffix = 'VWND'            ! ND66, trcr 2
-             OutUnit    = 'm/s'
+             NameSuffix = 'VWND'         ! ND66, trcr 2: Meridional wind
+             Units      = 'm/s'
           CASE ( 4 )
-             NameSuffix = 'TMPU'            ! ND66, trcr 3
-             OutUnit    = 'K'
+             NameSuffix = 'TMPU'         ! ND66, trcr 3: Temperature
+             Units      = 'K'
           CASE ( 5 )
-             NameSuffix = 'SPHU'            ! ND66, trcr 4
-             OutUnit    = 'g H2O/kg air'
+             NameSuffix = 'SPHU'         ! ND66, trcr 4: Specific humidity 
+             Units      = 'g H2O/kg air'
           CASE ( 6 )
-             NameSuffix = 'CLDMAS'          ! ND66, trcr 5
-             OutUnit    = 'kg/m2/s'
+             NameSuffix = 'CLDMAS'       ! ND66, trcr 5: Convective mass flux
+             Units      = 'kg/m2/s'      
           CASE ( 7 )
-             NameSuffix = 'DTRAIN'          ! ND66, trcr 6
-             OutUnit    = 'kg/m2/s'
+             NameSuffix = 'DTRAIN'       ! ND66, trcr 6: Detrainment flux
+             Units      = 'kg/m2/s'
           CASE ( 8 )
-             NameSuffix = 'BXHEIGHT'        ! ND68, trcr 1
-             OutUnit    = 'm'
+             NameSuffix = 'BXHEIGHT'     ! ND68, trcr 1
+             Units      = 'm'
           CASE ( 9 )
-             NameSuffix = 'DRYAIRMASS'      ! ND68, trcr 2
-             OutUnit    = 'kg'
+             NameSuffix = 'DRYAIRMASS'   ! ND68, trcr 2
+             Units      = 'kg'
           CASE ( 10 )
-             IF ( .NOT. ASSOCIATED(State_Met%AVGW) ) CYCLE
-             NameSuffix = 'AVGW'            ! ND68, trcr 3
-             OutUnit    = 'v/v'
+             NameSuffix = 'AVGW'         ! ND68, trcr 3
+             Units      = 'v/v'
           CASE ( 11 )
-             NameSuffix = 'NAIR'            ! ND68, trcr 4
-             OutUnit    = 'molec/m3'
+             NameSuffix = 'NAIR'         ! ND68, trcr 4
+             Units      = 'molec/m3'
           CASE ( 12 )
-             NameSuffix = 'PEDGE'           ! ND31, trcr 1
-             OutUnit    = 'hPa'
+             NameSuffix = 'PEDGE'        ! ND31, trcr 1
+             Units      = 'hPa'
           CASE DEFAULT
              IF ( N < Num3D ) THEN
                 MSG = 'Num3D is less than number of named 3D MET diagnostics'
@@ -1124,8 +1137,8 @@ CONTAINS
                           Hier      = -1,                &
                           HcoID     = -1,                &
                           SpaceDim  =  SpaceDim,         &
-                          OutUnit   = TRIM( OutUnit   ), &
-                          OutOper   = TRIM( OutOper   ), &
+                          OutUnit   = TRIM( Units ),     &
+                          OutOper   = TRIM( OutOper ),   &
                           RC        = RC )
 
        IF ( RC /= HCO_SUCCESS ) THEN
@@ -1139,88 +1152,91 @@ CONTAINS
 
        SELECT CASE ( N )
           CASE ( 1 )
-             NameSuffix = 'TRPAUSE_LVL'     ! ND55, trcr 1
-             OutUnit    = 'Level index'
+             NameSuffix = 'TRPAUSE_LVL'  ! ND55, trcr 1
+             Units      = 'Level index'
           CASE ( 2 )
-             NameSuffix = 'TRPAUSE_HGHT'    ! ND55, trcr 2
-             OutUnit    = 'km'
+             NameSuffix = 'TRPAUSE_HGHT' ! ND55, trcr 2
+             Units      = 'km'
           CASE ( 3 )
-             NameSuffix = 'TRPAUSE_PRESS'   ! ND55, trcr 3
-             OutUnit    = 'mb'
+             NameSuffix = 'TRPAUSE_PRESS' ! ND55, trcr 3: Tropopause Pressure
+             Units      = 'mb'
           CASE ( 4 )
-             NameSuffix = 'HFLUX'           ! ND67, trcr 1
-             OutUnit    = 'W/m2'
+             NameSuffix = 'HFLUX'        ! ND67, trcr 1: Sens heat flux
+             Units      = 'W/m2'
           CASE ( 5 )
-             NameSuffix = 'RADSWG'          ! ND67, trcr 2
-             OutUnit    = 'W/m2'
+             NameSuffix = 'RADSWG'       ! ND67, trcr 2: SW rad @ sfc
+             Units      = 'W/m2'
           CASE ( 6 )
-             NameSuffix = 'PREACC'          ! ND67, trcr 3
-             OutUnit    = 'mm/day'
+             NameSuffix = 'PREACC'       ! ND67, trcr 3: Tot prec [kg/m2/s]???
+             Units      = 'mm/day'
           CASE ( 7 )
-             NameSuffix = 'PRECON'          ! ND67, trcr 4
-             OutUnit    = 'mm/day'
+             NameSuffix = 'PRECON'       ! ND67, trcr 4: Sfc conv prec[kg/m2/s]?
+             Units      = 'mm/day'
           CASE ( 8 )
-             NameSuffix = 'TS'              ! ND67, trcr 5
-             OutUnit    = 'K'
+             NameSuffix = 'TS'           ! ND67, trcr 5: T @ 2m height
+             Units      = 'K'
           CASE ( 9 )
-             NameSuffix = 'RADSWT'          ! ND67, trcr 6
-             OutUnit    = 'W/m2'
+             NameSuffix = 'RADSWT'       ! ND67, trcr 6
+             Units      = 'W/m2'
           CASE ( 10 )
-             NameSuffix = 'USTAR'           ! ND67, trcr 7
-             OutUnit    = 'm/s'
+             NameSuffix = 'USTAR'        ! ND67, trcr 7: Friction vel
+             Units      = 'm/s'
           CASE ( 11 )
-             NameSuffix = 'Z0'              ! ND67, trcr 8
-             OutUnit    = 'm'
+             NameSuffix = 'Z0'           ! ND67, trcr 8: Roughness height
+             Units      = 'm'
           CASE ( 12 )
-             NameSuffix = 'PBL'             ! ND67, trcr 9
-             OutUnit    = 'hPa'
+             NameSuffix = 'PBL'          ! ND67, trcr 9: PBL height [m]?
+             Units      = 'hPa'
           CASE ( 13 )
-             NameSuffix = 'CLDFRC'          ! ND67, trcr 10
-             OutUnit    = '0-1'
+             NameSuffix = 'CLDFRC'       ! ND67, trcr 10: Column cld fraction
+             Units      = '0-1'
           CASE ( 14 )
-             NameSuffix = 'U10M'            ! ND67, trcr 11
-             OutUnit    = 'm/s'
+             NameSuffix = 'U10M'         ! ND67, trcr 11: U-wind @ 10m
+             Units      = 'm/s'
           CASE ( 15 )
-             NameSuffix = 'V10M'            ! ND67, trcr 12
-             OutUnit    = 'm/s'
+             NameSuffix = 'V10M'         ! ND67, trcr 12: V-wind @ 10m
+             Units      = 'm/s'
           CASE ( 16 )
-             NameSuffix = 'PS-PBL'          ! ND67, trcr 13
-             OutUnit    = 'hPa'
+             NameSuffix = 'PS-PBL'       ! ND67, trcr 13
+             Units      = 'hPa'
           CASE ( 17 )
-             NameSuffix = 'ALBD'            ! ND67, trcr 14
-             OutUnit    = 'unitless'
+             NameSuffix = 'ALBD'         ! ND67, trcr 14: Surface albedo
+             Units      = 'unitless'
           CASE ( 18 )
-             NameSuffix = 'PHIS'            ! ND67, trcr 15
-             OutUnit    = 'm'
+             NameSuffix = 'PHIS'         ! ND67, trcr 15: Surface geopotential
+             Units      = 'm'
           CASE ( 19 )
-             NameSuffix = 'CLTOP'           ! ND67, trcr 16
-             OutUnit    = 'level'
+             NameSuffix = 'CLDTOP'       ! ND67, trcr 16: Cloud top level
+             Units      = 'level'
           CASE ( 20 )
-             NameSuffix = 'TROPP'           ! ND67, trcr 17
-             OutUnit    = 'hPa'
+             NameSuffix = 'TROPP'        ! ND67, trcr 17: T'pause pressure
+             Units      = 'hPa'
           CASE ( 21 )
-             NameSuffix = 'SLP'             ! ND67, trcr 18
-             OutUnit    = 'hPa'
+             NameSuffix = 'SLP'          ! ND67, trcr 18: Sea level pressure
+             Units      = 'hPa'
           CASE ( 22 )
-             NameSuffix = 'TSKIN'           ! ND67, trcr 19
-             OutUnit    = 'K'
+             NameSuffix = 'TSKIN'        ! ND67, trcr 19: Surface skin temp
+             Units      = 'K'
           CASE ( 23 )
-             NameSuffix = 'PARDF'           ! ND67, trcr 20
-             OutUnit    = 'W/m2'
+             NameSuffix = 'PARDF'        ! ND67, trcr 20: Diffuse PAR
+             Units      = 'W/m2'
           CASE ( 24 )
-             NameSuffix = 'PARDR'           ! ND67, trcr 21
-             OutUnit    = 'W/m2'
+             NameSuffix = 'PARDR'        ! ND67, trcr 21: Direct PAR
+             Units      = 'W/m2'
           CASE ( 25 )
-             NameSuffix = 'GWETTOP'         ! ND67, trcr 22
-             OutUnit    = 'unitless'
+             NameSuffix = 'GWETTOP'      ! ND67, trcr 22: Topsoil wetness [frac]
+             Units      = 'unitless'
+          CASE ( 26 )
+             NameSuffix = 'EFLUX'        ! ND67, trcr 23: Latent heat flux
+             Units      = 'W/m2'
           CASE DEFAULT
-             IF ( N < Num2D ) THEN
+            IF ( N < Num2D ) THEN
                 MSG = 'Num2D is less than number of named 2D MET diagnostics'
              ELSE
                 MSG = 'Undefined 2D diagnostic in MET diagnostic group'
              ENDIF
              CALL ERROR_STOP( MSG, LOC ) 
-       END SELECT
+        END SELECT
 
        ! Diagnostic container info
        DiagnName = 'MET_' // NameSuffix
@@ -1238,8 +1254,8 @@ CONTAINS
                           Hier      = -1,                &
                           HcoID     = -1,                &
                           SpaceDim  =  SpaceDim,         &
-                          OutUnit   = TRIM( OutUnit   ), &
-                          OutOper   = TRIM( OutOper   ), &
+                          OutUnit   = TRIM( Units ),     &
+                          OutOper   = TRIM( OutOper ),   &
                           RC        = RC )
 
        IF ( RC /= HCO_SUCCESS ) THEN
@@ -1331,7 +1347,7 @@ CONTAINS
                           HcoID     = -1,                &
                           SpaceDim  =  3,                &
                           OutUnit   = 'kg/s',            &
-                          OutOper   = TRIM( OutOper   ), &
+                          OutOper   = TRIM( OutOper ),   &
                           RC        = RC )
 
        IF ( RC /= HCO_SUCCESS ) THEN
@@ -1519,7 +1535,7 @@ CONTAINS
                        HcoID     = -1,                &
                        SpaceDim  =  3,                &
                        OutUnit   = '.' ,              &
-                       OutOper   = TRIM( OutOper   ), &
+                       OutOper   = TRIM( OutOper ),   &
                        RC        = RC )
 
     IF ( RC /= HCO_SUCCESS ) THEN
@@ -1615,7 +1631,7 @@ CONTAINS
                              HcoID     = -1,                &
                              SpaceDim  =  3,                &
                              OutUnit   = 'kg/s' ,           &
-                             OutOper   = TRIM( OutOper   ), &
+                             OutOper   = TRIM( OutOper ),   &
                              RC        = RC )
       
           IF ( RC /= HCO_SUCCESS ) THEN
@@ -1712,7 +1728,7 @@ CONTAINS
                              HcoID     = -1,                &
                              SpaceDim  =  3,                &
                              OutUnit   = 'kg/s' ,           &
-                             OutOper   = TRIM( OutOper   ), &
+                             OutOper   = TRIM( OutOper ),   &
                              RC        = RC )
       
           IF ( RC /= HCO_SUCCESS ) THEN
@@ -1817,7 +1833,7 @@ CONTAINS
                           HcoID     = -1,                &
                           SpaceDim  =  3,                &
                           OutUnit   = '.' ,              &
-                          OutOper   = TRIM( OutOper   ), &
+                          OutOper   = TRIM( OutOper ),   &
                           RC        = RC )
    
        IF ( RC /= HCO_SUCCESS ) THEN
@@ -1931,7 +1947,7 @@ CONTAINS
                                 HcoID     = -1,                &
                                 SpaceDim  =  3,                &
                                 OutUnit   = '.' ,              &
-                                OutOper   = TRIM( OutOper   ), &
+                                OutOper   = TRIM( OutOper ),   &
                                 RC        = RC )
          
              IF ( RC /= HCO_SUCCESS ) THEN
@@ -2047,7 +2063,7 @@ CONTAINS
                                 HcoID     = -1,                &
                                 SpaceDim  =  3,                &
                                 OutUnit   = '.' ,              &
-                                OutOper   = TRIM( OutOper   ), &
+                                OutOper   = TRIM( OutOper ),   &
                                 RC        = RC )
          
              IF ( RC /= HCO_SUCCESS ) THEN
@@ -2138,7 +2154,7 @@ CONTAINS
                        HcoID     = -1,                &
                        SpaceDim  =  3,                &
                        OutUnit   = 'kg CH4' ,         &
-                       OutOper   = TRIM( OutOper   ), &
+                       OutOper   = TRIM( OutOper ),   &
                        RC        = RC )
 
     IF ( RC /= HCO_SUCCESS ) THEN
@@ -2222,7 +2238,7 @@ CONTAINS
                        HcoID     = -1,                &
                        SpaceDim  =  2,                &
                        OutUnit   = '.' ,              &
-                       OutOper   = TRIM( OutOper   ), &
+                       OutOper   = TRIM( OutOper ),   &
                        RC        = RC )
 
     IF ( RC /= HCO_SUCCESS ) THEN
@@ -2233,7 +2249,7 @@ CONTAINS
   END SUBROUTINE DiagnInit_LandMap
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2342,7 +2358,7 @@ CONTAINS
                              HcoID     = ID,                &
                              SpaceDim  =  3,                &
                              OutUnit   = 'kg/s',            &
-                             OutOper   = TRIM( OutOper   ), &
+                             OutOper   = TRIM( OutOper ),   &
                              RC        = RC                  )
 
           IF ( RC /= HCO_SUCCESS ) THEN
@@ -2436,7 +2452,7 @@ CONTAINS
                           HcoID     = -1,                &
                           SpaceDim  =  2,                &
                           OutUnit   = 'dobson',          &
-                          OutOper   = TRIM( OutOper   ), &
+                          OutOper   = TRIM( OutOper ),   &
                           OkIfExist = .TRUE.,            &
                           RC        = RC )
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -2730,7 +2746,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, J, L, N, Collection, Num2D, Num3D
+    INTEGER            :: I, J, L, N, Collection, Num2D, Num3D, HCRC
     CHARACTER(LEN=30)  :: NameSuffix, DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DiagnUpdate_Met (diagnostics_mod.F90)'
@@ -2750,10 +2766,14 @@ CONTAINS
     ! This is not currently used, but keep for possible later use/editing
     Collection = Input_Opt%DIAG_COLLECTION
 
+    ! For now, only update if GEOS-FP or MERRA2 since diagnostics
+    ! for those are stored in State_Met and are therefore accessible here.
+#if defined( GEOS_FP ) || defined ( MERRA2 )
+
     ! Set number of 3D and 2D MET diagnostics that are updated in 
     ! this routine
-    Num3d = 6
-    Num2d = 2
+    Num2d = 22
+    Num3d = 14
 
     !----------------------------------------------------------------
     ! Update 2D containers
@@ -2767,17 +2787,77 @@ CONTAINS
 
        SELECT CASE ( N )
           CASE ( 1 )
-             NameSuffix = 'PS-PBL'          ! ND67, trcr 13
+             NameSuffix = 'HFLUX'   ! ND67, trcr 1: Sens heat flux [W/m2]
+             Ptr2D => State_Met%HFLUX  
+          CASE ( 2 )
+             NameSuffix = 'RADSWG'  ! ND67, trcr 2: SW rad @ sfc [W/m2]
+             Ptr2D => State_Met%SWGDN  
+          CASE ( 3 )
+             NameSuffix = 'PREACC'  ! ND67, trcr 3: Tot prec [kg/m2/s]
+             Ptr2D => State_Met%PRECTOT 
+          CASE ( 4 )
+             NameSuffix = 'PRECON'  ! ND67, trcr 4: Sfc conv prec[kg/m2/s]
+             Ptr2D => State_Met%PRECCON 
+          CASE ( 5 )
+             NameSuffix = 'TS'      ! ND67, trcr 5: T @ 2m height [K]
+             Ptr2D => State_Met%TS   
+          CASE ( 6 )
+             NameSuffix = 'USTAR'   ! ND67, trcr 7: Friction vel [m/s]
+             Ptr2D => State_Met%USTAR   
+          CASE ( 7 )
+             NameSuffix = 'Z0'      ! ND67, trcr 8: Roughness height [m]
+             Ptr2D => State_Met%Z0    
+          CASE ( 8 )
+             NameSuffix = 'PBL'     ! ND67, trcr 9: PBL height [m]
+             Ptr2D => State_Met%PBLH  
+          CASE ( 9 )
+             NameSuffix = 'CLDFRC'  ! ND67, trcr 10: Column cld fraction
+             Ptr2D => State_Met%CLDFRC  
+          CASE ( 10 )
+             NameSuffix = 'U10M'    ! ND67, trcr 11: U-wind @ 10m [m/s]
+             Ptr2D => State_Met%U10M   
+          CASE ( 11 )
+             NameSuffix = 'V10M'    ! ND67, trcr 12: V-wind @ 10m [m/s]
+             Ptr2D => State_Met%V10M  
+          CASE ( 12 )
+             NameSuffix = 'PS-PBL'  ! ND67, trcr 13
              Temp2D = State_Met%PEDGE(:,:,1) *      &
                       EXP( -State_Met%PBLH(:,:) / SCALE_HEIGHT ) 
              Ptr2D => Temp2D
-          CASE ( 2 )
-             NameSuffix = 'TROPP'           ! ND67, trcr 17
-             Ptr2D => State_Met%TROPP
+          CASE ( 13 )
+             NameSuffix = 'ALBD'    ! ND67, trcr 14: Sfc albedo [unitless]
+             Ptr2D => State_Met%ALBD   
+          CASE ( 14 )
+             NameSuffix = 'PHIS'    ! ND67, trcr 15: Sfc geopotential [m]
+             Ptr2D => State_Met%PHIS
+          CASE ( 15 )
+          ! Comment CLDTOP out since integer array - HEMCO cannot handle it
+          !   NameSuffix = 'CLDTOP'  ! ND67, trcr 16: Cloud top level
+          !   Ptr2D => State_Met%PHIS
+             CYCLE ! skip this diagnostic
+          CASE ( 16 )
+             NameSuffix = 'TROPP'   ! ND67, trcr 17: T'pause pressure
+             Ptr2D => State_Met%TROPP !              [hPa]
+          CASE ( 17 )
+             NameSuffix = 'SLP'     ! ND67, trcr 18: Sea level prs [hPa]
+             Ptr2D => State_Met%SLP 
+          CASE ( 18 )
+             NameSuffix = 'TSKIN'   ! ND67, trcr 19: Sfc skin temp [K]
+             Ptr2D => State_Met%TSKIN   
+          CASE ( 19 )
+             NameSuffix = 'PARDF'   ! ND67, trcr 20: Diffuse PAR [W/m2]
+             Ptr2D => State_Met%PARDF 
+          CASE ( 20 )
+             NameSuffix = 'PARDR'   ! ND67, trcr 21: Direct PAR [W/m2]
+             Ptr2D => State_Met%PARDR   
+          CASE ( 21 )
+             NameSuffix = 'GWETTOP' ! ND67, trcr 22: Topsoil wetness
+             Ptr2D => State_Met%GWETTOP !            [frac]
+          CASE ( 22 )
+             NameSuffix = 'EFLUX'   ! ND67, trcr 23: Latent heat flx
+             Ptr2D => State_Met%EFLUX !              [W/m2] 
           CASE DEFAULT
-             IF ( N < Num2D ) THEN
-                MSG = 'Num2D is less than number of named 2D MET diagnostics'
-             ELSE
+             IF ( N > Num2D ) THEN
                 MSG = 'Undefined 2D diagnostic in MET diagnostic group'
              ENDIF
              CALL ERROR_STOP( MSG, LOC ) 
@@ -2791,12 +2871,12 @@ CONTAINS
           CALL Diagn_Update( am_I_Root,                   &
                              cName   = TRIM( DiagnName ), &
                              Array2D = Ptr2D,             &
-                             RC      = RC )
+                             RC      = HCRC )
 
           ! Free the pointer
           Ptr2D => NULL()
  
-          IF ( RC /= HCO_SUCCESS ) THEN
+          IF ( HCRC /= HCO_SUCCESS ) THEN
              MSG = 'Cannot update 2D MET diagnostic ' // TRIM(DiagnName)
              CALL ERROR_STOP( MSG, LOC ) 
           ENDIF
@@ -2806,7 +2886,6 @@ CONTAINS
     !----------------------------------------------------------------
     ! Update 3D containers
     !----------------------------------------------------------------
-
     ! Loop over 3D diagnostics within Met category
     DO N = 1, Num3D
 
@@ -2815,7 +2894,10 @@ CONTAINS
 
        SELECT CASE ( N ) 
           CASE ( 1 )
-             NameSuffix = 'THETA'   ! Potential temp, ND57, trcr 1
+             NameSuffix = 'PEDGE'        ! ND31, trcr 1
+             Ptr3D => State_Met%PEDGE
+          CASE ( 2 )
+             NameSuffix = 'THETA'        ! Potential temp, ND57, trcr 1
              !$OMP PARALLEL DO &
              !$OMP DEFAULT( SHARED ) &
              !$OMP PRIVATE( I, J, L )
@@ -2829,23 +2911,44 @@ CONTAINS
              ENDDO
              ENDDO
              !$OMP END PARALLEL DO
-             Ptr3D => Temp3D 
-          CASE ( 2 )
-             NameSuffix = 'BXHEIGHT'        ! ND68, trcr 1
-             Ptr3D => State_Met%BXHEIGHT 
           CASE ( 3 )
-             NameSuffix = 'DRYAIRMASS'      ! ND68, trcr 2
-             Ptr3D => State_Met%AD
+             NameSuffix = 'UWND'         ! ND66, trcr 1: Zonal wind [m/s]
+             Temp3D = State_Met%U 
           CASE ( 4 )
-             NameSuffix = 'AVGW'            ! ND68, trcr 3
-             Ptr3D => State_Met%AVGW
+             NameSuffix = 'VWN'          ! ND66, trcr 2: Meridional wind [m/s]
+             Temp3D = State_Met%V 
           CASE ( 5 )
-             NameSuffix = 'NAIR'            ! ND68, trcr 4
+             NameSuffix = 'TMPU'          ! ND66, trcr 3: Temperature [K]
+             Temp3D = State_Met%TMPU1
+          CASE ( 6 )
+             NameSuffix = 'TMPU'          ! ND66, trcr 3: Temperature [K]
+             Temp3D = State_Met%TMPU2
+          CASE ( 7 )
+             NameSuffix = 'SPHU'          ! ND66, trcr 4: Specific humidity
+             Temp3D = State_Met%SPHU1                   ! [g H2O/kg air]
+          CASE ( 8 )
+             NameSuffix = 'SPHU'          ! ND66, trcr 4: Specific humidity
+             Temp3D = State_Met%SPHU2                   ! [g H2O/kg air]
+          CASE ( 9 )
+             NameSuffix = 'CLDMAS'       ! ND66, trcr 5: Convective mass flux
+             Temp3D = State_Met%CMFMC                  ! [kg/m2/s]
+          CASE ( 10 )
+             NameSuffix = 'DTRAIN'       ! ND66, trcr 6: Detrainment flux 
+             Temp3D = State_Met%DTRAIN                 ! [kg/m2/s]            
+             Ptr3D => Temp3D 
+          CASE ( 11 )
+             NameSuffix = 'BXHEIGHT'     ! ND68, trcr 1
+             Ptr3D => State_Met%BXHEIGHT 
+          CASE ( 12 )
+             NameSuffix = 'DRYAIRMASS'   ! ND68, trcr 2
+             Ptr3D => State_Met%AD
+          CASE ( 13 )
+             NameSuffix = 'AVGW'         ! ND68, trcr 3
+             Ptr3D => State_Met%AVGW
+          CASE ( 14 )
+             NameSuffix = 'NAIR'         ! ND68, trcr 4
              Temp3D = State_Met%AIRDEN * XNUMOLAIR
              Ptr3D => Temp3D
-          CASE ( 6 )
-             NameSuffix = 'PEDGE'           ! ND31, trcr 1
-             Ptr3D => State_Met%PEDGE
           CASE DEFAULT
              IF ( N < Num3D ) THEN
                 MSG = 'Num3D is less than number of named 3D MET diagnostics'
@@ -2874,6 +2977,8 @@ CONTAINS
           ENDIF
        ENDIF
     ENDDO
+
+#endif
 
   END SUBROUTINE DiagnUpdate_Met
 !EOC
@@ -3005,7 +3110,7 @@ CONTAINS
    END SUBROUTINE DiagnUpdate_Transport_Flux
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3117,7 +3222,7 @@ CONTAINS
 !EOC
 #endif
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
