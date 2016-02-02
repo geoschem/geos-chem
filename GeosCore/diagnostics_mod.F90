@@ -41,17 +41,15 @@ MODULE Diagnostics_Mod
 ! !PRIVATE MEMBER FUNCTIONS:
 !
 ! Benchmark diagnostic groups
-  !PRIVATE :: DiagnInit_Sulfate_ProdLoss ! ND05 (implementation not complete)
-  !PRIVATE :: DiagnInit_Carbon_Sources   ! ND07 (implementation not complete)
-  !PRIVATE :: DiagnInit_Cloud_Properties ! ND21 (implementation not complete)
-  !PRIVATE :: DiagnInit_Photolysis_Rates ! ND22 (implementation not complete)
-  PRIVATE :: DiagnInit_Transport_Flux    ! ND24, 25, and 26
-  !PRIVATE :: DiagnInit_Conv_Loss        ! ND38 - now handled in wetscav group
-  !PRIVATE :: DiagnInit_Wetdep_Loss      ! ND39 - now handled in wetscav group
   PRIVATE :: DiagnInit_WetScav          ! ND38 and 39 (add 37)
   PRIVATE :: DiagnInit_DryDep           ! ND44
   PRIVATE :: DiagnInit_Tracer_Conc      ! ND45
   PRIVATE :: DiagnInit_Met              ! ND31, 55, 57, 66, 67, and 68
+
+  !PRIVATE :: DiagnInit_Sulfate_ProdLoss ! ND05 (implementation not complete)
+  !PRIVATE :: DiagnInit_Carbon_Sources   ! ND07 (implementation not complete)
+  !PRIVATE :: DiagnInit_Cloud_Properties ! ND21 (implementation not complete)
+  !PRIVATE :: DiagnInit_Photolysis_Rates ! ND22 (implementation not complete)
 
 ! Specialty simulation diagnostic groups
   PRIVATE :: DiagnInit_Pb_Emiss      ! ND01 init
@@ -65,6 +63,7 @@ MODULE Diagnostics_Mod
   !          ND72 (RRTMD radiative output)
   
 ! Optional diagnostic groups
+  PRIVATE :: DiagnInit_Transport_Flux   ! ND24, 25, and 26
   PRIVATE :: DiagnInit_BL_Frac          ! ND12 init
   PRIVATE :: DiagnInit_CldConv_Flx      ! ND14 init
   PRIVATE :: DiagnInit_BlMix_Flx        ! ND15 init
@@ -1153,7 +1152,7 @@ CONTAINS
        SELECT CASE ( N )
           CASE ( 1 )
              NameSuffix = 'TRPAUSE_LVL'  ! ND55, trcr 1
-             Units      = 'Level index'
+             Units      = 'level'
           CASE ( 2 )
              NameSuffix = 'TRPAUSE_HGHT' ! ND55, trcr 2
              Units      = 'km'
@@ -2770,9 +2769,8 @@ CONTAINS
     ! for those are stored in State_Met and are therefore accessible here.
 #if defined( GEOS_FP ) || defined ( MERRA2 )
 
-    ! Set number of 3D and 2D MET diagnostics that are updated in 
-    ! this routine
-    Num2d = 22
+    ! Set number of 3D and 2D MET diagnostics that are updated 
+    Num2d = 23
     Num3d = 14
 
     !----------------------------------------------------------------
@@ -2802,58 +2800,60 @@ CONTAINS
              NameSuffix = 'TS'      ! ND67, trcr 5: T @ 2m height [K]
              Ptr2D => State_Met%TS   
           CASE ( 6 )
+             NameSuffix = 'RADSWT'  ! ND67, trcr 6
+             Ptr2D => Temp2D        ! BPCH is set to 0 for GEOS-FP/MERRA2
+          CASE ( 7 )
              NameSuffix = 'USTAR'   ! ND67, trcr 7: Friction vel [m/s]
              Ptr2D => State_Met%USTAR   
-          CASE ( 7 )
+          CASE ( 8 )
              NameSuffix = 'Z0'      ! ND67, trcr 8: Roughness height [m]
              Ptr2D => State_Met%Z0    
-          CASE ( 8 )
+          CASE ( 9 )
              NameSuffix = 'PBL'     ! ND67, trcr 9: PBL height [m]
              Ptr2D => State_Met%PBLH  
-          CASE ( 9 )
+          CASE ( 10 )
              NameSuffix = 'CLDFRC'  ! ND67, trcr 10: Column cld fraction
              Ptr2D => State_Met%CLDFRC  
-          CASE ( 10 )
+          CASE ( 11 )
              NameSuffix = 'U10M'    ! ND67, trcr 11: U-wind @ 10m [m/s]
              Ptr2D => State_Met%U10M   
-          CASE ( 11 )
+          CASE ( 12 )
              NameSuffix = 'V10M'    ! ND67, trcr 12: V-wind @ 10m [m/s]
              Ptr2D => State_Met%V10M  
-          CASE ( 12 )
-             NameSuffix = 'PS-PBL'  ! ND67, trcr 13
-             Temp2D = State_Met%PEDGE(:,:,1) *      &
+          CASE ( 13 )
+             NameSuffix = 'PS-PBL'  ! ND67, trcr 13: Boundary layer top pressure
+             Temp2D = State_Met%PEDGE(:,:,1) *      &             ! [hPa]
                       EXP( -State_Met%PBLH(:,:) / SCALE_HEIGHT ) 
              Ptr2D => Temp2D
-          CASE ( 13 )
+          CASE ( 14 )
              NameSuffix = 'ALBD'    ! ND67, trcr 14: Sfc albedo [unitless]
              Ptr2D => State_Met%ALBD   
-          CASE ( 14 )
+          CASE ( 15 )
              NameSuffix = 'PHIS'    ! ND67, trcr 15: Sfc geopotential [m]
              Ptr2D => State_Met%PHIS
-          CASE ( 15 )
-          ! Comment CLDTOP out since integer array - HEMCO cannot handle it
-          !   NameSuffix = 'CLDTOP'  ! ND67, trcr 16: Cloud top level
-          !   Ptr2D => State_Met%PHIS
-             CYCLE ! skip this diagnostic
           CASE ( 16 )
+             NameSuffix = 'CLDTOP'  ! ND67, trcr 16: Max cloud top level
+             Temp2D = FLOAT( State_Met%CLDTOPS )
+             Ptr2D => Temp2D
+          CASE ( 17 )
              NameSuffix = 'TROPP'   ! ND67, trcr 17: T'pause pressure
              Ptr2D => State_Met%TROPP !              [hPa]
-          CASE ( 17 )
+          CASE ( 18 )
              NameSuffix = 'SLP'     ! ND67, trcr 18: Sea level prs [hPa]
              Ptr2D => State_Met%SLP 
-          CASE ( 18 )
+          CASE ( 19 )
              NameSuffix = 'TSKIN'   ! ND67, trcr 19: Sfc skin temp [K]
              Ptr2D => State_Met%TSKIN   
-          CASE ( 19 )
+          CASE ( 20 )
              NameSuffix = 'PARDF'   ! ND67, trcr 20: Diffuse PAR [W/m2]
              Ptr2D => State_Met%PARDF 
-          CASE ( 20 )
+          CASE ( 21 )
              NameSuffix = 'PARDR'   ! ND67, trcr 21: Direct PAR [W/m2]
              Ptr2D => State_Met%PARDR   
-          CASE ( 21 )
+          CASE ( 22 )
              NameSuffix = 'GWETTOP' ! ND67, trcr 22: Topsoil wetness
              Ptr2D => State_Met%GWETTOP !            [frac]
-          CASE ( 22 )
+          CASE ( 23 )
              NameSuffix = 'EFLUX'   ! ND67, trcr 23: Latent heat flx
              Ptr2D => State_Met%EFLUX !              [W/m2] 
           CASE DEFAULT
@@ -2911,43 +2911,43 @@ CONTAINS
              ENDDO
              ENDDO
              !$OMP END PARALLEL DO
+             Ptr3D => Temp3D
           CASE ( 3 )
              NameSuffix = 'UWND'         ! ND66, trcr 1: Zonal wind [m/s]
-             Temp3D = State_Met%U 
+             Ptr3D => State_Met%U 
           CASE ( 4 )
-             NameSuffix = 'VWN'          ! ND66, trcr 2: Meridional wind [m/s]
-             Temp3D = State_Met%V 
+             NameSuffix = 'VWND'         ! ND66, trcr 2: Meridional wind [m/s]
+             Ptr3D => State_Met%V 
           CASE ( 5 )
-             NameSuffix = 'TMPU'          ! ND66, trcr 3: Temperature [K]
-             Temp3D = State_Met%TMPU1
+             NameSuffix = 'TMPU'         ! ND66, trcr 3: Temperature [K]
+             Ptr3D => State_Met%TMPU1
           CASE ( 6 )
-             NameSuffix = 'TMPU'          ! ND66, trcr 3: Temperature [K]
-             Temp3D = State_Met%TMPU2
+             NameSuffix = 'TMPU'         ! ND66, trcr 3: Temperature [K]
+             Ptr3D => State_Met%TMPU2
           CASE ( 7 )
-             NameSuffix = 'SPHU'          ! ND66, trcr 4: Specific humidity
-             Temp3D = State_Met%SPHU1                   ! [g H2O/kg air]
+             NameSuffix = 'SPHU'         ! ND66, trcr 4: Specific humidity
+             Ptr3D => State_Met%SPHU1                   ! [g H2O/kg air]
           CASE ( 8 )
-             NameSuffix = 'SPHU'          ! ND66, trcr 4: Specific humidity
-             Temp3D = State_Met%SPHU2                   ! [g H2O/kg air]
+             NameSuffix = 'SPHU'         ! ND66, trcr 4: Specific humidity
+             Ptr3D => State_Met%SPHU2                   ! [g H2O/kg air]
           CASE ( 9 )
              NameSuffix = 'CLDMAS'       ! ND66, trcr 5: Convective mass flux
-             Temp3D = State_Met%CMFMC                  ! [kg/m2/s]
+             Ptr3D => State_Met%CMFMC                  ! [kg/m2/s]
           CASE ( 10 )
              NameSuffix = 'DTRAIN'       ! ND66, trcr 6: Detrainment flux 
-             Temp3D = State_Met%DTRAIN                 ! [kg/m2/s]            
-             Ptr3D => Temp3D 
+             Ptr3D => State_Met%DTRAIN                 ! [kg/m2/s]            
           CASE ( 11 )
-             NameSuffix = 'BXHEIGHT'     ! ND68, trcr 1
+             NameSuffix = 'BXHEIGHT'     ! ND68, trcr 1: grid box height [m]
              Ptr3D => State_Met%BXHEIGHT 
           CASE ( 12 )
-             NameSuffix = 'DRYAIRMASS'   ! ND68, trcr 2
-             Ptr3D => State_Met%AD
+             NameSuffix = 'DRYAIRMASS'   ! ND68, trcr 2: grid box dry air mass
+             Ptr3D => State_Met%AD       !               [kg dry air]
           CASE ( 13 )
-             NameSuffix = 'AVGW'         ! ND68, trcr 3
-             Ptr3D => State_Met%AVGW
+             NameSuffix = 'AVGW'         ! ND68, trcr 3: H2O vapor mixing ratio
+             Ptr3D => State_Met%AVGW     !               [v/v dry air]
           CASE ( 14 )
-             NameSuffix = 'NAIR'         ! ND68, trcr 4
-             Temp3D = State_Met%AIRDEN * XNUMOLAIR
+             NameSuffix = 'NAIR'         ! ND68, trcr 4: Air number density
+             Temp3D = State_Met%AIRDEN * XNUMOLAIR  !    [molec dry air/m3]
              Ptr3D => Temp3D
           CASE DEFAULT
              IF ( N < Num3D ) THEN
@@ -2962,19 +2962,17 @@ CONTAINS
        DiagnName = 'MET_3D_' // NameSuffix
 
        ! Update diagnostics
-       IF ( ASSOCIATED(Ptr3D) ) THEN 
-          CALL Diagn_Update( am_I_Root,                    &
-                             cName   = TRIM( DiagnName ),  &
-                             Array3D = Ptr3D,              &
-                             RC      = RC )
+       CALL Diagn_Update( am_I_Root,                    &
+                          cName   = TRIM( DiagnName ),  &
+                          Array3D = Ptr3D,              &
+                          RC      = RC )
 
-          ! Free the pointer
-          Ptr3D => NULL()
+       ! Free the pointer
+       Ptr3D => NULL()
  
-          IF ( RC /= HCO_SUCCESS ) THEN
-             MSG = 'Cannot update MET diagnostic ' // TRIM(DiagnName)
-             CALL ERROR_STOP( MSG, LOC ) 
-          ENDIF
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Cannot update MET diagnostic ' // TRIM(DiagnName)
+          CALL ERROR_STOP( MSG, LOC ) 
        ENDIF
     ENDDO
 

@@ -1260,11 +1260,10 @@
       INTEGER           :: M, HCRC
       CHARACTER(LEN=60) :: LOC = 'Diag_Tropopause (chemgrid_mod.F)' 
       CHARACTER(LEN=60) :: DiagnName, MSG
-      INTEGER,  TARGET  :: TRPAUSE_L(IIPAR,JJPAR)
+      REAL(fp), TARGET  :: TRPAUSE_L(IIPAR,JJPAR)
       REAL(fp), TARGET  :: TRPAUSE_P(IIPAR,JJPAR)
       REAL(fp), TARGET  :: TRPAUSE_H(IIPAR,JJPAR)
-      INTEGER,  POINTER :: PtrInt2D(:,:) => NULL()
-      REAL(fp), POINTER :: PtrReal2D(:,:) => NULL()
+      REAL(fp), POINTER :: Ptr2D(:,:) => NULL()
 #endif
 
       !=======================================================================
@@ -1343,8 +1342,8 @@
 #endif
 #if defined( NETCDF )
          TRPAUSE_L(I,J) = L                       ! tropopause level
-         TRPAUSE_P(I,J) = H(I,J,L) / 1.0e+3_fp    ! tropopause height [km]
-         TRPAUSE_H(I,J) = State_Met%PMID(I,J,L)   ! tropopause press [hPa]
+         TRPAUSE_H(I,J) = H(I,J,L) / 1.0e+3_fp    ! tropopause height [km]
+         TRPAUSE_P(I,J) = State_Met%PMID(I,J,L)   ! tropopause press [hPa]
 #endif
       ENDDO
       ENDDO
@@ -1398,9 +1397,9 @@
      &                    State_Met%TROPP(I,J)
 #endif
 #if defined( NETCDF )
-         TRPAUSE_L(I,J) = L_TP                   ! tropopause level
-         TRPAUSE_P(I,J) = H / 1.0e+3_fp          ! tropopause height [km]
-         TRPAUSE_H(I,J) = State_Met%TROPP(I,J)   ! tropopause press [hPa]
+         TRPAUSE_L(I,J) = FLOAT( L_TP )          ! tropopause level
+         TRPAUSE_H(I,J) = H / 1.0e+3_fp          ! tropopause height [km]
+         TRPAUSE_P(I,J) = State_Met%TROPP(I,J)   ! tropopause press [hPa]
 #endif
       ENDDO
       ENDDO
@@ -1415,34 +1414,24 @@
    
          ! Define diagnostic name and update diagnostic container
          SELECT CASE ( M )
-
             CASE ( 1 )
-               DiagnName = 'MET_TRPAUSE_LVL'
-               PtrInt2D => TRPAUSE_L
-! comment the diag update out - want to save instantaneous only and as int
-!               CALL Diagn_Update( am_I_Root,                                
-!     &                            cName     = TRIM( DiagnName ),            
-!     &                            Array2D   = PtrInt2D,                        
-!     &                            RC        = HCRC )
+               DiagnName = 'MET_2D_TRPAUSE_LVL'
+               Ptr2D => TRPAUSE_L
             CASE ( 2 )
-               DiagnName = 'MET_TRPAUSE_HGHT'
-               PtrReal2D => TRPAUSE_H
-               CALL Diagn_Update( am_I_Root,                                
-     &                            cName     = TRIM( DiagnName ),            
-     &                            Array2D   = PtrReal2D,                        
-     &                            RC        = HCRC )
+               DiagnName = 'MET_2D_TRPAUSE_HGHT'
+               Ptr2D => TRPAUSE_H
             CASE ( 3 )
-               DiagnName = 'MET_TRPAUSE_PRESS'
-               PtrReal2D => TRPAUSE_P
-              CALL Diagn_Update( am_I_Root,                                
-     &                           cName     = TRIM( DiagnName ),            
-     &                           Array2D   = PtrReal2D,                        
-     &                           RC        = HCRC )
+               DiagnName = 'MET_2D_TRPAUSE_PRESS'
+               Ptr2D => TRPAUSE_P
          END SELECT
+
+         CALL Diagn_Update( am_I_Root,                                
+     &                      cName     = TRIM( DiagnName ),            
+     &                      Array2D   = Ptr2D,                        
+     &                      RC        = HCRC )
    
          ! Free the pointers
-         PtrInt2D  => NULL()
-         PtrReal2D => NULL()
+         Ptr2D => NULL()
    
          ! Stop with error if the diagnostics update was unsuccessful
          IF ( HCRC /= HCO_SUCCESS ) THEN
