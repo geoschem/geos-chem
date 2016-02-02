@@ -1066,7 +1066,7 @@ CONTAINS
 
     ! Set number of 3D and 2D MET diagnostics
     Num3d = 12
-    Num2d = 25
+    Num2d = 26
 
     !----------------------------------------------------------------
     ! Create containers
@@ -1116,13 +1116,13 @@ CONTAINS
              IF ( N < Num3D ) THEN
                 MSG = 'Num3D is less than number of named 3D MET diagnostics'
              ELSE
-                MSG = 'Undefined 3D diagnostic in MET diagnostic group'
+                MSG = 'Undefined 3D diagnostic case in MET diagnostic group'
              ENDIF
              CALL ERROR_STOP( MSG, LOC ) 
        END SELECT
 
        ! Diagnostic container info
-       DiagnName = 'MET_' // NameSuffix
+       DiagnName = 'MET_3D_' // NameSuffix
        cId       = cId + 1
        SpaceDim  = 3
 
@@ -1142,7 +1142,7 @@ CONTAINS
                           RC        = RC )
 
        IF ( RC /= HCO_SUCCESS ) THEN
-          MSG = 'Cannot create MET diagnostic ' // TRIM(DiagnName)
+          MSG = 'Cannot create 3D MET diagnostic ' // TRIM(DiagnName)
           CALL ERROR_STOP( MSG, LOC ) 
        ENDIF
     ENDDO
@@ -1230,16 +1230,16 @@ CONTAINS
              NameSuffix = 'EFLUX'        ! ND67, trcr 23: Latent heat flux
              Units      = 'W/m2'
           CASE DEFAULT
-            IF ( N < Num2D ) THEN
+             IF ( N < Num2D ) THEN
                 MSG = 'Num2D is less than number of named 2D MET diagnostics'
              ELSE
-                MSG = 'Undefined 2D diagnostic in MET diagnostic group'
+                MSG = 'Undefined 2D diagnostic case in MET diagnostic group'
              ENDIF
              CALL ERROR_STOP( MSG, LOC ) 
         END SELECT
 
        ! Diagnostic container info
-       DiagnName = 'MET_' // NameSuffix
+       DiagnName = 'MET_2D_' // NameSuffix
        cId       = cId + 1
        SpaceDim  = 2
 
@@ -1259,7 +1259,7 @@ CONTAINS
                           RC        = RC )
 
        IF ( RC /= HCO_SUCCESS ) THEN
-          MSG = 'Cannot create MET diagnostic ' // TRIM(DiagnName)
+          MSG = 'Cannot create 2D MET diagnostic ' // TRIM(DiagnName)
           CALL ERROR_STOP( MSG, LOC ) 
        ENDIF
     ENDDO
@@ -2864,7 +2864,7 @@ CONTAINS
        END SELECT
 
        ! Diagnostic info
-       DiagnName = 'MET_' // NameSuffix
+       DiagnName = 'MET_2D_' // NameSuffix
 
        ! Update diagnostics
        IF ( ASSOCIATED(Ptr2D) ) THEN 
@@ -2959,7 +2959,7 @@ CONTAINS
        END SELECT
 
        ! Diagnostic name
-       DiagnName = 'MET_' // NameSuffix
+       DiagnName = 'MET_3D_' // NameSuffix
 
        ! Update diagnostics
        IF ( ASSOCIATED(Ptr3D) ) THEN 
