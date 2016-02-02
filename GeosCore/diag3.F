@@ -5739,6 +5739,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD65) )
          ENDDO       
       ENDIF
+#if defined( BPCH )
 !
 !******************************************************************************
 !  ND66: GMAO 3-D fields 
@@ -5821,6 +5822,8 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD66) )
          ENDDO
       ENDIF
+#endif
+#if defined( BPCH )
 !
 !******************************************************************************
 !  ND67: GMAO surface fields
@@ -5971,6 +5974,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
+#endif
 #if defined( BPCH )
 !******************************************************************************
 !  ND68: Grid box diagnostics
@@ -6009,6 +6013,7 @@
          ENDDO
       ENDIF
 #endif
+#if defined( BPCH )
 !
 !******************************************************************************
 !  ND69: Grid Box Surface Areas
@@ -6054,6 +6059,7 @@
 
          CALL UPDATE_DEP( N )
       ENDIF
+#endif
 #if defined( BPCH )
 !
 !******************************************************************************

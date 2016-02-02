@@ -25,9 +25,11 @@ MODULE Merra2_Read_Mod
   USE Precision_Mod                       ! Flexible precision definitions
   USE CMN_SIZE_MOD                        ! Size parameters
   USE PHYSCONSTANTS                       ! Physical constants
+#if defined( BPCH )
   USE CMN_DIAG_MOD                        ! Diagnostic arrays & counters
   USE DIAG_MOD,      ONLY : AD66          ! Array for ND66 diagnostic  
   USE DIAG_MOD,      ONLY : AD67          ! Array for ND67 diagnostic
+#endif
   USE ERROR_MOD,     ONLY : ERROR_STOP    ! Stop w/ error message
   USE TIME_MOD                            ! Date & time routines
   USE TRANSFER_MOD                        ! Routines for casting 
@@ -64,6 +66,7 @@ MODULE Merra2_Read_Mod
 !  03 Dec 2015 - R. Yantosca - Add file ID's as module variables
 !  03 Dec 2015 - R. Yantosca - Add CLEANUP_MERRA2_READ to close any open 
 !                              netCDF files left at the end of a simulation
+!  02 Feb 2016 - E. Lundgren - Block of diagnostics with if defined BPCH
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -363,10 +366,12 @@ CONTAINS
     ! Convert PHIS from [m2/s2] to [m]
     State_Met%PHIS = State_Met%PHIS / g0
 
+#if defined( BPCH )
     ! ND67 diagnostic 
     IF ( ND67 > 0 ) THEN
        AD67(:,:,15) = AD67(:,:,15) + State_Met%PHIS  ! Sfc geopotential [m]
     ENDIF
+#endif
 
     ! Close netCDF file
     CALL NcCl( fCN )
@@ -791,6 +796,7 @@ CONTAINS
     State_Met%SLP     = State_Met%SLP     * 1e-2_fp
     State_Met%TROPP   = State_Met%TROPP   * 1e-2_fp
 
+#if defined( BPCH )
     ! ND67 diagnostic: surface fields
     IF ( ND67 > 0 ) THEN
        AD67(:,:,1 ) = AD67(:,:,1 ) + State_Met%HFLUX    ! Sens heat flux [W/m2]
@@ -814,6 +820,7 @@ CONTAINS
        AD67(:,:,22) = AD67(:,:,22) + State_Met%GWETTOP  ! Topsoil wetness [frac]
        AD67(:,:,23) = AD67(:,:,23) + State_Met%EFLUX    ! Latent heat flux [W/m2]
     ENDIF
+#endif
 
     ! Save date & time for next iteration
     lastDate = YYYYMMDD
@@ -1236,6 +1243,7 @@ CONTAINS
     ! Convert RH from [1] to [%]
     State_Met%RH = State_Met%RH * 100d0
 
+#if defined( BPCH )
     ! ND66 diagnostic: U, V, DTRAIN met fields
     IF ( ND66 > 0 ) THEN
        AD66(:,:,1:LD66,1) = AD66(:,:,1:LD66,1) + State_Met%U     (:,:,1:LD66)
@@ -1247,6 +1255,7 @@ CONTAINS
     IF ( ND67 > 0 ) THEN
        AD67(:,:,16) = AD67(:,:,16) + State_Met%CLDTOPS         ! [levels]
     ENDIF
+#endif
 
     ! If it's the last time slice, then close the netCDF file
     ! and set the file ID to -1 to indicate that it's closed.
@@ -1591,10 +1600,12 @@ CONTAINS
     ENDDO
     ENDDO
 
+#if defined( BPCH )
     ! ND66 diagnostic: CMFMC met field
     IF ( ND66 > 0 ) THEN
        AD66(:,:,1:LD66,5) = AD66(:,:,1:LD66,5) + State_Met%CMFMC(:,:,1:LD66)
     ENDIF
+#endif
 
     ! If it's the last time slice, then close the netCDF file
     ! and set the file ID to -1 to indicate that it's closed.
@@ -1816,11 +1827,13 @@ CONTAINS
     ! Increment the # of times I3 fields have been read
     CALL Set_Ct_I3( INCREMENT=.TRUE. )
 
+#if defined( BPCH )
     ! ND66 diagnostic: T1, QV1 met fields
     IF ( ND66 > 0 ) THEN
        AD66(:,:,1:LD66,3) = AD66(:,:,1:LD66,3) + State_Met%TMPU1(:,:,1:LD66)
        AD66(:,:,1:LD66,4) = AD66(:,:,1:LD66,4) + State_Met%SPHU1(:,:,1:LD66)
     ENDIF
+#endif
 
   END SUBROUTINE Merra2_Read_I3_1
 !EOC
@@ -2027,11 +2040,13 @@ CONTAINS
     ! Increment the # of times I3 fields have been read
     CALL Set_Ct_I3( INCREMENT=.TRUE. )
 
+#if defined( BPCH )
     ! ND66 diagnostic: T2, QV2 met fields
     IF ( ND66 > 0 ) THEN
        AD66(:,:,1:LD66,3) = AD66(:,:,1:LD66,3) + State_Met%TMPU2(:,:,1:LD66)
        AD66(:,:,1:LD66,4) = AD66(:,:,1:LD66,4) + State_Met%SPHU2(:,:,1:LD66)
     ENDIF
+#endif
 
   END SUBROUTINE Merra2_Read_I3_2
 !EOC

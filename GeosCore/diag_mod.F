@@ -208,17 +208,19 @@
       ! For ND64 -- radiative flux from FAST-JX
       REAL*4,  ALLOCATABLE :: AD64(:,:,:,:,:)
 
+#if defined( BPCH )
       ! For ND66 -- I-6 fields diagnostic
       REAL*4,  ALLOCATABLE :: AD66(:,:,:,:)      
 
       ! For ND67 -- DAO surface fields diagnostic
       REAL*4,  ALLOCATABLE :: AD67(:,:,:)      
-#if defined( BPCH )
+
       ! For ND68 -- BXHEIGHT, AD, AVGW diagnostic
       REAL*4,  ALLOCATABLE :: AD68(:,:,:,:)      
-#endif
+
       ! For ND69 -- DXYP diagnostic
       REAL*4,  ALLOCATABLE :: AD69(:,:,:)      
+#endif
 
       ! For ND71 -- Surface peak tracer conc. diagnostic
       REAL*4,  ALLOCATABLE :: AD71(:,:,:)      
@@ -414,11 +416,11 @@
       IF ( ALLOCATED( AD60        ) ) DEALLOCATE( AD60        )
 #endif
       IF ( ALLOCATED( AD64        ) ) DEALLOCATE( AD64        )
-      IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
 #if defined( BPCH )
+      IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
-#endif
       IF ( ALLOCATED( AD69        ) ) DEALLOCATE( AD69        )
+#endif
       IF ( ALLOCATED( AD71        ) ) DEALLOCATE( AD71        )
       IF ( ALLOCATED( AD71_HR     ) ) DEALLOCATE( AD71_HR     )
       IF ( ALLOCATED( AD71_DAY    ) ) DEALLOCATE( AD71_DAY    )

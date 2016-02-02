@@ -365,9 +365,11 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD66
       USE DIAG_MOD,           ONLY : AD67
+#endif
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_A3
@@ -425,6 +427,7 @@
 !  06 Nov 2014 - R. Yantosca - All input arguments are declared as (I,J,L)
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_A6 with TRANSFER_3D
 !  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
+!  02 Feb 2016 - E. Lundgren - Block of diagnostics with if defined BPCH
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -819,6 +822,7 @@
       WHERE( QI < 0e+0_fp ) QI = 0e+0_fp
       WHERE( QL < 0e+0_fp ) QL = 0e+0_fp
 
+#if defined( BPCH )
       !=================================================================
       !          %%%%% ND66 diagnostic: 3-D met fields %%%%%
       !
@@ -844,6 +848,7 @@
       IF ( ND67 > 0 ) THEN
          AD67(:,:,16) = AD67(:,:,16) + CLDTOPS  ! Max cld top height [levels]
       ENDIF
+#endif
 
       !=================================================================
       ! Cleanup and quit

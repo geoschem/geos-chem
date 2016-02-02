@@ -447,12 +447,13 @@
 !
 ! !USES:
 !
+#if defined( BPCH )
+      USE CMN_DIAG_MOD                                     ! ND67
       USE DIAG_MOD,     ONLY : AD67
+#endif
+      USE CMN_SIZE_MOD
       USE FILE_MOD,     ONLY : IOERROR
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
-
-      USE CMN_SIZE_MOD                                     ! Size parameters
-      USE CMN_DIAG_MOD                                     ! ND67
       USE PHYSCONSTANTS                                    ! g0
 !
 ! !INPUT PARAMETERS: 
@@ -475,6 +476,7 @@
 !  06 Aug 2012 - R. Yantosca - Added ProTeX headers
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  02 Feb 2015 - E. Lundgren - Block out bpch diagnostics with if defined bpch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -570,9 +572,11 @@
       !=================================================================
       PHIS = PHIS / g0
 
+#if defined( BPCH )
       IF ( ND67 > 0 ) THEN
          AD67(:,:,15) = AD67(:,:,15) + PHIS
       ENDIF  
+#endif
 
       ! Since we only read PHIS at the start of the run,
       ! close the file unit (bmy, 6/16/03)

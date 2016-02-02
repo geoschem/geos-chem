@@ -1105,10 +1105,13 @@
       !=================================================================
       IF ( ND66 > 0 ) THEN
          LD66 = MIN( ND66, LLPAR )
+#if defined( BPCH )
          ALLOCATE( AD66( IIPAR, JJPAR, LD66, PD66 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD66' )
+#endif
       ENDIF
 
+#if defined( BPCH )
       !=================================================================
       ! ND67: DAO A-3 and surface fields 
       !       --> Uses AD67 array (allocatable)
@@ -1117,6 +1120,7 @@
          ALLOCATE( AD67( IIPAR, JJPAR, PD67 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD67' )
       ENDIF
+#endif
 
       !=================================================================
       ! ND68: Air mass diagnostics (BXHEIGHT, AD, AVGW, N_AIR)
@@ -1130,6 +1134,7 @@
 #endif
       ENDIF
 
+#if defined( BPCH )
       !=================================================================
       ! ND69: DXYP -- grid box surface areas [m^2] 
       !       --> uses AD69 array (allocatable)
@@ -1138,6 +1143,7 @@
          ALLOCATE( AD69( IIPAR, JJPAR, PD69 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD69' )
       ENDIF
+#endif
 
       !=================================================================
       ! ND71: Maximum tracer concentration [v/v]

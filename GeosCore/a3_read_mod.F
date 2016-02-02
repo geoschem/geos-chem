@@ -23,7 +23,9 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      PUBLIC  :: ARCHIVE_ND67_1D 
+#if defined( BPCH )
+      PUBLIC  :: ARCHIVE_ND67_1D
+#endif 
       PUBLIC  :: GET_A3_FIELDS
       PUBLIC  :: OPEN_A3_FIELDS
       PUBLIC  :: UNZIP_A3_FIELDS
@@ -822,8 +824,10 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD67
+#endif
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput!
       USE TIME_MOD,           ONLY : SET_CT_A3
@@ -935,6 +939,7 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  05 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp)
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  02 Feb 2016 - E. Lundgren - Block off bpch diagnostics with if defined bpch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1511,6 +1516,7 @@
 
 #endif
 
+#if defined( BPCH )
       !=================================================================
       ! ND67 diagnostic: A-3 surface fields:
       !
@@ -1559,12 +1565,14 @@
          IF ( PRESENT( GWETTOP ) ) AD67(:,:,22) = AD67(:,:,22) + GWETTOP
          IF ( PRESENT( EFLUX   ) ) AD67(:,:,23) = AD67(:,:,23) + EFLUX
       ENDIF
+#endif
          
       ! Increment KDA3FLDS -- this is the # of times READ_A3 is called
       CALL SET_CT_A3( INCREMENT=.TRUE. )
 
       END SUBROUTINE READ_A3
 !EOC
+#if defined( BPCH )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1594,6 +1602,7 @@
 ! !REVISION HISTORY: 
 !  23 Jun 2003 - R. Yantosca - Initial version
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  02 Feb 2016 - E. Lundgren - Wrap this routine in if defined bpch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1619,6 +1628,7 @@
 
       END SUBROUTINE ARCHIVE_ND67_1D
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

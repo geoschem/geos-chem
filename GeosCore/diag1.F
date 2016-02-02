@@ -20,9 +20,10 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE DAO_MOD,            ONLY : IS_ICE, IS_WATER, IS_LAND
       USE DIAG_MOD,           ONLY : AD33, AD35, AD54 
-      USE DIAG_MOD,           ONLY : AD47, AD67, AD69
+      USE DIAG_MOD,           ONLY : AD47
 #if defined( BPCH )
-      USE DIAG_MOD,           ONLY : AD30, AD31, AD45, AD57, AD68, LTOTH
+      USE DIAG_MOD,           ONLY : AD30, AD31, AD45, AD57 
+      USE DIAG_MOD,           ONLY : AD67, AD68, AD69, LTOTH
 #endif
       USE DIAG_MOD,           ONLY : AD71
       USE DIAG_MOD,           ONLY : AD71_DAY,   AD71_HR
@@ -491,6 +492,7 @@
 !$OMP END PARALLEL DO
       ENDIF
 #endif
+#if defined( BPCH )
       !=================================================================  
       ! ND67: Store PBL top pressure [hPa]
       !=================================================================  
@@ -506,7 +508,7 @@
          ENDDO
          ENDDO
       ENDIF
-
+#endif
 #if defined( BPCH )
       !================================================================= 
       ! ND68: 1:  BXHEIGHT     - box height [m] 
@@ -551,7 +553,7 @@
 !$OMP END PARALLEL DO
       ENDIF
 #endif
-
+#if defined( BPCH )
       !================================================================= 
       ! ND69: Grid box surface areas [m2]
       !
@@ -565,6 +567,7 @@
          ENDDO
          ENDDO
       ENDIF
+#endif
       
       !================================================================= 
       ! ND71: Tracer (V/V) at level 1, daily maximum hourly avg.
