@@ -27,6 +27,12 @@
 ! !PUBLIC MEMBER FUNCTIONS
 !
       PUBLIC  :: MAKE_RESTART_FILE
+#if defined( BPCH )
+      PUBLIC  :: MAKE_BPCH_RESTART_FILE
+#endif
+#if defined( NETCDF )
+      PUBLIC  :: MAKE_NC_RESTART_FILE
+#endif
       PUBLIC  :: READ_RESTART_FILE
       PUBLIC  :: SET_RESTART
       PUBLIC  :: MAKE_CSPEC_FILE
@@ -88,16 +94,128 @@
 ! !IROUTINE: make_restart_file
 !
 ! !DESCRIPTION: Subroutine MAKE\_RESTART\_FILE creates restart files for 
-!  GEOS-Chem advected tracers [units: vol tracer /vol dry air].  
-!  The file format is GEOS-Chem binary punch (bpch) format.
+!  GEOS-Chem advected tracers [units: vol tracer /vol dry air] by calling
+!  subroutines that write to either binary punch or NetCDF format.
 !\\
 !\\
 ! !INTERFACE:
 !
       SUBROUTINE MAKE_RESTART_FILE( am_I_Root, Input_Opt, 
      &                              YYYYMMDD,  HHMMSS,   
-     &                              TAU,       State_Met, 
-     &                              State_Chm, RC )
+     &                              TAU,       State_Chm, RC )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: YYYYMMDD    ! YYYY/MM/DD GMT date
+      INTEGER,        INTENT(IN)  :: HHMMSS      ! hh:mm:ss GMT time
+      REAL(f8),       INTENT(IN)  :: TAU         ! TAU value (hrs from 1/1/1985)
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(INOUT) :: RC        ! Success or failure?
+! 
+! !REVISION HISTORY: 
+!  02 Feb 2016 - E. Lundgren - Initial version
+
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Local Variables      
+      INTEGER           :: I, J, L, N
+      LOGICAL           :: LPRT
+      REAL(f4), TARGET  :: TracerVV
+     &                     (IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
+      REAL(f4), POINTER :: TracerVV_ptr(:,:,:,:)
+
+
+      !=================================================================
+      ! MAKE_RESTART_FILE begins here!
+      !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LPRT      = Input_Opt%LPRT
+
+      ! Calculate tracer concentration in v/v dry air
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+      DO N = 1, Input_Opt%N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+          ! Convert from mass mixing ratio [kg/kg dry air] to 
+          ! molar mixing ratio [v/v dry air]
+          TracerVV(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) * 
+     &                         Input_Opt%TCVV(N)
+         
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Set pointer
+      TracerVV_ptr => TracerVV
+
+      ! Write data to either bpch or netcdf
+#if defined( BPCH )
+      CALL MAKE_BPCH_RESTART_FILE( am_I_Root, Input_Opt, 
+     &                             YYYYMMDD,  HHMMSS, 
+     &                             TAU,       TracerVV_ptr, RC )
+                  
+#endif
+#if defined( NETCDF )
+      CALL MAKE_NC_RESTART_FILE( am_I_Root, Input_Opt, 
+     &                           YYYYMMDD,  HHMMSS, 
+     &                           TAU, TracerVV_ptr, RC )
+                  
+#endif
+
+      ! Free pointer
+      NULLIFY( TracerVV_ptr )
+
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_RESTART_FILE: wrote file' )
+
+      END SUBROUTINE MAKE_RESTART_FILE
+!EOC
+#if defined( BPCH )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: make_bpch_restart_file
+!
+! !DESCRIPTION: Subroutine MAKE\_BPCH\_RESTART\_FILE creates restart files 
+!  for GEOS-Chem advected tracers [units: vol tracer /vol dry air] in binary 
+!  punch (bpch) format.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE MAKE_BPCH_RESTART_FILE( am_I_Root, Input_Opt, 
+     &                                   YYYYMMDD,  HHMMSS,   
+     &                                   TAU,       TracerVV, RC )
 !
 ! !USES:
 !
@@ -108,8 +226,6 @@
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE UNITCONV_MOD
@@ -121,12 +237,12 @@
       INTEGER,        INTENT(IN)  :: YYYYMMDD    ! YYYY/MM/DD GMT date
       INTEGER,        INTENT(IN)  :: HHMMSS      ! hh:mm:ss GMT time
       REAL(f8),       INTENT(IN)  :: TAU         ! TAU value (hrs from 1/1/1985)
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      REAL(f4),       INTENT(IN)  :: TracerVV(:,:,:,:) ! Tracer concentrations
+                                                       ! [v/v dry air]
 !
-! !OUTPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(INOUT) :: RC        ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  27 May 1999 - R. Yantosca - Initial version
@@ -162,7 +278,9 @@
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  17 Feb 2015 - E. Lundgren - Change program main units from kg to kg/kg
-
+!  02 Feb 2016 - E. Lundgren - Change name from MAKE_RESTART_FILE to 
+!                              MAKE_BPCH_RESTART_FILE, now pass TracerVV ptr,
+!                              and remove State_Met, State_Chm from arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -170,9 +288,9 @@
 ! !LOCAL VARIABLES:
 !
       ! Local Variables      
-      INTEGER              :: I,    I0, IOS, J,  J0, L, N
-      INTEGER              :: YYYY, MM, DD,  HH, SS
-      REAL(f4)             :: TRACER(IIPAR,JJPAR,LLPAR)
+      INTEGER              :: I0, IOS, J0, N
+      INTEGER              :: YYYY, MM, DD, HH, SS
+      REAL(f4)             :: ThisTracerVV(IIPAR,JJPAR,LLPAR)
       CHARACTER(LEN=255)   :: FILENAME
 
       ! For binary punch file, version 2.0
@@ -189,13 +307,6 @@
 
       ! For fields from Input_Opt
       LOGICAL              :: LPRT
-      INTEGER              :: N_TRACERS
-      REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
-
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER    :: STT(:,:,:,:)
 
       !=================================================================
       ! MAKE_RESTART_FILE begins here!
@@ -206,8 +317,6 @@
 
       ! Copy values from Input_Opt
       LPRT      = Input_Opt%LPRT
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Define variables for BINARY PUNCH FILE OUTPUT
       TITLE    = 'GEOS-CHEM Restart File: ' // 
@@ -228,9 +337,6 @@
       ! Get the nested-grid offsets
       I0 = GET_XOFFSET( GLOBAL=.TRUE. )
       J0 = GET_YOFFSET( GLOBAL=.TRUE. )
-
-      ! Initialize pointer for Chemistry State object [kg/kg]
-      STT => State_Chm%Tracers
 
       !=================================================================
       ! Open the restart file for output -- binary punch format
@@ -255,43 +361,165 @@
       ! Write each tracer to the restart file
       !=================================================================
 
-      DO N = 1, N_TRACERS
+      ! Loop over all tracers
+      DO N = 1, Input_Opt%N_TRACERS
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         ! Store data for this tracer only
+         ThisTracerVV = TracerVV(:,:,:,N)
 
-             ! Convert from mass mixing ratio [kg tracer / kg dry air] to 
-             ! molar mixing ratio [vol tracer / vol dry air] and store in 
-             ! the local TRACER array (elundgren, 2/17/15)
-             TRACER(I,J,L) = STT(I,J,L,N) * TCVV(N)
-            
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
-         CALL BPCH2( IU_RST,    MODELNAME, LONRES,    LATRES,    
-     &               HALFPOLAR, CENTER180, CATEGORY,  N,
-     &               UNIT,      TAU,       TAU,       RESERVED,   
-     &               IIPAR,     JJPAR,     LLPAR,     I0+1,            
-     &               J0+1,      1,         TRACER )
+         ! Write tracer data to file
+         CALL BPCH2( IU_RST,    MODELNAME, LONRES,      LATRES,    
+     &               HALFPOLAR, CENTER180, CATEGORY,    N,
+     &               UNIT,      TAU,       TAU,         RESERVED,   
+     &               IIPAR,     JJPAR,     LLPAR,       I0+1,            
+     &               J0+1,      1,         ThisTracerVV )
       ENDDO  
 
       ! Close file
       CLOSE( IU_RST )
 
-      ! Free pointer
-      NULLIFY( STT )
+      !### Debug
+      IF ( LPRT ) THEN
+         CALL DEBUG_MSG( '### MAKE_BPCH_RESTART_FILE: wrote file' )
+      ENDIF
+
+      END SUBROUTINE MAKE_BPCH_RESTART_FILE
+!EOC
+#endif
+#if defined( NETCDF )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: make_nc_restart_file
+!
+! !DESCRIPTION: Subroutine MAKE\_NC\_RESTART\_FILE creates restart files for 
+!  GEOS-Chem advected tracers [units: vol tracer /vol dry air] in NetCDF
+!  format.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE MAKE_NC_RESTART_FILE( am_I_Root, Input_Opt, 
+     &                                 YYYYMMDD,  HHMMSS,   
+     &                                 TAU,       TracerVV, RC )
+!
+! !USES:
+!
+      USE BPCH2_MOD,          ONLY : BPCH2,         GET_MODELNAME
+      USE BPCH2_MOD,          ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE UNITCONV_MOD
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: YYYYMMDD    ! YYYY/MM/DD GMT date
+      INTEGER,        INTENT(IN)  :: HHMMSS      ! hh:mm:ss GMT time
+      REAL(f8),       INTENT(IN)  :: TAU         ! TAU value (hrs from 1/1/1985)
+      REAL(f4),       INTENT(IN)  :: TracerVV(:,:,:,:) ! Tracer concentrations
+                                                       ! [v/v dry air]
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(INOUT) :: RC        ! Success or failure?
+! 
+! !REVISION HISTORY: 
+!  02 Feb 2016 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Local Variables      
+      INTEGER              :: I0, IOS, J0, N
+      INTEGER              :: YYYY, MM, DD, HH, SS
+      REAL(f4)             :: ThisTracerVV(IIPAR,JJPAR,LLPAR)
+      CHARACTER(LEN=255)   :: FILENAME
+
+      ! For binary punch file, version 2.0
+      REAL(f4)             :: LONRES, LATRES
+      INTEGER              :: HALFPOLAR
+      INTEGER, PARAMETER   :: CENTER180 = 1
+      
+      CHARACTER(LEN=20)    :: MODELNAME
+      CHARACTER(LEN=40)    :: CATEGORY
+      CHARACTER(LEN=40)    :: UNIT     
+      CHARACTER(LEN=40)    :: RESERVED = ''
+      CHARACTER(LEN=80)    :: TITLE 
+
+      ! For fields from Input_Opt
+      LOGICAL              :: LPRT
+
+      !=================================================================
+      ! MAKE_RESTART_FILE begins here!
+      !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LPRT      = Input_Opt%LPRT
+
+      ! Define variables for BINARY PUNCH FILE OUTPUT
+      TITLE    = 'GEOS-CHEM Restart File: ' // 
+     &           'Instantaneous Tracer Concentrations (v/v)'
+      UNIT     = 'v/v'
+      CATEGORY = 'IJ-AVG-$'
+      LONRES   = DISIZE
+      LATRES   = DJSIZE
+
+      ! Call GET_MODELNAME to return the proper model name for
+      ! the given met data being used (bmy, 6/22/00)
+      MODELNAME = GET_MODELNAME()
+
+      ! Call GET_HALFPOLAR to return the proper value
+      ! for either GCAP or GEOS grids (bmy, 6/28/05)
+      HALFPOLAR = GET_HALFPOLAR()
+
+      ! Get the nested-grid offsets
+      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
+      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+
+      !=================================================================
+      ! Open the restart file for output -- binary punch format
+      !=================================================================
+
+      ! Copy the output restart file name into a local variable
+      FILENAME = TRIM( OUTPUT_RESTART_FILE )
+
+      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
+      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
+
+      !=================================================================
+      ! Write each tracer to the restart file
+      !=================================================================
+
+      ! Loop over all tracers
+      DO N = 1, Input_Opt%N_TRACERS
+
+         ! Store data for this tracer only
+         ThisTracerVV = TracerVV(:,:,:,N)
+
+         ! Write tracer data to file, perhaps?
+
+      ENDDO  
 
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_RESTART_FILE: wrote file' )
+      IF ( LPRT ) CALL DEBUG_MSG('### MAKE_NC_RESTART_FILE: wrote file')
 
-      END SUBROUTINE MAKE_RESTART_FILE
+      END SUBROUTINE MAKE_NC_RESTART_FILE
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

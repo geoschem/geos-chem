@@ -925,9 +925,8 @@
                ENDIF
                
                ! Make atmospheric restart file
-               CALL MAKE_RESTART_FILE
-     &            ( am_I_Root, Input_Opt, NYMD,      NHMS,     
-     &              TAU,       State_Met, State_Chm, RC    )
+               CALL MAKE_RESTART_FILE( am_I_Root, Input_Opt, NYMD, NHMS,
+     &                                 TAU,       State_Chm, RC )
                   
                ! Make ocean mercury restart file
                IF ( ITS_A_MERCURY_SIM .and. LDYNOCEAN ) THEN
