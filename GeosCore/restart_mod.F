@@ -18,8 +18,13 @@
 ! !USES:
 !
       USE inquireMod, ONLY : findFreeLUN
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE Precision_Mod
+#if defined( NETCDF )
+      USE CMN_SIZE_MOD
+      USE Error_Mod,  ONLY : Error_Stop
+      USE HCO_Error_Mod
+      USE GIGC_ErrCode_Mod
+#endif
 
       IMPLICIT NONE
       PRIVATE
@@ -28,10 +33,11 @@
 !
       PUBLIC  :: MAKE_RESTART_FILE
 #if defined( BPCH )
-      PUBLIC  :: MAKE_BPCH_RESTART_FILE
+      PUBLIC  :: WRITE_GC_BPCH_RESTART
 #endif
 #if defined( NETCDF )
-      PUBLIC  :: MAKE_NC_RESTART_FILE
+      PUBLIC  :: INIT_GC_NC_RESTART   ! Create GC NetCDF restart collection
+      PUBLIC  :: WRITE_GC_NC_RESTART  ! Populate collection and write to file
 #endif
       PUBLIC  :: READ_RESTART_FILE
       PUBLIC  :: SET_RESTART
@@ -44,6 +50,15 @@
       PRIVATE :: CHECK_DIMENSIONS
       PRIVATE :: COPY_STT
       PRIVATE :: CHECK_DATA_BLOCKS
+!
+! !DEFINED PARAMETERS:
+!
+      ! Full path name of the advected tracer restart file (INPUT)
+      CHARACTER(LEN=255) :: INPUT_RESTART_FILE  
+
+      ! Full path name of (w/ replaceable tokens) of the 
+      ! advected tracer restart file (OUTPUT)
+      CHARACTER(LEN=255) :: OUTPUT_RESTART_FILE 
 !
 ! !REVISION HISTORY:
 !  25 Jun 2002 - R. Yantosca - Initial version
@@ -71,21 +86,144 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  02 Feb 2016 - E. Lundgren - Add NetCDF restart file subroutines
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      CONTAINS
+!EOC
+#if defined( NETCDF ) 
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_gc_nc_restart
+!
+! !DESCRIPTION: Subroutine INIT\_GC\_NC\_RESTART initializes the GEOS-Chem
+!  restart file collection and populates it with one container per tracer.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE INIT_GC_NC_RESTART( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : AREA_M2
+      USE HCO_DIAGN_MOD
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,          INTENT(IN   ) :: am_I_Root  ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput),   INTENT(INOUT) :: Input_Opt   ! Input Options object
+      INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY: 
+!  02 Feb 2016 - E. Lundgren - Initial version
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !PRIVATE TYPES:
+! !LOCAL VARIABLES:
 !
-      ! Full path name of the advected tracer restart file (INPUT)
-      CHARACTER(LEN=255) :: INPUT_RESTART_FILE  
+      ! Local Variables  
+      INTEGER            :: GC_RST_CollectionID, N
+      INTEGER            :: DeltaYMD, DeltaHMS 
+      REAL(sp)           :: TS
+      REAL(fp), POINTER  :: GridAreas_ptr(:,:) => NULL()
+      CHARACTER(LEN=60)  :: ContainerName
+      CHARACTER(LEN=255) :: MSG, LOC = 
+     &                      'INIT_GC_NC_RESTART (restart_mod.F90)'
 
-      ! Full path name of (w/ replaceable tokens) of the 
-      ! advected tracer restart file (OUTPUT)
-      CHARACTER(LEN=255) :: OUTPUT_RESTART_FILE 
+      !=================================================================
+      ! INIT_GC_NC_RESTART begins here!
+      !=================================================================
 
-      CONTAINS
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Define collection variables
+      GridAreas_ptr    => AREA_M2(:,:,1)
+      TS     =  GET_TS_CHEM() * 60.0_sp
+
+      !------------------------------------------------------------------
+      ! Create restart collection for GEOS-Chem.  This will keep the
+      ! GEOS-Chem restart separate from other output.
+      !------------------------------------------------------------------
+#if defined ( ESMF_ )
+      deltaYMD = 0 
+      deltaHMS = 1
+#else
+      deltaYMD = 99999999
+      deltaHMS = 999999
+#endif     
+      ! Need to adjust this for restart file
+      CALL DiagnCollection_Create( am_I_Root,                      
+     &                              NX           = IIPAR,           
+     &                              NY           = JJPAR,           
+     &                              NZ           = LLPAR,           
+     &                              TS           = TS,              
+     &                              AM2          = GridAreas_ptr,       
+     &                              COL          = GC_RST_CollectionID,    
+     &                              PREFIX       = 'GEOSChem_restart',     
+     &                              deltaYMD     = deltaYMD,       
+     &                              deltaHMS     = deltaHMS,       
+     &                              OutTimeStamp = HcoDiagnEnd,     
+     &                              RC           = RC                )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'Error creating GEOS-Chem restart collection',
+     &                    LOC ) 
+      ENDIF
+      
+      ! Cleanup
+      GridAreas_ptr => NULL()
+      
+      ! Save GEOS-Chem restart collection ID in Input_Opt
+      Input_Opt%GC_RST_COLLECTION = GC_RST_CollectionID
+
+      !-----------------------------------------------------------------
+      ! Create GC restart containers and add to collection
+      !-----------------------------------------------------------------
+      
+      ! Loop over tracers
+      DO N = 1, Input_Opt%N_TRACERS
+         
+         ! Restart container name
+         ContainerName = 'TRACER_CONC_' 
+     &                   // TRIM( Input_Opt%TRACER_NAME(N) )
+   
+         ! Create container
+         CALL Diagn_Create( am_I_Root,                     
+     &                      Col       = GC_RST_CollectionID,         
+     &                      cId       = N,                 
+     &                      cName     = TRIM( ContainerName ), 
+     &                      AutoFill  = 0,                 
+     &                      ExtNr     = -1,                
+     &                      Cat       = -1,                
+     &                      Hier      = -1,                
+     &                      HcoID     = -1,                
+     &                      SpaceDim  =  3,                
+     &                      OutUnit   = 'v/v dry' ,           
+     &                      OutOper   = 'Instantaneous', 
+     &                      RC        = RC )
+         
+         IF ( RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot create restart container: ' 
+     &            // TRIM(ContainerName)
+            CALL ERROR_STOP( MSG, LOC ) 
+         ENDIF  
+       ENDDO
+
+      END SUBROUTINE INIT_GC_NC_RESTART
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -106,7 +244,6 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_ErrCode_Mod
@@ -127,7 +264,8 @@
       INTEGER,        INTENT(INOUT) :: RC        ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
-!  02 Feb 2016 - E. Lundgren - Initial version
+!  02 Feb 2016 - E. Lundgren - Initial version (subroutine previously called
+!                              MAKE_RESTART_FILE is now WRITE_GC_BPCH_RESTART)
 
 !EOP
 !------------------------------------------------------------------------------
@@ -137,7 +275,6 @@
 !
       ! Local Variables      
       INTEGER           :: I, J, L, N
-      LOGICAL           :: LPRT
       REAL(f4), TARGET  :: TracerVV
      &                     (IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
       REAL(f4), POINTER :: TracerVV_ptr(:,:,:,:)
@@ -149,9 +286,6 @@
 
       ! Assume success
       RC = GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
-      LPRT      = Input_Opt%LPRT
 
       ! Calculate tracer concentration in v/v dry air
 !$OMP PARALLEL DO
@@ -178,13 +312,13 @@
 
       ! Write data to either bpch or netcdf
 #if defined( BPCH )
-      CALL MAKE_BPCH_RESTART_FILE( am_I_Root, Input_Opt, 
+      CALL WRITE_GC_BPCH_RESTART( am_I_Root, Input_Opt, 
      &                             YYYYMMDD,  HHMMSS, 
      &                             TAU,       TracerVV_ptr, RC )
                   
 #endif
 #if defined( NETCDF )
-      CALL MAKE_NC_RESTART_FILE( am_I_Root, Input_Opt, 
+      CALL WRITE_GC_NC_RESTART( am_I_Root, Input_Opt, 
      &                           YYYYMMDD,  HHMMSS, 
      &                           TAU, TracerVV_ptr, RC )
                   
@@ -192,9 +326,6 @@
 
       ! Free pointer
       NULLIFY( TracerVV_ptr )
-
-      !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_RESTART_FILE: wrote file' )
 
       END SUBROUTINE MAKE_RESTART_FILE
 !EOC
@@ -204,27 +335,24 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: make_bpch_restart_file
+! !IROUTINE: write_gc_bpch_restart
 !
-! !DESCRIPTION: Subroutine MAKE\_BPCH\_RESTART\_FILE creates restart files 
+! !DESCRIPTION: Subroutine WRITE\_GC\_BPCH\_RESTART creates restart files 
 !  for GEOS-Chem advected tracers [units: vol tracer /vol dry air] in binary 
 !  punch (bpch) format.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE MAKE_BPCH_RESTART_FILE( am_I_Root, Input_Opt, 
-     &                                   YYYYMMDD,  HHMMSS,   
-     &                                   TAU,       TracerVV, RC )
+      SUBROUTINE WRITE_GC_BPCH_RESTART( am_I_Root, Input_Opt, 
+     &                                  YYYYMMDD,  HHMMSS,   
+     &                                  TAU,       TracerVV, RC )
 !
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : BPCH2,         GET_MODELNAME
       USE BPCH2_MOD,          ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
-      USE CMN_SIZE_MOD
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
       USE TIME_MOD,           ONLY : EXPAND_DATE
@@ -279,7 +407,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  17 Feb 2015 - E. Lundgren - Change program main units from kg to kg/kg
 !  02 Feb 2016 - E. Lundgren - Change name from MAKE_RESTART_FILE to 
-!                              MAKE_BPCH_RESTART_FILE, now pass TracerVV ptr,
+!                              WRITE_GC_BPCH_RESTART, now pass TracerVV ptr,
 !                              and remove State_Met, State_Chm from arg list
 !EOP
 !------------------------------------------------------------------------------
@@ -309,7 +437,7 @@
       LOGICAL              :: LPRT
 
       !=================================================================
-      ! MAKE_RESTART_FILE begins here!
+      ! WRITE_GC_BPCH_RESTART begins here!
       !=================================================================
 
       ! Assume success
@@ -380,10 +508,10 @@
 
       !### Debug
       IF ( LPRT ) THEN
-         CALL DEBUG_MSG( '### MAKE_BPCH_RESTART_FILE: wrote file' )
+         CALL DEBUG_MSG( '### WRITE_GC_BPCH_RESTART: wrote file' )
       ENDIF
 
-      END SUBROUTINE MAKE_BPCH_RESTART_FILE
+      END SUBROUTINE WRITE_GC_BPCH_RESTART
 !EOC
 #endif
 #if defined( NETCDF )
@@ -392,16 +520,16 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: make_nc_restart_file
+! !IROUTINE: write_gc_nc_restart
 !
-! !DESCRIPTION: Subroutine MAKE\_NC\_RESTART\_FILE creates restart files for 
+! !DESCRIPTION: Subroutine WRITE\_GC\_NC\_RESTART creates restart files for 
 !  GEOS-Chem advected tracers [units: vol tracer /vol dry air] in NetCDF
 !  format.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE MAKE_NC_RESTART_FILE( am_I_Root, Input_Opt, 
+      SUBROUTINE WRITE_GC_NC_RESTART( am_I_Root, Input_Opt, 
      &                                 YYYYMMDD,  HHMMSS,   
      &                                 TAU,       TracerVV, RC )
 !
@@ -461,7 +589,7 @@
       LOGICAL              :: LPRT
 
       !=================================================================
-      ! MAKE_RESTART_FILE begins here!
+      ! WRITE_GC_NC_RESTART begins here!
       !=================================================================
 
       ! Assume success
@@ -515,9 +643,9 @@
       ENDDO  
 
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG('### MAKE_NC_RESTART_FILE: wrote file')
+      IF ( LPRT ) CALL DEBUG_MSG('### WRITE_GC_NC_RESTART: wrote file')
 
-      END SUBROUTINE MAKE_NC_RESTART_FILE
+      END SUBROUTINE WRITE_GC_NC_RESTART
 !EOC
 #endif
 !------------------------------------------------------------------------------

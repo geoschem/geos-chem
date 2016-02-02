@@ -260,7 +260,6 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      ! DIAGNOSTIC MENU fields
      !----------------------------------------
-     INTEGER                     :: DIAG_COLLECTION
      INTEGER                     :: ND01,             LD01
      INTEGER                     :: ND02,             LD02
      INTEGER                     :: ND03,             LD03
@@ -341,6 +340,10 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: DO_DIAG_WRITE
 
 #if defined( NETCDF )
+     ! Collection ids
+     INTEGER                     :: DIAG_COLLECTION
+     INTEGER                     :: GC_RST_COLLECTION
+
      ! New diagnostic group output types (e.g. 'mean')
      CHARACTER(LEN=15)           :: TRANSPORT_OUTPUT_TYPE
      CHARACTER(LEN=15)           :: WETSCAV_OUTPUT_TYPE
