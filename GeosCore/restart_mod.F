@@ -101,7 +101,9 @@
 ! !IROUTINE: init_gc_nc_restart
 !
 ! !DESCRIPTION: Subroutine INIT\_GC\_NC\_RESTART initializes the GEOS-Chem
-!  restart file collection and populates it with one container per tracer.
+!  restart file collection and populates it with containers. This collection
+!  includes restart data that traditionally would be found in three different 
+!  binary-punch format files: tracers, species, and ocean mercury.
 !\\
 !\\
 ! !INTERFACE:
@@ -110,10 +112,13 @@
 !
 ! !USES:
 !
+      USE COMODE_LOOP_MOD,    ONLY : NTSPEC, IFAM, NAMEGAS
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : AREA_M2
       USE HCO_DIAGN_MOD
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACERID_MOD,       ONLY : ID_Hg0, ID_Hg2, ID_HgP
+      USE TRACERID_MOD,       ONLY : ID_Hg_tot, N_Hg_CATS
 !
 ! !INPUT PARAMETERS: 
 !
@@ -134,11 +139,12 @@
 ! !LOCAL VARIABLES:
 !
       ! Local Variables  
-      INTEGER            :: GC_RST_CollectionID, N
+      INTEGER            :: GC_RST_CollectionID, N, M, cID
       INTEGER            :: DeltaYMD, DeltaHMS 
       REAL(sp)           :: TS
       REAL(fp), POINTER  :: GridAreas_ptr(:,:) => NULL()
       CHARACTER(LEN=60)  :: ContainerName
+      CHARACTER(LEN=60)  :: Prefix, Suffix, TracerIDStr
       CHARACTER(LEN=255) :: MSG, LOC = 
      &                      'INIT_GC_NC_RESTART (restart_mod.F90)'
 
@@ -189,13 +195,13 @@
       Input_Opt%GC_RST_COLLECTION = GC_RST_CollectionID
 
       !-----------------------------------------------------------------
-      ! Create GC restart containers and add to collection
+      ! Create restart containers for tracers
       !-----------------------------------------------------------------
       
       ! Loop over tracers
       DO N = 1, Input_Opt%N_TRACERS
          
-         ! Restart container name
+         ! Define container name
          ContainerName = 'TRACER_CONC_' 
      &                   // TRIM( Input_Opt%TRACER_NAME(N) )
    
@@ -204,22 +210,183 @@
      &                      Col       = GC_RST_CollectionID,         
      &                      cId       = N,                 
      &                      cName     = TRIM( ContainerName ), 
-     &                      AutoFill  = 0,                 
-     &                      ExtNr     = -1,                
-     &                      Cat       = -1,                
-     &                      Hier      = -1,                
-     &                      HcoID     = -1,                
      &                      SpaceDim  =  3,                
-     &                      OutUnit   = 'v/v dry' ,           
+     &                      OutUnit   = 'v/v dry',           
      &                      OutOper   = 'Instantaneous', 
      &                      RC        = RC )
          
          IF ( RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot create restart container: ' 
+            MSG = 'Cannot create restart tracer container: ' 
      &            // TRIM(ContainerName)
             CALL ERROR_STOP( MSG, LOC ) 
          ENDIF  
-       ENDDO
+      ENDDO
+
+      !-----------------------------------------------------------------
+      ! Create restart containers for species
+      !-----------------------------------------------------------------
+
+      ! Loop over the total # of species.  This also includes the "fake"
+      ! prod/loss family species for the ND65 diagnostic.
+      DO N = 1 , NTSPEC(1)
+
+         ! If the species is included in the IFAM array, which denotes 
+         ! the index # of species in the CSPEC array that are "fake" ND65 
+         ! prod/loss families, then skip. 
+         IF ( ANY( IFAM == N ) ) THEN
+            CYCLE
+         ENDIF
+
+         ! Define container name and ID
+         ContainerName = 'SPEC_CONC_' // TRIM( NAMEGAS(N) )
+         cID = Input_Opt%N_TRACERS + N
+   
+         ! Create container
+         CALL Diagn_Create( am_I_Root,                     
+     &                      Col       = GC_RST_CollectionID,         
+     &                      cId       = cID,                 
+     &                      cName     = TRIM( ContainerName ), 
+     &                      SpaceDim  =  3,                
+     &                      OutUnit   = 'molec/cm3/box',           
+     &                      OutOper   = 'Instantaneous', 
+     &                      RC        = RC )
+         
+         IF ( RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot create restart species container: ' 
+     &            // TRIM(ContainerName)
+            CALL ERROR_STOP( MSG, LOC ) 
+         ENDIF  
+      ENDDO
+
+      !-----------------------------------------------------------------
+      ! If Hg simulation, create restart containers for mercury
+      !-----------------------------------------------------------------
+      IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+
+         !--------------------------------------------------------------
+         ! Total Hg(0), Hg(II), and Hg(P) in ocean
+         !--------------------------------------------------------------
+         DO M = 1, 3
+         
+            SELECT CASE( M )
+               CASE ( 1 )
+                  Prefix = '_Hg0_' 
+               CASE ( 2 )
+                  Prefix = '_Hg2_'
+               CASE ( 3 )
+                  Prefix = '_HgP_' 
+            END SELECT
+         
+            ! Define container name and ID
+            ContainerName = 'OCEAN_HG' // TRIM( Prefix ) // 'Total' 
+            cID = cId + 1
+            
+            ! Create container
+            CALL Diagn_Create( am_I_Root,                     
+     &                         Col       = GC_RST_CollectionID,         
+     &                         cId       = cID,                 
+     &                         cName     = TRIM( ContainerName ), 
+     &                         SpaceDim  =  2,                
+     &                         OutUnit   = 'kg',           
+     &                         OutOper   = 'Instantaneous', 
+     &                         RC        = RC )
+            
+            IF ( RC /= HCO_SUCCESS ) THEN
+               MSG = 'Cannot create restart species container: ' 
+     &               // TRIM(ContainerName)
+               CALL ERROR_STOP( MSG, LOC ) 
+            ENDIF  
+         ENDDO
+
+         !-----------------------------------------------------------
+         ! Hg snowpack on land and ocean
+         !-----------------------------------------------------------
+         DO M = 1, 4
+            SELECT CASE( M )
+               CASE ( 1 )
+                  Prefix = 'SNOW_HG_OCN_Hg0_'  ! Reducible on ocean
+               CASE ( 2 )
+                  Prefix = 'SNOW_HGN_OCN_Hg0_' ! Non-reducible on ocean
+               CASE ( 3 )
+                  Prefix = 'SNOW_HG_LND_Hg0_'  ! Reducible on land
+               CASE ( 4 )
+                  Prefix = 'SNOW_HGN_LND_Hg0_' ! Non-reducible on land
+            END SELECT
+         
+            ! Loop over all categories to include tagged Hg
+            DO N = 1, N_Hg_CATS
+            
+               ! Define container name and id
+               ! (temperarily append tracer # until name array exists)
+               write( TracerIDStr, '(I5)' ) N
+               ContainerName = TRIM( Prefix ) // TRIM( TracerIDStr )
+               cID = cId + 1
+            
+               ! Create container
+               CALL Diagn_Create( am_I_Root,                     
+     &                            Col       = GC_RST_CollectionID,         
+     &                            cId       = cID,                 
+     &                            cName     = TRIM( ContainerName ), 
+     &                            SpaceDim  =  2,                
+     &                            OutUnit   = 'kg',           
+     &                            OutOper   = 'Instantaneous', 
+     &                            RC        = RC )
+               
+               IF ( RC /= HCO_SUCCESS ) THEN
+                  MSG = 'Cannot create restart species container: ' 
+     &                  // TRIM(ContainerName)
+                  CALL ERROR_STOP( MSG, LOC ) 
+               ENDIF  
+            ENDDO
+         ENDDO
+
+         !--------------------------------------------------------------
+         ! Additional restart containers for tagged Hg simulation 
+         !--------------------------------------------------------------
+         IF ( Input_Opt%LSPLIT ) THEN
+
+            !-----------------------------------------------------------
+            ! Tagged Hg(0), Hg(II), and Hg(P) in ocean
+            !-----------------------------------------------------------
+            DO M = 1, 3
+               SELECT CASE( M )
+                  CASE ( 1 )
+                     Prefix = '_Hg0_' 
+                  CASE ( 2 )
+                     Prefix = '_Hg2_'
+                  CASE ( 3 )
+                     Prefix = '_HgP_' 
+               END SELECT
+            
+               DO N = 2, N_Hg_CATS
+               
+                  ! Define container name and ID
+                  ! (temperarily append tracer # until name array exists)
+                  write( TracerIDStr, '(I5)' ) N
+                  Suffix = TRIM( TracerIDStr )
+                  ContainerName = 'OCEAN_HG' // TRIM( Prefix ) 
+     &                            // TRIM( Suffix )
+                  cID = cId + 1
+               
+                  ! Create container
+                  CALL Diagn_Create( am_I_Root,                     
+     &                               Col       = GC_RST_CollectionID,         
+     &                               cId       = cID,                 
+     &                               cName     = TRIM( ContainerName ), 
+     &                               SpaceDim  =  2,                
+     &                               OutUnit   = 'kg',           
+     &                               OutOper   = 'Instantaneous', 
+     &                               RC        = RC )
+                  
+                  IF ( RC /= HCO_SUCCESS ) THEN
+                     MSG = 'Cannot create restart species container: ' 
+     &                     // TRIM(ContainerName)
+                     CALL ERROR_STOP( MSG, LOC ) 
+                  ENDIF  
+               ENDDO
+            ENDDO
+         ENDIF
+      ENDIF
 
       END SUBROUTINE INIT_GC_NC_RESTART
 !EOC

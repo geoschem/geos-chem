@@ -586,11 +586,6 @@ CONTAINS
                                 Col       = Collection,        & 
                                 cId       = cId,               &
                                 cName     = TRIM( DiagnName ), &
-                                AutoFill  = 0,                 &
-                                ExtNr     = -1,                &
-                                Cat       = -1,                &
-                                Hier      = -1,                &
-                                HcoID     = -1,                &
                                 SpaceDim  =  3,                &
                                 OutUnit   = 'kg/s' ,           &
                                 OutOper   = TRIM( OutOper   ), &
@@ -696,11 +691,6 @@ CONTAINS
                              Col       = Collection,        & 
                              cId       = cId,               &
                              cName     = TRIM( DiagnName ), &
-                             AutoFill  = 0,                 &
-                             ExtNr     = -1,                &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
-                             HcoID     = -1,                &
                              SpaceDim  =  2,                & ! 2D for now!!
                              OutUnit   = 'kg/s',            &
                              OutOper   = TRIM( OutOper   ), &
@@ -730,11 +720,6 @@ CONTAINS
                              Col       = Collection,        & 
                              cId       = cId,               &
                              cName     = TRIM( DiagnName ), &
-                             AutoFill  = 0,                 &
-                             ExtNr     = -1,                &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
-                             HcoID     = -1,                &
                              SpaceDim  =  2,                &
                              OutUnit   = 'kg/s',            &
                              OutOper   = TRIM( OutOper   ), &
@@ -846,11 +831,6 @@ CONTAINS
                                 Col       = Collection,        &
                                 cId       = cId,               & 
                                 cName     = TRIM( DiagnName ), &
-                                AutoFill  = 0,                 &
-                                ExtNr     = -1,                &
-                                Cat       = -1,                &
-                                Hier      = -1,                &
-                                HcoID     = -1,                &
                                 SpaceDim  =  2,                &
                                 OutUnit   = TRIM( Units ),     &
                                 OutOper   = TRIM( OutOper ),   &
@@ -946,11 +926,6 @@ CONTAINS
                              Col       = Collection,        & 
                              cId       = cId,               &
                              cName     = TRIM( DiagnName ), &
-                             AutoFill  = 0,                 &
-                             ExtNr     = -1,                &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
-                             HcoID     = -1,                &
                              SpaceDim  =  3,                &
                              OutUnit   = 'v/v',             &
                              OutOper   = TRIM( OutOper   ), &
@@ -983,11 +958,6 @@ CONTAINS
                              Col       = Collection,        &
                              cId       = cId,               &
                              cName     = TRIM( DiagnName ), &
-                             AutoFill  = 0,                 &
-                             ExtNr     = -1,                &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
-                             HcoID     = -1,                &
                              SpaceDim  =  3,                &
                              OutUnit   = 'molec/cm3',       &
                              OutOper   = TRIM( OutOper   ), &
@@ -1130,11 +1100,6 @@ CONTAINS
                           Col       = Collection,        & 
                           cId       = cId,               &
                           cName     = TRIM( DiagnName ), &
-                          AutoFill  = 0,                 &
-                          ExtNr     = -1,                &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = -1,                &
                           SpaceDim  =  SpaceDim,         &
                           OutUnit   = TRIM( Units ),     &
                           OutOper   = TRIM( OutOper ),   &
@@ -1247,11 +1212,6 @@ CONTAINS
                           Col       = Collection,        & 
                           cId       = cId,               &
                           cName     = TRIM( DiagnName ), &
-                          AutoFill  = 0,                 &
-                          ExtNr     = -1,                &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = -1,                &
                           SpaceDim  =  SpaceDim,         &
                           OutUnit   = TRIM( Units ),     &
                           OutOper   = TRIM( OutOper ),   &
@@ -1339,11 +1299,6 @@ CONTAINS
                           Col       = Collection,        & 
                           cId       = cId,               &
                           cName     = TRIM( DiagnName ), &
-                          AutoFill  = 0,                 &
-                          ExtNr     = -1,                &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = -1,                &
                           SpaceDim  =  3,                &
                           OutUnit   = 'kg/s',            &
                           OutOper   = TRIM( OutOper ),   &
@@ -1438,11 +1393,6 @@ CONTAINS
                              Col       = Collection,        & 
                              cId       = cId,               &
                              cName     = TRIM( DiagnName ), &
-                             AutoFill  = 0,                 &
-                             ExtNr     = -1,                &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
-                             HcoID     = -1,                &
                              SpaceDim  =  3,                &
                              OutUnit   = 'kg/s',            &
                              OutOper   = TRIM( OutOper   ), &
@@ -1527,11 +1477,6 @@ CONTAINS
                        Col       = Collection,        & 
                        cId       = cId,               &
                        cName     = TRIM( DiagnName ), &
-                       AutoFill  = 0,                 &
-                       ExtNr     = -1,                &
-                       Cat       = -1,                &
-                       Hier      = -1,                &
-                       HcoID     = -1,                &
                        SpaceDim  =  3,                &
                        OutUnit   = '.' ,              &
                        OutOper   = TRIM( OutOper ),   &
@@ -1623,11 +1568,6 @@ CONTAINS
                              Col       = Collection,        & 
                              cId       = cId,               &
                              cName     = TRIM( DiagnName ),  &
-                             AutoFill  = 0,                 &
-                             ExtNr     = -1,                &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
-                             HcoID     = -1,                &
                              SpaceDim  =  3,                &
                              OutUnit   = 'kg/s' ,           &
                              OutOper   = TRIM( OutOper ),   &
@@ -1720,11 +1660,6 @@ CONTAINS
                              Col       = Collection,        & 
                              cId       = cId,               &
                              cName     = TRIM( DiagnName ), &
-                             AutoFill  = 0,                 &
-                             ExtNr     = -1,                &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
-                             HcoID     = -1,                &
                              SpaceDim  =  3,                &
                              OutUnit   = 'kg/s' ,           &
                              OutOper   = TRIM( OutOper ),   &
@@ -1825,11 +1760,6 @@ CONTAINS
                           Col       = Collection,        & 
                           cId       = cId,               &
                           cName     = TRIM( DiagnName ), &
-                          AutoFill  = 0,                 &
-                          ExtNr     = -1,                &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = -1,                &
                           SpaceDim  =  3,                &
                           OutUnit   = '.' ,              &
                           OutOper   = TRIM( OutOper ),   &
@@ -1939,11 +1869,6 @@ CONTAINS
                                 Col       = Collection,        & 
                                 cId       = cId,               &
                                 cName     = TRIM( DiagnName ), &
-                                AutoFill  = 0,                 &
-                                ExtNr     = -1,                &
-                                Cat       = -1,                &
-                                Hier      = -1,                &
-                                HcoID     = -1,                &
                                 SpaceDim  =  3,                &
                                 OutUnit   = '.' ,              &
                                 OutOper   = TRIM( OutOper ),   &
@@ -2055,11 +1980,6 @@ CONTAINS
                                 Col       = Collection,        & 
                                 cId       = cId,               &
                                 cName     = TRIM( DiagnName ), &
-                                AutoFill  = 0,                 &
-                                ExtNr     = -1,                &
-                                Cat       = -1,                &
-                                Hier      = -1,                &
-                                HcoID     = -1,                &
                                 SpaceDim  =  3,                &
                                 OutUnit   = '.' ,              &
                                 OutOper   = TRIM( OutOper ),   &
@@ -2146,11 +2066,6 @@ CONTAINS
                        Col       = Collection,        & 
                        cId       = cId,               &
                        cName     = TRIM( DiagnName ), &
-                       AutoFill  = 0,                 &
-                       ExtNr     = -1,                &
-                       Cat       = -1,                &
-                       Hier      = -1,                &
-                       HcoID     = -1,                &
                        SpaceDim  =  3,                &
                        OutUnit   = 'kg CH4' ,         &
                        OutOper   = TRIM( OutOper ),   &
@@ -2230,11 +2145,6 @@ CONTAINS
                        Col       = Collection,        & 
                        cId       = cId,               &
                        cName     = TRIM( DiagnName ), &
-                       AutoFill  = 0,                 &
-                       ExtNr     = -1,                &
-                       Cat       = -1,                &
-                       Hier      = -1,                &
-                       HcoID     = -1,                &
                        SpaceDim  =  2,                &
                        OutUnit   = '.' ,              &
                        OutOper   = TRIM( OutOper ),   &
@@ -2350,10 +2260,6 @@ CONTAINS
                              Col       = Collection,        & 
                              cId       = cId,               &
                              cName     = TRIM( DiagnName ), &
-                             AutoFill  = 0,                 &
-                             ExtNr     = -1,                &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
                              HcoID     = ID,                &
                              SpaceDim  =  3,                &
                              OutUnit   = 'kg/s',            &
@@ -2444,11 +2350,6 @@ CONTAINS
                           Col       = Collection,        & 
                           cId       = cId,               & 
                           cName     = TRIM( DiagnName ), &
-                          AutoFill  = 0,                 &
-                          ExtNr     = -1,                &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = -1,                &
                           SpaceDim  =  2,                &
                           OutUnit   = 'dobson',          &
                           OutOper   = TRIM( OutOper ),   &
@@ -2602,104 +2503,6 @@ CONTAINS
     RC = GIGC_SUCCESS
    
   END SUBROUTINE CalcDobsonColumn
-!EOC
-#endif
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: diagnupdate_ntracers_3D
-!
-! !DESCRIPTION: Subroutine DIAGNUPDATE\_NTRACERS\_3D updates a generic set of
-!  3D diagnostics that are distinguished from each other by chemical tracer.
-!  
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE DiagnUpdate_NTracers_3D( am_I_Root, DiagnPrefix, DiagnNum, &
-                                      DiagnArray, Input_Opt, RC )
-!
-! !USES:
-!
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE HCO_Diagn_Mod,      ONLY : Diagn_Update
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,           INTENT(IN) :: am_I_Root          ! Is this the root CPU?
-    CHARACTER(LEN=60), INTENT(IN) :: DiagnPrefix         ! Diag name prefix
-    INTEGER,           INTENT(IN) :: DiagnNum            ! Diagn # (eg. 24)
-    REAL(fp),          INTENT(IN) :: DiagnArray(:,:,:,:) ! data
-    TYPE(OptInput),    INTENT(IN) :: Input_Opt          ! Input options object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,           INTENT(INOUT) :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
-!  6 Feb 2015 - E. Lundgren - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER              :: Collection, N
-    CHARACTER(LEN=15)    :: OutOper 
-    CHARACTER(LEN=255)   :: DiagnName
-    CHARACTER(LEN=255)   :: MSG
-    CHARACTER(LEN=255)   :: LOC = 'DiagnUpdate_NTracers_3D (diagnostics_mod.F90)' 
-    REAL(fp), TARGET     :: DiagnArray_tracer(IIPAR,JJPAR,LLPAR)
-    REAL(fp), POINTER    :: Ptr3D(:,:,:)
-
-    !=======================================================================
-    ! DIAGNUPDATE_NTRACERS_3D begins here!
-    !=======================================================================
-      
-    ! Assume successful return
-    RC = GIGC_SUCCESS
-
-    ! Loop over tracers
-    DO N = 1, Input_Opt%N_TRACERS
-
-       ! If this tracer number N is scheduled for output in input.geos, 
-       ! then update its diagnostic container for transport flux
-       IF ( ANY( Input_Opt%TINDEX(DiagnNum,:) == N ) ) THEN
-         
-          !----------------------------------------------------------------
-          ! Update diagnostic container
-          !----------------------------------------------------------------
-      
-          ! Diagnostic name
-          DiagnName = TRIM( DiagnPrefix )                              & 
-                      // TRIM( Input_Opt%TRACER_NAME( N ) )
-
-          ! Assign temporary 3D array
-          DiagnArray_tracer = DiagnArray(:,:,:,N)
-
-          ! Point to the array
-          Ptr3D => DiagnArray_tracer
-
-          ! Create container
-          CALL Diagn_Update( am_I_Root,                                &
-                             cName     = TRIM( DiagnName ),            &
-                             Array3D   = Ptr3D,                        &
-                             RC        = RC )
-
-          ! Free the pointer before error handling
-          Ptr3D => NULL()
-
-          ! Stop with error if the diagnostics update was unsuccessful.
-          IF ( RC /= HCO_SUCCESS ) THEN
-             MSG = 'Cannot update diagnostic: ' // TRIM( DiagnName )
-             CALL ERROR_STOP( MSG, LOC ) 
-          ENDIF  
-       ENDIF
-    ENDDO
-
-  END SUBROUTINE DiagnUpdate_NTracers_3D
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3416,11 +3219,6 @@ CONTAINS
 !                             Col       = Collection,        & 
 !                             cId       = cId,               &
 !                             cName     = TRIM( DiagnName ), &
-!                             AutoFill  = 0,                 &
-!                             ExtNr     = -1,                &
-!                             Cat       = -1,                &
-!                             Hier      = -1,                &
-!                             HcoID     = -1,                &
 !                             SpaceDim  =  3,                &
 !                             OutUnit   = 'kg' ,             &
 !                             OutOper   = TRIM( OutOper   ), &
@@ -3511,11 +3309,6 @@ CONTAINS
 !                          Col       = Collection,        & 
 !                          cId       = cId,               &
 !                          cName     = TRIM( DiagnName ), &
-!                          AutoFill  = 0,                 &
-!                          ExtNr     = -1,                &
-!                          Cat       = -1,                &
-!                          Hier      = -1,                &
-!                          HcoID     = -1,                &
 !                          SpaceDim  =  3,                &
 !                          OutUnit   = '1/s' ,            &
 !                          OutOper   = TRIM( OutOper   ), &
@@ -3616,11 +3409,6 @@ CONTAINS
 !                             Col       = Collection,        & 
 !                             cId       = cId,               &
 !                             cName     = TRIM( DiagnName ), &
-!                             AutoFill  = 0,                 &
-!                             ExtNr     = -1,                &
-!                             Cat       = -1,                &
-!                             Hier      = -1,                &
-!                             HcoID     = -1,                &
 !                             SpaceDim  =  2,                &
 !                             OutUnit   = 'kg' ,             &
 !                             OutOper   = TRIM( OutOper   ), &
@@ -3709,11 +3497,6 @@ CONTAINS
 !                             Col       = Collection,        & 
 !                             cId       = cId,               &
 !                             cName     = TRIM( DiagnName ), &
-!                             AutoFill  = 0,                 &
-!                             ExtNr     = -1,                &
-!                             Cat       = -1,                &
-!                             Hier      = -1,                &
-!                             HcoID     = -1,                &
 !                             SpaceDim  =  3,                &
 !                             OutUnit   = 'kg S' ,           &
 !                             OutOper   = TRIM( OutOper   ), &
@@ -3736,11 +3519,6 @@ CONTAINS
 !                             Col       = Collection,        & 
 !                             cId       = cId,               &
 !                             cName     = TRIM( DiagnName ), &
-!                             AutoFill  = 0,                 &
-!                             ExtNr     = -1,                &
-!                             Cat       = -1,                &
-!                             Hier      = -1,                &
-!                             HcoID     = -1,                &
 !                             SpaceDim  =  3,                &
 !                             OutUnit   = 'kg OH' ,          &
 !                             OutOper   = TRIM( OutOper   ), &
@@ -3762,11 +3540,6 @@ CONTAINS
 !                             Col       = Collection,        & 
 !                             cId       = cId,               &
 !                             cName     = TRIM( DiagnName ), &
-!                             AutoFill  = 0,                 &
-!                             ExtNr     = -1,                &
-!                             Cat       = -1,                &
-!                             Hier      = -1,                &
-!                             HcoID     = -1,                &
 !                             SpaceDim  =  3,                &
 !                             OutUnit   = 'kg NO3' ,         &
 !                             OutOper   = TRIM( OutOper   ), &
@@ -3857,11 +3630,6 @@ CONTAINS
 !                             Col       = Collection,        & 
 !                             cId       = cId,               &
 !                             cName     = TRIM( DiagnName ), &
-!                             AutoFill  = 0,                 &
-!                             ExtNr     = -1,                &
-!                             Cat       = -1,                &
-!                             Hier      = -1,                &
-!                             HcoID     = -1,                &
 !                             SpaceDim  =  2,                &
 !                             OutUnit   = 'kg' ,             &
 !                             OutOper   = TRIM( OutOper   ), &
@@ -3950,11 +3718,6 @@ CONTAINS
 !                       Col       = Collection,        &
 !                       cId       = cId,               &
 !                       cName     = TRIM( DiagnName ), &
-!                       AutoFill  = 0,                 &
-!                       ExtNr     = -1,                &
-!                       Cat       = -1,                &
-!                       Hier      = -1,                &
-!                       HcoID     = -1,                &
 !                       SpaceDim  =  3,                &
 !                       OutUnit   = 'v/v' ,            &
 !                       OutOper   = TRIM( OutOper   ), &

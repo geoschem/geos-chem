@@ -819,19 +819,6 @@ CONTAINS
 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-!<<<<<<< HEAD - merge conflict - comment out old code (ewl, 1/8/16)
-!    ! Get collection position
-!    PS = 1
-!    IF ( PRESENT(COL) ) PS = COL
-!
-!    IF ( .NOT. Collections(PS)%InUse ) THEN
-!       WRITE(MSG,*) 'Diagnostics collection not defined, cannot add ',  &
-!                    'diagnostcs ', TRIM(cName), ' to collection ', PS,  &
-!                    '. Please call DiagnCollection_Create before ',     &
-!                    'adding diagnostics to that collection.'
-!       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-!       RETURN
-!=======
     ! Error if collection does not exist
     IF ( .NOT. FOUND ) THEN
        WRITE(MSG,*) 'Cannot create diagnostics ', TRIM(cName), &
