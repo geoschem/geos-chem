@@ -41,6 +41,7 @@
       USE TIME_MOD,             ONLY : GET_TS_CHEM
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : GET_YEAR
+      USE UCX_MOD,              ONLY : CALC_STRAT_AER
 
       ! mje
       USE GCKPP_HETRATES,       ONLY : SET_HET
