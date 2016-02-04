@@ -1,4 +1,4 @@
-c     d !------------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
@@ -194,110 +194,83 @@ c     d !-----------------------------------------------------------------------
 !
 ! !PRIVATE TYPES:
 !
-      !=================================================================
-      ! MODULE VARIABLES
-      ! (1 ) AN_Hg0   : Tracer index array for tagged anth Hg(0)  regions
-      ! (2 ) AN_Hg2   : Tracer index array for tagged anth Hg(II) regions
-      ! (3 ) AN_HgP   : Tracer index array for tagged anth HgP    regions
-      ! (4 ) COSZM    : Max daily value of COS( S. Z. Angle ) [unitless]
-      ! (5 ) EHg0_an  : Anthropogenic Hg0 emissions [kg/s]
-      ! (6 ) EHg2_an  : Anthropogenic Hg2 emissions [kg/s]
-      ! (7 ) EHgP_an  : Anthropogenic HgP emissions [kg/s]
-      ! (8 ) EHg0_am  : Artisanal mining Hg0 emissions [kg/s]
-      ! (9 ) EHg0_oc  : Hg0 emissions from oceans [kg/s]
-      ! (10) EHg0_ln  : Re-emissions of Hg0 from land [kg/s]
-      ! (11) EHg0_nt  : Hg0 emissions from natural land sources [kg/s] 
-      ! (12) EHg0_bb  : Hg0 emissions fom biomass burning sources [kg/s]
-      ! (13) EHg0_vg  : Hg0 emissions fom vegetation sources [kg/s] 
-      ! (14) EHg0_so  : Hg0 emissions from soil sources [kg/s]
-      ! (15) EHg0_dist: Spatial distribution of terrestrial Hg0 sources
-      !                   [dimensionless] 
-      ! (16) EHg0_gtm : Hg0 emissions from GTMM [kg/s]
-      ! (17) EHg0_snow: Hg0 emissions from snow [kg/s]
-      ! (18) TCOSZ    : Sum of COS( Solar Zenith Angle ) [unitless]
-      ! (19) TTDAY    : Total daylight time at location (I,J) [minutes]
-      ! (20) ZERO_DVEL: Array with zero dry deposition velocity [cm/s]
-      ! (21) HG2_SEASALT_LOSSRATE
-      ! (22) JNO2     : Array with JNO2 value
-      ! (25) SMALLNUM : A small number to prevent underflow
-      !=================================================================
-
       ! Parameters
       REAL(fp),  PARAMETER   :: SMALLNUM = 1e-20_fp
 
       ! Arrays
-      INTEGER,  ALLOCATABLE :: AN_Hg0(:,:)
-      INTEGER,  ALLOCATABLE :: AN_Hg2(:,:)
-      INTEGER,  ALLOCATABLE :: AN_HgP(:,:)
-      REAL(fp), ALLOCATABLE :: COSZM(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_an(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_can(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_usa(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_cam(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_sam(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_waf(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_eaf(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_saf(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_naf(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_eur(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_eeu(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_mde(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_sov(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_sas(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_eas(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_sea(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_jpn(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_oce(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_am(:,:)
-      REAL(fp), ALLOCATABLE :: EHg2_an(:,:)
-      REAL(fp), ALLOCATABLE :: EHg2_can(:,:)
-      REAL(fp), ALLOCATABLE :: EHg2_usa(:,:)
-      REAL(fp), ALLOCATABLE :: EHg2_cam(:,:)
-      REAL(fp), ALLOCATABLE :: EHg2_sam(:,:)
-      REAL(fp), ALLOCATABLE :: EHg2_waf(:,:)
-      REAL(fp), ALLOCATABLE :: EHg2_eaf(:,:)
-      REAL(fp), ALLOCATABLE :: EHg2_saf(:,:)
-      REAL(fp), ALLOCATABLE :: EHg2_naf(:,:)
-      REAL(fp), ALLOCATABLE :: EHg2_eur(:,:)
-      REAL(fp), ALLOCATABLE :: EHg2_eeu(:,:)
-      REAL(fp), ALLOCATABLE :: EHg2_mde(:,:)
-      REAL(fp), ALLOCATABLE :: EHg2_sov(:,:)
-      REAL(fp), ALLOCATABLE :: EHg2_sas(:,:)
-      REAL(fp), ALLOCATABLE :: EHg2_eas(:,:)
-      REAL(fp), ALLOCATABLE :: EHg2_sea(:,:)
-      REAL(fp), ALLOCATABLE :: EHg2_jpn(:,:)
-      REAL(fp), ALLOCATABLE :: EHg2_oce(:,:)
-      REAL(fp), ALLOCATABLE :: EHgP_an(:,:)
-      REAL(fp), ALLOCATABLE :: EHgP_can(:,:)
-      REAL(fp), ALLOCATABLE :: EHgP_usa(:,:)
-      REAL(fp), ALLOCATABLE :: EHgP_cam(:,:)
-      REAL(fp), ALLOCATABLE :: EHgP_sam(:,:)
-      REAL(fp), ALLOCATABLE :: EHgP_waf(:,:)
-      REAL(fp), ALLOCATABLE :: EHgP_eaf(:,:)
-      REAL(fp), ALLOCATABLE :: EHgP_saf(:,:)
-      REAL(fp), ALLOCATABLE :: EHgP_naf(:,:)
-      REAL(fp), ALLOCATABLE :: EHgP_eur(:,:)
-      REAL(fp), ALLOCATABLE :: EHgP_eeu(:,:)
-      REAL(fp), ALLOCATABLE :: EHgP_mde(:,:)
-      REAL(fp), ALLOCATABLE :: EHgP_sov(:,:)
-      REAL(fp), ALLOCATABLE :: EHgP_sas(:,:)
-      REAL(fp), ALLOCATABLE :: EHgP_eas(:,:)
-      REAL(fp), ALLOCATABLE :: EHgP_sea(:,:)
-      REAL(fp), ALLOCATABLE :: EHgP_jpn(:,:)
-      REAL(fp), ALLOCATABLE :: EHgP_oce(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_oc(:,:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_ln(:,:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_dist(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_geo(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_bb(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_vg(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_so(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_gtm(:,:)
-      REAL(fp), ALLOCATABLE :: EHg0_snow(:,:,:)
-      REAL(fp), ALLOCATABLE :: TCOSZ(:,:)
-      REAL(fp), ALLOCATABLE :: TTDAY(:,:)
-      REAL(fp), ALLOCATABLE :: ZERO_DVEL(:,:)
-      REAL(fp), ALLOCATABLE :: HG2_SEASALT_LOSSRATE(:,:) 
+      INTEGER,  ALLOCATABLE :: AN_Hg0(:,:)    ! Index array for anth Hg0 regions
+      INTEGER,  ALLOCATABLE :: AN_Hg2(:,:)    ! Index array for anth Hg2 regions
+      INTEGER,  ALLOCATABLE :: AN_HgP(:,:)    ! Index array for anth HgP regions
+      REAL(fp), ALLOCATABLE :: COSZM(:,:)     ! Max daily solar zenith angle
+      REAL(fp), ALLOCATABLE :: EHg0_an(:,:)   ! Anth Hg0 emis [kg/s] - Total
+      REAL(fp), ALLOCATABLE :: EHg0_can(:,:)  ! Anth Hg0 emis [kg/s] - Canada
+      REAL(fp), ALLOCATABLE :: EHg0_usa(:,:)  ! Anth Hg0 emis [kg/s] - USA
+      REAL(fp), ALLOCATABLE :: EHg0_cam(:,:)  ! Anth Hg0 emis [kg/s] - C America
+      REAL(fp), ALLOCATABLE :: EHg0_sam(:,:)  ! Anth Hg0 emis [kg/s] - S America
+      REAL(fp), ALLOCATABLE :: EHg0_waf(:,:)  ! Anth Hg0 emis [kg/s] - W Africa
+      REAL(fp), ALLOCATABLE :: EHg0_eaf(:,:)  ! Anth Hg0 emis [kg/s] - E Africa
+      REAL(fp), ALLOCATABLE :: EHg0_saf(:,:)  ! Anth Hg0 emis [kg/s] - S Africa
+      REAL(fp), ALLOCATABLE :: EHg0_naf(:,:)  ! Anth Hg0 emis [kg/s] - N Africa
+      REAL(fp), ALLOCATABLE :: EHg0_eur(:,:)  ! Anth Hg0 emis [kg/s] - Europe
+      REAL(fp), ALLOCATABLE :: EHg0_eeu(:,:)  ! Anth Hg0 emis [kg/s] - E Europe
+      REAL(fp), ALLOCATABLE :: EHg0_mde(:,:)  ! Anth Hg0 emis [kg/s] - Mid. East
+      REAL(fp), ALLOCATABLE :: EHg0_sov(:,:)  ! Anth Hg0 emis [kg/s] - Fmr USSR
+      REAL(fp), ALLOCATABLE :: EHg0_sas(:,:)  ! Anth Hg0 emis [kg/s] - S Asia
+      REAL(fp), ALLOCATABLE :: EHg0_eas(:,:)  ! Anth Hg0 emis [kg/s] - E Asia
+      REAL(fp), ALLOCATABLE :: EHg0_sea(:,:)  ! Anth Hg0 emis [kg/s] - SE Asia
+      REAL(fp), ALLOCATABLE :: EHg0_jpn(:,:)  ! Anth Hg0 emis [kg/s] - Japan
+      REAL(fp), ALLOCATABLE :: EHg0_oce(:,:)  ! Anth Hg0 emis [kg/s] - Oceania
+      REAL(fp), ALLOCATABLE :: EHg2_an(:,:)   ! Anth Hg2 emis [kg/s] - Total
+      REAL(fp), ALLOCATABLE :: EHg2_can(:,:)  ! Anth Hg2 emis [kg/s] - Canada
+      REAL(fp), ALLOCATABLE :: EHg2_usa(:,:)  ! Anth Hg2 emis [kg/s] - USA
+      REAL(fp), ALLOCATABLE :: EHg2_cam(:,:)  ! Anth Hg2 emis [kg/s] - C America
+      REAL(fp), ALLOCATABLE :: EHg2_sam(:,:)  ! Anth Hg2 emis [kg/s] - S America
+      REAL(fp), ALLOCATABLE :: EHg2_waf(:,:)  ! Anth Hg2 emis [kg/s] - W Africa
+      REAL(fp), ALLOCATABLE :: EHg2_eaf(:,:)  ! Anth Hg2 emis [kg/s] - E Africa
+      REAL(fp), ALLOCATABLE :: EHg2_saf(:,:)  ! Anth Hg2 emis [kg/s] - S Africa
+      REAL(fp), ALLOCATABLE :: EHg2_naf(:,:)  ! Anth Hg2 emis [kg/s] - N Africa
+      REAL(fp), ALLOCATABLE :: EHg2_eur(:,:)  ! Anth Hg2 emis [kg/s] - Europe
+      REAL(fp), ALLOCATABLE :: EHg2_eeu(:,:)  ! Anth Hg2 emis [kg/s] - E Europe
+      REAL(fp), ALLOCATABLE :: EHg2_mde(:,:)  ! Anth Hg2 emis [kg/s] - Mid. East
+      REAL(fp), ALLOCATABLE :: EHg2_sov(:,:)  ! Anth Hg2 emis [kg/s] - Fmr USSR
+      REAL(fp), ALLOCATABLE :: EHg2_sas(:,:)  ! Anth Hg2 emis [kg/s] - S Asia
+      REAL(fp), ALLOCATABLE :: EHg2_eas(:,:)  ! Anth Hg2 emis [kg/s] - E Asia
+      REAL(fp), ALLOCATABLE :: EHg2_sea(:,:)  ! Anth Hg2 emis [kg/s] - SE Asia
+      REAL(fp), ALLOCATABLE :: EHg2_jpn(:,:)  ! Anth Hg2 emis [kg/s] - Japan
+      REAL(fp), ALLOCATABLE :: EHg2_oce(:,:)  ! Anth Hg2 emis [kg/s] - Oceania
+      REAL(fp), ALLOCATABLE :: EHgP_an(:,:)   ! Anth HgP emis [kg/s] - Total
+      REAL(fp), ALLOCATABLE :: EHgP_can(:,:)  ! Anth HgP emis [kg/s] - Canada
+      REAL(fp), ALLOCATABLE :: EHgP_usa(:,:)  ! Anth HgP emis [kg/s] - USA
+      REAL(fp), ALLOCATABLE :: EHgP_cam(:,:)  ! Anth HgP emis [kg/s] - C America
+      REAL(fp), ALLOCATABLE :: EHgP_sam(:,:)  ! Anth HgP emis [kg/s] - S America
+      REAL(fp), ALLOCATABLE :: EHgP_waf(:,:)  ! Anth HgP emis [kg/s] - W Africa
+      REAL(fp), ALLOCATABLE :: EHgP_eaf(:,:)  ! Anth HgP emis [kg/s] - E Africa
+      REAL(fp), ALLOCATABLE :: EHgP_saf(:,:)  ! Anth HgP emis [kg/s] - S Africa
+      REAL(fp), ALLOCATABLE :: EHgP_naf(:,:)  ! Anth HgP emis [kg/s] - N Africa
+      REAL(fp), ALLOCATABLE :: EHgP_eur(:,:)  ! Anth HgP emis [kg/s] - Europe
+      REAL(fp), ALLOCATABLE :: EHgP_eeu(:,:)  ! Anth HgP emis [kg/s] - E Europe
+      REAL(fp), ALLOCATABLE :: EHgP_mde(:,:)  ! Anth HgP emis [kg/s] - Mid. East
+      REAL(fp), ALLOCATABLE :: EHgP_sov(:,:)  ! Anth HgP emis [kg/s] - Fmr USSR
+      REAL(fp), ALLOCATABLE :: EHgP_sas(:,:)  ! Anth HgP emis [kg/s] - S Asia
+      REAL(fp), ALLOCATABLE :: EHgP_eas(:,:)  ! Anth HgP emis [kg/s] - E Asia
+      REAL(fp), ALLOCATABLE :: EHgP_sea(:,:)  ! Anth HgP emis [kg/s] - SE Asia
+      REAL(fp), ALLOCATABLE :: EHgP_jpn(:,:)  ! Anth HgP emis [kg/s] - Japan
+      REAL(fp), ALLOCATABLE :: EHgP_oce(:,:)  ! Anth HgP emis [kg/s] - Oceania
+      REAL(fp), ALLOCATABLE :: EHg0_am(:,:)   ! Artisinal mining Hg0 emis [kg/s]
+      REAL(fp), ALLOCATABLE :: EHg0_oc(:,:,:) ! Ocean Hg0 emis [kg/s]
+      REAL(fp), ALLOCATABLE :: EHg0_ln(:,:,:) ! Hg reemission from land [kg/s]
+      REAL(fp), ALLOCATABLE :: EHg0_dist(:,:) ! Spatial dist of terrestrial Hg0
+                                              !  sources [unitless]
+      REAL(fp), ALLOCATABLE :: EHg0_geo(:,:)  ! Geogenic Hg0 emis [kg/s]
+      REAL(fp), ALLOCATABLE :: EHg0_bb(:,:)   ! Biomass burning Hg0 emis [kg/s]
+      REAL(fp), ALLOCATABLE :: EHg0_vg(:,:)   ! Vegetation Hg0 emis [kg/s
+      REAL(fp), ALLOCATABLE :: EHg0_so(:,:)   ! Soil Hg0 emis [kg/s]
+      REAL(fp), ALLOCATABLE :: EHg0_gtm(:,:)  ! GTMM Hg0 emis [kg/s]
+      REAL(fp), ALLOCATABLE :: EHg0_snow(:,:,:) !Snow Hg0 emis [kg/s]
+      REAL(fp), ALLOCATABLE :: TCOSZ(:,:)     ! Sum of solar zenith angle
+      REAL(fp), ALLOCATABLE :: TTDAY(:,:)     ! Total daylight time at I,J [min]
+      REAL(fp), ALLOCATABLE :: ZERO_DVEL(:,:) ! Zero drydep velocity [cm/s]
+      REAL(fp), ALLOCATABLE :: HG2_SEASALT_LOSSRATE(:,:)
 
       ! For now, we need an emission array for the HG simulation
       ! that can be passed to vdiff_mod.F90 since Trac_Tend does 
@@ -1506,7 +1479,6 @@ c     d !-----------------------------------------------------------------------
       USE LAND_MERCURY_MOD,   ONLY : SNOWPACK_MERCURY_FLUX
       USE OCEAN_MERCURY_MOD,  ONLY : OCEAN_MERCURY_FLUX
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE TRACERID_MOD,       ONLY : N_HG_CATS
       USE UNITCONV_MOD
 !      USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE 
 
@@ -4809,77 +4781,6 @@ c     d !-----------------------------------------------------------------------
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_an' )
       EHg0_an = 0e+0_fp
 
-!- eds 8/31/10 ---------------------------------------------------------
-      ALLOCATE( EHg0_can( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_can' )
-      EHg0_can = 0e+0_fp
-
-      ALLOCATE( EHg0_usa( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_usa' )
-      EHg0_usa = 0e+0_fp
-
-      ALLOCATE( EHg0_cam( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_cam' )
-      EHg0_cam = 0e+0_fp
-
-      ALLOCATE( EHg0_sam( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sam' )
-      EHg0_sam = 0e+0_fp
-
-      ALLOCATE( EHg0_waf( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_waf' )
-      EHg0_waf = 0e+0_fp
-
-      ALLOCATE( EHg0_eaf( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eaf' )
-      EHg0_eaf = 0e+0_fp
-
-      ALLOCATE( EHg0_saf( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_saf' )
-      EHg0_saf = 0e+0_fp
-
-      ALLOCATE( EHg0_naf( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_naf' )
-      EHg0_naf = 0e+0_fp
-
-      ALLOCATE( EHg0_eur( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eur' )
-      EHg0_eur = 0e+0_fp
-
-      ALLOCATE( EHg0_eeu( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eeu' )
-      EHg0_eeu = 0e+0_fp
-
-      ALLOCATE( EHg0_mde( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_mde' )
-      EHg0_mde = 0e+0_fp
-
-      ALLOCATE( EHg0_sov( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sov' )
-      EHg0_sov = 0e+0_fp
-
-      ALLOCATE( EHg0_sas( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sas' )
-      EHg0_sas = 0e+0_fp
-
-      ALLOCATE( EHg0_eas( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eas' )
-      EHg0_eas = 0e+0_fp
-
-      ALLOCATE( EHg0_sea( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sea' )
-      EHg0_sea = 0e+0_fp
-
-      ALLOCATE( EHg0_jpn( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_jpn' )
-      EHg0_jpn = 0e+0_fp
-
-      ALLOCATE( EHg0_oce( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_oce' )
-      EHg0_oce = 0e+0_fp
-
-!------------------------------------------------------
-
       ALLOCATE( EHg0_am( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_am' )
       EHg0_am = 0e+0_fp
@@ -4888,152 +4789,9 @@ c     d !-----------------------------------------------------------------------
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_an' )
       EHg2_an = 0e+0_fp
 
-
-!- eds 8/31/10 ---------------------------------------------------------
-      ALLOCATE( EHg2_can( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_can' )
-      EHg2_can = 0e+0_fp
-
-      ALLOCATE( EHg2_usa( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_usa' )
-      EHg2_usa = 0e+0_fp
-
-      ALLOCATE( EHg2_cam( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_cam' )
-      EHg2_cam = 0e+0_fp
-
-      ALLOCATE( EHg2_sam( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sam' )
-      EHg2_sam = 0e+0_fp
-
-      ALLOCATE( EHg2_waf( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_waf' )
-      EHg2_waf = 0e+0_fp
-
-      ALLOCATE( EHg2_eaf( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eaf' )
-      EHg2_eaf = 0e+0_fp
-
-      ALLOCATE( EHg2_saf( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_saf' )
-      EHg2_saf = 0e+0_fp
-
-      ALLOCATE( EHg2_naf( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_naf' )
-      EHg2_naf = 0e+0_fp
-
-      ALLOCATE( EHg2_eur( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eur' )
-      EHg2_eur = 0e+0_fp
-
-      ALLOCATE( EHg2_eeu( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eeu' )
-      EHg2_eeu = 0e+0_fp
-
-      ALLOCATE( EHg2_mde( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_mde' )
-      EHg2_mde = 0e+0_fp
-
-      ALLOCATE( EHg2_sov( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sov' )
-      EHg2_sov = 0e+0_fp
-
-      ALLOCATE( EHg2_sas( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sas' )
-      EHg2_sas = 0e+0_fp
-
-      ALLOCATE( EHg2_eas( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eas' )
-      EHg2_eas = 0e+0_fp
-
-      ALLOCATE( EHg2_sea( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sea' )
-      EHg2_sea = 0e+0_fp
-
-      ALLOCATE( EHg2_jpn( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_jpn' )
-      EHg2_jpn = 0e+0_fp
-
-      ALLOCATE( EHg2_oce( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_oce' )
-      EHg2_oce = 0e+0_fp
-
-!------------------------------------------------------
-
       ALLOCATE( EHgP_an( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_an' )
       EHgP_an = 0e+0_fp
-
-!- eds 8/31/10 ---------------------------------------------------------
-      ALLOCATE( EHgP_can( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_can' )
-      EHgP_can = 0e+0_fp
-
-      ALLOCATE( EHgP_usa( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_usa' )
-      EHgP_usa = 0e+0_fp
-
-      ALLOCATE( EHgP_cam( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_cam' )
-      EHgP_cam = 0e+0_fp
-
-      ALLOCATE( EHgP_sam( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sam' )
-      EHgP_sam = 0e+0_fp
-
-      ALLOCATE( EHgP_waf( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_waf' )
-      EHgP_waf = 0e+0_fp
-
-      ALLOCATE( EHgP_eaf( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eaf' )
-      EHgP_eaf = 0e+0_fp
-
-      ALLOCATE( EHgP_saf( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_saf' )
-      EHgP_saf = 0e+0_fp
-
-      ALLOCATE( EHgP_naf( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_naf' )
-      EHgP_naf = 0e+0_fp
-
-      ALLOCATE( EHgP_eur( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eur' )
-      EHgP_eur = 0e+0_fp
-
-      ALLOCATE( EHgP_eeu( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eeu' )
-      EHgP_eeu = 0e+0_fp
-
-      ALLOCATE( EHgP_mde( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_mde' )
-      EHgP_mde = 0e+0_fp
-
-      ALLOCATE( EHgP_sov( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sov' )
-      EHgP_sov = 0e+0_fp
-
-      ALLOCATE( EHgP_sas( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sas' )
-      EHgP_sas = 0e+0_fp
-
-      ALLOCATE( EHgP_eas( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eas' )
-      EHgP_eas = 0e+0_fp
-
-      ALLOCATE( EHgP_sea( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sea' )
-      EHgP_sea = 0e+0_fp
-
-      ALLOCATE( EHgP_jpn( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_jpn' )
-      EHgP_jpn = 0e+0_fp
-
-      ALLOCATE( EHgP_oce( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_oce' )
-      EHgP_oce = 0e+0_fp
-
-!------------------------------------------------------
 
       ALLOCATE( EHg0_oc( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_oc' )
@@ -5043,15 +4801,15 @@ c     d !-----------------------------------------------------------------------
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_dist' )
       EHg0_dist = 0e+0_fp
 
-!- eds 8/31/10 ------------------------------------------------
-!      ALLOCATE( EHg0_nt( IIPAR, JJPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_nt' )
-!      EHg0_nt = 0e+0_fp
+      !- eds 8/31/10 ------------------------------------------------
+      ! ALLOCATE( EHg0_nt( IIPAR, JJPAR ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_nt' )
+      !EHg0_nt = 0e+0_fp
+      !--------------------------------------------------------------
 
       ALLOCATE( EHg0_geo( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_geo' )
       EHg0_geo = 0e+0_fp
-!--------------------------------------------------------------
 
       ALLOCATE( EHg0_bb( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_bb' )
@@ -5060,6 +4818,221 @@ c     d !-----------------------------------------------------------------------
       ALLOCATE( EHg0_snow( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_snow' )
       EHg0_snow = 0e+0_fp
+
+      ! Allocate the following if tagged Hg simulation
+      IF ( LSPLIT ) THEN
+
+         ! Tagged Hg0 arrays
+         !- eds 8/31/10 ------------------------------------------------
+         ALLOCATE( EHg0_can( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_can' )
+         EHg0_can = 0e+0_fp
+
+         ALLOCATE( EHg0_usa( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_usa' )
+         EHg0_usa = 0e+0_fp
+
+         ALLOCATE( EHg0_cam( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_cam' )
+         EHg0_cam = 0e+0_fp
+
+         ALLOCATE( EHg0_sam( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sam' )
+         EHg0_sam = 0e+0_fp
+
+         ALLOCATE( EHg0_waf( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_waf' )
+         EHg0_waf = 0e+0_fp
+
+         ALLOCATE( EHg0_eaf( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eaf' )
+         EHg0_eaf = 0e+0_fp
+
+         ALLOCATE( EHg0_saf( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_saf' )
+         EHg0_saf = 0e+0_fp
+
+         ALLOCATE( EHg0_naf( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_naf' )
+         EHg0_naf = 0e+0_fp
+
+         ALLOCATE( EHg0_eur( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eur' )
+         EHg0_eur = 0e+0_fp
+
+         ALLOCATE( EHg0_eeu( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eeu' )
+         EHg0_eeu = 0e+0_fp
+
+         ALLOCATE( EHg0_mde( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_mde' )
+         EHg0_mde = 0e+0_fp
+
+         ALLOCATE( EHg0_sov( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sov' )
+         EHg0_sov = 0e+0_fp
+
+         ALLOCATE( EHg0_sas( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sas' )
+         EHg0_sas = 0e+0_fp
+
+         ALLOCATE( EHg0_eas( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eas' )
+         EHg0_eas = 0e+0_fp
+
+         ALLOCATE( EHg0_sea( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sea' )
+         EHg0_sea = 0e+0_fp
+
+         ALLOCATE( EHg0_jpn( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_jpn' )
+         EHg0_jpn = 0e+0_fp
+
+         ALLOCATE( EHg0_oce( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_oce' )
+         EHg0_oce = 0e+0_fp
+
+         ! Tagged Hg2 arrays
+         !- eds 8/31/10 ------------------------------------------------
+         ALLOCATE( EHg2_can( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_can' )
+         EHg2_can = 0e+0_fp
+
+         ALLOCATE( EHg2_usa( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_usa' )
+         EHg2_usa = 0e+0_fp
+
+         ALLOCATE( EHg2_cam( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_cam' )
+         EHg2_cam = 0e+0_fp
+
+         ALLOCATE( EHg2_sam( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sam' )
+         EHg2_sam = 0e+0_fp
+
+         ALLOCATE( EHg2_waf( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_waf' )
+         EHg2_waf = 0e+0_fp
+
+         ALLOCATE( EHg2_eaf( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eaf' )
+         EHg2_eaf = 0e+0_fp
+
+         ALLOCATE( EHg2_saf( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_saf' )
+         EHg2_saf = 0e+0_fp
+
+         ALLOCATE( EHg2_naf( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_naf' )
+         EHg2_naf = 0e+0_fp
+
+         ALLOCATE( EHg2_eur( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eur' )
+         EHg2_eur = 0e+0_fp
+
+         ALLOCATE( EHg2_eeu( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eeu' )
+         EHg2_eeu = 0e+0_fp
+
+         ALLOCATE( EHg2_mde( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_mde' )
+         EHg2_mde = 0e+0_fp
+
+         ALLOCATE( EHg2_sov( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sov' )
+         EHg2_sov = 0e+0_fp
+
+         ALLOCATE( EHg2_sas( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sas' )
+         EHg2_sas = 0e+0_fp
+
+         ALLOCATE( EHg2_eas( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eas' )
+         EHg2_eas = 0e+0_fp
+
+         ALLOCATE( EHg2_sea( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sea' )
+         EHg2_sea = 0e+0_fp
+
+         ALLOCATE( EHg2_jpn( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_jpn' )
+         EHg2_jpn = 0e+0_fp
+
+         ALLOCATE( EHg2_oce( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_oce' )
+         EHg2_oce = 0e+0_fp
+
+         ! Tagged HgP arrays
+         !- eds 8/31/10 ------------------------------------------------
+         ALLOCATE( EHgP_can( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_can' )
+         EHgP_can = 0e+0_fp
+
+         ALLOCATE( EHgP_usa( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_usa' )
+         EHgP_usa = 0e+0_fp
+
+         ALLOCATE( EHgP_cam( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_cam' )
+         EHgP_cam = 0e+0_fp
+
+         ALLOCATE( EHgP_sam( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sam' )
+         EHgP_sam = 0e+0_fp
+
+         ALLOCATE( EHgP_waf( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_waf' )
+         EHgP_waf = 0e+0_fp
+
+         ALLOCATE( EHgP_eaf( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eaf' )
+         EHgP_eaf = 0e+0_fp
+
+         ALLOCATE( EHgP_saf( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_saf' )
+         EHgP_saf = 0e+0_fp
+
+         ALLOCATE( EHgP_naf( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_naf' )
+         EHgP_naf = 0e+0_fp
+
+         ALLOCATE( EHgP_eur( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eur' )
+         EHgP_eur = 0e+0_fp
+
+         ALLOCATE( EHgP_eeu( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eeu' )
+         EHgP_eeu = 0e+0_fp
+
+         ALLOCATE( EHgP_mde( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_mde' )
+         EHgP_mde = 0e+0_fp
+
+         ALLOCATE( EHgP_sov( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sov' )
+         EHgP_sov = 0e+0_fp
+
+         ALLOCATE( EHgP_sas( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sas' )
+         EHgP_sas = 0e+0_fp
+
+         ALLOCATE( EHgP_eas( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eas' )
+         EHgP_eas = 0e+0_fp
+
+         ALLOCATE( EHgP_sea( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sea' )
+         EHgP_sea = 0e+0_fp
+
+         ALLOCATE( EHgP_jpn( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_jpn' )
+         EHgP_jpn = 0e+0_fp
+
+         ALLOCATE( EHgP_oce( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_oce' )
+         EHgP_oce = 0e+0_fp
+
+      ENDIF
 
       IF ( LGTMM ) THEN
 
