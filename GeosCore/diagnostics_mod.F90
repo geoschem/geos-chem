@@ -31,7 +31,6 @@ MODULE Diagnostics_Mod
 #if defined( NETCDF )
   PUBLIC  :: Diagnostics_Init
   PUBLIC  :: Diagnostics_Final
-  PUBLIC  :: DiagnUpdate_NTracers_3D    ! utility subroutine (not used)
   PUBLIC  :: DiagnUpdate_Met            ! ND31, 55, 57, 66, 67, and 68
   PUBLIC  :: DiagnUpdate_Transport_Flux ! ND24, ND25, ND26
 #if defined( DEVEL )

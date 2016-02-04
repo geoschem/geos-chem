@@ -302,28 +302,6 @@ CONTAINS
     ! Inherit precision from HEMCO 
     Prc = HP
 
-! NewDiag merge conflict: the follow code was deleted in update (ewl, 1/11/16)
-!
-!    ! Check if there is at least one diagnostics to write:
-!    ! If current time stamp is not at the end of an interval - or
-!    ! if there is no diagnostics container in the list with a reset
-!    ! flag smaller or equal to MinResetFlag - there will be no matching
-!    ! container whatsoever. Can leave right here.
-!    ! EOI is the end-of-interval flag that will be used by routine
-!    ! Diagn_Get. If set to true, only the containers at the end of
-!    ! their averaging interval are returned.
-!    IF ( WriteAll ) THEN
-!       MinResetFlag = -1
-!       EOI = .FALSE.
-!    ELSE
-!       MinResetFlag = HcoClock_GetMinResetFlag()
-!       EOI = .TRUE.
-!    ENDIF
-!    MaxResetFlag = Diagn_GetMaxResetFlag( COL=PS )
-!    IF ( MinResetFlag > MaxResetFlag ) RETURN
-!
-! end old NewDiag code (ewl)
-
     ! Get PrevTime flag from input argument or set to default (=> TRUE)
     IF ( PRESENT(UsePrevTime) ) THEN
        PrevTime = UsePrevTime
@@ -458,47 +436,19 @@ CONTAINS
     ! Write diagnostics 
     !-----------------------------------------------------------------
 
-!    ! DEBUGGING - ewl, 2/6/15
-!    PRINT *, " "
-!    PRINT *, "In HcoIO_Diagn_Writeout (hcoio_diagn_mod.F90)"
-!    ! END DEBUGGING
-
     ! Loop over all diagnostics in diagnostics list 
     ThisDiagn => NULL()
     DO WHILE ( .TRUE. )
 
        ! Get next diagnostics in list. This will return the next 
-! merge conflict - old NewDiag code (ewl, 1/11/16)
-!       ! diagnostics container that contains content to be written
-!       ! out on this time step.
-!       CALL Diagn_Get ( am_I_Root, EOI, ThisDiagn, FLAG, RC, &
-!                        InclManual=Manual, COL=PS )
-!
-! updated code
        ! diagnostics container that contains content. 
        CALL Diagn_Get ( am_I_Root, EOI, ThisDiagn, FLAG, RC, COL=PS ) 
-! end (ewl)
        IF ( RC /= HCO_SUCCESS ) RETURN 
        IF ( FLAG /= HCO_SUCCESS ) EXIT
 
        ! Only write diagnostics if this is the first Diagn_Get call for
        ! this container and time step. 
-       IF ( ThisDiagn%nnGetCalls > 1 ) THEN
-
-!          ! DEBUGGING - ewl, 2/2/15
-!          PRINT *, "   At container for " // TRIM( ThisDiagn%cName )
-!          PRINT *, "      Skipping diag since ThisDiagn%nnGetCalls = ", &
-!               ThisDiagn%nnGetCalls
-!          ! END DEBUGGING
-          
-          CYCLE
-       ENDIF
-!
-!       ! DEBUGGING - ewl, 2/2/15
-!       PRINT *, " "
-!       PRINT *, "   Got diagnostic for writing: ", ThisDiagn%cName
-!       PRINT *, " "
-!       ! END DEBUGGING
+       IF ( ThisDiagn%nnGetCalls > 1 ) CYCLE
 
        ! NOTE: This may have been left over by a Git merge (bmy, 3/5/15)
        ! this container and time step.
