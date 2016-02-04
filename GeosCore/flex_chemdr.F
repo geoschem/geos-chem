@@ -122,6 +122,8 @@
       REAL(kind=fp)       ::   SUM(IIPAR,JJPAR,LLPAR)
       REAL(kind=fp)       :: QTEMP(IIPAR,JJPAR,LLPAR)
 
+      REAL(kind=fp)       :: SCOEFF(IIPAR,JJPAR,LLPAR,3)
+
       prtDebug = Input_Opt%LPRT
       LDUST    = Input_Opt%LDUST
 
@@ -192,7 +194,7 @@
       ! GEOS-CHEM...so just pass SOILDUST to RDUST_ONLINE in order to
       ! compute aerosol optical depth for FAST-JX, etc.
       !
-      ! If LDUST is turned off, then we do not have online dust aerosol
+      ! If LDUST is turned off, then we do not have online dust erosol
       ! in GEOS-CHEM...so read monthly-mean dust files from disk.
       ! (rjp, tdf, bmy, 4/1/04)
       !=================================================================
@@ -292,7 +294,6 @@
       N  = 60   ! MMN
       S1 = 122  ! MVKN
       S2 = 121  ! MACRN
-      write(*,'(3a,3i)') NAMEGAS(N), NAMEGAS(S1), NAMEGAS(S2),N,S1,S2
       STT(:,:,:,N) = STT(:,:,:,N)*Input_Opt%TRACER_COEFF(N,1) ! A correction...
       ! ... to account for the division by TRACER_COEFF above.
       SUM   = (State_Chm%Species(:,:,:,S1)*Input_Opt%TRACER_COEFF(N,1))
@@ -402,7 +403,8 @@
 
          call cpu_time(start)
          HET(:,:) = 0.
-!         CALL SET_HET(I,J,L,State_Chm,State_Met,Input_Opt,KH)
+         CALL SET_HET(I,J,L,State_Chm,State_Met,Input_Opt,KH,
+     &        scoeff(I,J,L,1:3))
 
          ! mje Set up the physical conditions for the current box
          ! mje These variables are defined by the KPP definition files gckpp.kpp
@@ -666,16 +668,40 @@
          IF ( HCRC /= HCO_SUCCESS ) THEN
             CALL ERROR_STOP( 'Cannot update tracer 
      &           concentration diagnostics',
-     &'Flex_Chemdr')
+     &          'Flex_Chemdr')
          ENDIF
       ENDDO
 
-! Stop with error if the diagnostics were unsuccessful
+      ! Update the diagostics 
+      CALL Diagn_Update( am_I_Root,
+     &     cName   = TRIM( 'T' ),
+     &     Array3D = State_Met%T(:,:,:),
+     &     COL     = Input_Opt%DIAG_COLLECTION,
+     &     RC      = HCRC )
+
+      ! Stop with error if the diagnostics were unsuccessful
       IF ( HCRC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'Cannot update tracer 
-     &        concentration diagnostics',
+         CALL ERROR_STOP( 'Cannot update temperature diagnostic',
      &        'Flex_Chemdr')
       ENDIF
+
+      CALL Diagn_Update( am_I_Root,
+     &     cName   = TRIM( 'STK_N2O5' ),
+     &     Array3D = SCOEFF(:,:,:,1),
+     &     COL     = Input_Opt%DIAG_COLLECTION,
+     &     RC      = HCRC )
+
+      CALL Diagn_Update( am_I_Root,
+     &     cName   = TRIM( 'STK_HBr' ),
+     &     Array3D = SCOEFF(:,:,:,1),
+     &     COL     = Input_Opt%DIAG_COLLECTION,
+     &     RC      = HCRC )
+
+      CALL Diagn_Update( am_I_Root,
+     &     cName   = TRIM( 'STK_HBrICE' ),
+     &     Array3D = SCOEFF(:,:,:,3),
+     &     COL     = Input_Opt%DIAG_COLLECTION,
+     &     RC      = HCRC )
 
       ! mje set rid of the pointers created
       NULLIFY (STT)

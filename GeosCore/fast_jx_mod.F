@@ -3112,8 +3112,6 @@ c---values at L1_=L_+1 are a pseudo/climatol layer above the top CTM layer (L_)
         enddo
       enddo
 C-----------------------------------------------------------------------
-      write(*,'(a,6e12.4)')'<> JRATET: ',sum(DTAUX),sum(POMEGAX),U0,
-     &     sum(RFL),sum(AMF2),sum(JXTRA)
       call OPMIE (DTAUX,POMEGAX,U0,RFL,AMF2,JXTRA,
      &        AVGF,FJTOP,FJBOT,FSBOT,FJFLX,FLXD,FLXD0,LLPAR)
 
@@ -4736,10 +4734,10 @@ c  Ensure all 'AN_' types are valid selections
      $           * 0.7808e+0_fp  * AD +
      $           3.30e-11_fp * EXP( 55.e+0_fp*ITEMPK) 
      $           * 0.2095e+0_fp  * AD)
-!            ZPJ(L,3,I,J) = ZPJ(L,3,I,J) *
-!     $           RO1DplH2O / RO1D
-!            ZPJ(L,103,I,J) = ZPJ(L,103,I,J) *
-!     $           RO1DplH2 / RO1D
+            ZPJ(L,3,I,J) = ZPJ(L,3,I,J) *
+     $           RO1DplH2O / RO1D
+            ZPJ(L,103,I,J) = ZPJ(L,103,I,J) *
+     $           RO1DplH2 / RO1D
       
             IF (I .eq. 1 .and. J .eq. 23 .and. L .eq. 1) THEN
                write(*,'(a,E8.2)') 'ZPJ(3) after: ', ZPJ(L,3,I,J)

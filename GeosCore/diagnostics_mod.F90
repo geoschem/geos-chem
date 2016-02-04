@@ -1030,6 +1030,74 @@ CONTAINS
        
     ENDDO
  
+    ! Diagnostic name
+    DiagnName = 'T'
+    
+    ! Create container
+    CALL Diagn_Create( am_I_Root,       &
+         Col       = Collection,        & 
+         cName     = TRIM( DiagnName ), &
+         AutoFill  = 0,                 &
+         ExtNr     = -1,                &
+         Cat       = -1,                &
+         Hier      = -1,                &
+         HcoID     = -1,                &
+         SpaceDim  =  3,                &
+         LevIDx    = -1,                &
+         OutUnit   = 'K',               &
+         OutOper   = TRIM( OutOper   ), &
+         RC        = RC )
+    
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+       CALL ERROR_STOP( MSG, LOC ) 
+    ENDIF
+
+! Sticking coefficients from HetRates
+    ! Create container
+    CALL Diagn_Create( am_I_Root,       &
+         Col       = Collection,        & 
+         cName     = TRIM( 'STK_N2O5' ), &
+         AutoFill  = 0,                 &
+         ExtNr     = -1,                &
+         Cat       = -1,                &
+         Hier      = -1,                &
+         HcoID     = -1,                &
+         SpaceDim  =  3,                &
+         LevIDx    = -1,                &
+         OutUnit   = '1',               &
+         OutOper   = TRIM( OutOper   ), &
+         RC        = RC )
+    
+    CALL Diagn_Create( am_I_Root,       &
+         Col       = Collection,        & 
+         cName     = TRIM( 'STK_HBr' ), &
+         AutoFill  = 0,                 &
+         ExtNr     = -1,                &
+         Cat       = -1,                &
+         Hier      = -1,                &
+         HcoID     = -1,                &
+         SpaceDim  =  3,                &
+         LevIDx    = -1,                &
+         OutUnit   = '1',               &
+         OutOper   = TRIM( OutOper   ), &
+         RC        = RC )
+    
+    CALL Diagn_Create( am_I_Root,       &
+         Col       = Collection,        & 
+         cName     = TRIM( 'STK_HBrICE' ), &
+         AutoFill  = 0,                 &
+         ExtNr     = -1,                &
+         Cat       = -1,                &
+         Hier      = -1,                &
+         HcoID     = -1,                &
+         SpaceDim  =  3,                &
+         LevIDx    = -1,                &
+         OutUnit   = '1',               &
+         OutOper   = TRIM( OutOper   ), &
+         RC        = RC )
+    
+
   END SUBROUTINE DiagInit_KPP_Rates
 !EOC
 !------------------------------------------------------------------------------

@@ -14,13 +14,14 @@ MODULE GCKPP_HETRATES
   INTEGER, SAVE      :: NAERO
   LOGICAL, SAVE      :: NATSURFACE, SAFEDIV
   LOGICAL, SAVE      :: KII_KI, PSCBOX, STRATBOX
-  REAL(fp), SAVE     :: KHETI_SLA_(11), TEMPK, ABSHUM, XSTKCF
+  REAL(fp), SAVE     :: KHETI_SLA_(11), TEMPK, RELHUM, XSTKCF
+  REAL(fp)           :: VPRESH2O, CONSEXP
   REAL(fp), SAVE     :: TRC_NIT, TRC_SO4, TRC_HBr, TRC_HOBr
   REAL(fp), SAVE     :: GAMMA_HO2, XTEMP, XDENA, ADJUSTEDRATE
   REAL(fp), SAVE     :: cld_brno3_rc, KI_HBR, KI_HOBr, QLIQ, QICE
   REAL(fp), SAVE, DIMENSION(25)  :: XAREA, XRADI
   REAL(fp),       PARAMETER      :: PSCMINLIFE=1.e-3_fp
-  REAL(fp)           :: DUMMY
+  REAL(fp)           :: DUMMY, SCF2(3)
 
 !!!$OMP THREADPRIVATE(N,NATSURFACE,ADJUSTEDRATE,SAFEDIV,KII_KI,PSCBOX,STRATBOX)
 !!!$OMP THREADPRIVATE(KHETI_SLA_, TEMPK, ABSHUM, XSTKCF)
@@ -50,16 +51,17 @@ MODULE GCKPP_HETRATES
 ! -------
 ! DOES NOT YET INCLUDE STRAT PSC REACTIONS ! MSL - 02/18/15
 
-    SUBROUTINE SET_HET(I,J,L,SC,SM,IO,KH)
+    SUBROUTINE SET_HET(I,J,L,SC,SM,IO,KH,SCF)
       INTEGER        :: I,J,L,IND
       TYPE(ChmState) :: SC
       TYPE(MetState) :: SM
       TYPE(OptInput) :: IO
-      REAL(fp)       :: KH(:,:,:,:)
+      REAL(fp)       :: KH(:,:,:,:), SCF(3)
 
-      KII_KI   = .false.
-      PSCBOX   = .false.
-      STRATBOX = .false.
+      KII_KI     = .false.
+      PSCBOX     = .false.
+      STRATBOX   = .false.
+      NATSURFACE = .false.
 
       NAERO = SC%nAero
 
@@ -67,7 +69,13 @@ MODULE GCKPP_HETRATES
       KHETI_SLA_(:) = KH(I,J,L,:)
       ENDIF
 
-      ABSHUM        = SM%AVGW(I,J,L) * SM%AIRNUMDEN(I,J,L)
+      ! Calculate RH. Not clear why the result of this calc is 
+      ! slightly different than SM%RH
+      RELHUM        = SM%AVGW(I,J,L) * SM%AIRNUMDEN(I,J,L)
+      CONSEXP       = 17.2693882e+0_fp * (SM%T(I,J,L) - 273.16e+0_fp) / &
+                      (SM%T(I,J,L) - 35.86e+0_fp)
+      VPRESH2O      = CONSVAP * EXP(CONSEXP) / SM%T(I,J,L) 
+      RELHUM = RELHUM / VPRESH2O 
 
       IND        = get_indx('SO4',IO%ID_TRACER,IO%TRACER_NAME)
       IF (IND .le. 0) THEN
@@ -100,7 +108,7 @@ MODULE GCKPP_HETRATES
       XAREA(1:SC%nAero) = SC%AeroArea(I,J,L,:)
       XRADI(1:SC%nAero) = SC%AeroRadi(I,J,L,:)
 
-      XTEMP = SM%T(I,J,L)
+      XTEMP = sqrt(SM%T(I,J,L))
       XDENA = SM%AIRNUMDEN(I,J,L)
 
       GAMMA_HO2 = IO%GAMMA_HO2
@@ -157,6 +165,10 @@ MODULE GCKPP_HETRATES
       HET(ind_HBr,1)   = HETHBr(     0.81E2_fp, 2E-1_fp)
       HET(ind_HOBr,2)  = HETHOBr_ice(0.97E2_fp, 1E-1_fp)
       HET(ind_HBr,2)   = HETHBr_ice( 0.81E2_fp, 1E-1_fp)
+
+      SCF = SCF2
+
+      RETURN
 
     END SUBROUTINE SET_HET
     
@@ -290,6 +302,8 @@ MODULE GCKPP_HETRATES
             ! Reaction rate for surface of aerosol
             ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP,(A**0.5_FP))
          ENDIF
+
+         scf2(2) = xstkcf
          
          IF (KII_KI .and. N.gt.12) THEN
             ! PSC reaction - prevent excessive reaction rate
@@ -358,8 +372,7 @@ MODULE GCKPP_HETRATES
          ELSE
             ! In UCX, ABSHUMK will have been set by
             ! STT(I,J,L,IDTH2O)
-            IF (N .gt. 12) write(*,*) 'Calling N2O5:', N
-            XSTKCF = N2O5( N, TEMPK, ABSHUM )
+            XSTKCF = N2O5( N, TEMPK, RELHUM )
          ENDIF
          ! Nitrate effect; reduce the gamma on nitrate by a
          ! factor of 10 (lzh, 10/25/2011)
@@ -391,6 +404,8 @@ MODULE GCKPP_HETRATES
          ! Add to overall reaction rate
          HETN2O5 = HETN2O5 + ADJUSTEDRATE
       END DO
+
+      scf2(1) = xstkcf
 
     END FUNCTIOn HETN2O5
 
@@ -510,6 +525,8 @@ MODULE GCKPP_HETRATES
     REAL(fp) FUNCTION HETHBr_ice(A,B)
       REAL(fp) A,B
       HETHBr_ice=KI_HBr
+
+      scf2(3) = KI_HBr
 
     END FUNCTIOn HETHBr_ice
 
