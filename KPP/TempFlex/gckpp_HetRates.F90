@@ -1,7 +1,9 @@
 MODULE GCKPP_HETRATES
   USE CMN_FJX_MOD,        ONLY : NDUST, NAER
+  USE CMN_SIZE_MOD,       ONLY : LLSTRAT
+  USE COMODE_LOOP_MOD,    ONLY : CONSVAP
   USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
-  USE ERROR_MOD,          ONLY : is_safe_div
+  USE ERROR_MOD,          ONLY : IS_SAFE_DIV
   USE gckpp_Precision
   USE gckpp_Parameters
   USE gckpp_Global,       ONLY : HET
@@ -10,11 +12,16 @@ MODULE GCKPP_HETRATES
   USE GIGC_Input_Opt_Mod, ONLY : OptInput
   USE Precision_Mod,      ONLY : fp
 
+  IMPLICIT NONE
+  PRIVATE
+
+  PUBLIC :: SET_HET
+
   INTEGER            :: N
   INTEGER, SAVE      :: NAERO
   LOGICAL, SAVE      :: NATSURFACE, SAFEDIV
   LOGICAL, SAVE      :: KII_KI, PSCBOX, STRATBOX
-  REAL(fp), SAVE     :: KHETI_SLA_(11), TEMPK, RELHUM, XSTKCF
+  REAL(fp), SAVE     :: TEMPK, RELHUM, XSTKCF
   REAL(fp)           :: VPRESH2O, CONSEXP
   REAL(fp), SAVE     :: TRC_NIT, TRC_SO4, TRC_HBr, TRC_HOBr
   REAL(fp), SAVE     :: GAMMA_HO2, XTEMP, XDENA, ADJUSTEDRATE
@@ -22,17 +29,29 @@ MODULE GCKPP_HETRATES
   REAL(fp), SAVE, DIMENSION(25)  :: XAREA, XRADI
   REAL(fp),       PARAMETER      :: PSCMINLIFE=1.e-3_fp
   REAL(fp)           :: DUMMY, SCF2(3)
+  REAL(fp), SAVE     :: KHETI_SLA(11)
+  REAL(fp)           :: hobr_rtemp, hbr_rtemp
+#if defined( UCX )
+  INTEGER, SAVE      :: PSCIDX
+  REAL(fp), SAVE     :: SPC_N2O5, SPC_H2O,  SPC_HCl,   SPC_HBr
+  REAL(fp), SAVE     :: SPC_HOCl, SPC_HOBr, SPC_ClNO3, SPC_BrNO3
+  REAL(fp)           :: PSCEDUCTCONC(11,2)
+  REAL(fp)           :: EDUCTCONC, LIMITCONC
+#endif
 
 !!!$OMP THREADPRIVATE(N,NATSURFACE,ADJUSTEDRATE,SAFEDIV,KII_KI,PSCBOX,STRATBOX)
-!!!$OMP THREADPRIVATE(KHETI_SLA_, TEMPK, ABSHUM, XSTKCF)
+!!!$OMP THREADPRIVATE(KHETI_SLA, TEMPK, ABSHUM, XSTKCF)
 !!!$OMP THREADPRIVATE(TRC_NIT, TRC_SO4, TRC_HBr, TRC_HOBr)
+!!!$OMP THREADPRIVATE(SPC_N2O5, SPC_H2O,  SPC_HCl,   SPC_HBr )
+!!!$OMP THREADPRIVATE(SPC_HOCl, SPC_HOBr, SPC_ClNO3, SPC_BrNO3)
 !!!$OMP THREADPRIVATE(GAMMA_HO2,XTEMP,XDENA,NAERO)
 !!!$OMP THREADPRIVATE(CLD_BRNO3_RC, KI_HBr, KI_HOBr, QLIQ, QICE)
 !!!$OMP THREADPRIVATE(XAREA, XRADI)
   CONTAINS
 
 ! Need 
-! - TOTAREA
+! - TOTAREA (previously used for archiving N2O5 hydrolysis in the planeflight
+!            diagnostic only)
 ! - Air NUM. DENSITY
 ! - TEMPERATURE
 ! - Aerosol Surface Area
@@ -51,23 +70,27 @@ MODULE GCKPP_HETRATES
 ! -------
 ! DOES NOT YET INCLUDE STRAT PSC REACTIONS ! MSL - 02/18/15
 
-    SUBROUTINE SET_HET(I,J,L,SC,SM,IO,KH,SCF)
+    SUBROUTINE SET_HET(I,J,L,SC,SM,IO,SCF)
       INTEGER        :: I,J,L,IND
       TYPE(ChmState) :: SC
       TYPE(MetState) :: SM
       TYPE(OptInput) :: IO
-      REAL(fp)       :: KH(:,:,:,:), SCF(3)
+      REAL(fp)       :: SCF(3)
 
+      ! Divide by educt concentration
       KII_KI     = .false.
+
+      ! Initialize logicals for UCX
       PSCBOX     = .false.
       STRATBOX   = .false.
       NATSURFACE = .false.
 
       NAERO = SC%nAero
 
-      IF ( IO%LUCX ) THEN
-      KHETI_SLA_(:) = KH(I,J,L,:)
-      ENDIF
+#if defined( UCX )
+      ! Copy sticking coefficients for PSC reactions on SLA
+      KHETI_SLA(:) = SC%KHETI_SLA(I,J,L,:)
+#endif
 
       ! Calculate RH. Not clear why the result of this calc is 
       ! slightly different than SM%RH
@@ -77,6 +100,7 @@ MODULE GCKPP_HETRATES
       VPRESH2O      = CONSVAP * EXP(CONSEXP) / SM%T(I,J,L) 
       RELHUM = RELHUM / VPRESH2O 
 
+      ! Get tracer concentrations [kg]
       IND        = get_indx('SO4',IO%ID_TRACER,IO%TRACER_NAME)
       IF (IND .le. 0) THEN
          TRC_SO4    = 0._fp
@@ -104,6 +128,100 @@ MODULE GCKPP_HETRATES
       ELSE
          TRC_HOBr   = SC%Tracers(I,J,L,IND)
       ENDIF
+
+#if defined( UCX )
+      ! Get species concentrations [molec/cm3]
+      IND     = get_indx('N2O5',SC%Spec_ID,SC%Spec_Name)
+      IF (IND .le. 0) THEN
+         SPC_N2O5   = 0._fp
+      ELSE
+         SPC_N2O5   = SC%Species(I,J,L,IND)
+      ENDIF
+
+      IND      = get_indx('H2O',SC%Spec_ID,SC%Spec_Name)
+      IF (IND .le. 0) THEN
+         SPC_H2O    = 0._fp
+      ELSE
+         SPC_H2O    = SC%Species(I,J,L,IND)
+      ENDIF
+
+      IND     = get_indx('HCl',SC%Spec_ID,SC%Spec_Name)
+      IF (IND .le. 0) THEN
+         SPC_HCl    = 0._fp
+      ELSE
+         SPC_HCl    = SC%Species(I,J,L,IND)
+      ENDIF
+
+      IND     = get_indx('HBr',SC%Spec_ID,SC%Spec_Name)
+      IF (IND .le. 0) THEN
+         SPC_HBr    = 0._fp
+      ELSE
+         SPC_HBr    = SC%Species(I,J,L,IND)
+      ENDIF
+
+      IND     = get_indx('ClNO3',SC%Spec_ID,SC%Spec_Name)
+      IF (IND .le. 0) THEN
+         SPC_ClNO3  = 0._fp
+      ELSE
+         SPC_ClNO3  = SC%Species(I,J,L,IND)
+      ENDIF
+
+      IND     = get_indx('BrNO3',SC%Spec_ID,SC%Spec_Name)
+      IF (IND .le. 0) THEN
+         SPC_BrNO3  = 0._fp
+      ELSE
+         SPC_BrNO3  = SC%Species(I,J,L,IND)
+      ENDIF
+
+      IND     = get_indx('HOCl',SC%Spec_ID,SC%Spec_Name)
+      IF (IND .le. 0) THEN
+         SPC_HOCl   = 0._fp
+      ELSE
+         SPC_HOCl   = SC%Species(I,J,L,IND)
+      ENDIF
+
+      IND     = get_indx('HOBr',SC%Spec_ID,SC%Spec_Name)
+      IF (IND .le. 0) THEN
+         SPC_HOBr   = 0._fp
+      ELSE
+         SPC_HOBr   = SC%Species(I,J,L,IND)
+      ENDIF
+
+      ! Set PSC educt concentrations (SDE 04/24/13)
+      PSCEDUCTCONC( 1,1) = SPC_N2O5
+      PSCEDUCTCONC( 1,2) = SPC_H2O
+
+      PSCEDUCTCONC( 2,1) = SPC_N2O5
+      PSCEDUCTCONC( 2,2) = SPC_HCl
+
+      PSCEDUCTCONC( 3,1) = SPC_ClNO3
+      PSCEDUCTCONC( 3,2) = SPC_H2O
+
+      PSCEDUCTCONC( 4,1) = SPC_ClNO3
+      PSCEDUCTCONC( 4,2) = SPC_HCl
+
+      PSCEDUCTCONC( 5,1) = SPC_ClNO3
+      PSCEDUCTCONC( 5,2) = SPC_HBr
+
+      PSCEDUCTCONC( 6,1) = SPC_BrNO3
+      PSCEDUCTCONC( 6,2) = SPC_H2O
+
+      PSCEDUCTCONC( 7,1) = SPC_BrNO3
+      PSCEDUCTCONC( 7,2) = SPC_HCl
+
+      PSCEDUCTCONC( 8,1) = SPC_HOCl
+      PSCEDUCTCONC( 8,2) = SPC_HCl
+
+      PSCEDUCTCONC( 9,1) = SPC_HOCl
+      PSCEDUCTCONC( 9,2) = SPC_HBr
+
+      PSCEDUCTCONC(10,1) = SPC_HOBr
+      PSCEDUCTCONC(10,2) = SPC_HCl
+
+      ! This is still pseudo-first-order - ignore
+      PSCEDUCTCONC(11,1) = SPC_HOBr
+      PSCEDUCTCONC(11,2) = SPC_HBr
+#endif
 
       XAREA(1:SC%nAero) = SC%AeroArea(I,J,L,:)
       XRADI(1:SC%nAero) = SC%AeroRadi(I,J,L,:)
@@ -137,11 +255,25 @@ MODULE GCKPP_HETRATES
       QICE     = 1e-6_fp - QLIQ
       
 #endif
-      
+
+#if defined( UCX )
+      ! Check surface type of PSCs (SDE 04/17/13)
+      CALL CHECK_NAT( I,  J,  L, NATSURFACE, PSCBOX, STRATBOX, &
+                      IO, SM, SC )
+#endif
+
+      ! ----------------------------------------------
+      !  Calculate rate for cloud heterogeneous
+      !  chemistry (jpp, 2/28/2011)
+      ! ----------------------------------------------
       IF (.not.PSCBOX) THEN
          cld_brno3_rc = CLD1K_BrNO3(I,J,L,XDENA,QLIQ, SM )
       END IF
 
+      ! ----------------------------------------------
+      !  Calculate rates for HOBr + HBr + ice --> Br2
+      !  for cold and mixed clouds. (jpp, 6/16/2011)
+      ! ----------------------------------------------
       IF (.not.PSCBOX) THEN
          DUMMY = 0._fp
          CALL cldice_hbrhobr_rxn( I,J,L,XDENA,QICE,TRC_HBr,TRC_HOBr, &
@@ -155,16 +287,219 @@ MODULE GCKPP_HETRATES
 
       HET = 0.
 
+      !----------------------------------------------------------------
       ! Calculate and pass het rates to the KPP rate array
-      HET(ind_HO2,1)   = HETHO2(     3.30E1_fp, 2E-1_fp)
-      HET(ind_NO2,1)   = HETNO2(     4.60E1_fp, 1E-4_fp)
-      HET(ind_NO3,1)   = HETNO3(     6.20E1_fp, 1E-1_fp)
-      HET(ind_N2O5,1)  = HETN2O5(    1.08E2_fp, 1E-1_fp)
-      HET(ind_BrNO3,1) = HETBrNO3(   1.42E2_fp, 3E-1_fp)
-      HET(ind_HOBr,1)  = HETHOBr(    0.97E2_fp, 2E-1_fp)
-      HET(ind_HBr,1)   = HETHBr(     0.81E2_fp, 2E-1_fp)
-      HET(ind_HOBr,2)  = HETHOBr_ice(0.97E2_fp, 1E-1_fp)
-      HET(ind_HBr,2)   = HETHBr_ice( 0.81E2_fp, 1E-1_fp)
+      !----------------------------------------------------------------
+      HET(ind_HO2,1)   = HETHO2(        3.30E1_fp, 2E-1_fp)
+      HET(ind_NO2,1)   = HETNO2(        4.60E1_fp, 1E-4_fp)
+      HET(ind_NO3,1)   = HETNO3(        6.20E1_fp, 1E-1_fp)
+      HET(ind_N2O5,1)  = HETN2O5(       1.08E2_fp, 1E-1_fp)
+      HET(ind_BrNO3,1) = HETBrNO3(      1.42E2_fp, 3E-1_fp)
+      HET(ind_HOBr,1)  = HETHOBr(       0.97E2_fp, 2E-1_fp)
+      HET(ind_HBr,1)   = HETHBr(        0.81E2_fp, 2E-1_fp)
+      HET(ind_HOBr,2)  = HETHOBr_ice(   0.97E2_fp, 1E-1_fp)
+      HET(ind_HBr,2)   = HETHBr_ice(    0.81E2_fp, 1E-1_fp)
+#if defined( UCX )
+      HET(ind_N2O5,2)  = HETN2O5_PSC(   1.08E2_fp, 0E+0_fp)
+      HET(ind_ClNO3,1) = HETClNO3_PSC1( 0.97E2_fp, 0E+0_fp)
+      HET(ind_ClNO3,2) = HETClNO3_PSC2( 0.97E2_fp, 0E+0_fp)
+      HET(ind_ClNO3,3) = HETClNO3_PSC3( 0.97E2_fp, 0E+0_fp)
+      HET(ind_BrNO3,2) = HETBrNO3_PSC(  1.42E2_fp, 0E+0_fp)
+      HET(ind_HOCl,1)  = HETHOCl_PSC1(  0.52E2_fp, 0E+0_fp)
+      HET(ind_HOCl,2)  = HETHOCl_PSC2(  0.52E2_fp, 0E+0_fp)
+      HET(ind_HOBr,3)  = HETHOBr_PSC(   0.97E2_fp, 0E+0_fp)
+#endif
+
+      !----------------------------------------------------------------
+      ! Kludging the rates to be equal to one another to avoid having
+      ! to keep setting equality in solver. (jpp, 5/10/2011)
+      !----------------------------------------------------------------
+      IF ( ( HET(ind_HBr,1) > 0 ) .and. ( HET(ind_HOBr,1) > 0 ) ) THEN
+
+         ! select the min of the two rates
+         hbr_rtemp  = HET(ind_HBr,1)  * TRC_HBr
+         hobr_rtemp = HET(ind_HOBr,1) * TRC_HOBr
+
+         ! if HBr rate is larger than HOBr rate
+         IF ( hbr_rtemp > hobr_rtemp ) THEN
+
+            SAFEDIV = IS_SAFE_DIV( HET(ind_HOBr,1) * TRC_HOBr, TRC_HBr )
+
+            IF (SAFEDIV) THEN
+               ! 2. if it is safe, then go ahead
+               HET(ind_HBr,1) = HET(ind_HOBr,1) * TRC_HOBr / TRC_HBr
+            ELSE
+               ! if not, then set rates really small...
+               ! b/c the largest contributor is very small.
+               HET(ind_HBr,1)  = TINY(1.e+0_fp)
+               HET(ind_HOBr,1) = TINY(1.e+0_fp)
+            ENDIF
+
+            ! if HOBr rate is larger than HBr rate
+         ELSE
+
+            ! 1. is it safe to divide?
+            SAFEDIV = IS_SAFE_DIV( HET(ind_HBr,1) * TRC_HBr, TRC_HOBr )
+
+            IF (SAFEDIV) THEN
+               ! 2. if it is safe, then go ahead
+               HET(ind_HOBr,1) = HET(ind_HBr,1) * TRC_HBr / TRC_HOBr
+            ELSE
+               ! if not, then set rates really small...
+               ! b/c the largest contributor is very small.
+               HET(ind_HBr,1)  = TINY(1.e+0_fp)
+               HET(ind_HOBr,1) = TINY(1.e+0_fp)
+            ENDIF
+         ENDIF
+      ENDIF
+
+      !----------------------------------------------------------------
+      ! SDE 05/30/13: Limit rates to prevent solver failure for PSC
+      ! het. chem.
+      !----------------------------------------------------------------
+#if defined( UCX )
+      DO PSCIDX=1,10
+
+         ! Pseudo-first-order reactions - divide by number-conc
+         ! of aerosol-phase educt to yield 2nd-order constant
+         EDUCTCONC = PSCEDUCTCONC(PSCIDX,2)
+         LIMITCONC = PSCEDUCTCONC(PSCIDX,1)
+
+         ! Initialize adjusted rates
+         IF     ( PSCIDX .eq. 1 ) THEN
+            ! N2O5 + H2O
+            ADJUSTEDRATE = HET(ind_N2O5,1)
+         ELSEIF ( PSCIDX .eq. 2 ) THEN
+            ! N2O5 + HCl
+            ADJUSTEDRATE = HET(ind_N2O5,2)
+         ELSEIF ( PSCIDX .eq. 3 ) THEN
+            ! ClNO3 + H2O
+            ADJUSTEDRATE = HET(ind_ClNO3,1)
+         ELSEIF ( PSCIDX .eq. 4 ) THEN
+            ! ClNO3 + HCl
+            ADJUSTEDRATE = HET(ind_ClNO3,2)
+         ELSEIF ( PSCIDX .eq. 5 ) THEN
+            ! ClNO3 + HBr
+            ADJUSTEDRATE = HET(ind_ClNO3,3)
+         ELSEIF ( PSCIDX .eq. 6 ) THEN
+            ! BrNO3 + H2O
+            ADJUSTEDRATE = HET(ind_BrNO3,1)
+         ELSEIF ( PSCIDX .eq. 7 ) THEN
+            ! BrNO3 + HCl
+            ADJUSTEDRATE = HET(ind_BrNO3,2)
+         ELSEIF ( PSCIDX .eq. 8 ) THEN
+            ! HOCl + HCl
+            ADJUSTEDRATE = HET(ind_HOCl,1)
+         ELSEIF ( PSCIDX .eq. 9 ) THEN
+            ! HOCl + HBr
+            ADJUSTEDRATE = HET(ind_HOCl,2)
+         ELSEIF ( PSCIDX .eq. 10) THEN
+            ! HOBr + HCl
+            ADJUSTEDRATE = HET(ind_HOBr,3)
+         ENDIF
+
+         ! ---SAFETY-CHECK REACTION---
+         ! Definition of 2nd order reaction rate:
+         ! k[A][B] = -d[A]/dt = -d[B]/dt
+         !
+         ! However, here we are using a pseudo-first order
+         ! reaction rate, ki, and assuming that [B] is
+         ! abundant. To get k, we will therefore perform:
+         ! k = ki/[B]
+         !
+         ! This will yield the following when solved:
+         ! -d[A]/dt = ki[A] = -d[B]/dt
+         !
+         ! This has some problems, especially for small [B]!
+         ! To get around this, we run the following checks:
+         !
+         ! 1. The lifetime of [A] is 1/ki. If this is below
+         !    PSCMINLIFE, limit reaction rate to yield the
+         !    specified lifetimedepletion (ki = 1/60)
+         ! 2. The depletion time of [B] is [B]/(ki[A]). If
+         !    this is below PSCMINLIFE, limit reaction rate
+         !    (ki = [B]/(T*[A])
+         ! 3. If [B] is < 100 molec/cm3, or ki/[B] yields
+         !    a Nan, force k = 0.
+         !
+         ! If all these checks are passed, we set k = ki/[B].
+         ! Rxn 11 is first-order - ignore
+         IF (PSCIDX.eq.1) THEN
+            ! Convert from 1st-order to 2nd-order
+            SAFEDIV = IS_SAFE_DIV(EDUCTCONC,LIMITCONC)
+            IF (SAFEDIV) THEN
+               ! Temporarily store [B]/(T*[A])
+               LIMITCONC = EDUCTCONC/(PSCMINLIFE*LIMITCONC)
+               IF (ADJUSTEDRATE.gt.LIMITCONC) THEN
+                  ADJUSTEDRATE = LIMITCONC
+               ENDIF
+            ELSE
+               ADJUSTEDRATE = 0e+0_fp
+            ENDIF
+            SAFEDIV = IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC)
+            IF ((EDUCTCONC.gt.1.e+2_fp).and. (SAFEDIV)) THEN
+               ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
+            ELSE
+               ADJUSTEDRATE = 0e+0_fp
+            ENDIF
+         ELSEIF (PSCIDX.ne.11) THEN
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+            ENDIF
+            ! Convert from 1st-order to 2nd-order
+            SAFEDIV = IS_SAFE_DIV(EDUCTCONC,LIMITCONC)
+            IF (SAFEDIV) THEN
+               ! Temporarily store [B]/(T*[A])
+               LIMITCONC = EDUCTCONC/(PSCMINLIFE*LIMITCONC)
+               IF (ADJUSTEDRATE.gt.LIMITCONC) THEN
+                  ADJUSTEDRATE = LIMITCONC
+               ENDIF
+            ELSE
+               ADJUSTEDRATE = 0e+0_fp
+            ENDIF
+            SAFEDIV = IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC)
+            IF ((EDUCTCONC.gt.1.e+2_fp).and. (SAFEDIV)) THEN
+               ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
+            ELSE
+               ADJUSTEDRATE = 0e+0_fp
+            ENDIF
+         ENDIF
+
+         ! Copy adjusted rates to HET
+         IF     ( PSCIDX .eq. 1 ) THEN
+            ! N2O5 + H2O
+            HET(ind_N2O5,1) = ADJUSTEDRATE
+         ELSEIF ( PSCIDX .eq. 2 ) THEN
+            ! N2O5 + HCl
+            HET(ind_N2O5,2) = ADJUSTEDRATE
+         ELSEIF ( PSCIDX .eq. 3 ) THEN
+            ! ClNO3 + H2O
+            HET(ind_ClNO3,1) = ADJUSTEDRATE
+         ELSEIF ( PSCIDX .eq. 4 ) THEN
+            ! ClNO3 + HCl
+            HET(ind_ClNO3,2) = ADJUSTEDRATE
+         ELSEIF ( PSCIDX .eq. 5 ) THEN
+            ! ClNO3 + HBr
+            HET(ind_ClNO3,3) = ADJUSTEDRATE
+         ELSEIF ( PSCIDX .eq. 6 ) THEN
+            ! BrNO3 + H2O
+            HET(ind_BrNO3,1) = ADJUSTEDRATE
+         ELSEIF ( PSCIDX .eq. 7 ) THEN
+            ! BrNO3 + HCl
+            HET(ind_BrNO3,2) = ADJUSTEDRATE
+         ELSEIF ( PSCIDX .eq. 8 ) THEN
+            ! HOCl + HCl
+            HET(ind_HOCl,1) = ADJUSTEDRATE
+         ELSEIF ( PSCIDX .eq. 9 ) THEN
+            ! HOCl + HBr
+            HET(ind_HOCl,2) = ADJUSTEDRATE
+         ELSEIF ( PSCIDX .eq. 10) THEN
+            ! HOBr + HCl
+            HET(ind_HOBr,3) = ADJUSTEDRATE
+         ENDIF
+
+      ENDDO
+#endif
 
       SCF = SCF2
 
@@ -280,6 +615,7 @@ MODULE GCKPP_HETRATES
          !  ~0 for aerosol types we don't want reactions on
          !  for the HBr and HOBr surface reaction
          
+         ! Only apply adjustment if at high altitude
          KII_KI = STRATBOX
          
          ! Select proper aerosol type
@@ -287,7 +623,7 @@ MODULE GCKPP_HETRATES
             ! sulfate, 2 modes of sea-salt
             XSTKCF = B
          ELSEIF ( N == 13 ) THEN
-            XSTKCF = KHETI_SLA_(11)
+            XSTKCF = KHETI_SLA(11)
          ELSEIF ( N == 14 ) THEN
             XSTKCF = 0.1e+0_fp
          ELSE
@@ -317,45 +653,15 @@ MODULE GCKPP_HETRATES
 
       END DO
 
-      ! ---------------------------------------------
-      ! Kludging the rates to be equal to one another
-      ! to avoid having to keep setting equality in
-      ! SMVGEAR solver. (jpp, 5/10/2011)
-      ! ---------------------------------------------
-      IF ( TRC_HBr > TRC_HOBr ) THEN
-         
-         ! 1. is it safe to divide?
-         SAFEDIV = is_safe_div( HETHbr * TRC_HOBr, TRC_HBr )
-         
-         IF (SAFEDIV) THEN
-            ! 2. if it is safe, then go ahead
-            HETHBr = HETHBr * TRC_HOBr/TRC_HBr
-         ELSE
-            ! if not, then set rates really small...
-            ! b/c the largest contributor is very small.
-            HETHBr = TINY(1.e+0_fp)
-         ENDIF
-         
-         ! if HOBr rate is larger than HBr rate
-      ELSE
-         
-         ! 1. is it safe to divide?
-         SAFEDIV = is_safe_div( HETHbr * TRC_HBr, TRC_HOBr )
-         
-         IF (SAFEDIV) THEN
-            ! 2. if it is safe, then go ahead
-            HETHBr = HETHBr * TRC_HBr/TRC_HOBr
-         ELSE
-            ! if not, then set rates really small...
-            ! b/c the largest contributor is very small.
-            HETHBr = TINY(1.e+0_fp)
-         ENDIF
-      ENDIF
     END FUNCTION HETHBR
 
     REAL(fp) FUNCTION HETN2O5(A,B)
+
       REAL(fp) A,B,TMP1,TMP2
       HETN2O5=0
+
+      ! Always apply adjustment
+      KII_KI = .TRUE.
 
       DO N = 1, NAERO
          ! Get GAMMA for N2O5 hydrolysis, which is
@@ -368,7 +674,7 @@ MODULE GCKPP_HETRATES
             ENDIF
          ELSEIF (N.eq.13) THEN
             ! Stratospheric aerosol
-            XSTKCF = KHETI_SLA_(1)
+            XSTKCF = KHETI_SLA(1)
          ELSE
             ! In UCX, ABSHUMK will have been set by
             ! STT(I,J,L,IDTH2O)
@@ -432,7 +738,7 @@ MODULE GCKPP_HETRATES
             XSTKCF = B
          ELSE IF ( N == 13 ) THEN
             ! SSA/STS
-            XSTKCF = KHETI_SLA_(6)
+            XSTKCF = KHETI_SLA(6)
          ELSE IF ( N == 14 ) THEN 
             ! Ice/NAT PSC
             IF (NATSURFACE) THEN 
@@ -478,7 +784,8 @@ MODULE GCKPP_HETRATES
          ! jpp, 3/22/11: set the sticking coefficient to 
          !  ~0 for aerosol types we don't want reactions on
          !  for the HBr and HOBr surface reaction
-         
+
+         ! Only apply adjustment if at high altitude
          KII_KI = STRATBOX
          
          ! Select proper aerosol type
@@ -486,7 +793,7 @@ MODULE GCKPP_HETRATES
             ! sulfate, 2 modes of sea-salt
             XSTKCF = B
          ELSEIF ( N == 13 ) THEN
-            XSTKCF = KHETI_SLA_(11)
+            XSTKCF = KHETI_SLA(11)
          ELSEIF ( N == 14 ) THEN
             XSTKCF = 0.1e+0_fp
          ELSE
@@ -529,6 +836,425 @@ MODULE GCKPP_HETRATES
       scf2(3) = KI_HBr
 
     END FUNCTIOn HETHBr_ice
+
+#if defined( UCX )
+    REAL(fp) FUNCTION HETN2O5_PSC(A,B)
+      ! N2O5(g)    + HCl(l,s)
+      REAL(fp) A,B
+      HETN2O5_PSC=0
+
+      ! Always apply adjustment
+      KII_KI = .TRUE.
+
+      ! Only consider PSC reactions in strat
+      IF (STRATBOX) THEN
+
+         DO N = 1, NAERO
+            IF (N.eq.8) THEN
+               XSTKCF = 0.1e-4_fp ! Sulfate
+            ELSEIF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(2)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.003e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.03e+0_fp ! Ice
+               ENDIF
+            ELSE
+               XSTKCF = 0e+0_fp
+            ENDIF
+
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+
+            IF (KII_KI .and. N.gt.12) THEN
+               ! PSC reaction - prevent excessive reaction rate
+               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+               ENDIF
+            ENDIF
+
+            ! Add to overall reaction rate
+            HETN2O5_PSC = HETN2O5_PSC + ADJUSTEDRATE
+
+         END DO
+
+      ENDIF
+
+    END FUNCTION HETN2O5_PSC
+
+    REAL(fp) FUNCTION HETClNO3_PSC1(A,B)
+      ! ClNO3(g)   + H2O(l,s)
+      REAL(fp) A,B
+      HETClNO3_PSC1=0
+
+      ! Always apply adjustment
+      KII_KI = .TRUE.
+
+      ! Only consider PSC reactions in strat
+      IF (STRATBOX) THEN
+
+         DO N = 1, NAERO
+
+            IF (N.eq.8) THEN
+               XSTKCF = 0.1e-3_fp ! Sulfate
+            ELSEIF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(3)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.004e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.3e+0_fp ! Ice
+               ENDIF
+            ELSE
+               XSTKCF = 0e+0_fp
+            ENDIF
+
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+
+            IF (KII_KI .and. N.gt.12) THEN
+               ! PSC reaction - prevent excessive reaction rate
+               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+               ENDIF
+            ENDIF
+
+            ! Add to overall reaction rate
+            HETClNO3_PSC1 = HETClNO3_PSC1 + ADJUSTEDRATE
+         END DO
+      ENDIF
+
+    END FUNCTION HETClNO3_PSC1
+
+    REAL(fp) FUNCTION HETClNO3_PSC2(A,B)
+      ! ClNO3(g)   + HCl(l,s)
+      REAL(fp) A,B
+      HETClNO3_PSC2=0
+
+      ! Always apply adjustment
+      KII_KI = .TRUE.
+
+      ! Only consider PSC reactions in strat
+      IF (STRATBOX) THEN
+
+         DO N = 1, NAERO
+
+            IF (N.eq.8) THEN
+               XSTKCF = 0.1e-4_fp ! Sulfate
+            ELSEIF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(4)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.2e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.3e+0_fp ! Ice
+               ENDIF
+            ELSE
+               XSTKCF = 0e+0_fp
+            ENDIF
+
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+
+            IF (KII_KI .and. N.gt.12) THEN
+               ! PSC reaction - prevent excessive reaction rate
+               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+               ENDIF
+            ENDIF
+
+            ! Add to overall reaction rate
+            HETClNO3_PSC2 = HETClNO3_PSC2 + ADJUSTEDRATE
+         END DO
+      ENDIF
+
+    END FUNCTION HETClNO3_PSC2
+
+    REAL(fp) FUNCTION HETClNO3_PSC3(A,B)
+      ! ClNO3(g)   + HBr(l,s)
+      REAL(fp) A,B
+      HETClNO3_PSC3=0
+
+      ! Always apply adjustment
+      KII_KI = .TRUE.
+
+      ! Only consider PSC reactions in strat
+      IF (STRATBOX) THEN
+
+         DO N = 1, NAERO
+
+            IF (N.eq.8) THEN
+               XSTKCF = 0.e+0_fp ! Sulfate
+            ELSEIF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(5)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.3e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.3e+0_fp ! Ice
+               ENDIF
+            ELSE
+               XSTKCF = 0e+0_fp
+            ENDIF
+
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+
+            IF (KII_KI .and. N.gt.12) THEN
+               ! PSC reaction - prevent excessive reaction rate
+               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+               ENDIF
+            ENDIF
+
+            ! Add to overall reaction rate
+            HETClNO3_PSC3 = HETClNO3_PSC3 + ADJUSTEDRATE
+         END DO
+      ENDIF
+
+    END FUNCTION HETClNO3_PSC3
+
+    REAL(fp) FUNCTION HETBrNO3_PSC(A,B)
+      ! BrNO3(g)   + HCl(l,s)
+      REAL(fp) A,B
+      HETBrNO3_PSC=0
+
+      ! Always apply adjustment
+      KII_KI = .TRUE.
+
+      ! Only consider PSC reactions in strat
+      IF (STRATBOX) THEN
+
+         DO N = 1, NAERO
+
+            IF (N.eq.8) THEN
+               XSTKCF = 0.9e+0_fp ! Sulfate
+            ELSEIF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(7)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.3e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.3e+0_fp ! Ice
+               ENDIF
+            ELSE
+               XSTKCF = 0e+0_fp
+            ENDIF
+
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+
+            IF (KII_KI .and. N.gt.12) THEN
+               ! PSC reaction - prevent excessive reaction rate
+               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+               ENDIF
+            ENDIF
+
+            ! Add to overall reaction rate
+            HETBrNO3_PSC = HETBrNO3_PSC + ADJUSTEDRATE
+         END DO
+      ENDIF
+
+    END FUNCTION HETBrNO3_PSC
+
+    REAL(fp) FUNCTION HETHOCl_PSC1(A,B)
+      ! HOCl(g)    + HCl(l,s)
+      REAL(fp) A,B
+      HETHOCl_PSC1=0
+
+      ! Always apply adjustment
+      KII_KI = .TRUE.
+
+      ! Only consider PSC reactions in strat
+      IF (STRATBOX) THEN
+
+         DO N = 1, NAERO
+
+            IF (N.eq.8) THEN
+               XSTKCF = 0.8e+0_fp ! Sulfate
+            ELSEIF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(8)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.1e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.2e+0_fp ! Ice
+               ENDIF
+            ELSE
+               XSTKCF = 0e+0_fp
+            ENDIF
+
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+
+            IF (KII_KI .and. N.gt.12) THEN
+               ! PSC reaction - prevent excessive reaction rate
+               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+               ENDIF
+            ENDIF
+
+            ! Add to overall reaction rate
+            HETHOCl_PSC1 = HETHOCl_PSC1 + ADJUSTEDRATE
+         END DO
+      ENDIF
+
+    END FUNCTION HETHOCl_PSC1
+
+    REAL(fp) FUNCTION HETHOCl_PSC2(A,B)
+      ! HOCl(g)    + HBr(l,s)
+      REAL(fp) A,B
+      HETHOCl_PSC2=0
+
+      ! Always apply adjustment
+      KII_KI = .TRUE.
+
+      ! Only consider PSC reactions in strat
+      IF (STRATBOX) THEN
+
+         DO N = 1, NAERO
+
+            IF (N.eq.8) THEN
+               XSTKCF = 0.8e+0_fp ! Sulfate
+            ELSEIF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(9)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.3e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.3e+0_fp ! Ice
+               ENDIF
+            ELSE
+               XSTKCF = 0e+0_fp
+            ENDIF
+
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+
+            IF (KII_KI .and. N.gt.12) THEN
+               ! PSC reaction - prevent excessive reaction rate
+               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+               ENDIF
+            ENDIF
+
+            ! Add to overall reaction rate
+            HETHOCl_PSC2 = HETHOCl_PSC2 + ADJUSTEDRATE
+         END DO
+      ENDIF
+
+    END FUNCTION HETHOCl_PSC2
+
+    REAL(fp) FUNCTION HETHOBr_PSC(A,B)
+      ! HOBr(g)    + HCl(l,s)
+      REAL(fp) A,B
+      HETHOBr_PSC=0
+
+      ! Always apply adjustment
+      KII_KI = .TRUE.
+
+      ! Only consider PSC reactions in strat
+      IF (STRATBOX) THEN
+
+         DO N = 1, NAERO
+
+            IF (N.eq.8) THEN
+               XSTKCF = 0.8e+0_fp ! Sulfate
+            ELSEIF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(10)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.1e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.3e+0_fp ! Ice
+               ENDIF
+            ELSE
+               XSTKCF = 0e+0_fp
+            ENDIF
+
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+
+            IF (KII_KI .and. N.gt.12) THEN
+               ! PSC reaction - prevent excessive reaction rate
+               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+               ENDIF
+            ENDIF
+
+            ! Add to overall reaction rate
+            HETHOBr_PSC = HETHOBr_PSC + ADJUSTEDRATE
+         END DO
+      ENDIF
+
+    END FUNCTION HETHOBr_PSC
+#endif
 
 ! *********************************************************************
 !                       INTERNAL FUNCTIONS
@@ -1463,5 +2189,77 @@ MODULE GCKPP_HETRATES
 
       ! Return to calling program
       END FUNCTION ARSL1K
+!EOC
+#if defined( UCX )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: check_nat
+!
+! !DESCRIPTION: Subroutine CHECK\_NAT determines whether the solid PSC is 
+!  composed of ice or NAT (nitric acid trihydrate) (needed for heterogeneous
+!  chemistry), or indeed if there is any direct PSC calculation at all. This
+!  is important for determining whether to use the JPP or Kirner scheme for
+!  ice cloud radii.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CHECK_NAT( I, J, L, IS_NAT, IS_PSC, IS_STRAT, &
+                            Input_Opt, State_Met, State_Chm )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER,        INTENT(IN)  :: I,J,L      ! Grid indices
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input options
+      TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm  ! Chemistry State object
+!
+! !OUTPUT VARIABLES:
+!
+      LOGICAL,        INTENT(OUT) :: IS_NAT     ! Is surface NAT?
+      LOGICAL,        INTENT(OUT) :: IS_PSC     ! Are there solid PSCs?
+      LOGICAL,        INTENT(OUT) :: IS_STRAT   ! Are we in the strat?
+!
+! !REVISION HISTORY:
+!  17 Apr 2013 - S. D. Eastham - Initial version
+!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
+!                                objects via the arg list
+!  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
+!                                now done from DO_CHEMISTRY (chemistry_mod.F)
+!  28 Jan 2016 - M. Sulprizio  - Moved this routine from ucx_mod.F to
+!                                gckpp_HetRates.F90
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL :: IS_TROP
 
+      !=================================================================
+      ! CHECK_NAT begins here!
+      !=================================================================
+
+      ! Check if box is in the troposphere
+      IS_TROP  = ( State_Met%PEDGE(I,J,L) > State_Met%TROPP(I,J) )
+
+      ! Check if box is in the stratosphere
+      IS_STRAT = ( ( L .le. LLSTRAT ) .and. ( .not. IS_TROP) )
+
+      ! Check if there are solid PSCs
+      IS_PSC   = ( ( Input_Opt%LPSCCHEM ) .and. &
+                 ( State_Chm%STATE_PSC(I,J,L) >= 2.0 ) .and. ( IS_STRAT ) )
+
+      ! Check if there is surface NAT
+      IS_NAT   = ( ( IS_PSC ) .and. ( TRC_NIT .gt. TINY(1e+0_fp) ) )
+
+      END SUBROUTINE CHECK_NAT
+!EOC
+#endif
   END MODULE GCKPP_HETRATES

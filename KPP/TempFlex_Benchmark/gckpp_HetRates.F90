@@ -1,6 +1,7 @@
 MODULE GCKPP_HETRATES
   USE CMN_FJX_MOD,        ONLY : NDUST, NAER
   USE CMN_SIZE_MOD,       ONLY : LLSTRAT
+  USE COMODE_LOOP_MOD,    ONLY : CONSVAP
   USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
   USE ERROR_MOD,          ONLY : IS_SAFE_DIV
   USE gckpp_Precision
@@ -17,22 +18,26 @@ MODULE GCKPP_HETRATES
   PUBLIC :: SET_HET
 
   INTEGER            :: N
-  INTEGER, SAVE      :: NAERO, PSCIDX
+  INTEGER, SAVE      :: NAERO
   LOGICAL, SAVE      :: NATSURFACE, SAFEDIV
   LOGICAL, SAVE      :: KII_KI, PSCBOX, STRATBOX
   REAL(fp), SAVE     :: TEMPK, RELHUM, XSTKCF
+  REAL(fp)           :: VPRESH2O, CONSEXP
   REAL(fp), SAVE     :: TRC_NIT, TRC_SO4, TRC_HBr, TRC_HOBr
-  REAL(fp), SAVE     :: SPC_N2O5, SPC_H2O,  SPC_HCl,   SPC_HBr
-  REAL(fp), SAVE     :: SPC_HOCl, SPC_HOBr, SPC_ClNO3, SPC_BrNO3
   REAL(fp), SAVE     :: GAMMA_HO2, XTEMP, XDENA, ADJUSTEDRATE
   REAL(fp), SAVE     :: cld_brno3_rc, KI_HBR, KI_HOBr, QLIQ, QICE
   REAL(fp), SAVE, DIMENSION(25)  :: XAREA, XRADI
   REAL(fp),       PARAMETER      :: PSCMINLIFE=1.e-3_fp
-  REAL(fp)           :: DUMMY
+  REAL(fp)           :: DUMMY, SCF2(3)
   REAL(fp), SAVE     :: KHETI_SLA(11)
   REAL(fp)           :: hobr_rtemp, hbr_rtemp
+#if defined( UCX )
+  INTEGER, SAVE      :: PSCIDX
+  REAL(fp), SAVE     :: SPC_N2O5, SPC_H2O,  SPC_HCl,   SPC_HBr
+  REAL(fp), SAVE     :: SPC_HOCl, SPC_HOBr, SPC_ClNO3, SPC_BrNO3
   REAL(fp)           :: PSCEDUCTCONC(11,2)
   REAL(fp)           :: EDUCTCONC, LIMITCONC
+#endif
 
 !!!$OMP THREADPRIVATE(N,NATSURFACE,ADJUSTEDRATE,SAFEDIV,KII_KI,PSCBOX,STRATBOX)
 !!!$OMP THREADPRIVATE(KHETI_SLA, TEMPK, ABSHUM, XSTKCF)
@@ -65,11 +70,12 @@ MODULE GCKPP_HETRATES
 ! -------
 ! DOES NOT YET INCLUDE STRAT PSC REACTIONS ! MSL - 02/18/15
 
-    SUBROUTINE SET_HET(I,J,L,SC,SM,IO)
+    SUBROUTINE SET_HET(I,J,L,SC,SM,IO,SCF)
       INTEGER        :: I,J,L,IND
       TYPE(ChmState) :: SC
       TYPE(MetState) :: SM
       TYPE(OptInput) :: IO
+      REAL(fp)       :: SCF(3)
 
       ! Divide by educt concentration
       KII_KI     = .false.
@@ -81,12 +87,18 @@ MODULE GCKPP_HETRATES
 
       NAERO = SC%nAero
 
-      IF ( IO%LUCX ) THEN
-         ! Copy sticking coefficients for PSC reactions on SLA
-         KHETI_SLA(:) = SC%KHETI_SLA(I,J,L,:)
-      ENDIF
+#if defined( UCX )
+      ! Copy sticking coefficients for PSC reactions on SLA
+      KHETI_SLA(:) = SC%KHETI_SLA(I,J,L,:)
+#endif
 
-      RELHUM        = SM%RH(I,J,L)/100.E0_fp !SM%AVGW(I,J,L) * SM%AIRNUMDEN(I,J,L)
+      ! Calculate RH. Not clear why the result of this calc is 
+      ! slightly different than SM%RH
+      RELHUM        = SM%AVGW(I,J,L) * SM%AIRNUMDEN(I,J,L)
+      CONSEXP       = 17.2693882e+0_fp * (SM%T(I,J,L) - 273.16e+0_fp) / &
+                      (SM%T(I,J,L) - 35.86e+0_fp)
+      VPRESH2O      = CONSVAP * EXP(CONSEXP) / SM%T(I,J,L) 
+      RELHUM = RELHUM / VPRESH2O 
 
       ! Get tracer concentrations [kg]
       IND        = get_indx('SO4',IO%ID_TRACER,IO%TRACER_NAME)
@@ -117,100 +129,99 @@ MODULE GCKPP_HETRATES
          TRC_HOBr   = SC%Tracers(I,J,L,IND)
       ENDIF
 
+#if defined( UCX )
       ! Get species concentrations [molec/cm3]
-      IF ( IO%LUCX ) THEN
-         IND     = get_indx('N2O5',SC%Spec_ID,SC%Spec_Name)
-         IF (IND .le. 0) THEN
-            SPC_N2O5   = 0._fp
-         ELSE
-            SPC_N2O5   = SC%Species(I,J,L,IND)
-         ENDIF
-
-         IND      = get_indx('H2O',SC%Spec_ID,SC%Spec_Name)
-         IF (IND .le. 0) THEN
-            SPC_H2O    = 0._fp
-         ELSE
-            SPC_H2O    = SC%Species(I,J,L,IND)
-         ENDIF
-
-         IND     = get_indx('HCl',SC%Spec_ID,SC%Spec_Name)
-         IF (IND .le. 0) THEN
-            SPC_HCl    = 0._fp
-         ELSE
-            SPC_HCl    = SC%Species(I,J,L,IND)
-         ENDIF
-
-         IND     = get_indx('HBr',SC%Spec_ID,SC%Spec_Name)
-         IF (IND .le. 0) THEN
-            SPC_HBr    = 0._fp
-         ELSE
-            SPC_HBr    = SC%Species(I,J,L,IND)
-         ENDIF
-
-         IND     = get_indx('ClNO3',SC%Spec_ID,SC%Spec_Name)
-         IF (IND .le. 0) THEN
-            SPC_ClNO3  = 0._fp
-         ELSE
-            SPC_ClNO3  = SC%Species(I,J,L,IND)
-         ENDIF
-
-         IND     = get_indx('BrNO3',SC%Spec_ID,SC%Spec_Name)
-         IF (IND .le. 0) THEN
-            SPC_BrNO3  = 0._fp
-         ELSE
-            SPC_BrNO3  = SC%Species(I,J,L,IND)
-         ENDIF
-
-         IND     = get_indx('HOCl',SC%Spec_ID,SC%Spec_Name)
-         IF (IND .le. 0) THEN
-            SPC_HOCl   = 0._fp
-         ELSE
-            SPC_HOCl   = SC%Species(I,J,L,IND)
-         ENDIF
-
-         IND     = get_indx('HOBr',SC%Spec_ID,SC%Spec_Name)
-         IF (IND .le. 0) THEN
-            SPC_HOBr   = 0._fp
-         ELSE
-            SPC_HOBr   = SC%Species(I,J,L,IND)
-         ENDIF
-
-         ! Set PSC educt concentrations (SDE 04/24/13)
-         PSCEDUCTCONC( 1,1) = SPC_N2O5
-         PSCEDUCTCONC( 1,2) = SPC_H2O
-
-         PSCEDUCTCONC( 2,1) = SPC_N2O5
-         PSCEDUCTCONC( 2,2) = SPC_HCl
-
-         PSCEDUCTCONC( 3,1) = SPC_ClNO3
-         PSCEDUCTCONC( 3,2) = SPC_H2O
-
-         PSCEDUCTCONC( 4,1) = SPC_ClNO3
-         PSCEDUCTCONC( 4,2) = SPC_HCl
-
-         PSCEDUCTCONC( 5,1) = SPC_ClNO3
-         PSCEDUCTCONC( 5,2) = SPC_HBr
-
-         PSCEDUCTCONC( 6,1) = SPC_BrNO3
-         PSCEDUCTCONC( 6,2) = SPC_H2O
-
-         PSCEDUCTCONC( 7,1) = SPC_BrNO3
-         PSCEDUCTCONC( 7,2) = SPC_HCl
-
-         PSCEDUCTCONC( 8,1) = SPC_HOCl
-         PSCEDUCTCONC( 8,2) = SPC_HCl
-
-         PSCEDUCTCONC( 9,1) = SPC_HOCl
-         PSCEDUCTCONC( 9,2) = SPC_HBr
-
-         PSCEDUCTCONC(10,1) = SPC_HOBr
-         PSCEDUCTCONC(10,2) = SPC_HCl
-
-         ! This is still pseudo-first-order - ignore            
-         PSCEDUCTCONC(11,1) = SPC_HOBr
-         PSCEDUCTCONC(11,2) = SPC_HBr
-
+      IND     = get_indx('N2O5',SC%Spec_ID,SC%Spec_Name)
+      IF (IND .le. 0) THEN
+         SPC_N2O5   = 0._fp
+      ELSE
+         SPC_N2O5   = SC%Species(I,J,L,IND)
       ENDIF
+
+      IND      = get_indx('H2O',SC%Spec_ID,SC%Spec_Name)
+      IF (IND .le. 0) THEN
+         SPC_H2O    = 0._fp
+      ELSE
+         SPC_H2O    = SC%Species(I,J,L,IND)
+      ENDIF
+
+      IND     = get_indx('HCl',SC%Spec_ID,SC%Spec_Name)
+      IF (IND .le. 0) THEN
+         SPC_HCl    = 0._fp
+      ELSE
+         SPC_HCl    = SC%Species(I,J,L,IND)
+      ENDIF
+
+      IND     = get_indx('HBr',SC%Spec_ID,SC%Spec_Name)
+      IF (IND .le. 0) THEN
+         SPC_HBr    = 0._fp
+      ELSE
+         SPC_HBr    = SC%Species(I,J,L,IND)
+      ENDIF
+
+      IND     = get_indx('ClNO3',SC%Spec_ID,SC%Spec_Name)
+      IF (IND .le. 0) THEN
+         SPC_ClNO3  = 0._fp
+      ELSE
+         SPC_ClNO3  = SC%Species(I,J,L,IND)
+      ENDIF
+
+      IND     = get_indx('BrNO3',SC%Spec_ID,SC%Spec_Name)
+      IF (IND .le. 0) THEN
+         SPC_BrNO3  = 0._fp
+      ELSE
+         SPC_BrNO3  = SC%Species(I,J,L,IND)
+      ENDIF
+
+      IND     = get_indx('HOCl',SC%Spec_ID,SC%Spec_Name)
+      IF (IND .le. 0) THEN
+         SPC_HOCl   = 0._fp
+      ELSE
+         SPC_HOCl   = SC%Species(I,J,L,IND)
+      ENDIF
+
+      IND     = get_indx('HOBr',SC%Spec_ID,SC%Spec_Name)
+      IF (IND .le. 0) THEN
+         SPC_HOBr   = 0._fp
+      ELSE
+         SPC_HOBr   = SC%Species(I,J,L,IND)
+      ENDIF
+
+      ! Set PSC educt concentrations (SDE 04/24/13)
+      PSCEDUCTCONC( 1,1) = SPC_N2O5
+      PSCEDUCTCONC( 1,2) = SPC_H2O
+
+      PSCEDUCTCONC( 2,1) = SPC_N2O5
+      PSCEDUCTCONC( 2,2) = SPC_HCl
+
+      PSCEDUCTCONC( 3,1) = SPC_ClNO3
+      PSCEDUCTCONC( 3,2) = SPC_H2O
+
+      PSCEDUCTCONC( 4,1) = SPC_ClNO3
+      PSCEDUCTCONC( 4,2) = SPC_HCl
+
+      PSCEDUCTCONC( 5,1) = SPC_ClNO3
+      PSCEDUCTCONC( 5,2) = SPC_HBr
+
+      PSCEDUCTCONC( 6,1) = SPC_BrNO3
+      PSCEDUCTCONC( 6,2) = SPC_H2O
+
+      PSCEDUCTCONC( 7,1) = SPC_BrNO3
+      PSCEDUCTCONC( 7,2) = SPC_HCl
+
+      PSCEDUCTCONC( 8,1) = SPC_HOCl
+      PSCEDUCTCONC( 8,2) = SPC_HCl
+
+      PSCEDUCTCONC( 9,1) = SPC_HOCl
+      PSCEDUCTCONC( 9,2) = SPC_HBr
+
+      PSCEDUCTCONC(10,1) = SPC_HOBr
+      PSCEDUCTCONC(10,2) = SPC_HCl
+
+      ! This is still pseudo-first-order - ignore
+      PSCEDUCTCONC(11,1) = SPC_HOBr
+      PSCEDUCTCONC(11,2) = SPC_HBr
+#endif
 
       XAREA(1:SC%nAero) = SC%AeroArea(I,J,L,:)
       XRADI(1:SC%nAero) = SC%AeroRadi(I,J,L,:)
@@ -245,11 +256,11 @@ MODULE GCKPP_HETRATES
       
 #endif
 
-      IF ( IO%LUCX ) THEN
-         ! Check surface type of PSCs (SDE 04/17/13)
-         CALL CHECK_NAT( I,  J,  L, NATSURFACE, PSCBOX, STRATBOX, &
-                         IO, SM, SC )
-      ENDIF
+#if defined( UCX )
+      ! Check surface type of PSCs (SDE 04/17/13)
+      CALL CHECK_NAT( I,  J,  L, NATSURFACE, PSCBOX, STRATBOX, &
+                      IO, SM, SC )
+#endif
 
       ! ----------------------------------------------
       !  Calculate rate for cloud heterogeneous
@@ -288,6 +299,7 @@ MODULE GCKPP_HETRATES
       HET(ind_HBr,1)   = HETHBr(        0.81E2_fp, 2E-1_fp)
       HET(ind_HOBr,2)  = HETHOBr_ice(   0.97E2_fp, 1E-1_fp)
       HET(ind_HBr,2)   = HETHBr_ice(    0.81E2_fp, 1E-1_fp)
+#if defined( UCX )
       HET(ind_N2O5,2)  = HETN2O5_PSC(   1.08E2_fp, 0E+0_fp)
       HET(ind_ClNO3,1) = HETClNO3_PSC1( 0.97E2_fp, 0E+0_fp)
       HET(ind_ClNO3,2) = HETClNO3_PSC2( 0.97E2_fp, 0E+0_fp)
@@ -296,6 +308,7 @@ MODULE GCKPP_HETRATES
       HET(ind_HOCl,1)  = HETHOCl_PSC1(  0.52E2_fp, 0E+0_fp)
       HET(ind_HOCl,2)  = HETHOCl_PSC2(  0.52E2_fp, 0E+0_fp)
       HET(ind_HOBr,3)  = HETHOBr_PSC(   0.97E2_fp, 0E+0_fp)
+#endif
 
       !----------------------------------------------------------------
       ! Kludging the rates to be equal to one another to avoid having
@@ -344,6 +357,7 @@ MODULE GCKPP_HETRATES
       ! SDE 05/30/13: Limit rates to prevent solver failure for PSC
       ! het. chem.
       !----------------------------------------------------------------
+#if defined( UCX )
       DO PSCIDX=1,10
 
          ! Pseudo-first-order reactions - divide by number-conc
@@ -351,6 +365,7 @@ MODULE GCKPP_HETRATES
          EDUCTCONC = PSCEDUCTCONC(PSCIDX,2)
          LIMITCONC = PSCEDUCTCONC(PSCIDX,1)
 
+         ! Initialize adjusted rates
          IF     ( PSCIDX .eq. 1 ) THEN
             ! N2O5 + H2O
             ADJUSTEDRATE = HET(ind_N2O5,1)
@@ -422,7 +437,7 @@ MODULE GCKPP_HETRATES
                ADJUSTEDRATE = 0e+0_fp
             ENDIF
             SAFEDIV = IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC)
-            IF ((EDUCTCONC.gt.1.d2).and. (SAFEDIV)) THEN
+            IF ((EDUCTCONC.gt.1.e+2_fp).and. (SAFEDIV)) THEN
                ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
             ELSE
                ADJUSTEDRATE = 0e+0_fp
@@ -450,6 +465,7 @@ MODULE GCKPP_HETRATES
             ENDIF
          ENDIF
 
+         ! Copy adjusted rates to HET
          IF     ( PSCIDX .eq. 1 ) THEN
             ! N2O5 + H2O
             HET(ind_N2O5,1) = ADJUSTEDRATE
@@ -483,6 +499,11 @@ MODULE GCKPP_HETRATES
          ENDIF
 
       ENDDO
+#endif
+
+      SCF = SCF2
+
+      RETURN
 
     END SUBROUTINE SET_HET
     
@@ -617,6 +638,8 @@ MODULE GCKPP_HETRATES
             ! Reaction rate for surface of aerosol
             ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP,(A**0.5_FP))
          ENDIF
+
+         scf2(2) = xstkcf
          
          IF (KII_KI .and. N.gt.12) THEN
             ! PSC reaction - prevent excessive reaction rate
@@ -687,6 +710,8 @@ MODULE GCKPP_HETRATES
          ! Add to overall reaction rate
          HETN2O5 = HETN2O5 + ADJUSTEDRATE
       END DO
+
+      scf2(1) = xstkcf
 
     END FUNCTIOn HETN2O5
 
@@ -808,8 +833,11 @@ MODULE GCKPP_HETRATES
       REAL(fp) A,B
       HETHBr_ice=KI_HBr
 
+      scf2(3) = KI_HBr
+
     END FUNCTIOn HETHBr_ice
 
+#if defined( UCX )
     REAL(fp) FUNCTION HETN2O5_PSC(A,B)
       ! N2O5(g)    + HCl(l,s)
       REAL(fp) A,B
@@ -1226,6 +1254,7 @@ MODULE GCKPP_HETRATES
       ENDIF
 
     END FUNCTION HETHOBr_PSC
+#endif
 
 ! *********************************************************************
 !                       INTERNAL FUNCTIONS
@@ -2161,6 +2190,7 @@ MODULE GCKPP_HETRATES
       ! Return to calling program
       END FUNCTION ARSL1K
 !EOC
+#if defined( UCX )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2231,4 +2261,5 @@ MODULE GCKPP_HETRATES
 
       END SUBROUTINE CHECK_NAT
 !EOC
+#endif
   END MODULE GCKPP_HETRATES

@@ -406,7 +406,7 @@
 
          call cpu_time(start)
          HET(:,:) = 0.
-         CALL SET_HET(I,J,L,State_Chm,State_Met,Input_Opt,KH,
+         CALL SET_HET(I,J,L,State_Chm,State_Met,Input_Opt,
      &        scoeff(I,J,L,1:3))
 
          ! mje Set up the physical conditions for the current box
