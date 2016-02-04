@@ -1467,7 +1467,6 @@
 !
       USE CMN_SIZE_MOD
       USE DEPO_MERCURY_MOD,   ONLY : RESET_HG_DEP_ARRAYS
-      USE DIAG03_MOD,         ONLY : AD03_nat
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -2690,28 +2689,24 @@
             ! for present day archive soil, geogenic, biomass burning, 
             ! vegetation, and rapid recycing 
             IF ( LPREINDHG ) THEN !eds
-               AD03_nat(I,J,N)=MAX(EHg0_so(I,J)*DTSRCE, SMALLNUM)
+               AD03_nat(I,J,:)=MAX(EHg0_so(I,J)*DTSRCE, SMALLNUM)
             ELSE
                IF ( LGTMM ) THEN
-                  AD03_nat(I,J,N) = DTSRCE * (
-!- eds 8/31/10 ----------------------------------------------
-!     &                 EHg0_nt(I,J)     + 
-     &                 EHg0_geo(I,J)    +
-!------------------------------------------------------------
-     &                 EHg0_bb(I,J)     +
-     &                 EHg0_gtm(I,J)    + 
-     &                 EHg0_snow(I,J,N)  ) 
+                  DO N = 1, N_HG_CATS
+                     AD03_nat(I,J,N) = DTSRCE * ( EHg0_geo(I,J)     +
+     &                                            EHg0_bb(I,J)      +
+     &                                            EHg0_gtm(I,J)     +
+     &                                            EHg0_snow(I,J,N)  )
+                  ENDDO
                ELSE
-                  AD03_nat(I,J,N) = DTSRCE * (
-     &                 EHg0_ln(I,J,N) + 
-!- eds 8/31/10 ----------------------------------------------
-!     &                 EHg0_nt(I,J) + 
-     &                 EHg0_geo(I,J) +
-!------------------------------------------------------------
-     &                 EHg0_bb(I,J) +
-     &                 EHg0_vg(I,J) + 
-     &                 EHg0_so(I,J) + 
-     &                 EHg0_snow(I,J,N) ) 
+                  DO N = 1, N_HG_CATS
+                     AD03_nat(I,J,N) = DTSRCE * ( EHg0_ln(I,J,N)   +
+     &                                            EHg0_geo(I,J)    +
+     &                                            EHg0_bb(I,J)     +
+     &                                            EHg0_vg(I,J)     +
+     &                                            EHg0_so(I,J)     +
+     &                                            EHg0_snow(I,J,N) )
+                  ENDDO
                ENDIF 
             ENDIF
             
