@@ -1189,7 +1189,9 @@
                Print*, 'DEBUG: Found HGP'
                Print*,  N, Hg_CAT(N),  Hg_CAT_FULL(N)
 
+            !----------------------------------------
             ! New Tagged Hg Simulation (eds 8/31/10)
+            !----------------------------------------
             CASE ( 'HG0_AN_CAN', 'HG0_CAN' )
                COUNT_Hg0         = COUNT_Hg0 + 1
                ID_Hg_can         = COUNT_Hg0
@@ -3046,47 +3048,18 @@
       !=================================================================
 
       ! Pick the Hg0 category number from the tracer number
+
+      !----------------------------------------
+      ! Standard Hg simulation
+      !----------------------------------------
       IF ( N == ID_Hg0(ID_Hg_tot) ) THEN 
 
          ! Total
          NN = ID_Hg_tot
 
-!- eds 8/31/10 -----------------------------------------------
-!      ELSE IF ( N == ID_Hg0(ID_Hg_na) ) THEN 
-!
-!         ! Anthro North America
-!         NN = ID_Hg_na
-!
-!      ELSE IF ( N == ID_Hg0(ID_Hg_eu) ) THEN 
-!
-!         ! Anthro Europe
-!         NN = ID_Hg_eu
-!
-!      ELSE IF ( N == ID_Hg0(ID_Hg_as) ) THEN 
-!
-!         ! Anthro Asia
-!         NN = ID_Hg_as
-!
-!      ELSE IF ( N == ID_Hg0(ID_Hg_rw) ) THEN 
-!
-!         ! Anthro Rest of World
-!         NN = ID_Hg_rw
-!
-!      ELSE IF ( N == ID_Hg0(ID_Hg_oc) ) THEN 
-!
-!         ! Oceans
-!         NN = ID_Hg_oc
-!
-!      ELSE IF ( N == ID_Hg0(ID_Hg_ln) ) THEN 
-!
-!         ! Land re-emission
-!         NN = ID_Hg_ln
-!
-!      ELSE IF ( N == ID_Hg0(ID_Hg_nt) ) THEN 
-!
-!         ! Natural source
-!         NN = ID_Hg_nt
-
+      !----------------------------------------
+      ! New Tagged Hg Simulation (eds 8/31/10)
+      !----------------------------------------
       ELSE IF ( N == ID_Hg0(ID_Hg_can) ) THEN  
 
          ! Anthro Canada
@@ -3227,8 +3200,6 @@
          ! Residual Stratosphere from Spin-up
          NN = ID_Hg_str
 
-!-------------------------------------------------------
-
       ELSE
 
          ! Invalid category
@@ -3265,48 +3236,18 @@
       !=================================================================
 
       ! Pick the Hg2 category number from the tracer number
+
+      !----------------------------------------
+      ! Standard Hg simulation
+      !----------------------------------------
       IF ( N == ID_Hg2(ID_Hg_tot) ) THEN 
 
          ! Total
          NN = ID_Hg_tot
 
-!- eds 8/31/10 --------------------------------------------------------------
-!      ELSE IF ( N == ID_Hg2(ID_Hg_na) ) THEN 
-!
-!         ! Anthro North America
-!         NN = ID_Hg_na
-!
-!      ELSE IF ( N == ID_Hg2(ID_Hg_eu) ) THEN 
-!
-!         ! Anthro Europe
-!         NN = ID_Hg_eu
-!
-!      ELSE IF ( N == ID_Hg2(ID_Hg_as) ) THEN 
-!
-!         ! Anthro Asia
-!         NN = ID_Hg_as
-!
-!      ELSE IF ( N == ID_Hg2(ID_Hg_rw) ) THEN 
-!
-!         ! Anthro Rest of World
-!         NN = ID_Hg_rw
-!
-!      ELSE IF ( N == ID_Hg2(ID_Hg_oc) ) THEN 
-!
-!         ! Oceans
-!         NN = ID_Hg_oc
-!
-!      ELSE IF ( N == ID_Hg2(ID_Hg_ln) ) THEN 
-!
-!         ! Land re-emission
-!         NN = ID_Hg_ln
-!
-!      ELSE IF ( N == ID_Hg2(ID_Hg_nt) ) THEN 
-!
-!         ! Natural source
-!         NN = ID_Hg_nt
-
+      !----------------------------------------
       ! New Tagged Hg Simulation (eds 8/31/10)
+      !----------------------------------------
       ELSE IF ( N == ID_Hg2(ID_Hg_can) ) THEN  
 
          ! Anthro Canada
@@ -3447,8 +3388,6 @@
          ! Residual Stratosphere from Spin-up
          NN = ID_Hg_str
 
-!-------------------------------------------------------
-
       ELSE
 
          ! Invalid category
@@ -3486,47 +3425,18 @@
       !=================================================================
 
       ! Pick the HgP category number from the tracer number
+
+      !----------------------------------------
+      ! Standard Hg simulation
+      !----------------------------------------
       IF ( N == ID_HgP(ID_Hg_tot) ) THEN 
 
          ! Total
          NN = ID_Hg_tot
 
-!- eds 8/31/10 ---------------------------------------------------------
-!      ELSE IF ( N == ID_HgP(ID_Hg_na) ) THEN 
-!
-!         ! Anthro North America
-!         NN = ID_Hg_na
-!
-!      ELSE IF ( N == ID_HgP(ID_Hg_eu) ) THEN 
-!
-!         ! Anthro Europe
-!         NN = ID_Hg_eu
-!
-!      ELSE IF ( N == ID_HgP(ID_Hg_as) ) THEN 
-!
-!         ! Anthro Asia
-!         NN = ID_Hg_as
-!
-!      ELSE IF ( N == ID_HgP(ID_Hg_rw) ) THEN 
-!
-!         ! Anthro Rest of World
-!         NN = ID_Hg_rw
-!
-!      ELSE IF ( N == ID_HgP(ID_Hg_oc) ) THEN 
-!
-!         ! Oceans
-!         NN = ID_Hg_oc
-!
-!      ELSE IF ( N == ID_HgP(ID_Hg_ln) ) THEN 
-!
-!         ! Land re-emission
-!         NN = ID_Hg_ln
-!
-!      ELSE IF ( N == ID_HgP(ID_Hg_nt) ) THEN 
-!
-!         ! Natural source
-!         NN = ID_Hg_nt
-
+      !----------------------------------------
+      ! New Tagged Hg Simulation (eds 8/31/10)
+      !----------------------------------------
       ELSE IF ( N == ID_HgP(ID_Hg_can) ) THEN  
 
          ! Anthro Canada
@@ -3666,8 +3576,6 @@
 
          ! Residual Stratosphere from Spin-up
          NN = ID_Hg_str
-
-!-------------------------------------------------------
 
       ELSE
 

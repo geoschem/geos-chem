@@ -100,11 +100,9 @@
 !  (18) Hg0_sea            : Hg(0) - Southeast Asian Anthropogenic
 !  (19) Hg0_jpn            : Hg(0) - Japanese Anthropogenic
 !  (20) Hg0_ocn            : Hg(0) - Oceanian Anthropogenic
-!  ------------------------+---------------------------------------------------
 !  (21) Hg0_so             : Hg(0) - Organic Soils
 !  (22) Hg0_bb             : Hg(0) - Biomass Burning
 !  (23) Hg0_geo            : Hg(0) - Geogenic
-!  ------------------------+---------------------------------------------------
 !  (24) Hg0_atl            : Hg(0) - Middle Atlantic Subsurface Waters
 !  (25) Hg0_nat            : Hg(0) - North Atlantic Subsurface Waters
 !  (26) Hg0_sat            : Hg(0) - South Atlantic Subsurface Waters
@@ -112,11 +110,8 @@
 !  (28) Hg0_arc            : Hg(0) - Arctic Subsurface Waters
 !  (29) Hg0_ant            : Hg(0) - Antarctic Subsurface Waters
 !  (30) Hg0_oce            : Hg(0) - Indo-Pacific Subsurface Waters
-!  ------------------------+---------------------------------------------------
 !  (31) Hg0_str            : Hg(0) - Stratospheric Hg from Intial Conditions
-!  ------------------------+---------------------------------------------------
 !  (32-59) Same as (4-31) but for Hg(II)
-!  ------------------------+---------------------------------------------------
 !  (60-87) Same as (4-31) but for Hg(P)
 !                                                                             .
 !  References:
@@ -498,7 +493,6 @@
       LOGICAL         :: LGTMM 
       LOGICAL         :: LNLPBL
       LOGICAL         :: LPRT
-      LOGICAL         :: LSPLIT
       INTEGER         :: N_TRACERS
       REAL(fp)        :: XNUMOL(Input_Opt%N_TRACERS)
 
@@ -580,7 +574,6 @@
       LGTMM     = Input_Opt%LGTMM
       LNLPBL    = Input_Opt%LNLPBL
       LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
-      LSPLIT    = Input_Opt%LSPLIT
       N_TRACERS = Input_Opt%N_TRACERS
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
@@ -1927,10 +1920,7 @@
             T_Hg = T_Hg_An +
      &             EHg0_bb(I,J) +
      &             EHg0_oc(I,J,ID_Hg_tot) + 
-!- eds 8/31/10 ------------------------------------------------------------
-!     &             EHg0_nt(I,J) +
      &             EHg0_geo(I,J) +
-!--------------------------------------------------------------------------
      &             EHg0_gtm(I,J) +
      &             EHg0_snow(I,J,ID_Hg_tot)
          ELSE
@@ -1938,10 +1928,7 @@
      &             EHg0_bb(I,J) +
      &             EHg0_oc(I,J,ID_Hg_tot) + 
      &             EHg0_ln(I,J,ID_Hg_tot) +
-!- eds 8/31/10 ------------------------------------------------------------
-!     &             EHg0_nt(I,J) +
      &             EHg0_geo(I,J) +
-!--------------------------------------------------------------------------
      &             EHg0_vg(I,J) +
      &             EHg0_so(I,J) +
      &             EHg0_snow(I,J,ID_Hg_tot)
@@ -1956,13 +1943,13 @@
          DO L = 1, PBL_MAX
 
             ! Fraction of box (I,J,L) w/in the PBL [unitless]
-            F_OF_PBL        = GET_FRAC_OF_PBL( I, J, L )
+            F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
 
             !-----------------
             ! Total Hg tracer
             !-----------------
-            N               = ID_Hg0(ID_Hg_tot)
-            E_Hg            = F_OF_PBL * T_Hg * DTSRCE
+            N    = ID_Hg0(ID_Hg_tot)
+            E_Hg = F_OF_PBL * T_Hg * DTSRCE
             CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
             !-----------------
@@ -1973,658 +1960,539 @@
                !--------------------
                ! Primary emissions
                !--------------------
-!- eds 8/31/10 ---------------------------------------------------------
-!               ! Anthro Hg0 by region
-!               N            = AN_Hg0(I,J)
-!               E_Hg         = F_OF_PBL * T_Hg_an * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
                
                ! Anthro Canada Hg0
-               N            = ID_Hg0(ID_Hg_can)
-               E_Hg         = F_OF_PBL * EHg0_can(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_can)
+               E_Hg = F_OF_PBL * EHg0_can(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro United States Hg0
-               N            = ID_Hg0(ID_Hg_usa)
-               E_Hg         = F_OF_PBL * EHg0_usa(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_usa)
+               E_Hg = F_OF_PBL * EHg0_usa(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Central America Hg0
-               N            = ID_Hg0(ID_Hg_cam)
-               E_Hg         = F_OF_PBL * EHg0_cam(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_cam)
+               E_Hg = F_OF_PBL * EHg0_cam(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South America Hg0
-               N            = ID_Hg0(ID_Hg_sam)
-               E_Hg         = F_OF_PBL * EHg0_sam(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_sam)
+               E_Hg = F_OF_PBL * EHg0_sam(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro West Africa Hg0
-               N            = ID_Hg0(ID_Hg_waf)
-               E_Hg         = F_OF_PBL * EHg0_waf(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_waf)
+               E_Hg = F_OF_PBL * EHg0_waf(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro East Africa Hg0
-               N            = ID_Hg0(ID_Hg_eaf)
-               E_Hg         = F_OF_PBL * EHg0_eaf(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_eaf)
+               E_Hg = F_OF_PBL * EHg0_eaf(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South Africa Hg0
-               N            = ID_Hg0(ID_Hg_saf)
-               E_Hg         = F_OF_PBL * EHg0_saf(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_saf)
+               E_Hg = F_OF_PBL * EHg0_saf(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro North Africa Hg0
-               N            = ID_Hg0(ID_Hg_naf)
-               E_Hg         = F_OF_PBL * EHg0_naf(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_naf)
+               E_Hg = F_OF_PBL * EHg0_naf(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro OECD Europe Hg0
-               N            = ID_Hg0(ID_Hg_eur)
-               E_Hg         = F_OF_PBL * EHg0_eur(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_eur)
+               E_Hg = F_OF_PBL * EHg0_eur(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Eastern Europe Hg0
-               N            = ID_Hg0(ID_Hg_eeu)
-               E_Hg         = F_OF_PBL * EHg0_eeu(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_eeu)
+               E_Hg = F_OF_PBL * EHg0_eeu(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Middle East Hg0
-               N            = ID_Hg0(ID_Hg_mde)
-               E_Hg         = F_OF_PBL * EHg0_mde(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_mde)
+               E_Hg = F_OF_PBL * EHg0_mde(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Former USSR Hg0
-               N            = ID_Hg0(ID_Hg_sov)
-               E_Hg         = F_OF_PBL * EHg0_sov(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_sov)
+               E_Hg = F_OF_PBL * EHg0_sov(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South Asia Hg0
-               N            = ID_Hg0(ID_Hg_sas)
-               E_Hg         = F_OF_PBL * EHg0_sas(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_sas)
+               E_Hg = F_OF_PBL * EHg0_sas(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro East Asia Hg0
-               N            = ID_Hg0(ID_Hg_eas)
-               E_Hg         = F_OF_PBL * EHg0_eas(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_eas)
+               E_Hg = F_OF_PBL * EHg0_eas(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Southeast Asia Hg0
-               N            = ID_Hg0(ID_Hg_sea)
-               E_Hg         = F_OF_PBL * EHg0_sea(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_sea)
+               E_Hg = F_OF_PBL * EHg0_sea(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Japan Hg0
-               N            = ID_Hg0(ID_Hg_jpn)
-               E_Hg         = F_OF_PBL * EHg0_jpn(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_jpn)
+               E_Hg = F_OF_PBL * EHg0_jpn(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Oceania Hg0
-               N            = ID_Hg0(ID_Hg_oce)
-               E_Hg         = F_OF_PBL * EHg0_oce(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_oce)
+               E_Hg = F_OF_PBL * EHg0_oce(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
-
-!               ! Natural land sources of Hg0
-!               N            = ID_Hg0(ID_Hg_nt)
-!               E_Hg         = F_OF_PBL * EHg0_nt(I,J) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-
                ! Soil emissions
-               N            = ID_Hg0(ID_Hg_so)
-               E_Hg         = F_OF_PBL * EHg0_so(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_so)
+               E_Hg = F_OF_PBL * EHg0_so(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Biomass burning emissions             
-               N            = ID_Hg0(ID_Hg_bb)
-               E_Hg         = F_OF_PBL * EHg0_bb(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_bb)
+               E_Hg = F_OF_PBL * EHg0_bb(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Geogenic emissions             
-               N            = ID_Hg0(ID_Hg_geo)
-               E_Hg         = F_OF_PBL * EHg0_geo(I,J) * DTSRCE
+               N    = ID_Hg0(ID_Hg_geo)
+               E_Hg = F_OF_PBL * EHg0_geo(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-               N            = ID_Hg0(ID_Hg_eas)
 
                !--------------------
                ! Ocean re-emissions
                !--------------------
 
-!               ! Anthro re-emission from ocean in N. AMERICA
-!               N            = ID_Hg0(ID_Hg_na)
-!               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_na) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-!
-!               ! Anthro re-emission from ocean in EUROPE
-!               N            = ID_Hg0(ID_Hg_eu)
-!               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eu) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-!
-!               ! Anthro re-emission from ocean in ASIA
-!               N            = ID_Hg0(ID_Hg_as)
-!               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_as) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-!
-!               ! Anthro re-emission from ocean in REST OF WORLD
-!               N            = ID_Hg0(ID_Hg_rw)
-!               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_rw) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-!
-!               ! Re-emission from ocean in OCEAN 
-!               N            = ID_Hg0(ID_Hg_oc)
-!               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_oc) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-!
-!               ! Re-emission from ocean in LAND REEMISSION
-!               N            = ID_Hg0(ID_Hg_ln)
-!               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_ln) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-!
-!               ! Re-emission from ocean in NATURAL
-!               N            = ID_Hg0(ID_Hg_nt)
-!               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_nt) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-
                ! Anthro Canada re-emission from ocean
-               N            = ID_Hg0(ID_Hg_can)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_can) * DTSRCE
+               N    = ID_Hg0(ID_Hg_can)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_can) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro United States re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_usa)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_usa) * DTSRCE
+               N    = ID_Hg0(ID_Hg_usa)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_usa) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Central America re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_cam)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_cam) * DTSRCE
+               N    = ID_Hg0(ID_Hg_cam)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_cam) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South America re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_sam)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sam) * DTSRCE
+               N    = ID_Hg0(ID_Hg_sam)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sam) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro West Africa re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_waf)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_waf) * DTSRCE
+               N    = ID_Hg0(ID_Hg_waf)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_waf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro East Africa re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_eaf)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eaf) * DTSRCE
+               N    = ID_Hg0(ID_Hg_eaf)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eaf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South Africa re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_saf)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_saf) * DTSRCE
+               N    = ID_Hg0(ID_Hg_saf)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_saf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro North Africa re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_naf)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_naf) * DTSRCE
+               N    = ID_Hg0(ID_Hg_naf)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_naf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro OECD Europe re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_eur)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eur) * DTSRCE
+               N    = ID_Hg0(ID_Hg_eur)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eur) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Eastern Europe re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_eeu)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eeu) * DTSRCE
+               N    = ID_Hg0(ID_Hg_eeu)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eeu) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Middle East re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_mde)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_mde) * DTSRCE
+               N    = ID_Hg0(ID_Hg_mde)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_mde) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Former Soviet Union re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_sov)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sov) * DTSRCE
+               N    = ID_Hg0(ID_Hg_sov)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sov) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South Asia re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_sas)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sas) * DTSRCE
+               N    = ID_Hg0(ID_Hg_sas)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sas) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro East Asia re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_eas)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eas) * DTSRCE
+               N    = ID_Hg0(ID_Hg_eas)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eas) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Southeast Asia re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_sea)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sea) * DTSRCE
+               N    = ID_Hg0(ID_Hg_sea)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sea) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Japan re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_jpn)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_jpn) * DTSRCE
+               N    = ID_Hg0(ID_Hg_jpn)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_jpn) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Oceania re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_oce)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_oce) * DTSRCE
+               N    = ID_Hg0(ID_Hg_oce)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_oce) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Soil re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_so)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_so) * DTSRCE
+               N    = ID_Hg0(ID_Hg_so)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_so) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Biomass burning re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_bb)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_bb) * DTSRCE
+               N    = ID_Hg0(ID_Hg_bb)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_bb) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Geogenic re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_geo)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_geo) * DTSRCE
+               N    = ID_Hg0(ID_Hg_geo)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_geo) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer Mid-Atlantic re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_atl)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_atl) * DTSRCE
+               N    = ID_Hg0(ID_Hg_atl)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_atl) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer North Atlantic re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_nat)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_nat) * DTSRCE
+               N    = ID_Hg0(ID_Hg_nat)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_nat) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer South Atlantic re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_sat)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sat) * DTSRCE
+               N    = ID_Hg0(ID_Hg_sat)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sat) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer North Pacific re-emission from ocean
-               N            = ID_Hg0(ID_Hg_npa)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_npa) * DTSRCE
+               N    = ID_Hg0(ID_Hg_npa)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_npa) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer Arctic re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_arc)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_arc) * DTSRCE
+               N    = ID_Hg0(ID_Hg_arc)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_arc) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt,  State_Chm )
 
                ! Below Mixed Layer Antarctic re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_ant)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_ant) * DTSRCE
+               N    = ID_Hg0(ID_Hg_ant)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_ant) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer All Other Ocean re-emission from ocean
-               N            = ID_Hg0(ID_Hg_ocn)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_ocn) * DTSRCE
+               N    = ID_Hg0(ID_Hg_ocn)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_ocn) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Residual Stratosphere from Spin-up re-emission from ocean 
-               N            = ID_Hg0(ID_Hg_str)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_str) * DTSRCE
+               N    = ID_Hg0(ID_Hg_str)
+               E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_str) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                !--------------------
                ! Land re-emissions
                !--------------------
 
-!               ! Anthro re-emission from land in N. AMERICA
-!               N            = ID_Hg0(ID_Hg_na)
-!               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_na) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-!
-!               ! Anthro re-emission from land in EUROPE
-!               N            = ID_Hg0(ID_Hg_eu)
-!               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eu) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-!
-!               ! Anthro re-emission from land in ASIA
-!               N            = ID_Hg0(ID_Hg_as)
-!               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_as) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-!
-!               ! Anthro re-emission from land in REST OF WORLD
-!               N            = ID_Hg0(ID_Hg_rw)
-!               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_rw) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-!
-!               ! Re-emission from land in OCEAN 
-!               N            = ID_Hg0(ID_Hg_oc)
-!               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_oc) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-!
-!               ! Re-emission from land in LAND REEMISSION
-!               N            = ID_Hg0(ID_Hg_ln)
-!               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_ln) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-!
-!               ! Re-emission from land in NATURAL
-!               N            = ID_Hg0(ID_Hg_nt)
-!               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_nt) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-
                ! Anthro Canada re-emission from land
-               N            = ID_Hg0(ID_Hg_can)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_can) * DTSRCE
+               N    = ID_Hg0(ID_Hg_can)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_can) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro United States re-emission from land 
-               N            = ID_Hg0(ID_Hg_usa)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_usa) * DTSRCE
+               N    = ID_Hg0(ID_Hg_usa)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_usa) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Central America re-emission from land 
-               N            = ID_Hg0(ID_Hg_cam)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_cam) * DTSRCE
+               N    = ID_Hg0(ID_Hg_cam)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_cam) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South America re-emission from land 
-               N            = ID_Hg0(ID_Hg_sam)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sam) * DTSRCE
+               N    = ID_Hg0(ID_Hg_sam)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sam) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro West Africa re-emission from land 
-               N            = ID_Hg0(ID_Hg_waf)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_waf) * DTSRCE
+               N    = ID_Hg0(ID_Hg_waf)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_waf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro East Africa re-emission from land 
-               N            = ID_Hg0(ID_Hg_eaf)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eaf) * DTSRCE
+               N    = ID_Hg0(ID_Hg_eaf)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eaf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South Africa re-emission from land 
-               N            = ID_Hg0(ID_Hg_saf)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_saf) * DTSRCE
+               N    = ID_Hg0(ID_Hg_saf)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_saf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro North Africa re-emission from land 
-               N            = ID_Hg0(ID_Hg_naf)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_naf) * DTSRCE
+               N    = ID_Hg0(ID_Hg_naf)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_naf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro OECD Europe re-emission from land 
-               N            = ID_Hg0(ID_Hg_eur)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eur) * DTSRCE
+               N    = ID_Hg0(ID_Hg_eur)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eur) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Eastern Europe re-emission from land 
-               N            = ID_Hg0(ID_Hg_eeu)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eeu) * DTSRCE
+               N    = ID_Hg0(ID_Hg_eeu)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eeu) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Middle East re-emission from land 
-               N            = ID_Hg0(ID_Hg_mde)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_mde) * DTSRCE
+               N    = ID_Hg0(ID_Hg_mde)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_mde) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Former Soviet Union re-emission from land 
-               N            = ID_Hg0(ID_Hg_sov)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sov) * DTSRCE
+               N    = ID_Hg0(ID_Hg_sov)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sov) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South Asia re-emission from land 
-               N            = ID_Hg0(ID_Hg_sas)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sas) * DTSRCE
+               N    = ID_Hg0(ID_Hg_sas)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sas) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro East Asia re-emission from land 
-               N            = ID_Hg0(ID_Hg_eas)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eas) * DTSRCE
+               N    = ID_Hg0(ID_Hg_eas)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eas) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Southeast Asia re-emission from land 
-               N            = ID_Hg0(ID_Hg_sea)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sea) * DTSRCE
+               N    = ID_Hg0(ID_Hg_sea)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sea) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Japan re-emission from land 
-               N            = ID_Hg0(ID_Hg_jpn)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_jpn) * DTSRCE
+               N    = ID_Hg0(ID_Hg_jpn)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_jpn) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Oceania re-emission from land 
-               N            = ID_Hg0(ID_Hg_oce)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_oce) * DTSRCE
+               N    = ID_Hg0(ID_Hg_oce)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_oce) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Soil re-emission from land 
-               N            = ID_Hg0(ID_Hg_so)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_so) * DTSRCE
+               N    = ID_Hg0(ID_Hg_so)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_so) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Biomass burning re-emission from land 
-               N            = ID_Hg0(ID_Hg_bb)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_bb) * DTSRCE
+               N    = ID_Hg0(ID_Hg_bb)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_bb) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Geogenic re-emission from land 
-               N            = ID_Hg0(ID_Hg_geo)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_geo) * DTSRCE
+               N    = ID_Hg0(ID_Hg_geo)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_geo) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer Mid-Atlantic re-emission from land 
-               N            = ID_Hg0(ID_Hg_atl)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_atl) * DTSRCE
+               N    = ID_Hg0(ID_Hg_atl)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_atl) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer North Atlantic re-emission from land 
-               N            = ID_Hg0(ID_Hg_nat)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_nat) * DTSRCE
+               N    = ID_Hg0(ID_Hg_nat)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_nat) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer South Atlantic re-emission from land 
-               N            = ID_Hg0(ID_Hg_sat)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sat) * DTSRCE
+               N    = ID_Hg0(ID_Hg_sat)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sat) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer North Pacific re-emission from land
-               N            = ID_Hg0(ID_Hg_npa)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_npa) * DTSRCE
+               N    = ID_Hg0(ID_Hg_npa)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_npa) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer Arctic re-emission from land 
-               N            = ID_Hg0(ID_Hg_arc)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_arc) * DTSRCE
+               N    = ID_Hg0(ID_Hg_arc)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_arc) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer Antarctic re-emission from land 
-               N            = ID_Hg0(ID_Hg_ant)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_ant) * DTSRCE
+               N    = ID_Hg0(ID_Hg_ant)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_ant) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer All Other Ocean re-emission from land
-               N            = ID_Hg0(ID_Hg_ocn)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_ocn) * DTSRCE
+               N    = ID_Hg0(ID_Hg_ocn)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_ocn) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Residual Stratosphere from Spin-up re-emission from land 
-               N            = ID_Hg0(ID_Hg_str)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_str) * DTSRCE
+               N    = ID_Hg0(ID_Hg_str)
+               E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_str) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
                
                !--------------------
                ! Snow re-emissions
                !--------------------
 
-!               ! Anthro re-emission from snow in N. AMERICA
-!               N          = ID_Hg0(ID_Hg_na)
-!               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_na) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-!
-!               ! Anthro re-emission from snow in EUROPE
-!               N          = ID_Hg0(ID_Hg_eu)
-!               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eu) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-!
-!               ! Anthro re-emission from snow in ASIA
-!               N          = ID_Hg0(ID_Hg_as)
-!               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_as) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-!
-!               ! Anthro re-emission from snow in REST OF WORLD
-!               N          = ID_Hg0(ID_Hg_rw)
-!               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_rw) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-!
-!               ! Re-emission from snow in OCEAN 
-!               N          = ID_Hg0(ID_Hg_oc)
-!               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_oc) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-!
-!               ! Re-emission from snow in LAND REEMISSION
-!               N          = ID_Hg0(ID_Hg_ln)
-!               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_ln) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-!
-!               ! Re-emission from snow in NATURAL
-!               N          = ID_Hg0(ID_Hg_nt)
-!               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_nt) * DTSRCE
-!               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-
                ! Anthro Canada re-emission from snow
-               N            = ID_Hg0(ID_Hg_can)
-               E_Hg    = F_OF_PBL * EHg0_snow(I,J,ID_Hg_can) * DTSRCE
+               N    = ID_Hg0(ID_Hg_can)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_can) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro United States re-emission from snow 
-               N            = ID_Hg0(ID_Hg_usa)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_usa) * DTSRCE
+               N    = ID_Hg0(ID_Hg_usa)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_usa) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Central America re-emission from snow 
-               N            = ID_Hg0(ID_Hg_cam)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_cam) * DTSRCE
+               N    = ID_Hg0(ID_Hg_cam)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_cam) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South America re-emission from snow 
-               N            = ID_Hg0(ID_Hg_sam)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sam) * DTSRCE
+               N    = ID_Hg0(ID_Hg_sam)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sam) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro West Africa re-emission from snow 
-               N            = ID_Hg0(ID_Hg_waf)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_waf) * DTSRCE
+               N    = ID_Hg0(ID_Hg_waf)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_waf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro East Africa re-emission from snow 
-               N            = ID_Hg0(ID_Hg_eaf)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eaf) * DTSRCE
+               N    = ID_Hg0(ID_Hg_eaf)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eaf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South Africa re-emission from snow 
-               N            = ID_Hg0(ID_Hg_saf)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_saf) * DTSRCE
+               N    = ID_Hg0(ID_Hg_saf)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_saf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro North Africa re-emission from snow 
-               N            = ID_Hg0(ID_Hg_naf)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_naf) * DTSRCE
+               N    = ID_Hg0(ID_Hg_naf)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_naf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro OECD Europe re-emission from snow 
-               N            = ID_Hg0(ID_Hg_eur)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eur) * DTSRCE
+               N    = ID_Hg0(ID_Hg_eur)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eur) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Eastern Europe re-emission from snow 
-               N            = ID_Hg0(ID_Hg_eeu)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eeu) * DTSRCE
+               N    = ID_Hg0(ID_Hg_eeu)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eeu) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Middle East re-emission from snow 
-               N            = ID_Hg0(ID_Hg_mde)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_mde) * DTSRCE
+               N    = ID_Hg0(ID_Hg_mde)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_mde) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Former Soviet Union re-emission from snow 
-               N            = ID_Hg0(ID_Hg_sov)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sov) * DTSRCE
+               N    = ID_Hg0(ID_Hg_sov)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sov) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South Asia re-emission from snow 
-               N            = ID_Hg0(ID_Hg_sas)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sas) * DTSRCE
+               N    = ID_Hg0(ID_Hg_sas)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sas) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro East Asia re-emission from snow 
-               N            = ID_Hg0(ID_Hg_eas)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eas) * DTSRCE
+               N    = ID_Hg0(ID_Hg_eas)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eas) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Southeast Asia re-emission from snow 
-               N            = ID_Hg0(ID_Hg_sea)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sea) * DTSRCE
+               N    = ID_Hg0(ID_Hg_sea)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sea) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Japan re-emission from snow 
-               N            = ID_Hg0(ID_Hg_jpn)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_jpn) * DTSRCE
+               N    = ID_Hg0(ID_Hg_jpn)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_jpn) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Oceania re-emission from snow 
-               N            = ID_Hg0(ID_Hg_oce)
-               E_Hg    = F_OF_PBL * EHg0_snow(I,J,ID_Hg_oce) * DTSRCE
+               N    = ID_Hg0(ID_Hg_oce)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_oce) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Soil re-emission from snow
-               N            = ID_Hg0(ID_Hg_so)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_so) * DTSRCE
+               N    = ID_Hg0(ID_Hg_so)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_so) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Biomass burning re-emission from snow 
-               N            = ID_Hg0(ID_Hg_bb)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_bb) * DTSRCE
+               N    = ID_Hg0(ID_Hg_bb)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_bb) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Geogenic re-emission from snow 
-               N            = ID_Hg0(ID_Hg_geo)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_geo) * DTSRCE
+               N    = ID_Hg0(ID_Hg_geo)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_geo) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer Mid-Atlantic re-emission from snow 
-               N            = ID_Hg0(ID_Hg_atl)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_atl) * DTSRCE
+               N    = ID_Hg0(ID_Hg_atl)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_atl) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer North Atlantic re-emission from snow 
-               N            = ID_Hg0(ID_Hg_nat)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_nat) * DTSRCE
+               N    = ID_Hg0(ID_Hg_nat)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_nat) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer South Atlantic re-emission from snow 
-               N            = ID_Hg0(ID_Hg_sat)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sat) * DTSRCE
+               N    = ID_Hg0(ID_Hg_sat)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sat) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer North Pacific re-emission from snow
-               N            = ID_Hg0(ID_Hg_npa)
-               E_Hg    = F_OF_PBL * EHg0_snow(I,J,ID_Hg_npa) * DTSRCE
+               N    = ID_Hg0(ID_Hg_npa)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_npa) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer Arctic re-emission from snow 
-               N            = ID_Hg0(ID_Hg_arc)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_arc) * DTSRCE
+               N    = ID_Hg0(ID_Hg_arc)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_arc) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer Antarctic re-emission from snow 
-               N            = ID_Hg0(ID_Hg_ant)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_ant) * DTSRCE
+               N    = ID_Hg0(ID_Hg_ant)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_ant) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer All Other Ocean re-emission from snow
-               N            = ID_Hg0(ID_Hg_ocn)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_ocn) * DTSRCE
+               N    = ID_Hg0(ID_Hg_ocn)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_ocn) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Residual Stratosphere from Spin-up re-emission from snow 
-               N            = ID_Hg0(ID_Hg_str)
-               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_str) * DTSRCE
+               N    = ID_Hg0(ID_Hg_str)
+               E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_str) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
-!----------------------------------------------------------------------------------
-               
             ENDIF
          ENDDO
         
@@ -2633,56 +2501,40 @@
          ! 1=anthro; 3=from ocean; 4=land re-emission; 5=natural src
          !==============================================================
 
-!- eds 8/31/10 -------------------------------------------------------------
          IF ( ND03 > 0 ) THEN
-!            N = ID_Hg_tot !eds 9/9/10
+
             IF ( LGTMM ) THEN
-!               AD03(I,J,1) = AD03(I,J,1) + (T_Hg_An        * DTSRCE)
-!               AD03(I,J,3) = AD03(I,J,3) + (EHg0_oc(I,J,N) * DTSRCE)
-!               AD03(I,J,4) = AD03(I,J,4) + (EHg0_gtm(I,J)  * DTSRCE)
-!               AD03(I,J,5) = AD03(I,J,5) + (EHg0_nt(I,J) * DTSRCE)
-!               AD03(I,J,13)= AD03(I,J,13)+ (EHg0_bb(I,J)*DTSRCE)
-!               AD03(I,J,18)= AD03(I,J,18)+ (EHg0_snow(I,J,N)*DTSRCE)
 
-               !eds 9/9/10 
-              DO NN = 1, N_HG_CATS ! N -> NN 
+              !eds 9/9/10 
+              DO NN = 1, N_HG_CATS
 
-              AD03(I,J,1,NN) = AD03(I,J,1,NN) + (T_Hg_An * DTSRCE)
-              AD03(I,J,3,NN) = AD03(I,J,3,NN)+(EHg0_oc(I,J,NN) * DTSRCE)
-              AD03(I,J,4,NN) = AD03(I,J,4,NN)+(EHg0_gtm(I,J)  * DTSRCE)
-              AD03(I,J,5,NN) = AD03(I,J,5,NN) + (EHg0_geo(I,J) * DTSRCE)
-              AD03(I,J,13,NN)= AD03(I,J,13,NN)+ (EHg0_bb(I,J)*DTSRCE)
+              AD03(I,J, 1,NN)=AD03(I,J, 1,NN)+(T_Hg_An          *DTSRCE)
+              AD03(I,J, 3,NN)=AD03(I,J, 3,NN)+(EHg0_oc(I,J,NN)  *DTSRCE)
+              AD03(I,J, 4,NN)=AD03(I,J, 4,NN)+(EHg0_gtm(I,J)    *DTSRCE)
+              AD03(I,J, 5,NN)=AD03(I,J, 5,NN)+(EHg0_geo(I,J)    *DTSRCE)
+              AD03(I,J,13,NN)=AD03(I,J,13,NN)+(EHg0_bb(I,J)     *DTSRCE)
               AD03(I,J,18,NN)=AD03(I,J,18,NN)+(EHg0_snow(I,J,NN)*DTSRCE)
 
               ENDDO
 
 
             ELSE
-!               AD03(I,J,1) = AD03(I,J,1) + (T_Hg_An * DTSRCE)
-!               AD03(I,J,3) = AD03(I,J,3) + (EHg0_oc(I,J,N) * DTSRCE)
-!               AD03(I,J,4) = AD03(I,J,4) + (EHg0_ln(I,J,N) * DTSRCE)
-!               AD03(I,J,5) = AD03(I,J,5) + (EHg0_nt(I,J)  * DTSRCE)
-!               AD03(I,J,13)= AD03(I,J,13)+ (EHg0_bb(I,J)*DTSRCE)
-!               AD03(I,J,14)= AD03(I,J,14)+ (EHg0_vg(I,J)*DTSRCE)
-!               AD03(I,J,15)= AD03(I,J,15)+ (EHg0_so(I,J)*DTSRCE)
-!               AD03(I,J,18)= AD03(I,J,18)+ (EHg0_snow(I,J,N)*DTSRCE)
 
-       	       !eds 9/9/10 
-       	      DO NN = 1, N_HG_CATS ! N -> NN
+              !eds 9/9/10 
+              DO NN = 1, N_HG_CATS
 
-       	      AD03(I,J,1,NN) = AD03(I,J,1,NN) + (T_Hg_An * DTSRCE)
-              AD03(I,J,3,NN) =AD03(I,J,3,NN)+(EHg0_oc(I,J,NN) * DTSRCE)
-              AD03(I,J,4,NN) =AD03(I,J,4,NN)+(EHg0_ln(I,J,NN) * DTSRCE)
-              AD03(I,J,5,NN) = AD03(I,J,5,NN)+ (EHg0_geo(I,J) * DTSRCE)
-              AD03(I,J,13,NN)= AD03(I,J,13,NN)+ (EHg0_bb(I,J)*DTSRCE)
-              AD03(I,J,14,NN)= AD03(I,J,14,NN)+ (EHg0_vg(I,J)*DTSRCE)
-              AD03(I,J,15,NN)= AD03(I,J,15,NN)+ (EHg0_so(I,J)*DTSRCE)
+              AD03(I,J, 1,NN)=AD03(I,J, 1,NN)+(T_Hg_An          *DTSRCE)
+              AD03(I,J, 3,NN)=AD03(I,J, 3,NN)+(EHg0_oc(I,J,NN)  *DTSRCE)
+              AD03(I,J, 4,NN)=AD03(I,J, 4,NN)+(EHg0_ln(I,J,NN)  *DTSRCE)
+              AD03(I,J, 5,NN)=AD03(I,J, 5,NN)+(EHg0_geo(I,J)    *DTSRCE)
+              AD03(I,J,13,NN)=AD03(I,J,13,NN)+(EHg0_bb(I,J)     *DTSRCE)
+              AD03(I,J,14,NN)=AD03(I,J,14,NN)+(EHg0_vg(I,J)     *DTSRCE)
+              AD03(I,J,15,NN)=AD03(I,J,15,NN)+(EHg0_so(I,J)     *DTSRCE)
               AD03(I,J,18,NN)=AD03(I,J,18,NN)+(EHg0_snow(I,J,NN)*DTSRCE)
 
               ENDDO
 
             ENDIF
-!------------------------------------------------------------------------------
 
             ! for preindustrial simulation, archive only soil,
             ! CDH- WHY ONLY SOIL??
@@ -2825,15 +2677,15 @@
             DO L = 1, PBL_MAX
 
                ! Fraction of box (I,J,L) w/in the PBL [unitless]
-               F_OF_PBL           = GET_FRAC_OF_PBL( I, J, L )
+               F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
 
                ! Partition total Hg2 into box (I,J,L) [kg]
-               E_Hg               = F_OF_PBL * EHg2_an(I,J) * DTSRCE
+               E_Hg     = F_OF_PBL * EHg2_an(I,J) * DTSRCE
                         
                !---------------------------
                ! Total anthro Hg(II) [kg]
                !---------------------------
-               N               = ID_Hg2(ID_Hg_tot)
+               N    = ID_Hg2(ID_Hg_tot)
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                !---------------------------
@@ -2841,94 +2693,90 @@
                !---------------------------
                IF ( LSPLIT ) THEN 
 
-!- eds 8/31/10 --------------------------------------------------------
-!                  N            = AN_Hg2(I,J)
-!                  CALL EMITHG( I, J, L, N, E_Hg )
+                  ! Anthro Canada Hg2
+                  N    = ID_Hg2(ID_Hg_can)
+                  E_Hg = F_OF_PBL * EHg2_can(I,J) * DTSRCE
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
-               ! Anthro Canada Hg2
-               N            = ID_Hg2(ID_Hg_can)
-               E_Hg         = F_OF_PBL * EHg2_can(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  ! Anthro United States Hg2
+                  N    = ID_Hg2(ID_Hg_usa)
+                  E_Hg = F_OF_PBL * EHg2_usa(I,J) * DTSRCE
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
-               ! Anthro United States Hg2
-               N            = ID_Hg2(ID_Hg_usa)
-               E_Hg         = F_OF_PBL * EHg2_usa(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  ! Anthro Central America Hg2
+                  N    = ID_Hg2(ID_Hg_cam)
+                  E_Hg = F_OF_PBL * EHg2_cam(I,J) * DTSRCE
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
-               ! Anthro Central America Hg2
-               N            = ID_Hg2(ID_Hg_cam)
-               E_Hg         = F_OF_PBL * EHg2_cam(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  ! Anthro South America Hg2
+                  N    = ID_Hg2(ID_Hg_sam)
+                  E_Hg = F_OF_PBL * EHg2_sam(I,J) * DTSRCE
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
-               ! Anthro South America Hg2
-               N            = ID_Hg2(ID_Hg_sam)
-               E_Hg         = F_OF_PBL * EHg2_sam(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-
-               ! Anthro West Africa Hg2
-               N            = ID_Hg2(ID_Hg_waf)
-               E_Hg         = F_OF_PBL * EHg2_waf(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-
-               ! Anthro East Africa Hg2
-               N            = ID_Hg2(ID_Hg_eaf)
-               E_Hg         = F_OF_PBL * EHg2_eaf(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-
-               ! Anthro South Africa Hg2
-               N            = ID_Hg2(ID_Hg_saf)
-               E_Hg         = F_OF_PBL * EHg2_saf(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-
-               ! Anthro North Africa Hg2
-               N            = ID_Hg2(ID_Hg_naf)
-               E_Hg         = F_OF_PBL * EHg2_naf(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-
-               ! Anthro OECD Europe Hg2
-               N            = ID_Hg2(ID_Hg_eur)
-               E_Hg         = F_OF_PBL * EHg2_eur(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-
-               ! Anthro Eastern Europe Hg2
-               N            = ID_Hg2(ID_Hg_eeu)
-               E_Hg         = F_OF_PBL * EHg2_eeu(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-
-               ! Anthro Middle East Hg2
-               N            = ID_Hg2(ID_Hg_mde)
-               E_Hg         = F_OF_PBL * EHg2_mde(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-
-               ! Anthro Former USSR Hg2
-               N            = ID_Hg2(ID_Hg_sov)
-               E_Hg         = F_OF_PBL * EHg2_sov(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-
-               ! Anthro South Asia Hg2
-               N            = ID_Hg2(ID_Hg_sas)
-               E_Hg         = F_OF_PBL * EHg2_sas(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-
-               ! Anthro East Asia Hg2
-               N            = ID_Hg2(ID_Hg_eas)
-               E_Hg         = F_OF_PBL * EHg2_eas(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-
-               ! Anthro Southeast Asia Hg2
-               N            = ID_Hg2(ID_Hg_sea)
-               E_Hg         = F_OF_PBL * EHg2_sea(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-
-               ! Anthro Japan Hg2
-               N            = ID_Hg2(ID_Hg_jpn)
-               E_Hg         = F_OF_PBL * EHg2_jpn(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
-
-               ! Anthro Oceania Hg2
-               N            = ID_Hg2(ID_Hg_oce)
-               E_Hg         = F_OF_PBL * EHg2_oce(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  ! Anthro West Africa Hg2
+                  N    = ID_Hg2(ID_Hg_waf)
+                  E_Hg = F_OF_PBL * EHg2_waf(I,J) * DTSRCE
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+   
+                  ! Anthro East Africa Hg2
+                  N    = ID_Hg2(ID_Hg_eaf)
+                  E_Hg = F_OF_PBL * EHg2_eaf(I,J) * DTSRCE
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+   
+                  ! Anthro South Africa Hg2
+                  N    = ID_Hg2(ID_Hg_saf)
+                  E_Hg = F_OF_PBL * EHg2_saf(I,J) * DTSRCE
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+   
+                  ! Anthro North Africa Hg2
+                  N    = ID_Hg2(ID_Hg_naf)
+                  E_Hg = F_OF_PBL * EHg2_naf(I,J) * DTSRCE
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+   
+                  ! Anthro OECD Europe Hg2
+                  N    = ID_Hg2(ID_Hg_eur)
+                  E_Hg = F_OF_PBL * EHg2_eur(I,J) * DTSRCE
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+   
+                  ! Anthro Eastern Europe Hg2
+                  N    = ID_Hg2(ID_Hg_eeu)
+                  E_Hg = F_OF_PBL * EHg2_eeu(I,J) * DTSRCE
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+   
+                  ! Anthro Middle East Hg2
+                  N    = ID_Hg2(ID_Hg_mde)
+                  E_Hg = F_OF_PBL * EHg2_mde(I,J) * DTSRCE
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+   
+                  ! Anthro Former USSR Hg2
+                  N    = ID_Hg2(ID_Hg_sov)
+                  E_Hg = F_OF_PBL * EHg2_sov(I,J) * DTSRCE
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+   
+                  ! Anthro South Asia Hg2
+                  N    = ID_Hg2(ID_Hg_sas)
+                  E_Hg = F_OF_PBL * EHg2_sas(I,J) * DTSRCE
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+   
+                  ! Anthro East Asia Hg2
+                  N    = ID_Hg2(ID_Hg_eas)
+                  E_Hg = F_OF_PBL * EHg2_eas(I,J) * DTSRCE
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+   
+                  ! Anthro Southeast Asia Hg2
+                  N    = ID_Hg2(ID_Hg_sea)
+                  E_Hg = F_OF_PBL * EHg2_sea(I,J) * DTSRCE
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+   
+                  ! Anthro Japan Hg2
+                  N    = ID_Hg2(ID_Hg_jpn)
+                  E_Hg = F_OF_PBL * EHg2_jpn(I,J) * DTSRCE
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+   
+                  ! Anthro Oceania Hg2
+                  N    = ID_Hg2(ID_Hg_oce)
+                  E_Hg = F_OF_PBL * EHg2_oce(I,J) * DTSRCE
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ENDIF
             ENDDO
@@ -2937,10 +2785,7 @@
             ! ND03 diag: Anthro Hg(II) [kg]
             !-------------------------------
             IF ( ND03 > 0 ) THEN
-!- eds 8/31/10 --------------------------------------------------------
-!               AD03(I,J,6) = AD03(I,J,6) + ( EHg2_an(I,J) * DTSRCE )
                AD03(I,J,6,1) = AD03(I,J,6,1) + ( EHg2_an(I,J) * DTSRCE )
-!----------------------------------------------------------------------
             ENDIF
          ENDDO
          ENDDO
@@ -3373,10 +3218,7 @@
       WRITE( 6, '(a)' )
       WRITE( 6, 211   ) SUM( EHg0_an ) * SEC_PER_YR * 1e-6_fp
       WRITE( 6, 213   ) SUM( EHg0_ln ) * SEC_PER_YR * 1e-6_fp
-!- eds 8/31/10 ----------------------------------------------------------
-!      WRITE( 6, 114   ) SUM( EHg0_nt ) * SEC_PER_YR * 1e-6_fp
       WRITE( 6, 214   ) SUM( EHg0_geo ) * SEC_PER_YR * 1e-6_fp
-!------------------------------------------------------------------------
 
       ! Only write ocean total if we are doing offline ocean
       IF ( .not. LDYNOCEAN ) THEN
@@ -4796,12 +4638,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_dist' )
       EHg0_dist = 0e+0_fp
 
-      !- eds 8/31/10 ------------------------------------------------
-      ! ALLOCATE( EHg0_nt( IIPAR, JJPAR ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_nt' )
-      !EHg0_nt = 0e+0_fp
-      !--------------------------------------------------------------
-
       ALLOCATE( EHg0_geo( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_geo' )
       EHg0_geo = 0e+0_fp
@@ -4817,8 +4653,7 @@
       ! Allocate the following if tagged Hg simulation
       IF ( LSPLIT ) THEN
 
-         ! Tagged Hg0 arrays
-         !- eds 8/31/10 ------------------------------------------------
+         ! Tagged Hg0 arrays (eds 8/31/10)
          ALLOCATE( EHg0_can( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_can' )
          EHg0_can = 0e+0_fp
@@ -4887,8 +4722,7 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_oce' )
          EHg0_oce = 0e+0_fp
 
-         ! Tagged Hg2 arrays
-         !- eds 8/31/10 ------------------------------------------------
+         ! Tagged Hg2 arrays (eds 8/31/10)
          ALLOCATE( EHg2_can( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_can' )
          EHg2_can = 0e+0_fp
@@ -4957,8 +4791,7 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_oce' )
          EHg2_oce = 0e+0_fp
 
-         ! Tagged HgP arrays
-         !- eds 8/31/10 ------------------------------------------------
+         ! Tagged HgP arrays (eds 8/31/10)
          ALLOCATE( EHgP_can( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_can' )
          EHgP_can = 0e+0_fp
@@ -5088,9 +4921,6 @@
          ALLOCATE( AN_HgP( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AN_HgP' )
          AN_HgP = 0e+0_fp
-
-         ! Define the tagged tracer indices 
-!         CALL DEFINE_TAGGED_Hg                    !eds
 
       ENDIF
 
@@ -5381,10 +5211,7 @@
       IF ( ALLOCATED( EHg0_oc  ) ) DEALLOCATE( EHg0_oc  )
       IF ( ALLOCATED( EHg0_ln  ) ) DEALLOCATE( EHg0_ln  )
       IF ( ALLOCATED( EHg0_snow) ) DEALLOCATE( EHg0_snow )
-!- eds 8/31/10 ---------------------------------------------------------
-!      IF ( ALLOCATED( EHg0_nt  ) ) DEALLOCATE( EHg0_nt )
       IF ( ALLOCATED( EHg0_geo ) ) DEALLOCATE( EHg0_geo )
-!-----------------------------------------------------------------------
       IF ( ALLOCATED( EHg0_bb  ) ) DEALLOCATE( EHg0_bb )
       IF ( ALLOCATED( EHg0_gtm  ) ) DEALLOCATE( EHg0_gtm )
       IF ( ALLOCATED( EHg0_vg  ) ) DEALLOCATE( EHg0_vg )

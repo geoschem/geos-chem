@@ -33,15 +33,6 @@
       INTEGER, PUBLIC              :: LD03                 ! # of levels
 
       ! Arrays
-!      REAL*4,  PUBLIC, ALLOCATABLE :: AD03(:,:,:)          ! Diagnostic arrays
-!      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_Hg0(:,:,:)  !  for the prod/loss
-!      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_Br(:,:,:)   !  and mass of 
-!      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_OH(:,:,:)   !  various Hg
-!      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_O3(:,:,:)   !  species
-!      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_SS(:,:,:)   !
-!      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_nat(:,:,:)      !
-!      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_SSR(:,:)    !
-!- eds 8/31/10 ----------------------------------------------------------
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03(:,:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_Hg0(:,:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_Br(:,:,:,:) 
@@ -50,11 +41,10 @@
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_SS(:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_nat(:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_SSR(:,:,:)
-!-------------------------------------------------------------------------------
-      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Br(:,:,:,:)     !
-      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_RGM(:,:,:)      !
-      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_PBM(:,:,:)      !
-      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_RIV(:,:)        !
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Br(:,:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_RGM(:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_PBM(:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_RIV(:,:)
 
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -262,11 +252,8 @@
       INTEGER           :: CENTER180, HALFPOLAR,   IFIRST
       INTEGER           :: JFIRST,    LFIRST,      LMAX
       INTEGER           :: M,         N,           NN
-!- eds 9/1/10 ---------------------------------------------------------------
       INTEGER           :: NT
       REAL(f4)          :: ARRAY(IIPAR,JJPAR,LLPAR)
-!      REAL*4            :: ARRAY(IIPAR,JJPAR,LLPAR,N_Hg_CATS) 
-!----------------------------------------------------------------------------
       REAL(f4)          :: LONRES,    LATRES
       REAL(fp)          :: SCALE
       REAL(f8)          :: DIAGb,     DIAGe
@@ -313,671 +300,644 @@
          ! Write data to the bpch file
          !=================================================================
 
-         ! Loop over ND03 diagnostic tracers
-!         DO M = 1, TMAX(3) !eds 9/9/10 -> should equal PD03_PL as of tag3
-
          ! Get ND03 tracer #
-!         N = TINDEX(3,M)
-         DO N = 1, 26 !eds 9/9/10 tag6
+         DO N  = 1, 26 !eds 9/9/10 tag6
+         DO NT = 1, N_HG_CATS ! Loop over tag IDs
 
-         ! Loop over tag IDs
-         DO NT = 1, N_HG_CATS
+            ! Pick the proper array & dimensions
+            IF ( N == 1 )  THEN
 
-         ! Pick the proper array & dimensions
+               IF ( NT == 1 ) THEN
 
+                  !--------------------------------
+                  ! #1 Hg(0) Anthropogenic
+                  !--------------------------------
+                  CATEGORY       = 'HG0-ANTH'
+                  UNIT           = 'kg'
+                  LMAX           = 1
+                  NN             = N
+                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
 
-         IF ( N == 1 )  THEN
-           
-            IF ( NT == 1 ) THEN
+               ELSE
+                  CYCLE
+               ENDIF
 
-            !--------------------------------
-            ! #1 Hg(0) Anthropogenic
-            !--------------------------------
-            CATEGORY          = 'HG0-ANTH'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N,NT)
+            ELSE IF ( N == 2 )  THEN
 
-            ELSE
-              CYCLE
-            ENDIF
-
-
-         ELSE IF ( N == 2 )  THEN
-
-            !--------------------------------
-            ! #1 Hg(0) Ocean Mass    
-            !--------------------------------
-       	    CATEGORY   	      =	'HG0-AQUA'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N,NT) / SCALE
+               !--------------------------------
+               ! #1 Hg(0) Ocean Mass    
+               !--------------------------------
+       	       CATEGORY   	      =	'HG0-AQUA'
+               UNIT              = 'kg'
+               LMAX              = 1
+               NN                = N
+               ARRAY(:,:,1)      = AD03(:,:,N,NT) / SCALE
 
 
-         ELSE IF ( N == 3 ) THEN
+            ELSE IF ( N == 3 ) THEN
 
-            !--------------------------------
-            ! #3 Net Ocean
-            !--------------------------------
-            CATEGORY          = 'HGNET-OC'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N        
-!            NT                = ID_Hg0(NTG)
-            ARRAY(:,:,1)      = AD03(:,:,N,NT)
-
-
-         ELSE IF ( N == 4 ) THEN
-
-            !--------------------------------
-            ! #4  Land Prompt Recycling
-            !--------------------------------
-            CATEGORY          = 'HG0-RECY'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N,NT)
+               !--------------------------------
+               ! #3 Net Ocean
+               !--------------------------------
+               CATEGORY          = 'HGNET-OC'
+               UNIT              = 'kg'
+               LMAX              = 1
+               NN                = N        
+               ARRAY(:,:,1)      = AD03(:,:,N,NT)
 
 
-         ELSE IF ( N == 5 ) THEN
+            ELSE IF ( N == 4 ) THEN
 
-       	    IF ( NT == 1 ) THEN
-
-            !--------------------------------
-            ! #5  Geogenic
-            !--------------------------------
-            CATEGORY          = 'HG0-GEOG'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N,NT)
-
-       	    ELSE
-       	      CYCLE
-       	    ENDIF
+               !--------------------------------
+               ! #4  Land Prompt Recycling
+               !--------------------------------
+               CATEGORY          = 'HG0-RECY'
+               UNIT              = 'kg'
+               LMAX              = 1
+               NN                = N
+               ARRAY(:,:,1)      = AD03(:,:,N,NT)
 
 
-         ELSE IF ( N == 6 ) THEN
+            ELSE IF ( N == 5 ) THEN
 
-       	    IF ( NT == 1 ) THEN
+               IF ( NT == 1 ) THEN
 
-            !--------------------------------
-            ! #6 Hg(II) Anthropogenic
-            !--------------------------------
-            CATEGORY          = 'HG2-ANTH'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N,NT)
+                  !--------------------------------
+                  ! #5  Geogenic
+                  !--------------------------------
+                  CATEGORY       = 'HG0-GEOG'
+                  UNIT           = 'kg'
+                  LMAX           = 1
+                  NN             = N
+                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
 
-       	    ELSE
-       	      CYCLE
-       	    ENDIF
-
-
-         ELSE IF ( N == 7 ) THEN
-
-            !--------------------------------
-            ! #7 Hg(II) Ocean Mass
-            !--------------------------------
-            CATEGORY          = 'HG2-AQUA'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N,NT) /SCALE
+               ELSE
+                  CYCLE
+               ENDIF
 
 
-         ELSE IF ( N == 8 ) THEN
+            ELSE IF ( N == 6 ) THEN
 
-       	    IF ( NT == 1 ) THEN
+               IF ( NT == 1 ) THEN
+
+                  !--------------------------------
+                  ! #6 Hg(II) Anthropogenic
+                  !--------------------------------
+                  CATEGORY       = 'HG2-ANTH'
+                  UNIT           = 'kg'
+                  LMAX           = 1
+                  NN             = N
+                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
+
+               ELSE
+                  CYCLE
+               ENDIF
+
+            ELSE IF ( N == 7 ) THEN
+
+               !--------------------------------
+               ! #7 Hg(II) Ocean Mass
+               !--------------------------------
+               CATEGORY          = 'HG2-AQUA'
+               UNIT              = 'kg'
+               LMAX              = 1
+               NN                = N
+               ARRAY(:,:,1)      = AD03(:,:,N,NT) /SCALE
+
+
+            ELSE IF ( N == 8 ) THEN
+
+               IF ( NT == 1 ) THEN
  
-            !--------------------------------
-            ! #8 Hg(II) Sinking
-            !--------------------------------
-            CATEGORY          = 'HG2-SINK'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N,NT)
+                  !--------------------------------
+                  ! #8 Hg(II) Sinking
+                  !--------------------------------
+                  CATEGORY       = 'HG2-SINK'
+                  UNIT           = 'kg'
+                  LMAX           = 1
+                  NN             = N
+                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
 
-            ELSE
-              CYCLE
-            ENDIF
+               ELSE
+                  CYCLE
+               ENDIF
 
+            ELSE IF ( N == 9 ) THEN
 
-         ELSE IF ( N == 9 ) THEN
+               IF ( NT == 1 ) THEN
 
-       	    IF ( NT == 1 ) THEN
+                  !--------------------------------
+                  ! #9 Hg(P) Anthropogenic
+                  !--------------------------------
+                  CATEGORY       = 'HGP-ANTH'
+                  UNIT           = 'kg'
+                  LMAX           = 1
+                  NN             = N
+                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
 
-            !--------------------------------
-            ! #9 Hg(P) Anthropogenic
-            !--------------------------------
-            CATEGORY          = 'HGP-ANTH'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-!            NT                = ID_HgP(NTG)
-            ARRAY(:,:,1)      = AD03(:,:,N,NT)
+               ELSE
+                  CYCLE
+               ENDIF
 
-       	    ELSE
-       	      CYCLE
-       	    ENDIF
+            ELSE IF ( N == 10 ) THEN
 
+               IF ( NT == 1 ) THEN
 
-         ELSE IF ( N == 10 ) THEN
+                  !--------------------------------
+                  ! #10 Total Aqueous
+                  !--------------------------------
+                  CATEGORY       = 'HGT-AQUA'
+                  UNIT           = 'kg'
+                  LMAX           = 1
+                  NN             = N
+                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
 
-            IF ( NT == 1 ) THEN
+               ELSE
+                  CYCLE
+               ENDIF
 
-            !--------------------------------
-            ! #10 Total Aqueous
-            !--------------------------------
-            CATEGORY          = 'HGT-AQUA'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N,NT)
+            ELSE IF ( N == 11 ) THEN
 
-            ELSE
-              CYCLE
-            ENDIF
+               !--------------------------------
+               ! #11 Hg(P) Aqueous Mass
+               !--------------------------------
+               CATEGORY          = 'HGP-AQUA'
+               UNIT              = 'kg'
+               LMAX              = 1
+               NN                = N
+               ARRAY(:,:,1)      = AD03(:,:,N,NT)
 
+            ELSE IF ( N == 12 ) THEN
 
-         ELSE IF ( N == 11 ) THEN
+               IF ( NT == 1 ) THEN
 
-            !--------------------------------
-            ! #11 Hg(P) Aqueous Mass
-            !--------------------------------
-            CATEGORY          = 'HGP-AQUA'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N,NT)
-
-
-         ELSE IF ( N == 12 ) THEN
-
-            !--------------------------------
-            ! #12 Conversion to Particle
-            !--------------------------------
-            IF ( NT == 1 ) THEN
-
-            CATEGORY          = 'HGP-CONV'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N,NT)
+                  !--------------------------------
+                  ! #12 Conversion to Particle
+                  !--------------------------------
+                  CATEGORY       = 'HGP-CONV'
+                  UNIT           = 'kg'
+                  LMAX           = 1
+                  NN             = N
+                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
  
-            ELSE
-              CYCLE
-            ENDIF
+               ELSE
+                  CYCLE
+               ENDIF
 
+            ELSE IF ( N == 13 ) THEN
 
-         ELSE IF ( N == 13 ) THEN
+               IF ( NT == 1 ) THEN
 
-       	    IF ( NT == 1 ) THEN
+                  !--------------------------------
+                  ! #13 Biomass Burning
+                  !--------------------------------
+                  CATEGORY       = 'HG0-BURN'
+                  UNIT           = 'kg'
+                  LMAX           = 1
+                  NN             = N
+                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
 
-            !--------------------------------
-            ! #13 Biomass Burning
-            !--------------------------------
-            CATEGORY          = 'HG0-BURN'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N,NT)
+               ELSE
+                  CYCLE
+               ENDIF
 
-       	    ELSE
-       	      CYCLE
-       	    ENDIF
+            ELSE IF ( N == 14 ) THEN
 
+               IF ( NT == 1 ) THEN
 
-         ELSE IF ( N == 14 ) THEN
+                  !--------------------------------
+                  ! #14 Vegetation Transpiration
+                  !--------------------------------
+                  CATEGORY       = 'HG0-VEGT'
+                  UNIT           = 'kg'
+                  LMAX           = 1
+                  NN             = N
+                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
 
-       	    IF ( NT == 1 ) THEN
+               ELSE
+                  CYCLE
+               ENDIF
 
-            !--------------------------------
-            ! #14 Vegetation Transpiration
-            !--------------------------------
-            CATEGORY          = 'HG0-VEGT'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N,NT)
+            ELSE IF ( N == 15 ) THEN
 
-       	    ELSE
-       	      CYCLE
-       	    ENDIF
+               IF ( NT == 1 ) THEN
 
+                  !--------------------------------
+                  ! #15 Soils
+                  !--------------------------------
+                  CATEGORY       = 'HG0-SOIL'
+                  UNIT           = 'kg'
+                  LMAX           = 1
+                  NN             = N
+                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
 
-         ELSE IF ( N == 15 ) THEN
+               ELSE
+                  CYCLE
+               ENDIF
 
-       	    IF ( NT == 1 ) THEN
+            ELSE IF ( N == 16 ) THEN
 
-            !--------------------------------
-            ! #15 Soils
-            !--------------------------------
-            CATEGORY          = 'HG0-SOIL'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N,NT)
+               !--------------------------------
+               ! #16 Gross Ocean Up Flux
+               !--------------------------------
+               CATEGORY          = 'HG0-FXUP'
+               UNIT              = 'kg'
+               LMAX              = 1
+               NN                = N
+               ARRAY(:,:,1)      = AD03(:,:,N,NT)
 
-       	    ELSE
-       	      CYCLE
-       	    ENDIF
+            ELSE IF ( N == 17 ) THEN
 
+               !--------------------------------
+               ! #17 Gross Ocean Down Flux
+               !--------------------------------
+               CATEGORY          = 'HG0-FXDN'
+               UNIT              = 'kg'
+               LMAX              = 1
+               NN                = N
+               ARRAY(:,:,1)      = AD03(:,:,N,NT)
 
-         ELSE IF ( N == 16 ) THEN
+            ELSE IF ( N == 18 ) THEN
 
-            !--------------------------------
-            ! #16 Gross Ocean Up Flux
-            !--------------------------------
-            CATEGORY          = 'HG0-FXUP'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N,NT)
+               !--------------------------------
+               ! #18 Snow
+               !--------------------------------
+               CATEGORY          = 'HG0-SNOW'
+               UNIT              = 'kg'
+               LMAX              = 1
+               NN                = N
+               ARRAY(:,:,1)      = AD03(:,:,N,NT)
 
+            ELSE IF ( N == 19 ) THEN
 
-         ELSE IF ( N == 17 ) THEN
+               !--------------------------------
+               ! #19: Net Ox of Hg(0) to Hg(II)
+               !--------------------------------
+               CATEGORY          = 'HG-NETOX'
+               UNIT              = 'kg'
+               LMAX              = LD03
+               NN                = N
+               ARRAY(:,:,1:LMAX) = AD03_Hg2_Hg0(:,:,1:LMAX,NT)
 
-            !--------------------------------
-            ! #17 Gross Ocean Down Flux
-            !--------------------------------
-            CATEGORY          = 'HG0-FXDN'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N,NT)
+            ELSE IF ( N == 20 ) THEN
 
+               IF ( NT == 1 ) THEN
 
-         ELSE IF ( N == 18 ) THEN
+                  !--------------------------------
+                  ! #20: Prod of Hg(II) from rxn w/OH
+                  !--------------------------------
+                  CATEGORY          = 'HG2-OXOH'
+                  UNIT              = 'kg'
+                  LMAX              = LD03
+                  NN                = N
+                  ARRAY(:,:,1:LMAX) = AD03_Hg2_OH(:,:,1:LMAX,NT)
 
-            !--------------------------------
-            ! #18 Snow
-            !--------------------------------
-            CATEGORY          = 'HG0-SNOW'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N,NT)
+               ELSE
+                  CYCLE
+               ENDIF
 
+            ELSE IF ( N == 21 ) THEN
 
-         ELSE IF ( N == 19 ) THEN
+               IF ( NT == 1 ) THEN
 
-            !--------------------------------
-            ! #19: Net Ox of Hg(0) to Hg(II)
-            !--------------------------------
-            CATEGORY          = 'HG-NETOX'
-            UNIT              = 'kg'
-            LMAX              = LD03
-            NN                = N
-            ARRAY(:,:,1:LMAX) = AD03_Hg2_Hg0(:,:,1:LMAX,NT)
+                  !--------------------------------
+                  ! #21: Prod of Hg(II) from rxn w/O3
+                  !--------------------------------
+                  CATEGORY          = 'HG2-OXO3'
+                  UNIT              = 'kg'
+                  LMAX              = LD03
+                  NN                = N
+                  ARRAY(:,:,1:LMAX) = AD03_Hg2_O3(:,:,1:LMAX,NT)
 
+               ELSE
+                  CYCLE
+               ENDIF
 
+            ELSE IF ( N == 22 ) THEN
 
-         ELSE IF ( N == 20 ) THEN
-
-            !--------------------------------
-            ! #20: Prod of Hg(II) from rxn w/OH
-            !--------------------------------
-
-            IF ( NT == 1 ) THEN
-
-            CATEGORY          = 'HG2-OXOH'
-            UNIT              = 'kg'
-            LMAX              = LD03
-            NN                = N
-            ARRAY(:,:,1:LMAX) = AD03_Hg2_OH(:,:,1:LMAX,NT)
-
-            ELSE
-              CYCLE
-            ENDIF
-
-
-         ELSE IF ( N == 21 ) THEN
-
-            !--------------------------------
-            ! #21: Prod of Hg(II) from rxn w/O3
-            !--------------------------------
-
-            IF ( NT == 1 ) THEN
-
-            CATEGORY          = 'HG2-OXO3'
-            UNIT              = 'kg'
-            LMAX              = LD03
-            NN                = N
-            ARRAY(:,:,1:LMAX) = AD03_Hg2_O3(:,:,1:LMAX,NT)
-
-            ELSE
-              CYCLE
-            ENDIF
-
-      
-         ELSE IF ( N == 22 ) THEN
-
-            !--------------------------------
-            ! #22: Loss of Hg2 from rxn w/sea salt
-            !--------------------------------
-            CATEGORY          = 'HG2-SALT'
-            UNIT              = 'kg'
-            NN                = N
-            LMAX              = 1
-            ARRAY(:,:,1)      = AD03_Hg2_SS(:,:,NT)
+               !--------------------------------
+               ! #22: Loss of Hg2 from rxn w/sea salt
+               !--------------------------------
+               CATEGORY          = 'HG2-SALT'
+               UNIT              = 'kg'
+               NN                = N
+               LMAX              = 1
+               ARRAY(:,:,1)      = AD03_Hg2_SS(:,:,NT)
 
       
-         ELSE IF ( N == 23 ) THEN
+            ELSE IF ( N == 23 ) THEN
 
-            !--------------------------------
-            ! #23: Loss of Hg2 from rxn w/sea salt
-            !--------------------------------
-            CATEGORY          = 'HG2-SSRX'
-            UNIT              = '/s'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1) = AD03_Hg2_SSR(:,:,NT) / NCHEMSTEP
+               !--------------------------------
+               ! #23: Loss of Hg2 from rxn w/sea salt
+               !--------------------------------
+               CATEGORY          = 'HG2-SSRX'
+               UNIT              = '/s'
+               LMAX              = 1
+               NN                = N
+               ARRAY(:,:,1)      = AD03_Hg2_SSR(:,:,NT) / NCHEMSTEP
 
 
-         ELSE IF ( N == 24 ) THEN
+            ELSE IF ( N == 24 ) THEN
 
-            !--------------------------------
-            ! #24: Prod of Hg(II) from rxn w/Br 
-            !--------------------------------
-            CATEGORY          = 'HG2-OXBR'
-            UNIT              = 'kg'
-            LMAX              = LD03
-            NN                = N
-            ARRAY(:,:,1:LMAX) = AD03_Hg2_Br(:,:,1:LMAX,NT)
+               !--------------------------------
+               ! #24: Prod of Hg(II) from rxn w/Br 
+               !--------------------------------
+               CATEGORY          = 'HG2-OXBR'
+               UNIT              = 'kg'
+               LMAX              = LD03
+               NN                = N
+               ARRAY(:,:,1:LMAX) = AD03_Hg2_Br(:,:,1:LMAX,NT)
 
+            ELSE IF ( N == 25 ) THEN
+
+               IF ( NT == 1 ) THEN
+
+                  !--------------------------------
+                  ! #25: Br concentration
+                  !--------------------------------
+                  CATEGORY          = 'PL-HG2-$'
+                  UNIT              = 'molec/cm3'
+                  LMAX              = LD03
+                  NN                = 1
+                  ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,1) / NCHEMSTEP
+
+               ELSE
+                  CYCLE
+               ENDIF
       
-         ELSE IF ( N == 25 ) THEN
+            ELSE IF ( N == 26 ) THEN
 
-            IF ( NT == 1 ) THEN
+               IF ( NT == 2 ) THEN
 
-            !--------------------------------
-            ! #25: Br concentration
-            !--------------------------------
-            CATEGORY          = 'PL-HG2-$'
-            UNIT              = 'molec/cm3'
-            LMAX              = LD03
-            NN                = 1
-            ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,1) / NCHEMSTEP
+                  !--------------------------------
+                  ! #26: BrO concentration
+                  !--------------------------------
+                  CATEGORY          = 'PL-HG2-$'
+                  UNIT              = 'molec/cm3'
+                  LMAX              = LD03
+                  NN                = 2
+                  ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,2) / NCHEMSTEP
+
+               ELSE
+                  CYCLE
+               ENDIF
 
             ELSE
+
+               !--------------------------------
+               ! Otherwise skip to next N
+               !--------------------------------
                CYCLE
+
             ENDIF
 
-      
-         ELSE IF ( N == 26 ) THEN
+            ! Write data to disk
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NT,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     LMAX,     IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
 
-            IF ( NT == 2 ) THEN
-
-            !--------------------------------
-            ! #26: BrO concentration
-            !--------------------------------
-            CATEGORY          = 'PL-HG2-$'
-            UNIT              = 'molec/cm3'
-            LMAX              = LD03
-            NN                = 2
-            ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,2) / NCHEMSTEP
-
-            ELSE
-       	       CYCLE
-            ENDIF
-
-
-         ELSE
-
-            !--------------------------------
-            ! Otherwise skip to next N
-            !--------------------------------
-            CYCLE
-
-         ENDIF
-
-         ! Write data to disk
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, NT,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LMAX,     IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
-      ENDDO
-
-      ENDDO 
+         ENDDO
+         ENDDO 
 
       ELSE ! Total Hg simulation
 
-      !=================================================================
-      ! Write data to the bpch file
-      !=================================================================
+         !=================================================================
+         ! Write data to the bpch file
+         !=================================================================
 
-      ! Loop over ND03 HG-SRCE diagnostic tracers
-      DO M = 1, TMAX(3)
+         ! Loop over ND03 HG-SRCE diagnostic tracers
+         DO M = 1, TMAX(3)
 
-         ! Get ND03 tracer #
-         N = TINDEX(3,M)
+            ! Get ND03 tracer #
+            N = TINDEX(3,M)
 
-         ! Pick the proper array & dimensions
-         IF ( N == 2 .or. N == 7 .or. N == 10 .or. N == 11 ) THEN
+            ! Pick the proper array & dimensions
+            IF ( N == 2 .or. N == 7 .or. N == 10 .or. N == 11 ) THEN
 
-            !--------------------------------
-            ! #2,7,10,11: Hg0, Hg2, Hg(P), Hg_tot ocean masses
-            ! Divide by # of emiss timesteps
-            !--------------------------------
-            CATEGORY          = 'HG-SRCE'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N,1) / SCALE
+               !--------------------------------
+               ! #2,7,10,11: Hg0, Hg2, Hg(P), Hg_tot ocean masses
+               ! Divide by # of emiss timesteps
+               !--------------------------------
+               CATEGORY          = 'HG-SRCE'
+               UNIT              = 'kg'
+               LMAX              = 1
+               NN                = N
+               ARRAY(:,:,1)      = AD03(:,:,N,1) / SCALE
                
-         ELSE IF ( N <= 21 ) THEN
+            ELSE IF ( N <= 21 ) THEN
             
-            !--------------------------------
-            ! #1,3,4,5,6,9,13,14,15,18: Hg emissions
-            ! #8: Hg2_tot sinking
-            ! #12: Carbon sinking               !anls
-            ! #16: Flux-up (Hg0 volat from ocean)
-            ! #17: Flux-down (Hg0 dry dep to ocean)
-            ! #18: Snow emissions of Hg0
-            ! #19: Snow Hg2 delivery to ocean
-            ! #20: Hg2/HgP deposited to open ocean
-            ! #21: Hg2/HgP deposited to snow/ice
-            !--------------------------------
-            CATEGORY          = 'HG-SRCE'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N,1)
+               !--------------------------------
+               ! #1,3,4,5,6,9,13,14,15,18: Hg emissions
+               ! #8: Hg2_tot sinking
+               ! #12: Carbon sinking               !anls
+               ! #16: Flux-up (Hg0 volat from ocean)
+               ! #17: Flux-down (Hg0 dry dep to ocean)
+               ! #18: Snow emissions of Hg0
+               ! #19: Snow Hg2 delivery to ocean
+               ! #20: Hg2/HgP deposited to open ocean
+               ! #21: Hg2/HgP deposited to snow/ice
+               !--------------------------------
+               CATEGORY          = 'HG-SRCE'
+               UNIT              = 'kg'
+               LMAX              = 1
+               NN                = N
+               ARRAY(:,:,1)      = AD03(:,:,N,1)
+   
+            ELSE IF ( N == 22 ) THEN
 
-        ELSE IF ( N == 22 ) THEN
-
-            !--------------------------------
-            ! #22: Hg2 from rivers !jaf
-            !--------------------------------
-            CATEGORY          = 'HG-SRCE'
-            UNIT              = 'kg'
-            LMAX              = 1 
-            NN                = N 
-            ARRAY(:,:,1)      = AD03_riv(:,:)
+               !--------------------------------
+               ! #22: Hg2 from rivers !jaf
+               !--------------------------------
+               CATEGORY          = 'HG-SRCE'
+               UNIT              = 'kg'
+               LMAX              = 1 
+               NN                = N 
+               ARRAY(:,:,1)      = AD03_riv(:,:)
     
-         ELSE
+            ELSE
 
-            !--------------------------------
-            ! Otherwise skip to next N
-            !--------------------------------
-            CYCLE
+               !--------------------------------
+               ! Otherwise skip to next N
+               !--------------------------------
+               CYCLE
 
-         ENDIF
+            ENDIF
 
-         ! Write data to disk
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, NN,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LMAX,     IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
-      ENDDO
+            ! Write data to disk
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                 HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                 UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                 IIPAR,     JJPAR,     LMAX,     IFIRST,     
+     &                 JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
 
+         ENDDO
 
-      ! Loop over ND03 PL-HG2-$ diagnostics
-      DO N=1, PD03_PL
+         ! Loop over ND03 PL-HG2-$ diagnostics
+         DO N=1, PD03_PL
 
+            ! Pick array and units
+            IF ( N == 1 ) THEN
 
-         ! Pick array and units
-         IF ( N == 1 ) THEN
+               !--------------------------------
+               ! #1: Production of Hg2 from Hg0
+               !--------------------------------
+               CATEGORY          = 'PL-HG2-$'
+               UNIT              = 'kg'
+               LMAX              = LD03
+               NN                = N
+               ARRAY(:,:,1:LMAX) = AD03_Hg2_Hg0(:,:,1:LMAX,1)
+   
+            ELSE IF ( N == 2 ) THEN
 
-            !--------------------------------
-            ! #1: Production of Hg2 from Hg0
-            !--------------------------------
-            CATEGORY          = 'PL-HG2-$'
-            UNIT              = 'kg'
-            LMAX              = LD03
-            NN                = N
-            ARRAY(:,:,1:LMAX) = AD03_Hg2_Hg0(:,:,1:LMAX,1)
+               !--------------------------------
+               ! #2: Prod of Hg(II) from rxn w/OH
+               !--------------------------------
+               CATEGORY          = 'PL-HG2-$'
+               UNIT              = 'kg'
+               LMAX              = LD03
+               NN                = N
+               ARRAY(:,:,1:LMAX) = AD03_Hg2_OH(:,:,1:LMAX,1)
 
-         ELSE IF ( N == 2 ) THEN
+            ELSE IF ( N == 3 ) THEN
 
-            !--------------------------------
-            ! #2: Prod of Hg(II) from rxn w/OH
-            !--------------------------------
-            CATEGORY          = 'PL-HG2-$'
-            UNIT              = 'kg'
-            LMAX              = LD03
-            NN                = N
-            ARRAY(:,:,1:LMAX) = AD03_Hg2_OH(:,:,1:LMAX,1)
-
-         ELSE IF ( N == 3 ) THEN
-
-            !--------------------------------
-            ! #3: Prod of Hg(II) from rxn w/O3
-            !--------------------------------
-            CATEGORY          = 'PL-HG2-$'
-            UNIT              = 'kg'
-            LMAX              = LD03
-            NN                = N
-            ARRAY(:,:,1:LMAX) = AD03_Hg2_O3(:,:,1:LMAX,1)
+               !--------------------------------
+               ! #3: Prod of Hg(II) from rxn w/O3
+               !--------------------------------
+               CATEGORY          = 'PL-HG2-$'
+               UNIT              = 'kg'
+               LMAX              = LD03
+               NN                = N
+               ARRAY(:,:,1:LMAX) = AD03_Hg2_O3(:,:,1:LMAX,1)
       
-         ELSE IF ( N == 4 ) THEN
+            ELSE IF ( N == 4 ) THEN
             
-            !--------------------------------
-            ! #4: Loss of Hg2 from rxn w/sea salt
-            !--------------------------------
-            CATEGORY          = 'PL-HG2-$'
-            UNIT              = 'kg'
-            LMAX              = N_Hg_CATS
-            NN                = N
-            ARRAY(:,:,1)      = AD03_Hg2_SS(:,:,1)
+               !--------------------------------
+               ! #4: Loss of Hg2 from rxn w/sea salt
+               !--------------------------------
+               CATEGORY          = 'PL-HG2-$'
+               UNIT              = 'kg'
+               LMAX              = N_Hg_CATS
+               NN                = N
+               ARRAY(:,:,1)      = AD03_Hg2_SS(:,:,1)
       
-         ELSE IF ( N == 5 ) THEN
+            ELSE IF ( N == 5 ) THEN
             
-            !--------------------------------
-            ! #5: Loss of Hg2 from rxn w/sea salt
-            !--------------------------------
-            CATEGORY          = 'PL-HG2-$'
-            UNIT              = '/s'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03_Hg2_SSR(:,:,1) / NCHEMSTEP
+               !--------------------------------
+               ! #5: Loss of Hg2 from rxn w/sea salt
+               !--------------------------------
+               CATEGORY          = 'PL-HG2-$'
+               UNIT              = '/s'
+               LMAX              = 1
+               NN                = N
+               ARRAY(:,:,1)      = AD03_Hg2_SSR(:,:,1) / NCHEMSTEP
 
-         ELSE IF ( N == 6 ) THEN
+            ELSE IF ( N == 6 ) THEN
 
-            !--------------------------------
-            ! #6: Prod of Hg(II) from rxn w/Br 
-            !--------------------------------
-            CATEGORY          = 'PL-HG2-$'
-            UNIT              = 'kg'
-            LMAX              = LD03
-            NN                = N
-            ARRAY(:,:,1:LMAX) = AD03_Hg2_Br(:,:,1:LMAX,1)
+               !--------------------------------
+               ! #6: Prod of Hg(II) from rxn w/Br 
+               !--------------------------------
+               CATEGORY          = 'PL-HG2-$'
+               UNIT              = 'kg'
+               LMAX              = LD03
+               NN                = N
+               ARRAY(:,:,1:LMAX) = AD03_Hg2_Br(:,:,1:LMAX,1)
       
-         ELSE IF ( N == 7 ) THEN
+            ELSE IF ( N == 7 ) THEN
 
-            !--------------------------------
-            ! #7: Br concentration
-            !--------------------------------
-            CATEGORY          = 'PL-HG2-$'
-            UNIT              = 'molec/cm3'
-            LMAX              = LD03
-            NN                = N
-            ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,1) / NCHEMSTEP
+               !--------------------------------
+               ! #7: Br concentration
+               !--------------------------------
+               CATEGORY          = 'PL-HG2-$'
+               UNIT              = 'molec/cm3'
+               LMAX              = LD03
+               NN                = N
+               ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,1) / NCHEMSTEP
       
-         ELSE IF ( N == 8 ) THEN
+            ELSE IF ( N == 8 ) THEN
 
-            !--------------------------------
-            ! #8: BrO concentration
-            !--------------------------------
-            CATEGORY          = 'PL-HG2-$'
-            UNIT              = 'molec/cm3'
-            LMAX              = LD03
-            NN                = N
-            ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,2) / NCHEMSTEP
+               !--------------------------------
+               ! #8: BrO concentration
+               !--------------------------------
+               CATEGORY          = 'PL-HG2-$'
+               UNIT              = 'molec/cm3'
+               LMAX              = LD03
+               NN                = N
+               ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,2) / NCHEMSTEP
 
-         ELSE IF ( N == 9 ) THEN
-            !--------------------------------
-            ! #9: Reactive particulate mercury
-            !--------------------------------
-            CATEGORY          = 'PL-HG2-$'
-            UNIT              = 'pptv'
-            LMAX              = LD03
-            NN                = N
-            ARRAY(:,:,1:LMAX) = AD03_PBM(:,:,1:LMAX) / NDIAGSTEP
+            ELSE IF ( N == 9 ) THEN
 
-         ELSE IF ( N == 10 ) THEN
-            !--------------------------------
-            ! #10: Reactive gaseous mercury
-            !--------------------------------
-            CATEGORY          = 'PL-HG2-$'
-            UNIT              = 'pptv'
-            LMAX              = LD03
-            NN                = N
-            ARRAY(:,:,1:LMAX) = AD03_RGM(:,:,1:LMAX) / NDIAGSTEP 
+               !--------------------------------
+               ! #9: Reactive particulate mercury
+               !--------------------------------
+               CATEGORY          = 'PL-HG2-$'
+               UNIT              = 'pptv'
+               LMAX              = LD03
+               NN                = N
+               ARRAY(:,:,1:LMAX) = AD03_PBM(:,:,1:LMAX) / NDIAGSTEP
 
-         ELSE IF ( N == 11 ) THEN
-            !--------------------------------
-            ! #13: Polar Br concentration    
-            !--------------------------------
-            CATEGORY          = 'PL-HG2-$'
-            UNIT              = 'pptv'
-            LMAX              = LD03
-            NN                = N
-            ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,3) / NCHEMSTEP
+            ELSE IF ( N == 10 ) THEN
+
+               !--------------------------------
+               ! #10: Reactive gaseous mercury
+               !--------------------------------
+               CATEGORY          = 'PL-HG2-$'
+               UNIT              = 'pptv'
+               LMAX              = LD03
+               NN                = N
+               ARRAY(:,:,1:LMAX) = AD03_RGM(:,:,1:LMAX) / NDIAGSTEP 
+
+            ELSE IF ( N == 11 ) THEN
+
+               !--------------------------------
+               ! #13: Polar Br concentration    
+               !--------------------------------
+               CATEGORY          = 'PL-HG2-$'
+               UNIT              = 'pptv'
+               LMAX              = LD03
+               NN                = N
+               ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,3) / NCHEMSTEP
             
-         ELSE IF ( N == 12 ) THEN
-            !--------------------------------
-            ! #14: Polar BrO concentration   
-            !--------------------------------
-            CATEGORY          = 'PL-HG2-$'
-            UNIT              = 'pptv'
-            LMAX              = LD03
-            NN                = N
-            ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,4) / NCHEMSTEP
+            ELSE IF ( N == 12 ) THEN
+
+               !--------------------------------
+               ! #14: Polar BrO concentration   
+                !--------------------------------
+               CATEGORY          = 'PL-HG2-$'
+               UNIT              = 'pptv'
+               LMAX              = LD03
+               NN                = N
+               ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,4) / NCHEMSTEP
             
-         ELSE IF ( N == 13 ) THEN
-            !--------------------------------
-            ! #15: Polar O3 concentration    
-            !--------------------------------
-            CATEGORY          = 'PL-HG2-$'
-            UNIT              = 'ppbv'
-            LMAX              = LD03
-            NN                = N
-            ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,5) / NCHEMSTEP
+            ELSE IF ( N == 13 ) THEN
+
+               !--------------------------------
+               ! #15: Polar O3 concentration    
+               !--------------------------------
+               CATEGORY          = 'PL-HG2-$'
+               UNIT              = 'ppbv'
+               LMAX              = LD03
+               NN                = N
+               ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,5) / NCHEMSTEP
  
-         ELSE
+            ELSE
 
-            !--------------------------------
-            ! Otherwise skip to next N
-            !--------------------------------
-            CYCLE
+               !--------------------------------
+               ! Otherwise skip to next N
+               !--------------------------------
+               CYCLE
 
-         ENDIF
+            ENDIF
 
-         ! Write data to disk
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, NN,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LMAX,     IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
-      ENDDO
+            ! Write data to disk
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                 IIPAR,     JJPAR,     LMAX,     IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
+
+         ENDDO
 
       END IF
 
@@ -1030,49 +990,22 @@
       ! Get number of levels for 3-D arrays
       LD03 = MIN( ND03, LLPAR )
 
-!- eds 8/31/10 -----------------------------------------------------
-!      ! 2-D array ("HG-SRCE")
-!      ALLOCATE( AD03( IIPAR, JJPAR, PD03 ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03' )
-
       ! 3-D array ("HG-SRCE")
       ALLOCATE( AD03( IIPAR, JJPAR, PD03, N_HG_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03' )
-!------------------------------------------------------------------
-
-!- eds 8/31/10 ----------------------------------------------------
-!      ! 3-D arrays ("PL-HG2-$")
-!      ALLOCATE( AD03_Hg2_Hg0( IIPAR, JJPAR, LD03 ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_Hg0' )
 
       ! 4-D arrays ("PL-HG2-$")
       ALLOCATE( AD03_Hg2_Hg0( IIPAR, JJPAR, LD03, N_HG_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_Hg0' )
-!-----------------------------------------------------------------
-
-! eds 8/31/10 ----------------------------------------------------
-!      ALLOCATE( AD03_Hg2_OH( IIPAR, JJPAR, LD03 ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_OH' )
 
       ALLOCATE( AD03_Hg2_OH( IIPAR, JJPAR, LD03, N_HG_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_OH' )
-!-----------------------------------------------------------------
-
-! eds 8/31/10 ----------------------------------------------------
-!      ALLOCATE( AD03_Hg2_Br( IIPAR, JJPAR, LD03 ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_Br' )
 
       ALLOCATE( AD03_Hg2_Br( IIPAR, JJPAR, LD03, N_HG_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_Br' )
-!-----------------------------------------------------------------
-
-! eds 8/31/10 ----------------------------------------------------
-!      ALLOCATE( AD03_Hg2_O3( IIPAR, JJPAR, LD03 ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_O3' )
 
       ALLOCATE( AD03_Hg2_O3( IIPAR, JJPAR, LD03, N_HG_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_O3' )
-!-----------------------------------------------------------------
 
       ALLOCATE( AD03_Hg2_SS( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_SS' )
@@ -1080,13 +1013,8 @@
       ALLOCATE( AD03_nat( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_nat' )
 
-! eds 8/31/10 ----------------------------------------------------
-!      ALLOCATE( AD03_Hg2_SSR( IIPAR, JJPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_SSR' )
-
       ALLOCATE( AD03_Hg2_SSR( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_SSR' )
-!-----------------------------------------------------------------
 
       ALLOCATE( AD03_Br( IIPAR, JJPAR, LLPAR, 5 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_BR' )

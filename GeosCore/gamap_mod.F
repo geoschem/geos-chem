@@ -1414,7 +1414,6 @@
       DESCRIPT(N) = 'Dicarbonyl SOA production'
       OFFSET(N)   = SPACING * 33
 
-!- eds 9/1/10 ----------------------------------------------
       N           = N + 1
       CATEGORY(N) = 'HG-SRCE'
       DESCRIPT(N) = 'Hg emissions'
@@ -1539,8 +1538,6 @@
       CATEGORY(N) = 'HG2-OXBR'
       DESCRIPT(N) = 'Hg(0) Oxidation to Hg(II) by Br'
       OFFSET(N)   = SPACING * 84
-
-!---------------------------------------------------------
 
       N           = N + 1
       CATEGORY(N) = 'PL-HG2-$'
