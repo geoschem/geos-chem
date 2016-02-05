@@ -475,6 +475,7 @@
       CALL GEOS_Timer_Add( "Wet deposition",      RC )
       CALL GEOS_Timer_Add( "RRTMG",               RC )
       CALL GEOS_Timer_Add( "Diagnostics",         RC )
+      CALL GEOS_Timer_Add( "Reading Met Fields",  RC )
       CALL GEOS_Timer_Start( "GEOS-Chem",         RC )
       CALL GEOS_Timer_Start( "Initialization",    RC )
 #endif
@@ -644,9 +645,16 @@
       !=================================================================
       !        ***** I N I T I A L I Z A T I O N  continued *****
       !=================================================================
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_Start( "Reading Met Fields",  RC )
+#endif
 
       ! Read the initial met fields from disk
       CALL READ_INITIAL_MET_FIELDS()
+
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_Start( "Reading Met Fields",  RC )
+#endif
 
       ! Compute avg surface pressure near polar caps
       CALL AVGPOLE( State_Met%PS1 )
@@ -1023,7 +1031,15 @@
          !    Lightning NOx emissions are also computed at the same
          !    time when A3 or A6 met fields are read from disk.
          !==============================================================
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "Reading Met Fields",  RC )
+#endif
+
          CALL READ_MET_FIELDS()
+
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "Reading Met Fields",  RC )
+#endif
 
 #if   defined( GEOS_5 )
 
