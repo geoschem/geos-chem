@@ -66,10 +66,10 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
@@ -252,6 +252,7 @@
 !  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  02 Mar 2015 - E. Lundgren - Remove MAKE_AVGW call. State_Met%AVGW now 
 !                              set in AIRQNT within dao_mod.F.
+!  04 Feb 2016 - C. Keller   - Use GASCONC with Input_Opt%LINITSPEC (ESMF only).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -582,9 +583,28 @@
       ! Within GASCONC, we will call COPY_FULL_CHEMGRID to make sure that
       ! the CSPEC_FULL array gets copied to the CSPEC array.
       ! (bmy, 10/24/12)
+      !
+      ! Now use value Input_Opt%LINITSPEC for FIRSTCHEM. This allows
+      ! a flexible handling of species initialization, e.g. to make sure
+      ! that all species are initialized to their default values on first
+      ! call or after the first clock rewind. Input_Opt%LINITSPEC needs 
+      ! to be specified in a high level routine (e.g. the ESMF 
+      ! GridCompComponent module). It defaults to .FALSE. and is
+      ! automatically set to .FALSE. after calling GASCONC below.
+      ! (ckeller, 2/5/16)
       !-----------------------------------------------------------------
-      CALL GASCONC(  am_I_Root, .FALSE.,   .FALSE.,   
+      CALL GASCONC(  am_I_Root, Input_Opt%LINITSPEC,   .FALSE.,   
      &               Input_Opt, State_Met, State_Chm, RC )
+
+      ! Prompt to log
+      IF ( Input_Opt%LINITSPEC .AND. am_I_Root ) THEN
+         WRITE(*,*) '***********************************************'
+         WRITE(*,*) 'GEOS-Chem species set to values in globchem.dat'
+         WRITE(*,*) '***********************************************'
+      ENDIF
+
+      ! Make sure species are not reinitialized every time
+      Input_Opt%LINITSPEC = .FALSE.
 #else
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%

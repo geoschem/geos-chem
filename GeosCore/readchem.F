@@ -57,6 +57,7 @@
 !  04 Aug 2015 - M. Long     - Removed ".rc" file specifier. Not necessary.
 !  22 Sep 2015 - R. Yantosca - Use NUMDEP instead of MAXDEP
 !  23 Sep 2015 - E. Lundgren - Add Criegee chemistry (E. Marais, D. Millet)
+!  14 Jan 2016 - C. Keller   - (Re)added '.rc' appendix within ESMF
 !******************************************************************************
 !
 ! !USES:
@@ -283,6 +284,10 @@
 
       ! Name of file to open
       FILENAME   ='globchem.dat' 
+      ! Use '.rc' appendix in ESMF environment
+#if defined( ESMF_ )
+      FILENAME = TRIM(FILENAME)//'.rc'
+#endif
 
       KGLC       = IU_CHEMDAT
 
@@ -560,6 +565,7 @@
 !
       ! Initialize for safety's sake (bmy, 7/7/03)
       IOXYGEN  = 0
+      INITROGEN= 0
       IH2O     = 0
       ICH4     = 0
       ILISOPOH = 0
@@ -590,6 +596,8 @@
          SELECT CASE ( TRIM( NAMEGAS(I) ) )
             CASE( 'O2'      )
                IOXYGEN  = I
+            CASE( 'N2'      )
+               INITROGEN= I
             CASE( 'H2O'     )
                IH2O     = I
             CASE( 'CH4'     )
@@ -1429,6 +1437,10 @@
 
       ! Name of file to open
       FILENAME = 'chemga.dat'
+      ! Use '.rc' appendix in ESMF environment
+#if defined( ESMF_ )
+      FILENAME = TRIM(FILENAME)//'.rc'
+#endif
 
       IF ( am_I_Root ) THEN
          WRITE( 6, 300 ) TRIM( FILENAME ), I

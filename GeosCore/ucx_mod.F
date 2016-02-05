@@ -482,6 +482,9 @@
       MONTH_STR_INT = GET_MONTH()
       WRITE( MONTH_STR, '(i0.2)' ) MONTH_STR_INT
 
+      ! Error trap: make sure CFCYEAR is properly initialized
+      IF ( CFCYEAR < 0 ) CFCYEAR = GET_YEAR()
+
       ! Are we using 2D data?
       ! Don't use LBASICEMIS in check below (ckeller, 05/12/14)
       USE2DDATA = ( LSETOCS     .or. LSETCFC      .or. LSETCL     .or.
@@ -1994,6 +1997,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
+      USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS:
 !
@@ -2044,6 +2048,11 @@
 
       ! Initialize GEOS-Chem tracer array [kg]
       STT => State_Chm%Tracers
+
+      ! Error trap: make sure CFCYEAR is defined. In ESMF mode, CFCYEAR
+      ! may become initialized to zero because the simulation year is not
+      ! yet know during initialization (ckeller, 1/20/16).
+      IF ( CFCYEAR <= 0 ) CFCYEAR = GET_YEAR()
 
        ! If not correct hour block and day read in new fields
        IF (SFC_MONTH/=GET_MONTH()) THEN

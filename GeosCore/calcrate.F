@@ -180,6 +180,7 @@
 !  12 Dec 2014 - M. Yannetti - Updated HEMCO variable Dep from REAL*8 to REAL(hp)
 !  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
 !  23 Sep 2015 - E. Lundgren - Add Criegee chemistry (dbm, mje, eam, 2015)
+!  04 Feb 2016 - C. Keller   - Set N2 from CONCN2 if N2 is inactive.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -493,6 +494,14 @@
       IF (IOXYGEN.GT.NGAS) THEN
          DO KLOOP          = 1, KTLOOP
             CBLK(KLOOP,IOXYGEN) = CONCO2(KLOOP)
+         ENDDO
+      ENDIF
+!
+! -----------------  SET N2 TO CONCN2 IF N2 INACTIVE ------------------
+!
+      IF (INITROGEN.GT.NGAS) THEN
+         DO KLOOP          = 1, KTLOOP
+            CBLK(KLOOP,INITROGEN) = CONCN2(KLOOP)
          ENDDO
       ENDIF
 !
