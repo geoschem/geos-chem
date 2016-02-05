@@ -653,7 +653,7 @@
       CALL READ_INITIAL_MET_FIELDS()
 
 #if defined( USE_TIMERS )
-      CALL GEOS_Timer_Start( "Reading Met Fields",  RC )
+      CALL GEOS_Timer_End( "Reading Met Fields",  RC )
 #endif
 
       ! Compute avg surface pressure near polar caps
