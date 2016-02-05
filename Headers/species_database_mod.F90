@@ -181,16 +181,12 @@ CONTAINS
        CALL EXIT( -999 )
     ENDIF
     
-    Print*, 'DEBUG: About to set up species database'
-
     ! Loop over all species
     DO N = 1, nSpecies
 
        ! Translate species name to uppercase
        NameAllCaps = TRIM( Input_Opt%TRACER_NAME(N) )
        CALL TranUc( NameAllCaps )
-
-       Print*, TRIM ( NameAllCaps )
 
        ! Test for species name
        SELECT CASE( TRIM ( NameAllCaps ) )

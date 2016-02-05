@@ -857,8 +857,6 @@ CONTAINS
     ALLOCATE( Input_Opt%Hg_CAT        ( MAX_TRCS           ), STAT=RC )
     ALLOCATE( Input_Opt%Hg_CAT_FULL   ( MAX_TRCS           ), STAT=RC )
 
-    Print*, 'DEBUG: Done allocating Hg_CAT, Hg_CAT_FULL'
-
     Input_Opt%N_TRACERS              = 0
     Input_Opt%ID_TRACER              = 0
     Input_Opt%TRACER_NAME            = ''

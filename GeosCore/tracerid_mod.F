@@ -1166,9 +1166,6 @@
                Hg_CAT(N)         = ''
                Hg_CAT_FULL(N)    = ''
 
-               Print*, 'DEBUG: Found HG0'
-               Print*,  N, Hg_CAT(N),  Hg_CAT_FULL(N)
-
             CASE ( 'HG2' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                IDTHg2            = N
@@ -1176,18 +1173,12 @@
                Hg_CAT(N)         = ''
                Hg_CAT_FULL(N)    = ''
 
-               Print*, 'DEBUG: Found HG2'
-               Print*,  N, Hg_CAT(N),  Hg_CAT_FULL(N)
-
             CASE ( 'HGP' )
                COUNT_HgP         = COUNT_HgP + 1
                IDTHgP            = N
                ID_HgP(COUNT_HgP) = N
                Hg_CAT(N)         = ''
                Hg_CAT_FULL(N)    = ''
-
-               Print*, 'DEBUG: Found HGP'
-               Print*,  N, Hg_CAT(N),  Hg_CAT_FULL(N)
 
             !----------------------------------------
             ! New Tagged Hg Simulation (eds 8/31/10)
@@ -1199,18 +1190,12 @@
                Hg_CAT(N)         = '_can'
                Hg_CAT_FULL(N)    = ' from Canada'
 
-               Print*, 'DEBUG: Found HG0_CAN'
-               Print*,  N, Hg_CAT(N),  Hg_CAT_FULL(N)
-
             CASE ( 'HG0_AN_USA', 'HG0_USA' )
                COUNT_Hg0         = COUNT_Hg0 + 1
                ID_Hg_usa         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
                Hg_CAT(N)         = '_usa'
                Hg_CAT_FULL(N)    = ' from USA'
-
-               Print*, 'DEBUG: Found HG0_USA'
-               Print*,  N, Hg_CAT(N),  Hg_CAT_FULL(N)
 
             CASE ( 'HG0_AN_CAM', 'HG0_CAM' )
                COUNT_Hg0         = COUNT_Hg0 + 1
