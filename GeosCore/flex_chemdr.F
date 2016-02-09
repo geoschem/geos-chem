@@ -194,7 +194,7 @@
       ! GEOS-CHEM...so just pass SOILDUST to RDUST_ONLINE in order to
       ! compute aerosol optical depth for FAST-JX, etc.
       !
-      ! If LDUST is turned off, then we do not have online dust erosol
+      ! If LDUST is turned off, then we do not have online dust aerosol
       ! in GEOS-CHEM...so read monthly-mean dust files from disk.
       ! (rjp, tdf, bmy, 4/1/04)
       !=================================================================
@@ -638,7 +638,7 @@
      &                         COL     = Input_Opt%DIAG_COLLECTION,
      &                         RC      = HCRC )
 
-            ! Stop wieth error if the diagnostics were unsuccessful
+            ! Stop with error if the diagnostics were unsuccessful
             IF ( HCRC /= HCO_SUCCESS ) THEN
                CALL ERROR_STOP( 'Cannot update tracer 
      &                           concentration diagnostics',

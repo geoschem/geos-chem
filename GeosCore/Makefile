@@ -596,16 +596,10 @@ flex_chemdr.o               : aerosol_mod.o           comode_mod.o           \
                               planeflight_mod.o       restart_mod.o          \
                               tracer_mod.o            tracerid_mod.o         \
                               uvalbedo_mod.o                                 \
-                              fast_jx_mod.o                                  \
-                              ../KPP/TempFlex_Benchmark/gckpp_Global.o       \
-                              ../KPP/TempFlex_Benchmark/gckpp_Rates.o        \
-                              ../KPP/TempFlex_Benchmark/gckpp_HetRates.o
+                              fast_jx_mod.o
 
 flexchem_setup_mod.o        : flexchem_setup_mod.F90                         \
-                              restart_mod.o                                  \
-                              ../KPP/TempFlex_Benchmark/gckpp_Monitor.o      \
-                              ../KPP/TempFlex_Benchmark/gckpp_Parameters.o   \
-                              ../KPP/TempFlex_Benchmark/gckpp_Precision.o
+                              restart_mod.o
 
 future_emissions_mod.o      : future_emissions_mod.F
 
