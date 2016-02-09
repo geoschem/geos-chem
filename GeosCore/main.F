@@ -282,6 +282,7 @@
 !  16 Apr 2015 - R. Yantosca - Remove call to INIT_DAO; it's obsolete
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !  03 Sep 2015 - R. Yantosca - Now call SETUP_WETSCAV instead of INIT_WETSCAV
+!  03 Feb 2016 - E. Lundgren - Use routine MAKE_RESTART_FILES for all GC rsts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -721,8 +722,8 @@
       ! Read initial tracer conditions
       ! NOTE: Tracer concentrations are read in as [v/v dry air] and converted
       ! to kg/kg dry air (ewl, 9/18/15)
-      CALL READ_RESTART_FILE( NYMDb,     NHMSb, 
-     &                        Input_Opt, State_Met, State_Chm )
+      CALL READ_GC_RESTART( am_I_Root, NYMDb,     NHMSb, 
+     &                      Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
       ! Initialize stratospheric routines
@@ -747,14 +748,6 @@
       IF ( LSCHEM ) THEN
          CALL INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, 
      &                         State_Met, RC )
-      ENDIF
-
-      ! Read ocean Hg initial conditions (if necessary)
-      IF ( ITS_A_MERCURY_SIM .and. LDYNOCEAN ) THEN
-         CALL READ_OCEAN_Hg_RESTART( NYMDb, NHMSb, Input_Opt )
-         IF ( prtDebug ) THEN 
-            CALL DEBUG_MSG( '### MAIN: a READ_OCEAN_RESTART' )
-         ENDIF
       ENDIF
 
       ! Save initial tracer mixing ratios to disk for benchmark runs
@@ -787,7 +780,7 @@
 !-----------------------------------------------------------------------------
 
       !=================================================================
-      !      ***** INITIALIZE GEOS-CHEM DIAGNOSTICS AND RESTART ***** 
+      !      ***** INITIALIZE GEOS-CHEM DIAGNOSTICS AND RESTARTS ***** 
       !=================================================================      
 
 #if defined( NETCDF )
@@ -795,7 +788,7 @@
       ! initialized above (ckeller, 1/13/15).
       CALL Diagnostics_Init( am_I_Root, Input_Opt, 
      &                       State_Met, State_Chm, RC )
-      CALL INIT_GC_NC_RESTART( am_I_Root, Input_Opt, RC )
+      CALL INIT_GC_RESTART_NC( am_I_Root, Input_Opt, RC )
 #endif 
 
       !=================================================================
@@ -922,20 +915,13 @@
                ENDIF
                
                ! Make atmospheric restart file
-               CALL MAKE_RESTART_FILE( am_I_Root, Input_Opt, NYMD, NHMS,
-     &                                 TAU,       State_Chm, RC )
-                  
-               ! Make ocean mercury restart file
-               IF ( ITS_A_MERCURY_SIM .and. LDYNOCEAN ) THEN
-                  CALL MAKE_OCEAN_Hg_RESTART
-     &               ( NYMD, NHMS, TAU, Input_Opt )
-               ENDIF
+               CALL WRITE_GC_RESTART( am_I_Root, Input_Opt, NYMD, 
+     &                                NHMS, TAU, State_Chm, RC )
 
-               ! Save species concentrations (CSPEC_FULL). (dkh, 02/12/09)
-               IF ( LCHEM .and. LSVCSPEC ) THEN 
-                  CALL MAKE_CSPEC_FILE( am_I_Root, Input_Opt, NYMD, 
-     &                                  NHMS,      State_Chm, RC    )
-               ENDIF 
+               !### Debug
+               IF ( prtDebug ) THEN
+                  CALL DEBUG_MSG( '### MAIN: a WRITE_GC_RESTART_FILE' )
+               ENDIF
 
 #if defined( USE_TIMERS )
                CALL GEOS_Timer_Start( "HEMCO", RC )
@@ -948,11 +934,6 @@
 #if defined( USE_TIMERS )
                CALL GEOS_Timer_End( "HEMCO", RC )
 #endif
-
-               !### Debug
-               IF ( prtDebug ) THEN
-                  CALL DEBUG_MSG( '### MAIN: a MAKE_RESTART_FILE' )
-               ENDIF
 
             ENDIF
 

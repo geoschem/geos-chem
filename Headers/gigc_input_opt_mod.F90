@@ -339,9 +339,9 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER,            POINTER :: TMAX(:)
      LOGICAL                     :: DO_DIAG_WRITE
 
-#if defined( NETCDF )
      ! Collection ids
      INTEGER                     :: DIAG_COLLECTION
+#if defined( NETCDF )
      INTEGER                     :: GC_RST_COLLECTION
 
      ! New diagnostic group output types (e.g. 'mean')

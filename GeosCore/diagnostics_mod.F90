@@ -70,7 +70,9 @@ MODULE Diagnostics_Mod
   PRIVATE :: DiagnInit_Rain_Frac        ! ND17 init
   PRIVATE :: DiagnInit_Wash_Frac        ! ND18 init
   PRIVATE :: DiagnInit_Landmap          ! ND30 init
+#if defined( DEVEL )
   PRIVATE :: DiagnInit_Tracer_Emis      ! added by ck
+#endif
   !PRIVATE :: DiagnInit_HrlyMax_SurfConc ! ND71 init (impementation commented
                                          ! out pending decision on if to keep)
   !   to do: ND37 (updraft scav fraction)
@@ -93,24 +95,18 @@ MODULE Diagnostics_Mod
   ! concentrations (in addition to the tracers). Not recommended unless
   ! you have a good reason (ckeller, 8/11/2015).
   LOGICAL, PARAMETER, PUBLIC   :: DiagnSpec = .FALSE.
-#endif
-#if defined( NETCDF )
+
   ! Initialize GEOS-Chem diagnostics container id (ewl, 1/20/16)
   ! If we add containers, we will need to modify this to have a different
   ! container id variable per collection.
   INTEGER, SAVE, PRIVATE       :: cId = 0            
 
-  ! Logical indicator for whether diagnostics have been initialized.
-  ! This is used to skip setting diagnostics during Met-field initial read
-  ! which occurs before HEMCO and diagnostics are initialized.
-  LOGICAL, SAVE, PUBLIC        :: DIAGN_IS_INIT = .FALSE.
-#endif
+#endif ! netcdf 1
 !
 ! !REVISION HISTORY:
 !  09 Jan 2015 - C. Keller   - Initial version. 
 !  14 Jan 2016 - E. Lundgren - Add several GEOS-Chem diagnostics
 !  29 Jan 2016 - E. Lundgren - Update diagnostics for recent HEMCO updates
-!                              and add logical flag to indicate init done
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -423,7 +419,6 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in Tendencies_Init', LOC ) 
     ENDIF
-#endif
 
     ! Tracer emission diagnostics (NEW) (added by Christoph)
     ! NOTE: Currently this diagnostic must be initialized last since since
@@ -434,9 +429,7 @@ CONTAINS
           CALL ERROR_STOP( 'Error in DiagnInit_Tracer_Emis', LOC ) 
        ENDIF
     ENDIF
-
-    ! Set logical indicator that diagnostics are ready for updating
-    DIAGN_IS_INIT = .TRUE.
+#endif
 
     ! Leave with success
     RC = GIGC_SUCCESS
@@ -520,9 +513,9 @@ CONTAINS
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  19 Jan 2016 - E. Lundgren - Initial version
@@ -633,9 +626,9 @@ CONTAINS
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Met state
     TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  21 Jan 2016 - E. Lundgren   - Initial version
@@ -762,9 +755,9 @@ CONTAINS
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  13 Jan 2015 - C. Keller   - Initial version 
@@ -873,11 +866,11 @@ CONTAINS
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! Chemistry state 
+    TYPE(ChmState), INTENT(IN   ) :: State_Chm  ! Chemistry state 
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jan 2015 - R. Yantosca - Initial version
@@ -1001,9 +994,9 @@ CONTAINS
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(MetState), INTENT(IN   ) :: State_Met  ! Met state
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  21 Jan 2015 - E. Lundgren - Initial version
@@ -1252,9 +1245,9 @@ CONTAINS
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  21 Jan 2015 - E. Lundgren - Initial version
@@ -1337,9 +1330,9 @@ CONTAINS
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  23 Jan 2015 - E. Lundgren - Initial version
@@ -1432,9 +1425,9 @@ CONTAINS
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  26 Jan 2015 - E. Lundgren - Initial version
@@ -1515,9 +1508,9 @@ CONTAINS
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  26 Jan 2015 - E. Lundgren - Initial version
@@ -1608,9 +1601,9 @@ CONTAINS
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  26 Jan 2015 - E. Lundgren - Initial version
@@ -1700,9 +1693,9 @@ CONTAINS
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  26 Jan 2015 - E. Lundgren - Initial version
@@ -1799,9 +1792,9 @@ CONTAINS
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  26 Jan 2015 - E. Lundgren - Initial version
@@ -1910,9 +1903,9 @@ CONTAINS
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  26 Jan 2015 - E. Lundgren - Initial version
@@ -2021,9 +2014,9 @@ CONTAINS
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  26 Jan 2015 - E. Lundgren - Initial version
@@ -2102,9 +2095,9 @@ CONTAINS
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  26 Jan 2015 - E. Lundgren - Initial version
@@ -2161,353 +2154,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: DiagnInit_Tracer_Emis
-!
-! !DESCRIPTION: Subroutine DiagnInit\_Tracer\_Emis initializes diagnostics for 
-!  total species emissions diagnostics. 
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE DiagnInit_Tracer_Emis( am_I_Root, Input_Opt, State_Met, RC ) 
-!
-! !USES:
-!
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
-    USE TRACERID_MOD
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
-    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt   ! Input Options object
-    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
-!
-! !REMARKS:
-!
-! !REVISION HISTORY: 
-!  05 Mar 2015 - C. Keller   - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER            :: ID
-    INTEGER            :: Collection, N
-    CHARACTER(LEN=15)  :: OutOper
-    CHARACTER(LEN=60)  :: DiagnName
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DiagnInit_Tracer_Emis (diagnostics_mod.F90)' 
-
-    !=======================================================================
-    ! DIAGNINIT_TRACER_EMIS begins here!
-    !=======================================================================
-      
-    ! Assume successful return
-    RC = GIGC_SUCCESS
-
-    ! Get diagnostic parameters from the Input_Opt object
-    ! Use same output frequency and operations as for tracer concentrations.
-    Collection = Input_Opt%DIAG_COLLECTION
-    OutOper    = Input_Opt%TRACER_EMIS_OUTPUT_TYPE
- 
-    ! Loop over # of species 
-    DO N = 1, Input_Opt%N_TRACERS
-       
-       ! HEMCO ID
-       ID = GetHcoID( TrcId = N )
- 
-       ! Restrict diagnostics to these species
-       IF ( N /= IDTNO    .AND. N /= IDTCO     .AND. &
-            N /= IDTALK4  .AND. N /= IDTISOP   .AND. &
-            N /= IDTHNO3  .AND. N /= IDTACET   .AND. &
-            N /= IDTMEK   .AND. N /= IDTALD2   .AND. &
-            N /= IDTPRPE  .AND. N /= IDTC3H8   .AND. &
-            N /= IDTC2H6  .AND. N /= IDTDMS    .AND. &
-            N /= IDTSO2   .AND. N /= IDTSO4    .AND. &
-            N /= IDTNH3   .AND. N /= IDTBCPI   .AND. &
-            N /= IDTOCPI  .AND. N /= IDTBCPO   .AND. &
-            N /= IDTOCPO  .AND. N /= IDTDST1   .AND. &
-            N /= IDTDST2  .AND. N /= IDTDST3   .AND. &
-            N /= IDTDST4  .AND. N /= IDTSALA   .AND. &
-            N /= IDTSALC  .AND. N /= IDTBr2    .AND. &
-            N /= IDTBrO   .AND. N /= IDTCH2Br2 .AND. &
-            N /= IDTCH3Br .AND. N /= IDTO3             ) THEN
-          ID = -1
-       ENDIF
- 
-       ! If this is an emission tracer, add diagnostics for emissions. 
-       IF ( ID > 0 ) THEN 
-
-          !----------------------------------------------------------------
-          ! Create container for emission flux (kg/s) 
-          !----------------------------------------------------------------
-
-          ! Diagnostic container name and id
-          DiagnName = 'TRACER_EMIS_' // TRIM( Input_Opt%TRACER_NAME(N) )
-          cId = 10000 + ID
-
-          ! Create container
-          CALL Diagn_Create( am_I_Root,                     &
-                             Col       = Collection,        & 
-                             cId       = cId,               &
-                             cName     = TRIM( DiagnName ), &
-                             HcoID     = ID,                &
-                             SpaceDim  =  3,                &
-                             OutUnit   = 'kg/s',            &
-                             OutOper   = TRIM( OutOper ),   &
-                             RC        = RC                  )
-
-          IF ( RC /= HCO_SUCCESS ) THEN
-             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-             CALL ERROR_STOP( MSG, LOC ) 
-          ENDIF
-       ENDIF
-    ENDDO
-
-  END SUBROUTINE DiagnInit_Tracer_Emis
-!EOC
-#if defined( DEVEL )
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: diagninit_dobson
-!
-! !DESCRIPTION: Subroutine DIAGNINIT\_DOBSON initializes the O3 dobson column
-! diagnostics. 
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE DiagnInit_Dobson( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE TRACERID_MOD, ONLY : IDTO3
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
-!  07 Jul 2015 - C. Keller   - Initial version 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER            :: Collection, N
-    CHARACTER(LEN=15)  :: OutOper
-    CHARACTER(LEN=60)  :: DiagnName
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DIAGNINIT_DOBSON (diagnostics_mod.F)' 
-    
-    !=======================================================================
-    ! DIAGNINIT_DOBSON begins here!
-    !=======================================================================
-
-    ! Assume successful return
-    RC = GIGC_SUCCESS
-
-    ! Nothing to do if O3 is not a tracer
-    IF ( IDTO3 <= 0 ) RETURN
-
-    ! Get diagnostic parameters from the Input_Opt object
-    Collection = Input_Opt%DIAG_COLLECTION
-    OutOper    = 'Mean'
-     
-    ! troposphere and total column
-    DO N = 1, 2
- 
-       ! Diagnostic container name and id
-       IF ( N == 1 ) THEN
-          DiagnName = 'O3_COLUMN' 
-       ELSEIF ( N == 2 ) THEN
-          DiagnName = 'O3_TROPCOLUMN' 
-       ENDIF
-       cId = cId + 1
-
-       ! Create container
-       CALL Diagn_Create( am_I_Root,                     &
-                          Col       = Collection,        & 
-                          cId       = cId,               & 
-                          cName     = TRIM( DiagnName ), &
-                          SpaceDim  =  2,                &
-                          OutUnit   = 'dobson',          &
-                          OutOper   = TRIM( OutOper ),   &
-                          OkIfExist = .TRUE.,            &
-                          RC        = RC )
-      IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'Cannot create diagnostics '//TRIM(DiagnName), LOC ) 
-      ENDIF  
- 
-   ENDDO
-   
-  END SUBROUTINE DiagnInit_Dobson
-!EOC
-#endif
-#if defined( DEVEL )
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: CalcDobsonColumn 
-!
-! !DESCRIPTION: Subroutine CalcDobsonColumn calculates total ozone column in
-! dobsons and adds them to the GEOS-Chem diagnostics. 
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE CalcDobsonColumn( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-!
-! !USES:
-!
-    USE PHYSCONSTANTS,      ONLY : AIRMW, AVO,   g0
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE HCO_Diagn_Mod,      ONLY : Diagn_Update
-    USE TRACERID_MOD,       ONLY : IDTO3
-    USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
-    USE PRESSURE_MOD,       ONLY : GET_PEDGE
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root  ! Is this the root CPU?!
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
-    TYPE(MetState), INTENT(IN   ) :: State_Met  ! Met state
-    TYPE(ChmState), INTENT(IN   ) :: State_Chm  ! Chemistry state 
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
-!  07 Jul 2015 - C. Keller   - Initial version 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    TYPE(DiagnCont), POINTER :: DgnPtr => NULL()
-
-    INTEGER                  :: I, J, L
-
-    REAL(fp)                 :: constant
-    REAL(fp)                 :: DP, O3vv, DU
-    REAL(fp)                 :: TROPO3(IIPAR,JJPAR)
-    REAL(fp)                 :: TOTO3 (IIPAR,JJPAR)
-
-    LOGICAL, SAVE            :: FIRST      = .TRUE.
-    LOGICAL, SAVE            :: TropDiagn  = .FALSE.
-    LOGICAL, SAVE            :: TotDiagn   = .FALSE.
-
-    CHARACTER(LEN=255)       :: MSG
-    CHARACTER(LEN=255)       :: LOC = 'CalcDobsonColumn (diagnostics_mod.F)' 
-    
-    !=======================================================================
-    ! CalcDobsonColumn begins here!
-    !=======================================================================
-
-    ! Assume successful return
-    RC = GIGC_SUCCESS
-
-    ! Nothing to do if O3 is not a tracer
-    IF ( IDTO3 <= 0 ) RETURN
-
-    ! On first call, check if any of the two diagnostics is defined
-    IF ( FIRST ) THEN
-       CALL DiagnCont_Find( -1, -1, -1, -1, -1, 'O3_COLUMN', &
-                            -1, TotDiagn, DgnPtr )
-       DgnPtr => NULL()
-
-       CALL DiagnCont_Find( -1, -1, -1, -1, -1, 'O3_TROPCOLUMN', &
-                            -1, TropDiagn, DgnPtr ) 
-
-       DgnPtr => NULL()
-       FIRST = .FALSE.
-    ENDIF
-
-    ! Nothing to do if none of the diagnostics exist
-    IF ( .NOT. TotDiagn .AND. .NOT. TropDiagn ) RETURN 
-
-    ! Initialize values
-    TROPO3 = 0.0_fp
-    TOTO3  = 0.0_fp
-
-    ! Constant
-    constant = 0.01_fp * AVO / ( g0 * ( AIRMW/1000.0_fp) )
-
-    ! Do for all levels
-    !$OMP PARALLEL DO &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, DP, O3vv, DU )
-    DO L = 1, LLPAR
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
-
-       ! Pressure difference in hPa
-       DP = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
-
-       ! Ozone in v/v
-       O3vv = State_Chm%Tracers(I,J,L,IDTO3) * Input_Opt%TCVV(IDTO3) / State_Met%AD(I,J,L)
-
-       ! Calculate O3 in DU for this grid box 
-       DU = O3vv * DP * constant / 2.69e16_fp
-
-       ! Add to totals
-       IF ( TotDiagn ) THEN
-          TOTO3(I,J) = TOTO3(I,J) + DU
-       ENDIF
-       IF ( TropDiagn ) THEN
-          IF ( ITS_IN_THE_TROP(I,J,L,State_Met) ) THEN
-             TROPO3(I,J) = TROPO3(I,J) + DU
-          ENDIF
-       ENDIF
-
-    ENDDO
-    ENDDO
-    ENDDO
-    !$OMP END PARALLEL DO
-
-    ! Update diagnostics
-    IF ( TotDiagn ) THEN
-       CALL Diagn_Update( am_I_Root, cName = 'O3_COLUMN',     Array2D = TOTO3,  RC=RC )
-    ENDIF
-    IF ( TropDiagn ) THEN
-       CALL Diagn_Update( am_I_Root, cName = 'O3_TROPCOLUMN', Array2D = TROPO3, RC=RC )
-    ENDIF
-
-    ! Return w/ success
-    RC = GIGC_SUCCESS
-   
-  END SUBROUTINE CalcDobsonColumn
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: diagnupdate_met
 !
 ! !DESCRIPTION: Subroutine DIAGNUPDATE\_MET updates the meteorology state
@@ -2534,9 +2180,9 @@ CONTAINS
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(MetState), INTENT(IN   ) :: State_Met  ! Met state
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  21 Jan 2015 - E. Lundgren - Initial version
@@ -2814,9 +2460,9 @@ CONTAINS
    REAL(fp),         INTENT(IN)  :: FLUX_VERT(:,:,:,:) ! vertical mass flux
    TYPE(OptInput),   INTENT(IN)  :: Input_Opt          ! Input options object
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-   INTEGER,          INTENT(INOUT) :: RC               ! Success or failure
+   INTEGER,          INTENT(OUT) :: RC               ! Success or failure
 !
 ! !REVISION HISTORY:
 !  12 Feb 2015 - E. Lundgren   - Initial version
@@ -2909,6 +2555,352 @@ CONTAINS
 
    END SUBROUTINE DiagnUpdate_Transport_Flux
 !EOC
+#if defined( DEVEL )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagnInit_Tracer_Emis
+!
+! !DESCRIPTION: Subroutine DiagnInit\_Tracer\_Emis initializes diagnostics for 
+!  total species emissions diagnostics. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagnInit_Tracer_Emis( am_I_Root, Input_Opt, State_Met, RC ) 
+!
+! !USES:
+!
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
+    USE TRACERID_MOD
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
+    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt   ! Input Options object
+    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT)    :: RC         ! Failure or success
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  05 Mar 2015 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: ID
+    INTEGER            :: Collection, N
+    CHARACTER(LEN=15)  :: OutOper
+    CHARACTER(LEN=60)  :: DiagnName
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DiagnInit_Tracer_Emis (diagnostics_mod.F90)' 
+
+    !=======================================================================
+    ! DIAGNINIT_TRACER_EMIS begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Get diagnostic parameters from the Input_Opt object
+    ! Use same output frequency and operations as for tracer concentrations.
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%TRACER_EMIS_OUTPUT_TYPE
+ 
+    ! Loop over # of species 
+    DO N = 1, Input_Opt%N_TRACERS
+       
+       ! HEMCO ID
+       ID = GetHcoID( TrcId = N )
+ 
+       ! Restrict diagnostics to these species
+       IF ( N /= IDTNO    .AND. N /= IDTCO     .AND. &
+            N /= IDTALK4  .AND. N /= IDTISOP   .AND. &
+            N /= IDTHNO3  .AND. N /= IDTACET   .AND. &
+            N /= IDTMEK   .AND. N /= IDTALD2   .AND. &
+            N /= IDTPRPE  .AND. N /= IDTC3H8   .AND. &
+            N /= IDTC2H6  .AND. N /= IDTDMS    .AND. &
+            N /= IDTSO2   .AND. N /= IDTSO4    .AND. &
+            N /= IDTNH3   .AND. N /= IDTBCPI   .AND. &
+            N /= IDTOCPI  .AND. N /= IDTBCPO   .AND. &
+            N /= IDTOCPO  .AND. N /= IDTDST1   .AND. &
+            N /= IDTDST2  .AND. N /= IDTDST3   .AND. &
+            N /= IDTDST4  .AND. N /= IDTSALA   .AND. &
+            N /= IDTSALC  .AND. N /= IDTBr2    .AND. &
+            N /= IDTBrO   .AND. N /= IDTCH2Br2 .AND. &
+            N /= IDTCH3Br .AND. N /= IDTO3             ) THEN
+          ID = -1
+       ENDIF
+ 
+       ! If this is an emission tracer, add diagnostics for emissions. 
+       IF ( ID > 0 ) THEN 
+
+          !----------------------------------------------------------------
+          ! Create container for emission flux (kg/s) 
+          !----------------------------------------------------------------
+
+          ! Diagnostic container name and id
+          DiagnName = 'TRACER_EMIS_' // TRIM( Input_Opt%TRACER_NAME(N) )
+          cId = 10000 + ID
+
+          ! Create container
+          CALL Diagn_Create( am_I_Root,                     &
+                             Col       = Collection,        & 
+                             cId       = cId,               &
+                             cName     = TRIM( DiagnName ), &
+                             HcoID     = ID,                &
+                             SpaceDim  =  3,                &
+                             OutUnit   = 'kg/s',            &
+                             OutOper   = TRIM( OutOper ),   &
+                             RC        = RC                  )
+
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC ) 
+          ENDIF
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE DiagnInit_Tracer_Emis
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diagninit_dobson
+!
+! !DESCRIPTION: Subroutine DIAGNINIT\_DOBSON initializes the O3 dobson column
+! diagnostics. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagnInit_Dobson( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE TRACERID_MOD, ONLY : IDTO3
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  07 Jul 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: Collection, N
+    CHARACTER(LEN=15)  :: OutOper
+    CHARACTER(LEN=60)  :: DiagnName
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DIAGNINIT_DOBSON (diagnostics_mod.F)' 
+    
+    !=======================================================================
+    ! DIAGNINIT_DOBSON begins here!
+    !=======================================================================
+
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Nothing to do if O3 is not a tracer
+    IF ( IDTO3 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = 'Mean'
+     
+    ! troposphere and total column
+    DO N = 1, 2
+ 
+       ! Diagnostic container name and id
+       IF ( N == 1 ) THEN
+          DiagnName = 'O3_COLUMN' 
+       ELSEIF ( N == 2 ) THEN
+          DiagnName = 'O3_TROPCOLUMN' 
+       ENDIF
+       cId = cId + 1
+
+       ! Create container
+       CALL Diagn_Create( am_I_Root,                     &
+                          Col       = Collection,        & 
+                          cId       = cId,               & 
+                          cName     = TRIM( DiagnName ), &
+                          SpaceDim  =  2,                &
+                          OutUnit   = 'dobson',          &
+                          OutOper   = TRIM( OutOper ),   &
+                          OkIfExist = .TRUE.,            &
+                          RC        = RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'Cannot create diagnostics '//TRIM(DiagnName), LOC ) 
+      ENDIF  
+ 
+   ENDDO
+   
+  END SUBROUTINE DiagnInit_Dobson
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CalcDobsonColumn 
+!
+! !DESCRIPTION: Subroutine CalcDobsonColumn calculates total ozone column in
+! dobsons and adds them to the GEOS-Chem diagnostics. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE CalcDobsonColumn( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!
+! !USES:
+!
+    USE PHYSCONSTANTS,      ONLY : AIRMW, AVO,   g0
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Update
+    USE TRACERID_MOD,       ONLY : IDTO3
+    USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
+    USE PRESSURE_MOD,       ONLY : GET_PEDGE
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root  ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(MetState), INTENT(IN   ) :: State_Met  ! Met state
+    TYPE(ChmState), INTENT(IN   ) :: State_Chm  ! Chemistry state 
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  07 Jul 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    TYPE(DiagnCont), POINTER :: DgnPtr => NULL()
+
+    INTEGER                  :: I, J, L
+
+    REAL(fp)                 :: constant
+    REAL(fp)                 :: DP, O3vv, DU
+    REAL(fp)                 :: TROPO3(IIPAR,JJPAR)
+    REAL(fp)                 :: TOTO3 (IIPAR,JJPAR)
+
+    LOGICAL, SAVE            :: FIRST      = .TRUE.
+    LOGICAL, SAVE            :: TropDiagn  = .FALSE.
+    LOGICAL, SAVE            :: TotDiagn   = .FALSE.
+
+    CHARACTER(LEN=255)       :: MSG
+    CHARACTER(LEN=255)       :: LOC = 'CalcDobsonColumn (diagnostics_mod.F)' 
+    
+    !=======================================================================
+    ! CalcDobsonColumn begins here!
+    !=======================================================================
+
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Nothing to do if O3 is not a tracer
+    IF ( IDTO3 <= 0 ) RETURN
+
+    ! On first call, check if any of the two diagnostics is defined
+    IF ( FIRST ) THEN
+       CALL DiagnCont_Find( -1, -1, -1, -1, -1, 'O3_COLUMN', &
+                            -1, TotDiagn, DgnPtr )
+       DgnPtr => NULL()
+
+       CALL DiagnCont_Find( -1, -1, -1, -1, -1, 'O3_TROPCOLUMN', &
+                            -1, TropDiagn, DgnPtr ) 
+
+       DgnPtr => NULL()
+       FIRST = .FALSE.
+    ENDIF
+
+    ! Nothing to do if none of the diagnostics exist
+    IF ( .NOT. TotDiagn .AND. .NOT. TropDiagn ) RETURN 
+
+    ! Initialize values
+    TROPO3 = 0.0_fp
+    TOTO3  = 0.0_fp
+
+    ! Constant
+    constant = 0.01_fp * AVO / ( g0 * ( AIRMW/1000.0_fp) )
+
+    ! Do for all levels
+    !$OMP PARALLEL DO &
+    !$OMP DEFAULT( SHARED ) &
+    !$OMP PRIVATE( I, J, L, DP, O3vv, DU )
+    DO L = 1, LLPAR
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
+
+       ! Pressure difference in hPa
+       DP = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
+
+       ! Ozone in v/v
+       O3vv = State_Chm%Tracers(I,J,L,IDTO3) * Input_Opt%TCVV(IDTO3) / State_Met%AD(I,J,L)
+
+       ! Calculate O3 in DU for this grid box 
+       DU = O3vv * DP * constant / 2.69e16_fp
+
+       ! Add to totals
+       IF ( TotDiagn ) THEN
+          TOTO3(I,J) = TOTO3(I,J) + DU
+       ENDIF
+       IF ( TropDiagn ) THEN
+          IF ( ITS_IN_THE_TROP(I,J,L,State_Met) ) THEN
+             TROPO3(I,J) = TROPO3(I,J) + DU
+          ENDIF
+       ENDIF
+
+    ENDDO
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+    ! Update diagnostics
+    IF ( TotDiagn ) THEN
+       CALL Diagn_Update( am_I_Root, cName = 'O3_COLUMN',     Array2D = TOTO3,  RC=RC )
+    ENDIF
+    IF ( TropDiagn ) THEN
+       CALL Diagn_Update( am_I_Root, cName = 'O3_TROPCOLUMN', Array2D = TROPO3, RC=RC )
+    ENDIF
+
+    ! Return w/ success
+    RC = GIGC_SUCCESS
+   
+  END SUBROUTINE CalcDobsonColumn
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2936,9 +2928,9 @@ CONTAINS
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
     TYPE(OptInput),   INTENT(IN   )  :: Input_Opt  ! Input opts
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+    INTEGER,          INTENT(OUT)    :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
 !  15 Mar 2015 - C. Keller    - Initial version 
@@ -3057,7 +3049,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT) :: RC         ! Failure or success
+    INTEGER,        INTENT(OUT)      :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
 !  09 Jan 2015 - C. Keller   - Initial version
@@ -3101,18 +3093,10 @@ CONTAINS
     ! GEOS-Chem restart file is currently not defined ...
     !-----------------------------------------------------------------------
     IF ( RESTART ) THEN
-!       CALL HCOIO_DIAGN_WRITEOUT( am_I_Root,                                &
-!                                  HcoState,                                 &
-!                                  ForceWrite  = .TRUE.,                     &
-!                                  UsePrevTime = .FALSE.,                    & 
-!                                  PREFIX      = RST,                        &
-!                                  COL         = Input_Opt%DIAG_COLLECTION,  &
-!                                  OnlyIfFirst = .TRUE.,                     &
-!                                  RC          = RC                         )
-!   
-!       IF ( RC /= HCO_SUCCESS ) THEN
-!          CALL ERROR_STOP( 'Diagnostics restart write error', LOC ) 
-!       ENDIF
+
+       ! Do nothing. GEOS-Chem restart is written by call to routine
+       ! WRITE_GC_RESTART in main.F. That routine is implemented in
+       ! GeosCore/restart_mod.F (ewl, 2/5/16_
 
     !-----------------------------------------------------------------------
     ! Not restart: write out regular diagnostics. Use current time stamp.

@@ -45,7 +45,9 @@
       USE GIGC_State_Chm_Mod,   ONLY : ChmState
       USE GIGC_State_Met_Mod,   ONLY : MetState
       USE PLANEFLIGHT_MOD,      ONLY : SETUP_PLANEFLIGHT
-      USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
+#if defined( BPCH )
+      USE RESTART_MOD,          ONLY : READ_CSPEC_FILE
+#endif 
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : GET_NHMS
       USE TIME_MOD,             ONLY : GET_NYMD
@@ -609,6 +611,10 @@
       ! family tracers into individual species.
       !
       ! This is current practice in the std GEOS-Chem. (bmy, 10/24/12)
+      ! 
+      ! Now only read CSPEC here if using binary-punch format restart
+      ! files. If using NetCDF, CSPEC data is read during main restart
+      ! file read. (ewl, 2/8/16)
       !-----------------------------------------------------------------
 
       ! Assume there
@@ -617,11 +623,12 @@
       ! Test if 
       IF ( FIRSTCHEM .and. LSVCSPEC ) THEN
 
+#if defined( BPCH )
          ! Read the CSPEC restart file.  If not found, then 
          ! return IT_EXISTS = .FALSE.
          CALL READ_CSPEC_FILE( am_I_Root,  Input_Opt, GET_NYMD(), 
      &                         GET_NHMS(), IT_EXISTS, State_Chm,  RC  )
-   
+#endif   
          IF ( .not. IT_EXISTS ) THEN 
 
             !-----------------------------------------------------------
@@ -666,7 +673,7 @@
 
       !### Debug
       IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMDR: after READ_CSPEC_FILE' )
+         CALL DEBUG_MSG( '### CHEMDR: after call to GASCONC' )
       ENDIF
 #endif
 
