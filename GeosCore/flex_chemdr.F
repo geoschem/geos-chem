@@ -30,10 +30,12 @@
       USE ERROR_MOD,            ONLY : ERROR_STOP
       USE FAST_JX_MOD
       USE FLEXCHEM_SETUP_MOD,   ONLY : STTTOCSPEC, CSPECTOKPP, HSAVE_KPP
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GIGC_State_Chm_Mod,   ONLY : ChmState, Get_Indx
       USE GIGC_State_Met_Mod,   ONLY : MetState
+      USE GRID_MOD,             ONLY : GET_YMID
       USE HCO_DIAGN_MOD,        ONLY : Diagn_Update
       USE HCO_ERROR_MOD,        ONLY : HCO_SUCCESS
       USE PRECISION_MOD
@@ -41,6 +43,7 @@
       USE TIME_MOD,             ONLY : GET_TS_CHEM
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : GET_YEAR
+      USE TRACERID_MOD,         ONLY : IDTCH4
       USE UCX_MOD,              ONLY : CALC_STRAT_AER
 
       ! mje
@@ -88,6 +91,16 @@
       LOGICAL             :: prtDebug
       LOGICAL             :: LDUST
       CHARACTER(LEN=155)  :: DiagnName
+
+      ! SAVEd variables
+      LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
+      INTEGER, SAVE       :: CH4_YEAR  = -1
+
+      ! For grid-box latitude
+      REAL(fp)            :: YLAT
+
+      ! For interannually-varying Methane
+      REAL(fp)            :: C3090S, C0030S, C0030N, C3090N
 
       ! mje Variables for holding rate diagnoastics
       ! mje DERIV: Concentrations derivatives for one box d[X]/dt
@@ -154,6 +167,54 @@
      &            NAMEGAS(66), ' = ', State_Chm%Species(10,10,10,66)
       write(*,'(3a,2e12.4)') '<> a RURALBOX ',
      &            NAMEGAS(62), ' = ', State_Chm%Species(10,10,10,62)
+
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
+      !
+      ! Do nothing, since we will call these setup routines from the 
+      ! init method of the ESMF interface (bmy, 10/24/12)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
+      !
+      ! Call the following chemistry setup routines only on the very
+      ! first chemistry timestep.  This is current practice in the
+      ! std GEOS-Chem. (bmy, 10/24/12)
+      !-----------------------------------------------------------------
+      IF ( FIRSTCHEM ) THEN
+
+         !---------------------------------
+         ! Set global concentration of CH4
+         !---------------------------------
+         ! Check that CH4 is not a defined tracer
+         IF ( IDTCH4 == 0 .and. IND_CH4 > 0 .and. 
+     &      ( CH4_YEAR /= YEAR ) ) THEN
+
+            ! If CH4 is a SMVGEAR II species, then call GET_GLOBAL_CH4
+            ! to return the globally-varying CH4 conc. as a function of
+            ! year and latitude bin.  (ICH4 is defined in READCHEM.)
+            ! (bnd, bmy, 7/1/03)
+            !
+            ! If we are using the future emissions, then get the CH4
+            ! concentrations for FUTURE_YEAR.  Otherwise get the CH4
+            ! concentrations for the current met field year. 
+            ! (swu, havala, bmy, 1/24/08)
+            IF ( Input_Opt%LFUTURE ) THEN
+               CH4_YEAR = GET_FUTURE_YEAR()
+            ELSE
+               CH4_YEAR = GET_YEAR()
+            ENDIF
+
+            ! Get CH4 [ppbv] in 4 latitude bins for each year
+            CALL GET_GLOBAL_CH4( CH4_YEAR,  .TRUE.,  C3090S,
+     &                           C0030S,    C0030N,  C3090N, 
+     &                           am_I_Root, Input_Opt        )
+         ENDIF
+
+      ENDIF
+#endif
 
       !================================================================
       ! Get concentrations of aerosols in [kg/m3] 
@@ -409,6 +470,9 @@
          CALL SET_HET(I,J,L,State_Chm,State_Met,Input_Opt,
      &        scoeff(I,J,L,1:3))
 
+         ! Grid-box latitude index
+         YLAT  = GET_YMID( I,J,L )
+
          ! mje Set up the physical conditions for the current box
          ! mje These variables are defined by the KPP definition files gckpp.kpp
          ! mje #INLINE F90_GLOBAL    
@@ -449,9 +513,25 @@
 
          ! mje Set up the values of the non-variable species
          ! mje This needs to be interfaced into the GC system better
-         C(ind_CH4) = 1770.e-9_dp * NUMDEN
+!------------------------------------------------------------------------------
+! Prior to 2/10/16:
+! Set CH4 according to latitude (mps, 2/10/16)
+!         C(ind_CH4) = 1770.e-9_dp * NUMDEN
+!------------------------------------------------------------------------------
          C(ind_MOH) = 0.5e-9_dp   * NUMDEN
          C(ind_H2)  = 0.5e-6_dp   * NUMDEN
+
+         ! Set CH4 according to latitude
+         ! Convert from [ppbv CH4] to [molec CH4/cm3]
+         IF ( YLAT < -30e+0_fp ) THEN
+            C(ind_CH4) = C3090S * 1e-9_dp * NUMDEN
+         ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  ) THEN
+            C(ind_CH4) = C0030S * 1e-9_dp * NUMDEN
+         ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp ) THEN
+            C(ind_CH4) = C0030N * 1e-9_dp * NUMDEN
+         ELSE
+            C(ind_CH4) = C3090N * 1e-9_dp * NUMDEN
+         ENDIF
 
          ! starting value for integration time step
          RCNTRL(3) = HSAVE_KPP(I,J,L)
@@ -724,6 +804,9 @@
 
       ! mje set rid of the pointers created
       NULLIFY (STT)
+
+      ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step
+      FIRSTCHEM = .FALSE.
 
       END SUBROUTINE FLEX_CHEMDR
 !EOC
