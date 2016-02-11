@@ -62,89 +62,26 @@ MODULE GIGC_State_Chm_Mod
      INTEGER,           POINTER :: JLOP_PREV  (:,:,:  )  ! JLOP, prev timestep
 #endif
 
-     ! Stratospheric chemistry 
-     INTEGER,           POINTER :: Schm_Id    (:      )  ! Strat Chem ID #'s
-     CHARACTER(LEN=14), POINTER :: Schm_Name  (:      )  ! Strat Chem Names
-     REAL(fp),          POINTER :: Schm_P     (:,:,:,:)  ! Strat prod [v/v/s]
-     REAL(fp),          POINTER :: Schm_k     (:,:,:,:)  ! Strat loss [1/s]
-     INTEGER,           POINTER :: Schm_BryId (:      )  ! Bry tracer #'s
-     CHARACTER(LEN=14), POINTER :: Schm_BryNam(:      )  ! Bry Names
-     REAL(fp),          POINTER :: Schm_BryDay(:,:,:,:)  ! Bry, Day
-     REAL(fp),          POINTER :: Schm_BryNit(:,:,:,:)  ! Bry, Night
- 
+     ! NOTE: Comment out for now, leave for future expansion (bmy, 11/20/12)
+     !! Stratospheric chemistry 
+     !INTEGER,           POINTER :: Schm_Id    (:      )  ! Strat Chem ID #'s
+     !CHARACTER(LEN=14), POINTER :: Schm_Name  (:      )  ! Strat Chem Names
+     !REAL(fp),          POINTER :: Schm_P     (:,:,:,:)  ! Strat prod [v/v/s]
+     !REAL(fp),          POINTER :: Schm_k     (:,:,:,:)  ! Strat loss [1/s]
+     !INTEGER,           POINTER :: Schm_BryId (:      )  ! Bry tracer #'s
+     !CHARACTER(LEN=14), POINTER :: Schm_BryNam(:      )  ! Bry Names
+     !REAL(fp),          POINTER :: Schm_BryDay(:,:,:,:)  ! Bry, Day
+     !REAL(fp),          POINTER :: Schm_BryNit(:,:,:,:)  ! Bry, Night
+
+     ! Fields for UCX mechanism
+     REAL(f4),           POINTER :: STATE_PSC (:,:,:)   ! PSC type (see Kirner
+                                                        !  et al. 2011, GMD)
+     REAL(fp),           POINTER :: KHETI_SLA (:,:,:,:) ! Strat. liquid aerosol
+                                                        !  reaction cofactors
+
   END TYPE ChmState
 !
 ! !REMARKS:
-!  -----------------------------------------------------------------------
-!   FULLCHEM Simulation Emissions
-!   Done | Units? | Routine
-!   Y/P  --> Yes or Partially(fix needed)
-!           good  --> Verifed that they are in Kg/s
-!  -----------------------------------------------------------------------
-!   Y    |        | CALL COMPUTE_BIOMASS_EMISSIONS
-!   Y    |        | CALL EMISS_STREETS_ANTHRO_05x0666
-!   Y    |        | CALL EMISS_STREETS_ANTHRO
-!   Y    |        | CALL EMISS_EDGAR( YEAR, MONTH )
-!   Y    |  good  | CALL EMISS_RETRO
-!   Y    |  good* | CALL EMISS_EPA_NEI
-!   Y    |        | CALL EMISS_VISTAS_ANTHRO
-!   Y    |        | CALL EMISS_BRAVO
-!   Y    |        | CALL EMISS_EMEP_05x0666
-!   Y    |        | CALL EMISS_EMEP
-!   Y    |        | CALL EMISS_CAC_ANTHRO_05x0666
-!   Y    |        | CALL EMISS_CAC_ANTHRO
-!   Y    |        | CALL EMISS_EPA_NEI
-!   Y    |        | CALL EMISS_NEI2005_ANTHRO_05x0666
-!   Y    |        | CALL EMISS_NEI2005_ANTHRO
-!   Y    |        | CALL EMISS_ARCTAS_SHIP( YEAR )
-!   Y    |        | CALL EMISS_ICOADS_SHIP
-!        |        | CALL EMISSDR
-!   Y    |        | CALL EMISSSEASALT
-!   Y    |        | CALL EMISSSULFATE --> Be sure there's no PBL mixing
-!   Y    |        | CALL EMISSCARBON --> Be sure there's no PBL mixing
-!   Y    |        | CALL EMISSDUST --> Be sure there's no PBL mixing
-!   Y    |        | AIRCRAFT_NOX
-!   Y    |        | LIGHTNING_NOX
-!   Y    |        | SOIL_NOX
-!        |        | BIOFUEL_BURN (NOx and CO)
-!  -----------------------------------------------------------------------
-!   Notes:
-!   LNLPBL Switch --> NEEDS TO BE ON (>=1)
-!                 --> But, does VDIFF need to be turned off? 
-!   NOT ALL EMISSIONS ARE JUST AT SFC, e.g. SO2
-!   LFUTURE --> How to deal with this? e.g. EDGAR emissions
-!   REGIONAL EMISSIONS OVERWRITE GLOBAL!!!!! DEAL WITH THIS!
-!                                                                             .
-!   STT<-->CSPEC mapped in PARTITION
-!                                                                             .
-!   KEEP EMISSIONS FROM UPDATING STT DIRECTLY
-!                                                                             .
-!   NEI EMISSIONS: BIOFUEL EMISSIONS ARE NOT 'REALLY' BIOFUEL.
-!                  AS IN THERE'S NO IDBF'SPEC' INDEX.
-!  
-!  -----------------------------------------------------------------------
-!   FULLCHEM Simulation Chemistry Routines
-!   Done | Units? | Routine
-!   Y/P  --> Yes or Partially(fix needed)
-!           good  --> Verifed that they are in Kg
-!  -----------------------------------------------------------------------
-!        |        | CALL CHEMDR
-!        |        | CALL CHEMSEASALT
-!        |        | CALL CHEMSULFATE
-!        |        | CALL DO_ISOROPIAII
-!        |        | CALL DO_RPMARES
-!        |        | CALL CHEMCARBON
-!        |        | CALL CHEMDUST
-!        |        | CALL DRYFLX     
-!        |        | CALL DIAGOH
-!        |        | CALL OCEAN_SINK_ACET( STT(:,:,1,IDTACET) ) 
-!  -----------------------------------------------------------------------
-!   Notes:
-!   (1) If STT IS TIGHTLY LINKED TO CHEM_STATE, THEN THE ONLY CHANGE
-!       NEEDED IN "DO_CHEMISTRY" IS TO PASS "CHEM_STATE" IN AND OUT
-!   (2) 1st PASS, WORKS ONLY WITH FULLCHEM, NOT APM OR ANY ADD-ON SIM
-!       OPTIONS.
-!  -----------------------------------------------------------------------
 !                                                                             
 ! !REVISION HISTORY:
 !  19 Oct 2012 - R. Yantosca - Initial version, based on "gc_type2_mod.F90"
@@ -157,6 +94,9 @@ MODULE GIGC_State_Chm_Mod
 !                              all species.
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  11 Dec 2014 - R. Yantosca - Keep JLOP and JLOP_PREV for ESMF runs only
+!  28 Jan 2016 - M. Sulprizio- Add STATE_PSC, KHETI_SLA. These were previously
+!                              local arrays in ucx_mod.F, but now need to be
+!                              accessed in gckpp_HetRates.F90.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -346,17 +286,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_GIGC_State_Chm( am_I_Root, IM,        JM,        LM,     &  
-                                  nTracers,  nBioMax,   nSpecies,  nSchm,  &    
-                                  nSchmBry,  Input_Opt, State_Chm, nAerosol, &
-                                  RC      )
+  SUBROUTINE Init_GIGC_State_Chm( am_I_Root, IM,        JM,       LM,       &
+                                  nTracers,  nSpecies,  nSchm,    nSchmBry, &
+                                  Input_Opt, State_Chm, nAerosol, RC        )
 !
 ! !USES:
 !
-                                                                                                                                                         
     USE Comode_Loop_Mod,    ONLY   : ILONG, ILAT, IPVERT
-    USE GIGC_ErrCode_Mod                         ! Error codes
-    USE GIGC_Input_Opt_Mod, ONLY   : OptInput    ! Derived type
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY   : OptInput
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -365,7 +303,6 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: JM          ! # longitudes on this PET
     INTEGER,        INTENT(IN)    :: LM          ! # longitudes on this PET
     INTEGER,        INTENT(IN)    :: nTracers    ! # advected tracers
-    INTEGER,        INTENT(IN)    :: nBioMax     ! # biomass burning tracers
     INTEGER,        INTENT(IN)    :: nSpecies    ! # chemical species  
     INTEGER,        INTENT(IN)    :: nAerosol    ! # aerosol species
     INTEGER,        INTENT(IN)    :: nSchm       ! # of strat chem species
@@ -394,7 +331,7 @@ CONTAINS
 !  26 Feb 2013 - M. Long     - Now pass Input_Opt via the argument list
 !  26 Feb 2013 - M. Long     - Now allocate the State_Chm%DEPSAV field
 !  11 Dec 2014 - R. Yantosca - Remove TRAC_TEND and DEPSAV fields
-
+!  28 Jan 2016 - M. Sulprizio- Remove NBIOMAX argument since it is not used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -407,46 +344,54 @@ CONTAINS
     MAX_DEP = Input_Opt%MAX_DEP
 
     !=====================================================================
-    ! Allocate advected tracer fields
+    ! Allocate and initialize advected tracer fields
     !=====================================================================
 
     ALLOCATE( State_Chm%Trac_Id       (             nTracers+1 ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Trac_Id = 0
 
     ALLOCATE( State_Chm%Trac_Name     (             nTracers+1 ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Trac_name = ''
 
     ALLOCATE( State_Chm%Tracers       ( IM, JM, LM, nTracers+1 ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Tracers = 0e+0_fp
 
     !=====================================================================
-    ! Allocate chemical species fields
+    ! Allocate and initialize chemical species fields
     !=====================================================================
 
     ALLOCATE( State_Chm%Spec_Id       (             nSpecies   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Spec_Id = 0
 
     ALLOCATE( State_Chm%Spec_Name     (             nSpecies   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Spec_Name = ''
 
     ALLOCATE( State_Chm%Species       ( IM, JM, LM, nSpecies   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Species = 0e+0_fp
 
     !=====================================================================
-    ! Allocate aerosol fields
+    ! Allocate and initialize aerosol fields
     !=====================================================================
 
     State_Chm%nAero = nAerosol
 
     ALLOCATE( State_Chm%AeroArea      ( IM, JM, LM, nAerosol   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%AeroArea = 0e+0_fp
 
     ALLOCATE( State_Chm%AeroRadi      ( IM, JM, LM, nAerosol   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%AeroRadi = 0e+0_fp
 
 #if defined( ESMF_ )
     !=====================================================================
-    ! Allocate chemical rate fields
+    ! Allocate and initialize chemical rate fields
     !=====================================================================
 
     ! Keep this here for now -- FLEXCHEM will remove this (bmy, 12/11/14)
@@ -462,7 +407,7 @@ CONTAINS
 
 ! NOTE: Comment out for now, leave for future expansion (bmy, 11/20/12)
 !    !=====================================================================
-!    ! Allocate stratospheric chemistry fields
+!    ! Allocate and initialize stratospheric chemistry fields
 !    !=====================================================================
 !
 !    ! Only allocate if strat chem is turned on
@@ -470,15 +415,19 @@ CONTAINS
 !
 !       ALLOCATE( State_Chm%Schm_Id    (             nSchm      ), STAT=RC )
 !       IF ( RC /= GIGC_SUCCESS ) RETURN
+!       State_Chm%Schm_Id = 0
 !       
 !       ALLOCATE( State_Chm%Schm_Name  (             nSchm      ), STAT=RC )
 !       IF ( RC /= GIGC_SUCCESS ) RETURN
+!       State_Chm%Schm_Name = ''
 !       
 !       ALLOCATE( State_Chm%Schm_P     ( IM, JM, LM, nSchm      ), STAT=RC )
 !       IF ( RC /= GIGC_SUCCESS ) RETURN
+!       State_Chm%Schm_P = 0e+0_fp
 !       
 !       ALLOCATE( State_Chm%Schm_k     ( IM, JM, LM, nSchm      ), STAT=RC )
 !       IF ( RC /= GIGC_SUCCESS ) RETURN
+!       State_Chm%Schm_k = 0e+0_fp
 !    
 !    ENDIF
 !
@@ -487,46 +436,33 @@ CONTAINS
 !   
 !       ALLOCATE( State_Chm%Schm_BryId (             nSchmBry   ), STAT=RC )
 !       IF ( RC /= GIGC_SUCCESS ) RETURN
+!       State_Chm%Schm_BryId = 0
 !       
 !       ALLOCATE( State_Chm%Schm_BryNam(             nSchmBry   ), STAT=RC )
 !       IF ( RC /= GIGC_SUCCESS ) RETURN
+!       State_Chm%Schm_BryNam = ''
 !
 !       ALLOCATE( State_Chm%Schm_BryDay( IM, JM, LM, nSchmBry   ), STAT=RC )
 !       IF ( RC /= GIGC_SUCCESS ) RETURN
+!       State_Chm%Schm_BryDay = 0e+0_fp
 !
 !       ALLOCATE( State_Chm%Schm_BryNit( IM, JM, LM, nSchmBry   ), STAT=RC )
 !       IF ( RC /= GIGC_SUCCESS ) RETURN
+!       State_Chm%Schm_BryNit = 0e+0_fp
 !
 !    ENDIF
 
     !=====================================================================
-    ! Initialize fields
+    ! Allocate and initialize fields for UCX mechamism
     !=====================================================================
 
-    ! Advected tracers
-    State_Chm%Trac_Id     = 0
-    State_Chm%Trac_name   = ''
-    State_Chm%Tracers     = 0e+0_fp
+    ALLOCATE( State_Chm%STATE_PSC     ( IM, JM, LM             ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%STATE_PSC = 0.0_f4
 
-    ! Chemical species
-    State_Chm%Spec_Id     = 0
-    State_Chm%Spec_Name   = ''
-    State_Chm%Species     = 0e+0_fp
-
-! NOTE: Comment out for now, leave for future expansion (bmy, 11/20/12)
-!    ! Stratospheric chemistry    
-!    IF ( nSchm > 0 ) THEN
-!       State_Chm%Schm_Id     = 0
-!       State_Chm%Schm_Name   = ''
-!       State_Chm%Schm_P      = 0e+0_fp
-!       State_Chm%Schm_k      = 0e+0_fp
-!    ENDIF
-!    IF ( nSchmBry > 0 ) THEN
-!       State_Chm%Schm_BryId  = 0
-!       State_Chm%Schm_BryNam = ''
-!       State_Chm%Schm_BryDay = 0e+0_fp
-!       State_Chm%Schm_BryNit = 0e+0_fp
-!    ENDIF
+    ALLOCATE( State_Chm%KHETI_SLA     ( IM, JM, LM, 11         ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%KHETI_SLA = 0.0_fp
 
   END SUBROUTINE Init_GIGC_State_Chm
 !EOC
@@ -577,13 +513,19 @@ CONTAINS
     ! Assume success
     RC = GIGC_SUCCESS
 
-    ! Deallocate fields
+    ! Advected tracers
     IF ( ASSOCIATED(State_Chm%Trac_Id    ) ) DEALLOCATE(State_Chm%Trac_Id    )
     IF ( ASSOCIATED(State_Chm%Trac_Name  ) ) DEALLOCATE(State_Chm%Trac_Name  )
+    IF ( ASSOCIATED(State_Chm%Tracers    ) ) DEALLOCATE(State_Chm%Tracers    )
+
+    ! Chemical species
     IF ( ASSOCIATED(State_Chm%Spec_Id    ) ) DEALLOCATE(State_Chm%Spec_Id    )
     IF ( ASSOCIATED(State_Chm%Spec_Name  ) ) DEALLOCATE(State_Chm%Spec_Name  )
-    IF ( ASSOCIATED(State_Chm%Tracers    ) ) DEALLOCATE(State_Chm%Tracers    )
     IF ( ASSOCIATED(State_Chm%Species    ) ) DEALLOCATE(State_Chm%Species    )
+
+    ! Aerosol quantities
+    IF ( ASSOCIATED(State_Chm%AeroArea   ) ) DEALLOCATE(State_Chm%AeroArea   )
+    IF ( ASSOCIATED(State_Chm%AeroRadi   ) ) DEALLOCATE(State_Chm%AeroRadi   )
 
 #if defined( ESMF_ )
     ! Keep these here for now, FLEXCHEM will remove these (bmy, 12/11/14)
@@ -592,6 +534,7 @@ CONTAINS
 #endif    
 
     ! NOTE: Comment out for now, leave for future expansion (bmy, 11/26/12)
+    !! Stratospheric chemistry 
     !IF ( ASSOCIATED(State_Chm%Schm_Id    ) ) DEALLOCATE(State_Chm%Schm_Id    )
     !IF ( ASSOCIATED(State_Chm%Schm_Name  ) ) DEALLOCATE(State_Chm%Schm_Name  )
     !IF ( ASSOCIATED(State_Chm%Schm_P     ) ) DEALLOCATE(State_Chm%Schm_P     )
@@ -600,6 +543,10 @@ CONTAINS
     !IF ( ASSOCIATED(State_Chm%Schm_BryNam) ) DEALLOCATE(State_Chm%Schm_BryNam)
     !IF ( ASSOCIATED(State_Chm%Schm_BryDay) ) DEALLOCATE(State_Chm%Schm_BryDay)
     !IF ( ASSOCIATED(State_Chm%Schm_BryNit) ) DEALLOCATE(State_Chm%Schm_BryNit)
+
+    ! Fields for UCX mechamism
+    IF ( ASSOCIATED(State_Chm%STATE_PSC  ) ) DEALLOCATE(State_Chm%STATE_PSC  )
+    IF ( ASSOCIATED(State_Chm%KHETI_SLA  ) ) DEALLOCATE(State_Chm%KHETI_SLA  )
 
   END SUBROUTINE Cleanup_GIGC_State_Chm
 !EOC

@@ -333,7 +333,7 @@
             ! data from w/in an !$OMP PARALLEL region. (bmy, 4/8/15)
             ! Now call READ_PSC_FILE on every time step to accomodate 
             ! replay simulations in GEOS-5 (ckeller, 5/8/15)
-            CALL READ_PSC_FILE( am_I_Root, RC )
+            CALL READ_PSC_FILE( am_I_Root, State_Chm, RC )
             IF ( RC /= GIGC_SUCCESS ) RETURN
 #endif
             RC = GEOS_Timer_Start ( "Chemistry-Gas-Phase" )
@@ -438,7 +438,7 @@
             ! need to be written to the internal state object on every time
             ! step (ckeller, 5/8/15). 
 #if defined( UCX )
-            CALL WRITE_STATE_PSC( am_I_Root, RC )
+            CALL WRITE_STATE_PSC( am_I_Root, State_Chm, RC )
             IF ( RC /= GIGC_SUCCESS ) RETURN
 #endif
  

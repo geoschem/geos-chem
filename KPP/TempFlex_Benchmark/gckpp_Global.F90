@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Global.f90
-! Time                 : Mon Oct 26 15:30:43 2015
-! Working directory    : /n/home13/mslong/FlexChem/Flexchem/Mechanisms/v1101
+! Time                 : Wed Jan 27 16:09:22 2016
+! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/v11-01c_Benchmark
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -39,7 +39,7 @@ MODULE gckpp_Global
   REAL(kind=dp) :: FIX(NFIX)
 ! VAR, FIX are chunks of array C
       EQUIVALENCE( C(1),VAR(1) )
-      EQUIVALENCE( C(160),FIX(1) )
+      EQUIVALENCE( C(158),FIX(1) )
 ! RCONST - Rate constants (global)
   REAL(kind=dp) :: RCONST(NREACT)
 ! TIME - Current integration time
@@ -72,7 +72,7 @@ MODULE gckpp_Global
 ! INLINED global variable declarations
 
       REAL(kind=dp), PARAMETER :: SMAL2 = 1.0d-99
-      REAL(kind=dp) :: DRYLOSS(NSPEC), EMISS(NSPEC)
+      REAL(kind=dp) :: DRYLOSS(NSPEC), EMISS(NSPEC), HET(NSPEC,3)
       REAL(kind=dp) :: NUMDEN, H2O, PRESS, PHOTOL(1000)
       INTEGER       :: NUMPHOT
       INTEGER       :: IX,IY,IZ

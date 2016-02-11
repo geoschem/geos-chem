@@ -171,7 +171,7 @@ CONTAINS
     ! switch (ckeller, 3/25/2015). 
 !    ! UCX diagnostics
 !    IF ( Input_Opt%LUCX ) THEN
-!       CALL DIAGINIT_UCX( am_I_Root, Input_Opt, RC )
+!       CALL DIAGINIT_UCX( am_I_Root, Input_Opt, State_Chm, RC )
 !       IF ( RC /= GIGC_SUCCESS ) THEN
 !          CALL ERROR_STOP( 'Error in DIAGINIT_UCX', LOC ) 
 !       ENDIF

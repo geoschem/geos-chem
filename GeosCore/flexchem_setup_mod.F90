@@ -61,7 +61,7 @@ CONTAINS
     USE HCO_ERROR_MOD
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Chm_Mod, ONLY : ChmState, Register_Tracer, Register_Species
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE gckpp_Global,       ONLY : NSPEC, NREACT
     USE gckpp_Monitor,      ONLY : SPC_NAMES, EQN_NAMES
@@ -86,6 +86,9 @@ CONTAINS
 !  02 Aug 2012 - R. Yantosca - Now use am_I_Root to print on root CPU
 !  22 Dec 2015 - M. Sulprizio- Use State_Met%AIRNUMDEN to convert initial
 !                              species concentrations from v/v to molec/cm3
+!  29 Jan 2016 - M. Sulprizio- Add calls to Register_Tracer and Register_Species
+!                              to populate Tracer_Name, Tracer_Id, Species_Name,
+!                              and Species_ID fields in State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -121,9 +124,24 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     HSAVE_KPP = 0.d0
 
-!     mje Find link between tracers and species 
-!     mje This is easier as we don't advect families any more
+    ! Loop over GEOS-Chem tracers
     DO N=1,Input_Opt%N_TRACERS
+
+       ! Register tracers in the State_Chm object
+       ! NOTE: This is here to populate the Trac_Id and Trac_Name fields in
+       ! State_Chm. This can be removed when we fully utilize the species
+       ! database (mps, 1/19/16)
+       CALL Register_Tracer( Name      = Input_Opt%TRACER_NAME(N),  &
+                             ID        = Input_Opt%ID_TRACER(N),    &
+                             State_Chm = State_Chm,                 &
+                             Status    = RC                    )
+       IF ( am_I_Root .and. RC > 0 ) THEN
+          WRITE( 6, 200 ) Input_Opt%TRACER_NAME(N), RC
+ 200      FORMAT( 'Registered Tracer : ', a14, i5 )
+       ENDIF
+
+       ! mje Find link between tracers and species 
+       ! mje This is easier as we don't advect families any more
        FOUND=0
        DO N1=1,Input_Opt%N_SPECIES
           IF ( ADJUSTL(TRIM(NAMEGAS(N1))) == &
@@ -136,11 +154,27 @@ CONTAINS
           WRITE (6,'(a8,a17)') TRIM(Input_Opt%TRACER_NAME(N)), &
              ' is not a species'
        ENDIF
+
     ENDDO
 
-!   MSL - Create vector to map species in State_Chm%Species order, defined
-!         in READCHEM, to KPP's order, as seen in gckpp_Parameters.F90
+    ! Loop over GEOS-Chem species
     DO N=1,Input_Opt%N_SPECIES
+
+       ! Register species (active + inactive) in the State_Chm object
+       ! NOTE: This is here to populate the Spec_Id and Spec_Name fields in
+       ! State_Chm. This can be removed when we fully utilize the species
+       ! database (mps, 1/19/16)
+       CALL Register_Species( NAME      = NAMEGAS(N),  &
+                              ID        = N,           &
+                              State_Chm = State_Chm,   &
+                              Status    = RC        )
+       IF ( am_I_Root .and. RC > 0 ) THEN
+          WRITE( 6, 205 ) NAMEGAS(N), RC
+205       FORMAT( 'Registered Species : ', a14, i5 )
+       ENDIF
+
+       ! MSL - Create vector to map species in State_Chm%Species order, defined
+       !       in READCHEM, to KPP's order, as seen in gckpp_Parameters.F90
        FOUND=0
        DO N1=1,NSPEC
           IF (ADJUSTL(TRIM(SPC_NAMES(N1))) == &

@@ -47,7 +47,10 @@
                           PUBLIC :: T_STS ! Max temperature of STS formation (K)
       REAL(fp),           PUBLIC :: T_NAT_SUPERCOOL ! NAT supercooling (K)
       REAL(fp),           PUBLIC :: P_ICE_SUPERSAT ! Ice supersaturation (-)
-                          PUBLIC :: KHETI_SLA ! Reaction cofactors for SLA
+!------------------------------------------------------------------------------
+! Prior to 1/28/16:
+!                          PUBLIC :: KHETI_SLA ! Reaction cofactors for SLA
+!------------------------------------------------------------------------------
                           PUBLIC :: NDENS_AER ! See below
       INTEGER,            PUBLIC :: CFCYEAR ! Year for CFC emissions
 !
@@ -65,7 +68,10 @@
       PUBLIC  :: GET_STRAT_OPT
       PUBLIC  :: KG_STRAT_AER
       PUBLIC  :: RHO_STRAT_AER
-      PUBLIC  :: CHECK_NAT
+!------------------------------------------------------------------------------
+! Prior to 1/28/16:
+!      PUBLIC  :: CHECK_NAT
+!------------------------------------------------------------------------------
       PUBLIC  :: INIT_UCX
       PUBLIC  :: DIAGINIT_UCX
       PUBLIC  :: CLEANUP_UCX
@@ -103,6 +109,11 @@
 !  14 Jan 2014 - C. Keller     - Now read and diagnose STATE_PSC through HEMCO.
 !  08 Apr 2015 - R. Yantosca   - Now make READ_PSC_FILE a PUBLIC routine
 !  08 May 2015 - C. Keller     - Added WRITE_STATE_PSC
+!  28 Jan 2016 - M. Sulprizio  - STATE_PSC and KHETI_SLA are now fields in
+!                                State_Chm instead of public arrays. These need
+!                                to be added to the derived type object to be
+!                                accessed in gckpp_HetRates.F90.
+!  28 Jan 2016 - M. Sulprizio  - Move routine CHECK_NAT to gckpp_HetRates.F90 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -185,8 +196,6 @@
       ! SAD_AER            : Aerosol surface area density (cm2/cm3)
       ! NDENS_AER          : Aerosol number density (#/m3)
       ! RHO_AER            : Aerosol mass density (kg/m3 aerosol)
-      ! STATE_PSC          : Gridbox PSC type (see Kirner et al)
-      ! KHETI_SLA          : Liquid aerosol reaction cofactors
       ! AERFRAC            : Mass fraction of species in liquid aerosols
       ! AERFRACIND         : Indices of liquid aerosol species
       ! NOX_O              : Monthly mean noontime O3P/O1D for NOx calcs
@@ -241,9 +250,12 @@
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: SAD_AER
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: NDENS_AER
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: RHO_AER
-      !INTEGER,DIMENSION(:,:,:),ALLOCATABLE  :: STATE_PSC
-      REAL(f4),DIMENSION(:,:,:),POINTER       :: STATE_PSC => NULL()
-      REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: KHETI_SLA
+!------------------------------------------------------------------------------
+! Prior to 1/28/16:
+!      !INTEGER,DIMENSION(:,:,:),ALLOCATABLE  :: STATE_PSC
+!      REAL(f4),DIMENSION(:,:,:),POINTER       :: STATE_PSC => NULL()
+!      REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: KHETI_SLA
+!------------------------------------------------------------------------------
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: AERFRAC
       INTEGER,DIMENSION(:),ALLOCATABLE      :: AERFRACIND
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: NOX_O
@@ -2600,6 +2612,7 @@
 
       ! Pointers
       REAL(fp), POINTER      :: STT(:,:,:,:)
+      REAL(f4), POINTER      :: STATE_PSC(:,:,:)
 
       !=================================================================
       ! SETTLE_STRAT_AER begins here!
@@ -2617,6 +2630,9 @@
 
       ! Initialize GEOS-Chem tracer array [kg]
       STT => State_Chm%Tracers
+
+      ! Initialize gridbox PSC type (see Kirner et al. 2011, GMD)
+      STATE_PSC => State_Chm%STATE_PSC
 
       ! Return if gravitational settling disabled
       IF (.not. LGRAVSTRAT) RETURN
@@ -2915,7 +2931,6 @@
                ! XPSC is the number of molecules tied up in solid particles
                ! per m3 in a grid box
                L = STARTPT
-               !IF (STATE_PSC(I,J,L).lt.2) THEN
                IF (STATE_PSC(I,J,L) < 2.0e+0_f4 ) THEN
                   XNO3_0 = 0e+0_fp
                   XNAT_0 = 0e+0_fp
@@ -2934,7 +2949,6 @@
                INVAIR_0 = AIRMW/State_Met%AD(I,J,L)
                IF (L .lt. (LLPAR-1)) THEN
                   INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+1)
-                  !IF (STATE_PSC(I,J,L+1).lt.2) THEN
                   IF (STATE_PSC(I,J,L+1) < 2.0e+0_f4 ) THEN
                      XNO3_ABOVE = 0e+0_fp
                      XNAT_ABOVE = 0e+0_fp
@@ -2992,7 +3006,6 @@
                   
                   IF (L.lt.(LLPAR-1)) THEN
                      INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+2)
-                     !IF (STATE_PSC(I,J,L+2).ge.2) THEN
                      IF (STATE_PSC(I,J,L+2) >= 2.0e+0_f4 ) THEN
                         XNO3_ABOVE = STT(I,J,L+2,IDTNIT)*INVAIR_ABOVE/ 
      &                                TRACER_MW_G(IDTNIT)
@@ -3164,9 +3177,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Free pointer
-      NULLIFY( STT )
-
       IF (LPRT) THEN
          CALL DEBUG_MSG( '### UCX: after SETTLE_STRAT_AER' )
          WRITE(6,'(a)') 'Max ice loss statistics:'
@@ -3187,6 +3197,9 @@
          WRITE(6,'(a,1x,2E12.4)') 'Sedquant and PSed variables   : ',
      &                         D_SEDQ, D_PSED
       ENDIF
+
+      ! Free pointers
+      NULLIFY( STT, STATE_PSC )
 
       END SUBROUTINE SETTLE_STRAT_AER
 !
@@ -3457,7 +3470,7 @@
       REAL(fp),PARAMETER      :: PSC_PMIN   =   5.0e+2_fp
 
       ! Allow PSC formation outsize Kirner limits?
-      LOGICAL,PARAMETER     :: PSC_FULL   =.FALSE.
+      LOGICAL,PARAMETER       :: PSC_FULL   =.FALSE.
 
       ! Saturation and nucleation properties of HNO3
       REAL(fp), PARAMETER     :: TSATHNO3_A = -2.7836e+0_fp
@@ -3523,26 +3536,28 @@
 
       ! Local properties
       REAL(fp), DIMENSION(11) :: GAMMA_BOX
-      INTEGER               :: STATE_LOCAL
+      INTEGER                 :: STATE_LOCAL
 
       ! Loop variables
-      INTEGER               :: I, J, L, K
+      INTEGER                 :: I, J, L, K
 
       ! SDE 2013-07-07: Debug variables
-      REAL(fp)                 :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
-      REAL(fp)                 :: D_MAXN, D_FRACN,D_PP,   D_PS
+      REAL(fp)                :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
+      REAL(fp)                :: D_MAXN, D_FRACN,D_PP,   D_PS
 
       ! Local variables for quantities from Input_Opt
-      LOGICAL                :: prtDebug
-      LOGICAL                :: LPRT
-      LOGICAL                :: LHOMNUCNAT
-      LOGICAL                :: LSOLIDPSC
-      LOGICAL                :: LACTIVEH2O
-      INTEGER                :: N_TRACERS
-      REAL(fp)                 :: TRACER_MW_G(Input_Opt%N_TRACERS)
+      LOGICAL                 :: prtDebug
+      LOGICAL                 :: LPRT
+      LOGICAL                 :: LHOMNUCNAT
+      LOGICAL                 :: LSOLIDPSC
+      LOGICAL                 :: LACTIVEH2O
+      INTEGER                 :: N_TRACERS
+      REAL(fp)                :: TRACER_MW_G(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL(fp), POINTER        :: STT(:,:,:,:)
+      REAL(fp), POINTER       :: STT(:,:,:,:)
+      REAL(fp), POINTER       :: KHETI_SLA(:,:,:,:)
+      REAL(f4), POINTER       :: STATE_PSC(:,:,:)
 
       !=================================================================
       ! CALC_STRAT_AER begins here!
@@ -3561,6 +3576,12 @@
 
       ! Initialize GEOS-Chem tracer array [kg]
       STT => State_Chm%Tracers
+
+      ! Initialize sticking coefficients for PSC reactions on SLA
+      KHETI_SLA => State_Chm%KHETI_SLA
+
+      ! Initialize gridbox PSC type (see Kirner et al. 2011, GMD)
+      STATE_PSC => State_Chm%STATE_PSC
 
       ! Do we have to print debug output?
       prtDebug = ( LPRT .and. am_I_Root )
@@ -3667,7 +3688,6 @@
                HOBr_BOX_L   = 0.0e+0_fp
                HOBr_BOX_G   = 0.0e+0_fp
 
-               !STATE_LOCAL  = STATE_PSC(I,J,L)
                STATE_LOCAL  = NINT(STATE_PSC(I,J,L))
 
                ! Calculate local air density
@@ -3763,7 +3783,6 @@
                ENDIF
 
                ! Store state
-               !STATE_PSC(I,J,L) = STATE_LOCAL
                STATE_PSC(I,J,L) = REAL(STATE_LOCAL,f4)
 
                ! Only continue if we want online solid PSCs
@@ -4135,8 +4154,8 @@
      &                               D_TK                    
       ENDIF
 
-      ! Free pointer
-      NULLIFY( STT )
+      ! Free pointers
+      NULLIFY( STT, STATE_PSC, KHETI_SLA )
 
       END SUBROUTINE CALC_STRAT_AER
 !EOC
@@ -4301,71 +4320,75 @@
 
       END SUBROUTINE GET_STRAT_OPT
 !EOC
-!------------------------------------------------------------------------------
-!               MIT Laboratory for Aviation and the Environment               !
-!------------------------------------------------------------------------------
-!BOP
+!==============================================================================
+! Prior to 1/28/16:
+! This routine has been moved to gckpp_HetRates.F90 (mps, 1/28/16)
+!!------------------------------------------------------------------------------
+!!               MIT Laboratory for Aviation and the Environment               !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: check_nat
+!!
+!! !DESCRIPTION: Subroutine CHECK\_NAT determines whether the solid PSC is 
+!!  composed of ice or NAT (needed for heterogeneous chemistry), or indeed
+!!  if there is any direct PSC calculation at all. This is important for
+!!  determining whether to use the JPP or Kirner scheme for ice cloud radii.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE CHECK_NAT( am_I_Root, I, J, L, IS_NAT, IS_PSC, 
+!     &                      IS_STRAT, Input_Opt, State_Met, State_Chm )
+!!
+!! !USES:
+!!
+!      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRAT
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!      USE GIGC_State_Met_Mod, ONLY : MetState
+!      USE TRACERID_MOD,       ONLY : IDTNIT
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,        INTENT(IN)  :: am_I_Root  ! Root CPU?
+!      INTEGER,        INTENT(IN)  :: I,J,L      ! Grid indices
+!      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input options
+!      TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
+!      TYPE(ChmState), INTENT(IN)  :: State_Chm  ! Chemistry State object
+!!
+!! !OUTPUT VARIABLES:
+!!
+!      LOGICAL,        INTENT(OUT) :: IS_NAT     ! Is surface NAT?
+!      LOGICAL,        INTENT(OUT) :: IS_PSC     ! Are there solid PSCs?
+!      LOGICAL,        INTENT(OUT) :: IS_STRAT   ! Are we in the strat?
+!!
+!! !REVISION HISTORY: 
+!!  17 Apr 2013 - S. D. Eastham - Initial version
+!!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
+!!                                objects via the arg list
+!!  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
+!!                                now done from DO_CHEMISTRY (chemistry_mod.F) 
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!      !=================================================================
+!      ! CHECK_NAT begins here!
+!      !=================================================================
 !
-! !IROUTINE: check_nat
+!      IS_STRAT = ITS_IN_THE_STRAT(I,J,L,State_Met)
 !
-! !DESCRIPTION: Subroutine CHECK\_NAT determines whether the solid PSC is 
-!  composed of ice or NAT (needed for heterogeneous chemistry), or indeed
-!  if there is any direct PSC calculation at all. This is important for
-!  determining whether to use the JPP or Kirner scheme for ice cloud radii.
-!\\
-!\\
-! !INTERFACE:
+!      IS_PSC   = ( ( Input_Opt%LPSCCHEM ) .and.
+!!     &             ( STATE_PSC(I,J,L) .ge. 2 ) .and. ( IS_STRAT ) )
+!     &             ( STATE_PSC(I,J,L) >= 2.0_f4 ) .and. ( IS_STRAT ) )
 !
-      SUBROUTINE CHECK_NAT( am_I_Root, I, J, L, IS_NAT, IS_PSC, 
-     &                      IS_STRAT, Input_Opt, State_Met, State_Chm )
+!      IS_NAT   = ( ( IS_PSC ) .and.
+!     &         ( State_Chm%Tracers(I,J,L,IDTNIT) .gt. TINY(1e+0_fp) ) )
 !
-! !USES:
-!
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRAT
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTNIT
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root  ! Root CPU?
-      INTEGER,        INTENT(IN)  :: I,J,L      ! Grid indices
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input options
-      TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
-      TYPE(ChmState), INTENT(IN)  :: State_Chm  ! Chemistry State object
-!
-! !OUTPUT VARIABLES:
-!
-      LOGICAL,        INTENT(OUT) :: IS_NAT     ! Is surface NAT?
-      LOGICAL,        INTENT(OUT) :: IS_PSC     ! Are there solid PSCs?
-      LOGICAL,        INTENT(OUT) :: IS_STRAT   ! Are we in the strat?
-!
-! !REVISION HISTORY: 
-!  17 Apr 2013 - S. D. Eastham - Initial version
-!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
-!                                objects via the arg list
-!  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
-!                                now done from DO_CHEMISTRY (chemistry_mod.F) 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-      !=================================================================
-      ! CHECK_NAT begins here!
-      !=================================================================
-
-      IS_STRAT = ITS_IN_THE_STRAT(I,J,L,State_Met)
-
-      IS_PSC   = ( ( Input_Opt%LPSCCHEM ) .and.
-!     &             ( STATE_PSC(I,J,L) .ge. 2 ) .and. ( IS_STRAT ) )
-     &             ( STATE_PSC(I,J,L) >= 2.0_f4 ) .and. ( IS_STRAT ) )
-
-      IS_NAT   = ( ( IS_PSC ) .and.
-     &         ( State_Chm%Tracers(I,J,L,IDTNIT) .gt. TINY(1e+0_fp) ) )
-
-      END SUBROUTINE CHECK_NAT
-!EOC
+!      END SUBROUTINE CHECK_NAT
+!!EOC
+!==============================================================================
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
 !------------------------------------------------------------------------------
@@ -5265,11 +5288,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PSC_FILE( am_I_Root, RC )
+      SUBROUTINE READ_PSC_FILE( am_I_Root, State_Chm, RC )
 !
 ! !USES:
 !
       USE GIGC_ErrCode_Mod
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD
       USE HCO_RESTART_MOD,    ONLY : HCO_RestartGet
@@ -5284,6 +5308,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       INTEGER,        INTENT(INOUT) :: RC
 ! 
 ! !REVISION HISTORY: 
@@ -5327,7 +5352,7 @@
 
       ! Get restart variable
       CALL HCO_RestartGet( am_I_Root, HcoState, 'STATE_PSC',  
-     &                     STATE_PSC, RC, FILLED=IT_EXISTS ) 
+     &                     State_Chm%STATE_PSC, RC, FILLED=IT_EXISTS ) 
       IF ( RC /= HCO_SUCCESS ) THEN
          MSG = 'Cannot get PSC restart variable'
          CALL ERROR_STOP ( MSG, 'READ_PSC_FILE (ucx_mod.F)' )
@@ -6461,8 +6486,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_UCX( am_I_Root, Input_Opt )
-      !SUBROUTINE INIT_UCX( am_I_Root, Input_Opt, YYYYMMDD, HHMMSS )
+      SUBROUTINE INIT_UCX( am_I_Root, Input_Opt, State_Chm )
 !
 ! !USES:
 !
@@ -6470,6 +6494,7 @@
       USE ERROR_MOD,          ONLY : IS_SAFE_DIV
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_YEDGE
       USE TIME_MOD,           ONLY : GET_YEAR
       USE TRACERID_MOD
@@ -6477,9 +6502,8 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-!      INTEGER,        INTENT(IN) :: YYYYMMDD    ! YYYY/MM/DD GMT date
-!      INTEGER,        INTENT(IN) :: HHMMSS      ! hh:mm:ss   GMT time
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT VARIABLES:
 !
@@ -6830,10 +6854,13 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RHO_AER' )
       RHO_AER = 0e+0_fp
       
-      ALLOCATE( STATE_PSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'STATE_PSC' )
-      !STATE_PSC = 0e+0_fp
-      STATE_PSC     = 0.0e+0_f4
+!------------------------------------------------------------------------------
+! Prior to 1/28/16:
+!      ALLOCATE( STATE_PSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'STATE_PSC' )
+!      !STATE_PSC = 0e+0_fp
+!      STATE_PSC     = 0.0e+0_f4
+!------------------------------------------------------------------------------
       
       ! Mass fraction of tracers contained in liquid aerosol
       ! Indices: 1 - SO4
@@ -6857,10 +6884,13 @@
       AERFRACIND(6) = IDTHOBr
       AERFRACIND(7) = IDTH2O
     
-      ! Sticking coefficients for PSC reactions on SLA 
-      ALLOCATE( KHETI_SLA( IIPAR, JJPAR, LLPAR, 11 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'KHETI_SLA' )
-      KHETI_SLA = 0e+0_fp
+!------------------------------------------------------------------------------
+! Prior to 1/28/16:
+!      ! Sticking coefficients for PSC reactions on SLA 
+!      ALLOCATE( KHETI_SLA( IIPAR, JJPAR, LLPAR, 11 ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'KHETI_SLA' )
+!      KHETI_SLA = 0e+0_fp
+!------------------------------------------------------------------------------
      
       ! H2SO4 photolysis rate at the top of the chemgrid
       ALLOCATE( SO4_TOPPHOT( IIPAR,JJPAR ), STAT=AS )
@@ -6930,7 +6960,7 @@
       ENDIF
 
       ! Initialize diagnostics
-      CALL DIAGINIT_UCX ( am_I_Root, Input_Opt, RC )
+      CALL DIAGINIT_UCX ( am_I_Root, Input_Opt, State_Chm, RC )
 
       END SUBROUTINE INIT_UCX
 !EOC
@@ -6947,12 +6977,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAGINIT_UCX( am_I_Root, Input_Opt, RC )
+      SUBROUTINE DIAGINIT_UCX( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_RESTART_MOD,    ONLY : HCO_RestartDefine
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
@@ -6963,6 +6994,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6984,8 +7016,8 @@
 
       ! Define restart quantity    
       CALL GetHcoState( HcoState ) 
-      CALL HCO_RestartDefine ( am_I_Root, HcoState, 
-     &                       'STATE_PSC', STATE_PSC, 'count', RC )
+      CALL HCO_RestartDefine ( am_I_Root, HcoState, 'STATE_PSC',
+     &                         State_Chm%STATE_PSC, 'count', RC )
       HcoState => NULL() 
 
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -7016,23 +7048,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_STATE_PSC ( am_I_Root, RC )
+      SUBROUTINE WRITE_STATE_PSC ( am_I_Root, State_Chm, RC )
 !
 ! !USES:
 !
       USE GIGC_ErrCode_Mod
+      USE GIGC_State_Chm_Mod,   ONLY : ChmState
       USE HCO_ERROR_MOD
-      USE HCO_RESTART_MOD,  ONLY : HCO_RestartWrite
-      USE HCO_STATE_MOD,    ONLY : HCO_STATE
-      USE HCOI_GC_MAIN_MOD, ONLY : GetHcoState
+      USE HCO_RESTART_MOD,      ONLY : HCO_RestartWrite
+      USE HCO_STATE_MOD,        ONLY : HCO_STATE
+      USE HCOI_GC_MAIN_MOD,     ONLY : GetHcoState
 ! 
 ! !INPUT ARGUMENTS:
 !
-      LOGICAL, INTENT(IN)     :: am_I_Root
+      LOGICAL,        INTENT(IN)    :: am_I_Root
 ! 
 ! !INPUT/OUTPUT ARGUMENTS:
 !
-      INTEGER, INTENT(INOUT)  :: RC
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      INTEGER,        INTENT(INOUT) :: RC
 !
 ! !REVISION HISTORY: 
 !  08 May 2015 - C. Keller     - Initial version
@@ -7045,11 +7079,11 @@
       ! WRITE_STATE_PSC begins here!
       !=================================================================
 
-      ! Eventually write PSC_STATE to restart. 
+      ! Eventually write STATE_PSC to restart.
       CALL GetHcoState ( HcoState )
 
       CALL HCO_RestartWrite( am_I_Root,   HcoState, 
-     &                       'STATE_PSC', STATE_PSC, RC )
+     &                       'STATE_PSC', State_Chm%STATE_PSC, RC )
       HcoState => NULL()
       IF ( RC /= HCO_SUCCESS ) THEN
          RC = GIGC_FAILURE
@@ -7096,12 +7130,18 @@
       IF ( ALLOCATED( SAD_AER    ) ) DEALLOCATE( SAD_AER    )
       IF ( ALLOCATED( KG_AER     ) ) DEALLOCATE( KG_AER     )
       IF ( ALLOCATED( RHO_AER    ) ) DEALLOCATE( RHO_AER    )
-      !IF ( ALLOCATED( STATE_PSC  ) ) DEALLOCATE( STATE_PSC  )
-      IF ( ASSOCIATED( STATE_PSC ) ) DEALLOCATE( STATE_PSC  )
+!------------------------------------------------------------------------------
+! Prior to 1/28/16:
+!      !IF ( ALLOCATED( STATE_PSC  ) ) DEALLOCATE( STATE_PSC  )
+!      IF ( ASSOCIATED( STATE_PSC ) ) DEALLOCATE( STATE_PSC  )
+!------------------------------------------------------------------------------
       IF ( ALLOCATED( NDENS_AER  ) ) DEALLOCATE( NDENS_AER  )
       IF ( ALLOCATED( AERFRAC    ) ) DEALLOCATE( AERFRAC    )
       IF ( ALLOCATED( AERFRACIND ) ) DEALLOCATE( AERFRACIND )
-      IF ( ALLOCATED( KHETI_SLA  ) ) DEALLOCATE( KHETI_SLA  )
+!------------------------------------------------------------------------------
+! Prior to 1/28/16:
+!      IF ( ALLOCATED( KHETI_SLA  ) ) DEALLOCATE( KHETI_SLA  )
+!------------------------------------------------------------------------------
       IF ( ALLOCATED( UCX_MR     ) ) DEALLOCATE( UCX_MR     )
       IF ( ALLOCATED( UCX_MR_IN  ) ) DEALLOCATE( UCX_MR_IN  )
       IF ( ALLOCATED( UCX_REGRID ) ) DEALLOCATE( UCX_REGRID )
