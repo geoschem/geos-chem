@@ -788,8 +788,10 @@
       ! initialized above (ckeller, 1/13/15).
       CALL Diagnostics_Init( am_I_Root, Input_Opt, 
      &                       State_Met, State_Chm, RC )
-      CALL INIT_GC_RESTART_NC( am_I_Root, Input_Opt, RC )
 #endif 
+#if !defined( BPCH_RST_OUT )
+      CALL INIT_GC_RESTART_NC( am_I_Root, Input_Opt, RC )
+#endif
 
       !=================================================================
       !      ***** 6 - H O U R   T I M E S T E P   L O O P  *****

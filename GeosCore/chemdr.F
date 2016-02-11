@@ -45,7 +45,7 @@
       USE GIGC_State_Chm_Mod,   ONLY : ChmState
       USE GIGC_State_Met_Mod,   ONLY : MetState
       USE PLANEFLIGHT_MOD,      ONLY : SETUP_PLANEFLIGHT
-#if defined( BPCH )
+#if defined( BPCH_RST_IN )
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE
 #endif 
       USE TIME_MOD,             ONLY : GET_MONTH
@@ -588,10 +588,11 @@
       CALL GASCONC(  am_I_Root, .FALSE.,   .FALSE.,   
      &               Input_Opt, State_Met, State_Chm, RC )
 #else
+#if defined( BPCH_RST_IN )
       !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC w/ BPCH restart %%%%%%%
       !
-      ! On the first chemistry timestep:
+      ! On the first chemistry timestep, if using bpch restart file:
       !
       !   (1) If we are reading initial species values from the CSPEC
       !       restart file, then have GASCONC initialize the CSPEC 
@@ -623,12 +624,10 @@
       ! Test if 
       IF ( FIRSTCHEM .and. LSVCSPEC ) THEN
 
-#if defined( BPCH )
          ! Read the CSPEC restart file.  If not found, then 
          ! return IT_EXISTS = .FALSE.
          CALL READ_CSPEC_FILE( am_I_Root,  Input_Opt, GET_NYMD(), 
      &                         GET_NHMS(), IT_EXISTS, State_Chm,  RC  )
-#endif   
          IF ( .not. IT_EXISTS ) THEN 
 
             !-----------------------------------------------------------
@@ -668,9 +667,15 @@
      &                  Input_Opt, State_Met, State_Chm, RC )
 
       ENDIF 
+#else
+      !--------------------------------------------------------------
+      ! For all chemistry timesteps, call GASCONC with the current
+      ! CSPEC values that are set in read_gc_restart (ewl, 2/11/16)
+      !--------------------------------------------------------------
+      CALL GASCONC(  am_I_Root, .FALSE., .TRUE.,
+     &               Input_Opt, State_Met, State_Chm, RC )
 
-      IT_EXISTS = .FALSE.
-
+#endif
       !### Debug
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMDR: after call to GASCONC' )

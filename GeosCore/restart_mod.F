@@ -31,28 +31,20 @@
       PUBLIC  :: SET_RESTART           ! called from input_mod
       PUBLIC  :: READ_GC_RESTART
       PUBLIC  :: WRITE_GC_RESTART
-#if defined( BPCH )
-      PUBLIC  :: READ_CSPEC_FILE       ! called from chemdr
-#endif
-#if defined( NETCDF )
-      PUBLIC  :: INIT_GC_RESTART_NC
-#endif
+      PUBLIC  :: READ_CSPEC_FILE       ! For binary-punch read
+      PUBLIC  :: INIT_GC_RESTART_NC    ! For NetCDF write
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: CHECK_DIMENSIONS
       PRIVATE :: CONVERT_TRACER_TO_VV
-#if defined( BPCH )
-      PRIVATE :: COPY_STT
-      PRIVATE :: READ_GC_RESTART_BPCH
-      PRIVATE :: WRITE_GC_RESTART_BPCH
-      PRIVATE :: MAKE_CSPEC_FILE
-      PRIVATE :: CHECK_DATA_BLOCKS
-#endif
-#if defined( NETCDF )
-      PRIVATE :: READ_GC_RESTART_NC
-      PRIVATE :: WRITE_GC_RESTART_NC 
-#endif
+      PRIVATE :: READ_GC_RESTART_BPCH  ! For binary-punch read
+      PRIVATE :: COPY_STT              ! For binary-punch read
+      PRIVATE :: CHECK_DATA_BLOCKS     ! For binary-punch read
+      PRIVATE :: WRITE_GC_RESTART_BPCH ! For binary-punch write
+      PRIVATE :: MAKE_CSPEC_FILE       ! For binary-punch write
+      PRIVATE :: READ_GC_RESTART_NC    ! For NetCDF read
+      PRIVATE :: WRITE_GC_RESTART_NC   ! For NetCDF write
 !
 ! !DEFINED PARAMETERS:
 !
@@ -95,7 +87,6 @@
 !BOC
       CONTAINS
 !EOC
-#if defined( NETCDF ) 
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -405,7 +396,6 @@
 
       END SUBROUTINE INIT_GC_RESTART_NC
 !EOC
-#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -502,14 +492,8 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
-      ! Stop program if restart file format is not specified in build
-#if !defined( BPCH ) && !defined( NETCDF )
-      CALL ERROR_STOP( 'Cannot read restart file: BPCH and NETCDF'
-     &                // ' compile options are both off', 
-     &                'READ_GC_RESTART (restart_mod.F)') 
-#endif
-
-#if defined( BPCH )
+#if defined( BPCH_RST_IN )
+      ! Read binary-punch restart files
       CALL READ_GC_RESTART_BPCH( YYYYMMDD,  HHMMSS,   Input_Opt, 
      &                           State_Met, State_Chm )
 
@@ -518,8 +502,8 @@
      &     Input_Opt%LDYNOCEAN ) THEN
          CALL READ_OCEAN_Hg_RESTART( YYYYMMDD, HHMMSS, Input_Opt )
       ENDIF
-#endif
-#if defined( NETCDF )
+#else
+      ! Read NetCDF restart file
       CALL READ_GC_RESTART_NC( am_I_Root, YYYYMMDD, HHMMSS, 
      &                         Input_Opt, State_Met, State_Chm, RC )
 #endif
@@ -531,7 +515,6 @@
 
       END SUBROUTINE READ_GC_RESTART
 !EOC
-#if defined( NETCDF )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -590,15 +573,16 @@
 !
       INTEGER              :: N, I, J, L
       CHARACTER(LEN=10)    :: UNIT
+      LOGICAL              :: SPC_IN_RST         ! Species data in file?
 
-      ! NetCDF file information
+      ! NetCDF file info
       INTEGER              :: fId                ! netCDF file ID
       INTEGER              :: NX, NY, NZ, NT     ! netCDF file dimensions
       CHARACTER(LEN=255)   :: nc_file            ! filename
       CHARACTER(LEN=255)   :: nc_dir             ! directory name
       CHARACTER(LEN=255)   :: nc_path            ! path name
 
-      ! NetCDF variable information
+      ! NetCDF variable info
       CHARACTER(LEN=255)   :: v_name             ! variable name 
       CHARACTER(LEN=255)   :: v_attr             ! attribute name
       CHARACTER(LEN=255)   :: v_unit             ! unit value
@@ -672,7 +656,7 @@
       DO N = 1, Input_Opt%N_TRACERS
  
          ! Initialize local array for this tracer and point to it
-         Temp3D = 0.0e+0_fp
+         Temp3D = 0.0
          Temp3D_ptr => Temp3D
 
          ! Define variable name
@@ -691,7 +675,7 @@
 
          ! Print the min & max of each tracer as it is read from the file
          WRITE( 6, 120 ) N,  MINVAL( Temp3D_ptr ), MAXVAL( Temp3D_ptr )
- 120     FORMAT( 'Tracer ', i3, ': Min = ', es12.5, '  Max = ', es12.5 )
+ 120     FORMAT( 'Tracer ', i3, ': Min = ', es15.9,'  Max = ',es15.9)
          
          ! Convert tracer concentration from [v/v dry] to [kg/kg dry] and 
          ! store in State_Chm%Tracers
@@ -735,7 +719,7 @@
          WRITE( 6, 150 ) N, Input_Opt%TRACER_NAME(N), 
      &                   SUM( State_Chm%TRACERS(:,:,:,N) ) / 
      &                   ( IIPAR * JJPAR * LLPAR), ADJUSTL( UNIT )
- 150     FORMAT( 'Tracer ', i3, ' (', a10, ') ', es12.5, 1x, a7)
+ 150     FORMAT( 'Tracer ', i3, ' (', a10, ') ', es15.9, 1x, a7)
       ENDDO
       
       ! Fancy output
@@ -746,11 +730,17 @@
       !=================================================================
       ! Only read species if chemistry simulation
       IF ( Input_Opt%LCHEM ) THEN 
+         
+         ! Check if species containers are in file
+         ! For now, assume yes
+         SPC_IN_RST = .TRUE.
       
-         ! Print header for min/max concentration to log
-         WRITE( 6, 160 )
- 160     FORMAT( /,'Min and Max of each species, as read from the file:',
-     &           /, '(in units molec/cm3/box)' )
+         IF ( SPC_IN_RST ) THEN
+            ! Print header for min/max concentration to log
+            WRITE( 6, 160 )
+ 160        FORMAT( /,'Min and Max of each species, as read from'
+     &                // ' the file: (in units molec/cm3/box)' )
+         ENDIF
 
          ! Loop over species
          DO N = 1, NTSPEC(1)
@@ -762,28 +752,38 @@
             !IF ( ANY( IFAM == N ) ) THEN
             !   CYCLE
             !ENDIF
-         
-            ! Initialize temporary array for this tracer and point to it
-            ! use 1e-30 as min (hotp 2/25/09)
-            Temp3D = 1.0e-30_fp 
-            Temp3D_ptr => Temp3D
-  
-            ! Define variable name
-            v_name = 'SPEC_CONC_' // TRIM( NAMEGAS(N) )
-            
-            ! Read variable from file and store in  local array
-            CALL NcRd( Temp3D, fId, TRIM(v_name), st4d, ct4d )
-            
-            ! Put this array into State_Chm%Species
-            State_Chm%Species(:,:,:,N) = Temp3D
 
-            ! Print the min & max of each species
-            WRITE( 6, 170 ) N, MINVAL(Temp3D), MAXVAL(Temp3D)
- 170        FORMAT( 'Species ', i3, ': Min = ', es12.5, 
-     &              '  Max = ', es12.5 )
+            ! Read species data from file if it is there 
+            IF ( SPC_IN_RST ) THEN
 
-            ! Nullify pointer
-            Temp3D_ptr => NULL()
+               ! Initialize temporary array for this tracer and point to it
+               ! use 1e-30 as min (hotp 2/25/09)
+               Temp3D = 1.0e-30_fp 
+               Temp3D_ptr => Temp3D
+               
+               ! Define variable name
+               v_name = 'SPEC_CONC_' // TRIM( NAMEGAS(N) )
+               
+               ! Read variable from file and store in  local array
+               CALL NcRd( Temp3D, fId, TRIM(v_name), st4d, ct4d )
+               
+               ! Put this array into State_Chm%Species
+               State_Chm%Species(:,:,:,N) = Temp3D
+               
+               ! Print the min & max of each species
+               WRITE( 6, 170 ) N, MINVAL(Temp3D), MAXVAL(Temp3D)
+ 170           FORMAT( 'Species ', i3, ': Min = ', es15.9, 
+     &                 '  Max = ', es15.9 )
+               
+               ! Nullify pointer
+               Temp3D_ptr => NULL()
+
+            ELSE
+               ! If species data is not in the restart file, assign
+               ! default background values stored in the species
+               ! database
+               ! (PLACEHOLDER)
+            ENDIF
 
          ENDDO
       ENDIF
@@ -802,8 +802,6 @@
 
       END SUBROUTINE READ_GC_RESTART_NC
 !EOC
-#endif
-#if defined( BPCH )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -907,6 +905,8 @@
       CHARACTER(LEN=40)   :: CATEGORY
       CHARACTER(LEN=40)   :: UNIT     
       CHARACTER(LEN=40)   :: RESERVED
+      CHARACTER(LEN=255)  :: LOC = 'READ_GC_RESTART_BPCH'
+     &                             // ' (restart_mod.F)'
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -988,7 +988,7 @@
 
             ! Make sure array dimensions are of global size
             ! (NI=IIPAR; NJ=JJPAR, NL=LLPAR), or stop the run
-            CALL CHECK_DIMENSIONS( lon=NI, lat=NJ, lev=NL )
+            CALL CHECK_DIMENSIONS( lon=NI, lat=NJ, lev=NL, LOC=LOC )
 
             ! Convert TRACER from its native units (eg. [ppbv]) to 
             ! [v/v] mixing ratio, and write min/max to file
@@ -996,14 +996,15 @@
 
             ! Print the min & max of each tracer
             WRITE( 6, 120 ) NTRACER,  MINVAL( TRACER ), MAXVAL( TRACER )
- 120        FORMAT( 'Tracer ', i3, ': Min = ', es12.5, 
-     &              '  Max = ',  es12.5 )
+ 120        FORMAT( 'Tracer ', i3, ': Min = ', es15.9, 
+     &              '  Max = ',  es15.9 )
 
             ! Convert TRACER from [v/v] to [kg/kg] and copy into STT array
             CALL COPY_STT( NTRACER,   TRACER,   NCOUNT,
      &                     Input_Opt, State_Met, State_Chm )
 
          ENDIF
+
       ENDDO
 
       !=================================================================
@@ -1035,7 +1036,7 @@
          WRITE( 6, 150 ) N, Input_Opt%TRACER_NAME(N), 
      &                   SUM( STT(:,:,:,N) ) / (NI*NJ*NL), 
      &                   ADJUSTL( UNIT )
- 150     FORMAT( 'Tracer ', i3, ' (', a10, ') ', es12.5, 1x, a7)
+ 150     FORMAT( 'Tracer ', i3, ' (', a10, ') ', es15.9, 1x, a7)
       ENDDO
 
       ! Fancy output
@@ -1046,7 +1047,6 @@
 
       END SUBROUTINE READ_GC_RESTART_BPCH
 !EOC
-#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1133,13 +1133,13 @@
       !=================================================================
       ! Call routines to write binary-punch or NetCDF restart files 
       !=================================================================
-#if defined( BPCH )                  
-      ! Write GEOS-Chem restart file (bpch)
+#if defined( BPCH_RST_OUT )                  
+      ! Write GEOS-Chem restart file in bpch format
       CALL WRITE_GC_RESTART_BPCH( am_I_Root, Input_Opt, 
      &                             YYYYMMDD, HHMMSS, 
      &                             TAU,      TracerVV_ptr, RC )
 
-      ! Make ocean mercury restart file (bpch)
+      ! Make ocean mercury restart file in bpch format
       IF ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LDYNOCEAN ) THEN
          CALL MAKE_OCEAN_Hg_RESTART( YYYYMMDD, HHMMSS, TAU, Input_Opt )
       ENDIF
@@ -1149,8 +1149,8 @@
          CALL MAKE_CSPEC_FILE( am_I_Root, Input_Opt,  YYYYMMDD, 
      &                         HHMMSS,    State_Chm,  RC    )
       ENDIF 
-#endif
-#if defined( NETCDF )
+#else
+      ! Write GEOS-Chem restart file in NetCDF format
       CALL WRITE_GC_RESTART_NC( am_I_Root, YYYYMMDD, HHMMSS, Input_Opt, 
      &                          State_Chm, TracerVV_ptr, RC )
 #endif
@@ -1165,7 +1165,6 @@
 
       END SUBROUTINE WRITE_GC_RESTART
 !EOC
-#if defined( NETCDF )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1246,7 +1245,7 @@
       GC_RST_Collection = Input_Opt%GC_RST_COLLECTION
 
       ! Set minimum value of species concentration [molec/cm3/box]
-      SMALL_NUM = 1.e-30_fp
+      SMALL_NUM = 1.e-30_sp
 
       !=================================================================
       ! Construct output restart filename
@@ -1292,7 +1291,7 @@
       
          ! Print the min & max of each tracer written to file
          WRITE( 6, 120 ) N,  MINVAL( Temp3D ), MAXVAL( Temp3D )
- 120     FORMAT( 'Tracer ', i3, ': Min = ', es12.5, '  Max = ', es12.5 )
+ 120     FORMAT( 'Tracer ', i3, ': Min = ', es15.9, '  Max = ',es15.9)
 
          ! Free the pointer
          Ptr3D => NULL()
@@ -1366,8 +1365,8 @@
             
             ! Print the min & max of each species written to file
             WRITE( 6, 140 ) N,  MINVAL( Temp3D ), MAXVAL( Temp3D )
- 140        FORMAT( 'Species ', i3, ': Min = ', es12.5, '  Max = ', 
-     &              es12.5 )
+ 140        FORMAT( 'Species ', i3, ': Min = ', es15.9, '  Max = ', 
+     &              es15.9 )
             
             ! Free the pointer
             Ptr3D => NULL()
@@ -1404,6 +1403,7 @@
 !            cID = cId + 1
 !            
 !            ! Create container
+
 !            CALL Diagn_Create( am_I_Root,                     
 !     &                         Col       = GC_RST_Collection,         
 !     &                         cId       = cID,                 
@@ -1533,8 +1533,6 @@
 
       END SUBROUTINE WRITE_GC_RESTART_NC
 !EOC
-#endif
-#if defined( BPCH )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1715,7 +1713,7 @@
          ! Print the min & max of each tracer written to file
          WRITE( 6, 130 ) N,  MINVAL( ThisTracerVV ), 
      &                       MAXVAL( ThisTracerVV )
- 130     FORMAT( 'Tracer ', i3, ': Min = ', es12.5, '  Max = ', es12.5 )
+ 130     FORMAT( 'Tracer ', i3, ': Min = ', es15.9,'  Max = ',es15.9)
 
       ENDDO  
 
@@ -1729,7 +1727,6 @@
 
       END SUBROUTINE WRITE_GC_RESTART_BPCH
 !EOC
-#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1896,14 +1893,12 @@
 
       END SUBROUTINE Check_Dimensions
 !EOC
-#if defined( BPCH )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: copy_stt
-!
 ! !DESCRIPTION: Subroutine COPY\_STT converts tracer concentrations from [v/v] 
 !  to [kg/kg] and then copies the results into the STT tracer array. 
 !\\
@@ -1987,8 +1982,6 @@
 
       END SUBROUTINE COPY_STT
 !EOC
-#endif
-#if defined( BPCH )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2059,8 +2052,6 @@
 
       END SUBROUTINE CHECK_DATA_BLOCKS
 !EOC
-#endif
-#if defined( BPCH )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2279,8 +2270,8 @@
 
             ! Print the min & max of each species
             WRITE( 6, 300 ) N, MINVAL(TMP), MAXVAL(TMP)
- 300        FORMAT( 'Species ', i3, ': Min = ', es12.5, 
-     &              '  Max = ',  es12.5 )
+ 300        FORMAT( 'Species ', i3, ': Min = ', es15.9, 
+     &              '  Max = ',  es15.9 )
 
          ELSE
             CALL ERROR_STOP(' Restart data is not correct ', 
@@ -2305,8 +2296,6 @@
 
       END SUBROUTINE READ_CSPEC_FILE
 !EOC
-#endif
-#if defined( BPCH )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2516,8 +2505,8 @@
  
          ! Print the min & max of each tracer written to file
          WRITE( 6, 130 ) N,  MINVAL( TMP ), MAXVAL( TMP )
- 130     FORMAT( 'Species ', i3, ': Min = ', es12.5, '  Max = ', 
-     &           es12.5 )
+ 130     FORMAT( 'Species ', i3, ': Min = ', es15.9, '  Max = ', 
+     &           es15.9 )
 
       ENDDO
 
@@ -2534,5 +2523,4 @@
 
       END SUBROUTINE MAKE_CSPEC_FILE
 !EOC
-#endif
       END MODULE RESTART_MOD

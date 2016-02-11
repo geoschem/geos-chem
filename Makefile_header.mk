@@ -183,6 +183,7 @@
 #  24 Aug 2015 - R. Yantosca - Bug fix: Add missing | when testing USER_DEFS
 #  07 Dec 2015 - R. Yantosca - Add "realclean_except_rrtmg" target that
 #                              replaces the RRTMG_CLEAN variabe
+#  20 Feb 2016 - E. Lundgren - Add BPCH restart file input and output switches
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -268,6 +269,16 @@ ifndef TIMERS
  TIMERS              :=0
 endif
 
+# %%%%% Default to bpch input restart file disabled %%%%%
+ifndef BPCH_RST_IN
+ BPCH_RST_IN         :=no
+endif
+
+# %%%%% Default to bpch output restart file disabled %%%%%
+ifndef BPCH_RST_OUT
+ BPCH_RST_OUT        :=no
+endif
+
 # %%%%% Set default compiler %%%%%
 ifndef COMPILER
   COMPILER           :=ifort
@@ -324,6 +335,22 @@ REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(EXTERNAL_FORCING)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DEXTERNAL_FORCING
   NO_GRID_NEEDED     :=1
+endif
+
+#------------------------------------------------------------------------------
+# Restart settings
+#------------------------------------------------------------------------------
+
+# %%%%% BPCH_RST_IN (for using bpch restart file as input ) %%%%%
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(BPCH_RST_IN)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DBPCH_RST_IN
+endif
+
+# %%%%% BPCH_RST_OUT (for using bpch restart file as output ) %%%%%
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(BPCH_RST_OUT)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DBPCH_RST_OUT
 endif
 
 #------------------------------------------------------------------------------
