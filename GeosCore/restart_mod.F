@@ -739,10 +739,11 @@
       ! Only read species if chemistry simulation
       IF ( Input_Opt%LCHEM ) THEN 
          
-         ! Check if species data is in file by checking first species,
-         ! and print message to log
+         ! Check if species data is in file by looking for first species
          v_name = 'SPEC_CONC_' // TRIM( NAMEGAS(1) )
          ierr = Nf_Inq_Varid (fId, v_name, v_id)
+
+         ! Set species in restart file logical flag and write to log
          IF ( ierr /= NF_NOERR ) THEN
             SPC_IN_RST = .FALSE.
             WRITE( 6, 160 )
@@ -787,6 +788,10 @@
                Temp3D_ptr => NULL()
 
             ELSE
+
+               ! Initialize local array for this tracer and point to it
+               Temp3D = 0.0
+       
                ! If species data is not in the restart file, assign
                ! default background values converted to [molec/cm3].
                ! This method copies the algorithm used in gasconc.F in
@@ -832,7 +837,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( I, J, L, CONST )
                ! Loop over all chemistry grid boxes
                DO L = 1, LLCHEM  ! Is this same as species dimensions??
                DO J = 1, JJPAR
@@ -850,7 +855,7 @@
 
                   ELSE IF ( TRIM( SPC_NAME ) /= 'MOH' ) THEN
 
-                     ! Convert units if not MOH or EMISSIONS
+                     ! Convert units if not MOH and not EMISSIONS
                      Temp3D(I,J,L) = Background_VV * CONST
 
                   ELSE ! Special handling for MOH

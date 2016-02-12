@@ -1,3 +1,4 @@
+
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -669,8 +670,12 @@
       ENDIF 
 #else
       !--------------------------------------------------------------
-      ! For all chemistry timesteps, call GASCONC with the current
-      ! CSPEC values that are set in read_gc_restart (ewl, 2/11/16)
+      ! If using NetCDF input restart file, call GASCONC with the current
+      ! CSPEC values for all chemistry timesteps. Passing FIRSTCHEM as
+      ! as false and IT_EXISTS as true causes gasconc to skip setting
+      ! background default values from globchem.dat. These values are
+      ! now set in read_gc_restart_nc if species are not already in 
+      ! the restart NetCDF file (ewl, 2/11/16)
       !--------------------------------------------------------------
       CALL GASCONC(  am_I_Root, .FALSE., .TRUE.,
      &               Input_Opt, State_Met, State_Chm, RC )
