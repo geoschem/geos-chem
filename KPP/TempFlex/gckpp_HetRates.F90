@@ -101,32 +101,48 @@ MODULE GCKPP_HETRATES
       RELHUM = RELHUM / VPRESH2O 
 
       ! Get tracer concentrations [kg]
+      ! MSL -- As of Feb. 12, 2016, Tracers are in mcl/cc
+      !        due to a conversion in flex_chemdr.F
+      !        prior to the call to SET_HET. This is an
+      !        inefficiency that we should iron out.
+      !          As a result, we are converting the tracer
+      !        values back to kg/box here.
+      !        Now, get back to work.
+      !
       IND        = get_indx('SO4',IO%ID_TRACER,IO%TRACER_NAME)
       IF (IND .le. 0) THEN
          TRC_SO4    = 0._fp
-      ELSE
-         TRC_SO4    = SC%Tracers(I,J,L,IND)
+      ELSE ! Convert from mcl/cc to kg/box
+         TRC_SO4    = SC%Tracers(I,J,L,IND)/IO%XNUMOL(IND) *  &
+                        ( SM%AIRVOL(I,J,L) * 1e+6_fp *        &
+                          IO%TRACER_COEFF(IND,1)             )
       ENDIF
 
       IND        = get_indx('NIT',IO%ID_TRACER,IO%TRACER_NAME)
       IF (IND .le. 0) THEN
          TRC_NIT    = 0._fp
-      ELSE
-         TRC_NIT    = SC%Tracers(I,J,L,IND)
+      ELSE ! Convert from mcl/cc to kg/box
+         TRC_NIT    = SC%Tracers(I,J,L,IND)/ IO%XNUMOL(IND) * &
+                        ( SM%AIRVOL(I,J,L) * 1e+6_fp *        &
+                          IO%TRACER_COEFF(IND,1)             )
       ENDIF
 
       IND        = get_indx('HBr',IO%ID_TRACER,IO%TRACER_NAME)
       IF (IND .le. 0) THEN
          TRC_HBr    = 0._fp
-      ELSE
-         TRC_HBr    = SC%Tracers(I,J,L,IND)
+      ELSE ! Convert from mcl/cc to kg/box
+         TRC_HBr    = SC%Tracers(I,J,L,IND)/ IO%XNUMOL(IND) * &
+                        ( SM%AIRVOL(I,J,L) * 1e+6_fp *        &
+                          IO%TRACER_COEFF(IND,1)             )
       ENDIF
 
       IND        = get_indx('HOBr',IO%ID_TRACER,IO%TRACER_NAME)
       IF (IND .le. 0) THEN
          TRC_HOBr   = 0._fp
-      ELSE
-         TRC_HOBr   = SC%Tracers(I,J,L,IND)
+      ELSE ! Convert from mcl/cc to kg/box
+         TRC_HOBr   = SC%Tracers(I,J,L,IND)/ IO%XNUMOL(IND) * &
+                        ( SM%AIRVOL(I,J,L) * 1e+6_fp *        &
+                          IO%TRACER_COEFF(IND,1)             )
       ENDIF
 
 #if defined( UCX )
