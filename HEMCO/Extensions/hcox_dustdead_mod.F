@@ -5516,15 +5516,41 @@ c Fix up for negative argument, erf, etc.
       !%%% NOTE: RETUNING FOR MERRA2 2x25 IS NEEDED ONCE MET IS AVAILABLE %%%
       !%%%       Add placeholder value for now (bmy, 8/12/15)             %%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      FLX_MSS_FDG_FCT = -999.0d0
+      ! Use GEOS-5 value for now (mps, 1/6/16)
+      FLX_MSS_FDG_FCT = 4.9d-4
 
 #elif defined( MERRA2 ) && defined( GRID4x5 )
 
+      !----------------------------------------------------------------
+      ! Based on results from MERRA2 4x5 for 2012
+      !
+      !   (MERRA2 - GEOS-5)/GEOS-5 * 100 is -10.86% in each size bin.
+      !
+      ! We need to scale to the parameter FLX_MSS_FDG_FCT to make the
+      ! dust emissions consistent.  Consequently, to bring 2012 MERRA2
+      ! dust emissions up to 2012 GEOS-5 levels, we need to MULTIPLY the
+      ! FLX_MSS_FDG_FCT used for GEOS-5 by:
+      !
+      !             1 / (1. - 0.1086) = 1 / 0.8913 = 1.1219
+      !
+      !    -- M. Sulprizio, 12 Feb 2016
+      !----------------------------------------------------------------
+      FLX_MSS_FDG_FCT = 7.0d-4 * 1.1219d0
+
+#elif defined( MERRA2 ) && defined( GRID05x0625 )
+
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% NOTE: RETUNING FOR MERRA2 4x5 IS NEEDED ONCE MET IS AVAILABLE %%%
+      !%%% NOTE: RETUNING FOR MERRA2 05x0625 IS NEEDED ONCE MET IS AVAILABLE%
       !%%%       Add placeholder value for now (bmy, 8/12/15)             %%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      FLX_MSS_FDG_FCT = -999.0d0
+      ! Use GEOS-5 value for now (mps, 1/6/16)
+#if defined(NESTED_CH)  
+      FLX_MSS_FDG_FCT = 3.23d-4
+#elif defined(NESTED_EU)
+      FLX_MSS_FDG_FCT = 4.54d-4
+#elif defined(NESTED_NA)
+      FLX_MSS_FDG_FCT = 2.16d-4
+#endif
 
 #else
 
