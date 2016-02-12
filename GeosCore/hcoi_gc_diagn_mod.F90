@@ -3427,7 +3427,7 @@ CONTAINS
        ! add it to the default HEMCO collection. Otherwise, add it to the
        ! manual collection and the diagnostics will be written to the
        ! bpch file in diag3.F.
-#if defined( NETCDF )
+#if defined( NC_DIAG )
        COL = HcoDiagnIDDefault
 #else
        COL = HcoDiagnIDManual

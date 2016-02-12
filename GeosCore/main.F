@@ -783,7 +783,7 @@
       !      ***** INITIALIZE GEOS-CHEM DIAGNOSTICS AND RESTARTS ***** 
       !=================================================================      
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       ! Initialize diagnostics other than the default HEMCO diagnostics
       ! initialized above (ckeller, 1/13/15).
       CALL Diagnostics_Init( am_I_Root, Input_Opt, 
@@ -1158,11 +1158,11 @@
 
          ! Compute tropopause height for ND55 diagnostic
          ! Consider updating all Met diagnostics here (ewl, 1/22/16) 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
          IF ( Input_Opt%ND55 > 0 ) THEN
             CALL DIAG_TROPOPAUSE( am_I_root, Input_Opt, State_Met, RC )
          ENDIF
-#elif defined( NETCDF )
+#elif defined( NC_DIAG )
          ! If netcdf diagnostics, output if Met diagnostic group is on
          IF ( Input_Opt%ND68 > 0 ) THEN
             CALL DIAG_TROPOPAUSE( am_I_root, Input_Opt, State_Met, RC )
@@ -1843,7 +1843,7 @@
          !   IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a ND52' )
          !ENDIF
 
-!#if defined( NETCDF )
+!#if defined( NC_DIAG )
 !         ! Write diagnostic data to the GEOS-Chem diagnostics netCDF file.
 !         ! Each diagnostic has a specified averaging period specified 
 !         ! in Input_Opt. (ckeller, bmy, 1/15/15)
@@ -1918,7 +1918,7 @@
       ! Print the mass-weighted mean OH concentration (if applicable)
       CALL PRINT_DIAG_OH( am_I_Root, Input_Opt, RC )
 
-!#if defined( NETCDF )
+!#if defined( NC_DIAG )
 !      ! Write diagnostic data to the GEOS-Chem restart netCDF file.
 !      ! Each diagnostic has a specified averaging period specified 
 !      ! in Input_Opt. (ckeller, bmy, 1/15/15)

@@ -417,7 +417,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD67
 #endif
@@ -1125,7 +1125,7 @@
       ENDDO
       ENDDO
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       !=================================================================
       ! ND67 diagnostic: A1 surface fields
       !=================================================================

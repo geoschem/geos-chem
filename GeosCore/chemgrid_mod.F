@@ -1167,13 +1167,13 @@
 !
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! Diagnostic switches
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD55
 #endif
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState    
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       USE Error_Mod,          ONLY : Error_Stop
       USE HCO_Diagn_Mod,      ONLY : Diagn_Update
       USE HCO_Error_Mod
@@ -1255,7 +1255,7 @@
       REAL(fp)  :: H, FRAC, Pb, Pt
 #endif
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       ! NetCDF diagnostic variables
       INTEGER           :: M, HCRC
       CHARACTER(LEN=60) :: LOC = 'Diag_Tropopause (chemgrid_mod.F)' 
@@ -1274,10 +1274,10 @@
       RC = GIGC_SUCCESS
 
       ! Exit if diagnostic is not turned on
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       IF ( Input_Opt%ND55 <= 0 ) RETURN
 #endif
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       ! If outputting NetCDF, temporarily using ND68 as indicator since
       ! tropopause will be output as part of Met diagnostic group
       IF ( Input_Opt%ND68 <= 0 ) RETURN
@@ -1327,7 +1327,7 @@
          ! the tropopause actually occurs is then (I,J,L+1).
          IF ( LVARTROP ) L = L + 1
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
          ! Archive level at which tropopause occurs
          AD55(I,J,1) = AD55(I,J,1) + L
 
@@ -1340,7 +1340,7 @@
          ! result in lower minimum tropopause pressure than reality.
          AD55(I,J,3) = AD55(I,J,3) + State_Met%PMID(I,J,L)
 #endif
-#if defined( NETCDF )
+#if defined( NC_DIAG )
          TRPAUSE_L(I,J) = L                       ! tropopause level
          TRPAUSE_H(I,J) = H(I,J,L) / 1.0e+3_fp    ! tropopause height [km]
          TRPAUSE_P(I,J) = State_Met%PMID(I,J,L)   ! tropopause press [hPa]
@@ -1387,7 +1387,7 @@
          ! fraction of grid box (I,J,L_TP)
          H    = H + ( FRAC * State_Met%BXHEIGHT(I,J,L_TP) )
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
          !---------------------------
          ! Archive into ND55 array
          !---------------------------
@@ -1396,7 +1396,7 @@
          AD55(I,J,3) = AD55(I,J,3) +             ! T'pause pressure [hPa]
      &                    State_Met%TROPP(I,J)
 #endif
-#if defined( NETCDF )
+#if defined( NC_DIAG )
          TRPAUSE_L(I,J) = FLOAT( L_TP )          ! tropopause level
          TRPAUSE_H(I,J) = H / 1.0e+3_fp          ! tropopause height [km]
          TRPAUSE_P(I,J) = State_Met%TROPP(I,J)   ! tropopause press [hPa]
@@ -1405,7 +1405,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       ! Assume success
       HCRC = HCO_SUCCESS
 

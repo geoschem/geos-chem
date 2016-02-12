@@ -250,7 +250,7 @@
 !
 ! !USES:
 !
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD67
 #endif
       USE FILE_MOD,           ONLY : IOERROR
@@ -416,7 +416,7 @@
  210  FORMAT( '     - Found all ', i3, ' MERRA CN met fields for ', 
      &             a, ' on unit ', i4                                 )
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       !=================================================================
       ! ND67 diagnostic: 
       !=================================================================

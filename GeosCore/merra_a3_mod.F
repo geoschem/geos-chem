@@ -365,7 +365,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD66
       USE DIAG_MOD,           ONLY : AD67
@@ -822,7 +822,7 @@
       WHERE( QI < 0e+0_fp ) QI = 0e+0_fp
       WHERE( QL < 0e+0_fp ) QL = 0e+0_fp
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       !=================================================================
       !          %%%%% ND66 diagnostic: 3-D met fields %%%%%
       !

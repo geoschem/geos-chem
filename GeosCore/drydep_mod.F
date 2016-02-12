@@ -20,7 +20,7 @@
       USE PHYSCONSTANTS                         ! Physical constants
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
       USE DAO_MOD                               ! Met field subroutines
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
 #endif
       USE ERROR_MOD                             ! Error handling routines
@@ -316,7 +316,7 @@
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE UNITCONV_MOD
       USE Species_Mod,        ONLY : Species
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       USE TRACERID_MOD,       ONLY : IDTISOPN, IDTMMN
 #endif
 !
@@ -443,7 +443,7 @@
       LOGICAL       :: PBL_DRYDEP 
       LOGICAL       :: LPRT
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       ! Variables for netCDF diagnostics routines
       INTEGER           :: HCRC
       LOGICAL           :: First_ISOPN
@@ -463,7 +463,7 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       ! Zero deposition velocity array
       SAVE_DEPVEL = 0.0_fp
 #endif
@@ -585,7 +585,7 @@
             ! Dry deposition frequency [1/s]
             DEPSAV(I,J,D) = ( DVZ / 100.e+0_f8 ) / THIK
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
             ! Need to save dep velocity into 2-D array for netCDF diags
             ! Now save out frequency instead of velocity. We can change
             ! that if needed (ckeller, 3/11/15).
@@ -596,7 +596,7 @@
             SAVE_DEPVEL(I,J,D) = DVZ
 #endif
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
             ! ND44 diagnostic: drydep velocity [cm/s]
             IF ( ND44 > 0 ) THEN 
                AD44(I,J,D,2) = AD44(I,J,D,2) + DVZ
@@ -610,7 +610,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       !=================================================================
       ! Update drydep velocity into netCDF diagnostics structure
       !=================================================================

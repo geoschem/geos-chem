@@ -21,7 +21,7 @@
       USE DAO_MOD,            ONLY : IS_ICE, IS_WATER, IS_LAND
       USE DIAG_MOD,           ONLY : AD33, AD35, AD54 
       USE DIAG_MOD,           ONLY : AD47
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD30, AD31, AD45, AD57 
       USE DIAG_MOD,           ONLY : AD67, AD68, AD69, LTOTH
 #endif
@@ -59,7 +59,7 @@
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE HCO_ERROR_MOD
       USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
-#if defined( NETCDF ) 
+#if defined( NC_DIAG ) 
       USE DIAGNOSTICS_MOD,    ONLY : DiagnSpec, DiagnUpdate_Met
 #endif
 
@@ -257,7 +257,7 @@
 
 ! H Amos, 25 Oct 2011--------------------------------------------------
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       !-----------------------------------------------!
       ! Write ND03 diagnostics for RGM and PBM (pptv) !
       !-----------------------------------------------!
@@ -374,7 +374,7 @@
 !$OMP END PARALLEL DO
       ENDIF
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       !================================================================= 
       ! ND45: Tracer (V/V) at level 1 to level LD45, averaged over 
       !       the time period OTH_HR1 to OTH_HR2.  
@@ -468,7 +468,7 @@
             ENDDO
             
       ENDIF
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       !================================================================= 
       ! ND57: Potential temperature
       !================================================================= 
@@ -492,7 +492,7 @@
 !$OMP END PARALLEL DO
       ENDIF
 #endif
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       !=================================================================  
       ! ND67: Store PBL top pressure [hPa]
       !=================================================================  
@@ -509,7 +509,7 @@
          ENDDO
       ENDIF
 #endif
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       !================================================================= 
       ! ND68: 1:  BXHEIGHT     - box height [m] 
       !       2:  AD           - dry air mass [kg]
@@ -553,7 +553,7 @@
 !$OMP END PARALLEL DO
       ENDIF
 #endif
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       !================================================================= 
       ! ND69: Grid box surface areas [m2]
       !
@@ -625,7 +625,7 @@
 !###                                                                        ###
 !##############################################################################
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
 
       !=================================================================
       ! ND30: Landmap diagnostics (netCDF diagnostic structure)

@@ -343,7 +343,7 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: DIAG_COLLECTION
      INTEGER                     :: GC_RST_COLLECTION ! Used only for NetCDF
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
      ! New diagnostic group output types (e.g. 'mean')
      CHARACTER(LEN=15)           :: TRANSPORT_OUTPUT_TYPE
      CHARACTER(LEN=15)           :: WETSCAV_OUTPUT_TYPE

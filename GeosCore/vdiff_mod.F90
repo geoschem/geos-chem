@@ -1827,7 +1827,7 @@ contains
     USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
     USE DIAG_MOD,           ONLY : AD44
 #endif
     USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP, NTRAIND, DEPSAV
@@ -1860,7 +1860,7 @@ contains
 
     ! HEMCO update
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID, GetHcoVal, GetHcoDiagn
-#if defined( NETCDF )
+#if defined( NC_DIAG )
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
@@ -2008,7 +2008,7 @@ contains
 
     ! For diagnostics
     REAL(fp), TARGET   :: DryDepFlux( IIPAR, JJPAR ) 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
     REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
     REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
     REAL(fp)           :: Total
@@ -2550,7 +2550,7 @@ contains
 #endif
 
     ! Write (surface) emissions into diagnostics
-#if defined( NETCDF )
+#if defined( NC_DIAG )
 
     ! Allocate temporary data array
     ALLOCATE(Ptr3D(IIPAR,JJPAR,LLPAR))
@@ -2628,7 +2628,7 @@ contains
 !              NN == IDTDST3 .OR. &
 !              NN == IDTDST4       ) CYCLE
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       !===============================================================
       ! Update dry deposition flux diagnostic for bpch output (ND44) 
       !===============================================================
@@ -2643,7 +2643,7 @@ contains
                              * GET_TS_CONV() / GET_TS_EMIS() 
           ENDIF
 #endif
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       !===============================================================
       ! Update dry deposition flux diagnostic for netcdf output (ND44) 
       !===============================================================
@@ -2701,7 +2701,7 @@ contains
        IF ( IS_TAGOX ) THEN
           ! The first species, Ox, has been done above
           do N = 2, N_TRACERS 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
              ! Convert : kg/m2/s -> molec/cm2/s
              ! Consider timestep difference between convection and emissions
              AD44(:,:,N,1) = AD44(:,:,N,1) + dflx(:,:,N) &

@@ -26,7 +26,7 @@
 ! 
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       PRIVATE :: Diagn_RnPbBe_Update
 #endif
 
@@ -114,7 +114,7 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD01
       USE DIAG_MOD,           ONLY : AD02
 #endif
@@ -317,11 +317,11 @@
 
             ! ND02 diag: 222Rn lost to decay [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
                AD02(I,J,L,1)           = AD02(I,J,L,1) 
      &                                 + ( Rn_LOST(I,J,L) / DTCHEM )
 #endif
-#if defined( NETCDF )
+#if defined( NC_DIAG )
                RN_DECAY(I,J,L) = RN_LOST(I,J,L) / DTCHEM
 #endif
             ENDIF
@@ -334,7 +334,7 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
          ! Make sure ND02 is turned on
          IF ( Input_Opt%ND02 > 0 ) THEN
 
@@ -381,7 +381,7 @@
 
             ! ND01 diag: 210Pb emission from 222Rn decay [kg/s]
             IF ( ND01 > 0 .and. L <= LD01 ) THEN
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
                AD01(I,J,L)             = AD01(I,J,L) + 
      &                                   ( ADD_Pb / DTCHEM )
 #endif
@@ -401,11 +401,11 @@
 
             ! ND02 diag: 210Pb lost to decay [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
                AD02(I,J,L,2)           = AD02(I,J,L,2) 
      &                                 + ( Pb_LOST / DTCHEM )
 #endif
-#if defined( NETCDF )
+#if defined( NC_DIAG )
                PB_DECAY(I,J,L) = Pb_LOST / DTCHEM
 #endif
             ENDIF
@@ -418,7 +418,7 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
          ! Make sure ND02 is turned on
          IF ( Input_Opt%ND02 > 0 ) THEN
 
@@ -467,11 +467,11 @@
 
             ! ND02 diag: 7Be lost to decay [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
                AD02(I,J,L,3)           = AD02(I,J,L,3) 
      &                                 + ( Be_LOST / DTCHEM )
 #endif
-#if defined( NETCDF )
+#if defined( NC_DIAG )
                BE_DECAY(I,J,L) = Be_LOST / DTCHEM
 #endif
             ENDIF
@@ -484,7 +484,7 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
          ! Make sure ND02 is turned on
          IF ( Input_Opt%ND02 > 0 ) THEN
 
@@ -502,7 +502,7 @@
       END SUBROUTINE CHEMRnPbBe
 !EOC
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

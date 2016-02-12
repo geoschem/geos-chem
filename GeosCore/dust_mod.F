@@ -259,7 +259,7 @@
 !
 ! !USES:
 ! 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE DRYDEP_MOD,         ONLY : NUMDEP, NTRAIND
@@ -417,7 +417,7 @@
 !debug-----
             ENDDO
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
          !========================================================      
          ! ND44: Dry deposition diagnostic [#/cm2/s] (bpch)
          !========================================================
@@ -627,7 +627,7 @@
       USE CMN_DIAG_MOD
       USE PHYSCONSTANTS,      ONLY : g0          ! Accel due to gravity [m/s2]
       USE CMN_SIZE_MOD
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE GIGC_ErrCode_Mod
@@ -635,7 +635,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
@@ -711,7 +711,7 @@
       ! Molecules tracer / kg tracer, from Input Options
       REAL(fp)              :: XNUMOL(Input_Opt%N_TRACERS) 
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       ! For netcdf diagnostics (ND44 drydep flux)
       INTEGER               :: drydep_id, trc_id, HCRC
       CHARACTER(LEN=30)     :: DiagnName
@@ -740,7 +740,7 @@
       ! Dust settling timestep [s]
       DT_SETTL  = GET_TS_CHEM() * 60e+0_fp
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       ! Initialize diagnostic array (ND44)
       DryDepFlux = 0e+0_fp
 #endif
@@ -859,14 +859,14 @@
                   FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
                   FLUX = FLUX * XNUMOL(INDEX) / AREA_CM2 
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
                   ! For bpch diagnostic, save in global array AD44
 !tdf                  AD44(I,J,Input_Opt%IDDEP(N),1) = 
 !tdf     &            AD44(I,J,Input_OPt%IDDEP(N),1) + FLUX
                   AD44(I,J,Input_Opt%IDDEP(N+IDISP),1) =
      &            AD44(I,J,Input_Opt%IDDEP(N+IDISP),1) + FLUX
 #endif
-#if defined( NETCDF )
+#if defined( NC_DIAG )
                   ! For netcdf diagnostic, store data in local array
                   DryDepFlux(I,J,N) = FLUX
 #endif
@@ -877,7 +877,7 @@
       ENDDO       
 !$OMP END PARALLEL DO
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       !========================================================      
       ! ND44: Dry deposition diagnostic [molec/cm2/s] (netcdf) 
       !========================================================

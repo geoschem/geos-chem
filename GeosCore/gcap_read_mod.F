@@ -447,7 +447,7 @@
 !
 ! !USES:
 !
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD                                     ! ND67
       USE DIAG_MOD,     ONLY : AD67
 #endif
@@ -572,7 +572,7 @@
       !=================================================================
       PHIS = PHIS / g0
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       IF ( ND67 > 0 ) THEN
          AD67(:,:,15) = AD67(:,:,15) + PHIS
       ENDIF  

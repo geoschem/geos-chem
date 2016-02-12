@@ -26,7 +26,7 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       ! For ND01 -- Pb emissions (Rn, Be now tracked thru HEMCO)
       REAL*4,  ALLOCATABLE :: AD01(:,:,:)
 
@@ -84,7 +84,7 @@
       ! For ND23 -- CH3CCl3 lifetime diagnostic
       REAL(fp),  ALLOCATABLE :: DIAGCHLORO(:,:,:,:)
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       ! For ND24 -- E/W transport mass flux diagnostic
       REAL(fp),  ALLOCATABLE, TARGET :: MASSFLEW(:,:,:,:)
 
@@ -110,7 +110,7 @@
       ! For ND37 -- Fraction of tracer scavenged in cloud updrafts
       REAL*4,  ALLOCATABLE :: AD37(:,:,:,:)      
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       ! For ND38 -- Rainout in moist convection diagnostic
       REAL*4,  ALLOCATABLE :: AD38(:,:,:,:)      
 
@@ -143,7 +143,7 @@
       INTEGER, ALLOCATABLE :: LTLXRO2H(:,:)
       INTEGER, ALLOCATABLE :: LTLXRO2N(:,:)
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       ! For ND44 -- Dry deposition fluxes & velocities
       REAL*4,  ALLOCATABLE :: AD44(:,:,:,:)
 
@@ -168,7 +168,7 @@
       ! For ND54 -- tropopause diagnostics
       REAL*4,  ALLOCATABLE :: AD54(:,:,:)
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       ! For ND55 -- tropopause diagnostics
       REAL*4,  ALLOCATABLE :: AD55(:,:,:)
 
@@ -208,7 +208,7 @@
       ! For ND64 -- radiative flux from FAST-JX
       REAL*4,  ALLOCATABLE :: AD64(:,:,:,:,:)
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       ! For ND66 -- I-6 fields diagnostic
       REAL*4,  ALLOCATABLE :: AD66(:,:,:,:)      
 
@@ -353,7 +353,7 @@
       !=================================================================
       ! CLEANUP_DIAG begins here!
       !=================================================================
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD01        ) ) DEALLOCATE( AD01        )
       IF ( ALLOCATED( AD02        ) ) DEALLOCATE( AD02        )
 #endif
@@ -370,26 +370,26 @@
       IF ( ALLOCATED( AD21        ) ) DEALLOCATE( AD21        )
       IF ( ALLOCATED( AD21_cr     ) ) DEALLOCATE( AD21_cr     )
       IF ( ALLOCATED( AD22        ) ) DEALLOCATE( AD22        ) 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD30        ) ) DEALLOCATE( AD30        ) 
       IF ( ALLOCATED( AD31        ) ) DEALLOCATE( AD31        ) 
 #endif
       IF ( ALLOCATED( AD33        ) ) DEALLOCATE( AD33        )
       IF ( ALLOCATED( AD35        ) ) DEALLOCATE( AD35        )
       IF ( ALLOCATED( AD37        ) ) DEALLOCATE( AD37        )
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD38        ) ) DEALLOCATE( AD38        )  
       IF ( ALLOCATED( AD39        ) ) DEALLOCATE( AD39        )
 #endif
       IF ( ALLOCATED( AD43        ) ) DEALLOCATE( AD43        )
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD44        ) ) DEALLOCATE( AD44        )
       IF ( ALLOCATED( AD45        ) ) DEALLOCATE( AD45        )
 #endif
       IF ( ALLOCATED( AD47        ) ) DEALLOCATE( AD47        )
       IF ( ALLOCATED( AD52        ) ) DEALLOCATE( AD52        )
       IF ( ALLOCATED( AD54        ) ) DEALLOCATE( AD54        )
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD55        ) ) DEALLOCATE( AD55        )
       IF ( ALLOCATED( AD57        ) ) DEALLOCATE( AD57        )
 #endif
@@ -416,7 +416,7 @@
       IF ( ALLOCATED( AD60        ) ) DEALLOCATE( AD60        )
 #endif
       IF ( ALLOCATED( AD64        ) ) DEALLOCATE( AD64        )
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
       IF ( ALLOCATED( AD69        ) ) DEALLOCATE( AD69        )
@@ -453,14 +453,14 @@
       IF ( ALLOCATED( CTO3P       ) ) DEALLOCATE( CTO3P       )
       IF ( ALLOCATED( LTO3P       ) ) DEALLOCATE( LTO3P       )
       IF ( ALLOCATED( CTHO2       ) ) DEALLOCATE( CTHO2       )
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( CTOTH       ) ) DEALLOCATE( CTOTH       )
 #endif
       IF ( ALLOCATED( DIAGCHLORO  ) ) DEALLOCATE( DIAGCHLORO  )
       IF ( ALLOCATED( LTJV        ) ) DEALLOCATE( LTJV        )
       IF ( ALLOCATED( LTOH        ) ) DEALLOCATE( LTOH        )
       IF ( ALLOCATED( LTHO2       ) ) DEALLOCATE( LTHO2       )
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( LTOTH       ) ) DEALLOCATE( LTOTH       )
       IF ( ALLOCATED( MASSFLEW    ) ) DEALLOCATE( MASSFLEW    )
       IF ( ALLOCATED( MASSFLNS    ) ) DEALLOCATE( MASSFLNS    )

@@ -5039,7 +5039,7 @@
        CALL ERROR_STOP( MSG, 'READ_DIAGNOSTIC_MENU ("input_mod.f")' )
       ENDIF
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       !----------------------------------------------------------
       ! NETCDF diagnostic output type (eventually read from file)
       !----------------------------------------------------------

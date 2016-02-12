@@ -183,7 +183,8 @@
 #  24 Aug 2015 - R. Yantosca - Bug fix: Add missing | when testing USER_DEFS
 #  07 Dec 2015 - R. Yantosca - Add "realclean_except_rrtmg" target that
 #                              replaces the RRTMG_CLEAN variabe
-#  20 Feb 2016 - E. Lundgren - Add BPCH restart file input and output switches
+#  10 Feb 2016 - E. Lundgren - Add BPCH restart file input and output switches
+#  11 Feb 2016 - E. Lundgren - Change BPCH to BPCH_DIAG, NETCDF to NC_DIAG
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -223,7 +224,7 @@ ERR_GIGC             :="Unable to find the GIGC configuration file. Have you dow
 ERR_GIGC             :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
 
 # Error message for diagnostics
-ERR_DIAG             :="Select one diagnostic output type: NETCDF=y or BPCH=y"
+ERR_DIAG             :="Select one diagnostic output type: NC_DIAG=y or BPCH_DIAG=y"
 
 ###############################################################################
 ###                                                                         ###
@@ -359,34 +360,34 @@ endif
 
 # %%%%% Use netCDF diagnostics if DEVEL=y %%%%%
 ifdef DEVEL
-  NETCDF             :=yes
-  BPCH               :=no
+  NC_DIAG            :=yes
+  BPCH_DIAG          :=no
 endif
 
 # %%%%% Test for diagnostic output type, set to bpch if not specified %%%%%
-ifndef BPCH
-  ifndef NETCDF
-    BPCH             :=yes
+ifndef BPCH_DIAG
+  ifndef NC_DIAG
+    BPCH_DIAG        :=yes
   endif
 endif
 
 # %%%%% ERROR CHECK!  Make sure only one diagnostic output type is selected %%%%%
-ifeq ($(BPCH),y)
-  ifeq ($(NETCDF),y)
+ifeq ($(BPCH_DIAG),y)
+  ifeq ($(NC_DIAG),y)
     $(error $(ERR_DIAG))
   endif
 endif 
 
 # %%%%% BPCH (for using old BPCH diagnostic output) %%%%%
 REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(BPCH)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DBPCH
+ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DBPCH_DIAG
 endif
 
 # %%%%% NETCDF (for using new netCDF diagnostic output) %%%%%
 REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(NETCDF)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DNETCDF
+ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DNC_DIAG
 endif
 
 #------------------------------------------------------------------------------

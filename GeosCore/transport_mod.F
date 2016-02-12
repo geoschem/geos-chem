@@ -276,10 +276,10 @@
 !
 ! !USES:
 !
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
 #endif
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       USE DIAGNOSTICS_MOD, ONLY : DIAGNUPDATE_TRANSPORT_FLUX
 #endif
       USE ERROR_MOD
@@ -358,7 +358,7 @@
       REAL(fp),  POINTER :: p_VWND   (:,:,:  )
       REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
       REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
-#if defined( BPCH ) || defined( NETCDF )
+#if defined( BPCH_DIAG ) || defined( NETCDF )
       REAL(fp),  POINTER :: p_MFLEW  (:,:,:,:) => NULL()
       REAL(fp),  POINTER :: p_MFLNS  (:,:,:,:) => NULL()
       REAL(fp),  POINTER :: p_MFLUP  (:,:,:,:) => NULL()
@@ -371,7 +371,7 @@
       LOGICAL            :: LWINDO
       INTEGER            :: N_TRACERS
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
       ! Note that these are different than if writing to bpch
       REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,NNPAR)        
@@ -392,7 +392,7 @@
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       ! Initialize netcdf diagnostic arrays
       MASSFLEW_NC = 0.0e+0_fp
       MASSFLNS_NC = 0.0e+0_fp
@@ -462,13 +462,13 @@
       p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
 
       ! Diagnostic arrays are vertically flipped at writeout
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       ! Point to global diag_mod arrays for bpch
       p_MFLEW   => MASSFLEW
       p_MFLNS   => MASSFLNS
       p_MFLUP   => MASSFLUP
 #endif
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       ! Point to local arrays for netcdf
       p_MFLEW   => MASSFLEW_NC
       p_MFLNS   => MASSFLNS_NC
@@ -492,7 +492,7 @@
      &                   p_UWND, p_VWND,    P_TP1,    P_TP2,
      &                   P_TEMP, p_STT,     IORD,     JORD,      
      &                   KORD,   N_ADJ,     p_XMASS,  p_YMASS, LFILL,  
-#if defined( BPCH ) || defined( NETCDF )
+#if defined( BPCH_DIAG ) || defined( NETCDF )
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
@@ -501,7 +501,7 @@
 #endif    
      &                   A_M2, ND24, ND25, ND26 )
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       IF ( Input_Opt%ND24 > 0 ) THEN 
          CALL DiagnUpdate_Transport_Flux( am_I_Root, p_MFLEW, p_MFLNS, 
      &                                    p_MFLUP, Input_Opt, RC )
@@ -521,7 +521,7 @@
       ! Free pointer memory
       NULLIFY( p_UWND,  p_VWND,  p_STT   )
       NULLIFY( p_XMASS, p_YMASS          )
-#if defined( BPCH ) || defined( NETCDF )
+#if defined( BPCH_DIAG ) || defined( NETCDF )
       NULLIFY( p_MFLEW, p_MFLNS, p_MFLUP )
 #endif
 
@@ -561,10 +561,10 @@
 !
 ! !USES:
 !
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
 #endif
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       USE DIAGNOSTICS_MOD, ONLY : DIAGNUPDATE_TRANSPORT_FLUX
 #endif
       USE ERROR_MOD
@@ -643,7 +643,7 @@
       REAL(fp),  POINTER :: p_VWND   (:,:,:  )
       REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
       REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
-#if defined( BPCH ) || defined( NETCDF )
+#if defined( BPCH_DIAG ) || defined( NETCDF )
       REAL(fp),  POINTER :: p_MFLEW (:,:,:,:) => NULL()
       REAL(fp),  POINTER :: p_MFLNS (:,:,:,:) => NULL()
       REAL(fp),  POINTER :: p_MFLUP (:,:,:,:) => NULL()
@@ -656,7 +656,7 @@
       LOGICAL            :: LWINDO
       INTEGER            :: N_TRACERS
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
       ! Note that these are different than if writing to bpch
       REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,NNPAR)        
@@ -677,7 +677,7 @@
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       ! Initialize netcdf diagnostic arrays
       MASSFLEW_NC = 0.0e+0_fp
       MASSFLNS_NC = 0.0e+0_fp
@@ -750,12 +750,12 @@
       p_STT     => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
       p_XMASS   => XMASS            (:,:,LLPAR:1:-1  )
       p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       p_MFLEW   => MASSFLEW
       p_MFLNS   => MASSFLNS
       p_MFLUP   => MASSFLUP
 #endif
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       p_MFLEW   => MASSFLEW_NC
       p_MFLNS   => MASSFLNS_NC
       p_MFLUP   => MASSFLUP_NC
@@ -779,7 +779,7 @@
      &                   p_UWND,  p_VWND,    P_TP1,    P_TP2,
      &                   P_TEMP,  p_STT,     IORD,     JORD,      
      &                   KORD,    N_ADJ,     p_XMASS,  p_YMASS, LFILL,
-#if defined( BPCH ) || defined( NETCDF )
+#if defined( BPCH_DIAG ) || defined( NETCDF )
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
@@ -788,7 +788,7 @@
 #endif    
      &                   A_M2, ND24, ND25, ND26 )
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       IF ( Input_Opt%ND24 > 0 ) THEN
          CALL DiagnUpdate_Transport_Flux( am_I_Root, p_MFLEW, p_MFLNS, 
      &                                    p_MFLUP, Input_Opt, RC )
@@ -808,7 +808,7 @@
       ! Free pointer memory
       NULLIFY( p_UWND,  p_VWND,  p_STT   )
       NULLIFY( p_XMASS, p_YMASS          )
-#if defined( BPCH ) || defined( NETCDF )
+#if defined( BPCH_DIAG ) || defined( NETCDF )
       NULLIFY( p_MFLEW, p_MFLNS, p_MFLUP )
 #endif
 
@@ -850,10 +850,10 @@
 ! !USES:
 !
       ! References to F90 modules
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,                  ONLY : MASSFLEW, MASSFLNS, MASSFLUP
 #endif
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       USE DIAGNOSTICS_MOD, ONLY : DIAGNUPDATE_TRANSPORT_FLUX
 #endif
       USE ERROR_MOD
@@ -936,7 +936,7 @@
       REAL(fp),  POINTER :: p_VWND  (:,:,:  ) => NULL()
       REAL(fp),  POINTER :: p_XMASS (:,:,:  ) => NULL()
       REAL(fp),  POINTER :: p_YMASS (:,:,:  ) => NULL()
-#if defined( BPCH ) || defined( NETCDF )
+#if defined( BPCH_DIAG ) || defined( NETCDF )
       REAL(fp),  POINTER :: p_MFLEW (:,:,:,:) => NULL()
       REAL(fp),  POINTER :: p_MFLNS (:,:,:,:) => NULL()
       REAL(fp),  POINTER :: p_MFLUP (:,:,:,:) => NULL()
@@ -950,7 +950,7 @@
       INTEGER          :: N_TRACERS
       REAL(fp)         :: TCVV(Input_Opt%N_TRACERS)
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
       ! Note that these are different than if writing to bpch
       REAL(fp), TARGET :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,NNPAR)        
@@ -972,7 +972,7 @@
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       ! Initialize netcdf diagnostic arrays
       MASSFLEW_NC = 0.0e+0_fp
       MASSFLNS_NC = 0.0e+0_fp
@@ -1079,7 +1079,7 @@
       p_P_TEMP => P_TEMP(           I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1        )
                                    
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       p_MFLEW => MASSFLEW(          I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1,  
      &                              :,                         : )
@@ -1092,7 +1092,7 @@
      &                              J0_W1+1 : J0_W1+JM_W1,  
      &                              :,                         : )
 #endif
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       p_MFLEW => MASSFLEW_NC(       I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1,  
      &                              :,                         : )
@@ -1126,7 +1126,7 @@
      &      Ap,      Bp,       p_UWND,  p_VWND,  p_P_TP1, 
      &      p_P_TP2, p_P_TEMP, p_STT,   IORD,    JORD, 
      &      KORD,    N_ADJ,    p_XMASS, p_YMASS, 
-#if defined( BPCH ) || defined( NETCDF )
+#if defined( BPCH_DIAG ) || defined( NETCDF )
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
@@ -1135,7 +1135,7 @@
 #endif
      &                          p_A_M2,   ND24,      ND25,     ND26 ) 
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       IF ( Input_Opt%ND24 > 0 ) THEN
          CALL DiagnUpdate_Transport_Flux( am_I_Root, p_MFLEW, p_MFLNS, 
      &                                    p_MFLUP, Input_Opt, RC )
@@ -1157,7 +1157,7 @@
       ! Free pointer memory
       NULLIFY( p_UWND,  p_VWND,  p_STT,   p_XMASS  ) 
       NULLIFY( p_YMASS, p_P_TP1, p_P_TP2, p_P_TEMP, p_A_M2 )
-#if defined( BPCH ) || defined( NETCDF )
+#if defined( BPCH_DIAG ) || defined( NETCDF )
       NULLIFY( p_MFLEW, p_MFLNS, p_MFLUP )
 #endif
 

@@ -830,7 +830,7 @@
 ! 
 ! !USES:
 !
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,     ONLY : AD38,   AD39
       USE DIAG_MOD,     ONLY : AD44
 #endif
@@ -860,7 +860,7 @@
       SCALEDYN   = DBLE( GET_CT_DYN()  ) + 1e-32_fp
       SCALECHEM  = DBLE( GET_CT_CHEM() ) + 1e-32_fp
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       ! Hg2 total wet deposition at the surface
       HG2mth_wd = HG2mth_wd + ( SUM(AD38(:,:,:,NN), DIM=3) + 
      &                          SUM(AD39(:,:,:,NN), DIM=3) )

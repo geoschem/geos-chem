@@ -28,7 +28,7 @@ MODULE Diagnostics_Mod
   PUBLIC  :: Diagnostics_Write
 
   ! All of the following is currently only active for NETCDF=y
-#if defined( NETCDF )
+#if defined( NC_DIAG )
   PUBLIC  :: Diagnostics_Init
   PUBLIC  :: Diagnostics_Final
   PUBLIC  :: DiagnUpdate_Met            ! ND31, 55, 57, 66, 67, and 68
@@ -111,7 +111,7 @@ MODULE Diagnostics_Mod
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
-#if defined( NETCDF )
+#if defined( NC_DIAG )
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3072,7 +3072,7 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     ! Write netCDF GEOS-Chem diagnostics
-#if defined( NETCDF )
+#if defined( NC_DIAG )
     ! Get pointer to HEMCO state object.
     CALL GetHcoState( HcoState )
     IF ( .NOT. ASSOCIATED(HcoState) ) THEN

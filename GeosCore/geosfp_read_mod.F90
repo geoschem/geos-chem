@@ -24,7 +24,7 @@ MODULE GeosFp_Read_Mod
   ! GEOS-Chem modules
   USE CMN_SIZE_MOD                        ! Size parameters
   USE PHYSCONSTANTS                       ! Physical constants
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
   USE CMN_DIAG_MOD                        ! Diagnostic arrays & counters
   USE DIAG_MOD,      ONLY : AD66          ! Array for ND66 diagnostic  
   USE DIAG_MOD,      ONLY : AD67          ! Array for ND67 diagnostic
@@ -386,7 +386,7 @@ CONTAINS
     ! Convert PHIS from [m2/s2] to [m]
     State_Met%PHIS = State_Met%PHIS / g0
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
     ! ND67 diagnostic 
     IF ( ND67 > 0 ) THEN
        AD67(:,:,15) = AD67(:,:,15) + State_Met%PHIS  ! Sfc geopotential [m]
@@ -820,7 +820,7 @@ CONTAINS
     State_Met%PRECLSC = State_Met%PRECLSC * 86400d0
     State_Met%PRECTOT = State_Met%PRECTOT * 86400d0
     
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
     ! ND67 diagnostic: surface fields
     IF ( ND67 > 0 ) THEN
        AD67(:,:,1 ) = AD67(:,:,1 ) + State_Met%HFLUX    ! Sens heat flux [W/m2]
@@ -1294,7 +1294,7 @@ CONTAINS
     ! Convert RH from [1] to [%]
     State_Met%RH = State_Met%RH * 100d0
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
     ! ND66 diagnostic: U, V, DTRAIN met fields
     IF ( ND66 > 0 ) THEN
        AD66(:,:,1:LD66,1) = AD66(:,:,1:LD66,1) + State_Met%U     (:,:,1:LD66)
@@ -1670,7 +1670,7 @@ CONTAINS
     ENDDO
     ENDDO
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
     ! ND66 diagnostic: CMFMC met field
     IF ( ND66 > 0 ) THEN
        AD66(:,:,1:LD66,5) = AD66(:,:,1:LD66,5) + State_Met%CMFMC(:,:,1:LD66)
@@ -1908,7 +1908,7 @@ CONTAINS
     ! Increment the # of times I3 fields have been read
     CALL Set_Ct_I3( INCREMENT=.TRUE. )
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
     ! ND66 diagnostic: T1, QV1 met fields
     IF ( ND66 > 0 ) THEN
        AD66(:,:,1:LD66,3) = AD66(:,:,1:LD66,3) + State_Met%TMPU1(:,:,1:LD66)
@@ -2126,7 +2126,7 @@ CONTAINS
     ! Increment the # of times I3 fields have been read
     CALL Set_Ct_I3( INCREMENT=.TRUE. )
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
     ! ND66 diagnostic: T2, QV2 met fields
     IF ( ND66 > 0 ) THEN
        AD66(:,:,1:LD66,3) = AD66(:,:,1:LD66,3) + State_Met%TMPU2(:,:,1:LD66)

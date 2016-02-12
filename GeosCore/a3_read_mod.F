@@ -23,7 +23,7 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       PUBLIC  :: ARCHIVE_ND67_1D
 #endif 
       PUBLIC  :: GET_A3_FIELDS
@@ -824,7 +824,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD67
 #endif
@@ -1516,7 +1516,7 @@
 
 #endif
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       !=================================================================
       ! ND67 diagnostic: A-3 surface fields:
       !
@@ -1572,7 +1572,7 @@
 
       END SUBROUTINE READ_A3
 !EOC
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

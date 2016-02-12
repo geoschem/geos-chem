@@ -185,6 +185,14 @@
       !=================================================================
       IF ( FIRSTCHEM ) THEN
 
+         ! Echo some input to the screen
+         WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+         WRITE( 6, '(a,/)' ) 'C S P E C  -  Use Background Values'
+         WRITE( 6, '(a,/)' ) 'GASCONC: Assigning values to CSPEC'
+
+         WRITE( 6, 170 )
+ 170     FORMAT( /,'Min and Max of each species [molec/cm3/box]:' )
+
          ! Loop over species
          DO 28 JGAS = 1, NTSPEC(NCS)
 
@@ -250,6 +258,7 @@
 
                         ! Make sure MOH conc. is not negative (SMAL2 = 1d-99)
                         CSPEC_FULL(IX,IY,IZ,JGAS) = 
+
      &                       MAX(CSPEC_FULL(IX,IY,IZ,JGAS),SMAL2)
                      ENDIF
 
@@ -307,10 +316,19 @@
                   IF (NAMEGAS(JGAS).EQ.'EMISSION') THEN
                      CSPEC_FULL(IX,IY,IZ,JGAS) = QBKCHEM(JGAS,NCS)
                   ENDIF
+
                ENDDO
                ENDDO
                ENDDO
             ENDIF
+
+            ! Print the min & max of this species
+            WRITE( 6, 180 ) JGAS, 
+     &                      MINVAL(CSPEC_FULL(:,:,:,JGAS)), 
+     &                      MAXVAL(CSPEC_FULL(:,:,:,JGAS))
+ 180        FORMAT( 'Species ', i3, ': Min = ', es15.9, 
+     &              '  Max = ', es15.9 )
+
  28      CONTINUE
       ENDIF        !(FIRSTCHEM)
       

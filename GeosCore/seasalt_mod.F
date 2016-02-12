@@ -293,7 +293,7 @@
       USE PHYSCONSTANTS
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -305,7 +305,7 @@
       USE TRACERID_MOD,       ONLY : IDTSALC
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
@@ -377,7 +377,7 @@
       LOGICAL, SAVE            :: FIRST = .TRUE.
       REAL(f8)                 :: RHO, RHO1
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       ! For netcdf diagnostics (ND44 drydep flux)
       INTEGER                  :: drydep_id, trc_id, HCRC
       CHARACTER(LEN=30)        :: DiagnName
@@ -443,7 +443,7 @@
       ! Sea salt density [kg/m3]
       DEN            = SS_DEN( N )
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       ! Init diagnostics
       DryDepFlux  = 0.0_fp
 #endif
@@ -732,11 +732,11 @@
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
             FLUX     = FLUX * XNUMOL(IDTSALA) / AREA_CM2 
    
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
             ! For bpch diagnostic, store in global AD44 array
             AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
 #endif
-#if defined( NETCDF )
+#if defined( NC_DIAG )
             ! For netcdf diagnostic, store data in local array
             DryDepFlux(I,J) = FLUX
 #endif
@@ -747,7 +747,7 @@
 !$OMP END PARALLEL DO
 
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       !========================================================      
       ! ND44: Dry deposition diagnostic [#/cm2/s] (netcdf) 
       !========================================================

@@ -96,7 +96,7 @@
       USE DIAG_MOD,           ONLY : CONVFLUP
       USE ERROR_MOD,          ONLY : GIGC_ERROR
       USE UNITCONV_MOD
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD38
 #endif
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
@@ -115,7 +115,7 @@
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
 
-#if defined ( NETCDF )
+#if defined( NC_DIAG )
       USE HCO_ERROR_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
@@ -288,7 +288,7 @@
       ! write the diagnostics within the convection schemes but can
       ! simply take the difference between the original and updated 
       ! tracer field column.
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       IF ( Input_Opt%ND38 > 0 ) THEN
          ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
          BEFORE = State_Chm%Tracers
@@ -448,7 +448,7 @@
             ENDDO
          ENDIF
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
          !--------------------------
          ! ND38 diagnostic [kg/s]
          !--------------------------
@@ -472,7 +472,7 @@
 !$OMP END PARALLEL DO
 
 #endif
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       !-----------------------------------------------------------------
       ! NetCDF diagnostics (ND38)
       ! Write out the column mass difference before and after 
@@ -1157,7 +1157,7 @@
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
       USE DIAG_MOD,           ONLY : AD37
-#if defined ( BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD38
 #endif
       USE DIAG_MOD,           ONLY : CONVFLUP
@@ -1842,7 +1842,7 @@
      &                                     * AREA_M2 
                      ENDIF
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
                      !==================================================
                      ! ND38 Diagnostic: loss of soluble tracer to wet
                      ! scavenging in cloud updrafts [kg/s].  We must 

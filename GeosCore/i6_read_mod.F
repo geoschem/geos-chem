@@ -755,7 +755,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD66
       USE DIAG_MOD,           ONLY : AD67
@@ -1128,7 +1128,7 @@
       ! Increment KDI6FLDS -- this is the # of times READ_I6 is called. 
       CALL SET_CT_I6( INCREMENT=.TRUE. )
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       !=================================================================
       ! ND66 diagnostic: I-6 fields (3-dimensional)
       !

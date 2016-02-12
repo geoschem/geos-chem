@@ -264,10 +264,10 @@ CONTAINS
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
     USE PHYSCONSTANTS,      ONLY : AVO
     USE CMN_DIAG_MOD,       ONLY : ND44
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
     USE DIAG_MOD,           ONLY : AD44
 #endif
-#if defined( NETCDF )
+#if defined( NC_DIAG )
     USE HCO_ERROR_MOD
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
@@ -318,7 +318,7 @@ CONTAINS
     LOGICAL            :: DryDepSpec, EmisSpec
 
     ! For diagnostics
-#if defined( NETCDF )
+#if defined( NC_DIAG )
     INTEGER            :: cID, trc_id, HCRC
     CHARACTER(LEN=30)  :: DiagnName
     REAL(fp), TARGET   :: DryDepFlux( IIPAR, JJPAR, Input_Opt%NUMDEP ) 
@@ -394,7 +394,7 @@ CONTAINS
        FIRST = .FALSE.
     ENDIF
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
     ! Initialize local diagnostic variables
     DryDepFlux  = 0.0_fp
     EMIS        = 0.0_fp
@@ -597,7 +597,7 @@ CONTAINS
                       FLUX = FLUX + ( PNOXLOSS * TS )
                    ENDIF 
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
                    ! Prior to 1/22/16, archive deposition flux in kg/m2/s:
                    !DepFluxes(I,J,N) = DepFluxes(I,J,N) + ( FLUX / TS )
 #endif
@@ -629,13 +629,13 @@ CONTAINS
       !========================================================      
       ! ND44: Dry deposition diagnostic [molec/cm2/s]
       !========================================================
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
                    IF ( ND44 > 0 ) THEN
                       ! For bpch diagnostic, store data in global AD44 array
                       AD44(I,J,DryDepID,1) = AD44(I,J,DryDepID,1) + FLUX
                    ENDIF
 #endif
-#if defined( NETCDF )
+#if defined( NC_DIAG )
                    IF ( ND44 > 0 ) THEN
                       ! For netcdf diagnostic, store data in local array
                       ! Now use same units as bpch for comparison (ewl, 1/22/16)
@@ -666,7 +666,7 @@ CONTAINS
                    State_Chm%Tracers(I,J,L,N) = State_Chm%Tracers(I,J,L,N) & 
                                               + FLUX 
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
                    ! Update new tracer emissions diagnostics
                    EMIS(I,J,L,N) = TMP                 ! kg/m2/s
                    TOTFLUX(N)    = TOTFLUX(N) + FLUX   ! kg/m2/s
@@ -687,7 +687,7 @@ CONTAINS
 #endif
 
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
     !========================================================      
     ! ND44: Dry deposition diagnostic [molec/cm2/s] (netcdf) 
     !========================================================

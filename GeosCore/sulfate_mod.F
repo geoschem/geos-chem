@@ -1460,7 +1460,7 @@
 !
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44
 #endif
 !      USE DRYDEP_MOD,         ONLY : DEPSAV
@@ -1476,7 +1476,7 @@
       USE TRACERID_MOD,       ONLY : IDTSO4d4, IDTNITd4
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
@@ -1572,7 +1572,7 @@
       REAL(f8)               :: RHO1, WTP, RHO
       REAL(fp)               :: DEN !tdf
  
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       ! for netcdf diagnostics (ND44 drydep flux)
       INTEGER            :: drydep_id, trc_id, HCRC
       CHARACTER(LEN=30)  :: DiagnName
@@ -1614,7 +1614,7 @@
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       ! Initialize diagnostic array (ND44)
       DryDepFlux = 0e+0_fp
 #endif
@@ -1882,11 +1882,11 @@
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
             FLUX     = FLUX * XNUMOL(IDTRC(N)) / AREA_CM2 
 
-#if defined( BPCH )   
+#if defined( BPCH_DIAG )   
             ! Store in global AD44 array for bpch diagnostic output
             AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
 #endif
-#if defined( NETCDF )
+#if defined( NC_DIAG )
             ! Store in local array for netcdf diagnostic
             DryDepFlux(I,J) = FLUX
 #endif
@@ -1895,7 +1895,7 @@
       ENDDO ! J
 !$OMP END PARALLEL DO
 
-#if defined( NETCDF )
+#if defined( NC_DIAG )
       !===============================================================
       ! Update dry deposition flux diagnostic for netcdf output (ND44) 
       !===============================================================
@@ -2285,7 +2285,7 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44 
 #endif
       USE GIGC_ErrCode_Mod

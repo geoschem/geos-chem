@@ -661,7 +661,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD   ! Size parameters
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD   ! ND67
       USE DIAG_MOD, ONLY : AD67
 #endif
@@ -702,7 +702,7 @@
          ! Take max value
          CLDFRC(I,J) = MAXVAL( CLDF(I,J,:) )
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
          ! Store in ND67 diagnostic if necessary
          IF ( ND67 > 0 ) AD67(I,J,10) = AD67(I,J,10) + CLDFRC(I,J)
 #endif
@@ -844,7 +844,7 @@
 !
       USE CMN_SIZE_MOD
       USE PHYSCONSTANTS
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD66
       USE DIAG_MOD,           ONLY : AD67
@@ -1671,7 +1671,7 @@
          MOISTQ = -MOISTQ / 8.64d7
       ENDIF
 
-#if defined( BPCH )
+#if defined( BPCH_DIAG )
       !=================================================================
       ! ND66 diagnostic: A-6 fields
       !
