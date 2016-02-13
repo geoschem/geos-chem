@@ -228,6 +228,10 @@ CONTAINS
              'Initialize species to background values from globchem.dat.'
        ENDIF
 
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !% IMPORTANT:                                                  %
+       !% N_SPECIES = NTSPEC(NCS) = active + inactive species         %
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ! Loop over species
        DO N=1,Input_Opt%N_SPECIES
           FOUND=0

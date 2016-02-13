@@ -837,9 +837,13 @@
          CALL INIT_FJX(        am_I_Root, Input_Opt,  RC           )
          CALL SETTRACE(        am_I_Root, Input_Opt, State_Chm, RC )
 
-         ! Reset NCS with NCSURBAN
+         ! Reset NCS with NCSURBAN=1
          NCS                 = NCSURBAN
-         Input_Opt%N_SPECIES = NGAS
+
+         ! Number of species
+         ! NTSPEC is the actual number of active + inactive species
+         ! Set in readchem.F, NTSPEC(NCS) = NGAS + NINAC
+         Input_Opt%N_SPECIES = NTSPEC(NCS)
 
          ! Adjust first flag
          FIRST = .FALSE.
