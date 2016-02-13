@@ -21,7 +21,6 @@
       USE COMODE_LOOP_MOD,      ONLY : BK, NAMEGAS, SMAL2
       USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_CHEMGRID
       USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_TROP
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
       USE DAO_MOD
@@ -193,10 +192,9 @@
          IF ( IDTCH4 == 0 .and. IND_CH4 > 0 .and. 
      &      ( CH4_YEAR /= YEAR ) ) THEN
 
-            ! If CH4 is a SMVGEAR II species, then call GET_GLOBAL_CH4
+            ! If CH4 is a species, then call GET_GLOBAL_CH4
             ! to return the globally-varying CH4 conc. as a function of
-            ! year and latitude bin.  (ICH4 is defined in READCHEM.)
-            ! (bnd, bmy, 7/1/03)
+            ! year and latitude bin. (bnd, bmy, 7/1/03)
             !
             ! If we are using the future emissions, then get the CH4
             ! concentrations for FUTURE_YEAR.  Otherwise get the CH4
@@ -205,7 +203,7 @@
             IF ( Input_Opt%LFUTURE ) THEN
                CH4_YEAR = GET_FUTURE_YEAR()
             ELSE
-               CH4_YEAR = GET_YEAR()
+               CH4_YEAR = YEAR
             ENDIF
 
             ! Get CH4 [ppbv] in 4 latitude bins for each year
@@ -512,18 +510,20 @@
             ENDDO
          ENDIF
 
-         ! mje Set up the values of the non-variable species
-         ! mje This needs to be interfaced into the GC system better
 !------------------------------------------------------------------------------
 ! Prior to 2/10/16:
 ! Set CH4 according to latitude (mps, 2/10/16)
 !         C(ind_CH4) = 1770.e-9_dp * NUMDEN
 !------------------------------------------------------------------------------
-! Prior to 2/12/16:
-! Set MOH according to regions (mps, 2/12/16)
-!         C(ind_MOH) = 0.5e-9_dp   * NUMDEN
 !------------------------------------------------------------------------------
-         C(ind_H2)  = 0.5e-6_dp   * NUMDEN
+! Prior to 2/12/16:
+! Default concentrations of MOH and H2 are now handled in flexchem_setup.F90
+!  - MOH is set according to region (continental BL, marine BL, free trop)
+!  - H2  is set to default values from globchem.dat (5.0e-7)
+! (mps, 2/12/16)
+!         C(ind_MOH) = 0.5e-9_dp   * NUMDEN
+!         C(ind_H2)  = 0.5e-6_dp   * NUMDEN
+!------------------------------------------------------------------------------
 
          ! Set CH4 according to latitude
          ! Convert from [ppbv CH4] to [molec CH4/cm3]
@@ -535,76 +535,6 @@
             C(ind_CH4) = C0030N * 1e-9_dp * NUMDEN
          ELSE
             C(ind_CH4) = C3090N * 1e-9_dp * NUMDEN
-         ENDIF
-
-         !===========================================================
-         ! For methanol (MOH), now use different initial background
-         ! concentrations for different regions of the atmosphere:
-         !
-         ! (a) 2.0 ppbv MOH -- continental boundary layer
-         ! (b) 0.9 ppbv MOH -- marine boundary layer
-         ! (c) 0.6 ppbv MOH -- free troposphere
-         !
-         ! The concentrations listed above are from Heikes et al,
-         ! "Atmospheric methanol budget and ocean implication",
-         ! _Global Biogeochem. Cycles_, submitted, 2002.  These
-         ! represent the best estimates for the methanol conc.'s
-         ! in the troposphere based on various measurements.
-         !
-         ! MOH is an inactive chemical species in GEOS-CHEM, so
-         ! these initial concentrations will never change.  However,
-         ! MOH acts as a sink for OH, and therefore will affect both
-         ! the OH concentration and the methylchloroform lifetime.
-         !
-         ! We specify the MOH concentration as ppbv, but then we
-         ! need to multiply by PRESS3(JLOOP) / ( T3(JLOOP) * BK )
-         ! in order to convert to [molec/cm3].  (bdf, bmy, 2/22/02)
-         !===========================================================
-         !------------------------------
-         ! Test for altitude
-         ! L < 9 is always in the trop.
-         !------------------------------
-         IF ( L <= 9 ) THEN
-
-            !---------------------------
-            ! Test for ocean/land boxes
-            !---------------------------
-            IF ( State_Met%FRCLND(I,J) >= 0.5 ) THEN
-
-               ! Continental boundary layer: 2 ppbv MOH
-               C(ind_MOH) = 2.000e-9_fp * NUMDEN
-
-               ! Make sure MOH conc. is not negative (SMAL2 = 1d-99)
-               C(ind_MOH) = MAX(C(ind_MOH),SMAL2)
-
-            ELSE
-
-               ! Marine boundary layer: 0.9 ppbv MOH
-               C(ind_MOH) = 0.900e-9_fp * NUMDEN
-
-               ! Make sure MOH conc. is not negative (SMAL2 = 1d-99)
-               C(ind_MOH) = MAX(C(ind_MOH),SMAL2)
-            ENDIF
-
-         ELSE
-
-            !---------------------------
-            ! Test for troposphere
-            !---------------------------
-            IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
-
-               ! Free troposphere: 0.6 ppbv MOH
-               C(ind_MOH) = 0.600e-9_fp * NUMDEN
-
-               ! Make sure MOH conc. is not negative (SMAL2 = 1d-99)
-               C(ind_MOH) = MAX(C(ind_MOH),SMAL2)
-
-            ELSE
-
-               ! Strat/mesosphere: set MOH conc. to SMAL2 = 1d-99
-               C(ind_MOH) = SMAL2
-
-            ENDIF
          ENDIF
 
          ! starting value for integration time step
