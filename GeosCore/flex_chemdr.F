@@ -277,7 +277,7 @@
          CALL DEBUG_MSG( '### FLEX_CHEMDR: after RDUST' )
       ENDIF
 
-      !     imsl  Calculate hetchem rates
+      ! MSL  For calculating hetchem rates
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -792,7 +792,7 @@
 
       CALL Diagn_Update( am_I_Root,
      &     cName   = TRIM( 'STK_HBr' ),
-     &     Array3D = SCOEFF(:,:,:,1),
+     &     Array3D = SCOEFF(:,:,:,2),
      &     COL     = Input_Opt%DIAG_COLLECTION,
      &     RC      = HCRC )
 

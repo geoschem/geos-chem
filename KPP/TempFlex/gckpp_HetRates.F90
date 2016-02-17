@@ -23,7 +23,7 @@ MODULE GCKPP_HETRATES
   LOGICAL, SAVE      :: KII_KI, PSCBOX, STRATBOX
   REAL(fp), SAVE     :: TEMPK, RELHUM, XSTKCF
   REAL(fp)           :: VPRESH2O, CONSEXP
-  REAL(fp), SAVE     :: TRC_NIT, TRC_SO4, TRC_HBr, TRC_HOBr
+  REAL(fp), SAVE     :: TRC_NIT, TRC_SO4, TRC_HBr, TRC_HOBr, XNM_SO4, XNM_NIT
   REAL(fp), SAVE     :: GAMMA_HO2, XTEMP, XDENA, ADJUSTEDRATE
   REAL(fp), SAVE     :: cld_brno3_rc, KI_HBR, KI_HOBr, QLIQ, QICE
   REAL(fp), SAVE, DIMENSION(25)  :: XAREA, XRADI
@@ -101,48 +101,36 @@ MODULE GCKPP_HETRATES
       RELHUM = RELHUM / VPRESH2O 
 
       ! Get tracer concentrations [kg]
-      ! MSL -- As of Feb. 12, 2016, Tracers are in mcl/cc
-      !        due to a conversion in flex_chemdr.F
-      !        prior to the call to SET_HET. This is an
-      !        inefficiency that we should iron out.
-      !          As a result, we are converting the tracer
-      !        values back to kg/box here.
-      !        Now, get back to work.
-      !
       IND        = get_indx('SO4',IO%ID_TRACER,IO%TRACER_NAME)
       IF (IND .le. 0) THEN
          TRC_SO4    = 0._fp
-      ELSE ! Convert from mcl/cc to kg/box
-         TRC_SO4    = SC%Tracers(I,J,L,IND)/IO%XNUMOL(IND) *  &
-                        ( SM%AIRVOL(I,J,L) * 1e+6_fp *        &
-                          IO%TRACER_COEFF(IND,1)             )
+         XNM_SO4     = 0._fp
+      ELSE
+         TRC_SO4    = SC%Tracers(I,J,L,IND)
+         XNM_SO4     = IO%XNUMOL(IND)
       ENDIF
 
       IND        = get_indx('NIT',IO%ID_TRACER,IO%TRACER_NAME)
       IF (IND .le. 0) THEN
          TRC_NIT    = 0._fp
-      ELSE ! Convert from mcl/cc to kg/box
-         TRC_NIT    = SC%Tracers(I,J,L,IND)/ IO%XNUMOL(IND) * &
-                        ( SM%AIRVOL(I,J,L) * 1e+6_fp *        &
-                          IO%TRACER_COEFF(IND,1)             )
+         XNM_NIT     = 0._fp
+      ELSE
+         TRC_NIT    = SC%Tracers(I,J,L,IND)
+         XNM_NIT     = IO%XNUMOL(IND)
       ENDIF
 
       IND        = get_indx('HBr',IO%ID_TRACER,IO%TRACER_NAME)
       IF (IND .le. 0) THEN
          TRC_HBr    = 0._fp
-      ELSE ! Convert from mcl/cc to kg/box
-         TRC_HBr    = SC%Tracers(I,J,L,IND)/ IO%XNUMOL(IND) * &
-                        ( SM%AIRVOL(I,J,L) * 1e+6_fp *        &
-                          IO%TRACER_COEFF(IND,1)             )
+      ELSE
+         TRC_HBr    = SC%Tracers(I,J,L,IND)
       ENDIF
 
       IND        = get_indx('HOBr',IO%ID_TRACER,IO%TRACER_NAME)
       IF (IND .le. 0) THEN
          TRC_HOBr   = 0._fp
-      ELSE ! Convert from mcl/cc to kg/box
-         TRC_HOBr   = SC%Tracers(I,J,L,IND)/ IO%XNUMOL(IND) * &
-                        ( SM%AIRVOL(I,J,L) * 1e+6_fp *        &
-                          IO%TRACER_COEFF(IND,1)             )
+      ELSE
+         TRC_HOBr   = SC%Tracers(I,J,L,IND)
       ENDIF
 
 #if defined( UCX )
@@ -242,6 +230,7 @@ MODULE GCKPP_HETRATES
       XAREA(1:SC%nAero) = SC%AeroArea(I,J,L,:)
       XRADI(1:SC%nAero) = SC%AeroRadi(I,J,L,:)
 
+      TEMPK = SM%T(I,J,L)
       XTEMP = sqrt(SM%T(I,J,L))
       XDENA = SM%AIRNUMDEN(I,J,L)
 
@@ -699,8 +688,24 @@ MODULE GCKPP_HETRATES
          ! Nitrate effect; reduce the gamma on nitrate by a
          ! factor of 10 (lzh, 10/25/2011)
          IF ( N == 8 ) THEN
-            TMP1 = TRC_NIT+TRC_SO4
-            TMP2 = TRC_NIT
+            ! WARNING! It appears that these should be in units of
+            !          mcl/cc. This is discerned from output in
+            !          the old calcrate.F routine which gets the
+            !          tracer concentrations from the state_chm object.
+            !          When the values are dumped in calcrate.F, they were
+            !          in mcl/cc. Still, comments later in calcrate.F indicate
+            !          that Tracers should be in units of kg/box.
+            ! -- As a fix, here, we simply impose the equivalent of a kg to
+            !    mcl/cc conversion using the SO4 and NIT molecular weights.
+            !    This should be investigated and the proper units applied.
+            !    It will and does have a large impct on heterogenous
+            !    N chemistry and on NOx in remote regions.
+            ! -- In any case, the result from below yields the same
+            !    ratio of TMP2/TMP1 as calcrate does with its
+            !    current settings.
+            !    MSL - Feb. 16, 2016
+            TMP1 = (TRC_NIT*XNM_NIT)+(TRC_SO4*XNM_SO4)
+            TMP2 = TRC_NIT*XNM_NIT
             IF ( TMP1 .GT. 0.0 ) THEN
                XSTKCF = XSTKCF * ( 1.0e+0_fp - 0.9e+0_fp &
                                    *TMP2/TMP1 )
@@ -726,8 +731,6 @@ MODULE GCKPP_HETRATES
          ! Add to overall reaction rate
          HETN2O5 = HETN2O5 + ADJUSTEDRATE
       END DO
-
-      scf2(1) = xstkcf
 
     END FUNCTIOn HETN2O5
 

@@ -1069,7 +1069,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, JLOOP, L, N, XRH )
       DO N     = 1, NDUST
-      DO JLOOP = 1, NTTLOOP
+      DO JLOOP = 1, NTLOOP
 
          ! Compute 3-D grid box indices
          I = IXSAVE(JLOOP)
@@ -1077,7 +1077,7 @@
          L = IZSAVE(JLOOP)
 
          ERADIUS(JLOOP,N) = RDAA(N,6) * 1.0e-4_fp
-
+         
          TAREA(JLOOP,N)   = 3.e+0_fp / ERADIUS(JLOOP,N) *
      &                      DUST(I,J,L,N) / MSDENS(N)  
 
