@@ -819,16 +819,24 @@
                      Background_VV = 7.808e-01_fp
                   CASE ('NO', 'NO2')
                      Background_VV = 4.0e-13_fp
+                  CASE ('N2O')
+                     Background_VV = 3.0e-07_fp
                   CASE ('EMISSION')
                      Background_VV = 1.0e+0_fp
-                  CASE ('H', 'O')
+                  CASE ('H', 'O', 'N')
                      Background_VV = 4.0e-20_fp
                   CASE ('O1D')
-                     Background_VV = 4.0e-22_fp
+                     IF ( Input_Opt%LUCX ) THEN
+                        Background_VV = 1.0e-15_fp ! benchmark and ucx sims
+                     ELSE
+                        Background_VV = 4.0e-22_fp
+                     ENDIF
                   CASE ('O2')
                      Background_VV = 2.095e-01_fp
                   CASE ('O3')
                      Background_VV = 2.0e-08_fp
+                  CASE ('OCS')
+                     Background_VV = 9.0e-15_fp
                   CASE DEFAULT
                      Background_VV = 1.0e-20_fp
                END SELECT
