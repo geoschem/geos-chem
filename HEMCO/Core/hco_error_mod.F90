@@ -737,6 +737,7 @@ CONTAINS
 !  23 Sep 2013 - C. Keller   - Initialization
 !  14 Aug 2014 - R. Yantosca - Add FORM='FORMATTED' to the OPEN statement
 !                              so that the HEMCO log will be a text file
+!  22 Jan 2016 - R. Yantosca - Line-buffer the HEMCO log file for pgfortran
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -744,6 +745,10 @@ CONTAINS
     INTEGER            :: IOS, LUN, FREELUN
     LOGICAL            :: isopen, exists
     LOGICAL, SAVE      :: FIRST = .TRUE.
+#if defined( LINUX_PGI )
+    ! Add reference to SETVBUF3F function for PGI compiler (bmy, 1/22/16)
+    INTEGER, EXTERNAL  :: SETVBUF3F
+#endif
 
     !======================================================================
     ! HCO_LOGFILE_OPEN begins here 
@@ -774,9 +779,7 @@ CONTAINS
    
        ! Inquire if file is already open
        INQUIRE( FILE=TRIM(Err%LogFile), OPENED=isOpen, EXIST=exists, NUMBER=LUN )
-  
        
- 
        ! File exists and is opened ==> nothing to do
        IF ( exists .AND. isOpen ) THEN
           Err%LUN       = LUN
@@ -794,6 +797,14 @@ CONTAINS
                 RC = HCO_FAIL
                 RETURN
              ENDIF
+#if defined( LINUX_PGI )
+             ! Tell PGI compiler to line-buffer the HEMCO log file, so that we
+             ! can see the results while GC is running. (bmy, 1/22/16)
+             RC = SETVBUF3F( FREELUN, 1, 80 )
+#endif
+
+       ! File exists and is opened ==> nothing to do
+
 
           ! Reopen otherwise
           ELSE
@@ -805,6 +816,11 @@ CONTAINS
                 RC = HCO_FAIL
                 RETURN
              ENDIF
+#if defined( LINUX_PGI )
+             ! Tell PGI compiler to line-buffer the HEMCO log file, so that we
+             ! can see the results while GC is running. (bmy, 1/22/16)
+             RC = SETVBUF3F( FREELUN, 1, 80 )
+#endif
           ENDIF
 
           Err%LUN       = FREELUN
@@ -820,6 +836,11 @@ CONTAINS
              RC = HCO_FAIL
              RETURN
           ENDIF
+#if defined( LINUX_PGI )
+          ! Tell PGI compiler to line-buffer the HEMCO log file, so that we
+          ! can see the results while GC is running. (bmy, 1/22/16)
+          RC = SETVBUF3F( FREELUN, 1, 80 )
+#endif
           Err%LUN       = FREELUN
           Err%LogIsOpen = .TRUE.
        ENDIF

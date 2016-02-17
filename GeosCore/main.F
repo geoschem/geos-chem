@@ -254,7 +254,7 @@
 !  26 Mar 2013 - S.D. Eastham- Added initialization of rare tracers
 !  29 Mar 2013 - R. Yantosca - Bring code out of DEVEL blocks
 !  30 May 2013 - R. Yantosca - Now pass Input_Opt object to STDRUN routine
-!  03 Jun 2013 - R. Yantosca - Use routines from updated mercury_mod.F
+!  03 Jun 2013 - R. Yanosca - Use routines from updated mercury_mod.F
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  23 Oct 2013 - R. Yantosca - Now pass am_I_root, Input_Opt, RC to INIT_DAO
 !  13 Dec 2013 - M. Sulprizio- Now set USE_O3_FROM_MET logical flag during
@@ -282,6 +282,8 @@
 !  16 Apr 2015 - R. Yantosca - Remove call to INIT_DAO; it's obsolete
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !  03 Sep 2015 - R. Yantosca - Now call SETUP_WETSCAV instead of INIT_WETSCAV
+!  25 Jan 2016 - R. Yantosca - Call LINE_BUFFER to force PGI compiler to flush
+!                               STDOUT (unit=6) output to disk during a run
 !  03 Feb 2016 - E. Lundgren - Use routine MAKE_RESTART_FILES for all GC rsts
 !EOP
 !------------------------------------------------------------------------------
@@ -391,6 +393,10 @@
       ! GEOS-CHEM starts here!                                            
       !=================================================================
 
+      ! Tell PGI compiler to line-buffer STDOUT, so that we can pipe the 
+      ! screen output to a log file and see the results while GC is running.
+      CALL LINE_BUFFER( 6 )
+
 #if defined( TOMAS )
       !(sfarina, 6/19/2013) It may seem strange, but this welcome message
       !                     fixes an issue where geoschem crashes with a
@@ -470,6 +476,7 @@
       CALL GEOS_Timer_Add( "Wet deposition",      RC )
       CALL GEOS_Timer_Add( "RRTMG",               RC )
       CALL GEOS_Timer_Add( "Diagnostics",         RC )
+      CALL GEOS_Timer_Add( "Reading met fields",  RC )
       CALL GEOS_Timer_Start( "GEOS-Chem",         RC )
       CALL GEOS_Timer_Start( "Initialization",    RC )
 #endif
@@ -551,7 +558,6 @@
       !
       CALL GIGC_Init_All
      &   ( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
-
       !
       ! Also allocate arrays in GEOS-Chem modules that have not yet
       ! been initialized (i.e. SEASALT_MOD, CARBON_MOD,  DUST_MOD, 
@@ -566,7 +572,7 @@
       ! N_TRACERS, which is obtained by reading the input.geos file.
       !
       CALL Fill_Chem_State_Name_IDs( am_I_Root, Input_Opt, State_Chm )
-
+      !
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
       ! to the State_Met%AREA_M2 field. (bmy, 8/22/14)
       ! NOTE: Most routines now use either mixing ratio or kg/m2
@@ -640,9 +646,16 @@
       !=================================================================
       !        ***** I N I T I A L I Z A T I O N  continued *****
       !=================================================================
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_Start( "Reading met fields",  RC )
+#endif
 
       ! Read the initial met fields from disk
       CALL READ_INITIAL_MET_FIELDS()
+
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_End( "Reading met fields",  RC )
+#endif
 
       ! Compute avg surface pressure near polar caps
       CALL AVGPOLE( State_Met%PS1 )
@@ -837,6 +850,11 @@
       !=================================================================
       DO N_STEP = 1, N_DYN_STEPS
     
+#if defined( LINUX_PGI )
+         ! Flush the buffer each timestep so we get output
+         CALL FLUSH( 6 )
+#endif
+
          ! Compute & print time quantities at start of dyn step
          CALL SET_CURRENT_TIME
          CALL PRINT_CURRENT_TIME
@@ -992,7 +1010,15 @@
          !    Lightning NOx emissions are also computed at the same
          !    time when A3 or A6 met fields are read from disk.
          !==============================================================
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "Reading met fields",  RC )
+#endif
+
          CALL READ_MET_FIELDS()
+
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "Reading met fields",  RC )
+#endif
 
 #if   defined( GEOS_5 )
 
@@ -1969,7 +1995,6 @@
 
       ! Free the shadow variables in error_mod.F
       CALL CLEANUP_ERROR()
-
 #if defined( GTMM_Hg )
       ! Deallocate arrays from GTMM model for mercury simulation
       IF ( LGTMM ) CALL CleanupCASAarrays
@@ -1984,6 +2009,9 @@
 
       ! Print ending time of simulation
       CALL DISPLAY_END_TIME
+
+      ! Flush the buffer to get output
+      CALL FLUSH( 6 )
 
       CONTAINS
 !EOC

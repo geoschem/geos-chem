@@ -36,6 +36,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  04 Aug 2015 - M. Long     - Removed ".rc" file specifier. Not necessary.
+!  22 Jan 2016 - R. Yantosca - Line buffer smv2.log file for PGI compiler
 !******************************************************************************
 !
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
@@ -44,7 +45,8 @@
       USE CMN_SIZE_MOD                       ! Size parameters
       USE COMODE_LOOP_MOD                    ! SMVGEAR II arrays
       USE PHYSCONSTANTS                      ! Re, PI
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE PRECISION_MOD                      ! For GEOS-Chem Precision (fp)
+      USE FILE_MOD,   ONLY : LINE_BUFFER
 
       IMPLICIT NONE
 
@@ -103,7 +105,6 @@
       REAL(fp)              :: ERRMAXS, YLOWS, YHIS, HMAXDAYS
       REAL(fp)              :: ABHI,    ABLO
       CHARACTER(LEN=255)  :: FILENAME
-
 
       NAMELIST /CTLFLG/ IFSOLVE, ITESTGEAR,   
      1                  IFURBAN, IFTROP,  IFSTRAT
@@ -282,6 +283,10 @@
 
          IO93 = IU_SMV2LOG
          OPEN( IO93, FILE='smv2.log', STATUS='UNKNOWN' )
+
+         ! Tell PGI compiler to line-buffer smv2.log, so that 
+         ! we can see the results while GC is running.
+         CALL LINE_BUFFER( IO93 )
 !
 ! *********************************************************************
 ! *                    PRINT INFORMATION FROM m.dat                   *

@@ -200,12 +200,9 @@
       REAL(fpp),  ALLOCATABLE :: dMLD(:,:)
       REAL(fpp),  ALLOCATABLE :: Hg0aq(:,:,:)
       REAL(fpp),  ALLOCATABLE :: Hg2aq(:,:,:)
-!- eds 8/31/10 ------------------------------------------------------
-!      REAL(fpp),  ALLOCATABLE :: HgPaq(:,:)
       REAL(fpp),  ALLOCATABLE :: HgPaq(:,:,:)
       REAL(fpp),  ALLOCATABLE :: HgPaq_SUNK(:,:,:) !eds 5/15/12 fix
       REAL(fpp),  ALLOCATABLE :: Hgaq_tot(:,:,:)
-!--------------------------------------------------------------------
 !      REAL(fpp),  ALLOCATABLE :: MLD(:,:)
       REAL(fpp),  ALLOCATABLE :: MLDav(:,:)
       REAL(fpp),  ALLOCATABLE :: newMLD(:,:)
@@ -1656,7 +1653,7 @@
                IF ( ( X >= -80.0 .and. X < 25.0 )  .and.
      &              ( Y >= -25.0 .and. Y < 55.0 ) ) THEN    !(anls,100114)
 
-                  !- eds 8/31/10 ------------------------------------------                  
+                  !- eds 8/31/10 ------------------------------------------
                   IF ( C == 2 ) NN = ID_Hg_atl
                   !--------------------------------------------------------
 
@@ -2042,10 +2039,7 @@
 
                   ! Store carbon sinking [kgC/time]
                   IF ( ND03 > 0 ) THEN
-!- eds 8/31/10 --------------------------------------------------------
-!                     AD03(I,J,12) = AD03(I,J,12) + JorgC_kg
                      AD03(I,J,12,1) = AD03(I,J,12,1) + JorgC_kg
-!----------------------------------------------------------------------
                   ENDIF
                 
                !- eds 8/31/10 -----------------------------------------
@@ -2861,13 +2855,10 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2, GET_XMID, GET_YMID
-!- eds 8/31/10 -------------------------------------------------------------
-!      USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_Hg_oc, N_Hg_CATS
       USE TRACERID_MOD,       ONLY : ID_Hg_tot, N_Hg_CATS
       USE TRACERID_MOD,       ONLY : ID_Hg_atl,  ID_Hg_nat,  ID_Hg_sat
       USE TRACERID_MOD,       ONLY : ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
       USE TRACERID_MOD,       ONLY : ID_Hg_ocn
-!---------------------------------------------------------------------------
 
       USE CMN_SIZE_MOD             ! Size parameters
       
@@ -3200,10 +3191,8 @@
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TRACERID_MOD,       ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
       USE TRACERID_MOD,       ONLY : ID_Hg0,      ID_Hg2 
-      !- eds 8/31/10 ---------------------------------------------------------
       USE TRACERID_MOD,       ONLY : ID_HgP
       USE TRACERID_MOD,       ONLY : GET_HgP_CAT !eds 10/18/10
-      !-----------------------------------------------------------------------
 
       ! Arguments
       INTEGER,        INTENT(IN) :: YYYYMMDD, HHMMSS
@@ -3357,10 +3346,7 @@
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
 
-            !- eds 8/31/10 ---------------------------------------
-            !ELSE IF ( NTRACER == 3 ) THEN
             ELSE IF ( ANY( ID_HgP == NTRACER ) ) THEN
-            !----------------------------------------------------
 
                !----------
                ! Hg(P)
@@ -3439,12 +3425,10 @@
       ! Examine data blocks, print totals, and return
       !=================================================================
 
-      ! Tagged simulation has 17 ocean tracers; otherwise 3
+      ! Tagged simulation has 87 ocean tracers; otherwise 3
       IF ( LSPLIT ) THEN
-!- eds 8/31/2010 -------------------------------------------------------
-!         N_oc = 17
-         N_oc = 87  !Note: 87 = total Hg0, Hg2, HgP; should it be 1/3 of that? (eds)
-!-----------------------------------------------------------------------
+         N_oc = 87  !Note: 87 = total Hg0, Hg2, HgP;
+                    ! should it be 1/3 of that? (eds)
       ELSE
          N_oc = 3
       ENDIF
@@ -4576,9 +4560,7 @@
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hg2aq' )
       Hg2aq = 0e+0_fpp
 
-!- eds 8/31/10 ---------------------------------------------
-! Added NN to HgPaq throughout module
-!      ALLOCATE( HgPaq( IIPAR, JJPAR ), STAT=RC )
+      !eds 8/31/10 Added NN to HgPaq throughout module
       ALLOCATE( HgPaq (IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'HgPaq' )
       HgPaq = 0e+0_fpp

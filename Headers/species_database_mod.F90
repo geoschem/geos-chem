@@ -142,6 +142,13 @@ CONTAINS
     ! Some species use the same drydep velocities as others, etc.
     INTEGER             :: DryDepID_PAN
     INTEGER             :: DryDepID_HNO3
+
+    ! For tagged Hg species
+    CHARACTER(LEN=4),  POINTER :: Hg_CAT(:)
+    CHARACTER(LEN=40), POINTER :: Hg_CAT_FULL(:)
+
+    ! For values from Input_Opt
+    LOGICAL             :: prtDebug
 !
 ! !DEFINED PARAMETERS
 !
@@ -157,8 +164,15 @@ CONTAINS
     DryDepID_PAN  = 0
     DryDepID_HNO3 = 0
 
+    ! Copy values from Input_Opt
+    prtDebug      = ( Input_Opt%LPRT .and. am_I_Root )
+
     ! Number of species
     nSpecies      = Input_Opt%N_TRACERS
+
+    ! Initialize pointers for tagged Hg simulations
+    Hg_CAT      => Input_Opt%Hg_CAT
+    Hg_CAT_FULL => Input_Opt%Hg_CAT_FULL
 
     ! Initialize the species vector
     CALL SpcData_Init( am_I_Root, nSpecies, SpcData, RC )
@@ -2725,12 +2739,19 @@ CONTAINS
           ! Species for the Hg specialty simulation
           !==================================================================
 
-          CASE( 'HG0' )
+          CASE( 'HG0',     'HG0_CAN', 'HG0_USA', 'HG0_CAM', 'HG0_SAM',      &
+                'HG0_WAF', 'HG0_EAF', 'HG0_SAF', 'HG0_NAF', 'HG0_EUR',      &
+                'HG0_EEU', 'HG0_MDE', 'HG0_SOV', 'HG0_SAS', 'HG0_EAS',      &
+                'HG0_SEA', 'HG0_JPN', 'HG0_OCE', 'HG0_SO',  'HG0_BB',       &
+                'HG0_GEO', 'HG0_ATL', 'HG0_NAT', 'HG0_SAT', 'HG0_NPA',      &
+                'HG0_ARC', 'HG0_ANT', 'HG0_OCN', 'HG0_STR'   )
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
-                              Name          = 'Hg0',                        &
-                              FullName      = 'Elemental mercury',          &
+                              Name          = 'Hg0' // TRIM(Hg_CAT(N)),     &
+                              FullName      = 'Elemental mercury' //        &
+                                               TRIM(Hg_CAT_FULL(N)),        &
                               MW_g          = 201.0_fp,                     &
                               Is_Advected   = T,                            &
                               Is_Gas        = T,                            &
@@ -2740,12 +2761,19 @@ CONTAINS
                               DD_Hstar_old  = 0.11_fp,                      &
                               RC            = RC )
 
-          CASE( 'HG2' )
+          CASE( 'HG2',     'HG2_CAN', 'HG2_USA', 'HG2_CAM', 'HG2_SAM',      &
+                'HG2_WAF', 'HG2_EAF', 'HG2_SAF', 'HG2_NAF', 'HG2_EUR',      &
+                'HG2_EEU', 'HG2_MDE', 'HG2_SOV', 'HG2_SAS', 'HG2_EAS',      &
+                'HG2_SEA', 'HG2_JPN', 'HG2_OCE', 'HG2_SO',  'HG2_BB',       &
+                'HG2_GEO', 'HG2_ATL', 'HG2_NAT', 'HG2_SAT', 'HG2_NPA',      &
+                'HG2_ARC', 'HG2_ANT', 'HG2_OCN', 'HG2_STR'   )
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
-                              Name          = 'Hg2',                        &
-                              FullName      = 'Divalent mercury',           &
+                              Name          = 'Hg2' // TRIM(Hg_CAT(N)),     &
+                              FullName      = 'Divalent mercury' //         &
+                                               TRIM(Hg_CAT_FULL(N)),        &
                               MW_g          = 201.0_fp,                     &
                               Is_Advected   = T,                            &
                               Is_Gas        = T,                            &
@@ -2763,7 +2791,12 @@ CONTAINS
                               WD_RetFactor  = 1.0_fp,                       &
                               RC            = RC )
 
-          CASE( 'HGP' )
+          CASE( 'HGP',     'HGP_CAN', 'HGP_USA', 'HGP_CAM', 'HGP_SAM',      &
+                'HGP_WAF', 'HGP_EAF', 'HGP_SAF', 'HGP_NAF', 'HGP_EUR',      &
+                'HGP_EEU', 'HGP_MDE', 'HGP_SOV', 'HGP_SAS', 'HGP_EAS',      &
+                'HGP_SEA', 'HGP_JPN', 'HGP_OCE', 'HGP_SO',  'HGP_BB',       &
+                'HGP_GEO', 'HGP_ATL', 'HGP_NAT', 'HGP_SAT', 'HGP_NPA',      &
+                'HGP_ARC', 'HGP_ANT', 'HGP_OCN', 'HGP_STR' )
 
              !%%% NOTE: In the prior code, the rainout fraction for HgP
              !%%% was computed before the shunt that turned off rainout
@@ -2802,8 +2835,9 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
-                              Name          = 'HgP',                        &
-                              FullName      = 'Particulate mercury',        &
+                              Name          = 'HgP' // TRIM(Hg_CAT(N)),     &
+                              FullName      = 'Particulate mercury' //      &
+                                               TRIM(Hg_CAT_FULL(N)),        &
                               MW_g          = 201.0_fp,                     &
                               Is_Advected   = T,                            &
                               Is_Gas        = F,                            &
@@ -2816,7 +2850,6 @@ CONTAINS
                               WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
-
 
           !==================================================================
           ! Species for the POPs specialty simulation
@@ -3532,10 +3565,13 @@ CONTAINS
           CALL EXIT( -999 ) 
        ENDIF
 
-!       ! Print info about each species
-!       CALL Spc_Print( am_I_Root, SpcData(N)%Info, RC )
+       ! Print info about each species
+       IF ( prtDebug ) CALL Spc_Print( am_I_Root, SpcData(N)%Info, RC )
 
     ENDDO
+
+    ! Free pointers
+    NULLIFY( Hg_CAT, Hg_CAT_FULL )
 
   END SUBROUTINE Init_Species_Database
 !EOC

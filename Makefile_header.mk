@@ -281,23 +281,23 @@ ifndef BPCH_RST_OUT
 endif
 
 # %%%%% Set default compiler %%%%%
+# %%%%% If COMPILER is not defined, default to the $(FC) variable, which %%%%%
+# %%%%% is set in your .bashrc, or when you load the compiler module     %%%%%
 ifndef COMPILER
-  COMPILER           :=ifort
+  COMPILER           :=$(FC)
 endif
 
-# %%%%% Test if IFORT compiler is selected %%%%%
+# %%%%% Test if Intel Fortran Compiler is selected %%%%%
 REGEXP               :=(^[Ii][Ff][Oo][Rr][Tt])
 ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
-  COMPLER            :=ifort
-  COMPILE_CMD        :=ifort
+  COMPILE_CMD        :=$(FC)
   USER_DEFS          += -DLINUX_IFORT
 endif
 
-# %%%%% Test if PGI compiler is selected  %%%%%
-REGEXP               :=(^[Pp][Gg][Ii])
+# %%%%% Test if PGI Fortran compiler is selected  %%%%%
+REGEXP               :=(^[Pp][Gg])
 ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
-  COMPILER           :=pgi
-  COMPILE_CMD        :=pgf90
+  COMPILE_CMD        :=$(FC)
   USER_DEFS          += -DLINUX_PGI
 endif
 
@@ -877,7 +877,6 @@ else
   # Use "nc-config --flibs" and nc-config --libs
   #-----------------------------------------------------------------------
   NC_LINK_CMD        := $(shell $(GC_BIN)/nc-config --flibs)
-  NC_LINK_CMD        += $(shell $(GC_BIN)/nc-config --libs)
 
 endif
 
@@ -961,11 +960,14 @@ endif
 
 ###############################################################################
 ###                                                                         ###
-###  IFORT compilation options.  This is the default compiler.              ###
+###  Define settings for the INTEL FORTRAN COMPILER (aka ifort)             ###
 ###                                                                         ###
 ###############################################################################
 
 ifeq ($(COMPILER),ifort) 
+
+  # Base set of compiler flags
+  FFLAGS             :=-cpp -w -auto -noalign -convert big_endian
 
   # Default optimization level for all routines (-O2)
   ifndef OPT
@@ -975,13 +977,11 @@ ifeq ($(COMPILER),ifort)
   # Pick compiler options for debug run or regular run 
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           :=-cpp -w -O0 -auto -noalign -convert big_endian
-    FFLAGS           += -g -check arg_temp_created -debug all
+    FFLAGS           += -g -O0 -check arg_temp_created -debug all
     TRACEBACK        := yes
     USER_DEFS        += -DDEBUG
   else
-    FFLAGS           :=-cpp -w $(OPT) -auto -noalign -convert big_endian
-    FFLAGS           += -vec-report0
+    FFLAGS           += $(OPT) -vec-report0
   endif
 
   # Prevent any optimizations that would change numerical results
@@ -1085,24 +1085,27 @@ endif
 
 ###############################################################################
 ###                                                                         ###
-###  Portland Group (PGF90) compilation options                             ###
+###  Define settings for the PORTLAND GROUP COMPILER (aka "pgfortran")      ###
 ###                                                                         ###
 ###############################################################################
 
-ifeq ($(COMPILER),pgi) 
+ifeq ($(COMPILER),pgfortran) 
+
+  # Base set of compiler flags
+  FFLAGS             :=-Kieee -byteswapio -Mpreprocess -m64
 
   # Default optimization level for all routines (-fast)
   ifndef OPT
-    OPT              :=-fast
+    OPT              :=-O2
    endif
 
   # Pick compiler options for debug run or regular run 
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           :=-byteswapio -Mpreprocess -g -O0 
+    FFLAGS           += -g -O0
     USER_DEFS        += -DDEBUG
   else
-    FFLAGS           :=-byteswapio -Mpreprocess $(OPT)
+    FFLAGS           += $(OPT)
   endif
 
   # Add options for medium memory model.  This is to prevent G-C from 
@@ -1112,7 +1115,7 @@ ifeq ($(COMPILER),pgi)
   # Turn on OpenMP parallelization
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(OMP)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           += -mp -Mnosgimp -Dmultitask
+    FFLAGS           += -mp
   endif
 
   # Add option for suppressing PGI non-uniform memory access (numa) library 
@@ -1124,7 +1127,7 @@ ifeq ($(COMPILER),pgi)
   # Add option for "array out of bounds" checking
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(BOUNDS)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           += -C
+    FFLAGS           += -Mbounds
   endif
 
   # Also add traceback option
@@ -1137,6 +1140,18 @@ ifeq ($(COMPILER),pgi)
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(KPP_SOLVE_ALWAYS)" =~ $(REGEXP) ]] && echo true),true)
     USER_DEFS        += -DKPP_SOLVE_ALWAYS
+  endif
+
+  # Turn on checking for floating-point exceptions
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(FPE)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -Ktrap=fp
+  endif
+
+  # Switch to add detailed compiler prinotut
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(INFO)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -Minfo
   endif
 
   # Add flexible precision declaration
@@ -1227,7 +1242,7 @@ export TIMERS
 ###############################################################################
 
 #headerinfo:
-#	@@echo '####### in Makefile_header.mk ########' 
+#	@@echo '####### in Makefile_header.mk ########'
 #	@@echo "COMPILER    : $(COMPILER)"
 #	@@echo "DEBUG       : $(DEBUG)"
 #	@@echo "BOUNDS      : $(BOUNDS)"

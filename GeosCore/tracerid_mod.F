@@ -439,6 +439,10 @@
       INTEGER                     :: N, COUNT_Hg0, COUNT_Hg2, COUNT_HgP
       CHARACTER(LEN=14)           :: NAME
 
+      ! For tagged Hg species
+      CHARACTER(LEN=4),  POINTER  :: Hg_CAT(:)
+      CHARACTER(LEN=40), POINTER  :: Hg_CAT_FULL(:)
+
       !=================================================================
       ! TRACERID begins here!
       !
@@ -469,6 +473,10 @@
       COUNT_Hg0 = 0
       COUNT_Hg2 = 0
       COUNT_HgP = 0
+
+      ! Initialize pointers for tagged Hg simulations
+      Hg_CAT      => Input_Opt%Hg_CAT
+      Hg_CAT_FULL => Input_Opt%Hg_CAT_FULL
 
       !=================================================================
       ! Assign tracer, biomass, biofuel, and anthro emission ID's
@@ -1155,381 +1163,557 @@
                COUNT_Hg0         = COUNT_Hg0 + 1              
                ID_Hg_tot         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = ''
+               Hg_CAT_FULL(N)    = ''
 
             CASE ( 'HG2' )
                IDTHg2            = N
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = ''
+               Hg_CAT_FULL(N)    = ''
 
             CASE ( 'HGP' )
                IDTHgP            = N
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = ''
+               Hg_CAT_FULL(N)    = ''
 
+            !----------------------------------------
             ! New Tagged Hg Simulation (eds 8/31/10)
+            !----------------------------------------
             CASE ( 'HG0_AN_CAN', 'HG0_CAN' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_can          = COUNT_Hg0
+               ID_Hg_can         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_can'
+               Hg_CAT_FULL(N)    = ' from Canada'
 
             CASE ( 'HG0_AN_USA', 'HG0_USA' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_usa          = COUNT_Hg0
+               ID_Hg_usa         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_usa'
+               Hg_CAT_FULL(N)    = ' from USA'
 
             CASE ( 'HG0_AN_CAM', 'HG0_CAM' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_cam          = COUNT_Hg0
+               ID_Hg_cam         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_cam'
+               Hg_CAT_FULL(N)    = ' from Central America'
 
             CASE ( 'HG0_AN_SAM', 'HG0_SAM' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_sam          = COUNT_Hg0
+               ID_Hg_sam         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_sam'
+               Hg_CAT_FULL(N)    = ' from South America'
 
             CASE ( 'HG0_AN_WAF', 'HG0_WAF' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_waf          = COUNT_Hg0
+               ID_Hg_waf         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_waf'
+               Hg_CAT_FULL(N)    = ' from West Africa'
 
             CASE ( 'HG0_AN_EAF', 'HG0_EAF' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_eaf          = COUNT_Hg0
+               ID_Hg_eaf         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_eaf'
+               Hg_CAT_FULL(N)    = ' from East Africa'
 
             CASE ( 'HG0_AN_SAF', 'HG0_SAF' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_saf          = COUNT_Hg0
+               ID_Hg_saf         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_saf'
+               Hg_CAT_FULL(N)    = ' from South Africa'
 
             CASE ( 'HG0_AN_NAF', 'HG0_NAF' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_naf          = COUNT_Hg0
+               ID_Hg_naf         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_naf'
+               Hg_CAT_FULL(N)    = ' from North Africa'
 
             CASE ( 'HG0_AN_EUR', 'HG0_EUR' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_eur          = COUNT_Hg0
+               ID_Hg_eur         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_eur'
+               Hg_CAT_FULL(N)    = ' from OECD Europe'
 
             CASE ( 'HG0_AN_EEU', 'HG0_EEU' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_eeu          = COUNT_Hg0
+               ID_Hg_eeu         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_eeu'
+               Hg_CAT_FULL(N)    = ' from Eastern Europe'
 
             CASE ( 'HG0_AN_MDE', 'HG0_MDE' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_mde          = COUNT_Hg0
+               ID_Hg_mde         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_mde'
+               Hg_CAT_FULL(N)    = ' from Middle East'
 
             CASE ( 'HG0_AN_SOV', 'HG0_SOV' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_sov          = COUNT_Hg0
+               ID_Hg_sov         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_sov'
+               Hg_CAT_FULL(N)    = ' from former USSR'
 
             CASE ( 'HG0_AN_SAS', 'HG0_SAS' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_sas          = COUNT_Hg0
+               ID_Hg_sas         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_sas'
+               Hg_CAT_FULL(N)    = ' from South Asia'
 
             CASE ( 'HG0_AN_EAS', 'HG0_EAS' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_eas          = COUNT_Hg0
+               ID_Hg_eas         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_eas'
+               Hg_CAT_FULL(N)    = ' from East Asia'
 
             CASE ( 'HG0_AN_SEA', 'HG0_SEA' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_sea          = COUNT_Hg0
+               ID_Hg_sea         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_sea'
+               Hg_CAT_FULL(N)    = ' from Southeast Asia'
 
             CASE ( 'HG0_AN_JPN', 'HG0_JPN' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_jpn          = COUNT_Hg0
+               ID_Hg_jpn         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_jpn'
+               Hg_CAT_FULL(N)    = ' from Japan'
 
             CASE ( 'HG0_AN_OCE', 'HG0_OCE' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_oce          = COUNT_Hg0
+               ID_Hg_oce         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_oce'
+               Hg_CAT_FULL(N)    = ' from Oceania'
 
             CASE ( 'HG0_SO' )
                COUNT_Hg0         = COUNT_Hg0 + 1
                ID_Hg_so          = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_so'
+               Hg_CAT_FULL(N)    = ' from Organic Soil'
 
             CASE ( 'HG0_BB' )
                COUNT_Hg0         = COUNT_Hg0 + 1
                ID_Hg_bb          = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_bb'
+               Hg_CAT_FULL(N)    = ' from Biomass Burning'
 
             CASE ( 'HG0_GEO' )
-               COUNT_Hg0          = COUNT_Hg0 + 1
-               ID_Hg_geo          = COUNT_Hg0
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_geo         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_geo'
+               Hg_CAT_FULL(N)    = ' from Geogenic Sources'
 
             CASE ( 'HG0_ATL' )
                COUNT_Hg0         = COUNT_Hg0 + 1
                ID_Hg_atl         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_atl'
+               Hg_CAT_FULL(N)    = ' from Mid Atlantic Subsurface Water'
 
             CASE ( 'HG0_NAT' )
                COUNT_Hg0         = COUNT_Hg0 + 1
                ID_Hg_nat         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_nat'
+               Hg_CAT_FULL(N)    = ' from N. Atlantic Subsurface Water'
 
             CASE ( 'HG0_SAT' )
                COUNT_Hg0         = COUNT_Hg0 + 1
                ID_Hg_sat         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_sat'
+               Hg_CAT_FULL(N)    = ' from S. Atlantic Subsurface Water'
 
             CASE ( 'HG0_NPA' )
                COUNT_Hg0         = COUNT_Hg0 + 1
                ID_Hg_npa         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_npa'
+               Hg_CAT_FULL(N)    = ' from N. Pacific Subsurface Water'
 
             CASE ( 'HG0_ARC' )
                COUNT_Hg0         = COUNT_Hg0 + 1
                ID_Hg_arc         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_arc'
+               Hg_CAT_FULL(N)    = ' from Arctic Subsurface Water'
 
             CASE ( 'HG0_ANT' )
                COUNT_Hg0         = COUNT_Hg0 + 1
                ID_Hg_ant         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_ant'
+               Hg_CAT_FULL(N)    = ' from Antarctic Subsurface Water'
 
             CASE ( 'HG0_OCN' )
                COUNT_Hg0         = COUNT_Hg0 + 1
                ID_Hg_ocn         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_ocn'
+               Hg_CAT_FULL(N)    = ' from Indo-Pacific Subsurface Water'
 
             CASE ( 'HG0_STR' )
                COUNT_Hg0         = COUNT_Hg0 + 1
                ID_Hg_str         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
+               Hg_CAT(N)         = '_str'
+               Hg_CAT_FULL(N)    = ' from Stratosphere'
 
             CASE ( 'HG2_AN_CAN', 'HG2_CAN' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_can'
+               Hg_CAT_FULL(N)    = ' from Canada'
 
             CASE ( 'HG2_AN_USA', 'HG2_USA' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_usa'
+               Hg_CAT_FULL(N)    = ' from USA'
 
             CASE ( 'HG2_AN_CAM', 'HG2_CAM' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_cam'
+               Hg_CAT_FULL(N)    = ' from Central America'
 
             CASE ( 'HG2_AN_SAM', 'HG2_SAM' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_sam'
+               Hg_CAT_FULL(N)    = ' from South America'
 
             CASE ( 'HG2_AN_WAF', 'HG2_WAF' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_waf'
+               Hg_CAT_FULL(N)    = ' from West Africa'
 
             CASE ( 'HG2_AN_EAF', 'HG2_EAF' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_eaf'
+               Hg_CAT_FULL(N)    = ' from East Africa'
 
             CASE ( 'HG2_AN_SAF', 'HG2_SAF' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_saf'
+               Hg_CAT_FULL(N)    = ' from South Africa'
 
             CASE ( 'HG2_AN_NAF', 'HG2_NAF' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_naf'
+               Hg_CAT_FULL(N)    = ' from North Africa'
 
             CASE ( 'HG2_AN_EUR', 'HG2_EUR' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_eur'
+               Hg_CAT_FULL(N)    = ' from OECD Europe'
 
             CASE ( 'HG2_AN_EEU', 'HG2_EEU' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_eeu'
+               Hg_CAT_FULL(N)    = ' from Eastern Europe'
 
             CASE ( 'HG2_AN_MDE', 'HG2_MDE' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_mde'
+               Hg_CAT_FULL(N)    = ' from Middle East'
 
             CASE ( 'HG2_AN_SOV', 'HG2_SOV' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_sov'
+               Hg_CAT_FULL(N)    = ' from former USSR'
 
             CASE ( 'HG2_AN_SAS', 'HG2_SAS' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_sas'
+               Hg_CAT_FULL(N)    = ' from South Asia'
 
             CASE ( 'HG2_AN_EAS', 'HG2_EAS' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_eas'
+               Hg_CAT_FULL(N)    = ' from East Asia'
 
             CASE ( 'HG2_AN_SEA', 'HG2_SEA' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_sea'
+               Hg_CAT_FULL(N)    = ' from Southeast Asia'
 
             CASE ( 'HG2_AN_JPN', 'HG2_JPN' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_jpn'
+               Hg_CAT_FULL(N)    = ' from Japan'
 
             CASE ( 'HG2_AN_OCE', 'HG2_OCE' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_oce'
+               Hg_CAT_FULL(N)    = ' from Oceania'
 
             CASE ( 'HG2_SO' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_so'
+               Hg_CAT_FULL(N)    = ' from Organic Soil'
 
             CASE ( 'HG2_BB' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_bb'
+               Hg_CAT_FULL(N)    = ' from Biomass Burning'
 
             CASE ( 'HG2_GEO' )
-               COUNT_Hg2          = COUNT_Hg2 + 1
+               COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_geo'
+               Hg_CAT_FULL(N)    = ' from Geogenic Sources'
 
             CASE ( 'HG2_ATL' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_atl'
+               Hg_CAT_FULL(N)    = ' from Mid Atlantic Subsurface Water'
 
             CASE ( 'HG2_NAT' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_nat'
+               Hg_CAT_FULL(N)    = ' from N. Atlantic Subsurface Water'
 
             CASE ( 'HG2_SAT' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_sat'
+               Hg_CAT_FULL(N)    = ' from S. Atlantic Subsurface Water'
 
             CASE ( 'HG2_NPA' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_npa'
+               Hg_CAT_FULL(N)    = ' from N. Pacific Subsurface Water'
 
             CASE ( 'HG2_ARC' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_arc'
+               Hg_CAT_FULL(N)    = ' from Arctic Subsurface Water'
 
             CASE ( 'HG2_ANT' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_ant'
+               Hg_CAT_FULL(N)    = ' from Antarctic Subsurface Water'
 
             CASE ( 'HG2_OCN' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_ocn'
+               Hg_CAT_FULL(N)    = ' from Indo-Pacific Subsurface Water'
 
             CASE ( 'HG2_STR' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
+               Hg_CAT(N)         = '_str'
+               Hg_CAT_FULL(N)    = ' from Stratosphere'
 
             CASE ( 'HGP_AN_CAN', 'HGP_CAN' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_can'
+               Hg_CAT_FULL(N)    = ' from Canada'
 
             CASE ( 'HGP_AN_USA', 'HGP_USA' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_usa'
+               Hg_CAT_FULL(N)    = ' from USA'
 
             CASE ( 'HGP_AN_CAM', 'HGP_CAM' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_cam'
+               Hg_CAT_FULL(N)    = ' from Central America'
 
             CASE ( 'HGP_AN_SAM', 'HGP_SAM' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_sam'
+               Hg_CAT_FULL(N)    = ' from South America'
 
             CASE ( 'HGP_AN_WAF', 'HGP_WAF' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_waf'
+               Hg_CAT_FULL(N)    = ' from West Africa'
 
             CASE ( 'HGP_AN_EAF', 'HGP_EAF' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_eaf'
+               Hg_CAT_FULL(N)    = ' from East Africa'
 
             CASE ( 'HGP_AN_SAF', 'HGP_SAF' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_saf'
+               Hg_CAT_FULL(N)    = ' from South Africa'
 
             CASE ( 'HGP_AN_NAF', 'HGP_NAF' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_naf'
+               Hg_CAT_FULL(N)    = ' from North Africa'
 
             CASE ( 'HGP_AN_EUR', 'HGP_EUR' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_eur'
+               Hg_CAT_FULL(N)    = ' from OECD Europe'
 
             CASE ( 'HGP_AN_EEU', 'HGP_EEU' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_eeu'
+               Hg_CAT_FULL(N)    = ' from Eastern Europe'
 
             CASE ( 'HGP_AN_MDE', 'HGP_MDE' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_mde'
+               Hg_CAT_FULL(N)    = ' from Middle East'
 
             CASE ( 'HGP_AN_SOV', 'HGP_SOV' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_sov'
+               Hg_CAT_FULL(N)    = ' from former USSR'
 
             CASE ( 'HGP_AN_SAS', 'HGP_SAS' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_sas'
+               Hg_CAT_FULL(N)    = ' from South Asia'
 
             CASE ( 'HGP_AN_EAS', 'HGP_EAS' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_eas'
+               Hg_CAT_FULL(N)    = ' from East Asia'
 
             CASE ( 'HGP_AN_SEA', 'HGP_SEA' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_sea'
+               Hg_CAT_FULL(N)    = ' from Southeast Asia'
 
             CASE ( 'HGP_AN_JPN', 'HGP_JPN' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_jpn'
+               Hg_CAT_FULL(N)    = ' from Japan'
 
             CASE ( 'HGP_AN_OCE', 'HGP_OCE' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_oce'
+               Hg_CAT_FULL(N)    = ' from Oceania'
 
             CASE ( 'HGP_SO' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_so'
+               Hg_CAT_FULL(N)    = ' from Organic Soil'
 
             CASE ( 'HGP_BB' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_bb'
+               Hg_CAT_FULL(N)    = ' from Biomass Burning'
 
             CASE ( 'HGP_GEO' )
                COUNT_HgP          = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_geo'
+               Hg_CAT_FULL(N)    = ' from Geogenic Sources'
 
             CASE ( 'HGP_ATL' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_atl'
+               Hg_CAT_FULL(N)    = ' from Mid Atlantic Subsurface Water'
 
             CASE ( 'HGP_NAT' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_nat'
+               Hg_CAT_FULL(N)    = ' from N. Atlantic Subsurface Water'
 
             CASE ( 'HGP_SAT' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_sat'
+               Hg_CAT_FULL(N)    = ' from S. Atlantic Subsurface Water'
 
             CASE ( 'HGP_NPA' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_npa'
+               Hg_CAT_FULL(N)    = ' from N. Pacific Subsurface Water'
 
             CASE ( 'HGP_ARC' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_arc'
+               Hg_CAT_FULL(N)    = ' from Arctic Subsurface Water'
 
             CASE ( 'HGP_ANT' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_ant'
+               Hg_CAT_FULL(N)    = ' from Antarctic Subsurface Water'
 
             CASE ( 'HGP_OCN' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_ocn'
+               Hg_CAT_FULL(N)    = ' from Indo-Pacific Subsurface Water'
 
             CASE ( 'HGP_STR' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+               Hg_CAT(N)         = '_str'
+               Hg_CAT_FULL(N)    = ' from Stratosphere'
 
             !--------------------------------
             ! POPs
@@ -2349,6 +2533,9 @@
          END SELECT
       ENDDO
      
+      ! Free pointers
+      NULLIFY( Hg_CAT, Hg_CAT_FULL )
+
       END SUBROUTINE TRACERID
 
 !------------------------------------------------------------------------------
@@ -2422,7 +2609,7 @@
 
       ! Arrays
       INTEGER            :: ID_EMITTED    ( Input_Opt%MAX_TRCS )
-      REAL(fp)             :: TRACER_COEFF  ( Input_Opt%MAX_TRCS, 
+      REAL(fp)           :: TRACER_COEFF  ( Input_Opt%MAX_TRCS, 
      &                                      Input_Opt%MAX_MEMB )
       CHARACTER(LEN=255) :: TRACER_CONST  ( Input_Opt%MAX_TRCS, 
      &                                      Input_Opt%MAX_MEMB )
@@ -2846,47 +3033,18 @@
       !=================================================================
 
       ! Pick the Hg0 category number from the tracer number
+
+      !----------------------------------------
+      ! Standard Hg simulation
+      !----------------------------------------
       IF ( N == ID_Hg0(ID_Hg_tot) ) THEN 
 
          ! Total
          NN = ID_Hg_tot
 
-!- eds 8/31/10 -----------------------------------------------
-!      ELSE IF ( N == ID_Hg0(ID_Hg_na) ) THEN 
-!
-!         ! Anthro North America
-!         NN = ID_Hg_na
-!
-!      ELSE IF ( N == ID_Hg0(ID_Hg_eu) ) THEN 
-!
-!         ! Anthro Europe
-!         NN = ID_Hg_eu
-!
-!      ELSE IF ( N == ID_Hg0(ID_Hg_as) ) THEN 
-!
-!         ! Anthro Asia
-!         NN = ID_Hg_as
-!
-!      ELSE IF ( N == ID_Hg0(ID_Hg_rw) ) THEN 
-!
-!         ! Anthro Rest of World
-!         NN = ID_Hg_rw
-!
-!      ELSE IF ( N == ID_Hg0(ID_Hg_oc) ) THEN 
-!
-!         ! Oceans
-!         NN = ID_Hg_oc
-!
-!      ELSE IF ( N == ID_Hg0(ID_Hg_ln) ) THEN 
-!
-!         ! Land re-emission
-!         NN = ID_Hg_ln
-!
-!      ELSE IF ( N == ID_Hg0(ID_Hg_nt) ) THEN 
-!
-!         ! Natural source
-!         NN = ID_Hg_nt
-
+      !----------------------------------------
+      ! New Tagged Hg Simulation (eds 8/31/10)
+      !----------------------------------------
       ELSE IF ( N == ID_Hg0(ID_Hg_can) ) THEN  
 
          ! Anthro Canada
@@ -3027,8 +3185,6 @@
          ! Residual Stratosphere from Spin-up
          NN = ID_Hg_str
 
-!-------------------------------------------------------
-
       ELSE
 
          ! Invalid category
@@ -3065,48 +3221,18 @@
       !=================================================================
 
       ! Pick the Hg2 category number from the tracer number
+
+      !----------------------------------------
+      ! Standard Hg simulation
+      !----------------------------------------
       IF ( N == ID_Hg2(ID_Hg_tot) ) THEN 
 
          ! Total
          NN = ID_Hg_tot
 
-!- eds 8/31/10 --------------------------------------------------------------
-!      ELSE IF ( N == ID_Hg2(ID_Hg_na) ) THEN 
-!
-!         ! Anthro North America
-!         NN = ID_Hg_na
-!
-!      ELSE IF ( N == ID_Hg2(ID_Hg_eu) ) THEN 
-!
-!         ! Anthro Europe
-!         NN = ID_Hg_eu
-!
-!      ELSE IF ( N == ID_Hg2(ID_Hg_as) ) THEN 
-!
-!         ! Anthro Asia
-!         NN = ID_Hg_as
-!
-!      ELSE IF ( N == ID_Hg2(ID_Hg_rw) ) THEN 
-!
-!         ! Anthro Rest of World
-!         NN = ID_Hg_rw
-!
-!      ELSE IF ( N == ID_Hg2(ID_Hg_oc) ) THEN 
-!
-!         ! Oceans
-!         NN = ID_Hg_oc
-!
-!      ELSE IF ( N == ID_Hg2(ID_Hg_ln) ) THEN 
-!
-!         ! Land re-emission
-!         NN = ID_Hg_ln
-!
-!      ELSE IF ( N == ID_Hg2(ID_Hg_nt) ) THEN 
-!
-!         ! Natural source
-!         NN = ID_Hg_nt
-
+      !----------------------------------------
       ! New Tagged Hg Simulation (eds 8/31/10)
+      !----------------------------------------
       ELSE IF ( N == ID_Hg2(ID_Hg_can) ) THEN  
 
          ! Anthro Canada
@@ -3247,8 +3373,6 @@
          ! Residual Stratosphere from Spin-up
          NN = ID_Hg_str
 
-!-------------------------------------------------------
-
       ELSE
 
          ! Invalid category
@@ -3286,47 +3410,18 @@
       !=================================================================
 
       ! Pick the HgP category number from the tracer number
+
+      !----------------------------------------
+      ! Standard Hg simulation
+      !----------------------------------------
       IF ( N == ID_HgP(ID_Hg_tot) ) THEN 
 
          ! Total
          NN = ID_Hg_tot
 
-!- eds 8/31/10 ---------------------------------------------------------
-!      ELSE IF ( N == ID_HgP(ID_Hg_na) ) THEN 
-!
-!         ! Anthro North America
-!         NN = ID_Hg_na
-!
-!      ELSE IF ( N == ID_HgP(ID_Hg_eu) ) THEN 
-!
-!         ! Anthro Europe
-!         NN = ID_Hg_eu
-!
-!      ELSE IF ( N == ID_HgP(ID_Hg_as) ) THEN 
-!
-!         ! Anthro Asia
-!         NN = ID_Hg_as
-!
-!      ELSE IF ( N == ID_HgP(ID_Hg_rw) ) THEN 
-!
-!         ! Anthro Rest of World
-!         NN = ID_Hg_rw
-!
-!      ELSE IF ( N == ID_HgP(ID_Hg_oc) ) THEN 
-!
-!         ! Oceans
-!         NN = ID_Hg_oc
-!
-!      ELSE IF ( N == ID_HgP(ID_Hg_ln) ) THEN 
-!
-!         ! Land re-emission
-!         NN = ID_Hg_ln
-!
-!      ELSE IF ( N == ID_HgP(ID_Hg_nt) ) THEN 
-!
-!         ! Natural source
-!         NN = ID_Hg_nt
-
+      !----------------------------------------
+      ! New Tagged Hg Simulation (eds 8/31/10)
+      !----------------------------------------
       ELSE IF ( N == ID_HgP(ID_Hg_can) ) THEN  
 
          ! Anthro Canada
@@ -3466,8 +3561,6 @@
 
          ! Residual Stratosphere from Spin-up
          NN = ID_Hg_str
-
-!-------------------------------------------------------
 
       ELSE
 
@@ -4300,15 +4393,10 @@
          ID_Hg_ant = 0
          ID_Hg_ocn = 0
          ID_Hg_str = 0
-!------------------------------------------------------------------------
-
 
          ! Number of Hg categories
          IF ( Input_Opt%LSPLIT ) THEN
-!- eds 8/31/10 ----------------------------------------------------------
-!            N_Hg_CATS = 8
-            N_Hg_CATS = 29 ! New Tagged
-!------------------------------------------------------------------------
+            N_Hg_CATS = 29 ! New Tagged, eds 8/31/10
          ELSE
             N_Hg_CATS = 1
          ENDIF
