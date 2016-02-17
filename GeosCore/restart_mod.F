@@ -252,7 +252,7 @@
      &                         cId       = cID,                 
      &                         cName     = TRIM( ContainerName ), 
      &                         SpaceDim  =  3,                
-     &                         OutUnit   = 'molec/cm3/box',           
+     &                         OutUnit   = 'mol mol-1',           
      &                         OutOper   = 'Instantaneous', 
      &                         RC        = RC )
             
@@ -535,7 +535,6 @@
 !
 ! !USES:
 !     
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE COMODE_LOOP_MOD,    ONLY : NTSPEC, NAMEGAS
       USE m_netcdf_io_open                         ! netCDF file open
       USE m_netcdf_io_read                         ! netCDF read
@@ -545,7 +544,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PHYSCONSTANTS,      ONLY : BOLTZ
       USE TIME_MOD,           ONLY : EXPAND_DATE 
 !
 ! !INPUT PARAMETERS: 
@@ -576,11 +574,10 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER              :: N, I, J, L
-      CHARACTER(LEN=10)    :: spc_name           ! species name 
+      CHARACTER(LEN=10)    :: SPC_NAME           ! species name 
       CHARACTER(LEN=10)    :: UNIT
       LOGICAL              :: SPC_IN_RST         ! species data in file?
-      REAL(fp)             :: Background_VV      ! default background value
-      REAL(fp)             :: CONST              ! unit conversion factor
+      REAL(fp)             :: Background_VV      ! background species conc
 
       ! NetCDF file info
       INTEGER              :: fId                ! netCDF file ID
@@ -682,8 +679,10 @@
          CALL CONVERT_TRACER_TO_VV( N, Temp3D_ptr, v_unit )
 
          ! Print the min & max of each tracer as it is read from the file
-         WRITE( 6, 120 ) N,  MINVAL( Temp3D_ptr ), MAXVAL( Temp3D_ptr )
- 120     FORMAT( 'Tracer ', i3, ': Min = ', es15.9,'  Max = ',es15.9)
+         WRITE( 6, 120 ) N, TRIM( Input_Opt%TRACER_NAME(N) ),
+     &                   MINVAL( Temp3D_ptr ), MAXVAL( Temp3D_ptr )
+ 120     FORMAT( 'Tracer ', i3, ', ', a8, ': Min = ', es15.9,
+     &           '  Max = ',es15.9)
          
          ! Convert tracer concentration from [v/v dry] to [kg/kg dry] and 
          ! store in State_Chm%Tracers
@@ -710,9 +709,7 @@
 
       ! Print mean atmospheric kg/kg for each tracer
       WRITE( 6, 130 )
- 130  FORMAT( /, 'Mean mass mixing ratio for each tracer: ' ) 
-      WRITE( 6, 140 )
- 140  FORMAT( /, '[kg/kg]' ) 
+ 130  FORMAT( /, 'Mean mass mixing ratio per tracer [kg/kg]: ' ) 
       
       DO N = 1, Input_Opt%N_TRACERS
       
@@ -724,15 +721,12 @@
          ENDIF
       
          ! Print totals
-         WRITE( 6, 150 ) N, Input_Opt%TRACER_NAME(N), 
+         WRITE( 6, 150 ) N, TRIM( Input_Opt%TRACER_NAME(N) ), 
      &                   SUM( State_Chm%TRACERS(:,:,:,N) ) / 
      &                   ( IIPAR * JJPAR * LLPAR), ADJUSTL( UNIT )
- 150     FORMAT( 'Tracer ', i3, ' (', a10, ') ', es15.9, 1x, a7)
+ 150     FORMAT( 'Tracer ', i3, ', ', a8, ':  ', es15.9, 1x, a7)
       ENDDO
-      
-      ! Fancy output
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      
+            
       !=================================================================
       ! Read species concentrations and store in array
       !=================================================================
@@ -747,15 +741,20 @@
          IF ( ierr /= NF_NOERR ) THEN
             SPC_IN_RST = .FALSE.
             WRITE( 6, 160 )
- 160        FORMAT( /,'Min and Max of each species, set to default ',
-     &                ' background values [molec/cm3/box]:' )
+ 160        FORMAT( /,'No species data found in restart file.',/,
+     &                'Using default background of each species',
+     &                ' [mol mol-1]:' )
          ELSE
             SPC_IN_RST = .TRUE.
             WRITE( 6, 170 )
- 170        FORMAT( /,'Min and Max of each species ',
-     &                ' in file [molec/cm3/box]:' )
+ 170        FORMAT( /,'Species data found in restart file,',/,
+     &                'Min and Max of each species ',
+     &                ' [mol mol-1]:' )
          ENDIF
-      
+
+         ! Initialize species to all zeroes
+         State_Chm%Species = 0.0e+0_fp
+
          ! Loop over species
          DO N = 1, NTSPEC(1)
          
@@ -784,23 +783,25 @@
                ! Read variable from file and store in local array
                CALL NcRd( Temp3D_ptr, fId, TRIM(v_name), st4d, ct4d )
 
+               ! Assign data to species array
+               State_Chm%Species(:,:,:,N) = Temp3D
+
                ! Nullify pointer
                Temp3D_ptr => NULL()
 
             ELSE
 
-               ! Initialize local array for this tracer and point to it
-               Temp3D = 0.0
-       
-               ! If species data is not in the restart file, assign
-               ! default background values converted to [molec/cm3].
-               ! This method copies the algorithm used in gasconc.F in
-               ! which [v/v] default values are taken from globchem.dat.
-               ! Special handling is applied for MOH.
+               ! If species data is not in the restart file, then assign
+               ! default background values in units of [mol/mol].
+               ! These values were traditionally stored in globchem.dat
+               ! and assigned along with a unit conversion to [molec/cm3]
+               ! in gasconc called from chemdr. Now chemdr converts these
+               ! initial [mol/mol] values to [molec/cm3]. 
+               ! Eventually store these values in the species database.
                SELECT CASE ( TRIM( SPC_NAME ) )
-                  CASE ('CH2O', 'H2O2', 'HNO2', 'HNO3', 'HNO4', 'HO2') 
+                  CASE ('CH2O', 'H2O2', 'HNO2', 'HNO3', 'HNO4') 
                      Background_VV = 4.0e-15_fp
-                  CASE ('MO2', 'MP', 'N2O5', 'NO3', 'OH')
+                  CASE ('HO2', 'MO2', 'MP', 'N2O5', 'NO3', 'OH')
                      Background_VV = 4.0e-15_fp
                   CASE ('CH4')
                      Background_VV = 1.7e-06_fp
@@ -811,7 +812,7 @@
                   CASE ('H2')
                      Background_VV = 5.0e-07_fp
                   CASE ('H2O')
-                     Background_VV = 1.893e-02_fp
+                     Background_VV = 1.839e-02_fp
                   CASE ('M')
                      Background_VV = 0.0e+0_fp
                   CASE ('N2')
@@ -820,7 +821,7 @@
                      Background_VV = 4.0e-13_fp
                   CASE ('EMISSION')
                      Background_VV = 1.0e+0_fp
-                  CASE ('O')
+                  CASE ('H', 'O')
                      Background_VV = 4.0e-20_fp
                   CASE ('O1D')
                      Background_VV = 4.0e-22_fp
@@ -831,81 +832,31 @@
                   CASE DEFAULT
                      Background_VV = 1.0e-20_fp
                END SELECT
+               
+               ! Set 'DRY' species to all zeroes
                IF ( SPC_NAME(1:3) == 'DRY') THEN
                   Background_VV = 0.0e+0_fp
                ENDIF
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, CONST )
-               ! Loop over all chemistry grid boxes
-               DO L = 1, LLCHEM  ! Is this same as species dimensions??
-               DO J = 1, JJPAR
-               DO I = 1, IIPAR
+               ! Put this array into State_Chm%Species [mol/mol], but
+               ! only up to LLCHEM levels
+               State_Chm%Species(:,:,1:LLCHEM,N) = Background_VV
                
-                  ! Set box-dependent unit conversion factor 
-                  CONST = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp /
-     &                    ( State_Met%T(I,J,L) * BOLTZ * 1e+7_fp )
-               
-                  ! Calculate default background values [molec/cm3]
-                  IF ( TRIM( SPC_NAME ) == 'EMISSION' ) THEN
-
-                     ! Do not convert units if EMISSION
-                     Temp3D(I,J,L) = Background_VV            
-
-                  ELSE IF ( TRIM( SPC_NAME ) /= 'MOH' ) THEN
-
-                     ! Convert units if not MOH and not EMISSIONS
-                     Temp3D(I,J,L) = Background_VV * CONST
-
-                  ELSE ! Special handling for MOH
-
-                     ! Test for altitude (L < 9 is always in the trop)
-                     IF ( L <= 9 ) THEN
-                        ! Test for ocean/land boxes
-                        IF ( State_Met%FRCLND(I,J) >= 0.5 ) THEN
-                           ! Continental boundary layer: 2 ppbv MOH
-                           Temp3D(I,J,L) = 2.000e-9_fp * CONST
-                        ELSE
-                           ! Marine boundary layer: 0.9 ppbv MOH
-                           Temp3D(I,J,L) = 0.900e-9_fp * CONST
-                        ENDIF
-                     ELSE
-                        ! Test for troposphere
-                        IF ( ITS_IN_THE_TROP(I,J,L,State_Met) ) THEN
-                           ! Free troposphere: 0.6 ppbv MOH
-                           Temp3D(I,J,L) = 0.600e-9_fp * CONST
-                        ELSE
-                           ! Strat/mesosphere: set to small number
-                           Temp3D(I,J,L) = 1d-99
-                        ENDIF
-                     ENDIF
-                  ENDIF
-               
-                  ! Enforce that concentration is not negative
-                  Temp3D(I,J,L) = MAX(Temp3D(I,J,L),1d-99)
-               
-               ENDDO
-               ENDDO
-               ENDDO
-!$OMP END PARALLEL DO
-               
-               ! Put this array into State_Chm%Species
-               State_Chm%Species(:,:,:,N) = Temp3D
-
+               ! Print the background value of this species
+               WRITE( 6, 180 ) N, TRIM( SPC_NAME ),
+     &                         Background_VV
+ 180           FORMAT('Species ', i3, ', ', a9, ': Background = ', 
+     &                 es15.9)
             ENDIF
-
-            ! Print the min & max of each species
-            WRITE( 6, 180 ) N, MINVAL(Temp3D), MAXVAL(Temp3D)
- 180        FORMAT( 'Species ', i3, ': Min = ', es15.9, 
-     &              '  Max = ', es15.9 )
-               
          ENDDO
       ENDIF
 
       !=================================================================
       ! Clean up
       !=================================================================
+
+      ! Mark end of section in log
+      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
       ! Close netCDF file
       CALL NcCl( fId )
@@ -1109,8 +1060,10 @@
             CALL CONVERT_TRACER_TO_VV( NTRACER, TRACER, UNIT )
 
             ! Print the min & max of each tracer
-            WRITE( 6, 120 ) NTRACER,  MINVAL( TRACER ), MAXVAL( TRACER )
- 120        FORMAT( 'Tracer ', i3, ': Min = ', es15.9, 
+            WRITE( 6, 120 ) NTRACER,  
+     &                      TRIM( Input_Opt%TRACER_NAME(NTRACER) ),
+     &                      MINVAL( TRACER ), MAXVAL( TRACER )
+ 120        FORMAT( 'Tracer ', i3, ', ', a8, ': Min = ', es15.9, 
      &              '  Max = ',  es15.9 )
 
             ! Convert TRACER from [v/v] to [kg/kg] and copy into STT array
@@ -1133,9 +1086,7 @@
 
       ! Print mean atmospheric kg/kg for each tracer
       WRITE( 6, 130 )
- 130  FORMAT( /, 'Mean mass mixing ratio for each tracer: ' ) 
-      WRITE( 6, 140 )
- 140  FORMAT( /, '(in mass mixing ratio units: kg/kg)' ) 
+ 130  FORMAT( /, 'Mean mass mixing ratio of each tracer [kg/kg]: ' ) 
 
       DO N = 1, Input_Opt%N_TRACERS
 
@@ -1147,10 +1098,10 @@
          ENDIF
 
          ! Print totals
-         WRITE( 6, 150 ) N, Input_Opt%TRACER_NAME(N), 
+         WRITE( 6, 150 ) N, TRIM( Input_Opt%TRACER_NAME(N) ), 
      &                   SUM( STT(:,:,:,N) ) / (NI*NJ*NL), 
      &                   ADJUSTL( UNIT )
- 150     FORMAT( 'Tracer ', i3, ' (', a10, ') ', es15.9, 1x, a7)
+ 150     FORMAT( 'Tracer ', i3, ', ', a8, ':  ', es15.9, 1x, a7)
       ENDDO
 
       ! Fancy output
@@ -1403,8 +1354,10 @@
      &                      RC      = HCRC )
       
          ! Print the min & max of each tracer written to file
-         WRITE( 6, 120 ) N,  MINVAL( Temp3D ), MAXVAL( Temp3D )
- 120     FORMAT( 'Tracer ', i3, ': Min = ', es15.9, '  Max = ',es15.9)
+         WRITE( 6, 120 ) N, TRIM( Input_Opt%TRACER_NAME(N) ),
+     &                   MINVAL( Temp3D ), MAXVAL( Temp3D )
+ 120     FORMAT( 'Tracer ', i3, ', ', a8, ': Min = ', es15.9, 
+     &           '  Max = ',es15.9)
 
          ! Free the pointer
          Ptr3D => NULL()
@@ -1477,9 +1430,10 @@
      &                         RC      = HCRC )
             
             ! Print the min & max of each species written to file
-            WRITE( 6, 140 ) N,  MINVAL( Temp3D ), MAXVAL( Temp3D )
- 140        FORMAT( 'Species ', i3, ': Min = ', es15.9, '  Max = ', 
-     &              es15.9 )
+            WRITE( 6, 140 ) N, TRIM( NAMEGAS(N) ),
+     &                      MINVAL( Temp3D ), MAXVAL( Temp3D )
+ 140        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
+     &              '  Max = ', es15.9 )
             
             ! Free the pointer
             Ptr3D => NULL()
@@ -1803,7 +1757,7 @@
       
       ! Echo more output
       WRITE( 6, 120 )
- 120  FORMAT( /, 'Min and Max of each tracer in file [v/v]:' )
+ 120  FORMAT( /, 'Min and Max of each tracer [v/v]:' )
 
       !=================================================================
       ! Write each tracer to the restart file
@@ -1823,9 +1777,10 @@
      &               J0+1,      1,         ThisTracerVV )
 
          ! Print the min & max of each tracer written to file
-         WRITE( 6, 130 ) N,  MINVAL( ThisTracerVV ), 
-     &                       MAXVAL( ThisTracerVV )
- 130     FORMAT( 'Tracer ', i3, ': Min = ', es15.9,'  Max = ',es15.9)
+         WRITE( 6, 130 ) N, TRIM( Input_Opt%TRACER_NAME(N) ),
+     &                   MINVAL( ThisTracerVV ), MAXVAL( ThisTracerVV )
+ 130     FORMAT( 'Tracer ', i3, ', ', a8, ': Min = ', es15.9,
+     &           '  Max = ',es15.9)
 
       ENDDO  
 
@@ -2381,8 +2336,9 @@
             CSPEC_FULL(:,:,:,N) = TMP(:,:,:)
 
             ! Print the min & max of each species
-            WRITE( 6, 300 ) N, MINVAL(TMP), MAXVAL(TMP)
- 300        FORMAT( 'Species ', i3, ': Min = ', es15.9, 
+            WRITE( 6, 300 ) N, TRIM( NAMEGAS(N) ), 
+     &                      MINVAL(TMP), MAXVAL(TMP)
+ 300        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
      &              '  Max = ',  es15.9 )
 
          ELSE
@@ -2547,9 +2503,6 @@
       ! Add ADJ_DIR prefix to filename
       !FILENAME = TRIM( ADJ_DIR ) // TRIM( FILENAME )
 
-      WRITE( 6, 100 ) TRIM( FILENAME ), IU_RST
- 100  FORMAT( '     - MAKE_CSPEC_FILE: Writing ', a, ' on unit ', i4 )
-
       ! Open checkpoint file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_RST, FILENAME, TITLE )
 
@@ -2562,8 +2515,7 @@
       
       ! Echo more output
       WRITE( 6, 120 )
- 120  FORMAT( /, 'Min and Max of each species in file',
-     &           ' [molec/cm3/box]:' )
+ 120  FORMAT( /, 'Min and Max of each species [molec/cm3/box]:' )
 
       !=================================================================
       ! Write each checkpointed quantity to the checkpoint file
@@ -2616,11 +2568,16 @@
      &               J0+1,      1,         TMP(:,:,:) )
  
          ! Print the min & max of each tracer written to file
-         WRITE( 6, 130 ) N,  MINVAL( TMP ), MAXVAL( TMP )
- 130     FORMAT( 'Species ', i3, ': Min = ', es15.9, '  Max = ', 
+         WRITE( 6, 130 ) N, TRIM( NAMEGAS(N) ), 
+     &                   MINVAL( TMP ), MAXVAL( TMP )
+ 130     FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
+     &           '  Max = ', 
      &           es15.9 )
 
       ENDDO
+
+      ! Mark end of section in log
+      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
 
       ! Close file
       CLOSE( IU_RST )

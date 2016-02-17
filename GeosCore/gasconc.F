@@ -188,10 +188,23 @@
          ! Echo some input to the screen
          WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
          WRITE( 6, '(a,/)' ) 'C S P E C  -  Use Background Values'
-         WRITE( 6, '(a,/)' ) 'GASCONC: Assigning values to CSPEC'
+         WRITE( 6, '(a)' ) 'GASCONC: Assigning values to CSPEC'
 
+         ! Loop over species to write out background values to log
+         WRITE( 6, 150 )
+ 150     FORMAT( /,'Using default background of each species ',
+     &          'from globchem.dat [mol mol-1]:' )
+         DO 27 JGAS = 1, NTSPEC(NCS)
+            WRITE( 6, 160 ) JGAS, TRIM( NAMEGAS(JGAS) ), 
+     &                      QBKCHEM(JGAS,NCS)
+ 160        FORMAT( 'Species ', i3, ', ', a9, ':  ', es15.9 )
+ 27      CONTINUE
+
+
+         ! Write header to log for min and max value post-conversion
          WRITE( 6, 170 )
- 170     FORMAT( /,'Min and Max of each species [molec/cm3/box]:' )
+ 170     FORMAT( /,'Min and Max of each species after unit conversion',
+     &           ' [molec/cm3/box]:' )
 
          ! Loop over species
          DO 28 JGAS = 1, NTSPEC(NCS)
@@ -323,13 +336,18 @@
             ENDIF
 
             ! Print the min & max of this species
-            WRITE( 6, 180 ) JGAS, 
+            WRITE( 6, 180 ) JGAS,
+     &                      TRIM( NAMEGAS(JGAS) ),  
      &                      MINVAL(CSPEC_FULL(:,:,:,JGAS)), 
      &                      MAXVAL(CSPEC_FULL(:,:,:,JGAS))
- 180        FORMAT( 'Species ', i3, ': Min = ', es15.9, 
+ 180        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
      &              '  Max = ', es15.9 )
 
  28      CONTINUE
+
+         ! Mark end of section in log
+         WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+
       ENDIF        !(FIRSTCHEM)
       
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
