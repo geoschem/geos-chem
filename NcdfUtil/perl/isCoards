@@ -294,6 +294,8 @@ sub analyzeLev($) {
 #  06 Jan 2015 - R. Yantosca - Initial version
 #  06 Jan 2016 - R. Yantosca - Add checks for null values
 #  06 Jan 2016 - R. Yantosca - Bug fix: also flag non-monotonic values
+#  08 Jan 2016 - R. Yantosca - Add "vertical level as an accepted long_name
+#  08 Jan 2016 - R. Yantosca - Add "layer", "level" as accepted units
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -346,8 +348,10 @@ sub analyzeLev($) {
   # %%%%% Check the long_name attribute
   $value = $longName{$var};
   if ( defined( $value ) ) {
-    if ( $value =~ m/GEOS-Chem levels/ || $value =~ m/lev/ ||
-         $value =~ m/sigma/            || $value =~ m/eta/    ) {
+    if ( $value =~ m/GEOS-Chem levels/ || $value =~ m/lev/   ||
+         $value =~ m/sigma/            || $value =~ m/eta/   ||
+         $value =~ m/level/            || $value =~ m/layer/   ) {
+
       $msg  = qq/$sep $var:long_name =$value\n/;
       @GOOD = ( @GOOD, $msg );
     } else {
@@ -362,11 +366,13 @@ sub analyzeLev($) {
   # %%%%% Check the units attribute
   $value = $units{$var};
   if ( defined( $value ) ) {
-    if ( $value =~ m/sigma_level/ || $value =~ m/1/ ) {
+    if ( $value =~ m/sigmal/  || $value =~ m/eta/   ||
+         $value =~ m/level/   || $value =~ m/layer/ ||   
+         $value =~ m/1/                                ) {
       $msg  = qq/$sep $var:units =$value\n/;
       @GOOD = ( @GOOD, $msg );
     } else {
-      $msg  = qq/$sep $var:units should be dimensionless (e.g. "sigma_level", "1"\n/;
+      $msg  = qq/$sep $var:units should be dimensionless (e.g. "sigma_level", "1")\n/;
       @BAD  = ( @BAD,  $msg );
     }
   } else {
@@ -547,7 +553,7 @@ sub analyzeLon($) {
       @BAD  = ( @BAD,  $msg );
     }
   } else {
-    $msg  = qq/$sep $var:long_name is missing\n/;
+    $msg  = qq/$sep $var:long_name (or $var:standard_name) is missing\n/;
     @BAD  = ( @BAD,  $msg );  
   }
 
@@ -794,6 +800,7 @@ sub analyzeResults() {
 # !REVISION HISTORY:
 #  06 Jan 2015 - R. Yantosca - Initial version
 #  06 Jan 2016 - R. Yantosca - Now test for upper/lower case index var names
+#  17 Feb 2016 - R. Yantosca - Fixed typo: [ instead of ] in regexp for lat
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -812,7 +819,7 @@ sub analyzeResults() {
   foreach $var ( @vars ) {
     if    ( $var =~ m/[Tt][Ii][Mm][Ee]/ ) { &analyzeTime( $var ); }
     elsif ( $var =~ m/[Ll][Ee][Vv]/     ) { &analyzeLev ( $var ); }
-    elsif ( $var =~ m/[Ll[[Aa][Tt]/     ) { &analyzeLat ( $var ); }
+    elsif ( $var =~ m/[Ll][Aa][Tt]/     ) { &analyzeLat ( $var ); }
     elsif ( $var =~ m/[Ll][Oo][Nn]/     ) { &analyzeLon ( $var ); }
     else                                  { &analyzeVar ( $var ); }
   }
