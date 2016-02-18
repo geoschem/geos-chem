@@ -203,8 +203,7 @@
       DO N = 1, Input_Opt%N_TRACERS
          
          ! Define container name and id
-         ContainerName = 'TRACER_CONC_' 
-     &                   // TRIM( Input_Opt%TRACER_NAME(N) )
+         ContainerName = 'TRC_' // TRIM( Input_Opt%TRACER_NAME(N) )
          cID = cID + 1
 
          ! Create container
@@ -243,7 +242,7 @@
             !ENDIF
          
             ! Define container name and ID
-            ContainerName = 'SPEC_CONC_' // TRIM( NAMEGAS(N) )
+            ContainerName = 'SPC_' // TRIM( NAMEGAS(N) )
             cID = cID + 1
          
             ! Create container
@@ -665,7 +664,7 @@
          Temp3D_ptr => Temp3D
 
          ! Define variable name
-         v_name = 'TRACER_CONC_' // TRIM( Input_Opt%TRACER_NAME(N) )
+         v_name = 'TRC_' // TRIM( Input_Opt%TRACER_NAME(N) )
          
          ! Read variable from file and store in local array
          CALL NcRd( Temp3D_ptr, fId, TRIM(v_name), st4d, ct4d )
@@ -734,7 +733,7 @@
       IF ( Input_Opt%LCHEM ) THEN 
          
          ! Check if species data is in file by looking for first species
-         v_name = 'SPEC_CONC_' // TRIM( NAMEGAS(1) )
+         v_name = 'SPC_' // TRIM( NAMEGAS(1) )
          ierr = Nf_Inq_Varid (fId, v_name, v_id)
 
          ! Set species in restart file logical flag and write to log
@@ -778,7 +777,7 @@
                Temp3D_ptr => Temp3D
 
                ! Define variable name
-               v_name = 'SPEC_CONC_' // TRIM( SPC_NAME )
+               v_name = 'SPC_' // TRIM( SPC_NAME )
                
                ! Read variable from file and store in local array
                CALL NcRd( Temp3D_ptr, fId, TRIM(v_name), st4d, ct4d )
@@ -1347,8 +1346,7 @@
       DO N = 1, Input_Opt%N_TRACERS
       
          ! Define container name
-         ContainerName = 'TRACER_CONC_' 
-     &                   // TRIM( Input_Opt%TRACER_NAME(N) )
+         ContainerName = 'TRC_' // TRIM( Input_Opt%TRACER_NAME(N) )
 
          ! Point to this tracer concentration array
          Temp3D = TracerVV(:,:,:,N)
@@ -1428,7 +1426,7 @@
             Ptr3D => Temp3D
             
             ! Define container name
-            ContainerName = 'SPEC_CONC_' // TRIM( NAMEGAS(N) )
+            ContainerName = 'SPC_' // TRIM( NAMEGAS(N) )
             
             ! Populate with data
             CALL Diagn_Update( am_I_Root,                   
