@@ -196,10 +196,10 @@ CONTAINS
     ENDIF
 
     ! Tracer concentration diagnostics (ND45)
-!    CALL DIAGINIT_TRACER_CONC( am_I_Root, Input_Opt, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_CONC', LOC ) 
-!    ENDIF
+    CALL DIAGINIT_TRACER_CONC( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_CONC', LOC ) 
+    ENDIF
 
     ! Grid box quantities (ND68)
     CALL DIAGINIT_GRIDBOX( am_I_Root, Input_Opt, State_Met, RC )

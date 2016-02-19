@@ -544,6 +544,11 @@
          rtim = rtim + finish - start
          GLOB_RCONST(I,J,L,:) = RCONST(:)
 
+         IF (I.eq.10.and.J.eq.10.and.L.eq.10) THEN
+            write(*,'(a,4e12.4)') 'RR <> :',RCONST(34), RCONST(35), 
+     &           RCONST(232) , RCONST(306)
+         ENDIF
+
          ! mje Integrate the box forwards
          call cpu_time(start)
          call Integrate( TIN,    TOUT,    ICNTRL, 

@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Tue Jan 26 09:43:15 2016
+! Time                 : Thu Feb 18 17:54:43 2016
 ! Working directory    : /n/home13/mslong/FlexChem/Flexchem/Mechanisms/v1101_Tropchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -843,8 +843,8 @@ SUBROUTINE Update_PHOTO ( )
   RCONST(299) = (PHOTOL(8))
   RCONST(300) = (PHOTOL(16))
   RCONST(301) = (PHOTOL(15))
-  RCONST(302) = (PHOTOL(18))
-  RCONST(303) = (PHOTOL(17))
+  RCONST(302) = (PHOTOL(17))
+  RCONST(303) = (PHOTOL(18))
   RCONST(304) = (PHOTOL(12))
   RCONST(305) = (PHOTOL(13))
   RCONST(306) = (PHOTOL(14))
