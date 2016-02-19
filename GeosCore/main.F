@@ -936,7 +936,8 @@
                
                ! Make atmospheric restart file
                CALL WRITE_GC_RESTART( am_I_Root, Input_Opt, NYMD, 
-     &                                NHMS, TAU, State_Chm, RC )
+     &                                NHMS, TAU, State_Chm, State_Met,
+     &                                RC )
 
                !### Debug
                IF ( prtDebug ) THEN

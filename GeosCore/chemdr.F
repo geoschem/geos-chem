@@ -51,6 +51,7 @@
 #if defined( BPCH_RST_IN )
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE
 #endif 
+      USE RESTART_MOD,          ONLY : SPC_IN_NC_RST 
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : GET_NHMS
       USE TIME_MOD,             ONLY : GET_NYMD
@@ -681,7 +682,7 @@
       ! species is included in the restart file. This is different 
       ! from using the bpch restart file where you either read species as 
       ! [molec/cm3/box] from the cspec restart file, or initialize it
-      ! as [mol/mol] background values and convert to [molec/cm3/bpx] 
+      ! as [mol/mol] background values and convert to [molec/cm3/box] 
       ! in the first call to gasconc (see above code).
       !
       ! When using a NetCDF restart file, [mol/mol] background
@@ -701,100 +702,108 @@
 
       IF ( FIRSTCHEM ) THEN
 
-         ! Write message to log
-         IF ( am_I_Root ) THEN
-            WRITE(6,100) 
- 100        FORMAT('     - CHEMDR: converting species from',
-     &      ' [mol mol-1] to [molec/cm3/box]', //,
-     &      'Min and Max of each species after unit conversion ',
-     &      '[molec/cm3]:')
-         ENDIF
+         ! If default species data was in the NetCDF restart file
+         ! then do nothing since species was converted to [molec/cm3]
+         ! after being read in. Otherwise, convert the default background
+         ! values from [mol/mol] to [molec/cm3].
 
-         ! Convert State_Chm%SPECIES from [mol/mol] to [molec/cm3/box]
-         ! (ewl, 2/16/16)
-         ! Loop over species
-         DO N = 1, NTSPEC(1)
+         IF ( .NOT. SPC_IN_NC_RST ) THEN
 
-            ! Define species name
-            SPC_NAME = TRIM( NAMEGAS(N) )
+            ! Write message to log
+            IF ( am_I_Root ) THEN
+               WRITE(6,100) 
+ 100           FORMAT('     - CHEMDR: converting species background',
+     &         ' from [mol mol-1] to [molec/cm3/box]', //,
+     &         'Min and Max of each species after unit conversion ',
+     &         '[molec/cm3]:')
+            ENDIF
 
-            ! Do unit conversion if this species is not 'EMISSION'
-            IF ( TRIM( SPC_NAME ) /= 'EMISSION' ) THEN            
+            ! Convert State_Chm%SPECIES from [mol/mol] to [molec/cm3/box]
+            ! (ewl, 2/16/16)
+            ! Loop over species
+            DO N = 1, NTSPEC(1)
+
+               ! Define species name
+               SPC_NAME = TRIM( NAMEGAS(N) )
+               
+               ! Do unit conversion if this species is not 'EMISSION'
+               IF ( TRIM( SPC_NAME ) /= 'EMISSION' ) THEN            
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, CONV_FACTOR )
-               ! Loop over all chemistry grid boxes
-               DO L = 1, LLCHEM 
-               DO J = 1, JJPAR
-               DO I = 1, IIPAR
-               
-                  ! Set box-dependent unit conversion factor 
-                  CONV_FACTOR = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp /
-     &                    ( State_Met%T(I,J,L) * BOLTZ * 1e+7_fp )
-               
-                  ! Special handling for MOH
-                  IF ( TRIM( SPC_NAME ) /= 'MOH' ) THEN
-
-                     ! Convert units from [mol/mol] to [molec/cm3/box]
-                     State_Chm%Species(I,J,L,N) = 
-     &                         State_Chm%Species(I,J,L,N) * CONV_FACTOR
-
-                  ELSE
-
-                     ! Test for altitude (L < 9 is always in the trop)
-                     IF ( L <= 9 ) THEN
-                        ! Test for ocean/land boxes
-                        IF ( State_Met%FRCLND(I,J) >= 0.5 ) THEN
-                           ! Continental boundary layer: 2 ppbv MOH
-                           State_Chm%Species(I,J,L,N) 
-     &                        = 2.000e-9_fp * CONV_FACTOR
-                        ELSE
-                           ! Marine boundary layer: 0.9 ppbv MOH
-                           State_Chm%Species(I,J,L,N) 
-     &                        = 0.900e-9_fp * CONV_FACTOR
-                        ENDIF
+                  ! Loop over all chemistry grid boxes
+                  DO L = 1, LLCHEM 
+                  DO J = 1, JJPAR
+                  DO I = 1, IIPAR
+                  
+                     ! Set box-dependent unit conversion factor 
+                     CONV_FACTOR = 
+     &                       State_Met%PMID_DRY(I,J,L) * 1000e+0_fp /
+     &                       ( State_Met%T(I,J,L) * BOLTZ * 1e+7_fp )
+                  
+                     ! Special handling for MOH
+                     IF ( TRIM( SPC_NAME ) /= 'MOH' ) THEN
+                  
+                        ! Convert units from [mol/mol] to [molec/cm3/box]
+                        State_Chm%Species(I,J,L,N) = 
+     &                        State_Chm%Species(I,J,L,N) * CONV_FACTOR
+                  
                      ELSE
-                        ! Test for troposphere
-                        IF ( ITS_IN_THE_TROP(I,J,L,State_Met) ) THEN
-                           ! Free troposphere: 0.6 ppbv MOH
-                           State_Chm%Species(I,J,L,N) 
-     &                        = 0.600e-9_fp * CONV_FACTOR
+                  
+                        ! Test for altitude (L < 9 is always in the trop)
+                        IF ( L <= 9 ) THEN
+                           ! Test for ocean/land boxes
+                           IF ( State_Met%FRCLND(I,J) >= 0.5 ) THEN
+                              ! Continental boundary layer: 2 ppbv MOH
+                              State_Chm%Species(I,J,L,N) 
+     &                           = 2.000e-9_fp * CONV_FACTOR
+                           ELSE
+                              ! Marine boundary layer: 0.9 ppbv MOH
+                              State_Chm%Species(I,J,L,N) 
+     &                           = 0.900e-9_fp * CONV_FACTOR
+                           ENDIF
                         ELSE
-                           ! Strat/mesosphere:
-                           State_Chm%Species(I,J,L,N) = 0.0e+0_fp
+                           ! Test for troposphere
+                           IF ( ITS_IN_THE_TROP(I,J,L,State_Met) ) THEN
+                              ! Free troposphere: 0.6 ppbv MOH
+                              State_Chm%Species(I,J,L,N) 
+     &                           = 0.600e-9_fp * CONV_FACTOR
+                           ELSE
+                              ! Strat/mesosphere:
+                              State_Chm%Species(I,J,L,N) = 0.0e+0_fp
+                           ENDIF
                         ENDIF
                      ENDIF
-                  ENDIF
-               
-                  ! Make a small number if concentration is negative or zero
-                  State_Chm%SPECIES(I,J,L,N) = 
-     &                 MAX( State_Chm%Species(I,J,L,N), 1d-99 )
-               
-               ENDDO
-               ENDDO
-               ENDDO
+                  
+                     ! Make a small number if concentration is neg or zero
+                     State_Chm%SPECIES(I,J,L,N) = 
+     &                    MAX( State_Chm%Species(I,J,L,N), 1d-99 )
+                  
+                  ENDDO
+                  ENDDO
+                  ENDDO
 !$OMP END PARALLEL DO
-               
-            ENDIF
- 
-            ! Print the min & max of each species in [molec/cm3/box]
-            WRITE( 6, 110 ) N,  
-     &                      TRIM( SPC_NAME ),
-     &                      MINVAL( State_Chm%Species(:,:,:,N) ), 
-     &                      MAXVAL( State_Chm%Species(:,:,:,N) )
- 110        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9,
-     &              '  Max = ', es15.9 )
-
-         ENDDO
-
-         ! Mark end of unit conversion in log
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                  
+               ENDIF
+         
+               ! Print the min & max of each species in [molec/cm3/box]
+               WRITE( 6, 110 ) N,  
+     &                         TRIM( SPC_NAME ),
+     &                         MINVAL( State_Chm%Species(:,:,:,N) ), 
+     &                         MAXVAL( State_Chm%Species(:,:,:,N) )
+ 110           FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9,
+     &                 '  Max = ', es15.9 )
+         
+            ENDDO
+         
+            ! Mark end of unit conversion in log
+            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         ENDIF
       ENDIF
-      
 
-      CALL GASCONC(  am_I_Root, .FALSE., .TRUE.,
-     &               Input_Opt, State_Met, State_Chm, RC )
+      CALL GASCONC( am_I_Root, .FALSE., .TRUE.,
+     &              Input_Opt, State_Met, State_Chm, RC )
 
 #endif
       !### Debug
