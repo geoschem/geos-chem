@@ -195,11 +195,11 @@ CONTAINS
        CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
     ENDIF
 
-    ! Tracer concentration diagnostics (ND45)
-    CALL DIAGINIT_TRACER_CONC( am_I_Root, Input_Opt, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_CONC', LOC ) 
-    ENDIF
+!    ! Tracer concentration diagnostics (ND45)
+!    CALL DIAGINIT_TRACER_CONC( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_CONC', LOC ) 
+!    ENDIF
 
     ! Grid box quantities (ND68)
     CALL DIAGINIT_GRIDBOX( am_I_Root, Input_Opt, State_Met, RC )
@@ -220,9 +220,9 @@ CONTAINS
     ENDIF
 
 !    CALL DIAGINIT_KPP_SPEC( am_I_Root, Input_Opt, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
+!    IF ( RC /= GIGC_SUCCESS ) THEN
 !       CALL ERROR_STOP( 'Error in DIAGINIT_KPP', LOC ) 
-    ENDIF
+!    ENDIF
 
     ! Leave with success
     RC = GIGC_SUCCESS
