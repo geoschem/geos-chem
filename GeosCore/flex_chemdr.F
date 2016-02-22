@@ -18,7 +18,7 @@
 !
       USE AEROSOL_MOD,          ONLY : SOILDUST, AEROSOL_CONC, RDAER
       USE COMODE_MOD,           ONLY : JLOP, TAREA, ERADIUS ! <--!!
-      USE COMODE_LOOP_MOD,      ONLY : BK, NAMEGAS, SMAL2
+      USE COMODE_LOOP_MOD,      ONLY : BK, NAMEGAS, CONSVAP, SMAL2
       USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_CHEMGRID
       USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_FJX_MOD
@@ -150,23 +150,11 @@
       ! mje Copy the molecular mass of the Tracers into TCVV
       TCVV      = Input_Opt%TCVV
 
-      ! Debug
-      write(*,'(3a,2e12.4)') '<> b RURALBOX ',
-     &            NAMEGAS(66), ' = ', State_Chm%Species(10,10,10,66)
-      write(*,'(3a,2e12.4)') '<> b RURALBOX ',
-     &            NAMEGAS(62), ' = ', State_Chm%Species(10,10,10,62)
-
       ! mje link the STT Pointer to the State_Chm%Tracers stucture
       STT =>  State_Chm%Tracers
 
       ! Locate the tropopsheric boxes
       CALL RURALBOX( State_Met )
-
-      ! Debug
-      write(*,'(3a,2e12.4)') '<> a RURALBOX ',
-     &            NAMEGAS(66), ' = ', State_Chm%Species(10,10,10,66)
-      write(*,'(3a,2e12.4)') '<> a RURALBOX ',
-     &            NAMEGAS(62), ' = ', State_Chm%Species(10,10,10,62)
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
@@ -276,7 +264,7 @@
          CALL DEBUG_MSG( '### FLEX_CHEMDR: after RDUST' )
       ENDIF
 
-      !     imsl  Calculate hetchem rates
+      ! MSL  For calculating hetchem rates
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -482,9 +470,11 @@
          NUMDEN = State_Met%AIRNUMDEN(I,J,L)
 
          ! mje H2O arrives in g/kg needs to be in mol cm-3 
-         H2O    = State_Met%SPHU(I,J,L)*
-     &            (0.21*32d0+0.79*28d0)/(18d0)/1000.
-         H2O    = H2O * NUMDEN
+         H2O = State_Met%AVGW(I,J,L)*State_Met%AIRNUMDEN(I,J,L)
+
+!         H2O    = State_Met%SPHU(I,J,L)*
+!     &            (0.21*32d0+0.79*28d0)/(18d0)/1000.
+!         H2O    = H2O * NUMDEN
 
          ! Set up te photolysis rates the order here is the order in the Fast-J
          ! definition files
@@ -541,8 +531,6 @@
          RCNTRL(3) = HSAVE_KPP(I,J,L)
 
          ! mje  Update KPP's rates
-!         write(*,*) '<> NUMDEN1', NUMDEN
-!         CALL Init_KPP( )
          CALL Update_RCONST( )
          call cpu_time(finish)
          rtim = rtim + finish - start
@@ -796,7 +784,7 @@
 
       CALL Diagn_Update( am_I_Root,
      &     cName   = TRIM( 'STK_HBr' ),
-     &     Array3D = SCOEFF(:,:,:,1),
+     &     Array3D = SCOEFF(:,:,:,2),
      &     COL     = Input_Opt%DIAG_COLLECTION,
      &     RC      = HCRC )
 
