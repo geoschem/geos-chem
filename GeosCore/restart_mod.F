@@ -588,8 +588,6 @@
       INTEGER              :: fId                ! netCDF file ID
       INTEGER              :: NX, NY, NZ, NT     ! netCDF file dimensions
       CHARACTER(LEN=255)   :: nc_file            ! filename
-      CHARACTER(LEN=255)   :: nc_dir             ! directory name
-      CHARACTER(LEN=255)   :: nc_path            ! path name
 
       ! NetCDF variable info
       CHARACTER(LEN=255)   :: v_name             ! variable name 
@@ -616,22 +614,18 @@
       ! Name of this routine
       LOC = 'READ_GC_RESTART_NC (restart_mod.F)'
 
-      ! Copy input file name to a local variable
+      ! Copy input filename to a local variable
       nc_file = TRIM( INPUT_RESTART_FILE )
 
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
-
-      ! Name of restart file (module-level variable)
-      nc_dir = Input_Opt%RUN_DIR
-      nc_path = TRIM( nc_dir ) // TRIM( nc_file )
 
       !=================================================================
       ! Open the GEOS-Chem restart file and prepare variables for read
       !=================================================================
 
       ! Open file for read
-      CALL Ncop_Rd( fID, TRIM(nc_path) )
+      CALL Ncop_Rd( fID, TRIM( nc_file ) )
 
       ! Read the dimensions from the netCDF file
       CALL NcGet_DimLen( fID, 'lon',   NX )
