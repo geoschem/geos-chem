@@ -1532,7 +1532,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, JLOOP, L, N, XRH )
       DO N     = 1, NDUST
-      DO JLOOP = 1, NTTLOOP
+      DO JLOOP = 1, NTLOOP
 
          ! Compute 3-D grid box indices
          I = IXSAVE(JLOOP)
