@@ -1977,7 +1977,7 @@
       ! Convert from the current unit to v/v
       SELECT CASE ( TRIM( UNIT ) )
 
-         CASE ( '', 'V/V', 'MOL MOL-1' )
+         CASE ( '', 'V/V', 'MOL MOL-1', 'MOL/MOL' )
             ! Do nothing, TRACER is already in v/v
 
          CASE ( 'PPM', 'PPMV', 'PPMC' ) 
