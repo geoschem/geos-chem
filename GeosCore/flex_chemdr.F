@@ -489,8 +489,11 @@
          ! mje Set up the initial conditions of the variable species
          ! mje The Integrator works in # cm-3
          DO N=1,NSPEC
-            IF ( CSPECTOKPP(N) .eq. 0) CYCLE
-            C(N)=State_Chm%Species(I,J,L,CSPECTOKPP(N))
+            IF ( CSPECTOKPP(N) .eq. 0) THEN
+               C(N)=0d0
+            ELSE
+               C(N)=State_Chm%Species(I,J,L,CSPECTOKPP(N))
+            ENDIF
          ENDDO
 
          ! Debug
