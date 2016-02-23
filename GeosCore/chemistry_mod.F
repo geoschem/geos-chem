@@ -117,6 +117,7 @@
       USE TRACERID_MOD,       ONLY : IDTISOP
       USE TRACERID_MOD,       ONLY : IDTDST1
       USE TENDENCIES_MOD
+      USE PASSIVE_TRACER_MOD, ONLY : CHEM_PASSIVE_TRACER 
 #if defined (UCX )
       USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
       USE UCX_MOD,            ONLY : READ_PSC_FILE
@@ -223,6 +224,7 @@
 !  08 May 2015 - C. Keller   - Added WRITE_STATE_PSC.
 !  18 May 2015 - R. Yantosca - Remove DIAG_STATE_PSC, that is not used anymore
 !  15 Jun 2015 - R. Yantosca - Removed calls to DRYFLXRnPbBe, that's obsolete
+!  04 Sep 2015 - C. Keller   - Added passive tracer call.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -620,6 +622,18 @@
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
          ENDIF
+
+         !-----------------------------------------------------
+         ! Passive tracers
+         ! This performs a simple loss chemistry on all passive 
+         ! tracers. Call this routine for all simulation types
+         ! since passive tracers can be defined for various 
+         ! simulations (as additional tracers to the default
+         ! ones). ckeller, 09/04/15) 
+         !-----------------------------------------------------
+         CALL CHEM_PASSIVE_TRACER
+     &       ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
 
          !### Debug
          IF ( LPRT .and. am_I_Root ) THEN
