@@ -61,15 +61,24 @@
 
       USE PRECISION_MOD  ! For GEOS-Chem Precision (fp)
 
+      ! to write out chemical tendencies of species
+# if  defined( DEVEL ) 
+      USE DIAGNOSTICS_MOD,    ONLY : DiagnSpecTend
+      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+      USE TIME_MOD,           ONLY : GET_TS_CHEM 
+      USE COMODE_MOD,         ONLY : IXSAVE, IYSAVE, IZSAVE 
+      USE HCO_ERROR_MOD
+#endif
+
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
@@ -252,6 +261,7 @@
 !  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  02 Mar 2015 - E. Lundgren - Remove MAKE_AVGW call. State_Met%AVGW now 
 !                              set in AIRQNT within dao_mod.F.
+!  04 Feb 2016 - C. Keller   - Use GASCONC with Input_Opt%LINITSPEC (ESMF only).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -292,6 +302,16 @@
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: STT(:,:,:,:)
+
+      ! to write out chemical tendencies
+#if   defined( DEVEL ) 
+      INTEGER               :: IX, IY, IZ, HCRC
+      REAL(fp)              :: DT
+      REAL(fp), POINTER     :: Ptr3D(:,:,:) => NULL()
+      REAL(fp), TARGET      :: TEND(IIPAR,JJPAR,LLPAR)
+      REAL(fp), ALLOCATABLE :: BEFORE(:,:,:,:)        
+      CHARACTER(LEN=255)    :: DiagnName
+#endif
 
       !=================================================================
       ! CHEMDR begins here!
@@ -582,9 +602,28 @@
       ! Within GASCONC, we will call COPY_FULL_CHEMGRID to make sure that
       ! the CSPEC_FULL array gets copied to the CSPEC array.
       ! (bmy, 10/24/12)
+      !
+      ! Now use value Input_Opt%LINITSPEC for FIRSTCHEM. This allows
+      ! a flexible handling of species initialization, e.g. to make sure
+      ! that all species are initialized to their default values on first
+      ! call or after the first clock rewind. Input_Opt%LINITSPEC needs 
+      ! to be specified in a high level routine (e.g. the ESMF 
+      ! GridCompComponent module). It defaults to .FALSE. and is
+      ! automatically set to .FALSE. after calling GASCONC below.
+      ! (ckeller, 2/5/16)
       !-----------------------------------------------------------------
-      CALL GASCONC(  am_I_Root, .FALSE.,   .FALSE.,   
+      CALL GASCONC(  am_I_Root, Input_Opt%LINITSPEC,   .FALSE.,   
      &               Input_Opt, State_Met, State_Chm, RC )
+
+      ! Prompt to log
+      IF ( Input_Opt%LINITSPEC .AND. am_I_Root ) THEN
+         WRITE(*,*) '***********************************************'
+         WRITE(*,*) 'GEOS-Chem species set to values in globchem.dat'
+         WRITE(*,*) '***********************************************'
+      ENDIF
+
+      ! Make sure species are not reinitialized every time
+      Input_Opt%LINITSPEC = .FALSE.
 #else
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
@@ -744,10 +783,78 @@
       ! Call chemistry routines
       !================================================================
 
+      ! Archive species before chemistry
+# if  defined( DEVEL ) 
+      IF( DiagnSpecTend ) THEN
+         ALLOCATE(BEFORE(IIPAR,JJPAR,LLPAR,NTSPEC(NCSURBAN)))
+         BEFORE=0.0_fp 
+         ! Loop over all species
+         DO N = 1, NTSPEC(NCSURBAN)
+            IF ( TRIM(NAMEGAS(N)) == '' ) CYCLE
+            ! Loop over 1-D grid boxes
+            DO JLOOP = 1, NTLOOP
+               IX = IXSAVE(JLOOP)
+               IY = IYSAVE(JLOOP)
+               IZ = IZSAVE(JLOOP)
+               BEFORE(IX,IY,IZ,N) = CSPEC(JLOOP,N)
+            ENDDO
+         ENDDO
+      ENDIF
+#endif
+
       ! PHYSPROC calls both CALCRATE, which computes rxn rates 
       ! and SMVGEAR (if we do not use the solver coded by kpp), which
       ! is the chemistry solver
       CALL PHYSPROC( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+      ! Archive species after chemistry
+# if  defined( DEVEL ) 
+      IF( DiagnSpecTend ) THEN
+
+            ! Chemistry timestep
+            DT = GET_TS_CHEM()*60.0_fp
+
+            ! Loop over all species
+            DO N = 1, NTSPEC(NCSURBAN)
+               IF ( TRIM(NAMEGAS(N)) == '' ) CYCLE
+
+               TEND=0.0_fp
+               DO JLOOP = 1, NTLOOP
+                  IX = IXSAVE(JLOOP)
+                  IY = IYSAVE(JLOOP)
+                  IZ = IZSAVE(JLOOP)
+                  TEND(IX,IY,IZ) = (CSPEC(JLOOP,N)
+     &                           -  BEFORE(IX,IY,IZ,N))/DT
+               ENDDO
+
+               ! Construct diagnostic name
+               DiagnName = 'SPECIES_CHEMTEND_' // TRIM(NAMEGAS(N)) 
+               Ptr3D => TEND 
+               CALL Diagn_Update( am_I_Root,
+     &                            cName  = TRIM(DiagnName),
+     &                            Array3D= Ptr3D,
+     &                            COL    = Input_Opt%DIAG_COLLECTION,
+     &                            RC     = HCRC )
+               Ptr3D => NULL()
+            ENDDO
+  
+            TEND=0.0_fp
+            DO JLOOP = 1, NTLOOP
+               IX = IXSAVE(JLOOP)
+               IY = IYSAVE(JLOOP)
+               IZ = IZSAVE(JLOOP)
+               TEND(IX,IY,IZ) = 1.0 
+            ENDDO
+            DiagnName = 'CHEMBOX'
+            Ptr3D => TEND 
+            CALL Diagn_Update( am_I_Root,
+     &                         cName  = TRIM(DiagnName),
+     &                         Array3D= Ptr3D,
+     &                         COL    = Input_Opt%DIAG_COLLECTION,
+     &                         RC     = HCRC )
+            Ptr3D => NULL()
+      ENDIF
+#endif
 
       !### Debug
       IF ( prtDebug ) THEN

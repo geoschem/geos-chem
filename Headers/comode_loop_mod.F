@@ -432,6 +432,7 @@
       INTEGER ::         NKNOPHOT
 
       INTEGER ::         IH2O,        IOXYGEN,   MB1,      MB2
+      INTEGER ::         INITROGEN
 
       ! Added for interannually-varying Methane (bnd, bmy, 7/1/03)
       INTEGER ::         ICH4

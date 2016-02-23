@@ -58,7 +58,10 @@ MODULE Diagnostics_Mod
   ! Toggle to enable species diagnostics. This will write out species 
   ! concentrations (in addition to the tracers). Not recommended unless
   ! you have a good reason (ckeller, 8/11/2015).
-  LOGICAL, PARAMETER, PUBLIC   :: DiagnSpec = .FALSE.
+  LOGICAL, PARAMETER, PUBLIC   :: DiagnSpec = .TRUE.
+
+  ! Also write out species tendencies
+  LOGICAL, PARAMETER, PUBLIC   :: DiagnSpecTend = .TRUE.
 #endif
 !
 ! !REVISION HISTORY:
@@ -461,13 +464,13 @@ CONTAINS
     ! Assume successful return
     RC = GIGC_SUCCESS
 
-    ! Skip if ND45 diagnostic is turned off
-    IF ( Input_Opt%ND45 <= 0 ) RETURN
-
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND45_OUTPUT_TYPE
       
+    ! Skip if ND45 diagnostic is turned off
+    IF ( Input_Opt%ND45 > 0 ) THEN 
+
     ! Loop over # of depositing species
     DO N = 1, Input_Opt%N_TRACERS
          
@@ -503,6 +506,9 @@ CONTAINS
           ENDIF
        ENDIF
     ENDDO
+
+    ! Skip if ND45 diagnostic is turned off
+    ENDIF 
 
     ! To also write out all species concentrations (not tracers)
     IF ( DiagnSpec ) THEN
@@ -541,6 +547,60 @@ CONTAINS
        ENDDO
    
     ENDIF ! DiagnSpec
+
+    ! To also write out all species concentrations (not tracers)
+    IF ( DiagnSpecTend ) THEN
+
+       ! Loop over species
+       DO N = 1, NTSPEC(NCSURBAN)
+   
+          !----------------------------------------------------------------
+          ! Create containers for species concentrations in molec/cm3
+          !----------------------------------------------------------------
+   
+          ! Diagnostic name
+          IF ( TRIM(NAMEGAS(N)) == '' ) CYCLE
+          DiagnName = 'SPECIES_CHEMTEND_' // TRIM(NAMEGAS(N)) 
+   
+          ! Create container
+          CALL Diagn_Create( am_I_Root,                     &
+                             Col       = Collection,        &
+                             cName     = TRIM( DiagnName ), &
+                             AutoFill  = 0,                 &
+                             ExtNr     = -1,                &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = -1,                &
+                             SpaceDim  =  3,                &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'molec cm-3 s-1',  &
+                             OutOper   = TRIM( OutOper   ), &
+                             RC        = RC )
+   
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC )
+          ENDIF
+   
+       ENDDO
+
+       ! Diagnostic for chemistry boxes 
+       DiagnName = 'CHEMBOX'
+       CALL Diagn_Create( am_I_Root,                     &
+                          Col       = Collection,        &
+                          cName     = TRIM( DiagnName ), &
+                          AutoFill  = 0,                 &
+                          ExtNr     = -1,                &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  =  3,                &
+                          LevIDx    = -1,                &
+                          OutUnit   = '1',               &
+                          OutOper   = TRIM( OutOper   ), &
+                          RC        = RC )
+   
+    ENDIF ! DiagnSpecTend
    
    END SUBROUTINE DiagInit_Tracer_Conc
 !EOC

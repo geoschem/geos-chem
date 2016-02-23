@@ -209,6 +209,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LCH4CHEM
      LOGICAL                     :: LACTIVEH2O
      LOGICAL                     :: LO3FJX
+     LOGICAL                     :: LINITSPEC
      INTEGER, POINTER            :: NTLOOPNCS(:)
 
      !----------------------------------------
@@ -699,6 +700,8 @@ MODULE GIGC_Input_Opt_Mod
 !                              and PST_RST_FILE. These options are now handled
 !                              by HEMCO.
 !  11 Aug 2015 - R. Yantosca - Add MERRA2_DIR field to OptInput
+!  04 Feb 2016 - C. Keller   - Add LINITSPEC. Used in ESMF to initialize species
+!                              concentrations from globchem.dat.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -979,6 +982,7 @@ CONTAINS
     Input_Opt%LCH4CHEM               = .FALSE.
     Input_Opt%LACTIVEH2O             = .FALSE.
     Input_Opt%LO3FJX                 = .FALSE.
+    Input_Opt%LINITSPEC              = .FALSE.
 
     !----------------------------------------
     ! RADIATION MENU fields

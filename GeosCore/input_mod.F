@@ -266,6 +266,12 @@
       ! Assume success
       RC       = GIGC_SUCCESS
 
+      ! We need to add the '.rc' extension to the input.geos file
+      ! so taht GEOS-5 will copy it to the proper run directory.
+#if defined( ESMF_ )
+      FILENAME = TRIM(FILENAME)//'.rc'
+#endif
+
       ! Open file
       OPEN( IU_GEOS, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_input_file:1' )
@@ -6499,13 +6505,14 @@
 !  08 Nov 2012 - R. Yantosca - Now save fields to the Input_Opt object
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  14 Jan 2016 - C. Keller   - Now refer to Input_Opt%LKPP instead of LKPP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL              :: LKPP,     EOF,  DO_SAVE_PL, DO_SAVE_O3
+      LOGICAL              ::           EOF,  DO_SAVE_PL, DO_SAVE_O3
       INTEGER              :: F,        M,    N,          NFAM
       CHARACTER(LEN=255)   :: LOCATION, NAME, MSG 
 
@@ -6610,7 +6617,7 @@
       ! Error check: ND65 not available for KPP
       !=================================================================
 
-      IF ( DO_SAVE_PL .AND. LKPP ) THEN
+      IF ( DO_SAVE_PL .AND. Input_Opt%LKPP ) THEN
          MSG = 'P/L families are incompatible with KPP. ' //
      &         'Please change one option'
          CALL ERROR_STOP( MSG, LOCATION )

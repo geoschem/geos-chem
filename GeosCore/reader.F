@@ -36,6 +36,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  04 Aug 2015 - M. Long     - Removed ".rc" file specifier. Not necessary.
+!  14 Jan 2016 - C. Keller   - (Re)added '.rc' appendix within ESMF
 !******************************************************************************
 !
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
@@ -182,6 +183,10 @@
 
       ! Name of file to open
       FILENAME = "mglob.dat"
+      ! Use '.rc' appendix in ESMF environment
+#if defined( ESMF_ )
+      FILENAME = TRIM(FILENAME)//'.rc'
+#endif
 
       OPEN( UNIT=IU_FILE, FILE=TRIM( FILENAME ), ACTION="read",
      &      FORM="formatted", STATUS="old", ACCESS="sequential" )
