@@ -314,7 +314,7 @@
       USE DAO_MOD,            ONLY : IS_WATER
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HG2_DD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_DD
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE DIAG03_MOD,         ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3
@@ -1075,7 +1075,7 @@
                CALL ADD_HG2_SNOWPACK( I, J, NN, DEP_HG2_DRY, State_Met )
             ENDIF           
 
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
             !=================================================================
             ! ND44 diagnostic: drydep flux of Hg(II) [molec/cm2/s]
             !=================================================================

@@ -3257,9 +3257,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_CREATE( NcFile, nLon,  nLat,  nLev,  nTime, &
-                        fId,    lonID, latId, levId, timeId, VarCt, &
-                        CREATE_NC4 )
+  SUBROUTINE NC_CREATE( NcFile, title, nLon,  nLat,  nLev,   &
+                        nTime,  fId,   lonID, latId, levId,  &
+                        timeId, VarCt, CREATE_NC4 )
 !
 ! !USES:
 !
@@ -3269,11 +3269,12 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN   )  :: ncFile     ! ncdf file path + name 
-    INTEGER,          INTENT(IN   )  :: nLon       ! # of lons 
-    INTEGER,          INTENT(IN   )  :: nLat       ! # of lats 
-    INTEGER,          INTENT(IN   )  :: nLev       ! # of levs 
-    INTEGER,          INTENT(IN   )  :: nTime      ! # of times 
+    CHARACTER(LEN=*), INTENT(IN   )  :: ncFile   ! ncdf file path + name 
+    CHARACTER(LEN=*), INTENT(IN   )  :: title    ! ncdf file title
+    INTEGER,          INTENT(IN   )  :: nLon     ! # of lons 
+    INTEGER,          INTENT(IN   )  :: nLat     ! # of lats 
+    INTEGER,          INTENT(IN   )  :: nLev     ! # of levs 
+    INTEGER,          INTENT(IN   )  :: nTime    ! # of times 
     LOGICAL,          OPTIONAL       :: CREATE_NC4 ! Save output as netCDF-4
 !
 ! !OUTPUT PARAMETERS:
@@ -3296,6 +3297,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
 !  11 Jan 2016 - R. Yantosca - Added optional CREATE_NC4 to save as netCDF-4
+!  14 Jan 2016 - E. Lundgren - Pass title string for netcdf metadata
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3321,7 +3323,7 @@ CONTAINS
     !--------------------------------
     ! SET GLOBAL ATTRIBUTES
     !--------------------------------
-    CALL NcDef_Glob_Attributes(    fId, 'title',   'HEMCO diagnostics' ) 
+    CALL NcDef_Glob_Attributes(    fId, 'title',   TRIM(title)         ) 
     CALL NcDef_Glob_Attributes(    fId, 'history', 'NC_CREATE.F90'     ) 
     IF ( SAVE_AS_NC4 ) THEN
        CALL NcDef_Glob_Attributes( fId, 'format',  'netCDF-4'          )

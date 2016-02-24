@@ -19,12 +19,13 @@
       ! References to F90 modules
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE DAO_MOD,            ONLY : IS_ICE, IS_WATER, IS_LAND
-      USE DIAG_MOD,           ONLY : AD30, AD31, AD33, AD35, AD54 
-      USE DIAG_MOD,           ONLY : AD47, AD67, AD69
-      USE DIAG_MOD,           ONLY : AD57, AD71
-#if !defined(NO_BPCH)
-      USE DIAG_MOD,           ONLY : AD45, AD68, LTOTH
+      USE DIAG_MOD,           ONLY : AD33, AD35, AD54 
+      USE DIAG_MOD,           ONLY : AD47
+#if defined( BPCH_DIAG )
+      USE DIAG_MOD,           ONLY : AD30, AD31, AD45, AD57 
+      USE DIAG_MOD,           ONLY : AD67, AD68, AD69, LTOTH
 #endif
+      USE DIAG_MOD,           ONLY : AD71
       USE DIAG_MOD,           ONLY : AD71_DAY,   AD71_HR
       USE DIAG_MOD,           ONLY : AD71_LDAY,  AD71_LHR
       USE DIAG_MOD,           ONLY : AD71_COUNT, AD71_HRCT
@@ -44,7 +45,7 @@
       USE TIME_MOD,           ONLY : GET_HOUR
       USE ERROR_MOD,          ONLY : SAFE_DIV
 
-#if   defined( APM )
+#if defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
 
@@ -58,8 +59,8 @@
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE HCO_ERROR_MOD
       USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
-# if  defined( DEVEL ) 
-      USE DIAGNOSTICS_MOD,    ONLY : DiagnSpec
+#if defined( NC_DIAG ) 
+      USE DIAGNOSTICS_MOD,    ONLY : DiagnSpec, DiagnUpdate_Met
 #endif
 
       IMPLICIT NONE
@@ -181,7 +182,8 @@
       REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! For netCDF diagnostics via HEMCO
-      INTEGER            :: TPL, HCRC
+      REAL(fp), TARGET   :: Landmap(IIPAR, JJPAR)
+      INTEGER            :: TPL
       REAL(fp)           :: PRESS
       REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
       REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
@@ -214,7 +216,6 @@
       
       ! Compute conc. in mixing ratio for ND35, ND45, ND47 diagnostics 
       IF ( ND35 > 0 .or. ND45 > 0 .or. ND47 > 0 .or. ND71 > 0 ) THEN
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
@@ -252,11 +253,11 @@
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
-
       ENDIF
 
 ! H Amos, 25 Oct 2011--------------------------------------------------
 
+#if defined( BPCH_DIAG )
       !-----------------------------------------------!
       ! Write ND03 diagnostics for RGM and PBM (pptv) !
       !-----------------------------------------------!
@@ -291,9 +292,7 @@
         ENDDO
         ENDDO
 !$OMP END PARALLEL DO 
-
       ENDIF
-!-------------------------------------------------------------------------
 
       !================================================================= 
       ! ND30: Land/water/ice flags
@@ -331,7 +330,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
-
+#endif
       !================================================================= 
       ! ND33: Atmospheric column sum of tracer [kg]
       !=================================================================  
@@ -375,7 +374,7 @@
 !$OMP END PARALLEL DO
       ENDIF
 
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
       !================================================================= 
       ! ND45: Tracer (V/V) at level 1 to level LD45, averaged over 
       !       the time period OTH_HR1 to OTH_HR2.  
@@ -469,7 +468,7 @@
             ENDDO
             
       ENDIF
-
+#if defined( BPCH_DIAG )
       !================================================================= 
       ! ND57: Potential temperature
       !================================================================= 
@@ -492,7 +491,8 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
-
+#endif
+#if defined( BPCH_DIAG )
       !=================================================================  
       ! ND67: Store PBL top pressure [hPa]
       !=================================================================  
@@ -505,12 +505,11 @@
      &                     ( State_Met%PEDGE(I,J,1) 
      &                     * EXP( -State_Met%PBLH(I,J)
      &                     / SCALE_HEIGHT ) )
-
          ENDDO
          ENDDO
       ENDIF
-
-#if !defined( NO_BPCH )
+#endif
+#if defined( BPCH_DIAG )
       !================================================================= 
       ! ND68: 1:  BXHEIGHT     - box height [m] 
       !       2:  AD           - dry air mass [kg]
@@ -554,7 +553,7 @@
 !$OMP END PARALLEL DO
       ENDIF
 #endif
-
+#if defined( BPCH_DIAG )
       !================================================================= 
       ! ND69: Grid box surface areas [m2]
       !
@@ -568,6 +567,7 @@
          ENDDO
          ENDDO
       ENDIF
+#endif
       
       !================================================================= 
       ! ND71: Tracer (V/V) at level 1, daily maximum hourly avg.
@@ -625,9 +625,58 @@
 !###                                                                        ###
 !##############################################################################
 
-#if defined( DEVEL )
+#if defined( NC_DIAG )
+
       !=================================================================
-      ! ND45: Tracer concentrations (new diagnostic structure)
+      ! ND30: Landmap diagnostics (netCDF diagnostic structure)
+      !=================================================================
+      IF ( Input_Opt%ND30 > 0 ) THEN
+
+         ! Construct diagnostic name
+         ! (better to have function to get it since already defined)
+         DiagnName = 'LANDMAP'
+
+         ! Compute landmap
+         IF ( ND30 > 0 ) THEN  
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               IF ( IS_WATER( I, J, State_Met ) )
+     &           Landmap(I,J) = 0e0
+               IF ( IS_LAND ( I, J, State_Met ) )
+     &           Landmap(I,J) = 1e0
+               IF ( IS_ICE  ( I, J, State_Met ) )
+     &           Landmap(I,J) = 2e0
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+         ENDIF
+
+         ! Point to the landmap array
+         Ptr2D => Landmap
+    
+         ! Update the landmap diagnostic
+         CALL Diagn_Update( am_I_Root,
+     &                      cName   = TRIM( DiagnName ),
+     &                      Array2D = Ptr2D,
+     &                      RC      = RC )
+    
+         ! Free the pointer before error handling
+         Ptr2D => NULL()
+    
+         ! Stop with error if the diagnostics were unsuccessful
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL ERROR_STOP(
+     &           'Cannot update landmap diagnostic (ND30)',
+     &           'DIAG1 (diag1.F)')
+         ENDIF
+ 
+      ENDIF
+
+      !=================================================================
+      ! ND45: Tracer concentrations (netCDF diagnostic structure)
       !=================================================================
       IF ( Input_Opt%ND45 > 0 ) THEN
 
@@ -635,7 +684,7 @@
          DO N = 1, Input_Opt%N_TRACERS
 
             ! If this tracer number NN is scheduled for output in input.geos,
-            ! then archive the latest depvel data into the diagnostic structure
+            ! then archive the latest concentration into the diagnostic structure
             IF ( ANY( Input_Opt%TINDEX(45,:) == N ) ) THEN
 
                IF ( N == IDTPASV ) THEN
@@ -656,8 +705,7 @@
                   CALL Diagn_Update( am_I_Root,
      &                               cName   = TRIM( DiagnName ),
      &                               Array3D = Ptr3D,
-     &                               COL     = Input_Opt%DIAG_COLLECTION,
-     &                               RC      = HCRC )
+     &                               RC      = RC )
 
                   !-------------------------------------
                   ! Passive tracer in v/v total air
@@ -675,8 +723,7 @@
                   CALL Diagn_Update( am_I_Root,
      &                               cName   = TRIM( DiagnName ),
      &                               Array3D = Ptr3D,
-     &                               COL     = Input_Opt%DIAG_COLLECTION,
-     &                               RC      = HCRC )
+     &                               RC      = RC )
 
                   !-------------------------------------
                   ! Passive tracer in kg/kg total air
@@ -694,8 +741,7 @@
                   CALL Diagn_Update( am_I_Root,
      &                               cName   = TRIM( DiagnName ),
      &                               Array3D = Ptr3D,
-     &                               COL     = Input_Opt%DIAG_COLLECTION,
-     &                               RC      = HCRC )
+     &                               RC      = RC )
 
                ELSE
 
@@ -710,8 +756,7 @@
                   CALL Diagn_Update( am_I_Root,
      &                               cName   = TRIM( DiagnName ),
      &                               Array3D = Ptr3D,
-     &                               COL     = Input_Opt%DIAG_COLLECTION,
-     &                               RC      = HCRC )
+     &                               RC      = RC )
 
                ENDIF
 
@@ -719,7 +764,7 @@
                Ptr3D => NULL()
 
                ! STOP wieth error if the diagnostics were unsuccessful
-               IF ( HCRC /= HCO_SUCCESS ) THEN
+               IF ( RC /= HCO_SUCCESS ) THEN
                   CALL ERROR_STOP(
      &                 'Cannot update TRACER_CONC diag diagnostics',
      &                 'DIAG1 (diag1.F)')
@@ -743,14 +788,13 @@
                CALL Diagn_Update( am_I_Root,
      &                            cName   = TRIM( DiagnName ),
      &                            Array3D = Ptr3D,
-     &                            COL     = Input_Opt%DIAG_COLLECTION,
-     &                            RC      = HCRC )
+     &                            RC      = RC )
    
                ! Free the pointer
                Ptr3D => NULL()
    
                ! STOP wieth error if the diagnostics were unsuccessful
-               IF ( HCRC /= HCO_SUCCESS ) THEN
+               IF ( RC /= HCO_SUCCESS ) THEN
                   CALL ERROR_STOP(
      &                    'Cannot update SPECIES_CONC diag diagnostics',
      &                    'DIAG1 (diag1.F)')
@@ -760,113 +804,120 @@
          ENDIF ! DiagnSpec
       ENDIF !ND45
    
-      !================================================================= 
-      ! ND68: 1:  BXHEIGHT     - box height [m] 
-      !       2:  AD           - dry air mass [kg]
-      !       3:  AVGW         - mol H2O / mol dry air [v/v]
-      !       4:  AIRDENSITY   - dry air number mass density [kg/m3]
-      !                          (Note this is different units than bpch)
-      !       5:  MAIRDENSITY  - moist air mass density [kg/m3]
-      !       6:  T            - temperature [K]
-      !       7:  TV           - virtual temperature [K]
-      !       8:  PMID         - arithmetic mean pressure [hPa]
-      !       9:  PMEAN        - altitude-weighted mean pressure [hPa]
-      !       10: PEDGE        - level pressure (bottom edge) [hPa]
-      !       11: RH           - relative humidity [%]
-      !       12: PMID_DRY     - dry air partial pressure at PMID [hPa]
-      !       13: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
-      !================================================================= 
 
+      !=================================================================
+      ! Met diagnostics: ND31, ND55, ND56, ND57, ND66, ND67, ND68, ND69
+      !=================================================================
+
+      ! For now, use ND68 as indicator that Met diagnostic group is on
       IF ( Input_Opt%ND68 > 0 ) THEN
+         CALL DiagnUpdate_Met( am_I_Root, Input_Opt, State_Met, RC ) 
+      ENDIF
 
-         ! There are 13 diagnostics
-         DO I = 1,13
-
-            ! Construct diagnostic name and get proper array
-            SELECT CASE ( I ) 
-               CASE ( 1 ) 
-                  DiagnName = 'BOXHEIGHT'
-                  Ptr3D => State_Met%BXHEIGHT
-               CASE ( 2 ) 
-                  DiagnName = 'AIRMASS'
-                  Ptr3D => State_Met%AD
-               CASE ( 3 ) 
-                  DiagnName = 'AVGW'
-                  Ptr3D => State_Met%AVGW
-               CASE ( 4 ) 
-                  DiagnName = 'AIRDENSITY'
-                  Ptr3D => State_Met%AIRDEN
-               CASE ( 5 ) 
-                  DiagnName = 'MAIRDENSITY'
-                  Ptr3D => State_Met%MAIRDEN
-               CASE ( 6 ) 
-                  DiagnName = 'T'
-                  Ptr3D => State_Met%T
-               CASE ( 7 ) 
-                  DiagnName = 'TV'
-                  Ptr3D => State_Met%TV
-               CASE ( 8 ) 
-                  DiagnName = 'PMID'
-                  Ptr3D => State_Met%PMID
-               CASE ( 9 ) 
-                  DiagnName = 'PMEAN'
-                  Ptr3D => State_Met%PMEAN
-               CASE ( 10 ) 
-                  DiagnName = 'PEDGE'
-                  Ptr3D => State_Met%PEDGE
-               CASE ( 11 ) 
-                  DiagnName = 'RH'
-                  Ptr3D => State_Met%RH
-                CASE ( 12 ) 
-                  DiagnName = 'PMID_DRY'
-                  Ptr3D => State_Met%PMID_DRY
-               CASE ( 13 ) 
-                  DiagnName = 'PMEAN_DRY'
-                  Ptr3D => State_Met%PMEAN_DRY
-            END SELECT
- 
-            ! Update diagnostics
-            IF ( ASSOCIATED(Ptr3D) ) THEN 
-               CALL Diagn_Update( am_I_Root,
-     &                            cName   = TRIM( DiagnName ),
-     &                            Array3D = Ptr3D,
-     &                            COL     = Input_Opt%DIAG_COLLECTION,
-     &                            RC      = HCRC )
-
-               ! Free the pointer
-               Ptr3D => NULL()
-   
-               ! STOP with error if the diagnostics were unsuccessful
-               IF ( HCRC /= HCO_SUCCESS ) THEN
-                  CALL ERROR_STOP(
-     &                 'Cannot update diagnostics '//TRIM(DiagnName),  
-     &                 'DIAG1 (diag1.F)')
-               ENDIF
-            ENDIF   
-         ENDDO
-
-         ! Now also add TROPP_PRESSURE and TROPP_LEVEL
-         DiagnName = 'TROPP_PRESSURE'
-         Ptr2D => State_Met%TROPP
-         CALL Diagn_Update( am_I_Root, cName=DiagnName, 
-     &      Array2D=Ptr2D, COL=Input_Opt%DIAG_COLLECTION, RC=HCRC )
-         Ptr2D => NULL()
-         
-         DiagnName = 'TROPP_LEVEL'
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, TPL )
-         DO J=1,JJPAR
-         DO I=1,IIPAR
-            TPL        = GET_TPAUSE_LEVEL( I, J, State_Met )
-            Arr2D(I,J) = TPL
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO   
-         CALL Diagn_Update( am_I_Root, cName=DiagnName, 
-     &      Array2D=Arr2D, COL=Input_Opt%DIAG_COLLECTION, RC=HCRC )
- 
-      ENDIF ! ND68
+      ! Formerly, netcdf ND68 diagnostic included:
+!      !================================================================= 
+!      ! ND68: 1:  BXHEIGHT     - box height [m] 
+!      !       2:  AD           - dry air mass [kg]
+!      !       3:  AVGW         - mol H2O / mol dry air [v/v]
+!      !       4:  AIRDENSITY   - dry air number mass density [kg/m3]
+!      !                          (Note this is different units than bpch)
+!      !       5:  MAIRDENSITY  - moist air mass density [kg/m3]
+!      !       6:  T            - temperature [K]
+!      !       7:  TV           - virtual temperature [K]
+!      !       8:  PMID         - arithmetic mean pressure [hPa]
+!      !       9:  PMEAN        - altitude-weighted mean pressure [hPa]
+!      !       10: PEDGE        - level pressure (bottom edge) [hPa]
+!      !       11: RH           - relative humidity [%]
+!      !       12: PMID_DRY     - dry air partial pressure at PMID [hPa]
+!      !       13: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
+!      !=================================================================   
+!         ! There are 13 diagnostics
+!         DO I = 1,13
+!
+!            ! Construct diagnostic name and get proper array
+!            SELECT CASE ( I ) 
+!               CASE ( 1 ) 
+!                  DiagnName = 'BOXHEIGHT'
+!                  Ptr3D => State_Met%BXHEIGHT
+!               CASE ( 2 ) 
+!                  DiagnName = 'AIRMASS'
+!                  Ptr3D => State_Met%AD
+!               CASE ( 3 ) 
+!                  DiagnName = 'AVGW'
+!                  Ptr3D => State_Met%AVGW
+!               CASE ( 4 ) 
+!                  DiagnName = 'AIRDENSITY'
+!                  Ptr3D => State_Met%AIRDEN
+!               CASE ( 5 ) 
+!                  DiagnName = 'MAIRDENSITY'
+!                  Ptr3D => State_Met%MAIRDEN
+!               CASE ( 6 ) 
+!                  DiagnName = 'T'
+!                  Ptr3D => State_Met%T
+!               CASE ( 7 ) 
+!                  DiagnName = 'TV'
+!                  Ptr3D => State_Met%TV
+!               CASE ( 8 ) 
+!                  DiagnName = 'PMID'
+!                  Ptr3D => State_Met%PMID
+!               CASE ( 9 ) 
+!                  DiagnName = 'PMEAN'
+!                  Ptr3D => State_Met%PMEAN
+!               CASE ( 10 ) 
+!                  DiagnName = 'PEDGE'
+!                  Ptr3D => State_Met%PEDGE
+!               CASE ( 11 ) 
+!                  DiagnName = 'RH'
+!                  Ptr3D => State_Met%RH
+!                CASE ( 12 ) 
+!                  DiagnName = 'PMID_DRY'
+!                  Ptr3D => State_Met%PMID_DRY
+!               CASE ( 13 ) 
+!                  DiagnName = 'PMEAN_DRY'
+!                  Ptr3D => State_Met%PMEAN_DRY
+!            END SELECT
+! 
+!            ! Update diagnostics
+!            IF ( ASSOCIATED(Ptr3D) ) THEN 
+!               CALL Diagn_Update( am_I_Root,
+!     &                            cName   = TRIM( DiagnName ),
+!     &                            Array3D = Ptr3D,
+!     &                            RC      = RC )
+!
+!               ! Free the pointer
+!               Ptr3D => NULL()
+!   
+!               ! STOP with error if the diagnostics were unsuccessful
+!               IF ( RC /= HCO_SUCCESS ) THEN
+!                  CALL ERROR_STOP(
+!     &                 'Cannot update diagnostics '//TRIM(DiagnName),  
+!     &                 'DIAG1 (diag1.F)')
+!               ENDIF
+!            ENDIF   
+!         ENDDO
+!
+!         ! Now also add TROPP_PRESSURE and TROPP_LEVEL
+!         DiagnName = 'TROPP_PRESSURE'
+!         Ptr2D => State_Met%TROPP
+!         CALL Diagn_Update( am_I_Root, cName=DiagnName, 
+!     &      Array2D=Ptr2D, RC=RC )
+!         Ptr2D => NULL()
+!         
+!         DiagnName = 'TROPP_LEVEL'
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, TPL )
+!         DO J=1,JJPAR
+!         DO I=1,IIPAR
+!            TPL        = GET_TPAUSE_LEVEL( I, J, State_Met )
+!            Arr2D(I,J) = TPL
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO   
+!         CALL Diagn_Update( am_I_Root, cName=DiagnName, 
+!     &      Array2D=Arr2D, RC=RC )
+! 
+!      ENDIF ! ND68
 #endif
 
       END SUBROUTINE DIAG1

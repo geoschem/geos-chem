@@ -1,3 +1,4 @@
+
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -30,7 +31,7 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE DIAG_MOD,           ONLY : LTJV,  CTJV
       USE DIAG_MOD,           ONLY : LTOH,  CTOH
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : LTOTH, CTOTH
 #endif
       USE DIAG_MOD,           ONLY : LTHO2, CTHO2
@@ -133,11 +134,10 @@
 !$OMP+PRIVATE( I, J, L )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
+#if defined( BPCH_DIAG )
          !-----------------------------
          ! ND45 -- mixing ratios
          !-----------------------------
-#if !defined(NO_BPCH)
          IF ( IS_ND45 ) THEN
 
             ! Change initialization of LTOTH: only on timestep after saving
@@ -160,7 +160,6 @@
             ENDIF
          ENDIF
 #endif
-
          !-----------------------------
          ! ND47_O3 / ND65 -- "chemistry all day long" counter
          !-----------------------------

@@ -427,7 +427,7 @@ CONTAINS
     IF ( .NOT. Found ) HcoState%Options%MaxDepExp = 20.0_hp 
 
     ! Get binary mask flag from configuration file. If not found, set to default
-    ! value of TRUE. 
+    ! value of false.
     CALL GetExtOpt ( CoreNr, 'Mask fractions', &
                      OptValBool=HcoState%Options%MaskFractions, Found=Found, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN

@@ -1460,7 +1460,7 @@
 !
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44
 #endif
 !      USE DRYDEP_MOD,         ONLY : DEPSAV
@@ -1476,6 +1476,11 @@
       USE TRACERID_MOD,       ONLY : IDTSO4d4, IDTNITd4
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if defined( NC_DIAG )
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
+      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1521,6 +1526,7 @@
 !  06 Jan 2015 - M. Yannetti - Changed some variables to f8 as needed
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
 !                              remove dependency on pressure_mod.
+!  22 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1566,6 +1572,14 @@
       REAL(f8)               :: RHO1, WTP, RHO
       REAL(fp)               :: DEN !tdf
  
+#if defined( NC_DIAG )
+      ! for netcdf diagnostics (ND44 drydep flux)
+      INTEGER            :: drydep_id, trc_id, HCRC
+      CHARACTER(LEN=30)  :: DiagnName
+      REAL(fp), TARGET   :: DryDepFlux( IIPAR, JJPAR ) 
+      REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
+#endif
+
       ! Arrays
       INTEGER                :: IDDEP(10)
       INTEGER                :: IDTRC(10)	
@@ -1599,6 +1613,11 @@
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
+
+#if defined( NC_DIAG )
+      ! Initialize diagnostic array (ND44)
+      DryDepFlux = 0e+0_fp
+#endif
 
       ! Store in IDDEP array
       IDDEP(1)  = DRYSO4s
@@ -1840,9 +1859,9 @@
      &                *  TC(I,J,L+1) )
          ENDDO
          
-#if !defined( NO_BPCH )
          !==============================================================
-         ! ND44 diagnostic: sea salt loss [molec/cm2/s]
+         ! Calculate ND44 diagnostic: drydep flux [molec/cm2/s]
+         ! (specifically sea salt loss diagnostics)
          !==============================================================
          IF ( ND44 > 0 ) THEN
 
@@ -1862,14 +1881,66 @@
             ! Convert sea salt/dust flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
             FLUX     = FLUX * XNUMOL(IDTRC(N)) / AREA_CM2 
-   
-            ! Store in AD44 array
+
+#if defined( BPCH_DIAG )   
+            ! Store in global AD44 array for bpch diagnostic output
             AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
-         ENDIF
 #endif
-      ENDDO
-      ENDDO
+#if defined( NC_DIAG )
+            ! Store in local array for netcdf diagnostic
+            DryDepFlux(I,J) = FLUX
+#endif
+         ENDIF
+      ENDDO ! I
+      ENDDO ! J
 !$OMP END PARALLEL DO
+
+#if defined( NC_DIAG )
+      !===============================================================
+      ! Update dry deposition flux diagnostic for netcdf output (ND44) 
+      !===============================================================
+      IF  ( Input_Opt%ND44 > 0 ) THEN
+       
+         ! Assume success
+         HCRC = HCO_SUCCESS
+         
+         ! Get drydep id
+         drydep_id = IDDEP(N)
+
+         ! Get tracer id
+         trc_id = Input_Opt%NTRAIND( drydep_id )
+
+         ! If this tracer number NN is scheduled for output in input.geos, 
+         ! then archive the latest depvel data into the diagnostic structure
+         IF ( ANY( Input_Opt%TINDEX(44,:) == trc_id ) ) THEN
+
+           ! Define diagnostic name
+           DiagnName = 'DRYDEP_FLX_CHEM_' // 
+     &                 TRIM( Input_Opt%DEPNAME( drydep_id ) )
+           
+           ! Point to the flux data
+           Ptr2D => DryDepFlux
+           
+           ! Update diagnostics container
+           CALL Diagn_Update( am_I_Root,                           
+     &                        cName   = TRIM( DiagnName),        
+     &                        Array2D = Ptr2D,                     
+     &                        COL     = Input_Opt%DIAG_COLLECTION, 
+     &                        RC      = HCRC                      )
+           
+           ! Free the pointer
+           Ptr2D => NULL()
+           
+           ! Stop with error if the diagnostics were unsuccessful
+           IF ( HCRC /= HCO_SUCCESS ) THEN
+              CALL ERROR_STOP( 'Cannot update drydep flux' //       
+     &                         ' diagnostic: ' // TRIM( DiagnName), 
+     &                         'GRAV_SETTLING (sulfate_mod.F)')
+           ENDIF
+         ENDIF
+      ENDIF
+#endif
+
 
       END SUBROUTINE GRAV_SETTLING
 !EOC
@@ -2211,13 +2282,10 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT
-      USE BPCH2_MOD,          ONLY : GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44 
 #endif
       USE GIGC_ErrCode_Mod

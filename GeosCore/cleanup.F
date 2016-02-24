@@ -83,7 +83,7 @@
       USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
 !#endif
 
-#if defined( DEVEL )
+#if defined( NC_DIAG )
       ! Cleanup routine for netCDF diagnostics structure
       USE DIAGNOSTICS_MOD,         ONLY : DIAGNOSTICS_FINAL
 #endif
@@ -263,8 +263,8 @@
       ! first.
       CALL CLEANUP_UCX( am_I_Root )
 
-#if defined( DEVEL )
-      ! Cleanup the new netCDF diagnostics structure
+#if defined( NC_DIAG )
+      ! Cleanup the netCDF diagnostics structure
       CALL DIAGNOSTICS_FINAL( am_I_Root, Input_Opt, RC )
 #endif
 

@@ -183,6 +183,8 @@
 #  24 Aug 2015 - R. Yantosca - Bug fix: Add missing | when testing USER_DEFS
 #  07 Dec 2015 - R. Yantosca - Add "realclean_except_rrtmg" target that
 #                              replaces the RRTMG_CLEAN variabe
+#  10 Feb 2016 - E. Lundgren - Add BPCH restart file input and output switches
+#  11 Feb 2016 - E. Lundgren - Change BPCH to BPCH_DIAG, NETCDF to NC_DIAG
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -220,6 +222,9 @@ ERR_GIGC             :="Unable to find the GIGC configuration file. Have you dow
 
 # Error message for bad GIGC config
 ERR_GIGC             :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
+
+# Error message for diagnostics
+ERR_DIAG             :="Select one diagnostic output type: NC_DIAG=y or BPCH_DIAG=y"
 
 ###############################################################################
 ###                                                                         ###
@@ -264,6 +269,18 @@ endif
 ifndef TIMERS
  TIMERS              :=0
 endif
+
+# %%%%% Default to bpch input restart file disabled %%%%%
+ifndef BPCH_RST_IN
+ BPCH_RST_IN         :=no
+endif
+
+# %%%%% Default to bpch output restart file disabled %%%%%
+ifndef BPCH_RST_OUT
+ BPCH_RST_OUT        :=no
+endif
+
+# %%%%% Set default compiler %%%%%
 
 # %%%%% If COMPILER is not defined, default to the $(FC) variable, which %%%%%
 # %%%%% is set in your .bashrc, or when you load the compiler module     %%%%%
@@ -322,10 +339,56 @@ ifeq ($(shell [[ "$(EXTERNAL_FORCING)" =~ $(REGEXP) ]] && echo true),true)
   NO_GRID_NEEDED     :=1
 endif
 
-# %%%%% NO_BPCH (for disabling old diagnostic arrays) %%%%%
+#------------------------------------------------------------------------------
+# Restart settings
+#------------------------------------------------------------------------------
+
+# %%%%% BPCH_RST_IN (for using bpch restart file as input ) %%%%%
 REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(NO_BPCH)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DNO_BPCH
+ifeq ($(shell [[ "$(BPCH_RST_IN)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DBPCH_RST_IN
+endif
+
+# %%%%% BPCH_RST_OUT (for using bpch restart file as output ) %%%%%
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(BPCH_RST_OUT)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DBPCH_RST_OUT
+endif
+
+#------------------------------------------------------------------------------
+# Diagnostic settings
+#------------------------------------------------------------------------------
+
+# %%%%% Use netCDF diagnostics if DEVEL=y %%%%%
+ifdef DEVEL
+  NC_DIAG            :=yes
+  BPCH_DIAG          :=no
+endif
+
+# %%%%% Test for diagnostic output type, set to bpch if not specified %%%%%
+ifndef BPCH_DIAG
+  ifndef NC_DIAG
+    BPCH_DIAG        :=yes
+  endif
+endif
+
+# %%%%% ERROR CHECK!  Make sure only one diagnostic output type is selected %%%%%
+ifeq ($(BPCH_DIAG),y)
+  ifeq ($(NC_DIAG),y)
+    $(error $(ERR_DIAG))
+  endif
+endif 
+
+# %%%%% BPCH (for using old BPCH diagnostic output) %%%%%
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DBPCH_DIAG
+endif
+
+# %%%%% NETCDF (for using new netCDF diagnostic output) %%%%%
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DNC_DIAG
 endif
 
 #------------------------------------------------------------------------------

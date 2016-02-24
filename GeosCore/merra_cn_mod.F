@@ -250,7 +250,9 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD67
+#endif
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
@@ -283,6 +285,7 @@
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_CN file LUN
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  02 Feb 2015 - E. Lundgren - Block off bpch diagnostics with if defined bpch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -413,12 +416,14 @@
  210  FORMAT( '     - Found all ', i3, ' MERRA CN met fields for ', 
      &             a, ' on unit ', i4                                 )
 
+#if defined( BPCH_DIAG )
       !=================================================================
       ! ND67 diagnostic: 
       !=================================================================
       IF ( ND67 > 0 ) THEN
          AD67(:,:,15) = AD67(:,:,15) + PHIS  ! Sfc geopotential [m]
       ENDIF
+#endif
 
       END SUBROUTINE READ_CN
 !EOC

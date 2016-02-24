@@ -309,7 +309,7 @@ cdbg      print *, dryd(:)
             ENDDO
 
 
-#if !defined( NO_BPCH ) 
+#if defined( BPCH_DIAG ) 
             !========================================================      
             ! ND44: Dry deposition diagnostic [#/cm2/s]
             !========================================================
@@ -426,7 +426,7 @@ c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
             ENDIF
 ! ******************************************************************************
                
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
             !==============================================================
             ! ND44 Diagnostic: Drydep flux of bin1,..,bin30 [molec/cm2/s]
             !==============================================================
@@ -479,7 +479,7 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
          RKT = DEPSAV(I,J,H2SO4ID)* GET_FRAC_UNDER_PBLTOP( I, J, L)
          Y = Y0 * EXP(-RKT)
 ! ******************************************************************************
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
          !==============================================================
          ! ND44 Diagnostic: Drydep flux of H2SO4 [molec/cm2/s]
          !==============================================================

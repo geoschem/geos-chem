@@ -164,7 +164,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine HCOIO\_Diagn\_WriteOut writes diagnostics to 
 ! netCDF file. If the ForceWrite flag is set to TRUE, all diagnostics are
-! written out except they have already been written out during this time
+! written out except if they have already been written out during this time
 ! step. This option is usually only used at the end of a simulation run.
 ! If ForceWrite is False, only the diagnostics that are at the end of their
 ! time averaging interval are written. For example, if the current month
@@ -219,13 +219,14 @@ CONTAINS
 !                              out lon & lat as float instead of double
 !  06 Nov 2015 - C. Keller   - Output time stamp is now determined from 
 !                              variable OutTimeStamp.
+!  14 Jan 2016 - E. Lundgren - Create netcdf title out of filename prefix
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                   :: I, PS, CNT, levIdTmp
+    INTEGER                   :: I, PS, CNT, levIdTmp, indexL, indexR
     REAL(dp)                  :: GMT, JD1, JD1985, JD_DELTA, THISDAY
     REAL(sp)                  :: TMP, JD_DELTA_RND
     INTEGER                   :: YYYY, MM, DD, h, m, s
@@ -237,7 +238,7 @@ CONTAINS
     TYPE(DiagnCont), POINTER  :: ThisDiagn => NULL()
     INTEGER                   :: FLAG
     CHARACTER(LEN=255)        :: ncFile
-    CHARACTER(LEN=255)        :: Pfx 
+    CHARACTER(LEN=255)        :: Pfx, title 
     CHARACTER(LEN=255)        :: MSG 
     CHARACTER(LEN=4 )         :: Yrs
     CHARACTER(LEN=2 )         :: Mts, Dys, hrs, mns 
@@ -276,6 +277,11 @@ CONTAINS
     ELSE
        DoWrite = DiagnCollection_IsTimeToWrite( PS )
        EOI     = .TRUE.
+
+!       ! DEBUGGING (ewl)
+!       PRINT *, "DoWrite: ", DoWrite
+!       ! END DEBUGGING
+
     ENDIF
 
     ! Create current time stamps (to be used to archive time stamps) 
@@ -295,7 +301,7 @@ CONTAINS
 
     ! Inherit precision from HEMCO 
     Prc = HP
- 
+
     ! Get PrevTime flag from input argument or set to default (=> TRUE)
     IF ( PRESENT(UsePrevTime) ) THEN
        PrevTime = UsePrevTime
@@ -348,9 +354,24 @@ CONTAINS
        CALL HCO_MSG( MSG )
     ENDIF
 
+    ! Use filename prefix for title, replacing '_' with spaces
+    ! NOTE: Prefix can only contain up to two underscores
+    indexL = SCAN( Pfx, '_', .FALSE. ) ! Return left-most position
+    indexR = SCAN( Pfx, '_', .TRUE.  ) ! Return right-most position
+    IF ( indexL > 0 .AND. indexR > 0 ) THEN
+       title = Pfx(1:indexL-1)        // ' ' //  &
+               Pfx(indexL+1:indexR-1) // ' ' //  &
+               Pfx(indexR+1:)
+    ELSE IF ( indexL > 0 .AND. indexR == 0 ) THEN
+       title = Pfx(1:indexL-1) // ' ' // Pfx(indexL+1:)
+    ELSE
+       title = Pfx
+    ENDIF
+
     ! Create output file
-    CALL NC_CREATE( ncFile, nLon,  nLat,  nLev,  nTime, &
-                    fId,    lonId, latId, levId, timeId, VarCt ) 
+    CALL NC_CREATE( ncFile, title, nLon,  nLat,  nLev,  & 
+                    nTime,  fId,   lonId, latId, levId, &
+                    timeId, VarCt ) 
 
     !-----------------------------------------------------------------
     ! Write grid dimensions (incl. time) 
@@ -426,6 +447,10 @@ CONTAINS
        IF ( FLAG /= HCO_SUCCESS ) EXIT
 
        ! Only write diagnostics if this is the first Diagn_Get call for
+       ! this container and time step. 
+       IF ( ThisDiagn%nnGetCalls > 1 ) CYCLE
+
+       ! NOTE: This may have been left over by a Git merge (bmy, 3/5/15)
        ! this container and time step.
        IF ( PRESENT( OnlyIfFirst ) ) THEN
           IF ( OnlyIfFirst .AND. ThisDiagn%nnGetCalls > 1 ) CYCLE
@@ -802,4 +827,3 @@ CONTAINS
   END SUBROUTINE ConstructTimeStamp 
 !EOC
 END MODULE HCOIO_Diagn_Mod
-

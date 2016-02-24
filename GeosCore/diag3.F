@@ -329,13 +329,13 @@
       CHARACTER(LEN=255)       :: MSG
       TYPE(DiagnCont), POINTER :: DiagnCnt => NULL() 
       TYPE(HCO_State), POINTER :: HcoState => NULL()
-      REAL(hp)                 :: FACTOR
-      REAL(hp), PARAMETER      :: GPERKG   = 1000e+0_hp
-      REAL(hp), PARAMETER      :: MWC      = 12e+0_hp
-      REAL(hp), PARAMETER      :: CM2PERM2 = 10000e+0_hp
-      REAL(hp), PARAMETER      :: S_DMS    = 32e+0_hp / 62e+0_hp
-      REAL(hp), PARAMETER      :: S_SO2    = 32e+0_hp / 64e+0_hp
-      REAL(hp), PARAMETER      :: S_SO4    = 32e+0_hp / 96e+0_hp
+      REAL(fp)                 :: FACTOR
+      REAL(fp), PARAMETER      :: GPERKG   = 1000e+0_fp
+      REAL(fp), PARAMETER      :: MWC      = 12e+0_fp
+      REAL(fp), PARAMETER      :: CM2PERM2 = 10000e+0_fp
+      REAL(fp), PARAMETER      :: S_DMS    = 32e+0_fp / 62e+0_fp
+      REAL(fp), PARAMETER      :: S_SO2    = 32e+0_fp / 64e+0_fp
+      REAL(fp), PARAMETER      :: S_SO4    = 32e+0_fp / 96e+0_fp
 
       CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG3 (diag3.F)'
 
@@ -402,6 +402,7 @@
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
          CALL ERROR_STOP ( 'HcoState not defined!', LOC ) 
       ENDIF
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND01: Rn, Pb, Be emissions (Category: "RN--SRCE")
@@ -436,7 +437,7 @@
          IF ( IDTRn > 0 ) THEN
             DiagnName    = 'AD01_Rn_SOURCE'
             N            = IDTRn
-            FACTOR       = 1.0e+0_hp
+            FACTOR       = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,     N, 1, -1, .TRUE., FACTOR, RC    )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -504,6 +505,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD02) )
          ENDDO
       ENDIF
+#endif
 !
 !******************************************************************************
 !  ND03: Diagnostics from Hg0/Hg2/HgP offline simulation (eck, bmy, 1/20/05)
@@ -563,6 +565,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD05) )
          ENDDO
       ENDIF
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND06: Dust aerosol emissions
@@ -578,7 +581,7 @@
          ! Category & unit string
          UNIT     = 'kg'
          CATEGORY = 'DUSTSRCE'
-         FACTOR   = 1.0e+0_hp
+         FACTOR   = 1.0e+0_fp
 
          ! Loop over # of dust bins
          DO N = 1, Input_Opt%N_DUST_BINS
@@ -655,6 +658,7 @@
          ENDIF
 
       ENDIF     
+#endif
 !
 !******************************************************************************
 !  ND07: Emissions of BC and OC aerosols
@@ -683,6 +687,7 @@
          ! defined in hcoi_gc_diagn_mod.F
          !--------------------------------------------------------------
 
+#if defined( BPCH_DIAG )
          ! Do for BC and OC
          DO J = 1, 2
 
@@ -791,6 +796,7 @@
                DiagnCnt => NULL()
             ENDDO !I
          ENDDO !J
+#endif
 
          !--------------------------------------------------------------
          ! Other BC diagnostics
@@ -820,6 +826,7 @@
             UNIT      = 'kgC'
             N         = IDTOCPI
 
+#if defined( BPCH_DIAG )
             !%%%%% Biogenic OC (kg/m2/s --> kg) %%%%%
             CATEGORY  = 'OC-BIOG'
             DiagnName = 'BIOGENIC_OCPI'
@@ -828,7 +835,7 @@
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                 UNIT, N, 1, -1, .TRUE., FACTOR, RC, AreaScal=1 )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-
+#endif
          
             !%%%%% Hydrophilic OC from hydrophobic OC %%%%%
             CATEGORY     = 'PL-OC=$'
@@ -1240,6 +1247,7 @@
             ENDIF
          ENDIF
       ENDIF   
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND08: Sea salt aerosol emissions
@@ -1296,6 +1304,7 @@
          ENDIF
 
       ENDIF   
+#endif
 !
 !******************************************************************************
 !  ND09: HCN/CH3CN sources/sinks (Categories: "HCN-PL-$", "HCN-SRCE")
@@ -1367,6 +1376,7 @@
             ENDIF
          ENDDO
       ENDIF
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND11: Acetone source & sink diagnostic (Category: "ACETSRCE")
@@ -1416,6 +1426,8 @@
 
          ENDDO
       ENDIF
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND12: distribution of surface emissions in the boundry layer: [fraction]
@@ -1439,6 +1451,8 @@
      &               IIPAR,     JJPAR,     LLCHEM,   IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD12) )
       ENDIF
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND13: Sulfur emissions (for DMS/SO2/SO4/MSA/NH3/NH4/NIT chemistry)
@@ -1567,7 +1581,7 @@
          DiagnName = 'AD13_NH3_ANTHROPOGENIC'
          UNIT      = 'kg'
          CATEGORY  = 'NH3-ANTH'
-         FACTOR    = 1.0e+0_hp
+         FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
      &                   UNIT, IDTNH3, 1, -1, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
@@ -1575,7 +1589,7 @@
          !%%%%%  Natural source NH3 %%%%%
          DiagnName = 'AD13_NH3_NATURAL'
          CATEGORY  = 'NH3-NATU'
-         FACTOR    = 1.0e+0_hp
+         FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
      &                   UNIT, IDTNH3, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
@@ -1591,12 +1605,14 @@
          !%%%%% Biofuel NH3 %%%%%
          DiagnName = 'AD13_NH3_BIOFUEL'
          CATEGORY  = 'NH3-BIOF'
-         FACTOR    = 1.0e+0_hp
+         FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
      &                   UNIT, IDTNH3, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
       ENDIF    
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND14: Upward mass flux from wet convection (NFCLDMX)
@@ -1850,6 +1866,7 @@
      &               JFIRST,    LFIRST,    AD19(:,:,:) )
 
 	ENDIF
+#endif
 !
 !******************************************************************************
 !  ND21: Optical depth diagnostics
@@ -2239,6 +2256,7 @@
             ENDIF
          ENDDO    
       ENDIF     
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND24: Eastward mass flux from transport (TPCORE, XTP)
@@ -2338,6 +2356,8 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD26) )
          ENDDO
       ENDIF
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND28: Biomass burning diagnostic 
@@ -2656,6 +2676,8 @@
          ENDIF
 
       ENDIF
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND29: CO source diagnostics
@@ -2711,6 +2733,8 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDDO
       ENDIF
+#endif
+#if defined( BPCH)
 !
 !******************************************************************************
 !  ND30: Land map diagnostic
@@ -2736,6 +2760,8 @@
      &               IIPAR,     JJPAR,     1,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
       ENDIF
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND31: Surface pressure diagnostic
@@ -2766,6 +2792,9 @@
      &               IIPAR,     JJPAR,     LD31,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD31) )
       ENDIF
+
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND32: NOx source diagnostic
@@ -2913,6 +2942,8 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
       ENDIF
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND33: Atmospheric column sum of Tracer
@@ -2946,6 +2977,8 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF  
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND34: Biofuel burning diagnostic 
@@ -3115,7 +3148,7 @@
          !%%%%% NH3 %%%%%
          IF ( IDTNH3 > 0 ) THEN
             DiagnName = 'BIOFUEL_NH3'
-            UNIT      = 'atoms C/cm2/s'
+            UNIT      = 'molec/cm2/s'
             N         = IDTNH3
             FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -3123,6 +3156,7 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
       ENDIF
+#endif
 !
 !******************************************************************************
 !  ND35: Tracer concentration at 500 mb 
@@ -3154,6 +3188,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF  
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND36: Anthropogenic source diagnostic
@@ -3291,6 +3326,7 @@
 
          ENDDO ! I
       ENDIF
+#endif
 !
 !******************************************************************************
 !  ND37: Fraction of tracer scavenged in convective cloud updrafts
@@ -3337,7 +3373,7 @@
       ENDIF
 !
 
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
 
 !******************************************************************************
 !  ND38: Rainout loss of tracer in convective updrafts
@@ -3603,7 +3639,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD43) )
          ENDDO
       ENDIF
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND44: Drydep flux (molec/cm2/s) and velocity (cm/s) diagnostics
@@ -3998,6 +4034,7 @@
       ENDIF
 #endif
 #endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND46: Biogenic source diagnostic
@@ -4280,7 +4317,7 @@
          UNIT      = 'molec/cm2/s'
          N         = 14
          ! Conversion factor from kg/m2/s to molec/cm2/s
-         FACTOR    = ( AVO / 46.025e+0_hp ) / CM2PERM2
+         FACTOR    = ( AVO / 46.025e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4292,7 +4329,7 @@
          UNIT      = 'molec/cm2/s'
          N         = 15
          ! Conversion factor from kg/m2/s to molec/cm2/s
-         FACTOR    = ( AVO / 60.052e+0_hp ) / CM2PERM2
+         FACTOR    = ( AVO / 60.052e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4330,7 +4367,7 @@
          UNIT      = 'molec/cm2/s'
          N         = 18
          ! Conversion factor from kg/m2/s to molec/cm2/s
-         FACTOR    =  ( AVO / 32.042e+0_hp )/ CM2PERM2
+         FACTOR    =  ( AVO / 32.042e+0_fp )/ CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4515,6 +4552,7 @@
          ENDIF
 
       ENDIF
+#endif
 !
 !******************************************************************************
 !  ND47: Tracer Mixing Ratio (v/v) for Levels L = 1, LD47
@@ -4926,6 +4964,7 @@
      &               IIPAR,     JJPAR,     LD54,     IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD54) )
       ENDIF
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND55: Tropopause diagnostics
@@ -4964,6 +5003,8 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND56: Lightning flash rate diagnostics (ltm, bmy, 5/5/06))
@@ -5022,6 +5063,8 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)   
 
       ENDIF
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND57: THETA
@@ -5045,7 +5088,7 @@
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD57) )
       ENDIF
 
-
+#endif
 !
 !******************************************************************************
 !  ND58: CH4 Emission Diagnostics
@@ -5696,6 +5739,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD65) )
          ENDDO       
       ENDIF
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND66: GMAO 3-D fields 
@@ -5778,6 +5822,8 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD66) )
          ENDDO
       ENDIF
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND67: GMAO surface fields
@@ -5928,8 +5974,8 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
-
-#if !defined(NO_BPCH)
+#endif
+#if defined( BPCH_DIAG )
 !******************************************************************************
 !  ND68: Grid box diagnostics
 !
@@ -5967,6 +6013,7 @@
          ENDDO
       ENDIF
 #endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND69: Grid Box Surface Areas
@@ -6012,7 +6059,8 @@
 
          CALL UPDATE_DEP( N )
       ENDIF
-            
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND71: Tracer Mixing Ratio (v/v) at surface, maximum value
@@ -6043,6 +6091,8 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
+
+#endif
 
       ! Echo output
       WRITE( 6, '(a)' ) '     - DIAG3: Diagnostics written to bpch!'
@@ -6169,7 +6219,7 @@
 !  corresponding diagnostics array to the bpch output file. 
 !\\
 !\\
-!  NOTE: This is a "bridge" routine intended to provide backwards compatbility 
+!  NOTE: This is a "bridge" routine intended to provide backwards compatibility 
 !  with the existing GEOS-Chem diagnostics.  Eventually we will write all 
 !  GEOS-Chem diagnostics to netCDF format but we are not yet at that point.
 !\\

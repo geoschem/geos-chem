@@ -417,8 +417,10 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD67
+#endif
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_A1
@@ -488,6 +490,7 @@
 !  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  22 Sep 2015 - E. Lundgren - Now save SWGDN globally
+!  02 Feb 2016 - E. Lundgren - Block off bpch diagnostics with if defined bpch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1122,6 +1125,7 @@
       ENDDO
       ENDDO
 
+#if defined( BPCH_DIAG )
       !=================================================================
       ! ND67 diagnostic: A1 surface fields
       !=================================================================
@@ -1147,6 +1151,7 @@
          AD67(:,:,22) = AD67(:,:,22) + GWETTOP  ! Topsoil wetness [frac]
          AD67(:,:,23) = AD67(:,:,23) + EFLUX    ! Latent heat flux [W/m2]
       ENDIF
+#endif
 
       !=================================================================
       ! Cleanup and quit

@@ -84,7 +84,7 @@
       USE DIAG63_MOD            ! For ND63  (PARANOX timeseries  ) diag
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
-      USE DIAGNOSTICS_MOD       ! New diagnostics module (C. Keller)
+      USE DIAGNOSTICS_MOD       ! NetCDF diagnostics module (C. Keller)
 
       !-----------------------------------------------------------------
       ! GEOS-Chem dynamics modules
@@ -284,6 +284,7 @@
 !  03 Sep 2015 - R. Yantosca - Now call SETUP_WETSCAV instead of INIT_WETSCAV
 !  25 Jan 2016 - R. Yantosca - Call LINE_BUFFER to force PGI compiler to flush
 !                               STDOUT (unit=6) output to disk during a run
+!  03 Feb 2016 - E. Lundgren - Use routine MAKE_RESTART_FILES for all GC rsts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -734,8 +735,8 @@
       ! Read initial tracer conditions
       ! NOTE: Tracer concentrations are read in as [v/v dry air] and converted
       ! to kg/kg dry air (ewl, 9/18/15)
-      CALL READ_RESTART_FILE( NYMDb,     NHMSb, 
-     &                        Input_Opt, State_Met, State_Chm )
+      CALL READ_GC_RESTART( am_I_Root, NYMDb,     NHMSb, 
+     &                      Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
       ! Initialize stratospheric routines
@@ -760,14 +761,6 @@
       IF ( LSCHEM ) THEN
          CALL INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, 
      &                         State_Met, RC )
-      ENDIF
-
-      ! Read ocean Hg initial conditions (if necessary)
-      IF ( ITS_A_MERCURY_SIM .and. LDYNOCEAN ) THEN
-         CALL READ_OCEAN_Hg_RESTART( NYMDb, NHMSb, Input_Opt )
-         IF ( prtDebug ) THEN 
-            CALL DEBUG_MSG( '### MAIN: a READ_OCEAN_RESTART' )
-         ENDIF
       ENDIF
 
       ! Save initial tracer mixing ratios to disk for benchmark runs
@@ -800,18 +793,17 @@
 !-----------------------------------------------------------------------------
 
       !=================================================================
-      !      ***** INITIALIZE DIAGNOSTICS ***** 
+      !      ***** INITIALIZE GEOS-CHEM DIAGNOSTICS AND RESTARTS ***** 
       !=================================================================      
 
-#if defined( DEVEL )
+#if defined( NC_DIAG )
       ! Initialize diagnostics other than the default HEMCO diagnostics
       ! initialized above (ckeller, 1/13/15).
       CALL Diagnostics_Init( am_I_Root, Input_Opt, 
      &                       State_Met, State_Chm, RC )
 #endif 
-
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_End( "Initialization", RC )
+#if !defined( BPCH_RST_OUT )
+      CALL INIT_GC_RESTART_NC( am_I_Root, Input_Opt, RC )
 #endif
 
       !=================================================================
@@ -943,21 +935,13 @@
                ENDIF
                
                ! Make atmospheric restart file
-               CALL MAKE_RESTART_FILE
-     &            ( am_I_Root, Input_Opt, NYMD,      NHMS,     
-     &              TAU,       State_Met, State_Chm, RC    )
-                  
-               ! Make ocean mercury restart file
-               IF ( ITS_A_MERCURY_SIM .and. LDYNOCEAN ) THEN
-                  CALL MAKE_OCEAN_Hg_RESTART
-     &               ( NYMD, NHMS, TAU, Input_Opt )
-               ENDIF
+               CALL WRITE_GC_RESTART( am_I_Root, Input_Opt, NYMD, 
+     &                                NHMS, TAU, State_Chm, RC )
 
-               ! Save species concentrations (CSPEC_FULL). (dkh, 02/12/09)
-               IF ( LCHEM .and. LSVCSPEC ) THEN 
-                  CALL MAKE_CSPEC_FILE( am_I_Root, Input_Opt, NYMD, 
-     &                                  NHMS,      State_Chm, RC    )
-               ENDIF 
+               !### Debug
+               IF ( prtDebug ) THEN
+                  CALL DEBUG_MSG( '### MAIN: a WRITE_GC_RESTART_FILE' )
+               ENDIF
 
 #if defined( USE_TIMERS )
                CALL GEOS_Timer_Start( "HEMCO", RC )
@@ -970,11 +954,6 @@
 #if defined( USE_TIMERS )
                CALL GEOS_Timer_End( "HEMCO", RC )
 #endif
-
-               !### Debug
-               IF ( prtDebug ) THEN
-                  CALL DEBUG_MSG( '### MAIN: a MAKE_RESTART_FILE' )
-               ENDIF
 
             ENDIF
 
@@ -1204,7 +1183,17 @@
          CALL GET_COSINE_SZA( am_I_Root, Input_Opt, State_Met, RC )
 
          ! Compute tropopause height for ND55 diagnostic
-         IF ( ND55 > 0 ) CALL DIAG_TROPOPAUSE( State_Met )
+         ! Consider updating all Met diagnostics here (ewl, 1/22/16) 
+#if defined( BPCH_DIAG )
+         IF ( Input_Opt%ND55 > 0 ) THEN
+            CALL DIAG_TROPOPAUSE( am_I_root, Input_Opt, State_Met, RC )
+         ENDIF
+#elif defined( NC_DIAG )
+         ! If netcdf diagnostics, output if Met diagnostic group is on
+         IF ( Input_Opt%ND68 > 0 ) THEN
+            CALL DIAG_TROPOPAUSE( am_I_root, Input_Opt, State_Met, RC )
+         ENDIF
+#endif
 
          ! Update dynamic timestep
          CALL SET_CT_DYN( INCREMENT=.TRUE. )
@@ -1742,7 +1731,7 @@
 #endif
 
          ! Eventually write dobson columns into diagnostics array
-#if defined(DEVEL)
+#if defined( DEVEL )
          CALL CalcDobsonColumn ( am_I_Root, Input_Opt,
      &                           State_Met, State_Chm, RC )
 #endif
@@ -1880,7 +1869,7 @@
          !   IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a ND52' )
          !ENDIF
 
-!#if defined( DEVEL )
+!#if defined( NC_DIAG )
 !         ! Write diagnostic data to the GEOS-Chem diagnostics netCDF file.
 !         ! Each diagnostic has a specified averaging period specified 
 !         ! in Input_Opt. (ckeller, bmy, 1/15/15)
@@ -1955,7 +1944,7 @@
       ! Print the mass-weighted mean OH concentration (if applicable)
       CALL PRINT_DIAG_OH( am_I_Root, Input_Opt, RC )
 
-!#if defined( DEVEL )
+!#if defined( NC_DIAG )
 !      ! Write diagnostic data to the GEOS-Chem restart netCDF file.
 !      ! Each diagnostic has a specified averaging period specified 
 !      ! in Input_Opt. (ckeller, bmy, 1/15/15)
@@ -2158,7 +2147,7 @@
       !-------------------------------------------------
 #if   defined( DEVEL ) 
       WRITE( 6, '(a)' ) REPEAT( '#', 39 )
-      WRITE( 6, '(a)' ) '# USING -DDEVEL FOR TESTING THE GIGC  #'
+      WRITE( 6, '(a)' ) '# USING -DDEVEL FOR TESTING GCHP  #'
       WRITE( 6, '(a)' ) REPEAT( '#', 39 )
 #endif
 

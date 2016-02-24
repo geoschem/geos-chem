@@ -874,7 +874,8 @@ reader.o                    : reader.F
 read_jv_atms_dat.o          : read_jv_atms_dat.F90
 
 restart_mod.o               : restart_mod.F                                  \
-                              comode_mod.o            
+                              comode_mod.o            hcoi_gc_main_mod.o     \
+                              ocean_mercury_mod.o     tracerid_mod.o            
 
 RnPbBe_mod.o                : RnPbBe_mod.F                                   \
                               chemgrid_mod.o          diag_mod.o             \
@@ -975,7 +976,8 @@ tracerid_mod.o              : tracerid_mod.F                                 \
                               tracer_mod.o
 
 transport_mod.o             : transport_mod.F                                \
-                              diag_mod.o              pjc_pfix_mod.o         \
+                              diag_mod.o              diagnostics_mod.o      \
+                              pjc_pfix_mod.o                                 \
                               tpcore_bc_mod.o         tpcore_fvdas_mod.o     \
                               tracer_mod.o            tpcore_window_mod.o    \
                               tendencies_mod.o        pjc_pfix_window_mod.o  \

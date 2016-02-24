@@ -118,7 +118,9 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTISOP
       USE TRACERID_MOD,       ONLY : IDTDST1
+#if defined( DEVEL )
       USE TENDENCIES_MOD
+#endif
       USE UNITCONV_MOD
 #if defined (UCX )
       USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)

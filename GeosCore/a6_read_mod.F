@@ -661,8 +661,10 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD   ! Size parameters
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD   ! ND67
       USE DIAG_MOD, ONLY : AD67
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -684,15 +686,11 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL             :: IS_ND67 
       INTEGER             :: I, J
       
       !=================================================================
       ! MAKE_GCAP_CLDFRC begins here!
       !=================================================================
-
-      ! Is the ND67 diagnostic turned on?
-      IS_ND67 = ( ND67 > 0 )
 
       ! Make 2-D cloud fraction
 !$OMP PARALLEL DO
@@ -704,8 +702,10 @@
          ! Take max value
          CLDFRC(I,J) = MAXVAL( CLDF(I,J,:) )
 
+#if defined( BPCH_DIAG )
          ! Store in ND67 diagnostic if necessary
-         IF ( IS_ND67 ) AD67(I,J,10) = AD67(I,J,10) + CLDFRC(I,J)
+         IF ( ND67 > 0 ) AD67(I,J,10) = AD67(I,J,10) + CLDFRC(I,J)
+#endif
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -843,10 +843,12 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_DIAG_MOD
       USE PHYSCONSTANTS
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD66
       USE DIAG_MOD,           ONLY : AD67
+#endif
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_A6
@@ -975,6 +977,7 @@
 !  06 Nov 2014 - R. Yantosca - All input arguments are now declared as (I,J,L) 
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_A6 with TRANSFER_3D
 !  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
+!  02 Feb 2016 - E. Lundgren - Block of diagnostics with if defined BPCH
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1668,6 +1671,7 @@
          MOISTQ = -MOISTQ / 8.64d7
       ENDIF
 
+#if defined( BPCH_DIAG )
       !=================================================================
       ! ND66 diagnostic: A-6 fields
       !
@@ -1733,6 +1737,7 @@
       IF ( ND67 > 0 ) THEN 
          IF ( PRESENT( CLDTOPS ) ) AD67(:,:,16) = AD67(:,:,16) + CLDTOPS
       ENDIF  
+#endif
 
       !=================================================================
       ! Update A-6 fields diagnostic counter

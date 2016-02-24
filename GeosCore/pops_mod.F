@@ -358,7 +358,7 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE DIAG53_MOD
@@ -1252,7 +1252,7 @@
             DEP_POPP_BCPI_DRY  = DEP_POPP_BCPI 
          ENDIF
 
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
          !=================================================================
          ! ND44 diagnostic: drydep flux of POPG and POPP [molec/cm2/s]
          !=================================================================

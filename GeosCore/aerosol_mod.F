@@ -873,10 +873,6 @@
       USE CMN_DIAG_MOD
       USE COMODE_LOOP_MOD
       USE COMODE_MOD,         ONLY : JLOP ! SDE 2013-12-30
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT
-      USE BPCH2_MOD,          ONLY : GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0
-      USE BPCH2_MOD,          ONLY : READ_BPCH2
       USE COMODE_MOD,         ONLY : ABSHUM
       USE COMODE_MOD,         ONLY : ERADIUS
       USE COMODE_MOD,         ONLY : IXSAVE

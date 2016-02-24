@@ -262,148 +262,77 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      ! DIAGNOSTIC MENU fields
      !----------------------------------------
-     INTEGER                     :: DIAG_COLLECTION
      INTEGER                     :: ND01,             LD01
-     CHARACTER(LEN=15)           :: ND01_OUTPUT_FREQ, ND01_OUTPUT_TYPE
      INTEGER                     :: ND02,             LD02
-     CHARACTER(LEN=15)           :: ND02_OUTPUT_FREQ, ND02_OUTPUT_TYPE
      INTEGER                     :: ND03,             LD03
-     CHARACTER(LEN=15)           :: ND03_OUTPUT_FREQ, ND03_OUTPUT_TYPE
      INTEGER                     :: ND04,             LD04
-     CHARACTER(LEN=15)           :: ND04_OUTPUT_FREQ, ND04_OUTPUT_TYPE
      INTEGER                     :: ND05,             LD05
-     CHARACTER(LEN=15)           :: ND05_OUTPUT_FREQ, ND05_OUTPUT_TYPE
      INTEGER                     :: ND06,             LD06
-     CHARACTER(LEN=15)           :: ND06_OUTPUT_FREQ, ND06_OUTPUT_TYPE
      INTEGER                     :: ND07,             LD07
-     CHARACTER(LEN=15)           :: ND07_OUTPUT_FREQ, ND07_OUTPUT_TYPE
      INTEGER                     :: ND08,             LD08
-     CHARACTER(LEN=15)           :: ND08_OUTPUT_FREQ, ND08_OUTPUT_TYPE
      INTEGER                     :: ND09,             LD09
-     CHARACTER(LEN=15)           :: ND09_OUTPUT_FREQ, ND09_OUTPUT_TYPE
      INTEGER                     :: ND10,             LD10
-     CHARACTER(LEN=15)           :: ND10_OUTPUT_FREQ, ND10_OUTPUT_TYPE
      INTEGER                     :: ND11,             LD11
-     CHARACTER(LEN=15)           :: ND11_OUTPUT_FREQ, ND11_OUTPUT_TYPE
      INTEGER                     :: ND12,             LD12
-     CHARACTER(LEN=15)           :: ND12_OUTPUT_FREQ, ND12_OUTPUT_TYPE
      INTEGER                     :: ND13,             LD13
-     CHARACTER(LEN=15)           :: ND13_OUTPUT_FREQ, ND13_OUTPUT_TYPE
      INTEGER                     :: ND14,             LD14
-     CHARACTER(LEN=15)           :: ND14_OUTPUT_FREQ, ND14_OUTPUT_TYPE
      INTEGER                     :: ND15,             LD15
-     CHARACTER(LEN=15)           :: ND15_OUTPUT_FREQ, ND15_OUTPUT_TYPE
      INTEGER                     :: ND16,             LD16
-     CHARACTER(LEN=15)           :: ND16_OUTPUT_FREQ, ND16_OUTPUT_TYPE
      INTEGER                     :: ND17,             LD17
-     CHARACTER(LEN=15)           :: ND17_OUTPUT_FREQ, ND17_OUTPUT_TYPE
      INTEGER                     :: ND18,             LD18
-     CHARACTER(LEN=15)           :: ND18_OUTPUT_FREQ, ND18_OUTPUT_TYPE
      INTEGER                     :: ND19,             LD19
-     CHARACTER(LEN=15)           :: ND19_OUTPUT_FREQ, ND19_OUTPUT_TYPE
      INTEGER                     :: ND20,             LD20
-     CHARACTER(LEN=15)           :: ND20_OUTPUT_FREQ, ND20_OUTPUT_TYPE
      INTEGER                     :: ND21,             LD21
-     CHARACTER(LEN=15)           :: ND21_OUTPUT_FREQ, ND21_OUTPUT_TYPE
      INTEGER                     :: ND22,             LD22
-     CHARACTER(LEN=15)           :: ND22_OUTPUT_FREQ, ND22_OUTPUT_TYPE
      INTEGER                     :: ND23,             LD23
-     CHARACTER(LEN=15)           :: ND23_OUTPUT_FREQ, ND23_OUTPUT_TYPE
      INTEGER                     :: ND24,             LD24
-     CHARACTER(LEN=15)           :: ND24_OUTPUT_FREQ, ND24_OUTPUT_TYPE
      INTEGER                     :: ND25,             LD25
-     CHARACTER(LEN=15)           :: ND25_OUTPUT_FREQ, ND25_OUTPUT_TYPE
      INTEGER                     :: ND26,             LD26
-     CHARACTER(LEN=15)           :: ND26_OUTPUT_FREQ, ND26_OUTPUT_TYPE
      INTEGER                     :: ND27,             LD27
-     CHARACTER(LEN=15)           :: ND27_OUTPUT_FREQ, ND27_OUTPUT_TYPE
      INTEGER                     :: ND28,             LD28
-     CHARACTER(LEN=15)           :: ND28_OUTPUT_FREQ, ND28_OUTPUT_TYPE
      INTEGER                     :: ND29,             LD29
-     CHARACTER(LEN=15)           :: ND29_OUTPUT_FREQ, ND29_OUTPUT_TYPE
      INTEGER                     :: ND30,             LD30
-     CHARACTER(LEN=15)           :: ND30_OUTPUT_FREQ, ND30_OUTPUT_TYPE
      INTEGER                     :: ND31,             LD31
-     CHARACTER(LEN=15)           :: ND31_OUTPUT_FREQ, ND31_OUTPUT_TYPE
      INTEGER                     :: ND32,             LD32
-     CHARACTER(LEN=15)           :: ND32_OUTPUT_FREQ, ND32_OUTPUT_TYPE
      INTEGER                     :: ND33,             LD33
-     CHARACTER(LEN=15)           :: ND33_OUTPUT_FREQ, ND33_OUTPUT_TYPE
      INTEGER                     :: ND34,             LD34
-     CHARACTER(LEN=15)           :: ND34_OUTPUT_FREQ, ND34_OUTPUT_TYPE
      INTEGER                     :: ND35,             LD35
-     CHARACTER(LEN=15)           :: ND35_OUTPUT_FREQ, ND35_OUTPUT_TYPE
      INTEGER                     :: ND36,             LD36
-     CHARACTER(LEN=15)           :: ND36_OUTPUT_FREQ, ND36_OUTPUT_TYPE
      INTEGER                     :: ND37,             LD37
-     CHARACTER(LEN=15)           :: ND37_OUTPUT_FREQ, ND37_OUTPUT_TYPE
      INTEGER                     :: ND38,             LD38
-     CHARACTER(LEN=15)           :: ND38_OUTPUT_FREQ, ND38_OUTPUT_TYPE
      INTEGER                     :: ND39,             LD39
-     CHARACTER(LEN=15)           :: ND39_OUTPUT_FREQ, ND39_OUTPUT_TYPE
      INTEGER                     :: ND40,             LD40
-     CHARACTER(LEN=15)           :: ND40_OUTPUT_FREQ, ND40_OUTPUT_TYPE
      INTEGER                     :: ND41,             LD41
-     CHARACTER(LEN=15)           :: ND41_OUTPUT_FREQ, ND41_OUTPUT_TYPE
      INTEGER                     :: ND42,             LD42
-     CHARACTER(LEN=15)           :: ND42_OUTPUT_FREQ, ND42_OUTPUT_TYPE
      INTEGER                     :: ND43,             LD43
-     CHARACTER(LEN=15)           :: ND43_OUTPUT_FREQ, ND43_OUTPUT_TYPE
      INTEGER                     :: ND44,             LD44
-     CHARACTER(LEN=15)           :: ND44_OUTPUT_FREQ, ND44_OUTPUT_TYPE
      INTEGER                     :: ND45,             LD45
-     CHARACTER(LEN=15)           :: ND45_OUTPUT_FREQ, ND45_OUTPUT_TYPE
      INTEGER                     :: ND46,             LD46
-     CHARACTER(LEN=15)           :: ND46_OUTPUT_FREQ, ND46_OUTPUT_TYPE
      INTEGER                     :: ND47,             LD47
-     CHARACTER(LEN=15)           :: ND47_OUTPUT_FREQ, ND47_OUTPUT_TYPE
      INTEGER                     :: ND48,             LD48
-     CHARACTER(LEN=15)           :: ND48_OUTPUT_FREQ, ND48_OUTPUT_TYPE
      INTEGER                     :: ND49,             LD49
-     CHARACTER(LEN=15)           :: ND49_OUTPUT_FREQ, ND49_OUTPUT_TYPE
      INTEGER                     :: ND50,             LD50
-     CHARACTER(LEN=15)           :: ND50_OUTPUT_FREQ, ND50_OUTPUT_TYPE
      INTEGER                     :: ND51,             LD51
-     CHARACTER(LEN=15)           :: ND51_OUTPUT_FREQ, ND51_OUTPUT_TYPE
      INTEGER                     :: ND52,             LD52
-     CHARACTER(LEN=15)           :: ND52_OUTPUT_FREQ, ND52_OUTPUT_TYPE
      INTEGER                     :: ND53,             LD53
-     CHARACTER(LEN=15)           :: ND53_OUTPUT_FREQ, ND53_OUTPUT_TYPE
      INTEGER                     :: ND54,             LD54
-     CHARACTER(LEN=15)           :: ND54_OUTPUT_FREQ, ND54_OUTPUT_TYPE
      INTEGER                     :: ND55,             LD55
-     CHARACTER(LEN=15)           :: ND55_OUTPUT_FREQ, ND55_OUTPUT_TYPE
      INTEGER                     :: ND56,             LD56
-     CHARACTER(LEN=15)           :: ND56_OUTPUT_FREQ, ND56_OUTPUT_TYPE
      INTEGER                     :: ND57,             LD57
-     CHARACTER(LEN=15)           :: ND57_OUTPUT_FREQ, ND57_OUTPUT_TYPE
      INTEGER                     :: ND58,             LD58
-     CHARACTER(LEN=15)           :: ND58_OUTPUT_FREQ, ND58_OUTPUT_TYPE
      INTEGER                     :: ND59,             LD59
-     CHARACTER(LEN=15)           :: ND59_OUTPUT_FREQ, ND59_OUTPUT_TYPE
      INTEGER                     :: ND60,             LD60
-     CHARACTER(LEN=15)           :: ND60_OUTPUT_FREQ, ND60_OUTPUT_TYPE
      INTEGER                     :: ND61,             LD61
-     CHARACTER(LEN=15)           :: ND61_OUTPUT_FREQ, ND61_OUTPUT_TYPE
      INTEGER                     :: ND62,             LD62
-     CHARACTER(LEN=15)           :: ND62_OUTPUT_FREQ, ND62_OUTPUT_TYPE
      INTEGER                     :: ND63,             LD63
-     CHARACTER(LEN=15)           :: ND63_OUTPUT_FREQ, ND63_OUTPUT_TYPE
      INTEGER                     :: ND64,             LD64
-     CHARACTER(LEN=15)           :: ND64_OUTPUT_FREQ, ND64_OUTPUT_TYPE
      INTEGER                     :: ND66,             LD66
-     CHARACTER(LEN=15)           :: ND66_OUTPUT_FREQ, ND66_OUTPUT_TYPE
      INTEGER                     :: ND67,             LD67
-     CHARACTER(LEN=15)           :: ND67_OUTPUT_FREQ, ND67_OUTPUT_TYPE
      INTEGER                     :: ND68,             LD68
-     CHARACTER(LEN=15)           :: ND68_OUTPUT_FREQ, ND68_OUTPUT_TYPE
      INTEGER                     :: ND69,             LD69
-     CHARACTER(LEN=15)           :: ND69_OUTPUT_FREQ, ND69_OUTPUT_TYPE
      INTEGER                     :: ND70,             LD70
      INTEGER                     :: ND71,             LD71
-     CHARACTER(LEN=15)           :: ND71_OUTPUT_FREQ, ND71_OUTPUT_TYPE
      INTEGER                     :: ND72,             LD72
-     CHARACTER(LEN=15)           :: ND72_OUTPUT_FREQ, ND72_OUTPUT_TYPE
 
      INTEGER                     :: TS_DIAG
      LOGICAL                     :: LPRT
@@ -411,6 +340,32 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER,            POINTER :: TCOUNT(:) 				  
      INTEGER,            POINTER :: TMAX(:)
      LOGICAL                     :: DO_DIAG_WRITE
+
+     ! Collection ids
+     INTEGER                     :: DIAG_COLLECTION
+     INTEGER                     :: GC_RST_COLLECTION ! Used only for NetCDF
+
+#if defined( NC_DIAG )
+     ! New diagnostic group output types (e.g. 'mean')
+     CHARACTER(LEN=15)           :: TRANSPORT_OUTPUT_TYPE
+     CHARACTER(LEN=15)           :: WETSCAV_OUTPUT_TYPE
+     CHARACTER(LEN=15)           :: DRYDEP_OUTPUT_TYPE
+     CHARACTER(LEN=15)           :: TRACER_CONC_OUTPUT_TYPE
+     CHARACTER(LEN=15)           :: TRACER_EMIS_OUTPUT_TYPE
+     CHARACTER(LEN=15)           :: MET_OUTPUT_TYPE
+
+     ! Placeholders pending grouping of diagnostics
+     CHARACTER(LEN=15)           :: ND01_OUTPUT_TYPE
+     CHARACTER(LEN=15)           :: ND02_OUTPUT_TYPE
+     CHARACTER(LEN=15)           :: ND12_OUTPUT_TYPE
+     CHARACTER(LEN=15)           :: ND14_OUTPUT_TYPE
+     CHARACTER(LEN=15)           :: ND15_OUTPUT_TYPE
+     CHARACTER(LEN=15)           :: ND16_OUTPUT_TYPE
+     CHARACTER(LEN=15)           :: ND17_OUTPUT_TYPE
+     CHARACTER(LEN=15)           :: ND18_OUTPUT_TYPE
+     CHARACTER(LEN=15)           :: ND19_OUTPUT_TYPE
+     CHARACTER(LEN=15)           :: ND30_OUTPUT_TYPE
+#endif
 
      !----------------------------------------
      ! PLANEFLIGHT MENU fields
@@ -701,6 +656,7 @@ MODULE GIGC_Input_Opt_Mod
 !                              and PST_RST_FILE. These options are now handled
 !                              by HEMCO.
 !  11 Aug 2015 - R. Yantosca - Add MERRA2_DIR field to OptInput
+!  26 Jan 2016 - E. Lundgren - Add fields for netcdf diagnostics
 !  04 Feb 2016 - M. Sulprizio- Add Hg_CAT and Hg_CAT_FULL arrays for tagged Hg
 !                              simulations
 !EOP

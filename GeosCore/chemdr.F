@@ -1,3 +1,4 @@
+
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -20,6 +21,7 @@
       USE AEROSOL_MOD,          ONLY : RDAER
       USE AEROSOL_MOD,          ONLY : SOILDUST
       USE CHEMGRID_MOD,         ONLY : SAVE_FULL_CHEMGRID
+      USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_TROP
       USE CMN_DIAG_MOD
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
@@ -45,7 +47,10 @@
       USE GIGC_State_Chm_Mod,   ONLY : ChmState
       USE GIGC_State_Met_Mod,   ONLY : MetState
       USE PLANEFLIGHT_MOD,      ONLY : SETUP_PLANEFLIGHT
-      USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
+      USE PHYSCONSTANTS,        ONLY : BOLTZ
+#if defined( BPCH_RST_IN )
+      USE RESTART_MOD,          ONLY : READ_CSPEC_FILE
+#endif 
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : GET_NHMS
       USE TIME_MOD,             ONLY : GET_NYMD
@@ -277,7 +282,7 @@
 
       ! Local variables for quantities from Input_Opt
       INTEGER       :: N_TRACERS
-      REAL(fp)        :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)      :: XNUMOL(Input_Opt%N_TRACERS)
       LOGICAL       :: LCARB
       LOGICAL       :: LDUST
       LOGICAL       :: LPRT
@@ -287,6 +292,10 @@
       LOGICAL       :: LVARTROP
       LOGICAL       :: LFUTURE
       LOGICAL       :: LSVCSPEC
+
+      ! For species unit conversion code
+      CHARACTER(LEN=10)    :: SPC_NAME           ! species name 
+      REAL(fp)             :: CONV_FACTOR        ! [mol/mol] -> [molec/cm3]
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -586,10 +595,11 @@
       CALL GASCONC(  am_I_Root, .FALSE.,   .FALSE.,   
      &               Input_Opt, State_Met, State_Chm, RC )
 #else
+#if defined( BPCH_RST_IN )
       !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC w/ BPCH restart %%%%%%%
       !
-      ! On the first chemistry timestep:
+      ! On the first chemistry timestep, if using bpch restart file:
       !
       !   (1) If we are reading initial species values from the CSPEC
       !       restart file, then have GASCONC initialize the CSPEC 
@@ -609,6 +619,10 @@
       ! family tracers into individual species.
       !
       ! This is current practice in the std GEOS-Chem. (bmy, 10/24/12)
+      ! 
+      ! Now only read CSPEC here if using binary-punch format restart
+      ! files. If using NetCDF, CSPEC data is read during main restart
+      ! file read. See C-preprocessor else block below. (ewl, 2/8/16)
       !-----------------------------------------------------------------
 
       ! Assume there
@@ -621,7 +635,6 @@
          ! return IT_EXISTS = .FALSE.
          CALL READ_CSPEC_FILE( am_I_Root,  Input_Opt, GET_NYMD(), 
      &                         GET_NHMS(), IT_EXISTS, State_Chm,  RC  )
-   
          IF ( .not. IT_EXISTS ) THEN 
 
             !-----------------------------------------------------------
@@ -661,12 +674,132 @@
      &                  Input_Opt, State_Met, State_Chm, RC )
 
       ENDIF 
+#else
+      !--------------------------------------------------------------
+      ! If using a NetCDF restart file then species concentration is
+      ! now initialized in units of [mol/mol] regardless of whether
+      ! species is included in the restart file. This is different 
+      ! from using the bpch restart file where you either read species as 
+      ! [molec/cm3/box] from the cspec restart file, or initialize it
+      ! as [mol/mol] background values and convert to [molec/cm3/bpx] 
+      ! in the first call to gasconc (see above code).
+      !
+      ! When using a NetCDF restart file, [mol/mol] background
+      ! values are now set during initialization in read_gc_restart_nc 
+      ! within restart_mod.F if the restart file does not contain species
+      ! data. If the restart file does contain species data, then
+      ! State_Chm%SPECIES is initialized with data in the file in
+      ! units of [mol/mol].
+      ! 
+      ! The species conversion from [mol/mol] to [molec/cm3/box] 
+      ! then occurs prior to calling gasconc in the first timestep within 
+      ! this routine. Gasconc is then called by passing FIRSTCHEM as false 
+      ! and IT_EXISTS as true, thereby bypassing parts of gasconc that 
+      ! assign default background values to State_Chm%SPECIES from 
+      ! globchem.dat. (ewl, 2/16/16)
+      !--------------------------------------------------------------
 
-      IT_EXISTS = .FALSE.
+      IF ( FIRSTCHEM ) THEN
 
+         ! Write message to log
+         IF ( am_I_Root ) THEN
+            WRITE(6,100) 
+ 100        FORMAT('     - CHEMDR: converting species from',
+     &      ' [mol mol-1] to [molec/cm3/box]', //,
+     &      'Min and Max of each species after unit conversion ',
+     &      '[molec/cm3]:')
+         ENDIF
+
+         ! Convert State_Chm%SPECIES from [mol/mol] to [molec/cm3/box]
+         ! (ewl, 2/16/16)
+         ! Loop over species
+         DO N = 1, NTSPEC(1)
+
+            ! Define species name
+            SPC_NAME = TRIM( NAMEGAS(N) )
+
+            ! Do unit conversion if this species is not 'EMISSION'
+            IF ( TRIM( SPC_NAME ) /= 'EMISSION' ) THEN            
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, CONV_FACTOR )
+               ! Loop over all chemistry grid boxes
+               DO L = 1, LLCHEM 
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+               
+                  ! Set box-dependent unit conversion factor 
+                  CONV_FACTOR = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp /
+     &                    ( State_Met%T(I,J,L) * BOLTZ * 1e+7_fp )
+               
+                  ! Special handling for MOH
+                  IF ( TRIM( SPC_NAME ) /= 'MOH' ) THEN
+
+                     ! Convert units from [mol/mol] to [molec/cm3/box]
+                     State_Chm%Species(I,J,L,N) = 
+     &                         State_Chm%Species(I,J,L,N) * CONV_FACTOR
+
+                  ELSE
+
+                     ! Test for altitude (L < 9 is always in the trop)
+                     IF ( L <= 9 ) THEN
+                        ! Test for ocean/land boxes
+                        IF ( State_Met%FRCLND(I,J) >= 0.5 ) THEN
+                           ! Continental boundary layer: 2 ppbv MOH
+                           State_Chm%Species(I,J,L,N) 
+     &                        = 2.000e-9_fp * CONV_FACTOR
+                        ELSE
+                           ! Marine boundary layer: 0.9 ppbv MOH
+                           State_Chm%Species(I,J,L,N) 
+     &                        = 0.900e-9_fp * CONV_FACTOR
+                        ENDIF
+                     ELSE
+                        ! Test for troposphere
+                        IF ( ITS_IN_THE_TROP(I,J,L,State_Met) ) THEN
+                           ! Free troposphere: 0.6 ppbv MOH
+                           State_Chm%Species(I,J,L,N) 
+     &                        = 0.600e-9_fp * CONV_FACTOR
+                        ELSE
+                           ! Strat/mesosphere:
+                           State_Chm%Species(I,J,L,N) = 0.0e+0_fp
+                        ENDIF
+                     ENDIF
+                  ENDIF
+               
+                  ! Make a small number if concentration is negative or zero
+                  State_Chm%SPECIES(I,J,L,N) = 
+     &                 MAX( State_Chm%Species(I,J,L,N), 1d-99 )
+               
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+               
+            ENDIF
+ 
+            ! Print the min & max of each species in [molec/cm3/box]
+            WRITE( 6, 110 ) N,  
+     &                      TRIM( SPC_NAME ),
+     &                      MINVAL( State_Chm%Species(:,:,:,N) ), 
+     &                      MAXVAL( State_Chm%Species(:,:,:,N) )
+ 110        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9,
+     &              '  Max = ', es15.9 )
+
+         ENDDO
+
+         ! Mark end of unit conversion in log
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      ENDIF
+      
+
+      CALL GASCONC(  am_I_Root, .FALSE., .TRUE.,
+     &               Input_Opt, State_Met, State_Chm, RC )
+
+#endif
       !### Debug
       IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMDR: after READ_CSPEC_FILE' )
+         CALL DEBUG_MSG( '### CHEMDR: after call to GASCONC' )
       ENDIF
 #endif
 

@@ -26,21 +26,18 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
+#if defined( BPCH_DIAG )
       ! For ND01 -- Pb emissions (Rn, Be now tracked thru HEMCO)
       REAL*4,  ALLOCATABLE :: AD01(:,:,:)
 
       ! For ND02 -- Rn, Pb, Be decay
       REAL*4,  ALLOCATABLE :: AD02(:,:,:,:)
+#endif
 
       ! For ND05 -- Sulfate prod/loss diagnostics
       REAL*4,  ALLOCATABLE :: AD05(:,:,:,:)
 
-      ! For ND06 -- Dust aerosol emission
-      REAL*4,  ALLOCATABLE :: AD06(:,:,:)
-
       ! For ND07 -- Carbon aerosol emission
-      !%%% NOTE: SOME OF THESE ARE OBSOLETE NOW (bmy, 8/18/14)
-      REAL*4,  ALLOCATABLE :: AD07(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_BC(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_OC(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_HC(:,:,:,:)
@@ -49,9 +46,6 @@
 #if   defined( APM )
       REAL*4,  ALLOCATABLE :: AD07_OM(:,:)
 #endif 
-
-      ! For ND08 -- seasalt emission
-      REAL*4,  ALLOCATABLE :: AD08(:,:,:)
 
       ! For ND09 -- HCN / CH3CN simulation
       REAL*4,  ALLOCATABLE :: AD09(:,:,:,:)
@@ -90,6 +84,7 @@
       ! For ND23 -- CH3CCl3 lifetime diagnostic
       REAL(fp),  ALLOCATABLE :: DIAGCHLORO(:,:,:,:)
 
+#if defined( BPCH_DIAG )
       ! For ND24 -- E/W transport mass flux diagnostic
       REAL(fp),  ALLOCATABLE, TARGET :: MASSFLEW(:,:,:,:)
 
@@ -104,6 +99,7 @@
 
       ! For ND31 -- surface pressures
       REAL*4,  ALLOCATABLE :: AD31(:,:,:)
+#endif
 
       ! For ND33 -- tropopsheric sum of tracer
       REAL*4,  ALLOCATABLE :: AD33(:,:,:)
@@ -114,7 +110,7 @@
       ! For ND37 -- Fraction of tracer scavenged in cloud updrafts
       REAL*4,  ALLOCATABLE :: AD37(:,:,:,:)      
 
-#if !defined(NO_BPCH)
+#if defined( BPCH_DIAG )
       ! For ND38 -- Rainout in moist convection diagnostic
       REAL*4,  ALLOCATABLE :: AD38(:,:,:,:)      
 
@@ -147,15 +143,15 @@
       INTEGER, ALLOCATABLE :: LTLXRO2H(:,:)
       INTEGER, ALLOCATABLE :: LTLXRO2N(:,:)
 
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
       ! For ND44 -- Dry deposition fluxes & velocities
       REAL*4,  ALLOCATABLE :: AD44(:,:,:,:)
 
       ! For ND45 -- Tracer concentration diagnostic
-      REAL*4,  ALLOCATABLE :: AD45(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD45(:,:,:,:)
       INTEGER, ALLOCATABLE :: LTOTH(:,:)
       INTEGER, ALLOCATABLE :: CTOTH(:,:)
-#endif
+#endif      
 
       ! For ND47 -- 24-h tracer concentration diagnostic
       REAL*4,  ALLOCATABLE :: AD47(:,:,:,:)      
@@ -172,11 +168,13 @@
       ! For ND54 -- tropopause diagnostics
       REAL*4,  ALLOCATABLE :: AD54(:,:,:)
 
+#if defined( BPCH_DIAG )
       ! For ND55 -- tropopause diagnostics
       REAL*4,  ALLOCATABLE :: AD55(:,:,:)
 
       ! For ND57 -- theta, potential temp (FP 6/2009)
       REAL*4,  ALLOCATABLE :: AD57(:,:,:)
+#endif
 
       ! -- for methane simulation diagnostics
       REAL*4,  ALLOCATABLE :: AD19(:,:,:)
@@ -210,6 +208,7 @@
       ! For ND64 -- radiative flux from FAST-JX
       REAL*4,  ALLOCATABLE :: AD64(:,:,:,:,:)
 
+#if defined( BPCH_DIAG )
       ! For ND66 -- I-6 fields diagnostic
       REAL*4,  ALLOCATABLE :: AD66(:,:,:,:)      
 
@@ -217,12 +216,11 @@
       REAL*4,  ALLOCATABLE :: AD67(:,:,:)      
 
       ! For ND68 -- BXHEIGHT, AD, AVGW diagnostic
-#if !defined( NO_BPCH )
       REAL*4,  ALLOCATABLE :: AD68(:,:,:,:)      
-#endif
 
       ! For ND69 -- DXYP diagnostic
       REAL*4,  ALLOCATABLE :: AD69(:,:,:)      
+#endif
 
       ! For ND71 -- Surface peak tracer conc. diagnostic
       REAL*4,  ALLOCATABLE :: AD71(:,:,:)      
@@ -306,6 +304,8 @@
 !  12 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  20 Jan 2015 - R. Yantosca - Added DIAGINIT_TRACER_CONC routine
 !  15 Apr 2015 - R. Yantosca - Add TARGET spec to MASSFLEW, MASSFLNS, MASSFLUP
+!  20 Jan 2016 - M. Sulprizio- Remove AD06, AD07, and AD08 arrays since these
+!                              diagnostics are tracked by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -353,15 +353,14 @@
       !=================================================================
       ! CLEANUP_DIAG begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD01        ) ) DEALLOCATE( AD01        )
       IF ( ALLOCATED( AD02        ) ) DEALLOCATE( AD02        )
-      IF ( ALLOCATED( AD06        ) ) DEALLOCATE( AD06        )
-      IF ( ALLOCATED( AD07        ) ) DEALLOCATE( AD07        )
+#endif
       IF ( ALLOCATED( AD07_BC     ) ) DEALLOCATE( AD07_BC     )
       IF ( ALLOCATED( AD07_OC     ) ) DEALLOCATE( AD07_OC     )
       IF ( ALLOCATED( AD07_HC     ) ) DEALLOCATE( AD07_HC     )
       IF ( ALLOCATED( AD07_SOAGM  ) ) DEALLOCATE( AD07_SOAGM  )
-      IF ( ALLOCATED( AD08        ) ) DEALLOCATE( AD08        )
       IF ( ALLOCATED( AD09        ) ) DEALLOCATE( AD09        )
       IF ( ALLOCATED( AD09_em     ) ) DEALLOCATE( AD09_em     )
       IF ( ALLOCATED( AD12        ) ) DEALLOCATE( AD12        )
@@ -371,25 +370,29 @@
       IF ( ALLOCATED( AD21        ) ) DEALLOCATE( AD21        )
       IF ( ALLOCATED( AD21_cr     ) ) DEALLOCATE( AD21_cr     )
       IF ( ALLOCATED( AD22        ) ) DEALLOCATE( AD22        ) 
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD30        ) ) DEALLOCATE( AD30        ) 
       IF ( ALLOCATED( AD31        ) ) DEALLOCATE( AD31        ) 
+#endif
       IF ( ALLOCATED( AD33        ) ) DEALLOCATE( AD33        )
       IF ( ALLOCATED( AD35        ) ) DEALLOCATE( AD35        )
       IF ( ALLOCATED( AD37        ) ) DEALLOCATE( AD37        )
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD38        ) ) DEALLOCATE( AD38        )  
       IF ( ALLOCATED( AD39        ) ) DEALLOCATE( AD39        )
 #endif
       IF ( ALLOCATED( AD43        ) ) DEALLOCATE( AD43        )
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD44        ) ) DEALLOCATE( AD44        )
       IF ( ALLOCATED( AD45        ) ) DEALLOCATE( AD45        )
 #endif
       IF ( ALLOCATED( AD47        ) ) DEALLOCATE( AD47        )
       IF ( ALLOCATED( AD52        ) ) DEALLOCATE( AD52        )
       IF ( ALLOCATED( AD54        ) ) DEALLOCATE( AD54        )
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD55        ) ) DEALLOCATE( AD55        )
       IF ( ALLOCATED( AD57        ) ) DEALLOCATE( AD57        )
+#endif
       IF ( ALLOCATED( AD19        ) ) DEALLOCATE( AD19        )
       IF ( ALLOCATED( AD58        ) ) DEALLOCATE( AD58        )
 #if   defined( TOMAS )
@@ -413,11 +416,11 @@
       IF ( ALLOCATED( AD60        ) ) DEALLOCATE( AD60        )
 #endif
       IF ( ALLOCATED( AD64        ) ) DEALLOCATE( AD64        )
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
-#if !defined( NO_BPCH )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
-#endif
       IF ( ALLOCATED( AD69        ) ) DEALLOCATE( AD69        )
+#endif
       IF ( ALLOCATED( AD71        ) ) DEALLOCATE( AD71        )
       IF ( ALLOCATED( AD71_HR     ) ) DEALLOCATE( AD71_HR     )
       IF ( ALLOCATED( AD71_DAY    ) ) DEALLOCATE( AD71_DAY    )
@@ -450,17 +453,19 @@
       IF ( ALLOCATED( CTO3P       ) ) DEALLOCATE( CTO3P       )
       IF ( ALLOCATED( LTO3P       ) ) DEALLOCATE( LTO3P       )
       IF ( ALLOCATED( CTHO2       ) ) DEALLOCATE( CTHO2       )
+#if defined( BPCH_DIAG )
+      IF ( ALLOCATED( CTOTH       ) ) DEALLOCATE( CTOTH       )
+#endif
       IF ( ALLOCATED( DIAGCHLORO  ) ) DEALLOCATE( DIAGCHLORO  )
       IF ( ALLOCATED( LTJV        ) ) DEALLOCATE( LTJV        )
       IF ( ALLOCATED( LTOH        ) ) DEALLOCATE( LTOH        )
       IF ( ALLOCATED( LTHO2       ) ) DEALLOCATE( LTHO2       )
-#if !defined( NO_BPCH )
-      IF ( ALLOCATED( CTOTH       ) ) DEALLOCATE( CTOTH       )
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( LTOTH       ) ) DEALLOCATE( LTOTH       )
-#endif
       IF ( ALLOCATED( MASSFLEW    ) ) DEALLOCATE( MASSFLEW    )
       IF ( ALLOCATED( MASSFLNS    ) ) DEALLOCATE( MASSFLNS    )
       IF ( ALLOCATED( MASSFLUP    ) ) DEALLOCATE( MASSFLUP    )
+#endif
       IF ( ALLOCATED( TURBFLUP    ) ) DEALLOCATE( TURBFLUP    )
       IF ( ALLOCATED( STT_TEMPO2  ) ) DEALLOCATE( STT_TEMPO2  )
 
