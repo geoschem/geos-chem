@@ -629,20 +629,18 @@ CONTAINS
       !========================================================      
       ! ND44: Dry deposition diagnostic [molec/cm2/s]
       !========================================================
+                   IF ( ND44 > 0 .and. DryDepID > 0 ) THEN
 #if defined( BPCH_DIAG )
-                   IF ( ND44 > 0 ) THEN
                       ! For bpch diagnostic, store data in global AD44 array
                       AD44(I,J,DryDepID,1) = AD44(I,J,DryDepID,1) + FLUX
-                   ENDIF
 #endif
 #if defined( NC_DIAG )
-                   IF ( ND44 > 0 ) THEN
                       ! For netcdf diagnostic, store data in local array
                       ! Now use same units as bpch for comparison (ewl, 1/22/16)
                       DryDepFlux(I,J,DryDepID) = DryDepFlux(I,J,DryDepID) &
                                                 + FLUX
-                   ENDIF
 #endif
+                   ENDIF
 
                 ENDIF ! apply drydep
              ENDIF ! L <= PBLTOP
