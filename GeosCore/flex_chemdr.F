@@ -400,8 +400,8 @@
       ICNTRL = 0
       RCNTRL = 0.
       
-      ICNTRL(1) = 1             ! Autonomous
-      ICNTRL(2) = 0             ! Nonautonomous
+      ICNTRL(1) = 1	! 0 - non-autonomous, 1 - autonomous
+      ICNTRL(2) = 0	! 0 - vector tolerances, 1 - scalars
       
       ! Select Integrator
       ! ICNTRL(3)  -> selection of a particular method.
@@ -439,11 +439,9 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, start, finish )
-!!$OMP+PRIVATE( PHOTOL )
-!$OMP+PRIVATE( DERIV )
+!$OMP+PRIVATE( I, J, L, N )
+!$OMP+PRIVATE( start, finish, YLAT, MASS )
 !$OMP+PRIVATE( ISTATUS, RSTATE, IERR )
-!!$OMP+PRIVATE( ITEMPK, RO1D, RO1DplH2O, RO1DplH2, H2O )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -539,6 +537,10 @@
          rtim = rtim + finish - start
          GLOB_RCONST(I,J,L,:) = RCONST(:)
 
+         ! VAR and FIX are chunks of array C (mps, 2/24/16)
+         VAR(:) = C(1:NVAR)
+         FIX(:) = C(NVAR+1:NSPEC)
+
          ! mje Integrate the box forwards
          call cpu_time(start)
          call Integrate( TIN,    TOUT,    ICNTRL, 
@@ -546,6 +548,9 @@
          call cpu_time(finish)
          itim = itim + finish - start
 
+         ! Copy VAR and FIX back into C (mps, 2/24/16)
+         C(1:NVAR)       = VAR(:)
+         C(NVAR+1:NSPEC) = FIX(:)
 
          ! Try another time if it failed
 !         IF ( IERR < 0 ) THEN
