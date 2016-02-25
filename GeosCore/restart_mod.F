@@ -232,7 +232,7 @@
       ! Create restart containers for species
       !-----------------------------------------------------------------
       ! Only save species if chemistry simulation
-      IF ( Input_Opt%LCHEM ) THEN 
+      IF ( Input_Opt%LCHEM .AND. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
 
          ! Loop over the total # of species.  This also includes the "fake"
          ! prod/loss family species for the ND65 diagnostic.
@@ -734,7 +734,7 @@
       !=================================================================
 
       ! Only read species if chemistry simulation
-      IF ( Input_Opt%LCHEM ) THEN 
+      IF ( Input_Opt%LCHEM .AND. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
          
          ! Check if species data is in file by looking for first species
          v_name = 'SPC_' // TRIM( NAMEGAS(1) )
@@ -1437,8 +1437,8 @@
       !-----------------------------------------------------------------
       ! Populate restart species containers before writing species data
       !-----------------------------------------------------------------
-      ! Only save species if doing chemistry simulation
-      IF ( Input_Opt%LCHEM ) THEN
+      ! Only save species if doing full chemistry simulation
+      IF ( Input_Opt%LCHEM .AND. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          ! Print min/max species conc to log in [molec/cm3]
          ! to compare with legacy bpch cspec restart file for testing
