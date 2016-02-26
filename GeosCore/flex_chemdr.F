@@ -393,7 +393,11 @@
       ! mje Set up integration convergence conditions
       !RTOL = 1.d-1
       !ATOL = 1.d0
+#if defined (UCX )
+      RTOL = 2e-2_dp
+#else
       RTOL = 2e-1_dp
+#endif
       ATOL = 1e-2_dp
       
       ! mje Set up internal integrator parameters 
@@ -413,7 +417,7 @@
       ! = 4 :  method is  Rodas3
       ! = 5:   method is  Rodas4
       ICNTRL(3) = 4
-      ICNTRL(7) = 1             ! No adjoint
+      ICNTRL(7) = 1     ! No adjoint
 
       ! mje setup some internal diagnostics
       AVERAGEVAR(:) = 0.d0
@@ -449,6 +453,14 @@
 
          ! mje If we are not in the troposphere don't do the chemistry!
          IF (.not. ITS_IN_THE_CHEMGRID(I,J,L,State_Met)) CYCLE
+
+         ! Skipping buffer zone (lzh, 08/10/2014)
+         IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
+           IF ( J <=         Input_Opt%NESTED_J0W ) CYCLE
+           IF ( J >  JJPAR - Input_Opt%NESTED_J0E ) CYCLE
+           IF ( I <=         Input_Opt%NESTED_I0W ) CYCLE
+           IF ( I >  IIPAR - Input_Opt%NESTED_I0E ) CYCLE
+         ENDIF
 
          call cpu_time(start)
          HET(:,:) = 0.
@@ -535,7 +547,6 @@
          CALL Update_RCONST( )
          call cpu_time(finish)
          rtim = rtim + finish - start
-         GLOB_RCONST(I,J,L,:) = RCONST(:)
 
          ! VAR and FIX are chunks of array C (mps, 2/24/16)
          VAR(:) = C(1:NVAR)
@@ -547,10 +558,6 @@
      &                   RCNTRL, ISTATUS, RSTATE, IERR )
          call cpu_time(finish)
          itim = itim + finish - start
-
-         ! Copy VAR and FIX back into C (mps, 2/24/16)
-         C(1:NVAR)       = VAR(:)
-         C(NVAR+1:NSPEC) = FIX(:)
 
          ! Try another time if it failed
 !         IF ( IERR < 0 ) THEN
@@ -584,6 +591,15 @@
          !GLOB_DERIV(I,J,L,:)=DERIV
          !GLOB_RATES(I,J,L,:)=A
 
+         ! Copy VAR and FIX back into C (mps, 2/24/16)
+         C(1:NVAR)       = VAR(:)
+         C(NVAR+1:NSPEC) = FIX(:)
+
+         ! save next integration time step
+         HSAVE_KPP(I,J,L) = RSTATE(Nhnew)
+
+         GLOB_RCONST(I,J,L,:) = RCONST(:)
+
          ! mje some simple diagnostics to check that things make sense
          ! mje these can be removed once we are happy with everything
          DO N=1,NSPEC
@@ -606,9 +622,6 @@
             IF ( CSPECTOKPP(N) .eq. 0) CYCLE
             State_Chm%Species(I,J,L,CSPECTOKPP(N))= real(C(N),kind=fp)
          ENDDO
-
-         ! save next integration time step
-         HSAVE_KPP(I,J,L) = RSTATE(Nhnew)
 
       ENDDO
       ENDDO
