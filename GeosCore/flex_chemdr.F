@@ -508,8 +508,9 @@
 
          ! Debug
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-            DO N = 1,NSPEC
-               write(*,'(2a,e12.4)') '<> b ', SPC_NAMES(N), C(N)
+            DO N = 1,Input_Opt%N_SPECIES
+               write(*,'(2a,e12.4)') '<> b ', NAMEGAS(N),
+     &                                        State_Chm%Species(I,J,L,N)
             ENDDO
          ENDIF
 
@@ -608,13 +609,6 @@
          ENDDO
          MASS=MASS+State_Met%AD(I,J,L)
 
-         ! Debug
-         IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-            DO N = 1,NSPEC
-               write(*,'(2a,e12.4)') '<> a ', SPC_NAMES(N), C(N)
-            ENDDO
-         ENDIF
-
          ! mje Check we have no negative values and copy the concentrations
          ! mje calculated into State_Chm%Species
          DO N=1,NSPEC
@@ -622,6 +616,14 @@
             IF ( CSPECTOKPP(N) .eq. 0) CYCLE
             State_Chm%Species(I,J,L,CSPECTOKPP(N))= real(C(N),kind=fp)
          ENDDO
+
+         ! Debug
+         IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
+            DO N = 1,Input_Opt%N_SPECIES
+               write(*,'(2a,e12.4)') '<> a ', NAMEGAS(N),
+     &                                        State_Chm%Species(I,J,L,N)
+            ENDDO
+         ENDIF
 
       ENDDO
       ENDDO
@@ -716,6 +718,7 @@
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! FOR DIAGNOSTIC PURPOSES ONLY:
+#if defined( DEVEL )
       ! mje  STT currently in kg / grid box convert to v/v
       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT)
 
@@ -761,7 +764,6 @@
      &                          'Flex_Chemdr')
             ENDIF
       ENDDO
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Write out Rate values
       DO N=1,NREACT
@@ -814,6 +816,8 @@
      &     Array3D = SCOEFF(:,:,:,3),
      &     COL     = Input_Opt%DIAG_COLLECTION,
      &     RC      = HCRC )
+#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! mje set rid of the pointers created
       NULLIFY (STT)

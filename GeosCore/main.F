@@ -599,20 +599,12 @@
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_TROPOPAUSE' )
       ENDIF
 
-      ! Initialize allocatable SMVGEAR/KPP arrays
+      ! Initialize allocatable KPP arrays
       IF ( LEMIS .or. LCHEM ) THEN
          IF ( ITS_A_FULLCHEM_SIM   .or.
      &        ITS_AN_AEROSOL_SIM ) THEN
             CALL INIT_COMODE( am_I_Root, Input_Opt, RC )
          ENDIF
-!         IF ( LKPP ) THEN
-!            CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,  JJPAR,   
-!     &                              LLCHEM,    ITLOOP, NMTRATE, 
-!     &                              IGAS,      RC )
-!         ENDIF
-!         IF ( RC == 1 )
-!     $        CALL ERROR_STOP( "Alloc error", "INIT_GCKPP_COMODE" )
-!         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_COMODE' )
       ENDIF
          
       ! Added to read input file for linoz strat (dbj, jliu, bmy, 10/16/09)
@@ -699,15 +691,12 @@
 
       RC = GEOS_Timer_End ( "HEMCO" )
 
-      !=================================================================
-      !      ***** INITIALIZE DIAGNOSTICS ***** 
-      !=================================================================      
-
+#if defined( DEVEL )
       ! Initialize diagnostics other than the default HEMCO diagnostics
       ! initialized above (ckeller, 1/13/15).
       CALL Diagnostics_Init( am_I_Root, Input_Opt, 
      &                       State_Met, State_Chm, RC )
-
+#endif
 
       ! Debug
       write(*,'(3a,2e12.4)') '<> b INIT_FLEXCHEM ',
@@ -719,7 +708,7 @@
       ! Initialize photochemistry & tracer->species mapping
       ! For FULLCHEM, INPHOT was previously done in chemdr, 
       ! but chemdr is gone.
-      IF ( ITS_A_FULLCHEM_SIM ) THEN
+      IF ( LCHEM .and. ITS_A_FULLCHEM_SIM ) THEN
          CALL INIT_FLEXCHEM( Input_Opt, State_Met, State_Chm,
      &                       am_I_Root, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_FLEXCHEM' )
