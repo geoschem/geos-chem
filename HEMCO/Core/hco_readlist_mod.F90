@@ -28,8 +28,8 @@ MODULE HCO_ReadList_Mod
 !
 ! !USES:
 !
+  USE HCO_Types_Mod
   USE HCO_Error_MOD
-  USE HCO_DataCont_MOD, ONLY : DataCont, ListCont
   USE HCO_State_MOD,    ONLY : HCO_State
  
   IMPLICIT NONE
@@ -61,24 +61,6 @@ MODULE HCO_ReadList_Mod
 !
 ! !PRIVATE TYPES:
 !
-  ! RdList contains lists to all ReadLists
-  TYPE RdList
-     TYPE(ListCont), POINTER :: Once
-     TYPE(ListCont), POINTER :: Always
-     TYPE(ListCont), POINTER :: Year
-     TYPE(ListCont), POINTER :: Month
-     TYPE(ListCont), POINTER :: Day
-     TYPE(ListCont), POINTER :: Hour
-  END TYPE RdList
-
-  ! Internally used ReadLists
-  TYPE(RdList),      POINTER :: ReadLists => NULL()
-
-  ! To manage file open/close
-  INTEGER, PARAMETER       :: MaxFileOpen = 5 ! Max. # of open streams
-  INTEGER                  :: FileLuns (MaxFileOpen) = -1
-  CHARACTER(LEN=255)       :: FileNames(MaxFileOpen) = ''
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -129,11 +111,11 @@ CONTAINS
     ! ================================================================
 
     ! For error handling
-    CALL HCO_ENTER ('ReadList_Set (hco_readlist_mod.F90)', RC )
+    CALL HCO_ENTER (HcoState%Config%Err,'ReadList_Set (hco_readlist_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode
-    verb = HCO_IsVerb( 2 ) 
+    verb = HCO_IsVerb( HcoState%Config%Err, 2 ) 
 
     ! Add container to ReadList according to update freqency.
     ! Fields in list 'Hour' will be updated (i.e. re-read) every hour, 
@@ -172,28 +154,28 @@ CONTAINS
     ENDIF
 
     IF (     intv == 1 ) THEN 
-       CALL DtCont_Add( ReadLists%Always, Dct ) 
+       CALL DtCont_Add( HcoState%ReadLists%Always, Dct ) 
     ELSEIF ( intv == 2 ) THEN 
-       CALL DtCont_Add( ReadLists%Hour,   Dct ) 
+       CALL DtCont_Add( HcoState%ReadLists%Hour,   Dct ) 
     ELSEIF ( intv == 3 ) THEN 
-       CALL DtCont_Add( ReadLists%Day,    Dct ) 
+       CALL DtCont_Add( HcoState%ReadLists%Day,    Dct ) 
     ELSEIF ( intv == 4 ) THEN 
-       CALL DtCont_Add( ReadLists%Month,  Dct ) 
+       CALL DtCont_Add( HcoState%ReadLists%Month,  Dct ) 
     ELSEIF ( intv == 5 ) THEN 
-       CALL DtCont_Add( ReadLists%Year,   Dct ) 
+       CALL DtCont_Add( HcoState%ReadLists%Year,   Dct ) 
     ELSE
-       CALL DtCont_Add( ReadLists%Once,   Dct ) 
+       CALL DtCont_Add( HcoState%ReadLists%Once,   Dct ) 
     ENDIF
 
     ! Verbose
     IF ( Verb ) THEN
        WRITE(MSG,*) 'New container set to ReadList:'
-       CALL HCO_MSG(MSG,SEP1='-')
-       CALL HCO_PrintDataCont( Dct, 3 )
+       CALL HCO_MSG(HcoState%Config%Err, MSG,SEP1='-')
+       CALL HCO_PrintDataCont( HcoState, Dct, 3 )
     ENDIF
 
     ! Leave w/ success
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE ( HcoState%Config%Err, RC ) 
 
   END SUBROUTINE ReadList_Set
 !EOC
@@ -247,77 +229,78 @@ CONTAINS
     ! ================================================================
 
     ! For error handling
-    CALL HCO_ENTER ('ReadList_Read (hco_readlist_mod.F90)', RC )
+    CALL HCO_ENTER ( HcoState%Config%Err, &
+                    'ReadList_Read (hco_readlist_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode
-    verb = HCO_IsVerb( 1 ) 
+    verb = HCO_IsVerb( HcoState%Config%Err, 1 ) 
 
     ! Read all fields?
     RdAll = .FALSE.
     IF ( PRESENT(ReadAll) ) RdAll = ReadAll
-    IF ( HcoClock_First( .FALSE. ) ) RdAll = .TRUE.
+    IF ( HcoClock_First( HcoState%Clock, .FALSE. ) ) RdAll = .TRUE.
 
     ! Read content from one-time list on the first call 
     IF ( RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading once list!'
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
-       CALL ReadList_Fill ( am_I_Root, HcoState, ReadLists%Once, RC )
+       CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Once, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
     ! Read content from year-list if it's a new year
-    IF ( HcoClock_NewYear( .FALSE. ) .OR. RdAll ) THEN
+    IF ( HcoClock_NewYear( HcoState%Clock, .FALSE. ) .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading year list!'
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
-       CALL ReadList_Fill ( am_I_Root, HcoState, ReadLists%Year, RC )
+       CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Year, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
     ! Read content from month-list if it's a new month
-    IF ( HcoClock_NewMonth( .FALSE. ) .OR. RdAll ) THEN
+    IF ( HcoClock_NewMonth( HcoState%Clock, .FALSE. ) .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading month list!'
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
-       CALL ReadList_Fill ( am_I_Root, HcoState, ReadLists%Month, RC )
+       CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Month, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
     ! Read content from day-list if it's a new day 
-    IF ( HcoClock_NewDay( .FALSE. ) .OR. RdAll ) THEN
+    IF ( HcoClock_NewDay( HcoState%Clock, .FALSE. ) .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading day list!'
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
-       CALL ReadList_Fill ( am_I_Root, HcoState, ReadLists%Day, RC )
+       CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Day, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
     ! Read content from hour-list if it's a new hour 
-    IF ( HcoClock_NewHour( .FALSE. ) .OR. RdAll ) THEN
+    IF ( HcoClock_NewHour( HcoState%Clock, .FALSE. ) .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading hour list!'
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
-       CALL ReadList_Fill ( am_I_Root, HcoState, ReadLists%Hour, RC )
+       CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Hour, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
     ! Always add/update content from always-list
     IF ( Verb ) THEN
        WRITE(MSG,*) 'Now reading always list!'
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
     ENDIF
-    CALL ReadList_Fill ( am_I_Root, HcoState, ReadLists%Always, RC ) 
+    CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Always, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     ! Leave w/ success
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE ( HcoState%Config%Err, RC ) 
 
   END SUBROUTINE ReadList_Read
 !EOC
@@ -350,7 +333,7 @@ CONTAINS
 ! !USES:
 !
     USE HCOIO_DataRead_Mod, ONLY : HCOIO_DataRead
-    USE HCOIO_DataRead_Mod, ONLY : HCOIO_ReadOther
+    USE HCOIO_Read_Std_Mod, ONLY : HCOIO_ReadOther
     USE HCO_FileData_Mod,   ONLY : FileData_ArrIsDefined
     USE HCO_FileData_Mod,   ONLY : FileData_ArrIsTouched
     USE HCO_EmisList_Mod,   ONLY : EmisList_Pass
@@ -400,11 +383,12 @@ CONTAINS
     ! ================================================================
 
     ! For error handling
-    CALL HCO_ENTER ('ReadList_Fill (hco_readlist_mod.F90)', RC )
+    CALL HCO_ENTER (HcoState%Config%Err,&
+                   'ReadList_Fill (hco_readlist_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode?
-    verb = HCO_IsVerb ( 2 ) 
+    verb = HCO_IsVerb ( HcoState%Config%Err, 2 ) 
 
     ! Loop over all containers
     Lct => ReadList
@@ -509,7 +493,7 @@ CONTAINS
     Lct => NULL()
 
     ! Leave with success 
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE ( HcoState%Config%Err, RC ) 
 
   END SUBROUTINE ReadList_Fill
 !EOC
@@ -599,18 +583,18 @@ CONTAINS
     ! Check if this file has been opened previously. In this case, just
     ! pass the LUN.
     ! Loop over all entries
-    DO I = 1, MaxFileOpen
+    DO I = 1, HCO_MaxFileOpen
        ! Same file?
-       IF ( TRIM(FileNames(I)) == TRIM(Lct%Dct%Dta%ncFile) ) THEN
+       IF ( TRIM(HcoState%ReadLists%FileNames(I)) == TRIM(Lct%Dct%Dta%ncFile) ) THEN
           ! Sanity check: LUN must be valid
-          IF ( FileLuns(I) > 0 ) THEN
-             LUN = FileLuns(I)
+          IF ( HcoState%ReadLists%FileLuns(I) > 0 ) THEN
+             LUN = HcoState%ReadLists%FileLuns(I)
           ENDIF
 
           ! If file will be closed, update LUN to -1. This is to make
           ! sure that this slot is made available for another file.
           IF ( CLS ) THEN
-             FileLuns(I) = -1
+             HcoState%ReadLists%FileLuns(I) = -1
           ENDIF
 
           ! Can leave here
@@ -677,11 +661,11 @@ CONTAINS
        ! N is the position this LUN will be save in
        N = -1
 
-       DO I = 1, MaxFileOpen
-          IF ( FileLuns(I) == -1 ) THEN
-             FileLuns(I)  = LUN
-             FileNames(I) = Lct%Dct%Dta%ncFile
-             N            = I
+       DO I = 1, HCO_MaxFileOpen
+          IF ( HcoState%ReadLists%FileLuns(I) == -1 ) THEN
+             HcoState%ReadLists%FileLuns(I)  = LUN
+             HcoState%ReadLists%FileNames(I) = Lct%Dct%Dta%ncFile
+             N                               = I
              EXIT
           ENDIF
        ENDDO
@@ -690,7 +674,7 @@ CONTAINS
        IF ( N == -1 ) THEN 
           MSG = 'Too many file streams open! Cannot keep file in ' // &
                 'memory: ' // TRIM(Lct%Dct%Dta%ncFile)
-          CALL HCO_MSG(MSG) 
+          CALL HCO_MSG(HcoState%Config%Err,MSG) 
        ENDIF
     ENDIF
 #endif
@@ -799,7 +783,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadList_Init()
+  SUBROUTINE ReadList_Init( am_I_Root, ReadLists, RC )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(RdList),     POINTER        :: ReadLists 
+    INTEGER,          INTENT(INOUT)  :: RC
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
@@ -848,7 +841,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadList_Print( verb )
+  SUBROUTINE ReadList_Print( HcoState, ReadLists, verb )
 !
 ! !USES:
 !
@@ -856,7 +849,9 @@ CONTAINS
 !
 ! !INPUT ARGUMENTS
 !
-    INTEGER,  INTENT(IN)    :: verb   ! verbose number
+    TYPE(HCO_State), POINTER       :: HcoState
+    TYPE(RdList),    POINTER       :: ReadLists 
+    INTEGER,         INTENT(IN)    :: verb   ! verbose number
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
@@ -872,34 +867,34 @@ CONTAINS
     ! ================================================================
 
     ! Nothing to do if HEMCO verbose level is below passed verbose number
-    IF ( .NOT. HCO_IsVerb(verb) ) RETURN
+    IF ( .NOT. HCO_IsVerb(HcoState%Config%Err,verb) ) RETURN
 
     ! Print content of all lists
     IF ( ASSOCIATED(ReadLists) ) THEN 
 
        WRITE(MSG,*) 'Content of one-time list:'
        CALL HCO_MSG(MSG,SEP1='=')
-       CALL HCO_PrintList ( ReadLists%Once, verb )
+       CALL HCO_PrintList ( HcoState, ReadLists%Once, verb )
 
        WRITE(MSG,*) 'Content of year-list:'
        CALL HCO_MSG(MSG,SEP1='=')
-       CALL HCO_PrintList ( ReadLists%Year, verb )
+       CALL HCO_PrintList ( HcoState, ReadLists%Year, verb )
 
        WRITE(MSG,*) 'Content of month-list:'
        CALL HCO_MSG(MSG,SEP1='=')
-       CALL HCO_PrintList ( ReadLists%Month, verb )
+       CALL HCO_PrintList ( HcoState, ReadLists%Month, verb )
 
        WRITE(MSG,*) 'Content of day-list:'
        CALL HCO_MSG(MSG,SEP1='=')
-       CALL HCO_PrintList ( ReadLists%Day, verb )
+       CALL HCO_PrintList ( HcoState, ReadLists%Day, verb )
 
        WRITE(MSG,*) 'Content of hour-list:'
        CALL HCO_MSG(MSG,SEP1='=')
-       CALL HCO_PrintList ( ReadLists%Hour, verb )
+       CALL HCO_PrintList ( HcoState, ReadLists%Hour, verb )
 
        WRITE(MSG,*) 'Content of always-to-read list:'
        CALL HCO_MSG(MSG,SEP1='=')
-       CALL HCO_PrintList ( ReadLists%Always, verb )
+       CALL HCO_PrintList ( HcoState, ReadLists%Always, verb )
 
     ELSE
        WRITE(MSG,*) 'ReadList not defined yet!!'
@@ -922,7 +917,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadList_Remove( am_I_Root, cName, RC )
+  SUBROUTINE ReadList_Remove( am_I_Root, HcoState, cName, RC )
 !
 ! !USES:
 !
@@ -930,6 +925,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )   :: am_I_Root
+    TYPE(HCO_State),  POINTER         :: HcoState
     CHARACTER(LEN=*), INTENT(IN   )   :: cName 
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -955,18 +951,18 @@ CONTAINS
      
     ! Assume success until otherwise
     RC = HCO_SUCCESS
-    IF ( .NOT. ASSOCIATED(ReadLists) ) RETURN
+    IF ( .NOT. ASSOCIATED(HcoState%ReadLists) ) RETURN
 
     ! Search for the given container
     DO I = 1,6
 
        ! Select list to be used
-       IF ( I == 1 ) This => ReadLists%Once
-       IF ( I == 2 ) This => ReadLists%Year
-       IF ( I == 3 ) This => ReadLists%Month
-       IF ( I == 4 ) This => ReadLists%Day
-       IF ( I == 5 ) This => ReadLists%Hour
-       IF ( I == 6 ) This => ReadLists%Always
+       IF ( I == 1 ) This => HcoState%ReadLists%Once
+       IF ( I == 2 ) This => HcoState%ReadLists%Year
+       IF ( I == 3 ) This => HcoState%ReadLists%Month
+       IF ( I == 4 ) This => HcoState%ReadLists%Day
+       IF ( I == 5 ) This => HcoState%ReadLists%Hour
+       IF ( I == 6 ) This => HcoState%ReadLists%Always
 
        ! Initialize working variables
        FOUND = .FALSE.
@@ -997,18 +993,18 @@ CONTAINS
        IF ( This%Dct%DtaHome >= 0 ) THEN
           MSG = 'Cannot remove from ReadList. Data has already been read: ' // &
                 TRIM(This%Dct%cName)
-          CALL HCO_ERROR( MSG, RC, THISLOC = LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
        ENDIF
 
        ! Connect previous container to next container in list:
        ! - Special case that this is the first container in the list
        IF ( Prev%Dct%cID == This%Dct%cID ) THEN
-          IF ( I == 1 ) ReadLists%Once   => Next
-          IF ( I == 2 ) ReadLists%Year   => Next
-          IF ( I == 3 ) ReadLists%Month  => Next
-          IF ( I == 4 ) ReadLists%Day    => Next
-          IF ( I == 5 ) ReadLists%Hour   => Next
-          IF ( I == 6 ) ReadLists%Always => Next
+          IF ( I == 1 ) HcoState%ReadLists%Once   => Next
+          IF ( I == 2 ) HcoState%ReadLists%Year   => Next
+          IF ( I == 3 ) HcoState%ReadLists%Month  => Next
+          IF ( I == 4 ) HcoState%ReadLists%Day    => Next
+          IF ( I == 5 ) HcoState%ReadLists%Hour   => Next
+          IF ( I == 6 ) HcoState%ReadLists%Always => Next
 
        ! - Otherwise, just pop out this container from list
        ELSE
@@ -1052,7 +1048,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadList_Cleanup( RemoveDct )
+  SUBROUTINE ReadList_Cleanup( ReadLists, RemoveDct )
 !
 ! !USES:
 !
@@ -1060,7 +1056,12 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN)   :: RemoveDct
+    
+    LOGICAL,          INTENT(IN   )   :: RemoveDct
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(RdList),     POINTER         :: ReadLists 
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version

@@ -358,6 +358,7 @@ cd !----------------------------------------------------------------------------
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE GLOBAL_BR_MOD,      ONLY : GET_GLOBAL_BR
       USE GRID_MOD,           ONLY : GET_AREA_CM2
@@ -627,13 +628,13 @@ cd !----------------------------------------------------------------------------
          MONTH = GET_MONTH()
 
          ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
-         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,   RC )
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH', OH,   RC )
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
          ENDIF
 
          ! Get a pointer to the monthly mean O3 from HEMCO (bmy, 3/11/15)
-         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_O3', O3,  RC )
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_O3', O3,  RC )
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_O3', LOC )
          ENDIF
@@ -643,7 +644,7 @@ cd !----------------------------------------------------------------------------
 
          ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
          IF ( LRED_JNO2 ) THEN
-            CALL HCO_GetPtr( am_I_Root, 'JNO2', JNO2,  RC )
+            CALL HCO_GetPtr( am_I_Root, HcoState, 'JNO2', JNO2,  RC )
             IF ( RC /= GIGC_SUCCESS ) THEN
                CALL ERROR_STOP ( 'Cannot get pointer to JNO2', LOC )
             ENDIF
@@ -3184,10 +3185,10 @@ cd !----------------------------------------------------------------------------
 
       ! HEMCO update
       USE HCO_ERROR_MOD
-      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoDiagn 
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE HCO_INTERFACE_MOD,  ONLY : GetHcoDiagn 
 !
 ! !INPUT PARAMETERS:
 !
@@ -3247,7 +3248,6 @@ cd !----------------------------------------------------------------------------
       ! HEMCO update
       CHARACTER(LEN=63)        :: DgnName
       REAL(f4),        POINTER :: Ptr2D(:,:) => NULL()  
-      TYPE(HCO_STATE), POINTER :: HcoState   => NULL()
 
       ! Strings
       CHARACTER(LEN=255)       :: MSG
@@ -3292,7 +3292,6 @@ cd !----------------------------------------------------------------------------
       !=================================================================
 
       ! Get HEMCO state object
-      CALL GetHcoState ( HcoState )
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
          CALL ERROR_STOP ( 'HcoState not associated!', LOC )
       ENDIF 
@@ -3345,15 +3344,12 @@ cd !----------------------------------------------------------------------------
       Ptr2D    => NULL()
 
       ! Soil distribution 
-      CALL HCO_GetPtr( am_I_Root, 'HG0_SOILDIST', Ptr2D, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'HG0_SOILDIST', Ptr2D, RC )
       IF ( RC /= HCO_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to HG0_SOILDIST', LOC )
       ENDIF
       EHg0_dist =  Ptr2D(:,:) 
       Ptr2D     => NULL()
-
-      ! Free pointer
-      HcoState => NULL()
 
       !=================================================================
       ! Print totals to the screen in [Gg/yr]
@@ -4603,6 +4599,7 @@ cd !----------------------------------------------------------------------------
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE TIME_MOD,           ONLY : EXPAND_DATE
 
@@ -4648,7 +4645,8 @@ cd !----------------------------------------------------------------------------
       !=================================================================
       
       ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
-      CALL HCO_GetPtr( am_I_Root, 'CFPP_NEI2005_Hg2', E_ELEC_Hg2, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                'CFPP_NEI2005_Hg2', E_ELEC_Hg2, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP ( 
      &      'Cannot get pointer to CFPP_NEI2005_Hg2!', LOC )
@@ -5183,9 +5181,10 @@ cd !----------------------------------------------------------------------------
 !
 ! !USES:
 !
-      USE ERROR_MOD,       ONLY : ERROR_STOP
+      USE ERROR_MOD,         ONLY : ERROR_STOP
       USE HCO_ERROR_MOD
-      USE HCO_ExtList_Mod, ONLY : GetExtOpt
+      USE HCO_INTERFACE_MOD, ONLY : HcoState
+      USE HCO_ExtList_Mod,   ONLY : GetExtOpt
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -5213,8 +5212,8 @@ cd !----------------------------------------------------------------------------
       ! Set the value of LRED_JNO2 depending on whether or not
       ! the HEMCO collection LRED_JNO2 is activated
       !-----------------------------------------------------------------
-      CALL GetExtOpt( -999, 'LRED_JNO2',  OptValBool=LRED_JNO2, 
-     &                       FOUND=FOUND, RC=RC )
+      CALL GetExtOpt( HcoState%Config, -999, 'LRED_JNO2',  
+     &                OptValBool=LRED_JNO2, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
          CALL ERROR_STOP( 'GetExtOpt LRED_JNO2', LOC )
       ENDIF
@@ -5228,8 +5227,8 @@ cd !----------------------------------------------------------------------------
       !-----------------------------------------------------------------
 
       ! First look for BrOx_GC
-      CALL GetExtOpt( -999, 'BrOx_GC',    OptValBool=LGC,
-     &                       FOUND=FOUND, RC=RC )
+      CALL GetExtOpt( HcoState%Config, -999, 'BrOx_GC', 
+     &                OptValBool=LGC, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
          CALL ERROR_STOP( 'GetExtOpt BrOx_GC', LOC )
       ENDIF
@@ -5247,8 +5246,8 @@ cd !----------------------------------------------------------------------------
       ! Set the value of LNEI2005 depending on whether or not
       ! the HEMCO collection NEI2005 is activated
       !-----------------------------------------------------------------
-      CALL GetExtOpt( -999, 'NEI2005',  OptValBool=LNEI2005,
-     &                       FOUND=FOUND, RC=RC )
+      CALL GetExtOpt( HcoState%Config, -999, 'NEI2005',  
+     &                OptValBool=LNEI2005, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
          CALL ERROR_STOP( 'GetExtOpt LNEI2005', LOC )
       ENDIF
@@ -5260,8 +5259,8 @@ cd !----------------------------------------------------------------------------
       ! Set the value of LInPlume depending on whether or not
       ! the HEMCO collection NEI2005 is activated
       !-----------------------------------------------------------------
-      CALL GetExtOpt( -999, 'LRED_INPLUME',  OptValBool=LInPlume,
-     &                       FOUND=FOUND, RC=RC )
+      CALL GetExtOpt( HcoState%Config, -999, 'LRED_INPLUME',  
+     &                OptValBool=LInPlume, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
          CALL ERROR_STOP( 'GetExtOpt LInPlume5', LOC )
       ENDIF

@@ -111,6 +111,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE HCO_Interface_Mod,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
 
@@ -199,7 +200,7 @@
       IF ( MONTH /= LASTMONTH ) THEN
          
          ! Get a pointer to the HEMCO data structure (bmy, 3/11/15)
-         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,  RC )
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH', OH,  RC )
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
          ENDIF

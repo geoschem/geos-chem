@@ -107,21 +107,21 @@ CONTAINS
     ! HCOX_CUSTOM_RUN begins here!
     !=================================================================
 
-    ! Sanity check: return if extension not turned on
-    IF ( .NOT. ExtState%Custom ) RETURN
-
     ! Enter
-    CALL HCO_ENTER ( 'HCOX_Custom_Run (hcox_custom_mod.F90)', RC )
+    CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_Custom_Run (hcox_custom_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Set error flag
     ERR = .FALSE.
 
+    ! Sanity check: return if extension not turned on
+    IF ( .NOT. ExtState%Custom ) RETURN
+
     ! Initialize flux arrays
     ALLOCATE ( FLUXICE( HcoState%NX,HcoState%NY),        &
                FLUXWIND(HcoState%NX,HcoState%NY), STAT=AS )
     IF ( AS/= 0 ) THEN
-       CALL HCO_ERROR( 'ALLOCATION ERROR', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'ALLOCATION ERROR', RC )
        RETURN
     ENDIF
     FLUXICE  = 0.0_hp
@@ -187,7 +187,7 @@ CONTAINS
     ENDDO !N
 
     ! Return w/ success
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HCOX_Custom_Run
 !EOC
@@ -244,13 +244,13 @@ CONTAINS
     !=================================================================
 
     ! Extension Nr.
-    ExtNr = GetExtNr( TRIM(ExtName) )
+    ExtNr = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
     IF ( ExtNr <= 0 ) RETURN
 
     ! Enter
-    CALL HCO_ENTER ( 'HCOX_Custom_Init (hcox_custom_mod.F90)', RC )
+    CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_Custom_Init (hcox_custom_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    verb = HCO_IsVerb(1) 
+    verb = HCO_IsVerb(HcoState%Config%Err,1) 
 
     ! Set species IDs      
     CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
@@ -259,7 +259,7 @@ CONTAINS
     ! Assume first half are 'wind species', second half are ice.
     IF ( MOD(nSpc,2) /= 0 ) THEN
        MSG = 'Cannot set species IDs for custom emission module!'
-       CALL HCO_ERROR ( MSG, RC )
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ENDIF
  
@@ -279,20 +279,20 @@ CONTAINS
                FLUXICE (HcoState%NX, HcoState%NY), STAT=AS )
     IF ( AS/=0 ) THEN
        MSG = 'Allocation error: FLUXWIND, FLUXICE'
-       CALL HCO_ERROR ( MSG, RC )
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ENDIF
 
     ! Verbose mode
     IF ( verb ) THEN
        MSG = 'Use custom emissions module (extension module)'
-       CALL HCO_MSG( MSG )
+       CALL HCO_MSG(HcoState%Config%Err,MSG )
 
        MSG = 'Use the following species (Name: HcoID):'
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
        DO N = 1, nSpc
           WRITE(MSG,*) TRIM(SpcNames(N)), ':', HcoIDs(N)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDDO
     ENDIF
 
@@ -309,7 +309,7 @@ CONTAINS
     IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  )
     IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
 
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
 
   END SUBROUTINE HCOX_Custom_Init
 !EOC

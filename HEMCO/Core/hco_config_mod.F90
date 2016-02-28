@@ -8,24 +8,32 @@
 ! for this simulation run, and stores these information. This occurs
 ! in two calls: Config\_ReadFile and SetReadList. Config\_ReadFile
 ! writes the entire content of the configuration file into buffer
-! except for the input data associated with an disabled extension. 
+! except for the input data associated with a disabled extension. 
 ! SetReadList does many more logical checks and adds all data used
 ! by HEMCO to ReadList. Scale factors not used by any of the base 
-! emissions and base emission fields that won't be used are skipped
-! in this step.
+! emissions and base emission fields (e.g. scale factors that won't 
+! be used ) are removed in this step.
 !\\
 !\\ 
 ! All data fields are saved in individual data containers, which are 
 ! organized in the ConfigList. Hence, ConfigList is a collection of 
-! data containers, with every container representing an entry of the
-! configuration file. Each data container has its unique container ID
-! for identification. Note that all HEMCO lists (ConfigList, ReadList,
-! EmisList) access the same containers.
+! all HEMCO data containers, with every container representing an 
+! entry of the configuration file. Each data container has its unique 
+! container ID for identification. All HEMCO lists (ConfigList, 
+! ReadList, EmisList) access the same containers.
 !\\
 !\\
 ! The configuration file provides all source file information of the
-! emission fields and scale factors to be used. It is read at the
+! emission fields and scale factors to be used. It must be read at the
 ! beginning of a simulation run.
+!\\
+!\\
+! As of HEMCO v2.0, the ConfigList linked list sits within the HEMCO
+! configuration object (HcoConfig). HcoConfig must be passed to all
+! routines. This allows the parallel usage of multiple invocations 
+! of HEMCO that use different input data. HcoConfig is initialized 
+! upon reading the HEMCO configuration file (within subroutine 
+! Config\_ReadFile).
 !\\
 !\\
 ! !INTERFACE: 
@@ -37,8 +45,7 @@ MODULE HCO_Config_Mod
   USE HCO_ERROR_MOD
   USE HCO_DIAGN_MOD
   USE HCO_CHARTOOLS_MOD
-  USE HCO_FILEDATA_MOD,       ONLY : FileData
-  USE HCO_DATACONT_MOD,       ONLY : DataCont, ListCont
+  USE HCO_TYPES_MOD
   USE HCO_STATE_MOD,          ONLY : HCO_State
 
   IMPLICIT NONE
@@ -48,9 +55,6 @@ MODULE HCO_Config_Mod
 !
   PUBLIC  :: SetReadList 
   PUBLIC  :: Config_ReadFile
-  PUBLIC  :: GetNextCont
-  PUBLIC  :: Config_Cleanup
-  PUBLIC  :: Config_ScalIDinUse
   PUBLIC  :: Config_GetnSpecies
   PUBLIC  :: Config_GetSpecNames
 !
@@ -70,43 +74,21 @@ MODULE HCO_Config_Mod
   PRIVATE :: BracketCheck 
   PRIVATE :: AddZeroScal 
   PRIVATE :: AddShadowFields
+  PRIVATE :: ConfigInit 
 !
 ! !REVISION HISTORY:
 !  18 Jun 2013 - C. Keller   -  Initialization
 !  08 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  08 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  15 Feb 2015 - C. Keller   - Added BracketCheck, AddZeroScal, AddShadowFields
+!  15 Feb 2016 - C. Keller   - Update to v2.0: ConfigList now sits in HcoConfig 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !MODULE TYPES/ARGUMENTS:
 !
-  ! Variables to store (unique) scale factor IDs and species names
-  TYPE ScalIDCont
-     INTEGER                   :: ScalID
-     TYPE(ScalIDCont), POINTER :: NEXT
-  END TYPE
-  TYPE SpecNameCont
-     CHARACTER(LEN=31)           :: SpecName
-     TYPE(SpecNameCont), POINTER :: NEXT
-  END TYPE
 
-  ! Store unique scale factor IDs and species names in these lists
-  TYPE(ScalIDCont),   POINTER  :: ScalIDList   => NULL()
-  TYPE(SpecNameCont), POINTER  :: SpecNameList => NULL()
-
-  ! Linked list w/ all input file information. For every 
-  ! line of the input file, a separate data container will 
-  ! be added to ConfigList
-  TYPE(ListCont), POINTER     :: ConfigList => NULL()
-
-  ! SetReadList called or not?
-  LOGICAL              :: SetReadListCalled = .FALSE.
-
-  ! Configuration file read or not? 
-  LOGICAL              :: ConfigFileRead = .FALSE.
- 
   !----------------------------------------------------------------
   ! MODULE ROUTINES follow below
   !----------------------------------------------------------------
@@ -120,17 +102,22 @@ CONTAINS
 !
 ! !IROUTINE: Config_Readfile
 !
-! !DESCRIPTION: Subroutine CONFIG\_READFILE reads the HEMCO configuration file
+! !DESCRIPTION: Subroutine CONFIG\_READFILE reads the HEMCO configuration file,
+! archives all HEMCO options and settings (including traceback/error setup),
 ! and creates a data container for every (used) emission field in the config. 
 ! file. All containers become linked through the ConfigList linked list. 
 ! Note that lists EmisList and ReadList (created lateron)  will point to the 
-! same containers, but ordering the containers in a manner that is most 
-! efficient for the respective purpose. 
+! same containers, but will order the containers in a manner that is most 
+! efficient for the respective purpose.
+! Argument HcoConfig represents the HEMCO configuration object. It contains
+! pointers to the HEMCO traceback and error information as well as a pointer
+! to ConfigList. If undefined, HcoConfig becomes initialized as part of this
+! routine.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Config_ReadFile( am_I_Root, ConfigFile, Phase, RC, IsNest )
+  SUBROUTINE Config_ReadFile( am_I_Root, HcoConfig, ConfigFile, Phase, RC, IsNest )
 !
 ! !USES:
 !
@@ -141,6 +128,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,            INTENT(IN)              :: am_I_Root  ! root CPU?
+    TYPE(ConfigObj),    POINTER                 :: HcoConfig  ! HEMCO config obj
     CHARACTER(LEN=*),   INTENT(IN)              :: ConfigFile ! Full file name
     INTEGER,            INTENT(IN)              :: Phase      ! 0: all
                                                               ! 1: Settings and switches only
@@ -160,6 +148,7 @@ CONTAINS
 !                              listed in section base emissions.
 !  11 Dec 2015 - C. Keller   - Read settings and extension switches even for
 !                              nested configuration files.
+!  15 Feb 2016 - C. Keller   - Now pass HcoConfig argument.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -182,8 +171,14 @@ CONTAINS
     RC  = HCO_SUCCESS
     LOC = 'Config_ReadFile (hco_config_mod.F90)'
 
+    ! Eventually initialize config obj
+    IF ( .NOT. ASSOCIATED(HcoConfig) ) THEN
+       CALL ConfigInit( HcoConfig )
+       HcoConfig%ConfigFileName =  TRIM(ConfigFile)   
+    ENDIF
+
     ! Leave here if configuration file is already read 
-    IF ( ConfigFileRead ) THEN
+    IF ( HcoConfig%ConfigFileRead ) THEN
        RETURN
     ENDIF
 
@@ -242,8 +237,9 @@ CONTAINS
     ! HEMCO settings are stored as options of this extension.
     ! Note: cannot use HCO_GetOpt('Wildcard') for species here because 
     ! this is linked to the core extension... 
-    IF ( .NOT. ExtNrInUse( CoreNr ) ) THEN
-       CALL AddExt ( am_I_Root, 'CORE', CoreNr, .TRUE., 'all', RC )
+    IF ( .NOT. ExtNrInUse( HcoConfig%ExtList, CoreNr ) ) THEN
+       CALL AddExt ( am_I_Root, HcoConfig, 'CORE', &
+                     CoreNr, .TRUE., 'all', RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           WRITE(*,*) 'Error adding CORE extension' 
           RC = HCO_FAIL
@@ -265,11 +261,13 @@ CONTAINS
        ! Replace tab characters in LINE (if any) w/ spaces
        CALL STRREPL( LINE, HCO_TAB, HCO_SPC )
 
-       ! Read settings if this is beginning of settings section 
+       ! Read settings if this is beginning of settings section
+       ! This reads all settings into buffer and initializes the
+       ! HEMCO traceback/error options. 
        IF ( INDEX ( LINE, 'BEGIN SECTION SETTINGS' ) > 0 ) THEN
 
           IF ( PHASE < 2 ) THEN
-             CALL ReadSettings( AIR, IU_HCO, EOF, RC )
+             CALL ReadSettings( AIR, HcoConfig, IU_HCO, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
 
@@ -285,7 +283,7 @@ CONTAINS
        ELSEIF ( INDEX ( LINE, 'BEGIN SECTION EXTENSION SWITCHES' ) > 0 ) THEN 
 
           IF ( PHASE < 2 ) THEN
-             CALL ExtSwitch2Buffer( AIR, IU_HCO, EOF, RC )
+             CALL ExtSwitch2Buffer( AIR, HcoConfig, IU_HCO, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
 
@@ -302,7 +300,8 @@ CONTAINS
 
           ! Read data and write into container
           IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
-             CALL Config_ReadCont( AIR, IU_HCO, CFDIR, HCO_DCTTYPE_BASE, EOF, RC )
+             CALL Config_ReadCont( AIR, HcoConfig, IU_HCO, CFDIR, &
+                                   HCO_DCTTYPE_BASE, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
 
@@ -314,7 +313,8 @@ CONTAINS
        ! scale factor.
        ELSE IF ( INDEX ( LINE, 'BEGIN SECTION SCALE FACTORS' ) > 0 ) THEN
 
-          CALL Config_ReadCont( AIR, IU_HCO, CFDIR, HCO_DCTTYPE_SCAL, EOF, RC )
+          CALL Config_ReadCont( AIR, HcoConfig, IU_HCO, CFDIR, &
+                                HCO_DCTTYPE_SCAL, EOF, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( EOF ) EXIT
 
@@ -322,7 +322,8 @@ CONTAINS
        ELSE IF ( INDEX ( LINE, 'BEGIN SECTION MASKS' ) > 0 ) THEN
 
           IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
-             CALL Config_ReadCont( AIR, IU_HCO, CFDIR, HCO_DCTTYPE_MASK, EOF, RC )
+             CALL Config_ReadCont( AIR, HcoConfig, IU_HCO, CFDIR, &
+                                   HCO_DCTTYPE_MASK, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
 
@@ -353,7 +354,7 @@ CONTAINS
     ! Configuration file is now read
     IF ( .NOT. NEST ) THEN
        IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
-          ConfigFileRead = .TRUE.
+          HcoConfig%ConfigFileRead = .TRUE.
        ENDIF
     ENDIF
 
@@ -381,6 +382,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_DATACONT_Mod,    ONLY : cIDList_Create
+    USE HCO_READLIST_Mod,    ONLY : ReadList_Init
 !
 ! !INPUT PARAMETERS:
 !
@@ -405,47 +407,61 @@ CONTAINS
     !======================================================================
 
     ! Init
-    CALL HCO_ENTER ( 'SetReadList (hco_config_mod.F90)', RC )
+    CALL HCO_ENTER ( HcoState%Config%Err, 'SetReadList (hco_config_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ error if configuration file hasn't been read yet! 
-    IF ( .NOT. ConfigFileRead ) THEN
+    IF ( .NOT. ASSOCIATED(HcoState%Config) ) THEN
+       MSG = 'HEMCO configuration object in HEMCO state is empty!'
+       CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC ) 
+       RETURN
+    ENDIF
+    IF ( .NOT. HcoState%Config%ConfigFileRead ) THEN
        MSG = 'HEMCO configuration file not read!'
-       CALL HCO_ERROR ( MSG, RC ) 
+       CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC ) 
        RETURN
     ENDIF
 
-    ! Prepare data in buffer. This call identifies all base fields
-    ! that have to be read by this CPU. It also kicks out base 
-    ! fields for emissions with an invalid species ID (if any) or
-    ! if there are other base fields with higher priority.
-    CALL RegisterPrepare ( am_I_Root, HcoState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Only if not yet done so...
+    IF ( .NOT. HcoState%SetReadListCalled ) THEN
 
-    ! Register base emissions. In this step, we also redefine the 
-    ! list UnqScalIDs to make sure that only those scale factors
-    ! will be registered that are effectively used in the next step.
-    CALL Register_Base( am_I_Root, HcoState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Register scale factors based upon UnqScalIDs. 
-    CALL Register_Scal( am_I_Root, HcoState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Create cIDList which allows quick access to all data containers
-    ! based on their container IDs cID
-    CALL cIDList_Create ( am_I_Root, HcoState, ConfigList, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Don't need internal lists anymore.
-    CALL ScalID_Cleanup
-    CALL SpecName_Cleanup
+       ! Initialize ReadList
+       CALL ReadList_Init ( am_I_Root, HcoState%ReadLists, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+   
+       ! Prepare data in buffer. This call identifies all base fields
+       ! that have to be read by this CPU. It also kicks out base 
+       ! fields for emissions with an invalid species ID (if any) or
+       ! if there are other base fields with higher priority.
+       CALL RegisterPrepare ( am_I_Root, HcoState, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+   
+       ! Register base emissions. In this step, we also redefine the 
+       ! list UnqScalIDs to make sure that only those scale factors
+       ! will be registered that are effectively used in the next step.
+       CALL Register_Base( am_I_Root, HcoState, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+   
+       ! Register scale factors based upon UnqScalIDs. 
+       CALL Register_Scal( am_I_Root, HcoState, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+   
+       ! Create cIDList which allows quick access to all data containers
+       ! based on their container IDs cID
+       CALL cIDList_Create ( am_I_Root, HcoState, HcoState%Config%ConfigList, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+   
+       ! Don't need internal lists anymore.
+       CALL ScalID_Cleanup   ( HcoState%Config%ScalIDList   )
+       CALL SpecName_Cleanup ( HcoState%Config%SpecNameList )
+   
+    ENDIF ! SetReadListCalled
 
     ! SetReadList has now been called
-    SetReadListCalled = .TRUE.
+    HcoState%SetReadListCalled = .TRUE.
 
     ! Leave w/ success
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err, RC )
 
   END SUBROUTINE SetReadList 
 !EOC
@@ -463,7 +479,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Config_ReadCont( am_I_Root, IU_HCO, CFDIR, DctType, EOF, RC )
+  SUBROUTINE Config_ReadCont( am_I_Root, HcoConfig, IU_HCO,   &
+                              CFDIR,     DctType,   EOF,    RC )
+                              
 !
 ! !USES:
 !
@@ -475,6 +493,7 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,          INTENT(IN   ) :: am_I_Root ! Root CPU?
+    TYPE(ConfigObj),  POINTER       :: HcoConfig ! Config object
     INTEGER,          INTENT(IN   ) :: IU_HCO    ! Logfile LUN
     CHARACTER(LEN=*), INTENT(IN   ) :: CFDIR     ! Configuration file directory
     INTEGER,          INTENT(IN   ) :: DctType   ! 1=base; 2=scale; 3=mask
@@ -551,8 +570,8 @@ CONTAINS
     nCat           = -1
 
     ! Get tokens
-    WildCard  = HCO_GetOpt( 'Wildcard'  )
-    Separator = HCO_GetOpt( 'Separator' )
+    WildCard  = HCO_GetOpt( HcoConfig%ExtList, 'Wildcard'  )
+    Separator = HCO_GetOpt( HcoConfig%ExtList, 'Separator' )
 
     ! Repeat until end of the given section is found 
     DO
@@ -564,7 +583,8 @@ CONTAINS
        ! call for the three data types.
        !==============================================================
        IF ( DctType == HCO_DCTTYPE_BASE ) THEN
-          CALL ReadAndSplit_Line ( am_I_Root, IU_HCO, cName,    2,  &
+          CALL ReadAndSplit_Line ( am_I_Root, HcoConfig,            &
+                                              IU_HCO, cName,    2,  &
                                    srcFile,   3,      srcVar,   4,  &
                                    srcTime,   5,      TmCycle,  6,  &
                                    srcDim,    7,      srcUnit,  8,  &
@@ -575,7 +595,8 @@ CONTAINS
                                    OutLine=LINE                      )
 
        ELSEIF ( DctType == HCO_DCTTYPE_SCAL ) THEN
-          CALL ReadAndSplit_Line ( am_I_Root, IU_HCO, cName,    2,  &
+          CALL ReadAndSplit_Line ( am_I_Root, HcoConfig,            &
+                                              IU_HCO, cName,    2,  &
                                    srcFile,   3,      srcVar,   4,  &
                                    srcTime,   5,      TmCycle,  6,  &
                                    srcDim,    7,      srcUnit,  8,  &
@@ -586,7 +607,8 @@ CONTAINS
                                    optcl=10    ,      OutLine=LINE   )
   
        ELSEIF ( DctType == HCO_DCTTYPE_MASK ) THEN
-          CALL ReadAndSplit_Line ( am_I_Root, IU_HCO, cName,    2,  &
+          CALL ReadAndSplit_Line ( am_I_Root, HcoConfig,            &
+                                              IU_HCO, cName,    2,  &
                                    srcFile,   3,      srcVar,   4,  &
                                    srcTime,   5,      TmCycle,  6,  &
                                    srcDim,    7,      srcUnit,  8,  &
@@ -619,7 +641,7 @@ CONTAINS
        
        ! Error if not enough entries found 
        IF ( STAT == 100 ) THEN
-          CALL HCO_ERROR ( 'STAT == 100', RC, THISLOC=LOC )
+          CALL HCO_ERROR ( HcoConfig%Err, 'STAT == 100', RC, THISLOC=LOC )
           RETURN 
        ENDIF
 
@@ -627,7 +649,7 @@ CONTAINS
        ! Check for emission shortcuts. Fields can be bracketed into 
        ! 'collections'. 
        ! -------------------------------------------------------------
-       CALL BracketCheck( am_I_Root, STAT, LINE, SKIP, RC )
+       CALL BracketCheck( am_I_Root, HcoConfig, STAT, LINE, SKIP, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
  
        ! Skip if needed
@@ -646,10 +668,10 @@ CONTAINS
           ! Call the parser. This is to make sure that any $ROOT statements
           ! will be evaluated properly. The configuration file must not 
           ! contain any data tokens ($YR, $MM, etc.).
-          CALL HCO_CharParse ( LINE, 0, 0, 0, 0, 0, RC )
+          CALL HCO_CharParse ( HcoConfig, LINE, 0, 0, 0, 0, 0, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
-          CALL Config_ReadFile( am_I_Root, LINE, 0, RC, IsNest=.TRUE. )
+          CALL Config_ReadFile( am_I_Root, HcoConfig, LINE, 0, RC, IsNest=.TRUE. )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! All done with this line
@@ -658,7 +680,7 @@ CONTAINS
 
        ! Output status should be 0 if none of the statuses above applies 
        IF ( STAT /= 0 ) THEN
-          CALL HCO_ERROR ( 'STAT /= 0', RC, THISLOC=LOC )
+          CALL HCO_ERROR ( HcoConfig%Err, 'STAT /= 0', RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -666,7 +688,8 @@ CONTAINS
        ! use. Otherwise, we can ignore this line completely! The 
        ! extension switches are read and evaluated prior to the 
        ! extension data!
-       IF ( DctType == HCO_DCTTYPE_BASE .AND. .NOT. ExtNrInUse( Int3 ) ) CYCLE 
+       IF ( DctType == HCO_DCTTYPE_BASE .AND. &
+            .NOT. ExtNrInUse( HcoConfig%ExtList, Int3 ) ) CYCLE 
 
        !==============================================================
        ! Create and fill list container and add to ConfigList 
@@ -674,7 +697,7 @@ CONTAINS
 
        ! Add blank list container to ConfigList list. The container 
        ! is placed at the beginning of the list.
-       CALL ConfigList_AddCont ( Lct, ConfigList )
+       CALL ConfigList_AddCont ( Lct, HcoConfig%ConfigList )
 
        ! -------------------------------------------------------------
        ! Fill data container. 
@@ -683,14 +706,14 @@ CONTAINS
        ! Attributes used by all data types: data type number and 
        ! container name.
        Lct%Dct%DctType      = DctType
-       Lct%Dct%cName        = cName
+       Lct%Dct%cName        = ADJUSTL(cName)
 
        ! Base container specific attributes
        IF ( DctType == HCO_DCTTYPE_BASE ) THEN       
   
           ! Set species name, extension number, emission category, 
           ! hierarchy
-          Lct%Dct%SpcName       = SpcName 
+          Lct%Dct%SpcName       = ADJUSTL(SpcName)
           Lct%Dct%Hier          = Int2
           Lct%Dct%ExtNr         = Int3
 
@@ -718,7 +741,7 @@ CONTAINS
           ! Register species name. A list of all species names can be
           ! returned to the atmospheric model to match HEMCO species 
           ! with model species (see Config\_GetSpecNames). 
-          CALL SpecName_Register ( SpcName, RC )
+          CALL SpecName_Register ( HcoConfig, ADJUSTL(SpcName), RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
     
        ! Scale factor & mask specific attributes
@@ -730,7 +753,7 @@ CONTAINS
           Lct%Dct%Oper   = Int2
 
        ELSE
-          CALL HCO_ERROR ( 'Invalid data type!', RC, THISLOC=LOC )
+          CALL HCO_ERROR ( HcoConfig%Err, 'Invalid data type!', RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -751,7 +774,7 @@ CONTAINS
        IF ( TRIM(srcFile) == '-' ) THEN
           IF ( .NOT. ASSOCIATED(Dta) ) THEN
              MSG = 'Cannot use previous data container: '//TRIM(cName)
-             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
           Lct%Dct%DtaHome = Lct%Dct%DtaHome - 1
@@ -771,8 +794,8 @@ CONTAINS
           Dta%ncFile    = srcFile
 
           ! Set source variable and original data unit.
-          Dta%ncPara    = srcVar
-          Dta%OrigUnit  = srcUnit
+          Dta%ncPara    = ADJUSTL(srcVar)
+          Dta%OrigUnit  = ADJUStL(srcUnit)
 
           ! If the parameter ncPara is not defined, attempt to read data
           ! directly from configuration file instead of netCDF.
@@ -790,7 +813,7 @@ CONTAINS
           ! to the corresponding container variables. If no time string is
           ! defined, keep default values (-1 for all of them)
           IF ( TRIM(srcTime) /= '-' ) THEN
-             CALL HCO_ExtractTime( srcTime, Dta, RC ) 
+             CALL HCO_ExtractTime( HcoConfig, srcTime, Dta, RC ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
 
@@ -799,7 +822,7 @@ CONTAINS
           ! container name!
 #if defined(ESMF_)
           IF ( Dta%ncRead ) THEN
-             Dta%ncFile = cName
+             Dta%ncFile = ADJUSTL(cName)
           ENDIF
 #endif
 
@@ -836,7 +859,7 @@ CONTAINS
           ELSE
              MSG = 'Invalid time cycling attribute: ' // &
                    TRIM(TmCycle) // ' - in ' // TRIM(cName)
-             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
 
@@ -849,7 +872,7 @@ CONTAINS
           ! from srcDim and will be stored in variable Dta%Levels.
           ! (ckeller, 5/20/15)
 
-          CALL ExtractSrcDim( am_I_Root, srcDim, Dta, RC ) 
+          CALL ExtractSrcDim( am_I_Root, HcoConfig, srcDim, Dta, RC ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! For scale factors: check if a mask is assigned to this scale
@@ -874,7 +897,7 @@ CONTAINS
              IF ( N /= 4 ) THEN
                 MSG = 'Cannot properly read mask coverage: ' // &
                      TRIM(Lct%Dct%cName)
-                CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+                CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
 
@@ -887,7 +910,7 @@ CONTAINS
 
              ! Make sure that masks are always being read if specified so.
              IF ( Char2(1:1) == 'y' .OR. Char2(1:1) == 'Y' ) THEN
-                CALL ScalID2List( Lct%Dct%ScalID, RC )
+                CALL ScalID2List( HcoConfig%ScalIDList, Lct%Dct%ScalID, RC )
                 IF ( RC /= HCO_SUCCESS ) RETURN 
              ENDIF
           ENDIF
@@ -906,7 +929,7 @@ CONTAINS
        ! field with multiple categories is written into the category
        ! listed first. 
        IF ( nCat > 1 ) THEN
-          CALL AddShadowFields( am_I_Root, Lct, Cats, nCat, RC )
+          CALL AddShadowFields( am_I_Root, HcoConfig, Lct, Cats, nCat, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! Reset nCat
@@ -954,7 +977,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE BracketCheck( am_I_Root, STAT, LINE, SKIP, RC )
+  SUBROUTINE BracketCheck( am_I_Root, HcoConfig, STAT, LINE, SKIP, RC )
 !
 ! !USES:
 !
@@ -962,14 +985,15 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN)            :: am_I_Root   ! root CPU?
-    INTEGER, INTENT(IN)            :: STAT        ! 
-    CHARACTER(LEN=*), INTENT(IN)   :: LINE        ! 
+    LOGICAL,          INTENT(IN)    :: am_I_Root   ! root CPU?
+    INTEGER,          INTENT(IN)    :: STAT        ! 
+    CHARACTER(LEN=*), INTENT(IN)    :: LINE        ! 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    LOGICAL, INTENT(INOUT)         :: SKIP        ! Skip 
-    INTEGER, INTENT(INOUT)         :: RC          ! Success/failure
+    TYPE(ConfigObj),  POINTER       :: HcoConfig ! Config object
+    LOGICAL,          INTENT(INOUT) :: SKIP        ! Skip 
+    INTEGER,          INTENT(INOUT) :: RC          ! Success/failure
 !
 ! !REVISION HISTORY:
 !  15 Feb 2015 - C. Keller   - Initial version.
@@ -1000,13 +1024,14 @@ CONTAINS
     !======================================================================
 
     ! Init
-    verb = HCO_IsVerb( 1 ) 
+    verb = HCO_IsVerb( HcoConfig%Err, 1 ) 
 
     ! Get name of this bracket
     IF ( STAT == 5 .OR. STAT == 6 ) THEN
        STRLEN     = LEN(LINE)
        IF ( STRLEN < 4 ) THEN
-          CALL HCO_ERROR ( 'Illegal bracket length: '//TRIM(LINE), &
+          CALL HCO_ERROR ( HcoConfig%Err, &
+                          'Illegal bracket length: '//TRIM(LINE), &
                            RC, THISLOC=LOC )
           RETURN 
        ELSE
@@ -1024,7 +1049,7 @@ CONTAINS
        NEST = NEST + 1
        IF ( NEST > MAXBRACKNEST ) THEN
           MSG = 'Too many nested brackets'
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
        AllBrackets(NEST) = TmpBracket
@@ -1084,7 +1109,7 @@ CONTAINS
 
              ! Check if this bracket has been registered as being used.
              ! Scan all extensions, including the core one.
-             CALL GetExtOpt( -999, TRIM(ThisBracket), &
+             CALL GetExtOpt( HcoConfig, -999, TRIM(ThisBracket), &
                 OptValBool=UseThis, FOUND=FOUND, RC=RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
    
@@ -1096,7 +1121,7 @@ CONTAINS
              ! If bracket name was not found, check if this is an extension
              ! name 
              ELSE
-                ExtNr = GetExtNr( TRIM(ThisBracket) )
+                ExtNr = GetExtNr( HcoConfig%ExtList, TRIM(ThisBracket) )
                 IF ( ExtNr > 0 ) THEN
                    UseBracket = .TRUE.
                 ENDIF
@@ -1128,9 +1153,9 @@ CONTAINS
        ! Verbose mode
        IF ( verb ) THEN
           MSG = 'Opened shortcut bracket: '//TRIM(TmpBracket)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoConfig%Err,MSG)
           WRITE(MSG,*) ' - Skip content of this bracket: ', SKIP 
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoConfig%Err,MSG)
        ENDIF
     ENDIF
 
@@ -1141,7 +1166,7 @@ CONTAINS
        IF ( TRIM(TmpBracket) /= TRIM(AllBrackets(NEST)) ) THEN
           MSG = 'Closing bracket does not match opening bracket: '// &
              TRIM(TmpBracket)//', expected: '//TRIM(AllBrackets(NEST))
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF       
 
@@ -1157,9 +1182,9 @@ CONTAINS
        ! Verbose mode
        IF ( verb ) THEN
           MSG = 'Closed shortcut bracket: '//TRIM(TmpBracket)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoConfig%Err,MSG)
           WRITE(MSG,*) ' - Skip following lines: ', SKIP 
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoConfig%Err,MSG)
        ENDIF
     ENDIF
 
@@ -1184,7 +1209,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE AddShadowFields( am_I_Root, Lct, Cats, nCat, RC )
+  SUBROUTINE AddShadowFields( am_I_Root, HcoConfig, Lct, Cats, nCat, RC )
 !
 ! !USES:
 !
@@ -1192,10 +1217,11 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)     :: am_I_Root    ! root CPU?
-    TYPE(ListCont), POINTER        :: Lct          ! List container of interest 
-    INTEGER,        INTENT(IN)     :: Cats(CatMax) ! Category numbers
-    INTEGER,        INTENT(IN)     :: nCat         ! number of categories
+    LOGICAL,         INTENT(IN)     :: am_I_Root    ! root CPU?
+    TYPE(ConfigObj), POINTER        :: HcoConfig    ! Config object
+    TYPE(ListCont),  POINTER        :: Lct          ! List container of interest 
+    INTEGER,         INTENT(IN)     :: Cats(CatMax) ! Category numbers
+    INTEGER,         INTENT(IN)     :: nCat         ! number of categories
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1228,7 +1254,7 @@ CONTAINS
     ENDIF
 
     ! Init
-    verb = HCO_IsVerb( 1 )  
+    verb = HCO_IsVerb( HcoConfig%Err, 1 )  
 
 !    ! Get number of currently used scale factors
 !    N = 0
@@ -1254,7 +1280,7 @@ CONTAINS
     DO I = 2, nCat 
 
        ! Create new data container
-       CALL ConfigList_AddCont ( Shd, ConfigList )
+       CALL ConfigList_AddCont ( Shd, HcoConfig%ConfigList ) 
 
        ! Character of category
        Write(C5,'(I5.5)') Cats(I)
@@ -1284,7 +1310,7 @@ CONTAINS
        ! verbose mode
        IF ( verb ) THEN
           MSG = 'Created shadow base emission field: ' // TRIM(Shd%Dct%cName)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoConfig%Err,MSG)
        ENDIF
 
        ! Cleanup
@@ -1292,7 +1318,7 @@ CONTAINS
     ENDDO !I
 
     ! Add zero scale factor container 
-    CALL AddZeroScal( am_I_Root, RC )
+    CALL AddZeroScal( am_I_Root, HcoConfig, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
@@ -1317,16 +1343,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE AddZeroScal( am_I_Root, RC )
+  SUBROUTINE AddZeroScal( am_I_Root, HcoConfig, RC )
 !
 ! !USES:
 !
     USE HCO_DATACONT_MOD,  ONLY : ZeroScalID 
+    USE HCO_DATACONT_MOD,  ONLY : ListCont_Find 
     USE HCO_FILEDATA_MOD,  ONLY : FileData_Init
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL, INTENT(IN)            :: am_I_Root   ! root CPU?
+    TYPE(ConfigObj), POINTER       :: HcoConfig   ! Config object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1344,19 +1372,22 @@ CONTAINS
     TYPE(FileData), POINTER       :: Dta => NULL() 
     CHARACTER(LEN=255)            :: MSG
 
-    LOGICAL,            SAVE      :: FIRST = .TRUE.
+    LOGICAL                       :: FOUND
     CHARACTER(LEN=255), PARAMETER :: LOC   = 'AddZeroScal (hco_config_mod.F90)'
 
     !======================================================================
     ! AddZeroScal begins here
     !======================================================================
 
+    ! Check if this container already exists
+    CALL ListCont_Find ( HcoConfig%ConfigList, 'DUMMYSCALE_ZERO', FOUND )
+
     ! Only do on first call
-    IF ( FIRST ) THEN
+    IF ( .NOT. FOUND ) THEN
 
        ! Add new container to configuration list and set data container
        ! attributes. 
-       CALL ConfigList_AddCont ( Lct, ConfigList )
+       CALL ConfigList_AddCont ( Lct, HcoConfig%ConfigList )
        Lct%Dct%DctType      = HCO_DCTTYPE_SCAL 
        Lct%Dct%cName        = 'DUMMYSCALE_ZERO' 
        Lct%Dct%ScalID       = ZeroScalID 
@@ -1376,12 +1407,12 @@ CONTAINS
        Lct%Dct%Dta => Dta
 
        ! verbose mode
-       IF ( HCO_IsVerb( 2 ) ) THEN 
+       IF ( HCO_IsVerb( HcoConfig%Err, 2 ) ) THEN 
           MSG = 'Created a fake scale factor with zeros'
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoConfig%Err,MSG)
           MSG = 'This field will be used to artificially expand ' // &
                 'over multiple emission categories'
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoConfig%Err,MSG)
        ENDIF
 
        ! Cleanup
@@ -1390,8 +1421,7 @@ CONTAINS
     ENDIF
 
     ! Return w/ success
-    FIRST = .FALSE.
-    RC    = HCO_SUCCESS
+    RC = HCO_SUCCESS
 
   END SUBROUTINE AddZeroScal
 !EOC
@@ -1408,7 +1438,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtSwitch2Buffer( am_I_Root, IU_HCO, EOF, RC )
+  SUBROUTINE ExtSwitch2Buffer( am_I_Root, HcoConfig, IU_HCO, EOF, RC )
 !
 ! !USES:
 !
@@ -1418,13 +1448,14 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN)    :: am_I_Root   ! root CPU?
-    INTEGER, INTENT(IN)    :: IU_HCO      ! HEMCO configfile LUN
+    LOGICAL,         INTENT(IN)    :: am_I_Root   ! root CPU?
+    TYPE(ConfigObj), POINTER       :: HcoConfig   ! Config object
+    INTEGER,         INTENT(IN)    :: IU_HCO      ! HEMCO configfile LUN
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    LOGICAL, INTENT(INOUT) :: EOF         ! End of file?
-    INTEGER, INTENT(INOUT) :: RC          ! Success/failure
+    LOGICAL,         INTENT(INOUT) :: EOF         ! End of file?
+    INTEGER,         INTENT(INOUT) :: RC          ! Success/failure
 !
 ! !REVISION HISTORY:
 !  17 Sep 2013 - C. Keller   - Initialization (update)
@@ -1479,8 +1510,8 @@ CONTAINS
        IF ( INDEX(LINE,'-->') > 0 ) THEN
           ! Only add if extension is defined!
           IF ( ExtNr >= 0 .AND. Enabled ) THEN 
-             CALL AddExtOpt( am_I_Root, TRIM(LINE), ExtNr, RC, &
-                             IgnoreIfExist=.TRUE. )
+             CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(LINE), &
+                             ExtNr, RC, IgnoreIfExist=.TRUE. )
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
           CYCLE
@@ -1501,7 +1532,7 @@ CONTAINS
        ! Check if extension already exists, e.g. if this is a nested HEMCO configuration
        ! file and the same extension has already been defined. In that case, use the 
        ! on/off toggle that has already been defined.
-       ExtNr = GetExtNr( TRIM(SUBSTR(2)) ) 
+       ExtNr = GetExtNr( HcoConfig%ExtList, TRIM(SUBSTR(2)) ) 
        
        ! Three possibilities: 
        ! - ExtNr is -999              --> extension does not yet exist
@@ -1539,19 +1570,21 @@ CONTAINS
           ! idx is the position of the species names
           idx = idx+1 
           READ( SUBSTR(1), * ) ExtNr
-          CALL AddExt ( am_I_Root, TRIM(SUBSTR(2)), ExtNr, Enabled, SUBSTR(idx), RC )
+          CALL AddExt ( am_I_Root, HcoConfig, TRIM(SUBSTR(2)), &
+                        ExtNr, Enabled, SUBSTR(idx), RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
    
           ! Register species (specNames)
           IF ( Enabled ) THEN
    
-             CALL STRSPLIT( SUBSTR(idx), HCO_GetOpt('Separator'), SPECS, N ) 
+             CALL STRSPLIT( SUBSTR(idx), &
+                     HCO_GetOpt(HcoConfig%ExtList,'Separator'), SPECS, N ) 
              IF ( N < 1 ) THEN
-                CALL HCO_ERROR ( 'No species defined', RC, THISLOC=LOC )
+                CALL HCO_ERROR ( HcoConfig%Err, 'No species defined', RC, THISLOC=LOC )
                 RETURN
              ENDIF
              DO I = 1, N
-                CALL SpecName_Register ( SPECS(I), RC )
+                CALL SpecName_Register ( HcoConfig, SPECS(I), RC )
                 IF ( RC /= HCO_SUCCESS ) RETURN
              ENDDO
           ENDIF
@@ -1577,7 +1610,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadSettings( am_I_Root, IU_HCO, EOF, RC )
+  SUBROUTINE ReadSettings( am_I_Root, HcoConfig, IU_HCO, EOF, RC )
 !
 ! !USES:
 !
@@ -1588,13 +1621,14 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN)    :: am_I_Root   ! root CPU?
-    INTEGER, INTENT(IN)    :: IU_HCO      ! HEMCO configfile LUN
+    LOGICAL,         INTENT(IN)    :: am_I_Root   ! root CPU?
+    TYPE(ConfigObj), POINTER       :: HcoConfig   ! Config obj 
+    INTEGER,         INTENT(IN)    :: IU_HCO      ! HEMCO configfile LUN
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    LOGICAL, INTENT(INOUT) :: EOF         ! End of file?
-    INTEGER, INTENT(INOUT) :: RC          ! Success/failure
+    LOGICAL,         INTENT(INOUT) :: EOF         ! End of file?
+    INTEGER,         INTENT(INOUT) :: RC          ! Success/failure
 !
 ! !REVISION HISTORY:
 !  17 Sep 2013 - C. Keller   - Initialization (update)
@@ -1617,7 +1651,6 @@ CONTAINS
     CHARACTER(LEN=255)    :: LogFile
     CHARACTER(LEN=255)    :: DiagnPrefix
     LOGICAL               :: FOUND
-    LOGICAL, SAVE         :: FIRST = .TRUE. 
 
     !======================================================================
     ! ReadSettings begins here
@@ -1650,23 +1683,24 @@ CONTAINS
        IF ( TRIM(LINE) == '' ) CYCLE
 
        ! Add this option to HEMCO core 
-       CALL AddExtOpt ( am_I_Root, TRIM(LINE), CoreNr, RC, &
-          IgnoreIfExist=.TRUE. )
+       CALL AddExtOpt ( am_I_Root,  HcoConfig, TRIM(LINE), &
+                        CoreNr, RC, IgnoreIfExist=.TRUE. )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
     ENDDO
 
     !-----------------------------------------------------------------------
+    ! Initialize error object if needed. 
     ! Extract values to initialize error module and set some further
     ! HEMCO variables. Only the first time the settings are read (settings
     ! can be read multiple times if nested HEMCO configuration files are
     ! used) 
     !-----------------------------------------------------------------------
-
-    IF ( FIRST ) THEN
+    IF ( .NOT. ASSOCIATED(HcoConfig%Err) ) THEN
 
        ! Verbose mode?
-       CALL GetExtOpt( CoreNr, 'Verbose', OptValInt=verb, FOUND=FOUND, RC=RC )
+       CALL GetExtOpt( HcoConfig, CoreNr, 'Verbose', &
+                       OptValInt=verb, FOUND=FOUND, RC=RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
           verb = 3
@@ -1674,7 +1708,8 @@ CONTAINS
        ENDIF
    
        ! Logfile to write into
-       CALL GetExtOpt( CoreNr, 'Logfile', OptValChar=Logfile, FOUND=FOUND, RC=RC )
+       CALL GetExtOpt( HcoConfig, CoreNr, 'Logfile', &
+                       OptValChar=Logfile, FOUND=FOUND, RC=RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
           LogFile = 'HEMCO.log' 
@@ -1682,7 +1717,8 @@ CONTAINS
        ENDIF
    
        ! Prompt warnings to logfile? 
-       CALL GetExtOpt( CoreNr, 'Warnings', OptValInt=warn, FOUND=FOUND, RC=RC  )
+       CALL GetExtOpt( HcoConfig, CoreNr, 'Warnings', &
+                       OptValInt=warn, FOUND=FOUND, RC=RC  )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
           warn = 3
@@ -1690,20 +1726,17 @@ CONTAINS
        ENDIF
 
        ! Initialize (standard) HEMCO tokens
-       CALL HCO_SetDefaultToken ( am_I_Root, RC )
+       CALL HCO_SetDefaultToken ( am_I_Root, HcoConfig, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! If LogFile is equal to wildcard character, set LogFile to asterik 
        ! character. This will ensure that all output is written to standard
        ! output!
-       IF ( TRIM(LogFile) == HCO_GetOpt('Wildcard') ) LogFile = '*'
+       IF ( TRIM(LogFile) == HCO_GetOpt(HcoConfig%ExtList,'Wildcard') ) LogFile = '*'
    
        ! We should now have everything to define the HEMCO error settings
-       CALL HCO_ERROR_SET ( am_I_Root, LogFile, verb, warn, RC )
+       CALL HCO_ERROR_SET ( am_I_Root, HcoConfig%Err, LogFile, verb, warn, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
- 
-       ! Update first flag
-       FIRST = .FALSE.
  
     ENDIF
  
@@ -1741,6 +1774,7 @@ CONTAINS
 !
     USE HCO_EXTLIST_MOD,  ONLY : ExtNrInUse
     USE HCO_STATE_Mod,    ONLY : HCO_GetHcoID
+    USE HCO_DATACONT_MOD, ONLY : ListCont_NextCont
 !
 ! !INPUT PARAMETERS: 
 
@@ -1770,7 +1804,7 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    CALL HCO_ENTER ( 'RegisterPrepare', RC )
+    CALL HCO_ENTER ( HcoState%Config%Err, 'RegisterPrepare', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     ! Grid boundaries on this CPU. Will be needed to calculate 
@@ -1788,30 +1822,31 @@ CONTAINS
     IF ( cpux2 >= 180 ) cpux2 = cpux2 - 360
 
     ! verbose
-    IF ( HCO_IsVerb(1) ) THEN
+    IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
        WRITE(MSG,*) 'Start to prepare fields for registering!'
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) 'This CPU x-range: ', cpux1, cpux2
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) 'This CPU y-range: ', cpuy1, cpuy2
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
     ENDIF
 
     ! Get next (first) line of ConfigList 
-    CALL GetNextCont ( Lct, FLAG ) 
+    CALL ListCont_NextCont ( HcoState%Config%ConfigList, Lct, FLAG )
 
     ! Loop over all lines
     DO WHILE ( FLAG == HCO_SUCCESS ) 
 
        ! Check if data container defined
        IF ( .NOT. ASSOCIATED(Lct%Dct) ) THEN
-          CALL GetNextCont( Lct, FLAG ); CYCLE
+          CALL ListCont_NextCont ( HcoState%Config%ConfigList, Lct, FLAG )
+          CYCLE
        ENDIF
 
        ! verbose
-       IF ( HCO_IsVerb(3) ) THEN
+       IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
           WRITE(MSG,*) 'Prepare ', TRIM(Lct%Dct%cName) 
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
  
        ! For base fields or data fields used in one of the HEMCO
@@ -1819,7 +1854,7 @@ CONTAINS
        IF ( Lct%Dct%DctType == HCO_DCTTYPE_BASE ) THEN
 
           ! Only do for entries that will be used! 
-          IF ( ExtNrInUse( Lct%Dct%ExtNr ) ) THEN
+          IF ( ExtNrInUse( HcoState%Config%ExtList, Lct%Dct%ExtNr ) ) THEN
 
              ! Extract HEMCO species ID. This will return -1 for 
              ! undefined species and 0 for wildcard character.
@@ -1827,9 +1862,9 @@ CONTAINS
              Lct%Dct%HcoID = ThisHcoID
 
              ! verbose
-             IF ( HCO_IsVerb(3) ) THEN
+             IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
                 WRITE(MSG,*) 'Assigned HEMCO species ID: ', Lct%Dct%HcoID
-                CALL HCO_MSG(MSG)
+                CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
 
           ! Else: assign default value. These containers will be 
@@ -1858,21 +1893,21 @@ CONTAINS
           Lct%Dct%Dta%ncYrs(:) = -999
           Lct%Dct%Dta%ncMts(:) = -999
 
-          IF ( HCO_IsVerb(3) ) THEN
+          IF ( HCO_IsVerb(HcoSTate%Config%Err,3) ) THEN
              WRITE(MSG,*) 'Coverage: ', Lct%Dct%Dta%Cover
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
        ENDIF
 
        ! Advance to next line
-       CALL GetNextCont ( Lct, FLAG ) 
+       CALL ListCont_NextCont ( HcoState%Config%ConfigList, Lct, FLAG )
     ENDDO
 
     ! Cleanup
     Lct => NULL()
 
     ! Return w/ success
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE ( HcoState%Config%Err, RC )
 
   END SUBROUTINE RegisterPrepare
 !EOC
@@ -1895,6 +1930,7 @@ CONTAINS
 !
     USE HCO_READLIST_Mod,      ONLY : ReadList_Set
     USE HCO_DATACONT_Mod,      ONLY : DataCont_Cleanup
+    USE HCO_DATACONT_MOD,      ONLY : ListCont_NextCont
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1928,11 +1964,11 @@ CONTAINS
     !======================================================================
 
       ! Enter
-    CALL HCO_ENTER ( 'Register_Base (hco_config_mod.F90)', RC )
+    CALL HCO_ENTER ( HcoState%Config%Err, 'Register_Base (hco_config_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Point to next (first) line in ConfigList 
-    CALL GetNextCont ( Lct, FLAG )
+    CALL ListCont_NextCont ( HcoState%Config%ConfigList, Lct, FLAG )
 
     ! Loop over temporary arrays
     DO WHILE ( FLAG == HCO_SUCCESS )  
@@ -1942,12 +1978,14 @@ CONTAINS
 
        ! Skip entry if data container not defined
        IF ( .NOT. ASSOCIATED(Lct%Dct) ) THEN
-          CALL GetNextCont ( Lct, FLAG ); CYCLE
+          CALL ListCont_NextCont ( HcoState%Config%ConfigList, Lct, FLAG )
+          CYCLE 
        ENDIF
 
        ! Skip entry if it's not a base field 
        IF ( (Lct%Dct%DctType /= HCO_DCTTYPE_BASE) ) THEN
-          CALL GetNextCont ( Lct, FLAG ); CYCLE
+          CALL ListCont_NextCont ( HcoState%Config%ConfigList, Lct, FLAG )
+          CYCLE 
        ENDIF
 
        ! If this base field is not used (either because it belongs to 
@@ -1967,23 +2005,24 @@ CONTAINS
        ENDIF
 
        IF ( Ignore ) THEN
-          IF ( HCO_IsVerb(1) ) THEN
+          IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
              WRITE(MSG,*) &
                   'Register_Base: Ignore (and remove) base field ', &
                   TRIM(Lct%Dct%cName)
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
 
           ! Remove data container from list.
           CALL DataCont_Cleanup ( Lct%Dct )
           Lct%Dct => NULL()
-          CALL GetNextCont ( Lct, FLAG ); CYCLE
+          CALL ListCont_NextCont ( HcoState%Config%ConfigList, Lct, FLAG )
+          CYCLE 
        ENDIF
 
        ! Verbose mode 
-       IF ( HCO_IsVerb(3) ) THEN
+       IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
           WRITE(MSG,*) 'Register_Base: Checking ', TRIM(Lct%Dct%cName)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
        ! -------------------------------------------------------------
@@ -1992,7 +2031,7 @@ CONTAINS
        ! contains the scale factor IDs, hence need to convert to 
        ! container IDs. Beforehand, add scale factor IDs to internal 
        ! list of used scale factors (UnqScalIDs).
-       CALL ScalID_Register ( Lct%Dct, RC )
+       CALL ScalID_Register ( Lct%Dct, HcoState%Config, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Get target ID of this container. The targetID corresponds
@@ -2010,11 +2049,11 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! verbose 
-       IF ( HCO_IsVerb(3) ) THEN
+       IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
           WRITE(MSG,*) 'Container ID     : ', Lct%Dct%cID
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,*) 'Assigned targetID: ', targetID
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
        ! Negative targetID is assigned to base data that doesn't need 
@@ -2026,7 +2065,8 @@ CONTAINS
        IF ( targetID <= 0 ) THEN
           CALL DataCont_Cleanup ( Lct%Dct )
           Lct%Dct => NULL()
-          CALL GetNextCont ( Lct, FLAG ); CYCLE
+          CALL ListCont_NextCont ( HcoState%Config%ConfigList, Lct, FLAG )
+          CYCLE 
        ENDIF
         
        ! Pass targetID to container
@@ -2038,20 +2078,20 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Print some information if verbose mode is on 
-       IF ( HCO_IsVerb(2) ) THEN
+       IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
           WRITE(MSG,*) 'Base field registered: ', TRIM(Lct%Dct%cName)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
        ! Advance to next line
-       CALL GetNextCont ( Lct, FLAG )
+       CALL ListCont_NextCont ( HcoState%Config%ConfigList, Lct, FLAG )
     ENDDO
 
     ! Cleanup 
     Lct => NULL()
 
     ! Return w/ success
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err, RC )
 
   END SUBROUTINE Register_Base
 !EOC
@@ -2071,7 +2111,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_ReadList_Mod, ONLY : ReadList_Set
+    USE HCO_ReadList_Mod,      ONLY : ReadList_Set
+    USE HCO_DATACONT_MOD,      ONLY : ListCont_NextCont
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -2106,11 +2148,11 @@ CONTAINS
     !======================================================================
 
     ! Enter
-    CALL HCO_ENTER ( 'Register_Scal (hco_config_mod.F90)', RC )
+    CALL HCO_ENTER ( HcoState%Config%Err, 'Register_Scal (hco_config_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Loop over all scale factor ids
-    TmpScalIDCont => ScalIDList
+    TmpScalIDCont => HcoState%Config%ScalIDList
     DO WHILE ( ASSOCIATED( TmpScalIDCont ) )  
 
        ! Extract this scale factor ID
@@ -2118,7 +2160,7 @@ CONTAINS
 
        ! Make ThisLine point to first element of ConfigList
        Lct => NULL()
-       CALL GetNextCont ( Lct, FLAG )         
+       CALL ListCont_NextCont ( HcoState%Config%ConfigList, Lct, FLAG )
 
        ! Loop over all lines in input file and find the one with the
        ! correct scale factor ID 
@@ -2130,14 +2172,14 @@ CONTAINS
           ENDIF
 
           ! Advance to next line otherwise
-          CALL GetNextCont ( Lct, FLAG )         
+          CALL ListCont_NextCont ( HcoState%Config%ConfigList, Lct, FLAG )
        ENDDO
 
        ! Return error if scale factor ID not found
        IF ( .NOT. ASSOCIATED(Lct) ) THEN
           WRITE ( strID, * ) ThisScalID 
           MSG = 'Container ID not found: ' // strID
-          CALL HCO_ERROR ( MSG, RC)
+          CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC)
           RETURN 
        ENDIF
  
@@ -2145,7 +2187,7 @@ CONTAINS
        IF ( Lct%Dct%DctType == HCO_DCTTYPE_BASE ) THEN
           WRITE ( strID, * ) ThisScalID 
           MSG = 'Container ID belongs to base field: ' // strID
-          CALL HCO_ERROR ( MSG, RC)
+          CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC)
           RETURN 
        ENDIF
 
@@ -2157,7 +2199,7 @@ CONTAINS
        ! added to the end of the list.
        IF ( Lct%Dct%nScalID > 0 ) THEN
 
-          CALL ScalID_Register ( Lct%Dct, RC )
+          CALL ScalID_Register ( Lct%Dct, HcoState%Config, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
@@ -2167,9 +2209,9 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Print some information if verbose mode is on 
-       IF ( HCO_IsVerb(2) ) THEN
+       IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
           WRITE(MSG,*) 'Scale field registered: ', TRIM(Lct%Dct%cName)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
        ! Advance
@@ -2182,7 +2224,7 @@ CONTAINS
     TmpScalIDCont => NULL()
 
     ! Return w/ success
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err, RC )
 
   END SUBROUTINE Register_Scal
 !EOC
@@ -2214,6 +2256,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_DataCont_Mod, ONLY : ListCont_Find
+    USE HCO_DataCont_Mod, ONLY : ListCont_NextCont
 !
 ! !INPUT PARAMETERS:
 !
@@ -2262,7 +2305,7 @@ CONTAINS
     !======================================================================
 
     ! Enter
-    CALL HCO_ENTER ( 'Get_targetID (hco_config_mod.F90)', RC )
+    CALL HCO_ENTER ( HcoState%Config%Err, 'Get_targetID (hco_config_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get Tracer ID, category and hierarchy of entry to be checked
@@ -2279,7 +2322,7 @@ CONTAINS
     ! if the extension number entry in the configuration file is the
     ! wildcard character
     IF ( ExtNr == -999 ) THEN
-       CALL HCO_LEAVE( RC )
+       CALL HCO_LEAVE( HcoState%Config%Err, RC )
        RETURN
     ENDIF
 
@@ -2288,7 +2331,7 @@ CONTAINS
     ! Species ID become zero if the species ID entry in the
     ! configuration file is the wildcard character. 
     IF ( HcoID == 0 ) THEN
-       CALL HCO_LEAVE ( RC )
+       CALL HCO_LEAVE( HcoState%Config%Err, RC )
        RETURN
     ENDIF
 
@@ -2307,16 +2350,18 @@ CONTAINS
           ! check for safety's sake. 
           tmpID = Lct%Dct%Scal_cID(I)
           IF ( .NOT. Lct%Dct%Scal_cID_set ) THEN
-             CALL ListCont_Find ( ConfigList, tmpID, 1, FOUND, mskLct )
+             CALL ListCont_Find ( HcoState%Config%ConfigList, &
+                                  tmpID, 1, FOUND, mskLct )
           ELSE
-             CALL ListCont_Find ( ConfigList, tmpID, 0, FOUND, mskLct )
+             CALL ListCont_Find ( HcoState%Config%ConfigList, &
+                                  tmpID, 0, FOUND, mskLct )
           ENDIF
    
           ! Error if scale factor not found
           IF ( .NOT. FOUND ) THEN
              WRITE ( strID, * ) Lct%Dct%Scal_cID(I) 
              MSG = 'No scale factor with cID: ' // TRIM(strID) 
-             CALL HCO_ERROR ( MSG, RC)
+             CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC)
              RETURN
           ENDIF
    
@@ -2325,14 +2370,14 @@ CONTAINS
           IF ( (mskLct%Dct%DctType  == HCO_DCTTYPE_MASK ) .AND. &
                (mskLct%Dct%Dta%Cover == 0 )        ) THEN 
              targetID = -999 
-             IF ( HCO_IsVerb(1) ) THEN 
+             IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN 
                 WRITE(MSG,*) 'Data not defined over this CPU, skip ' // &
                      TRIM(Lct%Dct%cName)
-                CALL HCO_MSG(MSG)
+                CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
 
              ! Return
-             CALL HCO_LEAVE ( RC )
+             CALL HCO_LEAVE( HcoState%Config%Err, RC )
              RETURN 
           ENDIF
        ENDDO ! I 
@@ -2345,44 +2390,51 @@ CONTAINS
     
     ! Initialize looping pointer
     tmpLct => NULL()
-    CALL GetNextCont ( tmpLct, FLAG1 ) 
+    CALL ListCont_NextCont ( HcoState%Config%ConfigList, tmpLct, FLAG1 ) 
 
     ! Loop over containers
     DO WHILE ( FLAG1 == HCO_SUCCESS )
 
        ! Advance to next container if data container not defined 
        IF ( .NOT. ASSOCIATED(tmpLct%Dct) ) THEN
-          CALL GetNextCont ( tmpLct, FLAG1 ); CYCLE
+          CALL ListCont_NextCont ( HcoState%Config%ConfigList, tmpLct, FLAG1 )
+          CYCLE
        ENDIF
  
        ! Advance to next container if this is the current container 
        IF ( tmpLct%Dct%cID == cID ) THEN
-          CALL GetNextCont ( tmpLct, FLAG1 ); CYCLE
+          CALL ListCont_NextCont ( HcoState%Config%ConfigList, tmpLct, FLAG1 )
+          CYCLE
        ENDIF
 
        ! Advance to next container if this is not a base field
        IF ( tmpLct%Dct%DctType /= HCO_DCTTYPE_BASE ) THEN
-          CALL GetNextCont ( tmpLct, FLAG1 ); CYCLE
+          CALL ListCont_NextCont ( HcoState%Config%ConfigList, tmpLct, FLAG1 )
+          CYCLE
        ENDIF
 
        ! Advance to next container if not the same extension nr
        IF ( tmpLct%Dct%ExtNr /= ExtNr ) THEN
-          CALL GetNextCont ( tmpLct, FLAG1 ); CYCLE
+          CALL ListCont_NextCont ( HcoState%Config%ConfigList, tmpLct, FLAG1 )
+          CYCLE
        ENDIF
 
        ! Advance to next container if not the same species 
        IF ( tmpLct%Dct%HcoID /= HcoID ) THEN
-          CALL GetNextCont ( tmpLct, FLAG1 ); CYCLE
+          CALL ListCont_NextCont ( HcoState%Config%ConfigList, tmpLct, FLAG1 )
+          CYCLE
        ENDIF
 
        ! Advance to next container if not the same category
        IF ( tmpLct%Dct%Cat /= Cat ) THEN
-          CALL GetNextCont ( tmpLct, FLAG1 ); CYCLE
+          CALL ListCont_NextCont ( HcoState%Config%ConfigList, tmpLct, FLAG1 )
+          CYCLE
        ENDIF
 
        ! Advance to next container if lower hierarchy
        IF ( tmpLct%Dct%Hier < Hier ) THEN
-          CALL GetNextCont ( tmpLct, FLAG1 ); CYCLE
+          CALL ListCont_NextCont ( HcoState%Config%ConfigList, tmpLct, FLAG1 )
+          CYCLE
        ENDIF
 
        ! Advance to next container if this container has limited time 
@@ -2395,7 +2447,8 @@ CONTAINS
        IF ( ( tmpLct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE    ) .OR. &
             ( tmpLct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT    ) .OR. &
             ( tmpLct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGEAVG )      ) THEN 
-          CALL GetNextCont ( tmpLct, FLAG1 ); CYCLE
+          CALL ListCont_NextCont ( HcoState%Config%ConfigList, tmpLct, FLAG1 )
+          CYCLE
        ENDIF
 
        ! Check for coverage of tmpLct. Default = full coverage (1) 
@@ -2411,20 +2464,22 @@ CONTAINS
    
              tmpID = tmpLct%Dct%Scal_cID(I)
              IF ( .NOT. tmpLct%Dct%Scal_cID_set ) THEN
-                CALL ListCont_Find ( ConfigList, tmpID, 1, FOUND, mskLct )
+                CALL ListCont_Find ( HcoState%Config%ConfigList, &
+                                     tmpID, 1, FOUND, mskLct )
              ELSE
-                CALL ListCont_Find ( ConfigList, tmpID, 0, FOUND, mskLct )
+                CALL ListCont_Find ( HcoState%Config%ConfigList, &
+                                     tmpID, 0, FOUND, mskLct )
              ENDIF
    
              ! Error if container not found
              IF ( .NOT. FOUND ) THEN
                 WRITE(MSG,*) 'No scale factor with ID: ', tmpID
-                CALL HCO_ERROR ( MSG, RC)
+                CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC)
                 RETURN
              ENDIF
    
              ! Write out coverage.
-             ! Note: If a mask has only partial coverage, retain that
+             ! Note: If one mask has only partial coverage, retain that
              ! value! If we encounter a mask with no coverage, set coverage
              ! to zero and leave immediately. 
              IF ( (mskLct%Dct%DctType == HCO_DCTTYPE_MASK) ) THEN
@@ -2441,7 +2496,8 @@ CONTAINS
        ! If tmpLct has no coverage, we can ignore this tmpLct as 
        ! it will never overwrite data of currCont
        IF ( tmpCov == 0 ) THEN
-          CALL GetNextCont ( tmpLct, FLAG1 ); CYCLE
+          CALL ListCont_NextCont ( HcoState%Config%ConfigList, tmpLct, FLAG1 )
+          CYCLE
        ENDIF
 
        ! If we made it up to here and tmpLct has full coverage, then
@@ -2449,19 +2505,19 @@ CONTAINS
        ! and a higher (or the same) hierarchy as Lct. 
 
        ! If hierarchy of tmpLct is higher than Lct and this 
-       ! container has total coverage over this CPU, it will always 
-       ! replace all values of Lct. Hence, set targetID to -999
-       ! (= ignore container) and return here.
+         ! container has total coverage over this CPU, it will always 
+         ! replace all values of Lct. Hence, set targetID to -999
+         ! (= ignore container) and return here.
        IF ( (tmpLct%Dct%Hier > Hier) .AND. (tmpCov==1) ) THEN
-          IF ( HCO_IsVerb(1) ) THEN
+          IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
              WRITE(MSG,*) 'Skip container ', TRIM(Lct%Dct%cName), &
                           ' because of ', TRIM(tmpLct%Dct%cName)
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
             
           ! Return
           targetID = -999 
-          CALL HCO_LEAVE ( RC )
+          CALL HCO_LEAVE( HcoState%Config%Err, RC )
           RETURN
        ENDIF
 
@@ -2543,7 +2599,7 @@ CONTAINS
        ! inventory (or another field emissions shall be added to which
        ! has lower container ID and hence needs to be the target 
        ! container!).
-       CALL GetNextCont ( tmpLct, FLAG1 )  
+       CALL ListCont_NextCont ( HcoState%Config%ConfigList, tmpLct, FLAG1 )
 
     ENDDO !Loop over all entries in ConfigList (tmpLct) 
 
@@ -2552,7 +2608,7 @@ CONTAINS
     mskLct => NULL()
 
     ! Leave w/ success
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err, RC )
 
   END SUBROUTINE Get_targetID
 !EOC
@@ -2574,10 +2630,6 @@ CONTAINS
   FUNCTION Calc_Coverage( msk_x1, msk_x2, msk_y1, msk_y2,  &
                           cpu_x1, cpu_x2, cpu_y1, cpu_y2 ) RESULT ( COVERAGE ) 
 !
-! !USES:
-!
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, CoreNr
-!
 ! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN) :: msk_x1
@@ -2594,49 +2646,17 @@ CONTAINS
     INTEGER             :: COVERAGE
 !
 ! !REVISION HISTORY:
-!  11 Apr 2013 - C. Keller - Initialization
-!  25 Jan 2016 - C. Keller - Now use option 'FullMaskCoverage' to determine
-!                            default coverage: full or partial (default). 
+!  11 Apr 2013 - C. Keller: Initialization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER             :: RC
-    LOGICAL             :: IsOn, FOUND
 
     !======================================================================
     ! CALC_COVERAGE begins here
     !======================================================================
 
-    ! ckeller, 01/25/16: Assign full overlap to masks only if option
-    ! 'FullMaskCoverageOn' is set to true. Otherwise, treat all masks as
-    ! partial (default). This is because the full coverage can cause problems 
-    ! in MPI applications where individual CPUs cover only small parts of the 
-    ! world. It can then happen that 90% of a CPU lies within a nested 
-    ! inventory region (e.g. NA) but it thinks that this inventory covers 100% 
-    ! of the CPU region because the approximate mask bounds provided in the 
-    ! HEMCO configuration file cannot be perfect. This would then make HEMCO 
-    ! ignore the underlying base emissions entirely, failing to compute 
-    ! emissions for the 10% that are not covered by the regional emission 
-    ! inventory. This problem is easily avoided by setting the coverage to 
-    ! 'partial' or 'none' only. This way regional emission inventories that
-    ! are outside the CPU bounds are still ignored but global emission 
-    ! inventories are kept in case that the regional inventory does not fully 
-    ! cover the CPU.
-    CALL GetExtOpt( CoreNr, 'FullMaskCoverage', OptValBool=IsOn, &
-                    FOUND=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS .OR. .NOT. FOUND ) IsOn = .FALSE.
-
-    ! Set default value
-    IF ( IsOn ) THEN
-       COVERAGE = 1
-    ELSE
-       COVERAGE = -1
-    ENDIF
-
     ! Check if specified area does not overlap with inventory
+    COVERAGE = 1
     IF ( (msk_x1 > cpu_x2) .OR. (msk_x2 < cpu_x1) .OR. &
          (msk_y1 > cpu_y2) .OR. (msk_y2 < cpu_y1)        ) THEN
        COVERAGE = 0
@@ -2679,7 +2699,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadAndSplit_Line( AIR,     IU_HCO,  char1, chr1cl, &
+  SUBROUTINE ReadAndSplit_Line( AIR,     HcoConfig,              &
+                                         IU_HCO,  char1, chr1cl, &
                                 char2,   chr2cl,  char3, chr3cl, &
                                 char4,   chr4cl,  char5, chr5cl, &
                                 char6,   chr6cl,  char7, chr7cl, &
@@ -2696,6 +2717,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,            INTENT(IN   )           :: AIR  
+    TYPE(ConfigObj),    POINTER                 :: HcoConfig
     INTEGER,            INTENT(IN   )           :: IU_HCO     
     INTEGER,            INTENT(IN   )           :: chr1cl
     INTEGER,            INTENT(IN   )           :: chr2cl
@@ -2868,11 +2890,11 @@ CONTAINS
     ! Value -999 is returned for wildcard characters.
     ! ---------------------------------------------------------------------
 
-    CALL READINT( LINE, SUBSTR, N, int1cl, int1, OPT, STAT )
+    CALL READINT( HcoConfig%ExtList, LINE, SUBSTR, N, int1cl, int1, OPT, STAT )
     IF ( STAT == 100 ) RETURN 
-    CALL READINT( LINE, SUBSTR, N, int2cl, int2, OPT, STAT )
+    CALL READINT( HcoConfig%ExtList, LINE, SUBSTR, N, int2cl, int2, OPT, STAT )
     IF ( STAT == 100 ) RETURN 
-    CALL READINT( LINE, SUBSTR, N, int3cl, int3, OPT, STAT )
+    CALL READINT( HcoConfig%ExtList, LINE, SUBSTR, N, int3cl, int3, OPT, STAT )
     IF ( STAT == 100 ) RETURN 
 
   END SUBROUTINE ReadAndSplit_Line
@@ -2924,6 +2946,7 @@ CONTAINS
           READ( SUBSTR(chrcl), '(a)' ) charout
        ENDIF
     ENDIF 
+    charout = ADJUSTL(charout)
 
   END SUBROUTINE READCHAR 
 !EOC
@@ -2940,7 +2963,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE READINT ( LINE, SUBSTR, N, intcl, intout, OPT, STAT )
+  SUBROUTINE READINT ( ExtList, LINE, SUBSTR, N, intcl, intout, OPT, STAT )
 !
 ! !USES:
 !
@@ -2948,6 +2971,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(Ext),          POINTER          :: ExtList
     CHARACTER(LEN=255), INTENT(IN   )    :: LINE 
     CHARACTER(LEN=255), INTENT(IN   )    :: SUBSTR(255) 
     INTEGER,            INTENT(IN   )    :: N
@@ -2976,7 +3000,7 @@ CONTAINS
           ENDIF
        ELSE
           ! Check for wildcard
-          IF ( SUBSTR(intcl) == TRIM(HCO_GetOpt('Wildcard')) ) THEN
+          IF ( SUBSTR(intcl) == TRIM(HCO_GetOpt(ExtList,'Wildcard')) ) THEN
              intout = -999
           ELSE
              READ( SUBSTR(intcl), * ) intout
@@ -2991,146 +3015,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ListCont_Remove 
-!
-! !DESCRIPTION: Subroutine ListCont\_Remove removes the passed container
-! Lct from the ConfigList (it also cleans up the corresponding data
-! container Lct%Dct). Lct is reset to the container IN FRONT
-! of Lct.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE ListCont_Remove( Lct, RC )
-!
-! !USES:
-!
-    USE HCO_DATACONT_Mod, ONLY : DataCont_Cleanup
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ListCont), POINTER       :: Lct
-    INTEGER,        INTENT(INOUT) :: RC
-!
-! !REVISION HISTORY: 
-!  18 Sep 2013 - C. Keller   - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-! 
-    ! Pointers
-    TYPE(ListCont), POINTER   :: TmpLct  => NULL()
-    TYPE(ListCont), POINTER   :: PrvLct => NULL()
-
-    ! Scalars
-    CHARACTER(LEN=255)        :: MSG, LOC
-
-    ! Enter
-    LOC = 'ListCont_Remove (hco_config_mod.F90)'
-
-    ! Special case where Lct is first container in list:
-    IF ( ConfigList%Dct%cID == Lct%Dct%cID ) THEN
-       ConfigList => Lct%NextCont
-       Lct%NextCont => NULL()
-       CALL DataCont_Cleanup ( Lct%Dct )
-       DEALLOCATE ( Lct )
-       Lct => ConfigList
-         
-    ELSE
-
-       ! TmpLct is the temporary container
-       PrvLct => ConfigList
-       TmpLct  => ConfigList%NextCont
-
-       ! Go through list until TmpLct is Lct. Also keep previous
-       ! container in memory (PrvLct) 
-       DO WHILE ( ASSOCIATED ( TmpLct ) ) 
-      
-          IF ( TmpLct%Dct%cID == Lct%Dct%cID ) EXIT
-
-          ! Advance
-          PrvLct => TmpLct
-          TmpLct  => TmpLct%NextCont
-       ENDDO
-
-       ! Return w/ error if container not found
-       IF ( .NOT. ASSOCIATED ( TmpLct ) ) THEN
-          MSG = 'Cannot remove container ' // TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-
-       ! Remove container:
-
-       ! TmpLct is equal to Lct, so get rid of it. 
-       TmpLct => NULL()
-
-       ! Link previous container to following one in list to avoid 
-       ! a break in the list chain.
-       PrvLct%NextCont => Lct%NextCont
-
-       ! Detach Lct from list, then remove
-       Lct%NextCont => NULL()
-       CALL DataCont_Cleanup ( Lct%Dct ) 
-       DEALLOCATE ( Lct )      
-
-       ! Reset Lct to previous container in list
-       Lct => PrvLct
-    ENDIF
-
-    ! Free pointer
-    TmpLct => NULL()
-    PrvLct => NULL()
-
-    ! Return w/ success
-    RC = HCO_SUCCESS 
-
-  END SUBROUTINE ListCont_Remove
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Config_Cleanup 
-!
-! !DESCRIPTION: Subroutine Config\_Cleanup removes ConfigList. 
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Config_Cleanup( RemoveDct ) 
-!
-! !USES:
-!
-    USE HCO_DATACONT_Mod, ONLY : ListCont_Cleanup
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL, INTENT(IN) :: RemoveDct
-!
-! !REVISION HISTORY: 
-!  18 Sep 2013 - C. Keller   - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    ! Clean up Config list
-    CALL ListCont_Cleanup ( ConfigList, RemoveDct )
-    ConfigList => NULL()
-
-    ! Reset internal variables to default values
-    ConfigFileRead = .FALSE. 
-
-  END SUBROUTINE Config_Cleanup
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: Get_cID 
 !
 ! !DESCRIPTION: Subroutine Get\_cID searches the whole ConfigList for an entry
@@ -3139,19 +3023,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_cID( ScalID, cID, RC ) 
+  SUBROUTINE Get_cID( ScalID, HcoConfig, cID, RC ) 
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN   )  :: scalID
+    INTEGER, INTENT(IN   )   :: scalID
+    TYPE(ConfigObj), POINTER :: HcoConfig
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(  OUT)  :: cID 
+    INTEGER, INTENT(  OUT)   :: cID 
 !
 ! !INPUT/OUTPUTP PARAMETERS:
 !
-    INTEGER, INTENT(INOUT)  :: RC 
+    INTEGER, INTENT(INOUT)   :: RC 
 !
 ! !REVISION HISTORY: 
 !  18 Sep 2013 - C. Keller   - Initial version
@@ -3173,7 +3058,7 @@ CONTAINS
     cID = -999
 
     ! Loop over all containers 
-    Lct => ConfigList
+    Lct => HcoConfig%ConfigList
     DO WHILE ( ASSOCIATED ( Lct ) ) 
 
        ! Skip if data container not defined
@@ -3199,7 +3084,7 @@ CONTAINS
     IF ( cID <= 0 ) THEN
        WRITE ( strID, * ) ScalID 
        MSG = 'Cannot find ScalID' // TRIM(strID)
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
     
@@ -3207,45 +3092,6 @@ CONTAINS
     RC = HCO_SUCCESS 
 
   END SUBROUTINE Get_cID
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: GetNextCont
-!
-! !DESCRIPTION: Subroutine GetNextCont is a simple wrapper routine to get 
-! the next/first pointer of the ConfigList. See ListCont\_NextCont for more
-! details. 
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE GetNextCont( Lct, FLAG ) 
-!
-! !USES:
-!
-    USE HCO_DATACONT_Mod, ONLY : ListCont_NextCont
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ListCont), POINTER       :: Lct
-    INTEGER,        INTENT(INOUT) :: FLAG 
-!
-! !REVISION HISTORY:
-!  21 Nov 2013 - C. Keller: Initialization 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    !======================================================================
-    ! GetNextCont begins here
-    !======================================================================
-
-    CALL ListCont_NextCont ( ConfigList, Lct, FLAG )
-
-  END SUBROUTINE GetNextCont
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -3265,11 +3111,12 @@ CONTAINS
 ! !USES:
 !
     USE HCO_DATACONT_Mod, ONLY : DataCont_Init
+    USE HCO_DATACONT_Mod, ONLY : ListCont_Length
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ListCont), POINTER :: Lct
-    TYPE(ListCont), POINTER :: List 
+    TYPE(ListCont), POINTER       :: Lct
+    TYPE(ListCont), POINTER       :: List 
 !
 ! !REVISION HISTORY:
 !  17 Sep 2013 - C. Keller: Initialization (update)
@@ -3280,6 +3127,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     TYPE(ListCont), POINTER :: NewLct => NULL()
+    INTEGER                 :: cID
 
     !======================================================================
     ! ConfigList_AddCont begins here
@@ -3287,12 +3135,17 @@ CONTAINS
 
     ! Allocate container and create data structure.
     ! The DataCont_Init call creates a new data container (type DataCont)
-    ! and assigns a unique container ID (cID) to it. All HEMCO lists 
-    ! (ConfigList, ReadList, EmisList) point to this container!
+    ! All HEMCO lists (ConfigList, ReadList, EmisList) point to this 
+    ! container!
     ALLOCATE ( NewLct ) 
     NewLct%Dct      => NULL()
     NewLct%NextCont => NULL()
-    CALL DataCont_Init ( NewLct%Dct )
+
+    ! Get # of containers in list. Set new container ID (cID) to # of 
+    ! containers + 1.
+    cID = ListCont_Length( List )
+    cID = cID + 1
+    CALL DataCont_Init ( NewLct%Dct, cID )
 
     ! Connect blank container with ConfigList list. 
     NewLct%NextCont => List 
@@ -3316,15 +3169,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ScalID_Register( Dct, RC ) 
+  SUBROUTINE ScalID_Register( Dct, HcoConfig, RC ) 
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(DataCont), POINTER :: Dct 
+    TYPE(DataCont),  POINTER :: Dct 
+    TYPE(ConfigObj), POINTER :: HcoConfig 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(INOUT)  :: RC 
+    INTEGER,  INTENT(INOUT)  :: RC 
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
@@ -3348,11 +3202,11 @@ CONTAINS
     DO N = 1, Dct%nScalID 
        IF ( Dct%Scal_cID(N) < 0 ) CYCLE
     
-       CALL ScalID2List( Dct%Scal_cID(N), RC )
+       CALL ScalID2List( HcoConfig%ScalIDList, Dct%Scal_cID(N), RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
  
        ! Replace scale factor ID with container ID.
-       CALL Get_cID ( Dct%Scal_cID(N), cID, RC )
+       CALL Get_cID ( Dct%Scal_cID(N), HcoConfig, cID, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
        Dct%Scal_cID(N) = cID
 
@@ -3379,15 +3233,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ScalID2List( ID, RC ) 
+  SUBROUTINE ScalID2List( ScalIDList, ID, RC ) 
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN   )  :: ID
+    TYPE(ScalIDCont),   POINTER        :: ScalIDList
+    INTEGER,            INTENT(IN   )  :: ID
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(INOUT)  :: RC 
+    INTEGER,            INTENT(INOUT)  :: RC 
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
@@ -3463,11 +3318,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ScalID_Cleanup()
+  SUBROUTINE ScalID_Cleanup( ScalIDList )
+!
+! !INPUT ARGUMENTS:
+!
+  TYPE(ScalIDCont),   POINTER  :: ScalIDList
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
-
+!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3513,7 +3372,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SpecName_Register( SpecName, RC ) 
+  SUBROUTINE SpecName_Register( HcoConfig, SpecName, RC ) 
 !
 ! !USES:
 !
@@ -3521,11 +3380,12 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN   ) :: SpecName 
+    TYPE(ConfigObj),    POINTER       :: HcoConfig 
+    CHARACTER(LEN=*),   INTENT(IN   ) :: SpecName 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT) :: RC 
+    INTEGER,          INTENT(INOUT)   :: RC 
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
@@ -3545,14 +3405,14 @@ CONTAINS
     !======================================================================
 
     ! Ignore if wildcard character. These fields will always be used!
-    IF ( TRIM(SpecName) == TRIM(HCO_GetOpt('Wildcard')) ) THEN
+    IF ( TRIM(SpecName) == TRIM(HCO_GetOpt(HcoConfig%ExtList,'Wildcard')) ) THEN
        RC = HCO_SUCCESS
        RETURN
     ENDIF
 
     ! Check if already in list 
     IsInList = .FALSE.
-    TmpSpecNameCont => SpecNameList
+    TmpSpecNameCont => HcoConfig%SpecNameList
     DO WHILE ( ASSOCIATED(TmpSpecNameCont) ) 
        IF ( TRIM(TmpSpecNameCont%SpecName) == TRIM(SpecName) ) THEN
           IsInList = .TRUE.
@@ -3565,8 +3425,8 @@ CONTAINS
     IF ( .NOT. IsInList ) THEN
        ALLOCATE ( NewSpecNameCont ) 
        NewSpecNameCont%SpecName =  SpecName
-       NewSpecNameCont%NEXT     => SpecNameList
-       SpecNameList             => NewSpecNameCont
+       NewSpecNameCont%NEXT     => HcoConfig%SpecNameList
+       HcoConfig%SpecNameList   => NewSpecNameCont
        NewSpecNameCont          => NULL()
     ENDIF
  
@@ -3591,7 +3451,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SpecName_Cleanup
+  SUBROUTINE SpecName_Cleanup ( SpecNameList )
+!
+! !INPUT/OUTPUT ARGUMENT:
+!
+    TYPE(SpecNameCont), POINTER       :: SpecNameList
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
@@ -3640,7 +3504,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION Config_GetnSpecies() RESULT( nSpecies )
+  FUNCTION Config_GetnSpecies( HcoConfig ) RESULT( nSpecies )
+!
+! !INPUT ARGUMENT:
+!
+    TYPE(ConfigObj), POINTER       :: HcoConfig 
 !
 ! !RETURN VALUE:
 !
@@ -3660,7 +3528,7 @@ CONTAINS
     ! Config_GetnSpecies begins here
     !======================================================================
    
-    CALL Config_GetSpecAttr( N=nSpecies, RC = THISRC ) 
+    CALL Config_GetSpecAttr( HcoConfig, N=nSpecies, RC = THISRC ) 
  
   END FUNCTION Config_GetnSpecies
 !EOC
@@ -3677,7 +3545,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Config_GetSpecNames( SpecNames, nSpecies, RC ) 
+  SUBROUTINE Config_GetSpecNames( HcoConfig, SpecNames, nSpecies, RC ) 
+!
+! !INPUT ARGUMENT:
+!
+    TYPE(ConfigObj), POINTER          :: HcoConfig 
 !
 ! !OUTPUT PARAMTERS:
 !
@@ -3697,7 +3569,7 @@ CONTAINS
     ! Config_GetSpecNames begins here
     !======================================================================
    
-    CALL Config_GetSpecAttr( N=nSpecies, SpecNames=SpecNames, RC=RC )
+    CALL Config_GetSpecAttr( HcoConfig, N=nSpecies, SpecNames=SpecNames, RC=RC )
  
   END SUBROUTINE Config_GetSpecNames
 !EOC
@@ -3720,16 +3592,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Config_GetSpecAttr( N, SpecNames, RC ) 
+  SUBROUTINE Config_GetSpecAttr( HcoConfig, N, SpecNames, RC ) 
+!
+! !INPUT ARGUMENT:
+!
+    TYPE(ConfigObj),    POINTER                    :: HcoConfig
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(INOUT)           :: N
-    INTEGER,           INTENT(INOUT)           :: RC 
+    INTEGER,            INTENT(INOUT)              :: N
+    INTEGER,            INTENT(INOUT)              :: RC 
 !
 ! !OUTPUT PARAMETERS:
 !
-    CHARACTER(LEN=*),  POINTER,       OPTIONAL    :: SpecNames(:)
+    CHARACTER(LEN=*),   POINTER,       OPTIONAL    :: SpecNames(:)
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
@@ -3753,17 +3629,20 @@ CONTAINS
     IF ( PRESENT(SpecNames) ) THEN
        IF ( .NOT. ASSOCIATED(SpecNames) ) THEN
           IF ( N <= 0 ) THEN
-             CALL HCO_ERROR ( 'Cannot allocate SpecNames - N is size 0 or smaller', RC, THISLOC=LOC )
+             CALL HCO_ERROR ( HcoConfig%Err, &
+                'Cannot allocate SpecNames - N is size 0 or smaller', RC, THISLOC=LOC )
              RETURN
           ENDIF
           ALLOCATE(SpecNames(N), STAT=AS )
           IF ( AS/= 0 ) THEN
-             CALL HCO_ERROR ( 'SpecNames allocation error', RC, THISLOC=LOC )
+             CALL HCO_ERROR ( HcoConfig%Err, &
+                'SpecNames allocation error', RC, THISLOC=LOC )
              RETURN
           ENDIF
           SpecNames(:) = ''
        ELSEIF ( SIZE(SpecNames) /= N ) THEN
-          CALL HCO_ERROR ( 'SpecNames size error', RC, THISLOC=LOC )
+          CALL HCO_ERROR ( HcoConfig%Err, &
+             'SpecNames size error', RC, THISLOC=LOC )
           RETURN
        ENDIF
     ENDIF
@@ -3773,7 +3652,7 @@ CONTAINS
   
     ! Loop over entire list. Count number of containers and eventually
     ! write out the species names. 
-    TmpSpecNameCont => SpecNameList
+    TmpSpecNameCont => HcoConfig%SpecNameList
     DO WHILE ( ASSOCIATED(TmpSpecNameCont) )
        N = N + 1
        IF ( PRESENT(SpecNames) ) THEN
@@ -3788,77 +3667,6 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE Config_GetSpecAttr
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Config_ScalIDinUse
-!
-! !DESCRIPTION: Function Config\_ScalIDinUse returns TRUE if scale factor
-! ID scalID is registered as scale factor to be used by any of the base 
-! data (FALSE otherwise). 
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION Config_ScalIDinUse(ScalID) RESULT( inUse )
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER, INTENT(IN   )   :: ScalID
-!
-! !RETURN VALUE:
-!
-    LOGICAL                  :: inUse 
-!
-! !REVISION HISTORY:
-!  10 Jan 2014 - C. Keller: Initialization (update)
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Pointers
-    TYPE(ScalIDCont), POINTER  :: TmpScalIDCont => NULL() 
-
-    ! For error handling
-    INTEGER            :: RC
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'Config_ScalIDinUse (hco_config_mod.F90)'
-
-    !======================================================================
-    ! Config_ScalIDinUse begins here
-    !======================================================================
-
-    ! This routine should only be called after SetReadList! If not, assume
-    ! that all scale factors are actually used!
-    IF ( .NOT. SetReadListCalled ) THEN
-       MSG = 'You are calling Config_ScalIDinUse before SetReadList - ' // &
-             'this may lead to unexpected behavior!!'
-       CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
-       inUse = .TRUE.
-       RETURN
-    ENDIF
-  
-    ! Init 
-    inUse = .FALSE.
-
-    TmpScalIDCont => ScalIDList
-    DO WHILE ( ASSOCIATED(TmpScalIDCont) )
-       IF ( TmpScalIDCont%ScalID == ScalID ) THEN
-          inUse = .TRUE. 
-          EXIT
-       ENDIF
-       TmpScalIDCont => TmpScalIDCont%NEXT
-    ENDDO
-
-    ! Return
-    TmpScalIDCont => NULL()
-
-  END FUNCTION Config_ScalIDinUse
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -3948,11 +3756,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtractSrcDim( am_I_Root, SrcDim, Dta, RC ) 
+  SUBROUTINE ExtractSrcDim( am_I_Root, HcoConfig, SrcDim, Dta, RC ) 
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )   :: am_I_Root
+    TYPE(ConfigObj),  POINTER         :: HcoConfig 
     CHARACTER(LEN=*), INTENT(IN   )   :: SrcDim
     TYPE(FileData),   POINTER         :: Dta
 !
@@ -4004,13 +3813,13 @@ CONTAINS
 
        ! There must be at least 3 characters (e.g. xyz)
        IF ( strLen < 3 ) THEN
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
 
        ! First two entries must be xy
        IF ( str1(1:2) /= 'xy' ) THEN
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -4019,7 +3828,7 @@ CONTAINS
        ! emitted into level 4.
        IF ( str1(3:3) == 'L' .OR. str1(3:3) == 'l' ) THEN
           IF ( strLen < 4 ) THEN
-             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF       
           Dta%SpaceDim = 2
@@ -4046,7 +3855,7 @@ CONTAINS
            // 'and contain the name/value pair, e.g. xyz+"ens"=3' 
        idx = INDEX( TRIM(str2), '=' ) 
        IF ( idx <= 0 ) THEN
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF 
 
@@ -4071,11 +3880,11 @@ CONTAINS
        ENDIF
 
        ! Verbose
-       IF ( am_I_Root .AND. HCO_IsVerb(2) ) THEN
+       IF ( am_I_Root .AND. HCO_IsVerb(HcoConfig%Err,2) ) THEN
           WRITE(MSG,*) 'Will use additional dimension on file ', &
              TRIM(Dta%ncFile), & ': ', TRIM(Dta%ArbDimName), ' = ', &
              TRIM(Dta%ArbDimVal)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoConfig%Err,MSG)
        ENDIF
     ENDIF
 
@@ -4083,5 +3892,42 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE ExtractSrcDim 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ConfigInit 
+!
+! !DESCRIPTION: Subroutine ConfigInit is a wrapper routine to initialize the
+!  HEMCO configuration object.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ConfigInit ( HcoConfig )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ConfigObj), POINTER :: HcoConfig
+!
+! !REVISION HISTORY:
+!  16 Feb 2016 - C. Keller: Initialization (update)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ALLOCATE(HcoConfig)
+    HcoConfig%ConfigFileName = ''
+    HcoConfig%ROOT           = ''
+    HcoConfig%ConfigFileRead = .FALSE.
+    HcoConfig%ConfigList     => NULL()
+    HcoConfig%ScalIDList     => NULL()
+    HcoConfig%SpecNameList   => NULL()
+    HcoConfig%ExtList        => NULL()
+    HcoConfig%Err            => NULL()
+
+  END SUBROUTINE ConfigInit 
 !EOC
 END MODULE HCO_Config_Mod

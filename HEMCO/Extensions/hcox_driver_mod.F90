@@ -153,7 +153,7 @@ CONTAINS
     !=======================================================================
 
     ! Error handling 
-    CALL HCO_ENTER ('HCOX_INIT (hcox_driver_mod.F90)', RC )
+    CALL HCO_ENTER(HcoState%Config%Err,'HCOX_INIT (hcox_driver_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !=======================================================================
@@ -279,9 +279,9 @@ CONTAINS
     !=======================================================================
 
     ! Cannot have both DustDead and DustGinoux turned on!
-    IF ( ExtState%DustDead .AND. ExtState%DustGinoux ) THEN
+    IF ( ExtState%DustDead > 0 .AND. ExtState%DustGinoux ) THEN
        MSG = 'Ginoux and DEAD dust emissions switched on!'
-       CALL HCO_ERROR ( MSG, RC )
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ENDIF
 
@@ -294,7 +294,7 @@ CONTAINS
     !=======================================================================
     ! Leave w/ success
     !=======================================================================
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HCOX_Init
 !EOC
@@ -373,16 +373,16 @@ CONTAINS
     !=======================================================================
 
     ! For error handling
-    CALL HCO_ENTER ('HCOX_RUN (hcox_driver_mod.F90)', RC )
+    CALL HCO_ENTER(HcoState%Config%Err,'HCOX_RUN (hcox_driver_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Is it time for emissions?
-    CALL HcoClock_Get ( IsEmisTime=IsEmisTime, RC=RC )
+    CALL HcoClock_Get ( amIRoot, HcoState%Clock, IsEmisTime=IsEmisTime, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Can leave here if it's not time for emissions
     IF ( .NOT. IsEmisTime ) THEN
-       CALL HCO_LEAVE ( RC )
+       CALL HCO_LEAVE( HcoState%Config%Err,RC )
        RETURN
     ENDIF
 
@@ -413,7 +413,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Lightning NOx  
     !-----------------------------------------------------------------------
-    IF ( ExtState%LightNOx ) THEN
+    IF ( ExtState%LightNOx > 0 ) THEN
        CALL HCOX_LightNox_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -421,7 +421,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! SoilNOx  
     !-----------------------------------------------------------------------
-    IF ( ExtState%SoilNOx ) THEN
+    IF ( ExtState%SoilNOx > 0 ) THEN
        CALL HCOX_SoilNox_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -429,7 +429,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Dust emissions (DEAD model) 
     !-----------------------------------------------------------------------
-    IF ( ExtState%DustDead ) THEN
+    IF ( ExtState%DustDead > 0 ) THEN
        CALL HCOX_DustDead_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -461,7 +461,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! MEGAN biogenic emissions 
     !-----------------------------------------------------------------------
-    IF ( ExtState%Megan ) THEN
+    IF ( ExtState%Megan > 0 ) THEN
        CALL HCOX_Megan_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -501,7 +501,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! CH4 wetland emissions 
     !-----------------------------------------------------------------------
-    IF ( ExtState%Wetland_CH4 ) THEN
+    IF ( ExtState%Wetland_CH4 > 0 ) THEN
        CALL HCOX_CH4Wetland_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -519,7 +519,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! AeroCom volcano emissions 
     !-----------------------------------------------------------------------
-    IF ( ExtState%AeroCom ) THEN
+    IF ( ExtState%AeroCom > 0 ) THEN
        CALL HCOX_AeroCom_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -540,7 +540,7 @@ CONTAINS
     !=======================================================================
     ! Return w/ success 
     !=======================================================================
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HCOX_Run
 !EOC
@@ -618,21 +618,21 @@ CONTAINS
        IF ( ExtState%Custom        ) CALL HCOX_Custom_Final()
        IF ( ExtState%SeaFlux       ) CALL HCOX_SeaFlux_Final()
        IF ( ExtState%ParaNOx       ) CALL HCOX_PARANOX_Final(am_I_Root,HcoState,RC)
-       IF ( ExtState%LightNOx      ) CALL HCOX_LIGHTNOX_Final()
-       IF ( ExtState%DustDead      ) CALL HCOX_DustDead_Final()
+       IF ( ExtState%LightNOx > 0  ) CALL HCOX_LIGHTNOX_Final( ExtState )
+       IF ( ExtState%DustDead > 0  ) CALL HCOX_DustDead_Final( ExtState )
 #if defined( TOMAS)
        IF ( ExtState%TOMAS_DustDead )  CALL HCOX_TOMAS_DustDead_Final()
 #endif
        IF ( ExtState%DustGinoux    ) CALL HCOX_DustGinoux_Final()
        IF ( ExtState%SeaSalt       ) CALL HCOX_SeaSalt_Final()
-       IF ( ExtState%Megan         ) CALL HCOX_Megan_Final(am_I_Root,HcoState,RC)
+       IF ( ExtState%Megan         ) CALL HCOX_Megan_Final(am_I_Root,HcoState,ExtState,RC)
        IF ( ExtState%GFED          ) CALL HCOX_GFED_Final()
-       IF ( ExtState%SoilNOx       ) CALL HCOX_SoilNox_Final(am_I_Root,HcoState,RC)
+       IF ( ExtState%SoilNOx > 0   ) CALL HCOX_SoilNox_Final(am_I_Root,HcoState,ExtState,RC)
        IF ( ExtState%FINN          ) CALL HcoX_FINN_Final
        IF ( ExtState%GC_RnPbBe     ) CALL HCOX_GC_RnPbBe_Final()
        IF ( ExtState%GC_POPs       ) CALL HCOX_GC_POPs_Final()
-       IF ( ExtState%Wetland_CH4   ) CALL HCOX_CH4Wetland_Final()
-       IF ( ExtState%AeroCom       ) CALL HCOX_AeroCom_Final()
+       IF ( ExtState%Wetland_CH4>0 ) CALL HCOX_CH4Wetland_Final( ExtState )
+       IF ( ExtState%AeroCom > 0   ) CALL HCOX_AeroCom_Final( ExtState )
 #if defined( TOMAS )
        IF ( ExtState%TOMAS_SeaSalt ) CALL HCOX_TOMAS_SeaSalt_Final()
 #endif       
@@ -715,38 +715,38 @@ CONTAINS
 
        ALLOCATE( DGN_LAI(I,J), STAT=AS )
        IF ( AS /= 0 ) THEN
-          CALL HCO_ERROR( 'Diagnostics allocation error 1', RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'Diagnostics allocation error 1', RC, THISLOC=LOC )
           RETURN
        ENDIF
 !       ALLOCATE( DGN_GWET(I,J), STAT=AS )
 !       IF ( AS /= 0 ) THEN
-!          CALL HCO_ERROR( 'Diagnostics allocation error 1', RC, THISLOC=LOC )
+!          CALL HCO_ERROR( HcoState%Config%Err, 'Diagnostics allocation error 1', RC, THISLOC=LOC )
 !          RETURN
 !       ENDIF
 !       ALLOCATE( DGN_T2M(I,J), DGN_V10M(I,J), DGN_U10M(I,J), STAT=AS )
 !       IF ( AS /= 0 ) THEN
-!          CALL HCO_ERROR( 'Diagnostics allocation error 2', RC, THISLOC=LOC )
+!          CALL HCO_ERROR( HcoState%Config%Err, 'Diagnostics allocation error 2', RC, THISLOC=LOC )
 !          RETURN
 !       ENDIF
 !       ALLOCATE( DGN_PARDR(I,J), DGN_PARDF(I,J), DGN_SZAFACT(I,J), STAT=AS )
 !       IF ( AS /= 0 ) THEN
-!          CALL HCO_ERROR( 'Diagnostics allocation error 3', RC, THISLOC=LOC )
+!          CALL HCO_ERROR( HcoState%Config%Err, 'Diagnostics allocation error 3', RC, THISLOC=LOC )
 !          RETURN
 !       ENDIF
 !       ALLOCATE( DGN_CLDFRC(I,J), DGN_ALBD(I,J), DGN_WLI(I,J), STAT=AS )
 !       IF ( AS /= 0 ) THEN
-!          CALL HCO_ERROR( 'Diagnostics allocation error 4', RC, THISLOC=LOC )
+!          CALL HCO_ERROR( HcoState%Config%Err, 'Diagnostics allocation error 4', RC, THISLOC=LOC )
 !          RETURN
 !       ENDIF
 !       ALLOCATE( DGN_TROPP(I,J), STAT=AS )
 !       IF ( AS /= 0 ) THEN
-!          CALL HCO_ERROR( 'Diagnostics allocation error 5', RC, THISLOC=LOC )
+!          CALL HCO_ERROR( HcoState%Config%Err, 'Diagnostics allocation error 5', RC, THISLOC=LOC )
 !          RETURN
 !       ENDIF
 
        ALLOCATE( DGN_SUNCOS(I,J), DGN_DRYTOTN(I,J), DGN_WETTOTN(I,J), STAT=AS )
        IF ( AS /= 0 ) THEN
-          CALL HCO_ERROR( 'Diagnostics allocation error 6', RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'Diagnostics allocation error 6', RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -835,7 +835,6 @@ CONTAINS
 ! !USES:
 !
     USE HCO_DIAGN_MOD, ONLY : Diagn_Create 
-    USE HCO_DIAGN_MOD, ONLY : HcoDiagnIDDefault 
 !
 ! !INPUT PARAMETERS:
 !
@@ -853,7 +852,7 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 
-    CALL Diagn_Create ( am_I_Root,                      &
+    CALL Diagn_Create ( am_I_Root, &
                         HcoState   = HcoState,          & 
                         cName      = TRIM(DgnName),     &
                         ExtNr      = -1,                &
@@ -864,7 +863,7 @@ CONTAINS
                         OutUnit    = '1',               &
                         AutoFill   = 0,                 &
                         Trgt2D     = Trgt2D,            &
-                        COL        = HcoDiagnIDDefault, &
+                        COL = HcoState%Diagn%HcoDiagnIDDefault, &
                         RC         = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
 

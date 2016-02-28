@@ -98,13 +98,13 @@ MODULE HCOX_STATE_MOD
      ! switch in subroutine ExtStateInit below!
      !----------------------------------------------------------------------
      LOGICAL                   :: Custom         ! Customizable ext.
-     LOGICAL                   :: DustDead       ! DEAD dust model
+     INTEGER                   :: DustDead       ! DEAD dust model
      LOGICAL                   :: DustGinoux     ! Ginoux dust emissions
      LOGICAL                   :: DustAlk        ! Dust alkalinity
-     LOGICAL                   :: LightNOx       ! Lightning NOx
+     INTEGER                   :: LightNOx       ! Lightning NOx
      LOGICAL                   :: ParaNOx        ! PARANOX ship emissions
-     LOGICAL                   :: SoilNOx        ! Soil NOx emissions
-     LOGICAL                   :: Megan          ! MEGAN biogenic emissions
+     INTEGER                   :: SoilNOx        ! Soil NOx emissions
+     INTEGER                   :: Megan          ! MEGAN biogenic emissions
      LOGICAL                   :: SeaFlux        ! air-sea exchange
      LOGICAL                   :: SeaSalt        ! Seasalt emissions
      LOGICAL                   :: MarinePOA      ! Marine organic aerosols
@@ -112,10 +112,10 @@ MODULE HCOX_STATE_MOD
      LOGICAL                   :: FINN           ! FINN biomass burning
      LOGICAL                   :: GC_RnPbBe      ! GEOS-Chem Rn-Pb-Be simulation
      LOGICAL                   :: GC_POPs        ! GEOS-Chem POPs simulation
-     LOGICAL                   :: Wetland_CH4    ! Methane emiss from wetlands
+     INTEGER                   :: Wetland_CH4    ! Methane emiss from wetlands
      LOGICAL                   :: TOMAS_SeaSalt  ! TOMAS sectional sea salt
      LOGICAL                   :: TOMAS_DustDead ! TOMAS sectional Dead Dust
-     LOGICAL                   :: AeroCom        ! AeroCom volcano 
+     INTEGER                   :: AeroCom        ! AeroCom volcano 
 
      !----------------------------------------------------------------------
      ! Data directory
@@ -296,13 +296,13 @@ CONTAINS
     ! Set all switches to FALSE
     !-----------------------------------------------------------------------
     ExtState%Custom         = .FALSE.
-    ExtState%DustDead       = .FALSE.
+    ExtState%DustDead       = -1
     ExtState%DustGinoux     = .FALSE.
     ExtState%DustAlk        = .FALSE.
-    ExtState%LightNOx       = .FALSE.
+    ExtState%LightNOx       = -1
     ExtState%ParaNOx        = .FALSE.
-    ExtState%SoilNOx        = .FALSE.
-    ExtState%Megan          = .FALSE.
+    ExtState%SoilNOx        = -1
+    ExtState%Megan          = -1
     ExtState%SeaFlux        = .FALSE.
     ExtState%SeaSalt        = .FALSE.
     ExtState%MarinePOA      = .FALSE.
@@ -310,10 +310,10 @@ CONTAINS
     ExtState%FINN           = .FALSE.
     ExtState%GC_RnPbBe      = .FALSE.
     ExtState%GC_POPs        = .FALSE.
-    ExtState%Wetland_CH4    = .FALSE.
+    ExtState%Wetland_CH4    = -1 
     ExtState%TOMAS_SeaSalt  = .FALSE.
     ExtState%TOMAS_DustDead = .FALSE.
-    ExtState%AeroCom        = .FALSE.
+    ExtState%AeroCom        = -1
 
     !-----------------------------------------------------------------------
     ! Initialize constants for POPs emissions module
@@ -1064,7 +1064,7 @@ CONTAINS
        ! Allocate temporary array
        ALLOCATE(Arr2D(HcoState%NX,HcoState%NY),STAT=AS)
        IF ( AS /= 0 ) THEN
-          CALL HCO_ERROR ( "Arr2D allocation error", RC, THISLOC=LOC )
+          CALL HCO_ERROR ( HcoState%Config%Err, "Arr2D allocation error", RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -1084,9 +1084,9 @@ CONTAINS
              IF ( RC /= HCO_SUCCESS ) RETURN
    
              ! Verbose
-             IF ( HCO_IsVerb(2) ) THEN
+             IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                 MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
-                CALL HCO_MSG(MSG)
+                CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
    
           ! Target to data
@@ -1103,7 +1103,7 @@ CONTAINS
                    'Expected dimensions: ', HcoState%NX, HcoState%NY, &
                    '; encountered dimensions: ', NX, NY, '. Error occured ', &
                    'for field ', TRIM(FldName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
 
@@ -1117,15 +1117,15 @@ CONTAINS
              IF ( PRESENT(Filled) ) Filled = .TRUE.
 
              ! Verbose
-             IF ( HCO_IsVerb(2) ) THEN
+             IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                 MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
-                CALL HCO_MSG(MSG)
+                CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
 
           ! Field not found and no target defined 
           ELSEIF ( FailIfNotFilled ) THEN
              MSG = 'Cannot fill extension field ' // TRIM(FldName)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
        ENDIF ! FIRST
@@ -1141,7 +1141,7 @@ CONTAINS
              IF ( PRESENT(Filled) ) Filled = .TRUE.
           ELSEIF ( FailIfNotFilled ) Then
              MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
        ENDIF ! FromList
@@ -1150,7 +1150,7 @@ CONTAINS
     ! Make sure array exists
     IF ( FailIfNotFilled .AND. .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
        MSG = 'ExtState array not filled: ' // TRIM(FldName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
     ENDIF
 
     ! Cleanup
@@ -1247,7 +1247,7 @@ CONTAINS
        ! Allocate temporary array
        ALLOCATE(Arr2D(HcoState%NX,HcoState%NY),STAT=AS)
        IF ( AS /= 0 ) THEN
-          CALL HCO_ERROR ( "Arr2D allocation error", RC, THISLOC=LOC )
+          CALL HCO_ERROR ( HcoState%Config%Err, "Arr2D allocation error", RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -1267,9 +1267,9 @@ CONTAINS
              IF ( RC /= HCO_SUCCESS ) RETURN
    
              ! Verbose
-             IF ( HCO_IsVerb(2) ) THEN
+             IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                 MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
-                CALL HCO_MSG(MSG)
+                CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
    
           ! Target to data
@@ -1286,7 +1286,7 @@ CONTAINS
                    'Expected dimensions: ', HcoState%NX, HcoState%NY, &
                    '; encountered dimensions: ', NX, NY, '. Error occured ', &
                    'for field ', TRIM(FldName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
 
@@ -1300,15 +1300,15 @@ CONTAINS
              IF ( PRESENT(Filled) ) Filled = .TRUE.
 
              ! Verbose
-             IF ( HCO_IsVerb(2) ) THEN
+             IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                 MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
-                CALL HCO_MSG(MSG)
+                CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
 
           ! Field not found and no target defined 
           ELSEIF ( FailIfNotFilled ) THEN
              MSG = 'Cannot fill extension field ' // TRIM(FldName)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
        ENDIF ! FIRST
@@ -1324,7 +1324,7 @@ CONTAINS
              IF ( PRESENT(Filled) ) Filled = .TRUE.
           ELSEIF ( FailIfNotFilled ) THEN
              MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF 
        ENDIF ! FromList
@@ -1333,7 +1333,7 @@ CONTAINS
     ! Make sure array exists
     IF ( FailIfNotFilled .AND. .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
        MSG = 'ExtState array not filled: ' // TRIM(FldName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
     ENDIF
 
     ! Cleanup
@@ -1430,7 +1430,7 @@ CONTAINS
        ! Allocate temporary array
        ALLOCATE(Arr2D(HcoState%NX,HcoState%NY),STAT=AS)
        IF ( AS /= 0 ) THEN
-          CALL HCO_ERROR ( "Arr2D allocation error", RC, THISLOC=LOC )
+          CALL HCO_ERROR ( HcoState%Config%Err, "Arr2D allocation error", RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -1450,9 +1450,9 @@ CONTAINS
              IF ( RC /= HCO_SUCCESS ) RETURN
    
              ! Verbose
-             IF ( HCO_IsVerb(2) ) THEN
+             IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                 MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
-                CALL HCO_MSG(MSG)
+                CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
    
           ! Target to data
@@ -1469,7 +1469,7 @@ CONTAINS
                    'Expected dimensions: ', HcoState%NX, HcoState%NY, &
                    '; encountered dimensions: ', NX, NY, '. Error occured ', &
                    'for field ', TRIM(FldName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
  
@@ -1483,15 +1483,15 @@ CONTAINS
              IF ( PRESENT(Filled) ) Filled = .TRUE.
 
              ! Verbose
-             IF ( HCO_IsVerb(2) ) THEN
+             IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                 MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
-                CALL HCO_MSG(MSG)
+                CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
 
           ! Not found in list and no target defined 
           ELSEIF ( FailIfNotFilled ) THEN
              MSG = 'Cannot fill extension field ' // TRIM(FldName)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
     
@@ -1510,7 +1510,7 @@ CONTAINS
 
           ELSEIF ( FailIfNotFilled ) THEN
              MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
    
@@ -1520,7 +1520,7 @@ CONTAINS
     ! Make sure array exists
     IF ( FailIfNotFilled .AND. .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
        MSG = 'ExtState array not filled: ' // TRIM(FldName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
     ENDIF
  
     ! Cleanup
@@ -1627,7 +1627,7 @@ CONTAINS
        ! Allocate temporary array
        ALLOCATE(Arr3D(HcoState%NX,HcoState%NY,NZ_EXPECTED),STAT=AS)
        IF ( AS /= 0 ) THEN
-          CALL HCO_ERROR ( "Arr3D allocation error", RC, THISLOC=LOC )
+          CALL HCO_ERROR ( HcoState%Config%Err, "Arr3D allocation error", RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -1647,9 +1647,9 @@ CONTAINS
              IF ( RC /= HCO_SUCCESS ) RETURN
    
              ! Verbose
-             IF ( HCO_IsVerb(2) ) THEN
+             IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                 MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
-                CALL HCO_MSG(MSG)
+                CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
    
           ! Target to data
@@ -1667,7 +1667,7 @@ CONTAINS
                    'Expected dimensions: ', HcoState%NX, HcoState%NY, NZ_EXPECTED, &
                    '; encountered dimensions: ', NX, NY, NZ, '. Error occured ', &
                    'for field ', TRIM(FldName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
  
@@ -1681,9 +1681,9 @@ CONTAINS
              IF ( PRESENT(Filled) ) Filled = .TRUE.
 
              ! Verbose
-             IF ( HCO_IsVerb(2) ) THEN
+             IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                 MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
-                CALL HCO_MSG(MSG)
+                CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
           
           ! Not found in list and no target defined 
@@ -1691,7 +1691,7 @@ CONTAINS
              ! Target array must be present
              IF ( .NOT. PRESENT(Trgt) ) THEN
                 MSG = 'Cannot fill extension field ' // TRIM(FldName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
           ENDIF
@@ -1711,7 +1711,7 @@ CONTAINS
 
           ELSEIF ( FailIfNotFilled ) THEN
              MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
              RETURN
 
           ENDIF 
@@ -1721,7 +1721,7 @@ CONTAINS
     ! Make sure array exists
     IF ( FailIfNotFilled .AND. .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
        MSG = 'ExtState array not filled: ' // TRIM(FldName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
     ENDIF
  
     ! Cleanup
@@ -1828,7 +1828,7 @@ CONTAINS
        ! Allocate temporary array
        ALLOCATE(Arr3D(HcoState%NX,HcoState%NY,NZ_EXPECTED),STAT=AS)
        IF ( AS /= 0 ) THEN
-          CALL HCO_ERROR ( "Arr3D allocation error", RC, THISLOC=LOC )
+          CALL HCO_ERROR ( HcoState%Config%Err, "Arr3D allocation error", RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -1848,9 +1848,9 @@ CONTAINS
              IF ( RC /= HCO_SUCCESS ) RETURN
    
              ! Verbose
-             IF ( HCO_IsVerb(2) ) THEN
+             IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                 MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
-                CALL HCO_MSG(MSG)
+                CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
    
           ! Target to data
@@ -1868,7 +1868,7 @@ CONTAINS
                    'Expected dimensions: ', HcoState%NX, HcoState%NY, NZ_EXPECTED, &
                    '; encountered dimensions: ', NX, NY, NZ, '. Error occured ', &
                    'for field ', TRIM(FldName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
  
@@ -1882,9 +1882,9 @@ CONTAINS
              IF ( PRESENT(Filled) ) Filled = .TRUE.
 
              ! Verbose
-             IF ( HCO_IsVerb(2) ) THEN
+             IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                 MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
-                CALL HCO_MSG(MSG)
+                CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
    
           ! Not found in list and no target defined 
@@ -1892,7 +1892,7 @@ CONTAINS
              ! Target array must be present
              IF ( .NOT. PRESENT(Trgt) ) THEN
                 MSG = 'Cannot fill extension field ' // TRIM(FldName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
           ENDIF
@@ -1910,7 +1910,7 @@ CONTAINS
              IF ( PRESENT(Filled) ) Filled = .TRUE.
           ELSEIF ( FailIfNotFilled ) THEN
              MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF 
        ENDIF !FromList
@@ -1919,7 +1919,7 @@ CONTAINS
     ! Make sure array exists
     IF ( FailIfNotFilled .AND. .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
        MSG = 'ExtState array not filled: ' // TRIM(FldName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
     ENDIF
  
     ! Cleanup

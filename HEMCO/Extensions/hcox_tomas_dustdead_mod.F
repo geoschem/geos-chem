@@ -189,7 +189,8 @@
       USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr
       USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd 
       USE HCO_CLOCK_MOD,     ONLY : HcoClock_Get
-      USE HCO_State_Mod,    ONLY : HCO_GetHcoID
+      USE HCO_CLOCK_MOD,     ONLY : HcoClock_First
+      USE HCO_State_Mod,     ONLY : HCO_GetHcoID
 !
 ! !INPUT PARAMETERS:
 !
@@ -259,7 +260,7 @@
       ! JKodros
       REAL(hp), TARGET       :: FLUXN(HcoState%NX,HcoState%NY,
      & HcoState%MicroPhys%nBins) ! Flux NUMB array [number units??]   
-      LOGICAL,  SAVE         :: FIRST = .TRUE.
+!      LOGICAL,  SAVE         :: FIRST = .TRUE.
 !     Strings, JKodros
       CHARACTER(LEN=31)      :: SpcName
 
@@ -288,7 +289,7 @@
       IF ( .NOT. ExtState%TOMAS_DustDead ) RETURN
 
       ! Enter
-      CALL HCO_ENTER ( 'HCOX_TOMAS_DustDead_Run 
+      CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_TOMAS_DustDead_Run 
      & (hcox_tomas_dustdead_mod.F)', RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -315,32 +316,32 @@
       ! MSS_FRC_SND    ; mass fraction of sand:        HcoState%NX HcoState%NY
       ! SFC_TYP        ; surface type:                 HcoState%NX HcoState%NY
       !=================================================================
-      IF ( FIRST ) THEN
-         CALL HCO_GetPtr( aIR, 'DEAD_EF_GEO', ERD_FCT_GEO, RC )
+      IF ( HcoClock_First(HcoState%Clock,.TRUE.) ) THEN
+         CALL HCO_GetPtr( aIR, HcoState, 'DEAD_EF_GEO', ERD_FCT_GEO, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL HCO_GetPtr( aIR, 'DEAD_LF_DRY', LND_FRC_DRY, RC )
+         CALL HCO_GetPtr( aIR, HcoState, 'DEAD_LF_DRY', LND_FRC_DRY, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
    
          CALL HCO_GetPtr(aIR,'DEAD_MF_CACO3', MSS_FRC_CACO3,RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL HCO_GetPtr( aIR, 'DEAD_MF_CLY', MSS_FRC_CLY, RC )
+         CALL HCO_GetPtr( aIR, HcoState, 'DEAD_MF_CLY', MSS_FRC_CLY, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL HCO_GetPtr( aIR, 'DEAD_MF_SND', MSS_FRC_SND, RC )
+         CALL HCO_GetPtr( aIR, HcoState, 'DEAD_MF_SND', MSS_FRC_SND, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL HCO_GetPtr ( aIR, 'DEAD_SFC_TYP', SFC_TYP, RC )
+         CALL HCO_GetPtr( aIR, HcoState, 'DEAD_SFC_TYP', SFC_TYP, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL HCO_GetPtr ( aIR, 'DEAD_GOC_SRC', SRCE_FUNC, RC )
+         CALL HCO_GetPtr( aIR, HcoState, 'DEAD_GOC_SRC', SRCE_FUNC, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN 
    
-         CALL HCO_GetPtr ( aIR, 'DEAD_VAI', VAI_DST, RC )
+         CALL HCO_GetPtr( aIR, HcoState, 'DEAD_VAI', VAI_DST, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
-         FIRST = .FALSE.
+!         FIRST = .FALSE.
       ENDIF
 
       !=================================================================
@@ -355,7 +356,7 @@
       DTSRCE = HcoState%TS_EMIS   
 
       ! Get day of year, convert to real!!
-      CALL HcoClock_Get( cDOY = intDOY, RC=RC )
+      CALL HcoClock_Get( am_I_Root, HcoState%Clock, cDOY=intDOY, RC=RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
       DOY = intDOY
 
@@ -475,7 +476,7 @@
      &                        HcoIDs(N), RC, ExtNr=ExtNr )
             IF ( RC /= HCO_SUCCESS ) THEN
                WRITE(MSG,*) 'HCO_EmisAdd error: dust bin ', N
-               CALL HCO_ERROR( MSG, RC )
+               CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
                RETURN 
             ENDIF
 
@@ -529,7 +530,8 @@
             CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXN(:,:,N), HcoID
      &           , RC)
             IF ( RC /= HCO_SUCCESS ) THEN
-               CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXNDUST', RC )
+               CALL HCO_ERROR( HcoState%Config%Err, 
+     &                        'HCO_EmisAdd error: FLUXNDUST', RC )
                RETURN
             ENDIF
 
@@ -537,7 +539,7 @@
       ENDDO !N
 
       ! Return w/ success
-      CALL HCO_LEAVE ( RC )
+      CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
       END SUBROUTINE HCOX_TOMAS_DustDead_Run
 !EOC
@@ -594,11 +596,11 @@
       !=================================================================
 
       ! Extension Nr.
-      ExtNr = GetExtNr( TRIM(ExtName) )
+      ExtNr = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
       IF ( ExtNr <= 0 ) RETURN
 
       ! Enter
-      CALL HCO_ENTER ('HCOX_TOMAS_DustDead_Init 
+      CALL HCO_ENTER(HcoState%Config%Err,'HCOX_TOMAS_DustDead_Init 
      & (hcox_tomas_dustdead_mod.F)', RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -616,14 +618,15 @@
       ! Sanity check
       IF ( nSpc /= NBINS ) THEN
          MSG = 'Dust DEAD model does not have four species!'
-         CALL HCO_ERROR ( MSG, RC )
+         CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
          RETURN
       ENDIF
 
       ! Set scale factor: first try to read from configuration file. If
       ! not specified, call wrapper function which sets teh scale factor
       ! based upon compiler switches.
-      CALL GetExtOpt ( ExtNr, 'Mass tuning factor', 
+      CALL GetExtOpt( HcoState%Config, ExtNr, 
+     &                 'Mass tuning factor', 
      &                 OptValDp=TmpScal, Found=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -632,7 +635,8 @@
       IF ( FOUND ) THEN
          FLX_MSS_FDG_FCT = TmpScal
       ELSE
-         FLX_MSS_FDG_FCT = HCOX_TOMAS_DustDead_GetFluxTun( am_I_Root )
+         FLX_MSS_FDG_FCT = 
+     &      HCOX_TOMAS_DustDead_GetFluxTun( am_I_Root, HcoState )
          IF ( FLX_MSS_FDG_FCT < 0.0_dp ) THEN
             RC = HCO_FAIL
             RETURN
@@ -642,17 +646,17 @@
       ! Verbose mode
       IF ( am_I_Root ) THEN
          MSG = 'Use DEAD dust emissions (extension module)'
-         CALL HCO_MSG( MSG, SEP1='-' )
+         CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
    
          MSG = 'Use the following species (Name: HcoID):' 
-         CALL HCO_MSG(MSG)
+         CALL HCO_MSG(HcoState%Config%Err,MSG)
          DO N = 1, nSpc
             WRITE(MSG,*) TRIM(SpcNames(N)), ':', HcoIDs(N)
-            CALL HCO_MSG(MSG)
+            CALL HCO_MSG(HcoState%Config%Err,MSG)
          ENDDO
             
          WRITE(MSG,*) 'Global mass flux tuning factor: ',FLX_MSS_FDG_FCT
-         CALL HCO_MSG(MSG,SEP2='-')
+         CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
       ENDIF
 
       !-----------------------------------------------------------------
@@ -662,98 +666,98 @@
       ! Allocate arrays
       ALLOCATE( FLX_LW_DWN_SFC( I, J ), STAT=AS )
       IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR ( 'FLX_LW_DWN_SFC', RC )
+        CALL HCO_ERROR ( HcoState%Config%Err, 'FLX_LW_DWN_SFC', RC )
         RETURN
       ENDIF
       FLX_LW_DWN_SFC = 0d0
 
       ALLOCATE( FLX_SW_ABS_SFC( I, J ), STAT=AS )
       IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR ( 'FLX_SW_ABS_SFC', RC )
+        CALL HCO_ERROR ( HcoState%Config%Err, 'FLX_SW_ABS_SFC', RC )
         RETURN
       ENDIF
       FLX_SW_ABS_SFC = 0d0
 
       ALLOCATE( TPT_GND( I, J ), STAT=AS )
       IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR ( 'TPT_GND', RC )
+        CALL HCO_ERROR ( HcoState%Config%Err, 'TPT_GND', RC )
         RETURN
       ENDIF
       TPT_GND = 0d0
 
       ALLOCATE( TPT_SOI( I, J ), STAT=AS )
       IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR ( 'TPT_SOI', RC )
+        CALL HCO_ERROR ( HcoState%Config%Err, 'TPT_SOI', RC )
         RETURN
       ENDIF
       TPT_SOI = 0d0
 
       ALLOCATE( VWC_SFC( I, J ), STAT=AS )
       IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR ( 'VWC_SFC', RC )
+        CALL HCO_ERROR ( HcoState%Config%Err, 'VWC_SFC', RC )
         RETURN
       ENDIF
       VWC_SFC = 0d0
 
       ALLOCATE( SRC_STR( I, J ), STAT=AS )
       IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR ( 'SRC_STR', RC )
+        CALL HCO_ERROR ( HcoState%Config%Err, 'SRC_STR', RC )
         RETURN
       ENDIF
       SRC_STR = 0d0
 
       ALLOCATE( PLN_TYP( 0:28, 3 ), STAT=AS )
       IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR ( 'PLN_TYP', RC )
+        CALL HCO_ERROR ( HcoState%Config%Err, 'PLN_TYP', RC )
         RETURN
       ENDIF
       PLN_TYP = 0
 
       ALLOCATE( PLN_FRC( 0:28, 3 ), STAT=AS )
       IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR ( 'PLN_FRC', RC )
+        CALL HCO_ERROR ( HcoState%Config%Err, 'PLN_FRC', RC )
         RETURN
       ENDIF
       PLN_FRC = 0d0
 
       ALLOCATE( TAI( MVT, 12 ), STAT=AS )
       IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR ( 'TAI', RC )
+        CALL HCO_ERROR ( HcoState%Config%Err, 'TAI', RC )
         RETURN
       ENDIF
       TAI = 0d0
 
       ALLOCATE( DMT_VWR( NBINS ), STAT=AS )
       IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR ( 'DMT_VWR', RC )
+        CALL HCO_ERROR ( HcoState%Config%Err, 'DMT_VWR', RC )
         RETURN
       ENDIF
       DMT_VWR = 0d0
 
       ALLOCATE( DNS_AER( NBINS ), STAT=AS )
       IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR ( 'DNS_AER', RC )
+        CALL HCO_ERROR ( HcoState%Config%Err, 'DNS_AER', RC )
         RETURN
       ENDIF
       DNS_AER = 0d0
 
       ALLOCATE( OVR_SRC_SNK_FRC( DST_SRC_NBR, NBINS ), STAT=AS )
       IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR ( 'OVR_SRC_SNK_FRC', RC )
+        CALL HCO_ERROR ( HcoState%Config%Err, 'OVR_SRC_SNK_FRC', RC )
         RETURN
       ENDIF
       OVR_SRC_SNK_FRC = 0d0
 
       ALLOCATE( OVR_SRC_SNK_MSS( DST_SRC_NBR, NBINS ), STAT=AS )
       IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR ( 'OVR_SRC_SNK_MSS', RC )
+        CALL HCO_ERROR ( HcoState%Config%Err, 'OVR_SRC_SNK_MSS', RC )
         RETURN
       ENDIF
       OVR_SRC_SNK_MSS = 0d0
 
       ALLOCATE( OROGRAPHY( I, J ), STAT=AS )
       IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR ( 'OROGRAPHY', RC )
+        CALL HCO_ERROR ( HcoState%Config%Err, 'OROGRAPHY', RC )
         RETURN
       ENDIF
       OROGRAPHY = 0
@@ -764,7 +768,7 @@
       ! Bin size min diameter [m]
       ALLOCATE( DMT_MIN( NBINS ), STAT=AS )
       IF ( AS /= 0 ) THEN
-        CALL HCO_ERROR ( 'DMT_MIN', RC )
+        CALL HCO_ERROR ( HcoState%Config%Err, 'DMT_MIN', RC )
         RETURN
       ENDIF
 
@@ -776,7 +780,7 @@
       ! Bin size max diameter [m]
       ALLOCATE( DMT_MAX( NBINS ), STAT=AS )
       IF ( AS /= 0 ) THEN
-        CALL HCO_ERROR ( 'DMT_MAX', RC )
+        CALL HCO_ERROR ( HcoState%Config%Err, 'DMT_MAX', RC )
         RETURN
       ENDIF
 
@@ -792,7 +796,7 @@
       ! Bin size min diameter [m]
 !      ALLOCATE( DMT_MIN( NBINS ), STAT=AS )
 !      IF ( AS /= 0 ) THEN 
-!        CALL HCO_ERROR ( 'DMT_MIN', RC )
+!        CALL HCO_ERROR ( HcoState%Config%Err, 'DMT_MIN', RC )
 !        RETURN
 !      ENDIF
 !      DMT_MIN(1) = 0.2d-6
@@ -803,7 +807,7 @@
       ! Bin size max diameter [m]
 !      ALLOCATE( DMT_MAX( NBINS ), STAT=AS )
 !      IF ( AS /= 0 ) THEN 
-!        CALL HCO_ERROR ( 'DMT_MAX', RC )
+!        CALL HCO_ERROR ( HcoState%Config%Err, 'DMT_MAX', RC )
 !        RETURN
 !      ENDIF
 !      DMT_MAX(1) = 2.0d-6
@@ -817,7 +821,7 @@
       ! Mass median diameter BSM96 p. 73 Table 2
       ALLOCATE( DMT_VMA_SRC( DST_SRC_NBR ), STAT=AS )
       IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR ( 'DMT_VMA_SRC', RC )
+        CALL HCO_ERROR ( HcoState%Config%Err, 'DMT_VMA_SRC', RC )
         RETURN
       ENDIF
       DMT_VMA_SRC(1) = 0.832d-6
@@ -828,7 +832,7 @@
       ! BSM96 p. 73 Table 2
       ALLOCATE( GSD_ANL_SRC( DST_SRC_NBR ), STAT=AS )
       IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR ( 'GSD_ANL_SRC', RC )
+        CALL HCO_ERROR ( HcoState%Config%Err, 'GSD_ANL_SRC', RC )
         RETURN
       ENDIF
       GSD_ANL_SRC(1) = 2.10d0
@@ -838,7 +842,7 @@
       ! MSS_FRC_SRC:  Mass fraction BSM96 p. 73 Table 2
       ALLOCATE( MSS_FRC_SRC( DST_SRC_NBR ), STAT=AS )
       IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR ( 'MSS_FRC_SRC', RC )
+        CALL HCO_ERROR ( HcoState%Config%Err, 'MSS_FRC_SRC', RC )
         RETURN
       ENDIF
       MSS_FRC_SRC(1) = 0.036d0
@@ -888,7 +892,7 @@
 
       ! Leave w/ success
       IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
-      CALL HCO_LEAVE ( RC ) 
+      CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
 
       END SUBROUTINE HCOX_TOMAS_DustDead_Init
 !EOC
@@ -1194,7 +1198,7 @@
          ! Stop occasional haywire model runs
 !         IF ( TPT_MDP(I) > 350.0d0 ) THEN
 !            MSG = 'TPT_MDP(i) > 350.0'
-!            CALL HCO_ERROR ( MSG, RC, THISLOC='DST_MBL' ) 
+!            CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC='DST_MBL' ) 
 !            RETURN
 !         ENDIF
          ! Now simply restrict to 350K, rather than crashing
@@ -2620,7 +2624,7 @@
          ! tdf 10/27/2K3 -- Sanity check
          IF ( RGH_MMN(LON_IDX) <= 0.0 ) THEN
             MSG = 'RGH_MMN <= 0.0'
-            CALL HCO_ERROR ( MSG, RC, THISLOC='BLM_MBL' )
+            CALL HCO_ERROR(HcoState%Config%Err,MSG,RC,THISLOC='BLM_MBL')
             RETURN
          ENDIF
 
@@ -2634,7 +2638,7 @@
          ! Sanity check
          IF ( WND_FRC_DENOM <= 0.0 ) THEN
             MSG = 'WND_FRC_DENOM <= 0.0'
-            CALL HCO_ERROR ( MSG, RC, THISLOC='BLM_MBL' )
+            CALL HCO_ERROR(HcoState%Config%Err,MSG,RC,THISLOC='BLM_MBL')
             RETURN
          ENDIF
 
@@ -3074,7 +3078,8 @@
 
               ! Presumably ocean snuck through
               ELSE
-                 CALL HCO_ERROR( 'pln_typ_idx == 0', RC, 
+                 CALL HCO_ERROR( HcoState%Config%Err, 
+     &                          'pln_typ_idx == 0', RC, 
      &                           THISLOC='RGH_MMN_GET' )
                  RETURN
               ENDIF            ! endif
@@ -3425,7 +3430,7 @@
 
       ! Error check
       IF ( RYN_NBR < 0.03D0 ) THEN
-         CALL HCO_ERROR ( 'RYN_NBR < 0.03', RC,
+         CALL HCO_ERROR ( HcoState%Config%Err, 'RYN_NBR < 0.03', RC,
      &      THISLOC='WND_FRC_THR_SLT_GET' )
          RETURN
 
@@ -3749,7 +3754,7 @@
       ! Error check
       if ( FEFF <= 0.0D0 .OR. FEFF > 1.0D0 ) THEN
          MSG = 'Feff out of range!'
-         CALL HCO_ERROR ( MSG, RC,
+         CALL HCO_ERROR(HcoState%Config%Err,MSG, RC,
      &      THISLOC='FRC_THR_NC_DRG_GET' )
          RETURN
       ENDIF
@@ -4054,7 +4059,7 @@
                IF ( MSS_FRC_CACO3_SZ_CRR < 0.0D0  .OR.
      &              MSS_FRC_CACO3_SZ_CRR > 1.0D0 ) THEN
                   MSG = 'mss_frc_CaC_s < 0.0.or.mss_frc_CaC_s > 1.0!'
-                  CALL HCO_ERROR ( MSG, RC, 
+                  CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, 
      &               THISLOC='FLX_MSS_CACO3_MSK' )
                   RETURN
                ENDIF
@@ -4062,7 +4067,7 @@
                IF ( MSS_FRC_CACO3_SLC(LON_IDX) < 0.0D0  .OR.
      &              MSS_FRC_CACO3_SLC(LON_IDX) > 1.0D0 ) THEN
                   MSG = 'mss_frc_CaCO3_s < 0.0.or.mss_frc_CaCO3 > 1.0!'
-                  CALL HCO_ERROR ( MSG, RC,
+                  CALL HCO_ERROR(HcoState%Config%Err,MSG, RC,
      &               THISLOC='FLX_MSS_CACO3_MSK' )
                   RETURN
                ENDIF
@@ -4569,7 +4574,7 @@
       ! Error check
       IF ( VAI_MBL_THR <= 0.0d0 ) THEN
          MSG = 'VAI_MBL_THR <= 0.0'
-         CALL HCO_ERROR( MSG, RC, 
+         CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, 
      &        THISLOC='LND_FRC_MBL_GET' )
          RETURN
       ENDIF
@@ -4696,14 +4701,14 @@
          ! Error check
          IF ( LND_FRC_MBL(lon_idx) > 1.0D0 ) THEN
             MSG = 'LND_FRC_MBL > 1'
-            CALL HCO_ERROR( MSG, RC,
+            CALL HCO_ERROR(HcoState%Config%Err,MSG, RC,
      &         THISLOC='LND_FRC_MBL_GET' )
             RETURN 
          ENDIF
 
          IF ( LND_FRC_MBL(LON_IDX) < 0.0D0 )   then
             MSG = 'LND_FRC_MBL < 0'
-            CALL HCO_ERROR( MSG, RC,
+            CALL HCO_ERROR(HcoState%Config%Err,MSG, RC,
      &         THISLOC='LND_FRC_MBL_GET' )
             RETURN 
          ENDIF
@@ -4828,6 +4833,8 @@
      &                                GSD_SRC,         SNK_NBR,
      &                                DMT_MIN_SNK,     DMT_MAX_SNK,
      &                                OVR_SRC_SNK_FRC, RC )
+
+      USE HCO_CLOCK_MOD, ONLY : HcoClock_First
 !
 !******************************************************************************
 !  Subroutine OVR_SRC_SNK_FRC_GET, given one set (the "source") of lognormal
@@ -4869,7 +4876,7 @@
       INTEGER, INTENT(INOUT) :: RC
 
       ! Local
-      LOGICAL              :: FIRST = .TRUE.
+!      LOGICAL              :: FIRST = .TRUE.
       INTEGER              :: SRC_IDX         ! [idx] Counting index for src
       INTEGER              :: SNK_IDX         ! [idx] Counting index for snk
       REAL*8               :: LN_GSD          ! [frc] ln(gsd)
@@ -4882,13 +4889,13 @@
       ! OVR_SRC_SNK_FRC_GET begins here
       !=================================================================
 
-      IF ( FIRST ) THEN
+      IF ( HcoClock_First(HcoState%Clock,.TRUE.) ) THEN
 
          ! Test if ERF is implemented OK on this platform
          ! 19990913: erf() in SGI /usr/lib64/mips4/libftn.so is bogus
          IF ( ABS( 0.8427d0 - ERF(1.0d0) ) / 0.8427d0 > 0.001d0 ) THEN
             MSG = 'ERF error 1 in OVR_SRC_SNK_FRC_GET!'
-            CALL HCO_ERROR ( MSG, RC,
+            CALL HCO_ERROR(HcoState%Config%Err,MSG, RC,
      &         THISLOC='OVR_SRC_SNK_FRC_GET' )
             RETURN 
          ENDIF
@@ -4896,13 +4903,13 @@
          ! Another ERF check
          IF ( ERF( 0.0D0 ) /= 0.0D0 ) THEN
             MSG = 'ERF error 2 in OVR_SRC_SNK_FRC_GET!'
-            CALL HCO_ERROR ( MSG, RC, 
+            CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, 
      &         THISLOC='OVR_SRC_SNK_FRC_GET' )
             RETURN 
          ENDIF
 
-         ! Reset first-time flag
-         FIRST = .FALSE.
+!         ! Reset first-time flag
+!         FIRST = .FALSE.
       ENDIF
 
 
@@ -5401,7 +5408,7 @@ c Fix up for negative argument, erf, etc.
 
 !******************************************************************************
 
-      FUNCTION HCOX_TOMAS_DustDead_GetFluxTun( am_I_Root ) 
+      FUNCTION HCOX_TOMAS_DustDead_GetFluxTun( am_I_Root, HcoState ) 
      & RESULT( FLX_MSS_FDG_FCT )
 !
 !******************************************************************************
@@ -5411,6 +5418,7 @@ c Fix up for negative argument, erf, etc.
 !
       ! Input argument
       LOGICAL :: am_I_Root
+      TYPE(HCO_STATE), POINTER :: HcoState
 
       ! Output argument
       REAL*8  :: FLX_MSS_FDG_FCT
@@ -5574,7 +5582,7 @@ c Fix up for negative argument, erf, etc.
      &      'please explicitly set it by adding ' //
      &      '` --> Mass tuning factor: XX.X` to the extension ' //
      &      'options in your config. file.'
-         CALL HCO_ERROR ( MSG, RC, 
+         CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, 
      & THISLOC='HCOX_TOMAS_DustDead_GetFluxTun')
       RETURN
 

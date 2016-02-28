@@ -110,58 +110,68 @@ MODULE HCOX_SoilNOx_Mod
 !
 ! !MODULE VARIABLES:
 !
-  INTEGER                       :: ExtNr          ! Extension number
-  INTEGER                       :: IDTNO          ! NO tracer ID
-  LOGICAL                       :: LFERTILIZERNOX ! Use fertilizer NOx?
-  REAL(hp)                      :: FERT_SCALE     ! fertilizer scale factor
-
-  ! # of MODIS/Koppen biome types
-  INTEGER, PARAMETER            :: NBIOM = 24 
-
-  ! Dry period length (from restart)
-  REAL(sp), ALLOCATABLE, TARGET :: DRYPERIOD    (:,:  )
-
-  ! Pulse factors (from restart)
-  REAL(sp), ALLOCATABLE, TARGET :: PFACTOR      (:,:  )
-  REAL(sp), ALLOCATABLE, TARGET :: GWET_PREV    (:,:  )
-
-  ! Deposition reservoir (from restart)
-  REAL(sp), POINTER             :: DEP_RESERVOIR(:,:  ) => NULL()
-
-  ! NOx in the canopy
-  REAL(hp),  ALLOCATABLE        :: CANOPYNOX        (:,:,:)
-
-  ! MODIS landtype
+  ! Derived type to hold MODIS land types
   TYPE MODL
-     REAL(sp), POINTER          :: VAL              (:,:)
+     REAL(sp), POINTER             :: VAL              (:,:)
   ENDTYPE MODL
-  TYPE(MODL), POINTER           :: LANDTYPE         (:    ) => NULL()
 
-  ! Soil fertilizer (kg/m3) 
-  REAL(sp), POINTER             :: SOILFERT         (:,:  ) => NULL()
+  TYPE :: MyInst
+     INTEGER                        :: Instance
+     INTEGER                        :: ExtNr          ! Extension number
+     INTEGER                        :: IDTNO          ! NO tracer ID
+     LOGICAL                        :: LFERTILIZERNOX ! Use fertilizer NOx?
+     REAL(hp)                       :: FERT_SCALE     ! fertilizer scale factor
+  
+     ! Dry period length (from restart)
+     REAL(sp), ALLOCATABLE          :: DRYPERIOD    (:,:  )
+  
+     ! Pulse factors (from restart)
+     REAL(sp), ALLOCATABLE          :: PFACTOR      (:,:  )
+     REAL(sp), ALLOCATABLE          :: GWET_PREV    (:,:  )
 
-  ! Fraction of arid and non-arid land
-  REAL(sp), POINTER             :: CLIMARID         (:,:  ) => NULL()
-  REAL(sp), POINTER             :: CLIMNARID        (:,:  ) => NULL()
+     ! Deposition reservoir (from restart)
+     REAL(sp), ALLOCATABLE          :: DEP_RESERVOIR(:,:  ) 
+  
+     ! NOx in the canopy
+     REAL(hp), ALLOCATABLE          :: CANOPYNOX        (:,:,:)
+  
+     ! MODIS landtype
+     TYPE(MODL), POINTER            :: LANDTYPE         (:    ) => NULL()
+  
+     ! Soil fertilizer (kg/m3) 
+     REAL(sp), POINTER              :: SOILFERT         (:,:  ) => NULL()
 
-  ! DRYCOEFF (if read from settings in configuration file)
-  REAL(hp), ALLOCATABLE, TARGET :: DRYCOEFF(:)
+     ! Fraction of arid and non-arid land
+     REAL(sp), POINTER              :: CLIMARID         (:,:  ) => NULL()
+     REAL(sp), POINTER              :: CLIMNARID        (:,:  ) => NULL()
+  
+     ! DRYCOEFF (if read from settings in configuration file)
+     REAL(hp), POINTER              :: DRYCOEFF(:)
+  
+     ! Overall scale factor to be applied to total soil NOx emissions. Must
+     ! be defined in the HEMCO configuration file as extension attribute 
+     ! 'Scaling_NO'
+     REAL(sp),          ALLOCATABLE :: SpcScalVal(:)
+     CHARACTER(LEN=61), ALLOCATABLE :: SpcScalFldNme(:)
 
-  ! Overall scale factor to be applied to total soil NOx emissions. Must
-  ! be defined in the HEMCO configuration file as extension attribute 
-  ! 'Scaling_NO'
-  REAL(sp), ALLOCATABLE          :: SpcScalVal(:)
-  CHARACTER(LEN=61), ALLOCATABLE :: SpcScalFldNme(:)
-
-  ! Diagnostics to write out the pulse (testing only)
+     ! Diagnostics to write out the pulse (testing only)
 #if defined(DEVEL) 
-  REAL(sp), ALLOCATABLE, TARGET :: DGN_PULSE    (:,:  )
+     REAL(sp), ALLOCATABLE          :: DGN_PULSE    (:,:  )
 #endif
+
+     TYPE(MyInst), POINTER          :: NextInst => NULL()
+  END TYPE MyInst
+
+  ! Pointer to all instances
+  TYPE(MyInst), POINTER             :: AllInst => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
+  ! # of MODIS/Koppen biome types
+  INTEGER, PARAMETER               :: NBIOM = 24 
+
   ! Max. # of allowed drycoeff vars
-  INTEGER,  PARAMETER           :: MaxDryCoeff = 50 
+  INTEGER, PARAMETER               :: MaxDryCoeff = 50 
 
   ! Canopy wind extinction coefficients
   ! (cf. Yienger & Levy [1995], Sec 5), now a function of the
@@ -261,6 +271,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE HCO_Types_Mod,      ONLY : DiagnCont
     USE HCO_CLOCK_MOD,      ONLY : HcoClock_First 
     USE HCO_CLOCK_MOD,      ONLY : HcoClock_Rewind
     USE HCO_FLuxArr_Mod,    ONLY : HCO_EmisAdd
@@ -302,6 +313,7 @@ CONTAINS
     LOGICAL                  :: aIR, FOUND
     CHARACTER(LEN= 31)       :: DiagnName
     CHARACTER(LEN=255)       :: MSG, DMY
+    TYPE(MyInst),    POINTER :: Inst => NULL()
 
     ! For manual diagnostics
     LOGICAL, SAVE            :: DoDiagn = .FALSE.
@@ -311,101 +323,110 @@ CONTAINS
     ! HCOX_SoilNOx_RUN begins here!
     !=================================================================
 
-    ! Return if extension disabled 
-    IF ( .NOT. ExtState%SoilNOx ) RETURN
-
     ! Enter 
-    CALL HCO_ENTER ( 'HCOX_SoilNox_Run (hcox_soilnox_mod.F90)', RC )
+    CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_SoilNox_Run (hcox_soilnox_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Return if extension disabled 
+    IF ( ExtState%SoilNOx < 0 ) RETURN
+
+    CALL InstGet ( ExtState%SoilNox, Inst, RC )
+    IF ( RC /= HCO_SUCCESS ) THEN 
+       WRITE(MSG,*) 'Cannot find soil NOx instance Nr. ', ExtState%SoilNOx
+       CALL HCO_ERROR(HcoState%Config%Err,MSG,RC)
+       RETURN
+    ENDIF
 
     ! Pass arguments from options object
     aIR   = am_I_Root
 
     ! Conversion factor from ng N to kg NO
-    UNITCONV = 1.0e-12_hp / 14.0e+0_hp * HcoState%Spc(IDTNO)%EmMW_g
+    UNITCONV = 1.0e-12_hp / 14.0e+0_hp * HcoState%Spc(Inst%IDTNO)%EmMW_g
 
     !-----------------------------------------------------------------
     ! On first call, set pointers to all arrays needed by SoilNOx
     !-----------------------------------------------------------------
-    FIRST = HcoClock_First ( .TRUE. )
+    FIRST = HcoClock_First ( HcoState%Clock, .TRUE. )
 
     IF ( FIRST ) THEN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK1',  LANDTYPE(1)%VAL,  RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK1',  Inst%LANDTYPE(1)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK2',  LANDTYPE(2)%VAL,  RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK2',  Inst%LANDTYPE(2)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK3',  LANDTYPE(3)%VAL,  RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK3',  Inst%LANDTYPE(3)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK4',  LANDTYPE(4)%VAL,  RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK4',  Inst%LANDTYPE(4)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK5',  LANDTYPE(5)%VAL,  RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK5',  Inst%LANDTYPE(5)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK6',  LANDTYPE(6)%VAL,  RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK6',  Inst%LANDTYPE(6)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK7',  LANDTYPE(7)%VAL,  RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK7',  Inst%LANDTYPE(7)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK8',  LANDTYPE(8)%VAL,  RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK8',  Inst%LANDTYPE(8)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK9',  LANDTYPE(9)%VAL,  RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK9',  Inst%LANDTYPE(9)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK10', LANDTYPE(10)%VAL, RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK10', Inst%LANDTYPE(10)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK11', LANDTYPE(11)%VAL, RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK11', Inst%LANDTYPE(11)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK12', LANDTYPE(12)%VAL, RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK12', Inst%LANDTYPE(12)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK13', LANDTYPE(13)%VAL, RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK13', Inst%LANDTYPE(13)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK14', LANDTYPE(14)%VAL, RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK14', Inst%LANDTYPE(14)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK15', LANDTYPE(15)%VAL, RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK15', Inst%LANDTYPE(15)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK16', LANDTYPE(16)%VAL, RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK16', Inst%LANDTYPE(16)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK17', LANDTYPE(17)%VAL, RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK17', Inst%LANDTYPE(17)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK18', LANDTYPE(18)%VAL, RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK18', Inst%LANDTYPE(18)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK19', LANDTYPE(19)%VAL, RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK19', Inst%LANDTYPE(19)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK20', LANDTYPE(20)%VAL, RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK20', Inst%LANDTYPE(20)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK21', LANDTYPE(21)%VAL, RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK21', Inst%LANDTYPE(21)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK22', LANDTYPE(22)%VAL, RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK22', Inst%LANDTYPE(22)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK23', LANDTYPE(23)%VAL, RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK23', Inst%LANDTYPE(23)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK24', LANDTYPE(24)%VAL, RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK24', Inst%LANDTYPE(24)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_FERT',    SOILFERT,         RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_FERT',    Inst%SOILFERT,         RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_ARID',    CLIMARID,         RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_ARID',    Inst%CLIMARID,         RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_NONARID', CLIMNARID,        RC )
+       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_NONARID', Inst%CLIMNARID,        RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
    
        ! Check if ExtState variables DRYCOEFF is defined. Otherwise, try to
        ! read it from settings.
        IF ( .NOT. ASSOCIATED(ExtState%DRYCOEFF) ) THEN
-          CALL GetExtOpt ( ExtNr, 'DRYCOEFF', OptValChar=DMY, FOUND=FOUND, RC=RC )
+          CALL GetExtOpt( HcoState%Config, Inst%ExtNr, 'DRYCOEFF', &
+                           OptValChar=DMY, FOUND=FOUND, RC=RC )
           IF ( .NOT. FOUND ) THEN
-             CALL HCO_ERROR( 'DRYCOEFF not defined', RC ) 
+             CALL HCO_ERROR( HcoState%Config%Err, 'DRYCOEFF not defined', RC ) 
              RETURN
           ENDIF
           ALLOCATE(VecDp(MaxDryCoeff))
-          CALL HCO_CharSplit( DMY, HCO_GetOpt('Separator'), &
-                              HCO_GetOpt('Wildcard'), VecDp, N, RC )
+          CALL HCO_CharSplit( DMY, HCO_GetOpt(HcoState%Config%ExtList,'Separator'), &
+                              HCO_GetOpt(HcoState%Config%ExtList,'Wildcard'), VecDp, N, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          ALLOCATE(DRYCOEFF(N))
-          DRYCOEFF(1:N) = VecDp(1:N)
-          ExtState%DRYCOEFF => DRYCOEFF
+          ALLOCATE(Inst%DRYCOEFF(N))
+          Inst%DRYCOEFF(1:N) = VecDp(1:N)
+          ExtState%DRYCOEFF => Inst%DRYCOEFF
           DEALLOCATE(VecDp)
        ENDIF
 
        ! Check if we need to write manual fertilizer NO diagnostics
        DiagnName = 'FERTILIZER_NO'
-       CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+       CALL DiagnCont_Find ( HcoState%Diagn, -1, -1, -1, -1, -1, &
+                             DiagnName, 0, DoDiagn, TmpCnt )
        TmpCnt => NULL()
     ENDIF
 
@@ -419,53 +440,53 @@ CONTAINS
     ! after the rewinding the clock. 
     !---------------------------------------------------------------
 
-    IF ( FIRST .OR. HcoClock_Rewind( .TRUE. ) ) THEN
+    IF ( FIRST .OR. HcoClock_Rewind( HcoState%Clock, .TRUE. ) ) THEN
 
        ! DEP_RESERVOIR. Read in kg NO/m3.
-       CALL HCO_RestartGet( am_I_Root, HcoState, 'DEP_RESERVOIR', &
-                            DEP_RESERVOIR, RC,    FILLED=FOUND     )
+       CALL HCO_RestartGet( am_I_Root, HcoState,   'DEP_RESERVOIR', &
+                            Inst%DEP_RESERVOIR, RC, FILLED=FOUND     )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
-          DEP_RESERVOIR = 1.0e-4_sp
+          Inst%DEP_RESERVOIR = 1.0e-4_sp
           IF ( am_I_Root ) THEN
              MSG = 'Cannot find DEP_RESERVOIR restart variable - initialized to 1e-4!'
-             CALL HCO_WARNING(MSG,RC)
+             CALL HCO_WARNING(HcoState%Config%Err,MSG,RC)
           ENDIF
        ENDIF
     
        ! GWET_PREV [unitless]
        CALL HCO_RestartGet( am_I_Root, HcoState, 'GWET_PREV', &
-                            GWET_PREV, RC,        FILLED=FOUND )
+                            Inst%GWET_PREV, RC,  FILLED=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
-          GWET_PREV = 0.0_sp
+          Inst%GWET_PREV = 0.0_sp
           IF ( am_I_Root ) THEN
              MSG = 'Cannot find GWET_PREV restart variable - initialized to 0.0!'
-             CALL HCO_WARNING(MSG,RC)
+             CALL HCO_WARNING(HcoState%Config%Err,MSG,RC)
           ENDIF
        ENDIF
    
        ! PFACTOR [unitless]
        CALL HCO_RestartGet( am_I_Root, HcoState, 'PFACTOR', &
-                            PFACTOR,   RC,        FILLED=FOUND )
+                            Inst%PFACTOR,   RC,  FILLED=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
-          PFACTOR = 1.0_sp
+          Inst%PFACTOR = 1.0_sp
           IF ( am_I_Root ) THEN
              MSG = 'Cannot find PFACTOR restart variable - initialized to 1.0!'
-             CALL HCO_WARNING(MSG,RC)
+             CALL HCO_WARNING(HcoState%Config%Err,MSG,RC)
           ENDIF
        ENDIF
       
        ! DRYPERIOD [unitless]
        CALL HCO_RestartGet( am_I_Root, HcoState, 'DRYPERIOD', &
-                            DRYPERIOD, RC,        FILLED=FOUND )
+                            Inst%DRYPERIOD, RC,  FILLED=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
-          DRYPERIOD = 0.0_sp
+          Inst%DRYPERIOD = 0.0_sp
           IF ( am_I_Root ) THEN
              MSG = 'Cannot find DRYPERIOD restart variable - initialized to 0.0!'
-             CALL HCO_WARNING(MSG,RC)
+             CALL HCO_WARNING(HcoState%Config%Err,MSG,RC)
           ENDIF
        ENDIF
        
@@ -475,7 +496,7 @@ CONTAINS
     ! Now need to call GET_CANOPY_NOX to break ugly dependency between
     ! drydep and soil NOx emissions. (bmy, 6/22/09) 
     ! Now a function of the new MODIS/Koppen biome map (J.D. Maasakkers)
-    CALL GET_CANOPY_NOX( aIR, HcoState, ExtState, RC )
+    CALL GET_CANOPY_NOX( aIR, HcoState, ExtState, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Init
@@ -492,32 +513,33 @@ CONTAINS
 
        ! Do not calculate soil NOx emissions if there is no soil in
        ! the gridbox
-       IF ( LANDTYPE(1)%VAL(I,J) == 1.0_hp ) CYCLE
+       IF ( Inst%LANDTYPE(1)%VAL(I,J) == 1.0_hp ) CYCLE
 
        ! Get Deposited Fertilizer DEP_FERT [kg NO/m2]
-       CALL GET_DEP_N( I, J, ExtState, HcoState, DEP_FERT )
+       CALL GET_DEP_N( I, J, ExtState, HcoState, Inst, DEP_FERT )
 
        ! Get N fertilizer reservoir associated with chemical and
        ! manure fertilizer [kg NO/m2]
-       IF ( LFERTILIZERNOX ) THEN
-          SOILFRT =  SOILFERT( I, J )  
+       IF ( Inst%LFERTILIZERNOX ) THEN
+          SOILFRT =  Inst%SOILFERT( I, J )  
        ELSE
           SOILFRT = 0e+0_hp
        ENDIF
 
        ! Put in constraint if dry period gt 1 yr, keep at 1yr to
        ! avoid unrealistic pulse
-       IF ( DRYPERIOD(I,J) > 8760e+0_sp ) DRYPERIOD(I,J) = 8760e+0_sp
+       IF ( Inst%DRYPERIOD(I,J) > 8760e+0_sp ) &
+          Inst%DRYPERIOD(I,J) = 8760e+0_sp
  
        ! Return NO emissions from soils [kg NO/m2/s]
-       CALL SOIL_NOX_EMISSION( ExtState,                       &
+       CALL SOIL_NOX_EMISSION( ExtState,  Inst,                &
                                TSEMIS, I, J,                   &
                                SOILFRT,                        &
-                               GWET_PREV(I,J), DRYPERIOD(I,J), &
-                               PFACTOR(I,J),   IJFLUX,         &
+                               Inst%GWET_PREV(I,J), Inst%DRYPERIOD(I,J), &
+                               Inst%PFACTOR(I,J),   IJFLUX,         &
                                DEP_FERT,       FERTDIAG,       &
                                UNITCONV,                       &
-                               CANOPYNOX(I,J,:)                 )
+                               Inst%CANOPYNOX(I,J,:)                 )
 
        ! Write out
        FLUX_2D(I,J) = MAX(IJFLUX,0.0_hp)
@@ -532,12 +554,12 @@ CONTAINS
     !-----------------------------------------------------------------
 
     ! Eventually apply species specific scale factor
-    IF ( SpcScalVal(1) /= 1.0_sp ) THEN
-       FLUX_2D = FLUX_2D * SpcScalVal(1)
+    IF ( Inst%SpcScalVal(1) /= 1.0_sp ) THEN
+       FLUX_2D = FLUX_2D * Inst%SpcScalVal(1)
     ENDIF
 
     ! Eventually apply spatiotemporal scale factors
-    CALL HCOX_SCALE ( am_I_Root, HcoState, FLUX_2D, TRIM(SpcScalFldNme(1)), RC ) 
+    CALL HCOX_SCALE ( am_I_Root, HcoState, FLUX_2D, TRIM(Inst%SpcScalFldNme(1)), RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
@@ -545,10 +567,10 @@ CONTAINS
     !-----------------------------------------------------------------
 
     ! Add flux to emission array
-    CALL HCO_EmisAdd( am_I_Root, HcoState, FLUX_2D, IDTNO, &
-                      RC,        ExtNr=ExtNr )
+    CALL HCO_EmisAdd( am_I_Root, HcoState, FLUX_2D, Inst%IDTNO, &
+                      RC,        ExtNr=Inst%ExtNr )
     IF ( RC /= HCO_SUCCESS ) THEN
-       CALL HCO_ERROR( 'HCO_EmisAdd error', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error', RC )
        RETURN 
     ENDIF
 
@@ -560,7 +582,7 @@ CONTAINS
     ! diagnostics are treated as zeros!
     IF ( DoDiagn ) THEN
        DiagnName = 'FERTILIZER_NO'
-       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, & 
+       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, & 
                           cName=TRIM(DiagnName), Array2D=DIAG, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -571,32 +593,33 @@ CONTAINS
 
     ! DEP_RESERVOIR [kg/m3]
     CALL HCO_RestartWrite( am_I_Root, HcoState, & 
-                          'DEP_RESERVOIR', DEP_RESERVOIR, RC ) 
+                          'DEP_RESERVOIR', Inst%DEP_RESERVOIR, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! GWET_PREV [unitless]
     CALL HCO_RestartWrite( am_I_Root, HcoState, & 
-                          'GWET_PREV', GWET_PREV, RC ) 
+                          'GWET_PREV', Inst%GWET_PREV, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
           
     ! PFACTOR [unitless]
     CALL HCO_RestartWrite( am_I_Root, HcoState, & 
-                          'PFACTOR', PFACTOR, RC ) 
+                          'PFACTOR', Inst%PFACTOR, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
    
     ! DRYPERIOD [unitless]
     CALL HCO_RestartWrite( am_I_Root, HcoState, & 
-                          'DRYPERIOD', DRYPERIOD, RC ) 
+                          'DRYPERIOD', Inst%DRYPERIOD, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
 #if defined(DEVEL)
     CALL HCO_RestartWrite( am_I_Root, HcoState, & 
-                          'SOILNO_PULSE', DGN_PULSE, RC ) 
+                          'SOILNO_PULSE', Inst%DGN_PULSE, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 #endif
 
     ! Leave w/ success
-    CALL HCO_LEAVE ( RC ) 
+    Inst => NULL()
+    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
 
   END SUBROUTINE HCOX_SoilNox_Run
 !EOC
@@ -642,22 +665,31 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER                        :: ExtNr
     CHARACTER(LEN=255)             :: MSG, LOC
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
     INTEGER, ALLOCATABLE           :: HcoIDs(:)
     INTEGER                        :: nSpc, I, J, II, AS
+    TYPE(MyInst), POINTER          :: Inst => NULL()
 
     !=================================================================
     ! HCOX_SoilNOx_INIT begins here!
     !=================================================================
 
     ! Extension Nr.
-    ExtNr = GetExtNr( TRIM(ExtName) )
+    ExtNr = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
     IF ( ExtNr <= 0 ) RETURN
 
     ! Enter 
-    CALL HCO_ENTER ( 'HCOX_SoilNOx_Init (hcox_soilnox_mod.F90)', RC )
+    CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_SoilNOx_Init (hcox_soilnox_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Create instance
+    CALL InstCreate ( ExtNr, ExtState%SoilNox, Inst, RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot create soil NOx instance', RC )
+       RETURN
+    ENDIF
 
     ! ---------------------------------------------------------------------- 
     ! Get species IDs and settings 
@@ -666,45 +698,47 @@ CONTAINS
     ! Read settings specified in configuration file
     ! Note: the specified strings have to match those in 
     !       the config. file!
-    CALL GetExtOpt ( ExtNr, 'Use fertilizer NOx', &
-                     OptValBool=LFERTILIZERNOX, RC=RC )
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'Use fertilizer NOx', &
+                     OptValBool=Inst%LFERTILIZERNOX, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
  
     ! Get global scale factor
-    FERT_SCALE = HCOX_SoilNOx_GetFertScale()
+    Inst%FERT_SCALE = HCOX_SoilNOx_GetFertScale()
 
     ! Get HEMCO species IDs
     CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( nSpc /= 1 ) THEN
        MSG = 'Module soil NOx accepts only one species!'
-       CALL HCO_ERROR ( MSG, RC )
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ENDIF
-    IDTNO = HcoIDs(1)
+    Inst%IDTNO = HcoIDs(1)
 
     ! Get species scale factor
-    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'Scaling', 1.0_sp, SpcScalVal, RC )
+    CALL GetExtSpcVal( HcoState%Config, ExtNr, nSpc, &
+                       SpcNames, 'Scaling', 1.0_sp, Inst%SpcScalVal, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'ScaleField', HCOX_NOSCALE, SpcScalFldNme, RC )
+    CALL GetExtSpcVal( HcoState%Config, ExtNr, nSpc, &
+                       SpcNames, 'ScaleField', HCOX_NOSCALE, Inst%SpcScalFldNme, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode
     IF ( am_I_Root ) THEN
        MSG = 'Use soil NOx emissions (extension module)'
-       CALL HCO_MSG( MSG, SEP1='-' )
+       CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
 
-       WRITE(MSG,*) '   - NOx species            : ', TRIM(SpcNames(1)), IDTNO
-       CALL HCO_MSG(MSG)
-       WRITE(MSG,*) '   - NOx scale factor       : ', SpcScalVal(1) 
-       CALL HCO_MSG(MSG)
-       WRITE(MSG,*) '   - NOx scale field        : ', TRIM(SpcScalFldNme(1))
-       CALL HCO_MSG(MSG)
-       WRITE(MSG,*) '   - Use fertilizer NOx     : ', LFERTILIZERNOX
-       CALL HCO_MSG(MSG)
-       WRITE(MSG,*) '   - Fertilizer scale factor: ', FERT_SCALE 
-       CALL HCO_MSG(MSG,SEP2='-')
+       WRITE(MSG,*) '   - NOx species            : ', TRIM(SpcNames(1)), Inst%IDTNO
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
+       WRITE(MSG,*) '   - NOx scale factor       : ', Inst%SpcScalVal(1) 
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
+       WRITE(MSG,*) '   - NOx scale field        : ', TRIM(Inst%SpcScalFldNme(1))
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
+       WRITE(MSG,*) '   - Use fertilizer NOx     : ', Inst%LFERTILIZERNOX
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
+       WRITE(MSG,*) '   - Fertilizer scale factor: ', Inst%FERT_SCALE 
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
     ENDIF
 
     ! ---------------------------------------------------------------------- 
@@ -715,80 +749,85 @@ CONTAINS
     I = HcoState%NX
     J = HcoState%NY
 
-    ALLOCATE( DRYPERIOD( I, J ), STAT=AS )
+    ALLOCATE( Inst%DRYPERIOD( I, J ), STAT=AS )
     IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR('DRYPERIOD', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'DRYPERIOD', RC )
        RETURN
     ENDIF
 
-    ALLOCATE( PFACTOR( I, J ), STAT=AS )
+    ALLOCATE( Inst%PFACTOR( I, J ), STAT=AS )
     IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR('PFACTOR', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'PFACTOR', RC )
        RETURN
     ENDIF
 
-    ALLOCATE( GWET_PREV( I, J ), STAT=AS )
+    ALLOCATE( Inst%GWET_PREV( I, J ), STAT=AS )
     IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR('GWET_PREV', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'GWET_PREV', RC )
        RETURN
     ENDIF
 
-    ALLOCATE( DEP_RESERVOIR( I, J ), STAT=AS )
+    ALLOCATE( Inst%DEP_RESERVOIR( I, J ), STAT=AS )
     IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR('DEP_RESERVOIR', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'DEP_RESERVOIR', RC )
        RETURN
     ENDIF
 
-    ALLOCATE( CANOPYNOX( I, J, NBIOM ), STAT=AS )
+    ALLOCATE( Inst%CANOPYNOX( I, J, NBIOM ), STAT=AS )
     IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR('CANOPYNOX', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'CANOPYNOX', RC )
        RETURN
     ENDIF
 
     ! Reserve 24 pointers for land fractions for each Koppen category
-    ALLOCATE ( LANDTYPE(NBIOM), STAT=AS )
+    ALLOCATE ( Inst%LANDTYPE(NBIOM), STAT=AS )
     IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR('LANDTYPE', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'LANDTYPE', RC )
        RETURN
     ENDIF
     DO II = 1,NBIOM
-       LANDTYPE(NBIOM)%VAL => NULL()
+       Inst%LANDTYPE(NBIOM)%VAL => NULL()
     ENDDO
 
     ! Zero arrays
-    DRYPERIOD     = 0.0_sp
-    PFACTOR       = 0.0_sp
-    GWET_PREV     = 0.0_sp
-    DEP_RESERVOIR = 0.0_sp
-    CANOPYNOX     = 0e+0_hp
+    Inst%DRYPERIOD     = 0.0_sp
+    Inst%PFACTOR       = 0.0_sp
+    Inst%GWET_PREV     = 0.0_sp
+    Inst%DEP_RESERVOIR = 0.0_sp
+    Inst%CANOPYNOX     = 0e+0_hp
 
 #if defined(DEVEL)
-    ALLOCATE( DGN_PULSE(I,J) )
-    DGN_PULSE = 0.0_sp
+    ALLOCATE( Inst%DGN_PULSE(I,J) )
+    Inst%DGN_PULSE = 0.0_sp
 #endif
+
+    ! Initialize pointers 
+    Inst%CLIMARID  => NULL()
+    Inst%CLIMNARID => NULL()
+    Inst%SOILFERT  => NULL()
 
     ! ---------------------------------------------------------------------- 
     ! Set diagnostics
     ! ----------------------------------------------------------------------
     CALL HCO_RestartDefine( am_I_Root, HcoState, 'PFACTOR', &
-                            PFACTOR,   '1',      RC          )
+                            Inst%PFACTOR,   '1',  RC          )
     IF ( RC /= HCO_SUCCESS ) RETURN
  
     CALL HCO_RestartDefine( am_I_Root, HcoState, 'DRYPERIOD', &
-                            DRYPERIOD, '1',      RC          )
+                            Inst%DRYPERIOD, '1',  RC          )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL HCO_RestartDefine( am_I_Root, HcoState, 'GWET_PREV', &
-                            GWET_PREV, '1',      RC          )
+                            Inst%GWET_PREV, '1',  RC          )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_RestartDefine( am_I_Root,     HcoState, 'DEP_RESERVOIR', &
-                            DEP_RESERVOIR, 'kg/m3',  RC                )
+    CALL HCO_RestartDefine( am_I_Root,     HcoState, '   DEP_RESERVOIR', &
+                            Inst%DEP_RESERVOIR, 'kg/m3', RC                )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
 #if defined(DEVEL)
     CALL HCO_RestartDefine( am_I_Root, HcoState, 'SOILNO_PULSE', &
-                            DGN_PULSE, '1',      RC                )
+                            Inst%DGN_PULSE, '1',  RC                )
     IF ( RC /= HCO_SUCCESS ) RETURN
 #endif 
  
@@ -811,13 +850,11 @@ CONTAINS
     ExtState%DRY_TOTN%DoUse = .TRUE.
     ExtState%WET_TOTN%DoUse = .TRUE.
 
-    ! Enable module
-    ExtState%SoilNOx = .TRUE.
-
     ! Leave w/ success
+    Inst => NULL()
     IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  )
     IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
 
   END SUBROUTINE HCOX_SoilNOx_Init
 !EOC
@@ -834,7 +871,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_SoilNOx_Final( am_I_Root, HcoState, RC )
+  SUBROUTINE HCOX_SoilNOx_Final( am_I_Root, HcoState, ExtState, RC )
 !
 ! !USES
 !
@@ -843,6 +880,7 @@ CONTAINS
 !
     LOGICAL,         INTENT(IN   )  :: am_I_Root     ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState      ! HEMCO State obj
+    TYPE(Ext_State),  POINTER       :: ExtState      ! Extension state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -858,37 +896,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER  :: I
 
     !=================================================================
     ! HCOX_SoilNOx_FINAL begins here!
     !=================================================================
-
-    ! Deallocate arrays
-    IF ( ALLOCATED (DRYPERIOD    ) ) DEALLOCATE ( DRYPERIOD     )
-    IF ( ALLOCATED (PFACTOR      ) ) DEALLOCATE ( PFACTOR       )
-    IF ( ALLOCATED (GWET_PREV    ) ) DEALLOCATE ( GWET_PREV     )
-    IF ( ALLOCATED (CANOPYNOX    ) ) DEALLOCATE ( CANOPYNOX     )
-    IF ( ASSOCIATED(DEP_RESERVOIR) ) DEALLOCATE ( DEP_RESERVOIR )
-    IF ( ALLOCATED (DRYCOEFF     ) ) DEALLOCATE ( DRYCOEFF      )
-    IF ( ALLOCATED( SpcScalVal   ) ) DEALLOCATE ( SpcScalVal    )
-    IF ( ALLOCATED( SpcScalFldNme) ) DEALLOCATE ( SpcScalFldNme )
-#if defined(DEVEL)
-    IF ( ALLOCATED(DGN_PULSE) ) DEALLOCATE(DGN_PULSE)
-#endif
-
-    ! Deallocate LANDTYPE vector 
-    IF ( ASSOCIATED(LANDTYPE) ) THEN
-       DO I = 1,NBIOM
-          LANDTYPE(I)%VAL => NULL()
-       ENDDO
-       DEALLOCATE ( LANDTYPE )
-    ENDIF
-
-    ! Free pointers 
-    CLIMARID  => NULL()
-    CLIMNARID => NULL()
-    SOILFERT  => NULL()
+    CALL InstRemove ( ExtState )
 
   END SUBROUTINE HCOX_SoilNox_Final
 !EOC
@@ -946,7 +958,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Soil_NOx_Emission( ExtState,   TS_EMIS,   I, J, &
+  SUBROUTINE Soil_NOx_Emission( ExtState,  Inst, &
+                                TS_EMIS,   I, J, &
                                 SOILFRT,   &
                                 GWET_PREV, DRYPERIOD, &
                                 PFACTOR,   SOILNOx,   &
@@ -956,6 +969,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(Ext_State), POINTER :: ExtState      ! Module options
+    TYPE(MyInst),    POINTER :: Inst          ! Instance object 
     REAL*4,   INTENT(IN)  :: TS_EMIS          ! Emission timestep [s]
     INTEGER,  INTENT(IN)  :: I                ! grid box lon index 
     INTEGER,  INTENT(IN)  :: J                ! grid box lat index 
@@ -1036,7 +1050,7 @@ CONTAINS
     PULSE = PULSING( GWET, TS_EMIS, GWET_PREV, PFACTOR, DRYPERIOD )
 
 #if defined(DEVEL)
-    DGN_PULSE(I,J) = PULSE
+    Inst%DGN_PULSE(I,J) = PULSE
 #endif
 
     ! ------Loop Over MODIS/Koppen  Landtypes
@@ -1047,8 +1061,8 @@ CONTAINS
        TEMP_TERM = SOILTEMP( K , TC, GWET)
 
        ! Soil moisture scaling of soil NOx emissions
-       ARID     = CLIMARID(I,J)
-       NARID    = CLIMNARID(I,J)
+       ARID     = Inst%CLIMARID(I,J)
+       NARID    = Inst%CLIMNARID(I,J)
        WET_TERM = SOILWET( GWET , ARID, NARID )
 
        ! Fertilizer emission [kg/m2/s] 
@@ -1056,7 +1070,7 @@ CONTAINS
 
        ! Scale fertilizer emissions as specified
        ! (scale needed to force fert emiss of 1.8 Tg N/yr w/o canopy uptake)
-       A_FERT = A_FERT * FERT_SCALE 
+       A_FERT = A_FERT * Inst%FERT_SCALE 
 
        ! Canopy reduction factor
        CRF_TERM  = SOILCRF( K, LAI, R_CANOPY(K), WINDSQR, SUNCOS )
@@ -1068,14 +1082,14 @@ CONTAINS
        SOILNOX   = (SOILNOX                            &
                  + ( A_BIOM + A_FERT )                 &
                  * ( TEMP_TERM * WET_TERM * PULSE )    &
-                 * LANDTYPE(K)%VAL(I,J)                &
+                 * Inst%LANDTYPE(K)%VAL(I,J)           &
                  * ( 1.e+0_hp - CRF_TERM  )                 )
 
        ! FERTDIAG, only used for the fertilizer diagnostic
        FERTDIAG  = (FERTDIAG                           &
                  + ( A_FERT )                          &
                  * ( TEMP_TERM * WET_TERM * PULSE )    &
-                 * LANDTYPE(K)%VAL(I,J)                &
+                 * Inst%LANDTYPE(K)%VAL(I,J)           &
                  * ( 1.e+0_hp - CRF_TERM  )                 )
 
     ENDDO
@@ -1098,7 +1112,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Canopy_NOx( am_I_Root, HcoState, ExtState, RC )
+  SUBROUTINE Get_Canopy_NOx( am_I_Root, HcoState, ExtState, Inst, RC )
 !
 ! !USES:
 !
@@ -1107,8 +1121,9 @@ CONTAINS
 ! !ARGUMENTS:
 !
     LOGICAL,         INTENT(IN   )  :: am_I_Root
-    TYPE(HCO_State), POINTER        :: HcoState   ! Output obj
-    TYPE(Ext_State), POINTER        :: ExtState    ! Module options
+    TYPE(HCO_State), POINTER        :: HcoState
+    TYPE(Ext_State), POINTER        :: ExtState
+    TYPE(MyInst),    POINTER        :: Inst
     INTEGER,         INTENT(INOUT)  :: RC
 !
 ! !REMARKS:
@@ -1205,7 +1220,7 @@ CONTAINS
        DO K = 1, NBIOM
 
           ! Skip if not present
-          IF ( LANDTYPE(K)%VAL(I,J) == 0.0_hp ) CYCLE
+          IF ( Inst%LANDTYPE(K)%VAL(I,J) == 0.0_hp ) CYCLE
 
           ! Set second loop variable to K to allow snow/ice correction    
           KK = K
@@ -1350,7 +1365,7 @@ CONTAINS
 
           ! Save the within canopy depvel of NOx, used in calculating 
           ! the canopy reduction factor for soil emissions [1/s]
-          CANOPYNOX(I,J,K) = DTMP1 + DTMP2 + DTMP3 + DTMP4
+          Inst%CANOPYNOX(I,J,K) = DTMP1 + DTMP2 + DTMP3 + DTMP4
 
        ENDDO !K
     ENDDO !I
@@ -1453,14 +1468,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Dep_N( I, J, ExtState, HcoState, DEP_FERT )
+  SUBROUTINE Get_Dep_N( I, J, ExtState, HcoState, Inst, DEP_FERT )
 !
 ! !INPUT PARAMETERS: 
 !
     INTEGER,  INTENT(IN)         :: I
     INTEGER,  INTENT(IN)         :: J
-    TYPE(Ext_State), POINTER     :: ExtState    ! Module options
-    TYPE(HCO_State), POINTER     :: HcoState   ! Output obj
+    TYPE(Ext_State), POINTER     :: ExtState 
+    TYPE(HCO_State), POINTER     :: HcoState   
+    TYPE(MyInst),    POINTER     :: Inst       
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -1492,7 +1508,7 @@ CONTAINS
     REAL(hp)             :: TS_SEC  
 
     !Total all N species & convert molec/cm2/s --> kg NO/m2/s
-    DRYN = SOURCE_DRYN( I, J, ExtState, HcoState )
+    DRYN = SOURCE_DRYN( I, J, ExtState, HcoState, Inst )
 
     !Total all N species & convert kg/s --> kg NO/m2/s
     WETN = SOURCE_WETN( I, J, ExtState, HcoState )
@@ -1515,11 +1531,11 @@ CONTAINS
     ! kg NO/m2
     ! NOTE: DEP_RESERVOIR is stored in kg NO/m3, but we just assume
     ! that this is kg NO/m2.
-    DEP_RESERVOIR(I,J) = ( DEP_RESERVOIR (I,J) * C1 ) &
-                       + DEPN * TAU_SEC * C2
+    Inst%DEP_RESERVOIR(I,J) = ( Inst%DEP_RESERVOIR (I,J) * C1 ) &
+                            + DEPN * TAU_SEC * C2
 
     ! 40% runoff. 
-    DEP_FERT = DEP_RESERVOIR(I,J) * 0.6e+0_hp 
+    DEP_FERT = Inst%DEP_RESERVOIR(I,J) * 0.6e+0_hp 
 
   END SUBROUTINE Get_Dep_N
 !EOC
@@ -1536,7 +1552,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION Source_Dryn( I, J, ExtState, HcoState ) RESULT( DRYN )
+  FUNCTION Source_Dryn( I, J, ExtState, HcoState, Inst ) RESULT( DRYN )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1544,6 +1560,7 @@ CONTAINS
     INTEGER,         INTENT(IN) :: J           
     TYPE(Ext_State), POINTER    :: ExtState   ! Module options
     TYPE(HCO_State), POINTER    :: HcoState   ! Output obj
+    TYPE(MyInst),    POINTER    :: Inst
 !
 ! !RETURN VALUE:
 !
@@ -1567,7 +1584,7 @@ CONTAINS
     !Molecules/cm2/s --> kg NO/m2/s 
     NTS  = HcoState%TS_EMIS / HcoState%TS_CHEM
     DRYN = ExtState%DRY_TOTN%Arr%Val(I,J) * CM2_PER_M2 / NTS / &
-           HcoState%Phys%Avgdr * HcoState%Spc(IDTNO)%EmMW_g / 1000.0e+0_hp
+           HcoState%Phys%Avgdr * HcoState%Spc(Inst%IDTNO)%EmMW_g / 1000.0e+0_hp
 
   END FUNCTION Source_DryN
 !EOC
@@ -2131,6 +2148,222 @@ CONTAINS
     THE_PULSING = PFACTOR
 
   END FUNCTION Pulsing
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstGet 
+!
+! !DESCRIPTION: Subroutine InstGet returns a pointer to the desired instance. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER                             :: Instance
+    TYPE(MyInst),     POINTER           :: Inst
+    INTEGER                             :: RC
+    TYPE(MyInst),     POINTER, OPTIONAL :: PrevInst
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    TYPE(MyInst),     POINTER    :: PrvInst
+
+    !=================================================================
+    ! InstGet begins here!
+    !=================================================================
+ 
+    ! Get instance. Also archive previous instance.
+    PrvInst => NULL() 
+    Inst    => AllInst
+    DO WHILE ( ASSOCIATED(Inst) ) 
+       IF ( Inst%Instance == Instance ) EXIT
+       PrvInst => Inst
+       Inst    => Inst%NextInst
+    END DO
+    IF ( .NOT. ASSOCIATED( Inst ) ) THEN
+       RC = HCO_FAIL
+       RETURN
+    ENDIF
+
+    ! Pass output arguments
+    IF ( PRESENT(PrevInst) ) PrevInst => PrvInst
+
+    ! Cleanup & Return
+    PrvInst => NULL()
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE InstGet 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstCreate 
+!
+! !DESCRIPTION: Subroutine InstCreate adds a new instance to the list of
+!  instances, assigns a unique instance number to this new instance, and
+!  archives this instance number to output argument Instance. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,       INTENT(IN)       :: ExtNr
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,       INTENT(  OUT)    :: Instance
+    TYPE(MyInst),  POINTER          :: Inst
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,       INTENT(INOUT)    :: RC 
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    TYPE(MyInst), POINTER          :: TmpInst  => NULL()
+    INTEGER                        :: nnInst
+
+    !=================================================================
+    ! InstCreate begins here!
+    !=================================================================
+
+    ! ----------------------------------------------------------------
+    ! Generic instance initialization 
+    ! ----------------------------------------------------------------
+
+    ! Initialize
+    Inst => NULL()
+
+    ! Get number of already existing instances
+    TmpInst => AllInst
+    nnInst = 0
+    DO WHILE ( ASSOCIATED(TmpInst) )
+       nnInst  =  nnInst + 1
+       TmpInst => TmpInst%NextInst
+    END DO
+
+    ! Create new instance
+    ALLOCATE(Inst)
+    Inst%Instance = nnInst + 1
+    Inst%ExtNr    = ExtNr 
+
+    ! Attach to instance list
+    Inst%NextInst => AllInst
+    AllInst       => Inst
+
+    ! Update output instance
+    Instance = Inst%Instance
+
+    ! ----------------------------------------------------------------
+    ! Type specific initialization statements follow below
+    ! ----------------------------------------------------------------
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE InstCreate
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstRemove 
+!
+! !DESCRIPTION: Subroutine InstRemove removes an instance from the list of 
+! instances.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstRemove ( ExtState ) 
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(Ext_State),  POINTER       :: ExtState      ! Extension state
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    INTEGER                     :: RC
+    INTEGER                     :: I
+    TYPE(MyInst), POINTER       :: PrevInst => NULL()
+    TYPE(MyInst), POINTER       :: Inst     => NULL()
+
+    !=================================================================
+    ! InstRemove begins here!
+    !=================================================================
+ 
+    ! Get instance. Also archive previous instance.
+    CALL InstGet ( ExtState%SoilNOx, Inst, RC, PrevInst=PrevInst )
+
+    ! Instance-specific deallocation
+    IF ( ASSOCIATED(Inst) ) THEN 
+
+       ! Deallocate arrays
+       IF ( ALLOCATED  ( Inst%DRYPERIOD     ) ) DEALLOCATE ( Inst%DRYPERIOD     )
+       IF ( ALLOCATED  ( Inst%PFACTOR       ) ) DEALLOCATE ( Inst%PFACTOR       )
+       IF ( ALLOCATED  ( Inst%GWET_PREV     ) ) DEALLOCATE ( Inst%GWET_PREV     )
+       IF ( ALLOCATED  ( Inst%CANOPYNOX     ) ) DEALLOCATE ( Inst%CANOPYNOX     )
+       IF ( ALLOCATED  ( Inst%DEP_RESERVOIR ) ) DEALLOCATE ( Inst%DEP_RESERVOIR )
+       IF ( ALLOCATED  ( Inst%SpcScalVal    ) ) DEALLOCATE ( Inst%SpcScalVal    )
+       IF ( ALLOCATED  ( Inst%SpcScalFldNme ) ) DEALLOCATE ( Inst%SpcScalFldNme )
+#if defined(DEVEL)
+       IF ( ALLOCATED  ( Inst%DGN_PULSE     ) ) DEALLOCATE ( Inst%DGN_PULSE     )
+#endif
+   
+       ! Deallocate LANDTYPE vector 
+       IF ( ASSOCIATED(Inst%LANDTYPE) ) THEN
+          DO I = 1,NBIOM
+             Inst%LANDTYPE(I)%VAL => NULL()
+          ENDDO
+          DEALLOCATE ( Inst%LANDTYPE )
+       ENDIF
+  
+       ! Eventually deallocate DRYCOEFF. Make sure ExtState DRYCOEFF pointer is
+       ! not dangling! 
+       IF ( ASSOCIATED ( Inst%DRYCOEFF      ) ) THEN
+          ExtState%DRYCOEFF => NULL()
+          DEALLOCATE ( Inst%DRYCOEFF      )
+       ENDIF
+
+       ! Free pointers 
+       Inst%CLIMARID  => NULL()
+       Inst%CLIMNARID => NULL()
+       Inst%SOILFERT  => NULL()
+
+       ! ----------------------------------------------------------------
+       ! Pop off instance from list
+       ! ----------------------------------------------------------------
+       IF ( ASSOCIATED(PrevInst) ) THEN
+          PrevInst%NextInst => Inst%NextInst
+       ELSE
+          AllInst => Inst%NextInst
+       ENDIF
+       DEALLOCATE(Inst)
+       Inst => NULL() 
+    ENDIF
+   
+   END SUBROUTINE InstRemove
 !EOC
 END MODULE HCOX_SoilNOx_Mod
 !EOM

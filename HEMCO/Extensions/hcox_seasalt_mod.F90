@@ -199,7 +199,7 @@ CONTAINS
     IF ( .NOT. ExtState%SeaSalt ) RETURN
 
     ! Enter 
-    CALL HCO_ENTER ( 'HCOX_SeaSalt_Run (hcox_seasalt_mod.F90)', RC ) 
+    CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_SeaSalt_Run (hcox_seasalt_mod.F90)', RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Exit status
@@ -417,7 +417,7 @@ CONTAINS
        CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALA, IDTSALA, &
                          RC,        ExtNr=ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSALA', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALA', RC )
           RETURN 
        ENDIF
     ENDIF
@@ -429,7 +429,7 @@ CONTAINS
        CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALC, IDTSALC, & 
                          RC,        ExtNr=ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSALC', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALC', RC )
           RETURN 
        ENDIF
 
@@ -442,7 +442,7 @@ CONTAINS
        CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXBr2, IDTBr2, & 
                          RC,        ExtNr=ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXBr2', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXBr2', RC )
           RETURN 
        ENDIF
 
@@ -455,7 +455,7 @@ CONTAINS
        CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMOPO, IDTMOPO, & 
                          RC,        ExtNr=ExtNrMPOA )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMOPO', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXMOPO', RC )
           RETURN 
        ENDIF
 
@@ -468,14 +468,14 @@ CONTAINS
        CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMOPI, IDTMOPI, & 
                          RC,        ExtNr=ExtNrMPOA )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMOPI', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXMOPI', RC )
           RETURN 
        ENDIF
 
     ENDIF
       
     ! Leave w/ success
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HCOX_SeaSalt_Run
 !EOC
@@ -540,14 +540,14 @@ CONTAINS
     !=================================================================
 
     ! Extension number for seasalt
-    ExtNrSS = GetExtNr( TRIM(ExtName) )
+    ExtNrSS = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
     IF ( ExtNrSS <= 0 ) RETURN
 
     ! Check for marine organic aerosols option
-    ExtNrMPOA = GetExtNr('MarinePOA')
+    ExtNrMPOA = GetExtNr( HcoState%Config%ExtList, 'MarinePOA' )
  
     ! Enter 
-    CALL HCO_ENTER ( 'HCOX_SeaSalt_Init (hcox_seasalt_mod.F90)', RC )
+    CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_SeaSalt_Init (hcox_seasalt_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ---------------------------------------------------------------------- 
@@ -557,12 +557,14 @@ CONTAINS
     ! Read settings specified in configuration file
     ! Note: the specified strings have to match those in 
     !       the config. file!
-    CALL GetExtOpt ( ExtNrSS, 'Emit Br2', OptValBool=CalcBr2, RC=RC )
+    CALL GetExtOpt( HcoState%Config, ExtNrSS, 'Emit Br2', &
+                     OptValBool=CalcBr2, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     IF ( CalcBr2 ) THEN
        minLen = 3
-       CALL GetExtOpt( ExtNrSS, 'Br2 scaling', OptValDp=Br2Scale, RC=RC )
+       CALL GetExtOpt( HcoState%Config, ExtNrSS, 'Br2 scaling', &
+                       OptValDp=Br2Scale, RC=RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ELSE
        minLen   = 2
@@ -576,7 +578,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( nSpcSS < minLen ) THEN
        MSG = 'Not enough sea salt emission species set' 
-       CALL HCO_ERROR ( MSG, RC ) 
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC ) 
        RETURN
     ENDIF
     IDTSALA = HcoIDsSS(1) 
@@ -595,16 +597,16 @@ CONTAINS
     ! Get aerosol radius'
     SALA_REDGE_um(:) = 0.0d0
     SALC_REDGE_um(:) = 0.0d0
-    CALL GetExtOpt( ExtNrSS, 'SALA lower radius', &
+    CALL GetExtOpt( HcoState%Config, ExtNrSS, 'SALA lower radius', &
                     OptValDp=SALA_REDGE_um(1), RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL GetExtOpt( ExtNrSS, 'SALA upper radius', & 
+    CALL GetExtOpt( HcoState%Config, ExtNrSS, 'SALA upper radius', &
                     OptValDp=SALA_REDGE_um(2), RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL GetExtOpt( ExtNrSS, 'SALC lower radius', & 
+    CALL GetExtOpt( HcoState%Config, ExtNrSS, 'SALC lower radius', &
                     OptValDp=SALC_REDGE_um(1), RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL GetExtOpt( ExtNrSS, 'SALC upper radius', & 
+    CALL GetExtOpt( HcoState%Config, ExtNrSS, 'SALC upper radius', &
                     OptValDp=SALC_REDGE_um(2), RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -616,7 +618,7 @@ CONTAINS
     ! winds in GEOS-4 are too rapid. To correct this, apply a global
     ! scaling factor of 0.72 (jaegle 5/11/11)
     ! Now check first if this factor is specified in configuration file
-    CALL GetExtOpt( ExtNrSS, 'Wind scale factor', & 
+    CALL GetExtOpt( HcoState%Config, ExtNrSS, 'Wind scale factor', & 
                     OptValDp=tmpScale, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) THEN   
@@ -630,41 +632,41 @@ CONTAINS
     ! Verbose mode
     IF ( am_I_Root ) THEN
        MSG = 'Use sea salt aerosol emissions (extension module)'
-       CALL HCO_MSG( MSG, SEP1='-' )
+       CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
  
        IF ( ExtNrMPOA > 0 ) THEN
           MSG = 'Use marine organic aerosols option'
-          CALL HCO_MSG ( MSG, SEP1='-' )
+          CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
        ENDIF 
 
        WRITE(MSG,*) 'Accumulation aerosol: ', TRIM(SpcNamesSS(1)),  &
                     ':', IDTSALA 
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) ' - size range       : ', SALA_REDGE_um
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) 'Coarse aerosol      : ', TRIM(SpcNamesSS(2)),  &
                      ':', IDTSALC
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) ' - size range       : ', SALA_REDGE_um
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) ' - wind scale factor: ', WindScale 
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
    
        IF ( CalcBr2 ) THEN
           WRITE(MSG,*) 'Br2: ', TRIM(SpcNamesSS(3)), IDTBr2
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,*) 'Br2 scale factor: ', Br2Scale
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
        IF ( ExtNrMPOA > 0 ) THEN
           WRITE(MSG,*) 'Hydrophobic marine organic aerosol: ',        &
                        TRIM(SpcNamesMPOA(1)), ':', IDTMOPO 
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
 
           WRITE(MSG,*) 'Hydrophilic marine organic aerosol: ',        &
                        TRIM(SpcNamesMPOA(2)), ':', IDTMOPI 
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
     ENDIF
 
@@ -681,54 +683,54 @@ CONTAINS
 
     ALLOCATE ( NR  ( NSALT ), STAT=AS )
     IF ( AS/=0 ) THEN
-       CALL HCO_ERROR( 'Cannot allocate NR', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate NR', RC )
        RETURN
     ENDIF
     SS_DEN = 2200.d0
 
     ALLOCATE ( SS_DEN  ( NSALT ), STAT=AS )
     IF ( AS/=0 ) THEN
-       CALL HCO_ERROR( 'Cannot allocate SS_DEN', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate SS_DEN', RC )
        RETURN
     ENDIF
     SS_DEN = 2200.d0
 
     ALLOCATE ( SRRC   ( NR_MAX,   NSALT ), STAT=AS )
     IF ( AS/=0 ) THEN
-       CALL HCO_ERROR( 'Cannot allocate SRRC', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate SRRC', RC )
        RETURN
     ENDIF
     SRRC = 0d0
     ALLOCATE ( SRRC_N ( NR_MAX,   NSALT ), STAT=AS ) 
     IF ( AS/=0 ) THEN
-       CALL HCO_ERROR( 'Cannot allocate SRRC_N', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate SRRC_N', RC )
 
        RETURN
     ENDIF
     SRRC_N = 0d0
     ALLOCATE ( RREDGE ( 0:NR_MAX, NSALT ), STAT=AS )
     IF ( AS/=0 ) THEN
-       CALL HCO_ERROR( 'Cannot allocate RREDGE', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate RREDGE', RC )
        RETURN
     ENDIF
     RREDGE = 0d0
     ALLOCATE ( RRMID  ( NR_MAX,   NSALT ), STAT=AS )
     IF ( AS/=0 ) THEN
-       CALL HCO_ERROR( 'Cannot allocate RRMID', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate RRMID', RC )
        RETURN
     ENDIF
     RRMID = 0d0
 
     ALLOCATE ( NDENS_SALA( HcoState%NX, HcoState%NY), STAT=AS )
     IF ( AS/=0 ) THEN
-       CALL HCO_ERROR( 'Cannot allocate NDENS_SALA', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate NDENS_SALA', RC )
        RETURN
     ENDIF
     NDENS_SALA = 0.0_sp
 
     ALLOCATE ( NDENS_SALC( HcoState%NX, HcoState%NY), STAT=AS )
     IF ( AS/=0 ) THEN
-       CALL HCO_ERROR( 'Cannot allocate NDENS_SALC', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate NDENS_SALC', RC )
        RETURN
     ENDIF
     NDENS_SALC = 0.0_sp
@@ -738,7 +740,7 @@ CONTAINS
        ! Allocate density of phobic marine organic aerosols
        ALLOCATE ( NDENS_MOPO( HcoState%NX, HcoState%NY), STAT=AS )
        IF ( AS/=0 ) THEN
-          CALL HCO_ERROR( 'Cannot allocate NDENS_MOPO', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate NDENS_MOPO', RC )
           RETURN
        ENDIF
        NDENS_MOPO = 0.0_sp
@@ -746,7 +748,7 @@ CONTAINS
        ! Allocate density of philic marine organic aerosols
        ALLOCATE ( NDENS_MOPI( HcoState%NX, HcoState%NY), STAT=AS )
        IF ( AS/=0 ) THEN
-          CALL HCO_ERROR( 'Cannot allocate NDENS_MOPI', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate NDENS_MOPI', RC )
           RETURN
        ENDIF
        NDENS_MOPI = 0.0_sp
@@ -799,7 +801,7 @@ CONTAINS
        ! Error check
        IF ( NR(N) > NR_MAX ) THEN
           MSG = 'Too many bins'
-          CALL HCO_ERROR( MSG, RC )
+          CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
           RETURN
        ENDIF
 
@@ -881,7 +883,7 @@ CONTAINS
                         OutUnit    = 'number_dens',         &
                         AutoFill   = 0,                     &
                         Trgt2D     = NDENS_SALA,            &
-                        COL        = HcoDiagnIDManual,      &
+                        COL = HcoState%Diagn%HcoDiagnIDManual,      &
                         RC         = RC                      )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -896,7 +898,7 @@ CONTAINS
                         OutUnit    = 'number_dens',         &
                         AutoFill   = 0,                     &
                         Trgt2D     = NDENS_SALC,            &
-                        COL        = HcoDiagnIDManual,      &
+                        COL = HcoState%Diagn%HcoDiagnIDManual,      &
                         RC         = RC                      )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -914,7 +916,7 @@ CONTAINS
                            OutUnit    = 'number_dens',         &
                            AutoFill   = 0,                     &
                            Trgt2D     = NDENS_MOPO,            &
-                           COL        = HcoDiagnIDManual,      &
+                           COL = HcoState%Diagn%HcoDiagnIDManual, &
                            RC         = RC                      )
        IF ( RC /= HCO_SUCCESS ) RETURN
    
@@ -929,7 +931,7 @@ CONTAINS
                            OutUnit    = 'number_dens',         &
                            AutoFill   = 0,                     &
                            Trgt2D     = NDENS_MOPI,            &
-                           COL        = HcoDiagnIDManual,      &
+                           COL = HcoState%Diagn%HcoDiagnIDManual, &
                            RC         = RC                      )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -958,7 +960,7 @@ CONTAINS
     IF ( ALLOCATED(SpcNamesSS  ) ) DEALLOCATE(SpcNamesSS  )
     IF ( ALLOCATED(SpcNamesMPOA) ) DEALLOCATE(SpcNamesMPOA)
 
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
  
   END SUBROUTINE HCOX_SeaSalt_Init
 !EOC
@@ -1111,7 +1113,7 @@ CONTAINS
     ENDIF
 
     ! store the month
-    CALL HcoClock_Get( cMM=month, RC=RC )
+    CALL HcoClock_Get( am_I_Root, HcoState%Clock, cMM=month, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! --------------------------------------------

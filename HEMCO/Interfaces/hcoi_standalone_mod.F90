@@ -56,9 +56,10 @@ MODULE HCOI_StandAlone_Mod
 !
 ! !USES:
 !
-  USE HCO_Error_MOD
+  USE HCO_Error_Mod
   USE HCO_Diagn_Mod
   USE HCO_CharTools_Mod
+  USE HCO_Types_Mod
   USE HCOX_State_Mod,      ONLY : Ext_State 
   USE HCO_State_Mod,       ONLY : HCO_State
 
@@ -68,17 +69,18 @@ MODULE HCOI_StandAlone_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC  :: HCOI_StandAlone_Run
+  PUBLIC  :: HCOI_SA_Init
+  PUBLIC  :: HCOI_SA_Run
+  PUBLIC  :: HCOI_SA_Final
+  PUBLIC  :: HCOI_SA_InitCleanup
+  PUBLIC  :: Get_nnMatch 
+  PUBLIC  :: Register_Species
+  PUBLIC  :: Define_Diagnostics 
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: HCOI_SA_Init
-  PRIVATE :: HCOI_SA_Run
-  PRIVATE :: HCOI_SA_Final
   PRIVATE :: Model_GetSpecies 
   PRIVATE :: Set_Grid
-  PRIVATE :: Get_nnMatch 
-  PRIVATE :: Register_Species
-  PRIVATE :: Define_Diagnostics 
   PRIVATE :: Read_Time
   PRIVATE :: ExtState_SetFields
   PRIVATE :: ExtState_UpdateFields
@@ -89,6 +91,7 @@ MODULE HCOI_StandAlone_Mod
 !  14 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  09 Apr 2015 - C. Keller   - Now accept comments and empty lines in
 !                              all input files.
+!  15 Feb 2015 - C. Keller   - Update to v2.0
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -106,6 +109,9 @@ MODULE HCOI_StandAlone_Mod
 
   ! HEMCO extensions state
   TYPE(Ext_State),       POINTER :: ExtState  => NULL()
+
+  ! HEMCO config object
+  TYPE(ConfigObj),       POINTER :: HcoConfig => NULL()
 
   ! Pointers used during initialization (for species matching)
   INTEGER                        :: nHcoSpec
@@ -209,7 +215,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_SA_Init( am_I_Root, ConfigFile, RC ) 
+  SUBROUTINE HCOI_SA_Init( am_I_Root, ConfigFile, RC )
 !
 ! !USES:
 !
@@ -221,12 +227,12 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,            INTENT(IN   ) :: am_I_Root  ! root CPU?
-    CHARACTER(LEN=*),   INTENT(IN   ) :: ConfigFile ! Configuration file
+    LOGICAL,            INTENT(IN   )           :: am_I_Root  ! root CPU?
+    CHARACTER(LEN=*),   INTENT(IN   )           :: ConfigFile ! Configuration file
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,            INTENT(INOUT) :: RC         ! Failure or success
+    INTEGER,            INTENT(INOUT)           :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller    - Initial version 
@@ -236,9 +242,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: nnMatch
-    LOGICAL            :: Dum, Found
-    CHARACTER(LEN=255) :: LOC
+    INTEGER                  :: nnMatch
+    LOGICAL                  :: Dum, Found
+    CHARACTER(LEN=255)       :: LOC
 
     !=================================================================
     ! HCOI_SA_INIT begins here!
@@ -252,14 +258,14 @@ CONTAINS
     ! sets the HEMCO error properties (verbose mode? log file name, 
     ! etc.) based upon the specifications in the configuration file.
     !=================================================================
-    CALL Config_ReadFile( am_I_Root, TRIM(ConfigFile), 0, RC )
+    CALL Config_ReadFile( am_I_Root, HcoConfig, TRIM(ConfigFile), 0, RC )
     IF( RC /= HCO_SUCCESS) RETURN 
 
     !=================================================================
     ! Open logfile 
     !=================================================================
     IF ( am_I_Root ) THEN
-       CALL HCO_LogFile_Open( RC=RC ) 
+       CALL HCO_LogFile_Open( HcoConfig%Err, RC=RC ) 
        IF (RC /= HCO_SUCCESS) RETURN 
     ENDIF
 
@@ -269,28 +275,29 @@ CONTAINS
 
     !-----------------------------------------------------------------
     ! Extract species to use in HEMCO 
-    CALL Get_nnMatch( am_I_Root, nnMatch, RC )
+    CALL Get_nnMatch( am_I_Root, HcoConfig, nnMatch, RC )
     IF(RC /= HCO_SUCCESS) RETURN 
 
     !-----------------------------------------------------------------
     ! Initialize HCO state. Use only species that are used
     ! in GEOS-Chem and are also found in the HEMCO config. file.
-    CALL HcoState_Init ( am_I_Root, HcoState, nnMatch, RC )
+    CALL HcoState_Init ( am_I_Root, HcoState, HcoConfig, nnMatch, RC )
     IF(RC /= HCO_SUCCESS) RETURN 
 
     !-----------------------------------------------------------------
     ! Set grid
-    CALL Set_Grid ( am_I_Root, RC )
+    CALL Set_Grid ( am_I_Root, HcoState, RC )
     IF(RC /= HCO_SUCCESS) RETURN 
 
     !-----------------------------------------------------------------
     ! Register species
-    CALL Register_Species( am_I_Root, RC )
+    CALL Register_Species( am_I_Root, HcoState, RC )
     IF(RC /= HCO_SUCCESS) RETURN 
 
     !-----------------------------------------------------------------
     ! Read time information, incl. timesteps and simulation time(s) 
-    CALL Read_Time( am_I_Root, RC )
+    CALL Read_Time( am_I_Root, HcoState, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN 
 
     !=================================================================
     ! Set misc. parameter
@@ -299,14 +306,12 @@ CONTAINS
     ! Set ESMF flag 
     HcoState%isESMF = .FALSE.  
 
-    ! HEMCO configuration file
-    HcoState%ConfigFile = ConfigFile
-
     ! Let HEMCO schedule the diagnostics output
     HcoState%Options%HcoWritesDiagn = .TRUE.
 
     ! If not explicitly set, make sure that option Field2Diagn is true
-    CALL GetExtOpt ( CoreNr, 'ConfigField to diagnostics', &
+    CALL GetExtOpt ( HcoState%Config, CoreNr, &
+                    'ConfigField to diagnostics', &
                      OptValBool=Dum, Found=Found, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%Field2Diagn = .TRUE.
@@ -331,25 +336,14 @@ CONTAINS
     !=================================================================
     ! Define diagnostics
     !=================================================================
-    CALL Define_Diagnostics( am_I_Root, RC )
+    CALL Define_Diagnostics( am_I_Root, HcoState, RC )
     IF( RC /= HCO_SUCCESS ) RETURN 
 
     !-----------------------------------------------------------------
     ! Leave 
     !-----------------------------------------------------------------
-
-    ! Deallocate local variables (not used anymore)
-    IF ( ASSOCIATED(ModelSpecNames     ) ) DEALLOCATE(ModelSpecNames     )
-    IF ( ASSOCIATED(ModelSpecIDs       ) ) DEALLOCATE(ModelSpecIDs       )
-    IF ( ASSOCIATED(ModelSpecMW        ) ) DEALLOCATE(ModelSpecMW        )
-    IF ( ASSOCIATED(ModelSpecEmMW      ) ) DEALLOCATE(ModelSpecEmMW      )
-    IF ( ASSOCIATED(ModelSpecMolecRatio) ) DEALLOCATE(ModelSpecMolecRatio)
-    IF ( ASSOCIATED(ModelSpecK0        ) ) DEALLOCATE(ModelSpecK0        )
-    IF ( ASSOCIATED(ModelSpecCR        ) ) DEALLOCATE(ModelSpecCR        )  
-    IF ( ASSOCIATED(ModelSpecPKA       ) ) DEALLOCATE(ModelSpecPKA       )
-    IF ( ASSOCIATED(matchIDx           ) ) DEALLOCATE(matchIDx           )
-    IF ( ASSOCIATED(HcoSpecNames       ) ) DEALLOCATE(HcoSpecNames       )
-    
+    CALL HCOI_SA_InitCleanup( am_I_Root, RC )
+ 
     ! Leave w/ success
     RC = HCO_SUCCESS
 
@@ -436,7 +430,8 @@ CONTAINS
        ENDIF
 
        ! Get current time
-       CALL HcoClock_Get ( cYYYY=YR, cMM=MT, cDD=DY, cH=HR, cM=MN, cS=SC, RC=RC )
+       CALL HcoClock_Get ( am_I_Root, HcoState%Clock, cYYYY=YR, &
+                           cMM=MT, cDD=DY, cH=HR, cM=MN, cS=SC, RC=RC )
        IF ( RC /= HCO_SUCCESS) RETURN 
 
        ! Leave loop if this is the end of the simulation
@@ -446,7 +441,7 @@ CONTAINS
        WRITE(MSG,100) YR, MT, DY, HR, MN, SC 
 100    FORMAT( 'Calculate emissions at ', i4,'-',i2.2,'-',i2.2,' ', &
                  i2.2,':',i2.2,':',i2.2 )
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(*,*) TRIM(MSG)
  
        ! ================================================================
@@ -479,16 +474,16 @@ CONTAINS
        ! ================================================================
        CALL HCO_Run( am_I_Root, HcoState, -1, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
-   
+  
        ! ================================================================
        ! Run HCO extensions
        ! ================================================================
    
        ! Set / update ExtState fields 
-       CALL ExtState_SetFields ( am_I_Root, RC )
+       CALL ExtState_SetFields ( am_I_Root, HcoState, ExtState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       CALL ExtState_UpdateFields( am_I_Root, RC )
+       CALL ExtState_UpdateFields( am_I_Root, HcoState, ExtState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
  
        ! Execute all enabled emission extensions. Emissions will be 
@@ -501,7 +496,6 @@ CONTAINS
        !=================================================================
        CALL HcoDiagn_AutoUpdate ( am_I_Root, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-
     ENDDO 
 
     ! Return w/ success
@@ -561,6 +555,9 @@ CONTAINS
     CALL HCOX_FINAL( am_I_Root, HcoState, ExtState, RC ) 
     IF (RC /= HCO_SUCCESS) RETURN 
 
+    ! Cleanup diagnostics
+    CALL DiagnBundle_Cleanup ( HcoState%Diagn )
+
     ! Deallocate module arrays/pointers
     IF ( ALLOCATED( XMID    ) ) DEALLOCATE ( XMID    )
     IF ( ALLOCATED( YMID    ) ) DEALLOCATE ( YMID    )
@@ -587,7 +584,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Model_GetSpecies( am_I_Root,                          &
+  SUBROUTINE Model_GetSpecies( am_I_Root,      HcoConfig,          &
                                nModelSpec,     ModelSpecNames,     &
                                ModelSpecIDs,   ModelSpecMW,        &
                                ModelSpecEmMW,  ModelSpecMolecRatio,&
@@ -597,11 +594,12 @@ CONTAINS
 ! !USES:
 !
     USE inquireMod,      ONLY : findfreeLUN
-    USE HCO_EXTLIST_Mod, ONLY : HCO_GetOpt, GetExtOpt, CoreNr
+    USE HCO_EXTLIST_Mod, ONLY : GetExtOpt, CoreNr
 !
 ! !OUTPUT PARAMETERS:
 !
     LOGICAL,            INTENT(IN ) :: am_I_Root
+    TYPE(ConfigObj),    POINTER     :: HcoConfig
     INTEGER,            INTENT(OUT) :: nModelSpec
     CHARACTER(LEN= 31), POINTER     :: ModelSpecNames(:)
     INTEGER,            POINTER     :: ModelSpecIDs  (:)
@@ -636,8 +634,8 @@ CONTAINS
     LOC = 'Model_GetSpecies (hcoi_standalone_mod.F90)'
 
     ! Try to get SpecFile from configuration file (in settings)
-    CALL GetExtOpt ( CoreNr, 'SpecFile', OptValChar=MySpecFile, &
-                     Found=FOUND, RC=RC )
+    CALL GetExtOpt ( HcoConfig, CoreNr, 'SpecFile', &
+                     OptValChar=MySpecFile,   Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) THEN
        SpecFile = MySpecFile
@@ -645,7 +643,7 @@ CONTAINS
        MSG = 'Please provide filename with species definitions ' // &
              'in the configuration file settings, e.g. ' // &
              'SpecFile: MySpecies.rc'
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
 
@@ -656,7 +654,7 @@ CONTAINS
     OPEN( IU_FILE, FILE=TRIM(SpecFile), STATUS='OLD', IOSTAT=IOS )
     IF ( IOS /= 0 ) THEN
        MSG = 'Error 1 reading ' // TRIM(SpecFile)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
 
@@ -674,7 +672,7 @@ CONTAINS
        MSG = 'Species file ' // TRIM(SpecFile)      // &
              ' does not seem to have any content. ' // &
              'You must define at least one species.'
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC )
     ENDIF
 
     ! Go back to line one
@@ -714,7 +712,7 @@ CONTAINS
        CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
        IF ( RC /= HCO_SUCCESS .OR. EOF ) THEN
           WRITE(MSG,100) N, TRIM(SpecFile)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -752,7 +750,7 @@ CONTAINS
                           'to have 8 entries (ID, Name, MW, MWemis, ', &
                           'MOLECRATIO, K0, CR, PKA, e.g.: ', &
                           '1 CO   28.0 28.0 1.0 0.0 0.0 0.0'
-             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC ) 
+             CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC ) 
              RETURN
           ENDIF
  
@@ -813,7 +811,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SET_Grid( am_I_Root, RC ) 
+  SUBROUTINE SET_Grid( am_I_Root, HcoState, RC ) 
 !
 ! !USES:
 !
@@ -824,11 +822,12 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN   ) :: am_I_Root
+    LOGICAL,         INTENT(IN   ) :: am_I_Root
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(INOUT) :: RC
+    TYPE(HCO_STATE), POINTER       :: HcoState
+    INTEGER,         INTENT(INOUT) :: RC
 !
 ! !REVISION HISTORY:
 !  13 Sep 2013 - C. Keller - Initial Version
@@ -870,13 +869,13 @@ CONTAINS
     PI_180 = HcoState%Phys%PI / 180.0_hp
 
     ! Try to get GridFile from configuration file (in settings)
-    CALL GetExtOpt ( CoreNr, 'GridFile', OptValChar=MyGridFile, &
-                     Found=FOUND, RC=RC )
+    CALL GetExtOpt ( HcoState%Config, CoreNr, 'GridFile', &
+                     OptValChar=MyGridFile,   Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) GridFile = MyGridFile
 
     ! Write colon character to local variable
-    COL = HCO_GetOpt( 'Colon' )
+    COL = HCO_GetOpt( HcoState%Config%ExtList, 'Colon' )
 
     ! ------------------------------------------------------------------
     ! Open grid file
@@ -889,7 +888,7 @@ CONTAINS
     OPEN( IU_FILE, FILE=TRIM(GridFile), STATUS='OLD', IOSTAT=IOS )
     IF ( IOS /= 0 ) THEN
        MSG = 'Error 1 reading ' // TRIM(GridFile)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
 
@@ -908,7 +907,7 @@ CONTAINS
        CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
        IF ( RC /= HCO_SUCCESS .OR. EOF ) THEN
           MSG = 'Error 2 reading ' // TRIM(GridFile)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -917,7 +916,7 @@ CONTAINS
        LOW = NextCharPos ( TRIM(DUM), COL, 1 )
        IF ( LOW < 0 .OR. LOW == LNG ) THEN
           MSG = 'Cannot extract size information from ' // TRIM(DUM)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
        LOW = LOW + 1
@@ -934,24 +933,24 @@ CONTAINS
     ! Make sure values are in valid range
     IF ( XMIN >= XMAX ) THEN
        WRITE(MSG,*) 'Lower lon must be smaller than upper lon: ', XMIN, XMAX
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
     IF ( YMIN >= YMAX ) THEN
        WRITE(MSG,*) 'Lower lat must be smaller than upper lat: ', YMIN, YMAX
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
 
     ! Restrict latitude values to -90.0 and 90.0. 
     IF ( YMIN < -90.0_hp ) THEN
        WRITE(MSG,*) 'Lower latitude must be between -90 and 90 degN: ', YMIN
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF   
     IF ( YMAX > 90.0_hp ) THEN
        WRITE(MSG,*) 'Upper latitude must be between -90 and 90 degN: ', YMAX
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF   
 
@@ -968,7 +967,7 @@ CONTAINS
        CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
        IF ( RC /= HCO_SUCCESS .OR. EOF ) THEN
           MSG = 'Error 3 reading ' // TRIM(GridFile)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -977,7 +976,7 @@ CONTAINS
        LOW = NextCharPos ( TRIM(DUM), COL, 1 )
        IF ( LOW < 0 .OR. LOW == LNG ) THEN
           MSG = 'Cannot extract size information from ' // TRIM(DUM)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
        LOW = LOW + 1
@@ -1021,7 +1020,7 @@ CONTAINS
        CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'Error reading grid edges and/or midpoints in ' // TRIM(GridFile)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -1083,7 +1082,7 @@ CONTAINS
                 IF ( TRIM(DUM(1:5)) == 'XEDGE' ) THEN
                    IF ( I > NX+1 ) THEN
                       WRITE(MSG,*) 'More than ', NX+1, ' longitude edges found in ', TRIM(DUM)
-                      CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                      CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
                       RETURN
                    ENDIF 
                    XEDGE(I,:,1) = DVAL
@@ -1092,7 +1091,7 @@ CONTAINS
                 ELSEIF ( TRIM(DUM(1:5)) == 'YEDGE' ) THEN
                    IF ( I > NY+1 ) THEN
                       WRITE(MSG,*) 'More than ', NY+1, ' latitude edges found in ', TRIM(DUM)
-                      CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                      CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
                       RETURN
                    ENDIF 
                    YEDGE(:,I,1) = DVAL
@@ -1101,7 +1100,7 @@ CONTAINS
                 ELSEIF ( TRIM(DUM(1:4)) == 'XMID' ) THEN
                    IF ( I > NX ) THEN
                       WRITE(MSG,*) 'More than ', NX, ' latitude mid-points found in ', TRIM(DUM)
-                      CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                      CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
                       RETURN
                    ENDIF 
                    XMID(I,:,1) = DVAL
@@ -1110,7 +1109,7 @@ CONTAINS
                 ELSEIF ( TRIM(DUM(1:4)) == 'YMID' ) THEN
                    IF ( I > NY ) THEN
                       WRITE(MSG,*) 'More than ', NY, ' latitude mid-points found in ', TRIM(DUM)
-                      CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                      CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
                       RETURN
                    ENDIF 
                    YMID(:,I,1) = DVAL
@@ -1119,7 +1118,7 @@ CONTAINS
                 ELSEIF ( TRIM(DUM(1:2)) == 'AP' ) THEN
                    IF ( I > (NZ+1) ) THEN
                       WRITE(MSG,*) 'More than ', NZ+1, ' Ap values found in ', TRIM(DUM)
-                      CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                      CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
                       RETURN
                    ENDIF 
                    AP(I) = DVAL
@@ -1128,7 +1127,7 @@ CONTAINS
                 ELSEIF ( TRIM(DUM(1:2)) == 'BP' ) THEN
                    IF ( I > (NZ+1) ) THEN
                       WRITE(MSG,*) 'More than ', NZ+1, ' Bp values found in ', TRIM(DUM)
-                      CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                      CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
                       RETURN
                    ENDIF 
                    BP(I) = DVAL
@@ -1142,32 +1141,32 @@ CONTAINS
           ! Error check: all values must have been filled
           IF ( TRIM(DUM(1:5)) == 'XEDGE' .AND. I /= NX+1 ) THEN
              WRITE(MSG,*) 'Error reading XEDGES: exactly ', NX+1, ' values must be given: ', TRIM(DUM)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
           IF ( TRIM(DUM(1:5)) == 'YEDGE' .AND. I /= NY+1 ) THEN
              WRITE(MSG,*) 'Error reading YEDGES: exactly ', NY+1, ' values must be given: ', TRIM(DUM)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
           IF ( TRIM(DUM(1:4)) == 'XMID' .AND. I /= NX ) THEN
              WRITE(MSG,*) 'Error reading XMID: exactly ', NX, ' values must be given: ', TRIM(DUM)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
           IF ( TRIM(DUM(1:4)) == 'YMID' .AND. I /= NY ) THEN
              WRITE(MSG,*) 'Error reading YMID: exactly ', NY, ' values must be given: ', TRIM(DUM)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
           IF ( TRIM(DUM(1:2)) == 'AP' .AND. I /= NZ+1 ) THEN
              WRITE(MSG,*) 'Error reading AP: exactly ', NZ+1, ' values must be given: ', TRIM(DUM)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
           IF ( TRIM(DUM(1:2)) == 'BP' .AND. I /= NZ+1 ) THEN
              WRITE(MSG,*) 'Error reading BP: exactly ', NZ+1, ' values must be given: ', TRIM(DUM)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
 
@@ -1178,12 +1177,12 @@ CONTAINS
     IF ( ALL(AP==HCO_MISSVAL) .AND. .NOT. ALL(BP==HCO_MISSVAL) ) THEN
        WRITE(MSG,*) 'At least a few AP values are missing, please provide exactly ', &
                     NZ+1, 'AP and BP values.'
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ELSEIF ( .NOT. ALL(AP==HCO_MISSVAL) .AND. ALL(BP==HCO_MISSVAL) ) THEN
        WRITE(MSG,*) 'At least a few BP values are missing, please provide exactly ', &
                     NZ+1, 'AP and BP values.'
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
 
@@ -1295,10 +1294,12 @@ CONTAINS
 
     ! Vertical grid definition
     IF ( ANY(AP/=HCO_MISSVAL) ) THEN
-       CALL HCO_VertGrid_Define( am_I_Root, HcoState%Grid%zGrid, NZ, &
+       CALL HCO_VertGrid_Define( am_I_Root, HcoState%Config, &
+                                 HcoState%Grid%zGrid, NZ, &
                                  Ap=Ap, Bp=Bp, RC=RC )
     ELSE
-       CALL HCO_VertGrid_Define( am_I_Root, HcoState%Grid%zGrid, NZ, RC=RC )
+       CALL HCO_VertGrid_Define( am_I_Root, HcoState%Config, &
+                                 HcoState%Grid%zGrid, NZ, RC=RC )
     ENDIF
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1319,18 +1320,18 @@ CONTAINS
 
     ! Write grid information to log-file
     WRITE(MSG,*) 'HEMCO grid definitions:'
-    CALL HCO_MSG(MSG)
+    CALL HCO_MSG(HcoState%Config%Err,MSG)
 
     WRITE(MSG,*) ' --> Number of longitude cells: ', NX
-    CALL HCO_MSG(MSG)
+    CALL HCO_MSG(HcoState%Config%Err,MSG)
     WRITE(MSG,*) ' --> Number of latitude cells : ', NY
-    CALL HCO_MSG(MSG)
+    CALL HCO_MSG(HcoState%Config%Err,MSG)
     WRITE(MSG,*) ' --> Number of levels         : ', NZ
-    CALL HCO_MSG(MSG)
+    CALL HCO_MSG(HcoState%Config%Err,MSG)
     WRITE(MSG,*) ' --> Lon range [deg E]        : ', XMIN, XMAX
-    CALL HCO_MSG(MSG)
+    CALL HCO_MSG(HcoState%Config%Err,MSG)
     WRITE(MSG,*) ' --> Lat range [deg N]        : ', YMIN, YMAX
-    CALL HCO_MSG(MSG)
+    CALL HCO_MSG(HcoState%Config%Err,MSG)
 
     ! Cleanup
     IF ( ALLOCATED(AP) ) DEALLOCATE(AP)
@@ -1354,7 +1355,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_nnMatch( am_I_Root, nnMatch, RC ) 
+  SUBROUTINE Get_nnMatch( am_I_Root, HcoConfig, nnMatch, RC ) 
 !
 ! !USES:
 !
@@ -1363,13 +1364,14 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN   )  :: am_I_Root ! Root CPU? 
-    INTEGER, INTENT(  OUT)  :: nnMatch   ! Number of HEMCO species that are
+    LOGICAL,         INTENT(IN   )  :: am_I_Root ! Root CPU?
+    INTEGER,         INTENT(  OUT)  :: nnMatch   ! Number of HEMCO species that are
                                          ! also species in the atm. model
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(INOUT)  :: RC        ! Success or failure?
+    TYPE(ConfigObj), POINTER        :: HcoConfig ! Config object
+    INTEGER,         INTENT(INOUT)  :: RC        ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  13 Sep 2013 - C. Keller - Initial Version
@@ -1391,12 +1393,13 @@ CONTAINS
    
     ! Extract number of HEMCO species and corresponding species names 
     ! as read from the HEMCO config. file.
-    nHcoSpec = Config_GetnSpecies ( ) 
-    CALL Config_GetSpecNames( HcoSpecNames, nHcoSpec, RC )
+    nHcoSpec = Config_GetnSpecies ( HcoConfig ) 
+    CALL Config_GetSpecNames( HcoConfig, &
+                              HcoSpecNames, nHcoSpec, RC )
     IF ( RC /= HCO_SUCCESS) RETURN 
 
     ! Extract species to be used from input file
-    CALL Model_GetSpecies( am_I_Root,                           &
+    CALL Model_GetSpecies( am_I_Root,      HcoConfig,           &
                            nModelSpec,     ModelSpecNames,      &
                            ModelSpecIDs,   ModelSpecMW,         &
                            ModelSpecEmMW,  ModelSpecMolecRatio, &
@@ -1407,7 +1410,7 @@ CONTAINS
     ! See how many species are also used in GEOS-Chem
     ALLOCATE(matchIDx(nHcoSpec),STAT=AS)
     IF ( AS/=0 ) THEN 
-       CALL HCO_ERROR('Allocation error matchIDx', RC, THISLOC=LOC )
+       CALL HCO_ERROR(HcoConfig%Err,'Allocation error matchIDx', RC, THISLOC=LOC )
        RETURN
     ENDIF
     matchIDx(:) = -1
@@ -1415,7 +1418,7 @@ CONTAINS
                         ModelSpecNames, nModelSpec,    &
                         matchIDx,       nnMatch         )
     IF ( nnMatch == 0 ) THEN
-       CALL HCO_ERROR('No matching species!', RC, THISLOC=LOC )
+       CALL HCO_ERROR(HcoConfig%Err,'No matching species!', RC, THISLOC=LOC )
        RETURN
     ENDIF
 
@@ -1437,7 +1440,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_Species( am_I_Root, RC )
+  SUBROUTINE Register_Species( am_I_Root, HcoState, RC )
 !
 ! !USES:
 !
@@ -1445,11 +1448,12 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+    LOGICAL, INTENT(IN   )   :: am_I_Root   ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(INOUT) :: RC          ! Success or failure
+    TYPE(HCO_STATE), POINTER :: HcoState
+    INTEGER, INTENT(INOUT)   :: RC          ! Success or failure
 !
 ! !REVISION HISTORY:
 !  13 Sep 2013 - C. Keller - Initial Version
@@ -1516,7 +1520,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Define_Diagnostics( am_I_Root, RC )
+  SUBROUTINE Define_Diagnostics( am_I_Root, HcoState, RC, SetDefault )
 !
 ! !USES:
 !
@@ -1524,20 +1528,24 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+    LOGICAL,          INTENT(IN   )             :: am_I_Root   ! Are we on the root CPU?
+    TYPE(HCO_STATE),  POINTER                   :: HcoState
+    LOGICAL,          INTENT(IN   ), OPTIONAL   :: SetDefault  ! Define default diagnostics?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(INOUT) :: RC          ! Success or failure
+    INTEGER,          INTENT(INOUT)             :: RC          ! Success or failure
 !
 ! !REVISION HISTORY:
 !  13 Sep 2013 - C. Keller - Initial Version
+!  05 Feb 2015 - C. Keller - Added SetDefault flag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
+    LOGICAL           :: SetDf
     INTEGER           :: I, N, ExtNr, HcoID
     CHARACTER(LEN=31) :: DiagnName
 
@@ -1547,14 +1555,20 @@ CONTAINS
 
     ! Get number of diagnostics currently defined in the default
     ! collection
-    CALL DiagnCollection_Get ( HcoDiagnIDDefault, nnDiagn=N, RC=RC )
+    CALL DiagnCollection_Get ( HcoState%Diagn, &
+       HcoState%Diagn%HcoDiagnIDDefault, nnDiagn=N, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! If there are no diagnostics defined yet, define some default
     ! diagnostics below. These are simply the overall emissions 
     ! (across all extensions, categories, hierarchies) for each
-    ! HEMCO species. 
-    IF ( N == 0 ) THEN
+    ! HEMCO species.
+    IF ( PRESENT(SetDefault) ) THEN
+       SetDf = SetDefault
+    ELSE
+       SetDf = ( N == 0 )
+    ENDIF
+    IF ( SetDf ) THEN
 
        ! Loop over all HEMCO species
        DO I = 1, HcoState%nSpc 
@@ -1564,20 +1578,20 @@ CONTAINS
           IF ( HcoID <= 0 ) CYCLE
    
           ! Create diagnostics
-          DiagnName = 'EMIS_' // TRIM(HcoState%Spc(I)%SpcName) 
-          CALL Diagn_Create ( am_I_Root,                         &
-                              HcoState  = HcoState,              &
-                              cName     = DiagnName,             &
-                              ExtNr     = -1,                    &
-                              Cat       = -1,                    &
-                              Hier      = -1,                    &
-                              HcoID     = HcoID,                 &
-                              SpaceDim  = 2,                     &
-                              LevIDx    = -1,                    &
-                              OutUnit   = 'kg/m2/s',             &
-                              AutoFill  = 1,                     &
-                              COL       = HcoDiagnIDDefault,     &
-                              RC        = RC                      )
+          DiagnName = 'HEMCO__EMIS_' // TRIM(HcoState%Spc(I)%SpcName) 
+          CALL Diagn_Create ( am_I_Root,  HcoState,                   &
+                              cName     = DiagnName,                  &
+                              ExtNr     = -1,                         &
+                              Cat       = -1,                         &
+                              Hier      = -1,                         &
+                              HcoID     = HcoID,                      &
+                              SpaceDim  = 3,                          &
+                              LevIDx    = -1,                         &
+                              OutUnit   = 'kg/m2/s',                  &
+                              AutoFill  = 1,                          &
+                              COL = HcoState%Diagn%HcoDiagnIDDefault, &
+                              OkIfExist = .TRUE.,                     &
+                              RC        = RC                           )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
        ENDDO !I
@@ -1586,7 +1600,7 @@ CONTAINS
     !--------------------------------------------------------------------------
     ! Define some additional diagnostics
     !--------------------------------------------------------------------------
-    ExtNr = GetExtNr ( 'LightNOx' )
+    ExtNr = GetExtNr ( HcoState%Config%ExtList, 'LightNOx' )
     IF ( ExtNr > 0 ) THEN
 
        ! Loop over lighthing flash quantities
@@ -1606,21 +1620,20 @@ CONTAINS
           N = 56000 + I
 
           ! Create diagnostic container
-          CALL Diagn_Create( am_I_Root,                     & 
-                             HcoState  = HcoState,          &
-                             cName     = TRIM( DiagnName ), &
-                             cID       = N,                 &
-                             ExtNr     = ExtNr,             &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
-                             HcoID     = -1,                &
-                             SpaceDim  = 2,                 &
-                             LevIDx    = -1,                &
-                             OutUnit   = 'flashes/min/km2', &
-                             OutOper   = 'Mean',            &
-                             COL       = HcoDiagnIDDefault, &
-                             AutoFill  = 0,                 &
-                             RC        = RC                  ) 
+          CALL Diagn_Create( am_I_Root,  HcoState,                   & 
+                             cName     = TRIM( DiagnName ),          &
+                             cID       = N,                          &
+                             ExtNr     = ExtNr,                      &
+                             Cat       = -1,                         &
+                             Hier      = -1,                         &
+                             HcoID     = -1,                         &
+                             SpaceDim  = 2,                          &
+                             LevIDx    = -1,                         &
+                             OutUnit   = 'flashes/min/km2',          &
+                             OutOper   = 'Mean',                     &
+                             COL = HcoState%Diagn%HcoDiagnIDDefault, &
+                             AutoFill  = 0,                          &
+                             RC        = RC                           ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDDO
  
@@ -1633,21 +1646,20 @@ CONTAINS
        N         = 56004
 
        ! Create diagnostic container
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
-                          cName     = TRIM( DiagnName ), &
-                          cID       = N,                 &
-                          ExtNr     = ExtNr,             &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = -1,                &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = '1',               &
-                          OutOper   = 'Mean',            &
-                          COL       = HcoDiagnIDDefault, &
-                          AutoFill  = 0,                 &
-                          RC        = RC                  )
+       CALL Diagn_Create( am_I_Root,  HcoState,                   &
+                          cName     = TRIM( DiagnName ),          &
+                          cID       = N,                          &
+                          ExtNr     = ExtNr,                      &
+                          Cat       = -1,                         &
+                          Hier      = -1,                         &
+                          HcoID     = -1,                         &
+                          SpaceDim  = 2,                          &
+                          LevIDx    = -1,                         &
+                          OutUnit   = '1',                        &
+                          OutOper   = 'Mean',                     &
+                          COL = HcoState%Diagn%HcoDiagnIDDefault, &
+                          AutoFill  = 0,                          &
+                          RC        = RC                           )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
     ENDIF ! Lightning NOx
@@ -1670,7 +1682,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Read_Time( am_I_Root, RC ) 
+  SUBROUTINE Read_Time( am_I_Root, HcoState, RC ) 
 !
 ! !USES:
 !
@@ -1679,11 +1691,12 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+    LOGICAL,         INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+    TYPE(HCO_State), POINTER       :: HcoState 
 !
 ! !INPUT/OUTPUT PARAMETERS
 !
-    INTEGER, INTENT(INOUT) :: RC          ! Success or failure?
+    INTEGER,         INTENT(INOUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  13 Sep 2013 - C. Keller - Initial Version
@@ -1708,8 +1721,8 @@ CONTAINS
     LOC = 'READ_TIME (hcoi_standalone_mod.F90)'
 
     ! Try to get TimeFile from configuration file (in settings)
-    CALL GetExtOpt ( CoreNr, 'TimeFile', OptValChar=MyTimeFile, &
-                     Found=FOUND, RC=RC )
+    CALL GetExtOpt ( HcoState%Config, CoreNr, 'TimeFile', &
+                     OptValChar=MyTimeFile,   Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) TimeFile = MyTimeFile
 
@@ -1717,13 +1730,13 @@ CONTAINS
     IU_FILE = findFreeLUN()
 
     ! Write colon character to local variable
-    COL = HCO_GetOpt( 'Colon' )
+    COL = HCO_GetOpt( HcoState%Config%ExtList, 'Colon' )
 
     ! Open time file 
     OPEN( IU_FILE, FILE=TRIM(TimeFile), STATUS='OLD', IOSTAT=IOS )
     IF ( IOS /= 0 ) THEN
        MSG = 'Error 1 reading ' // TRIM(TimeFile)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoConfig%Err,MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
  
@@ -1733,7 +1746,7 @@ CONTAINS
        CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
        IF ( RC /= HCO_SUCCESS .OR. EOF ) THEN
           MSG = 'Error reading time in ' // TRIM(TimeFile)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoConfig%Err,MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
      
@@ -1742,7 +1755,7 @@ CONTAINS
        LOW = NextCharPos ( TRIM(DUM), COL, 1 )
        IF ( LOW < 0 .OR. LOW == LNG ) THEN
           MSG = 'Cannot extract index after colon: ' // TRIM(DUM)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoConfig%Err,MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
        LOW = LOW + 1
@@ -1754,7 +1767,7 @@ CONTAINS
        ! --> read year from position 1:4, month from 6:7, etc.
        IF ( LNG /= 19 ) THEN
           MSG = 'Provided time stamp is not `YYYY-MM-DD HH:MM:SS`! ' // TRIM(DUM)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoConfig%Err,MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -1771,7 +1784,7 @@ CONTAINS
     CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
     IF ( (RC /= HCO_SUCCESS) .OR. EOF ) THEN
        MSG = 'Cannot read emission time step from ' // TRIM(TimeFile)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoConfig%Err,MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
 
@@ -1780,7 +1793,7 @@ CONTAINS
     LOW = NextCharPos ( TRIM(DUM), COL, 1 )
     IF ( LOW < 0 .OR. LOW == LNG ) THEN
        MSG = 'Cannot extract index after colon: ' // TRIM(DUM)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoConfig%Err,MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
     LOW = LOW + 1
@@ -1808,7 +1821,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_SetFields ( am_I_Root, RC )
+  SUBROUTINE ExtState_SetFields ( am_I_Root, HcoState, ExtState, RC )
 !
 ! !USES:
 !
@@ -1816,14 +1829,17 @@ CONTAINS
     USE HCO_GEOTOOLS_MOD,   ONLY : HCO_GetSUNCOS
     USE HCO_GEOTOOLS_MOD,   ONLY : HCO_CalcVertGrid
     USE HCOX_STATE_MOD,     ONLY : ExtDat_Set
+    USE HCO_CLOCK_MOD,      ONLY : HcoClock_First
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+    LOGICAL,         INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS
 !
-    INTEGER, INTENT(INOUT) :: RC          ! Success or failure?
+    TYPE(HCO_STATE), POINTER       :: HcoState
+    TYPE(EXT_STATE), POINTER       :: ExtState
+    INTEGER,         INTENT(INOUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  28 Jul 2014 - C. Keller   - Initial Version
@@ -1841,7 +1857,7 @@ CONTAINS
     REAL(hp), POINTER             :: BXHEIGHT(:,:,:)  => NULL()
     REAL(hp), POINTER             :: PEDGE(:,:,:)  => NULL()
     CHARACTER(LEN=255)            :: MSG
-    LOGICAL, SAVE                 :: FIRST = .TRUE.
+    LOGICAL                       :: FIRST 
     CHARACTER(LEN=255), PARAMETER :: LOC = 'ExtState_SetFields (hcoi_standalone_mod.F90)'
 
     !=================================================================
@@ -1849,8 +1865,11 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    CALL HCO_ENTER( LOC, RC )
+    CALL HCO_ENTER( HcoState%Config%Err, LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! First call?
+    FIRST = HcoClock_First ( HcoState%Clock, .FALSE. )
 
     !-----------------------------------------------------------------
     ! 2D fields 
@@ -2025,7 +2044,7 @@ CONTAINS
     FIRST = .FALSE.
 
     ! Leave w/ success
-    CALL HCO_LEAVE( RC )
+    CALL HCO_LEAVE( HcoState%Config%Err, RC )
 
   END SUBROUTINE ExtState_SetFields
 !EOC
@@ -2045,7 +2064,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_UpdateFields ( am_I_Root, RC )
+  SUBROUTINE ExtState_UpdateFields ( am_I_Root, HcoState, ExtState, RC )
 !
 ! !USES:
 !
@@ -2056,6 +2075,8 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS
 !
+    TYPE(HCO_STATE),  POINTER       :: HcoState
+    TYPE(EXT_STATE),  POINTER       :: ExtState
     INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
@@ -2147,5 +2168,59 @@ CONTAINS
     ENDIF
 
   END FUNCTION IsEndOfSimulation
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCOI_Sa_InitCleanup
+!
+! !DESCRIPTION: deallocates all local species arrays used during initialization. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCOI_SA_InitCleanup ( am_I_Root, RC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )          :: am_I_Root   ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS
+!
+    INTEGER,          INTENT(INOUT)          :: RC          ! Success or failure?
+!
+! !REVISION HISTORY:
+!  04 Feb 2016 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    !=================================================================
+    ! HCOI_SA_InitCleanup begins here
+    !=================================================================
+
+    ! Deallocate local variables (not used anymore)
+    IF ( ASSOCIATED(ModelSpecNames     ) ) DEALLOCATE(ModelSpecNames     )
+    IF ( ASSOCIATED(ModelSpecIDs       ) ) DEALLOCATE(ModelSpecIDs       )
+    IF ( ASSOCIATED(ModelSpecMW        ) ) DEALLOCATE(ModelSpecMW        )
+    IF ( ASSOCIATED(ModelSpecEmMW      ) ) DEALLOCATE(ModelSpecEmMW      )
+    IF ( ASSOCIATED(ModelSpecMolecRatio) ) DEALLOCATE(ModelSpecMolecRatio)
+    IF ( ASSOCIATED(ModelSpecK0        ) ) DEALLOCATE(ModelSpecK0        )
+    IF ( ASSOCIATED(ModelSpecCR        ) ) DEALLOCATE(ModelSpecCR        )  
+    IF ( ASSOCIATED(ModelSpecPKA       ) ) DEALLOCATE(ModelSpecPKA       )
+    IF ( ASSOCIATED(matchIDx           ) ) DEALLOCATE(matchIDx           )
+    IF ( ASSOCIATED(HcoSpecNames       ) ) DEALLOCATE(HcoSpecNames       )
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCOI_SA_InitCleanup
 !EOC
 END MODULE HCOI_StandAlone_Mod

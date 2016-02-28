@@ -675,6 +675,7 @@ CONTAINS
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
 
     IMPLICIT NONE
@@ -729,7 +730,7 @@ CONTAINS
 
        ! Day
        FIELDNAME = TRIM(PREFIX) // '_DAY'
-       CALL HCO_GetPtr( am_I_Root, FIELDNAME, BrPtrDay(N)%MR, RC )
+       CALL HCO_GetPtr( am_I_Root, HcoState, FIELDNAME, BrPtrDay(N)%MR, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL ERROR_STOP ( TRIM(MSG)//' '//TRIM(FIELDNAME), &
                             'Set_BryPointers (start_chem_mod.F90)' )
@@ -737,7 +738,7 @@ CONTAINS
 
        ! Night
        FIELDNAME = TRIM(PREFIX) // '_NIGHT'
-       CALL HCO_GetPtr( am_I_Root, FIELDNAME, BrPtrNight(N)%MR, RC )
+       CALL HCO_GetPtr( am_I_Root, HcoState, FIELDNAME, BrPtrNight(N)%MR, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL ERROR_STOP ( TRIM(MSG)//' '//TRIM(FIELDNAME), &
                             'Set_BryPointers (start_chem_mod.F90)' )
@@ -773,6 +774,7 @@ CONTAINS
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
 
     IMPLICIT NONE
@@ -833,7 +835,8 @@ CONTAINS
 
        ! Production rates [v/v/s]
        FIELDNAME = 'GMI_PROD_'//TRIM(ThisName)
-       CALL HCO_GetPtr( am_I_Root, FIELDNAME, PLVEC(N)%PROD, RC, FOUND=FND )
+       CALL HCO_GetPtr( am_I_Root,     HcoState, FIELDNAME, &
+                        PLVEC(N)%PROD, RC,       FOUND=FND )
        IF ( RC /= HCO_SUCCESS .OR. ( PLMUSTFIND .AND. .NOT. FND) ) THEN
           CALL ERROR_STOP ( TRIM(ERR)//' '//TRIM(FIELDNAME), &
                             'Set_PLVEC (start_chem_mod.F90)' )
@@ -849,7 +852,8 @@ CONTAINS
 
        ! Loss frequency [s-1]
        FIELDNAME = 'GMI_LOSS_'//TRIM(ThisName)
-       CALL HCO_GetPtr( am_I_Root, FIELDNAME, PLVEC(N)%LOSS, RC, FOUND=FND )
+       CALL HCO_GetPtr( am_I_Root,     HcoState, FIELDNAME, &
+                        PLVEC(N)%LOSS, RC,       FOUND=FND )
        IF ( RC /= HCO_SUCCESS .OR. ( PLMUSTFIND .AND. .NOT. FND) ) THEN
           CALL ERROR_STOP ( TRIM(ERR)//' '//TRIM(FIELDNAME), &
                             'Set_PLVEC (start_chem_mod.F90)' )
@@ -866,7 +870,8 @@ CONTAINS
     ENDDO !N
 
     ! Get pointer to STRAT_OH
-    CALL HCO_GetPtr( am_I_Root, 'STRAT_OH', STRAT_OH, RC, FOUND=FND )
+    CALL HCO_GetPtr( am_I_Root, HcoState, 'STRAT_OH', &
+                     STRAT_OH,  RC,        FOUND=FND )
     IF ( RC /= HCO_SUCCESS .OR. .NOT. FND ) THEN
        MSG = 'Cannot find monthly archived strat. OH field '    // &
              '`STRAT_OH`. Please add a corresponding entry to ' // &

@@ -56,6 +56,7 @@
       USE COMODE_LOOP_MOD,    ONLY : NAMEGAS, NTSPEC, NCSURBAN
 
       USE PRECISION_MOD
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE HCO_ERROR_MOD
       USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
@@ -593,7 +594,7 @@
                Ptr3D => STT_VV(:,:,:,N)
 
                ! Update the deposition velocity diagostics
-               CALL Diagn_Update( am_I_Root,
+               CALL Diagn_Update( am_I_Root, HcoState,
      &                            cName   = TRIM( DiagnName ),
      &                            Array3D = Ptr3D,
      &                            COL     = Input_Opt%DIAG_COLLECTION,
@@ -624,7 +625,7 @@
                Ptr3D => State_Chm%Species(:,:,:,N)
    
                ! Update the deposition velocity diagostics
-               CALL Diagn_Update( am_I_Root,
+               CALL Diagn_Update( am_I_Root, HcoState,
      &                            cName   = TRIM( DiagnName ),
      &                            Array3D = Ptr3D,
      &                            COL     = Input_Opt%DIAG_COLLECTION,
@@ -711,7 +712,7 @@
  
             ! Update diagnostics
             IF ( ASSOCIATED(Ptr3D) ) THEN 
-               CALL Diagn_Update( am_I_Root,
+               CALL Diagn_Update( am_I_Root, HcoState,
      &                            cName   = TRIM( DiagnName ),
      &                            Array3D = Ptr3D,
      &                            COL     = Input_Opt%DIAG_COLLECTION,
@@ -732,7 +733,7 @@
          ! Now also add TROPP_PRESSURE and TROPP_LEVEL
          DiagnName = 'TROPP_PRESSURE'
          Ptr2D => State_Met%TROPP
-         CALL Diagn_Update( am_I_Root, cName=DiagnName, 
+         CALL Diagn_Update( am_I_Root, HcoState, cName=DiagnName, 
      &      Array2D=Ptr2D, COL=Input_Opt%DIAG_COLLECTION, RC=HCRC )
          Ptr2D => NULL()
          
@@ -747,7 +748,7 @@
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO   
-         CALL Diagn_Update( am_I_Root, cName=DiagnName, 
+         CALL Diagn_Update( am_I_Root, HcoState, cName=DiagnName, 
      &      Array2D=Arr2D, COL=Input_Opt%DIAG_COLLECTION, RC=HCRC )
  
       ENDIF ! ND68

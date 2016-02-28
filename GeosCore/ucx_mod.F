@@ -5283,10 +5283,9 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD
       USE HCO_RESTART_MOD,    ONLY : HCO_RestartGet
-      USE HCO_STATE_MOD,      ONLY : HCO_State
       USE HCO_CLOCK_MOD,      ONLY : HcoClock_First 
       USE HCO_CLOCK_MOD,      ONLY : HcoClock_Rewind
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5315,9 +5314,6 @@
 
       ! Strings
       CHARACTER(LEN=255) :: MSG
-     
-      ! Pointer to HEMCO state obj.
-      TYPE(HCO_State), POINTER  :: HcoState => NULL()
 
       !=================================================================
       ! READ_PSC_FILE begins here!
@@ -5327,13 +5323,10 @@
       RC = GIGC_SUCCESS 
  
       ! Only read on first call or after rewind
-      IF ( .NOT. HcoClock_First ( .FALSE. ) .AND. 
-     &     .NOT. HcoClock_Rewind( .FALSE. )      ) THEN
+      IF ( .NOT. HcoClock_First ( HcoState%Clock, .FALSE. ) .AND. 
+     &     .NOT. HcoClock_Rewind( HcoState%Clock, .FALSE. )      ) THEN
          RETURN
       ENDIF
- 
-      ! Get HEMCO state obj.
-      CALL GetHcoState( HcoState )
 
       ! Get restart variable
       CALL HCO_RestartGet( am_I_Root, HcoState, 'STATE_PSC',  
@@ -5342,9 +5335,6 @@
          MSG = 'Cannot get PSC restart variable'
          CALL ERROR_STOP ( MSG, 'READ_PSC_FILE (ucx_mod.F)' )
       ENDIF
-
-      ! Cleanup
-      HcoState => NULL()
 
       ! On first call, prompt some messages
 
@@ -6965,8 +6955,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_RESTART_MOD,    ONLY : HCO_RestartDefine
-      USE HCO_STATE_MOD,      ONLY : HCO_STATE
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_ERROR_MOD
 !
 ! !INPUT PARAMETERS:
@@ -6984,7 +6973,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      TYPE(HCO_State), POINTER :: HcoState => NULL()
       CHARACTER(LEN=255)       :: MSG
       CHARACTER(LEN=255)       :: LOC = 'DIAGINIT_UCX (ucx_mod.F)' 
 
@@ -6993,10 +6981,8 @@
       !=================================================================
 
       ! Define restart quantity    
-      CALL GetHcoState( HcoState ) 
       CALL HCO_RestartDefine ( am_I_Root, HcoState, 
      &                       'STATE_PSC', STATE_PSC, 'count', RC )
-      HcoState => NULL() 
 
       IF ( RC /= HCO_SUCCESS ) THEN
          MSG = 'Cannot define STATE_PSC restart'
@@ -7033,8 +7019,7 @@
       USE GIGC_ErrCode_Mod
       USE HCO_ERROR_MOD
       USE HCO_RESTART_MOD,  ONLY : HCO_RestartWrite
-      USE HCO_STATE_MOD,    ONLY : HCO_STATE
-      USE HCOI_GC_MAIN_MOD, ONLY : GetHcoState
+      USE HCO_INTERFACE_MOD,ONLY : HcoState
 ! 
 ! !INPUT ARGUMENTS:
 !
@@ -7049,18 +7034,14 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      TYPE(HCO_STATE), POINTER  :: HcoState => NULL()
 
       !=================================================================
       ! WRITE_STATE_PSC begins here!
       !=================================================================
 
       ! Eventually write PSC_STATE to restart. 
-      CALL GetHcoState ( HcoState )
-
       CALL HCO_RestartWrite( am_I_Root,   HcoState, 
      &                       'STATE_PSC', STATE_PSC, RC )
-      HcoState => NULL()
       IF ( RC /= HCO_SUCCESS ) THEN
          RC = GIGC_FAILURE
          RETURN

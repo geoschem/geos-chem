@@ -81,7 +81,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT)           :: HcoState
+    TYPE(HCO_State), POINTER                 :: HcoState
     INTEGER,         INTENT(INOUT)           :: RC 
 !
 ! !INPUT PARAMETERS:
@@ -168,7 +168,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT)           :: HcoState
+    TYPE(HCO_State), POINTER                 :: HcoState
     REAL(dp),        INTENT(INOUT)           :: Arr3D( HcoState%NX, &
                                                        HcoState%NY, &
                                                        HcoState%NZ )
@@ -207,12 +207,14 @@ CONTAINS
           ! Negative flag is 1: set to zero and prompt warning 
           IF ( HcoState%Options%NegFlag == 1 ) THEN
              WHERE ( Arr3D < 0.0_hp ) Arr3D = 0.0_hp
-             CALL HCO_WARNING ( 'Negative values found - set to zero!', &
+             CALL HCO_WARNING ( HcoState%Config%Err, &
+                'Negative values found - set to zero!', &
                 RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
 
           ! Negative flag is 0: return w/ error
           ELSE
-             CALL HCO_ERROR ( 'Negative values found!', &
+             CALL HCO_ERROR ( HcoState%Config%Err, &
+                'Negative values found!', &
                 RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
              RETURN
           ENDIF
@@ -256,7 +258,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT)           :: HcoState
+    TYPE(HCO_State), POINTER                 :: HcoState
     REAL(sp),        INTENT(INOUT)           :: Arr3D( HcoState%NX, &
                                                        HcoState%NY, &
                                                        HcoState%NZ )
@@ -295,12 +297,14 @@ CONTAINS
           ! Negative flag is 1: set to zero and prompt warning 
           IF ( HcoState%Options%NegFlag == 1 ) THEN
              WHERE ( Arr3D < 0.0_sp ) Arr3D = 0.0_sp
-             CALL HCO_WARNING ( 'Negative values found - set to zero!', &
+             CALL HCO_WARNING ( HcoState%Config%Err, &
+               'Negative values found - set to zero!', &
                 RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
 
           ! Negative flag is 0: return w/ error
           ELSE
-             CALL HCO_ERROR ( 'Negative values found!', &
+             CALL HCO_ERROR ( HcoState%Config%Err, &
+               'Negative values found!', &
                 RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
              RETURN
           ENDIF
@@ -344,7 +348,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT)           :: HcoState
+    TYPE(HCO_State), POINTER                 :: HcoState
     REAL(dp),        INTENT(INOUT)           :: Arr2D(HcoState%NX,HcoState%NY)
     INTEGER,         INTENT(INOUT)           :: RC 
 !                                  
@@ -381,12 +385,14 @@ CONTAINS
           ! Negative flag is 1: set to zero and prompt warning 
           IF ( HcoState%Options%NegFlag == 1 ) THEN
              WHERE ( Arr2D < 0.0_hp ) Arr2D = 0.0_hp
-             CALL HCO_WARNING ( 'Negative values found - set to zero!', &
+             CALL HCO_WARNING ( HcoState%Config%Err, & 
+               'Negative values found - set to zero!', &
                 RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
 
           ! Negative flag is 0: return w/ error
           ELSE
-             CALL HCO_ERROR ( 'Negative values found!', &
+             CALL HCO_ERROR ( HcoState%Config%Err, &
+               'Negative values found!', &
                 RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
              RETURN
           ENDIF
@@ -431,7 +437,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
 !
-    TYPE(HCO_State), INTENT(INOUT)           :: HcoState
+    TYPE(HCO_State), POINTER                 :: HcoState
     REAL(sp),        INTENT(INOUT)           :: Arr2D(HcoState%NX,HcoState%NY)
     INTEGER,         INTENT(INOUT)           :: RC 
 !
@@ -468,12 +474,14 @@ CONTAINS
           ! Negative flag is 1: set to zero and prompt warning 
           IF ( HcoState%Options%NegFlag == 1 ) THEN
              WHERE ( Arr2D < 0.0_sp ) Arr2D = 0.0_sp
-             CALL HCO_WARNING ( 'Negative values found - set to zero!', &
+             CALL HCO_WARNING ( HcoState%Config%Err, &
+               'Negative values found - set to zero!', &
                 RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
 
           ! Negative flag is 0: return w/ error
           ELSE
-             CALL HCO_ERROR ( 'Negative values found!', &
+             CALL HCO_ERROR ( HcoState%Config%Err, &
+               'Negative values found!', &
                 RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
              RETURN
           ENDIF
@@ -513,7 +521,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    TYPE(HCO_State), POINTER       :: HcoState
     REAL(dp),        INTENT(INOUT) :: iVal 
     INTEGER,         INTENT(INOUT) :: RC 
 !
@@ -565,12 +573,14 @@ CONTAINS
           ! Negative flag is 1: set to zero and prompt warning 
           IF ( HcoState%Options%NegFlag == 1 ) THEN
              iVal = 0.0_hp
-             CALL HCO_WARNING ( 'Negative values found - set to zero!', &
+             CALL HCO_WARNING ( HcoState%Config%Err, &
+               'Negative values found - set to zero!', &
                 RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
 
           ! Negative flag is 0: return w/ error
           ELSE
-             CALL HCO_ERROR ( 'Negative values found!', &
+             CALL HCO_ERROR ( HcoState%Config%Err, &
+               'Negative values found!', &
                 RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
              RETURN
           ENDIF
@@ -604,7 +614,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    TYPE(HCO_State), POINTER       :: HcoState
     REAL(sp),        INTENT(INOUT) :: iVal 
     INTEGER,         INTENT(INOUT) :: RC 
 !
@@ -656,12 +666,14 @@ CONTAINS
           ! Negative flag is 1: set to zero and prompt warning 
           IF ( HcoState%Options%NegFlag == 1 ) THEN
              iVal = 0.0_sp
-             CALL HCO_WARNING ( 'Negative values found - set to zero!', &
+             CALL HCO_WARNING ( HcoState%Config%Err, &
+               'Negative values found - set to zero!', &
                 RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
 
           ! Negative flag is 0: return w/ error
           ELSE
-             CALL HCO_ERROR ( 'Negative values found!', &
+             CALL HCO_ERROR ( HcoState%Config%Err, &
+               'Negative values found!', &
                 RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
              RETURN
           ENDIF
@@ -694,7 +706,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    TYPE(HCO_State), POINTER       :: HcoState
     INTEGER,         INTENT(INOUT) :: RC 
 !
 ! !INPUT PARAMETERS:
@@ -744,7 +756,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    TYPE(HCO_State), POINTER       :: HcoState
     INTEGER,         INTENT(INOUT) :: RC 
 !
 ! !INPUT PARAMETERS:
@@ -794,7 +806,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    TYPE(HCO_State), POINTER       :: HcoState
     INTEGER,         INTENT(INOUT) :: RC 
 !
 ! !INPUT PARAMETERS:
@@ -818,12 +830,12 @@ CONTAINS
     ! Check size dimensions
     IF ( I > HcoState%NX ) THEN
        MSG = 'Cannot add DP - i too high!'
-       CALL HCO_ERROR ( MSG, RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC )
        RETURN
     ENDIF
     IF ( J > HcoState%NY ) THEN
        MSG = 'Cannot add DP - j too high!'
-       CALL HCO_ERROR ( MSG, RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC )
        RETURN
     ENDIF
 
@@ -859,7 +871,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    TYPE(HCO_State), POINTER       :: HcoState
     INTEGER,         INTENT(INOUT) :: RC 
 !
 ! !INPUT PARAMETERS:
@@ -883,12 +895,12 @@ CONTAINS
     ! Check size dimensions
     IF ( I > HcoState%NX ) THEN
        MSG = 'Cannot add iVal - i too high!'
-       CALL HCO_ERROR ( MSG, RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC )
        RETURN
     ENDIF
     IF ( J > HcoState%NY ) THEN
        MSG = 'Cannot add iVal - j too high!'
-       CALL HCO_ERROR ( MSG, RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC )
        RETURN
     ENDIF
 
@@ -940,7 +952,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT)           :: HcoState
+    TYPE(HCO_State), POINTER                 :: HcoState
     REAL(dp),        INTENT(INOUT), OPTIONAL :: Arr3D(   HcoState%NX, &
                                                          HcoState%NY, &
                                                          HcoState%NZ )
@@ -1005,37 +1017,37 @@ CONTAINS
     ENDIF
 
     ! Check if we need to call diagnostics
-    IF ( Diagn_AutoFillLevelDefined(AFL) ) THEN 
+    IF ( Diagn_AutoFillLevelDefined(HcoState%Diagn,AFL) ) THEN 
    
        ! 3D HP array
        IF ( PRESENT(Arr3D) ) THEN
-          CALL Diagn_Update( am_I_Root, ExtNr=XT, Cat=CT, Hier=HR, &
-                             HcoID=HcoID, AutoFill=1, Array3D=Arr3D, &
-                             MinDiagnLev=MinDiagnLev, RC=RC )
+          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=XT, Cat=CT, &
+                             Hier=HR, HcoID=HcoID, AutoFill=1,      &
+                             Array3D=Arr3D, MinDiagnLev=MinDiagnLev, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN          
        ENDIF
 
        ! 3D SP array
        IF ( PRESENT(Arr3Dsp) ) THEN
-          CALL Diagn_Update( am_I_Root, ExtNr=XT, Cat=CT, Hier=HR, &
-                             HcoID=HcoID, AutoFill=1, Array3D=Arr3Dsp, &
-                             MinDiagnLev=MinDiagnLev, RC=RC )
+          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=XT, Cat=CT, &
+                             Hier=HR, HcoID=HcoID, AutoFill=1,      &
+                             Array3D=Arr3Dsp, MinDiagnLev=MinDiagnLev, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN          
        ENDIF
 
        ! 2D HP array
        IF ( PRESENT(Arr2D) ) THEN
-          CALL Diagn_Update( am_I_Root, ExtNr=XT, Cat=CT, Hier=HR, &
-                             HcoID=HcoID, AutoFill=1, Array2D=Arr2D, & 
-                             MinDiagnLev=MinDiagnLev, RC=RC )
+          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=XT, Cat=CT, &
+                             Hier=HR, HcoID=HcoID, AutoFill=1,      &
+                             Array2D=Arr2D, MinDiagnLev=MinDiagnLev, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN          
        ENDIF
 
        ! 2D SP array
        IF ( PRESENT(Arr2Dsp) ) THEN
-          CALL Diagn_Update( am_I_Root, ExtNr=XT, Cat=CT, Hier=HR, &
-                             HcoID=HcoID, AutoFill=1, Array2D=Arr2Dsp, & 
-                             MinDiagnLev=MinDiagnLev, RC=RC )
+          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=XT, Cat=CT, &
+                             Hier=HR, HcoID=HcoID, AutoFill=1,      &
+                             Array2D=Arr2Dsp, MinDiagnLev=MinDiagnLev, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN          
        ENDIF
 

@@ -24,9 +24,8 @@
 ! \item Verbose: Number indicating the verbose level to be used. 
 !     0 = no verbose, 3 = very verbose. The verbose level can be set in
 !     the HEMCO configuration file. The default value is 0.
-! \item Show warnings: if TRUE, prompt all warnings to the HEMCO logfile.
-!     Otherwise, no warnings will be prompted but the total number of
-!     warnings occurred will still be shown at the end of the run.
+! \item Warnings: Number indicating the warning level to be shown.
+!     0 = no warnings, 3 = all warnings. 
 ! \end{enumerate}
 ! 
 ! The error settings are set via subroutine HCO\_ERROR\_SET, called when
@@ -42,6 +41,12 @@
 ! root CPU. 
 !\\
 !\\
+! As of HEMCO v2.0, all HEMCO error variables are organized in derived 
+! type object HcoErr. HcoErr is a component of the HEMCO configuration
+! object (type ConfigObj, see hco\_types\_mod.F90). It must be passed
+! explicitly to all error routines. This design allows the invocation 
+! of multiple independent HEMCO instances at the same time (which may 
+! have different HEMCO error settings). 
 ! !INTERFACE: 
 !
 MODULE HCO_Error_Mod
@@ -91,45 +96,39 @@ MODULE HCO_Error_Mod
   ! are read/stored in single precision.
   REAL(sp), PARAMETER, PUBLIC :: HCO_MISSVAL = -1.e-31_sp
 
-  ! Cycle flags. Used to determine the temporal behavior of data
-  ! fields. For example, data set to 'cycle' will be recycled if
-  ! the simulation date is outside of the datetime range of the
-  ! source data. See data reading routine (hcoio_dataread_mod.F90)
-  ! for more details. 
-  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_CYCLE    = 1
-  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_RANGE    = 2
-  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_EXACT    = 3
-  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_INTER    = 4
-  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_AVERG    = 5
-  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_RANGEAVG = 6
-
-  ! Data container update flags. At the moment, those only indicate
-  ! if a container gets updated every time step or based upon the 
-  ! details specifications ('srcTime') in the HEMCO configuration file.
-  INTEGER, PARAMETER, PUBLIC  :: HCO_UFLAG_FROMFILE = 1
-  INTEGER, PARAMETER, PUBLIC  :: HCO_UFLAG_ALWAYS   = 2
-
-  ! Data container types. These are used to distinguish between
-  ! base emissions, scale factors and masks.
-  INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_BASE = 1
-  INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_SCAL = 2
-  INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_MASK = 3
-
   ! HEMCO version number.
-  CHARACTER(LEN=12), PARAMETER, PUBLIC :: HCO_VERSION = 'v1.1.018'
+  CHARACTER(LEN=12), PARAMETER, PUBLIC :: HCO_VERSION = 'v2.0.001'
+
+  INTERFACE HCO_Error
+     MODULE PROCEDURE HCO_ErrorNoErr
+     MODULE PROCEDURE HCO_ErrorErr
+  END INTERFACE HCO_Error
+
+  INTERFACE HCO_Warning
+     MODULE PROCEDURE HCO_WarningNoErr
+     MODULE PROCEDURE HCO_WarningErr
+  END INTERFACE HCO_Warning
+
+  INTERFACE HCO_MSG
+     MODULE PROCEDURE HCO_MsgNoErr
+     MODULE PROCEDURE HCO_MsgErr
+  END INTERFACE HCO_MSG
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller   - Initialization
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
 !  03 Mar 2015 - C. Keller   - Added HCO_CFLAG_* and HCO_DCTTYPE_*
+!  15 Feb 2016 - C. Keller   - Update to v2.0: error variables now 
+!                              organized in derived type HcoErr.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE VARIABLES:
 !
-  TYPE :: HcoErr
+  TYPE, PUBLIC :: HcoErr
+     LOGICAL                     :: FirstOpen = .TRUE.
      LOGICAL                     :: IsRoot    =  .FALSE.
      LOGICAL                     :: LogIsOpen =  .FALSE.
      INTEGER                     :: Warnings  =  0
@@ -145,10 +144,6 @@ MODULE HCO_Error_Mod
   ! This only applies to routines with activated error tracking,
   ! i.e. which use HCO_ENTER/HCO_LEAVE statements.
   INTEGER, PARAMETER       :: MAXNEST =  10
-
-  ! Err is the (internal) error type holding information on the
-  ! logfile and which part of the code is executed. 
-  TYPE(HcoErr), POINTER    :: Err     => NULL()
 
 CONTAINS
 !EOC
@@ -166,7 +161,71 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Error( ErrMsg, RC, THISLOC )
+  SUBROUTINE HCO_ErrorErr( Err, ErrMsg, RC, THISLOC )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(HcoErr),     POINTER                  :: Err
+    CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg 
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: THISLOC 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)            :: RC 
+!
+! !REVISION HISTORY:
+!  23 Sep 2013 - C. Keller - Initialization
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    INTEGER :: I, J
+    CHARACTER(LEN=255) :: MSG
+
+    !======================================================================
+    ! HCO_ERROR begins here 
+    !======================================================================
+
+    ! Print error message
+    MSG =  'HEMCO ERROR: ' // TRIM(ErrMsg)
+    CALL HCO_MSG ( Err, MSG, SEP1='!' ) 
+
+    ! Print error location
+    IF ( PRESENT(THISLOC) ) THEN
+       MSG = 'ERROR LOCATION: ' // TRIM( THISLOC )
+       CALL HCO_MSG ( Err, MSG )
+
+    ! Traceback
+    ELSE
+       DO I = 0, Err%CurrLoc-1
+          J = Err%CurrLoc-I
+          MSG =  'ERROR LOCATION: ' // TRIM( Err%Loc(J) )
+          CALL HCO_MSG ( Err, MSG ) 
+       ENDDO
+    ENDIF
+
+    MSG = ''
+    CALL HCO_MSG ( Err, MSG, SEP2='!' ) 
+
+    ! Return w/ error
+    RC = HCO_FAIL 
+
+  END SUBROUTINE HCO_ErrorErr
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_Error
+!
+! !DESCRIPTION: Subroutine HCO\_Error promts an error message and sets RC to 
+! HCO\_FAIL. Note that this routine does not stop a run, but it will cause a 
+! stop at higher level (when RC gets evaluated). 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_ErrorNoErr( ErrMsg, RC, THISLOC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -191,29 +250,18 @@ CONTAINS
 
     ! Print error message
     MSG =  'HEMCO ERROR: ' // TRIM(ErrMsg)
-    CALL HCO_MSG ( MSG, SEP1='!' ) 
+    WRITE(*,*) TRIM(MSG) 
 
     ! Print error location
     IF ( PRESENT(THISLOC) ) THEN
        MSG = 'ERROR LOCATION: ' // TRIM( THISLOC )
-       CALL HCO_MSG ( MSG )
-
-    ! Traceback
-    ELSE
-       DO I = 0, Err%CurrLoc-1
-          J = Err%CurrLoc-I
-          MSG =  'ERROR LOCATION: ' // TRIM( Err%Loc(J) )
-          CALL HCO_MSG ( MSG ) 
-       ENDDO
+       WRITE(*,*) TRIM(MSG) 
     ENDIF
-
-    MSG = ''
-    CALL HCO_MSG ( MSG, SEP2='!' ) 
 
     ! Return w/ error
     RC = HCO_FAIL 
 
-  END SUBROUTINE HCO_Error
+  END SUBROUTINE HCO_ErrorNoErr
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -228,10 +276,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Warning( ErrMsg, RC, WARNLEV, THISLOC )
+  SUBROUTINE HCO_WarningErr( Err, ErrMsg, RC, WARNLEV, THISLOC )
 !
 ! !INPUT PARAMETERS"
 !
+    TYPE(HcoErr),     POINTER                  :: Err
     CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg 
     INTEGER         , INTENT(IN   ), OPTIONAL  :: WARNLEV 
     CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: THISLOC 
@@ -263,15 +312,15 @@ CONTAINS
 
        ! Print warning
        MSG = 'HEMCO WARNING: ' // TRIM( ErrMsg )
-       CALL HCO_MSG ( MSG ) 
+       CALL HCO_MSG ( Err, MSG ) 
 
        ! Print location
        IF ( PRESENT(THISLOC) ) THEN
           MSG = '--> LOCATION: ' // TRIM(THISLOC)
-          CALL HCO_MSG ( MSG ) 
+          CALL HCO_MSG ( Err, MSG ) 
        ELSEIF ( Err%CurrLoc > 0 ) THEN
           MSG = '--> LOCATION: ' // TRIM(Err%Loc(Err%CurrLoc))
-          CALL HCO_MSG ( MSG ) 
+          CALL HCO_MSG ( Err, MSG ) 
        ENDIF
 
        ! Increase # of warnings
@@ -281,7 +330,60 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_Warning
+  END SUBROUTINE HCO_WarningErr
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_Warning
+!
+! !DESCRIPTION: Subroutine HCO\_Warning promts a warning message without 
+! forcing HEMCO to stop, i.e. return code is set to HCO\_SUCCESS. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_WarningNoErr( ErrMsg, RC, WARNLEV, THISLOC )
+!
+! !INPUT PARAMETERS"
+!
+    CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg 
+    INTEGER         , INTENT(IN   ), OPTIONAL  :: WARNLEV 
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: THISLOC 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)            :: RC 
+!
+! !REVISION HISTORY:
+!  23 Sep 2013 - C. Keller - Initialization
+!  26 Mar 2015 - C. Keller - Added warning levels
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    INTEGER            :: WLEV
+    CHARACTER(LEN=255) :: MSG
+
+    !======================================================================
+    ! HCO_WARNING begins here 
+    !======================================================================
+
+    ! Print warning
+    MSG = 'HEMCO WARNING: ' // TRIM( ErrMsg )
+    WRITE(*,*) TRIM(MSG) 
+
+    ! Print location
+    IF ( PRESENT(THISLOC) ) THEN
+       MSG = '--> LOCATION: ' // TRIM(THISLOC)
+       WRITE(*,*) TRIM(MSG) 
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_WarningNoErr
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -301,10 +403,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_MSG( Msg, Sep1, Sep2, Verb )
+  SUBROUTINE HCO_MSGErr( Err, Msg, Sep1, Sep2, Verb )
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(HcoErr),     POINTER                  :: Err
     CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: Msg
     CHARACTER(LEN=1), INTENT(IN   ), OPTIONAL  :: Sep1
     CHARACTER(LEN=1), INTENT(IN   ), OPTIONAL  :: Sep2
@@ -373,7 +476,56 @@ CONTAINS
        ENDIF
     ENDIF
 
-  END SUBROUTINE HCO_Msg
+  END SUBROUTINE HCO_MsgErr
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_MSG
+!
+! !DESCRIPTION: Subroutine HCO\_MSG passes message msg to the HEMCO
+! logfile (or to standard output if the logfile is not open).
+! Sep1 and Sep2 denote line delimiters before and after the message,
+! respectively.
+! The optional argument Verb denotes the minimum verbose level associated
+! with this message. The message will only be prompted if the verbose level
+! on this CPU (e.g. of this Err object) is at least as high as Verb.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_MSGnoErr( Msg, Sep1, Sep2, Verb )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: Msg
+    CHARACTER(LEN=1), INTENT(IN   ), OPTIONAL  :: Sep1
+    CHARACTER(LEN=1), INTENT(IN   ), OPTIONAL  :: Sep2
+    INTEGER,          INTENT(IN   ), OPTIONAL  :: Verb
+!
+! !REVISION HISTORY:
+!  23 Sep 2013 - C. Keller   - Initialization
+!  20 May 2015 - R. Yantosca - Minor formatting fix: use '(a)' instead of *
+!                              to avoid line wrapping around at 80 columns.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !======================================================================
+    ! HCO_MSG begins here 
+    !======================================================================
+
+    IF ( PRESENT(SEP1) ) THEN
+       WRITE(*,'(a)') REPEAT( SEP1, 79) 
+    ENDIF
+    IF ( PRESENT(MSG) ) PRINT *, TRIM(MSG)
+    IF ( PRESENT(SEP2) ) THEN
+       WRITE(*,'(a)') REPEAT( SEP2, 79) 
+    ENDIF
+
+  END SUBROUTINE HCO_MsgNoErr
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -393,10 +545,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Enter( thisLoc, RC )
+  SUBROUTINE HCO_Enter( Err, thisLoc, RC )
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(HcoErr),     POINTER       :: Err
     CHARACTER(LEN=*), INTENT(IN   ) :: thisLoc 
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -421,14 +574,14 @@ CONTAINS
     Err%CurrLoc = Err%CurrLoc + 1
     IF ( Err%CurrLoc > MaxNest ) THEN 
        Msg = 'MaxNest too low, cannot enter ' // TRIM(thisLoc)
-       CALL HCO_Error( Msg, RC )
+       CALL HCO_Error( Err, Msg, RC )
        RETURN 
     ENDIF
 
     ! Error trap
     IF ( Err%CurrLoc <= 0 ) THEN
        Msg = 'CurrLoc is zero, cannot enter: ' // TRIM(thisLoc)
-       CALL HCO_Error( Msg, RC )
+       CALL HCO_Error( Err, Msg, RC )
        RETURN 
     ENDIF
 
@@ -438,7 +591,7 @@ CONTAINS
     ! Track location if enabled 
     IF ( Err%Verbose >= 3 ) THEN
        WRITE(MSG,100) TRIM(thisLoc), Err%CurrLoc
-       CALL HCO_Msg( MSG )
+       CALL HCO_Msg( Err, MSG )
     ENDIF
 
     ! Set RC to success
@@ -466,11 +619,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Leave( RC )
+  SUBROUTINE HCO_Leave( Err, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER, INTENT(INOUT) :: RC 
+!                      
+    TYPE(HcoErr),     POINTER       :: Err
+    INTEGER,          INTENT(INOUT) :: RC 
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller - Initialization
@@ -488,7 +642,7 @@ CONTAINS
     ! Track location if enabled 
     IF ( Err%Verbose >= 3 ) THEN
        WRITE(MSG,110) TRIM(Err%Loc(Err%CurrLoc)), Err%CurrLoc
-       CALL HCO_MSG( MSG )
+       CALL HCO_MSG( Err, MSG )
     ENDIF
 
     ! Remove from list 
@@ -500,7 +654,7 @@ CONTAINS
     ! Error trap
     IF ( Err%CurrLoc < 0 ) THEN
        Msg = 'CurrLoc is below zero, this should never happen!!' 
-       CALL HCO_ERROR ( Msg, RC )
+       CALL HCO_ERROR ( Err, Msg, RC )
        RETURN 
     ENDIF
 
@@ -527,12 +681,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ERROR_SET( am_I_Root, LogFile,      & 
+  SUBROUTINE HCO_ERROR_SET( am_I_Root, Err, LogFile,   & 
                             Verbose,   WarningLevel, RC )
 !
 !  !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN)     :: am_I_Root      ! Root CPU? 
+    TYPE(HcoErr),     POINTER        :: Err            ! Error object
     CHARACTER(LEN=*), INTENT(IN)     :: LogFile        ! logfile path+name
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -577,6 +732,7 @@ CONTAINS
     Err%Warnings     = WarningLevel
 
     ! Init misc. values
+    Err%FirstOpen = .TRUE.
     Err%LogIsOpen = .FALSE.
     Err%nWarnings = 0
     Err%CurrLoc   = 0
@@ -607,7 +763,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Error_Final 
+  SUBROUTINE HCO_Error_Final ( Err ) 
+!
+!  !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HcoErr),     POINTER        :: Err            ! Error object
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller - Initialization
@@ -623,7 +783,7 @@ CONTAINS
     !======================================================================
 
     ! Eventually close logfile
-    CALL HCO_Logfile_Close( ShowSummary=.TRUE. ) 
+    CALL HCO_Logfile_Close( Err, ShowSummary=.TRUE. ) 
 
     IF ( ASSOCIATED(Err) ) THEN
        IF ( ASSOCIATED(Err%Loc) ) DEALLOCATE(Err%Loc)
@@ -645,7 +805,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCO_VERBOSE_INQ ( ) RESULT ( VerbNr )
+  FUNCTION HCO_VERBOSE_INQ ( ERR ) RESULT ( VerbNr )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!  
+    TYPE(HcoErr),     POINTER        :: Err            ! Error object
 !
 ! !OUTPUT PARAMETERS:
 !  
@@ -682,15 +846,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCO_IsVerb ( VerbNr ) RESULT ( IsVerb )
+  FUNCTION HCO_IsVerb ( Err, VerbNr ) RESULT ( IsVerb )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN) :: VerbNr 
+    TYPE(HcoErr),  POINTER    :: Err            ! Error object
+    INTEGER,       INTENT(IN) :: VerbNr 
 !
 ! !OUTPUT PARAMETERS:
 !  
-    LOGICAL             :: IsVerb
+    LOGICAL                   :: IsVerb
 !
 ! !REVISION HISTORY:
 !  15 Mar 2015 - C. Keller - Initialization
@@ -723,7 +888,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_LogFile_Open( RC )
+  SUBROUTINE HCO_LogFile_Open( Err, RC )
 !
 ! !USES:
 ! 
@@ -731,6 +896,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(HcoErr),  POINTER    :: Err            ! Error object
     INTEGER,   INTENT(INOUT)  :: RC 
 !
 ! !REVISION HISTORY:
@@ -743,7 +909,6 @@ CONTAINS
     CHARACTER(LEN=255) :: MSG
     INTEGER            :: IOS, LUN, FREELUN
     LOGICAL            :: isopen, exists
-    LOGICAL, SAVE      :: FIRST = .TRUE.
 
     !======================================================================
     ! HCO_LOGFILE_OPEN begins here 
@@ -786,7 +951,7 @@ CONTAINS
        ELSEIF (exists .AND. .NOT. isOpen ) THEN
 
           ! Replace existing file on first call
-          IF ( FIRST ) THEN
+          IF ( Err%FirstOpen ) THEN
              OPEN ( UNIT=FREELUN,   FILE=TRIM(Err%LogFile), STATUS='REPLACE', &
                     ACTION='WRITE', FORM='FORMATTED',       IOSTAT=IOS         )
              IF ( IOS /= 0 ) THEN
@@ -826,7 +991,7 @@ CONTAINS
     ENDIF
 
     ! Write header on first call
-    IF ( FIRST ) THEN
+    IF ( Err%FirstOpen ) THEN
        IF ( Err%LUN < 0 ) THEN
           WRITE(*,'(a)') REPEAT( '-', 79) 
           WRITE(*,'(A12,A12)') 'Using HEMCO ', HCO_VERSION
@@ -838,7 +1003,7 @@ CONTAINS
           WRITE(LUN,'(a)') REPEAT( '-', 79) 
        ENDIF
 
-       FIRST = .FALSE.
+       Err%FirstOpen = .FALSE.
     ENDIF
 
     ! Return w/ success
@@ -860,10 +1025,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_LogFile_Close( ShowSummary ) 
+  SUBROUTINE HCO_LogFile_Close( Err, ShowSummary ) 
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(HcoErr),  POINTER        :: Err            ! Error object
     LOGICAL, INTENT(IN), OPTIONAL :: ShowSummary
 !
 ! !REVISION HISTORY:
@@ -894,13 +1060,13 @@ CONTAINS
     ! Eventually print summary
     IF ( Summary ) THEN
        MSG = ' '
-       CALL HCO_MSG ( MSG )
+       CALL HCO_MSG ( Err, MSG )
        MSG = 'HEMCO ' // TRIM(HCO_VERSION) // ' FINISHED.'
-       CALL HCO_MSG ( MSG, SEP1='-' )
+       CALL HCO_MSG ( Err, MSG, SEP1='-' )
  
        WRITE(MSG,'(A16,I1,A12,I6)') &
           'Warnings (level ', Err%Warnings, ' or lower): ', Err%nWarnings
-       CALL HCO_MSG ( MSG, SEP2='-' )
+       CALL HCO_MSG ( Err, MSG, SEP2='-' )
     ENDIF
 
     ! Close logfile only if lun is defined 

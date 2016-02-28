@@ -254,6 +254,7 @@
 
 #if   defined ( DEVEL )
       USE HCO_ERROR_MOD
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
@@ -440,7 +441,7 @@
 
                ! Update diagnostics
                cID = 39000 + N
-               CALL Diagn_Update ( am_I_Root,
+               CALL Diagn_Update ( am_I_Root, HcoState,
      &                             cID     = cID,
      &                             Array2D = TMP2D,
      &                             COL     = Input_Opt%DIAG_COLLECTION,

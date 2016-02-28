@@ -224,7 +224,7 @@ CONTAINS
     IF ( .NOT. ExtState%ParaNOx ) RETURN
 
     ! Enter
-    CALL HCO_Enter( 'HCOX_ParaNOx_Run (hcox_paranox_mod.F90)', RC)
+    CALL HCO_ENTER(HcoState%Config%Err,'HCOX_ParaNOx_Run (hcox_paranox_mod.F90)', RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ----------------------------------------------------------------
@@ -272,7 +272,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Leave w/ success
-    CALL HCO_Leave( RC ) 
+    CALL HCO_Leave( HcoState%Config%Err, RC ) 
 
   END SUBROUTINE HCOX_ParaNOx_Run
 !EOC
@@ -294,11 +294,10 @@ CONTAINS
 !
 ! !USES:
 !
+    USE HCO_Types_Mod,    ONLY : DiagnCont
     USE HCO_FluxArr_mod,  ONLY : HCO_EmisAdd
     USE HCO_FluxArr_mod,  ONLY : HCO_DepvAdd
-    USE HCO_Clock_Mod,    ONLY : HcoClock_Get
     USE HCO_Clock_Mod,    ONLY : HcoClock_First
-    USE HCO_Clock_Mod,    ONLY : HcoClock_Rewind
     USE HCO_Restart_Mod,  ONLY : HCO_RestartGet
     USE HCO_Restart_Mod,  ONLY : HCO_RestartWrite
     USE HCO_Calc_Mod,     ONLY : HCO_CheckDepv
@@ -381,7 +380,7 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    CALL HCO_Enter( 'Evolve_Plume (hcox_paranox_mod.F90)', RC)
+    CALL HCO_ENTER(HcoState%Config%Err,'Evolve_Plume (hcox_paranox_mod.F90)', RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Leave here if none of the tracers defined
@@ -393,33 +392,38 @@ CONTAINS
     ! ------------------------------------------------------------------
     ! First call: check for diagnostics to write and fill restart values
     ! ------------------------------------------------------------------
-    FIRST = HcoClock_First( .TRUE. )
+    FIRST = HcoClock_First( HcoState%Clock, .TRUE. )
 
     IF ( FIRST ) THEN
        ! See if we have to write out manual diagnostics
        IF ( .NOT. DoDiagn ) THEN
           DiagnName = 'PARANOX_NOXFRAC_REMAINING'
-          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+          CALL DiagnCont_Find ( HcoState%Diagn, -1, -1, -1, -1, -1, &
+                                DiagnName, 0, DoDiagn, TmpCnt )
           TmpCnt => NULL()
        ENDIF
        IF ( .NOT. DoDiagn ) THEN
           DiagnName = 'PARANOX_O3_PRODUCTION'
-          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+          CALL DiagnCont_Find ( HcoState%Diagn, -1, -1, -1, -1, -1, &
+                                DiagnName, 0, DoDiagn, TmpCnt )
           TmpCnt => NULL()
        ENDIF
        IF ( .NOT. DoDiagn ) THEN
           DiagnName = 'PARANOX_NO_PRODUCTION'
-          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+          CALL DiagnCont_Find ( HcoState%Diagn, -1, -1, -1, -1, -1, & 
+                                DiagnName, 0, DoDiagn, TmpCnt )
           TmpCnt => NULL()
        ENDIF
        IF ( .NOT. DoDiagn ) THEN
           DiagnName = 'PARANOX_TOTAL_SHIPNOX'
-          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+          CALL DiagnCont_Find ( HcoState%Diagn, -1, -1, -1, -1, -1, &
+                                DiagnName, 0, DoDiagn, TmpCnt )
           TmpCnt => NULL()
        ENDIF    
        IF ( .NOT. DoDiagn ) THEN
           DiagnName = 'PARANOX_OPE'
-          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+          CALL DiagnCont_Find ( HcoState%Diagn, -1, -1, -1, -1, -1, & 
+                                DiagnName, 0, DoDiagn, TmpCnt )
           TmpCnt => NULL()
        ENDIF  
     ENDIF
@@ -673,7 +677,7 @@ CONTAINS
        CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXNO, IDTNO, &
                          RC,        ExtNr=ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXNO', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXNO', RC )
           RETURN 
        ENDIF
     ENDIF
@@ -707,42 +711,42 @@ CONTAINS
     IF ( DoDiagn ) THEN
        DiagnName =  'PARANOX_NOXFRAC_REMAINING'
        Arr2D     => DIAGN(:,:,1)
-       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
+       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
        Arr2D => NULL()       
        
        DiagnName =  'PARANOX_OPE'
        Arr2D     => DIAGN(:,:,2)
-       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
+       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
        Arr2D => NULL()       
 
        DiagnName =  'PARANOX_O3_PRODUCTION'
        Arr2D     => DIAGN(:,:,3)
-       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
+       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
        Arr2D => NULL()       
 
        DiagnName =  'PARANOX_TOTAL_SHIPNOX'
        Arr2D     => DIAGN(:,:,4)
-       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
+       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
        Arr2D => NULL()       
 
        DiagnName =  'PARANOX_NO_PRODUCTION'
        Arr2D     => DIAGN(:,:,5)
-       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
+       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
        Arr2D => NULL()       
     ENDIF
 
     ! Return w/ success
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE Evolve_Plume
 !EOC
@@ -812,11 +816,11 @@ CONTAINS
    !========================================================================
 
    ! Extension Nr.
-   ExtNr = GetExtNr( TRIM(ExtName) )
+   ExtNr = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
    IF ( ExtNr <= 0 ) RETURN
 
    ! Enter
-   CALL HCO_ENTER( 'HCOX_ParaNOx_Init (hcox_paranox_mod.F90)', RC )
+   CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_ParaNOx_Init (hcox_paranox_mod.F90)', RC )
    IF ( RC /= HCO_SUCCESS ) RETURN
 
    !------------------------------------------------------------------------
@@ -857,7 +861,7 @@ CONTAINS
    IF ( IDTO3 <= 0 ) THEN
       tmpID = HCO_GetHcoID('O3', HcoState )
       MSG = 'O3 not produced/removed in PARANOX'
-      CALL HCO_WARNING ( MSG, RC )
+      CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
    ELSE
       tmpID = IDTO3
    ENDIF
@@ -865,7 +869,7 @@ CONTAINS
       MW_O3 = HcoState%Spc(tmpID)%MW_g
    ELSE
       MSG = 'Use default O3 molecular weight of 48g/mol'
-      CALL HCO_WARNING ( MSG, RC )
+      CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
       MW_O3 = 48.0_dp
    ENDIF
    
@@ -873,7 +877,7 @@ CONTAINS
    IF ( IDTNO <= 0 ) THEN
       tmpID = HCO_GetHcoID('NO', HcoState )
       MSG = 'NO not produced in PARANOX'
-      CALL HCO_WARNING ( MSG, RC )
+      CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
    ELSE
       tmpID = IDTNO
    ENDIF
@@ -881,7 +885,7 @@ CONTAINS
       MW_NO = HcoState%Spc(tmpID)%MW_g
    ELSE
       MSG = 'Use default NO molecular weight of 30g/mol'
-      CALL HCO_WARNING ( MSG, RC )
+      CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
       MW_NO = 30.0_dp
    ENDIF
 
@@ -889,7 +893,7 @@ CONTAINS
    IF ( IDTNO2 <= 0 ) THEN
       tmpID = HCO_GetHcoID('NO2', HcoState )
       MSG = 'NO2 not produced in PARANOX'
-      CALL HCO_WARNING ( MSG, RC )
+      CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
    ELSE
       tmpID = IDTNO2
    ENDIF
@@ -897,7 +901,7 @@ CONTAINS
       MW_NO2 = HcoState%Spc(tmpID)%MW_g
    ELSE
       MSG = 'Use default NO2 molecular weight of 46g/mol'
-      CALL HCO_WARNING ( MSG, RC )
+      CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
       MW_NO2 = 46.0_dp
    ENDIF
    
@@ -905,7 +909,7 @@ CONTAINS
    IF ( IDTHNO3 <= 0 ) THEN
       tmpID = HCO_GetHcoID('HNO3', HcoState )
       MSG = 'HNO3 not produced/removed in PARANOX'
-      CALL HCO_WARNING ( MSG, RC )
+      CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
    ELSE
       tmpID = IDTHNO3
    ENDIF
@@ -913,24 +917,24 @@ CONTAINS
       MW_HNO3 = HcoState%Spc(tmpID)%MW_g
    ELSE
       MSG = 'Use default HNO3 molecular weight of 63g/mol'
-      CALL HCO_WARNING ( MSG, RC )
+      CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
       MW_HNO3 = 63.0_dp
    ENDIF
 
    ! Verbose mode
    IF ( am_I_Root ) THEN
       MSG = 'Use ParaNOx ship emissions (extension module)'
-      CALL HCO_MSG( MSG, SEP1='-' )
+      CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
       MSG = '    - Use the following species: (MW, emitted as HEMCO ID) ' 
-      CALL HCO_MSG( MSG )
+      CALL HCO_MSG(HcoState%Config%Err,MSG )
       WRITE(MSG,"(a,F5.2,I5)") '     NO  : ', MW_NO, IDTNO
-      CALL HCO_MSG(MSG)
+      CALL HCO_MSG(HcoState%Config%Err,MSG)
       WRITE(MSG,"(a,F5.2,I5)") '     NO2 : ', MW_NO2, IDTNO2
-      CALL HCO_MSG(MSG)
+      CALL HCO_MSG(HcoState%Config%Err,MSG)
       WRITE(MSG,"(a,F5.2,I5)") '     O3  : ', MW_O3, IDTO3
-      CALL HCO_MSG(MSG)
+      CALL HCO_MSG(HcoState%Config%Err,MSG)
       WRITE(MSG,"(a,F5.2,I5)") '     HNO3: ', MW_HNO3, IDTHNO3
-      CALL HCO_MSG(MSG)
+      CALL HCO_MSG(HcoState%Config%Err,MSG)
    ENDIF
 
    !--------------------------------
@@ -940,131 +944,131 @@ CONTAINS
    ! FNOX
    ALLOCATE( FRACNOX_LUT02(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'FRACNOX_LUT02', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'FRACNOX_LUT02', RC ); RETURN
    ENDIF
    FRACNOX_LUT02 = 0.0_sp      
 
    ALLOCATE( FRACNOX_LUT06(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'FRACNOX_LUT06', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'FRACNOX_LUT06', RC ); RETURN
    ENDIF
    FRACNOX_LUT06 = 0.0_sp      
 
    ALLOCATE( FRACNOX_LUT10(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'FRACNOX_LUT10', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'FRACNOX_LUT10', RC ); RETURN
    ENDIF
    FRACNOX_LUT10 = 0.0_sp      
 
    ALLOCATE( FRACNOX_LUT14(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'FRACNOX_LUT014', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'FRACNOX_LUT014', RC ); RETURN
    ENDIF
    FRACNOX_LUT14 = 0.0_sp      
 
    ALLOCATE( FRACNOX_LUT18(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'FRACNOX_LUT18', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'FRACNOX_LUT18', RC ); RETURN
    ENDIF
    FRACNOX_LUT18 = 0.0_sp      
 
    ! OPE
    ALLOCATE( OPE_LUT02(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'OPE_LUT02', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'OPE_LUT02', RC ); RETURN
    ENDIF
    OPE_LUT02 = 0.0_sp      
 
    ALLOCATE( OPE_LUT06(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'OPE_LUT06', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'OPE_LUT06', RC ); RETURN
    ENDIF
    OPE_LUT06 = 0.0_sp      
 
    ALLOCATE( OPE_LUT10(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'OPE_LUT10', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'OPE_LUT10', RC ); RETURN
    ENDIF
    OPE_LUT10 = 0.0_sp      
 
    ALLOCATE( OPE_LUT14(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'OPE_LUT014', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'OPE_LUT014', RC ); RETURN
    ENDIF
    OPE_LUT14 = 0.0_sp      
 
    ALLOCATE( OPE_LUT18(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'OPE_LUT18', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'OPE_LUT18', RC ); RETURN
    ENDIF
    OPE_LUT18 = 0.0_sp      
 
    ! MOE
    ALLOCATE( MOE_LUT02(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'MOE_LUT02', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'MOE_LUT02', RC ); RETURN
    ENDIF
    MOE_LUT02 = 0.0_sp      
 
    ALLOCATE( MOE_LUT06(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'MOE_LUT06', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'MOE_LUT06', RC ); RETURN
    ENDIF
    MOE_LUT06 = 0.0_sp      
 
    ALLOCATE( MOE_LUT10(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'MOE_LUT10', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'MOE_LUT10', RC ); RETURN
    ENDIF
    MOE_LUT10 = 0.0_sp      
 
    ALLOCATE( MOE_LUT14(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'MOE_LUT014', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'MOE_LUT014', RC ); RETURN
    ENDIF
    MOE_LUT14 = 0.0_sp      
 
    ALLOCATE( MOE_LUT18(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'MOE_LUT18', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'MOE_LUT18', RC ); RETURN
    ENDIF
    MOE_LUT18 = 0.0_sp      
 
    ! DNOx
    ALLOCATE( DNOx_LUT02(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'DNOx_LUT02', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'DNOx_LUT02', RC ); RETURN
    ENDIF
    DNOx_LUT02 = 0.0_sp      
 
    ALLOCATE( DNOx_LUT06(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'DNOx_LUT06', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'DNOx_LUT06', RC ); RETURN
    ENDIF
    DNOx_LUT06 = 0.0_sp      
 
    ALLOCATE( DNOx_LUT10(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'DNOx_LUT10', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'DNOx_LUT10', RC ); RETURN
    ENDIF
    DNOx_LUT10 = 0.0_sp      
 
    ALLOCATE( DNOx_LUT14(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'DNOx_LUT014', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'DNOx_LUT014', RC ); RETURN
    ENDIF
    DNOx_LUT14 = 0.0_sp      
 
    ALLOCATE( DNOx_LUT18(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'DNOx_LUT18', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'DNOx_LUT18', RC ); RETURN
    ENDIF
    DNOx_LUT18 = 0.0_sp      
 
    ALLOCATE(DEPO3  (HcoState%NX,HcoState%NY),        &
             DEPHNO3(HcoState%NX,HcoState%NY), STAT=AS )
    IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( 'Deposition arrays', RC ); RETURN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'Deposition arrays', RC ); RETURN
    ENDIF
    DEPO3   = 0.0_sp
    DEPHNO3 = 0.0_sp
@@ -1072,13 +1076,13 @@ CONTAINS
 !   ! O3 loss and HNO3 deposition
 !   ALLOCATE( SHIPO3LOSS( IIPAR, JJPAR ), STAT=AS )
 !   IF ( AS /= 0 ) THEN 
-!      CALL HCO_ERROR ( 'SHIPO3LOSS', RC ); RETURN
+!      CALL HCO_ERROR ( HcoState%Config%Err, 'SHIPO3LOSS', RC ); RETURN
 !   ENDIF
 !   SHIPO3LOSS = 0d0      
 
 !   ALLOCATE( SHIPHNO3DEP( IIPAR, JJPAR ), STAT=AS )
 !   IF ( AS /= 0 ) THEN 
-!        CALL HCO_ERROR ( 'SHIPHNO3DEP', RC ); RETURN
+!        CALL HCO_ERROR ( HcoState%Config%Err, 'SHIPHNO3DEP', RC ); RETURN
 !   ENDIF
 !   SHIPHNO3DEP = 0d0      
 
@@ -1087,28 +1091,30 @@ CONTAINS
    !------------------------------------------------------------------------
 
    ! LUT data directory 
-   CALL GetExtOpt ( ExtNr, 'LUT source dir', OptValChar=LutDir, RC=RC)
+   CALL GetExtOpt( HcoState%Config, ExtNr, 'LUT source dir', &
+                    OptValChar=LutDir, RC=RC)
    IF ( RC /= HCO_SUCCESS ) RETURN
 
    ! Call HEMCO parser to replace tokens such as $ROOT, $MET, or $RES.
    ! There shouldn't be any date token in there ($YYYY, etc.), so just
    ! provide some dummy variables here
-   CALL HCO_CharParse( LutDir, -999, -1, -1, -1, -1, RC )
+   CALL HCO_CharParse( HcoState%Config, LutDir, -999, -1, -1, -1, -1, RC )
    IF ( RC /= HCO_SUCCESS ) RETURN
 
    ! Data format: ncdf (default) or txt 
    IsNc = .TRUE.
-   CALL GetExtOpt ( ExtNr, 'LUT data format', OptValChar=Dummy, RC=RC)
+   CALL GetExtOpt( HcoState%Config, ExtNr, 'LUT data format', &
+                    OptValChar=Dummy, RC=RC)
    IF ( RC /= HCO_SUCCESS ) RETURN
    IF ( TRIM(Dummy) == 'txt' ) IsNc = .FALSE. 
 
    ! Read PARANOX look-up tables from disk. This can be netCDF or txt
    ! format, as determined above.
    IF ( IsNc ) THEN
-      CALL READ_PARANOX_LUT_NC( am_I_Root, RC )
+      CALL READ_PARANOX_LUT_NC( am_I_Root, HcoState, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
    ELSE
-      CALL READ_PARANOX_LUT_TXT( am_I_Root, RC )
+      CALL READ_PARANOX_LUT_TXT( am_I_Root, HcoState, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
    ENDIF
 
@@ -1117,7 +1123,7 @@ CONTAINS
    !------------------------------------------------------------------------ 
    ALLOCATE ( ShipNO(HcoState%NX,HcoState%NY,HcoState%NZ), STAT=AS )
    IF ( AS /= 0 ) THEN
-      CALL HCO_ERROR ( 'ShipNO', RC )
+      CALL HCO_ERROR ( HcoState%Config%Err, 'ShipNO', RC )
       RETURN
    ENDIF
    ShipNO = 0.0_hp
@@ -1125,7 +1131,7 @@ CONTAINS
    ! Allocate variables for SunCosMid from 5 hours ago. 
    ALLOCATE ( SC5(HcoState%NX,HcoState%NY), STAT=AS )
    IF ( AS /= 0 ) THEN
-      CALL HCO_ERROR ( 'SC5', RC )
+      CALL HCO_ERROR ( HcoState%Config%Err, 'SC5', RC )
       RETURN
    ENDIF
    SC5 = 0.0_hp
@@ -1135,7 +1141,7 @@ CONTAINS
       IF ( am_I_Root ) THEN
          MSG = '    Cannot properly store SUNCOS values ' // &
                ' because chemistry time step is more than 60 mins!'
-         CALL HCO_WARNING ( MSG, RC )
+         CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
       ENDIF
    ENDIF
 
@@ -1146,21 +1152,21 @@ CONTAINS
    ! Define PARANOX diagnostics for the O3 and HNO3 deposition fluxes (in
    ! kg/m2/s). 
    !------------------------------------------------------------------------
-   CALL Diagn_Create ( am_I_Root,                                 &
+   CALL Diagn_Create ( am_I_Root, HcoState,                       &
                        cName    = 'PARANOX_O3_DEPOSITION_FLUX',   &
                        Trgt2D   = DEPO3,                          &
                        SpaceDim = 2,                              &
                        OutUnit  = 'kg/m2/s',                      &
-                       COL      = HcoDiagnIDManual,               &
+                       COL = HcoState%Diagn%HcoDiagnIDManual,     &
                        RC       = RC                               )
    IF ( RC /= HCO_SUCCESS ) RETURN
 
-   CALL Diagn_Create ( am_I_Root,                                 &
+   CALL Diagn_Create ( am_I_Root, HcoState,                       &
                        cName    = 'PARANOX_HNO3_DEPOSITION_FLUX', &
                        Trgt2D   = DEPHNO3,                        &
                        SpaceDim = 2,                              &
                        OutUnit  = 'kg/m2/s',                      &
-                       COL      = HcoDiagnIDManual,               &
+                       COL = HcoState%Diagn%HcoDiagnIDManual,     &
                        RC       = RC                               )
    IF ( RC /= HCO_SUCCESS ) RETURN
  
@@ -1194,7 +1200,7 @@ CONTAINS
    !------------------------------------------------------------------------
    IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  )
    IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
-   CALL HCO_LEAVE ( RC )
+   CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
  END SUBROUTINE HCOX_ParaNOx_Init
 !EOC
@@ -1288,13 +1294,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE READ_PARANOX_LUT_NC ( am_I_Root, RC )
+ SUBROUTINE READ_PARANOX_LUT_NC ( am_I_Root, HcoState, RC )
 !
 ! !USES:
 !
 ! !INPUT ARGUMENTS:
 !
-   LOGICAL, INTENT(IN   ) :: am_I_Root
+   LOGICAL, INTENT(IN   )       :: am_I_Root
+   TYPE(HCO_State), POINTER     :: HcoState    ! HEMCO State object
 !
 ! !INPUT/OUTPUT ARGUMENTS:
 !
@@ -1326,7 +1333,7 @@ CONTAINS
    MSG = 'In ESMF, cannot read PARANOX look-up-table in netCDF ' // &
          'format. Please set `LUT data format` to `txt` in the ' // &
          'HEMCO configuration file.' 
-   CALL HCO_ERROR ( MSG, RC, &
+   CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, &
            THISLOC = 'READ_PARANOX_LUT_NC (hcox_paranox_mod.F90)' ) 
    RETURN
 #else
@@ -1339,28 +1346,28 @@ CONTAINS
 
    ! Read 2m/s LUT
    WRITE( FILENAME, 101 ) TRIM(LutDir), 2
-   CALL READ_LUT_NCFILE( am_I_Root, TRIM( FILENAME ), &
+   CALL READ_LUT_NCFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
         FRACNOX_LUT02, DNOx_LUT02, OPE_LUT02, MOE_LUT02, &
         Tlev, JNO2lev, O3lev, SEA0lev, SEA5lev, JRATIOlev, NOXlev )
 
    ! Read 6 m/s LUT
    WRITE( FILENAME, 101 ) TRIM(LutDir), 6
-   CALL READ_LUT_NCFILE( am_I_Root, TRIM( FILENAME ), &
+   CALL READ_LUT_NCFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
         FRACNOX_LUT06, DNOx_LUT06, OPE_LUT06, MOE_LUT06 )
 
    ! Read 10 m/s LUT
    WRITE( FILENAME, 101 ) TRIM(LutDir), 10
-   CALL READ_LUT_NCFILE( am_I_Root, TRIM( FILENAME ), &
+   CALL READ_LUT_NCFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
         FRACNOX_LUT10, DNOx_LUT10, OPE_LUT10, MOE_LUT10 )
 
    ! Read 14 m/s LUT
    WRITE( FILENAME, 101 ) TRIM(LutDir), 14
-   CALL READ_LUT_NCFILE( am_I_Root, TRIM( FILENAME ), &
+   CALL READ_LUT_NCFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
         FRACNOX_LUT14, DNOx_LUT14, OPE_LUT14, MOE_LUT14 )
 
    ! Read 18 m/s LUT
    WRITE( FILENAME, 101 ) TRIM(LutDir), 18
-   CALL READ_LUT_NCFILE( am_I_Root, TRIM( FILENAME ), & 
+   CALL READ_LUT_NCFILE( am_I_Root, HcoState, TRIM( FILENAME ), & 
         FRACNOX_LUT18, DNOx_LUT18, OPE_LUT18, MOE_LUT18 )
 
    ! Wind speed levels correspond to the files that we just read
@@ -1368,31 +1375,31 @@ CONTAINS
 
 !   ! To write into txt-file, uncomment the following lines
 !   FILENAME = TRIM(LutDir)//'/ship_plume_lut_02ms.txt'
-!   CALL WRITE_LUT_TXTFILE( am_I_Root, TRIM( FILENAME ), &
+!   CALL WRITE_LUT_TXTFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
 !        FRACNOX_LUT02, DNOx_LUT02, OPE_LUT02, MOE_LUT02, RC, &
 !        Tlev, JNO2lev, O3lev, SEA0lev, SEA5lev, JRATIOlev, NOXlev )
 !   IF ( RC /= HCO_SUCCESS ) RETURN
 !
 !   FILENAME = TRIM(LutDir)//'/ship_plume_lut_06ms.txt'
-!   CALL WRITE_LUT_TXTFILE( am_I_Root, TRIM( FILENAME ), &
+!   CALL WRITE_LUT_TXTFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
 !        FRACNOX_LUT06, DNOx_LUT06, OPE_LUT06, MOE_LUT06, RC, &
 !        Tlev, JNO2lev, O3lev, SEA0lev, SEA5lev, JRATIOlev, NOXlev )
 !   IF ( RC /= HCO_SUCCESS ) RETURN
 !
 !   FILENAME = TRIM(LutDir)//'/ship_plume_lut_10ms.txt'
-!   CALL WRITE_LUT_TXTFILE( am_I_Root, TRIM( FILENAME ), &
+!   CALL WRITE_LUT_TXTFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
 !        FRACNOX_LUT10, DNOx_LUT10, OPE_LUT10, MOE_LUT10, RC, &
 !        Tlev, JNO2lev, O3lev, SEA0lev, SEA5lev, JRATIOlev, NOXlev )
 !   IF ( RC /= HCO_SUCCESS ) RETURN
 !
 !   FILENAME = TRIM(LutDir)//'/ship_plume_lut_14ms.txt'
-!   CALL WRITE_LUT_TXTFILE( am_I_Root, TRIM( FILENAME ), &
+!   CALL WRITE_LUT_TXTFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
 !        FRACNOX_LUT14, DNOx_LUT14, OPE_LUT14, MOE_LUT14, RC, &
 !        Tlev, JNO2lev, O3lev, SEA0lev, SEA5lev, JRATIOlev, NOXlev )
 !   IF ( RC /= HCO_SUCCESS ) RETURN
 !
 !   FILENAME = TRIM(LutDir)//'/ship_plume_lut_14ms.txt'
-!   CALL WRITE_LUT_TXTFILE( am_I_Root, TRIM( FILENAME ), &
+!   CALL WRITE_LUT_TXTFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
 !        FRACNOX_LUT18, DNOx_LUT18, OPE_LUT18, MOE_LUT18, RC, &
 !        Tlev, JNO2lev, O3lev, SEA0lev, SEA5lev, JRATIOlev, NOXlev )
 !   IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1417,7 +1424,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE READ_LUT_NCFILE( am_I_Root, FILENAME, FNOX, DNOx, OPE, MOE, & 
+ SUBROUTINE READ_LUT_NCFILE( am_I_Root, HcoState, FILENAME, FNOX, DNOx, OPE, MOE, & 
                              T, JNO2, O3, SEA0, SEA5, JRATIO, NOX )
 !
 ! !USES:
@@ -1434,6 +1441,7 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
    LOGICAL,         INTENT(IN)  :: am_I_Root
+   TYPE(HCO_State), POINTER     :: HcoState    ! HEMCO State object
    CHARACTER(LEN=*),INTENT(IN)  :: FILENAME
 !
 ! !OUTPUT PARAMETERS: 
@@ -1469,7 +1477,7 @@ CONTAINS
    ! Echo info
    IF ( am_I_Root ) THEN
       WRITE( MSG, 100 ) TRIM( FILENAME )
-      CALL HCO_MSG(MSG)
+      CALL HCO_MSG(HcoState%Config%Err,MSG)
 100   FORMAT( 'READ_LUT_NCFILE: Reading ', a )
    ENDIF
 
@@ -1593,13 +1601,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE READ_PARANOX_LUT_TXT ( am_I_Root, RC )
+ SUBROUTINE READ_PARANOX_LUT_TXT ( am_I_Root, HcoState, RC )
 !
 ! !USES:
 !
 ! !INPUT ARGUMENTS:
 !
-   LOGICAL, INTENT(IN   ) :: am_I_Root
+   LOGICAL,         INTENT(IN   ) :: am_I_Root
+   TYPE(HCO_State), POINTER       :: HcoState    ! HEMCO State object
 !
 ! !INPUT/OUTPUT ARGUMENTS:
 !
@@ -1630,32 +1639,32 @@ CONTAINS
    
    ! Read 2m/s LUT
    WRITE( FILENAME, 101 ) TRIM(LutDir), 2
-   CALL READ_LUT_TXTFILE( am_I_Root, TRIM( FILENAME ), &
+   CALL READ_LUT_TXTFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
         FRACNOX_LUT02, DNOx_LUT02, OPE_LUT02, MOE_LUT02, RC, &
         Tlev, JNO2lev, O3lev, SEA0lev, SEA5lev, JRATIOlev, NOXlev )
    IF ( RC /= HCO_SUCCESS ) RETURN
 
    ! Read 6 m/s LUT
    WRITE( FILENAME, 101 ) TRIM(LutDir), 6
-   CALL READ_LUT_TXTFILE( am_I_Root, TRIM( FILENAME ), &
+   CALL READ_LUT_TXTFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
         FRACNOX_LUT06, DNOx_LUT06, OPE_LUT06, MOE_LUT06, RC )
    IF ( RC /= HCO_SUCCESS ) RETURN
 
    ! Read 10 m/s LUT
    WRITE( FILENAME, 101 ) TRIM(LutDir), 10
-   CALL READ_LUT_TXTFILE( am_I_Root, TRIM( FILENAME ), &
+   CALL READ_LUT_TXTFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
         FRACNOX_LUT10, DNOx_LUT10, OPE_LUT10, MOE_LUT10, RC )
    IF ( RC /= HCO_SUCCESS ) RETURN
 
    ! Read 14 m/s LUT
    WRITE( FILENAME, 101 ) TRIM(LutDir), 14
-   CALL READ_LUT_TXTFILE( am_I_Root, TRIM( FILENAME ), &
+   CALL READ_LUT_TXTFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
         FRACNOX_LUT14, DNOx_LUT14, OPE_LUT14, MOE_LUT14, RC )
    IF ( RC /= HCO_SUCCESS ) RETURN
 
    ! Read 18 m/s LUT
    WRITE( FILENAME, 101 ) TRIM(LutDir), 18
-   CALL READ_LUT_TXTFILE( am_I_Root, TRIM( FILENAME ), & 
+   CALL READ_LUT_TXTFILE( am_I_Root, HcoState, TRIM( FILENAME ), & 
         FRACNOX_LUT18, DNOx_LUT18, OPE_LUT18, MOE_LUT18, RC )
    IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1680,7 +1689,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE READ_LUT_TXTFILE( am_I_Root, FILENAME, FNOX, DNOx, OPE, MOE, RC, & 
+ SUBROUTINE READ_LUT_TXTFILE( am_I_Root, HcoState, FILENAME, FNOX, DNOx, OPE, MOE, RC, & 
                               T, JNO2, O3, SEA0, SEA5, JRATIO, NOX ) 
 !
 ! !USES:
@@ -1690,6 +1699,7 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
    LOGICAL,         INTENT(IN)  :: am_I_Root
+   TYPE(HCO_State), POINTER     :: HcoState    ! HEMCO State object
    CHARACTER(LEN=*),INTENT(IN)  :: FILENAME
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -1728,7 +1738,7 @@ CONTAINS
    ! Echo info
    IF ( am_I_Root ) THEN
       WRITE( MSG, 100 ) TRIM( FILENAME )
-      CALL HCO_MSG(MSG)
+      CALL HCO_MSG(HcoState%Config%Err,MSG)
 100   FORMAT( 'READ_LUT_TXTFILE: Reading ', a )
    ENDIF
 
@@ -1738,35 +1748,35 @@ CONTAINS
    ! Open file for reading
    OPEN ( fID, FILE=TRIM(FILENAME), FORM="FORMATTED", IOSTAT=IOS )
    IF ( IOS /= 0 ) THEN
-      CALL HCO_ERROR( 'read_lut_txtfile:1', RC, THISLOC=LOC )
+      CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile:1', RC, THISLOC=LOC )
       RETURN
    ENDIF
 
    ! Read FNOx
    READ( fId, FMT=FMAT, IOSTAT=IOS ) FNOx
    IF ( IOS /= 0 ) THEN
-      CALL HCO_ERROR( 'read_lut_txtfile: FNOx', RC, THISLOC=LOC )
+      CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: FNOx', RC, THISLOC=LOC )
       RETURN
    ENDIF
 
    ! Read OPE 
    READ( fId, FMT=FMAT, IOSTAT=IOS ) OPE
    IF ( IOS /= 0 ) THEN
-      CALL HCO_ERROR( 'read_lut_txtfile: OPE', RC, THISLOC=LOC )
+      CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: OPE', RC, THISLOC=LOC )
       RETURN
    ENDIF
 
    ! Read MOE 
    READ( fId, FMT=FMAT, IOSTAT=IOS ) MOE
    IF ( IOS /= 0 ) THEN
-      CALL HCO_ERROR( 'read_lut_txtfile: MOE', RC, THISLOC=LOC )
+      CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: MOE', RC, THISLOC=LOC )
       RETURN
    ENDIF
 
    ! Read DNOx 
    READ( fId, FMT=FMAT, IOSTAT=IOS ) DNOx 
    IF ( IOS /= 0 ) THEN
-      CALL HCO_ERROR( 'read_lut_txtfile: DNOx', RC, THISLOC=LOC )
+      CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: DNOx', RC, THISLOC=LOC )
       RETURN
    ENDIF
 
@@ -1774,7 +1784,7 @@ CONTAINS
    IF ( PRESENT(T) ) THEN
       READ( fId, FMT=FMAT, IOSTAT=IOS ) T
       IF ( IOS /= 0 ) THEN
-         CALL HCO_ERROR( 'read_lut_txtfile: T', RC, THISLOC=LOC )
+         CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: T', RC, THISLOC=LOC )
          RETURN
       ENDIF
    ENDIF
@@ -1782,7 +1792,7 @@ CONTAINS
    IF ( PRESENT(JNO2) ) THEN
       READ( fId, FMT=FMAT, IOSTAT=IOS ) JNO2
       IF ( IOS /= 0 ) THEN
-         CALL HCO_ERROR( 'read_lut_txtfile: JNO2', RC, THISLOC=LOC )
+         CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: JNO2', RC, THISLOC=LOC )
          RETURN
       ENDIF
    ENDIF
@@ -1790,7 +1800,7 @@ CONTAINS
    IF ( PRESENT(O3) ) THEN
       READ( fId, FMT=FMAT, IOSTAT=IOS ) O3
       IF ( IOS /= 0 ) THEN
-         CALL HCO_ERROR( 'read_lut_txtfile: O3', RC, THISLOC=LOC )
+         CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: O3', RC, THISLOC=LOC )
          RETURN
       ENDIF
    ENDIF
@@ -1798,7 +1808,7 @@ CONTAINS
    IF ( PRESENT(SEA0) ) THEN
       READ( fId, FMT=FMAT, IOSTAT=IOS ) SEA0
       IF ( IOS /= 0 ) THEN
-         CALL HCO_ERROR( 'read_lut_txtfile: SEA0', RC, THISLOC=LOC )
+         CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: SEA0', RC, THISLOC=LOC )
          RETURN
       ENDIF
    ENDIF
@@ -1806,7 +1816,7 @@ CONTAINS
    IF ( PRESENT(SEA5) ) THEN
       READ( fId, FMT=FMAT, IOSTAT=IOS ) SEA5
       IF ( IOS /= 0 ) THEN
-         CALL HCO_ERROR( 'read_lut_txtfile: SEA5', RC, THISLOC=LOC )
+         CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: SEA5', RC, THISLOC=LOC )
          RETURN
       ENDIF
    ENDIF
@@ -1814,7 +1824,7 @@ CONTAINS
    IF ( PRESENT(JRATIO) ) THEN
       READ( fId, FMT=FMAT, IOSTAT=IOS ) JRATIO
       IF ( IOS /= 0 ) THEN
-         CALL HCO_ERROR( 'read_lut_txtfile: JRATIO', RC, THISLOC=LOC )
+         CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: JRATIO', RC, THISLOC=LOC )
          RETURN
       ENDIF
    ENDIF
@@ -1822,7 +1832,7 @@ CONTAINS
    IF ( PRESENT(NOX) ) THEN
       READ( fId, FMT=FMAT, IOSTAT=IOS ) NOX
       IF ( IOS /= 0 ) THEN
-         CALL HCO_ERROR( 'read_lut_txtfile: NOX', RC, THISLOC=LOC )
+         CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: NOX', RC, THISLOC=LOC )
          RETURN
       ENDIF
    ENDIF
@@ -1841,7 +1851,7 @@ CONTAINS
 !         CASE ( 4 )
 !            TMPARR => DNOx
 !         CASE DEFAULT
-!            CALL HCO_ERROR( 'I > 4', RC, THISLOC=LOC )
+!            CALL HCO_ERROR( HcoState%Config%Err, 'I > 4', RC, THISLOC=LOC )
 !            RETURN
 !      END SELECT
 !
@@ -1882,7 +1892,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE WRITE_LUT_TXTFILE( am_I_Root, FILENAME, FNOX, DNOx, OPE, MOE, RC, & 
+ SUBROUTINE WRITE_LUT_TXTFILE( am_I_Root, HcoState, FILENAME, FNOX, DNOx, OPE, MOE, RC, & 
                               T, JNO2, O3, SEA0, SEA5, JRATIO, NOX ) 
 !
 ! !USES:
@@ -1891,8 +1901,9 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-   LOGICAL,         INTENT(IN)  :: am_I_Root
-   CHARACTER(LEN=*),INTENT(IN)  :: FILENAME
+   LOGICAL,         INTENT(IN)     :: am_I_Root
+   TYPE(HCO_State), INTENT(INOUT)  :: HcoState          ! HEMCO state obj
+   CHARACTER(LEN=*),INTENT(IN)     :: FILENAME
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -1930,7 +1941,7 @@ CONTAINS
    ! Echo info
    IF ( am_I_Root ) THEN
       WRITE( MSG, 100 ) TRIM( FILENAME )
-      CALL HCO_MSG(MSG)
+      CALL HCO_MSG(HcoState%Config%Err,MSG)
 100   FORMAT( 'WRITE_LUT_TXTFILE: Writing ', a )
    ENDIF
 
@@ -1940,35 +1951,35 @@ CONTAINS
    ! Open file for reading
    OPEN ( fID, FILE=TRIM(FILENAME), ACTION="WRITE", FORM="FORMATTED", IOSTAT=IOS )
    IF ( IOS /= 0 ) THEN
-      CALL HCO_ERROR( 'write_lut_txtfile:1', RC, THISLOC=LOC )
+      CALL HCO_ERROR( HcoState%Config%Err, 'write_lut_txtfile:1', RC, THISLOC=LOC )
       RETURN
    ENDIF
 
    ! Read FNOx
    WRITE( fId, FMT=FMAT, IOSTAT=IOS ) FNOx
    IF ( IOS /= 0 ) THEN
-      CALL HCO_ERROR( 'write_lut_txtfile: FNOx', RC, THISLOC=LOC )
+      CALL HCO_ERROR( HcoState%Config%Err, 'write_lut_txtfile: FNOx', RC, THISLOC=LOC )
       RETURN
    ENDIF
 
    ! Read OPE 
    WRITE( fId, FMT=FMAT, IOSTAT=IOS ) OPE
    IF ( IOS /= 0 ) THEN
-      CALL HCO_ERROR( 'read_lut_txtfile: OPE', RC, THISLOC=LOC )
+      CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: OPE', RC, THISLOC=LOC )
       RETURN
    ENDIF
 
    ! Read MOE 
    WRITE( fId, FMT=FMAT, IOSTAT=IOS ) MOE
    IF ( IOS /= 0 ) THEN
-      CALL HCO_ERROR( 'read_lut_txtfile: MOE', RC, THISLOC=LOC )
+      CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: MOE', RC, THISLOC=LOC )
       RETURN
    ENDIF
 
    ! Read DNOx 
    WRITE( fId, FMT=FMAT, IOSTAT=IOS ) DNOx 
    IF ( IOS /= 0 ) THEN
-      CALL HCO_ERROR( 'read_lut_txtfile: DNOx', RC, THISLOC=LOC )
+      CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: DNOx', RC, THISLOC=LOC )
       RETURN
    ENDIF
 
@@ -1976,7 +1987,7 @@ CONTAINS
    IF ( PRESENT(T) ) THEN
       WRITE( fId, FMT=FMAT, IOSTAT=IOS ) T
       IF ( IOS /= 0 ) THEN
-         CALL HCO_ERROR( 'read_lut_txtfile: T', RC, THISLOC=LOC )
+         CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: T', RC, THISLOC=LOC )
          RETURN
       ENDIF
    ENDIF
@@ -1984,7 +1995,7 @@ CONTAINS
    IF ( PRESENT(JNO2) ) THEN
       WRITE( fId, FMT=FMAT, IOSTAT=IOS ) JNO2
       IF ( IOS /= 0 ) THEN
-         CALL HCO_ERROR( 'read_lut_txtfile: JNO2', RC, THISLOC=LOC )
+         CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: JNO2', RC, THISLOC=LOC )
          RETURN
       ENDIF
    ENDIF
@@ -1992,7 +2003,7 @@ CONTAINS
    IF ( PRESENT(O3) ) THEN
       WRITE( fId, FMT=FMAT, IOSTAT=IOS ) O3
       IF ( IOS /= 0 ) THEN
-         CALL HCO_ERROR( 'read_lut_txtfile: O3', RC, THISLOC=LOC )
+         CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: O3', RC, THISLOC=LOC )
          RETURN
       ENDIF
    ENDIF
@@ -2000,7 +2011,7 @@ CONTAINS
    IF ( PRESENT(SEA0) ) THEN
       WRITE( fId, FMT=FMAT, IOSTAT=IOS ) SEA0
       IF ( IOS /= 0 ) THEN
-         CALL HCO_ERROR( 'read_lut_txtfile: SEA0', RC, THISLOC=LOC )
+         CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: SEA0', RC, THISLOC=LOC )
          RETURN
       ENDIF
    ENDIF
@@ -2008,7 +2019,7 @@ CONTAINS
    IF ( PRESENT(SEA5) ) THEN
       WRITE( fId, FMT=FMAT, IOSTAT=IOS ) SEA5
       IF ( IOS /= 0 ) THEN
-         CALL HCO_ERROR( 'read_lut_txtfile: SEA5', RC, THISLOC=LOC )
+         CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: SEA5', RC, THISLOC=LOC )
          RETURN
       ENDIF
    ENDIF
@@ -2016,7 +2027,7 @@ CONTAINS
    IF ( PRESENT(JRATIO) ) THEN
       WRITE( fId, FMT=FMAT, IOSTAT=IOS ) JRATIO
       IF ( IOS /= 0 ) THEN
-         CALL HCO_ERROR( 'read_lut_txtfile: JRATIO', RC, THISLOC=LOC )
+         CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: JRATIO', RC, THISLOC=LOC )
          RETURN
       ENDIF
    ENDIF
@@ -2024,7 +2035,7 @@ CONTAINS
    IF ( PRESENT(NOX) ) THEN
       WRITE( fId, FMT=FMAT, IOSTAT=IOS ) NOX
       IF ( IOS /= 0 ) THEN
-         CALL HCO_ERROR( 'read_lut_txtfile: NOX', RC, THISLOC=LOC )
+         CALL HCO_ERROR( HcoState%Config%Err, 'read_lut_txtfile: NOX', RC, THISLOC=LOC )
          RETURN
       ENDIF
    ENDIF
@@ -2430,7 +2441,7 @@ CONTAINS
             MOE_LUT     => MOE_LUT18
          CASE DEFAULT
              MSG = 'LUT error: Wind speed interpolation error!'
-             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
              RETURN
       END SELECT
 
@@ -2502,7 +2513,7 @@ CONTAINS
             !print*, VARS
  
             MSG = 'LUT error: Fracnox should be between 0 and 1!'
-            CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+            CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
             RETURN
          ENDIF
 

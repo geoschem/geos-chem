@@ -446,6 +446,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
 !
 ! !INPUT PARAMETERS:
@@ -532,7 +533,8 @@ CONTAINS
     Collection = Input_Opt%DIAG_COLLECTION
 
     ! Create container for tendency
-    CALL Diagn_Create( am_I_Root,                     &
+    CALL Diagn_Create( am_I_Root, &
+                       HcoState  = HcoState,          & 
                        Col       = Collection,        & 
 !                       cID       = cID,               &
                        cName     = TRIM( DiagnName ), &
@@ -661,7 +663,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD,      ONLY : IIPAR, JJPAR, LLPAR
+    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
 !
 ! !INPUT PARAMETERS:
 !
@@ -757,8 +760,9 @@ CONTAINS
        ENDIF
 
        ! Update diagnostics array
-       CALL Diagn_Update( am_I_Root, cName=DiagnName, Array3D=Tend, &
-                          COL=Input_Opt%DIAG_COLLECTION, RC=RC       )
+       CALL Diagn_Update( am_I_Root, HcoState, cName=DiagnName, &
+               Array3D=Tend, COL=Input_Opt%DIAG_COLLECTION, RC=RC )
+                          
        IF ( RC /= HCO_SUCCESS ) THEN 
           WRITE(MSG,*) 'Error in updating diagnostics with ID ', cID
           CALL ERROR_STOP ( MSG, LOC )

@@ -81,9 +81,9 @@ MODULE HCO_DataCont_Mod
 !
 ! !USES:
 !
+  USE HCO_TYPES_MOD
   USE HCO_Error_Mod
   USE HCO_Arr_Mod
-  USE HCO_FileData_Mod,  ONLY : FileData
 
   IMPLICIT NONE
   PRIVATE
@@ -97,8 +97,8 @@ MODULE HCO_DataCont_Mod
   PUBLIC  :: Pnt2DataCont
   PUBLIC  :: ListCont_NextCont 
   PUBLIC  :: ListCont_Find
+  PUBLIC  :: ListCont_Length
   PUBLIC  :: ListCont_Cleanup 
-  PUBLIC  :: Reset_nnDataCont
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
@@ -131,56 +131,8 @@ MODULE HCO_DataCont_Mod
 ! !PRIVATE TYPES:
 !
   !-------------------------------------------------------------------------
-  ! DataCont: Derived type definition for HEMCO data container
-  !-------------------------------------------------------------------------
-  TYPE, PUBLIC :: DataCont
-
-     ! Container information 
-     CHARACTER(LEN= 31)          :: cName          ! Cont. name
-     INTEGER                     :: cID            ! Cont. ID
-     INTEGER                     :: targetID       ! target ID
-     INTEGER                     :: DctType        ! Data type
-     TYPE(FileData),     POINTER :: Dta            ! data information
-     INTEGER                     :: DtaHome        ! Home cont for Dta?
-     CHARACTER(LEN= 31)          :: SpcName        ! Species Name 
-     INTEGER                     :: HcoID          ! HEMCO species ID
-     INTEGER                     :: ExtNr          ! Extension #
-     INTEGER                     :: Cat            ! Category
-     INTEGER                     :: Hier           ! Hierarchy
-     INTEGER                     :: ScalID         ! Scale factor ID
-     INTEGER                     :: Oper           ! Operator
-     INTEGER                     :: nScalID        ! # of scale factor IDs 
-     INTEGER,            POINTER :: Scal_cID(:)    ! assoc. scalefactor IDs
-     LOGICAL                     :: Scal_cID_set   ! cIDs or scalIDs 
-  END TYPE DataCont
-
-  !-------------------------------------------------------------------------
-  ! ListCont: Derived type definition for HEMCO list object
-  !-------------------------------------------------------------------------
-  TYPE, PUBLIC  :: ListCont
-     TYPE(DataCont),     POINTER :: Dct
-     TYPE(ListCont),     POINTER :: NextCont
-  END TYPE ListCont
-
-  !-------------------------------------------------------------------------
-  ! cIdListPnt: Derived type definition for pointing to list containers
-  !-------------------------------------------------------------------------
-  TYPE cIDListPnt
-     TYPE(DataCont),     POINTER :: PNT ! Pointer to list container
-  END TYPE cIDListPnt
-
-  !-------------------------------------------------------------------------
   ! Other module variables
   !-------------------------------------------------------------------------
-
-  ! Array of pointers to all containers in a list.
-  ! Element i of cIDList will point to data-container with container
-  ! ID i (e.g. cIDList(3) points to data-container with cID = 3). 
-  TYPE(cIDListPnt),      POINTER :: cIDList(:) => NULL()
-
-  ! # of defined data containers. Will be automatically increased
-  ! by one when creating a new data container (DataCont_Init)
-  INTEGER                        :: nnDataCont = 0
 
   ! Interface
   INTERFACE ListCont_Find
@@ -203,11 +155,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DataCont_Init( Dct )
+  SUBROUTINE DataCont_Init( Dct, cID )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(DataCont), POINTER    :: Dct
+    TYPE(DataCont),  POINTER       :: Dct
+    INTEGER,         INTENT(IN)    :: cID 
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
@@ -243,8 +196,7 @@ CONTAINS
 
     ! Assign container ID.
     ! Set default target ID to cont. ID.
-    nnDataCont       = nnDataCont + 1 
-    Dct%cID          = nnDataCont 
+    Dct%cID          = cID 
     Dct%targetID     = Dct%cID
 
   END SUBROUTINE DataCont_Init
@@ -388,33 +340,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: Reset_nnDataCont 
-!
-! !DESCRIPTION: Subroutine Reset\_nnDataCont resets the nnDataCont variable
-! to zero. This is used for a proper cleanup of a HEMCO run.
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Reset_nnDataCont
-!
-! !ARGUMENTS:
-!
-! !REVISION HISTORY:
-!  19 Dec 2013 - C. Keller: Initialization
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-    nnDataCont = 0
-
-  END SUBROUTINE Reset_nnDataCont
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: cIDList_Create
 !
 ! !DESCRIPTION: Subroutine cIDList\_Create creates a vector of pointers 
@@ -456,25 +381,28 @@ CONTAINS
     !======================================================================
 
     ! Enter
-    CALL HCO_ENTER( 'cIDList_Create (hco_datacont_mod.F)', RC )
+    CALL HCO_ENTER( HcoState%Config%Err, 'cIDList_Create (hco_datacont_mod.F)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Set verbose flag
-    verbose = HCO_IsVerb ( 3 ) 
+    verbose = HCO_IsVerb ( HcoState%Config%Err, 3 ) 
+
+    ! Set # of data container in list
+    HcoState%nnDataCont = ListCont_Length( List )
 
     ! Eventually cleanup the list
-    IF ( ASSOCIATED ( cIDList ) ) THEN
-       DO II = 1, nnDataCont 
-          cIDList(II)%PNT => NULL()
+    IF ( ASSOCIATED ( HcoState%cIDList ) ) THEN
+       DO II = 1, HcoState%nnDataCont 
+          HcoState%cIDList(II)%PNT => NULL()
        ENDDO
-       DEALLOCATE ( cIDList )
+       DEALLOCATE ( HcoState%cIDList )
     ENDIF
 
     ! Leave if no emission fields defined 
-    IF ( nnDataCont == 0 ) THEN
+    IF ( HcoState%nnDataCont == 0 ) THEN
        IF ( verbose ) THEN
           WRITE(MSG,*) 'No emission fields defined!'
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
        RC = HCO_SUCCESS
        RETURN
@@ -482,18 +410,18 @@ CONTAINS
 
     ! verbose 
     IF ( verbose ) THEN
-       WRITE(MSG,*) 'Create cID list: # of fields: ',nnDataCont
-       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) 'Create cID list: # of fields: ', HcoState%nnDataCont
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
     ENDIF
 
     ! Allocate IDList
-    ALLOCATE ( cIDList(nnDataCont) )
+    ALLOCATE ( HcoState%cIDList(HcoState%nnDataCont) )
 
     ! Now set the quicklist pointers 
-    IILOOP: DO II = 1, nnDataCont
+    IILOOP: DO II = 1, HcoState%nnDataCont
 
        ! Nullify pointer first 
-       cIDList(II)%PNT => NULL()
+       HcoState%cIDList(II)%PNT => NULL()
 
        ! Set working container to head of emission fields linked list
        TmpLct => List 
@@ -510,7 +438,7 @@ CONTAINS
           IF ( TmpLct%Dct%cID == II ) THEN
 
              ! Set pointer to emission field
-             cIDList(II)%PNT => TmpLct%Dct
+             HcoState%cIDList(II)%PNT => TmpLct%Dct
 
              ! Advance in loop
              CYCLE IILOOP
@@ -524,7 +452,7 @@ CONTAINS
 
     ! Cleanup and leave w/ success
     TmpLct => NULL()
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE ( HcoState%Config%Err, RC )
 
   END SUBROUTINE cIDList_Create
 !EOC
@@ -540,7 +468,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE cIDList_Cleanup()
+  SUBROUTINE cIDList_Cleanup( HcoState )
+!
+! !USES:
+!
+    USE HCO_STATE_MOD, ONLY : HCO_State 
+!
+! !ARGUMENTS:
+!
+    TYPE(HCO_State), POINTER       :: HcoState
 !
 ! !REVISION HISTORY:
 !  24 Aug 2012 - C. Keller - Initial Version
@@ -557,13 +493,14 @@ CONTAINS
     !======================================================================
 
     ! Remove links to all containers 
-    IF ( ASSOCIATED ( cIDList ) ) THEN
-      DO I = 1, nnDataCont
-        cIDList(I)%PNT => NULL()
+    IF ( ASSOCIATED ( HcoState%cIDList ) ) THEN
+      DO I = 1, HcoState%nnDataCont
+        HcoState%cIDList(I)%PNT => NULL()
       ENDDO
-      DEALLOCATE( cIDList )
+      DEALLOCATE( HcoState%cIDList )
     ENDIF
-    cIDList => NULL()
+    HcoState%cIDList    => NULL()
+    HcoState%nnDataCont =  0
 
   END SUBROUTINE cIDList_Cleanup
 !EOC
@@ -580,10 +517,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Pnt2DataCont( cID, Dct, RC ) 
+  SUBROUTINE Pnt2DataCont( am_I_Root, HcoState, cID, Dct, RC ) 
+!
+! !USES:
+!
+    USE HCO_STATE_MOD, ONLY : HCO_State 
 !
 ! !INPUT PARAMETERS:
 !
+    LOGICAL,        INTENT(IN)     :: am_I_Root 
+    TYPE(HCO_State), POINTER       :: HcoState
     INTEGER,        INTENT(IN)     :: cID
     TYPE(DataCont), POINTER        :: Dct
 !
@@ -609,19 +552,19 @@ CONTAINS
     LOC = 'Pnt2DataCont (HCO_DATACONT_MOD.F90)'
 
     ! Check input 
-    IF ( cID > nnDataCont ) THEN
+    IF ( cID > HcoState%nnDataCont ) THEN
        MSG = 'cID higher than number of containers' 
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC)
+       CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC, THISLOC=LOC)
        RETURN
     ENDIF
 
     ! Set pointer to container w/ ID cID
-    Dct => cIDList(cID)%PNT
+    Dct => HcoState%cIDList(cID)%PNT
 
     ! Check if data container allocated
     IF ( .NOT. ASSOCIATED( Dct ) ) THEN
        MSG = 'Data container is not associated!'
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC)
+       CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC, THISLOC=LOC)
        RETURN
     ENDIF
  
@@ -845,6 +788,48 @@ CONTAINS
     TmpLct => NULL()
 
   END SUBROUTINE ListCont_Find_ID
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ListCont_Length
+!
+! !DESCRIPTION: Subroutine ListCont\_Length returns the length of the
+!  passed list.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION ListCont_Length ( List ) RESULT ( nnCont )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(ListCont),  POINTER       :: List 
+    INTEGER                        :: nnCont 
+!
+! !REVISION HISTORY:
+!  15 Feb 2016 - C. Keller: Initial version
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    TYPE(ListCont), POINTER  :: TmpLct
+
+    !======================================================================
+    ! ListCont_Length begins here!
+    !======================================================================
+
+    nnCont = 0
+    TmpLct => List
+    DO WHILE ( ASSOCIATED( TmpLct ) ) 
+       nnCont = nnCont + 1
+       TmpLct => TmpLct%NextCont
+    ENDDO 
+    TmpLct => NULL()
+
+  END FUNCTION ListCont_Length
 !EOC
 END MODULE HCO_DATACONT_MOD
 !EOM

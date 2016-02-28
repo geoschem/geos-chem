@@ -54,7 +54,7 @@
       USE ERROR_MOD,          ONLY : IT_IS_FINITE
 
       ! To get HEMCO deposition values
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
+      USE HCO_INTERFACE_MOD,  ONLY : GetHcoVal
 
       ! Geos-Chem Flexible Precision
       USE PRECISION_MOD

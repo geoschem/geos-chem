@@ -63,11 +63,13 @@
 
       ! to write out chemical tendencies of species
 # if  defined( DEVEL ) 
+      USE HCO_INTERFACE_MOD
+      USE HCO_ERROR_MOD
+      USE HCO_STATE_MOD,      ONLY : HCO_State
       USE DIAGNOSTICS_MOD,    ONLY : DiagnSpecTend
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE TIME_MOD,           ONLY : GET_TS_CHEM 
       USE COMODE_MOD,         ONLY : IXSAVE, IYSAVE, IZSAVE 
-      USE HCO_ERROR_MOD
 #endif
 
       IMPLICIT NONE
@@ -305,12 +307,12 @@
 
       ! to write out chemical tendencies
 #if   defined( DEVEL ) 
-      INTEGER               :: IX, IY, IZ, HCRC
-      REAL(fp)              :: DT
-      REAL(fp), POINTER     :: Ptr3D(:,:,:) => NULL()
-      REAL(fp), TARGET      :: TEND(IIPAR,JJPAR,LLPAR)
-      REAL(fp), ALLOCATABLE :: BEFORE(:,:,:,:)        
-      CHARACTER(LEN=255)    :: DiagnName
+      INTEGER                  :: IX, IY, IZ, HCRC
+      REAL(fp)                 :: DT
+      REAL(fp), POINTER        :: Ptr3D(:,:,:) => NULL()
+      REAL(fp), TARGET         :: TEND(IIPAR,JJPAR,LLPAR)
+      REAL(fp), ALLOCATABLE    :: BEFORE(:,:,:,:)        
+      CHARACTER(LEN=255)       :: DiagnName
 #endif
 
       !=================================================================
@@ -830,7 +832,7 @@
                ! Construct diagnostic name
                DiagnName = 'SPECIES_CHEMTEND_' // TRIM(NAMEGAS(N)) 
                Ptr3D => TEND 
-               CALL Diagn_Update( am_I_Root,
+               CALL Diagn_Update( am_I_Root, HcoState,
      &                            cName  = TRIM(DiagnName),
      &                            Array3D= Ptr3D,
      &                            COL    = Input_Opt%DIAG_COLLECTION,
@@ -847,7 +849,7 @@
             ENDDO
             DiagnName = 'CHEMBOX'
             Ptr3D => TEND 
-            CALL Diagn_Update( am_I_Root,
+            CALL Diagn_Update( am_I_Root, HcoState,
      &                         cName  = TRIM(DiagnName),
      &                         Array3D= Ptr3D,
      &                         COL    = Input_Opt%DIAG_COLLECTION,

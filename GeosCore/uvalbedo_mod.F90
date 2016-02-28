@@ -74,6 +74,7 @@ CONTAINS
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
+    USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr 
 !
 !
@@ -121,7 +122,7 @@ CONTAINS
     Ptr2D => NULL()
 
     ! Get the pointer to the UV albedo data in the HEMCO data structure
-    CALL HCO_GetPtr( am_I_Root, 'UV_ALBEDO', Ptr2D, RC, FOUND=FND )
+    CALL HCO_GetPtr( am_I_Root, HcoState, 'UV_ALBEDO', Ptr2D, RC, FOUND=FND )
 
       ! Stop with error message
     IF ( RC /= GIGC_SUCCESS .or. ( .not. FND ) ) THEN

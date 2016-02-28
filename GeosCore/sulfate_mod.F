@@ -470,8 +470,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
-      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
@@ -576,9 +575,6 @@
       LOGICAL            :: aIR
       CHARACTER(LEN=255) :: LOC = 'CHEMSULFATE (sulfate_mod.F)'
 
-      ! To get emission timestep
-      TYPE(HCO_STATE), POINTER :: HcoState => NULL()
-
       !=================================================================
       ! CHEMSULFATE begins here!
       !=================================================================
@@ -614,27 +610,27 @@
          ! Get offline oxidant fields from HEMCO (mps, 9/18/14)
          IF ( FIRSTCHEM ) THEN
 
-            CALL HCO_GetPtr( aIR, 'O3',    O3m,    RC )
+            CALL HCO_GetPtr( aIR, HcoState, 'O3',    O3m,    RC )
             IF ( RC /= GIGC_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get pointer to O3',    LOC )
 
-            CALL HCO_GetPtr( aIR, 'PH2O2', PH2O2m, RC )
+            CALL HCO_GetPtr( aIR, HcoState, 'PH2O2', PH2O2m, RC )
             IF ( RC /= GIGC_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get pointer to PH2O2', LOC )
 
-            CALL HCO_GetPtr( aIR, 'JH2O2', JH2O2,  RC )
+            CALL HCO_GetPtr( aIR, HcoState, 'JH2O2', JH2O2,  RC )
             IF ( RC /= GIGC_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get pointer to JH2O2', LOC )
 
-            CALL HCO_GetPtr( aIR, 'GLOBAL_OH',  OH,    RC )
+            CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_OH',  OH,    RC )
             IF ( RC /= GIGC_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_OH',   LOC )
 
-            CALL HCO_GetPtr( aIR, 'GLOBAL_NO3', NO3,   RC )
+            CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_NO3', NO3,   RC )
             IF ( RC /= GIGC_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_NO3',  LOC )
 
-            CALL HCO_GetPtr( aIR, 'GLOBAL_HNO3', HNO3, RC )
+            CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_HNO3', HNO3, RC )
             IF ( RC /= GIGC_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_HNO3', LOC )
 
@@ -654,11 +650,9 @@
       ! TS_EMIS is the emission timestep (in seconds). This is a module
       ! variable, hence define only on first call.
       IF ( FIRSTCHEM ) THEN
-         CALL GetHcoState ( HcoState )
          IF ( .NOT. ASSOCIATED(HcoState) ) 
      &        CALL ERROR_STOP ( 'Cannot get HcoState', LOC )
          TS_EMIS = HcoState%TS_EMIS
-         HcoState => NULL()
       ENDIF
 
       ! Initialize module arrays
@@ -991,9 +985,7 @@
       USE CMN_GCTM_MOD             ! SCALE_HEIGHT
 
       ! HEMCO update
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState, GetHcoDiagn
-      USE HCO_STATE_MOD,      ONLY : HCO_STATE
-      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
 
 !
 ! !INPUT PARAMETERS:
@@ -1056,7 +1048,6 @@
       REAL(fp)               :: AREA3D(IIPAR, JJPAR,2)
 
       ! Pointers
-      TYPE(HCO_State), POINTER :: HcoState   => NULL()
       REAL(f4),        POINTER :: Ptr2D(:,:) => NULL()
       REAL(f4),        POINTER :: Ptr3D(:,:,:) => NULL()
 
@@ -1094,7 +1085,6 @@
       LNLPBL  = Input_Opt%LNLPBL
 
       ! Import emissions from HEMCO (through HEMCO state)
-      CALL GetHcoState( HcoState )
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
          CALL ERROR_STOP ( 'HcoState not defined!', LOC )
       ENDIF
@@ -2421,7 +2411,7 @@
       USE TRACERID_MOD,       ONLY : IDTDST4, IDTSALA, IDTSALC
       USE WETSCAV_MOD,        ONLY : H2O2s
       USE WETSCAV_MOD,        ONLY : SO2s
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoDiagn
+      USE HCO_INTERFACE_MOD,  ONLY : GetHcoDiagn
 !
 ! !INPUT PARAMETERS:
 !
@@ -7139,7 +7129,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
+      USE HCO_INTERFACE_MOD,  ONLY : GetHcoVal
       USE TRACERID_MOD,       ONLY : IDTSALA, IDTSALC
 ! (jas, 8/4/15) calculate kt using sea salt surface area concentration
       USE CMN_SIZE_MOD,       ONLY : NDUST

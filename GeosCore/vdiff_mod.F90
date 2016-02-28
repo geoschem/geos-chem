@@ -1846,8 +1846,9 @@ contains
     USE TENDENCIES_MOD
 
     ! HEMCO update
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID, GetHcoVal, GetHcoDiagn
+    USE HCO_INTERFACE_MOD,  ONLY : GetHcoID, GetHcoVal, GetHcoDiagn
 #if defined( DEVEL )
+    USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
 
@@ -2543,7 +2544,7 @@ contains
              cID = 10000 + cID
              ! Total in kg
              Total = SUM(Ptr3D(:,:,1) * State_Met%AREA_M2(:,:,1)) * dtime 
-             CALL Diagn_Update( am_I_Root,                           &
+             CALL Diagn_Update( am_I_Root, HcoState,                 &
                                 cID     = cID,                       &
                                 Array3D = Ptr3D,                     &
                                 Total   = Total,                     &
@@ -2557,7 +2558,7 @@ contains
        IF ( (ND44>0) .AND. (ANY(dflx(:,:,N) > 0.0_fp) ) ) THEN
           Ptr2D => dflx(:,:,N)
           cID = 44500 + N
-          CALL Diagn_Update( am_I_Root,                           &
+          CALL Diagn_Update( am_I_Root, HcoState,                 &
                              cID     = cID,                       &
                              Array2D = Ptr2D,                     &
                              COL     = Input_Opt%DIAG_COLLECTION, &

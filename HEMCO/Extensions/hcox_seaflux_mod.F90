@@ -172,15 +172,15 @@ CONTAINS
     ! HCOX_SeaFlux_Run begins here!
     !=================================================================
 
+    ! Enter
+    CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_SeaFlux_Run (hcox_seaflux_mod.F90)', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! Return if extension disabled 
     IF ( .NOT. ExtState%SeaFlux ) RETURN
 
-    ! Enter
-    CALL HCO_ENTER( 'HCOX_SeaFlux_Run (hcox_seaflux_mod.F90)', RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
     ! Verbose?
-    verbose = HCO_IsVerb(1) 
+    verbose = HCO_IsVerb(HcoState%Config%Err,1) 
 
     ! ---------------------------------------------------------------
     ! Calculate emissions
@@ -200,15 +200,15 @@ CONTAINS
        IF ( verbose ) THEN
           WRITE(MSG,'(A40,I5)') & 
                'Calculate air-sea flux for HEMCO species', HcoID
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,*) 'Module species name: ', &
                         TRIM(OcSpecs(OcID)%OcSpcName)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
        ! Get seawater concentration of given compound (from HEMCO core).
        ContName = TRIM(OcSpecs(OcID)%OcDataName)
-       CALL HCO_GetPtr ( am_I_Root, ContName, SeaConc, RC )
+       CALL HCO_GetPtr ( am_I_Root, HcoState, ContName, SeaConc, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Calculate oceanic source (kg/m2/s) as well as the deposition 
@@ -222,7 +222,7 @@ CONTAINS
        CALL HCO_EmisAdd ( am_I_Root, HcoState, SOURCE, HcoID, RC, ExtNr=ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'HCO_EmisAdd error: ' // TRIM(OcSpecs(OcID)%OcSpcName)
-          CALL HCO_ERROR( MSG, RC )
+          CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
           RETURN 
        ENDIF
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -237,7 +237,7 @@ CONTAINS
        ! Eventually add to dry deposition diagnostics
        ContName = 'DEPVEL_' // TRIM(HcoState%Spc(HcoID)%SpcName)
        Arr2D    => SINK
-       CALL Diagn_Update( am_I_Root,                &
+       CALL Diagn_Update( am_I_Root, HcoState,      &
                           cName   = TRIM(ContName), &
                           Array2D = Arr2D,          &
                           COL     = -1,             &
@@ -246,7 +246,7 @@ CONTAINS
     ENDDO !SpcID
 
     ! Leave w/ success
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
 
   END SUBROUTINE HCOX_SeaFlux_Run
 !EOC
@@ -352,7 +352,7 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    CALL HCO_ENTER ( 'Calc_SeaFlux (hcox_seaflux_mod.F90)', RC )
+    CALL HCO_ENTER( HcoState%Config%Err, 'Calc_SeaFlux (hcox_seaflux_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Init
@@ -536,18 +536,18 @@ CONTAINS
 
     ! Check exit status
     IF ( RC /= HCO_SUCCESS ) THEN
-       CALL HCO_ERROR ( MSG, RC )
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ENDIF
 
     ! Warning?
     IF ( WARN /= OLDWARN ) THEN
        WRITE(MSG,*) 'Temperature limited to ', TMAX, 'K'
-       CALL HCO_WARNING ( MSG, RC )
+       CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
     ENDIF
 
     ! Leave w/ success
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
 
   END SUBROUTINE Calc_SeaFlux
 !EOC
@@ -656,20 +656,20 @@ CONTAINS
     !=================================================================
 
     ! Extension Nr.
-    ExtNr = GetExtNr( TRIM(ExtName) )
+    ExtNr = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
     IF ( ExtNr <= 0 ) RETURN
  
     ! Enter 
-    CALL HCO_ENTER (  'HCOX_SeaFlux_Init (hcox_seaflux_mod.F90)', RC )
+    CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_SeaFlux_Init (hcox_seaflux_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     ERR = 'nOcSpc too low!'
 
     ! Verbose mode
     IF ( am_I_Root ) THEN
        MSG = 'Use air-sea flux emissions (extension module)'
-       CALL HCO_MSG( MSG,SEP1='-' )
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='-' )
        MSG = '   - Use species:'
-       CALL HCO_MSG( MSG )
+       CALL HCO_MSG(HcoState%Config%Err,MSG )
     ENDIF
 
     ! ---------------------------------------------------------------------- 
@@ -698,7 +698,7 @@ CONTAINS
 
     I = I + 1
     IF ( I > nOcSpc ) THEN
-       CALL HCO_ERROR ( ERR, RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, ERR, RC )
        RETURN
     ENDIF
 
@@ -713,7 +713,7 @@ CONTAINS
 
     I = I + 1
     IF ( I > nOcSpc ) THEN
-       CALL HCO_ERROR ( ERR, RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, ERR, RC )
        RETURN
     ENDIF
 
@@ -728,7 +728,7 @@ CONTAINS
 
     I = I + 1
     IF ( I > nOcSpc ) THEN
-       CALL HCO_ERROR ( ERR, RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, ERR, RC )
        RETURN
     ENDIF
 
@@ -769,7 +769,7 @@ CONTAINS
        IF ( OcSpecs(I)%HcoID > 0 .AND. am_I_Root ) THEN
           WRITE(MSG,*) '   - ', &
                TRIM(OcSpecs(I)%OcSpcName), OcSpecs(I)%HcoID
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
     ENDDO !I
 
@@ -779,7 +779,9 @@ CONTAINS
     ExtState%TSKIN%DoUse       = .TRUE.
     ExtState%ALBD%DoUse        = .TRUE.
     ExtState%WLI%DoUse         = .TRUE.
-    ExtState%FRAC_OF_PBL%DoUse = .TRUE.
+    IF ( HcoState%Options%PBL_DRYDEP ) THEN
+       ExtState%FRAC_OF_PBL%DoUse = .TRUE.
+    ENDIF
 !    ExtState%FRCLND%DoUse      = .TRUE.
     
     ! Enable extensions
@@ -788,7 +790,7 @@ CONTAINS
     ! Return w/ success
     IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  )
     IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HCOX_SeaFlux_Init
 !EOC

@@ -2759,7 +2759,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 
       PI     = 3.141592653589793e+0_fp
       PI180  = PI/180.e+0_fp
-      SZA    = acos(COSSZA)/PI180
+      SZA    = acos(MIN(MAX(COSSZA,-1._fp),1._fp))/PI180
 
       ! Offset used for GEOS-Chem slightly different
       !SOLFX  = 1.e+0_fp-(0.034e+0_fp*cos(dble(NDAY-186)*2.e+0_fp*PI/365.e+0_fp))

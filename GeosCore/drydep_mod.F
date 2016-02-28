@@ -313,6 +313,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_ERROR_MOD
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE Species_Mod,        ONLY : Species
 !
@@ -621,7 +622,7 @@
                Ptr2D => SAVE_DEPVEL(:,:,N)
 
                ! Update the deposition velocity diagostics 
-               CALL Diagn_Update( am_I_Root,
+               CALL Diagn_Update( am_I_Root, HcoState,
      &                            cID     = cID,               
      &                            Array2D = Ptr2D,
      &                            COL     = Input_Opt%DIAG_COLLECTION,

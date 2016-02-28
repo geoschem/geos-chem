@@ -342,8 +342,7 @@
       USE DIAG_MOD,           ONLY : AD58
 
       ! HEMCO update
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState, GetHcoDiagn
-      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
 !
 ! !INPUT PARAMETERS:
 !
@@ -421,7 +420,6 @@
       INTEGER                  :: ID_TRACER(Input_Opt%N_TRACERS)
 
       ! Pointers
-      TYPE(HCO_State), POINTER :: HcoState   => NULL()
       REAL(f4),        POINTER :: Ptr2D(:,:) => NULL()
 
       !=================================================================
@@ -442,7 +440,6 @@
       ITS_A_FULLCHEM_SIM  = Input_Opt%ITS_A_FULLCHEM_SIM
 
       ! Import emissions from HEMCO (through HEMCO state)
-      CALL GetHcoState( HcoState )
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
          CALL ERROR_STOP ( 'HcoState not defined!', LOC )
       ENDIF
@@ -882,6 +879,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_DAY,   GET_MONTH
 
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
 !
 ! !INPUT PARAMETERS:
@@ -1025,7 +1023,7 @@
 
          ! Import CH4 loss frequencies from HEMCO. The target will be 
          ! updated automatically by HEMCO (ckeller, 9/16/2014)
-         CALL HCO_GetPtr( am_I_Root, 'CH4_LOSS', CH4LOSS, RC )
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_LOSS', CH4LOSS, RC )
          IF ( RC /= HCO_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to CH4_LOSS', LOC )
 
@@ -1047,7 +1045,7 @@
       ! automatically by HEMCO (ckeller, 9/16/2014)
       !================================================================
       IF ( FIRSTCHEM ) THEN
-         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', BOH, RC )
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH', BOH, RC )
          IF ( RC /= HCO_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
       ENDIF

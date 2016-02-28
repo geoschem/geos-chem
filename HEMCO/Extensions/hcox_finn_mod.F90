@@ -194,6 +194,7 @@ CONTAINS
     USE HCO_FluxArr_mod,   ONLY : HCO_EmisAdd
     USE HCO_State_mod,     ONLY : HCO_GetHcoID
     USE HCO_Clock_mod,     ONLY : HcoClock_Get
+    USE HCO_Clock_mod,     ONLY : HcoClock_First
     USE HCO_Clock_mod,     ONLY : HcoClock_NewMonth, HcoClock_NewDay
 !
 ! !INPUT PARAMETERS:
@@ -217,7 +218,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER             :: N, NF, ID, HcoID
-    LOGICAL, SAVE       :: FIRST = .TRUE.
+!    LOGICAL, SAVE       :: FIRST = .TRUE.
     LOGICAL             :: DoRepeat
     INTEGER             :: Cnt
     CHARACTER(LEN=31)   :: PREFIX, FLDNME
@@ -240,13 +241,13 @@ CONTAINS
     IF ( .NOT. ExtState%FINN ) RETURN
 
     ! Enter 
-    CALL HCO_ENTER( 'HCOX_FINN_RUN (hcox_finn_mod.F90)', RC ) 
+    CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_FINN_RUN (hcox_finn_mod.F90)', RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------------
     ! Get pointers to data arrays 
     !-----------------------------------------------------------------------
-    IF ( FIRST ) THEN
+    IF ( HcoClock_First(HcoState%Clock,.TRUE.) ) THEN
        IF ( UseDay ) THEN
           PREFIX = 'FINN_DAILY_'
        ELSE
@@ -254,49 +255,51 @@ CONTAINS
        ENDIF
    
        FLDNME = TRIM(PREFIX) // 'VEGTYP1'
-       CALL HCO_GetPtr( am_I_Root, TRIM(FLDNME), VEGTYP1, RC )
+       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP1, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        FLDNME = TRIM(PREFIX) // 'VEGTYP2'
-       CALL HCO_GetPtr( am_I_Root, TRIM(FLDNME), VEGTYP2, RC )
+       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP2, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
    
        FLDNME = TRIM(PREFIX) // 'VEGTYP3'
-       CALL HCO_GetPtr( am_I_Root, TRIM(FLDNME), VEGTYP3, RC )
+       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP3, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
    
        FLDNME = TRIM(PREFIX) // 'VEGTYP4'
-       CALL HCO_GetPtr( am_I_Root, TRIM(FLDNME), VEGTYP4, RC )
+       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP4, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        FLDNME = TRIM(PREFIX) // 'VEGTYP5'
-       CALL HCO_GetPtr( am_I_Root, TRIM(FLDNME), VEGTYP5, RC )
+       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP5, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
    
        FLDNME = TRIM(PREFIX) // 'VEGTYP9'
-       CALL HCO_GetPtr( am_I_Root, TRIM(FLDNME), VEGTYP9, RC )
+       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP9, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       FIRST = .FALSE.
+!       FIRST = .FALSE.
     ENDIF
 
     ! For logfile
     IF ( am_I_Root ) THEN
        IF ( UseDay ) THEN
-          IF ( HcoClock_NewDay( .TRUE. ) ) THEN
-             CALL HcoClock_Get( cYYYY = cYYYY, cMM=cMM, cDD=cDD, RC=RC )
+          IF ( HcoClock_NewDay( HcoState%Clock, .TRUE. ) ) THEN
+             CALL HcoClock_Get( am_I_Root, HcoState%Clock, &
+                                cYYYY=cYYYY, cMM=cMM, cDD=cDD, RC=RC )
              IF ( RC/=HCO_SUCCESS ) RETURN
              WRITE(MSG, 100) cYYYY, cMM, cDD
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
 100          FORMAT( 'FINN daily emissions for year, month, day: ', &
                       i4, '/', i2.2, '/', i2.2 )
           ENDIF
        ELSE 
-          IF ( HcoClock_NewMonth( .TRUE. ) ) THEN
-             CALL HcoClock_Get( cYYYY = cYYYY, cMM=cMM, LMD=NDAYS, RC=RC)
+          IF ( HcoClock_NewMonth( HcoState%Clock, .TRUE. ) ) THEN
+             CALL HcoClock_Get( am_I_Root, HcoState%Clock, &
+                                cYYYY=cYYYY, cMM=cMM, LMD=NDAYS, RC=RC)
              IF ( RC/=HCO_SUCCESS ) RETURN
              WRITE(MSG, 110) cYYYY, cMM
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
 110          FORMAT( 'FINN monthly emissions for year, month: ', &
                       i4, '/', i2.2 )
           ENDIF
@@ -342,7 +345,7 @@ CONTAINS
           ELSEIF ( NF == 6 ) THEN
              THISTYP => VEGTYP9
           ELSE
-             CALL HCO_ERROR ( 'Undefined emission factor', RC )
+             CALL HCO_ERROR ( HcoState%Config%Err, 'Undefined emission factor', RC )
              RETURN
           ENDIF
 
@@ -381,26 +384,26 @@ CONTAINS
                          RC,        ExtNr=ExtNr, Cat=-1, Hier=-1 ) 
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'HCO_EmisAdd error: ' // TRIM(HcoState%Spc(HcoID)%SpcName)
-          CALL HCO_ERROR( MSG, RC )
+          CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
           RETURN 
        ENDIF
  
        ! Write out total (daily or monthly) emissions to log-file
        IF ( am_I_Root ) THEN
           IF ( UseDay ) THEN
-             IF ( HcoClock_NewDay( .TRUE. ) ) THEN
+             IF ( HcoClock_NewDay( HcoState%Clock, .TRUE. ) ) THEN
                 TOTAL = SUM(SpcArr(:,:)*HcoState%Grid%AREA_M2%Val(:,:))
                 TOTAL = TOTAL * 86400.0_hp * 1e-9_hp
                 WRITE(MSG, 120) HcoState%Spc(HcoID)%SpcName, TOTAL
-                CALL HCO_MSG(MSG)
+                CALL HCO_MSG(HcoState%Config%Err,MSG)
 120             FORMAT( 'SUM biomass ', a4,1x,': ', f11.4,1x,'[Tg]' )
              ENDIF
           ELSE
-             IF ( HcoClock_NewMonth( .TRUE. ) ) THEN
+             IF ( HcoClock_NewMonth( HcoState%Clock, .TRUE. ) ) THEN
                 TOTAL = SUM(SpcArr(:,:)*HcoState%Grid%AREA_M2%Val(:,:))
                 TOTAL = TOTAL * NDAYS * 86400.0_hp * 1e-9_hp
                 WRITE(MSG, 130) HcoState%Spc(HcoID)%SpcName, TOTAL
-                CALL HCO_MSG(MSG)
+                CALL HCO_MSG(HcoState%Config%Err,MSG)
 130             FORMAT( 'SUM biomass ', a4,1x,': ', f11.4,1x,'[Tg]' )
              ENDIF
           ENDIF
@@ -412,7 +415,7 @@ CONTAINS
     THISTYP   => NULL()
 
     ! Leave w/ success
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HCOX_FINN_Run
 !EOC
@@ -493,11 +496,11 @@ CONTAINS
     !=======================================================================
 
     ! Extension Nr.
-    ExtNr = GetExtNr( TRIM(ExtName) )
+    ExtNr = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
     IF ( ExtNr <= 0 ) RETURN
  
     ! Enter 
-    CALL HCO_ENTER( 'HCOX_FINN_INIT (hcox_finn_mod.F90)', RC )
+    CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_FINN_INIT (hcox_finn_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------------
@@ -516,7 +519,7 @@ CONTAINS
     !----------------------------------------------------------------------- 
 
     ! Try to read hydrophilic fractions of BC. Defaults to 0.2.
-    CALL GetExtOpt ( ExtNr, 'hydrophilic BC', &
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'hydrophilic BC', &
                      OptValSp=ValSp, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) THEN
@@ -526,7 +529,7 @@ CONTAINS
     ENDIF
 
     ! Try to read hydrophilic fractions of OC. Defaults to 0.5.
-    CALL GetExtOpt ( ExtNr, 'hydrophilic OC', &
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'hydrophilic OC', &
                      OptValSp=ValSp, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) THEN
@@ -540,12 +543,13 @@ CONTAINS
          BCPIfrac < 0.0_sp .OR. BCPIfrac > 1.0_sp     ) THEN
        WRITE(MSG,*) 'hydrophilic fractions must be between 0-1: ', &
           OCPIfrac, BCPIfrac
-       CALL HCO_ERROR( MSG, RC )
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ENDIF
  
     ! Use daily data?
-    CALL GetExtOpt ( ExtNr, 'FINN_daily', OptValBool=UseDay, FOUND=FOUND, RC=RC ) 
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'FINN_daily', &
+                     OptValBool=UseDay, FOUND=FOUND, RC=RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) THEN 
        UseDay = .FALSE.
@@ -558,7 +562,7 @@ CONTAINS
     ! FINN species names
     ALLOCATE ( FINN_SPEC_NAME ( N_SPEC ), STAT=AS )
     IF ( AS/=0 ) THEN
-       CALL HCO_ERROR( 'Cannot allocate FINN_SPEC_NAME', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate FINN_SPEC_NAME', RC )
        RETURN
     ENDIF
     FINN_SPEC_NAME = ''
@@ -567,7 +571,7 @@ CONTAINS
     ! scale factors for all FINN species.
     ALLOCATE ( FINN_EMFAC ( N_SPEC, N_EMFAC ), STAT=AS )
     IF ( AS/=0 ) THEN
-       CALL HCO_ERROR( 'Cannot allocate FINN_EMFAC', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate FINN_EMFAC', RC )
        RETURN
     ENDIF
     FINN_EMFAC = 0.0_dp
@@ -575,7 +579,7 @@ CONTAINS
     ! FinnIDs maps the FINN species onto the suite of specified species.
     ALLOCATE ( FinnIDs ( N_SPEC ), STAT=AS )
     IF ( AS/=0 ) THEN
-       CALL HCO_ERROR( 'Cannot allocate FinnIDs', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate FinnIDs', RC )
        RETURN
     ENDIF
     FinnIDs = -1
@@ -682,9 +686,9 @@ CONTAINS
     ! Write to log file
     IF ( am_I_Root ) THEN
        MSG = 'Use FINN extension'
-       CALL HCO_MSG( MSG, SEP1='-' )
+       CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
        WRITE(MSG,*) '   - Use daily data          : ', UseDay
-       CALL HCO_MSG( MSG )
+       CALL HCO_MSG(HcoState%Config%Err,MSG )
     ENDIF
 
     ! Get HEMCO species IDs of all species specified in configuration file
@@ -692,33 +696,38 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( nSpc == 0 ) THEN
        MSG = 'No FINN species specified'
-       CALL HCO_ERROR ( MSG, RC ) 
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC ) 
        RETURN
     ENDIF
 
     ! Get species scale factors
-    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'Scaling', 1.0_sp, SpcScal, RC )
+    CALL GetExtSpcVal( HcoState%Config, ExtNr, nSpc, &
+                       SpcNames, 'Scaling', 1.0_sp, SpcScal, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get species mask fields
-    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'ScaleField', HCOX_NOSCALE, SpcScalFldNme, RC )
+    CALL GetExtSpcVal( HcoState%Config, ExtNr, nSpc, &
+                       SpcNames, 'ScaleField', HCOX_NOSCALE, SpcScalFldNme, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Error trap: in previous versions, CO, POA and NAP scale factor were given as
     ! 'CO scale factor', etc. Make sure those attributes do not exist any more!
-    CALL GetExtOpt ( ExtNr, 'CO scale factor', OptValSp=ValSp, FOUND=FOUND, RC=RC )
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'CO scale factor', &
+                     OptValSp=ValSp, FOUND=FOUND, RC=RC )
     IF ( .NOT. FOUND ) THEN
-       CALL GetExtOpt ( ExtNr, 'POA scale factor', OptValSp=ValSp, FOUND=FOUND, RC=RC )
+       CALL GetExtOpt( HcoState%Config, ExtNr, 'POA scale factor', &
+                        OptValSp=ValSp, FOUND=FOUND, RC=RC )
     ENDIF
     IF ( .NOT. FOUND ) THEN
-       CALL GetExtOpt ( ExtNr, 'NAP scale factor', OptValSp=ValSp, FOUND=FOUND, RC=RC )
+       CALL GetExtOpt( HcoState%Config, ExtNr, 'NAP scale factor', &
+                        OptValSp=ValSp, FOUND=FOUND, RC=RC )
     ENDIF
     IF ( FOUND ) THEN
        MSG = 'Found old definition of CO, POA and/or NAP scale factor! '  // & 
              'This version of HEMCO expects species scale factors to be ' // &
              'set as `Scaling_XX` instead of `XX scale factor`. '         // &
              'Please update the FINN settings section accordingly.'
-       CALL HCO_ERROR ( MSG, RC )
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ENDIF
 
@@ -772,11 +781,11 @@ CONTAINS
                 IF ( am_I_Root ) THEN 
                    MSG = '   - FINN species ' // TRIM(FINN_SPEC_NAME(N)) // &
                          '     will be emitted as ' // TRIM(SpcNames(L))
-                   CALL HCO_MSG( MSG )
+                   CALL HCO_MSG(HcoState%Config%Err,MSG )
                 WRITE(MSG,*) '     --> Uniform scale factor : ', SpcScal(N)
-                CALL HCO_MSG( MSG )
+                CALL HCO_MSG(HcoState%Config%Err,MSG )
                 WRITE(MSG,*) '     --> Scale field          : ', TRIM(SpcScalFldNme(N)) 
-                CALL HCO_MSG( MSG )
+                CALL HCO_MSG(HcoState%Config%Err,MSG )
                 ENDIF   
 
                 ! Reset variables
@@ -807,7 +816,7 @@ CONTAINS
                       FINN_EMFAC(N,:) = AdjFact / EMFAC_IN(M,:)
                       IF ( am_I_Root ) THEN
                          WRITE( MSG, 200 ) TRIM( FINN_SPEC_NAME(N)) 
-                         CALL HCO_MSG( MSG )
+                         CALL HCO_MSG(HcoState%Config%Err,MSG )
                       ENDIF
                       EXIT
 
@@ -829,7 +838,7 @@ CONTAINS
                       IS_NMOC = .TRUE.
                       IF ( am_I_Root ) THEN
                          WRITE( MSG, 201 ) TRIM( FINN_SPEC_NAME(N) )
-                         CALL HCO_MSG( MSG )
+                         CALL HCO_MSG(HcoState%Config%Err,MSG )
                       ENDIF
                       EXIT
                    ENDIF
@@ -906,7 +915,7 @@ CONTAINS
        ! in FINN.
        IF ( .NOT. Matched ) THEN
           MSG = 'Species '// TRIM(SpcName) //' not found in FINN'
-          CALL HCO_ERROR( MSG, RC )
+          CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
           RETURN
        ENDIF
     ENDDO !L
@@ -919,7 +928,7 @@ CONTAINS
     IF ( ALLOCATED(NMOC_RATIO_IN) ) DEALLOCATE( NMOC_RATIO_IN )
  
     ! Return w/ success
-    CALL HCO_LEAVE( RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
  
   END SUBROUTINE HCOX_FINN_Init
 !EOC

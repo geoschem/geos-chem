@@ -155,15 +155,15 @@ CONTAINS
     ! HCOX_GC_RnPbBe_RUN begins here!
     !=======================================================================
 
-    ! Sanity check: return if extension not turned on
-    IF ( .NOT. ExtState%Gc_RnPbBe ) RETURN
-
     ! Enter
-    CALL HCO_ENTER( 'HCOX_GC_RnPbBe_Run (hcox_gc_RnPbBe_mod.F90)', RC )
+    CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_GC_RnPbBe_Run (hcox_gc_RnPbBe_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Set error flag
     !ERR = .FALSE.
+
+    ! Sanity check: return if extension not turned on
+    IF ( .NOT. ExtState%Gc_RnPbBe ) RETURN
 
     ! Emission timestep [s]
     DTSRCE = HcoState%TS_EMIS 
@@ -317,7 +317,7 @@ CONTAINS
        CALL HCO_EmisAdd( am_I_Root, HcoState, Arr2D, IDTRn, RC, ExtNr=ExtNr )
        Arr2D => NULL()
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( 'HCO_EmisAdd error: EmisRn', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: EmisRn', RC )
           RETURN 
        ENDIF
    
@@ -386,7 +386,7 @@ CONTAINS
        CALL HCO_EmisAdd( am_I_Root, HcoState, Arr3D, IDTBe7, RC, ExtNr=ExtNr )
        Arr3D => NULL()
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( 'HCO_EmisAdd error: EmisBe7', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: EmisBe7', RC )
           RETURN 
        ENDIF
    
@@ -397,7 +397,7 @@ CONTAINS
     !=======================================================================
 
     ! Return w/ success
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HCOX_Gc_RnPbBe_Run
 !EOC
@@ -455,11 +455,11 @@ CONTAINS
     !=======================================================================
 
     ! Get the extension number
-    ExtNr = GetExtNr( TRIM( ExtName ) )
+    ExtNr = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
     IF ( ExtNr <= 0 ) RETURN
 
     ! Enter HEMCO
-    CALL HCO_ENTER( 'HcoX_GC_RnPbBe_Init (hcox_gc_RnPbBe_mod.F90)', RC )
+    CALL HCO_ENTER( HcoState%Config%Err, 'HcoX_GC_RnPbBe_Init (hcox_gc_RnPbBe_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Set species IDs      
@@ -469,13 +469,13 @@ CONTAINS
     ! Verbose mode
     IF ( am_I_Root ) THEN
        MSG = 'Use gc_RnPbBe emissions module (extension module)'
-       CALL HCO_MSG( MSG )
+       CALL HCO_MSG(HcoState%Config%Err,MSG )
 
        MSG = 'Use the following species (Name: HcoID):'
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
        DO N = 1, nSpc
           WRITE(MSG,*) TRIM(SpcNames(N)), ':', HcoIDs(N)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDDO
     ENDIF
 
@@ -493,17 +493,17 @@ CONTAINS
 
     ! WARNING: Rn tracer is not found!
     IF ( IDTRn <= 0 .AND. am_I_Root ) THEN
-       CALL HCO_WARNING( 'Cannot find 222Rn tracer in list of species!', RC )
+       CALL HCO_WARNING(HcoState%Config%Err, 'Cannot find 222Rn tracer in list of species!', RC )
     ENDIF
     
     ! WARNING: Be7 tracer is not found
     IF ( IDTBe7 <= 0 .AND. am_I_Root ) THEN
-       CALL HCO_WARNING( 'Cannot find 7Be tracer in list of species!', RC )
+       CALL HCO_WARNING(HcoState%Config%Err, 'Cannot find 7Be tracer in list of species!', RC )
     ENDIF
 
     ! ERROR: No tracer defined
     IF ( IDTRn <= 0 .AND. IDTBe7 <= 0 ) THEN
-       CALL HCO_ERROR( 'Cannot use RnPbBe extension: no valid species!', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'Cannot use RnPbBe extension: no valid species!', RC )
     ENDIF
 
     ! Activate met fields required by this extension
@@ -524,7 +524,7 @@ CONTAINS
     IF ( IDTRn > 0 ) THEN
        ALLOCATE( EmissRn( HcoState%Nx, HcoState%NY ), STAT=RC )
        IF ( RC /= 0 ) THEN
-          CALL HCO_ERROR ( 'Cannot allocate EmissRn', RC )
+          CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EmissRn', RC )
           RETURN
        ENDIF 
     ENDIF
@@ -532,7 +532,7 @@ CONTAINS
     IF ( IDTBe7 > 0 ) THEN
        ALLOCATE( EmissBe7( HcoState%Nx, HcoState%NY, HcoState%NZ ), STAT=RC )
        IF ( RC /= 0 ) THEN
-          CALL HCO_ERROR ( 'Cannot allocate EmissBe7', RC )
+          CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EmissBe7', RC )
           RETURN
        ENDIF 
        IF ( RC /= 0 ) RETURN
@@ -540,21 +540,21 @@ CONTAINS
        ! Array for latitudes (Lal & Peters data)
        ALLOCATE( LATSOU( 10 ), STAT=RC )
        IF ( RC /= 0 ) THEN
-          CALL HCO_ERROR ( 'Cannot allocate LATSOU', RC )
+          CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate LATSOU', RC )
           RETURN
        ENDIF 
    
        ! Array for pressures (Lal & Peters data)
        ALLOCATE( PRESOU( 33 ), STAT=RC )
        IF ( RC /= 0 ) THEN
-          CALL HCO_ERROR ( 'Cannot allocate PRESOU', RC )
+          CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate PRESOU', RC )
           RETURN
        ENDIF 
    
        ! Array for 7Be emissions ( Lal & Peters data)
        ALLOCATE( BESOU( 10, 33 ), STAT=RC )
        IF ( RC /= 0 ) THEN
-          CALL HCO_ERROR ( 'Cannot allocate BESOU', RC )
+          CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate BESOU', RC )
           RETURN
        ENDIF 
        
@@ -568,7 +568,7 @@ CONTAINS
     IF ( ALLOCATED( HcoIDs   ) ) DEALLOCATE( HcoIDs   )
     IF ( ALLOCATED( SpcNames ) ) DEALLOCATE( SpcNames )
 
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
 
   END SUBROUTINE HCOX_Gc_RnPbBe_Init
 !EOC
