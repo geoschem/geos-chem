@@ -375,6 +375,7 @@ CONTAINS
        ENDDO
     ENDIF
 
+#if defined( DEVEL )
 !------------------------------------------------------------------------------
 ! Initialize Diagnostics Per the new diagnostic package | M. Long 1-21-15
 !------------------------------------------------------------------------------
@@ -411,6 +412,7 @@ CONTAINS
                CALL ERROR_STOP( MSG, LOC ) 
             ENDIF
       ENDDO
+#endif
 
       IF (am_I_Root) THEN
          write(*,'(a)') ' KPP Reaction Reference '

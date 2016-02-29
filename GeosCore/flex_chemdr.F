@@ -393,15 +393,19 @@
       ! mje Set up integration convergence conditions
       !RTOL = 1.d-1
       !ATOL = 1.d0
+#if defined (UCX )
+      RTOL = 2e-2_dp
+#else
       RTOL = 2e-1_dp
+#endif
       ATOL = 1e-2_dp
       
       ! mje Set up internal integrator parameters 
       ICNTRL = 0
       RCNTRL = 0.
       
-      ICNTRL(1) = 1             ! Autonomous
-      ICNTRL(2) = 0             ! Nonautonomous
+      ICNTRL(1) = 1	! 0 - non-autonomous, 1 - autonomous
+      ICNTRL(2) = 0	! 0 - vector tolerances, 1 - scalars
       
       ! Select Integrator
       ! ICNTRL(3)  -> selection of a particular method.
@@ -413,7 +417,7 @@
       ! = 4 :  method is  Rodas3
       ! = 5:   method is  Rodas4
       ICNTRL(3) = 4
-      ICNTRL(7) = 1             ! No adjoint
+      ICNTRL(7) = 1     ! No adjoint
 
       ! mje setup some internal diagnostics
       AVERAGEVAR(:) = 0.d0
@@ -441,11 +445,9 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, start, finish )
-!!$OMP+PRIVATE( PHOTOL )
-!$OMP+PRIVATE( DERIV )
+!$OMP+PRIVATE( I, J, L, N )
+!$OMP+PRIVATE( start, finish, YLAT, MASS )
 !$OMP+PRIVATE( ISTATUS, RSTATE, IERR )
-!!$OMP+PRIVATE( ITEMPK, RO1D, RO1DplH2O, RO1DplH2, H2O )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -453,6 +455,14 @@
 
          ! mje If we are not in the troposphere don't do the chemistry!
          IF (.not. ITS_IN_THE_CHEMGRID(I,J,L,State_Met)) CYCLE
+
+         ! Skipping buffer zone (lzh, 08/10/2014)
+         IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
+           IF ( J <=         Input_Opt%NESTED_J0W ) CYCLE
+           IF ( J >  JJPAR - Input_Opt%NESTED_J0E ) CYCLE
+           IF ( I <=         Input_Opt%NESTED_I0W ) CYCLE
+           IF ( I >  IIPAR - Input_Opt%NESTED_I0E ) CYCLE
+         ENDIF
 
          call cpu_time(start)
          HET(:,:) = 0.
@@ -491,14 +501,18 @@
          ! mje Set up the initial conditions of the variable species
          ! mje The Integrator works in # cm-3
          DO N=1,NSPEC
-            IF ( CSPECTOKPP(N) .eq. 0) CYCLE
-            C(N)=State_Chm%Species(I,J,L,CSPECTOKPP(N))
+            IF ( CSPECTOKPP(N) .eq. 0) THEN
+               C(N)=0d0
+            ELSE
+               C(N)=State_Chm%Species(I,J,L,CSPECTOKPP(N))
+            ENDIF
          ENDDO
 
          ! Debug
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-            DO N = 1,NSPEC
-               write(*,'(2a,e12.4,i)') '<> b ', SPC_NAMES(N), C(N), N
+            DO N = 1,Input_Opt%N_SPECIES
+               write(*,'(2a,e12.4)') '<> b ', NAMEGAS(N),
+     &                                        State_Chm%Species(I,J,L,N)
             ENDDO
          ENDIF
 
@@ -536,7 +550,10 @@
          CALL Update_RCONST( )
          call cpu_time(finish)
          rtim = rtim + finish - start
-         GLOB_RCONST(I,J,L,:) = RCONST(:)
+
+         ! VAR and FIX are chunks of array C (mps, 2/24/16)
+         VAR(:) = C(1:NVAR)
+         FIX(:) = C(NVAR+1:NSPEC)
 
          ! mje Integrate the box forwards
          call cpu_time(start)
@@ -544,7 +561,6 @@
      &                   RCNTRL, ISTATUS, RSTATE, IERR )
          call cpu_time(finish)
          itim = itim + finish - start
-
 
          ! Try another time if it failed
 !         IF ( IERR < 0 ) THEN
@@ -578,6 +594,15 @@
          !GLOB_DERIV(I,J,L,:)=DERIV
          !GLOB_RATES(I,J,L,:)=A
 
+         ! Copy VAR and FIX back into C (mps, 2/24/16)
+         C(1:NVAR)       = VAR(:)
+         C(NVAR+1:NSPEC) = FIX(:)
+
+         ! save next integration time step
+         HSAVE_KPP(I,J,L) = RSTATE(Nhnew)
+
+         GLOB_RCONST(I,J,L,:) = RCONST(:)
+
          ! mje some simple diagnostics to check that things make sense
          ! mje these can be removed once we are happy with everything
          DO N=1,NSPEC
@@ -585,13 +610,6 @@
      &                    C(N)*State_Met%AD(I,J,L)
          ENDDO
          MASS=MASS+State_Met%AD(I,J,L)
-
-         ! Debug
-         IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-            DO N = 1,NSPEC
-               write(*,'(2a,e12.4)') '<> a ', SPC_NAMES(N), C(N)
-            ENDDO
-         ENDIF
 
          ! mje Check we have no negative values and copy the concentrations
          ! mje calculated into State_Chm%Species
@@ -601,8 +619,13 @@
             State_Chm%Species(I,J,L,CSPECTOKPP(N))= real(C(N),kind=fp)
          ENDDO
 
-         ! save next integration time step
-         HSAVE_KPP(I,J,L) = RSTATE(Nhnew)
+         ! Debug
+         IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
+            DO N = 1,Input_Opt%N_SPECIES
+               write(*,'(2a,e12.4)') '<> a ', NAMEGAS(N),
+     &                                        State_Chm%Species(I,J,L,N)
+            ENDDO
+         ENDIF
 
       ENDDO
       ENDDO
@@ -697,6 +720,7 @@
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! FOR DIAGNOSTIC PURPOSES ONLY:
+#if defined( DEVEL )
       ! mje  STT currently in kg / grid box convert to v/v
       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT)
 
@@ -742,7 +766,6 @@
      &                          'Flex_Chemdr')
             ENDIF
       ENDDO
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Write out Rate values
       DO N=1,NREACT
@@ -795,6 +818,8 @@
      &     Array3D = SCOEFF(:,:,:,3),
      &     COL     = Input_Opt%DIAG_COLLECTION,
      &     RC      = HCRC )
+#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! mje set rid of the pointers created
       NULLIFY (STT)

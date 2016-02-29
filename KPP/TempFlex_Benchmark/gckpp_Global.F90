@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Global.f90
-! Time                 : Wed Jan 27 16:09:22 2016
-! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/v11-01c_Benchmark
+! Time                 : Wed Feb 24 10:51:29 2016
+! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/v1101_Benchmark
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -38,8 +38,8 @@ MODULE gckpp_Global
 ! FIX - Concentrations of fixed species (global)
   REAL(kind=dp) :: FIX(NFIX)
 ! VAR, FIX are chunks of array C
-      EQUIVALENCE( C(1),VAR(1) )
-      EQUIVALENCE( C(158),FIX(1) )
+!      EQUIVALENCE( C(1),VAR(1) )
+!      EQUIVALENCE( C(158),FIX(1) )
 ! RCONST - Rate constants (global)
   REAL(kind=dp) :: RCONST(NREACT)
 ! TIME - Current integration time
@@ -71,21 +71,11 @@ MODULE gckpp_Global
 
 ! INLINED global variable declarations
 
-      REAL(kind=dp), PARAMETER :: SMAL2 = 1.0d-99
-      REAL(kind=dp) :: DRYLOSS(NSPEC), EMISS(NSPEC), HET(NSPEC,3)
-      REAL(kind=dp) :: NUMDEN, H2O, PRESS, PHOTOL(1000)
-      INTEGER       :: NUMPHOT
-      INTEGER       :: IX,IY,IZ
-! For Heterogeneous rate calculations (MSL, Jan 30, 2014)
-      INTEGER       N_AER
-      REAL(dp), ALLOCATABLE :: AER_AREA(:), AER_RADIUS(:)
-      REAL(dp) AIRDEN, MW, HET_HO2
+      REAL(kind=dp) :: HET(NSPEC,2), PHOTOL(1000)
+      REAL(kind=dp) :: NUMDEN, H2O, PRESS
 
-!!$OMP THREADPRIVATE(VAR, C , TEMP, NUMDEN, EMISS, DRYLOSS)
-!!$OMP THREADPRIVATE( IX, IY, IZ )
-
-! INLINED global variable declarations
-
+!$OMP THREADPRIVATE(C,VAR,FIX,RCONST,TIME)
+!$OMP THREADPRIVATE(TEMP,NUMDEN,H2O,PRESS,PHOTOL,HET)
 
 END MODULE gckpp_Global
 

@@ -23,7 +23,7 @@ MODULE GCKPP_HETRATES
   LOGICAL, SAVE      :: KII_KI, PSCBOX, STRATBOX
   REAL(fp), SAVE     :: TEMPK, RELHUM, XSTKCF
   REAL(fp)           :: VPRESH2O, CONSEXP
-  REAL(fp), SAVE     :: TRC_NIT, TRC_SO4, TRC_HBr, TRC_HOBr
+  REAL(fp), SAVE     :: TRC_NIT, TRC_SO4, TRC_HBr, TRC_HOBr, XNM_SO4, XNM_NIT
   REAL(fp), SAVE     :: GAMMA_HO2, XTEMP, XDENA, ADJUSTEDRATE
   REAL(fp), SAVE     :: cld_brno3_rc, KI_HBR, KI_HOBr, QLIQ, QICE
   REAL(fp), SAVE, DIMENSION(25)  :: XAREA, XRADI
@@ -39,14 +39,23 @@ MODULE GCKPP_HETRATES
   REAL(fp)           :: EDUCTCONC, LIMITCONC
 #endif
 
-!!!$OMP THREADPRIVATE(N,NATSURFACE,ADJUSTEDRATE,SAFEDIV,KII_KI,PSCBOX,STRATBOX)
-!!!$OMP THREADPRIVATE(KHETI_SLA, TEMPK, ABSHUM, XSTKCF)
-!!!$OMP THREADPRIVATE(TRC_NIT, TRC_SO4, TRC_HBr, TRC_HOBr)
-!!!$OMP THREADPRIVATE(SPC_N2O5, SPC_H2O,  SPC_HCl,   SPC_HBr )
-!!!$OMP THREADPRIVATE(SPC_HOCl, SPC_HOBr, SPC_ClNO3, SPC_BrNO3)
-!!!$OMP THREADPRIVATE(GAMMA_HO2,XTEMP,XDENA,NAERO)
-!!!$OMP THREADPRIVATE(CLD_BRNO3_RC, KI_HBr, KI_HOBr, QLIQ, QICE)
-!!!$OMP THREADPRIVATE(XAREA, XRADI)
+!$OMP THREADPRIVATE( KII_KI,  NAERO,        N                        )
+!$OMP THREADPRIVATE( RELHUM,  CONSEXP,      VPRESH2O                 )
+!$OMP THREADPRIVATE( PSCBOX,  STRATBOX,     NATSURFACE               )
+!$OMP THREADPRIVATE( TRC_SO4, TRC_NIT,      TRC_HBr,    TRC_HOBr     )
+!$OMP THREADPRIVATE( XNM_SO4, XNM_NIT                                )
+!$OMP THREADPRIVATE( XAREA,   XRADI,        TEMPK,      XTEMP        )
+!$OMP THREADPRIVATE( XDENA,   GAMMA_HO2,    QICE,       QLIQ         )
+!$OMP THREADPRIVATE( DUMMY,   ki_hbr,       ki_hobr,    cld_brno3_rc )
+!$OMP THREADPRIVATE( SAFEDIV, hbr_rtemp,    hobr_rtemp               )
+!$OMP THREADPRIVATE( XSTKCF,  ADJUSTEDRATE )!, HETHOBr_ice, HETHBr_ice  )
+#if defined( UCX )
+!$OMP THREADPRIVATE( SPC_N2O5, SPC_H2O,  SPC_HCl,   SPC_HBr   )
+!$OMP THREADPRIVATE( SPC_HOCl, SPC_HOBr, SPC_ClNO3, SPC_BrNO3 )
+!$OMP THREADPRIVATE( KHETI_SLA,     PSCEDUCTCONC                 )
+!$OMP THREADPRIVATE( PSCIDX,        EDUCTCONC,     LIMITCONC     )
+#endif
+
   CONTAINS
 
 ! Need 
@@ -101,88 +110,92 @@ MODULE GCKPP_HETRATES
       RELHUM = RELHUM / VPRESH2O 
 
       ! Get tracer concentrations [kg]
-      IND        = get_indx('SO4',IO%ID_TRACER,IO%TRACER_NAME)
+      IND = get_indx('SO4',IO%ID_TRACER,IO%TRACER_NAME)
       IF (IND .le. 0) THEN
-         TRC_SO4    = 0._fp
+         TRC_SO4    = 0.0e+0_fp
+         XNM_SO4    = 0.0e+0_fp
       ELSE
          TRC_SO4    = SC%Tracers(I,J,L,IND)
+         XNM_SO4    = IO%XNUMOL(IND)
       ENDIF
 
-      IND        = get_indx('NIT',IO%ID_TRACER,IO%TRACER_NAME)
+      IND = get_indx('NIT',IO%ID_TRACER,IO%TRACER_NAME)
       IF (IND .le. 0) THEN
-         TRC_NIT    = 0._fp
+         TRC_NIT    = 0.0e+0_fp
+         XNM_NIT    = 0.0e+0_fp
       ELSE
          TRC_NIT    = SC%Tracers(I,J,L,IND)
+         XNM_NIT    = IO%XNUMOL(IND)
       ENDIF
 
-      IND        = get_indx('HBr',IO%ID_TRACER,IO%TRACER_NAME)
+      IND = get_indx('HBr',IO%ID_TRACER,IO%TRACER_NAME)
       IF (IND .le. 0) THEN
-         TRC_HBr    = 0._fp
+         TRC_HBr    = 0.0e+0_fp
       ELSE
          TRC_HBr    = SC%Tracers(I,J,L,IND)
       ENDIF
 
-      IND        = get_indx('HOBr',IO%ID_TRACER,IO%TRACER_NAME)
+      IND = get_indx('HOBr',IO%ID_TRACER,IO%TRACER_NAME)
       IF (IND .le. 0) THEN
-         TRC_HOBr   = 0._fp
+         TRC_HOBr   = 0.0e+0_fp
       ELSE
          TRC_HOBr   = SC%Tracers(I,J,L,IND)
       ENDIF
 
 #if defined( UCX )
       ! Get species concentrations [molec/cm3]
-      IND     = get_indx('N2O5',SC%Spec_ID,SC%Spec_Name)
+      IND = get_indx('N2O5',SC%Spec_ID,SC%Spec_Name)
       IF (IND .le. 0) THEN
-         SPC_N2O5   = 0._fp
+         SPC_N2O5   = 0.0e+0_fp
       ELSE
          SPC_N2O5   = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND      = get_indx('H2O',SC%Spec_ID,SC%Spec_Name)
+      IND = get_indx('H2O',SC%Spec_ID,SC%Spec_Name)
       IF (IND .le. 0) THEN
-         SPC_H2O    = 0._fp
+         SPC_H2O    = 0.0e+0_fp
       ELSE
          SPC_H2O    = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND     = get_indx('HCl',SC%Spec_ID,SC%Spec_Name)
+      IND = get_indx('HCl',SC%Spec_ID,SC%Spec_Name)
       IF (IND .le. 0) THEN
-         SPC_HCl    = 0._fp
+         SPC_HCl    = 0.0e+0_fp
       ELSE
          SPC_HCl    = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND     = get_indx('HBr',SC%Spec_ID,SC%Spec_Name)
+      IND = get_indx('HBr',SC%Spec_ID,SC%Spec_Name)
       IF (IND .le. 0) THEN
-         SPC_HBr    = 0._fp
+         SPC_HBr    = 0.0e+0_fp
       ELSE
          SPC_HBr    = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND     = get_indx('ClNO3',SC%Spec_ID,SC%Spec_Name)
+      IND = get_indx('ClNO3',SC%Spec_ID,SC%Spec_Name)
       IF (IND .le. 0) THEN
-         SPC_ClNO3  = 0._fp
+         SPC_ClNO3  = 0.0e+0_fp
       ELSE
          SPC_ClNO3  = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND     = get_indx('BrNO3',SC%Spec_ID,SC%Spec_Name)
+      IND = get_indx('BrNO3',SC%Spec_ID,SC%Spec_Name)
       IF (IND .le. 0) THEN
-         SPC_BrNO3  = 0._fp
+         SPC_BrNO3  = 0.0e+0_fp
       ELSE
          SPC_BrNO3  = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND     = get_indx('HOCl',SC%Spec_ID,SC%Spec_Name)
+      IND = get_indx('HOCl',SC%Spec_ID,SC%Spec_Name)
       IF (IND .le. 0) THEN
-         SPC_HOCl   = 0._fp
+         SPC_HOCl   = 0.0e+0_fp
       ELSE
          SPC_HOCl   = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND     = get_indx('HOBr',SC%Spec_ID,SC%Spec_Name)
+      IND = get_indx('HOBr',SC%Spec_ID,SC%Spec_Name)
       IF (IND .le. 0) THEN
-         SPC_HOBr   = 0._fp
+         SPC_HOBr   = 0.0e+0_fp
       ELSE
          SPC_HOBr   = SC%Species(I,J,L,IND)
       ENDIF
@@ -226,6 +239,7 @@ MODULE GCKPP_HETRATES
       XAREA(1:SC%nAero) = SC%AeroArea(I,J,L,:)
       XRADI(1:SC%nAero) = SC%AeroRadi(I,J,L,:)
 
+      TEMPK = SM%T(I,J,L)
       XTEMP = sqrt(SM%T(I,J,L))
       XDENA = SM%AIRNUMDEN(I,J,L)
 
@@ -275,7 +289,7 @@ MODULE GCKPP_HETRATES
       !  for cold and mixed clouds. (jpp, 6/16/2011)
       ! ----------------------------------------------
       IF (.not.PSCBOX) THEN
-         DUMMY = 0._fp
+         DUMMY = 0.0e+0_fp
          CALL cldice_hbrhobr_rxn( I,J,L,XDENA,QICE,TRC_HBr,TRC_HOBr, &
               ki_hbr, ki_hobr, DUMMY, SM )
       ELSE
@@ -508,10 +522,16 @@ MODULE GCKPP_HETRATES
     END SUBROUTINE SET_HET
     
     REAL(fp) FUNCTION HETNO3(A,B)
+
       REAL(fp) A,B
-      
-      HETNO3=0._fp
+
+      ! Initialize
+      HETNO3       = 0.0e+0_fp
+      ADJUSTEDRATE = 0.0e+0_fp
+
+      ! Loop over aerosol types
       DO N = 1, NAERO
+
          XSTKCF = B
          IF (N.eq.13) THEN
             ! Calculate for stratospheric liquid aerosol
@@ -520,7 +540,8 @@ MODULE GCKPP_HETRATES
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSE
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP,(A**0.5_FP))
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                               (A**0.5_FP))
          ENDIF
          
          IF (KII_KI .and. N.gt.12) THEN
@@ -538,10 +559,16 @@ MODULE GCKPP_HETRATES
     END FUNCTION HETNO3
     
     REAL(fp) FUNCTION HETNO2(A,B)
+
       REAL(fp) A,B
-      HETNO2=0
-      
+
+      ! Initialize
+      HETNO2       = 0.0e+0_fp
+      ADJUSTEDRATE = 0.0e+0_fp
+
+      ! Loop over aerosol types
       DO N = 1, NAERO
+
          XSTKCF = B
          IF (N.eq.13) THEN
             ! Calculate for stratospheric liquid aerosol
@@ -550,7 +577,8 @@ MODULE GCKPP_HETRATES
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSE
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP,(A**0.5_FP))
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                               (A**0.5_FP))
          ENDIF
          
          IF (KII_KI .and. N.gt.12) THEN
@@ -568,12 +596,14 @@ MODULE GCKPP_HETRATES
     END FUNCTION HETNO2
 
     REAL(fp) FUNCTION HETHO2(A,B)
-      REAL(fp) A,B
-      HETHO2=0.
-      ADJUSTEDRATE = 0.
 
-!      write(*,'(a)') 'HETHO2 Adjusted Rate: '
-!      write(*,'(5e8.1)') sum(xarea), sum(xradi), xdena, xtemp, A
+      REAL(fp) A,B
+
+      ! Initialize
+      HETHO2       = 0.0e+0_fp
+      ADJUSTEDRATE = 0.0e+0_fp
+
+      ! Loop over aerosol types
       DO N = 1, NAERO
 
          IF (N.gt.12) THEN
@@ -589,7 +619,8 @@ MODULE GCKPP_HETRATES
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSE
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP,(A**0.5_FP))
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                               (A**0.5_FP))
          ENDIF
          
          IF (KII_KI .and. N.gt.12) THEN
@@ -601,16 +632,22 @@ MODULE GCKPP_HETRATES
          
          ! Add to overall reaction rate
          HETHO2 = HETHO2 + ADJUSTEDRATE
-!         write(*,'(2e9.2)') HETHO2, ADJUSTEDRATE
+
       END DO
 
     END FUNCTION HETHO2
 
-    REAL(fp) FUNCTION HETHBR(A,B)
-      REAL(fp) A,B
-      HETHBR=0
+    REAL(fp) FUNCTION HETHBr(A,B)
 
+      REAL(fp) A,B
+
+      ! Initialize
+      HETHBr       = 0.0e+0_fp
+      ADJUSTEDRATE = 0.0e+0_fp
+
+      ! Loop over aerosol types
       DO N = 1, NAERO
+
          ! jpp, 3/22/11: set the sticking coefficient to 
          !  ~0 for aerosol types we don't want reactions on
          !  for the HBr and HOBr surface reaction
@@ -636,7 +673,8 @@ MODULE GCKPP_HETRATES
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSE
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP,(A**0.5_FP))
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                               (A**0.5_FP))
          ENDIF
 
          scf2(2) = xstkcf
@@ -653,17 +691,22 @@ MODULE GCKPP_HETRATES
 
       END DO
 
-    END FUNCTION HETHBR
+    END FUNCTION HETHBr
 
     REAL(fp) FUNCTION HETN2O5(A,B)
 
       REAL(fp) A,B,TMP1,TMP2
-      HETN2O5=0
+
+      ! Initialize
+      HETN2O5      = 0.0e+0_fp
+      ADJUSTEDRATE = 0.0e+0_fp
 
       ! Always apply adjustment
       KII_KI = .TRUE.
 
+      ! Loop over aerosol types
       DO N = 1, NAERO
+
          ! Get GAMMA for N2O5 hydrolysis, which is
          ! a function of aerosol type, temp, and RH
          IF (N.eq.14) THEN
@@ -683,8 +726,24 @@ MODULE GCKPP_HETRATES
          ! Nitrate effect; reduce the gamma on nitrate by a
          ! factor of 10 (lzh, 10/25/2011)
          IF ( N == 8 ) THEN
-            TMP1 = TRC_NIT+TRC_SO4
-            TMP2 = TRC_NIT
+            ! WARNING! It appears that these should be in units of
+            !          mcl/cc. This is discerned from output in
+            !          the old calcrate.F routine which gets the
+            !          tracer concentrations from the state_chm object.
+            !          When the values are dumped in calcrate.F, they were
+            !          in mcl/cc. Still, comments later in calcrate.F indicate
+            !          that Tracers should be in units of kg/box.
+            ! -- As a fix, here, we simply impose the equivalent of a kg to
+            !    mcl/cc conversion using the SO4 and NIT molecular weights.
+            !    This should be investigated and the proper units applied.
+            !    It will and does have a large impct on heterogenous
+            !    N chemistry and on NOx in remote regions.
+            ! -- In any case, the result from below yields the same
+            !    ratio of TMP2/TMP1 as calcrate does with its
+            !    current settings.
+            !    MSL - Feb. 16, 2016
+            TMP1 = (TRC_NIT*XNM_NIT)+(TRC_SO4*XNM_SO4)
+            TMP2 = TRC_NIT*XNM_NIT
             IF ( TMP1 .GT. 0.0 ) THEN
                XSTKCF = XSTKCF * ( 1.0e+0_fp - 0.9e+0_fp &
                                    *TMP2/TMP1 )
@@ -697,7 +756,8 @@ MODULE GCKPP_HETRATES
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSE
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP,(A**0.5_FP))
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                               (A**0.5_FP))
          ENDIF
          
          IF (KII_KI .and. N.gt.12) THEN
@@ -709,17 +769,22 @@ MODULE GCKPP_HETRATES
          
          ! Add to overall reaction rate
          HETN2O5 = HETN2O5 + ADJUSTEDRATE
-      END DO
 
-      scf2(1) = xstkcf
+      END DO
 
     END FUNCTIOn HETN2O5
 
     REAL(fp) FUNCTION HETBrNO3(A,B)
-      REAL(fp) A,B
-      HETBrNO3=0
 
+      REAL(fp) A,B
+
+      ! Initialize
+      HETBrNO3     = 0.0e+0_fp
+      ADJUSTEDRATE = 0.0e+0_fp
+
+      ! Loop over aerosol types
       DO N = 1, NAERO
+
          ! Only apply adjustment if at high altitude
          KII_KI = STRATBOX
          
@@ -757,7 +822,8 @@ MODULE GCKPP_HETRATES
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSE
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP,(A**0.5_FP))
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                               (A**0.5_FP))
          ENDIF
          
          IF (KII_KI .and. N.gt.12) THEN
@@ -777,10 +843,16 @@ MODULE GCKPP_HETRATES
     END FUNCTIOn HETBrNO3
 
     REAL(fp) FUNCTION HETHOBr(A,B)
-      REAL(fp) A,B
-      HETHOBr=0
 
+      REAL(fp) A,B
+
+      ! Initialize
+      HETHOBr      = 0.0e+0_fp
+      ADJUSTEDRATE = 0.0e+0_fp
+
+      ! Loop over aerosol types
       DO N = 1, NAERO
+
          ! jpp, 3/22/11: set the sticking coefficient to 
          !  ~0 for aerosol types we don't want reactions on
          !  for the HBr and HOBr surface reaction
@@ -806,7 +878,8 @@ MODULE GCKPP_HETRATES
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSE
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP,(A**0.5_FP))
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                               (A**0.5_FP))
          ENDIF
          
          IF (KII_KI .and. N.gt.12) THEN
@@ -824,24 +897,32 @@ MODULE GCKPP_HETRATES
     END FUNCTIOn HETHOBr
 
     REAL(fp) FUNCTION HETHOBr_ice(A,B)
+
       REAL(fp) A,B
-      HETHOBr_ice=KI_HOBr
+
+      HETHOBr_ice = KI_HOBr
 
     END FUNCTIOn HETHOBr_ice
 
     REAL(fp) FUNCTION HETHBr_ice(A,B)
-      REAL(fp) A,B
-      HETHBr_ice=KI_HBr
 
-      scf2(3) = KI_HBr
+      REAL(fp) A,B
+
+      HETHBr_ice = KI_HBr
+      scf2(3)    = KI_HBr
 
     END FUNCTIOn HETHBr_ice
 
 #if defined( UCX )
     REAL(fp) FUNCTION HETN2O5_PSC(A,B)
+
       ! N2O5(g)    + HCl(l,s)
+
       REAL(fp) A,B
-      HETN2O5_PSC=0
+
+      ! Initialize
+      HETN2O5_PSC  = 0.0e+0_fp
+      ADJUSTEDRATE = 0.0e+0_fp
 
       ! Always apply adjustment
       KII_KI = .TRUE.
@@ -849,7 +930,9 @@ MODULE GCKPP_HETRATES
       ! Only consider PSC reactions in strat
       IF (STRATBOX) THEN
 
+         ! Loop over aerosol types
          DO N = 1, NAERO
+
             IF (N.eq.8) THEN
                XSTKCF = 0.1e-4_fp ! Sulfate
             ELSEIF (N.eq.13) THEN
@@ -892,9 +975,14 @@ MODULE GCKPP_HETRATES
     END FUNCTION HETN2O5_PSC
 
     REAL(fp) FUNCTION HETClNO3_PSC1(A,B)
+
       ! ClNO3(g)   + H2O(l,s)
+
       REAL(fp) A,B
-      HETClNO3_PSC1=0
+
+      ! Initialize
+      HETClNO3_PSC1= 0.0e+0_fp
+      ADJUSTEDRATE = 0.0e+0_fp
 
       ! Always apply adjustment
       KII_KI = .TRUE.
@@ -902,6 +990,7 @@ MODULE GCKPP_HETRATES
       ! Only consider PSC reactions in strat
       IF (STRATBOX) THEN
 
+         ! Loop over aerosol types
          DO N = 1, NAERO
 
             IF (N.eq.8) THEN
@@ -938,15 +1027,22 @@ MODULE GCKPP_HETRATES
 
             ! Add to overall reaction rate
             HETClNO3_PSC1 = HETClNO3_PSC1 + ADJUSTEDRATE
+
          END DO
+
       ENDIF
 
     END FUNCTION HETClNO3_PSC1
 
     REAL(fp) FUNCTION HETClNO3_PSC2(A,B)
+
       ! ClNO3(g)   + HCl(l,s)
+
       REAL(fp) A,B
-      HETClNO3_PSC2=0
+
+      ! Initialize
+      HETClNO3_PSC2= 0.0e+0_fp
+      ADJUSTEDRATE = 0.0e+0_fp
 
       ! Always apply adjustment
       KII_KI = .TRUE.
@@ -954,6 +1050,7 @@ MODULE GCKPP_HETRATES
       ! Only consider PSC reactions in strat
       IF (STRATBOX) THEN
 
+         ! Loop over aerosol types
          DO N = 1, NAERO
 
             IF (N.eq.8) THEN
@@ -990,15 +1087,22 @@ MODULE GCKPP_HETRATES
 
             ! Add to overall reaction rate
             HETClNO3_PSC2 = HETClNO3_PSC2 + ADJUSTEDRATE
+
          END DO
+
       ENDIF
 
     END FUNCTION HETClNO3_PSC2
 
     REAL(fp) FUNCTION HETClNO3_PSC3(A,B)
+
       ! ClNO3(g)   + HBr(l,s)
+
       REAL(fp) A,B
-      HETClNO3_PSC3=0
+
+      ! Initialize
+      HETClNO3_PSC3 = 0.0e+0_fp
+      ADJUSTEDRATE  = 0.0e+0_fp
 
       ! Always apply adjustment
       KII_KI = .TRUE.
@@ -1006,6 +1110,7 @@ MODULE GCKPP_HETRATES
       ! Only consider PSC reactions in strat
       IF (STRATBOX) THEN
 
+         ! Loop over aerosol types
          DO N = 1, NAERO
 
             IF (N.eq.8) THEN
@@ -1042,15 +1147,22 @@ MODULE GCKPP_HETRATES
 
             ! Add to overall reaction rate
             HETClNO3_PSC3 = HETClNO3_PSC3 + ADJUSTEDRATE
+
          END DO
+
       ENDIF
 
     END FUNCTION HETClNO3_PSC3
 
     REAL(fp) FUNCTION HETBrNO3_PSC(A,B)
+
       ! BrNO3(g)   + HCl(l,s)
+
       REAL(fp) A,B
-      HETBrNO3_PSC=0
+
+      ! Initialize
+      HETBrNO3_PSC = 0.0e+0_fp
+      ADJUSTEDRATE = 0.0e+0_fp
 
       ! Always apply adjustment
       KII_KI = .TRUE.
@@ -1058,6 +1170,7 @@ MODULE GCKPP_HETRATES
       ! Only consider PSC reactions in strat
       IF (STRATBOX) THEN
 
+         ! Loop over aerosol types
          DO N = 1, NAERO
 
             IF (N.eq.8) THEN
@@ -1094,15 +1207,22 @@ MODULE GCKPP_HETRATES
 
             ! Add to overall reaction rate
             HETBrNO3_PSC = HETBrNO3_PSC + ADJUSTEDRATE
+
          END DO
+
       ENDIF
 
     END FUNCTION HETBrNO3_PSC
 
     REAL(fp) FUNCTION HETHOCl_PSC1(A,B)
+
       ! HOCl(g)    + HCl(l,s)
+
       REAL(fp) A,B
-      HETHOCl_PSC1=0
+
+      ! Initialize
+      HETHOCl_PSC1 = 0.0e+0_fp
+      ADJUSTEDRATE = 0.0e+0_fp
 
       ! Always apply adjustment
       KII_KI = .TRUE.
@@ -1110,6 +1230,7 @@ MODULE GCKPP_HETRATES
       ! Only consider PSC reactions in strat
       IF (STRATBOX) THEN
 
+         ! Loop over aerosol types
          DO N = 1, NAERO
 
             IF (N.eq.8) THEN
@@ -1146,15 +1267,22 @@ MODULE GCKPP_HETRATES
 
             ! Add to overall reaction rate
             HETHOCl_PSC1 = HETHOCl_PSC1 + ADJUSTEDRATE
+
          END DO
+
       ENDIF
 
     END FUNCTION HETHOCl_PSC1
 
     REAL(fp) FUNCTION HETHOCl_PSC2(A,B)
+
       ! HOCl(g)    + HBr(l,s)
+
       REAL(fp) A,B
-      HETHOCl_PSC2=0
+
+      ! Initialize
+      HETHOCl_PSC2 = 0.0e+0_fp
+      ADJUSTEDRATE = 0.0e+0_fp
 
       ! Always apply adjustment
       KII_KI = .TRUE.
@@ -1162,6 +1290,7 @@ MODULE GCKPP_HETRATES
       ! Only consider PSC reactions in strat
       IF (STRATBOX) THEN
 
+         ! Loop over aerosol types
          DO N = 1, NAERO
 
             IF (N.eq.8) THEN
@@ -1198,15 +1327,22 @@ MODULE GCKPP_HETRATES
 
             ! Add to overall reaction rate
             HETHOCl_PSC2 = HETHOCl_PSC2 + ADJUSTEDRATE
+
          END DO
+
       ENDIF
 
     END FUNCTION HETHOCl_PSC2
 
     REAL(fp) FUNCTION HETHOBr_PSC(A,B)
+
       ! HOBr(g)    + HCl(l,s)
+
       REAL(fp) A,B
-      HETHOBr_PSC=0
+
+      ! Initialize
+      HETHOBr_PSC  = 0.0e+0_fp
+      ADJUSTEDRATE = 0.0e+0_fp
 
       ! Always apply adjustment
       KII_KI = .TRUE.
@@ -1214,6 +1350,7 @@ MODULE GCKPP_HETRATES
       ! Only consider PSC reactions in strat
       IF (STRATBOX) THEN
 
+         ! Loop over aerosol types
          DO N = 1, NAERO
 
             IF (N.eq.8) THEN
@@ -1250,7 +1387,9 @@ MODULE GCKPP_HETRATES
 
             ! Add to overall reaction rate
             HETHOBr_PSC = HETHOBr_PSC + ADJUSTEDRATE
+
          END DO
+
       ENDIF
 
     END FUNCTION HETHOBr_PSC

@@ -1527,6 +1527,8 @@ END SUBROUTINE KppSolveTR
       REAL(kind=dp), PARAMETER  ::  ONE=1.0_dp, HALF=0.5_dp
       LOGICAL, SAVE   ::  First=.TRUE.
       
+!$OMP THREADPRIVATE( Eps, First )
+
       IF (First) THEN
         First = .FALSE.
         Eps = HALF**(16)
