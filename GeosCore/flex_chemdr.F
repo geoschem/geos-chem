@@ -437,6 +437,8 @@
      &       'Hexit, last accepted step before exit:    ', f11.4, /,
      &       'Hnew, last predicted step (not yet taken):', f11.4 )
 
+      write(*,'(a,e12.4,i)') '<> CO2 : ', C(ind_CO2), ind_CO2
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, start, finish )
@@ -496,7 +498,7 @@
          ! Debug
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
             DO N = 1,NSPEC
-               write(*,'(2a,e12.4)') '<> b ', SPC_NAMES(N), C(N)
+               write(*,'(2a,e12.4,i)') '<> b ', SPC_NAMES(N), C(N), N
             ENDDO
          ENDIF
 

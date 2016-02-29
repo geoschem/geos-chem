@@ -157,7 +157,8 @@ CONTAINS
   END FUNCTION GCARR    
 
   REAL(kind=dp) FUNCTION GC_HO2NO3( A0,B0,C0,A1,B1,C1 )
-      REAL A0,B0,C0,A1,B1,C1,R0,R1
+      REAL A0,B0,C0,A1,B1,C1
+      REAL(kind=dp) R0,R1
       R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
       R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
 
@@ -167,7 +168,8 @@ CONTAINS
   
   REAL(kind=dp) FUNCTION GC_TBRANCH( A0,B0,C0,A1,B1,C1 )
 ! Temperature Dependent Branching Ratio
-      REAL A0,B0,C0,A1,B1,C1,R0,R1
+      REAL A0,B0,C0,A1,B1,C1
+      REAL(kind=dp) R0,R1
       R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
       R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
 
@@ -177,7 +179,8 @@ CONTAINS
 
   REAL(kind=dp) FUNCTION GC_RO2HO2( A0,B0,C0,A1,B1,C1 )
 ! Carbon Dependence of RO2+HO2
-      REAL A0,B0,C0,A1,B1,C1,R0,R1
+      REAL A0,B0,C0,A1,B1,C1
+      REAL(kind=dp) R0,R1
       R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
       R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
 
@@ -187,7 +190,9 @@ CONTAINS
 
   REAL(kind=dp) FUNCTION GC_DMSOH( A0,B0,C0,A1,B1,C1 )
 ! DMS+OH+O2
-    REAL A0,B0,C0,R0,A1,B1,C1,R1
+    REAL A0,B0,C0,A1,B1,C1
+    REAL(kind=dp) R0,R1
+
     R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
     R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
 !    GC_DMSOH = R0/(1e0_dp+R1*0.2095e0_dp)
@@ -197,7 +202,9 @@ CONTAINS
 
   REAL(kind=dp) FUNCTION GC_OHHNO3( A0,B0,C0,A1,B1,C1,A2,B2,C2 )
 ! ---  OH + HNO3:   K = K0 + K3[M] / (1 + K3[M]/K2)  ------
-    REAL A0,B0,C0,R0,A1,B1,C1,R1,A2,B2,C2,R2
+    REAL A0,B0,C0,A1,B1,C1,A2,B2,C2
+    REAL(kind=dp) R0,R1,R2
+
     R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
     R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
     R2 =  NUMDEN*(DBLE(A2) * EXP(DBLE(C2)/TEMP) * (300._dp/TEMP)**DBLE(B2))
@@ -207,7 +214,8 @@ CONTAINS
 
   REAL(kind=dp) FUNCTION GC_GLYCOHA( A0,B0,C0 )
 ! 
-    REAL A0,B0,C0,R0,GLYC_FRAC
+    REAL A0,B0,C0
+    REAL(kind=dp) R0,GLYC_FRAC
     R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
     GLYC_FRAC=1e+0_dp-11.0729e+0_dp*EXP(-(1._dp/73._dp)*TEMP)
     IF (GLYC_FRAC<0e+0_dp) GLYC_FRAC=0e+0_dp
@@ -217,7 +225,8 @@ CONTAINS
 
   REAL(kind=dp) FUNCTION GC_GLYCOHB( A0,B0,C0 )
 ! 
-    REAL A0,B0,C0,R0,GLYC_FRAC
+    REAL A0,B0,C0
+    REAL(kind=dp) R0,GLYC_FRAC
     R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
     GLYC_FRAC=1e+0_dp-11.0729e+0_dp*EXP(-(1._dp/73._dp)*TEMP)
     IF (GLYC_FRAC<0e+0_dp) GLYC_FRAC=0e+0_dp
@@ -227,7 +236,8 @@ CONTAINS
 
   REAL(kind=dp) FUNCTION GC_HACOHA( A0,B0,C0 )
 ! 
-    REAL A0,B0,C0,R0,HAC_FRAC
+    REAL A0,B0,C0
+    REAL(kind=dp) R0,HAC_FRAC
     R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
     HAC_FRAC=1e+0_dp-23.7e+0_dp*EXP(-(1._dp/60._dp)*TEMP)
     IF (HAC_FRAC<0e+0_dp) HAC_FRAC=0e+0_dp
@@ -237,7 +247,8 @@ CONTAINS
 
   REAL(kind=dp) FUNCTION GC_HACOHB( A0,B0,C0 )
 ! 
-    REAL A0,B0,C0,R0,HAC_FRAC
+    REAL A0,B0,C0
+    REAL(kind=dp) R0, HAC_FRAC
     R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
     HAC_FRAC=1e+0_dp-23.7e+0_dp*EXP(-(1._dp/60._dp)*TEMP)
     IF (HAC_FRAC<0e+0_dp) HAC_FRAC=0e+0_dp
@@ -247,9 +258,10 @@ CONTAINS
 
   REAL(kind=dp) FUNCTION GC_OHCO( A0,B0,C0 )
 
-    REAL A0,B0,C0,R0
-    REAL KLO1,KLO2,KHI1,KHI2,XYRAT1,XYRAT2,BLOG1,BLOG2,FEXP1,FEXP2
-    REAL KCO1,KCO2,KCO
+    REAL A0,B0,C0
+    REAL(kind=dp) R0
+    REAL(kind=dp) KLO1,KLO2,KHI1,KHI2,XYRAT1,XYRAT2,BLOG1,BLOG2,FEXP1,FEXP2
+    REAL(kind=dp) KCO1,KCO2,KCO
 
     R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
     R0 = R0 * (1.E+0_dp + 0.6e+0_dp*9.871E7_dp*PRESS)
@@ -275,7 +287,8 @@ CONTAINS
   REAL(kind=dp) FUNCTION GC_RO2NO( B,A0,B0,C0,A1,B1,C1 )
     ! ---  K = K1*(1-FYRNO3(K2,M,T))  ---  abstraction branch of RO2+NO
     CHARACTER(*) B !Branch Toggle
-    REAL A0,B0,C0,A1,B1,C1,R0,R1
+    REAL A0,B0,C0,A1,B1,C1
+    REAL(kind=dp) R0,R1
     REAL(kind=dp) :: YYYN, XXYN,  AAA,  RARB, ZZYN
     REAL(kind=dp) :: XF, ALPHA, Y300, BETA, XMINF, XM0
     REAL(kind=dp) :: FYRNO3
@@ -324,7 +337,8 @@ CONTAINS
  ! Function calculates the rate constant of the forward reaction
  ! calculates the equilibrium constant 
  ! Find the backwards reaction by K=kforward/kbackwards
-       REAL A0,B0,C0,A1,B1,C1,R0,R1
+       REAL A0,B0,C0,A1,B1,C1
+       REAL(kind=dp) R0,R1
        REAL, OPTIONAL :: A2,B2,C2,FV,FCT1,FCT2 !If a P-dependent rxn
 
        ! Calculate Backwards reaction
@@ -358,19 +372,19 @@ CONTAINS
 ! J. PHYS. CHEM. REF. DATA 21, P. 1145). USUALLY = 0.6 
 ! 
        REAL A0,B0,C0,A1,B1,C1,FV,FCT1,FCT2
-       REAL FCT,XYRAT,BLOG,RLOW,RHIGH,FEXP
+       REAL(kind=dp)  FCT,XYRAT,BLOG,RLOW,RHIGH,FEXP
        
        RLOW  = GCARR( A0,B0,C0 )*NUMDEN
        RHIGH = GCARR( A1,B1,C1 )
 
        IF     (FCT2.NE.0.) THEN	
-             FCT            = EXP(-TEMP / FCT1) + EXP(-FCT2 / TEMP) 
+             FCT            = EXP(-TEMP / DBLE(FCT1)) + EXP(DBLE(-FCT2) / TEMP) 
              XYRAT          = RLOW/RHIGH
              BLOG           = LOG10(XYRAT)
              FEXP           = 1.e+0_dp / (1.e+0_dp + BLOG * BLOG)
              GCJPLPR        = RLOW*FCT**FEXP/(1e+0_dp+XYRAT) 
        ELSEIF (FCT1.NE.0.) THEN 
-             FCT            = EXP(-TEMP / FCT1)
+             FCT            = EXP(-TEMP / DBLE(FCT1))
              XYRAT          = RLOW/RHIGH
              BLOG           = LOG10(XYRAT)
              FEXP           = 1.e+0_dp / (1.e+0_dp + BLOG * BLOG)
@@ -379,7 +393,7 @@ CONTAINS
              XYRAT          = RLOW/RHIGH
              BLOG           = LOG10(XYRAT)
              FEXP           = 1.e+0_dp / (1.e+0_dp + BLOG * BLOG)
-             GCJPLPR        = RLOW*FV**FEXP/(1e+0_dp+XYRAT)
+             GCJPLPR        = RLOW*DBLE(FV)**FEXP/(1e+0_dp+XYRAT)
        ENDIF
        
 
@@ -389,13 +403,13 @@ CONTAINS
 ! Function calcualtes the rate constant of 3 body reaction using IUPAC 
 ! methology
   REAL ko_300,n,ki_300,m,Fc
-  REAL ko, ki, F, NN
+  REAL(kind=dp) ko, ki, F, NN
 
-  ko=ko_300*((TEMP/300.e0)**n)*NUMDEN
-  ki=ki_300*((TEMP/300.e0)**m)
+  ko=DBLE(ko_300)*((TEMP/300.e0)**DBLE(n))*NUMDEN
+  ki=DBLE(ki_300)*((TEMP/300.e0)**DBLE(m))
 
-  NN=0.75-1.27*LOG10(Fc)
-  F=10.0**(LOG10(Fc)/(1.0e0+(LOG10(ko/ki)/NN)**2.0))
+  NN=0.75-1.27*LOG10(DBLE(Fc))
+  F=10.0**(LOG10(DBLE(Fc))/(1.0e0+(LOG10(ko/ki)/NN)**2.0))
 
   GCIUPAC3=ko/(1+ko/ki)*F
   END FUNCTION GCIUPAC3
