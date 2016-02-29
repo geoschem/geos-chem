@@ -905,15 +905,6 @@
       ! Clean up
       !=================================================================
 
-      ! DEBUGGING
-      WRITE( 6, 200 ) MINVAL(State_Met%T), MAXVAL(State_Met%T)
- 200  FORMAT('State_Chm%T : MIN =', es15.9, ' MAX = ', es15.9 )
-      WRITE( 6, 210 ) MINVAL(State_Met%PMID_DRY), 
-     &                MAXVAL(State_Met%PMID_DRY)
- 210  FORMAT('State_Chm%PMID_DRY : MIN =', es15.9,
-     &       ' MAX = ', es15.9 )
-      ! END DEBUGGING
-
       ! Mark end of section in log
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
@@ -1469,15 +1460,6 @@
      &              '  Max = ', es15.9 )
 
          ENDDO
-
-         ! DEBUGGING
-         WRITE( 6, 200 ) MINVAL(State_Met%T), MAXVAL(State_Met%T)
- 200     FORMAT('State_Chm%T : MIN =', es15.9, ' MAX = ', es15.9 )
-         WRITE( 6, 210 ) MINVAL(State_Met%PMID_DRY), 
-     &                   MAXVAL(State_Met%PMID_DRY)
- 210     FORMAT('State_Chm%PMID_DRY : MIN =', es15.9, 
-     &          ' MAX = ', es15.9 )
-         !END DEBUGGING
 
          ! Convert species values locally to [mol/mol] for output
          ! in NetCDF. Print min and max values to log.
