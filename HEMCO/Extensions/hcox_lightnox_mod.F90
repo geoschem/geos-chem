@@ -1557,6 +1557,7 @@ CONTAINS
 !  14 Jan 2015 - L. Murray   - Updated GEOS-FP files through Oct 2014
 !  01 Apr 2015 - R. Yantosca - Cosmetic changes
 !  01 Apr 2015 - R. Yantosca - Bug fix: GRID025x0325 should be GRID025x03125
+!  01 Mar 2016 - L. Murray   - Add preliminary values for MERRA-2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1593,17 +1594,11 @@ CONTAINS
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7167603d0
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Add placeholder values for the MERRA2 0.5 x 0.625 grids.
-!%%% For now, just copy the 0.5 x 0.666 values.  
-!%%% Replace these with the correct values once we have enough met on disk
-!%%% (bmy, 8/12/15)
 #elif defined( GRID05x0625   ) && defined( NESTED_CH )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 8.7549280d0
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 9.1040315d0
 
 #elif defined( GRID05x0625   ) && defined( NESTED_NA )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.9685368d0
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.9683646d0
 
 #endif
 
@@ -1714,26 +1709,48 @@ CONTAINS
        BETA = ANN_AVG_FLASHRATE / 720.10258d0
     ENDIF
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Extend the ifdefs for MERRA2 meteorology
-!%%% Add placeholder values for now.  Replace these with the correct 
-!%%% values once we have enough MERRA2 met on disk (bmy, 8/12/15)
-!%%%
+#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_NA )
+
+    !------------------------------------------
+    ! MERRA-2: Nested North America simulation
+    !------------------------------------------
+
+    ! Constrained with simulated "climatology" for
+    ! Jan 2009 - Dec 2014. Will need to be updated as more
+    ! met fields become available (ltm, 2016-03-01).
+    BETA = ANN_AVG_FLASHRATE / 256.00370d0
+
+#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_CH )
+
+    !---------------------------------------
+    ! MERRA-2: Nested China simulation
+    !---------------------------------------
+
+    ! Constrained with simulated "climatology" for
+    ! Jan 2009 - Dec 2014. Will need to be updated as more
+    ! met fields become available (ltm, 2016-03-01).
+    BETA = ANN_AVG_FLASHRATE / 1096.5130d0
+    
 #elif defined( MERRA2 ) && defined( GRID2x25 )
 
     !---------------------------------------
     ! MERRA2: 2 x 2.5 global simulation
     !---------------------------------------
-    BETA = ANN_AVG_FLASHRATE / 253.55888d0
+
+    ! To be generated. Force graceful model stop below by
+    ! setting BETA equal to 1.0 here (ltm, 2016-03-01).
+    BETA = 1d0
 
 #elif defined( MERRA2 ) && defined( GRID4x5 )
 
     !---------------------------------------
     ! MERRA2: 4 x 5 global simulation
     !---------------------------------------
-    BETA = ANN_AVG_FLASHRATE / 76.019042d0
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    ! Constrained with simulated "climatology" for
+    ! Jan 2009 - Dec 2014. Will need to be updated as more
+    ! met fields become available (ltm, 2016-03-01).
+    BETA = ANN_AVG_FLASHRATE / 99.585661d0
 
 #elif defined( MERRA ) && defined( GRID2x25 )
 
@@ -1839,9 +1856,14 @@ CONTAINS
        WRITE( *,* ) 'to get lightnox working for you.'
        WRITE( *,* ) ''
        WRITE( *,* ) 'You may remove this trap in lightnox_nox_mod.f'
-       WRITE( *,* ) 'at your own peril, but be aware that the'
-       WRITE( *,* ) 'magnitude and distribution of lightnox may be'
-       WRITE( *,* ) 'unrealistic.'
+       WRITE( *,* ) 'at your own peril, by either commenting out'
+       WRITE( *,* ) 'the call to HCO_ERROR in '
+       WRITE( *,* ) 'HEMCO/Extensions/hcox_lightnox_mod.F90, or by manually'
+       WRITE( *,* ) 'setting BETA in the HEMCO configuration file to a'
+       WRITE( *,* ) ' value other than 1.0 (see below).'
+       WRITE( *,* ) ''
+       WRITE( *,* ) 'However, be aware that the magnitude and distribution'
+       WRITE( *,* )' of lightning NOx may be wildly unrealistic.'
        WRITE( *,* ) ''
        WRITE( *,* ) 'You can explicitly set the beta value in your'
        WRITE( *,* ) 'HEMCO configuration file by adding it to the'
