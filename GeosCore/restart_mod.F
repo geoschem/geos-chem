@@ -419,7 +419,8 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      CHARACTER(LEN=255) :: INFILE    ! Advected tracer input  restart file
+      CHARACTER(LEN=255) :: INFILE    ! A
+dvected tracer input  restart file
       CHARACTER(LEN=255) :: OUTFILE   ! Advected tracer output restart file 
 ! 
 ! !REVISION HISTORY: 
@@ -432,8 +433,17 @@
       ! SET_RESTART begins here
       !=================================================================
       INPUT_RESTART_FILE  = INFILE
-      OUTPUT_RESTART_FILE = OUTFILE
-     
+#if defined( BPCH_RST_OUT )
+      ! If outputting bpch restart file, use filename in input.geos
+      OUTPUT_RESTART_FILE = OUTFILE 
+#else
+      ! If outputting netcdf restart file, use format that mirrors
+      ! HEMCO restart filename. NOTE: first part of this string is
+      ! also hard-coded when creating GEOS-Chem restart collection.
+      ! If one is changed, then the other must be changed as well.
+      OUTPUT_RESTART_FILE = "GEOSChem_restart.YYYYMMDDhhmm"
+#endif     
+
       END SUBROUTINE SET_RESTART
 !EOC
 !------------------------------------------------------------------------------
