@@ -753,20 +753,24 @@ dvected tracer input  restart file
          ! Set species in restart file logical flag and write to log
          IF ( ierr /= NF_NOERR ) THEN
             SPC_IN_NC_RST = .FALSE.
-            WRITE( 6, 160 )
- 160        FORMAT( /,'No species data found in restart file.',/,
-     &                'Using default background of each species',
-     &                ' [mol mol-1]:' )
+            IF ( Input_Opt%LPRT ) THEN
+               WRITE( 6, 160 )
+ 160           FORMAT( /,'No species data found in restart file.',/,
+     &                   'Using default background of each species',
+     &                   ' [mol mol-1]:' )
+            ENDIF
          ELSE
             SPC_IN_NC_RST = .TRUE.
-            WRITE( 6, 170 )
- 170        FORMAT( /,'Species data found in restart file,',/,
-     &                'Min and Max of each species after conversion',
-     &                ' to [molec/cm3]: ')
+            IF ( Input_Opt%LPRT ) THEN
+               WRITE( 6, 170 )
+ 170           FORMAT( /,'Species data found in restart file,',/,
+     &                   'Min and Max of each species after conversion',
+     &                   ' to [molec/cm3]: ')
+            ENDIF
          ENDIF
 
-         ! Initialize species to bad number
-         State_Chm%Species = -999.e+0_fp
+         ! Initialize species to all zeroes
+         State_Chm%Species = 0.e+0_fp
 
          ! Loop over species
          DO N = 1, NTSPEC(1)
@@ -802,7 +806,7 @@ dvected tracer input  restart file
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, CONV_FACTOR )
                ! Loop over all chemistry grid boxes
-               DO L = 1, LLPAR
+               DO L = 1, LLCHEM
                DO J = 1, JJPAR
                DO I = 1, IIPAR
                
@@ -825,11 +829,13 @@ dvected tracer input  restart file
 !$OMP END PARALLEL DO
 
                ! Print the min and max of this species in [molec/cm3]
-               WRITE( 6, 180 ) N, TRIM( SPC_NAME ),
-     &                         MINVAL( State_Chm%Species(:,:,:,N) ),
-     &                         MAXVAL( State_Chm%Species(:,:,:,N) )
- 180           FORMAT('Species ', i3, ', ', a9, ': MIN = ', 
-     &                 es15.9, ' MAX = ', es15.9)
+               IF ( Input_Opt%LPRT ) THEN
+                  WRITE( 6, 180 ) N, TRIM( SPC_NAME ),
+     &                      MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ),
+     &                      MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) )
+ 180              FORMAT('Species ', i3, ', ', a9, ': MIN = ', 
+     &                    es15.9, ' MAX = ', es15.9)
+               ENDIF
 
                ! Nullify pointer
                Ptr3D => NULL()
@@ -895,11 +901,13 @@ dvected tracer input  restart file
                ! only up to LLCHEM levels
                State_Chm%Species(:,:,1:LLCHEM,N) = Background_VV
                
-               ! Print the background value of this species
-               WRITE( 6, 190 ) N, TRIM( SPC_NAME ),
-     &                         Background_VV
- 190           FORMAT('Species ', i3, ', ', a9, ': Background = ', 
-     &                 es15.9)
+               ! Print the background value of this species if debugging
+               IF ( Input_Opt%LPRT ) THEN
+                  WRITE( 6, 190 ) N, TRIM( SPC_NAME ),
+     &                            Background_VV
+ 190              FORMAT('Species ', i3, ', ', a9, ': Background = ', 
+     &                    es15.9)
+               ENDIF
 
                ! NOTE: keep State_Chm%Species background values as
                ! mol/mol here to preserve location of unit conversion
@@ -1398,9 +1406,11 @@ dvected tracer input  restart file
       !-----------------------------------------------------------------
       ! Populate restart tracer containers before writing tracer data
       !-----------------------------------------------------------------
-      ! Print min and max to log for testing
-      WRITE( 6, 110 )
- 110  FORMAT( /, 'Min and Max of each tracer in file [mol/mol]:' )
+      ! Print min and max to log for testing if in debug mode
+      IF ( Input_Opt%LPRT ) THEN
+         WRITE( 6, 110 )
+ 110     FORMAT( /, 'Min and Max of each tracer in file [mol/mol]:' )
+      ENDIF
 
       DO N = 1, Input_Opt%N_TRACERS
       
@@ -1418,11 +1428,13 @@ dvected tracer input  restart file
      &                      Array3D = Ptr3D,             
      &                      RC      = HCRC )
       
-         ! Print the min & max of each tracer written to file
-         WRITE( 6, 120 ) N, TRIM( Input_Opt%TRACER_NAME(N) ),
-     &                   MINVAL( Temp3D ), MAXVAL( Temp3D )
- 120     FORMAT( 'Tracer ', i3, ', ', a8, ': Min = ', es15.9, 
-     &           '  Max = ',es15.9)
+         ! Print the min & max of each tracer written to file (if debug)
+         IF ( Input_Opt%LPRT ) THEN
+            WRITE( 6, 120 ) N, TRIM( Input_Opt%TRACER_NAME(N) ),
+     &                      MINVAL( Temp3D ), MAXVAL( Temp3D )
+ 120        FORMAT( 'Tracer ', i3, ', ', a8, ': Min = ', es15.9, 
+     &              '  Max = ',es15.9)
+         ENDIF
 
          ! Free the pointer
          Ptr3D => NULL()
@@ -1441,16 +1453,23 @@ dvected tracer input  restart file
       ! Only save species if doing full chemistry simulation
       IF ( Input_Opt%LCHEM .AND. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
-         ! Print min/max species conc to log in [molec/cm3]
+         ! Print min/max species conc to log in [molec/cm3] if debugging
          ! to compare with legacy bpch cspec restart file for testing
-         WRITE( 6, 130 )
- 130     FORMAT( /, 'Min and Max of each species before unit ',
-     &              'conversion [molec/cm3]:' )
+         IF ( Input_Opt%LPRT ) THEN
+            WRITE( 6, 130 )
+ 130        FORMAT( /, 'Min and Max of each species before unit ',
+     &                 'conversion [molec/cm3]:' )
+         ENDIF
+
+         ! Initialize Temp3D to all zeros
+         Temp3D = 0.e+0_sp
+
+         ! Populate Temp3D for all levels up to LLCHEM
          DO N = 1 , NTSPEC(1)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-            DO L = 1, LLPAR
+            DO L = 1, LLCHEM
             DO J = 1, JJPAR
             DO I = 1, IIPAR
                IF ( State_Chm%Species(I,J,L,N) >= SMALL_NUM ) THEN
@@ -1463,20 +1482,27 @@ dvected tracer input  restart file
             ENDDO
 !$OMP END PARALLEL DO
 
-            WRITE( 6, 140 ) N, TRIM( NAMEGAS(N) ),
-     &                      MINVAL( Temp3D ), 
-     &                      MAXVAL( Temp3D )
- 140        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
-     &              '  Max = ', es15.9 )
+            ! If debugging, print out species values up to LLCHEM.
+            ! Above this level, all values are zero.
+            IF ( Input_Opt%LPRT ) THEN
+               WRITE( 6, 140 ) N, TRIM( NAMEGAS(N) ),
+     &                         MINVAL( Temp3D(:,:,1:LLCHEM) ), 
+     &                         MAXVAL( Temp3D(:,:,1:LLCHEM) )
+ 140           FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
+     &                 '  Max = ', es15.9 )
+            ENDIF
 
          ENDDO
 
+         ! Write header for post-conversion write to log (if debugging)
+         IF ( Input_Opt%LPRT ) THEN
+            WRITE( 6, 150 )
+ 150        FORMAT( /, 'Min and Max of each species written to file',
+     &                 ' [mol/mol]:' )
+         ENDIF
+
          ! Convert species values locally to [mol/mol] for output
          ! in NetCDF. Print min and max values to log.
-         WRITE( 6, 150 )
- 150     FORMAT( /, 'Min and Max of each species written to file',
-     &              ' [mol/mol]:' )
-         
          DO N = 1 , NTSPEC(1)
          
             ! Remove check for ND65 prod/loss families pending work on ND65 
@@ -1488,13 +1514,14 @@ dvected tracer input  restart file
             !   CYCLE
             !ENDIF
          
-            ! Clear the species concentration array to bad values
-            Temp3D(:,:,:) = -999.e-0_sp
+            ! Clear the species concentration array to all zeroes before
+            ! populating array up to LLCHEM
+            Temp3D(:,:,:) = 0.e+0_sp
          
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, CONV_FACTOR )
-            DO L = 1, LLPAR
+            DO L = 1, LLCHEM
             DO J = 1, JJPAR
             DO I = 1, IIPAR
 
@@ -1555,11 +1582,14 @@ dvected tracer input  restart file
             Ptr3D => NULL()
 
             ! Print the min & max of each species written to file
-            WRITE( 6, 160 ) N, TRIM( NAMEGAS(N) ),
-     &                      MINVAL( Temp3D ), MAXVAL( Temp3D )
- 160        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
-     &              '  Max = ', es15.9 )
-                        
+            IF ( Input_Opt%LPRT ) THEN
+               WRITE( 6, 160 ) N, TRIM( NAMEGAS(N) ),
+     &                         MINVAL( Temp3D(:,:,1:LLCHEM) ), 
+     &                         MAXVAL( Temp3D(:,:,1:LLCHEM) )
+ 160           FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
+     &                 '  Max = ', es15.9 )
+            ENDIF
+           
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot update restart species container: ' 
      &               // TRIM(ContainerName)

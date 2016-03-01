@@ -710,11 +710,11 @@
          IF ( .NOT. SPC_IN_NC_RST ) THEN
 
             ! Write message to log
-            IF ( am_I_Root ) THEN
+            IF ( am_I_Root .and. Input_Opt%LPRT ) THEN
                WRITE(6,100) 
  100           FORMAT('     - CHEMDR: converting species background',
      &         ' from [mol mol-1] to [molec/cm3/box]', //,
-     &         'Min and Max of each species after unit conversion ',
+     &         'Initial value of each species after unit conversion ',
      &         '[molec/cm3]:')
             ENDIF
 
@@ -787,13 +787,17 @@
                   
                ENDIF
          
-               ! Print the min & max of each species in [molec/cm3/box]
-               WRITE( 6, 110 ) N,  
-     &                         TRIM( SPC_NAME ),
-     &                         MINVAL( State_Chm%Species(:,:,:,N) ), 
-     &                         MAXVAL( State_Chm%Species(:,:,:,N) )
- 110           FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9,
-     &                 '  Max = ', es15.9 )
+               ! Print the min and max of each species in [molec/cm3/box]
+               ! after conversion if in debug mode (ewl, 3/1/16)
+               ! of MOH (ewl, 3/1/16)
+               IF ( Input_Opt%LPRT ) THEN
+                  WRITE( 6, 110 ) N,  
+     &                   TRIM( SPC_NAME ),
+     &                   MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ), 
+     &                   MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) ) 
+ 110              FORMAT( 'Species ', i3, ', ', a9, ': Min = ',
+     &                    es15.9, ', Max = ', es15.9 )
+               ENDIF
          
             ENDDO
          
