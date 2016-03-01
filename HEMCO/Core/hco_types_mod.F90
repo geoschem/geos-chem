@@ -312,13 +312,14 @@ MODULE HCO_TYPES_MOD
   !-------------------------------------------------------------------------
   ! FileData: Derived type definition for HEMCO filetype object
   !-------------------------------------------------------------------------
-  TYPE, PUBLIC :: FileData
+  TYPE :: FileData
      CHARACTER(LEN=255)          :: ncFile    ! file path+name
      CHARACTER(LEN= 31)          :: ncPara    ! file parameter
      INTEGER                     :: ncYrs(2)  ! year range
      INTEGER                     :: ncMts(2)  ! month range
      INTEGER                     :: ncDys(2)  ! day range
      INTEGER                     :: ncHrs(2)  ! hour range
+     INTEGER                     :: tShift(2) ! time stamp shift in months & seconds 
      INTEGER                     :: CycleFlag ! cycle flag
      LOGICAL                     :: MustFind  ! file must be found
      INTEGER                     :: UpdtFlag  ! update flag 
@@ -346,7 +347,7 @@ MODULE HCO_TYPES_MOD
   ! TimeIdx: Derived type definition for the object that points to the 
   ! current time slices of data within a file.  Used by hco_tidx_mod.F90.
   !-------------------------------------------------------------------------
-  TYPE, PUBLIC :: TimeIdx
+  TYPE :: TimeIdx
      INTEGER                     :: TypeID
      CHARACTER(LEN=31)           :: TempRes
   END TYPE TimeIdx

@@ -738,10 +738,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_STATE_MOD,    ONLY : HCO_State
-    USE HCO_TYPES_MOD,    ONLY : ListCont
-    USE HCO_TYPES_MOD,    ONLY : HCO_CFLAG_RANGE, HCO_CFLAG_EXACT 
-    USE HCO_CLOCK_MOD,    ONLY : HcoClock_Get
+    USE HCO_STATE_MOD,     ONLY : HCO_State
+    USE HCO_TYPES_MOD,     ONLY : ListCont
+    USE HCO_TYPES_MOD,     ONLY : HCO_CFLAG_RANGE, HCO_CFLAG_EXACT 
+    USE HCO_CLOCK_MOD,     ONLY : HcoClock_Get
+    USE HCO_TIMESHIFT_MOD, ONLY : TimeShift_Apply
 !
 ! !INPUT PARAMETERS: 
 !
@@ -763,6 +764,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  13 Jan 2014 - C. Keller - Initial version 
+!  29 Feb 2016 - C. Keller - Added time shift option
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -814,6 +816,11 @@ CONTAINS
           readHr = -1
        ENDIF
 
+       ! Eventually shift reference time by amount specified
+       ! in HEMCO configuration file
+       CALL TimeShift_Apply ( am_I_Root, HcoState, Lct, &
+                              readYr, readMt, readDy, readHr, readMn, RC )
+
        ! Don't need below
        RETURN
     ENDIF
@@ -831,6 +838,11 @@ CONTAINS
        ELSE
           readHr = cHr
        ENDIF
+
+       ! Eventually shift reference time by amount specified
+       ! in HEMCO configuration file
+       CALL TimeShift_Apply ( am_I_Root, HcoState, Lct, &
+                              readYr, readMt, readDy, readHr, readMn, RC )
 
        ! Don't need below
        RETURN
@@ -886,7 +898,14 @@ CONTAINS
     IF ( readMt < 0 ) readMt = cMt
     IF ( readDy < 0 ) readDy = cDy
 
-    ! RC already set to HCO_SUCCESS at the beginning
+    ! Eventually shift reference time by amount specified
+    ! in HEMCO configuration file
+    CALL TimeShift_Apply ( am_I_Root, HcoState, Lct, &
+                           readYr, readMt, readDy, readHr, readMn, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Return w/ success
+    RC = HCO_SUCCESS 
 
   END SUBROUTINE HCO_GetPrefTimeAttr
 !EOC
@@ -930,6 +949,7 @@ CONTAINS
     USE HCO_TYPES_MOD,      ONLY : ConfigObj
     USE HCO_TYPES_MOD,      ONLY : HCO_UFLAG_ALWAYS 
     USE HCO_EXTLIST_MOD,    ONLY : HCO_GetOpt
+    USE HCO_TIMESHIFT_MOD,  ONLY : TimeShift_Set
 !
 ! !INPUT PARAMETERS: 
 !
@@ -943,13 +963,14 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2013 - C. Keller - Initial version (update) 
+!  29 Feb 2016 - C. Keller - Added time shift option
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER               :: I, I0, I1, N
+    INTEGER               :: I, I0, I1, N, M
     INTEGER               :: TimeVec(8)
     CHARACTER(LEN=255)    :: SUBSTR(255), DATERNG(255), MSG
     CHARACTER(LEN=255)    :: LOC = 'HCO_ExtractTime (hco_tidx_mod.F90)'
@@ -978,8 +999,8 @@ CONTAINS
 
     ! Extract strings to be translated into integers 
     CALL STRSPLIT( CharStr, HCO_GetOpt(HcoConfig%ExtList,'Separator'), SUBSTR, N )
-    IF ( N /= 4 ) THEN
-       MSG = 'Time stamp must have 4 elements: ' // TRIM(CharStr)
+    IF ( N < 4 ) THEN
+       MSG = 'Time stamp must have at least 4 elements: ' // TRIM(CharStr)
        CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF   
@@ -1022,15 +1043,15 @@ CONTAINS
        ! Otherwise, check for date range and set lower and upper bound
        ! accordingly.
        ELSE
-          CALL STRSPLIT( SUBSTR(I), '-', DATERNG, N )
+          CALL STRSPLIT( SUBSTR(I), '-', DATERNG, M )
 
           ! If range is given:
-          IF ( N == 2 ) THEN
+          IF ( M == 2 ) THEN
              READ( DATERNG(1), * ) TimeVec(I0)
              READ( DATERNG(2), * ) TimeVec(I1)
 
           ! Use same value if only one value is given:
-          ELSEIF ( N == 1 ) THEN
+          ELSEIF ( M == 1 ) THEN
              READ( DATERNG(1), * ) TimeVec(I0)
              TimeVec(I1) = TimeVec(I0)
           ELSE
@@ -1060,6 +1081,12 @@ CONTAINS
     ! Weekdaily data is always in local time. All seven time slices will
     ! be read into memory.
     IF ( Dta%ncDys(1) == -10 ) Dta%IsLocTime  = .TRUE.
+
+    ! If time shift is specified, archive it in attribute 'tShift'. 
+    IF ( N > 4 ) THEN
+       CALL TimeShift_Set( HcoConfig, Dta, SUBSTR(5), RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
 
     ! Leave w/ success
     RC = HCO_SUCCESS

@@ -249,6 +249,12 @@ hco_tidx_mod.o         : hco_tidx_mod.F90        \
                          hco_clock_mod.o         \
                          hco_error_mod.o         \
                          hco_state_mod.o         \
+                         hco_timeshift_mod.o     \
+                         hco_types_mod.o
+
+hco_timeshift_mod.o    : hco_timeshift_mod.F90   \
+                         hco_error_mod.o         \
+                         hco_state_mod.o         \
                          hco_types_mod.o
 
 hco_unit_mod.o         : hco_unit_mod.F90        \

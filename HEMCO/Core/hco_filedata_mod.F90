@@ -189,6 +189,7 @@ CONTAINS
     NewFDta%ncMts(:)     = -999
     NewFDta%ncDys(:)     = -999
     NewFDta%ncHrs(:)     = -999
+    NewFDta%tShift(:)    = 0
     NewFDta%CycleFlag    = HCO_CFLAG_CYCLE
     NewFDta%UpdtFlag     = HCO_UFLAG_FROMFILE
     NewFDta%MustFind     = .FALSE.

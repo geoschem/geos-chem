@@ -469,7 +469,7 @@ CONTAINS
           IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
              WRITE(MSG,*) 'Calculating emissions for species ', &
                            TRIM(HcoState%Spc(ThisSpc)%SpcName)
-             CALL HCO_MSG( MSG, SEP1='-', SEP2='-' )
+             CALL HCO_MSG( HcoState%Config%Err, MSG, SEP1='-', SEP2='-' )
           ENDIF
  
        ENDIF
