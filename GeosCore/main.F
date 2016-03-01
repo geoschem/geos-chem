@@ -802,8 +802,13 @@
       CALL Diagnostics_Init( am_I_Root, Input_Opt, 
      &                       State_Met, State_Chm, RC )
 #endif 
+
 #if !defined( BPCH_RST_OUT )
       CALL INIT_GC_RESTART_NC( am_I_Root, Input_Opt, RC )
+#endif
+
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_End( "Initialization", RC )
 #endif
 
       !=================================================================
