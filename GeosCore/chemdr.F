@@ -789,7 +789,6 @@
          
                ! Print the min and max of each species in [molec/cm3/box]
                ! after conversion if in debug mode (ewl, 3/1/16)
-               ! of MOH (ewl, 3/1/16)
                IF ( Input_Opt%LPRT ) THEN
                   WRITE( 6, 110 ) N,  
      &                   TRIM( SPC_NAME ),
