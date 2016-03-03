@@ -1003,9 +1003,10 @@
      &                    TRIM( Input_Opt%TEMP_DIR )
          WRITE( 6, 110 ) 'Input restart file          : ', 
      &                    TRIM( Input_Opt%IN_RST_FILE )
-         WRITE( 6, 120 ) 'Create restart file?        : ', LSVGLB
+#if defined( BPCH_RST_OUT )
          WRITE( 6, 110 ) 'Output restart file(s)      : ', 
      &                    TRIM( Input_Opt%OUT_RST_FILE )
+#endif
          WRITE( 6, 120 ) 'Unzip met fields?           : ', LUNZIP
          WRITE( 6, 120 ) 'Wait for met fields?        : ', LWAIT
          WRITE( 6, 120 ) 'Use variable tropopause?    : ', LVARTROP
@@ -3450,9 +3451,11 @@
          WRITE( 6, 100     ) 'Online strat. H2O?          : ',LACTIVEH2O
          WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', 
      &        Input_Opt%TS_CHEM
+#if defined( BPCH_RST_OUT )
          WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
          WRITE( 6, 130     ) ' => CSPEC restart file?     : ', 
      &        TRIM( SPEC_RST_FILE )
+#endif
          WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
          WRITE( 6, 100     ) 'Online ozone for FAST-JX?   : ', LO3FJX
          WRITE( 6, 140     ) 'GAMMA HO2                   : ',
