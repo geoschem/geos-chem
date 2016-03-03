@@ -220,6 +220,7 @@ CONTAINS
 !  06 Nov 2015 - C. Keller   - Output time stamp is now determined from 
 !                              variable OutTimeStamp.
 !  14 Jan 2016 - E. Lundgren - Create netcdf title out of filename prefix
+!  03 Mar 2016 - M. Sulprizio- Change netCDF format to netCDF-4
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -369,9 +370,10 @@ CONTAINS
     ENDIF
 
     ! Create output file
+    ! Pass CREATE_NC4 to make file format netCDF-4 (mps, 3/3/16)
     CALL NC_CREATE( ncFile, title, nLon,  nLat,  nLev,  & 
                     nTime,  fId,   lonId, latId, levId, &
-                    timeId, VarCt ) 
+                    timeId, VarCt, CREATE_NC4=.TRUE. ) 
 
     !-----------------------------------------------------------------
     ! Write grid dimensions (incl. time) 
