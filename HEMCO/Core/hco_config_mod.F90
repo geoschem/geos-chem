@@ -535,7 +535,7 @@ CONTAINS
     INTEGER                   :: Cats(CatMax)
     INTEGER                   :: STRLEN
     LOGICAL                   :: SKIP
-    CHARACTER(LEN= 31)        :: cName
+    CHARACTER(LEN= 63)        :: cName
     CHARACTER(LEN=255)        :: srcFile
     CHARACTER(LEN= 31)        :: srcVar
     CHARACTER(LEN= 31)        :: srcTime
@@ -3703,7 +3703,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=31)  :: name1, name2
+    CHARACTER(LEN=63)  :: name1, name2
     INTEGER            :: idx
 
     !======================================================================

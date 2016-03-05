@@ -283,7 +283,7 @@ MODULE HCO_TYPES_MOD
   TYPE :: DataCont
 
      ! Container information 
-     CHARACTER(LEN= 31)          :: cName          ! Cont. name
+     CHARACTER(LEN= 63)          :: cName          ! Cont. name
      INTEGER                     :: cID            ! Cont. ID
      INTEGER                     :: targetID       ! target ID
      INTEGER                     :: DctType        ! Data type
@@ -420,7 +420,7 @@ MODULE HCO_TYPES_MOD
   ! DiagnCont: Diagnostics container derived type declaration
   !------------------------------------------------------------------------
   TYPE :: DiagnCont
-     CHARACTER(LEN= 31)          :: cName          ! Cont. name
+     CHARACTER(LEN= 63)          :: cName          ! Cont. name
      CHARACTER(LEN=255)          :: long_name      ! ncdf long_name attribute 
      INTEGER                     :: cID            ! Cont. ID
      INTEGER                     :: ExtNr          ! Extension #

@@ -264,6 +264,9 @@
          ! Days between mid-months (updated by HEMCO clock)
          INTEGER                 :: DAYS_BTW_M
 
+         ! Input data suffix
+         CHARACTER(LEN=255)      :: SUFFIX
+
          TYPE(MyInst), POINTER   :: NextInst => NULL()
       END TYPE MyInst
 
@@ -3459,10 +3462,16 @@
       REAL(sp), POINTER       :: PFT_C3_NARC_GRSS(:,:)       
       REAL(sp), POINTER       :: PFT_C4_GRSS(:,:)            
       REAL(sp), POINTER       :: PFT_CROP(:,:)               
+
+      ! Suffix
+      CHARACTER(LEN=255)      :: SFX
  
       !=================================================================
       ! CALC_AEF begins here!
       !=================================================================
+
+      ! Suffix
+      SFX = Inst%SUFFIX
 
       ! ----------------------------------------------------------------
       ! Note that not all these compounds are used in standard chemistry
@@ -3477,7 +3486,7 @@
       ! Point to external data 
       !-----------------------------------------------------------------
 
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'MEGAN_AEF_ISOP', 
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'MEGAN_AEF_ISOP'//TRIM(SFX),
      &                 Inst%AEF_ISOP, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -3488,7 +3497,8 @@
 
       ! Arrays used if monoterpene switch is turned on
       IF ( Inst%ExtNrMono > 0 ) THEN
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'MEGAN_AEF_MBOX', 
+         CALL HCO_GetPtr( am_I_Root, HcoState,
+     &                   'MEGAN_AEF_MBOX'//TRIM(SFX),
      &                    Inst%AEF_MBOX, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
       
@@ -3497,15 +3507,18 @@
 !         IF ( RC /= HCO_SUCCESS ) RETURN
 ! <---
 
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'MEGAN_AEF_BPIN',
+         CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                   'MEGAN_AEF_BPIN'//TRIM(SFX),
      &                    Inst%AEF_BPIN, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'MEGAN_AEF_CARE',
+         CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                   'MEGAN_AEF_CARE'//TRIM(SFX),
      &                    Inst%AEF_CARE, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'MEGAN_AEF_LIMO',
+         CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                   'MEGAN_AEF_LIMO'//TRIM(SFX),
      &                    Inst%AEF_LIMO, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -3514,18 +3527,20 @@
 !         IF ( RC /= HCO_SUCCESS ) RETURN
 ! <---
 
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'MEGAN_AEF_OCIM',
+         CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                   'MEGAN_AEF_OCIM'//TRIM(SFX),
      &                    Inst%AEF_OCIM, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'MEGAN_AEF_SABI',
+         CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                   'MEGAN_AEF_SABI'//TRIM(SFX),
      &                    Inst%AEF_SABI, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
       ENDIF
 
       ! Only used for SOA simulation:
       IF ( Inst%ExtNrSoa > 0 ) THEN
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'MEGAN_ORVC', 
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'MEGAN_ORVC'//TRIM(SFX), 
      &                    Inst%GEIA_ORVC, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
       ENDIF
@@ -3553,78 +3568,81 @@
       ! PFT_C4_GRSS             : Warm C4 grass
       ! PFT_CROP                : Crop
 
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'CLM4_PFT_BARE', 
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'CLM4_PFT_BARE'//TRIM(SFX), 
      &                 PFT_BARE, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       CALL HCO_GetPtr( am_I_Root, HcoState, 
-     &                 'CLM4_PFT_NDLF_EVGN_TMPT_TREE',
+     &                 'CLM4_PFT_NDLF_EVGN_TMPT_TREE'//TRIM(SFX),
      &                 PFT_NDLF_EVGN_TMPT_TREE, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       CALL HCO_GetPtr( am_I_Root, HcoState, 
-     &                 'CLM4_PFT_NDLF_EVGN_BORL_TREE',
+     &                 'CLM4_PFT_NDLF_EVGN_BORL_TREE'//TRIM(SFX),
      &                 PFT_NDLF_EVGN_BORL_TREE, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       CALL HCO_GetPtr( am_I_Root, HcoState, 
-     &                 'CLM4_PFT_NDLF_DECD_BORL_TREE',
+     &                 'CLM4_PFT_NDLF_DECD_BORL_TREE'//TRIM(SFX),
      &                 PFT_NDLF_DECD_BORL_TREE, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       CALL HCO_GetPtr( am_I_Root, HcoState, 
-     &                 'CLM4_PFT_BDLF_EVGN_TROP_TREE',
+     &                 'CLM4_PFT_BDLF_EVGN_TROP_TREE'//TRIM(SFX),
      &                 PFT_BDLF_EVGN_TROP_TREE, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       CALL HCO_GetPtr( am_I_Root, HcoState, 
-     &                 'CLM4_PFT_BDLF_EVGN_TMPT_TREE',
+     &                 'CLM4_PFT_BDLF_EVGN_TMPT_TREE'//TRIM(SFX),
      &                 PFT_BDLF_EVGN_TMPT_TREE, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       CALL HCO_GetPtr( am_I_Root, HcoState, 
-     &                 'CLM4_PFT_BDLF_DECD_TROP_TREE',
+     &                 'CLM4_PFT_BDLF_DECD_TROP_TREE'//TRIM(SFX),
      &                 PFT_BDLF_DECD_TROP_TREE, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       CALL HCO_GetPtr( am_I_Root, HcoState, 
-     &                 'CLM4_PFT_BDLF_DECD_TMPT_TREE',
+     &                 'CLM4_PFT_BDLF_DECD_TMPT_TREE'//TRIM(SFX),
      &                 PFT_BDLF_DECD_TMPT_TREE, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       CALL HCO_GetPtr( am_I_Root, HcoState, 
-     &                 'CLM4_PFT_BDLF_DECD_BORL_TREE',
+     &                 'CLM4_PFT_BDLF_DECD_BORL_TREE'//TRIM(SFX),
      &                 PFT_BDLF_DECD_BORL_TREE, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       CALL HCO_GetPtr( am_I_Root, HcoState, 
-     &                 'CLM4_PFT_BDLF_EVGN_SHRB',
+     &                 'CLM4_PFT_BDLF_EVGN_SHRB'//TRIM(SFX),
      &                 PFT_BDLF_EVGN_SHRB, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       CALL HCO_GetPtr( am_I_Root, HcoState, 
-     &                 'CLM4_PFT_BDLF_DECD_TMPT_SHRB',
+     &                 'CLM4_PFT_BDLF_DECD_TMPT_SHRB'//TRIM(SFX),
      &                 PFT_BDLF_DECD_TMPT_SHRB, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       CALL HCO_GetPtr( am_I_Root, HcoState, 
-     &                 'CLM4_PFT_BDLF_DECD_BORL_SHRB',
+     &                 'CLM4_PFT_BDLF_DECD_BORL_SHRB'//TRIM(SFX),
      &                 PFT_BDLF_DECD_BORL_SHRB, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'CLM4_PFT_C3_ARCT_GRSS',
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                'CLM4_PFT_C3_ARCT_GRSS'//TRIM(SFX),
      &                 PFT_C3_ARCT_GRSS, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'CLM4_PFT_C3_NARC_GRSS',
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                'CLM4_PFT_C3_NARC_GRSS'//TRIM(SFX),
      &                 PFT_C3_NARC_GRSS, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'CLM4_PFT_C4_GRSS',
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                'CLM4_PFT_C4_GRSS'//TRIM(SFX),
      &                 PFT_C4_GRSS, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'CLM4_PFT_CROP', 
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'CLM4_PFT_CROP'//TRIM(SFX), 
      &                 PFT_CROP, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4019,6 +4037,7 @@
       INTEGER                        :: ExtNr
       INTEGER                        :: I, nSpc, AS, NX, NY
       INTEGER, ALLOCATABLE           :: HcoIDs(:)
+      LOGICAL                        :: FOUND
       REAL*8                         :: PI_180
       REAL(hp), POINTER              :: Ptr2D(:,:) => NULL()
       TYPE(MyInst), POINTER          :: Inst => NULL()
@@ -4282,6 +4301,11 @@
             ENDIF
          ENDIF
       ENDIF
+
+      CALL GetExtOpt( HcoState%Config, ExtNr, 'MEGAN_SUFFIX',  
+     &                OptValChar=Inst%SUFFIX, FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+      IF ( .NOT. FOUND ) Inst%SUFFIX = ''
 
       !-----------------------------------------------------------------
       ! Allocate module variables 
@@ -4832,3 +4856,4 @@
       END SUBROUTINE InstRemove
 !EOC
       END MODULE HCOX_MEGAN_MOD
+

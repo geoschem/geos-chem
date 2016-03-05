@@ -542,8 +542,8 @@ CONTAINS
 !
     INTEGER                    :: N,      LUN
     LOGICAL                    :: EOF,    FOUND,   DefaultSet
-    CHARACTER(LEN=31)          :: cName,  SpcName, OutUnit
-    CHARACTER(LEN=63)          :: dLname, dSname 
+    CHARACTER(LEN=31)          :: SpcName, OutUnit
+    CHARACTER(LEN=63)          :: cName,  dLname, dSname 
     INTEGER                    :: HcoID,  ExtNr,   Cat, Hier, SpaceDim
     CHARACTER(LEN=255)         :: lName,  LOC,     MSG
 
@@ -1397,7 +1397,7 @@ CONTAINS
     CHARACTER(LEN=255)             :: LOC, MSG
     REAL(hp)                       :: Fact
     REAL(hp)                       :: Tmp
-    CHARACTER(LEN=31)              :: DgnName
+    CHARACTER(LEN=63)              :: DgnName
     INTEGER                        :: I, J, L, PS, AS
     INTEGER                        :: DgncID,  DgnExtNr, DgnCat
     INTEGER                        :: iHier,   iExt,     iCat
