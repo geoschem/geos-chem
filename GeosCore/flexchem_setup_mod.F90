@@ -251,8 +251,6 @@ CONTAINS
                    ! Set grid box dry air density [molec/cm3]
                    AIRNUMDEN = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp / &
                        ( State_Met%T(I,J,L) * BK ) !State_Met%AIRNUMDEN(I,J,L)
-                   IF (I.eq.10.and.J.eq.10.and.L.eq.10.and.N.eq.1) write(*,'(a,4e15.7)') 'AND: ',AIRNUMDEN, &
-                        State_Met%PMID(I,J,L), State_Met%T(I,J,L), BK
 
                    !========================================================
                    ! For methanol (MOH), now use different initial background
