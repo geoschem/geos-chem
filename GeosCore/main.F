@@ -60,7 +60,6 @@
       USE TOMS_MOD              ! For overhead O3 columns (for FAST-J)
       USE UCX_MOD               ! For unified trop-strat chemistry (SDE)
       USE UVALBEDO_MOD          ! For reading UV albedoes (for FAST-J)
-      USE FLEXCHEM_SETUP_MOD    ! For initializing KPP/KPPA chem. routines
 
       !-----------------------------------------------------------------
       ! GEOS-Chem deposition modules
@@ -697,29 +696,6 @@
       CALL Diagnostics_Init( am_I_Root, Input_Opt, 
      &                       State_Met, State_Chm, RC )
 #endif
-
-      ! Debug
-      write(*,'(3a,2e12.4)') '<> b INIT_FLEXCHEM ',
-     &            NAMEGAS(66), ' = ', State_Chm%Species(10,10,10,66)
-      write(*,'(3a,2e12.4)') '<> b INIT_FLEXCHEM ',
-     &            NAMEGAS(62), ' = ', State_Chm%Species(10,10,10,62)
-
-      ! MSL - Flexchem
-      ! Initialize photochemistry & tracer->species mapping
-      ! For FULLCHEM, INPHOT was previously done in chemdr, 
-      ! but chemdr is gone.
-      IF ( LCHEM .and. ITS_A_FULLCHEM_SIM ) THEN
-         CALL INIT_FLEXCHEM( Input_Opt, State_Met, State_Chm,
-     &                       am_I_Root, RC )
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_FLEXCHEM' )
-      ENDIF
-      ! MSL ----------
-
-      ! Debug
-      write(*,'(3a,2e12.4)') '<> a INIT_FLEXCHEM ',
-     &            NAMEGAS(66), ' = ', State_Chm%Species(10,10,10,66)
-      write(*,'(3a,2e12.4)') '<> a INIT_FLEXCHEM ',
-     &            NAMEGAS(62), ' = ', State_Chm%Species(10,10,10,62)
 
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
@@ -1510,20 +1486,9 @@
      &                            State_Met, State_Chm, RC )
             ENDIF
 
-            write(*,'(3a,2e12.4)') '<> b DO_CHEMISTRY ',
-     &            NAMEGAS(66), ' = ', State_Chm%Species(10,10,10,66)
-            write(*,'(3a,2e12.4)') '<> b DO_CHEMISTRY ',
-     &            NAMEGAS(62), ' = ', State_Chm%Species(10,10,10,62)
-
             ! Do GEOS-Chem chemistry
             CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
      &                         State_Chm, State_Met, RC ) 
-
-
-            write(*,'(3a,2e12.4)') '<> a DO_CHEMISTRY ',
-     &            NAMEGAS(66), ' = ', State_Chm%Species(10,10,10,66)
-            write(*,'(3a,2e12.4)') '<> a DO_CHEMISTRY ',
-     &            NAMEGAS(62), ' = ', State_Chm%Species(10,10,10,62)
 
          ENDIF 
 

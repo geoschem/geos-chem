@@ -287,6 +287,8 @@
       END DO
 
       ! Loop over tracers and grid boxes
+      ! The following 4-loop block mimics partition.F
+      ! -- Families are dealt with in the KLUDGE Pt.1 below
       DO N = 1, N_TRACERS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -441,8 +443,6 @@
      &       'Hexit, last accepted step before exit:    ', f11.4, /,
      &       'Hnew, last predicted step (not yet taken):', f11.4 )
 
-      write(*,'(a,e12.4,i)') '<> CO2 : ', C(ind_CO2), ind_CO2
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
@@ -466,8 +466,8 @@
 
          call cpu_time(start)
          HET(:,:) = 0.
-         CALL SET_HET(I,J,L,State_Chm,State_Met,Input_Opt,
-     &        scoeff(I,J,L,1:3))
+!         CALL SET_HET(I,J,L,State_Chm,State_Met,Input_Opt,
+!     &        scoeff(I,J,L,1:3))
 
          ! Grid-box latitude index
          YLAT  = GET_YMID( I,J,L )
@@ -493,10 +493,10 @@
          ! I've assumed that these are the same as in the text files but this
          ! may have been changed. 
          ! This needs to be checked through more thoroughly
-         CALL PHOTRATE_ADJ( am_I_root, State_Met, 
-     &                      State_Chm, Input_Opt, 
-     &                      I, J, L, H2O, NUMDEN, IERR )
-         PHOTOL(1:JVN_) =    ZPJ(L,1:JVN_,I,J)
+!         CALL PHOTRATE_ADJ( am_I_root, State_Met, 
+!     &                      State_Chm, Input_Opt, 
+!     &                      I, J, L, H2O, NUMDEN, IERR )
+         PHOTOL(1:JVN_) =   0. ! ZPJ(L,1:JVN_,I,J)
 
          ! mje Set up the initial conditions of the variable species
          ! mje The Integrator works in # cm-3
@@ -510,9 +510,9 @@
 
          ! Debug
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-            DO N = 1,Input_Opt%N_SPECIES
-               write(*,'(2a,e12.4)') '<> b ', NAMEGAS(N),
-     &                                        State_Chm%Species(I,J,L,N)
+            DO N = 1,NSPEC
+               write(*,'(2a,e12.4)') '<> b ', trim(SPC_NAMES(N))
+     &              ,C(N)
             ENDDO
          ENDIF
 
@@ -530,6 +530,10 @@
 !         C(ind_MOH) = 0.5e-9_dp   * NUMDEN
 !         C(ind_H2)  = 0.5e-6_dp   * NUMDEN
 !------------------------------------------------------------------------------
+
+         C(ind_ACTA)  = 0.e0_dp
+         C(ind_EOH)   = 0.e0_dp
+         C(ind_HCOOH) = 0.e0_dp
 
          ! Set CH4 according to latitude
          ! Convert from [ppbv CH4] to [molec CH4/cm3]
@@ -557,10 +561,14 @@
 
          ! mje Integrate the box forwards
          call cpu_time(start)
-         call Integrate( TIN,    TOUT,    ICNTRL, 
-     &                   RCNTRL, ISTATUS, RSTATE, IERR )
-         call cpu_time(finish)
+!         call Integrate( TIN,    TOUT,    ICNTRL, 
+!     &                   RCNTRL, ISTATUS, RSTATE, IERR )
+!         call cpu_time(finish)
          itim = itim + finish - start
+
+         C(ind_ACTA)  = 0.e0_dp
+         C(ind_EOH)   = 0.e0_dp
+         C(ind_HCOOH) = 0.e0_dp
 
          ! Try another time if it failed
 !         IF ( IERR < 0 ) THEN
@@ -617,13 +625,18 @@
             C(N) = MAX( C(N), 0E0_dp )
             IF ( CSPECTOKPP(N) .eq. 0) CYCLE
             State_Chm%Species(I,J,L,CSPECTOKPP(N))= real(C(N),kind=fp)
+            IF (I.eq.36.and.J.eq.5.and.L.eq.1.and.N.eq.IND_OH) THEN
+               write(*,'(a,2e12.4)') 'SPC_OH : ',c(N),
+     &              State_Chm%Species(I,J,L,CSPECTOKPP(N))
+            ENDIF
          ENDDO
+
 
          ! Debug
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-            DO N = 1,Input_Opt%N_SPECIES
-               write(*,'(2a,e12.4)') '<> a ', NAMEGAS(N),
-     &                                        State_Chm%Species(I,J,L,N)
+            DO N = 1,NSPEC
+               write(*,'(2a,e12.4)') '<> a ', trim(SPC_NAMES(N)),
+     &              C(N)
             ENDDO
          ENDIF
 

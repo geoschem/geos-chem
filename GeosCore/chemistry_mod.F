@@ -122,6 +122,9 @@
       USE TOMAS_MOD,          ONLY : DO_TOMAS  !(win, 7/14/09)
       USE TRACERID_MOD,       ONLY : IDTNK1    !(win, 7/14/09)
 #endif
+
+      USE FLEXCHEM_SETUP_MOD    ! For initializing KPP/KPPA chem. routines
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -326,6 +329,18 @@
          ! NOx-Ox-HC (w/ or w/o aerosols) 
          !---------------------------------
          IF ( IT_IS_A_FULLCHEM_SIM ) THEN 
+
+      ! MSL - Flexchem
+      ! Initialize photochemistry & tracer->species mapping
+      ! For FULLCHEM, INPHOT was previously done in chemdr, 
+      ! but chemdr is gone.
+            IF (FIRST) THEN
+               CALL INIT_FLEXCHEM( Input_Opt, State_Met, State_Chm,
+     &              am_I_Root, RC )
+               IF ( LPRT .and. am_I_Root ) 
+     &              CALL DEBUG_MSG( '### MAIN: a INIT_FLEXCHEM' )
+            ENDIF
+      ! MSL ----------
 
 #if defined( UCX )
             ! We need to get the STATE_PSC from the HEMCO restart file.
