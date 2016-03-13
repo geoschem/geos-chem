@@ -196,12 +196,10 @@ MODULE HCOX_STATE_MOD
      ! Fields used in ESMF environment only. These arrays won't be used
      ! in a classic environment. They become filled in HCO_SetExtState_ESMF
      ! in hcoi_esmf_mod.F90 (called from within hcoi_gc_main_mod.F90). 
-     ! Note: CNV_TOPP is currently not being used. 
      !----------------------------------------------------------------------
-     TYPE(ExtDat_2S),  POINTER :: CNV_TOPP    ! Convective cloud top height 
-     TYPE(ExtDat_3S),  POINTER :: RCCODE      ! Convection return code
      TYPE(ExtDat_3S),  POINTER :: BYNCY       ! Buoyancy 
-
+     TYPE(ExtDat_2R),  POINTER :: CNV_FRC     ! convective fraction (filled
+                                              ! from State_Met) 
   END TYPE Ext_State
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -221,6 +219,8 @@ MODULE HCOX_STATE_MOD
 !                              precision. Single precision is useful for 
 !                              fields used in ESMF setting. 
 !  03 Apr 2015 - C. Keller   - Added ExtDat_Set.
+!  21 Feb 2016 - C. Keller   - Update to HEMCO v2.0
+!  03 Mar 2016 - C. Keller   - Added CNV_FRC
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -462,13 +462,10 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%WET_TOTN, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%CNV_TOPP, RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    CALL ExtDat_Init ( ExtState%RCCODE, RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
     CALL ExtDat_Init ( ExtState%BYNCY, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Init ( ExtState%CNV_FRC, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
@@ -554,8 +551,7 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%POPG       )
        CALL ExtDat_Cleanup( ExtState%DRY_TOTN   )
        CALL ExtDat_Cleanup( ExtState%WET_TOTN   )
-       CALL ExtDat_Cleanup( ExtState%CNV_TOPP   )
-       CALL ExtDat_Cleanup( ExtState%RCCODE     )
+       CALL ExtDat_Cleanup( ExtState%CNV_FRC    )
        CALL ExtDat_Cleanup( ExtState%BYNCY      )
 
        ExtState%DRYCOEFF   => NULL()
@@ -1009,7 +1005,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
     INTEGER,          INTENT(INOUT)                   :: RC     
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
-    REAL(hp),         INTENT(INOUT), OPTIONAL, TARGET :: Trgt(:,:)
+    REAL(hp),         POINTER,       OPTIONAL         :: Trgt(:,:)
     LOGICAL,          INTENT(  OUT), OPTIONAL         :: Filled
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk 
 !
@@ -1091,35 +1087,48 @@ CONTAINS
    
           ! Target to data
           ELSEIF ( PRESENT(Trgt) ) THEN
-   
-             ! Make sure dimensions agree
-             NX = SIZE(Trgt,1)
-             NY = SIZE(Trgt,2)
+  
+             ! If target is not associated: 
+             IF ( .NOT. ASSOCIATED(Trgt) ) THEN
+                IF ( FailIfNotFilled ) THEN
+                   MSG = 'Cannot fill extension field ' // TRIM(FldName) // &
+                         ' because target field is not associated.'
+                   CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
+                   RETURN
+                ENDIF
+          
+             ! If target is associated:
+             ELSE
  
-             ! Must cover the horizontal grid 
-             IF ( (NX/=HcoState%NX) .OR. (NY/=HcoState%NY) ) THEN
-                WRITE(MSG,*) 'Horizontal dimensions of target data do not ', &
-                   'correspond to simulation grid: ', &
-                   'Expected dimensions: ', HcoState%NX, HcoState%NY, &
-                   '; encountered dimensions: ', NX, NY, '. Error occured ', &
-                   'for field ', TRIM(FldName)
-                CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
-
-             ! Link data to target
-             ExtDat%Arr%Val => Trgt
+                ! Make sure dimensions agree
+                NX = SIZE(Trgt,1)
+                NY = SIZE(Trgt,2)
+    
+                ! Must cover the horizontal grid 
+                IF ( (NX/=HcoState%NX) .OR. (NY/=HcoState%NY) ) THEN
+                   WRITE(MSG,*) 'Horizontal dimensions of target data do not ', &
+                      'correspond to simulation grid: ', &
+                      'Expected dimensions: ', HcoState%NX, HcoState%NY, &
+                      '; encountered dimensions: ', NX, NY, '. Error occured ', &
+                      'for field ', TRIM(FldName)
+                   CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
+                   RETURN
+                ENDIF
    
-             ! Make sure it's not from list
-             ExtDat%FromList = .FALSE.
+                ! Link data to target
+                ExtDat%Arr%Val => Trgt
+      
+                ! Make sure it's not from list
+                ExtDat%FromList = .FALSE.
+      
+                ! This array is now filled
+                IF ( PRESENT(Filled) ) Filled = .TRUE.
    
-             ! This array is now filled
-             IF ( PRESENT(Filled) ) Filled = .TRUE.
-
-             ! Verbose
-             IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
-                MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
-                CALL HCO_MSG(HcoState%Config%Err,MSG)
+                ! Verbose
+                IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
+                   MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
+                   CALL HCO_MSG(HcoState%Config%Err,MSG)
+                ENDIF
              ENDIF
 
           ! Field not found and no target defined 
@@ -1192,7 +1201,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
     INTEGER,          INTENT(INOUT)                   :: RC     
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
-    REAL(sp),         INTENT(INOUT), OPTIONAL, TARGET :: Trgt(:,:)
+    REAL(sp),         POINTER,       OPTIONAL         :: Trgt(:,:)
     LOGICAL,          INTENT(  OUT), OPTIONAL         :: Filled
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk 
 !
@@ -1274,35 +1283,48 @@ CONTAINS
    
           ! Target to data
           ELSEIF ( PRESENT(Trgt) ) THEN
-  
-             ! Make sure dimensions agree
-             NX = SIZE(Trgt,1)
-             NY = SIZE(Trgt,2)
  
-             ! Must cover the horizontal grid 
-             IF ( (NX/=HcoState%NX) .OR. (NY/=HcoState%NY) ) THEN
-                WRITE(MSG,*) 'Horizontal dimensions of target data do not ', &
-                   'correspond to simulation grid: ', &
-                   'Expected dimensions: ', HcoState%NX, HcoState%NY, &
-                   '; encountered dimensions: ', NX, NY, '. Error occured ', &
-                   'for field ', TRIM(FldName)
-                CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
-
-             ! Link data to target
-             ExtDat%Arr%Val => Trgt
+             ! If target is not associated: 
+             IF ( .NOT. ASSOCIATED(Trgt) ) THEN
+                IF ( FailIfNotFilled ) THEN
+                   MSG = 'Cannot fill extension field ' // TRIM(FldName) // &
+                         ' because target field is not associated.'
+                   CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
+                   RETURN
+                ENDIF
+          
+             ! If target is associated:
+             ELSE
+ 
+                ! Make sure dimensions agree
+                NX = SIZE(Trgt,1)
+                NY = SIZE(Trgt,2)
+    
+                ! Must cover the horizontal grid 
+                IF ( (NX/=HcoState%NX) .OR. (NY/=HcoState%NY) ) THEN
+                   WRITE(MSG,*) 'Horizontal dimensions of target data do not ', &
+                      'correspond to simulation grid: ', &
+                      'Expected dimensions: ', HcoState%NX, HcoState%NY, &
+                      '; encountered dimensions: ', NX, NY, '. Error occured ', &
+                      'for field ', TRIM(FldName)
+                   CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
+                   RETURN
+                ENDIF
    
-             ! Make sure it's not from list
-             ExtDat%FromList = .FALSE.
-  
-             ! Mark as filled 
-             IF ( PRESENT(Filled) ) Filled = .TRUE.
-
-             ! Verbose
-             IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
-                MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
-                CALL HCO_MSG(HcoState%Config%Err,MSG)
+                ! Link data to target
+                ExtDat%Arr%Val => Trgt
+      
+                ! Make sure it's not from list
+                ExtDat%FromList = .FALSE.
+     
+                ! Mark as filled 
+                IF ( PRESENT(Filled) ) Filled = .TRUE.
+   
+                ! Verbose
+                IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
+                   MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
+                   CALL HCO_MSG(HcoState%Config%Err,MSG)
+                ENDIF
              ENDIF
 
           ! Field not found and no target defined 
@@ -1375,7 +1397,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
     INTEGER,          INTENT(INOUT)                   :: RC     
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
-    INTEGER,          INTENT(INOUT), OPTIONAL, TARGET :: Trgt(:,:)
+    INTEGER,          POINTER,       OPTIONAL         :: Trgt(:,:)
     LOGICAL,          INTENT(  OUT), OPTIONAL         :: Filled
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk 
 !
@@ -1458,34 +1480,47 @@ CONTAINS
           ! Target to data
           ELSEIF ( PRESENT(Trgt) ) THEN
    
-             ! Make sure dimensions agree
-             NX = SIZE(Trgt,1)
-             NY = SIZE(Trgt,2)
+             ! If target is not associated: 
+             IF ( .NOT. ASSOCIATED(Trgt) ) THEN
+                IF ( FailIfNotFilled ) THEN
+                   MSG = 'Cannot fill extension field ' // TRIM(FldName) // &
+                         ' because target field is not associated.'
+                   CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
+                   RETURN
+                ENDIF
+          
+             ! If target is associated:
+             ELSE
  
-             ! Must cover the horizontal grid 
-             IF ( (NX /= HcoState%NX) .OR. (NY /= HcoState%NY) ) THEN
-                WRITE(MSG,*) 'Horizontal dimensions of target data do not ', &
-                   'correspond to simulation grid: ', &
-                   'Expected dimensions: ', HcoState%NX, HcoState%NY, &
-                   '; encountered dimensions: ', NX, NY, '. Error occured ', &
-                   'for field ', TRIM(FldName)
-                CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
- 
-             ! Link data to target
-             ExtDat%Arr%Val => Trgt
+                ! Make sure dimensions agree
+                NX = SIZE(Trgt,1)
+                NY = SIZE(Trgt,2)
+    
+                ! Must cover the horizontal grid 
+                IF ( (NX /= HcoState%NX) .OR. (NY /= HcoState%NY) ) THEN
+                   WRITE(MSG,*) 'Horizontal dimensions of target data do not ', &
+                      'correspond to simulation grid: ', &
+                      'Expected dimensions: ', HcoState%NX, HcoState%NY, &
+                      '; encountered dimensions: ', NX, NY, '. Error occured ', &
+                      'for field ', TRIM(FldName)
+                   CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
+                   RETURN
+                ENDIF
+    
+                ! Link data to target
+                ExtDat%Arr%Val => Trgt
+      
+                ! Make sure it's not from list
+                ExtDat%FromList = .FALSE.
+      
+                ! Mark as filled
+                IF ( PRESENT(Filled) ) Filled = .TRUE.
    
-             ! Make sure it's not from list
-             ExtDat%FromList = .FALSE.
-   
-             ! Mark as filled
-             IF ( PRESENT(Filled) ) Filled = .TRUE.
-
-             ! Verbose
-             IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
-                MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
-                CALL HCO_MSG(HcoState%Config%Err,MSG)
+                ! Verbose
+                IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
+                   MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
+                   CALL HCO_MSG(HcoState%Config%Err,MSG)
+                ENDIF
              ENDIF
 
           ! Not found in list and no target defined 
@@ -1562,7 +1597,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
     INTEGER,          INTENT(INOUT)                   :: RC     
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
-    REAL(hp),         INTENT(INOUT), OPTIONAL, TARGET :: Trgt(:,:,:)
+    REAL(hp),         POINTER,       OPTIONAL         :: Trgt(:,:,:)
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: OnLevEdge 
     LOGICAL,          INTENT(  OUT), OPTIONAL         :: Filled
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk 
@@ -1654,36 +1689,49 @@ CONTAINS
    
           ! Target to data
           ELSEIF ( PRESENT(Trgt) ) THEN
+   
+             ! If target is not associated: 
+             IF ( .NOT. ASSOCIATED(Trgt) ) THEN
+                IF ( FailIfNotFilled ) THEN
+                   MSG = 'Cannot fill extension field ' // TRIM(FldName) // &
+                         ' because target field is not associated.'
+                   CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
+                   RETURN
+                ENDIF
+          
+             ! If target is associated:
+             ELSE
     
-             ! Make sure dimensions agree
-             NX = SIZE(Trgt,1)
-             NY = SIZE(Trgt,2)
-             NZ = SIZE(Trgt,3)
- 
-             ! Must cover the horizontal grid 
-             IF ( (NX/=HcoState%NX) .OR. (NY/=HcoState%NY) .OR. (NZ/=NZ_EXPECTED) ) THEN
-                WRITE(MSG,*) 'Dimensions of target data do not ', &
-                   'correspond to simulation grid: ', &
-                   'Expected dimensions: ', HcoState%NX, HcoState%NY, NZ_EXPECTED, &
-                   '; encountered dimensions: ', NX, NY, NZ, '. Error occured ', &
-                   'for field ', TRIM(FldName)
-                CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
- 
-             ! Link data to target
-             ExtDat%Arr%Val => Trgt
+                ! Make sure dimensions agree
+                NX = SIZE(Trgt,1)
+                NY = SIZE(Trgt,2)
+                NZ = SIZE(Trgt,3)
+    
+                ! Must cover the horizontal grid 
+                IF ( (NX/=HcoState%NX) .OR. (NY/=HcoState%NY) .OR. (NZ/=NZ_EXPECTED) ) THEN
+                   WRITE(MSG,*) 'Dimensions of target data do not ', &
+                      'correspond to simulation grid: ', &
+                      'Expected dimensions: ', HcoState%NX, HcoState%NY, NZ_EXPECTED, &
+                      '; encountered dimensions: ', NX, NY, NZ, '. Error occured ', &
+                      'for field ', TRIM(FldName)
+                   CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
+                   RETURN
+                ENDIF
+    
+                ! Link data to target
+                ExtDat%Arr%Val => Trgt
+      
+                ! Make sure it's not from list
+                ExtDat%FromList = .FALSE.
+      
+                ! Mark as filled
+                IF ( PRESENT(Filled) ) Filled = .TRUE.
    
-             ! Make sure it's not from list
-             ExtDat%FromList = .FALSE.
-   
-             ! Mark as filled
-             IF ( PRESENT(Filled) ) Filled = .TRUE.
-
-             ! Verbose
-             IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
-                MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
-                CALL HCO_MSG(HcoState%Config%Err,MSG)
+                ! Verbose
+                IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
+                   MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
+                   CALL HCO_MSG(HcoState%Config%Err,MSG)
+                ENDIF
              ENDIF
           
           ! Not found in list and no target defined 
@@ -1763,7 +1811,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
     INTEGER,          INTENT(INOUT)                   :: RC     
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
-    REAL(sp),         INTENT(INOUT), OPTIONAL, TARGET :: Trgt(:,:,:)
+    REAL(sp),         POINTER,       OPTIONAL         :: Trgt(:,:,:)
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: OnLevEdge 
     LOGICAL,          INTENT(  OUT), OPTIONAL         :: Filled
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk 
@@ -1855,36 +1903,49 @@ CONTAINS
    
           ! Target to data
           ELSEIF ( PRESENT(Trgt) ) THEN
+  
+             ! If target is not associated: 
+             IF ( .NOT. ASSOCIATED(Trgt) ) THEN
+                IF ( FailIfNotFilled ) THEN
+                   MSG = 'Cannot fill extension field ' // TRIM(FldName) // &
+                         ' because target field is not associated.'
+                   CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
+                   RETURN
+                ENDIF
+          
+             ! If target is associated:
+             ELSE
+    
+                ! Make sure dimensions agree
+                NX = SIZE(Trgt,1)
+                NY = SIZE(Trgt,2)
+                NZ = SIZE(Trgt,3)
+    
+                ! Must cover the horizontal grid 
+                IF ( (NX/=HcoState%NX) .OR. (NY/=HcoState%NY) .OR. (NZ/=NZ_EXPECTED) ) THEN
+                   WRITE(MSG,*) 'Dimensions of target data do not ', &
+                      'correspond to simulation grid: ', &
+                      'Expected dimensions: ', HcoState%NX, HcoState%NY, NZ_EXPECTED, &
+                      '; encountered dimensions: ', NX, NY, NZ, '. Error occured ', &
+                      'for field ', TRIM(FldName)
+                   CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
+                   RETURN
+                ENDIF
+    
+                ! Link data to target
+                ExtDat%Arr%Val => Trgt
+      
+                ! Make sure it's not from list
+                ExtDat%FromList = .FALSE.
+      
+                ! Mark as filled
+                IF ( PRESENT(Filled) ) Filled = .TRUE.
    
-             ! Make sure dimensions agree
-             NX = SIZE(Trgt,1)
-             NY = SIZE(Trgt,2)
-             NZ = SIZE(Trgt,3)
- 
-             ! Must cover the horizontal grid 
-             IF ( (NX/=HcoState%NX) .OR. (NY/=HcoState%NY) .OR. (NZ/=NZ_EXPECTED) ) THEN
-                WRITE(MSG,*) 'Dimensions of target data do not ', &
-                   'correspond to simulation grid: ', &
-                   'Expected dimensions: ', HcoState%NX, HcoState%NY, NZ_EXPECTED, &
-                   '; encountered dimensions: ', NX, NY, NZ, '. Error occured ', &
-                   'for field ', TRIM(FldName)
-                CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
- 
-             ! Link data to target
-             ExtDat%Arr%Val => Trgt
-   
-             ! Make sure it's not from list
-             ExtDat%FromList = .FALSE.
-   
-             ! Mark as filled
-             IF ( PRESENT(Filled) ) Filled = .TRUE.
-
-             ! Verbose
-             IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
-                MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
-                CALL HCO_MSG(HcoState%Config%Err,MSG)
+                ! Verbose
+                IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
+                   MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
+                   CALL HCO_MSG(HcoState%Config%Err,MSG)
+                ENDIF
              ENDIF
    
           ! Not found in list and no target defined 

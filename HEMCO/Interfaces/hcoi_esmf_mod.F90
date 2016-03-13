@@ -133,7 +133,7 @@ CONTAINS
       LOGICAL                    :: FOUND, DefaultSet
       CHARACTER(LEN=31)          :: cName, SpcName, OutUnit 
       CHARACTER(LEN=63)          :: DefaultSNAME, DefaultLNAME, DefaultUnit
-      CHARACTER(LEN=63)          :: SNAME, LNAME, UNITS
+      CHARACTER(LEN=63)          :: SNAME, LNAME, UnitName 
       CHARACTER(LEN=63), POINTER :: Spc(:)   => NULL() 
       TYPE(ListCont),    POINTER :: CurrCont => NULL()
 
@@ -460,10 +460,6 @@ CONTAINS
       ! Get pointers to fields
       CALL HCO_Imp2Ext ( am_I_Root, HcoState, ExtState%BYNCY   ,    'BYNCY', __RC__ )
 
-      ! Not used 
-      !CALL HCO_Imp2Ext ( am_I_Root, HcoState, ExtState%RCCODE  ,   'RCCODE', __RC__ )
-      !CALL HCO_Imp2Ext ( am_I_Root, HcoState, ExtState%CNV_TOPP, 'CNV_TOPP', __RC__ )
-
       ! Return success
       RC = HCO_SUCCESS 
 
@@ -533,7 +529,7 @@ CONTAINS
       ENDIF ! DoUse
 
       ! Verbose
-      IF ( HCO_IsVerb(HcoState%Config%Err2) .AND. am_I_Root ) THEN
+      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
          CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
       ENDIF
 
@@ -614,7 +610,7 @@ CONTAINS
       ENDIF ! DoUse
 
       ! Verbose
-      IF ( HCO_IsVerb(HcoState%Config%Err2) .AND. am_I_Root ) THEN
+      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
          CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
       ENDIF
 
@@ -689,7 +685,7 @@ CONTAINS
       ENDIF ! DoUse
 
       ! Verbose
-      IF ( HCO_IsVerb(HcoState%Config%Err2) .AND. am_I_Root ) THEN
+      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
          CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
       ENDIF
 
@@ -770,7 +766,7 @@ CONTAINS
       ENDIF ! DoUse
 
       ! Verbose
-      IF ( HCO_IsVerb(HcoState%Config%Err2) .AND. am_I_Root ) THEN
+      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
          CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
       ENDIF
 
@@ -845,7 +841,7 @@ CONTAINS
       ENDIF ! DoUse
 
       ! Verbose
-      IF ( HCO_IsVerb(HcoState%Config%Err2) .AND. am_I_Root ) THEN
+      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
          CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
       ENDIF
 

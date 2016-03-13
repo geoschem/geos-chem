@@ -171,6 +171,7 @@ MODULE HCOX_LightNOx_Mod
    REAL*8                        :: OTD_LIS_SCALE
    LOGICAL                       :: OTD_LIS_PRESC ! Is OTD_LIS_SCALE prescribed?
    LOGICAL                       :: LOTDLOC       ! Use OTD-LIS dist factors?
+   LOGICAL                       :: LCNVFRC       ! Use convective fractions? 
 
    ! Arrays
    REAL(dp), POINTER             :: PROFILE(:,:)
@@ -369,6 +370,8 @@ CONTAINS
 !                              this will only work in an ESMF environment.
 !  31 Jul 2015 - C. Keller   - Take into account scalar/gridded scale factors
 !                              defined in HEMCO configuration file.
+!  03 Mar 2016 - C. Keller   - Use buoyancy in combination with convective 
+!                              fraction CNV_FRC (ESMF only). 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -377,7 +380,7 @@ CONTAINS
 !
     INTEGER           :: I,         J,           L,        LCHARGE
     INTEGER           :: LMAX,      LTOP,        LBOTTOM,  L_MFLUX
-    INTEGER           :: cMt,       MTYPE 
+    INTEGER           :: cMt,       MTYPE,       LTOP1,    LTOP2 
     REAL*8            :: A_KM2,     A_M2,        CC,       DLNP     
     REAL*8            :: DZ,        FLASHRATE,   H0,       HBOTTOM
     REAL*8            :: HCHARGE,   IC_CG_RATIO, MFLUX,    P1
@@ -389,14 +392,13 @@ CONTAINS
     REAL*8            :: VERTPROF(HcoState%NZ)
     INTEGER           :: LNDTYPE, SFCTYPE
     INTEGER           :: DiagnID
-    REAL(hp), TARGET  :: DIAGN(HcoState%NX,HcoState%NY,4)
+    REAL(hp), TARGET  :: DIAGN(HcoState%NX,HcoState%NY,3)
     REAL(hp), POINTER :: Arr2D(:,:) => NULL() 
     TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
     REAL(hp)          :: TROPP
     REAL(dp)          :: TmpScale
 
     ! Cloud top height
-    INTEGER           :: LTOPtmp
     REAL(hp), TARGET  :: TOPDIAGN(HcoState%NX,HcoState%NY)
 
     !=================================================================
@@ -483,7 +485,7 @@ CONTAINS
 !$OMP PRIVATE( IC_CG_RATIO, L_MFLUX,  MFLUX,    RAIN,   RATE      ) &
 !$OMP PRIVATE( X,           TOTAL_IC, TOTAL_CG, TOTAL,  REDIST    ) &
 !$OMP PRIVATE( RATE_SAVE,   VERTPROF, SFCTYPE,  LNDTYPE, TROPP    ) &
-!$OMP PRIVATE( MTYPE,       LTOPtmp                               ) &
+!$OMP PRIVATE( MTYPE,       LTOP1,    LTOP2                       ) &
 !$OMP SCHEDULE( DYNAMIC )
 
     ! Loop over surface boxes
@@ -653,54 +655,52 @@ CONTAINS
        !
        ! (ltm, bmy, 5/10/06, 12/11/06)
        !
-       ! GEOS-5 diagnoses the convective cloud top height directly.
-       ! If available, now use this parameter to determine LTOP.
-       ! The result is basically identical to the traditional 
-       ! definition of LTOP.
-       ! GEOS-5 also diagnoses the buoyancy. Unlike the convective
-       ! parameter, buoyancy is defined in all grid boxes, e.g. 
-       ! also in those where vertical transport is explicitly 
-       ! resolved and convective parameterization is turned off.
-       ! If available, determine cloud top height from buoyancy. 
-       ! Define it as the level above the highest level with
-       ! non-negative buoyancy (ckeller, 3/25/15).
+       ! GEOS-FP turns off convection in grid boxes where vertical
+       ! transport is explicitly resolved. The convective mass flux
+       ! (which is computed within the convection code) is then zero
+       ! in these grid boxes, even though convection did occur at 
+       ! these places. 
+       ! This may become increasingly relevant as GEOS-FP operates 
+       ! at even higher resolutions. 
+       ! GEOS-5 also diagnoses buoyancy and the convective fraction. 
+       ! Unlike convective mass flux, these parameter are defined 
+       ! in all grid boxes, e.g. also in those where vertical 
+       ! transport is explicitly resolved and convective 
+       ! parameterization is turned off.
+       ! If available, also determine cloud top height from 
+       ! buoyancy and the convective fraction. Define it as the
+       ! highest level with non-negative buoyancy and for columns 
+       ! with non-zero convective fraction (ckeller, 3/04/16).
        !===========================================================
 
-       ! To determine cloud top height from buoyancy (level above
-       ! highest level with positive bouyancy).
-       IF ( ASSOCIATED( ExtState%BYNCY%Arr%Val ) ) THEN
-          LTOP = 0
-          DO L = HcoState%NZ, 1, -1
-             IF ( ExtState%BYNCY%Arr%Val(I,J,L) >= 0.0_sp ) THEN 
-                LTOP = L + 1
-                EXIT
-             ENDIF
-          ENDDO
+       ! 'Traditional definition of cloud top level
+       LTOP1 = 1
+       DO L = HcoState%NZ, 1, -1
+          IF ( ExtState%CNV_MFC%Arr%Val(I,J,L) > 0.0_hp ) THEN
+             LTOP1 = L + 1
+             EXIT
+          ENDIF
+       ENDDO 
 
-       ! To determine cloud top height from convective cloud
-       ! top height diagnostics.
-       ELSEIF ( ASSOCIATED( ExtState%CNV_TOPP%Arr%Val ) ) THEN
-          LTOP = 1
-          DO L = 1, HcoState%NZ
-             IF (  HcoState%Grid%PEDGE%Val(I,J,L+1) &
-                <= ExtState%CNV_TOPP%Arr%Val(I,J) ) THEN
-                LTOP = L + 1
-                EXIT
-             ENDIF
-          ENDDO
+       ! To determine cloud top height from buoyancy for all grid
+       ! boxes with non-zero convective fraction (define cloud top
+       ! as top level with positive buoyancy).
+       LTOP2 = 0
+       IF ( Inst%LCNVFRC                         .AND. &
+            ASSOCIATED(ExtState%BYNCY%Arr%Val  ) .AND. &
+            ASSOCIATED(ExtState%CNV_FRC%Arr%Val)        ) THEN
+          IF ( ExtState%CNV_FRC%Arr%Val(I,J) > 0.0_sp ) THEN
+             DO L = HcoState%NZ, 1, -1
+                IF ( ExtState%BYNCY%Arr%Val(I,J,L) >= 0.0_sp ) THEN 
+                   LTOP2= L + 1
+                   EXIT
+                ENDIF
+             ENDDO
+          ENDIF 
+       ENDIF 
 
-       ! 'Traditional' definition
-       ELSE
-
-          ! Cloud top level
-          LTOP = 1
-          DO L = HcoState%NZ, 1, -1
-             IF ( ExtState%CNV_MFC%Arr%Val(I,J,L) > 0.0_hp ) THEN
-                LTOP = L + 1
-                EXIT
-             ENDIF
-          ENDDO 
-       ENDIF
+       ! Take whichever value is higher
+       LTOP = MAX(LTOP1,LTOP2)
 
        !----------------------------------------------------------------
        ! Error checks for LTOP 
@@ -1036,7 +1036,6 @@ CONTAINS
           DIAGN(I,J,1) = RATE_SAVE
           DIAGN(I,J,3) = RATE_SAVE * X 
           DIAGN(I,J,2) = H0 * 1d-3
-          !AD56(I,J,2) = AD56(I,J,2) + ( RATE_SAVE * ( 1d0 - X ) )
 
        ENDIF
 
@@ -1055,10 +1054,6 @@ CONTAINS
           ! into the vertical using Pickering PDF functions
           CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, VERTPROF, &
                           ExtState, HcoState, SFCTYPE, cMt, MTYPE, Inst )
-
-          IF ( Inst%DoDiagn ) THEN
-             DIAGN(I,J,4) = MTYPE
-          ENDIF
 
           ! Add vertically partitioned NOx into SLBASE array
           DO L = 1, HcoState%NZ
@@ -1961,6 +1956,7 @@ CONTAINS
 !
     INTEGER                        :: AS, III, IOS, JJJ, IU_FILE, nSpc
     INTEGER                        :: ExtNr
+    LOGICAL                        :: FOUND
     INTEGER, ALLOCATABLE           :: HcoIDs(:)
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
     CHARACTER(LEN=255)             :: MSG, LOC, FILENAME
@@ -2001,7 +1997,15 @@ CONTAINS
 
     ! Note: the OTD-LIS scale factor will be determined during run time
     ! as it requires the current time information.
- 
+
+    ! Check for usage of convective fractions. This is 'on' by default
+    ! but becomes only active if both the convective fraction and the
+    ! buoyancy field are available.
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'Use CNV_FRC', &
+                     OptValBool=Inst%LCNVFRC, FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND ) Inst%LCNVFRC = .TRUE. 
+
     ! Get species ID
     CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2119,6 +2123,8 @@ CONTAINS
     ExtState%TK%DoUse      = .TRUE.
     ExtState%TROPP%DoUse   = .TRUE.
     ExtState%CNV_MFC%DoUse = .TRUE.
+    ExtState%CNV_FRC%DoUse = .TRUE.
+    ExtState%BYNCY%DoUse   = .TRUE.
     ExtState%ALBD%DoUse    = .TRUE.
     ExtState%WLI%DoUse     = .TRUE.
 

@@ -91,20 +91,20 @@ MODULE HCOI_GC_Main_Mod
   !--------------------------
 
   ! Internal met fields (will be used by some extensions)
-  INTEGER,               TARGET :: HCO_PBL_MAX            ! level
-  REAL(hp), ALLOCATABLE, TARGET :: HCO_FRAC_OF_PBL(:,:,:) ! unitless
-  REAL(hp), ALLOCATABLE, TARGET :: HCO_SZAFACT(:,:)       ! -
+  INTEGER,               TARGET :: HCO_PBL_MAX                      ! level
+  REAL(hp), POINTER             :: HCO_FRAC_OF_PBL(:,:,:) => NULL() ! unitless
+  REAL(hp), POINTER             :: HCO_SZAFACT(:,:)       => NULL()
 
   ! Arrays to store J-values (used by Paranox extension)
-  REAL(hp), ALLOCATABLE, TARGET :: JNO2(:,:)
-  REAL(hp), ALLOCATABLE, TARGET :: JO1D(:,:)
+  REAL(hp), POINTER             :: JNO2(:,:) => NULL()
+  REAL(hp), POINTER             :: JO1D(:,:) => NULL()
 
   ! Sigma coordinate (temporary)
-  REAL(hp), ALLOCATABLE, TARGET :: ZSIGMA(:,:,:)
+  REAL(hp), POINTER             :: ZSIGMA(:,:,:) => NULL()
 
   ! Sum of cosine of the solar zenith angle. Used to impose a
   ! diurnal variability on OH concentrations
-  REAL(fp), ALLOCATABLE         :: SUMCOSZA(:,:)
+  REAL(fp), POINTER             :: SUMCOSZA(:,:) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
@@ -696,12 +696,12 @@ CONTAINS
     CALL HcoState_Final ( HcoState ) 
 
     ! Module variables
-    IF ( ALLOCATED ( ZSIGMA          ) ) DEALLOCATE( ZSIGMA          )
-    IF ( ALLOCATED ( HCO_FRAC_OF_PBL ) ) DEALLOCATE( HCO_FRAC_OF_PBL )
-    IF ( ALLOCATED ( HCO_SZAFACT     ) ) DEALLOCATE( HCO_SZAFACT     )
-    IF ( ALLOCATED ( JNO2            ) ) DEALLOCATE( JNO2            )
-    IF ( ALLOCATED ( JO1D            ) ) DEALLOCATE( JO1D            )
-    IF ( ALLOCATED ( SUMCOSZA        ) ) DEALLOCATE( SUMCOSZA        ) 
+    IF ( ASSOCIATED ( ZSIGMA          ) ) DEALLOCATE( ZSIGMA          )
+    IF ( ASSOCIATED ( HCO_FRAC_OF_PBL ) ) DEALLOCATE( HCO_FRAC_OF_PBL )
+    IF ( ASSOCIATED ( HCO_SZAFACT     ) ) DEALLOCATE( HCO_SZAFACT     )
+    IF ( ASSOCIATED ( JNO2            ) ) DEALLOCATE( JNO2            )
+    IF ( ASSOCIATED ( JO1D            ) ) DEALLOCATE( JO1D            )
+    IF ( ASSOCIATED ( SUMCOSZA        ) ) DEALLOCATE( SUMCOSZA        ) 
 
   END SUBROUTINE HCOI_GC_Final
 !EOC
@@ -1006,6 +1006,7 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
+    REAL(hp), POINTER  :: Trgt3D(:,:,:) => NULL()
     LOGICAL, SAVE      :: FIRST = .TRUE.
     INTEGER            :: HCRC
     CHARACTER(LEN=255) :: LOC = 'ExtState_SetFields (hcoi_gc_main_mod.F90)'
@@ -1185,6 +1186,11 @@ CONTAINS
              'CHLR', HCRC,      FIRST,   GC_CHLR          )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
+    ! Convective fractions
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%CNV_FRC,  &
+          'CNV_FRC', HCRC,      FIRST,    State_Met%CNV_FRC, &
+          NotFillOk=.TRUE.)
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     ! ----------------------------------------------------------------
     ! 3D fields 
@@ -1210,28 +1216,33 @@ CONTAINS
     ! Tracer fields
     ! ----------------------------------------------------------------
     IF ( IDTO3 > 0 ) THEN
+       Trgt3D => State_Chm%Tracers(:,:,:,IDTO3)
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%O3, &
-            'HEMCO_O3', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,IDTO3))
+            'HEMCO_O3', HCRC,      FIRST,    Trgt3D ) 
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( IDTNO2 > 0 ) THEN
+       Trgt3D => State_Chm%Tracers(:,:,:,IDTNO2)
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%NO2, &
-           'HEMCO_NO2', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,IDTNO2))
+           'HEMCO_NO2', HCRC,      FIRST,    Trgt3D ) 
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( IDTNO > 0 ) THEN
+       Trgt3D => State_Chm%Tracers(:,:,:,IDTNO)
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%NO, &
-            'HEMCO_NO', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,IDTNO))
+            'HEMCO_NO', HCRC,      FIRST,    Trgt3D ) 
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( IDTHNO3 > 0 ) THEN
+       Trgt3D => State_Chm%Tracers(:,:,:,IDTHNO3)
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%HNO3, &
-          'HEMCO_HNO3', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,IDTHNO3))
+          'HEMCO_HNO3', HCRC,      FIRST,    Trgt3D )
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( IDTPOPG > 0 ) THEN
+       Trgt3D => State_Chm%Tracers(:,:,:,IDTPOPG)
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%POPG, &
-          'HEMCO_POPG', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,IDTPOPG))
+          'HEMCO_POPG', HCRC,      FIRST,    Trgt3D ) 
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
 

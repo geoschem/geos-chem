@@ -244,6 +244,9 @@ CONTAINS
 !  19 Mar 2013 - R. Yantosca - Now only copy Input_Opt%TCVV(1:N_TRACERS)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  30 Dec 2014 - C. Keller   - Now get Bry data through HEMCO.
+!  05 Mar 2016 - C. Keller   - Allow O3 P/L be done by GMI if both LINOZ and
+!                              SYNOZ are disabled. This is primarily for 
+!                              testing/data assimilation applications.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -267,6 +270,7 @@ CONTAINS
     REAL(fp)          :: TK,   RDLOSS, T1L, mOH, BryTmp
     REAL(fp)          :: BOXVL
     LOGICAL           :: LLINOZ
+    LOGICAL           :: LSYNOZ
     LOGICAL           :: LPRT
     LOGICAL           :: LBRGCCM
     LOGICAL           :: LRESET, LCYCLE
@@ -293,6 +297,7 @@ CONTAINS
     ! Save values from the Input Options object to local variables
     N_TRACERS            = Input_Opt%N_TRACERS
     LLINOZ               = Input_Opt%LLINOZ
+    LSYNOZ               = Input_Opt%LSYNOZ
     LPRT                 = Input_Opt%LPRT
     LBRGCCM              = Input_Opt%LBRGCCM
     IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
@@ -341,6 +346,9 @@ CONTAINS
        ! Advance counter for number of times we've sampled the tropopause level
        TpauseL_CNT = TpauseL_CNT + 1e+0_fp
 
+       ! Make note of inital state for determining tendency later
+       BEFORE = STT(:,:,:,IDTO3 )
+
        !=============================================================
        ! Do chemical production and loss for non-ozone species for
        ! which we have explicit prod/loss rates from GMI
@@ -366,7 +374,9 @@ CONTAINS
                    NN = Strat_TrID_GC(N) ! Tracer index in STT
 
                    ! Skip O3; we'll always use either Linoz or Synoz
-                   IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. IDTO3 ) CYCLE
+                   ! Use GMI O3 P/L if both LINOZ and SYNOZ are deactivated.
+                   ! This is for test use in assimilation mode (ckeller, 3/7/16).
+                   IF ( NN == IDTO3 .AND. ( LLINOZ .OR. LSYNOZ ) ) CYCLE
 
                    dt = DTCHEM                              ! timestep [s]
 
@@ -414,23 +424,23 @@ CONTAINS
        ! Ozone
        !===================================
 
-       ! Make note of inital state for determining tendency later
-       BEFORE = STT(:,:,:,IDTO3 )
+       IF ( LLINOZ .OR. LSYNOZ ) THEN
 
-       ! Put ozone in v/v
-       STT(:,:,:,IDTO3) = STT(:,:,:,IDTO3) * TCVV( IDTO3 ) / AD
+          ! Put ozone in v/v
+          STT(:,:,:,IDTO3) = STT(:,:,:,IDTO3) * TCVV( IDTO3 ) / AD
 
-       ! Do Linoz or Synoz
-       IF ( LLINOZ ) THEN
-          CALL Do_Linoz( am_I_Root, Input_Opt,             &
-                         State_Met, State_Chm, RC=errCode )
-       ELSE
-          CALL Do_Synoz( am_I_Root, Input_Opt,             &
-                         State_Met, State_Chm, RC=errCode )
-       ENDIF
+          ! Do Linoz or Synoz
+          IF ( LLINOZ ) THEN
+             CALL Do_Linoz( am_I_Root, Input_Opt,             &
+                            State_Met, State_Chm, RC=errCode )
+          ELSE
+             CALL Do_Synoz( am_I_Root, Input_Opt,             &
+                            State_Met, State_Chm, RC=errCode )
+          ENDIF
  
-       ! Put ozone back to kg
-       STT(:,:,:,IDTO3) = STT(:,:,:,IDTO3) * AD / TCVV( IDTO3 )
+          ! Put ozone back to kg
+          STT(:,:,:,IDTO3) = STT(:,:,:,IDTO3) * AD / TCVV( IDTO3 )
+       ENDIF
 
        ! Put tendency into diagnostic array [kg box-1]
        SCHEM_TEND(:,:,:,IDTO3) = SCHEM_TEND(:,:,:,IDTO3) + &
@@ -1274,7 +1284,7 @@ CONTAINS
                    IF ( am_I_Root ) THEN
                       WRITE( 6, '(a)' ) TRIM(TRACER_NAME(N)) // ' (via Linoz)'
                    ENDIF
-                ELSE IF ( TRIM(TRACER_NAME(N)) .eq. 'O3' ) THEN
+                ELSE IF ( Input_Opt%LSYNOZ .AND. TRIM(TRACER_NAME(N)) .eq. 'O3' ) THEN
                    IF ( am_I_Root ) THEN
                       WRITE( 6, '(a)' ) TRIM(TRACER_NAME(N)) // ' (via Synoz)'
                    ENDIF

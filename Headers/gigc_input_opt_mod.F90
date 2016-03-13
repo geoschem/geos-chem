@@ -76,6 +76,8 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LUNZIP             
      LOGICAL                     :: LWAIT              
      LOGICAL                     :: LVARTROP           
+     LOGICAL                     :: LCAPTROP
+     REAL(fp)                    :: OZONOPAUSE
      INTEGER                     :: NESTED_I0          
      INTEGER                     :: NESTED_J0          
      CHARACTER(LEN=255)          :: HcoConfigFile
@@ -200,6 +202,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LCHEM
      LOGICAL                     :: LSCHEM
      LOGICAL                     :: LLINOZ
+     LOGICAL                     :: LSYNOZ
      INTEGER                     :: TS_CHEM
      LOGICAL                     :: LSVCSPEC
      CHARACTER(LEN=255)          :: SPEC_RST_FILE
@@ -244,6 +247,7 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      LOGICAL                     :: LDRYD
      LOGICAL                     :: LWETD
+     REAL(fp)                    :: WETD_CONV_SCAL
      LOGICAL                     :: USE_OLSON_2001
      LOGICAL                     :: PBL_DRYDEP      
 
@@ -782,6 +786,8 @@ CONTAINS
 !  06 Mar 2015 - R. Yantosca - Now initialize directory names with './'
 !  01 Apr 2015 - R. Yantosca - Now initialize extra nested-grid fields
 !  10 Jul 2015 - C. Keller   - Now set size of IDEP to NVEGTYPE 
+!  04 Mar 2016 - C. Keller   - Added WETD_CONV_SCAL, LSYNOZ, LCAPTROP, and 
+!                              OZONOPAUSE. These are only used within ESMF. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -836,6 +842,8 @@ CONTAINS
     Input_Opt%LUNZIP                 = .FALSE.   ! NOTE: Now deprecated!
     Input_Opt%LWAIT                  = .FALSE.   ! NOTE: Now deprecated!
     Input_Opt%LVARTROP               = .FALSE.
+    Input_Opt%LCAPTROP               = .FALSE.
+    Input_Opt%OZONOPAUSE             = -999.0 
     Input_Opt%NESTED_I0              = 0
     Input_Opt%NESTED_J0              = 0
     Input_Opt%HcoConfigFile          = ''
@@ -973,6 +981,7 @@ CONTAINS
     Input_Opt%LCHEM                  = .FALSE.
     Input_Opt%LSCHEM                 = .FALSE.
     Input_Opt%LLINOZ                 = .FALSE. 
+    Input_Opt%LSYNOZ                 = .FALSE. 
     Input_Opt%TS_CHEM                = 0
     Input_Opt%LSVCSPEC               = .FALSE. 
     Input_Opt%SPEC_RST_FILE          = ''
@@ -1018,6 +1027,7 @@ CONTAINS
     !----------------------------------------
     Input_Opt%LDRYD                  = .FALSE.
     Input_Opt%LWETD                  = .FALSE.
+    Input_Opt%WETD_CONV_SCAL         = 1.0_fp 
     Input_Opt%USE_OLSON_2001         = .FALSE.
     Input_Opt%PBL_DRYDEP             = .FALSE.
 

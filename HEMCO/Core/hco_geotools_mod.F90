@@ -563,8 +563,8 @@ CONTAINS
     LatR(:) = Lat / radToDeg 
 
     ! Get indeces
-    CALL MAPL_GetHorzIJIndex( npts=N,   II=idx,       JJ=jdx,    &
-                              lon=LonR, lat=LatRLonR, Grid=Grid, &
+    CALL MAPL_GetHorzIJIndex( npts=N,   II=idx,   JJ=jdx,    &
+                              lon=LonR, lat=LatR, Grid=Grid, &
                               __RC__)
 
     ! Return w/ success

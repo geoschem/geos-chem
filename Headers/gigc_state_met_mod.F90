@@ -117,6 +117,7 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: UVALBEDO  (:,:  ) ! UV surface albedo [1]
      REAL(fp), POINTER :: V10M      (:,:  ) ! N/S wind speed @ 10m height [m/s]
      REAL(fp), POINTER :: Z0        (:,:  ) ! Surface roughness height [m]
+     REAL(fp), POINTER :: CNV_FRC   (:,:  ) ! Convective fraction [1] 
             
      !----------------------------------------------------------------------
      ! 3-D Fields                  
@@ -256,6 +257,9 @@ MODULE GIGC_State_Met_Mod
 !  08 Jul 2015 - E. Lundgren - Add XCHLR and XCHLR2 for organic marine aerosols
 !  11 Aug 2015 - R. Yantosca - Extend #ifdefs for MERRA2 met fields
 !  22 Sep 2015 - E. Lundgren - Add SWGDN for incident radiation at ground
+!  04 Mar 2016 - C. Keller   - Add CNV_FRC for convective fraction. Currently
+!                              not a standard GEOS-FP output, only used in 
+!                              online model (ESMF). 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -517,6 +521,14 @@ CONTAINS
     ALLOCATE( State_Met%Z0        ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%Z0       = 0.0_fp
+
+    ! Convective fractions are not yet a standard GEOS-FP
+    ! field. Only available to online model (ckeller, 3/4/16) 
+#if defined( ESMF_ )
+    ALLOCATE( State_Met%CNV_FRC   ( IM, JM ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%CNV_FRC  = 0.0_fp
+#endif
 
 #if defined( GCAP )
 
@@ -1062,6 +1074,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%UVALBEDO   )) DEALLOCATE( State_Met%UVALBEDO   )
     IF ( ASSOCIATED( State_Met%V10M       )) DEALLOCATE( State_Met%V10M       )
     IF ( ASSOCIATED( State_Met%Z0         )) DEALLOCATE( State_Met%Z0         )
+    IF ( ASSOCIATED( State_Met%CNV_FRC    )) DEALLOCATE( State_Met%CNV_FRC    )
 
     ! 3-D fields
     IF ( ASSOCIATED( State_Met%AD         )) DEALLOCATE( State_Met%AD         )

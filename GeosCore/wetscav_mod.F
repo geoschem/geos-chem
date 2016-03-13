@@ -3507,6 +3507,8 @@
 !  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
 !  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
 !                              whether the dynamic ocean is used
+!  04 Mar 2016 - C. Keller   - Added option to scale convective fraction of
+!                              large-scale precip.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3526,6 +3528,7 @@
       REAL(fp)           :: ALPHA, ALPHA2, WETLOSS,   TMP
       REAL(fp)           :: F_RAINOUT,     F_WASHOUT 
       REAL(fp)           :: DEP_HG
+      REAL(fp)           :: CNVSCL
 
       ! Arrays
       ! DSTT is the accumulator array of rained-out 
@@ -3560,6 +3563,21 @@
          IDX = 1
       ELSE
          IDX = 2
+      ENDIF
+
+      ! CNVSCL is the scale factor to be applied to convective large
+      ! scale precipitation: a fraction of model-resolved vertical 
+      ! transport is of convective nature (especially at high model
+      ! resolution). Treating all of it as large-scale precipiation 
+      ! may overestimate total washout. CNVSCL is a scale factor to
+      ! adjust the convective fraction of the precipitation. If set
+      ! to 1.0, it will yield the same result as without correction.
+      ! If set to 0.0, all convective large-scale precipitation is 
+      ! suppressed (ckeller, 3/4/16).
+      CNVSCL = -1.0 
+      IF ( ASSOCIATED(State_Met%CNV_FRC) ) THEN
+         CNVSCL = Input_Opt%WETD_CONV_SCAL
+         CNVSCL = MIN(MAX(CNVSCL,0.0_fp),1.0_fp)
       ENDIF
 
       !=================================================================
@@ -3624,6 +3642,12 @@
             ! Set F = F_RAINOUT, since there is no FTOP at L = LLPAR
             F = F_RAINOUT
 
+            ! Adjust convective large-scale precip (ckeller, 3/4/16)
+            IF ( CNVSCL >= 0.0_fp ) THEN
+               F = ( ( 1.0_fp - State_Met%CNV_FRC(I,J) ) * F )
+     &           + ( ( CNVSCL * State_Met%CNV_FRC(I,J) ) * F )
+            ENDIF       
+
             ! Only compute rainout if F > 0. 
             ! This helps to eliminate unnecessary CPU cycles.
             IF ( F > 0e+0_fp ) THEN 
@@ -3681,6 +3705,16 @@
                F_RAINOUT = 0e+0_fp
                F_WASHOUT = 0e+0_fp
             ENDIF
+
+            ! Adjust convective large-scale precip (ckeller, 3/4/16)
+            IF ( CNVSCL >= 0.0_fp ) THEN
+               F_RAINOUT = 
+     &             ( ( 1.0_fp - State_Met%CNV_FRC(I,J) ) * F_RAINOUT )
+     &           + ( ( CNVSCL * State_Met%CNV_FRC(I,J) ) * F_RAINOUT )
+               F_WASHOUT = 
+     &             ( ( 1.0_fp - State_Met%CNV_FRC(I,J) ) * F_WASHOUT )
+     &           + ( ( CNVSCL * State_Met%CNV_FRC(I,J) ) * F_WASHOUT )
+            ENDIF       
 
 
             IF ( F_WASHOUT > 0e+0_fp ) THEN    
