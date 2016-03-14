@@ -1000,6 +1000,9 @@ CONTAINS
 !  12 Mar 2015 - R. Yantosca  - Allocate SUMCOSZA array for SZAFACT
 !  12 Mar 2015 - R. Yantosca  - Use 0.0e0_hp when zeroing REAL(hp) variables
 !  03 Apr 2015 - C. Keller    - Now call down to ExtDat_Set for all fields
+!  14 Mar 2016 - C. Keller    - Append '_FOR_EMIS' to all HEMCO met field names
+!                               to avoid conflict if met-fields are read via
+!                               HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1022,80 +1025,80 @@ CONTAINS
     ! Pointers to local module arrays 
     ! ----------------------------------------------------------------
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SZAFACT, & 
-          'SZAFACT', HCRC,      FIRST,    HCO_SZAFACT        )
+          'SZAFACT_FOR_EMIS',   HCRC, FIRST, HCO_SZAFACT        )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%JNO2, &
-            'JNO2',  HCRC,      FIRST,    JNO2            )
+            'JNO2_FOR_EMIS',    HCRC, FIRST, JNO2            )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%JO1D, &
-            'JO1D',  HCRC,      FIRST,    JO1D            )  
+            'JO1D_FOR_EMIS',    HCRC, FIRST, JO1D            )  
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%FRAC_OF_PBL, &
-     'FRAC_OF_PBL',  HCRC,      FIRST,    HCO_FRAC_OF_PBL )  
+     'FRAC_OF_PBL_FOR_EMIS',    HCRC, FIRST, HCO_FRAC_OF_PBL )  
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     ! ----------------------------------------------------------------
     ! 2D fields 
     ! ----------------------------------------------------------------
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%U10M, &
-            'U10M',  HCRC,      FIRST,    State_Met%U10M )
+            'U10M_FOR_EMIS',    HCRC, FIRST, State_Met%U10M )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%V10M, &
-            'V10M',  HCRC,      FIRST,    State_Met%V10M )
+            'V10M_FOR_EMIS',    HCRC, FIRST, State_Met%V10M )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%ALBD, &
-            'ALBD',  HCRC,      FIRST,    State_Met%ALBD )
+            'ALBD_FOR_EMIS',    HCRC, FIRST, State_Met%ALBD )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
 #if defined ( GCAP )
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%WLI, &
-             'WLI',  HCRC,      FIRST,    State_Met%LWI_GISS  )
+             'WLI_FOR_EMIS',    HCRC, FIRST, State_Met%LWI_GISS  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #else
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%WLI, &
-             'WLI',  HCRC,      FIRST,    State_Met%LWI  )
+             'WLI_FOR_EMIS',    HCRC, FIRST, State_Met%LWI  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #endif
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%T2M, &
-             'T2M',  HCRC,      FIRST,    State_Met%TS   )
+             'T2M_FOR_EMIS',    HCRC, FIRST, State_Met%TS   )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%TSKIN, &
-           'TSKIN',  HCRC,      FIRST,    State_Met%TSKIN  )
+           'TSKIN_FOR_EMIS',    HCRC, FIRST, State_Met%TSKIN  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%GWETROOT, &
-         'GWETROOT', HCRC,      FIRST,    State_Met%GWETROOT  )
+         'GWETROOT_FOR_EMIS',   HCRC, FIRST, State_Met%GWETROOT  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%GWETTOP, &
-          'GWETTOP', HCRC,      FIRST,    State_Met%GWETTOP  )
+          'GWETTOP_FOR_EMIS',   HCRC, FIRST, State_Met%GWETTOP  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%USTAR, &
-            'USTAR', HCRC,      FIRST,    State_Met%USTAR  )
+            'USTAR_FOR_EMIS',   HCRC, FIRST, State_Met%USTAR  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%Z0, &
-               'Z0', HCRC,      FIRST,    State_Met%Z0  )
+               'Z0_FOR_EMIS',   HCRC, FIRST, State_Met%Z0  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%PARDR, &
-            'PARDR', HCRC,      FIRST,    State_Met%PARDR  )
+            'PARDR_FOR_EMIS',   HCRC, FIRST, State_Met%PARDR  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%PARDF, &
-            'PARDF', HCRC,      FIRST,    State_Met%PARDF  )
+            'PARDF_FOR_EMIS',   HCRC, FIRST, State_Met%PARDF  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%PSC2, &
-             'PSC2', HCRC,      FIRST,    State_Met%PSC2  )
+             'PSC2_FOR_EMIS',   HCRC, FIRST, State_Met%PSC2  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     ! NOTE: State_Met%RADSWG is net radiation at ground for all
@@ -1106,79 +1109,79 @@ CONTAINS
     ! used in HEMCO to preserve legacy usage of net radiation (ewl, 9/23/15)
 #if defined ( GEOS_FP ) || ( MERRA2 )
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%RADSWG, &
-           'RADSWG', HCRC,      FIRST,    State_Met%SWGDN  )
+           'RADSWG_FOR_EMIS',   HCRC, FIRST, State_Met%SWGDN  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #else
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%RADSWG, &
-           'RADSWG', HCRC,      FIRST,    State_Met%RADSWG  )
+           'RADSWG_FOR_EMIS',   HCRC, FIRST, State_Met%RADSWG  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #endif
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%FRCLND, &
-           'FRCLND', HCRC,      FIRST,    State_Met%FRCLND  )
+           'FRCLND_FOR_EMIS',   HCRC, FIRST, State_Met%FRCLND  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%CLDFRC, &
-            'CLDFRC', HCRC,      FIRST,    State_Met%CLDFRC  )
+            'CLDFRC_FOR_EMIS',   HCRC, FIRST, State_Met%CLDFRC  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
 #if defined( GEOS_4 ) 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNOWHGT, &
-          'SNOWHGT', HCRC,      FIRST,    State_Met%SNOW     )
+          'SNOWHGT_FOR_EMIS',   HCRC, FIRST, State_Met%SNOW     )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNODP, &
-            'SNODP', HCRC,      FIRST,    State_Met%SNOW   )
+            'SNODP_FOR_EMIS',   HCRC, FIRST, State_Met%SNOW   )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #elif defined ( GCAP )
    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNOWHGT, &
-         'SNOWHGT', HCRC,      FIRST,    State_Met%SNOW     )
+         'SNOWHGT_FOR_EMIS',   HCRC, FIRST, State_Met%SNOW     )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNODP, &
-            'SNODP', HCRC,      FIRST,    State_Met%SNOW   )
+            'SNODP_FOR_EMIS',   HCRC, FIRST, State_Met%SNOW   )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNICE, &
-            'SNICE', HCRC,      FIRST,    State_Met%SNICE  )
+            'SNICE_FOR_EMIS',   HCRC, FIRST, State_Met%SNICE  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #else
     ! SNOWHGT is is mm H2O, which is the same as kg H2O/m2.
     ! This is the unit of SNOMAS.
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNOWHGT, &
-          'SNOWHGT', HCRC,      FIRST,    State_Met%SNOMAS   )
+          'SNOWHGT_FOR_EMIS',   HCRC, FIRST, State_Met%SNOMAS   )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     ! SNOWDP is in m
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNODP, &
-            'SNODP', HCRC,      FIRST,    State_Met%SNODP  )
+            'SNODP_FOR_EMIS',   HCRC, FIRST, State_Met%SNODP  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #endif
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%FRLAND, &
-           'FRLAND', HCRC,      FIRST,    State_Met%FRLAND  )
+           'FRLAND_FOR_EMIS',   HCRC, FIRST, State_Met%FRLAND  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%FROCEAN, &
-          'FROCEAN', HCRC,      FIRST,    State_Met%FROCEAN  )
+          'FROCEAN_FOR_EMIS',   HCRC, FIRST, State_Met%FROCEAN  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%FRLAKE, &
-           'FRLAKE', HCRC,      FIRST,    State_Met%FRLAKE  )
+           'FRLAKE_FOR_EMIS',   HCRC, FIRST, State_Met%FRLAKE  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%FRLANDIC, &
-         'FRLANDIC', HCRC,      FIRST,    State_Met%FRLANDIC  )
+         'FRLANDIC_FOR_EMIS',   HCRC, FIRST, State_Met%FRLANDIC  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     ! Use 'offline' MODIS LAI in standard GEOS-Chem
 #if defined(ESMF_)
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%LAI, &
-              'LAI', HCRC,      FIRST,    State_Met%LAI  )
+              'LAI_FOR_EMIS',   HCRC, FIRST, State_Met%LAI  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #else
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%LAI, &
-              'LAI', HCRC,      FIRST,    GC_LAI         )
+              'LAI_FOR_EMIS',   HCRC, FIRST, GC_LAI         )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #endif
 
@@ -1188,7 +1191,7 @@ CONTAINS
 
     ! Convective fractions
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%CNV_FRC,  &
-          'CNV_FRC', HCRC,      FIRST,    State_Met%CNV_FRC, &
+          'CNV_FRC_FOR_EMIS',   HCRC, FIRST, State_Met%CNV_FRC, &
           NotFillOk=.TRUE.)
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
@@ -1196,20 +1199,20 @@ CONTAINS
     ! 3D fields 
     ! ----------------------------------------------------------------
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%CNV_MFC, &
-          'CNV_MFC', HCRC,      FIRST,    State_Met%CMFMC,  &
+          'CNV_MFC_FOR_EMIS',   HCRC, FIRST, State_Met%CMFMC,  &
           OnLevEdge=.TRUE. )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%TK, &
-               'TK', HCRC,      FIRST,    State_Met%T   )
+               'TK_FOR_EMIS',   HCRC, FIRST, State_Met%T   )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%AIR, &
-              'AIR', HCRC,      FIRST,    State_Met%AD   )
+              'AIR_FOR_EMIS',   HCRC, FIRST, State_Met%AD   )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%AIRVOL, &
-           'AIRVOL', HCRC,      FIRST,    State_Met%AIRVOL  )
+           'AIRVOL_FOR_EMIS',   HCRC, FIRST, State_Met%AIRVOL  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
  
     ! ----------------------------------------------------------------
@@ -1218,31 +1221,31 @@ CONTAINS
     IF ( IDTO3 > 0 ) THEN
        Trgt3D => State_Chm%Tracers(:,:,:,IDTO3)
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%O3, &
-            'HEMCO_O3', HCRC,      FIRST,    Trgt3D ) 
+            'HEMCO_O3_FOR_EMIS',   HCRC, FIRST, Trgt3D ) 
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( IDTNO2 > 0 ) THEN
        Trgt3D => State_Chm%Tracers(:,:,:,IDTNO2)
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%NO2, &
-           'HEMCO_NO2', HCRC,      FIRST,    Trgt3D ) 
+           'HEMCO_NO2_FOR_EMIS',   HCRC, FIRST, Trgt3D ) 
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( IDTNO > 0 ) THEN
        Trgt3D => State_Chm%Tracers(:,:,:,IDTNO)
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%NO, &
-            'HEMCO_NO', HCRC,      FIRST,    Trgt3D ) 
+            'HEMCO_NO_FOR_EMIS',   HCRC, FIRST, Trgt3D ) 
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( IDTHNO3 > 0 ) THEN
        Trgt3D => State_Chm%Tracers(:,:,:,IDTHNO3)
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%HNO3, &
-          'HEMCO_HNO3', HCRC,      FIRST,    Trgt3D )
+          'HEMCO_HNO3_FOR_EMIS',   HCRC, FIRST, Trgt3D )
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( IDTPOPG > 0 ) THEN
        Trgt3D => State_Chm%Tracers(:,:,:,IDTPOPG)
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%POPG, &
-          'HEMCO_POPG', HCRC,      FIRST,    Trgt3D ) 
+          'HEMCO_POPG_FOR_EMIS',   HCRC, FIRST, Trgt3D ) 
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
 
@@ -1250,11 +1253,11 @@ CONTAINS
     ! Deposition parameter
     ! ----------------------------------------------------------------
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%DRY_TOTN, &
-         'DRY_TOTN', HCRC,      FIRST,    DRY_TOTN            ) 
+         'DRY_TOTN_FOR_EMIS',   HCRC, FIRST, DRY_TOTN            ) 
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%WET_TOTN, &
-         'WET_TOTN', HCRC,      FIRST,    WET_TOTN            ) 
+         'WET_TOTN_FOR_EMIS',   HCRC, FIRST, WET_TOTN            ) 
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     ! ----------------------------------------------------------------
@@ -1867,6 +1870,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  13 Sep 2013 - C. Keller - Initial Version
 !  14 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  28 Sep 2015 - C. Keller   - Now use HCO_VertGrid_Mod for vertical grid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
