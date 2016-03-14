@@ -4542,18 +4542,18 @@
       TCENTER = TCENTER_IN
 
       ! Calculate partial pressure of H2O & HNO3
-      ! PCENTER is in hPa
-      PATMH2O  = H2OSUM  * PCENTER / ATM
+      ! PCENTER is in hPa, so need to convert ATM from Pa to hPa
+      PATMH2O  = H2OSUM  * PCENTER / (ATM*1e-2_fp)
 
       ! Carslaw only valid for 2e-5 < PPH2O < 2e-3 (hPa)
       PATMH2O = MAX(PATMH2O,1.9738465e-8_fp)
       PATMH2O = MIN(PATMH2O,1.9738465e-6_fp)
 
-      PATMHNO3 = HNO3SUM * PCENTER / ATM
-      PATMHCl  = HClSUM  * PCENTER / ATM
-      PATMHOCl = HOClSUM * PCENTER / ATM
-      PATMHBr  = HBrSUM  * PCENTER / ATM
-      PATMHOBr = HOBrSUM * PCENTER / ATM
+      PATMHNO3 = HNO3SUM * PCENTER / (ATM*1e-2_fp)
+      PATMHCl  = HClSUM  * PCENTER / (ATM*1e-2_fp)
+      PATMHOCl = HOClSUM * PCENTER / (ATM*1e-2_fp)
+      PATMHBr  = HBrSUM  * PCENTER / (ATM*1e-2_fp)
+      PATMHOBr = HOBrSUM * PCENTER / (ATM*1e-2_fp)
 
       ! Moles of H2SO4 per m3 air
       MOLDENS_H2SO4 = 100.e+0_fp*PCENTER*H2SO4SUM/(RSTARG*TCENTER)
