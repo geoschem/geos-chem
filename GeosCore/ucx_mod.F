@@ -4672,7 +4672,7 @@
      &      5632.0e+0_fp*W_H2SO4**2)-LOG(W_HNO3+0.610e+0_fp*W_H2SO4)-
      &      LOG(36.461e+0_fp/(1000.0e+0_fp+98.076e+0_fp*
      &      M_H2SO4+63.012e+0_fp*
-     &      M_HNO3)))*1013.0e+0_fp
+     &      M_HNO3)))*(ATM*1e-2_fp)
          M_HCl = (1.0e+0_fp/R_ATM/TCENTER*PATMHCL)/
      &      (MOLDENS_H2SO4/M_H2SO4 + 1.0e+0_fp/R_ATM/TCENTER/H_HCL)
          W_HCL=M_HCL*36.461e+0_fp/(1.0e+3_fp+98.076e+0_fp*M_H2SO4+
@@ -4714,7 +4714,7 @@
      &      7680.0e+0_fp*W_H2SO4**2)-LOG(W_HNO3+0.410e+0_fp*W_H2SO4)-
      &      LOG(36.461e+0_fp/(1000.0e+0_fp+98.076e+0_fp*
      &      M_H2SO4+63.012e+0_fp*
-     &      M_HNO3)))*1013.0e+0_fp
+     &      M_HNO3)))*(ATM*1e-2_fp)
          M_HBr = (1.0e+0_fp/R_ATM/TCENTER*PATMHBr)/
      &      (MOLDENS_H2SO4/M_H2SO4 + 1.0e+0_fp/R_ATM/TCENTER/H_HBr)
          W_HBr=M_HBr*80.91e+0_fp/(1.0e+3_fp+98.076e+0_fp*M_H2SO4+
