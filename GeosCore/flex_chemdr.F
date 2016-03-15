@@ -475,11 +475,6 @@
            IF ( I >  IIPAR - Input_Opt%NESTED_I0E ) CYCLE
          ENDIF
 
-         call cpu_time(start)
-         HET(:,:) = 0.
-         CALL SET_HET(I,J,L,State_Chm,State_Met,Input_Opt,
-     &        scoeff(I,J,L,1:3))
-
          ! Grid-box latitude index
          YLAT  = GET_YMID( I,J,L )
 
@@ -502,6 +497,14 @@
          CALL Init_KPP( )
 
          !===========================================================
+         ! Get rates for heterogeneous chemistry
+         !===========================================================
+         call cpu_time(start)
+         HET(:,:) = 0.
+         CALL SET_HET(I,J,L,State_Chm,State_Met,Input_Opt,
+     &        scoeff(I,J,L,1:3))
+
+         !===========================================================
          ! Get photolysis rates
          !===========================================================
          IF ( State_Met%SUNCOSmid(I,J) > 0.e+0_fp ) THEN
@@ -514,7 +517,7 @@
             PHOTOL(1:JVN_) = 0.e+0_fp
             CALL PHOTRATE_ADJ( am_I_root, State_Met, 
      &                         State_Chm, Input_Opt, 
-     &                         I, J, L, H2O, NUMDEN, IERR )
+     &                         I, J, L, H2O, IERR )
 
             ! Copy ZPJ from fast_jx_mod.F to PHOTOL array
             PHOTOL(1:JVN_) = ZPJ(L,1:JVN_,I,J)
@@ -526,6 +529,9 @@
 
          ENDIF
 
+         !===========================================================
+         ! Initialize species concentrations
+         !===========================================================
          ! mje Set up the initial conditions of the variable species
          ! mje The Integrator works in # cm-3
          DO N=1,NSPEC
@@ -583,12 +589,16 @@
          VAR(:) = C(1:NVAR)
          FIX(:) = C(NVAR+1:NSPEC)
 
-         ! mje  Update KPP's rates
+         !===========================================================
+         ! Update KPP's rates
+         !===========================================================
          CALL Update_RCONST( )
          call cpu_time(finish)
          rtim = rtim + finish - start
 
-         ! mje Integrate the box forwards
+         !===========================================================
+         ! Integrate the box forwards
+         !===========================================================
          call cpu_time(start)
          call Integrate( TIN,    TOUT,    ICNTRL, 
      &                   RCNTRL, ISTATUS, RSTATE, IERR )

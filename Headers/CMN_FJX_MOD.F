@@ -61,7 +61,7 @@
 
       ! Output J values
       REAL(fp), ALLOCATABLE :: ZPJ(:,:,:,:)
-      REAL(kind=fp)  :: RO1DplH2O, RO1DplH2, RO1D, ITEMPK
+      REAL(kind=fp)  :: RO1DplH2O, RO1DplH2, RO1D
 
       !-----------------------------------------------------------------------
       ! variables used to map fast-JX J's onto CTM J's
