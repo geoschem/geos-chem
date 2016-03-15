@@ -100,7 +100,7 @@
       REAL(fp)            :: YLAT
 
       ! For interannually-varying Methane
-      REAL(fp)            :: C3090S, C0030S, C0030N, C3090N
+      REAL(fp),SAVE       :: C3090S, C0030S, C0030N, C3090N
 
       ! mje Variables for holding rate diagnoastics
       ! mje DERIV: Concentrations derivatives for one box d[X]/dt
@@ -128,6 +128,8 @@
       ! mje Array for bug checking
       REAL(kind=fp)       :: AverageVAR(NSPEC)
       REAL(kind=fp)       :: Mass, Start, Finish, rtim, itim
+      INTEGER             :: TotSteps, TotFuncs, TotJacob
+      INTEGER             :: TotAccep, TotRejec, TotNumLU
 
       CHARACTER(LEN=255)  :: ERR_MSG
 
@@ -139,6 +141,15 @@
 
       prtDebug = Input_Opt%LPRT
       LDUST    = Input_Opt%LDUST
+
+      itim = 0.
+      rtim = 0.
+      totsteps = 0
+      totfuncs = 0
+      totjacob = 0
+      totaccep = 0
+      totrejec = 0
+      totnumLU = 0
 
       ! Get month and year
       MONTH     = GET_MONTH()
@@ -466,8 +477,8 @@
 
          call cpu_time(start)
          HET(:,:) = 0.
-!         CALL SET_HET(I,J,L,State_Chm,State_Met,Input_Opt,
-!     &        scoeff(I,J,L,1:3))
+         CALL SET_HET(I,J,L,State_Chm,State_Met,Input_Opt,
+     &        scoeff(I,J,L,1:3))
 
          ! Grid-box latitude index
          YLAT  = GET_YMID( I,J,L )
@@ -488,15 +499,32 @@
 !     &            (0.21*32d0+0.79*28d0)/(18d0)/1000.
 !         H2O    = H2O * NUMDEN
 
-         ! Set up te photolysis rates the order here is the order in the Fast-J
-         ! definition files
-         ! I've assumed that these are the same as in the text files but this
-         ! may have been changed. 
-         ! This needs to be checked through more thoroughly
-!         CALL PHOTRATE_ADJ( am_I_root, State_Met, 
-!     &                      State_Chm, Input_Opt, 
-!     &                      I, J, L, H2O, NUMDEN, IERR )
-         PHOTOL(1:JVN_) =   0. ! ZPJ(L,1:JVN_,I,J)
+         CALL Init_KPP( )
+
+         !===========================================================
+         ! Get photolysis rates
+         !===========================================================
+         IF ( State_Met%SUNCOSmid(I,J) > 0.e+0_fp ) THEN
+
+            ! Daytime: Set up the photolysis rates
+            ! The order here is the order in the Fast-J definition files
+            ! I've assumed that these are the same as in the text files but this
+            ! may have been changed. 
+            ! This needs to be checked through more thoroughly
+            PHOTOL(1:JVN_) = 0.e+0_fp
+            CALL PHOTRATE_ADJ( am_I_root, State_Met, 
+     &                         State_Chm, Input_Opt, 
+     &                         I, J, L, H2O, NUMDEN, IERR )
+
+            ! Copy ZPJ from fast_jx_mod.F to PHOTOL array
+            PHOTOL(1:JVN_) = ZPJ(L,1:JVN_,I,J)
+
+         ELSE
+
+            ! Nighttime: Photolysis rates are zero
+            PHOTOL(1:JVN_) = 0.e+0_fp
+
+         ENDIF
 
          ! mje Set up the initial conditions of the variable species
          ! mje The Integrator works in # cm-3
@@ -507,14 +535,6 @@
                C(N)=State_Chm%Species(I,J,L,CSPECTOKPP(N))
             ENDIF
          ENDDO
-
-         ! Debug
-         IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-            DO N = 1,NSPEC
-               write(*,'(2a,e12.4)') '<> b ', trim(SPC_NAMES(N))
-     &              ,C(N)
-            ENDDO
-         ENDIF
 
 !------------------------------------------------------------------------------
 ! Prior to 2/10/16:
@@ -547,24 +567,39 @@
             C(ind_CH4) = C3090N * 1e-9_dp * NUMDEN
          ENDIF
 
+         ! Debug
+         IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
+            write(*,'(a,2e10.2)') 'bHSAVE: ', HSAVE_KPP(I,J,L),TOUT
+            DO N = 1,NSPEC
+               write(*,'(2a,e12.4)') '<> b ', trim(SPC_NAMES(N))
+     &              ,C(N)
+            ENDDO
+         ENDIF
+
          ! starting value for integration time step
          RCNTRL(3) = HSAVE_KPP(I,J,L)
+
+         ! VAR and FIX are chunks of array C (mps, 2/24/16)
+         VAR(:) = C(1:NVAR)
+         FIX(:) = C(NVAR+1:NSPEC)
 
          ! mje  Update KPP's rates
          CALL Update_RCONST( )
          call cpu_time(finish)
          rtim = rtim + finish - start
 
-         ! VAR and FIX are chunks of array C (mps, 2/24/16)
-         VAR(:) = C(1:NVAR)
-         FIX(:) = C(NVAR+1:NSPEC)
-
          ! mje Integrate the box forwards
          call cpu_time(start)
-!         call Integrate( TIN,    TOUT,    ICNTRL, 
-!     &                   RCNTRL, ISTATUS, RSTATE, IERR )
-!         call cpu_time(finish)
+         call Integrate( TIN,    TOUT,    ICNTRL, 
+     &                   RCNTRL, ISTATUS, RSTATE, IERR )
+         call cpu_time(finish)
          itim = itim + finish - start
+         totfuncs = totfuncs + ISTATUS(1)
+         totjacob = totjacob + ISTATUS(2)
+         totsteps = totsteps + ISTATUS(3)
+         totaccep = totaccep + ISTATUS(4)
+         totrejec = totrejec + ISTATUS(5)
+         totnumLU = totnumLU + ISTATUS(6)
 
          C(ind_ACTA)  = 0.e0_dp
          C(ind_EOH)   = 0.e0_dp
@@ -634,6 +669,8 @@
 
          ! Debug
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
+            write(*,'(a,e10.2)') 'aHSAVE: ', HSAVE_KPP(I,J,L)
+            write(*,'(a,3e10.2)') 'RSTATUS: ', RSTATE(1:3)
             DO N = 1,NSPEC
                write(*,'(2a,e12.4)') '<> a ', trim(SPC_NAMES(N)),
      &              C(N)
@@ -646,7 +683,13 @@
 !$OMP END PARALLEL DO
 
       write(*,'(a,F7.3)') 'Flex Rate Time: ', rtim
-      write(*,*) 'Flex Intg Time: ', itim
+      write(*,'(a,F7.3)') 'Flex Intg Time: ', itim
+      write(*,'(a,I7)') 'Flex Function Calls: ', totfuncs
+      write(*,'(a,I7)') 'Flex Jacobian Calls: ', totjacob
+      write(*,'(a,I7)') 'Flex Total Steps   : ', totsteps
+      write(*,'(a,I7)') 'Flex Accepted Steps: ', totaccep
+      write(*,'(a,I7)') 'Flex Rejected Steps: ', totrejec
+      write(*,'(a,I7)') 'Flex LU Decompos.  : ', totnumLU
 
 !     mje write out tropospheric mass weighted averages
 !      DO N=1,NSPEC

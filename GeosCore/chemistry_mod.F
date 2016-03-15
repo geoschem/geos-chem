@@ -339,6 +339,7 @@
      &              am_I_Root, RC )
                IF ( LPRT .and. am_I_Root ) 
      &              CALL DEBUG_MSG( '### MAIN: a INIT_FLEXCHEM' )
+               FIRST = .FALSE.
             ENDIF
       ! MSL ----------
 
