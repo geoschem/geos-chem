@@ -537,6 +537,28 @@
       !%%% NOTE: Someone will have to add tunings for the GEOS-5.7.2
       !%%% nested grids at 0.25 x 0.3125 resolution (bmy, 6/3/13)
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! These K_RED_JNO2 parameters have been defined based on GEOS-5
+      ! runs and remain appropriate for GEOS-5 at 4x5 in v11-01c. Based
+      ! on the GEOS-FP 4x5 run, we need to increase K_RED_JNO2 for
+      ! GEOS-FP. In the absences of benchmark runs for GEOS-FP at other
+      ! resolutions, we assume the same decrease in GEOS-FP relative to
+      ! GEOS-5, regardless of resolution. This should be adapated and
+      ! tested by other users as appropriate (J. Fisher, 3/2015)
+      ! Although we have not tested other met fields, we assume same
+      ! parameters apply for GEOS-FP, MERRA, and MERRA-2.
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if defined( GRID4x5 )
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.5e+0_fp
+#elif defined( GRID2x25 )
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 3.5e-3_fp/2e+0_fp * 1.5e+0_fp
+#elif defined( GRID05x0625 ) && defined( NESTED_NA )
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 * 1.5e+0_fp
+#elif defined( GRID05x0666 ) && defined( NESTED_NA )
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 * 1.5e+0_fp
+#else
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp  * 1.5e+0_fp
+#endif   
+#else
 #if defined( GRID4x5 )
       !REAL(fp), PARAMETER     :: K_RED_JNO2 = 3.5d-3 / 2e+0_fp ! ref: Amos et al. (2011)
       REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp ! yzh, consider cloud fraction 
@@ -552,6 +574,7 @@
       REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 ! yzh
 #else
       REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp        ! yzh, need tune 
+#endif   
 #endif   
 
       ! Set of Hg/Br rate constants to use
