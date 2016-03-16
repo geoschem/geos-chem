@@ -1931,7 +1931,7 @@ CONTAINS
     IF ( ND28 > 0 .OR. ND29 > 0 ) THEN
 
        ! CO is only defined for full chemistry and tagged CO simulations
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or.             &
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or.                &
             Input_Opt%ITS_A_TAGCO_SIM    ) THEN
 
           ! HEMCO species ID
@@ -1940,21 +1940,168 @@ CONTAINS
 
           ! Create diagnostic container
           DiagnName = 'BIOMASS_CO'
-          CALL Diagn_Create( am_I_Root,                     & 
-                             HcoState  = HcoState,          &
-                             cName     = TRIM( DiagnName ), &
-                             ExtNr     = ExtNr,             &
-                             Cat       = Cat,               &
-                             Hier      = -1,                &
-                             HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
-                             LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
-                             AutoFill  = 1,                 &
-                             RC        = RC                  ) 
+          CALL Diagn_Create( am_I_Root,                        & 
+                             HcoState  = HcoState,             &
+                             cName     = TRIM( DiagnName ),    &
+                             ExtNr     = ExtNr,                &
+                             Cat       = Cat,                  &
+                             Hier      = -1,                   &
+                             HcoID     = HcoID,                &
+                             SpaceDim  = 2,                    &
+                             LevIDx    = -1,                   &
+                             OutUnit   = 'kg/m2/s',            &
+                             COL       = HcoDiagnIDManual,     &
+                             AutoFill  = 1,                    &
+                             RC        = RC                     ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
+
+       !-------------------------------------------
+       ! %%%%% Tagged CO: biomass tracers %%%%%
+       !-------------------------------------------
+       IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+
+          !%%%%%%% CObbam %%%%%%%
+
+          ! HEMCO species ID
+          HcoID = GetHemcoId( 'CObbam', HcoState, LOC, RC )
+          print*, '### COBBAM : ', HCOID
+
+          ! Create diagnostic container
+          IF ( RC == HCO_SUCCESS ) THEN
+             DiagnName = 'BIOMASS_TAGCO_S_AMERICA'
+             CALL Diagn_Create( am_I_Root,                     & 
+                                HcoState  = HcoState,          &
+                                cName     = TRIM( DiagnName ), &
+                                ExtNr     = ExtNr,             &
+                                Cat       = Cat,               &
+                                Hier      = -1,                &
+                                HcoID     = HcoID,             &
+                                SpaceDim  = 2,                 &
+                                LevIDx    = -1,                &
+                                OutUnit   = 'kg/m2/s',         &
+                                COL       = HcoDiagnIDManual,  &
+                                AutoFill  = 1,                 &
+                                RC        = RC                  ) 
+          ENDIF
+
+          !%%%%%%% CObbaf %%%%%%%
+
+          ! HEMCO species ID
+          HcoID = GetHemcoId( 'CObbaf', HcoState, LOC, RC )
+
+          ! Create diagnostic container
+          IF ( RC == HCO_SUCCESS ) THEN
+             DiagnName = 'BIOMASS_TAGCO_AFRICA'
+             CALL Diagn_Create( am_I_Root,                     & 
+                                HcoState  = HcoState,          &
+                                cName     = TRIM( DiagnName ), &
+                                ExtNr     = ExtNr,             &
+                                Cat       = Cat,               &
+                                Hier      = -1,                &
+                                HcoID     = HcoID,             &
+                                SpaceDim  = 2,                 &
+                                LevIDx    = -1,                &
+                                OutUnit   = 'kg/m2/s',         &
+                                COL       = HcoDiagnIDManual,  &
+                                AutoFill  = 1,                 &
+                                RC        = RC                  ) 
+          ENDIF
+
+          !%%%%%%% CObbas %%%%%%%
+
+          ! HEMCO species ID
+          HcoID = GetHemcoId( 'CObbas', HcoState, LOC, RC )
+
+          ! Create diagnostic container
+          IF ( RC == HCO_SUCCESS ) THEN
+             DiagnName = 'BIOMASS_TAGCO_ASIA'
+             CALL Diagn_Create( am_I_Root,                     & 
+                                HcoState  = HcoState,          &
+                                cName     = TRIM( DiagnName ), &
+                                ExtNr     = ExtNr,             &
+                                Cat       = Cat,               &
+                                Hier      = -1,                &
+                                HcoID     = HcoID,             &
+                                SpaceDim  = 2,                 &
+                                LevIDx    = -1,                &
+                                OutUnit   = 'kg/m2/s',         &
+                                COL       = HcoDiagnIDManual,  &
+                                AutoFill  = 1,                 &
+                                RC        = RC                  ) 
+          ENDIF
+
+          !%%%%%%% CObboc %%%%%%%
+
+          ! HEMCO species ID
+          HcoID = GetHemcoId( 'CObboc', HcoState, LOC, RC )
+
+          ! Create diagnostic container
+          IF ( RC == HCO_SUCCESS ) THEN
+             DiagnName = 'BIOMASS_TAGCO_OCEANIA'
+             CALL Diagn_Create( am_I_Root,                     & 
+                                HcoState  = HcoState,          &
+                                cName     = TRIM( DiagnName ), &
+                                ExtNr     = ExtNr,             &
+                                Cat       = Cat,               &
+                                Hier      = -1,                &
+                                HcoID     = HcoID,             &
+                                SpaceDim  = 2,                 &
+                                LevIDx    = -1,                &
+                                OutUnit   = 'kg/m2/s',         &
+                                COL       = HcoDiagnIDManual,  &
+                                AutoFill  = 1,                 &
+                                RC        = RC                  ) 
+          ENDIF
+
+          !%%%%%%% CObbeu %%%%%%%
+
+          ! HEMCO species ID
+          HcoID = GetHemcoId( 'CObbeu', HcoState, LOC, RC )
+
+          ! Create diagnostic container
+          IF ( RC == HCO_SUCCESS ) THEN
+             DiagnName = 'BIOMASS_TAGCO_EUROPE'
+             CALL Diagn_Create( am_I_Root,                     & 
+                                HcoState  = HcoState,          &
+                                cName     = TRIM( DiagnName ), &
+                                ExtNr     = ExtNr,             &
+                                Cat       = Cat,               &
+                                Hier      = -1,                &
+                                HcoID     = HcoID,             &
+                                SpaceDim  = 2,                 &
+                                LevIDx    = -1,                &
+                                OutUnit   = 'kg/m2/s',         &
+                                COL       = HcoDiagnIDManual,  &
+                                AutoFill  = 1,                 &
+                                RC        = RC                  ) 
+          ENDIF
+
+          !%%%%%%% CObboth %%%%%%%
+
+          ! HEMCO species ID
+          HcoID = GetHemcoId( 'CObboth', HcoState, LOC, RC )
+
+          ! Create diagnostic container
+          IF ( RC == HCO_SUCCESS ) THEN
+             DiagnName = 'BIOMASS_TAGCO_OTHER'
+             CALL Diagn_Create( am_I_Root,                     & 
+                                HcoState  = HcoState,          &
+                                cName     = TRIM( DiagnName ), &
+                                ExtNr     = ExtNr,             &
+                                Cat       = Cat,               &
+                                Hier      = -1,                &
+                                HcoID     = HcoID,             &
+                                SpaceDim  = 2,                 &
+                                LevIDx    = -1,                &
+                                OutUnit   = 'kg/m2/s',         &
+                                COL       = HcoDiagnIDManual,  &
+                                AutoFill  = 1,                 &
+                                RC        = RC                  ) 
+          ENDIF
+
+       ENDIF
+
     ENDIF
 
     !----------------------------------------------
@@ -2745,8 +2892,8 @@ CONTAINS
     !-------------------------------------------
     IF ( ND36 > 0 .OR. ND29 > 0 ) THEN
 
-       ! CO is only defined for the full-chemistry simulation
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM    .or.            &
+       ! CO is only defined for the full-chemistry and tagged CO simulations
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM    .or.               &
             Input_Opt%ITS_A_TAGCO_SIM     ) THEN
 
           ! HEMCO species ID
@@ -2755,21 +2902,121 @@ CONTAINS
           
           ! Create diagnostic container
           DiagnName = 'ANTHROPOGENIC_CO'
-          CALL Diagn_Create( am_I_Root,                     & 
-                             HcoState  = HcoState,          &
-                             cName     = TRIM( DiagnName ), &
-                             ExtNr     = ExtNr,             &
-                             Cat       = CATEGORY_ANTHRO,   &
-                             Hier      = -1,                &
-                             HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
-                             LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
-                             AutoFill  = 1,                 &
-                             RC        = RC                  ) 
+          CALL Diagn_Create( am_I_Root,                        & 
+                             HcoState  = HcoState,             &
+                             cName     = TRIM( DiagnName ),    &
+                             ExtNr     = ExtNr,                &
+                             Cat       = CATEGORY_ANTHRO,      &
+                             Hier      = -1,                   &
+                             HcoID     = HcoID,                &
+                             SpaceDim  = 2,                    &
+                             LevIDx    = -1,                   &
+                             OutUnit   = 'kg/m2/s',            &
+                             COL       = HcoDiagnIDManual,     &
+                             AutoFill  = 1,                    &
+                             RC        = RC                     ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
+
+       !-----------------------------------------
+       ! %%%%% Tagged CO: anthro tracers %%%%%
+       !-----------------------------------------
+       IF ( Input_Opt%ITS_A_TAGCO_SIM  ) THEN
+
+          !%%%%%%% COus %%%%%%%
+
+          ! HEMCO species ID
+          HcoID = GetHemcoId( 'COus', HcoState, LOC, RC )
+
+          ! Create diagnostic container
+          IF ( RC == HCO_SUCCESS ) THEN
+             DiagnName = 'ANTHROPOGENIC_TAGCO_US'
+             CALL Diagn_Create( am_I_Root,                     & 
+                                HcoState  = HcoState,          &
+                                cName     = TRIM( DiagnName ), &
+                                ExtNr     = ExtNr,             &
+                                Cat       = CATEGORY_ANTHRO,   &
+                                Hier      = -1,                &
+                                HcoID     = HcoID,             &
+                                SpaceDim  = 2,                 &
+                                LevIDx    = -1,                &
+                                OutUnit   = 'kg/m2/s',         &
+                                COL       = HcoDiagnIDManual,  &
+                                AutoFill  = 1,                 &
+                                RC        = RC                  ) 
+          ENDIF
+
+          !%%%%%%% COeur %%%%%%%
+
+          ! HEMCO species ID
+          HcoID = GetHemcoId( 'COeur', HcoState, LOC, RC )
+
+          ! Create diagnostic container
+          IF ( RC == HCO_SUCCESS ) THEN
+             DiagnName = 'ANTHROPOGENIC_TAGCO_EUR'
+             CALL Diagn_Create( am_I_Root,                     & 
+                                HcoState  = HcoState,          &
+                                cName     = TRIM( DiagnName ), &
+                                ExtNr     = ExtNr,             &
+                                Cat       = CATEGORY_ANTHRO,   &
+                                Hier      = -1,                &
+                                HcoID     = HcoID,             &
+                                SpaceDim  = 2,                 &
+                                LevIDx    = -1,                &
+                                OutUnit   = 'kg/m2/s',         &
+                                COL       = HcoDiagnIDManual,  &
+                                AutoFill  = 1,                 &
+                                RC        = RC                  ) 
+          ENDIF
+
+          !%%%%%%% COasia %%%%%%%
+
+          ! HEMCO species ID
+          HcoID = GetHemcoId( 'COasia', HcoState, LOC, RC )
+          
+          ! Create diagnostic container
+          IF ( RC == HCO_SUCCESS ) THEN
+             DiagnName = 'ANTHROPOGENIC_TAGCO_ASIA'
+             CALL Diagn_Create( am_I_Root,                     & 
+                                HcoState  = HcoState,          &
+                                cName     = TRIM( DiagnName ), &
+                                ExtNr     = ExtNr,             &
+                                Cat       = CATEGORY_ANTHRO,   &
+                                Hier      = -1,                &
+                                HcoID     = HcoID,             &
+                                SpaceDim  = 2,                 &
+                                LevIDx    = -1,                &
+                                OutUnit   = 'kg/m2/s',         &
+                                COL       = HcoDiagnIDManual,  &
+                                AutoFill  = 1,                 &
+                                RC        = RC                  ) 
+          ENDIF
+
+          !%%%%%%% COoth %%%%%%%
+
+          ! HEMCO species ID
+          HcoID = GetHemcoId( 'COoth', HcoState, LOC, RC )
+          
+          ! Create diagnostic container
+          IF ( RC == HCO_SUCCESS ) THEN
+             DiagnName = 'ANTHROPOGENIC_TAGCO_OTHER'
+             CALL Diagn_Create( am_I_Root,                     & 
+                                HcoState  = HcoState,          &
+                                cName     = TRIM( DiagnName ), &
+                                ExtNr     = ExtNr,             &
+                                Cat       = CATEGORY_ANTHRO,   &
+                                Hier      = -1,                &
+                                HcoID     = HcoID,             &
+                                SpaceDim  = 2,                 &
+                                LevIDx    = -1,                &
+                                OutUnit   = 'kg/m2/s',         &
+                                COL       = HcoDiagnIDManual,  &
+                                AutoFill  = 1,                 &
+                                RC        = RC                  ) 
+          ENDIF
+
+       ENDIF
+
     ENDIF
 
   END SUBROUTINE Diagn_Anthro

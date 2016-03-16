@@ -68,6 +68,9 @@
       USE HCO_STATE_MOD,     ONLY : HCO_STATE
       USE HCOI_GC_MAIN_MOD,  ONLY : GetHcoState
 
+      ! Species database
+      USE Species_Mod,       ONLY : Species
+
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -341,6 +344,10 @@
 
       ! RRTMG
       LOGICAL                  :: IS_GAS, IS_AD21, IS_DUST
+
+      ! To point to the species database
+      CHARACTER(LEN=31)        :: Name
+      TYPE(Species), POINTER   :: ThisSpc => NULL()
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -2419,6 +2426,63 @@
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+            !----------------------------------------------------------
+            ! Tagged CO biomass tracers
+            !----------------------------------------------------------
+            IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+
+               ! Loop over all tracers
+               DO NN = 1, Input_Opt%N_TRACERS
+                  
+                  ! Point to species database
+                  ThisSpc => State_Chm%SpcData(NN)%Info
+
+                  ! Look for the biomass species
+                  SELECT CASE( TRIM( ThisSpc%Name ) )
+                     CASE( 'CObbam' )
+                        DiagnName = 'BIOMASS_TAGCO_S_AMERICA'
+                        N         = ThisSpc%ModelId
+                     CASE( 'CObbaf' )
+                        DiagnName = 'BIOMASS_TAGCO_AFRICA'
+                        N         = ThisSpc%ModelId
+                     CASE( 'CObbas' )
+                        DiagnName = 'BIOMASS_TAGCO_ASIA'
+                        N         = ThisSpc%ModelId
+                     CASE( 'CObboc' )
+                        DiagnName = 'BIOMASS_TAGCO_OCEANIA'
+                        N         = ThisSpc%ModelId
+                     CASE( 'CObbeu' )
+                        DiagnName = 'BIOMASS_TAGCO_EUROPE'
+                        N         = ThisSpc%ModelID
+                     CASE( 'CObboth' )
+                        DiagnName = 'BIOMASS_TAGCO_OTHER'
+                        N         = ThisSpc%ModelID
+                     CASE DEFAULT
+                        DiagnName = ''
+                        N         = -1
+                  END SELECT
+
+                  ! Write to bpch if the tagged biomass diagnostics
+                  ! were found in the list above
+                  IF ( N > 0 ) THEN 
+                     UNIT   = 'molec/cm2/s'
+                     FACTOR = Input_Opt%XNUMOL(N) / CM2PERM2
+
+                     CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, 
+     &                               CATEGORY,  UNIT,     N, 
+     &                               1,         -1,      .TRUE.,    
+     &                               FACTOR,    RC                  )
+
+                     IF ( RC /= HCO_SUCCESS ) THEN 
+                        CALL ERROR_STOP( DiagnName, LOC)
+                     ENDIF
+                  ENDIF
+
+                  ! Free pointer
+                  ThisSpc => NULL()
+               ENDDO
+            ENDIF
          ENDIF
 
          !%%%%% ALK4 %%%%%
@@ -3247,74 +3311,89 @@
             ! Init
             N = 0
 
+            ! Point to the species database entry for this species name
+            ThisSpc => State_Chm%SpcData(I)%Info
+
             ! Get variables needed for HEMCO diagnostics
-            IF ( I == IDTNO ) THEN
-               DiagnName = 'ANTHROPOGENIC_NO'
-               UNIT      = 'molec/cm2/s'
-               N         = IDTNO
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-   
-            ELSE IF ( I == IDTCO ) THEN
-               DiagnName = 'ANTHROPOGENIC_CO'
-               UNIT      = 'molec/cm2/s'
-               N         = IDTCO
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-               
-            ELSE IF ( I == IDTALK4 ) THEN
-               DiagnName = 'ANTHROPOGENIC_ALK4'
-               UNIT      = 'atoms C/cm2/s'
-               N         = IDTALK4
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-          
-            ELSE IF ( I == IDTACET ) THEN
-               DiagnName = 'ANTHROPOGENIC_ACET'
-               UNIT      = 'atoms C/cm2/s'
-               N         = IDTACET
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-                      
-            ELSE IF ( I == IDTMEK ) THEN
-               DiagnName = 'ANTHROPOGENIC_MEK'
-               UNIT      = 'atoms C/cm2/s'
-               N         = IDTMEK
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-   
-            ELSE IF ( I == IDTALD2 ) THEN
-               DiagnName = 'ANTHROPOGENIC_ALD2'
-               UNIT      = 'atoms C/cm2/s'
-               N         = IDTALD2
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-   
-            ELSE IF ( I == IDTPRPE ) THEN
-               DiagnName = 'ANTHROPOGENIC_PRPE'
-               UNIT      = 'atoms C/cm2/s'
-               N         = IDTPRPE
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-   
-            ELSE IF ( I == IDTC3H8 ) THEN
-               DiagnName = 'ANTHROPOGENIC_C3H8'
-               UNIT      = 'atoms C/cm2/s'
-               N         = IDTC3H8
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-   
-            ELSE IF ( I == IDTCH2O ) THEN
-               DiagnName = 'ANTHROPOGENIC_CH2O'
-               UNIT      = 'molec/cm2/s'
-               N         = IDTCH2O
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-   
-            ELSE IF ( I == IDTC2H6 ) THEN
-               DiagnName = 'ANTHROPOGENIC_C2H6'
-               UNIT      = 'atoms C/cm2/s'
-               N         = IDTC2H6 
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-
-            ELSE IF ( I == IDTCH4 ) THEN
-               DiagnName = 'ANTHROPOGENIC_CH4'
-               UNIT      = 'molec/cm2/s'
-               N         = IDTCH4
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-
-            ENDIF
+            SELECT CASE( TRIM( ThisSpc%Name ) )
+               CASE( 'NO'     )
+                  DiagnName = 'ANTHROPOGENIC_NO'
+                  UNIT      = 'molec/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE ( 'CO'    ) 
+                  DiagnName = 'ANTHROPOGENIC_CO'
+                  UNIT      = 'molec/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE ( 'COus'  ) 
+                  DiagnName = 'ANTHROPOGENIC_TAGCO_US'
+                  UNIT      = 'molec/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE ( 'COeur'  ) 
+                  DiagnName = 'ANTHROPOGENIC_TAGCO_EUR'
+                  UNIT      = 'molec/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE ( 'COasia' ) 
+                  DiagnName = 'ANTHROPOGENIC_TAGCO_ASIA'
+                  UNIT      = 'molec/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE ( 'COoth'  ) 
+                  DiagnName = 'ANTHROPOGENIC_TAGCO_OTHER'
+                  UNIT      = 'molec/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE( 'ALK4'    )
+                  DiagnName = 'ANTHROPOGENIC_ALK4'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE( 'ACET'    ) 
+                  DiagnName = 'ANTHROPOGENIC_ACET'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE( 'MEK'     )
+                  DiagnName = 'ANTHROPOGENIC_MEK'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE( 'ALD2'    )
+                  DiagnName = 'ANTHROPOGENIC_ALD2'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE( 'PRPE'    )
+                  DiagnName = 'ANTHROPOGENIC_PRPE'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE( 'C3H8'    )
+                  DiagnName = 'ANTHROPOGENIC_C3H8'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE( 'CH2O'    )
+                  DiagnName = 'ANTHROPOGENIC_CH2O'
+                  UNIT      = 'molec/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE( 'C2H6'    )
+                  DiagnName = 'ANTHROPOGENIC_C2H6'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE( 'CH4'     )
+                  DiagnName = 'ANTHROPOGENIC_CH4'
+                  UNIT      = 'molec/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE DEFAULT
+                  ! Do nothing
+            END SELECT
 
             ! Call only if defined!
             IF ( N > 0 ) THEN
@@ -3323,6 +3402,9 @@
      &                         UNIT, N, 1, -1, .TRUE., FACTOR, RC )
                IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
             ENDIF
+
+            ! Free pointer
+            ThisSpc => NULL()
 
          ENDDO ! I
       ENDIF

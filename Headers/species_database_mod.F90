@@ -118,6 +118,7 @@ CONTAINS
 !  14 Oct 2015 - E. Lundgren - Treat H2SO4 as an aerosol for TOMAS
 !  18 Nov 2015 - M. Sulprizio- Add passive tracers PASV to RnPbBe simulation
 !  16 Dec 2015 - R. Yantosca - Use MW_g = 31.4 g/mol for SO4s and NITs
+!  15 Mar 2016 - R. Yantosca - Added tagged CO tracer names
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -768,12 +769,71 @@ CONTAINS
                               Is_Wetdep     = F,                            &
                               RC            = RC )
 
-          CASE( 'CO' )
+          CASE( 'CO',     'COUS',    'COEUR',  'COASIA', 'COOTH',           &
+                'COBBAM', 'COBBAF',  'COBBAS', 'COBBOC', 'COBBEU',          &
+                'COBBNA', 'COBBOTH', 'COCH4',  'COBIOF', 'COISOP',          &
+                'COMONO', 'COMEOH',  'COACET'                       )
+
+             ! Set Name and LongName for the various CO tracers
+             SELECT CASE( TRIM( NameAllCaps ) )
+                CASE( 'CO'     ) 
+                   Name     = 'CO'
+                   FullName = 'Carbon monoxide'
+                CASE( 'COUS'   ) 
+                   Name     = 'COus'
+                   FullName = 'Anthropogenic + biofuel CO emitted over the USA'
+                CASE( 'COEUR'  )
+                   Name     = 'COeur'
+                   FullName = 'Anthropogenic + biofuel CO emitted over Europe'
+                CASE( 'COASIA' ) 
+                   Name     = 'COasia'
+                   FullName = 'Anthropogenic + biofuel CO emitted over Asia'
+                CASE( 'COOTH'  )
+                   Name     = 'COoth'
+                   FullName = 'Anthropogenic + biofuel CO emitted everywhere else'
+                CASE( 'COBBAM' )
+                   Name     = 'CObbam'
+                   FullName = 'Biomass burning CO emitted over South America'
+                CASE( 'COBBAF' )
+                   Name     = 'CObbaf'
+                   FullName = 'Biomass burning CO emitted over Africa'
+                CASE( 'COBBAS' )
+                   Name     = 'CObbas'
+                   FullName = 'Biomass burning CO emitted over Asia'
+                CASE( 'COBBOC' )
+                   Name     = 'CObboc'
+                   FullName = 'Biomass burning CO emitted over Oceania'
+                CASE( 'COBBEU' )
+                   Name     = 'CObbeu'
+                   FullName = 'Biomass burning CO emitted over Europe'
+                CASE( 'COBBOTH' )
+                   Name     = 'CObboth'
+                   FullName = 'Biomass burning CO emitted everywhere else'
+                CASE( 'COCH4'  )
+                   Name     = 'COch4'
+                   FullName = 'CO produced from methane oxidation'
+                CASE( 'COBIOF' )
+                   Name     = 'CObiof'
+                   FullName = 'CO produced from biofuels (whole world)'
+                CASE( 'COISOP' )
+                   Name     = 'COisop'
+                   FullName = 'CO produced from isoprene oxidation'
+                CASE( 'COMONO' )
+                   Name     = 'COmono'
+                   FullName = 'CO produced from monterpenes oxidation'
+                CASE( 'COMEOH' ) 
+                   Name     = 'COmeoh'
+                   FullName = 'CO produced from methanol oxidation'
+                CASE( 'COACET' )
+                   Name     = 'COacet'
+                   FullName = 'CO produced from acetone oxidation'
+             END SELECT
+                   
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Carbon monoxide',            &
+                              Name          = Name,                         &
+                              FullName      = FullName,                     &
                               MW_g          = 28.0_fp,                      &
                               Is_Advected   = T,                            &
                               Is_Gas        = T,                            &

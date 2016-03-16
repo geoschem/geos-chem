@@ -5545,6 +5545,80 @@
             MOLC (T,28) = 1
             UNIT (T,28) = 'molec/cm2/s'
             SCALE(T,28) = 1e0
+
+            IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+
+               !%%%%% NOTE: This is hardwired for now!
+               !%%%%% Think of a better solution later.
+               !%%%%% (bmy, 3/15/16)
+
+               ! CObbam
+               T           = T         + 1
+               NTRAC(  28) = NTRAC(28) + 1
+               NAME (T,28) = 'CObbam'
+               FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+               INDEX(T,28) = IDTCO + ( SPACING * 45 ) + 5
+               MWT  (T,28) = 28e-3
+               MOLC (T,28) = 1
+               UNIT (T,28) = 'molec/cm2/s'
+               SCALE(T,28) = 1e0
+
+               ! CObbaf
+               T           = T         + 1
+               NTRAC(  28) = NTRAC(28) + 1
+               NAME (T,28) = 'CObbaf'
+               FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+               INDEX(T,28) = IDTCO + ( SPACING * 45 ) + 6
+               MWT  (T,28) = 28e-3
+               MOLC (T,28) = 1
+               UNIT (T,28) = 'molec/cm2/s'
+               SCALE(T,28) = 1e0
+
+               ! CObbas
+               T           = T         + 1
+               NTRAC(  28) = NTRAC(28) + 1
+               NAME (T,28) = 'CObbas'
+               FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+               INDEX(T,28) = IDTCO + ( SPACING * 45 ) + 7
+               MWT  (T,28) = 28e-3
+               MOLC (T,28) = 1
+               UNIT (T,28) = 'molec/cm2/s'
+               SCALE(T,28) = 1e0
+
+               ! CObboc
+               T           = T         + 1
+               NTRAC(  28) = NTRAC(28) + 1
+               NAME (T,28) = 'CObboc'
+               FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+               INDEX(T,28) = IDTCO + ( SPACING * 45 ) + 8
+               MWT  (T,28) = 28e-3
+               MOLC (T,28) = 1
+               UNIT (T,28) = 'molec/cm2/s'
+               SCALE(T,28) = 1e0
+
+               ! CObbeu
+               T           = T         + 1
+               NTRAC(  28) = NTRAC(28) + 1
+               NAME (T,28) = 'CObbeu'
+               FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+               INDEX(T,28) = IDTCO + ( SPACING * 45 ) + 9
+               MWT  (T,28) = 28e-3
+               MOLC (T,28) = 1
+               UNIT (T,28) = 'molec/cm2/s'
+               SCALE(T,28) = 1e0
+
+               ! CObboth
+               T           = T         + 1
+               NTRAC(  28) = NTRAC(28) + 1
+               NAME (T,28) = 'CObboth'
+               FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+               INDEX(T,28) = IDTCO + ( SPACING * 45 ) + 10
+               MWT  (T,28) = 28e-3
+               MOLC (T,28) = 1
+               UNIT (T,28) = 'molec/cm2/s'
+               SCALE(T,28) = 1e0
+            ENDIF
+
          ENDIF
          IF ( IDTALK4 > 0 ) THEN
             T           = T         + 1
