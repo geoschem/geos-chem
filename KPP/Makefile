@@ -132,6 +132,7 @@ realclean:
 	@$(MAKE) -C NOx_Ox_HC_Aer_Br clean
 	@$(MAKE) -C TempFlex         clean
 	@$(MAKE) -C TempFlex_Benchmark clean
+	@$(MAKE) -C TempFlex_SOA     clean
 
 help:
 	@$(MAKE) -C $(HELP) 
