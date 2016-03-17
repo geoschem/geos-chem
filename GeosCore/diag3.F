@@ -2758,6 +2758,7 @@
 !  (1) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
 !  (2) ND29 now uses allocatable array AD29 instead of AIJ. (bmy, 3/16/00)
 !  (3) Added CO-sources from isoprene and monoterpenes (bnd, bmy, 1/2/01)
+!  (4) Added tagged CO emissions diagnostics from HEMCO (bmy, 3/17/16)
 !******************************************************************************
 !
       IF ( ND29 > 0 ) THEN
@@ -2772,21 +2773,81 @@
          ! Converts from kg/m2/s (in HEMCO) to molec/cm2/s (for bpch)
          FACTOR   = Input_Opt%XNUMOL(IDTCO) / CM2PERM2 
 
-         ! Loop over all slots of ND29
-         DO N = 1, 5
+         ! Loop over tagged tracers if necessary
+         IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+            NN = 24
+         ELSE
+            N  = 6
+         ENDIF
+
+         ! Loop over all slots of ND29 
+         ! 1-6  are for the fullchem simulation
+         ! 7-24 are for the tagged CO simulation
+         ! Also note: Tagged CO lumps biofuels with anthro emissions
+         DO N = 1, NN
 
             ! Find the proper HEMCO diagnostic name 
             SELECT CASE ( N )
-               CASE ( 1 )
+               CASE( 1 )
                   DiagnName = 'ANTHROPOGENIC_CO'
-               CASE ( 2 )
+               CASE( 2 )
                   DiagnName = 'BIOMASS_CO'
-               CASE ( 3 )
+               CASE( 3 )
                   DiagnName = 'BIOFUEL_CO'
                CASE( 4 ) 
                   CYCLE        ! CO from methanol doesn't seem to be defined!?
                CASE ( 5 )
                   DiagnName = 'BIOGENIC_CO'
+               CASE( 6 ) 
+                  DiagnName = 'SHIP_CO'
+
+               ! Tagged CO: Anthro sectors, USA
+               CASE( 7 )
+                  DiagnName = 'ANTHRO_BIOFUEL_TAGCO_US'
+               CASE( 8 ) 
+                  DiagnName = 'AIRCRAFT_TAGCO_US'
+               CASE( 9 )
+                  DiagnName = 'SHIP_TAGCO_US'
+
+               ! Tagged CO: Anthro sectors, Europe
+               CASE( 10 )
+                  DiagnName = 'ANTHRO_BIOFUEL_TAGCO_EUR'
+               CASE( 11 )
+                  DiagnName = 'AIRCRAFT_TAGCO_EUR'
+               CASE( 12 )
+                  DiagnName = 'SHIP_TAGCO_EUR'
+
+               ! Tagged CO: Anthro sectors, Asia
+               CASE( 13 )
+                  DiagnName = 'ANTHRO_BIOFUEL_TAGCO_ASIA'
+               CASE( 14 )
+                  DiagnName = 'AIRCRAFT_TAGCO_ASIA'
+               CASE( 15 ) 
+                  DiagnName = 'SHIP_TAGCO_ASIA'
+
+               ! Tagged CO: Anthro sectors, rest of world
+               CASE( 16 )
+                  DiagnName = 'ANTHRO_BIOFUEL_TAGCO_OTHER'
+               CASE( 17 )
+                  DiagnName = 'AIRCRAFT_TAGCO_OTHER'
+               CASE( 18 )
+                  DiagnName = 'SHIP_TAGCO_OTHER'
+
+               ! Tagged CO: Regional biomass tracers
+               CASE( 19 )
+                  DiagnName = 'BIOMASS_TAGCO_USA'
+               CASE( 20 )
+                  DiagnName = 'BIOMASS_TAGCO_AFRICA'
+               CASE( 21 )
+                  DiagnName = 'BIOMASS_TAGCO_ASIA'
+               CASE( 22 )
+                  DiagnName = 'BIOMASS_TAGCO_OCEANIA'
+               CASE( 23 )
+                  DiagnName = 'BIOMASS_TAGCO_EUROPE'
+               CASE( 24 )
+                  DiagnName = 'BIOMASS_TAGCO_OTHER'
+                  
+               ! Default
                CASE DEFAULT
                   DiagnName = 'NOTHINGTOFIND'
             END SELECT
@@ -3333,7 +3394,7 @@
                   FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                CASE ( 'COeur'  ) 
                   DiagnName = 'ANTHROPOGENIC_TAGCO_EUR'
-                  UNIT      = 'molec/cm2/s'
+                  UNIT      = 'molec/cqm2/s'
                   N         = ThisSpc%ModelId
                   FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                CASE ( 'COasia' ) 

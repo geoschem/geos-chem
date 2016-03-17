@@ -5545,80 +5545,6 @@
             MOLC (T,28) = 1
             UNIT (T,28) = 'molec/cm2/s'
             SCALE(T,28) = 1e0
-
-            IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
-
-               !%%%%% NOTE: This is hardwired for now!
-               !%%%%% Think of a better solution later.
-               !%%%%% (bmy, 3/15/16)
-
-               ! CObbam
-               T           = T         + 1
-               NTRAC(  28) = NTRAC(28) + 1
-               NAME (T,28) = 'CObbam'
-               FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-               INDEX(T,28) = IDTCO + ( SPACING * 45 ) + 5
-               MWT  (T,28) = 28e-3
-               MOLC (T,28) = 1
-               UNIT (T,28) = 'molec/cm2/s'
-               SCALE(T,28) = 1e0
-
-               ! CObbaf
-               T           = T         + 1
-               NTRAC(  28) = NTRAC(28) + 1
-               NAME (T,28) = 'CObbaf'
-               FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-               INDEX(T,28) = IDTCO + ( SPACING * 45 ) + 6
-               MWT  (T,28) = 28e-3
-               MOLC (T,28) = 1
-               UNIT (T,28) = 'molec/cm2/s'
-               SCALE(T,28) = 1e0
-
-               ! CObbas
-               T           = T         + 1
-               NTRAC(  28) = NTRAC(28) + 1
-               NAME (T,28) = 'CObbas'
-               FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-               INDEX(T,28) = IDTCO + ( SPACING * 45 ) + 7
-               MWT  (T,28) = 28e-3
-               MOLC (T,28) = 1
-               UNIT (T,28) = 'molec/cm2/s'
-               SCALE(T,28) = 1e0
-
-               ! CObboc
-               T           = T         + 1
-               NTRAC(  28) = NTRAC(28) + 1
-               NAME (T,28) = 'CObboc'
-               FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-               INDEX(T,28) = IDTCO + ( SPACING * 45 ) + 8
-               MWT  (T,28) = 28e-3
-               MOLC (T,28) = 1
-               UNIT (T,28) = 'molec/cm2/s'
-               SCALE(T,28) = 1e0
-
-               ! CObbeu
-               T           = T         + 1
-               NTRAC(  28) = NTRAC(28) + 1
-               NAME (T,28) = 'CObbeu'
-               FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-               INDEX(T,28) = IDTCO + ( SPACING * 45 ) + 9
-               MWT  (T,28) = 28e-3
-               MOLC (T,28) = 1
-               UNIT (T,28) = 'molec/cm2/s'
-               SCALE(T,28) = 1e0
-
-               ! CObboth
-               T           = T         + 1
-               NTRAC(  28) = NTRAC(28) + 1
-               NAME (T,28) = 'CObboth'
-               FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-               INDEX(T,28) = IDTCO + ( SPACING * 45 ) + 10
-               MWT  (T,28) = 28e-3
-               MOLC (T,28) = 1
-               UNIT (T,28) = 'molec/cm2/s'
-               SCALE(T,28) = 1e0
-            ENDIF
-
          ENDIF
          IF ( IDTALK4 > 0 ) THEN
             T           = T         + 1
@@ -5885,10 +5811,17 @@
       !-------------------------------------
       IF ( ND29 > 0 ) THEN
 
-         ! Number of tracers
-         NTRAC(29) = 5
+         ! Number of tracers for ND29
+         IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+            NTRAC(29) = 24
+         ELSE
+            NTRAC(29) = 6
+         ENDIF
 
-         ! Loop over tracers
+         ! Loop over all slots of ND29 
+         ! 1-6  are for the fullchem simulation
+         ! 7-24 are for the tagged CO simulation
+         ! Also note: Tagged CO lumps biofuels with anthro emissions
          DO T = 1, NTRAC(29)
 
             ! Get name, longname
@@ -5908,6 +5841,74 @@
                CASE( 5 )
                   NAME (T,29) = 'COmono'
                   FNAME(T,29) = 'CO from monoterpenes'
+               CASE( 6 )
+                  NAME (T,29) = 'COship'
+                  FNAME(T,29) = 'CO from ship emissions'
+
+               ! Tagged CO: USA
+               CASE( 7 )
+                  NAME (T,29) = 'COabUs'
+                  FNAME(T,29) = 'Anth + Biof CO emitted over USA'
+               CASE( 8 )
+                  NAME (T,29) = 'COacUs'
+                  FNAME(T,29) = 'Aircraft CO emitted over USA'
+               CASE( 9 )
+                  NAME (T,29) = 'COshUs'
+                  FNAME(T,29) = 'Ship CO emitted over USA'
+
+               ! Tagged CO: Europe
+               CASE( 10 )
+                  NAME (T,29) = 'COabEu'
+                  FNAME(T,29) = 'Anth + Biof CO emitted over Europe'
+               CASE( 11 )
+                  NAME (T,29) = 'COacEu'
+                  FNAME(T,29) = 'Aircraft CO emitted over Europe'
+               CASE( 12 )
+                  NAME (T,29) = 'COshEu'
+                  FNAME(T,29) = 'Ship CO emitted over Europe'
+
+               ! Tagged CO: Asia
+               CASE( 13 )
+                  NAME (T,29) = 'COabAs'
+                  FNAME(T,29) = 'Anth + Biof CO emitted over Asia'
+               CASE( 14 )
+                  NAME (T,29) = 'COacAs'
+                  FNAME(T,29) = 'Aircraft CO emitted over Asia'
+               CASE( 15 )
+                  NAME (T,29) = 'COshAs'
+                  FNAME(T,29) = 'Ship CO emitted over Asia'
+
+               ! Tagged CO: Everywhere else
+               CASE( 16 )
+                  NAME (T,29) = 'COabOth'
+                  FNAME(T,29) = 'Anth + Biof CO emitted elsewhere'
+               CASE( 17 )
+                  NAME (T,29) = 'COacOth'
+                  FNAME(T,29) = 'Aircraft CO emitted elsewhere'
+               CASE( 18 )
+                  NAME (T,29) = 'COshOth'
+                  FNAME(T,29) = 'Ship CO emitted elsewhere'
+
+               ! Tagged CO: Regional biomass tracers
+               CASE( 19 )
+                  NAME (T,29) = 'CObbAm'
+                  FNAME(T,29) = 'Biomass CO emitted over S. America'
+               CASE( 20 )
+                  NAME (T,29) = 'CObbAf'
+                  FNAME(T,29) = 'Biomass CO emitted over Africa'
+               CASE( 21 )
+                  NAME (T,29) = 'CObbAs'
+                  FNAME(T,29) = 'Biomass CO emitted over Asia'
+               CASE( 22 )
+                  NAME (T,29) = 'CObbOc'
+                  FNAME(T,29) = 'Biomass CO emitted over Oceania'
+               CASE( 23 )
+                  NAME (T,29) = 'CObbEu'
+                  FNAME(T,29) = 'Biomass CO emitted over Europe'
+               CASE( 24 )
+                  NAME (T,29) = 'CObbOth'
+                  FNAME(T,29) = 'Biomass CO emitted elsewhere'
+
                CASE DEFAULT
                   ! Nothing
             END SELECT
