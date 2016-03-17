@@ -5848,7 +5848,7 @@
                ! Tagged CO: USA
                CASE( 7 )
                   NAME (T,29) = 'COabUs'
-                  FNAME(T,29) = 'Anth + Biof CO emitted over USA'
+                  FNAME(T,29) = 'Anth+Biof CO emitted over USA'
                CASE( 8 )
                   NAME (T,29) = 'COacUs'
                   FNAME(T,29) = 'Aircraft CO emitted over USA'
@@ -5859,29 +5859,29 @@
                ! Tagged CO: Europe
                CASE( 10 )
                   NAME (T,29) = 'COabEu'
-                  FNAME(T,29) = 'Anth + Biof CO emitted over Europe'
+                  FNAME(T,29) = 'Anth+Biof CO emitted over EUR'
                CASE( 11 )
                   NAME (T,29) = 'COacEu'
-                  FNAME(T,29) = 'Aircraft CO emitted over Europe'
+                  FNAME(T,29) = 'Aircraft CO emitted over EUR'
                CASE( 12 )
                   NAME (T,29) = 'COshEu'
-                  FNAME(T,29) = 'Ship CO emitted over Europe'
+                  FNAME(T,29) = 'Ship CO emitted over EUR'
 
                ! Tagged CO: Asia
                CASE( 13 )
                   NAME (T,29) = 'COabAs'
-                  FNAME(T,29) = 'Anth + Biof CO emitted over Asia'
+                  FNAME(T,29) = 'Anth+Biof CO emitted over SEA'
                CASE( 14 )
                   NAME (T,29) = 'COacAs'
-                  FNAME(T,29) = 'Aircraft CO emitted over Asia'
+                  FNAME(T,29) = 'Aircraft CO emitted over SEA'
                CASE( 15 )
                   NAME (T,29) = 'COshAs'
-                  FNAME(T,29) = 'Ship CO emitted over Asia'
+                  FNAME(T,29) = 'Ship CO emitted over SEA'
 
                ! Tagged CO: Everywhere else
                CASE( 16 )
                   NAME (T,29) = 'COabOth'
-                  FNAME(T,29) = 'Anth + Biof CO emitted elsewhere'
+                  FNAME(T,29) = 'Anth+Biof CO emitted elsewhere'
                CASE( 17 )
                   NAME (T,29) = 'COacOth'
                   FNAME(T,29) = 'Aircraft CO emitted elsewhere'
@@ -5892,19 +5892,19 @@
                ! Tagged CO: Regional biomass tracers
                CASE( 19 )
                   NAME (T,29) = 'CObbAm'
-                  FNAME(T,29) = 'Biomass CO emitted over S. America'
+                  FNAME(T,29) = 'Biomass CO emitted over SAM'
                CASE( 20 )
                   NAME (T,29) = 'CObbAf'
-                  FNAME(T,29) = 'Biomass CO emitted over Africa'
+                  FNAME(T,29) = 'Biomass CO emitted over AFR'
                CASE( 21 )
                   NAME (T,29) = 'CObbAs'
-                  FNAME(T,29) = 'Biomass CO emitted over Asia'
+                  FNAME(T,29) = 'Biomass CO emitted over SEA'
                CASE( 22 )
                   NAME (T,29) = 'CObbOc'
-                  FNAME(T,29) = 'Biomass CO emitted over Oceania'
+                  FNAME(T,29) = 'Biomass CO emitted over OCE'
                CASE( 23 )
                   NAME (T,29) = 'CObbEu'
-                  FNAME(T,29) = 'Biomass CO emitted over Europe'
+                  FNAME(T,29) = 'Biomass CO emitted over EUR'
                CASE( 24 )
                   NAME (T,29) = 'CObbOth'
                   FNAME(T,29) = 'Biomass CO emitted elsewhere'

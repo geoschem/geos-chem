@@ -2393,6 +2393,7 @@
 !  (3) Now write biofuel burning tracers to the punch file in the same order 
 !       as they are listed in "diag.dat". (bmy, 4/17/01)
 !  (4) Biomass diagnostics are now tracked by HEMCO (bmy, 8/14/14)
+!  (5) NOTE: Tagged CO biomass tracers are now tracked in ND29 (bmy, 3/17/16)
 !******************************************************************************
 !
       IF ( ND28 > 0 ) THEN
@@ -2426,63 +2427,6 @@
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-
-            !----------------------------------------------------------
-            ! Tagged CO biomass tracers
-            !----------------------------------------------------------
-            IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
-
-               ! Loop over all tracers
-               DO NN = 1, Input_Opt%N_TRACERS
-                  
-                  ! Point to species database
-                  ThisSpc => State_Chm%SpcData(NN)%Info
-
-                  ! Look for the biomass species
-                  SELECT CASE( TRIM( ThisSpc%Name ) )
-                     CASE( 'CObbam' )
-                        DiagnName = 'BIOMASS_TAGCO_S_AMERICA'
-                        N         = ThisSpc%ModelId
-                     CASE( 'CObbaf' )
-                        DiagnName = 'BIOMASS_TAGCO_AFRICA'
-                        N         = ThisSpc%ModelId
-                     CASE( 'CObbas' )
-                        DiagnName = 'BIOMASS_TAGCO_ASIA'
-                        N         = ThisSpc%ModelId
-                     CASE( 'CObboc' )
-                        DiagnName = 'BIOMASS_TAGCO_OCEANIA'
-                        N         = ThisSpc%ModelId
-                     CASE( 'CObbeu' )
-                        DiagnName = 'BIOMASS_TAGCO_EUROPE'
-                        N         = ThisSpc%ModelID
-                     CASE( 'CObboth' )
-                        DiagnName = 'BIOMASS_TAGCO_OTHER'
-                        N         = ThisSpc%ModelID
-                     CASE DEFAULT
-                        DiagnName = ''
-                        N         = -1
-                  END SELECT
-
-                  ! Write to bpch if the tagged biomass diagnostics
-                  ! were found in the list above
-                  IF ( N > 0 ) THEN 
-                     UNIT   = 'molec/cm2/s'
-                     FACTOR = Input_Opt%XNUMOL(N) / CM2PERM2
-
-                     CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, 
-     &                               CATEGORY,  UNIT,     N, 
-     &                               1,         -1,      .TRUE.,    
-     &                               FACTOR,    RC                  )
-
-                     IF ( RC /= HCO_SUCCESS ) THEN 
-                        CALL ERROR_STOP( DiagnName, LOC)
-                     ENDIF
-                  ENDIF
-
-                  ! Free pointer
-                  ThisSpc => NULL()
-               ENDDO
-            ENDIF
          ENDIF
 
          !%%%%% ALK4 %%%%%

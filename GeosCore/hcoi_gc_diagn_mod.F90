@@ -1968,7 +1968,7 @@ CONTAINS
                    HcoId     =  GetHemcoId( 'CObboc', HcoState, LOC, RC )
                    DiagnName = 'BIOMASS_TAGCO_OCEANIA'
                 CASE( 'CObbeu'  ) 
-                   HcoId     =  GetHemcoId( 'CObbam', HcoState, LOC, RC )
+                   HcoId     =  GetHemcoId( 'CObbeu', HcoState, LOC, RC )
                    DiagnName = 'BIOMASS_TAGCO_EUROPE'
                 CASE( 'CObboth' ) 
                    HcoId     =  GetHemcoId( 'CObboth', HcoState, LOC, RC )
