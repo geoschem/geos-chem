@@ -27,6 +27,7 @@ MODULE Merra2_Read_Mod
   USE PHYSCONSTANTS                       ! Physical constants
 #if defined( BPCH_DIAG )
   USE CMN_DIAG_MOD                        ! Diagnostic arrays & counters
+  USE DIAG_MOD,      ONLY : AD21          ! Array for ND21 diagnostic  
   USE DIAG_MOD,      ONLY : AD66          ! Array for ND66 diagnostic  
   USE DIAG_MOD,      ONLY : AD67          ! Array for ND67 diagnostic
 #endif
@@ -953,6 +954,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  12 Aug 2015 - R. Yantosca - Initial version, based on geosfp_read_mod.F90
 !  03 Dec 2015 - R. Yantosca - Now open file only once per day
+!  17 Mar 2016 - M. Sulprizio- Read optical depth into State_Met%OPTD instead of
+!                              State_Met%OPTDEP (obsolete).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1044,7 +1047,7 @@ CONTAINS
     ! Read OPTDEPTH
     v_name = "OPTDEPTH"
     CALL NcRd( Q, fA3cld, TRIM(v_name), st4d, ct4d )
-    CALL TRANSFER_3d( Q, State_Met%OPTDEP )
+    CALL TRANSFER_3d( Q, State_Met%OPTD )
 
     ! Read QI
     v_name = "QI"
@@ -1074,6 +1077,14 @@ CONTAINS
     !======================================================================
     ! Diagnostics, cleanup, and quit
     !======================================================================
+
+#if defined( BPCH_DIAG )
+    ! ND21 diagnostic: OPTD and CLDF
+    IF ( ND21 > 0 ) THEN
+       AD21(:,:,1:LD21,1) = AD21(:,:,1:LD21,1) + State_Met%OPTD(:,:,1:LD21)
+       AD21(:,:,1:LD21,2) = AD21(:,:,1:LD21,2) + State_Met%CLDF(:,:,1:LD21)
+    ENDIF
+#endif
 
     ! If it's the last time slice, then close the netCDF file
     ! and set the file ID to -1 to indicate that it's closed.

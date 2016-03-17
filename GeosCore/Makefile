@@ -465,7 +465,7 @@ chemistry_mod.o             : chemistry_mod.F                                \
                               c2h6_mod.o              carbon_mod.o           \
                               comode_mod.o            dust_mod.o             \
                               drydep_mod.o            global_ch4_mod.o       \
-                              mercury_mod.o           optdepth_mod.o         \
+                              mercury_mod.o                                  \
                               pops_mod.o              rpmares_mod.o          \
                               RnPbBe_mod.o            seasalt_mod.o          \
                               strat_chem_mod.o        sulfate_mod.o          \
@@ -836,8 +836,6 @@ ohsave.o                    : ohsave.F                                       \
 
 olson_landmap_mod.o         : olson_landmap_mod.F90                          \
                               mapping_mod.o
-
-optdepth_mod.o              : optdepth_mod.F          diag_mod.o  
 
 partition.o                 : partition.F                                    \
                               comode_mod.o            tracerid_mod.o
