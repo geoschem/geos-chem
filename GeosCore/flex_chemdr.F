@@ -501,8 +501,12 @@
          !===========================================================
          call cpu_time(start)
          HET(:,:) = 0.
-         CALL SET_HET(I,J,L,State_Chm,State_Met,Input_Opt,
-     &        scoeff(I,J,L,1:3))
+         
+         ! DEBUGGING (ewl, 3/18/16)
+         ! Turn of heterogeneous chem for testing
+!         CALL SET_HET(I,J,L,State_Chm,State_Met,Input_Opt,
+!     &        scoeff(I,J,L,1:3))
+         ! END DEBUGGING
 
          !===========================================================
          ! Get photolysis rates
@@ -520,7 +524,10 @@
      &                         I, J, L, H2O, IERR )
 
             ! Copy ZPJ from fast_jx_mod.F to PHOTOL array
-            PHOTOL(1:JVN_) = ZPJ(L,1:JVN_,I,J)
+            ! DEBUGGING (ewl, 3/18/16)
+            ! Comment out PHOTOL setting to turn off photolysis for testing
+            !PHOTOL(1:JVN_) = ZPJ(L,1:JVN_,I,J)
+            ! END DEBUGGING
 
          ELSE
 
