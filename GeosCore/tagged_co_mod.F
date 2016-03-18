@@ -36,9 +36,8 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      INTEGER, PUBLIC, ALLOCATABLE :: BB_REGION(:,:)   ! BB CO regions
-      INTEGER, PUBLIC, ALLOCATABLE :: FF_REGION(:,:)   ! FF CO regions
-      REAL(fp),  PUBLIC, ALLOCATABLE :: EMACET(:,:)      ! Acetone emissions
+      ! Pointers
+      REAL(fp), PUBLIC, ALLOCATABLE :: EMACET  (:,:  )           ! ACET emiss
 !
 ! !REMARKS:
 !  Tagged CO Tracers (you can modify these as needs be!)
@@ -131,27 +130,36 @@
 !
 ! !PRIVATE TYPES:
 !
-      REAL(f4), ALLOCATABLE :: CO_PRODS  (:,:,:)   ! Strat P(CO) from CH4
-      REAL(f4), ALLOCATABLE :: CO_LOSSS  (:,:,:)   ! Strat L(CO) from CO + OH
+      ! Arrays
       REAL(fp), ALLOCATABLE :: SUMACETCO (:,:  )   ! P(CO) from Acetone
       REAL(fp), ALLOCATABLE :: SUMCH3OHCO(:,:  )   ! P(CO) from CH3OH
       REAL(fp), ALLOCATABLE :: SUMISOPCO (:,:  )   ! P(CO) from Isoprene
       REAL(fp), ALLOCATABLE :: SUMMONOCO (:,:  )   ! P(CO) from Monoterpenes
       REAL(fp), ALLOCATABLE :: TCOSZ     (:,:  )   ! Daily sum COS(SZA)
 
+      ! For now, keep these as arrays until we figure out
+      ! the unit conversions from HEMCO
+      REAL(f4), ALLOCATABLE :: CO_PRODS  (:,:,:)
+      REAL(f4), ALLOCATABLE :: CO_LOSSS  (:,:,:)
+
       ! Pointers to fields in the HEMCO data structure.
       ! These need to be declared REAL(f4), aka REAL*4.
-      REAL(f4), POINTER     :: OH(:,:,:) => NULL()
+      REAL(f4), POINTER     :: OH        (:,:,:) => NULL()
+!----------------------------------------------------------------------------
+! Save for future implementation (bmy, 3/1
+!      REAL(f4), POINTER     :: CO_PRODS  (:,:,:) => NULL() ! Strat P(CO)
+!      REAL(f4), POINTER     :: CO_LOSSS  (:,:,:) => NULL() ! Strat L(CO)
+!----------------------------------------------------------------------------
 !
 ! !DEFINED PARAMETERS:
 !
       ! FMOL_CO     - kg CO / mole CO
       ! XNUMOL_CO   - molecules CO / kg CO
-      REAL(fp),  PARAMETER   :: FMOL_CO     = 28e-3_fp
-      REAL(fp),  PARAMETER   :: XNUMOL_CO   = AVO/FMOL_CO
+      REAL(fp),  PARAMETER  :: FMOL_CO     = 28e-3_fp
+      REAL(fp),  PARAMETER  :: XNUMOL_CO   = AVO/FMOL_CO
 
       ! Molecules C / kg C
-      REAL(fp),  PARAMETER   :: XNUMOL_C    = AVO/12e-3_fp 
+      REAL(fp),  PARAMETER  :: XNUMOL_C    = AVO/12e-3_fp 
 
       CONTAINS
 !EOC
@@ -472,7 +480,7 @@
 
             ! Call GET_PCO_LCO_STRAT to get the P(CO) rate from CH4
             CH4RATE = GET_PCO_LCO_STRAT( .TRUE., I, J, L )
-            
+
             ! Convert units of CH4RATE from [v/v/s] to [molec CO/cm3]
             CO_CH4 = CH4RATE * DTCHEM * DENS
 
@@ -1150,9 +1158,8 @@
 ! 
 ! !REMARKS:
 !  ##########################################################################
-!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
-!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
-!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  #####      NOTE: WE WILL EVENTUALLY READ THESE FIELDS VIA HEMCO.     #####
+!  #####              -- Bob Yantosca (18 Mar 2016)                     #####
 !  ##########################################################################
 
 ! !REVISION HISTORY: 
@@ -1175,15 +1182,19 @@
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!  18 Mar 2016 - R. Yantosca - Now use HEMCO to get the CO prod & loss
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: fileID
-      CHARACTER(LEN=255)  :: FILENAME
-      REAL*4              :: ARRAY(IIPAR,JJPAR,LGLOB) 
+      ! Scalars
+      INTEGER                  :: fileID
+      CHARACTER(LEN=255)       :: FILENAME
+
+      ! Arrays   
+      REAL*4                   :: ARRAY(IIPAR,JJPAR,LGLOB) 
 
       !=================================================================
       ! READ_PCO_LCO_STRAT begins here!
@@ -1321,6 +1332,8 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_MOd
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      USE HCO_STATE_MOD,      ONLY : Hco_State
+!      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1348,6 +1361,8 @@
 !  10 Apr 2014 - R. Yantosca - Now call DEFINE* routines to define the
 !                              fossil fuel and biofuel regions
 !  10 Apr 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
+!  18 Mar 2016 - R. Yantosca - Now establish pointers to HEMCO state
+!                              for CO_PRODS and CO_LOSSS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1366,61 +1381,78 @@
       ! Allocate SUMACETCO -- array for CO from isoprene
       ALLOCATE( EMACET( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMACET' )         
-      EMACET = 0e+0_fp 
+      EMACET = 0.0_fp 
 
-      ! Allocate and initialize IJLOOP_CO -- 1-D array index
-      ALLOCATE( CO_PRODS( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_PRODS' )    
-!      CO_PRODS = 0e+0_fp
-      CO_PRODS = 0e0
-
-      ! Allocate and initialize IJLOOP_CO -- 1-D array index
-      ALLOCATE( CO_LOSSS( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_LOSSS' )    
-!      CO_LOSSS = 0e+0_fp
-      CO_PRODS = 0e0
-
-      ! Allocate only what is needed
-      IF ( Input_Opt%ITS_A_H2HD_SIM ) RETURN
-
-      ! Allocate BB_REGION -- array for biomass burning regions
-      ALLOCATE( BB_REGION( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BB_REGION' )         
-      BB_REGION = 0
-
-      ! Allocate FF_REGION -- array for fossil fuel regions
-      ALLOCATE( FF_REGION( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FF_REGION' )
-      FF_REGION = 0
-      
       ! Allocate SUMISOPCO -- array for CO from isoprene
       ALLOCATE( SUMISOPCO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMISOPCO' )         
-      SUMISOPCO = 0e+0_fp 
+      SUMISOPCO = 0.0_fp 
 
       ! Allocate SUMISOPCO -- array for CO from isoprene
       ALLOCATE( SUMMONOCO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMMONOCO' )         
-      SUMMONOCO = 0e+0_fp 
+      SUMMONOCO = 0.0_fp 
 
       ! Allocate SUMISOPCO -- array for CO from isoprene
       ALLOCATE( SUMCH3OHCO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMCH3OHCO' )         
-      SUMCH3OHCO = 0e+0_fp 
+      SUMCH3OHCO = 0.0_fp 
 
       ! Allocate SUMACETCO -- array for CO from isoprene
       ALLOCATE( SUMACETCO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMACETCO' )         
-      SUMACETCO = 0e+0_fp 
+      SUMACETCO = 0.0_fp 
 
       ! Allocate TCOSZ -- array for sum of COS(SZA)
       ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )         
       TCOSZ = 0d0 
 
-!      ! Define geographic regions for both fossil fuel & biomass burning
-!      CALL DEFINE_FF_CO_REGIONS( FF_REGION )         
-!      CALL DEFINE_BB_CO_REGIONS( BB_REGION )
+      !=================================================================
+      ! NOTE: For now, keep CO_PRODS and CO_LOSS as arrays
+      ! until we can figure out how to do the unit conversion
+      ! via HEMCO properly
+      !=================================================================
+      ALLOCATE( CO_PRODS( IIPAR, JJPAR, LGLOB ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_PRODS' )         
+      CO_PRODS = 0.0_fp 
+
+      ALLOCATE( CO_LOSSS( IIPAR, JJPAR, LGLOB ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_PRODS' )         
+      CO_LOSSS = 0.0_fp 
+
+!      !=================================================================
+!      ! Get production and loss frequencies from HEMCO. The target
+!      ! will be updated automatically by HEMCO. 
+!      !
+!      ! Important: the file data are converted by HEMCO to HEMCO
+!      ! concentration units, e.g. the imported data is in kg/m3
+!      ! (production) and 1/m3 (loss), e.g. the original data in
+!      ! units of kg/m3/s multiplied by the emission timestep.
+!      !                                     (ckeller, 9/17/2014)
+!      !=================================================================
+!
+!      ! Get pointer to O3 production
+!      CALL HCO_GetPtr ( am_I_Root, 'GMI_LOSS_CO', CO_PRODS, RC )
+!      IF ( RC /= GIGC_SUCCESS ) THEN
+!         CALL ERROR_STOP ( 'Cannot get pointer to GMI_LOSS_CO', LOC )
+!      ENDIF
+!
+!      ! Get pointer to O3 loss
+!      CALL HCO_GetPtr ( am_I_Root, 'O3_LOSS', CO_LOSSS, RC )
+!      IF ( RC /= GIGC_SUCCESS ) THEN
+!         CALL ERROR_STOP ( 'Cannot get pointer to O3_LOSS', LOC )
+!      ENDIF
+!
+!      ! Get emissions timestep (seconds)
+!      CALL GetHcoState ( HcoState )
+!      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+!         CALL ERROR_STOP ( 'Cannot get HcoState', LOC )
+!      THEN
+!
+!      ! Free the pointer and reset first-time variable
+!      ! so that this won't be executed again
+!      HcoState => NULL()
 
       END SUBROUTINE INIT_TAGGED_CO
 !EOC
@@ -1450,20 +1482,26 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-      IF ( ALLOCATED( BB_REGION  ) ) DEALLOCATE( BB_REGION  )
-      IF ( ALLOCATED( FF_REGION  ) ) DEALLOCATE( FF_REGION  )
+
+      ! Deallocate arrays
       IF ( ALLOCATED( SUMISOPCO  ) ) DEALLOCATE( SUMISOPCO  )
       IF ( ALLOCATED( SUMMONOCO  ) ) DEALLOCATE( SUMMONOCO  )
       IF ( ALLOCATED( SUMCH3OHCO ) ) DEALLOCATE( SUMCH3OHCO )
       IF ( ALLOCATED( SUMACETCO  ) ) DEALLOCATE( SUMACETCO  )
       IF ( ALLOCATED( EMACET     ) ) DEALLOCATE( EMACET     )
-      IF ( ALLOCATED( CO_PRODS   ) ) DEALLOCATE( CO_PRODS   )
       IF ( ALLOCATED( TCOSZ      ) ) DEALLOCATE( TCOSZ      )
+
+      ! For now, keep CO_PRODS and CO_LOSS as arrays
+      IF ( ALLOCATED( CO_PRODS   ) ) DEALLOCATE( CO_PRODS   )
       IF ( ALLOCATED( CO_LOSSS   ) ) DEALLOCATE( CO_LOSSS   )
 
-      ! Free OH pointer
-      OH => NULL()
+      ! Free pointers
+      !===========================================
+      ! For future development
+      !CO_PRODS => NULL()
+      !CO_LOSSS => NULL()
+      !===========================================
+      OH       => NULL()
 
       END SUBROUTINE CLEANUP_TAGGED_CO
 !EOC
