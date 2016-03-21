@@ -141,22 +141,9 @@
 
       ! Pointers to fields in the HEMCO data structure.
       ! These need to be declared REAL(f4), aka REAL*4.
-      REAL(f4), POINTER     :: OH         (:,:,:) => NULL()
+      REAL(f4), POINTER     :: OH         (:,:,:) => NULL() ! Global OH
       REAL(f4), POINTER     :: GMI_PROD_CO(:,:,:) => NULL() ! Strat P(CO)
       REAL(f4), POINTER     :: GMI_LOSS_CO(:,:,:) => NULL() ! Strat L(CO)
-!
-! !DEFINED PARAMETERS:
-!
-      !%%% NOTE: WE SHOULD USE VALUES FROM THE SPECIES DATABASE HERE
-      !%%% (bmy, 3/21/16)
-
-      ! FMOL_CO     - kg CO / mole CO
-      ! XNUMOL_CO   - molecules CO / kg CO
-      REAL(fp),  PARAMETER  :: FMOL_CO     = 28e-3_fp
-      REAL(fp),  PARAMETER  :: XNUMOL_CO   = AVO/FMOL_CO
-
-      ! Molecules C / kg C
-      REAL(fp),  PARAMETER  :: XNUMOL_C    = AVO/12e-3_fp 
 
       CONTAINS
 !EOC
@@ -276,6 +263,7 @@
 !  11 Mar 2015 - R. Yantosca - Remove references to global_nox_mod.F
 !  11 Mar 2015 - R. Yantosca - Now get OH via the HEMCO data structure
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
+!  21 Mar 2016 - R. Yantosca - Now define FMOL_CO from the species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -293,16 +281,13 @@
       REAL(fp)               :: CO_CH3OH,  CO_OH,      CO_ACET
       REAL(fp)               :: CH4RATE,   DENS
       REAL(fp)               :: CORATE,    YMID
-      REAL(fp)               :: BOXVL
+      REAL(fp)               :: BOXVL,     FMOL_CO
 
       ! Variables for new JPL 2006 rate constants (jaf, jmao, 3/4/09)
       REAL(fp)               :: KHI1,      KLO1,       XYRAT1
       REAL(fp)               :: BLOG1,     FEXP1,      KHI2
       REAL(fp)               :: KLO2,      XYRAT2,     BLOG2
       REAL(fp)               :: FEXP2,     KCO1,       KCO2
-
-      ! For saving CH4 latitudinal gradient
-      REAL(fp),  SAVE        :: A3090S, A0030S, A0030N, A3090N
 
       ! For OH diurnal cycle (jaf, 3/12/14)
       REAL(fp)               :: OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS
@@ -313,10 +298,10 @@
       CHARACTER(LEN=255)     :: ERR_MSG
 
       ! Pointers to fields in State_Met and State_Chm
-      REAL(fp),  POINTER     :: AD    (:,:,:  )
-      REAL(fp),  POINTER     :: AIRVOL(:,:,:  )
-      REAL(fp),  POINTER     :: STT   (:,:,:,:)
-      REAL(fp),  POINTER     :: T     (:,:,:  )
+      REAL(fp),      POINTER :: AD    (:,:,:  ) => NULL()
+      REAL(fp),      POINTER :: AIRVOL(:,:,:  ) => NULL()
+      REAL(fp),      POINTER :: STT   (:,:,:,:) => NULL()
+      REAL(fp),      POINTER :: T     (:,:,:  ) => NULL()
 
       ! To get HEMCO values
       REAL(fp)               :: Emis
@@ -327,6 +312,7 @@
 
       ! SAVED scalars
       LOGICAL,   SAVE        :: FIRST = .TRUE.
+      REAL(fp),  SAVE        :: A3090S, A0030S, A0030N, A3090N
 !
 ! !DEFINED PARAMETERS:
 !
@@ -334,18 +320,16 @@
       LOGICAL,   PARAMETER   :: ALPHA_ISOP_FROM_NOX = .FALSE.
 
       ! Yield of CO from CH4
-      REAL(fp),  PARAMETER   :: ALPHA_CH4  = 1e+0_fp
+      REAL(fp),  PARAMETER   :: ALPHA_CH4  = 1.0_fp
 
       ! Yield of CO from monoterpenes
       REAL(fp),  PARAMETER   :: ALPHA_MONO = 2e-1_fp
 
       ! Yield of CO from acetone
-      REAL(fp),  PARAMETER   :: ALPHA_ACET = 2e+0_fp/3e+0_fp
+      REAL(fp),  PARAMETER   :: ALPHA_ACET = 2.0_fp / 3.0_fp
 
       !=================================================================
       ! CHEM_TAGGED_CO begins here!
-      !
-      ! Do the following on the first call to CHEM_TAGGED_CO...
       !=================================================================
 
       ! Assume success
@@ -364,12 +348,16 @@
       STT       => State_Chm%Tracers
       T         => State_Met%T
 
+      ! Get the molecular weight of CO [kg/mol] from the species database
+      ! (All tagged tracers are CO, so we can use the value for tracer #1)
+      FMOL_CO   =  State_Chm%SpcData(1)%Info%MW_g * 1.0e-3_fp
+
       ! Compute diurnal cycle for OH every day (check for new day inside
       ! subroutine) - jaf 7/10/14
       CALL CALC_DIURNAL()
 
       !=================================================================
-      ! Read in OH, P(CO), and L(CO) fields for the current month
+      ! Get pointers from HEMCO for OH, P(CO), and L(CO) fields
       ! 
       ! NOTES: 
       ! (1) We only need to get the pointers on the very first
