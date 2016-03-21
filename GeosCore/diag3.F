@@ -1950,24 +1950,28 @@
       IF ( ND21 > 0 ) THEN
          CATEGORY = 'OD-MAP-$'
 
-         ! ND21 is updated every chem timestep 
-         SCALEX = SCALECHEM
-
          DO M = 1, TMAX(21)
             N  = TINDEX(21,M)
             IF ( N > PD21 ) CYCLE
             NN = N 
                
             ! Select proper unit string (cf list above)
+            ! Make sure OPTD and CLDF use SCALE_A3. Rest of fields are
+            ! updated every chem timestep and use SCALECHEM. (mps, 3/17/16)
             SELECT CASE( N ) 
+               CASE ( 1, 2 )
+                  UNIT   = 'unitless'
+                  SCALEX = SCALE_A3
                CASE ( 3 )
                   ! This diagnostic is for a GEOS-1/GEOS-STRAT field
                   ! so skip it! (bmy, 12/16/11)
                   CYCLE
                CASE ( 5, 8, 11, 14, 17, 20, 53, 56 )
-                  UNIT = 'cm2/cm3'
+                  UNIT   = 'cm2/cm3'
+                  SCALEX = SCALECHEM
                CASE DEFAULT
-                  UNIT = 'unitless'
+                  UNIT   = 'unitless'
+                  SCALEX = SCALECHEM
             END SELECT
 
            ! Is this something that we want to output?
