@@ -420,7 +420,7 @@
 !$OMP+PRIVATE( KRATE,   CO_ISOP,      CO_CH3OH,    CO_MONO,    CO_ACET )
 !$OMP+PRIVATE( CORATE,  CO_OH,        YMID,        ALPHA_ISOP, KHI1    )
 !$OMP+PRIVATE( KLO1,    XYRAT1,       BLOG1,       FEXP1,      KHI2    )
-!$OMP+PRIVATE( KLO2     XYRAT2,       BLOG2,       FEXP2,      KCO1    )
+!$OMP+PRIVATE( KLO2,    XYRAT2,       BLOG2,       FEXP2,      KCO1    )
 !$OMP+PRIVATE( KCO2,    OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS,     ERR_LOC ) 
 !$OMP+PRIVATE( ERR_VAR, ERR_MSG,      BOXVL                            )
       DO L = 1, LLPAR
