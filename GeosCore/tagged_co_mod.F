@@ -414,14 +414,15 @@
       ! DO-loop over all grid boxes to facilitate parallelization
       !=================================================================
 !$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED                                             ) 
-!$OMP+PRIVATE( I, J, L, N, STTCO, GCO, DENS, CH4RATE, CO_CH4, CH4 )
-!$OMP+PRIVATE( KRATE, CO_ISOP, CO_CH3OH, CO_MONO, CO_ACET, CORATE )
-!$OMP+PRIVATE( CO_OH, YMID, ALPHA_ISOP                            )
-!$OMP+PRIVATE( KHI1, KLO1, XYRAT1, BLOG1, FEXP1, KHI2, KLO2       )
-!$OMP+PRIVATE( XYRAT2, BLOG2, FEXP2, KCO1, KCO2                   )
-!$OMP+PRIVATE( OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS                  )
-!$OMP+PRIVATE( ERR_LOC, ERR_VAR, ERR_MSG, BOXVL )
+!$OMP+DEFAULT( SHARED                                                  ) 
+!$OMP+PRIVATE( I,       J,            L,           N,          STTCO   )
+!$OMP+PRIVATE( GCO,     DENS,         CH4RATE,     CO_CH4,     CH4     )
+!$OMP+PRIVATE( KRATE,   CO_ISOP,      CO_CH3OH,    CO_MONO,    CO_ACET )
+!$OMP+PRIVATE( CORATE,  CO_OH,        YMID,        ALPHA_ISOP, KHI1    )
+!$OMP+PRIVATE( KLO1,    XYRAT1,       BLOG1,       FEXP1,      KHI2    )
+!$OMP+PRIVATE( KLO2     XYRAT2,       BLOG2,       FEXP2,      KCO1    )
+!$OMP+PRIVATE( KCO2,    OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS,     ERR_LOC ) 
+!$OMP+PRIVATE( ERR_VAR, ERR_MSG,      BOXVL                            )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
