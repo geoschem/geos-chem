@@ -324,6 +324,9 @@
 
       ! Strings
       CHARACTER(LEN=255)     :: LOC='CHEM_TAGGED_CO (tagged_co_mod.F)'
+
+      ! SAVED scalars
+      LOGICAL,   SAVE        :: FIRST = .TRUE.
 !
 ! !DEFINED PARAMETERS:
 !
@@ -366,12 +369,16 @@
       CALL CALC_DIURNAL()
 
       !=================================================================
-      ! Read in OH, NOx, P(CO), and L(CO) fields for the current month
+      ! Read in OH, P(CO), and L(CO) fields for the current month
       ! 
-      ! NOTE: We only need to get the pointer on the very first 
-      ! timestep.  HEMCO will update the targets automatically.
+      ! NOTES: 
+      ! (1) We only need to get the pointers on the very first
+      !      timestep.  HEMCO will update the targets automatically.
+      ! (2) These calls have to be placed here instead of in routine
+      !      INIT_TAGGED_CO.  This is because when INIT_TAGGED_CO is
+      !      called, the HEMCO_Config file has not yet been read in.
       !=================================================================
-      IF ( ITS_A_NEW_MONTH() ) THEN
+      IF ( FIRST ) THEN
          
          ! Get a pointer to the OH field from the HEMCO list (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,   RC )
@@ -391,6 +398,8 @@
             CALL ERROR_STOP ( 'Cannot get pointer to GMI_LOSS_CO', LOC )
          ENDIF
             
+         ! Reset first-time flag
+         FIRST = .FALSE.
       ENDIF
 
       !=================================================================
