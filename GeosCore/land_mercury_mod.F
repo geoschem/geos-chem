@@ -552,8 +552,13 @@
       ! This parameter is tuned in the preindustrial simulation 
       ! so that total deposition to soil equals total emission from soil,
       ! while also requiring global mean soil Hg concentration of 45 ng/g 
+      ! Update for v11 GEOS-5 & GEOS-FP at 4x5 (J Fisher 3/2016)
 #if defined (GRID4x5)
-      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp ! for sunlight function, yzh
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp * 0.9688e+0_fp
+#else
+      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp * 0.7156e+0_fp
+#endif
 #elif defined(GRID2x25)
       REAL(fp), PARAMETER :: SOIL_EMIS_FAC=1.6e-2_fp
 #elif defined(GRID05x0625)
