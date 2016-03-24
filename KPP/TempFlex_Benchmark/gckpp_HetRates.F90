@@ -20,6 +20,7 @@ MODULE GCKPP_HETRATES
   INTEGER            :: N
   INTEGER, SAVE      :: NAERO
   LOGICAL, SAVE      :: NATSURFACE, SAFEDIV
+  INTEGER            :: II,JJ,LL
   LOGICAL, SAVE      :: KII_KI, PSCBOX, STRATBOX
   REAL(fp), SAVE     :: TEMPK, RELHUM, XSTKCF
   REAL(fp)           :: VPRESH2O, CONSEXP
@@ -85,6 +86,11 @@ MODULE GCKPP_HETRATES
       TYPE(MetState) :: SM
       TYPE(OptInput) :: IO
       REAL(fp)       :: SCF(3)
+
+      ! For Debugging
+      II = I
+      JJ = J
+      LL = L
 
       ! Divide by educt concentration
       KII_KI     = .false.
@@ -324,6 +330,10 @@ MODULE GCKPP_HETRATES
       HET(ind_HOBr,3)  = HETHOBr_PSC(   0.97E2_fp, 0E+0_fp)
 #endif
 
+      IF (II .eq. 24 .and. JJ .eq. 19 .and. LL .eq. 1) THEN
+         write(*,'(a,3e14.6)') 'b ADJ: ', HET(ind_HBr,1), SPC_HBr, SPC_HOBr
+      ENDIF
+
       !----------------------------------------------------------------
       ! Kludging the rates to be equal to one another to avoid having
       ! to keep setting equality in solver. (jpp, 5/10/2011)
@@ -331,17 +341,17 @@ MODULE GCKPP_HETRATES
       IF ( ( HET(ind_HBr,1) > 0 ) .and. ( HET(ind_HOBr,1) > 0 ) ) THEN
 
          ! select the min of the two rates
-         hbr_rtemp  = HET(ind_HBr,1)  * TRC_HBr
-         hobr_rtemp = HET(ind_HOBr,1) * TRC_HOBr
+         hbr_rtemp  = HET(ind_HBr,1)  * SPC_HBr
+         hobr_rtemp = HET(ind_HOBr,1) * SPC_HOBr
 
          ! if HBr rate is larger than HOBr rate
          IF ( hbr_rtemp > hobr_rtemp ) THEN
 
-            SAFEDIV = IS_SAFE_DIV( HET(ind_HOBr,1) * TRC_HOBr, TRC_HBr )
+            SAFEDIV = IS_SAFE_DIV( HET(ind_HOBr,1) * SPC_HOBr, SPC_HBr )
 
             IF (SAFEDIV) THEN
                ! 2. if it is safe, then go ahead
-               HET(ind_HBr,1) = HET(ind_HOBr,1) * TRC_HOBr / TRC_HBr
+               HET(ind_HBr,1) = HET(ind_HOBr,1) * SPC_HOBr / SPC_HBr
             ELSE
                ! if not, then set rates really small...
                ! b/c the largest contributor is very small.
@@ -353,11 +363,11 @@ MODULE GCKPP_HETRATES
          ELSE
 
             ! 1. is it safe to divide?
-            SAFEDIV = IS_SAFE_DIV( HET(ind_HBr,1) * TRC_HBr, TRC_HOBr )
+            SAFEDIV = IS_SAFE_DIV( HET(ind_HBr,1) * SPC_HBr, SPC_HOBr )
 
             IF (SAFEDIV) THEN
                ! 2. if it is safe, then go ahead
-               HET(ind_HOBr,1) = HET(ind_HBr,1) * TRC_HBr / TRC_HOBr
+               HET(ind_HOBr,1) = HET(ind_HBr,1) * SPC_HBr / SPC_HOBr
             ELSE
                ! if not, then set rates really small...
                ! b/c the largest contributor is very small.
