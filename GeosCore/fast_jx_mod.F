@@ -2773,8 +2773,8 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD,       ONLY : LD64, ND64
-      USE DIAG_MOD,           ONLY : AD64
+      USE CMN_DIAG_MOD,       ONLY : LD22, LD64, ND22, ND64
+      USE DIAG_MOD,           ONLY : AD22, AD64, LTJV
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
@@ -3178,6 +3178,85 @@ C-----------------------------------------------------------------------
      &            (FDIFFUSE(L)*SOLF*FL(K)*UVXFACTOR(K))
             ENDDO
          ENDDO
+      ENDIF
+
+      !---------------------------------------------------------------
+      ! Archive J-values for ND22 diagnostic
+      !---------------------------------------------------------------
+      IF ( ND22 > 0 ) THEN
+
+         ! Save J-values for 2PM diagnostic boxes
+         IF ( LTJV(ILON,ILAT) > 0 ) THEN
+
+            DO L = 1, LD22
+               ! AD22 tracers 5, 6, and 15 (J-values for O3 and O2)
+               ! are handled in routine PHOTRATE_ADJ
+               ! Hardcode ZPJ indices based on valued from FJX_j2j.dat
+               ! for now (mps, 3/15/16)
+               AD22(ILON,ILAT,L, 1) = AD22(ILON,ILAT,L, 1) +  ! JNO2
+     &                                ZPJ(L,11,ILON,ILAT)
+               AD22(ILON,ILAT,L, 2) = AD22(ILON,ILAT,L, 2) +  ! JHNO3
+     &                                ZPJ(L,16,ILON,ILAT)
+               AD22(ILON,ILAT,L, 3) = AD22(ILON,ILAT,L, 3) +  ! JH2O2
+     &                                ZPJ(L, 9,ILON,ILAT)
+               AD22(ILON,ILAT,L, 4) = AD22(ILON,ILAT,L, 4) +  ! JCH2O
+     &                                ZPJ(L, 7,ILON,ILAT)  + 
+     &                                ZPJ(L, 8,ILON,ILAT)
+               AD22(ILON,ILAT,L, 7) = AD22(ILON,ILAT,L, 7) +  ! JGLYX
+     &                                ZPJ(L,72,ILON,ILAT)  + 
+     &                                ZPJ(L,73,ILON,ILAT)  +
+     &                                ZPJ(L,74,ILON,ILAT)
+               AD22(ILON,ILAT,L, 8) = AD22(ILON,ILAT,L, 8) +  ! JMGLY
+     &                                ZPJ(L,71,ILON,ILAT)
+               AD22(ILON,ILAT,L, 9) = AD22(ILON,ILAT,L, 9) +  ! JBrO
+     &                                ZPJ(L,28,ILON,ILAT)
+               AD22(ILON,ILAT,L,10) = AD22(ILON,ILAT,L,10) +  ! JHOBr
+     &                                ZPJ(L,32,ILON,ILAT)
+               AD22(ILON,ILAT,L,11) = AD22(ILON,ILAT,L,11) +  ! JBrNO2
+     &                                ZPJ(L,31,ILON,ILAT)
+               AD22(ILON,ILAT,L,12) = AD22(ILON,ILAT,L,12) +  ! JBrNO3
+     &                                ZPJ(L,29,ILON,ILAT)  +
+     &                                ZPJ(L,30,ILON,ILAT)
+               AD22(ILON,ILAT,L,13) = AD22(ILON,ILAT,L,13) +  ! JCHBr3
+     &                                ZPJ(L,56,ILON,ILAT)
+               AD22(ILON,ILAT,L,14) = AD22(ILON,ILAT,L,14) +  ! JBr2
+     &                                ZPJ(L,23,ILON,ILAT)
+               AD22(ILON,ILAT,L,16) = AD22(ILON,ILAT,L,16) +  ! JN2O
+     &                                ZPJ(L,36,ILON,ILAT)
+               AD22(ILON,ILAT,L,17) = AD22(ILON,ILAT,L,17) +  ! JNO
+     &                                ZPJ(L, 6,ILON,ILAT)
+               AD22(ILON,ILAT,L,18) = AD22(ILON,ILAT,L,18) +  ! JNO3
+     &                                ZPJ(L,12,ILON,ILAT)  +
+     &                                ZPJ(L,13,ILON,ILAT)
+               AD22(ILON,ILAT,L,19) = AD22(ILON,ILAT,L,19) +  ! JCFC11
+     &                                ZPJ(L,37,ILON,ILAT)
+               AD22(ILON,ILAT,L,20) = AD22(ILON,ILAT,L,20) +  ! JCFC12
+     &                                ZPJ(L,38,ILON,ILAT)
+               AD22(ILON,ILAT,L,21) = AD22(ILON,ILAT,L,21) +  ! JCCl4
+     &                                ZPJ(L,42,ILON,ILAT)
+               AD22(ILON,ILAT,L,22) = AD22(ILON,ILAT,L,22) +  ! JCH3Cl
+     &                                ZPJ(L,43,ILON,ILAT)
+               AD22(ILON,ILAT,L,23) = AD22(ILON,ILAT,L,23) +  ! JACET
+     &                                ZPJ(L,76,ILON,ILAT)  +
+     &                                ZPJ(L,77,ILON,ILAT)
+               AD22(ILON,ILAT,L,24) = AD22(ILON,ILAT,L,24) +  ! JALD2
+     &                                ZPJ(L,61,ILON,ILAT)  +
+     &                                ZPJ(L,62,ILON,ILAT)
+               AD22(ILON,ILAT,L,25) = AD22(ILON,ILAT,L,25) +  ! JMVK
+     &                                ZPJ(L,63,ILON,ILAT)  +
+     &                                ZPJ(L,64,ILON,ILAT)  +
+     &                                ZPJ(L,65,ILON,ILAT)
+               AD22(ILON,ILAT,L,26) = AD22(ILON,ILAT,L,26) +  ! JMACR
+     &                                ZPJ(L,66,ILON,ILAT)  +
+     &                                ZPJ(L,67,ILON,ILAT)
+               AD22(ILON,ILAT,L,27) = AD22(ILON,ILAT,L,27) +  ! JHAC
+     &                                ZPJ(L,75,ILON,ILAT)
+               AD22(ILON,ILAT,L,28) = AD22(ILON,ILAT,L,28) +  ! JGLYC
+     &                                ZPJ(L,68,ILON,ILAT)
+            ENDDO
+
+         ENDIF
+
       ENDIF
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -4653,87 +4732,167 @@ c  Ensure all 'AN_' types are valid selections
 
       END SUBROUTINE RD_PROF_NC
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: photrate_adj
+!
+! !DESCRIPTION: Subroutine PHOTRATE\_ADJ
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE PHOTRATE_ADJ( am_I_root, State_Met, 
      &                         State_Chm, Input_Opt, 
-     &                         I, J, L, C_H2O, AD, RC )
-      
+     &                         I, J, L, C_H2O, RC )
+!
+! !USES:
+!
+      USE CMN_DIAG_MOD,       ONLY : LD22, ND22
+      USE DIAG_MOD,           ONLY : AD22, LTJV
       USE COMODE_Loop_Mod
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE Precision_Mod,      ONLY : fp
-      
 !     
-!     !INPUT PARAMETERS:
+! !INPUT PARAMETERS:
 !     
       LOGICAL,        INTENT(IN)    :: am_I_Root ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
-      INTEGER,        INTENT(IN)    :: I,J,L
-      REAL(kind=fp),  INTENT(IN)    :: C_H2O, AD
+      INTEGER,        INTENT(IN)    :: I,J,L     ! Grid box indices
+      REAL(kind=fp),  INTENT(IN)    :: C_H2O     ! H2O conc [molec/cm3]
 !     
-!     !INPUT/OUTPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(INOUT) :: State_Met ! Meteorology State object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
 !
-!     !OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC ! Success or failure
 !
-!     !LOCAL PARAMETERS:
+! !REMARKS:
+!  The J-value indices (2nd dimension of array ZPJ) were obtained from
+!  FJX_j2j.dat
 !
-         
-!==============================================================
-! SPECIAL TREATMENT FOR O3+hv -> OH+OH (trop-only simulation)
-!                    or O3+hv -> O+O2  (UCX simulation)
+! !REVISION HISTORY:
+!  10 Mar 2016 - M. Sulprizio- Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-! [O1D]ss=J[O3]/(k[H2O]+k[N2]+k[O2])
-! SO, THE EFFECTIVE J-VALUE IS J*k[H2O]/(k[H2O]+k[N2]+k[O2])
+! !LOCAL VARIABLES:
 !
-! We don't want to do this if strat-chem is in use, as all
-! the intermediate reactions are included - this would be
-! double-counting (SDE 04/01/13)
-!==============================================================
-!========================================================
-! Change rate of O(1D)+ N2 to be 3.1e-11 at 298K rather
-! than 2.6e-11.  The temperature dependence remains the
-! same, so the constant changes from 1.8e-11 to 2.14e-11
-! according to Heard, pers. comm.,2002. (amf, bmy, 1/7/02)
-!========================================================
-! Change the rate of O(1D)+H2O from 2.2e-10 to 1.45e-10*
-! exp(89/temp) on the basis of Dunlea and Ravishankara
-! 'Measurement of the Rate coefficient for the reaction 
-! of O(1D) with H2O and re-evaluation of the atmospheric
-! OH Production Rate'.  One of the RSC Journals
-! (mje 4/5/04)
-!========================================================
-! Updated from JPL2006, the difference is pretty small.
-! (jmao,02/26/2009)
-!========================================================
-! Additional update from JPL 10-6 for reaction of
-! O3 + hv --> HO2 + OH and O1D + H2:
-! Includes calculation of k[O3], where
-! k[O3]  = J[O3]*1.2e-10/k[O1D], where
-! k[O1D] = ([O1D]*[H2]+[O1D]*[H2O])/
-!          ([O1D]*[H2]+[O1D]*[H2O]+[O1D][N2]+[O1D][O2])
-! (bhh, jmao, eam, 7/18/11)
-!========================================================
-            ITEMPK    = 1._fp/State_Met%T(I,J,L)
-! Also consider O3 + hv --> HO2 + OH (bhh, jmao, eam, 7/18/11)
+      REAL(fp) :: AD, ITEMPK
+      REAL(fp) :: C_O2, C_N2, C_H2
+      LOGICAL  :: LJO1DH2, LJO1DH2O
 
-            RO1DplH2O = 1.63e-10_fp * EXP( 60.e+0_fp*ITEMPK) *
-     $           C_H2O
-            RO1DplH2  = 1.2e-10 * 0.5000e-6_fp * AD
-            RO1D      = (RO1DplH2O + RO1DplH2 +
-     $           2.15e-11_fp * EXP(110.e+0_fp*ITEMPK) 
-     $           * 0.7808e+0_fp  * AD +
-     $           3.30e-11_fp * EXP( 55.e+0_fp*ITEMPK) 
-     $           * 0.2095e+0_fp  * AD)
-            ZPJ(L,3,I,J) = ZPJ(L,3,I,J) *
-     $           RO1DplH2O / RO1D
-            ZPJ(L,103,I,J) = ZPJ(L,103,I,J) *
-     $           RO1DplH2 / RO1D
+
+      ! Initialize fields from State_Met
+      AD     = State_Met%AIRNUMDEN(I,J,L)
+      ITEMPK = 1.e+0_fp/State_Met%T(I,J,L)
+
+      ! Set species concentrations
+      C_O2 = 0.2095e+0_fp * AD
+      C_N2 = 0.7808e+0_fp * AD
+
+      ! Added H2 concentration (bhh, jmao, eam, 7/18/11)
+      ! Seasonal variability of H2 may be important, 
+      ! but not included in this update (bhh, jmao, eam, 7/18/11)
+      C_H2 = 0.5000e-6_fp * AD
+
+#if defined( UCX )
+      !==============================================================
+      ! SPECIAL TREATMENT FOR H2SO4+hv -> SO2 + 2OH
+      !
+      ! Only allow photolysis of H2SO4 when gaseous (SDE 04/11/13)
+      !
+      !==============================================================
+      ! Calculate if H2SO4 expected to be gaseous or aqueous
+      ! Only allow photolysis above 6 hPa
+      ZPJ(L,100,I,J) = ZPJ(L,100,I,J) * SO4_PHOTFRAC(I,J,L)
+
+      !==============================================================
+      ! SPECIAL TREATMENT FOR O2+hv -> O+O
+      !
+      ! O2 is an inactive species, so we need to premultiply ZPJ
+      ! by the O2 concentration prior to sending to the solver.
+      ! (SDE 04/05/13)
+      !==============================================================
+      ! Store unadjusted O2 rate for ND22
+      IF ( ND22 > 0 .and. L <= LD22 .and. LTJV(I,J) > 0 ) THEN
+         AD22(I,J,L,15) = AD22(I,J,L,15) + ZPJ(L,1,I,J)
+      ENDIF
+
+      ! Adjust O2 rate
+      ZPJ(L,1,I,J) = ZPJ(L,1,I,J) * C_O2
+#endif
+
+      !==============================================================
+      ! SPECIAL TREATMENT FOR O3+hv -> OH+OH (trop-only simulation)
+      !                    or O3+hv -> O+O2  (UCX simulation)
+      !
+      ! [O1D]ss=J[O3]/(k[H2O]+k[N2]+k[O2])
+      ! SO, THE EFFECTIVE J-VALUE IS J*k[H2O]/(k[H2O]+k[N2]+k[O2])
+      !
+      ! We don't want to do this if strat-chem is in use, as all
+      ! the intermediate reactions are included - this would be
+      ! double-counting (SDE 04/01/13)
+      !==============================================================
+
+#if defined( UCX )
+      ! Need to subtract O3->O1D from rate
+      ZPJ(L,2,I,J) = ZPJ(L,2,I,J) - ZPJ(L,3,I,J)
+
+      ! For UCX, store O1D and O3P rates separately
+      IF ( ND22 > 0 .and. L <= LD22 .and. LTJV(I,J) > 0 ) THEN
+         AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,3,I,J)
+         AD22(I,J,L,6) = AD22(I,J,L,6) + ZPJ(L,2,I,J)
+      ENDIF
+#else
+      ! Store unadjusted total J-O3 as AD22(:,:,:,5)
+      IF ( ND22 > 0 .and. L <= LD22 .and. LTJV(I,J) > 0 ) THEN
+         AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,3,I,J)
+      ENDIF
+
+      !========================================================
+      ! Change rate of O(1D)+ N2 to be 3.1e-11 at 298K rather
+      ! than 2.6e-11.  The temperature dependence remains the
+      ! same, so the constant changes from 1.8e-11 to 2.14e-11
+      ! according to Heard, pers. comm.,2002. (amf, bmy, 1/7/02)
+      !========================================================
+      ! Change the rate of O(1D)+H2O from 2.2e-10 to 1.45e-10*
+      ! exp(89/temp) on the basis of Dunlea and Ravishankara
+      ! 'Measurement of the Rate coefficient for the reaction 
+      ! of O(1D) with H2O and re-evaluation of the atmospheric
+      ! OH Production Rate'.  One of the RSC Journals
+      ! (mje 4/5/04)
+      !========================================================
+      ! Updated from JPL2006, the difference is pretty small.
+      ! (jmao,02/26/2009)
+      !========================================================
+      ! Additional update from JPL 10-6 for reaction of
+      ! O3 + hv --> HO2 + OH and O1D + H2:
+      ! Includes calculation of k[O3], where
+      ! k[O3]  = J[O3]*1.2e-10/k[O1D], where
+      ! k[O1D] = ([O1D]*[H2]+[O1D]*[H2O])/
+      !          ([O1D]*[H2]+[O1D]*[H2O]+[O1D][N2]+[O1D][O2])
+      ! (bhh, jmao, eam, 7/18/11)
+      !========================================================
+
+      RO1DplH2O = 1.63e-10_fp * EXP( 60.e+0_fp*ITEMPK) * C_H2O
+      RO1DplH2  = 1.2e-10 * C_H2
+      RO1D      = RO1DplH2O + RO1DplH2 +
+     &            2.15e-11_fp * EXP(110.e+0_fp*ITEMPK) * C_N2 +
+     &            3.30e-11_fp * EXP( 55.e+0_fp*ITEMPK) * C_O2
+
+      ZPJ(L,3,I,J)   = ZPJ(L,3,I,J)   * RO1DplH2O / RO1D
+      ZPJ(L,103,I,J) = ZPJ(L,103,I,J) * RO1DplH2  / RO1D
+#endif
       
       END SUBROUTINE PHOTRATE_ADJ
 !EOC

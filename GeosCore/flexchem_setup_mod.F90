@@ -366,7 +366,7 @@ CONTAINS
 
              ENDIF
              IF (FOUND .EQ. 1) THEN
-                WRITE (6,'(a8,a16,e10.3,a4)') TRIM(SPC_NAMES(N1)), &
+                WRITE (6,'(i4,a10,a16,e10.3,a4)') N, TRIM(SPC_NAMES(N1)), &
                                ' initialized to ', QBKGAS(N), ' v/v'
                 EXIT
              ENDIF
@@ -374,7 +374,7 @@ CONTAINS
           ENDDO
 
           IF (FOUND .NE. 1) &
-               WRITE (6,'(a8,a16)') TRIM(NAMEGAS(N)),' NOT initialized'
+               WRITE (6,'(i4,a10,a16)') N, TRIM(NAMEGAS(N)),' NOT initialized'
 
        ENDDO
     ENDIF
