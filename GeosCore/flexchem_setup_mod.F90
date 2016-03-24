@@ -15,6 +15,9 @@ MODULE FLEXCHEM_SETUP_MOD
 ! !USES:
 !
   USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+  USE GIGC_Input_Opt_Mod, ONLY : OptInput
+  USE GIGC_State_Chm_Mod, ONLY : ChmState
+  USE GIGC_State_Met_Mod, ONLY : MetState
 
   IMPLICIT NONE
   PRIVATE
@@ -24,6 +27,7 @@ MODULE FLEXCHEM_SETUP_MOD
   PUBLIC :: STTTOCSPEC, CSPECTOKPP
   PUBLIC :: INIT_FLEXCHEM
   PUBLIC :: HSAVE_KPP
+  PUBLIC :: FAMILIES_KLUDGE
 !    
 ! !REVISION HISTORY:
 !  14 Dec 2015 - M.S. Long   - Initial version
@@ -61,8 +65,7 @@ CONTAINS
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Create
     USE HCO_ERROR_MOD
     USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState, Register_Tracer, Register_Species
+    USE GIGC_State_Chm_Mod, ONLY : Register_Tracer, Register_Species
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE gckpp_Global,       ONLY : NSPEC, NREACT
     USE gckpp_Monitor,      ONLY : SPC_NAMES, EQN_NAMES
@@ -428,6 +431,169 @@ CONTAINS
     RETURN
 
   END SUBROUTINE INIT_FLEXCHEM
+
+  SUBROUTINE FAMILIES_KLUDGE(am_I_Root,STT,IO,SC,OPT,RC)
+    USE GIGC_State_Chm_Mod,   ONLY : Get_Indx
+    USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
+    REAL(kind=fp)  :: STT(:,:,:,:)
+    TYPE(OptInput) :: IO ! Short-hand for Input_Opt
+    TYPE(ChmState) :: SC ! Short-hand for State_Chem
+    INTEGER        :: RC,OPT
+    LOGICAL        :: am_I_Root
+
+    INTEGER N,S1,S2,S3
+    REAL(kind=fp)  ::   SUM(IIPAR,JJPAR,LLPAR)
+    REAL(kind=fp)  :: QTEMP(IIPAR,JJPAR,LLPAR)
+    
+    
+      ! K -- L -- U -- D -- G -- E -- C -- O -- D -- E -- ! -- ! -- ! -- !
+      ! THIS IS A TEMPORARY FIX AND NEEDS TO BE RESOLVED THROUGHOUT
+      ! THE MODEL AS SOON AS IT APPEARS POSSIBLE TO DO SO!
+      ! -- The following code ensures that the two remaining tracer
+      !    families are dealt with appropriately.
+      !    The Tracer MMN is a sum of the species MVKN and MACRN
+      !    The Tracer ISOPN is a sum of ISOPND and ISOPNB
+      !       The tracer restart file for the pre-flex GEOS-Chem, includes
+      !    these families, but the removal of the routines
+      !    "lump" and "partition" killed the code resposible for them.
+      !       Here, we want to install a hard-code fix with the complete
+      !    expectation that we will no longer use species families. Thus,
+      !    when possible, the two remaining families need to be removed, 
+      !    and this kludge disabled.
+      !   M.S.L. - Jan., 5 2016
+      !
+
+    IF (OPT .eq. 1) THEN
+      ! Part 1: From Tracers to Species
+      ! -- Process MMN family
+      ! -- Get the tracer and species indices. Currently hardwired.
+      N  = get_indx('MMN',  SC%Trac_ID,SC%Trac_Name)  ! MMN
+      S1 = get_indx('MVKN', SC%Spec_ID,SC%Spec_Name)  ! MVKN
+      S2 = get_indx('MACRN',SC%Spec_ID,SC%Spec_Name)  ! MACRN
+      STT(:,:,:,N) = STT(:,:,:,N)*IO%TRACER_COEFF(N,1) ! A correction...
+      ! ... to account for the division by TRACER_COEFF above.
+      SUM   = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
+             +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2))
+      ! -- -- First, do MVKN
+      QTEMP = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
+              / SUM
+      SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+      ! -- -- Then, do MACRN
+      QTEMP = (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
+              / SUM
+      SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+      ! -- Process ISOPN family
+      ! -- Get the tracer and species indices
+      N  = get_indx('ISOPN',  SC%Trac_ID,SC%Trac_Name)  ! MMN
+      S1 = get_indx('ISOPND', SC%Spec_ID,SC%Spec_Name)  ! MVKN
+      S2 = get_indx('ISOPNB', SC%Spec_ID,SC%Spec_Name)  ! MACRN
+      STT(:,:,:,N) = STT(:,:,:,N)*IO%TRACER_COEFF(N,1) ! A correction...
+      ! ... to account for the division by TRACER_COEFF above.
+      SUM   = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
+             +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2))
+      ! -- -- First, do ISOPND
+      QTEMP = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
+              / SUM
+      SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+      ! -- -- Then, do ISOPNB
+      QTEMP = (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
+              / SUM
+      SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+
+      IF (IO%LUCX) THEN
+      ! -- Process CFCX family
+      ! -- Get the tracer and species indices. Currently hardwired.
+      N  = get_indx('CFCX',   SC%Trac_ID,SC%Trac_Name)
+      S1 = get_indx('CFC113', SC%Spec_ID,SC%Spec_Name)
+      S2 = get_indx('CFC114', SC%Spec_ID,SC%Spec_Name)
+      S3 = get_indx('CFC115', SC%Spec_ID,SC%Spec_Name)
+      STT(:,:,:,N) = STT(:,:,:,N)*IO%TRACER_COEFF(N,1) ! A correction...
+      ! ... to account for the division by TRACER_COEFF above.
+      SUM   = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
+             +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
+             +(SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3))
+      ! -- -- First, do CFC113
+      QTEMP = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
+              / SUM
+      SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+      ! -- -- Then, do CFC114
+      QTEMP = (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
+              / SUM
+      SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+      ! -- -- Then, do CFC115
+      QTEMP = (SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3)) &
+              / SUM
+      SC%Species(:,:,:,S3) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+      ! -- Process HCFCX family
+      ! -- Get the tracer and species indices. Currently hardwired.
+      N  = get_indx('HCFCX',    SC%Trac_ID,SC%Trac_Name)
+      S1 = get_indx('HCFC123',  SC%Spec_ID,SC%Spec_Name)
+      S2 = get_indx('HCFC141b', SC%Spec_ID,SC%Spec_Name)
+      S3 = get_indx('HCFC142b', SC%Spec_ID,SC%Spec_Name)
+      STT(:,:,:,N) = STT(:,:,:,N)*IO%TRACER_COEFF(N,1) ! A correction...
+      ! ... to account for the division by TRACER_COEFF above.
+      SUM   = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
+             +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
+             +(SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3))
+      ! -- -- First, do HCFC123
+      QTEMP = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1))/ SUM
+      SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+      ! -- -- Then, do HCFC141b
+      QTEMP = (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2))/ SUM
+      SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+      ! -- -- Then, do HCFC142b
+      QTEMP = (SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3))/ SUM
+      SC%Species(:,:,:,S3) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+      ENDIF !IF UCX
+      ! E -- N -- D -- O -- F -- K -- L -- U -- D -- G -- E -- -- P -- T -- 1
+      ELSEIF (OPT .eq. 2) THEN
+      ! K -- L -- U -- D -- G -- E -- -- P -- T -- 2
+      ! Part 2: From Species to Tracers
+      ! -- Process MMN family
+      ! -- Get the tracer and species indices
+      N  = get_indx('MMN',  SC%Trac_ID,SC%Trac_Name)  ! MMN
+      S1 = get_indx('MVKN', SC%Spec_ID,SC%Spec_Name)  ! MVKN
+      S2 = get_indx('MACRN',SC%Spec_ID,SC%Spec_Name)  ! MACRN
+      STT(:,:,:,N) = &
+              (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
+             +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2))
+      ! -- Process ISOPN family
+      ! -- Get the tracer and species indices
+      N  = get_indx('ISOPN',  SC%Trac_ID,SC%Trac_Name)  ! MMN
+      S1 = get_indx('ISOPND', SC%Spec_ID,SC%Spec_Name)  ! MVKN
+      S2 = get_indx('ISOPNB', SC%Spec_ID,SC%Spec_Name)  ! MACRN
+      STT(:,:,:,N) = &
+              (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
+             +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2))
+      ! -- Process CFCX family
+      ! -- Get the tracer and species indices. Currently hardwired.
+      N  = get_indx('CFCX',   SC%Trac_ID,SC%Trac_Name)
+      S1 = get_indx('CFC113', SC%Spec_ID,SC%Spec_Name)
+      S2 = get_indx('CFC114', SC%Spec_ID,SC%Spec_Name)
+      S3 = get_indx('CFC115', SC%Spec_ID,SC%Spec_Name)
+      STT(:,:,:,N) = &
+              (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
+             +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
+             +(SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3))
+      ! -- Process HCFCX family
+      ! -- Get the tracer and species indices. Currently hardwired.
+      N  = get_indx('HCFCX',    SC%Trac_ID,SC%Trac_Name)
+      S1 = get_indx('HCFC123',  SC%Spec_ID,SC%Spec_Name)
+      S2 = get_indx('HCFC141b', SC%Spec_ID,SC%Spec_Name)
+      S3 = get_indx('HCFC142b', SC%Spec_ID,SC%Spec_Name)
+      STT(:,:,:,N) = &
+              (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
+             +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
+             +(SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3))
+      ! E -- N -- D -- O -- F -- K -- L -- U -- D -- G -- E -- -- P -- T -- 2
+
+      ELSE
+         write(*,*) 'OPT NOT SET TO 1 OR 2 IN FlexChem_Setup_Mod::FAMILIES_KLUDGE'
+      ENDIF
+    
+    RETURN
+
+  END SUBROUTINE FAMILIES_KLUDGE
 !EOC
 END MODULE FLEXCHEM_SETUP_MOD
 

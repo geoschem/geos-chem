@@ -1017,7 +1017,7 @@ CONTAINS
                Cat       = -1,                &
                Hier      = -1,                &
                HcoID     = -1,                &
-               SpaceDim  =  3,                &
+               SpaceDim  =  2,                &
                LevIDx    = -1,                &
                OutUnit   = 'cm-3 s-1',        &
                OutOper   = TRIM( OutOper   ), &
