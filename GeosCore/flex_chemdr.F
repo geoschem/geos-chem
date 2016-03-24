@@ -510,12 +510,12 @@
          C(ind_ACTA)  = 0.e0_dp
          C(ind_EOH)   = 0.e0_dp
          C(ind_HCOOH) = 0.e0_dp
-         IF (Input_Opt%LUCX) THEN ! Set fixed species concentrations 
-            C(ind_O2) = 0.2095e+0_fp * NUMDEN
-            C(ind_N2) = 0.7808e+0_fp * NUMDEN
-            C(ind_H2) = 0.5000e-6_fp * NUMDEN
-         ENDIF !LUCX
-
+#if defined( UCX )
+         ! Set fixed species concentrations 
+         C(ind_O2) = 0.2095e+0_fp * NUMDEN
+         C(ind_N2) = 0.7808e+0_fp * NUMDEN
+         C(ind_H2) = 0.5000e-6_fp * NUMDEN
+#endif
          IF ( IDTCH4 == 0 .and. IND_CH4 > 0 ) THEN
          ! Set CH4 according to latitude
          ! Convert from [ppbv CH4] to [molec CH4/cm3]
