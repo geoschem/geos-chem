@@ -20,6 +20,7 @@ MODULE GCKPP_HETRATES
   INTEGER            :: N
   INTEGER, SAVE      :: NAERO
   LOGICAL, SAVE      :: NATSURFACE, SAFEDIV
+  INTEGER            :: II,JJ,LL
   LOGICAL, SAVE      :: KII_KI, PSCBOX, STRATBOX
   REAL(fp), SAVE     :: TEMPK, RELHUM, XSTKCF
   REAL(fp)           :: VPRESH2O, CONSEXP
@@ -85,6 +86,11 @@ MODULE GCKPP_HETRATES
       TYPE(MetState) :: SM
       TYPE(OptInput) :: IO
       REAL(fp)       :: SCF(3)
+
+      ! For Debugging
+      II = I
+      JJ = J
+      LL = L
 
       ! Divide by educt concentration
       KII_KI     = .false.
@@ -323,6 +329,10 @@ MODULE GCKPP_HETRATES
       HET(ind_HOCl,2)  = HETHOCl_PSC2(  0.52E2_fp, 0E+0_fp)
       HET(ind_HOBr,3)  = HETHOBr_PSC(   0.97E2_fp, 0E+0_fp)
 #endif
+
+      IF (II .eq. 24 .and. JJ .eq. 19 .and. LL .eq. 1) THEN
+         write(*,'(a,e14.6)') 'b ADJ: ', HET(ind_HBr,1), TRC_HBr
+      ENDIF
 
       !----------------------------------------------------------------
       ! Kludging the rates to be equal to one another to avoid having

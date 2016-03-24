@@ -354,6 +354,7 @@
 #endif
             RC = GEOS_Timer_Start ( "Chemistry-Gas-Phase" )
 
+          write(*,'(a,e12.4)') '<> CH4: ',state_chm%tracers(10,10,10,69)
             ! Call gas-phase chemistry
             CALL FLEX_CHEMDR
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
