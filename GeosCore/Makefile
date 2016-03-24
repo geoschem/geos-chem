@@ -585,7 +585,7 @@ exchange_mod.o              : exchange_mod.F                                 \
 	                      tpcore_bc_mod.o         dao_mod.o              \
 			      tracer_mod.o
 
-fast_jx_mod.o               : fast_jx_mod.F           ucx_mod.o              \
+fast_jx_mod.o               : fast_jx_mod.F                                  \
                               chemgrid_mod.o          dao_mod.o              \
                               toms_mod.o              tracerid_mod.o
 

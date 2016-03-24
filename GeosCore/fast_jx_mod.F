@@ -4746,7 +4746,7 @@ c  Ensure all 'AN_' types are valid selections
 !
       SUBROUTINE PHOTRATE_ADJ( am_I_root, State_Met, 
      &                         State_Chm, Input_Opt, 
-     &                         I, J, L, C_H2O, RC )
+     &                         I, J, L, C_H2O, FRAC, RC )
 !
 ! !USES:
 !
@@ -4758,7 +4758,6 @@ c  Ensure all 'AN_' types are valid selections
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE Precision_Mod,      ONLY : fp
-      USE UCX_Mod,            ONLY : SO4_PHOTFRAC
 !     
 ! !INPUT PARAMETERS:
 !     
@@ -4766,6 +4765,7 @@ c  Ensure all 'AN_' types are valid selections
       TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
       INTEGER,        INTENT(IN)    :: I,J,L     ! Grid box indices
       REAL(kind=fp),  INTENT(IN)    :: C_H2O     ! H2O conc [molec/cm3]
+      REAL(kind=fp),  INTENT(IN)    :: FRAC      ! Result from SO4_PHOTFRAC in Flex_Chemdr
 !     
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4815,7 +4815,7 @@ c  Ensure all 'AN_' types are valid selections
       !==============================================================
       ! Calculate if H2SO4 expected to be gaseous or aqueous
       ! Only allow photolysis above 6 hPa
-      ZPJ(L,100,I,J) = ZPJ(L,100,I,J) * SO4_PHOTFRAC(I,J,L)
+      ZPJ(L,100,I,J) = ZPJ(L,100,I,J) * FRAC
 
       !==============================================================
       ! SPECIAL TREATMENT FOR O2+hv -> O+O

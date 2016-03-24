@@ -456,19 +456,19 @@
             ! may have been changed. 
             ! This needs to be checked through more thoroughly
             PHOTOL(1:JVN_) = 0.e+0_fp
-            IF ( .not. Input_Opt%LUCX ) THEN ! If not UCX, then parameterize O(1D)
+!            IF ( .not. Input_Opt%LUCX ) THEN ! If not UCX, then parameterize O(1D)
             CALL PHOTRATE_ADJ( am_I_root, State_Met, 
      &                         State_Chm, Input_Opt, 
-     &                         I, J, L, H2O, IERR )
-            ENDIF
+     &                         I, J, L, H2O, SO4_PHOTFRAC(I,J,L), IERR )
+!            ENDIF
 
             ! Copy ZPJ from fast_jx_mod.F to PHOTOL array
             PHOTOL(1:JVN_) = ZPJ(L,1:JVN_,I,J)
 
-            IF (Input_Opt%LUCX) THEN !Adjust SO4 photolysis rate
-               ! There should be a better, more elegant means of indexing this.
-               PHOTOL(100) = PHOTOL(100) * SO4_PHOTFRAC(I,J,L)
-            ENDIF               !LUCX
+!            IF (Input_Opt%LUCX) THEN !Adjust SO4 photolysis rate
+!               ! There should be a better, more elegant means of indexing this.
+!               PHOTOL(100) = PHOTOL(100) * SO4_PHOTFRAC(I,J,L)
+!            ENDIF               !LUCX
 
          ELSE
 
