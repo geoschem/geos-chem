@@ -558,8 +558,8 @@
          ! Integrate the box forwards
          !===========================================================
          call cpu_time(start)
-!         call Integrate( TIN,    TOUT,    ICNTRL, 
-!     &                   RCNTRL, ISTATUS, RSTATE, IERR )
+         call Integrate( TIN,    TOUT,    ICNTRL, 
+     &                   RCNTRL, ISTATUS, RSTATE, IERR )
          call cpu_time(finish)
          itim = itim + finish - start
          totfuncs = totfuncs + ISTATUS(1)
