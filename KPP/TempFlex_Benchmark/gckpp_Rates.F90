@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Wed Feb 24 10:51:29 2016
-! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/v1101_Benchmark
+! Time                 : Fri Mar 18 10:38:36 2016
+! Working directory    : /n/home13/mslong/FlexChem/Flexchem/Mechanisms/v1101_Benchmark
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -161,8 +161,7 @@ CONTAINS
       R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
       R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
 
-      GC_HO2NO3 = (R0+R1*NUMDEN)*(1.D0+1.4E-21_dp*H2O* &
-                   EXP(2200.E+0_dp/TEMP))
+      GC_HO2NO3 = (R0+R1*NUMDEN)*(1.D0+1.4E-21_dp*H2O*EXP(2200.E+0_dp/TEMP))
   END FUNCTION GC_HO2NO3    
   
   REAL(kind=dp) FUNCTION GC_TBRANCH( A0,B0,C0,A1,B1,C1 )
@@ -194,6 +193,18 @@ CONTAINS
     GC_DMSOH = (R0*NUMDEN*0.2095e0_dp)/(1e0_dp+R1*0.2095e0_dp)
     
   END FUNCTION GC_DMSOH
+
+  REAL(kind=dp) FUNCTION GC_GLYXNO3( A0,B0,C0 )
+! ---  K = K1*([O2]+3.5D18)/(2*[O2]+3.5D18) --- HO2+2*CO branch of GLYX+OH/NO3
+    REAL A0,B0,C0
+    REAL(kind=dp) R0
+    REAL(kind=dp) O2
+
+    O2 = NUMDEN*0.2095e0_dp
+    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
+    GC_GLYXNO3 = R0*(O2+3.5E+18_dp)/(2.E+0_dp*O2+3.5E+18_dp)
+    
+  END FUNCTION GC_GLYXNO3
 
   REAL(kind=dp) FUNCTION GC_OHHNO3( A0,B0,C0,A1,B1,C1,A2,B2,C2 )
 ! ---  OH + HNO3:   K = K0 + K3[M] / (1 + K3[M]/K2)  ------
@@ -601,7 +612,7 @@ SUBROUTINE Update_RCONST ( )
   RCONST(138) = (GCARR(4.59E-13,0.0E+00,-1156.0))
   RCONST(139) = (GCARR(3.10E-12,0.0E+00,340.0))
   RCONST(140) = (GCARR(1.50E-11,0.0E+00,0.0))
-  RCONST(141) = (GCARR(1.40E-12,0.0E+00,-1860.0))
+  RCONST(141) = (GC_GLYXNO3(1.40E-12,0.0E+00,-1860.0))
   RCONST(142) = (GCARR(3.36E-12,0.0E+00,-1860.0))
   RCONST(143) = (GCARR(3.10E-11,0.0E+00,350.0))
   RCONST(144) = (GCARR(2.60E-12,0.0E+00,610.0))
@@ -773,7 +784,7 @@ SUBROUTINE Update_RCONST ( )
   RCONST(310) = (GCARR(1.31E-10,0.0E+00,0.0))
   RCONST(311) = (GCARR(0.09E-10,0.0E+00,0.0))
   RCONST(312) = (GCARR(0.35E-10,0.0E+00,0.0))
-  RCONST(313) = (GCARR(6.00E-34,2.4E+00,0.0))
+  RCONST(313) = (GCARR(6.00E-34,2.4E+00,0.0)*NUMDEN)
   RCONST(314) = (GCARR(8.00E-12,0.0E+00,-2060.0))
   RCONST(315) = (GCARR(2.80E-12,0.0E+00,-1800.0))
   RCONST(316) = (GCARR(1.80E-11,0.0E+00,180.0))
