@@ -4758,6 +4758,7 @@ c  Ensure all 'AN_' types are valid selections
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE Precision_Mod,      ONLY : fp
+      USE UCX_Mod,            ONLY : SO4_PHOTFRAC
 !     
 ! !INPUT PARAMETERS:
 !     
