@@ -29,7 +29,7 @@
       USE ERROR_MOD,            ONLY : DEBUG_MSG
       USE ERROR_MOD,            ONLY : ERROR_STOP
       USE FAST_JX_MOD
-      USE FLEXCHEM_SETUP_MOD,   ONLY : STTTOCSPEC, CSPECTOKPP, HSAVE_KPP
+      USE FLEXCHEM_SETUP_MOD
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
@@ -44,7 +44,8 @@
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : GET_YEAR
       USE TRACERID_MOD,         ONLY : IDTCH4
-      USE UCX_MOD,              ONLY : CALC_STRAT_AER
+      USE UCX_MOD,              ONLY : CALC_STRAT_AER, SO4_PHOTFRAC
+      USE UCX_MOD,              ONLY : UCX_NOX, UCX_H2SO4PHOT
 
       ! mje
       USE GCKPP_HETRATES,       ONLY : SET_HET
@@ -84,7 +85,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, L, N, S1, S2, JLOOP, MONTH, YEAR
+      INTEGER             :: I, J, L, N, JLOOP, MONTH, YEAR
       INTEGER             :: WAVELENGTH
       INTEGER             :: HCRC
       INTEGER             :: N_TRACERS
@@ -132,11 +133,6 @@
       INTEGER             :: TotAccep, TotRejec, TotNumLU
 
       CHARACTER(LEN=255)  :: ERR_MSG
-
-      ! MSL - Temporary variables for the family kludge (see below)
-      REAL(kind=fp)       ::   SUM(IIPAR,JJPAR,LLPAR)
-      REAL(kind=fp)       :: QTEMP(IIPAR,JJPAR,LLPAR)
-
       REAL(kind=fp)       :: SCOEFF(IIPAR,JJPAR,LLPAR,3)
 
       prtDebug = Input_Opt%LPRT
@@ -320,58 +316,7 @@
       ENDDO
       ENDDO
       
-      ! K -- L -- U -- D -- G -- E -- C -- O -- D -- E -- ! -- ! -- ! -- !
-      ! THIS IS A TEMPORARY FIX AND NEEDS TO BE RESOLVED THROUGHOUT
-      ! THE MODEL AS SOON AS IT APPEARS POSSIBLE TO DO SO!
-      ! -- The following code ensures that the two remaining tracer
-      !    families are dealt with appropriately.
-      !    The Tracer MMN is a sum of the species MVKN and MACRN
-      !    The Tracer ISOPN is a sum of ISOPND and ISOPNB
-      !       The tracer restart file for the pre-flex GEOS-Chem, includes
-      !    these families, but the removal of the routines
-      !    "lump" and "partition" killed the code resposible for them.
-      !       Here, we want to install a hard-code fix with the complete
-      !    expectation that we will no longer use species families. Thus,
-      !    when possible, the two remaining families need to be removed, 
-      !    and this kludge disabled.
-      !   M.S.L. - Jan., 5 2016
-      !
-      ! Part 1: From Tracers to Species
-      ! -- Process MMN family
-      ! -- Get the tracer and species indices. Currently hardwired.
-      N  = 60   ! MMN
-      S1 = 122  ! MVKN
-      S2 = 121  ! MACRN
-      STT(:,:,:,N) = STT(:,:,:,N)*Input_Opt%TRACER_COEFF(N,1) ! A correction...
-      ! ... to account for the division by TRACER_COEFF above.
-      SUM   = (State_Chm%Species(:,:,:,S1)*Input_Opt%TRACER_COEFF(N,1))
-     &       +(State_Chm%Species(:,:,:,S2)*Input_Opt%TRACER_COEFF(N,2))
-      ! -- -- First, do MVKN
-      QTEMP = (State_Chm%Species(:,:,:,S1)*Input_Opt%TRACER_COEFF(N,1))
-     &        / SUM
-      State_Chm%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
-      ! -- -- Then, do MACRN
-      QTEMP = (State_Chm%Species(:,:,:,S2)*Input_Opt%TRACER_COEFF(N,2))
-     &        / SUM
-      State_Chm%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
-      ! -- Process ISOPN family
-      ! -- Get the tracer and species indices
-      N  = 55  ! ISOPN Tracer
-      S1 = 109 ! ISOPND Species Index
-      S2 = 110 ! ISOPNB Species Index
-      STT(:,:,:,N) = STT(:,:,:,N)*Input_Opt%TRACER_COEFF(N,1) ! A correction...
-      ! ... to account for the division by TRACER_COEFF above.
-      SUM   = (State_Chm%Species(:,:,:,S1)*Input_Opt%TRACER_COEFF(N,1))
-     &       +(State_Chm%Species(:,:,:,S2)*Input_Opt%TRACER_COEFF(N,2))
-      ! -- -- First, do ISOPND
-      QTEMP = (State_Chm%Species(:,:,:,S1)*Input_Opt%TRACER_COEFF(N,1))
-     &        / SUM
-      State_Chm%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
-      ! -- -- Then, do ISOPNB
-      QTEMP = (State_Chm%Species(:,:,:,S2)*Input_Opt%TRACER_COEFF(N,2))
-     &        / SUM
-      State_Chm%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
-      ! E -- N -- D -- O -- F -- K -- L -- U -- D -- G -- E -- -- P -- T -- 1
+      CALL FAMILIES_KLUDGE(am_I_Root,STT,Input_Opt,State_Chm,1,RC)
  
       ! Convert STT from molec/cm3 back to kg (required for gckpp_HetRates.F90)
       ! NOTE: When we remove the tracer families we can get rid of this step
@@ -490,10 +435,6 @@
          ! mje H2O arrives in g/kg needs to be in mol cm-3 
          H2O = State_Met%AVGW(I,J,L)*State_Met%AIRNUMDEN(I,J,L)
 
-!         H2O    = State_Met%SPHU(I,J,L)*
-!     &            (0.21*32d0+0.79*28d0)/(18d0)/1000.
-!         H2O    = H2O * NUMDEN
-
          CALL Init_KPP( )
 
          !===========================================================
@@ -515,12 +456,19 @@
             ! may have been changed. 
             ! This needs to be checked through more thoroughly
             PHOTOL(1:JVN_) = 0.e+0_fp
+            IF ( .not. Input_Opt%LUCX ) THEN ! If not UCX, then parameterize O(1D)
             CALL PHOTRATE_ADJ( am_I_root, State_Met, 
      &                         State_Chm, Input_Opt, 
      &                         I, J, L, H2O, IERR )
+            ENDIF
 
             ! Copy ZPJ from fast_jx_mod.F to PHOTOL array
             PHOTOL(1:JVN_) = ZPJ(L,1:JVN_,I,J)
+
+            IF (Input_Opt%LUCX) THEN !Adjust SO4 photolysis rate
+               ! There should be a better, more elegant means of indexing this.
+               PHOTOL(100) = PHOTOL(100) * SO4_PHOTFRAC(I,J,L)
+            ENDIF               !LUCX
 
          ELSE
 
@@ -545,22 +493,23 @@
 !------------------------------------------------------------------------------
 ! Prior to 2/10/16:
 ! Set CH4 according to latitude (mps, 2/10/16)
-!         C(ind_CH4) = 1770.e-9_dp * NUMDEN
 !------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
 ! Prior to 2/12/16:
 ! Default concentrations of MOH and H2 are now handled in flexchem_setup.F90
 !  - MOH is set according to region (continental BL, marine BL, free trop)
-!  - H2  is set to default values from globchem.dat (5.0e-7)
-! (mps, 2/12/16)
-!         C(ind_MOH) = 0.5e-9_dp   * NUMDEN
-!         C(ind_H2)  = 0.5e-6_dp   * NUMDEN
 !------------------------------------------------------------------------------
 
          C(ind_ACTA)  = 0.e0_dp
          C(ind_EOH)   = 0.e0_dp
          C(ind_HCOOH) = 0.e0_dp
+         IF (Input_Opt%LUCX) THEN ! Set fixed species concentrations 
+            C(ind_O2) = 0.2095e+0_fp * NUMDEN
+            C(ind_N2) = 0.7808e+0_fp * NUMDEN
+            C(ind_H2) = 0.5000e-6_fp * NUMDEN
+         ENDIF !LUCX
 
+         IF ( IDTCH4 == 0 .and. IND_CH4 > 0 ) THEN
          ! Set CH4 according to latitude
          ! Convert from [ppbv CH4] to [molec CH4/cm3]
          IF ( YLAT < -30e+0_fp ) THEN
@@ -572,10 +521,11 @@
          ELSE
             C(ind_CH4) = C3090N * 1e-9_dp * NUMDEN
          ENDIF
+         ENDIF ! IDTCH4, IND_CH4
 
          ! Debug
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-            write(*,'(a,2e10.2)') 'bHSAVE: ', HSAVE_KPP(I,J,L),TOUT
+            write(*,'(a,2e14.6)') 'b NUMDEN: ', NUMDEN, TEMP
             DO N = 1,NSPEC
                write(*,'(2a,e12.4)') '<> b ', trim(SPC_NAMES(N))
      &              ,C(N)
@@ -593,6 +543,7 @@
          ! Update KPP's rates
          !===========================================================
          CALL Update_RCONST( )
+
          call cpu_time(finish)
          rtim = rtim + finish - start
 
@@ -600,8 +551,8 @@
          ! Integrate the box forwards
          !===========================================================
          call cpu_time(start)
-         call Integrate( TIN,    TOUT,    ICNTRL, 
-     &                   RCNTRL, ISTATUS, RSTATE, IERR )
+!         call Integrate( TIN,    TOUT,    ICNTRL, 
+!     &                   RCNTRL, ISTATUS, RSTATE, IERR )
          call cpu_time(finish)
          itim = itim + finish - start
          totfuncs = totfuncs + ISTATUS(1)
@@ -679,8 +630,6 @@
 
          ! Debug
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-            write(*,'(a,e10.2)') 'aHSAVE: ', HSAVE_KPP(I,J,L)
-            write(*,'(a,3e10.2)') 'RSTATUS: ', RSTATE(1:3)
             DO N = 1,NSPEC
                write(*,'(2a,e12.4)') '<> a ', trim(SPC_NAMES(N)),
      &              C(N)
@@ -692,14 +641,14 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      write(*,'(a,F7.3)') 'Flex Rate Time: ', rtim
-      write(*,'(a,F7.3)') 'Flex Intg Time: ', itim
-      write(*,'(a,I7)') 'Flex Function Calls: ', totfuncs
-      write(*,'(a,I7)') 'Flex Jacobian Calls: ', totjacob
-      write(*,'(a,I7)') 'Flex Total Steps   : ', totsteps
-      write(*,'(a,I7)') 'Flex Accepted Steps: ', totaccep
-      write(*,'(a,I7)') 'Flex Rejected Steps: ', totrejec
-      write(*,'(a,I7)') 'Flex LU Decompos.  : ', totnumLU
+      write(*,'(a,F10.3)') 'Flex Rate Time: ', rtim
+      write(*,'(a,F10.3)') 'Flex Intg Time: ', itim
+      write(*,'(a,I9)') 'Flex Function Calls: ', totfuncs
+      write(*,'(a,I9)') 'Flex Jacobian Calls: ', totjacob
+      write(*,'(a,I9)') 'Flex Total Steps   : ', totsteps
+      write(*,'(a,I9)') 'Flex Accepted Steps: ', totaccep
+      write(*,'(a,I9)') 'Flex Rejected Steps: ', totrejec
+      write(*,'(a,I9)') 'Flex LU Decompos.  : ', totnumLU
 
 !     mje write out tropospheric mass weighted averages
 !      DO N=1,NSPEC
@@ -722,25 +671,7 @@
       ENDDO
       ENDDO
 
-      ! K -- L -- U -- D -- G -- E -- -- P -- T -- 2
-      ! Part 2: From Species to Tracers
-      ! -- Process MMN family
-      ! -- Get the tracer and species indices
-      N  = 60  ! MMN
-      S1 = 122 ! MVKN
-      S2 = 121 ! MACRN
-      STT(:,:,:,N) = 
-     &        (State_Chm%Species(:,:,:,S1)*Input_Opt%TRACER_COEFF(N,1))
-     &       +(State_Chm%Species(:,:,:,S2)*Input_Opt%TRACER_COEFF(N,2))
-      ! -- Process ISOPN family
-      ! -- Get the tracer and species indices
-      N  = 55  ! ISOPN
-      S1 = 109 ! ISOPND
-      S2 = 110 ! ISOPNB
-      STT(:,:,:,N) = 
-     &        (State_Chm%Species(:,:,:,S1)*Input_Opt%TRACER_COEFF(N,1))
-     &       +(State_Chm%Species(:,:,:,S2)*Input_Opt%TRACER_COEFF(N,2))
-      ! E -- N -- D -- O -- F -- K -- L -- U -- D -- G -- E -- -- P -- T -- 2
+      CALL FAMILIES_KLUDGE(am_I_Root,STT,Input_Opt,State_Chm,2,RC)
 
       ! Loop over tracers
       DO N=1,N_TRACERS
@@ -762,6 +693,21 @@
       ENDDO
       ENDDO
       ENDDO
+
+#if defined( UCX )
+      ! If using stratospheric chemistry, applying high-altitude
+      ! active nitrogen partitioning and H2SO4 photolysis
+      ! approximations  outside the chemgrid
+      CALL UCX_NOX( Input_Opt, State_Met, State_Chm )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMDR: after UCX_NOX' )
+      ENDIF
+
+      CALL UCX_H2SO4PHOT( Input_Opt, State_Met, State_Chm )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
+      ENDIF
+#endif
 
       !=================================================================
       ! Call OHSAVE which saves info on OH AND HO2 concentrations
@@ -842,7 +788,7 @@
          ! Update the diagostics 
          CALL Diagn_Update( am_I_Root,
      &        cName   = TRIM( DiagnName ),
-     &        Array3D = GLOB_RCONST(:,:,:,N),
+     &        Array2D = GLOB_RCONST(:,:,1,N),
      &        COL     = Input_Opt%DIAG_COLLECTION,
      &        RC      = HCRC )
 
