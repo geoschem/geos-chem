@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP( am_I_Root, Input_Opt, ERROR, RC )
+      SUBROUTINE CLEANUP( am_I_Root, ERROR, RC )
 !
 ! !USES:
 !
@@ -102,7 +102,6 @@
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input Options object 
       LOGICAL,        INTENT(IN)  :: ERROR        ! Cleanup after error? 
 !
 ! !OUTPUT PARAMETERS:
@@ -249,6 +248,8 @@
 !  16 Mar 2015 - R. Yantosca - Remove call to CLEANUP_HCN_CH3CN
 !  25 Mar 2015 - C. Keller   - Now cleanup UCX before emissisions.
 !  16 Apr 2015 - R. Yantosca - Remove call to CLEANUP_DAO; it's obsolete
+!  24 Mar 2016 - C. Keller   - Remove input arg Input_Opt; this is cleaned
+!                              up before routine CLEANUP is called.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -257,7 +258,9 @@
       !=================================================================
 
       ! Echo info
-      WRITE( 6, 100 ) 
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) 
+      ENDIF
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
       ! UCX needs to be cleaned up before emissions, because the UCX 
@@ -267,13 +270,11 @@
 
 #if defined( DEVEL )
       ! Cleanup the new netCDF diagnostics structure
-      CALL DIAGNOSTICS_FINAL( am_I_Root, Input_Opt, RC )
+      CALL DIAGNOSTICS_FINAL( am_I_Root, RC )
 #endif
 
       ! Cleanup HEMCO
-      IF ( Input_Opt%LEMIS ) THEN
-         CALL EMISSIONS_FINAL ( am_I_Root, ERROR )
-      ENDIF
+      CALL EMISSIONS_FINAL ( am_I_Root, ERROR )
 
       ! Call cleanup routines from individual F90 modules
       CALL CLEANUP_AEROSOL()

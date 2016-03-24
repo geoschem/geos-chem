@@ -161,7 +161,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
   !
-  SUBROUTINE HCOIO_DataRead( am_I_Root, HcoState, Lct, CloseFile, LUN, RC ) 
+  SUBROUTINE HCOIO_DataRead( am_I_Root, HcoState, Lct, RC ) 
 !
 ! !USES:
 !
@@ -176,17 +176,16 @@ CONTAINS
     LOGICAL,          INTENT(IN   )  :: am_I_Root
     TYPE(HCO_State),  POINTER        :: HcoState
     TYPE(ListCont),   POINTER        :: Lct 
-    LOGICAL,          INTENT(IN   )  :: CloseFile  ! Close file after reading?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)  :: LUN
     INTEGER,          INTENT(INOUT)  :: RC
 !
 ! !REVISION HISTORY:
 !  28 Aug 2013 - C. Keller   - Initial version
 !  27 Aug 2014 - R. Yantosca - Err msg now displays hcoio_dataread_mod.F90
 !  22 Feb 2016 - C. Keller   - Now calls down to model-specific routines. 
+!  24 Mar 2016 - C. Keller   - Removed LUN and CloseFile. Not needed any more.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -199,16 +198,13 @@ CONTAINS
     !=================================================================
 
 #if defined(ESMF_)
-    ! ESMF environment: call ESMF I/O routine. LUN is not used. Set to
-    ! default value of -1.
-    LUN = -1
+    ! ESMF environment: call ESMF I/O routine. 
     CALL HCOIO_READ_ESMF ( am_I_Root, HcoState, Lct, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
 #else
-    ! Standard environment: call standard I/O routines. LUN is defined
-    ! within HCOIO_READ_STD.
-    CALL HCOIO_READ_STD  ( am_I_Root, HcoState, Lct, CloseFile, LUN, RC )
+    ! Standard environment: call standard I/O routines.
+    CALL HCOIO_READ_STD  ( am_I_Root, HcoState, Lct, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 #endif
 

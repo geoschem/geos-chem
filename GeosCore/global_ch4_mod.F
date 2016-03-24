@@ -607,22 +607,22 @@
       CH4_EMIS(:,:,1) = SUM(CH4_EMIS, 3) - (2 * CH4_EMIS(:,:,11))
 
       ! testing only
-      write(*,*) 'CH4_EMIS (kg/m2/s):'
-      write(*,*) '1 : ', SUM(CH4_EMIS(:,:,1))
-      write(*,*) '2 : ', SUM(CH4_EMIS(:,:,2))
-      write(*,*) '3 : ', SUM(CH4_EMIS(:,:,3))
-      write(*,*) '4 : ', SUM(CH4_EMIS(:,:,4))
-      write(*,*) '5 : ', SUM(CH4_EMIS(:,:,5))
-      write(*,*) '6 : ', SUM(CH4_EMIS(:,:,6))
-      write(*,*) '7 : ', SUM(CH4_EMIS(:,:,7))
-      write(*,*) '8 : ', SUM(CH4_EMIS(:,:,8))
-      write(*,*) '9 : ', SUM(CH4_EMIS(:,:,9))
-      write(*,*) '10: ', SUM(CH4_EMIS(:,:,10))
-      write(*,*) '11: ', SUM(CH4_EMIS(:,:,11))
-      write(*,*) '12: ', SUM(CH4_EMIS(:,:,12))
+!      write(*,*) 'CH4_EMIS (kg/m2/s):'
+!      write(*,*) '1 : ', SUM(CH4_EMIS(:,:,1))
+!      write(*,*) '2 : ', SUM(CH4_EMIS(:,:,2))
+!      write(*,*) '3 : ', SUM(CH4_EMIS(:,:,3))
+!      write(*,*) '4 : ', SUM(CH4_EMIS(:,:,4))
+!      write(*,*) '5 : ', SUM(CH4_EMIS(:,:,5))
+!      write(*,*) '6 : ', SUM(CH4_EMIS(:,:,6))
+!      write(*,*) '7 : ', SUM(CH4_EMIS(:,:,7))
+!      write(*,*) '8 : ', SUM(CH4_EMIS(:,:,8))
+!      write(*,*) '9 : ', SUM(CH4_EMIS(:,:,9))
+!      write(*,*) '10: ', SUM(CH4_EMIS(:,:,10))
+!      write(*,*) '11: ', SUM(CH4_EMIS(:,:,11))
+!      write(*,*) '12: ', SUM(CH4_EMIS(:,:,12))
 !      write(*,*) 'rice 55,29: ',ch4_emis(55,29,7)
 !      write(*,*) 'wetl 55,29: ',ch4_emis(55,29,10)
-
+ 
       ! =================================================================
       ! Modify the STT with emissions rates.               (kjw, 5/29/09)
       ! There are 12 tracers in the multi-tracer run.
@@ -985,9 +985,6 @@
       !=================================================================
       WRITE( 6, '(a)' ) '% --- ENTERING CHEMCH4! ---'
 
-      ! testing only
-      write(*,*)'Total tracer before chemistry: ',SUM(State_Chm%Tracers)
-
       ! Assume success
       RC        = GIGC_SUCCESS
 
@@ -1162,9 +1159,6 @@
 
       print*,'END CHEMCH4'
       call flush(6)
-
-      ! testing only
-      write(*,*)'Total tracer after chemistry: ',SUM(State_Chm%Tracers)
 
       ! Set FIRSTCHEM to FALSE
       FIRSTCHEM = .FALSE.
