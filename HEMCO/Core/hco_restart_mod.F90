@@ -122,7 +122,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_DIAGN_MOD,    ONLY : Diagn_Create, HcoDiagnIDRestart
+    USE HCO_DIAGN_MOD,    ONLY : Diagn_Create
     USE HCO_STATE_MOD,    ONLY : HCO_State
 !
 ! !INPUT ARGUMENTS:
@@ -151,19 +151,18 @@ CONTAINS
     ! ================================================================
 
     ! Define diagnostics array
-    CALL Diagn_Create ( am_I_Root,                      &
-                        HcoState   = HcoState,          &
-                        cName      = TRIM(Name),        &
-                        ExtNr      = -1,                &
-                        Cat        = -1,                &
-                        Hier       = -1,                &
-                        HcoID      = -1,                &
-                        SpaceDim   =  3,                &
-                        OutUnit    = TRIM(Unit),        &
-                        COL        = HcoDiagnIDRestart, &
-                        AutoFill   = 0,                 &
-                        Trgt3D     = Arr3D,             &
-                        RC         = RC )
+    CALL Diagn_Create ( am_I_Root, HcoState,                    &
+                        cName      = TRIM(Name),                &
+                        ExtNr      = -1,                        &
+                        Cat        = -1,                        &
+                        Hier       = -1,                        &
+                        HcoID      = -1,                        &
+                        SpaceDim   =  3,                        &
+                        OutUnit    = TRIM(Unit),                &
+                        COL = HcoState%Diagn%HcoDiagnIDRestart, &
+                        AutoFill   = 0,                         &
+                        Trgt3D     = Arr3D,                     &
+                        RC         = RC                          )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
@@ -193,7 +192,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_DIAGN_MOD,    ONLY : Diagn_Create, HcoDiagnIDRestart
+    USE HCO_DIAGN_MOD,    ONLY : Diagn_Create
     USE HCO_STATE_MOD,    ONLY : HCO_State
 !
 ! !INPUT ARGUMENTS:
@@ -222,19 +221,18 @@ CONTAINS
     ! ================================================================
 
     ! Define diagnostics array
-    CALL Diagn_Create ( am_I_Root,                      & 
-                        HcoState   = HcoState,          &
-                        cName      = TRIM(Name),        &
-                        ExtNr      = -1,                &
-                        Cat        = -1,                &
-                        Hier       = -1,                &
-                        HcoID      = -1,                &
-                        SpaceDim   =  2,                &
-                        OutUnit    = TRIM(Unit),        &
-                        COL        = HcoDiagnIDRestart, &
-                        AutoFill   = 0,                 &
-                        Trgt2D     = Arr2D,             &
-                        RC         = RC                  )
+    CALL Diagn_Create ( am_I_Root, HcoState,                    & 
+                        cName      = TRIM(Name),                &
+                        ExtNr      = -1,                        &
+                        Cat        = -1,                        &
+                        Hier       = -1,                        &
+                        HcoID      = -1,                        &
+                        SpaceDim   =  2,                        &
+                        OutUnit    = TRIM(Unit),                &
+                        COL = HcoState%Diagn%HcoDiagnIDRestart, &
+                        AutoFill   = 0,                         &
+                        Trgt2D     = Arr2D,                     &
+                        RC         = RC                          )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
@@ -316,10 +314,15 @@ CONTAINS
                                   1,         FLD,      RC, Arr3D=Arr3D )
     IF ( RC /= HCO_SUCCESS ) RETURN
  
+    ! If field is all zero assume it to be not filled
+    IF ( FLD ) THEN
+       IF ( SUM(Arr3D) == 0.0 ) FLD = .FALSE.
+    ENDIF
+
     ! Log output 
     IF ( am_I_Root .AND. FLD ) THEN
        MSG = 'Obtained restart variable from ESMF internal state: '//TRIM(Name)
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
     ENDIF
 #endif
 
@@ -329,7 +332,7 @@ CONTAINS
     IF ( .NOT. FLD ) THEN
 
        ! Try to get pointer from HEMCO configuration
-       CALL HCO_GetPtr( am_I_Root, TRIM(Name), Ptr3D, RC, FILLED=FLD )
+       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(Name), Ptr3D, RC, FILLED=FLD )
        IF ( RC /= HCO_SUCCESS ) RETURN
       
        ! Eventually pass data
@@ -339,7 +342,7 @@ CONTAINS
           ! Log output 
           IF ( am_I_Root ) THEN
              MSG = 'Obtained restart variable from HEMCO config: '//TRIM(Name)
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
        ENDIF
 
@@ -356,14 +359,14 @@ CONTAINS
           FLD   = .TRUE.
           IF ( am_I_Root ) THEN
              MSG = 'Filled restart variable with default 3D field: '//TRIM(Name)
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
        ELSEIF( PRESENT(DefVal) ) THEN
           Arr3D = DefVal
           FLD   = .TRUE.
           IF ( am_I_Root ) THEN
              MSG = 'Filled restart variable with default scalar: '//TRIM(Name)
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
        ENDIF
     ENDIF
@@ -454,10 +457,15 @@ CONTAINS
                                   1,         FLD,      RC, Arr2D=Arr2D )
     IF ( RC /= HCO_SUCCESS ) RETURN
  
+    ! If field is all zero assume it to be not filled
+    IF ( FLD ) THEN
+       IF ( SUM(Arr2D) == 0.0 ) FLD = .FALSE.
+    ENDIF
+
     ! Log output 
     IF ( am_I_Root .AND. FLD ) THEN
        MSG = 'Obtained restart variable from ESMF internal state: '//TRIM(Name)
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(*,*) TRIM(MSG)
     ENDIF
 #endif
@@ -468,7 +476,7 @@ CONTAINS
     IF ( .NOT. FLD ) THEN
 
        ! Try to get pointer from HEMCO configuration
-       CALL HCO_GetPtr( am_I_Root, TRIM(Name), Ptr2D, RC, FOUND=FLD )
+       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(Name), Ptr2D, RC, FOUND=FLD )
        IF ( RC /= HCO_SUCCESS ) RETURN
       
        ! Eventually pass data
@@ -478,7 +486,7 @@ CONTAINS
           ! Log output 
           IF ( am_I_Root ) THEN
              MSG = 'Obtained restart variable from HEMCO config: '//TRIM(Name)
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
              WRITE(*,*) TRIM(MSG)
           ENDIF
        ENDIF
@@ -496,7 +504,7 @@ CONTAINS
           FLD   = .TRUE.
           IF ( am_I_Root ) THEN
              MSG = 'Filled restart variable with default 2D field: '//TRIM(Name)
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
              WRITE(*,*) TRIM(MSG)
           ENDIF
        ELSEIF( PRESENT(DefVal) ) THEN
@@ -504,7 +512,7 @@ CONTAINS
           FLD   = .TRUE.
           IF ( am_I_Root ) THEN
              MSG = 'Filled restart variable with default scalar: '//TRIM(Name)
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
              WRITE(*,*) TRIM(MSG)
           ENDIF
        ENDIF
@@ -518,7 +526,7 @@ CONTAINS
     ! Verbose
     IF ( am_I_Root .AND. .NOT. FLD ) THEN
        MSG = 'No restart field found: '//TRIM(Name)
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(*,*) TRIM(MSG)
     ENDIF
 

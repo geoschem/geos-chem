@@ -125,7 +125,8 @@ CONTAINS
     !CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
     CALL STRSPLIT( CharStr, SEP, SUBSTR, N )
     IF ( N > SIZE(Reals,1) ) THEN
-       CALL HCO_ERROR( 'Too many substrings!', RC, THISLOC=LOC )
+       WRITE(*,*) 'Too many substrings - error in ', TRIM(LOC)
+       RC = HCO_FAIL 
        RETURN
     ENDIF
 
@@ -209,7 +210,8 @@ CONTAINS
     !CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
     CALL STRSPLIT( CharStr, SEP, SUBSTR, N )
     IF ( N > SIZE(Reals,1) ) THEN
-       CALL HCO_ERROR( 'Too many substrings!', RC, THISLOC=LOC )
+       WRITE(*,*) 'Too many substrings - error in ', TRIM(LOC)
+       RC = HCO_FAIL 
        RETURN
     ENDIF
 
@@ -300,7 +302,8 @@ CONTAINS
     !CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
     CALL STRSPLIT( CharStr, SEP, SUBSTR, N )
     IF ( N > SIZE(Ints,1) ) THEN
-       CALL HCO_ERROR( 'Too many substrings!', RC, THISLOC=LOC )
+       WRITE(*,*) 'Too many substrings - error in ', TRIM(LOC)
+       RC = HCO_FAIL 
        RETURN
     ENDIF
 
@@ -415,14 +418,16 @@ CONTAINS
 !\end{itemize}
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_CharParse ( str, yyyy, mm, dd, hh, mn, RC )
+  SUBROUTINE HCO_CharParse ( HcoConfig, str, yyyy, mm, dd, hh, mn, RC )
 !
 ! !USES:
 !
     USE HCO_ExtList_Mod, ONLY  : HCO_GetOpt, HCO_Root
+    USE HCO_Types_Mod,   ONLY  : ConfigObj
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(ConfigObj),  POINTER        :: HcoConfig 
     INTEGER,          INTENT(IN   )  :: yyyy  ! replace $YYYY with this value 
     INTEGER,          INTENT(IN   )  :: mm    ! replace $MM with this value 
     INTEGER,          INTENT(IN   )  :: dd    ! replace $DD with this value
@@ -461,7 +466,7 @@ CONTAINS
     !=================================================================
 
     ! Get characters
-    SEP = HCO_GetOpt('Separator')
+    SEP = HCO_GetOpt(HcoConfig%ExtList,'Separator')
 
     ! Check for year token
     !-------------------------------------------------------------------
@@ -577,7 +582,7 @@ CONTAINS
        AFTER = str((IDX+OFF):LN)
 
        ! Updated string
-       str = TRIM(BEFORE) // TRIM(HCO_ROOT()) // TRIM(AFTER)
+       str = TRIM(BEFORE) // TRIM(HCO_ROOT(HcoConfig)) // TRIM(AFTER)
     ENDIF
 
     ! Check for any other token
@@ -640,7 +645,9 @@ CONTAINS
        ENDIF
 
        ! Update string
-       str = TRIM(BEFORE) // TRIM(HCO_GetOpt(TOKEN)) // TRIM(AFTER)
+       str = TRIM(BEFORE) // &
+             TRIM(HCO_GetOpt(HcoConfig%ExtList,TOKEN)) // &
+             TRIM(AFTER)
 
     ENDDO 
 

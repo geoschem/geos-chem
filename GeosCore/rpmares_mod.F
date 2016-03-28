@@ -128,6 +128,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,    GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
@@ -215,7 +216,7 @@
             ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
                ! Offline simulation: get HNO3 from HEMCO (mps, 9/23/14)
-               CALL HCO_GetPtr( aIR, 'GLOBAL_HNO3', HNO3, RC )
+               CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_HNO3', HNO3, RC )
                IF ( RC /= GIGC_SUCCESS ) 
      &         CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_HNO3', X )
 

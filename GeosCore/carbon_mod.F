@@ -372,6 +372,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE TRACERID_MOD,       ONLY : IDTBCPI,  IDTBCPO
@@ -523,15 +524,15 @@
 
             IF ( LSOA ) THEN
                ! Get offline oxidant fields from HEMCO (mps, 9/23/14)
-               CALL HCO_GetPtr( aIR, 'GLOBAL_OH',  OH,  RC )
+               CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_OH',  OH,  RC )
                IF ( RC /= GIGC_SUCCESS )
      &         CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_OH',  LOC)
 
-               CALL HCO_GetPtr( aIR, 'GLOBAL_NO3', NO3, RC )
+               CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_NO3', NO3, RC )
                IF ( RC /= GIGC_SUCCESS )
      &         CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_NO3', LOC)
 
-               CALL HCO_GetPtr( aIR, 'O3',         O3,  RC )
+               CALL HCO_GetPtr( aIR, HcoState, 'O3',         O3,  RC )
                IF ( RC /= GIGC_SUCCESS )
      &         CALL ERROR_STOP( 'Cannot get pointer to O3',         LOC)
             ENDIF
@@ -5247,8 +5248,7 @@ ccc
       USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL
       USE GRID_MOD,              ONLY : GET_AREA_M2
       USE TIME_MOD,              ONLY : GET_TS_EMIS
-      USE HCOI_GC_MAIN_MOD,      ONLY : GetHcoState, GetHcoID, GetHcoVal
-      USE HCO_STATE_MOD,         ONLY : HCO_STATE
+      USE HCO_INTERFACE_MOD,     ONLY : HcoState, GetHcoID, GetHcoVal
       USE HCO_ERROR_MOD
 !
 ! !INPUT PARAMETERS:
@@ -5270,7 +5270,6 @@ ccc
 !
 ! !LOCAL VARIABLES:
 !
-      TYPE(HCO_STATE), POINTER :: HcoState => NULL()
       INTEGER                  :: I, J, L, PBL_MAX
       INTEGER                  :: HCOPOA1, HCOPOG1
       REAL(fp)                 :: EMIS, TMPFLX
@@ -5287,12 +5286,6 @@ ccc
 
       ! Reset POAEMISS
       POAEMISS = 0e+0_fp
-
-      ! Get pointer to HEMCO state object
-      CALL GetHcoState ( HcoState )
-      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
-         RETURN
-      ENDIF
 
       ! Eventually get HEMCO ID of species SESQ 
       IF ( SESQID == -999 ) THEN
@@ -5411,9 +5404,7 @@ ccc
       USE TRACERID_MOD,       ONLY : IDTOCIL1,  IDTOCOB1
 
       ! HEMCO update
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState, GetHcoDiagn
-      USE HCO_STATE_MOD,      ONLY : HCO_STATE
-      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
 !
 ! !INPUT PARAMETERS:
 !
@@ -5484,7 +5475,6 @@ ccc
       INTEGER                  :: N_TRACERS
       INTEGER                  :: ID_TRACER(Input_Opt%N_TRACERS)
       ! Pointers
-      TYPE(HCO_State), POINTER :: HcoState   => NULL()
       REAL(f4),        POINTER :: Ptr2D(:,:) => NULL()
       !=================================================================
       ! EMISSCARBONTOMAS begins here!
@@ -5502,7 +5492,6 @@ ccc
       ID_TRACER           = Input_Opt%ID_TRACER(1:N_TRACERS)
 
       ! Import emissions from HEMCO (through HEMCO state)
-      CALL GetHcoState( HcoState )
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
          CALL ERROR_STOP ( 'HcoState not defined!', LOC )
       ENDIF

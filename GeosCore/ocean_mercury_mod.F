@@ -379,6 +379,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE TIME_MOD,           ONLY : SET_Hg2_DIAG        
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
@@ -453,7 +454,7 @@
       !---------------------------
       ! Read SO4 from HEMCO
       !---------------------------
-      CALL HCO_GetPtr( am_I_Root, 'AERO_SO4', ARRAYso4, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'AERO_SO4', ARRAYso4, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_SO4', LOC )
       ENDIF
@@ -464,7 +465,7 @@
       !---------------------------
       ! Read NH4 from HEMCO
       !---------------------------
-      CALL HCO_GetPtr( am_I_Root, 'AERO_NH4', ARRAYnh4, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'AERO_NH4', ARRAYnh4, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_SO4', LOC )
       ENDIF
@@ -475,7 +476,7 @@
       !---------------------------
       ! Read NIT from HEMCO
       !---------------------------
-      CALL HCO_GetPtr( am_I_Root, 'AERO_NIT', ARRAYnit, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'AERO_NIT', ARRAYnit, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_SO4', LOC )
       ENDIF
@@ -488,13 +489,13 @@
       !---------------------------
 
       ! BCPI
-      CALL HCO_GetPtr( am_I_Root, 'AERO_BCPI', ARRAYbcpi, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'AERO_BCPI', ARRAYbcpi, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_BCPI', LOC )
       ENDIF
 
       ! BCPO
-      CALL HCO_GetPtr( am_I_Root, 'AERO_BCPO', ARRAYbcpo, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'AERO_BCPO', ARRAYbcpo, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_BCPO', LOC )
       ENDIF
@@ -513,13 +514,13 @@
       !---------------------------
 
       ! OCPI
-      CALL HCO_GetPtr( am_I_Root, 'AERO_OCPI', ARRAYocpi, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'AERO_OCPI', ARRAYocpi, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_OCPI', LOC )
       ENDIF
 
       ! OCPO
-      CALL HCO_GetPtr( am_I_Root, 'AERO_OCPO', ARRAYocpo, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'AERO_OCPO', ARRAYocpo, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_OCPO', LOC )
       ENDIF
@@ -536,7 +537,7 @@
       !---------------------------
       ! Read DST1 from HEMCO
       !---------------------------
-      CALL HCO_GetPtr( am_I_Root, 'AERO_DST1', ARRAYdst1, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'AERO_DST1', ARRAYdst1, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_DST1', LOC )
       ENDIF
@@ -955,6 +956,7 @@
       USE TIME_MOD
       USE TRACERID_MOD
       USE CMN_SIZE_MOD             ! Size parameters
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr 
 !
 ! !INPUT PARAMETERS:
@@ -1119,20 +1121,22 @@
       IF ( LKRedUV ) THEN
 
          ! TOMS O3 columns [dobsons]
-         CALL HCO_GetPtr( am_I_Root, 'TOMS_O3_COL', TOMS, RC )
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'TOMS_O3_COL', TOMS, RC )
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to TOMS_O3_COL', LOC )
          ENDIF
    
          ! TOMS O3 columns, present-day [dobsons]
-         CALL HCO_GetPtr( am_I_Root, 'TOMS_O3_PD', TOMS_PD, RC )
+         CALL HCO_GetPtr( am_I_Root,   HcoState, 
+     &                   'TOMS_O3_PD', TOMS_PD, RC )
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to TOMSPD_O3_COL', 
      &                        LOC )
          ENDIF
    
          ! TOMS O3 columns, long-term [dobsons]
-         CALL HCO_GetPtr( am_I_Root, 'TOMS_O3_LT', TOMS_LT, RC )
+         CALL HCO_GetPtr( am_I_Root,   HcoState, 
+     &                   'TOMS_O3_LT', TOMS_LT, RC )
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to TOMSLT_O3_COL', 
      &                        LOC )
@@ -2292,6 +2296,7 @@
       USE Error_Mod,          ONLY : Error_Stop
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE TIME_MOD,	      ONLY : ITS_A_LEAPYEAR
       USE GRID_MOD,           ONLY : GET_XMID, GET_YMID 
@@ -2368,7 +2373,7 @@
       !-----------------------------------------------------------------
       ! Mixed layer depth [cm]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, 'OCEAN_MLD', MLD, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'OCEAN_MLD', MLD, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_MLD', LOC )
       ENDIF
@@ -2379,7 +2384,7 @@
       !-----------------------------------------------------------------
       ! Chl from Modis [kg/m3] --> [mg/m3]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, 'OCEAN_CHLA', CHL, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'OCEAN_CHLA', CHL, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_CHLA', LOC )
       ENDIF
@@ -2390,7 +2395,7 @@
       !-----------------------------------------------------------------
       ! Arctic Chl from Jin et al 2012 [mg/m3]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, 'OCEAN_CHLA_A', CHL_A, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'OCEAN_CHLA_A', CHL_A, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_ACHLA', LOC )
       ENDIF
@@ -2398,7 +2403,7 @@
       !-----------------------------------------------------------------
       ! Net primary productivity [kg/m2] -> [mg/m2]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, 'OCEAN_NPP', NPP, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'OCEAN_NPP', NPP, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_NPP', LOC )
       ENDIF
@@ -2409,7 +2414,7 @@
       !-----------------------------------------------------------------
       ! Arctic Net primary productivity [mg/m2/day]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, 'OCEAN_NPP_A', NPP_A, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'OCEAN_NPP_A', NPP_A, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_ANPP', LOC )
       ENDIF
@@ -2417,7 +2422,7 @@
       !-----------------------------------------------------------------
       ! Ekman upwelling velocity [m/s]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, 'OCEAN_EKMAN_V', UPVEL, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'OCEAN_EKMAN_V', UPVEL, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_EKMAN_V', LOC )
       ENDIF
@@ -2425,7 +2430,7 @@
       !-----------------------------------------------------------------
       ! MLD tendency, first half of month [cm/s]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, 'OCEAN_dMLD1', dMLD1, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'OCEAN_dMLD1', dMLD1, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to dMLD1', LOC )
       ENDIF
@@ -2436,7 +2441,7 @@
       !-----------------------------------------------------------------
       ! MLD tendency, second half of month [cm/s]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, 'OCEAN_dMLD2', dMLD2, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'OCEAN_dMLD2', dMLD2, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to dMLD2', LOC )
       ENDIF

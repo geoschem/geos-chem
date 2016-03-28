@@ -117,8 +117,6 @@
       USE TRACERID_MOD,       ONLY : IDTPb
       USE TRACERID_MOD,       ONLY : IDTBe7    
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-!      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
-!      USE HCO_Error_Mod
 !
 ! !INPUT PARAMETERS:
 !

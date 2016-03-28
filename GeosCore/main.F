@@ -721,8 +721,8 @@
       ! Read initial tracer conditions
       ! NOTE: Tracer concentrations are read in as [v/v dry air] and converted
       ! to kg/kg dry air (ewl, 9/18/15)
-      CALL READ_RESTART_FILE( NYMDb,     NHMSb, 
-     &                        Input_Opt, State_Met, State_Chm )
+      CALL READ_RESTART_FILE( am_I_Root, NYMDb,     NHMSb, 
+     &                        Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
       ! Initialize stratospheric routines

@@ -56,6 +56,7 @@
       PRIVATE :: READ_NESTED_GRID_MENU
       PRIVATE :: READ_BENCHMARK_MENU  
       PRIVATE :: READ_CH4_MENU
+      PRIVATE :: READ_PASSIVE_TRACER_MENU
       PRIVATE :: VALIDATE_DIRECTORIES  
       PRIVATE :: CHECK_DIRECTORY
       PRIVATE :: CHECK_TIME_STEPS 
@@ -196,7 +197,6 @@
       USE GAMAP_MOD,          ONLY : DO_GAMAP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE SEASALT_MOD,        ONLY : INIT_SEASALT
 !
 ! !INPUT PARAMETERS:
 !
@@ -237,6 +237,7 @@
 !                              so that we can pass it to INITIALIZE_GEOS_GRID
 !  04 Aug 2015 - M. Long     - Removed ".rc" file specifier. Not necessary.
 !  16 Dec 2015 - R. Yantosca - Now pass State_Chm to READ_TRACER_MENU
+!  04 Sep 2015 - C. Keller   - Added passive tracer menu
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -266,6 +267,12 @@
 
       ! Assume success
       RC       = GIGC_SUCCESS
+
+      ! We need to add the '.rc' extension to the input.geos file
+      ! so taht GEOS-5 will copy it to the proper run directory.
+#if defined( ESMF_ )
+      FILENAME = TRIM(FILENAME)//'.rc'
+#endif
 
       ! Open file
       OPEN( IU_GEOS, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
@@ -397,6 +404,10 @@
                                    
          ELSE IF ( INDEX( LINE, 'CH4 MENU'         ) > 0 ) THEN 
             CALL READ_CH4_MENU( am_I_Root, Input_Opt, RC )
+
+         ELSE IF ( INDEX( LINE, 'PASSIVE TRACERS' ) > 0 ) THEN 
+            CALL READ_PASSIVE_TRACER_MENU( am_I_Root, Input_Opt, RC )
+
          ELSE IF ( INDEX( LINE, 'END OF FILE'      ) > 0 ) THEN 
             EXIT
 
@@ -6534,13 +6545,14 @@
 !  08 Nov 2012 - R. Yantosca - Now save fields to the Input_Opt object
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  14 Jan 2016 - C. Keller   - Now refer to Input_Opt%LKPP instead of LKPP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL              :: LKPP,     EOF,  DO_SAVE_PL, DO_SAVE_O3
+      LOGICAL              ::           EOF,  DO_SAVE_PL, DO_SAVE_O3
       INTEGER              :: F,        M,    N,          NFAM
       CHARACTER(LEN=255)   :: LOCATION, NAME, MSG 
 
@@ -6645,7 +6657,7 @@
       ! Error check: ND65 not available for KPP
       !=================================================================
 
-      IF ( DO_SAVE_PL .AND. LKPP ) THEN
+      IF ( DO_SAVE_PL .AND. Input_Opt%LKPP ) THEN
          MSG = 'P/L families are incompatible with KPP. ' //
      &         'Please change one option'
          CALL ERROR_STOP( MSG, LOCATION )
@@ -7667,6 +7679,100 @@
       RC = GIGC_SUCCESS
 
       END SUBROUTINE READ_POPS_MENU
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_passive_tracer_menu
+!
+! !DESCRIPTION: Subroutine READ\_PASSIVE\_TRACER\_MENU reads the passive 
+!  tracer MENU section of the GEOS-Chem input file; this defines passive
+!  tracers to be used for this simulation. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_PASSIVE_TRACER_MENU( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE PASSIVE_TRACER_MOD,   ONLY : INIT_PASSIVE_TRACER
+      USE PASSIVE_TRACER_MOD,   ONLY : ADD_PASSIVE_TRACER
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)           :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY: 
+!  04 Sep 2015 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER            :: I, N, NPT
+      CHARACTER(LEN=31)  :: TRCNAME
+      REAL(fp)           :: TAU, INITCONC
+
+      ! Arrays
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+
+      !=================================================================
+      ! READ_PASSIVE_TRACER_MENU begins here!
+      !=================================================================
+
+      ! Assume success until otherwise
+      RC = GIGC_SUCCESS
+
+      ! # of passive tracers 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_passive_tracer_menu:1' )
+      READ( SUBSTRS(1), * ) NPT 
+
+      ! Initialize passive tracer module arrays
+      CALL INIT_PASSIVE_TRACER ( am_I_Root, NPT, RC )
+
+      ! Read passive tracer information for each passive tracer
+      ! Every passive tracer line is expected to have 3 entries:
+      ! - Tracer name
+      ! - Atmospheric lifetime (s)
+      ! - Default atmospheric concentration (v/v)
+      IF ( NPT > 0 ) THEN
+         DO I = 1, NPT
+            ! Read values into substrings
+            CALL SPLIT_ONE_LINE( SUBSTRS, N, 3, 
+     &                           'read_passive_tracer_menu:2' )
+     
+            ! Pass to temporary variables
+            TRCNAME = TRIM(SUBSTRS(1))
+            READ( SUBSTRS(2), * ) TAU
+            READ( SUBSTRS(3), * ) INITCONC 
+      
+            ! Register as passive tracer 
+            CALL ADD_PASSIVE_TRACER ( am_I_Root, Input_Opt, TRCNAME, 
+     &                                TAU,       INITCONC,  RC      )
+            IF ( RC /= GIGC_SUCCESS ) RETURN 
+
+         ENDDO
+      ENDIF
+
+      ! All done
+      RC = GIGC_SUCCESS
+
+      END SUBROUTINE READ_PASSIVE_TRACER_MENU
 !EOC
 #if   defined( APM ) 
 !------------------------------------------------------------------------------

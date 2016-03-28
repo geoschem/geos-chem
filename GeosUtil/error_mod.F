@@ -777,6 +777,7 @@
 !  12 Mar 2013 - R. Yantosca - Now use GEOS-5 style traceback when using ESMF
 !   8 Jul 2014 - R. Yantosca - Now call cleanup.F with shadow variables
 !  11 Aug 2015 - M. Yannetti - Now calls all timers to stop.
+!  14 Jan 2016 - C. Keller   - Moved __Iam__ into variable definition section
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -785,6 +786,10 @@
 !
       INTEGER :: RC          ! Success / Failure
       LOGICAL :: am_I_Root   ! Is this the root CPU? 
+
+#if defined( ESMF_ )
+      __Iam__('GEOSCHEMSTOP')
+#endif
 
       ! Only write to stdout if we are on the root CPU
       am_I_Root = .TRUE. 
@@ -795,14 +800,12 @@
 #endif
 
 #if defined( ESMF_ )
-
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! Use GEOS-5 style error reporting when connecting to the GEOS-5
       ! GCM via the ESMF interface (bmy, 3/12/13)
       !-----------------------------------------------------------------
-      __Iam__('GEOSCHEMSTOP')
       STATUS = -1
       VERIFY_(STATUS)
 

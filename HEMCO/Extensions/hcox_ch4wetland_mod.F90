@@ -83,24 +83,32 @@ MODULE HCOX_CH4WETLAND_Mod
 ! !PRIVATE VARIABLES:
 !
   ! Module variables related to extension settings
-  INTEGER                     :: ExtNr
-  LOGICAL                     :: DoWetland 
-  LOGICAL                     :: DoRice
+  TYPE :: MyInst
+   INTEGER                        :: Instance
+   INTEGER                        :: ExtNr
+   LOGICAL                        :: DoWetland 
+   LOGICAL                        :: DoRice
+   LOGICAL                        :: DoDiagn
 
-  ! Number of CH4 tracers and scale factors associated with them
-  INTEGER                        :: nSpc
-  INTEGER,           ALLOCATABLE :: SpcIDs(:)
-  REAL(sp),          ALLOCATABLE :: SpcScal(:)
-  CHARACTER(LEN=61), ALLOCATABLE :: SpcScalFldNme(:)
+   ! Number of CH4 tracers and scale factors associated with them
+   INTEGER                        :: nSpc
+   INTEGER,           ALLOCATABLE :: SpcIDs(:)
+   REAL(sp),          ALLOCATABLE :: SpcScal(:)
+   CHARACTER(LEN=61), ALLOCATABLE :: SpcScalFldNme(:)
 
-  ! Pointers to data read through configuration file
-  REAL(sp), POINTER           :: RICE        (:,:) => NULL()
-  REAL(sp), POINTER           :: GWET_ANNUAL (:,:) => NULL()
-  REAL(sp), POINTER           :: GWET_MONTHLY(:,:) => NULL()
-  REAL(sp), POINTER           :: WETFRAC     (:,:) => NULL()
-  REAL(sp), POINTER           :: LITTER_C    (:,:) => NULL()
-  REAL(sp), POINTER           :: SOIL_C      (:,:) => NULL()
-  REAL(sp), POINTER           :: MEAN_T      (:,:) => NULL()
+   ! Pointers to data read through configuration file
+   REAL(sp), POINTER               :: RICE        (:,:) => NULL()
+   REAL(sp), POINTER               :: GWET_ANNUAL (:,:) => NULL()
+   REAL(sp), POINTER               :: GWET_MONTHLY(:,:) => NULL()
+   REAL(sp), POINTER               :: WETFRAC     (:,:) => NULL()
+   REAL(sp), POINTER               :: LITTER_C    (:,:) => NULL()
+   REAL(sp), POINTER               :: SOIL_C      (:,:) => NULL()
+   REAL(sp), POINTER               :: MEAN_T      (:,:) => NULL()
+   TYPE(MyInst), POINTER           :: NextInst          => NULL()
+  END TYPE MyInst
+
+  ! Pointer to instances
+  TYPE(MyInst), POINTER            :: AllInst => NULL()
 
 CONTAINS
 !EOC
@@ -123,6 +131,8 @@ CONTAINS
 !
     USE HCO_EMISLIST_MOD, ONLY : HCO_GetPtr 
     USE HCO_FLUXARR_MOD,  ONLY : HCO_EmisAdd
+    USE HCO_TYPES_MOD,    ONLY : DiagnCont
+    USE HCO_CLOCK_MOD,    ONLY : HcoClock_First
 !
 ! !INPUT PARAMETERS:
 !
@@ -144,19 +154,18 @@ CONTAINS
 !
     INTEGER                  :: N
 
-    LOGICAL, SAVE            :: FIRST   = .TRUE.
-    LOGICAL, SAVE            :: DoDiagn = .FALSE.
-
     ! Array holding the CH4 emissions
     REAL(hp)                 :: CH4tmp(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET         :: CH4wtl(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET         :: CH4rce(HcoState%NX,HcoState%NY)
-    TYPE(DiagnCont), POINTER :: TmpCnt     => NULL()
+    TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
+    TYPE(MyInst),    POINTER :: Inst   => NULL()
 
     ! Name of the manual diagnostic container
     CHARACTER(LEN=31),  PARAMETER :: DiagnWtl = 'CH4_WETLAND'
     CHARACTER(LEN=31),  PARAMETER :: DiagnRce = 'CH4_RICE'
 
+    CHARACTER(LEN=255)            :: MSG
     CHARACTER(LEN=255), PARAMETER :: LOC = &
        'HCOX_CH4WETLAND_Run (hcox_ch4wetland_mod.F90)'
 
@@ -165,43 +174,53 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    CALL HCO_ENTER( LOC, RC )
+    CALL HCO_ENTER( HcoState%Config%Err, LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return if extension disabled 
     IF ( .NOT. ExtState%Wetland_CH4 ) RETURN
 
+    ! Get instance
+    CALL InstGet ( ExtState%Wetland_CH4, Inst, RC )
+    IF ( RC /= HCO_SUCCESS ) THEN 
+       WRITE(MSG,*) 'Cannot find CH4 wetland instance Nr. ', ExtState%Wetland_CH4
+       CALL HCO_ERROR(HcoState%Config%Err,MSG,RC)
+       RETURN
+    ENDIF
+
     ! ---------------------------------------------------------------
     ! On first call, get pointers to data and check if manual 
     ! diagnostics will be used 
     ! ---------------------------------------------------------------
-    IF ( FIRST ) THEN
+    IF ( HcoClock_First( HcoState%Clock, .TRUE.) ) THEN
     
-       IF ( DoWetland ) THEN
-          CALL HCO_GetPtr( am_I_Root, 'CH4_WETFRAC',  WETFRAC,  RC )
+       IF ( Inst%DoWetland ) THEN
+          CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_WETFRAC',  Inst%WETFRAC,  RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr( am_I_Root, 'CH4_LITTER_C', LITTER_C, RC )
+          CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_LITTER_C', Inst%LITTER_C, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr( am_I_Root, 'CH4_SOIL_C',   SOIL_C,   RC )
+          CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_SOIL_C',   Inst%SOIL_C,   RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr( am_I_Root, 'CH4_MEAN_T',   MEAN_T,   RC )
+          CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_MEAN_T',   Inst%MEAN_T,   RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          IF ( .NOT. DoDiagn ) THEN
-             CALL DiagnCont_Find ( -1,-1,-1,-1,-1, TRIM(DiagnWtl), 0, DoDiagn, TmpCnt )
+          IF ( .NOT. Inst%DoDiagn ) THEN
+             CALL DiagnCont_Find ( HcoState%Diagn, -1,-1,-1,-1,-1, &
+                                   TRIM(DiagnWtl), 0, Inst%DoDiagn, TmpCnt )
              TmpCnt => NULL()
           ENDIF
        ENDIF
  
        ! Fields required by rice emissions
-       IF ( DoRice ) THEN
-          CALL HCO_GetPtr( am_I_Root, 'CH4_RICE',    RICE,         RC )
+       IF ( Inst%DoRice ) THEN
+          CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_RICE',    Inst%RICE,         RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr( am_I_Root, 'CH4_GWET_YR', GWET_ANNUAL,  RC )
+          CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_GWET_YR', Inst%GWET_ANNUAL,  RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr( am_I_Root, 'CH4_GWET_MT', GWET_MONTHLY, RC )
+          CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_GWET_MT', Inst%GWET_MONTHLY, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          IF ( .NOT. DoDiagn ) THEN
-             CALL DiagnCont_Find ( -1,-1,-1,-1,-1, TRIM(DiagnRce), 0, DoDiagn, TmpCnt )
+          IF ( .NOT. Inst%DoDiagn ) THEN
+             CALL DiagnCont_Find ( HcoState%Diagn, -1,-1,-1,-1,-1, &
+                                   TRIM(DiagnRce), 0, Inst%DoDiagn, TmpCnt )
              TmpCnt => NULL()
           ENDIF
        ENDIF
@@ -214,14 +233,14 @@ CONTAINS
     CH4wtl = 0.0_hp
 
     ! If turned on, calculate wetland emissions
-    IF ( DoWetland ) THEN
-       CALL WETLAND_EMIS ( am_I_Root, HcoState, ExtState, CH4wtl, RC )
+    IF ( Inst%DoWetland ) THEN
+       CALL WETLAND_EMIS ( am_I_Root, HcoState, ExtState, Inst, CH4wtl, RC )
     ENDIF
 
     ! If turned on, calculate rice emissions. Previously calculated 
     ! wetland emissions may be subtracted!
-    IF ( DoRice ) THEN
-       CALL RICE_EMIS ( am_I_Root, HcoState, ExtState, CH4rce, RC )
+    IF ( Inst%DoRice ) THEN
+       CALL RICE_EMIS ( am_I_Root, HcoState, ExtState, Inst, CH4rce, RC )
     ENDIF
 
     ! ---------------------------------------------------------------
@@ -234,14 +253,14 @@ CONTAINS
     ENDWHERE
 
     ! Eventually update manual diagnostics
-    IF ( DoDiagn ) THEN
-       IF ( DoWetland ) THEN
-          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
+    IF ( Inst%DoDiagn ) THEN
+       IF ( Inst%DoWetland ) THEN
+          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
                              cName=TRIM(DiagnWtl), Array2D=CH4wtl, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
-       IF ( DoRice ) THEN
-          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
+       IF ( Inst%DoRice ) THEN
+          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
                              cName=TRIM(DiagnRce), Array2D=CH4rce, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -251,23 +270,23 @@ CONTAINS
     CH4wtl = CH4wtl + CH4rce 
 
     ! Add flux to all species, eventually apply scaling & masking
-    DO N = 1, nSpc
+    DO N = 1, Inst%nSpc
 
        ! Apply scale factor
-       CH4tmp = CH4wtl * SpcScal(N)
+       CH4tmp = CH4wtl * Inst%SpcScal(N)
 
        ! Check for masking
-       CALL HCOX_SCALE ( am_I_Root, HcoState, CH4tmp, SpcScalFldNme(N), RC )
+       CALL HCOX_SCALE ( am_I_Root, HcoState, CH4tmp, Inst%SpcScalFldNme(N), RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Add emissions 
-       CALL HCO_EmisAdd ( am_I_Root, HcoState, CH4tmp, SpcIDs(N), RC, ExtNr=ExtNr )
+       CALL HCO_EmisAdd ( am_I_Root, HcoState, CH4tmp, Inst%SpcIDs(N), RC, &
+                          ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDDO 
 
-
     ! Leave w/ success
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
 
   END SUBROUTINE HCOX_CH4WETLAND_Run
 !EOC
@@ -285,11 +304,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE WETLAND_EMIS ( am_I_Root, HcoState, ExtState, CH4wtl, RC )
+  SUBROUTINE WETLAND_EMIS ( am_I_Root, HcoState, ExtState, Inst, CH4wtl, RC )
 !
 ! !USES:
 !
-    USE HCO_CLOCK_MOD,      ONLY : HcoClock_Get
 !
 ! !INPUT PARAMETERS:
 !
@@ -299,6 +317,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(MyInst),    POINTER       :: Inst
     REAL(hp),        INTENT(INOUT) :: CH4wtl(HcoState%NX,HcoState%NY) ! CH4 emis
     INTEGER,         INTENT(INOUT) :: RC         ! Success or failure?
 !
@@ -404,7 +423,7 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    CALL HCO_ENTER( LOC, RC )
+    CALL HCO_ENTER( HcoState%Config%Err, LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
 !$OMP PARALLEL DO                                                         &
@@ -446,7 +465,7 @@ CONTAINS
                 ! If wetness>0.1, the wetland fraction is equal
                 ! to the maximal potential wetland fraction
                 IF (ExtState%GWETTOP%Arr%Val(I,J) > 0.1d0) THEN
-                   REALWET = WETFRAC(I,J) / 100.0_hp
+                   REALWET = Inst%WETFRAC(I,J) / 100.0_hp
                 ELSE
                    REALWET = 0.d0
                 ENDIF
@@ -474,7 +493,7 @@ CONTAINS
                 ! If wetness>0.1, the wetland fraction is equal
                 ! to the maximal potential wetland fraction
                 IF (EFF_GWET > 0.1d0) THEN
-                   REALWET = WETFRAC(I,J) / 100.0_hp
+                   REALWET = Inst%WETFRAC(I,J) / 100.0_hp
                 ELSE
                    REALWET = 0.0_dp
                 ENDIF
@@ -505,10 +524,10 @@ CONTAINS
        ENDIF
  
        ! Calculate Heterotrophic respiration
-       litterfast = 0.985d0 * LITTER_C(i,j)
-       litterslow = 0.015d0 * LITTER_C(i,j)
-       soilfast =  0.985d0 * SOIL_C(i,j)
-       soilslow =  0.015d0 * SOIL_C(i,j)
+       litterfast = 0.985d0 * Inst%LITTER_C(i,j)
+       litterslow = 0.015d0 * Inst%LITTER_C(i,j)
+       soilfast =  0.985d0 * Inst%SOIL_C(i,j)
+       soilslow =  0.015d0 * Inst%SOIL_C(i,j)
 
        ! The division by 12 seems to convert kgC/m2/yr to kgC/m2/mt. Since
        ! HEMCO input data is in kgC/m2/s, no need to do this anymore!
@@ -518,7 +537,7 @@ CONTAINS
                                + soilslow*0.001d0 ) * 0.34d0 ! / 12d0
  
        ! Calculate "tropicness" of each box
-       TROPICNESS = exp((MEAN_T(I,J) - 303.15d0) / 8d0)
+       TROPICNESS = exp((Inst%MEAN_T(I,J) - 303.15d0) / 8d0)
        IF ( TROPICNESS < 0d0 ) THEN
           TROPICNESS = 0d0
        ENDIF
@@ -553,7 +572,7 @@ CONTAINS
 !    CH4wtl = CH4wtl / MWC * HcoState%Spc(IDTtot)%MW_g
 
     ! Leave w/ success
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
 
   END SUBROUTINE WETLAND_EMIS 
 !EOC
@@ -571,7 +590,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE RICE_EMIS ( am_I_Root, HcoState, ExtState, CH4rce, RC )
+  SUBROUTINE RICE_EMIS ( am_I_Root, HcoState, ExtState, Inst, CH4rce, RC )
 !
 ! !USES:
 !
@@ -584,6 +603,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(MyInst),    POINTER       :: Inst
     REAL(hp),        INTENT(INOUT) :: CH4rce(HcoState%NX,HcoState%NY) ! CH4 emis
     INTEGER,         INTENT(INOUT) :: RC         ! Success or failure?
 !
@@ -618,7 +638,7 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    CALL HCO_ENTER( LOC, RC )
+    CALL HCO_ENTER( HcoState%Config%Err, LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !scale rice emissions (by Jerome Drevet)
@@ -628,17 +648,17 @@ CONTAINS
 !$OMP SCHEDULE( DYNAMIC )
     DO J = 1, HcoState%NY 
     DO I = 1, HcoState%NX
-       wet_ratio = GWET_MONTHLY(I,J)/GWET_ANNUAL(I,J)-1.0_hp
+       wet_ratio = Inst%GWET_MONTHLY(I,J)/Inst%GWET_ANNUAL(I,J)-1.0_hp
        wet_ratio = wet_ratio * 2.0_dp
        wet_ratio = wet_ratio +1.0_dp
        IF (wet_ratio < 0) wet_ratio = 0.0_dp
-       CH4rce(I,J) = RICE(I,J) * wet_ratio
+       CH4rce(I,J) = Inst%RICE(I,J) * wet_ratio
     ENDDO
     ENDDO
 !$OMP END PARALLEL DO
 
     ! Leave w/ success
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
 
   END SUBROUTINE RICE_EMIS 
 !EOC
@@ -684,8 +704,9 @@ CONTAINS
 ! !LOCAL VARIABLES
 !
     ! Scalars
-    INTEGER                        :: N
+    INTEGER                        :: ExtNr, N
     CHARACTER(LEN=255)             :: MSG
+    TYPE(MyInst), POINTER          :: Inst => NULL()
 
     ! Arrays
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
@@ -695,54 +716,65 @@ CONTAINS
     !=================================================================
 
     ! Extension Nr.
-    ExtNr = GetExtNr( TRIM(ExtName) )
+    ExtNr = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
     IF ( ExtNr <= 0 ) RETURN
  
     ! Enter 
-    CALL HCO_ENTER ( 'HCOX_CH4WETLAND_Init (hcox_wetlands_ch4_mod.F90)', RC )
+    CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_CH4WETLAND_Init (hcox_wetlands_ch4_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! Create Instance
+    CALL InstCreate ( ExtNr, ExtState%Wetland_CH4, Inst, RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot create CH4WETLAND instance', RC )
+       RETURN
+    ENDIF
+
     ! HEMCO species IDs of species names defined in config. file 
-    CALL HCO_GetExtHcoID( HcoState, ExtNr, SpcIDs, SpcNames, nSpc, RC )
+    CALL HCO_GetExtHcoID( HcoState, ExtNr, Inst%SpcIDs, SpcNames, Inst%nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get species scale factors
-    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'Scaling', 1.0_sp, SpcScal, RC )
+    CALL GetExtSpcVal( HcoState%Config, ExtNr, Inst%nSpc, &
+                       SpcNames, 'Scaling', 1.0_sp, Inst%SpcScal, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get mask field IDs
-    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'ScaleField', HCOX_NOSCALE, SpcScalFldNme, RC )
+    CALL GetExtSpcVal( HcoState%Config, ExtNr, Inst%nSpc, &
+                       SpcNames, 'ScaleField', HCOX_NOSCALE, Inst%SpcScalFldNme, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Check if wetlands and/or rice emissions shall be used and save
     ! in module variables DoWetland and DoRice.
-    CALL GetExtOpt ( ExtNr, 'Wetlands', OptValBool=DoWetland, RC=RC )
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'Wetlands', &
+                     OptValBool=Inst%DoWetland, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL GetExtOpt ( ExtNr, 'Rice',     OptValBool=DoRice,    RC=RC )
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'Rice', & 
+                     OptValBool=Inst%DoRice,    RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Make sure at least one source is used.
-    IF ( .NOT. DoWetland .AND. .NOT. DoRice ) THEN
+    IF ( .NOT. Inst%DoWetland .AND. .NOT. Inst%DoRice ) THEN
        MSG = 'Wetlands and rice emissions are both turned off!'
-       CALL HCO_ERROR ( MSG, RC )
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ENDIF
 
     ! Verbose mode
     IF ( am_I_Root ) THEN
        MSG = 'Use wetland flux emissions (extension module)'
-       CALL HCO_MSG( MSG,SEP1='-' )
-       WRITE(MSG,*) 'Use wetlands         : ', DoWetland
-       CALL HCO_MSG( MSG )
-       WRITE(MSG,*) 'Use rice             : ', DoRice
-       CALL HCO_MSG( MSG )
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='-' )
+       WRITE(MSG,*) 'Use wetlands         : ', Inst%DoWetland
+       CALL HCO_MSG(HcoState%Config%Err,MSG )
+       WRITE(MSG,*) 'Use rice             : ', Inst%DoRice
+       CALL HCO_MSG(HcoState%Config%Err,MSG )
        WRITE(MSG,*) 'Use the following species: '
-       CALL HCO_MSG( MSG )
-       DO N = 1, nSpc
+       CALL HCO_MSG(HcoState%Config%Err,MSG )
+       DO N = 1, Inst%nSpc
           WRITE(MSG,*) ' --> ', TRIM(SpcNames(N))
-          WRITE(MSG,*) '     Scale factor: ', SpcScal(N)
-          WRITE(MSG,*) '     Scale field : ', TRIM(SpcScalFldNme(N))
-          CALL HCO_MSG( MSG )
+          WRITE(MSG,*) '     Scale factor: ', Inst%SpcScal(N)
+          WRITE(MSG,*) '     Scale field : ', TRIM(Inst%SpcScalFldNme(N))
+          CALL HCO_MSG(HcoState%Config%Err,MSG )
        ENDDO
     ENDIF
 
@@ -756,12 +788,10 @@ CONTAINS
     ExtState%FRLAKE%DoUse   = .TRUE.
     ExtState%FRLANDIC%DoUse = .TRUE.
 
-    ! Enable extensions
-    ExtState%Wetland_CH4 = .TRUE.
-
     ! Return w/ success
+    Inst => NULL()
     IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HCOX_CH4WETLAND_INIT
 !EOC
@@ -778,7 +808,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_CH4WETLAND_Final()
+  SUBROUTINE HCOX_CH4WETLAND_Final( ExtState )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options      
 !
 ! !REVISION HISTORY:
 !  11 Sep 2014 - C. Keller - Initial version
@@ -789,12 +823,208 @@ CONTAINS
     !=================================================================
     ! HCOX_CH4WETLAND_Final begins here!
     !=================================================================
-
-    IF ( ALLOCATED (SpcScal      ) ) DEALLOCATE(SpcScal      )
-    IF ( ALLOCATED (SpcIDs       ) ) DEALLOCATE(SpcIDs       )
-    IF ( ALLOCATED (SpcScalFldNme) ) DEALLOCATE(SpcScalFldNme)
+    CALL InstRemove ( ExtState%Wetland_CH4 )
 
   END SUBROUTINE HCOX_CH4WETLAND_Final
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstGet 
+!
+! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER                             :: Instance
+    TYPE(MyInst),     POINTER           :: Inst
+    INTEGER                             :: RC
+    TYPE(MyInst),     POINTER, OPTIONAL :: PrevInst
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    TYPE(MyInst),     POINTER    :: PrvInst
+
+    !=================================================================
+    ! InstGet begins here!
+    !=================================================================
+ 
+    ! Get instance. Also archive previous instance.
+    PrvInst => NULL() 
+    Inst    => AllInst
+    DO WHILE ( ASSOCIATED(Inst) ) 
+       IF ( Inst%Instance == Instance ) EXIT
+       PrvInst => Inst
+       Inst    => Inst%NextInst
+    END DO
+    IF ( .NOT. ASSOCIATED( Inst ) ) THEN
+       RC = HCO_FAIL
+       RETURN
+    ENDIF
+
+    ! Pass output arguments
+    IF ( PRESENT(PrevInst) ) PrevInst => PrvInst
+
+    ! Cleanup & Return
+    PrvInst => NULL()
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE InstGet 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstCreate 
+!
+! !DESCRIPTION: Subroutine InstCreate creates a new instance. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,       INTENT(IN)       :: ExtNr
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,       INTENT(  OUT)    :: Instance
+    TYPE(MyInst),  POINTER          :: Inst
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,       INTENT(INOUT)    :: RC 
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    TYPE(MyInst), POINTER          :: TmpInst  => NULL()
+    INTEGER                        :: nnInst
+
+    !=================================================================
+    ! InstCreate begins here!
+    !=================================================================
+
+    ! ----------------------------------------------------------------
+    ! Generic instance initialization 
+    ! ----------------------------------------------------------------
+
+    ! Initialize
+    Inst => NULL()
+
+    ! Get number of already existing instances
+    TmpInst => AllInst
+    nnInst = 0
+    DO WHILE ( ASSOCIATED(TmpInst) )
+       nnInst  =  nnInst + 1
+       TmpInst => TmpInst%NextInst
+    END DO
+
+    ! Create new instance
+    ALLOCATE(Inst)
+    Inst%Instance = nnInst + 1
+    Inst%ExtNr    = ExtNr 
+
+    ! Attach to instance list
+    Inst%NextInst => AllInst
+    AllInst       => Inst
+
+    ! Update output instance
+    Instance = Inst%Instance
+
+    ! ----------------------------------------------------------------
+    ! Type specific initialization statements follow below
+    ! ----------------------------------------------------------------
+    Inst%RICE         => NULL()
+    Inst%GWET_ANNUAL  => NULL()
+    Inst%GWET_MONTHLY => NULL()
+    Inst%WETFRAC      => NULL()
+    Inst%LITTER_C     => NULL()
+    Inst%SOIL_C       => NULL()
+    Inst%MEAN_T       => NULL()
+
+    Inst%DoWetland = .FALSE. 
+    Inst%DoRice    = .FALSE. 
+    Inst%DoDiagn   = .FALSE. 
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE InstCreate
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstRemove 
+!
+! !DESCRIPTION: Subroutine InstRemove creates a new instance. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstRemove ( Instance ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER                         :: Instance 
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    INTEGER                     :: RC
+    TYPE(MyInst), POINTER       :: PrevInst => NULL()
+    TYPE(MyInst), POINTER       :: Inst     => NULL()
+
+    !=================================================================
+    ! InstRemove begins here!
+    !=================================================================
+ 
+    ! Get instance. Also archive previous instance.
+    CALL InstGet ( Instance, Inst, RC, PrevInst=PrevInst )
+
+    ! Instance-specific deallocation
+    IF ( ASSOCIATED(Inst) ) THEN 
+       IF ( ALLOCATED(Inst%SpcIDs       ) ) DEALLOCATE ( Inst%SpcIDs        )
+       IF ( ALLOCATED(Inst%SpcScal      ) ) DEALLOCATE ( Inst%SpcScal       )
+       IF ( ALLOCATED(Inst%SpcScalFldNme) ) DEALLOCATE ( Inst%SpcScalFldNme )
+       Inst%RICE => NULL()
+       Inst%GWET_ANNUAL => NULL()
+       Inst%GWET_MONTHLY => NULL()
+       Inst%WETFRAC => NULL()
+       Inst%LITTER_C => NULL()
+       Inst%SOIL_C => NULL()
+       Inst%MEAN_T => NULL()
+ 
+       ! Pop off instance from list
+       IF ( ASSOCIATED(PrevInst) ) THEN
+          PrevInst%NextInst => Inst%NextInst
+       ELSE
+          AllInst => Inst%NextInst
+       ENDIF
+       DEALLOCATE(Inst)
+       Inst => NULL() 
+    ENDIF
+   
+   END SUBROUTINE InstRemove
 !EOC
 END MODULE HCOX_CH4WETLAND_Mod
 !EOM

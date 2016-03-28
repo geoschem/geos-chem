@@ -483,6 +483,9 @@
       MONTH_STR_INT = GET_MONTH()
       WRITE( MONTH_STR, '(i0.2)' ) MONTH_STR_INT
 
+      ! Error trap: make sure CFCYEAR is properly initialized
+      IF ( CFCYEAR < 0 ) CFCYEAR = GET_YEAR()
+
       ! Are we using 2D data?
       ! Don't use LBASICEMIS in check below (ckeller, 05/12/14)
       USE2DDATA = ( LSETOCS     .or. LSETCFC      .or. LSETCL     .or.
@@ -1995,12 +1998,13 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,              ONLY : GIGC_Error
       USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,     ONLY : OptInput     
-      USE GIGC_State_Chm_Mod,     ONLY : ChmState
-      USE GIGC_State_Met_Mod,     ONLY : MetState
-      USE TIME_MOD,               ONLY : GET_MONTH
+      USE ERROR_MOD,          ONLY : GIGC_Error
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS:
 !
@@ -2064,6 +2068,11 @@
 
       ! Initialize GEOS-Chem tracer array [kg/kg dry]
       STT => State_Chm%Tracers
+
+      ! Error trap: make sure CFCYEAR is defined. In ESMF mode, CFCYEAR
+      ! may become initialized to zero because the simulation year is not
+      ! yet know during initialization (ckeller, 1/20/16).
+      IF ( CFCYEAR <= 0 ) CFCYEAR = GET_YEAR()
 
        ! If not correct hour block and day read in new fields
        IF (SFC_MONTH/=GET_MONTH()) THEN
@@ -5293,10 +5302,9 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD
       USE HCO_RESTART_MOD,    ONLY : HCO_RestartGet
-      USE HCO_STATE_MOD,      ONLY : HCO_State
       USE HCO_CLOCK_MOD,      ONLY : HcoClock_First 
       USE HCO_CLOCK_MOD,      ONLY : HcoClock_Rewind
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5325,9 +5333,6 @@
 
       ! Strings
       CHARACTER(LEN=255) :: MSG
-     
-      ! Pointer to HEMCO state obj.
-      TYPE(HCO_State), POINTER  :: HcoState => NULL()
 
       !=================================================================
       ! READ_PSC_FILE begins here!
@@ -5337,13 +5342,10 @@
       RC = GIGC_SUCCESS 
  
       ! Only read on first call or after rewind
-      IF ( .NOT. HcoClock_First ( .FALSE. ) .AND. 
-     &     .NOT. HcoClock_Rewind( .FALSE. )      ) THEN
+      IF ( .NOT. HcoClock_First ( HcoState%Clock, .FALSE. ) .AND. 
+     &     .NOT. HcoClock_Rewind( HcoState%Clock, .FALSE. )      ) THEN
          RETURN
       ENDIF
- 
-      ! Get HEMCO state obj.
-      CALL GetHcoState( HcoState )
 
       ! Get restart variable
       CALL HCO_RestartGet( am_I_Root, HcoState, 'STATE_PSC',  
@@ -5352,9 +5354,6 @@
          MSG = 'Cannot get PSC restart variable'
          CALL ERROR_STOP ( MSG, 'READ_PSC_FILE (ucx_mod.F)' )
       ENDIF
-
-      ! Cleanup
-      HcoState => NULL()
 
       ! On first call, prompt some messages
 
@@ -6998,8 +6997,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_RESTART_MOD,    ONLY : HCO_RestartDefine
-      USE HCO_STATE_MOD,      ONLY : HCO_STATE
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_ERROR_MOD
 !
 ! !INPUT PARAMETERS:
@@ -7017,7 +7015,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      TYPE(HCO_State), POINTER :: HcoState => NULL()
       CHARACTER(LEN=255)       :: MSG
       CHARACTER(LEN=255)       :: LOC = 'DIAGINIT_UCX (ucx_mod.F)' 
 
@@ -7026,10 +7023,8 @@
       !=================================================================
 
       ! Define restart quantity    
-      CALL GetHcoState( HcoState ) 
       CALL HCO_RestartDefine ( am_I_Root, HcoState, 
      &                       'STATE_PSC', STATE_PSC, 'count', RC )
-      HcoState => NULL() 
 
       IF ( RC /= HCO_SUCCESS ) THEN
          MSG = 'Cannot define STATE_PSC restart'
@@ -7066,8 +7061,7 @@
       USE GIGC_ErrCode_Mod
       USE HCO_ERROR_MOD
       USE HCO_RESTART_MOD,  ONLY : HCO_RestartWrite
-      USE HCO_STATE_MOD,    ONLY : HCO_STATE
-      USE HCOI_GC_MAIN_MOD, ONLY : GetHcoState
+      USE HCO_INTERFACE_MOD,ONLY : HcoState
 ! 
 ! !INPUT ARGUMENTS:
 !
@@ -7082,18 +7076,14 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      TYPE(HCO_STATE), POINTER  :: HcoState => NULL()
 
       !=================================================================
       ! WRITE_STATE_PSC begins here!
       !=================================================================
 
       ! Eventually write PSC_STATE to restart. 
-      CALL GetHcoState ( HcoState )
-
       CALL HCO_RestartWrite( am_I_Root,   HcoState, 
      &                       'STATE_PSC', STATE_PSC, RC )
-      HcoState => NULL()
       IF ( RC /= HCO_SUCCESS ) THEN
          RC = GIGC_FAILURE
          RETURN

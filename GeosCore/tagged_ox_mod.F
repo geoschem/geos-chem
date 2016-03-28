@@ -453,8 +453,7 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTO3
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
-      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE ERROR_MOD,          ONLY : ERROR_STOP
 
       IMPLICIT NONE
@@ -531,7 +530,6 @@
 
       ! Pointers
       REAL(fp),        POINTER :: STT(:,:,:,:) => NULL()
-      TYPE(HCO_STATE), POINTER :: HcoState     => NULL()
 
       ! Strings
       CHARACTER(LEN=255) :: LOC = 'CHEM_TAGGED_OX (tagged_ox_mod.F)'
@@ -567,25 +565,24 @@
       !=================================================================
       IF ( FIRST ) THEN
 
+         IF ( .NOT. ASSOCIATED(HcoState) ) 
+     &      CALL ERROR_STOP ( 'Cannot get HcoState', LOC )
+
          ! Get pointer to O3 production
-         CALL HCO_GetPtr ( am_I_Root, 'O3_PROD', P24H, RC )
+         CALL HCO_GetPtr ( am_I_Root, HcoState, 'O3_PROD', P24H, RC )
          IF ( RC /= GIGC_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to O3_PROD', LOC )
 
          ! Get pointer to O3 loss
-         CALL HCO_GetPtr ( am_I_Root, 'O3_LOSS', L24H, RC )
+         CALL HCO_GetPtr ( am_I_Root, HcoState, 'O3_LOSS', L24H, RC )
          IF ( RC /= GIGC_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to O3_LOSS', LOC )
 
          ! Get emissions timestep (seconds)
-         CALL GetHcoState ( HcoState )
-         IF ( .NOT. ASSOCIATED(HcoState) ) 
-     &      CALL ERROR_STOP ( 'Cannot get HcoState', LOC )
          TS_EMIS = HcoState%TS_EMIS
          
-         ! Free the pointer and reset first-time variable
+         ! Reset first-time variable
          ! so that this won't be executed again
-         HcoState => NULL()
          FIRST    = .FALSE.
       ENDIF
 

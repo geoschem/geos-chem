@@ -33,8 +33,8 @@
 ! !PUBLIC DATA MEMBERS:
 !
       ! Soil NOx deposited N arrays
-      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: DRY_TOTN     (:,:) ! Drydep'd N
-      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: WET_TOTN     (:,:) ! Wetdep'd N
+      REAL(fp), PUBLIC, POINTER   :: DRY_TOTN (:,:) => NULL() ! Drydep'd N
+      REAL(fp), PUBLIC, POINTER   :: WET_TOTN (:,:) => NULL() ! Wetdep'd N
 ! 
 ! !PUBLIC MEMBER FUNCTIONS:
 !      
@@ -281,8 +281,8 @@
       RC = GIGC_SUCCESS
       
       ! Deallocate arrays
-      IF ( ALLOCATED( DRY_TOTN      ) ) DEALLOCATE( DRY_TOTN      )
-      IF ( ALLOCATED( WET_TOTN      ) ) DEALLOCATE( WET_TOTN      )
+      IF ( ASSOCIATED( DRY_TOTN      ) ) DEALLOCATE( DRY_TOTN      )
+      IF ( ASSOCIATED( WET_TOTN      ) ) DEALLOCATE( WET_TOTN      )
 
       END SUBROUTINE Cleanup_Get_Ndep
 !EOC

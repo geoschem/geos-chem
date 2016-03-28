@@ -117,6 +117,7 @@
 
 #if   defined ( DEVEL )
       USE HCO_ERROR_MOD
+      USE HCO_INTERFACE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
@@ -242,11 +243,11 @@
 
 #if   defined ( DEVEL )
       ! For new diagnostics
-      INTEGER                :: IT, cID, HCRC
-      REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
-      REAL(fp), POINTER      :: TMP3D(:,:,:) => NULL()
-      REAL(fp), POINTER      :: TMP2D(:,:  ) => NULL()
-      REAL(fp)               :: DTIME
+      INTEGER                  :: IT, cID, HCRC
+      REAL(fp), ALLOCATABLE    :: BEFORE(:,:,:,:)
+      REAL(fp), POINTER        :: TMP3D(:,:,:) => NULL()
+      REAL(fp), POINTER        :: TMP2D(:,:  ) => NULL()
+      REAL(fp)                 :: DTIME
 #endif
 
       !=================================================================
@@ -505,7 +506,7 @@
                ! Update diagnostics. Pass 3D array. Will be collapsed to
                ! column total in Diagn_Update.
                cID = 38000 + IT
-               CALL Diagn_Update ( am_I_Root,
+               CALL Diagn_Update ( am_I_Root, HcoState,
      &                             cID     = cID,
      &                             Array2D = TMP2D,
      &                             COL     = Input_Opt%DIAG_COLLECTION,

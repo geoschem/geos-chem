@@ -77,6 +77,7 @@
       USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
       USE GIGC_Input_Opt_Mod,      ONLY : OptInput
       USE Regrid_A2A_Mod,          ONLY : Cleanup_Map_A2a
+      USE PASSIVE_TRACEr_MOD,      ONLY : Cleanup_Passive_Tracer
       
       ! HEMCO
 !#if !defined(ESMF_) 

@@ -212,7 +212,7 @@ CONTAINS
        ! Add mass to the HEMCO data structure (jkodros)
        CALL HCO_EmisAdd( am_I_Root, HcoState, TC2(:,:,:,K), HcoIDs(K), RC)
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSALT', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALT', RC )
           RETURN
        ENDIF
 
@@ -269,7 +269,7 @@ CONTAINS
        ! Add number to the HEMCO data structure
        CALL HCO_EmisAdd( am_I_Root, HcoState, TC1(:,:,:,K), HcoID, RC)
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSALT', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALT', RC )
           RETURN
        ENDIF
     ENDDO
@@ -297,7 +297,6 @@ CONTAINS
     USE HCO_State_Mod,   ONLY : HCO_GetHcoID
     USE HCO_STATE_MOD,   ONLY : HCO_GetExtHcoID
     USE HCO_ExtList_Mod, ONLY : GetExtNr
-    USE HCO_ExtList_Mod, ONLY : GetExtOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -335,11 +334,11 @@ CONTAINS
     !=================================================================
 
     ! Extension Nr.
-    ExtNr = GetExtNr( TRIM(ExtName) )
+    ExtNr = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
     IF ( ExtNr <= 0 ) RETURN
  
     ! Enter 
-    CALL HCO_ENTER( 'HCOX_TOMAS_SeaSalt_Init (hcox_tomas_seasalt_mod.F90)', RC )
+    CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_TOMAS_SeaSalt_Init (hcox_tomas_seasalt_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ---------------------------------------------------------------------- 
@@ -351,7 +350,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( nSpc < HcoState%MicroPhys%nBins ) THEN
        MSG = 'Not enough sea salt emission species set' 
-       CALL HCO_ERROR ( MSG, RC ) 
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC ) 
        RETURN
     ENDIF
 
@@ -359,7 +358,7 @@ CONTAINS
     ALLOCATE ( TOMAS_DBIN( HcoState%MicroPhys%nBins ), STAT=RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        MSG = 'Cannot allocate TOMAS_DBIN array (hcox_tomas_seasalt_mod.F90)'
-       CALL HCO_ERROR( MSG, RC )      
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )      
        RETURN
     ENDIF
 
@@ -367,7 +366,7 @@ CONTAINS
     ALLOCATE ( TOMAS_A( HcoState%MicroPhys%nBins ), STAT=RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        MSG = 'Cannot allocate TOMAS_A array (hcox_tomas_seasalt_mod.F90)'
-       CALL HCO_ERROR( MSG, RC )
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ENDIF
 
@@ -376,7 +375,7 @@ CONTAINS
            HcoState%NZ, HcoState%MicroPhys%nBins ), STAT=RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        MSG = 'Cannot allocate TC1 array (hcox_tomas_seasalt_mod.F90)'
-       CALL HCO_ERROR( MSG, RC )
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ELSE
  TC1 = 0d0
@@ -387,7 +386,7 @@ CONTAINS
            HcoState%NZ, HcoState%MicroPhys%nBins ), STAT=RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        MSG = 'Cannot allocate TC2 array (hcox_tomas_seasalt_mod.F90)'
-       CALL HCO_ERROR( MSG, RC )
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ELSE
  TC2 = 0d0
@@ -508,7 +507,7 @@ CONTAINS
 
 #else
     MSG = 'Adjust TOMAS_SeaSalt emiss coeff (TOMAS_COEF) for your model res: SRCSALT30: hcox_TOMAS_SeaSalt_mod.F90'
-      call HCO_ERROR( MSG, RC )
+      call HCO_ERROR(HcoState%Config%Err,MSG, RC )
 #endif
 
     !=======================================================================
@@ -532,7 +531,7 @@ CONTAINS
     ! Return w/ success
 !    IF ( ALLOCATED( HcoIDs   ) ) DEALLOCATE( HcoIDs   )
     IF ( ALLOCATED( SpcNames ) ) DEALLOCATE( SpcNames )
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
  
   END SUBROUTINE HCOX_TOMAS_SeaSalt_Init
 !EOC

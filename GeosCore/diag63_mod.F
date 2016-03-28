@@ -132,6 +132,8 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TRACERID_MOD,       ONLY : IDTNO
+      USE HCO_TYPES_MOD,      ONLY : DiagnCont
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_DIAGN_MOD
       USE HCO_ERROR_MOD
 !
@@ -278,9 +280,10 @@
 
          ! Get diagnostics from HEMCO
          DiagnCnt => NULL()
-         CALL Diagn_Get( am_I_Root, .FALSE., DiagnCnt,
+         CALL Diagn_Get( am_I_Root, HcoState, .FALSE., DiagnCnt,
      &                   FLAG,  RC, cName=TRIM(DiagnName),
-     &                   AutoFill=AF, COL=HcoDiagnIDManual )
+     &                   AutoFill=AF, 
+     &                   COL=HcoState%Diagn%HcoDiagnIDManual )
          IF ( RC /= HCO_SUCCESS ) THEN
             MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
             CALL ERROR_STOP ( MSG, LOC )

@@ -18,6 +18,7 @@ MODULE Diagnostics_Mod
   USE HCO_Error_Mod
   USE HCO_Diagn_Mod
   USE GIGC_ErrCode_Mod
+  USE HCO_INTERFACE_MOD,  ONLY : HcoState
   USE Error_Mod,          ONLY : Error_Stop
   USE GIGC_Input_Opt_Mod, ONLY : OptInput
   USE GIGC_State_Met_Mod, ONLY : MetState
@@ -58,7 +59,10 @@ MODULE Diagnostics_Mod
   ! Toggle to enable species diagnostics. This will write out species 
   ! concentrations (in addition to the tracers). Not recommended unless
   ! you have a good reason (ckeller, 8/11/2015).
-  LOGICAL, PARAMETER, PUBLIC   :: DiagnSpec = .FALSE.
+  LOGICAL, PARAMETER, PUBLIC   :: DiagnSpec = .TRUE.
+
+  ! Also write out species tendencies
+  LOGICAL, PARAMETER, PUBLIC   :: DiagnSpecTend = .TRUE.
 #endif
 !
 ! !REVISION HISTORY:
@@ -115,11 +119,12 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: CollectionID
-    INTEGER            :: DeltaYMD, DeltaHMS 
-    REAL(sp)           :: TS
-    REAL(fp), POINTER  :: AM2(:,:) => NULL()
-    CHARACTER(LEN=255) :: LOC = 'Diagnostics_Init (diagnostics_mod.F90)'
+    INTEGER                  :: CollectionID
+    INTEGER                  :: DeltaYMD, DeltaHMS 
+    REAL(sp)                 :: TS
+    REAL(fp), POINTER        :: AM2(:,:) => NULL()
+    CHARACTER(LEN=255)       :: MSG
+    CHARACTER(LEN=255)       :: LOC = 'Diagnostics_Init (diagnostics_mod.F90)'
 
     !=======================================================================
     ! Diagnostics_Init begins here 
@@ -129,6 +134,23 @@ CONTAINS
     AM2    => AREA_M2(:,:,1)
     TS     =  GET_TS_CHEM() * 60.0_sp
 
+    ! Double check that HcoState and also the diagnostics bundle are
+    ! available
+    IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+       MSG = 'Cannot initialize diagnostics - HEMCO state '     // &
+             'is not yet initialized. The HEMCO initialization '// &
+             'routines must be called first.'
+       CALL ERROR_STOP ( MSG, LOC )
+       RETURN
+    ENDIF
+    IF ( .NOT. ASSOCIATED(HcoState%Diagn) ) THEN
+       MSG = 'Cannot initialize diagnostics - HEMCO diagnostics '       // &
+             'bundle is not yet initialized. The HEMCO initialization ' // &
+             'routines must be called first.'
+       CALL ERROR_STOP ( MSG, LOC )
+       RETURN
+    ENDIF
+
     !-----------------------------------------------------------------------
     ! Create diagnostics collection for GEOS-Chem.  This will keep the
     ! GEOS-Chem diagostics separate from the HEMCO diagnostics.
@@ -136,10 +158,11 @@ CONTAINS
 
     ! Define output write frequency. In ESMF environment, make sure 
     ! diagnostics is always passed to MAPL history!
-    CALL DiagnCollection_GetDefaultDelta ( am_I_Root, deltaYMD, deltaHMS, RC )
+    CALL DiagnCollection_GetDefaultDelta ( am_I_Root, HcoState, &
+       deltaYMD, deltaHMS, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL DiagnCollection_Create( am_I_Root,                      &
+    CALL DiagnCollection_Create( am_I_Root, HcoState%Diagn,      &
                                  NX           = IIPAR,           &
                                  NY           = JJPAR,           &
                                  NZ           = LLPAR,           &
@@ -317,11 +340,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: cID,      Collection, D, N
-    CHARACTER(LEN=15)  :: OutOper
-    CHARACTER(LEN=60)  :: DiagnName
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_DRYDEP (diagnostics_mod.F)' 
+    INTEGER                  :: cID,      Collection, D, N
+    CHARACTER(LEN=15)        :: OutOper
+    CHARACTER(LEN=60)        :: DiagnName
+    CHARACTER(LEN=255)       :: MSG
+    CHARACTER(LEN=255)       :: LOC = 'DIAGINIT_DRYDEP (diagnostics_mod.F)' 
     
     !=======================================================================
     ! DIAGINIT_DRYDEP begins here!
@@ -357,6 +380,7 @@ CONTAINS
 
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
+                             HcoState  = HcoState,          & 
                              Col       = Collection,        & 
                              cID       = cID,               &
                              cName     = TRIM( DiagnName ), &
@@ -387,6 +411,7 @@ CONTAINS
 
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
+                             HcoState  = HcoState,          & 
                              Col       = Collection,        &
                              cID       = cID,               &
                              cName     = TRIM( DiagnName ), &
@@ -448,11 +473,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: cId,      Collection, N
-    CHARACTER(LEN=15)  :: OutOper
-    CHARACTER(LEN=60)  :: DiagnName
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_TRACER_CONC (diagnostics_mod.F90)' 
+    INTEGER                  :: cId,      Collection, N
+    CHARACTER(LEN=15)        :: OutOper
+    CHARACTER(LEN=60)        :: DiagnName
+    CHARACTER(LEN=255)       :: MSG
+    CHARACTER(LEN=255)       :: LOC = 'DIAGINIT_TRACER_CONC (diagnostics_mod.F90)' 
 
     !=======================================================================
     ! DIAGINIT_TRACER_CONC begins here!
@@ -461,13 +486,13 @@ CONTAINS
     ! Assume successful return
     RC = GIGC_SUCCESS
 
-    ! Skip if ND45 diagnostic is turned off
-    IF ( Input_Opt%ND45 <= 0 ) RETURN
-
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND45_OUTPUT_TYPE
       
+    ! Skip if ND45 diagnostic is turned off
+    IF ( Input_Opt%ND45 > 0 ) THEN 
+
     ! Loop over # of depositing species
     DO N = 1, Input_Opt%N_TRACERS
          
@@ -484,6 +509,7 @@ CONTAINS
 
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
+                             HcoState  = HcoState,          & 
                              Col       = Collection,        & 
                              cName     = TRIM( DiagnName ), &
                              AutoFill  = 0,                 &
@@ -504,6 +530,9 @@ CONTAINS
        ENDIF
     ENDDO
 
+    ! Skip if ND45 diagnostic is turned off
+    ENDIF 
+
     ! To also write out all species concentrations (not tracers)
     IF ( DiagnSpec ) THEN
 
@@ -520,6 +549,7 @@ CONTAINS
    
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
+                             HcoState  = HcoState,          & 
                              Col       = Collection,        &
                              cName     = TRIM( DiagnName ), &
                              AutoFill  = 0,                 &
@@ -541,7 +571,63 @@ CONTAINS
        ENDDO
    
     ENDIF ! DiagnSpec
+
+    ! To also write out all species concentrations (not tracers)
+    IF ( DiagnSpecTend ) THEN
+
+       ! Loop over species
+       DO N = 1, NTSPEC(NCSURBAN)
    
+          !----------------------------------------------------------------
+          ! Create containers for species concentrations in molec/cm3
+          !----------------------------------------------------------------
+   
+          ! Diagnostic name
+          IF ( TRIM(NAMEGAS(N)) == '' ) CYCLE
+          DiagnName = 'SPECIES_CHEMTEND_' // TRIM(NAMEGAS(N)) 
+   
+          ! Create container
+          CALL Diagn_Create( am_I_Root,                     &
+                             HcoState  = HcoState,          & 
+                             Col       = Collection,        &
+                             cName     = TRIM( DiagnName ), &
+                             AutoFill  = 0,                 &
+                             ExtNr     = -1,                &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = -1,                &
+                             SpaceDim  =  3,                &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'molec cm-3 s-1',  &
+                             OutOper   = TRIM( OutOper   ), &
+                             RC        = RC )
+   
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC )
+          ENDIF
+   
+       ENDDO
+
+       ! Diagnostic for chemistry boxes 
+       DiagnName = 'CHEMBOX'
+       CALL Diagn_Create( am_I_Root,                     &
+                          HcoState  = HcoState,          & 
+                          Col       = Collection,        &
+                          cName     = TRIM( DiagnName ), &
+                          AutoFill  = 0,                 &
+                          ExtNr     = -1,                &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  =  3,                &
+                          LevIDx    = -1,                &
+                          OutUnit   = '1',               &
+                          OutOper   = TRIM( OutOper   ), &
+                          RC        = RC )
+   
+    ENDIF ! DiagnSpecTend
+  
    END SUBROUTINE DiagInit_Tracer_Conc
 !EOC
 !------------------------------------------------------------------------------
@@ -591,13 +677,13 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: cId, Collection, N
-    INTEGER            :: SpaceDim 
-    REAL(hp)           :: ScaleFact
-    CHARACTER(LEN=31)  :: OutOper, OutUnit
-    CHARACTER(LEN=60)  :: DiagnName
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_GRIDBOX (diagnostics_mod.F90)' 
+    INTEGER                  :: cId, Collection, N
+    INTEGER                  :: SpaceDim 
+    REAL(hp)                 :: ScaleFact
+    CHARACTER(LEN=31)        :: OutOper, OutUnit
+    CHARACTER(LEN=60)        :: DiagnName
+    CHARACTER(LEN=255)       :: MSG
+    CHARACTER(LEN=255)       :: LOC = 'DIAGINIT_GRIDBOX (diagnostics_mod.F90)' 
 
     !=======================================================================
     ! DIAGINIT_TRACER_CONC begins here!
@@ -656,6 +742,7 @@ CONTAINS
 
        ! Create container
        CALL Diagn_Create( am_I_Root,                     &
+                          HcoState  = HcoState,          & 
                           Col       = Collection,        & 
                           cName     = TRIM( DiagnName ), &
                           AutoFill  = 0,                 &
@@ -695,7 +782,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
+    USE HCO_INTERFACE_MOD,  ONLY : GetHcoID
     USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS:
@@ -718,12 +805,12 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: ID
-    INTEGER            :: cId,      Collection, N
-    CHARACTER(LEN=15)  :: OutOper
-    CHARACTER(LEN=60)  :: DiagnName
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_TRACER_EMIS (diagnostics_mod.F90)' 
+    INTEGER                  :: ID
+    INTEGER                  :: cId,      Collection, N
+    CHARACTER(LEN=15)        :: OutOper
+    CHARACTER(LEN=60)        :: DiagnName
+    CHARACTER(LEN=255)       :: MSG
+    CHARACTER(LEN=255)       :: LOC = 'DIAGINIT_TRACER_EMIS (diagnostics_mod.F90)' 
 
     !=======================================================================
     ! DIAGINIT_TRACER_CONC begins here!
@@ -736,7 +823,7 @@ CONTAINS
     ! Use same output frequency and operations as for tracer concentrations.
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND45_OUTPUT_TYPE
- 
+
     ! Loop over # of species 
     DO N = 1, Input_Opt%N_TRACERS
        
@@ -777,6 +864,7 @@ CONTAINS
 
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
+                             HcoState  = HcoState,          & 
                              Col       = Collection,        & 
                              cID       = cID,               &
                              cName     = TRIM( DiagnName ), &
@@ -839,12 +927,12 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: N, NN, M
-    INTEGER            :: cId, Collection
-    CHARACTER(LEN=15)  :: OutOper, OutUnit
-    CHARACTER(LEN=60)  :: DiagnName
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_CONV_LOSS (diagnostics_mod.F90)' 
+    INTEGER                  :: N, NN, M
+    INTEGER                  :: cId, Collection
+    CHARACTER(LEN=15)        :: OutOper, OutUnit
+    CHARACTER(LEN=60)        :: DiagnName
+    CHARACTER(LEN=255)       :: MSG
+    CHARACTER(LEN=255)       :: LOC = 'DIAGINIT_CONV_LOSS (diagnostics_mod.F90)' 
 
     !=======================================================================
     ! DIAGINIT_CONV_LOSS begins here!
@@ -885,6 +973,7 @@ CONTAINS
 
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
+                             HcoState  = HcoState,          & 
                              Col       = Collection,        & 
                              cID       = cID,               &
                              cName     = TRIM( DiagnName ), &
@@ -948,15 +1037,15 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: N, NN, M
-    INTEGER            :: cId, Collection
-    CHARACTER(LEN=15)  :: OutOper, OutUnit
-    CHARACTER(LEN=60)  :: DiagnName
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_WETDEP_LOSS (diagnostics_mod.F90)' 
+    INTEGER                  :: N, NN, M
+    INTEGER                  :: cId, Collection
+    CHARACTER(LEN=15)        :: OutOper, OutUnit
+    CHARACTER(LEN=60)        :: DiagnName
+    CHARACTER(LEN=255)       :: MSG
+    CHARACTER(LEN=255)       :: LOC = 'DIAGINIT_WETDEP_LOSS (diagnostics_mod.F90)' 
 
     ! Pointers
-    TYPE(Species), POINTER :: ThisSpc
+    TYPE(Species), POINTER   :: ThisSpc
 
     !=======================================================================
     ! DIAGINIT_WETDEP_LOSS begins here!
@@ -1003,6 +1092,7 @@ CONTAINS
 
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
+                             HcoState  = HcoState,          & 
                              Col       = Collection,        & 
                              cID       = cID,               &
                              cName     = TRIM( DiagnName ), &
@@ -1065,12 +1155,12 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-!
-    INTEGER            :: Collection, N
-    CHARACTER(LEN=15)  :: OutOper
-    CHARACTER(LEN=60)  :: DiagnName
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_DOBSON (diagnostics_mod.F)' 
+!    
+    INTEGER                  :: Collection, N
+    CHARACTER(LEN=15)        :: OutOper
+    CHARACTER(LEN=60)        :: DiagnName
+    CHARACTER(LEN=255)       :: MSG
+    CHARACTER(LEN=255)       :: LOC = 'DIAGINIT_DOBSON (diagnostics_mod.F)' 
     
     !=======================================================================
     ! DIAGINIT_DOBSON begins here!
@@ -1098,6 +1188,7 @@ CONTAINS
 
        ! Create container
        CALL Diagn_Create( am_I_Root,                     &
+                          HcoState  = HcoState,          & 
                           Col       = Collection,        & 
                           cName     = TRIM( DiagnName ), &
                           AutoFill  = 0,                 &
@@ -1116,7 +1207,7 @@ CONTAINS
       ENDIF  
  
    ENDDO
-   
+
   END SUBROUTINE DiagInit_Dobson
 !EOC
 !------------------------------------------------------------------------------
@@ -1141,6 +1232,7 @@ CONTAINS
     USE TRACERID_MOD,       ONLY : IDTO3
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE PRESSURE_MOD,       ONLY : GET_PEDGE
+    USE HCO_TYPES_MOD,      ONLY : DiagnCont
 !
 ! !INPUT PARAMETERS:
 !
@@ -1155,6 +1247,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  07 Jul 2015 - C. Keller   - Initial version 
+!  27 Feb 2016 - C. Keller   - Deactivate OMP statement
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1189,12 +1282,13 @@ CONTAINS
 
     ! On first call, check if any of the two diagnostics is defined
     IF ( FIRST ) THEN
-       CALL DiagnCont_Find( -1, -1, -1, -1, -1, 'O3_COLUMN', &
-                            -1, TotDiagn, DgnPtr )
+       CALL DiagnCont_Find( HcoState%Diagn, -1, -1, -1, -1, -1, &
+                           'O3_COLUMN', -1, TotDiagn, DgnPtr )
        DgnPtr => NULL()
 
-       CALL DiagnCont_Find( -1, -1, -1, -1, -1, 'O3_TROPCOLUMN', &
-                            -1, TropDiagn, DgnPtr ) 
+       CALL DiagnCont_Find( HcoState%Diagn, -1, -1, -1, -1, -1, &
+                           'O3_TROPCOLUMN', -1, TropDiagn, DgnPtr ) 
+                            
 
        DgnPtr => NULL()
        FIRST = .FALSE.
@@ -1211,9 +1305,14 @@ CONTAINS
     constant = 0.01_fp * AVO / ( g0 * ( AIRMW/1000.0_fp) )
 
     ! Do for all levels
+    ! The following OMP loop does produce non-reproducable results, 
+    ! presumably due to the call of GET_PEDGE or ITS_IN_THE_TROP? 
+    ! Deactivate for now (ckeller, 2/27/16) 
+#if defined(0)
     !$OMP PARALLEL DO &
     !$OMP DEFAULT( SHARED ) &
     !$OMP PRIVATE( I, J, L, DP, O3vv, DU )
+#endif
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
@@ -1240,19 +1339,23 @@ CONTAINS
     ENDDO
     ENDDO
     ENDDO
+#if defined(0)
     !$OMP END PARALLEL DO
+#endif
 
     ! Update diagnostics
     IF ( TotDiagn ) THEN
-       CALL Diagn_Update( am_I_Root, cName = 'O3_COLUMN',     Array2D = TOTO3,  RC=RC )
+       CALL Diagn_Update( am_I_Root, HcoState, cName = 'O3_COLUMN',     &
+                          Array2D = TOTO3,  RC=RC )
     ENDIF
     IF ( TropDiagn ) THEN
-       CALL Diagn_Update( am_I_Root, cName = 'O3_TROPCOLUMN', Array2D = TROPO3, RC=RC )
+       CALL Diagn_Update( am_I_Root, HcoState, cName = 'O3_TROPCOLUMN', &
+                          Array2D = TROPO3, RC=RC )
     ENDIF
 
     ! Return w/ success
     RC = GIGC_SUCCESS
-   
+ 
   END SUBROUTINE CalcDobsonColumn
 !EOC
 !------------------------------------------------------------------------------
@@ -1277,7 +1380,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH 
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
+    USE HCO_INTERFACE_MOD,  ONLY : GetHcoID
     USE HCO_DIAGN_MOD,      ONLY : Diagn_TotalGet
 !
 ! !INPUT PARAMETERS:
@@ -1294,11 +1397,11 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    INTEGER       :: I, cID, HCRC
-    INTEGER       :: YEAR, MONTH 
-    INTEGER, SAVE :: SAVEMONTH = -999
-    REAL(sp)      :: TOTAL
-    LOGICAL       :: FOUND
+    INTEGER                  :: I, cID, HCRC
+    INTEGER                  :: YEAR, MONTH 
+    INTEGER, SAVE            :: SAVEMONTH = -999
+    REAL(sp)                 :: TOTAL
+    LOGICAL                  :: FOUND
 
     !=================================================================
     ! TotalsToLogfile begins here!
@@ -1341,7 +1444,7 @@ CONTAINS
           cID = 10000 + cID
 
           ! Get the total [kg] 
-          CALL Diagn_TotalGet( am_I_Root,                         & 
+          CALL Diagn_TotalGet( am_I_Root, HcoState%Diagn,         & 
                              cID     = cID,                       &
                              Found   = Found,                     &
                              Total   = Total,                     &
@@ -1366,7 +1469,7 @@ CONTAINS
 
 100 FORMAT( 'Emissions in month ', i2, ' of year ', i4, ':')
 101 FORMAT( a9, ': ', e11.3, ' Mg/month')
-
+ 
   END SUBROUTINE TotalsToLogfile 
 !EOC
 #endif
@@ -1393,7 +1496,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_STATE_MOD,      ONLY : HCO_STATE
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+    USE HCO_INTERFACE_MOD,  ONLY : GetHcoID
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_WriteDiagn 
     USE HCOIO_Diagn_Mod,    ONLY : HCOIO_Diagn_WriteOut
 !
@@ -1416,7 +1519,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(HCO_STATE), POINTER :: HcoState => NULL()
     CHARACTER(LEN=255)       :: LOC = 'Diagnostics_Write (diagnostics_mod.F90)'
 
     !=======================================================================
@@ -1429,8 +1531,6 @@ CONTAINS
 
     ! Write new GEOS-Chem diagnostics
 #if defined( DEVEL )
-    ! Get pointer to HEMCO state object.
-    CALL GetHcoState( HcoState )
     IF ( .NOT. ASSOCIATED(HcoState) ) THEN
        CALL ERROR_STOP( 'Cannot get HEMCO state object', LOC )
     ENDIF
@@ -1477,9 +1577,6 @@ CONTAINS
        ENDIF
 
     ENDIF
-
-    ! Free pointer
-    HcoState => NULL()
 #endif
 
     ! Leave w/ success

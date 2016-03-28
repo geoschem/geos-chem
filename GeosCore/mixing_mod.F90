@@ -255,7 +255,7 @@ CONTAINS
     USE TRACERID_MOD,       ONLY : IDTHBr,  IDTBrNO3 
     USE UNITCONV_MOD
     USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal, GetHcoDiagn
+    USE HCO_INTERFACE_MOD,  ONLY : GetHcoVal, GetHcoDiagn
     USE TIME_MOD,           ONLY : GET_TS_DYN
     USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
     USE DRYDEP_MOD,         ONLY : NTRAIND, DEPSAV
@@ -267,7 +267,7 @@ CONTAINS
 #endif
 #if defined( DEVEL )
     USE HCO_ERROR_MOD
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
+    USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoID
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
 !
@@ -698,7 +698,7 @@ CONTAINS
           Ptr3D => EMIS(:,:,:,N)
 
           ! Update the emissions diagnostics
-          CALL Diagn_Update( am_I_Root,                           &
+          CALL Diagn_Update( am_I_Root, HcoState,                 &
                              cID     = cID,                       &
                              Array3D = Ptr3D,                     &
                              Total   = TOTFLUX(N),                &
@@ -720,7 +720,7 @@ CONTAINS
        IF ( Input_Opt%ND44 > 0 .AND. ( TOTDEP(N) > 0.0_fp ) ) THEN
           Ptr2D => DEP(:,:,N)
           cID = 44500 + N
-          CALL Diagn_Update( am_I_Root,                           &
+          CALL Diagn_Update( am_I_Root, HcoState,                 &
                              cID     = cID,                       &
                              Array2D = Ptr2D,                     &
                              COL     = Input_Opt%DIAG_COLLECTION, &

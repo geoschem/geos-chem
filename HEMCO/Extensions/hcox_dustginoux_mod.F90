@@ -118,6 +118,7 @@ CONTAINS
 !
     USE HCO_EmisList_Mod, ONLY : HCO_GetPtr
     USE HCO_FluxArr_Mod,  ONLY : HCO_EmisAdd 
+    USE HCO_Clock_Mod,    ONLY : HcoClock_First
 !
 ! !INPUT PARAMETERS:
 !
@@ -174,7 +175,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVED scalars
-    LOGICAL, SAVE     :: FIRST = .TRUE. 
+!    LOGICAL, SAVE     :: FIRST = .TRUE. 
 
     ! Scalars
     INTEGER           :: I, J, N, M, tmpID
@@ -201,7 +202,7 @@ CONTAINS
     IF ( .NOT. ExtState%DustGinoux ) RETURN
 
     ! Enter
-    CALL HCO_ENTER('HCOX_DustGinoux_Run (hcox_dustginoux_mod.F90)',RC)
+    CALL HCO_ENTER(HcoState%Config%Err,'HCOX_DustGinoux_Run (hcox_dustginoux_mod.F90)',RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Set gravity at earth surface (cm/s^2)
@@ -223,22 +224,19 @@ CONTAINS
     !=================================================================
     ! Point to DUST source functions 
     !=================================================================
-    IF ( FIRST ) THEN
+    IF ( HcoClock_First(HcoState%Clock,.TRUE.) ) THEN
 
        ! Sand
-       CALL HCO_GetPtr ( am_I_Root, 'GINOUX_SAND', SRCE_SAND, RC )
+       CALL HCO_GetPtr ( am_I_Root, HcoState, 'GINOUX_SAND', SRCE_SAND, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Silt
-       CALL HCO_GetPtr ( am_I_Root, 'GINOUX_SILT', SRCE_SILT, RC )
+       CALL HCO_GetPtr ( am_I_Root, HcoState, 'GINOUX_SILT', SRCE_SILT, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Clay
-       CALL HCO_GetPtr ( am_I_Root, 'GINOUX_CLAY', SRCE_CLAY, RC )
+       CALL HCO_GetPtr ( am_I_Root, HcoState, 'GINOUX_CLAY', SRCE_CLAY, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-
-       ! Reset first-time pointer
-       FIRST = .FALSE.
     ENDIF
 
     !=================================================================
@@ -384,7 +382,7 @@ CONTAINS
                             HcoIDs(N), RC,       ExtNr=ExtNr   )
           IF ( RC /= HCO_SUCCESS ) THEN
              WRITE(MSG,*) 'HCO_EmisAdd error: dust bin ', N
-             CALL HCO_ERROR( MSG, RC )
+             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
              RETURN 
           ENDIF
 
@@ -397,7 +395,7 @@ CONTAINS
                             HcoIDsAlk(N), RC,       ExtNr=ExtNrAlk   )
           IF ( RC /= HCO_SUCCESS ) THEN
              WRITE(MSG,*) 'HCO_EmisAdd error: dust alkalinity bin ', N
-             CALL HCO_ERROR( MSG, RC )
+             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
              RETURN 
           ENDIF
 
@@ -406,7 +404,7 @@ CONTAINS
     ENDDO
 
     ! Leave w/ success
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HcoX_DustGinoux_Run
 !EOC
@@ -466,14 +464,14 @@ CONTAINS
     !=======================================================================
 
     ! Extension Nr.
-    ExtNr = GetExtNr( TRIM(ExtName) )
+    ExtNr = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
     IF ( ExtNr <= 0 ) RETURN
 
     ! Check for dust alkalinity option
-    ExtNrAlk = GetExtNr('DustAlk')
+    ExtNrAlk = GetExtNr( HcoState%Config%ExtList, 'DustAlk' )
 
     ! Enter
-    CALL HCO_ENTER('HCOX_DustGinoux_Init (hcox_dustginoux_mod.F90)',RC)
+    CALL HCO_ENTER(HcoState%Config%Err,'HCOX_DustGinoux_Init (hcox_dustginoux_mod.F90)',RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get the expected number of dust species
@@ -495,14 +493,14 @@ CONTAINS
        WRITE( MSG, 100 ) NBINS, nSpc
  100   FORMAT( 'Expected ', i3, ' DustGinoux species but only found ', i3, &
                ' in the HEMCO configuration file!  Exiting...' )
-       CALL HCO_ERROR ( MSG, RC )
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ENDIF
 
     ! Set scale factor: first try to read from configuration file. If
     ! not specified, call wrapper function which sets teh scale factor
     ! based upon compiler switches.
-    CALL GetExtOpt ( ExtNr, 'Mass tuning factor', &
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'Mass tuning factor', &
                      OptValDp=TmpScal, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -522,28 +520,28 @@ CONTAINS
     ! Verbose mode
     IF ( am_I_Root ) THEN
        MSG = 'Use Ginoux dust emissions (extension module)'
-       CALL HCO_MSG( MSG )
+       CALL HCO_MSG(HcoState%Config%Err,MSG )
 
        IF ( ExtNrAlk > 0 ) THEN
           MSG = 'Use dust alkalinity option'
-          CALL HCO_MSG ( MSG, SEP1='-' )
+          CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
        ENDIF
 
        MSG = 'Use the following species (Name: HcoID):'
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
        DO N = 1, nSpc
           WRITE(MSG,*) TRIM(SpcNames(N)), ':', HcoIDs(N)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDDO
        IF ( ExtNrAlk > 0 ) THEN
           DO N = 1, nSpcAlk
              WRITE(MSG,*) TRIM(SpcNamesAlk(N)), ':', HcoIDsAlk(N)
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDDO
        ENDIF
 
        WRITE(MSG,*) 'Global mass flux tuning factor: ', CH_DUST
-       CALL HCO_MSG(MSG,SEP2='-')
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
     ENDIF
 
     ! Allocate vectors holding bin-specific informations 
@@ -568,7 +566,7 @@ CONTAINS
 
 #if !defined( TOMAS )
        MSG = 'Cannot have > 4 GINOUX dust bins unless you are using TOMAS!'
-       CALL HCO_ERROR ( MSG, RC )
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
 #endif
 
@@ -698,7 +696,7 @@ CONTAINS
     ELSE
          
        ! Stop w/ error message
-       CALL HCO_ERROR( 'Wrong number of TOMAS dust bins!', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'Wrong number of TOMAS dust bins!', RC )
 
     ENDIF
 
@@ -718,7 +716,7 @@ CONTAINS
 
     ! Leave w/ success
     IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
 
   END SUBROUTINE HcoX_DustGinoux_Init
 !EOC
