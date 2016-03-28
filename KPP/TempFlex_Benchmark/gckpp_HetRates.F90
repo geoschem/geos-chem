@@ -134,18 +134,18 @@ MODULE GCKPP_HETRATES
          XNM_NIT    = IO%XNUMOL(IND)
       ENDIF
 
-      IND = get_indx('HBr',IO%ID_TRACER,IO%TRACER_NAME)
+      IND = get_indx('HBr',SC%Spec_ID,SC%Spec_Name)
       IF (IND .le. 0) THEN
-         TRC_HBr    = 0.0e+0_fp
+         SPC_HBr    = 0.0e+0_fp
       ELSE
-         TRC_HBr    = SC%Tracers(I,J,L,IND)
+         SPC_HBr    = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND = get_indx('HOBr',IO%ID_TRACER,IO%TRACER_NAME)
+      IND = get_indx('HOBr',SC%Spec_ID,SC%Spec_Name)
       IF (IND .le. 0) THEN
-         TRC_HOBr   = 0.0e+0_fp
+         SPC_HOBr   = 0.0e+0_fp
       ELSE
-         TRC_HOBr   = SC%Tracers(I,J,L,IND)
+         SPC_HOBr   = SC%Species(I,J,L,IND)
       ENDIF
 
 #if defined( UCX )
@@ -171,13 +171,6 @@ MODULE GCKPP_HETRATES
          SPC_HCl    = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND = get_indx('HBr',SC%Spec_ID,SC%Spec_Name)
-      IF (IND .le. 0) THEN
-         SPC_HBr    = 0.0e+0_fp
-      ELSE
-         SPC_HBr    = SC%Species(I,J,L,IND)
-      ENDIF
-
       IND = get_indx('ClNO3',SC%Spec_ID,SC%Spec_Name)
       IF (IND .le. 0) THEN
          SPC_ClNO3  = 0.0e+0_fp
@@ -197,13 +190,6 @@ MODULE GCKPP_HETRATES
          SPC_HOCl   = 0.0e+0_fp
       ELSE
          SPC_HOCl   = SC%Species(I,J,L,IND)
-      ENDIF
-
-      IND = get_indx('HOBr',SC%Spec_ID,SC%Spec_Name)
-      IF (IND .le. 0) THEN
-         SPC_HOBr   = 0.0e+0_fp
-      ELSE
-         SPC_HOBr   = SC%Species(I,J,L,IND)
       ENDIF
 
       ! Set PSC educt concentrations (SDE 04/24/13)
@@ -296,7 +282,7 @@ MODULE GCKPP_HETRATES
       ! ----------------------------------------------
       IF (.not.PSCBOX) THEN
          DUMMY = 0.0e+0_fp
-         CALL cldice_hbrhobr_rxn( I,J,L,XDENA,QICE,TRC_HBr,TRC_HOBr, &
+         CALL cldice_hbrhobr_rxn( I,J,L,XDENA,QICE,SPC_HBr,SPC_HOBr, &
               ki_hbr, ki_hobr, DUMMY, SM )
       ELSE
          ! For PSCs, het chem already accounted for in
@@ -329,10 +315,6 @@ MODULE GCKPP_HETRATES
       HET(ind_HOCl,2)  = HETHOCl_PSC2(  0.52E2_fp, 0E+0_fp)
       HET(ind_HOBr,3)  = HETHOBr_PSC(   0.97E2_fp, 0E+0_fp)
 #endif
-
-      IF (II .eq. 24 .and. JJ .eq. 19 .and. LL .eq. 1) THEN
-         write(*,'(a,3e14.6)') 'b ADJ: ', HET(ind_HBr,1), SPC_HBr, SPC_HOBr
-      ENDIF
 
       !----------------------------------------------------------------
       ! Kludging the rates to be equal to one another to avoid having
