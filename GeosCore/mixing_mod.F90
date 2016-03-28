@@ -298,6 +298,8 @@ CONTAINS
 !                              if UCX=false.
 !  30 Sep 2015 - E. Lundgren - Now convert locally to kg/m2 for area-independent
 !                              compatibility between tracer units and flux
+!  22 Mar 2016 - C. Keller   - Bug fix: make sure drydep velocities are written
+!                              to diagnostics if emissions are zero.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -685,7 +687,7 @@ CONTAINS
     DO N = 1, Input_Opt%N_TRACERS
  
        ! Skip if there are no emissions
-       IF ( TOTFLUX(N) == 0.0_fp ) CYCLE
+       IF ( TOTFLUX(N) == 0.0_fp .AND. TOTDEP(N) == 0.0_fp ) CYCLE
 
        ! Only if HEMCO tracer is defined
        cID = GetHcoID( TrcID=N )

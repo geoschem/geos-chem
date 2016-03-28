@@ -1887,7 +1887,16 @@ CONTAINS
                                      lat1,  lat2,  &
                                      cpux1, cpux2, &
                                      cpuy1, cpuy2   )
-        
+       
+          ! There appear to be some issues with full masks coverages 
+          ! when working in an MPI environment. Specifically, masks
+          ! can be seen as fully covering a given CPU even though in
+          ! reality it may only cover parts of it. Thus, in ESMF mode
+          ! always set coverage to zero or partial (ckeller, 3/17/16).
+          IF ( HcoState%isESMF ) THEN
+             IF ( ThisCover == 1 ) ThisCover = -1
+          ENDIF 
+ 
           ! Update container information
           Lct%Dct%Dta%Cover    = ThisCover 
           Lct%Dct%Dta%ncYrs(:) = -999

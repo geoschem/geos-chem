@@ -49,10 +49,6 @@ CONTAINS
 ! to identify the ExtData pointer name.
 !\\
 !\\
-! NOTE/TODO: For now, all arrays are copied into the HEMCO data array. 
-! We may directly point to the ESMF arrays in future. 
-!\\
-!\\
 ! !INTERFACE:
   !
   SUBROUTINE HCOIO_Read_ESMF( am_I_Root, HcoState, Lct, RC ) 

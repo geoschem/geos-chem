@@ -27,6 +27,7 @@ MODULE HCOIO_read_std_mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC  :: HCOIO_ReadOther
+  PUBLIC  :: HCOIO_CloseAll
 #if !defined(ESMF_)
   PUBLIC  :: HCOIO_read_std
 !
@@ -96,17 +97,9 @@ CONTAINS
 ! ModelLev\_Interpolate. 
 !\\
 !\\
-! Argument CloseFile can be set to false to avoid closing the file. 
-! Argument LUN can be used to read data from a previously opened stream. If
-! the input value of LUN is greater than zero, the source file associated
-! with the passed list container Lct is not being opened but the data is 
-! read from stream LUN. The returned LUN value is equal to the LUN of the 
-! file just being used if CloseFile is set to .FALSE., and to -1 otherwise. 
-!\\
-!\\  
 ! !INTERFACE:
 !
-  SUBROUTINE HCOIO_read_std( am_I_Root, HcoState, Lct, CloseFile, LUN, RC ) 
+  SUBROUTINE HCOIO_read_std( am_I_Root, HcoState, Lct, RC ) 
 !
 ! !USES:
 !
@@ -139,11 +132,9 @@ CONTAINS
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
     TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object
     TYPE(ListCont),   POINTER        :: Lct        ! HEMCO list container
-    LOGICAL,          INTENT(IN   )  :: CloseFile  ! Close file after reading?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)  :: LUN        ! LUN of file.
     INTEGER,          INTENT(INOUT)  :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY:
@@ -170,6 +161,8 @@ CONTAINS
 !  06 Oct 2015 - C. Keller   - Support additional horizontal coordinates. Added
 !                              MustFind error checks (cycle flags EF and RF).
 !  22 Nov 2015 - C. Keller   - Bug fix: now use Lun2 if reading second file.
+!  24 Mar 2016 - C. Keller   - Simplified handling of file in buffer. Remove
+!                              args LUN and CloseFile.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -278,8 +271,22 @@ CONTAINS
     ! ----------------------------------------------------------------
     ! Open netCDF
     ! ----------------------------------------------------------------
-    IF ( LUN > 0 ) THEN
-       ncLun = LUN
+
+    ! Check if file is already in buffer. In that case use existing
+    ! open stream. Otherwise open new file. At any given time there
+    ! can only be one file in buffer.
+    ncLun = -1
+    IF ( HcoState%ReadLists%FileLun > 0 ) THEN
+       IF ( TRIM(HcoState%ReadLists%FileInArchive) == TRIM(srcFile) ) THEN
+          ncLun = HcoState%ReadLists%FileLun
+       ELSE
+          CALL NC_CLOSE ( HcoState%ReadLists%FileLun )
+          HcoState%ReadLists%FileLun = -1
+       ENDIF
+    ENDIF
+
+    ! To read from existing stream:
+    IF ( ncLun > 0 ) THEN
 
        ! Verbose mode
        IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
@@ -287,6 +294,7 @@ CONTAINS
           CALL HCO_MSG(MSG,SEP1='-')
        ENDIF
 
+    ! To open a new file:
     ELSE
        CALL NC_OPEN ( TRIM(srcFile), ncLun )
 
@@ -300,6 +308,9 @@ CONTAINS
        WRITE( 6, 100 ) TRIM( srcFile )
  100   FORMAT( 'HEMCO: Opening ', a )
 
+       ! This is now the file in archive
+       HcoState%ReadLists%FileInArchive = TRIM(srcFile)
+       HcoState%ReadLists%FileLun       = ncLun
     ENDIF
 
     ! ----------------------------------------------------------------
@@ -358,12 +369,6 @@ CONTAINS
 
        ! Eventually return here
        IF ( DoReturn ) THEN
-          IF ( CloseFile ) THEN
-             CALL NC_CLOSE ( ncLun )
-             LUN = -1
-          ELSE
-             LUN = ncLUN
-          ENDIF
           RETURN
        ENDIF
     ENDIF
@@ -1212,17 +1217,6 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
     ENDIF
-
-    ! ----------------------------------------------------------------
-    ! Close netCDF
-    ! ----------------------------------------------------------------
-
-    IF ( CloseFile ) THEN
-       CALL NC_CLOSE ( ncLun )
-       LUN = -1
-    ELSE
-       LUN = ncLun
-    ENDIF      
 
     !-----------------------------------------------------------------
     ! Add to diagnostics (if it exists)
@@ -3501,6 +3495,59 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE HCOIO_ReadFromConfig 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCOIO_CloseAll
+!
+! !DESCRIPTION: Subroutine HCOIO\_CloseAll makes sure that there is no open
+! netCDF file left in the stream.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCOIO_CloseAll ( am_I_Root, HcoState, RC ) 
+!
+! !USES:
+!
+#if !defined(ESMF_)
+    USE Ncdf_Mod,       ONLY : NC_CLOSE
+#endif
+!
+! !INPUT PARAMTERS:
+!
+    LOGICAL,         INTENT(IN   )    :: am_I_Root
+    TYPE(HCO_State), POINTER          :: HcoState    ! HEMCO state
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)   :: RC 
+!
+! !REVISION HISTORY:
+!  24 Mar 2016 - C. Keller: Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    !======================================================================
+    ! HCOIO_CloseAll begins here
+    !======================================================================
+#if !defined(ESMF_)
+    IF ( HcoState%ReadLists%FileLun > 0 ) THEN
+       CALL NC_CLOSE( HcoState%ReadLists%FileLun )
+       HcoState%ReadLists%FileLun = -1
+    ENDIF
+#endif  
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCOIO_CloseAll
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

@@ -34,9 +34,6 @@ MODULE HCO_TYPES_MOD
 !
 ! !PUBLIC PARAMETERS:
 !
-  ! To manage file open/close
-  INTEGER, PARAMETER       :: HCO_MaxFileOpen = 5 ! Max. # of open streams
-
   ! Maximum length of option name
   INTEGER, PARAMETER       :: OPTLEN = 1023
 
@@ -273,8 +270,8 @@ MODULE HCO_TYPES_MOD
      TYPE(ListCont), POINTER :: Month
      TYPE(ListCont), POINTER :: Day
      TYPE(ListCont), POINTER :: Hour
-     INTEGER                 :: FileLuns (HCO_MaxFileOpen) = -1
-     CHARACTER(LEN=255)      :: FileNames(HCO_MaxFileOpen) = ''
+     INTEGER                 :: FileLun       = -1  ! LUN of file in archive
+     CHARACTER(LEN=2023)     :: FileInArchive = ''  ! name of file in archive
   END TYPE RdList
 
   !-------------------------------------------------------------------------

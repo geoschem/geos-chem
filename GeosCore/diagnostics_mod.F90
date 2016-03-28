@@ -59,10 +59,10 @@ MODULE Diagnostics_Mod
   ! Toggle to enable species diagnostics. This will write out species 
   ! concentrations (in addition to the tracers). Not recommended unless
   ! you have a good reason (ckeller, 8/11/2015).
-  LOGICAL, PARAMETER, PUBLIC   :: DiagnSpec = .TRUE.
+  LOGICAL, PARAMETER, PUBLIC   :: DiagnSpec = .FALSE.
 
   ! Also write out species tendencies
-  LOGICAL, PARAMETER, PUBLIC   :: DiagnSpecTend = .TRUE.
+  LOGICAL, PARAMETER, PUBLIC   :: DiagnSpecTend = .FALSE.
 #endif
 !
 ! !REVISION HISTORY:
@@ -273,7 +273,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagnostics_Final( am_I_Root, Input_Opt, RC ) 
+  SUBROUTINE Diagnostics_Final( am_I_Root, RC ) 
 !
 ! !USES:
 !
@@ -282,7 +282,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN ) :: am_I_Root  ! Are we on the root CPU?
-    TYPE(OptInput), INTENT(IN ) :: Input_Opt  ! Input Options objec
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1016,6 +1015,7 @@ CONTAINS
 ! !USES:
 !
     USE Species_Mod, ONLY : Species   
+    USE WETSCAV_MOD, ONLY : GET_WETDEP_NSOL, GET_WETDEP_IDWETD
 !
 ! !INPUT PARAMETERS:
 !
@@ -1063,20 +1063,29 @@ CONTAINS
     OutOper    = Input_Opt%ND39_OUTPUT_TYPE
 
     ! Get number of soluble species
-    M = State_Chm%nWetDep
+    M = GET_WETDEP_NSOL()
 
-    ! Loop over all species
-    DO N = 1, State_Chm%nSpecies
+    ! Loop over # of species 
+    DO N = 1, M
 
-       ! Get info about the Nth species from the species database
-       ThisSpc => State_Chm%SpcData(N)%Info
+       ! Get GEOS-Chem tracer number
+       NN = GET_WETDEP_IDWETD( N )
 
-       ! Skip if this is not a wet-depositing species
-       IF ( .not. ThisSpc%Is_WetDep ) CYCLE
-
-       ! Wetdep species index
-       NN = ThisSpc%WetDepId
-
+!    ! Get number of soluble species
+!    M = State_Chm%nWetDep
+!
+!    ! Loop over all species
+!    DO N = 1, State_Chm%nSpecies
+!
+!       ! Get info about the Nth species from the species database
+!       ThisSpc => State_Chm%SpcData(N)%Info
+!
+!       ! Skip if this is not a wet-depositing species
+!       IF ( .not. ThisSpc%Is_WetDep ) CYCLE
+!
+!       ! Wetdep species index
+!       NN = ThisSpc%WetDepId
+!
        ! Check if this is a species asked in input.geos
        IF ( ANY( Input_Opt%TINDEX(39,:) == NN ) ) THEN
 
