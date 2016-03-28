@@ -4765,7 +4765,7 @@ c  Ensure all 'AN_' types are valid selections
       TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
       INTEGER,        INTENT(IN)    :: I,J,L      ! Grid box indices
       REAL(kind=fp),  INTENT(IN)    :: C_H2O      ! H2O conc [molec/cm3]
-      REAL(kind=fp),  INTENT(IN)    :: FRAC       ! Result SO4_PHOTFRAC,
+      REAL(kind=fp),  INTENT(IN)    :: FRAC       ! Result of SO4_PHOTFRAC,
 !                                                 !  called from flex_chemdr.F
 !     
 ! !INPUT/OUTPUT PARAMETERS:

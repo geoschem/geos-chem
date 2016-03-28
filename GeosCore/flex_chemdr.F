@@ -139,6 +139,9 @@
 
       CHARACTER(LEN=255)     :: ERR_MSG
 
+      ! For passing SO4_PHOTFRAC output to PHOTRATE_ADJ (bmy, 3/28/16)
+      REAL(kind=fp)          :: SO4_FRAC
+
       ! To avoid array temporaries in call to SET_HET (bmy, 3/28/16)
       REAL(kind=fp)          :: SCOEFF(IIPAR,JJPAR,LLPAR,3)
       REAL(kind=fp)          :: SCF(3)
@@ -460,18 +463,18 @@
       ! H2O, PRESS, PHOTOL, and HET. (bmy, 3/28/16)
       !-----------------------------------------------------------------
 !$OMP PARALLEL DO
-!$OMP+DEFAULT  ( SHARED )
-!$OMP+PRIVATE  ( I,    J,     L,      N                   )
-!$OMP+PRIVATE  ( YLAT, SCF,   IERR,   RCNTRL,  AVERAGEVAR )  
-!$OMP+PRIVATE  ( MASS, START, FINISH, ISTATUS, RSTATE     )
-!$OMP+REDUCTION( +:ITIM                                   )
-!$OMP+REDUCTION( +:RTIM                                   ) 
-!$OMP+REDUCTION( +:TOTSTEPS                               ) 
-!$OMP+REDUCTION( +:TOTFUNCS                               )
-!$OMP+REDUCTION( +:TOTJACOB                               ) 
-!$OMP+REDUCTION( +:TOTACCEP                               )
-!$OMP+REDUCTION( +:TOTREJEC                               )
-!$OMP+REDUCTION( +:TOTNUMLU                               )
+!$OMP+DEFAULT  ( SHARED                                      )
+!$OMP+PRIVATE  ( I,    J,        L,      N,       YLAT       )
+!$OMP+PRIVATE  ( SCF,  SO4_FRAC, IERR,   RCNTRL,  AVERAGEVAR )
+!$OMP+PRIVATE  ( MASS, START,    FINISH, ISTATUS, RSTATE     )
+!$OMP+REDUCTION( +:ITIM                                      )
+!$OMP+REDUCTION( +:RTIM                                      )
+!$OMP+REDUCTION( +:TOTSTEPS                                  )
+!$OMP+REDUCTION( +:TOTFUNCS                                  )
+!$OMP+REDUCTION( +:TOTJACOB                                  )
+!$OMP+REDUCTION( +:TOTACCEP                                  )
+!$OMP+REDUCTION( +:TOTREJEC                                  )
+!$OMP+REDUCTION( +:TOTNUMLU                                  )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -487,14 +490,14 @@
            IF ( I >  IIPAR - Input_Opt%NESTED_I0E ) CYCLE
          ENDIF
 
-         ! Grid-box latitude index
-         YLAT   = GET_YMID( I,J,L )
+         ! Grid-box latitude [degrees]
+         YLAT   = GET_YMID( I, J, L )
 
-         ! mje Set up the physical conditions for the current box
-         ! mje These variables are defined by the KPP definition files gckpp.kpp
-         ! mje #INLINE F90_GLOBAL    
+         ! Temperature [K]
          TEMP   = State_Met%T(I,J,L)
-         PRESS  = GET_PCENTER(I,J,L)
+
+         ! Pressure [hPa]
+         PRESS  = GET_PCENTER( I, J, L )
 
          ! mje Calculate NUMDEN based on ideal gas law (# cm-3)
          NUMDEN = State_Met%AIRNUMDEN(I,J,L)
@@ -527,36 +530,45 @@
          
          !===========================================================
          ! Get photolysis rates
+         !
+         ! NOTE: The ordering of the photolysis reactions here is
+         ! the order in the Fast-J definition file FJX_j2j.dat.
+         ! I've assumed that these are the same as in the text files
+         ! but this may have been changed.  This needs to be checked
+         ! through more thoroughly -- M. Long (3/28/16)
          !===========================================================
          IF ( State_Met%SUNCOSmid(I,J) > 0.e+0_fp ) THEN
 
-            ! Daytime: Set up the photolysis rates
-            ! The order here is the order in the Fast-J definition files
-            ! I've assumed that these are the same as in the text files but this
-            ! may have been changed. 
-            ! This needs to be checked through more thoroughly
+            !%%%%% DAYTIME: SET UP THE PHOTOLYSIS RATES %%%%%
+
+            ! Zero the KPP photolysis rates array
             PHOTOL(1:JVN_) = 0.0_fp
 
-#if defined( UCX ) 
-            !%%%%% NEED TO HANDLE THIS BETTER (bmy, 3/28/16)
-!            IF ( .not. Input_Opt%LUCX ) THEN ! If not UCX, then parameterize O(1D)
-            CALL PHOTRATE_ADJ( am_I_root, State_Met, 
-     &                         State_Chm, Input_Opt, 
-     &                         I, J, L, H2O, SO4_PHOTFRAC(I,J,L), IERR )
-!            ENDIF
+            ! Get the fraction of H2SO4 that is available for photolysis
+            ! (this is only valid for UCX-enabled mechanisms)
+#if defined( UCX )
+            SO4_FRAC = SO4_PHOTFRAC( I, J, L )
+#else
+            SO4_FRAC = 0.0_fp
 #endif
+
+            ! Adjust certain photolysis rates:
+            ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
+            ! (2) O3    + hv -> O2  + O         (UCX-based mechanisms)
+            ! (2) O3    + hv -> OH  + OH        (trop-only mechanisms)
+            CALL PHOTRATE_ADJ( am_I_root, State_Met, State_Chm,
+     &                         Input_Opt, I,         J,
+     &                         L,         H2O,       SO4_FRAC,
+     &                         IERR                             )
 
             ! Copy ZPJ from fast_jx_mod.F to PHOTOL array
             PHOTOL(1:JVN_) = ZPJ(L,1:JVN_,I,J)
 
-!            IF (Input_Opt%LUCX) THEN !Adjust SO4 photolysis rate
-!               ! There should be a better, more elegant means of indexing this.
-!               PHOTOL(100) = PHOTOL(100) * SO4_PHOTFRAC(I,J,L)
-!            ENDIF               !LUCX
-
          ELSE
 
-            ! Nighttime: Photolysis rates are zero
+            !%%%%% NIGHTTIME: SHUT OFF PHOTOLYSIS %%%%%
+
+            ! Zero the KPP photolysis rate array
             PHOTOL(1:JVN_) = 0.0_fp
 
          ENDIF
