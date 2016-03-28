@@ -351,10 +351,14 @@
             ! replay simulations in GEOS-5 (ckeller, 5/8/15)
             CALL READ_PSC_FILE( am_I_Root, State_Chm, RC )
             IF ( RC /= GIGC_SUCCESS ) RETURN
+
+            !### DEBUG PRINTOUT, we can remove it later
+            write(*,'(a,e12.4)') '<> CH4: ',
+     &           state_chm%tracers(10,10,10,69)
+
 #endif
             RC = GEOS_Timer_Start ( "Chemistry-Gas-Phase" )
 
-          write(*,'(a,e12.4)') '<> CH4: ',state_chm%tracers(10,10,10,69)
             ! Call gas-phase chemistry
             CALL FLEX_CHEMDR
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )

@@ -442,7 +442,7 @@ CONTAINS
     LOGICAL        :: am_I_Root
 
     INTEGER N,S1,S2,S3
-    REAL(kind=fp)  ::   SUM(IIPAR,JJPAR,LLPAR)
+    REAL(kind=fp)  ::  QSUM(IIPAR,JJPAR,LLPAR)
     REAL(kind=fp)  :: QTEMP(IIPAR,JJPAR,LLPAR)
     
     
@@ -462,6 +462,10 @@ CONTAINS
       !    and this kludge disabled.
       !   M.S.L. - Jan., 5 2016
       !
+      ! Prevent div-by-zero statements.  Renamed SUM to QSUM to avoid
+      ! conflicts with the Fortran intrinsic function SUM.
+      !  (bmy, 3/28/16)
+      !
 
     IF (OPT .eq. 1) THEN
       ! Part 1: From Tracers to Species
@@ -470,81 +474,133 @@ CONTAINS
       N  = get_indx('MMN',  SC%Trac_ID,SC%Trac_Name)  ! MMN
       S1 = get_indx('MVKN', SC%Spec_ID,SC%Spec_Name)  ! MVKN
       S2 = get_indx('MACRN',SC%Spec_ID,SC%Spec_Name)  ! MACRN
+
       STT(:,:,:,N) = STT(:,:,:,N)*IO%TRACER_COEFF(N,1) ! A correction...
       ! ... to account for the division by TRACER_COEFF above.
-      SUM   = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
-             +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2))
+      QSUM   = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
+             + (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2))
+
       ! -- -- First, do MVKN
-      QTEMP = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
-              / SUM
+      WHERE( QSUM > 0.0_fp ) 
+         QTEMP = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) / QSUM
+      ELSEWHERE
+         QTEMP = 0.0_fp
+      ENDWHERE
       SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+
       ! -- -- Then, do MACRN
-      QTEMP = (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
-              / SUM
+      WHERE( QSUM > 0.0_fp ) 
+         QTEMP = (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) / QSUM
+      ELSEWHERE
+         QTEMP = 0.0_fp
+      ENDWHERE
       SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+
       ! -- Process ISOPN family
       ! -- Get the tracer and species indices
       N  = get_indx('ISOPN',  SC%Trac_ID,SC%Trac_Name)  ! MMN
       S1 = get_indx('ISOPND', SC%Spec_ID,SC%Spec_Name)  ! MVKN
       S2 = get_indx('ISOPNB', SC%Spec_ID,SC%Spec_Name)  ! MACRN
+
       STT(:,:,:,N) = STT(:,:,:,N)*IO%TRACER_COEFF(N,1) ! A correction...
       ! ... to account for the division by TRACER_COEFF above.
-      SUM   = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
-             +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2))
+      QSUM   = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
+             + (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2))
+
       ! -- -- First, do ISOPND
-      QTEMP = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
-              / SUM
+      WHERE( QSUM > 0.0_fp ) 
+         QTEMP = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) / QSUM
+      ELSEWHERE
+         QTEMP = 0.0_fp
+      ENDWHERE
       SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+
       ! -- -- Then, do ISOPNB
-      QTEMP = (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
-              / SUM
+      WHERE( QSUM > 0.0_fp ) 
+         QTEMP = (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) / QSUM
+      ELSEWHERE
+         QTEMP = 0.0_fp
+      ENDWHERE
       SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
 
-      IF (IO%LUCX) THEN
-      ! -- Process CFCX family
-      ! -- Get the tracer and species indices. Currently hardwired.
-      N  = get_indx('CFCX',   SC%Trac_ID,SC%Trac_Name)
-      S1 = get_indx('CFC113', SC%Spec_ID,SC%Spec_Name)
-      S2 = get_indx('CFC114', SC%Spec_ID,SC%Spec_Name)
-      S3 = get_indx('CFC115', SC%Spec_ID,SC%Spec_Name)
-      STT(:,:,:,N) = STT(:,:,:,N)*IO%TRACER_COEFF(N,1) ! A correction...
-      ! ... to account for the division by TRACER_COEFF above.
-      SUM   = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
-             +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
-             +(SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3))
-      ! -- -- First, do CFC113
-      QTEMP = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
-              / SUM
-      SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
-      ! -- -- Then, do CFC114
-      QTEMP = (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
-              / SUM
-      SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
-      ! -- -- Then, do CFC115
-      QTEMP = (SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3)) &
-              / SUM
-      SC%Species(:,:,:,S3) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
-      ! -- Process HCFCX family
-      ! -- Get the tracer and species indices. Currently hardwired.
-      N  = get_indx('HCFCX',    SC%Trac_ID,SC%Trac_Name)
-      S1 = get_indx('HCFC123',  SC%Spec_ID,SC%Spec_Name)
-      S2 = get_indx('HCFC141b', SC%Spec_ID,SC%Spec_Name)
-      S3 = get_indx('HCFC142b', SC%Spec_ID,SC%Spec_Name)
-      STT(:,:,:,N) = STT(:,:,:,N)*IO%TRACER_COEFF(N,1) ! A correction...
-      ! ... to account for the division by TRACER_COEFF above.
-      SUM   = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
-             +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
-             +(SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3))
-      ! -- -- First, do HCFC123
-      QTEMP = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1))/ SUM
-      SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
-      ! -- -- Then, do HCFC141b
-      QTEMP = (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2))/ SUM
-      SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
-      ! -- -- Then, do HCFC142b
-      QTEMP = (SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3))/ SUM
-      SC%Species(:,:,:,S3) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+#if defined( UCX )
+      IF ( IO%LUCX ) THEN
+         ! -- Process CFCX family
+         ! -- Get the tracer and species indices. Currently hardwired.
+         N  = get_indx('CFCX',   SC%Trac_ID,SC%Trac_Name)
+         S1 = get_indx('CFC113', SC%Spec_ID,SC%Spec_Name)
+         S2 = get_indx('CFC114', SC%Spec_ID,SC%Spec_Name)
+         S3 = get_indx('CFC115', SC%Spec_ID,SC%Spec_Name)
+
+         STT(:,:,:,N) = STT(:,:,:,N)*IO%TRACER_COEFF(N,1) ! A correction...
+         ! ... to account for the division by TRACER_COEFF above.
+         QSUM  = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
+               + (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
+               + (SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3))
+
+         ! -- -- First, do CFC113
+         WHERE( QSUM > 0.0_fp )
+            QTEMP = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) / QSUM
+         ELSEWHERE
+            QTEMP = 0.0_fp
+         ENDWHERE
+         SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+
+         ! -- -- Then, do CFC114
+         WHERE( QSUM > 0.0_fp )
+            QTEMP = (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) / QSUM
+         ELSEWHERE
+            QTEMP = 0.0_fp
+         ENDWHERE
+         SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+
+         ! -- -- Then, do CFC115
+         WHERE( QSUM > 0.0_fp )
+            QTEMP = (SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3)) / QSUM
+         ELSEWHERE
+            QTEMP = 0.0_fp
+         ENDWHERE
+         SC%Species(:,:,:,S3) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+
+         ! -- Process HCFCX family
+         ! -- Get the tracer and species indices. Currently hardwired.
+         N  = get_indx('HCFCX',    SC%Trac_ID,SC%Trac_Name)
+         S1 = get_indx('HCFC123',  SC%Spec_ID,SC%Spec_Name)
+         S2 = get_indx('HCFC141b', SC%Spec_ID,SC%Spec_Name)
+         S3 = get_indx('HCFC142b', SC%Spec_ID,SC%Spec_Name)
+
+         STT(:,:,:,N) = STT(:,:,:,N)*IO%TRACER_COEFF(N,1) ! A correction...
+         ! ... to account for the division by TRACER_COEFF above.
+         QSUM  = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
+               + (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
+               + (SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3))
+
+         ! -- -- First, do HCFC123
+         WHERE( QSUM > 0.0_fp )
+            QTEMP = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) / QSUM
+         ELSEWHERE
+            QTEMP = 0.0_fp
+         ENDWHERE
+         SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+
+         ! -- -- Then, do HCFC141b
+         WHERE( QSUM > 0.0_fp )
+            QTEMP = (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) / QSUM
+         ELSEWHERE
+            QTEMP = 0.0_fp
+         ENDWHERE
+         SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+
+         ! -- -- Then, do HCFC142b
+         WHERE( QSUM > 0.0_fp )
+            QTEMP = (SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3)) / QSUM
+         ELSEWHERE
+            QTEMP = 0.0_fp
+         ENDWHERE
+         SC%Species(:,:,:,S3) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
       ENDIF !IF UCX
+#endif
+
       ! E -- N -- D -- O -- F -- K -- L -- U -- D -- G -- E -- -- P -- T -- 1
       ELSEIF (OPT .eq. 2) THEN
       ! K -- L -- U -- D -- G -- E -- -- P -- T -- 2
@@ -565,6 +621,8 @@ CONTAINS
       STT(:,:,:,N) = &
               (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
              +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2))
+
+#if defined( UCX )
       ! -- Process CFCX family
       ! -- Get the tracer and species indices. Currently hardwired.
       N  = get_indx('CFCX',   SC%Trac_ID,SC%Trac_Name)
@@ -585,6 +643,7 @@ CONTAINS
               (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
              +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
              +(SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3))
+#endif
       ! E -- N -- D -- O -- F -- K -- L -- U -- D -- G -- E -- -- P -- T -- 2
 
       ELSE

@@ -4761,24 +4761,28 @@ c  Ensure all 'AN_' types are valid selections
 !     
 ! !INPUT PARAMETERS:
 !     
-      LOGICAL,        INTENT(IN)    :: am_I_Root ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
-      INTEGER,        INTENT(IN)    :: I,J,L     ! Grid box indices
-      REAL(kind=fp),  INTENT(IN)    :: C_H2O     ! H2O conc [molec/cm3]
-      REAL(kind=fp),  INTENT(IN)    :: FRAC      ! Result from SO4_PHOTFRAC in Flex_Chemdr
+      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+      INTEGER,        INTENT(IN)    :: I,J,L      ! Grid box indices
+      REAL(kind=fp),  INTENT(IN)    :: C_H2O      ! H2O conc [molec/cm3]
+      REAL(kind=fp),  INTENT(IN)    :: FRAC       ! Result SO4_PHOTFRAC,
+!                                                 !  called from flex_chemdr.F
 !     
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(INOUT) :: State_Met ! Meteorology State object
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC ! Success or failure
+      INTEGER,        INTENT(OUT)   :: RC         ! Success or failure
 !
 ! !REMARKS:
 !  The J-value indices (2nd dimension of array ZPJ) were obtained from
 !  FJX_j2j.dat
+!
+!  %%%% NOTE: WE SHOULD UPDATE THE COMMENTS TO MAKE SURE THAT WE DO      %%%%
+!  %%%% NOT KEEP ANY CONFLICTING OR INCORRECT INFORMATION (bmy, 3/28/16) %%%%
 !
 ! !REVISION HISTORY:
 !  10 Mar 2016 - M. Sulprizio- Added ProTeX header
@@ -4813,8 +4817,10 @@ c  Ensure all 'AN_' types are valid selections
       ! Only allow photolysis of H2SO4 when gaseous (SDE 04/11/13)
       !
       !==============================================================
+
       ! Calculate if H2SO4 expected to be gaseous or aqueous
       ! Only allow photolysis above 6 hPa
+      ! Rxn #100 in FJX_j2j.dat: SO4 + hv -> SO2 + OH + OH
       ZPJ(L,100,I,J) = ZPJ(L,100,I,J) * FRAC
 
       ! Store unadjusted O2 rate for ND22
@@ -4835,9 +4841,11 @@ c  Ensure all 'AN_' types are valid selections
       ! the intermediate reactions are included - this would be
       ! double-counting (SDE 04/01/13)
       !==============================================================
-
 #if defined( UCX )
+
       ! Need to subtract O3->O1D from rate
+      ! Rxn #2 in FJX_j2j.dat: O3 + hv -> O2 + O
+      ! Rxn #3 in FJX_j2j.dat: O3 + hv -> O2 + O(1D)
       ZPJ(L,2,I,J) = ZPJ(L,2,I,J) - ZPJ(L,3,I,J)
 
       ! For UCX, store O1D and O3P rates separately
@@ -4845,8 +4853,11 @@ c  Ensure all 'AN_' types are valid selections
          AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,3,I,J)
          AD22(I,J,L,6) = AD22(I,J,L,6) + ZPJ(L,2,I,J)
       ENDIF
+
 #else
+
       ! Store unadjusted total J-O3 as AD22(:,:,:,5)
+      ! Rxn #3 in FJX_j2j.dat: O3 + hv -> O2 + O(1D)
       IF ( ND22 > 0 .and. L <= LD22 .and. LTJV(I,J) > 0 ) THEN
          AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,3,I,J)
       ENDIF
@@ -4882,7 +4893,10 @@ c  Ensure all 'AN_' types are valid selections
      &            2.15e-11_fp * EXP(110.e+0_fp*ITEMPK) * C_N2 +
      &            3.30e-11_fp * EXP( 55.e+0_fp*ITEMPK) * C_O2
 
+      ! Rxn #3 in FJX_j2j.dat: O3 + hv -> O2 + O1D
       ZPJ(L,3,I,J)   = ZPJ(L,3,I,J)   * RO1DplH2O / RO1D
+
+      ! Rxn # 103 in FJX_j2j.dat: O3 + hv -> O2 + O(1D)
       ZPJ(L,103,I,J) = ZPJ(L,103,I,J) * RO1DplH2  / RO1D
 #endif
       
