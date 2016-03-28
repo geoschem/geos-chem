@@ -525,7 +525,6 @@
 
          ! Debug
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-            write(*,'(a,2e14.6)') 'b NUMDEN: ', NUMDEN, TEMP
             DO N = 1,NSPEC
                write(*,'(2a,e12.4)') '<> b ', trim(SPC_NAMES(N))
      &              ,C(N)
@@ -543,7 +542,6 @@
          ! Update KPP's rates
          !===========================================================
          CALL Update_RCONST( )
-
          call cpu_time(finish)
          rtim = rtim + finish - start
 
@@ -551,8 +549,8 @@
          ! Integrate the box forwards
          !===========================================================
          call cpu_time(start)
-!         call Integrate( TIN,    TOUT,    ICNTRL, 
-!     &                   RCNTRL, ISTATUS, RSTATE, IERR )
+         call Integrate( TIN,    TOUT,    ICNTRL, 
+     &                   RCNTRL, ISTATUS, RSTATE, IERR )
          call cpu_time(finish)
          itim = itim + finish - start
          totfuncs = totfuncs + ISTATUS(1)

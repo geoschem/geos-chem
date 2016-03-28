@@ -4817,20 +4817,11 @@ c  Ensure all 'AN_' types are valid selections
       ! Only allow photolysis above 6 hPa
       ZPJ(L,100,I,J) = ZPJ(L,100,I,J) * FRAC
 
-      !==============================================================
-      ! SPECIAL TREATMENT FOR O2+hv -> O+O
-      !
-      ! O2 is an inactive species, so we need to premultiply ZPJ
-      ! by the O2 concentration prior to sending to the solver.
-      ! (SDE 04/05/13)
-      !==============================================================
       ! Store unadjusted O2 rate for ND22
       IF ( ND22 > 0 .and. L <= LD22 .and. LTJV(I,J) > 0 ) THEN
          AD22(I,J,L,15) = AD22(I,J,L,15) + ZPJ(L,1,I,J)
       ENDIF
 
-      ! Adjust O2 rate
-      ZPJ(L,1,I,J) = ZPJ(L,1,I,J) * C_O2
 #endif
 
       !==============================================================
