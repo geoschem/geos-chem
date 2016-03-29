@@ -20,6 +20,7 @@ MODULE GCKPP_HETRATES
   INTEGER            :: N
   INTEGER, SAVE      :: NAERO
   LOGICAL, SAVE      :: NATSURFACE, SAFEDIV
+  INTEGER            :: II,JJ,LL
   LOGICAL, SAVE      :: KII_KI, PSCBOX, STRATBOX
   REAL(fp), SAVE     :: TEMPK, RELHUM, XSTKCF
   REAL(fp)           :: VPRESH2O, CONSEXP
@@ -86,6 +87,11 @@ MODULE GCKPP_HETRATES
       TYPE(OptInput) :: IO
       REAL(fp)       :: SCF(3)
 
+      ! For Debugging
+      II = I
+      JJ = J
+      LL = L
+
       ! Divide by educt concentration
       KII_KI     = .false.
 
@@ -128,18 +134,18 @@ MODULE GCKPP_HETRATES
          XNM_NIT    = IO%XNUMOL(IND)
       ENDIF
 
-      IND = get_indx('HBr',IO%ID_TRACER,IO%TRACER_NAME)
+      IND = get_indx('HBr',SC%Spec_ID,SC%Spec_Name)
       IF (IND .le. 0) THEN
-         TRC_HBr    = 0.0e+0_fp
+         SPC_HBr    = 0.0e+0_fp
       ELSE
-         TRC_HBr    = SC%Tracers(I,J,L,IND)
+         SPC_HBr    = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND = get_indx('HOBr',IO%ID_TRACER,IO%TRACER_NAME)
+      IND = get_indx('HOBr',SC%Spec_ID,SC%Spec_Name)
       IF (IND .le. 0) THEN
-         TRC_HOBr   = 0.0e+0_fp
+         SPC_HOBr   = 0.0e+0_fp
       ELSE
-         TRC_HOBr   = SC%Tracers(I,J,L,IND)
+         SPC_HOBr   = SC%Species(I,J,L,IND)
       ENDIF
 
 #if defined( UCX )
@@ -165,13 +171,6 @@ MODULE GCKPP_HETRATES
          SPC_HCl    = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND = get_indx('HBr',SC%Spec_ID,SC%Spec_Name)
-      IF (IND .le. 0) THEN
-         SPC_HBr    = 0.0e+0_fp
-      ELSE
-         SPC_HBr    = SC%Species(I,J,L,IND)
-      ENDIF
-
       IND = get_indx('ClNO3',SC%Spec_ID,SC%Spec_Name)
       IF (IND .le. 0) THEN
          SPC_ClNO3  = 0.0e+0_fp
@@ -191,13 +190,6 @@ MODULE GCKPP_HETRATES
          SPC_HOCl   = 0.0e+0_fp
       ELSE
          SPC_HOCl   = SC%Species(I,J,L,IND)
-      ENDIF
-
-      IND = get_indx('HOBr',SC%Spec_ID,SC%Spec_Name)
-      IF (IND .le. 0) THEN
-         SPC_HOBr   = 0.0e+0_fp
-      ELSE
-         SPC_HOBr   = SC%Species(I,J,L,IND)
       ENDIF
 
       ! Set PSC educt concentrations (SDE 04/24/13)
@@ -290,7 +282,7 @@ MODULE GCKPP_HETRATES
       ! ----------------------------------------------
       IF (.not.PSCBOX) THEN
          DUMMY = 0.0e+0_fp
-         CALL cldice_hbrhobr_rxn( I,J,L,XDENA,QICE,TRC_HBr,TRC_HOBr, &
+         CALL cldice_hbrhobr_rxn( I,J,L,XDENA,QICE,SPC_HBr,SPC_HOBr, &
               ki_hbr, ki_hobr, DUMMY, SM )
       ELSE
          ! For PSCs, het chem already accounted for in
@@ -331,17 +323,17 @@ MODULE GCKPP_HETRATES
       IF ( ( HET(ind_HBr,1) > 0 ) .and. ( HET(ind_HOBr,1) > 0 ) ) THEN
 
          ! select the min of the two rates
-         hbr_rtemp  = HET(ind_HBr,1)  * TRC_HBr
-         hobr_rtemp = HET(ind_HOBr,1) * TRC_HOBr
+         hbr_rtemp  = HET(ind_HBr,1)  * SPC_HBr
+         hobr_rtemp = HET(ind_HOBr,1) * SPC_HOBr
 
          ! if HBr rate is larger than HOBr rate
          IF ( hbr_rtemp > hobr_rtemp ) THEN
 
-            SAFEDIV = IS_SAFE_DIV( HET(ind_HOBr,1) * TRC_HOBr, TRC_HBr )
+            SAFEDIV = IS_SAFE_DIV( HET(ind_HOBr,1) * SPC_HOBr, SPC_HBr )
 
             IF (SAFEDIV) THEN
                ! 2. if it is safe, then go ahead
-               HET(ind_HBr,1) = HET(ind_HOBr,1) * TRC_HOBr / TRC_HBr
+               HET(ind_HBr,1) = HET(ind_HOBr,1) * SPC_HOBr / SPC_HBr
             ELSE
                ! if not, then set rates really small...
                ! b/c the largest contributor is very small.
@@ -353,11 +345,11 @@ MODULE GCKPP_HETRATES
          ELSE
 
             ! 1. is it safe to divide?
-            SAFEDIV = IS_SAFE_DIV( HET(ind_HBr,1) * TRC_HBr, TRC_HOBr )
+            SAFEDIV = IS_SAFE_DIV( HET(ind_HBr,1) * SPC_HBr, SPC_HOBr )
 
             IF (SAFEDIV) THEN
                ! 2. if it is safe, then go ahead
-               HET(ind_HOBr,1) = HET(ind_HBr,1) * TRC_HBr / TRC_HOBr
+               HET(ind_HOBr,1) = HET(ind_HBr,1) * SPC_HBr / SPC_HOBr
             ELSE
                ! if not, then set rates really small...
                ! b/c the largest contributor is very small.
