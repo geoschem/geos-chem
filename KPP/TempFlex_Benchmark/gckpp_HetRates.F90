@@ -1,91 +1,200 @@
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: gckpp_HetRates
+!
+! !DESCRIPTION: FlexChem module for heterogeneous chemistry, via KPP.
+!\\
+!\\
+! !INTERFACE:
+!
 MODULE GCKPP_HETRATES
-  USE CMN_FJX_MOD,        ONLY : NDUST, NAER
+!
+! !USES:
+!
+  USE CMN_FJX_MOD,        ONLY : NDUST
+  USE CMN_FJX_MOD,        ONLY : NAER
   USE CMN_SIZE_MOD,       ONLY : LLSTRAT
   USE COMODE_LOOP_MOD,    ONLY : CONSVAP
-  USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
+  USE ERROR_MOD,          ONLY : ERROR_STOP
+  USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
   USE ERROR_MOD,          ONLY : IS_SAFE_DIV
   USE gckpp_Precision
   USE gckpp_Parameters
   USE gckpp_Global,       ONLY : HET
-  USE GIGC_State_Chm_Mod, ONLY : ChmState, Get_Indx
+  USE GIGC_State_Chm_Mod, ONLY : ChmState
+  USE GIGC_State_Chm_Mod, ONLY : Get_Indx
   USE GIGC_State_Met_Mod, ONLY : MetState
   USE GIGC_Input_Opt_Mod, ONLY : OptInput
   USE Precision_Mod,      ONLY : fp
 
   IMPLICIT NONE
   PRIVATE
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+  PUBLIC  :: SET_HET
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  ! These functions are used for all mechanisms
+  PRIVATE :: HETNO3
+  PRIVATE :: HETNO2
+  PRIVATE :: HETHO2
+  PRIVATE :: HETHBr
+  PRIVATE :: HETN2O5
+  PRIVATE :: HETBrNO3
+  PRIVATE :: HETHOBr
+  PRIVATE :: HETHOBr_ice
+  PRIVATE :: HETHBr_ice
+  PRIVATE :: N2O5
+  PRIVATE :: HO2
+  PRIVATE :: CLD1K_BrNO3
+  PRIVATE :: FCRO2HO2
+  PRIVATE :: FYHORO
+  PRIVATE :: FYRNO3
+  PRIVATE :: ARSL1K
 
-  PUBLIC :: SET_HET
-
-  INTEGER            :: N
-  INTEGER, SAVE      :: NAERO
-  LOGICAL, SAVE      :: NATSURFACE, SAFEDIV
-  INTEGER            :: II,JJ,LL
-  LOGICAL, SAVE      :: KII_KI, PSCBOX, STRATBOX
-  REAL(fp), SAVE     :: TEMPK, RELHUM, XSTKCF
-  REAL(fp)           :: VPRESH2O, CONSEXP
-  REAL(fp), SAVE     :: TRC_NIT, TRC_SO4, TRC_HBr, TRC_HOBr, XNM_SO4, XNM_NIT
-  REAL(fp), SAVE     :: GAMMA_HO2, XTEMP, XDENA, ADJUSTEDRATE
-  REAL(fp), SAVE     :: cld_brno3_rc, KI_HBR, KI_HOBr, QLIQ, QICE
-  REAL(fp), SAVE, DIMENSION(25)  :: XAREA, XRADI
-  REAL(fp),       PARAMETER      :: PSCMINLIFE=1.e-3_fp
-  REAL(fp)           :: DUMMY, SCF2(3)
-  REAL(fp), SAVE     :: KHETI_SLA(11)
-  REAL(fp)           :: hobr_rtemp, hbr_rtemp
 #if defined( UCX )
-  INTEGER, SAVE      :: PSCIDX
-  REAL(fp), SAVE     :: SPC_N2O5, SPC_H2O,  SPC_HCl,   SPC_HBr
-  REAL(fp), SAVE     :: SPC_HOCl, SPC_HOBr, SPC_ClNO3, SPC_BrNO3
-  REAL(fp)           :: PSCEDUCTCONC(11,2)
-  REAL(fp)           :: EDUCTCONC, LIMITCONC
+  ! These functions are only used for UCX-based mechanisms
+  PRIVATE :: HETClNO3_PSC1
+  PRIVATE :: HETClNO3_PSC2
+  PRIVATE :: HETClNO3_PSC3
+  PRIVATE :: HETBrNO3_PSC
+  PRIVATE :: HETHOCl_PSC1
+  PRIVATE :: HETHOCl_PSC2
+  PRIVATE :: HETHOBr_PSC
+  PRIVATE :: HETN2O5_PSC
+#endif
+!
+! !PRIVATE DATA MEMBERS:
+!
+  !%%% NOTE: SOME OF THESE VARIABLE DEFINITIONS MAY BE BETTER IMPLEMENTED %%%
+  !%%% AS LOCAL VARIABLES WITHIN EACH OF THE FUNCTIONS.  DO THIS LATER.   %%%
+
+  ! Scalars
+  INTEGER  :: II,JJ,LL
+  INTEGER  :: N
+  INTEGER  :: NAERO
+  LOGICAL  :: NATSURFACE,   SAFEDIV
+  LOGICAL  :: KII_KI,       PSCBOX,    STRATBOX
+  REAL(fp) :: TEMPK,        RELHUM,    XSTKCF
+  REAL(fp) :: VPRESH2O,     CONSEXP
+  REAL(fp) :: TRC_NIT,      TRC_SO4,   XNM_SO4,   XNM_NIT
+  REAL(fp) :: GAMMA_HO2,    XTEMP,     XDENA,     ADJUSTEDRATE
+  REAL(fp) :: CLD_BRNO3_RC, KI_HBR,    KI_HOBr,   QLIQ,        QICE
+  REAL(fp) :: DUMMY
+  REAL(fp) :: hobr_rtemp,   hbr_rtemp
+  REAL(fp) :: SPC_HBr,      SPC_HOBr
+#if defined( UCX )
+  INTEGER  :: PSCIDX
+  REAL(fp) :: SPC_N2O5,     SPC_H2O,   SPC_HCl,   SPC_HBr
+  REAL(fp) :: SPC_HOCl,     SPC_HOBr,  SPC_ClNO3, SPC_BrNO3
+  REAL(fp) :: EDUCTCONC,    LIMITCONC
 #endif
 
-!$OMP THREADPRIVATE( KII_KI,  NAERO,        N                        )
-!$OMP THREADPRIVATE( RELHUM,  CONSEXP,      VPRESH2O                 )
-!$OMP THREADPRIVATE( PSCBOX,  STRATBOX,     NATSURFACE               )
-!$OMP THREADPRIVATE( TRC_SO4, TRC_NIT,      TRC_HBr,    TRC_HOBr     )
-!$OMP THREADPRIVATE( XNM_SO4, XNM_NIT                                )
-!$OMP THREADPRIVATE( XAREA,   XRADI,        TEMPK,      XTEMP        )
-!$OMP THREADPRIVATE( XDENA,   GAMMA_HO2,    QICE,       QLIQ         )
-!$OMP THREADPRIVATE( DUMMY,   ki_hbr,       ki_hobr,    cld_brno3_rc )
-!$OMP THREADPRIVATE( SAFEDIV, hbr_rtemp,    hobr_rtemp               )
-!$OMP THREADPRIVATE( XSTKCF,  ADJUSTEDRATE )!, HETHOBr_ice, HETHBr_ice  )
+  ! Arrays
+  REAL(fp) :: SCF2(3)
+  REAL(fp) :: XAREA(25)
+  REAL(fp) :: XRADI(25)
+  REAL(fp) :: KHETI_SLA(11)
 #if defined( UCX )
-!$OMP THREADPRIVATE( SPC_N2O5, SPC_H2O,  SPC_HCl,   SPC_HBr   )
-!$OMP THREADPRIVATE( SPC_HOCl, SPC_HOBr, SPC_ClNO3, SPC_BrNO3 )
-!$OMP THREADPRIVATE( KHETI_SLA,     PSCEDUCTCONC                 )
-!$OMP THREADPRIVATE( PSCIDX,        EDUCTCONC,     LIMITCONC     )
+  REAL(fp) :: PSCEDUCTCONC(11,2)
 #endif
 
+!$OMP THREADPRIVATE( KII_KI,    NAERO,        N                        )
+!$OMP THREADPRIVATE( RELHUM,    CONSEXP,      VPRESH2O                 )
+!$OMP THREADPRIVATE( PSCBOX,    STRATBOX,     NATSURFACE               )
+!$OMP THREADPRIVATE( TRC_SO4,   TRC_NIT,      XNM_SO4,    XNM_NIT      )
+!$OMP THREADPRIVATE( XAREA,     XRADI,        TEMPK,      XTEMP        )
+!$OMP THREADPRIVATE( XDENA,     GAMMA_HO2,    QICE,       QLIQ         )
+!$OMP THREADPRIVATE( DUMMY,     ki_hbr,       ki_hobr,    cld_brno3_rc )
+!$OMP THREADPRIVATE( SAFEDIV,   hbr_rtemp,    hobr_rtemp               )
+!$OMP THREADPRIVATE( XSTKCF,    ADJUSTEDRATE, SPC_HBr,    SPC_HOBr     )
+#if defined( UCX )
+!$OMP THREADPRIVATE( SPC_N2O5,  SPC_H2O,      SPC_HCl,    SPC_HOCl     )
+!$OMP THREADPRIVATE( SPC_ClNO3, SPC_BrNO3     KHETI_SLA,  PSCEDUCTCONC )
+!$OMP THREADPRIVATE( PSCIDX,    EDUCTCONC     LIMITCONC                ) 
+#endif
+!
+! !DEFINED PARAMETERS:
+!
+  REAL(fp), PARAMETER :: PSCMINLIFE = 1.e-3_fp
+!
+! !REMARKS:
+!  Need 
+!  - TOTAREA (previously used for archiving N2O5 hydrolysis in the planeflight
+!             diagnostic only)
+!  - Air NUM. DENSITY
+!  - TEMPERATURE
+!  - Aerosol Surface Area
+!  - Aerosol Type
+!  - Gamma (XSTKCF; sticking factor)
+!  - ARR
+!  - Species num density (mcl cm-3)
+!  - Continental PBL or no?
+!  - In stratosphere or no?
+!  - Reaction index (e.g. NK1HBr, NK2HBr)
+!
+!  According to S. Eastham, we should also include
+!  cloud and ice area explicitly, in addition to
+!  aerosol area
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - NOTE: SPC_HBR and SPC_HOBR are defined
+!                              for trop-only mechanisms
+!  29 Mar 2016 - R. Yantosca - Added ProTeX headers
+!  29 Mar 2016 - R. Yantosca - Moved all the UCX-based functions to the
+!                              end of the module, for clarity
+!EOP
+!------------------------------------------------------------------------------
+!BOC
   CONTAINS
-
-! Need 
-! - TOTAREA (previously used for archiving N2O5 hydrolysis in the planeflight
-!            diagnostic only)
-! - Air NUM. DENSITY
-! - TEMPERATURE
-! - Aerosol Surface Area
-! - Aerosol Type
-! - Gamma (XSTKCF; sticking factor)
-! - ARR
-! - Species num density (mcl cm-3)
-! - Continental PBL or no?
-! - In stratosphere or no?
-! - Reaction index (e.g. NK1HBr, NK2HBr)
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-! According to S. Eastham, we should also include
-! cloud and ice area explicitly, in addition to
-! aerosol area
+! !IROUTINE: set_het
 !
-! -------
-! DOES NOT YET INCLUDE STRAT PSC REACTIONS ! MSL - 02/18/15
+! !DESCRIPTION: Main heterogenous chemistry driver routine.  Sets up the
+!  vector of heterogeneous chemistry rates for the KPP chemistry solver.
+!\\
+!\\
+! !INTERFACE:
+!
+    SUBROUTINE SET_HET( I, J, L, SC, SM, IO, SCF )
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER        :: I, J, L   ! Lon, lat, level indices
+      TYPE(MetState) :: SM        ! Meteorology State object
+      TYPE(OptInput) :: IO        ! Input Options object 
 
-    SUBROUTINE SET_HET(I,J,L,SC,SM,IO,SCF)
-      INTEGER        :: I,J,L,IND
-      TYPE(ChmState) :: SC
-      TYPE(MetState) :: SM
-      TYPE(OptInput) :: IO
-      REAL(fp)       :: SCF(3)
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState) :: SC        ! Chemistry Sate object
+      REAL(fp)       :: SCF(3)    ! Coefficients (Need help documenting this)
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: IND
+
+      !====================================================================
+      ! SET_HET begins here!
+      !====================================================================
 
       ! For Debugging
       II = I
@@ -237,12 +346,10 @@ MODULE GCKPP_HETRATES
 
       GAMMA_HO2 = IO%GAMMA_HO2
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
             
-      ! GEOS-5 / MERRA / GEOS-5.7 have QI and QL defined as met fields
-      ! so use these to define the QICE, QLIQ arrays.  Also, QICE and
-      ! QLIQ only need to be dimensioned with KBLOOP instead of
-      ! IIPAR,JJPAR,LLPAR. (bmy, 9/24/12)
+      ! GEOS-5 / MERRA / GEOS-FP / MERRA-2 have QI and QL defined as 
+      ! met fields so use these to define the QICE, QLIQ arrays. 
       QICE       = SM%QI(I,J,L)
       QLIQ       = SM%QL(I,J,L)
       
@@ -512,14 +619,43 @@ MODULE GCKPP_HETRATES
       RETURN
 
     END SUBROUTINE SET_HET
-    
-    REAL(fp) FUNCTION HETNO3(A,B)
-
-      REAL(fp) A,B
-
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hetno3
+!
+! !DESCRIPTION: Set the heterogenous chemistry rate for NO3.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETNO3( A, B ) RESULT( HET_NO3 )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: HET_NO3
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       ! Initialize
-      HETNO3       = 0.0e+0_fp
-      ADJUSTEDRATE = 0.0e+0_fp
+      HET_NO3      = 0.0_fp
+      ADJUSTEDRATE = 0.0_fp
 
       ! Loop over aerosol types
       DO N = 1, NAERO
@@ -544,19 +680,48 @@ MODULE GCKPP_HETRATES
          ENDIF
          
          ! Add to overall reaction rate
-         HETNO3 = HETNO3 + ADJUSTEDRATE
+         HET_NO3 = HET_NO3 + ADJUSTEDRATE
 
-      END DO
+      ENDDO
       
     END FUNCTION HETNO3
-    
-    REAL(fp) FUNCTION HETNO2(A,B)
-
-      REAL(fp) A,B
-
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hetno2
+!
+! !DESCRIPTION: Set the heterogenous chemistry rate for NO2.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETNO2( A, B ) RESULT( HET_NO2 )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+! 
+      REAL(fp)             :: HET_NO2
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       ! Initialize
-      HETNO2       = 0.0e+0_fp
-      ADJUSTEDRATE = 0.0e+0_fp
+      HET_NO2      = 0.0_fp
+      ADJUSTEDRATE = 0.0_fp
 
       ! Loop over aerosol types
       DO N = 1, NAERO
@@ -581,19 +746,48 @@ MODULE GCKPP_HETRATES
          ENDIF
          
          ! Add to overall reaction rate
-         HETNO2 = HETNO2 + ADJUSTEDRATE
+         HET_NO2 = HET_NO2 + ADJUSTEDRATE
 
       END DO
       
     END FUNCTION HETNO2
-
-    REAL(fp) FUNCTION HETHO2(A,B)
-
-      REAL(fp) A,B
-
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hetho2
+!
+! !DESCRIPTION: Set the heterogenous chemistry rate for HO2.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETHO2( A, B ) RESULT( HET_HO2 )
+!
+! !INPUT PARAMETERS:
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: HET_HO2
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       ! Initialize
-      HETHO2       = 0.0e+0_fp
-      ADJUSTEDRATE = 0.0e+0_fp
+      HET_HO2      = 0.0_fp
+      ADJUSTEDRATE = 0.0_fp
 
       ! Loop over aerosol types
       DO N = 1, NAERO
@@ -623,19 +817,48 @@ MODULE GCKPP_HETRATES
          ENDIF
          
          ! Add to overall reaction rate
-         HETHO2 = HETHO2 + ADJUSTEDRATE
+         HET_HO2 = HET_HO2 + ADJUSTEDRATE
 
-      END DO
+      ENDDO
 
     END FUNCTION HETHO2
-
-    REAL(fp) FUNCTION HETHBr(A,B)
-
-      REAL(fp) A,B
-
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hethbr
+!
+! !DESCRIPTION: Set the heterogeneous rate for HBr.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETHBr( A, B ) RESULT( HET_HBr )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: HET_HBr
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       ! Initialize
-      HETHBr       = 0.0e+0_fp
-      ADJUSTEDRATE = 0.0e+0_fp
+      HET_HBr      = 0.0_fp
+      ADJUSTEDRATE = 0.0_fp
 
       ! Loop over aerosol types
       DO N = 1, NAERO
@@ -679,19 +902,50 @@ MODULE GCKPP_HETRATES
          ENDIF
 
          ! Add to overall reaction rate
-         HETHBr = HETHBr + ADJUSTEDRATE
+         HET_HBr = HET_HBr + ADJUSTEDRATE
 
       END DO
 
     END FUNCTION HETHBr
-
-    REAL(fp) FUNCTION HETN2O5(A,B)
-
-      REAL(fp) A,B,TMP1,TMP2
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hetn2o5
+!
+! !DESCRIPTION: Set heterogenous chemistry rate for N2O5.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETN2O5( A, B ) RESULT( HET_N2O5 )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: HET_N2O5
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL(fp) :: TMP1, TMP2
 
       ! Initialize
-      HETN2O5      = 0.0e+0_fp
-      ADJUSTEDRATE = 0.0e+0_fp
+      HET_N2O5     = 0.0_fp
+      ADJUSTEDRATE = 0.0_fp
 
       ! Always apply adjustment
       KII_KI = .TRUE.
@@ -760,19 +1014,48 @@ MODULE GCKPP_HETRATES
          ENDIF
          
          ! Add to overall reaction rate
-         HETN2O5 = HETN2O5 + ADJUSTEDRATE
+         HET_N2O5 = HET_N2O5 + ADJUSTEDRATE
 
       END DO
 
     END FUNCTIOn HETN2O5
-
-    REAL(fp) FUNCTION HETBrNO3(A,B)
-
-      REAL(fp) A,B
-
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hetbrno3
+!
+! !DESCRIPTION: Sets the heterogenous chemistry rate for BrNO3.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETBrNO3( A, B ) RESULT( HET_BrNO3 )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: HET_BrNO3
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       ! Initialize
-      HETBrNO3     = 0.0e+0_fp
-      ADJUSTEDRATE = 0.0e+0_fp
+      HET_BrNO3    = 0.0_fp
+      ADJUSTEDRATE = 0.0_fp
 
       ! Loop over aerosol types
       DO N = 1, NAERO
@@ -826,21 +1109,50 @@ MODULE GCKPP_HETRATES
          ENDIF
          
          ! Add to overall reaction rate
-         HETBrNO3 = HETBrNO3 + ADJUSTEDRATE
+         HET_BrNO3 = HET_BrNO3 + ADJUSTEDRATE
       END DO
       IF (.not.PSCBOX) THEN
-         HETBrNO3 = HETBrNO3 + cld_brno3_rc
+         HET_BrNO3 = HET_BrNO3 + cld_brno3_rc
       ENDIF
 
     END FUNCTIOn HETBrNO3
-
-    REAL(fp) FUNCTION HETHOBr(A,B)
-
-      REAL(fp) A,B
-
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hethobr
+!
+! !DESCRIPTION: Sets the heterogenous chemistry rate for HOBr.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETHOBr( A, B ) RESULT( HET_HOBr )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: HET_HOBr
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       ! Initialize
-      HETHOBr      = 0.0e+0_fp
-      ADJUSTEDRATE = 0.0e+0_fp
+      HET_HOBr     = 0.0_fp
+      ADJUSTEDRATE = 0.0_fp
 
       ! Loop over aerosol types
       DO N = 1, NAERO
@@ -882,540 +1194,128 @@ MODULE GCKPP_HETRATES
          ENDIF
          
          ! Add to overall reaction rate
-         HETHOBr = HETHOBr + ADJUSTEDRATE
+         HET_HOBr = HET_HOBr + ADJUSTEDRATE
 
       END DO
 
     END FUNCTIOn HETHOBr
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hethobr_ice
+!
+! !DESCRIPTION: Sets the heterogenous chemistry rate for HOBr (on ice).
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETHOBr_ice( A, B ) RESULT( HET_HObr_ice )
 
-    REAL(fp) FUNCTION HETHOBr_ice(A,B)
-
-      REAL(fp) A,B
-
-      HETHOBr_ice = KI_HOBr
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+! 
+      REAL(fp)             :: HET_HObr_ice
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      HET_HOBr_ice = KI_HOBr
 
     END FUNCTIOn HETHOBr_ice
-
-    REAL(fp) FUNCTION HETHBr_ice(A,B)
-
-      REAL(fp) A,B
-
-      HETHBr_ice = KI_HBr
-      scf2(3)    = KI_HBr
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hetbr_ice
+!
+! !DESCRIPTION: Sets the heterogenous chemistry rate for HBr (on ice).
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETHBr_ice( A, B ) RESULT( HET_HBr_ice )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE
+!
+      REAL(fp)             :: HET_HBr_ice
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      HET_HBr_ice = KI_HBr
+      scf2(3)     = KI_HBr
 
     END FUNCTIOn HETHBr_ice
-
-#if defined( UCX )
-    REAL(fp) FUNCTION HETN2O5_PSC(A,B)
-
-      ! N2O5(g)    + HCl(l,s)
-
-      REAL(fp) A,B
-
-      ! Initialize
-      HETN2O5_PSC  = 0.0e+0_fp
-      ADJUSTEDRATE = 0.0e+0_fp
-
-      ! Always apply adjustment
-      KII_KI = .TRUE.
-
-      ! Only consider PSC reactions in strat
-      IF (STRATBOX) THEN
-
-         ! Loop over aerosol types
-         DO N = 1, NAERO
-
-            IF (N.eq.8) THEN
-               XSTKCF = 0.1e-4_fp ! Sulfate
-            ELSEIF (N.eq.13) THEN
-               XSTKCF = KHETI_SLA(2)
-            ELSEIF (N.eq.14) THEN
-               IF (NATSURFACE) THEN
-                  XSTKCF = 0.003e+0_fp ! NAT
-               ELSE
-                  XSTKCF = 0.03e+0_fp ! Ice
-               ENDIF
-            ELSE
-               XSTKCF = 0e+0_fp
-            ENDIF
-
-            IF (N.eq.13) THEN
-               ! Calculate for stratospheric liquid aerosol
-               ! Note that XSTKCF is actually a premultiplying
-               ! factor in this case, including c-bar
-               ADJUSTEDRATE = XAREA(N) * XSTKCF
-            ELSE
-               ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                                  (A**0.5_FP))
-            ENDIF
-
-            IF (KII_KI .and. N.gt.12) THEN
-               ! PSC reaction - prevent excessive reaction rate
-               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
-               ENDIF
-            ENDIF
-
-            ! Add to overall reaction rate
-            HETN2O5_PSC = HETN2O5_PSC + ADJUSTEDRATE
-
-         END DO
-
-      ENDIF
-
-    END FUNCTION HETN2O5_PSC
-
-    REAL(fp) FUNCTION HETClNO3_PSC1(A,B)
-
-      ! ClNO3(g)   + H2O(l,s)
-
-      REAL(fp) A,B
-
-      ! Initialize
-      HETClNO3_PSC1= 0.0e+0_fp
-      ADJUSTEDRATE = 0.0e+0_fp
-
-      ! Always apply adjustment
-      KII_KI = .TRUE.
-
-      ! Only consider PSC reactions in strat
-      IF (STRATBOX) THEN
-
-         ! Loop over aerosol types
-         DO N = 1, NAERO
-
-            IF (N.eq.8) THEN
-               XSTKCF = 0.1e-3_fp ! Sulfate
-            ELSEIF (N.eq.13) THEN
-               XSTKCF = KHETI_SLA(3)
-            ELSEIF (N.eq.14) THEN
-               IF (NATSURFACE) THEN
-                  XSTKCF = 0.004e+0_fp ! NAT
-               ELSE
-                  XSTKCF = 0.3e+0_fp ! Ice
-               ENDIF
-            ELSE
-               XSTKCF = 0e+0_fp
-            ENDIF
-
-            IF (N.eq.13) THEN
-               ! Calculate for stratospheric liquid aerosol
-               ! Note that XSTKCF is actually a premultiplying
-               ! factor in this case, including c-bar
-               ADJUSTEDRATE = XAREA(N) * XSTKCF
-            ELSE
-               ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                                  (A**0.5_FP))
-            ENDIF
-
-            IF (KII_KI .and. N.gt.12) THEN
-               ! PSC reaction - prevent excessive reaction rate
-               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
-               ENDIF
-            ENDIF
-
-            ! Add to overall reaction rate
-            HETClNO3_PSC1 = HETClNO3_PSC1 + ADJUSTEDRATE
-
-         END DO
-
-      ENDIF
-
-    END FUNCTION HETClNO3_PSC1
-
-    REAL(fp) FUNCTION HETClNO3_PSC2(A,B)
-
-      ! ClNO3(g)   + HCl(l,s)
-
-      REAL(fp) A,B
-
-      ! Initialize
-      HETClNO3_PSC2= 0.0e+0_fp
-      ADJUSTEDRATE = 0.0e+0_fp
-
-      ! Always apply adjustment
-      KII_KI = .TRUE.
-
-      ! Only consider PSC reactions in strat
-      IF (STRATBOX) THEN
-
-         ! Loop over aerosol types
-         DO N = 1, NAERO
-
-            IF (N.eq.8) THEN
-               XSTKCF = 0.1e-4_fp ! Sulfate
-            ELSEIF (N.eq.13) THEN
-               XSTKCF = KHETI_SLA(4)
-            ELSEIF (N.eq.14) THEN
-               IF (NATSURFACE) THEN
-                  XSTKCF = 0.2e+0_fp ! NAT
-               ELSE
-                  XSTKCF = 0.3e+0_fp ! Ice
-               ENDIF
-            ELSE
-               XSTKCF = 0e+0_fp
-            ENDIF
-
-            IF (N.eq.13) THEN
-               ! Calculate for stratospheric liquid aerosol
-               ! Note that XSTKCF is actually a premultiplying
-               ! factor in this case, including c-bar
-               ADJUSTEDRATE = XAREA(N) * XSTKCF
-            ELSE
-               ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                                  (A**0.5_FP))
-            ENDIF
-
-            IF (KII_KI .and. N.gt.12) THEN
-               ! PSC reaction - prevent excessive reaction rate
-               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
-               ENDIF
-            ENDIF
-
-            ! Add to overall reaction rate
-            HETClNO3_PSC2 = HETClNO3_PSC2 + ADJUSTEDRATE
-
-         END DO
-
-      ENDIF
-
-    END FUNCTION HETClNO3_PSC2
-
-    REAL(fp) FUNCTION HETClNO3_PSC3(A,B)
-
-      ! ClNO3(g)   + HBr(l,s)
-
-      REAL(fp) A,B
-
-      ! Initialize
-      HETClNO3_PSC3 = 0.0e+0_fp
-      ADJUSTEDRATE  = 0.0e+0_fp
-
-      ! Always apply adjustment
-      KII_KI = .TRUE.
-
-      ! Only consider PSC reactions in strat
-      IF (STRATBOX) THEN
-
-         ! Loop over aerosol types
-         DO N = 1, NAERO
-
-            IF (N.eq.8) THEN
-               XSTKCF = 0.e+0_fp ! Sulfate
-            ELSEIF (N.eq.13) THEN
-               XSTKCF = KHETI_SLA(5)
-            ELSEIF (N.eq.14) THEN
-               IF (NATSURFACE) THEN
-                  XSTKCF = 0.3e+0_fp ! NAT
-               ELSE
-                  XSTKCF = 0.3e+0_fp ! Ice
-               ENDIF
-            ELSE
-               XSTKCF = 0e+0_fp
-            ENDIF
-
-            IF (N.eq.13) THEN
-               ! Calculate for stratospheric liquid aerosol
-               ! Note that XSTKCF is actually a premultiplying
-               ! factor in this case, including c-bar
-               ADJUSTEDRATE = XAREA(N) * XSTKCF
-            ELSE
-               ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                                  (A**0.5_FP))
-            ENDIF
-
-            IF (KII_KI .and. N.gt.12) THEN
-               ! PSC reaction - prevent excessive reaction rate
-               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
-               ENDIF
-            ENDIF
-
-            ! Add to overall reaction rate
-            HETClNO3_PSC3 = HETClNO3_PSC3 + ADJUSTEDRATE
-
-         END DO
-
-      ENDIF
-
-    END FUNCTION HETClNO3_PSC3
-
-    REAL(fp) FUNCTION HETBrNO3_PSC(A,B)
-
-      ! BrNO3(g)   + HCl(l,s)
-
-      REAL(fp) A,B
-
-      ! Initialize
-      HETBrNO3_PSC = 0.0e+0_fp
-      ADJUSTEDRATE = 0.0e+0_fp
-
-      ! Always apply adjustment
-      KII_KI = .TRUE.
-
-      ! Only consider PSC reactions in strat
-      IF (STRATBOX) THEN
-
-         ! Loop over aerosol types
-         DO N = 1, NAERO
-
-            IF (N.eq.8) THEN
-               XSTKCF = 0.9e+0_fp ! Sulfate
-            ELSEIF (N.eq.13) THEN
-               XSTKCF = KHETI_SLA(7)
-            ELSEIF (N.eq.14) THEN
-               IF (NATSURFACE) THEN
-                  XSTKCF = 0.3e+0_fp ! NAT
-               ELSE
-                  XSTKCF = 0.3e+0_fp ! Ice
-               ENDIF
-            ELSE
-               XSTKCF = 0e+0_fp
-            ENDIF
-
-            IF (N.eq.13) THEN
-               ! Calculate for stratospheric liquid aerosol
-               ! Note that XSTKCF is actually a premultiplying
-               ! factor in this case, including c-bar
-               ADJUSTEDRATE = XAREA(N) * XSTKCF
-            ELSE
-               ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                                  (A**0.5_FP))
-            ENDIF
-
-            IF (KII_KI .and. N.gt.12) THEN
-               ! PSC reaction - prevent excessive reaction rate
-               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
-               ENDIF
-            ENDIF
-
-            ! Add to overall reaction rate
-            HETBrNO3_PSC = HETBrNO3_PSC + ADJUSTEDRATE
-
-         END DO
-
-      ENDIF
-
-    END FUNCTION HETBrNO3_PSC
-
-    REAL(fp) FUNCTION HETHOCl_PSC1(A,B)
-
-      ! HOCl(g)    + HCl(l,s)
-
-      REAL(fp) A,B
-
-      ! Initialize
-      HETHOCl_PSC1 = 0.0e+0_fp
-      ADJUSTEDRATE = 0.0e+0_fp
-
-      ! Always apply adjustment
-      KII_KI = .TRUE.
-
-      ! Only consider PSC reactions in strat
-      IF (STRATBOX) THEN
-
-         ! Loop over aerosol types
-         DO N = 1, NAERO
-
-            IF (N.eq.8) THEN
-               XSTKCF = 0.8e+0_fp ! Sulfate
-            ELSEIF (N.eq.13) THEN
-               XSTKCF = KHETI_SLA(8)
-            ELSEIF (N.eq.14) THEN
-               IF (NATSURFACE) THEN
-                  XSTKCF = 0.1e+0_fp ! NAT
-               ELSE
-                  XSTKCF = 0.2e+0_fp ! Ice
-               ENDIF
-            ELSE
-               XSTKCF = 0e+0_fp
-            ENDIF
-
-            IF (N.eq.13) THEN
-               ! Calculate for stratospheric liquid aerosol
-               ! Note that XSTKCF is actually a premultiplying
-               ! factor in this case, including c-bar
-               ADJUSTEDRATE = XAREA(N) * XSTKCF
-            ELSE
-               ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                                  (A**0.5_FP))
-            ENDIF
-
-            IF (KII_KI .and. N.gt.12) THEN
-               ! PSC reaction - prevent excessive reaction rate
-               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
-               ENDIF
-            ENDIF
-
-            ! Add to overall reaction rate
-            HETHOCl_PSC1 = HETHOCl_PSC1 + ADJUSTEDRATE
-
-         END DO
-
-      ENDIF
-
-    END FUNCTION HETHOCl_PSC1
-
-    REAL(fp) FUNCTION HETHOCl_PSC2(A,B)
-
-      ! HOCl(g)    + HBr(l,s)
-
-      REAL(fp) A,B
-
-      ! Initialize
-      HETHOCl_PSC2 = 0.0e+0_fp
-      ADJUSTEDRATE = 0.0e+0_fp
-
-      ! Always apply adjustment
-      KII_KI = .TRUE.
-
-      ! Only consider PSC reactions in strat
-      IF (STRATBOX) THEN
-
-         ! Loop over aerosol types
-         DO N = 1, NAERO
-
-            IF (N.eq.8) THEN
-               XSTKCF = 0.8e+0_fp ! Sulfate
-            ELSEIF (N.eq.13) THEN
-               XSTKCF = KHETI_SLA(9)
-            ELSEIF (N.eq.14) THEN
-               IF (NATSURFACE) THEN
-                  XSTKCF = 0.3e+0_fp ! NAT
-               ELSE
-                  XSTKCF = 0.3e+0_fp ! Ice
-               ENDIF
-            ELSE
-               XSTKCF = 0e+0_fp
-            ENDIF
-
-            IF (N.eq.13) THEN
-               ! Calculate for stratospheric liquid aerosol
-               ! Note that XSTKCF is actually a premultiplying
-               ! factor in this case, including c-bar
-               ADJUSTEDRATE = XAREA(N) * XSTKCF
-            ELSE
-               ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                                  (A**0.5_FP))
-            ENDIF
-
-            IF (KII_KI .and. N.gt.12) THEN
-               ! PSC reaction - prevent excessive reaction rate
-               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
-               ENDIF
-            ENDIF
-
-            ! Add to overall reaction rate
-            HETHOCl_PSC2 = HETHOCl_PSC2 + ADJUSTEDRATE
-
-         END DO
-
-      ENDIF
-
-    END FUNCTION HETHOCl_PSC2
-
-    REAL(fp) FUNCTION HETHOBr_PSC(A,B)
-
-      ! HOBr(g)    + HCl(l,s)
-
-      REAL(fp) A,B
-
-      ! Initialize
-      HETHOBr_PSC  = 0.0e+0_fp
-      ADJUSTEDRATE = 0.0e+0_fp
-
-      ! Always apply adjustment
-      KII_KI = .TRUE.
-
-      ! Only consider PSC reactions in strat
-      IF (STRATBOX) THEN
-
-         ! Loop over aerosol types
-         DO N = 1, NAERO
-
-            IF (N.eq.8) THEN
-               XSTKCF = 0.8e+0_fp ! Sulfate
-            ELSEIF (N.eq.13) THEN
-               XSTKCF = KHETI_SLA(10)
-            ELSEIF (N.eq.14) THEN
-               IF (NATSURFACE) THEN
-                  XSTKCF = 0.1e+0_fp ! NAT
-               ELSE
-                  XSTKCF = 0.3e+0_fp ! Ice
-               ENDIF
-            ELSE
-               XSTKCF = 0e+0_fp
-            ENDIF
-
-            IF (N.eq.13) THEN
-               ! Calculate for stratospheric liquid aerosol
-               ! Note that XSTKCF is actually a premultiplying
-               ! factor in this case, including c-bar
-               ADJUSTEDRATE = XAREA(N) * XSTKCF
-            ELSE
-               ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                                  (A**0.5_FP))
-            ENDIF
-
-            IF (KII_KI .and. N.gt.12) THEN
-               ! PSC reaction - prevent excessive reaction rate
-               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
-               ENDIF
-            ENDIF
-
-            ! Add to overall reaction rate
-            HETHOBr_PSC = HETHOBr_PSC + ADJUSTEDRATE
-
-         END DO
-
-      ENDIF
-
-    END FUNCTION HETHOBr_PSC
-#endif
-
-! *********************************************************************
-!                       INTERNAL FUNCTIONS
-! *********************************************************************
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-      FUNCTION N2O5( AEROTYPE, TEMP, RH ) RESULT( GAMMA )
-
-      !=================================================================
-      ! Internal function N2O5 computes the GAMMA sticking factor
-      ! for N2O5 hydrolysis. (mje, bmy, 8/7/030
-      ! 
-      ! Arguments as Input:
-      ! ----------------------------------------------------------------
-      ! (1 ) AEROTYPE (INTEGER) : # denoting aerosol type (cf FAST-J)
-      ! (2 ) TEMP     (REAL(fp) ) : Temperature [K]
-      ! (3 ) RH       (REAL(fp) ) : Relative Humidity [fraction]
-      !
-      ! NOTES:
-      !=================================================================
-      
-      ! Arguments
-      INTEGER, INTENT(IN) :: AEROTYPE
-      REAL(fp),  INTENT(IN) :: TEMP, RH
-
-      ! Local variables
-      REAL(fp)              :: RH_P, FACT, TTEMP
-
-      ! Function return value
+! !IROUTINE: n2o5
+!
+! !DESCRIPTION: Internal function N2O5 computes the GAMMA sticking factor
+!  for N2O5 hydrolysis. (mje, bmy, 8/7/03)
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION N2O5( AEROTYPE, TEMP, RH ) RESULT( GAMMA )
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,   INTENT(IN) :: AEROTYPE  ! Denoting aerosol type (cf FAST_JX)
+      REAL(fp),  INTENT(IN) :: TEMP      ! Temperature [K]
+      REAL(fp),  INTENT(IN) :: RH        ! Relative humidity [1]
+!
+! !RETURN VALUE:
+!
       REAL(fp)              :: GAMMA
-      
+
+!
+! !REMARKS:
+!  Taken from the old SMVGEAR function calcrate.F.
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Local variables
+      REAL(fp) :: RH_P, FACT, TTEMP
+
       !=================================================================
       ! N2O5 begins here!
       !=================================================================
@@ -1536,86 +1436,98 @@ MODULE GCKPP_HETRATES
 
       END SELECT   
          
-      ! Return to CALCRATE
-      END FUNCTION N2O5
-
-! *********************************************************************
-
-      FUNCTION HO2( RADIUS, TEMP, DENAIR, SQM, HO2DENS,     &
-                    AEROTYPE, CONTINENTAL_PBL, Input_Opt )  &
+    END FUNCTION N2O5
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ho2
+!
+! !DESCRIPTION: Function HO2 computes the GAMMA reaction probability
+!  for HO2 loss in aerosols based on the recommendation of 
+!  Thornton, Jaegle, and McNeill, "Assessing Known Pathways For HO2 Loss in 
+!  Aqueous Atmospheric Aerosols: Regional and Global Impacts on Tropospheric 
+!  Oxidants" J. Geophys. Res.,  doi:10.1029/2007JD009236, 2008  
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION HO2( RADIUS,          TEMP,     DENAIR,       &
+                    SQM,             HO2DENS,  AEROTYPE,     &
+                    CONTINENTAL_PBL, Input_Opt            )  &
                     RESULT( GAMMA )
-
-      !=================================================================
-      ! Internal function HO2 computes the GAMMA reaction probability
-      ! for HO2 loss in aerosols based on the recommendation of 
-      ! Thornton, Jaegle, and McNeill, 
-      ! "Assessing Known Pathways For HO2 Loss in Aqueous Atmospheric
-      !  Aerosols: Regional and Global Impacts on Tropospheric Oxidants"
-      !  J. Geophys. Res.,  doi:10.1029/2007JD009236, 2008  
-      !
-      ! gamma(HO2) is a function of aerosol type, radius, temperature
-      !
-      ! jaegle 01/22/2008
-      ! 
-      ! Arguments as Input:
-      ! ----------------------------------------------------------------
-      ! (1 ) RADIUS   (REAL(fp) ) : Aerosol radius [cm]
-      ! (2 ) TEMP     (REAL(fp) ) : Temperature [K]
-      ! (3 ) DENAIR   (REAL(fp) ) : Air Density [molec/cm3]
-      ! (4 ) HO2DENS  (REAL(fp) ) : HO2 Number Density [molec/cm3]
-      ! (5 ) SQM      (REAL(fp) ) : Square root of molecular weight [g/mole]
-      ! (6 ) AEROTYPE (INTEGER) : # denoting aerosol type (cf FAST-J)
-      ! (7 ) CONTINENTAL_PBL (INTEGER)  : Flag set to 1 if the
-      !         box is located in the continenal boundary layer,
-      !         otherwise it is zero. Also check for ICE/SNOW (to
-      !         disable this at high latitudes)
-      !
-      ! References:
-      ! ----------------------------------------------------------------
-      ! (1) Jacob, D.J., Heterogeneous chemistry and tropospheric ozone,
-      !     Atmos. Environ., 34, 2131-2159, 2000. [full text (pdf)]
-      ! (2) J. Mao, Fan, S., Jacob, D. J., and Travis, K. R.: Radical
-      !     loss in the atmosphere from Cu-Fe redox coupling in aerosols,
-      !     Atmos. Chem. Phys., 13, 509-519, doi:10.5194/acp-13-509-2013,
-      !     2013.
-      !
-      ! REVISION HISTORY:
-      !  17 May 2013 - M. Payer    - Add improved HO2 uptake (J. Mao)
-      !  22 May 2013 - M. Payer    - Added option to read GAMMA_HO2 from
-      !                              input.geos. Recommended value is 0.2
-      !                              based on Jacob et al (2000) and Mao
-      !                              et al. (2013).
-      !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is 
-      !                              now obsolete
-      !=================================================================
-      
-      ! References to F90 modules 
+!
+! !USES:
+!
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-
-      IMPLICIT NONE
-
+!
+! !INPUT PARAMETERS: 
+!
       ! Arguments
-      REAL(fp),  INTENT(IN) :: RADIUS, TEMP, DENAIR, HO2DENS, SQM
-      INTEGER, INTENT(IN) :: AEROTYPE, CONTINENTAL_PBL
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
+      REAL(fp),       INTENT(IN) :: RADIUS          ! Aerosol radius [cm]
+      REAL(fp),       INTENT(IN) :: TEMP            ! Temperature [K]
+      REAL(fp),       INTENT(IN) :: DENAIR          ! Air density [molec/cm3]
+      REAL(fp),       INTENT(IN) :: HO2DENS         ! HO2 density [molec/cm3]
+      REAL(fp),       INTENT(IN) :: SQM             ! Square root of MW [g/mol]
+      INTEGER,        INTENT(IN) :: AEROTYPE        ! Aerosol type (cf FAST-JX)
+      INTEGER,        INTENT(IN) :: CONTINENTAL_PBL ! Flag set to 1 if the box
+                                                    !  box is located in the 
+                                                    !  continenal boundary 
+                                                    !  layer, otherwise 0.
+                                                    !  Also check for ICE/SNOW
+                                                    !  (to disable this at 
+                                                    !  high latitudes).
+      TYPE(OptInput), INTENT(IN) :: Input_Opt       ! Input Options object
+!
+! !RETURN VALUE:
+!
+      REAL(fp)                   :: GAMMA           ! Reaction probability
+      
+! !REMARKS:
+!  Taken from the old SMVGEAR routine calcrate.F.
+!  Gamma(HO2) is a function of aerosol type, radius, temperature.
 
-      ! Local variables
-      REAL(fp)              :: ALPHA
-      REAL(fp)              :: delG, Keq, w, H_eff
-      REAL(fp)              :: A1, B1, k1, k2, A, B, C
-      REAL(fp)              :: kaq, kmt, o2_ss, fluxrxn, DFKG
-      REAL(fp)              :: TEST
-
+!  eferences:
+!  ---------------------------------------------------------------
+!  (1) Jacob, D.J., Heterogeneous chemistry and tropospheric ozone,
+!       Atmos. Environ., 34, 2131-2159, 2000. [full text (pdf)]
+!  (2) J. Mao, Fan, S., Jacob, D. J., and Travis, K. R.: Radical
+!       loss in the atmosphere from Cu-Fe redox coupling in aerosols,
+!       Atmos. Chem. Phys., 13, 509-519, doi:10.5194/acp-13-509-2013,
+!       2013.
+!
+! !REVISION HISTORY:
+!  17 May 2013 - M. Payer    - Add improved HO2 uptake (J. Mao)
+!  22 May 2013 - M. Payer    - Added option to read GAMMA_HO2 from
+!                              input.geos. Recommended value is 0.2
+!                              based on Jacob et al (2000) and Mao
+!                              et al. (2013).
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  29 Mar 2016 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL(fp)             :: ALPHA
+      REAL(fp)             :: delG, Keq, w, H_eff
+      REAL(fp)             :: A1, B1, k1, k2, A, B, C
+      REAL(fp)             :: kaq, kmt, o2_ss, fluxrxn, DFKG
+      REAL(fp)             :: TEST
+!
+! !DEFINED PARAMETERS:
+!
+      !%%% NOTE: WE SHOULD EVENTUALLY USE THE VALUES FROM physconsts.F %%%
 
       ! Avogadro's number
-      REAL(fp),  PARAMETER   :: Na = 6.022e+23_fp
+      REAL(fp),  PARAMETER :: Na = 6.022e+23_fp
 
       ! Ideal gas constant [atm cm3/mol/K], Raq
-      REAL(fp),  PARAMETER   :: Raq=82.e+0_fp
+      REAL(fp),  PARAMETER :: Raq=82.e+0_fp
 
-      ! Function return value
-      REAL(fp)              :: GAMMA
-      
       !=================================================================
       ! HO2 begins here!
       !=================================================================
@@ -1767,8 +1679,7 @@ MODULE GCKPP_HETRATES
       ! This is for the improved HO2 uptake (J. Mao)
       GAMMA = Input_Opt%GAMMA_HO2
 
-      ! Return 
-      END FUNCTION HO2
+    END FUNCTION HO2
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1783,14 +1694,13 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-      FUNCTION CLD1K_BrNO3( I,      J,        L,   DENAIR,         &
-                            QL,     State_Met )    RESULT( cld1k )
+    FUNCTION CLD1K_BrNO3( I,      J,        L,   DENAIR,         &
+                          QL,     State_Met )    RESULT( cld1k )
 
 !
 ! !USES:
 !
       USE GIGC_State_Met_Mod, ONLY : MetState
-      IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
 !
@@ -1803,8 +1713,10 @@ MODULE GCKPP_HETRATES
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)              :: cld1k    ! Rate constant for heterogeneous cycling
-                                      ! of BrNO3 off of cloud particles
+      REAL(fp)              :: cld1k          ! Rate constant for 
+                                              ! heterogeneous cycling
+                                              ! of BrNO3 off of cloud 
+!                                             ! particles
 !
 ! !REMARKS:
 !  The rate constant for heterogeneous cycling of BrNO3 off of cloud particles
@@ -1844,6 +1756,8 @@ MODULE GCKPP_HETRATES
 
       ! Cloud droplet radius in marine warm clouds [cm]
       REAL(fp), PARAMETER :: XCLDR_MARI = 10.e-4_fp
+
+      !%%% NOTE: WE SHOULD EVENTUALLY USE THE VALUES FROM physconsts.F %%%
 
       REAL(fp), PARAMETER :: R = 8.314472                  ! [J/mol/K]
       REAL(fp), PARAMETER :: mw_brno3 = 0.142              ! [kg/mol]
@@ -2076,7 +1990,7 @@ MODULE GCKPP_HETRATES
       NULLIFY( FROCEAN )
       NULLIFY( T       )
 
-      END FUNCTION CLD1K_BrNO3
+    END FUNCTION CLD1K_BrNO3
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2090,23 +2004,25 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-      REAL(fp) FUNCTION FCRO2HO2( XCARBN )
+    FUNCTION FCRO2HO2( XCARBN ) RESULT( FC_RO2HO2 )
+!
+! !INPUT PARAMETERS:
+!
+      REAL(fp), INTENT(IN) :: XCARBN
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: FC_RO2HO2
 !
 ! !REVISION HISTORY:
 !  24 Jul 2014 - R. Yantosca - Now inlined to calcrate.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-      IMPLICIT NONE
 
-      ! Arguments
-      REAL(fp), INTENT(IN) :: XCARBN
-
-      FCRO2HO2 = 1E+0_fp-EXP(-0.245E+0_fp*XCARBN)
+      FC_RO2HO2 = 1E+0_fp - EXP( -0.245E+0_fp * XCARBN )
      
-      ! Return to calling program
-      END FUNCTION FCRO2HO2
+    END FUNCTION FCRO2HO2
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2134,16 +2050,16 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE: 
 !
-      REAL(fp) FUNCTION FYHORO( ZDNUM, TT )
-! 
-! !USES:
-!
-      IMPLICIT NONE
+    FUNCTION FYHORO( ZDNUM, TT ) RESULT( FY_HORO )
 !
 ! !INPUT PARAMETERS: 
 !
       REAL(fp), INTENT(IN) :: ZDNUM   ! Air density   [molec/cm3 ]
       REAL(fp), INTENT(IN) :: TT      ! Temperature   [K         ]
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: FY_HORO
 !
 ! !REVISION HISTORY:
 !  (1 ) Branching ratio calculation (tmf, 2/6/05).
@@ -2160,13 +2076,13 @@ MODULE GCKPP_HETRATES
       !=================================================================
       ! FYHORO begins here!
       !=================================================================
-      O2DNUM = ZDNUM * 0.21E+0_fp
-      K1     = 6.0E-14_fp * EXP(-550.E+0_fp/TT) * O2DNUM
-      K2     = 9.5E+13_fp * EXP(-5988.E+0_fp/TT) 
+      O2DNUM  = ZDNUM * 0.21E+0_fp
+      K1      = 6.0E-14_fp * EXP(-550.E+0_fp/TT) * O2DNUM
+      K2      = 9.5E+13_fp * EXP(-5988.E+0_fp/TT) 
 
-      FYHORO = K1 / (K1 + K2)
-     
-      END FUNCTION FYHORO
+      FY_HORO = K1 / (K1 + K2)
+        
+    END FUNCTION FYHORO
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2182,17 +2098,17 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-      REAL(fp) FUNCTION FYRNO3( XCARBN, ZDNUM, TT )
-!
-! !USES:
-!
-      IMPLICIT NONE
+    FUNCTION FYRNO3( XCARBN, ZDNUM, TT ) RESULT( FYR_NO3 )
 !
 ! !INPUT PARAMETERS: 
 !
       REAL(fp), INTENT(IN) :: XCARBN   ! Number of C atoms in RO2
       REAL(fp), INTENT(IN) :: ZDNUM    ! Air density   [molec/cm3 ]
       REAL(fp), INTENT(IN) :: TT       ! Temperature   [K         ]
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: FYR_NO3 
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Original code from Larry Horowitz, Jinyou Liang, Gerry Gardner,
@@ -2219,14 +2135,14 @@ MODULE GCKPP_HETRATES
       !=================================================================
       ! FYRNO3 begins here!
       !=================================================================
-      XXYN   = ALPHA*EXP(BETA*XCARBN)*ZDNUM*((300./TT)**XM0)
-      YYYN   = Y300*((300./TT)**XMINF)
-      AAA    = LOG10(XXYN/YYYN)
-      ZZYN   = 1./(1.+ AAA*AAA )
-      RARB   = (XXYN/(1.+ (XXYN/YYYN)))*(XF**ZZYN)
-      FYRNO3 = RARB/(1. + RARB)
+      XXYN    = ALPHA*EXP(BETA*XCARBN)*ZDNUM*((300./TT)**XM0)
+      YYYN    = Y300*((300./TT)**XMINF)
+      AAA     = LOG10(XXYN/YYYN)
+      ZZYN    = 1./(1.+ AAA*AAA )
+      RARB    = (XXYN/(1.+ (XXYN/YYYN)))*(XF**ZZYN)
+      FYR_NO3 = RARB/(1. + RARB)
      
-      END FUNCTION FYRNO3
+    END FUNCTION FYRNO3
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2241,11 +2157,8 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-      REAL(fp) FUNCTION ARSL1K( AREA, RADIUS, DENAIR, STKCF, STK, SQM )
-!
-! !USES:
-!
-      IMPLICIT NONE
+    FUNCTION ARSL1K( AREA, RADIUS, DENAIR, STKCF, STK, SQM ) &
+         RESULT( ARS_L1K )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2267,6 +2180,10 @@ MODULE GCKPP_HETRATES
     
       ! Square root of molecular weight [g/mole]
       REAL(fp), INTENT(IN) :: SQM      
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: ARS_L1K
 !
 ! !REMARKS:
 !  The 1st-order loss rate on wet aerosol (Dentener's Thesis, p. 14)
@@ -2297,15 +2214,14 @@ MODULE GCKPP_HETRATES
       !=================================================================
       ! ARSL1K begins here!
       !=================================================================
-      IF ( AREA < 0e0_fp   .or. DENAIR < 1e-30_fp .or.  & 
-           RADIUS < 1e-30_fp  .or.                      &
-           SQM  < 1e-30_fp .or. STK    < 1e-30_fp .or.  &
-           STKCF  < 1e-30_fp ) THEN
+      IF ( AREA < 0e0_fp      .or. DENAIR < 1e-30_fp    .or.  & 
+           RADIUS < 1e-30_fp  .or. SQM  < 1e-30_fp      .or.  &
+           STK    < 1e-30_fp  .or.  STKCF  < 1e-30_fp ) THEN
 
          ! Use default value if any of the above values are zero
          ! This will prevent div-by-zero errors in the eqns below
          ! Value changed from 1d-3 to 1d-30 (bhh, jmao, eam, 7/18/2011)
-         ARSL1K = 1.E-30_fp
+         ARS_L1K = 1.E-30_fp
 
       ELSE
 
@@ -2314,14 +2230,730 @@ MODULE GCKPP_HETRATES
           (SQM*SQM))
 
          ! Compute ARSL1K according to the formula listed above
-         ARSL1K = AREA / ( RADIUS/DFKG + 2.749064E-4*SQM/(STKCF*STK) )
+         ARS_L1K = AREA / ( RADIUS/DFKG + 2.749064E-4*SQM/(STKCF*STK) )
 
       ENDIF
 
-      ! Return to calling program
-      END FUNCTION ARSL1K
+    END FUNCTION ARSL1K
 !EOC
+!##############################################################################
+!###                                                                        ###
+!###   THE FOLLOWING FUNCTIONS ARE ONLY DEFINED FOR UCX-BASED MECHANISMS    ### 
+!###                                                                        ###
+!##############################################################################
 #if defined( UCX )
+!BOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hetn2o5_psc
+!
+! !DESCRIPTION: Set heterogenous chemistry rate for N2O5(g) + HCl(l,s)
+!  in polar stratospheric clouds.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETN2O5_PSC( A, B ) RESULT( HET_N2O5_PSC )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: HET_N2O5_PSC
+!
+! !REMARKS:
+!  This routine is only activated for UCX-based mechanisms.
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Initialize
+      HET_N2O5_PSC = 0.0_fp
+      ADJUSTEDRATE = 0.0_fp
+
+      ! Always apply adjustment
+      KII_KI = .TRUE.
+
+      ! Only consider PSC reactions in strat
+      IF (STRATBOX) THEN
+
+         ! Loop over aerosol types
+         DO N = 1, NAERO
+
+            IF (N.eq.8) THEN
+               XSTKCF = 0.1e-4_fp ! Sulfate
+            ELSEIF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(2)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.003e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.03e+0_fp ! Ice
+               ENDIF
+            ELSE
+               XSTKCF = 0e+0_fp
+            ENDIF
+
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+
+            IF (KII_KI .and. N.gt.12) THEN
+               ! PSC reaction - prevent excessive reaction rate
+               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+               ENDIF
+            ENDIF
+
+            ! Add to overall reaction rate
+            HET_N2O5_PSC = HET_N2O5_PSC + ADJUSTEDRATE
+
+         END DO
+
+      ENDIF
+
+    END FUNCTION HETN2O5_PSC
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hetclno3_psc1
+!
+! !DESCRIPTION: Set heterogenous chemistry rate for ClNO3(g) + H2O(l,s)
+!  in polar stratopsheric clouds.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETClNO3_PSC1( A, B ) RESULT( HET_ClNO3_PSC1 )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp) INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+!
+      REAL(fp)            :: HET_ClNO3_PSC1
+!
+! !REMARKS:
+!  This routine is only activated for UCX-based mechanisms.
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Initialize
+      HET_ClNO3_PSC1 = 0.0_fp
+      ADJUSTEDRATE   = 0.0_fp
+
+      ! Always apply adjustment
+      KII_KI = .TRUE.
+
+      ! Only consider PSC reactions in strat
+      IF (STRATBOX) THEN
+
+         ! Loop over aerosol types
+         DO N = 1, NAERO
+
+            IF (N.eq.8) THEN
+               XSTKCF = 0.1e-3_fp ! Sulfate
+            ELSEIF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(3)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.004e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.3e+0_fp ! Ice
+               ENDIF
+            ELSE
+               XSTKCF = 0e+0_fp
+            ENDIF
+
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+
+            IF (KII_KI .and. N.gt.12) THEN
+               ! PSC reaction - prevent excessive reaction rate
+               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+               ENDIF
+            ENDIF
+
+            ! Add to overall reaction rate
+            HET_ClNO3_PSC1 = HET_ClNO3_PSC1 + ADJUSTEDRATE
+
+         END DO
+
+      ENDIF
+
+    END FUNCTION HETClNO3_PSC1
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hetclno3_psc2
+!
+! !DESCRIPTION: Sets the heterogenous chemistry rate for ClNO3(g) + HCl(l,s)
+! in polar stratospheric clouds.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETClNO3_PSC2( A, B ) RESULT( HET_ClNO3_PSC2 )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: HET_ClNO3_PSC2
+!
+! !REMARKS:
+!  This routine is only activated for UCX-based mechanisms.
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Initialize
+      HET_ClNO3_PSC2 = 0.0_fp
+      ADJUSTEDRATE   = 0.0_fp
+
+      ! Always apply adjustment
+      KII_KI = .TRUE.
+
+      ! Only consider PSC reactions in strat
+      IF (STRATBOX) THEN
+
+         ! Loop over aerosol types
+         DO N = 1, NAERO
+
+            IF (N.eq.8) THEN
+               XSTKCF = 0.1e-4_fp ! Sulfate
+            ELSEIF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(4)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.2e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.3e+0_fp ! Ice
+               ENDIF
+            ELSE
+               XSTKCF = 0e+0_fp
+            ENDIF
+
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+
+            IF (KII_KI .and. N.gt.12) THEN
+               ! PSC reaction - prevent excessive reaction rate
+               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+               ENDIF
+            ENDIF
+
+            ! Add to overall reaction rate
+            HET_ClNO3_PSC2 = HET_ClNO3_PSC2 + ADJUSTEDRATE
+
+         END DO
+
+      ENDIF
+
+    END FUNCTION HETClNO3_PSC2
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hetclno3_psc3
+!
+! !DESCRIPTION: Set heterogenous chemistry rate for ClNO3(g) + HBr(l,s)
+!  in polar stratospheric clouds.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETClNO3_PSC3( A, B ) RESULT( HET_ClNO3_PSC3 )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: HET_ClNO3_PSC3
+!
+! !REMARKS:
+!  This routine is only activated for UCX-based mechanisms.
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Initialize
+      HET_ClNO3_PSC3 = 0.0_fp
+      ADJUSTEDRATE   = 0.0_fp
+
+      ! Always apply adjustment
+      KII_KI = .TRUE.
+
+      ! Only consider PSC reactions in strat
+      IF (STRATBOX) THEN
+
+         ! Loop over aerosol types
+         DO N = 1, NAERO
+
+            IF (N.eq.8) THEN
+               XSTKCF = 0.e+0_fp ! Sulfate
+            ELSEIF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(5)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.3e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.3e+0_fp ! Ice
+               ENDIF
+            ELSE
+               XSTKCF = 0e+0_fp
+            ENDIF
+
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+
+            IF (KII_KI .and. N.gt.12) THEN
+               ! PSC reaction - prevent excessive reaction rate
+               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+               ENDIF
+            ENDIF
+
+            ! Add to overall reaction rate
+            HET_ClNO3_PSC3 = HET_ClNO3_PSC3 + ADJUSTEDRATE
+
+         END DO
+
+      ENDIF
+
+    END FUNCTION HETClNO3_PSC3
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hetbrno3_psc
+!
+! !DESCRIPTION: Set heterogenous chemistry rate for BrNO3(g) + HCl(l,s)
+!  in polar stratospheric clouds.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETBrNO3_PSC( A, B ) RESULT( HET_BrNO3_PSC )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE: 
+!
+      REAL(fp)             :: HET_BrNO3_PSC
+!
+! !REMARKS:
+!  This routine is only activated for UCX-based mechanisms.
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Initialize
+      HET_BrNO3_PSC = 0.0_fp
+      ADJUSTEDRATE  = 0.0_fp
+
+      ! Always apply adjustment
+      KII_KI = .TRUE.
+
+      ! Only consider PSC reactions in strat
+      IF (STRATBOX) THEN
+
+         ! Loop over aerosol types
+         DO N = 1, NAERO
+
+            IF (N.eq.8) THEN
+               XSTKCF = 0.9e+0_fp ! Sulfate
+            ELSEIF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(7)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.3e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.3e+0_fp ! Ice
+               ENDIF
+            ELSE
+               XSTKCF = 0e+0_fp
+            ENDIF
+
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+
+            IF (KII_KI .and. N.gt.12) THEN
+               ! PSC reaction - prevent excessive reaction rate
+               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+               ENDIF
+            ENDIF
+
+            ! Add to overall reaction rate
+            HET_BrNO3_PSC = HET_BrNO3_PSC + ADJUSTEDRATE
+
+         END DO
+
+      ENDIF
+
+    END FUNCTION HETBrNO3_PSC
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hethocl_psc1
+!
+! !DESCRIPTION: Set heterogenous chemistry rate for HOCl(g) + HCl(l,s)
+!  in polar stratopsheric clouds.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETHOCl_PSC1( A, B ) RESULT( HET_HOCl_PSC1 )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp) INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+!
+      REAL(fp)            :: HET_HOCl_PSC1
+!
+! !REMARKS:
+!  This routine is only activated for UCX-based mechanisms.
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Initialize
+      HET_HOCl_PSC1 = 0.0_fp
+      ADJUSTEDRATE  = 0.0_fp
+
+      ! Always apply adjustment
+      KII_KI = .TRUE.
+
+      ! Only consider PSC reactions in strat
+      IF (STRATBOX) THEN
+
+         ! Loop over aerosol types
+         DO N = 1, NAERO
+
+            IF (N.eq.8) THEN
+               XSTKCF = 0.8e+0_fp ! Sulfate
+            ELSEIF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(8)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.1e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.2e+0_fp ! Ice
+               ENDIF
+            ELSE
+               XSTKCF = 0e+0_fp
+            ENDIF
+
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+
+            IF (KII_KI .and. N.gt.12) THEN
+               ! PSC reaction - prevent excessive reaction rate
+               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+               ENDIF
+            ENDIF
+
+            ! Add to overall reaction rate
+            HET_HOCl_PSC1 = HET_HOCl_PSC1 + ADJUSTEDRATE
+
+         END DO
+
+      ENDIF
+
+    END FUNCTION HETHOCl_PSC1
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hethocl_psc2
+!
+! !DESCRIPTION: Set heterogenous chemistry rate for HOCl(g) + HBr(l,s)
+!  in polar stratospheric clouds.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETHOCl_PSC2( A, B ) RESULT( HET_HOCl_PSC2 )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: HET_HOCl_PSC2
+!
+! !REMARKS:
+!  This routine is only activated for UCX-based mechanisms.
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+
+      ! Initialize
+      HET_HOCl_PSC2 = 0.0_fp
+      ADJUSTEDRATE  = 0.0_fp
+
+      ! Always apply adjustment
+      KII_KI = .TRUE.
+
+      ! Only consider PSC reactions in strat
+      IF (STRATBOX) THEN
+
+         ! Loop over aerosol types
+         DO N = 1, NAERO
+
+            IF (N.eq.8) THEN
+               XSTKCF = 0.8e+0_fp ! Sulfate
+            ELSEIF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(9)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.3e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.3e+0_fp ! Ice
+               ENDIF
+            ELSE
+               XSTKCF = 0e+0_fp
+            ENDIF
+
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+
+            IF (KII_KI .and. N.gt.12) THEN
+               ! PSC reaction - prevent excessive reaction rate
+               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+               ENDIF
+            ENDIF
+
+            ! Add to overall reaction rate
+            HET_HOCl_PSC2 = HET_HOCl_PSC2 + ADJUSTEDRATE
+
+         END DO
+
+      ENDIF
+
+    END FUNCTION HETHOCl_PSC2
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hethobr_psc
+!
+! !DESCRIPTION: Set heterogenous chemistry rate for HOBr(g) + HCl(l,s)
+!  in polar stratospheric clouds.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETHOBr_PSC( A, B ) RESULT( HET_HOBr_PSC )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: HET_HOBr_PSC
+!
+! !REMARKS:
+!  This routine is only activated for UCX-based mechanisms.
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Initialize
+      HET_HOBr_PSC = 0.0_fp
+      ADJUSTEDRATE = 0.0_fp
+
+      ! Always apply adjustment
+      KII_KI = .TRUE.
+
+      ! Only consider PSC reactions in strat
+      IF (STRATBOX) THEN
+
+         ! Loop over aerosol types
+         DO N = 1, NAERO
+
+            IF (N.eq.8) THEN
+               XSTKCF = 0.8e+0_fp ! Sulfate
+            ELSEIF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(10)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.1e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.3e+0_fp ! Ice
+               ENDIF
+            ELSE
+               XSTKCF = 0e+0_fp
+            ENDIF
+
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+
+            IF (KII_KI .and. N.gt.12) THEN
+               ! PSC reaction - prevent excessive reaction rate
+               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+               ENDIF
+            ENDIF
+
+            ! Add to overall reaction rate
+            HET)HOBr_PSC = HET_HOBr_PSC + ADJUSTEDRATE
+
+         ENDDO
+
+      ENDIF
+
+    END FUNCTION HETHOBr_PSC
+!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2341,9 +2973,6 @@ MODULE GCKPP_HETRATES
       SUBROUTINE CHECK_NAT( I, J, L, IS_NAT, IS_PSC, IS_STRAT, &
                             Input_Opt, State_Met, State_Chm )
 !
-! !USES:
-!
-!
 ! !INPUT PARAMETERS:
 !
       INTEGER,        INTENT(IN)  :: I,J,L      ! Grid indices
@@ -2356,6 +2985,9 @@ MODULE GCKPP_HETRATES
       LOGICAL,        INTENT(OUT) :: IS_NAT     ! Is surface NAT?
       LOGICAL,        INTENT(OUT) :: IS_PSC     ! Are there solid PSCs?
       LOGICAL,        INTENT(OUT) :: IS_STRAT   ! Are we in the strat?
+!
+! !REMARKS:
+!  This routine is only activated for UCX-based mechanisms
 !
 ! !REVISION HISTORY:
 !  17 Apr 2013 - S. D. Eastham - Initial version
@@ -2390,7 +3022,7 @@ MODULE GCKPP_HETRATES
       ! Check if there is surface NAT
       IS_NAT   = ( ( IS_PSC ) .and. ( TRC_NIT .gt. TINY(1e+0_fp) ) )
 
-      END SUBROUTINE CHECK_NAT
+    END SUBROUTINE CHECK_NAT
 !EOC
 #endif
   END MODULE GCKPP_HETRATES
