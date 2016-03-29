@@ -146,8 +146,9 @@
       INTEGER            :: DeltaYMD, DeltaHMS 
       REAL(sp)           :: TS
       REAL(fp), POINTER  :: GridAreas_ptr(:,:) => NULL()
+      CHARACTER(LEN=4)   :: HgCatIndexString
       CHARACTER(LEN=60)  :: ContainerName
-      CHARACTER(LEN=60)  :: Prefix, Suffix, TracerIDStr
+      CHARACTER(LEN=60)  :: Prefix, Suffix
       CHARACTER(LEN=255) :: MSG, LOC = 
      &                      'INIT_GC_RESTART_NC (restart_mod.F90)'
 
@@ -162,10 +163,10 @@
       GridAreas_ptr    => AREA_M2(:,:,1)
       TS     =  GET_TS_CHEM() * 60.0_sp
 
-      !------------------------------------------------------------------
+      !
       ! Create restart collection for GEOS-Chem.  This will keep the
       ! GEOS-Chem restart separate from other output.
-      !------------------------------------------------------------------
+      !
 #if defined ( ESMF_ )
       deltaYMD = 0 
       deltaHMS = 1
@@ -197,9 +198,9 @@
       ! Save GEOS-Chem restart collection ID in Input_Opt
       Input_Opt%GC_RST_COLLECTION = GC_RST_Collection
 
-      !-----------------------------------------------------------------
-      ! Create restart containers for tracers
-      !-----------------------------------------------------------------
+      !=================================================================
+      ! Create tracer restart containers
+      !=================================================================
       
       ! Initialize container id
       cID = 0
@@ -228,9 +229,10 @@
          ENDIF  
       ENDDO
 
-      !-----------------------------------------------------------------
-      ! Create restart containers for species
-      !-----------------------------------------------------------------
+      !=================================================================
+      ! Create species restart containers
+      !=================================================================
+
       ! Only save species if chemistry simulation
       IF ( Input_Opt%LCHEM .AND. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
 
@@ -268,9 +270,10 @@
          ENDDO
       ENDIF
 
-      !-----------------------------------------------------------------
-      ! If Hg simulation, create restart containers for mercury
-      !-----------------------------------------------------------------
+      !=================================================================
+      ! If Hg simulation, create Hg restart containers
+      !=================================================================
+
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
          !--------------------------------------------------------------
@@ -327,9 +330,9 @@
             DO N = 1, N_Hg_CATS
             
                ! Define container name and id
-               ! (temperarily append tracer # until name array exists)
-               write( TracerIDStr, '(I5)' ) N
-               ContainerName = TRIM( Prefix ) // TRIM( TracerIDStr )
+               ! Append category # to name
+               write( HgCatIndexString, '(I5)' ) N
+               ContainerName = TRIM( Prefix ) // TRIM(HgCatIndexString)
                cID = cId + 1
             
                ! Create container
@@ -371,9 +374,9 @@
                DO N = 2, N_Hg_CATS
                
                   ! Define container name and ID
-                  ! (temperarily append tracer # until name array exists)
-                  write( TracerIDStr, '(I5)' ) N
-                  Suffix = TRIM( TracerIDStr )
+                  ! Append category # to name
+                  write( HgCatIndexString, '(I5)' ) N
+                  Suffix = TRIM( HgCatIndexString )
                   ContainerName = 'OCEAN_HG' // TRIM( Prefix ) 
      &                            // TRIM( Suffix )
                   cID = cId + 1
@@ -550,6 +553,7 @@ dvected tracer input  restart file
 ! !USES:
 !     
       USE COMODE_LOOP_MOD,    ONLY : NTSPEC, NAMEGAS
+      USE DEPO_MERCURY_MOD
       USE m_netcdf_io_open                         ! netCDF file open
       USE m_netcdf_io_read                         ! netCDF read
       USE m_netcdf_io_readattr                     ! netCDF attribute reads
@@ -558,8 +562,10 @@ dvected tracer input  restart file
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE OCEAN_MERCURY_MOD
       USE PHYSCONSTANTS,      ONLY : BOLTZ
-      USE TIME_MOD,           ONLY : EXPAND_DATE 
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -588,9 +594,11 @@ dvected tracer input  restart file
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER              :: I, J, L, N         ! lon, lat, lev, var index
+      INTEGER              :: I, J, L            ! lon, lat, lev
+      INTEGER              :: M, N, index        ! indexes
       CHARACTER(LEN=10)    :: SPC_NAME           ! species name 
       CHARACTER(LEN=10)    :: UNIT
+      CHARACTER(LEN=60)    :: Prefix, Suffix
       REAL(fp)             :: Background_VV      ! background species conc
       REAL(fp)             :: CONV_FACTOR        ! convert mol/mol -> molec/cm3
 
@@ -608,7 +616,9 @@ dvected tracer input  restart file
       INTEGER              :: st4d(4), ct4d(4)   ! start and count values
                                                  ! for 4D variable array
       ! Temporary arrays and pointers
-      REAL*4, TARGET  :: Temp3D( IIPAR, JJPAR, LLPAR )
+      REAL*4, TARGET  :: Temp2D(IIPAR,JJPAR) 
+      REAL*4, TARGET  :: Temp3D(IIPAR,JJPAR,LLPAR )
+      REAL*4, POINTER :: Ptr2D(:,:) => NULL()
       REAL*4, POINTER :: Ptr3D(:,:,:) => NULL()
 
       ! Other
@@ -631,7 +641,7 @@ dvected tracer input  restart file
       CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
       !=================================================================
-      ! Open the GEOS-Chem restart file and prepare variables for read
+      ! Open GEOS-Chem restart file
       !=================================================================
 
       ! Open file for read
@@ -659,7 +669,7 @@ dvected tracer input  restart file
  100  FORMAT( 'READ_RESTART_FILE: Reading ', a )
 
       !=================================================================
-      ! Read tracer data, convert units, and store in State_Chm
+      ! Read tracer concentrations
       !=================================================================
 
       ! Print header for min/max concentration to log
@@ -716,10 +726,7 @@ dvected tracer input  restart file
          
       ENDDO
 
-      !=================================================================
-      ! Print mean atmospheric kg/kg for each tracer
-      !=================================================================
-
+      ! Print mean atmospheric kg/kg for each tracer to log
       WRITE( 6, 130 )
  130  FORMAT( /, 'Mean mass mixing ratio per tracer [kg/kg]: ' ) 
       
@@ -740,7 +747,7 @@ dvected tracer input  restart file
       ENDDO
             
       !=================================================================
-      ! Read species concentrations and store in array
+      ! Read species concentrations if present, else set to default vals
       !=================================================================
 
       ! Only read species if chemistry simulation
@@ -917,6 +924,201 @@ dvected tracer input  restart file
 
             ENDIF
          ENDDO
+      ENDIF
+
+      !=================================================================
+      ! Read ocean mercury variables
+      !=================================================================
+      IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+
+         ! NOTE: set ocean_mercury_mod.F module variables
+
+         !--------------------------------------------------------------
+         ! Total mercury in ocean
+         !--------------------------------------------------------------
+
+         ! Loop over Hg0, Hg2, and HgP
+         DO M = 1, 3
+
+            ! Define variable name
+            SELECT CASE( M )
+               CASE ( 1 )
+                  Prefix = '_Hg0_' 
+                  index = ID_Hg0(ID_Hg_tot)
+               CASE ( 2 )
+                  Prefix = '_Hg2_'
+                  index = ID_Hg2(ID_Hg_tot)
+               CASE ( 3 )
+                  Prefix = '_HgP_' 
+                  index =ID_HgP(ID_Hg_tot)
+            END SELECT
+            v_name = 'OCEAN_HG' // TRIM( Prefix ) // 'Total' 
+
+            ! Zero temporary array and set pointer
+            Temp2D = 0.e+0_fp 
+            Ptr2D => Temp2D
+
+            ! Read variable from restart file
+            CALL NcRd( Ptr2D, fId, TRIM(v_name), st3d, ct3d )
+
+            ! Set ocean mercury data
+            SELECT CASE( M )
+               CASE ( 1 )
+                  Hg0aq(:,:,index) = Ptr2D
+               CASE ( 2 )
+                  Hg2aq(:,:,index) = Ptr2D
+               CASE ( 3 )
+                  HgPaq(:,:,index) = Ptr2D
+            END SELECT
+
+            ! Nullify pointer
+            Ptr2D => NULL()
+
+         ENDDO
+
+         !--------------------------------------------------------------
+         ! Hg snowpack on land and ocean
+         !--------------------------------------------------------------
+
+         ! Loop over categories
+         DO N = 1, N_Hg_CATS
+            index = ID_Hg0(N)
+            write( HgCatIndexString, '(I5)' ) N
+
+            ! Loop over 4 combinations of reducibility and sfc type
+            DO M = 1, 4               
+
+               ! Define variable name
+               SELECT CASE( M )
+                  CASE ( 1 )
+                     Prefix = 'SNOW_HG_OCN_Hg0_'  ! Reducible on ocean
+                  CASE ( 2 )
+                     Prefix = 'SNOW_HGN_OCN_Hg0_' ! Non-reducible on ocean
+                  CASE ( 3 )
+                     Prefix = 'SNOW_HG_LND_Hg0_'  ! Reducible on land
+                  CASE ( 4 )
+                     Prefix = 'SNOW_HGN_LND_Hg0_' ! Non-reducible on land
+               END SELECT
+               v_name = TRIM( Prefix ) // TRIM(HgCatIndexString)
+
+               ! Zero temporary array and set pointer
+               Temp2D = 0.e+0_fp 
+               Ptr2D => Temp2D
+
+               ! Read variable from restart file
+               CALL NcRd( Temp2D, fId, TRIM(v_name), st3d, ct3d )
+
+               ! Define ocean mercury data
+               SELECT CASE( M )
+                  CASE ( 1 )
+                     SNOW_HG_OC(:,:,index) = Temp2D
+                  CASE ( 2 )
+                     SNOW_HG_STORED_OC(:,:,index) = Temp2D
+                  CASE ( 3 )
+                     SNOW_HG_LN(:,:,index) = Temp2D
+                  CASE ( 4 )
+                     SNOW_HG_STORED_LN(:,:,index) = Temp2D
+               END SELECT
+
+               ! Nullify pointer
+               Ptr2D => NULL()
+
+            ENDDO
+         ENDDO
+
+         !--------------------------------------------------------------
+         ! If tagged Hg simulation, also write tagged Hg(0), Hg(II), 
+         ! and Hg(P) in ocean
+         !--------------------------------------------------------------
+         IF ( Input_Opt%LSPLIT ) THEN
+
+            ! Loop over tagged Hg categories
+            DO N = 2, N_Hg_CATS
+               write( HgCatIndexString, '(I5)' ) N
+
+               ! Loop over Hg0, Hg2, and HgP
+               DO M = 1, 3
+
+                  ! Define variable name
+                  SELECT CASE( M )
+                     CASE ( 1 )
+                        Prefix = '_Hg0_' 
+                        index = ID_Hg0(N)
+                     CASE ( 2 )
+                        Prefix = '_Hg2_'
+                        index = ID_Hg2(N)
+                     CASE ( 3 )
+                        Prefix = '_HgP_' 
+                        index = ID_HgP(N)
+                  END SELECT
+                  v_name = 'OCEAN_HG' // TRIM( Prefix ) 
+     &                            // TRIM( HgCatIndexString )
+                  
+                  ! Zero temporary array and set pointer
+                  Temp2D = 0.e+0_fp 
+                  Ptr2D => Temp2D
+
+                  ! Read variable from restart file
+                  CALL NcRd( Ptr2D, fId, TRIM(v_name), st3d, ct3d )
+
+                  ! Set ocean mercury data
+                  SELECT CASE( M )
+                     CASE ( 1 )
+                        Hg0aq(:,:,index) = Ptr2D
+                     CASE ( 2 )
+                        Hg2aq(:,:,index) = Ptr2D
+                     CASE ( 3 )
+                        HgPaq(:,:,index) = Ptr2D
+                  END SELECT
+
+                  ! Nullify pointer
+                  Ptr2D => NULL()
+
+               ENDDO
+            ENDDO
+         ENDIF
+
+!         ! Write Hg totals to log
+!         ! Echo info
+!         WRITE( 6, 200 )
+!         
+!         ! Hg0
+!         DO NN = 1, N_Hg_CATS
+!            WRITE( 6, 210 ) ID_Hg0(NN), TRACER_NAME( Id_Hg0(NN) ), 
+!     &                      SUM( Hg0aq(:,:,NN) ),  'kg'
+!         ENDDO
+!         
+!         ! Hg2
+!         DO NN = 1, N_Hg_CATS
+!            WRITE( 6, 210 ) ID_Hg2(NN), TRACER_NAME( Id_Hg2(NN) ), 
+!     &                      SUM( Hg2aq(:,:,NN) ), 'kg'
+!         ENDDO
+!         
+!         ! HgP
+!         WRITE( 6, 210 ) 3, 'HgP       ', SUM( HgPaq ), 'kg'
+!         
+!         ! Snow Hg (jaf, 6/17/11)
+!         WRITE( 6, 210 ) 1, 'Reducible snow Hg ocean',SUM(SNOW_HG_OC),
+!     &                      'kg'
+!         WRITE( 6, 210 ) 1, 'Non-reducible snow Hg ocean',
+!     &                       SUM(SNOW_HG_STORED_OC), 'kg'
+!         WRITE( 6, 210 ) 1, 'Reducible snow Hg land', SUM(SNOW_HG_LN),
+!     &                      'kg'
+!         WRITE( 6, 210 ) 1, 'Non-reducible snow Hg land',
+!     &                       SUM(SNOW_HG_STORED_LN), 'kg'
+!         
+!         ! Format strings
+! 200     FORMAT( /, 'Total masses for each ocean tracer: ' ) 
+! 210     FORMAT( 'Tracer ', i3, ' (', a10, ') ', es12.5, 1x, a4)
+!         
+!         ! Fancy output
+!         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!         
+!         ! Make sure tagged & total tracers sum up
+!         IF ( Input_Opt%USE_CHECKS .and. Input_Opt%LSPLIT ) THEN
+!            CALL CHECK_OCEAN_MERCURY( 'end of READ_GC_RESTART_NC' )
+!         ENDIF
+
       ENDIF
 
       !=================================================================
@@ -1321,11 +1523,14 @@ dvected tracer input  restart file
 ! !USES:
 !
       USE COMODE_LOOP_MOD,    ONLY : NTSPEC, NAMEGAS
+      USE DEPO_MERCURY_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE OCEAN_MERCURY_MOD 
       USE PHYSCONSTANTS,      ONLY : BOLTZ
       USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE TRACERID_MOD
 
       ! HEMCO
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
@@ -1358,12 +1563,15 @@ dvected tracer input  restart file
 ! !LOCAL VARIABLES:
 !
       ! Local Variables      
-      INTEGER              :: N, I, J, L, HCRC
+      INTEGER              :: M, N, I, J, L, index, HCRC
       INTEGER              :: GC_RST_Collection
-      REAL(fp)             :: CONV_FACTOR        ! convert molec/cm3 -> mol/mol
+      REAL(fp)             :: CONV_FACTOR    ! convert molec/cm3 -> mol/mol
       REAL*4               :: SMALL_NUM
-      REAL*4, TARGET       :: Temp3D(IIPAR, JJPAR, LLPAR)
+      REAL*4, TARGET       :: Temp3D(IIPAR,JJPAR,LLPAR)
+      REAL*4, TARGET       :: Temp2D(IIPAR,JJPAR)
       REAL*4, POINTER      :: Ptr3D(:,:,:) 
+      REAL*4, POINTER      :: Ptr2D(:,:) 
+      CHARACTER(LEN=4)     :: HgCatIndexString
       CHARACTER(LEN=60)    :: ContainerName
       CHARACTER(LEN=255)   :: MSG, LOC = 
      &                       'WRITE_GC_NC_RESTART (restart_mod.F90)'
@@ -1403,9 +1611,10 @@ dvected tracer input  restart file
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( 'WRITE_GC_RESTART_NC: Writing ', a )
       
-      !-----------------------------------------------------------------
-      ! Populate restart tracer containers before writing tracer data
-      !-----------------------------------------------------------------
+      !=================================================================
+      ! Populate tracer concentration restart containers
+      !=================================================================
+
       ! Print min and max to log for testing if in debug mode
       IF ( Input_Opt%LPRT ) THEN
          WRITE( 6, 110 )
@@ -1447,9 +1656,10 @@ dvected tracer input  restart file
 
       ENDDO
 
-      !-----------------------------------------------------------------
-      ! Populate restart species containers before writing species data
-      !-----------------------------------------------------------------
+      !=================================================================
+      ! Populate species concentration restart containers
+      !=================================================================
+
       ! Only save species if doing full chemistry simulation
       IF ( Input_Opt%LCHEM .AND. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
@@ -1598,139 +1808,158 @@ dvected tracer input  restart file
          ENDDO
       ENDIF
 
-!      !-----------------------------------------------------------------
-!      ! If Hg simulation, create restart containers for mercury
-!      !-----------------------------------------------------------------
-!      IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-!
-!         !--------------------------------------------------------------
-!         ! Total Hg(0), Hg(II), and Hg(P) in ocean
-!         !--------------------------------------------------------------
-!         DO M = 1, 3
-!         
-!            SELECT CASE( M )
-!               CASE ( 1 )
-!                  Prefix = '_Hg0_' 
-!               CASE ( 2 )
-!                  Prefix = '_Hg2_'
-!               CASE ( 3 )
-!                  Prefix = '_HgP_' 
-!            END SELECT
-!         
-!            ! Define container name and ID
-!            ContainerName = 'OCEAN_HG' // TRIM( Prefix ) // 'Total' 
-!            cID = cId + 1
-!            
-!            ! Create container
+      !=================================================================
+      ! If Hg simulation, populate ocean mercury restart containers
+      !=================================================================
 
-!            CALL Diagn_Create( am_I_Root,                     
-!     &                         Col       = GC_RST_Collection,         
-!     &                         cId       = cID,                 
-!     &                         cName     = TRIM( ContainerName ), 
-!     &                         SpaceDim  =  2,                
-!     &                         OutUnit   = 'kg',           
-!     &                         OutOper   = 'Instantaneous', 
-!     &                         RC        = RC )
-!            
-!            IF ( RC /= HCO_SUCCESS ) THEN
-!               MSG = 'Cannot create restart species container: ' 
-!     &               // TRIM(ContainerName)
-!               CALL ERROR_STOP( MSG, LOC ) 
-!            ENDIF  
-!         ENDDO
-!
-!         !-----------------------------------------------------------
-!         ! Hg snowpack on land and ocean
-!         !-----------------------------------------------------------
-!         DO M = 1, 4
-!            SELECT CASE( M )
-!               CASE ( 1 )
-!                  Prefix = 'SNOW_HG_OCN_Hg0_'  ! Reducible on ocean
-!               CASE ( 2 )
-!                  Prefix = 'SNOW_HGN_OCN_Hg0_' ! Non-reducible on ocean
-!               CASE ( 3 )
-!                  Prefix = 'SNOW_HG_LND_Hg0_'  ! Reducible on land
-!               CASE ( 4 )
-!                  Prefix = 'SNOW_HGN_LND_Hg0_' ! Non-reducible on land
-!            END SELECT
-!         
-!            ! Loop over all categories to include tagged Hg
-!            DO N = 1, N_Hg_CATS
-!            
-!               ! Define container name and id
-!               ! (temperarily append tracer # until name array exists)
-!               write( TracerIDStr, '(I5)' ) N
-!               ContainerName = TRIM( Prefix ) // TRIM( TracerIDStr )
-!               cID = cId + 1
-!            
-!               ! Create container
-!               CALL Diagn_Create( am_I_Root,                     
-!     &                            Col       = GC_RST_Collection,         
-!     &                            cId       = cID,                 
-!     &                            cName     = TRIM( ContainerName ), 
-!     &                            SpaceDim  =  2,                
-!     &                            OutUnit   = 'kg',           
-!     &                            OutOper   = 'Instantaneous', 
-!     &                            RC        = RC )
-!               
-!               IF ( RC /= HCO_SUCCESS ) THEN
-!                  MSG = 'Cannot create restart species container: ' 
-!     &                  // TRIM(ContainerName)
-!                  CALL ERROR_STOP( MSG, LOC ) 
-!               ENDIF  
-!            ENDDO
-!         ENDDO
-!
-!         !--------------------------------------------------------------
-!         ! Additional restart containers for tagged Hg simulation 
-!         !--------------------------------------------------------------
-!         IF ( Input_Opt%LSPLIT ) THEN
-!
-!            !-----------------------------------------------------------
-!            ! Tagged Hg(0), Hg(II), and Hg(P) in ocean
-!            !-----------------------------------------------------------
-!            DO M = 1, 3
-!               SELECT CASE( M )
-!                  CASE ( 1 )
-!                     Prefix = '_Hg0_' 
-!                  CASE ( 2 )
-!                     Prefix = '_Hg2_'
-!                  CASE ( 3 )
-!                     Prefix = '_HgP_' 
-!               END SELECT
-!            
-!               DO N = 2, N_Hg_CATS
-!               
-!                  ! Define container name and ID
-!                  ! (temperarily append tracer # until name array exists)
-!                  write( TracerIDStr, '(I5)' ) N
-!                  Suffix = TRIM( TracerIDStr )
-!                  ContainerName = 'OCEAN_HG' // TRIM( Prefix ) 
-!     &                            // TRIM( Suffix )
-!                  cID = cId + 1
-!               
-!                  ! Create container
-!                  CALL Diagn_Create( am_I_Root,                     
-!     &                               Col       = GC_RST_Collection,         
-!     &                               cId       = cID,                 
-!     &                               cName     = TRIM( ContainerName ), 
-!     &                               SpaceDim  =  2,                
-!     &                               OutUnit   = 'kg',           
-!     &                               OutOper   = 'Instantaneous', 
-!     &                               RC        = RC )
-!                  
-!                  IF ( RC /= HCO_SUCCESS ) THEN
-!                     MSG = 'Cannot create restart species container: ' 
-!     &                     // TRIM(ContainerName)
-!                     CALL ERROR_STOP( MSG, LOC ) 
-!                  ENDIF  
-!               ENDDO
-!            ENDDO
-!         ENDIF
-!      ENDIF
+      IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+
+         ! NOTE: use ocean_mercury_mod.F module variables as data source
+
+         !--------------------------------------------------------------
+         ! Total mercury in ocean
+         !--------------------------------------------------------------
+
+         ! Loop over Hg0, Hg2, and HgP
+         DO M = 1, 3
+
+            ! Define container name and point to data
+            SELECT CASE( M )
+               CASE ( 1 )
+                  Prefix = '_Hg0_' 
+                  index = ID_Hg0(ID_Hg_tot)
+                  Temp2D = Hg0aq(:,:,index)
+               CASE ( 2 )
+                  Prefix = '_Hg2_'
+                  index = ID_Hg2(ID_Hg_tot)
+                  Temp2D = Hg2aq(:,:,index)
+               CASE ( 3 )
+                  Prefix = '_HgP_' 
+                  index =ID_HgP(ID_Hg_tot)
+                  Temp2D = HgPaq(:,:,index)
+            END SELECT
+            ContainerName = 'OCEAN_HG' // TRIM( Prefix ) // 'Total' 
+            Ptr2D => Temp2D
+
+            ! Populate container with data
+            CALL Diagn_Update( am_I_Root,                   
+     &                      cName   = TRIM( ContainerName ),
+     &                      COL     = GC_RST_Collection,
+     &                      Array2D = Ptr2D,             
+     &                      RC      = HCRC )
+
+            ! Free the pointer
+            Ptr3D => NULL()
+            
+            IF ( HCRC /= HCO_SUCCESS ) THEN
+               MSG = 'Cannot update restart tracer container: ' 
+     &               // TRIM( ContainerName )
+               CALL ERROR_STOP( MSG, LOC ) 
+            ENDIF
+         ENDDO
+
+         !--------------------------------------------------------------
+         ! Hg snowpack on land and ocean
+         !--------------------------------------------------------------
+
+         ! Loop over categories
+         DO N = 1, N_Hg_CATS
+            index = ID_Hg0(N)
+            write( HgCatIndexString, '(I5)' ) N
+
+            ! Loop over 4 combinations of reducibility and sfc type
+            DO M = 1, 4               
+
+               ! Define container name and point to data
+               SELECT CASE( M )
+                  CASE ( 1 )
+                     Prefix = 'SNOW_HG_OCN_Hg0_'  ! Reducible on ocean
+                     Temp2D = SNOW_HG_OC(:,:,index)
+                  CASE ( 2 )
+                     Prefix = 'SNOW_HGN_OCN_Hg0_' ! Non-reducible on ocean
+                     Temp2D = SNOW_HG_STORED_OC(:,:,index)
+                  CASE ( 3 )
+                     Prefix = 'SNOW_HG_LND_Hg0_'  ! Reducible on land
+                     Temp2D = SNOW_HG_LN(:,:,index)
+                  CASE ( 4 )
+                     Prefix = 'SNOW_HGN_LND_Hg0_' ! Non-reducible on land
+                     Temp2D = SNOW_HG_STORED_LN(:,:,index)
+               END SELECT
+               ContainerName = TRIM( Prefix ) // TRIM(HgCatIndexString)
+               Ptr2D => Temp2D
+               
+               ! Populate container with data
+               CALL Diagn_Update( am_I_Root,                   
+     &                            cName   = TRIM( ContainerName ),
+     &                            COL     = GC_RST_Collection,
+     &                            Array2D = Ptr2D,             
+     &                            RC      = HCRC )
+               
+               ! Free the pointer
+               Ptr2D => NULL()
+               
+               IF ( HCRC /= HCO_SUCCESS ) THEN
+                  MSG = 'Cannot update restart tracer container: ' 
+     &                  // TRIM( ContainerName )
+                  CALL ERROR_STOP( MSG, LOC ) 
+               ENDIF
+            ENDDO
+         ENDDO
+
+         !--------------------------------------------------------------
+         ! If tagged Hg simulation, also write tagged Hg(0), Hg(II), 
+         ! and Hg(P) in ocean
+         !--------------------------------------------------------------
+         IF ( Input_Opt%LSPLIT ) THEN
+
+            ! Loop over tagged Hg categories
+            DO N = 2, N_Hg_CATS
+               write( HgCatIndexString, '(I5)' ) N
+
+               ! Loop over Hg0, Hg2, and HgP
+               DO M = 1, 3
+
+                  ! Define container name and point to data
+                  SELECT CASE( M )
+                     CASE ( 1 )
+                        Prefix = '_Hg0_' 
+                        index = ID_Hg0(N)
+                        Temp2D = Hg0aq(:,:,index)
+                     CASE ( 2 )
+                        Prefix = '_Hg2_'
+                        index = ID_Hg2(N)
+                        Temp2D = Hg2aq(:,:,index)
+                     CASE ( 3 )
+                        Prefix = '_HgP_' 
+                        index = ID_HgP(N)
+                        Temp2D = HgPaq(:,:,index)
+                  END SELECT
+                  ContainerName = 'OCEAN_HG' // TRIM( Prefix ) 
+     &                            // TRIM( HgCatIndexString )
+                  Ptr2D => Temp2D
+                  
+                  ! Populate container with data
+                  CALL Diagn_Update( am_I_Root,                   
+     &                            cName   = TRIM( ContainerName ),
+     &                            COL     = GC_RST_Collection,
+     &                            Array2D = Ptr2D,             
+     &                            RC      = HCRC )
+                  
+                  ! Free the pointer
+                  Ptr2D => NULL()
+                  
+                  IF ( HCRC /= HCO_SUCCESS ) THEN
+                     MSG = 'Cannot update restart tracer container: ' 
+     &                     // TRIM( ContainerName )
+                     CALL ERROR_STOP( MSG, LOC ) 
+                  ENDIF
+               ENDDO
+            ENDDO
+         ENDIF
+      ENDIF
 
       !-----------------------------------------------------------------
-      ! Write out NetCDF using HEMCO 
+      ! Write output NetCDF restart file using HEMCO 
       !-----------------------------------------------------------------
       ! Get pointer to HEMCO state object.
       CALL GetHcoState( HcoState )
