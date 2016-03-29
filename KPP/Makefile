@@ -125,14 +125,15 @@ clean:
 	@$(MAKE) -C $(KPP_CHEM) clean
 
 realclean:
-	@$(MAKE) -C benchmark        clean
-	@$(MAKE) -C SOA              clean
-	@$(MAKE) -C SOA_SVPOA        clean
-	@$(MAKE) -C UCX              clean
-	@$(MAKE) -C NOx_Ox_HC_Aer_Br clean
-	@$(MAKE) -C TempFlex         clean
+	@$(MAKE) -C benchmark          clean
+	@$(MAKE) -C SOA                clean
+	@$(MAKE) -C SOA_SVPOA          clean
+	@$(MAKE) -C UCX                clean
+	@$(MAKE) -C NOx_Ox_HC_Aer_Br   clean
+	@$(MAKE) -C TempFlex           clean
 	@$(MAKE) -C TempFlex_Benchmark clean
-	@$(MAKE) -C TempFlex_SOA     clean
+	@$(MAKE) -C TempFlex_SOA       clean
+	@$(MAKE) -C TempFlex_SOA_SVPOA clean
 
 help:
 	@$(MAKE) -C $(HELP) 

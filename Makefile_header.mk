@@ -352,7 +352,7 @@ endif
 # %%%%% Test if CHEM=SOA_SVPOA %%%%%
 REGEXP               :=(^[Ss][Oo][Aa]_[Ss][Vv][Pp][Oo][Aa])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=SOA_SVPOA
+  KPP_CHEM           :=TempFlex_SOA_SVPOA
   IS_CHEM_SET        :=1
 endif
 
