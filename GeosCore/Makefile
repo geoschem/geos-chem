@@ -169,7 +169,7 @@ APM     :=$(ROOT)/GeosApm
 BIN     :=$(ROOT)/bin
 BPCH    :=$(ROOT)/GeosBpch
 DOC     :=$(ROOT)/doc
-GIGC    :=$(ROOT)/GIGC
+GCHP    :=$(ROOT)/GCHP
 GTMM    :=$(ROOT)/GTMM
 HEMCO   :=$(ROOT)/HEMCO
 HDR     :=$(ROOT)/Headers
@@ -181,7 +181,7 @@ MOD     :=$(ROOT)/mod
 NCDF    :=$(ROOT)/NcdfUtil
 RAD     :=$(ROOT)/GeosRad
 UTIL    :=$(ROOT)/GeosUtil
-DYN     :=$(GIGC)/FVdycoreCubed_GridComp
+DYN     :=$(GCHP)/FVdycoreCubed_GridComp
 
 # Executables
 EXE     :=geos
@@ -261,7 +261,7 @@ libcore: $(OBJECTS)                                # Build code in GeosCore/
 
 libgigc:
 	@$(MAKE) -C $(DYN) install
-	@$(MAKE) -C $(GIGC) lib
+	@$(MAKE) -C $(GCHP) lib
 
 libheaders:                                        # Build code in Headers/ 
 	@$(MAKE) -C $(HDR)			  
@@ -287,7 +287,7 @@ libutil:                                           # Build code in GeosUtil/
 	@$(MAKE) -C $(UTIL)			  
 
 baselibs:
-	@$(MAKE) -C $(GIGC) baselibs
+	@$(MAKE) -C $(GCHP) baselibs
 
 ncdfcheck:                                         # Check netCDF library
 	@$(MAKE) libnc
@@ -327,7 +327,7 @@ realclean:                                         # Remove files everywhere
 	@$(MAKE) -C $(UTIL)  clean
 	@$(MAKE) docclean
 ifeq ($(HPC),yes)
-	@$(MAKE) -C $(GIGC)  clean
+	@$(MAKE) -C $(GCHP)  clean
 endif
 	@$(MAKE) wipeout
 
@@ -348,7 +348,7 @@ realclean_except_rrtmg:                            # Don't realclean RRTMG
 	@$(MAKE) -C $(UTIL)  slowclean
 	@$(MAKE) docclean
 ifeq ($(HPC),yes)
-	@$(MAKE) -C $(GIGC) clean
+	@$(MAKE) -C $(GCHP) clean
 endif
 
 doc:                                               # Build documentation

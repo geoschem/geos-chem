@@ -1213,7 +1213,7 @@
 
                ! Criegee chemistry (eam, dbm)
                IF ( SPECL(1) .eq. '@' ) THEN
-                  WRITE (6,*) '@@@', NCS
+                  !WRITE (6,*) '@@@', NCS
                   NNADDAT(NCS)=NNADDAT(NCS)+1
                   NKSPECAT(NNADDAT(NCS),NCS) = NK
                ENDIF

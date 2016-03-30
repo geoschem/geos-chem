@@ -947,11 +947,11 @@ LINK_HCO             :=$(LINK_HCO) -lNcUtils $(NC_LINK_CMD)
 # If we are building w/ the HPC target, then include GIGC.mk as well
 # Determine if we are building with the hpc target
 ifeq ($(HPC),yes)
-  ifneq ("$(wildcard $(CURDIR)/../GIGC/GIGC.mk)","")
-    include $(CURDIR)/../GIGC/GIGC.mk
+  ifneq ("$(wildcard $(CURDIR)/../GCHP/GIGC.mk)","")
+    include $(CURDIR)/../GCHP/GIGC.mk
   else
-  ifneq ("$(wildcard $(CURDIR)/../../GIGC/GIGC.mk)","")
-    include $(CURDIR)/../../GIGC/GIGC.mk
+  ifneq ("$(wildcard $(CURDIR)/../../GCHP/GIGC.mk)","")
+    include $(CURDIR)/../../GCHP/GIGC.mk
   else
     $(error $(ERR_GIGC))
   endif

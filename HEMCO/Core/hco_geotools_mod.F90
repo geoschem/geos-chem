@@ -551,7 +551,7 @@ CONTAINS
     LatR(:) = Lat / radToDeg 
 
     ! Get indeces
-    CALL MAPL_GetHorzIJIndex(LonR,LatR,N,Grid,idx,jdx,__RC__)
+    CALL MAPL_GetHorzIJIndex(N,idx,jdx,LonR,LatR,Grid=Grid,__RC__)
 
     ! Return w/ success
     RC =  HCO_SUCCESS
