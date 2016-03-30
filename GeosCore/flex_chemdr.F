@@ -84,6 +84,8 @@
 !  22 Dec 2015 - M. Sulprizio- Set NUMDEN to State_Met%AIRNUMDEN for conversions
 !                              between v/v and molec/cm3
 !  28 Mar 2016 - R. Yantosca - Added several fixes for OpenMP parallelization
+!  30 Mar 2016 - R. Yantosca - Bug fix, now make sure to copy C back into
+!                              State_Chm%Species.  Also block out temp diags.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -738,6 +740,9 @@
          ! Save rate constants in global array
          GLOB_RCONST(I,J,L,:) = RCONST(:)
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% FOR DIAGNOSTIC PURPOSES ONLY, WE CAN REMOVE THIS LATER
+#if defined( DEVEL )
          !=============================================================
          ! mje some simple diagnostics to check that things make sense
          ! mje these can be removed once we are happy with everything
@@ -748,30 +753,39 @@
          AVERAGEVAR = 0.0_fp
          MASS       = 0.0_fp
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% BLOCK THIS OUT FOR NOW (bmy, 3/28/16)
-!         ! mje some simple diagnostics to check that things make sense
-!         ! mje these can be removed once we are happy with everything
-!         DO N=1,NSPEC
-!            AVERAGEVAR(N)=AVERAGEVAR(N)+
-!     &                    C(N)*State_Met%AD(I,J,L)
-!         ENDDO
-!         MASS=MASS+State_Met%AD(I,J,L)
-!
-!         ! mje Check we have no negative values and copy the concentrations
-!         ! mje calculated into State_Chm%Species
-!         DO N=1,NSPEC
-!            C(N) = MAX( C(N), 0E0_dp )
-!            IF ( CSPECTOKPP(N) .eq. 0) CYCLE
-!            State_Chm%Species(I,J,L,CSPECTOKPP(N))= real(C(N),kind=fp)
-!            IF (I.eq.36.and.J.eq.5.and.L.eq.1.and.N.eq.IND_OH) THEN
-!               write(*,'(a,2e12.4)') 'SPC_OH : ',c(N),
-!     &              State_Chm%Species(I,J,L,CSPECTOKPP(N))
-!            ENDIF
-!         ENDDO
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! mje some simple diagnostics to check that things make sense
+         ! mje these can be removed once we are happy with everything
+         DO N=1,NSPEC
+            AVERAGEVAR(N)=AVERAGEVAR(N)+
+     &                    C(N)*State_Met%AD(I,J,L)
+         ENDDO
+         MASS=MASS+State_Met%AD(I,J,L)
+#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-         ! Debug
+         !==============================================================
+         ! Check we have no negative values and copy the concentrations
+         ! calculated from the C array back into State_Chm%Species
+         !==============================================================
+         DO N = 1, NSPEC
+
+            ! Set negative concentrations to zero
+            C(N) = MAX( C(N), 0.0E0_dp )
+            
+            ! Skip if this is not a KPP species
+            IF ( CSPECTOKPP(N) .eq. 0 ) CYCLE
+
+            ! Copy concentrations back into State_Chm%SPECIES
+            State_Chm%Species(I,J,L,CSPECTOKPP(N)) = real(C(N),kind=fp)
+
+            !### Debug output, we can remove it later
+            IF (I.eq.36.and.J.eq.5.and.L.eq.1.and.N.eq.IND_OH) THEN
+               write(*,'(a,2e12.4)') 'SPC_OH : ',c(N),
+     &              State_Chm%Species(I,J,L,CSPECTOKPP(N))
+            ENDIF
+         ENDDO
+
+         !### Debug output, we can remove it later
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
             DO N = 1,NSPEC
                write(*,'(2a,e12.4)') '<> a ', trim(SPC_NAMES(N)),
@@ -792,10 +806,15 @@
       write(*,'(a,I9)') 'Flex Rejected Steps: ', totrejec
       write(*,'(a,I9)') 'Flex LU Decompos.  : ', totnumLU
 
-!     mje write out tropospheric mass weighted averages
-!      DO N=1,NSPEC
-!         WRITE (6,*) SPC_NAMES(N), AVERAGEVAR(N)/MASS
-!      ENDDO	
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% FOR DIAGNOSTIC PURPOSES ONLY, WE CAN REMOVE THIS LATER
+#if defined( DEVEL )
+      ! mje write out tropospheric mass weighted averages
+      DO N=1,NSPEC
+         WRITE (6,*) SPC_NAMES(N), AVERAGEVAR(N)/MASS
+      ENDDO	
+#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       !=================================================================
       ! Convert STT from kg to molec/cm3
@@ -807,7 +826,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )!
+!$OMP+PRIVATE( I, J, L, N )
       DO N = 1, N_TRACERS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -819,6 +838,7 @@
       ENDDO
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       ! Kludge for families: species to tracers
       CALL FAMILIES_KLUDGE(am_I_Root,STT,Input_Opt,State_Chm,2,RC)
@@ -887,7 +907,7 @@
 
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! FOR DIAGNOSTIC PURPOSES ONLY:
+!%%% FOR DIAGNOSTIC PURPOSES ONLY, WE CAN REMOVE THIS LATER
 #if defined( DEVEL )
       ! mje  STT currently in kg / grid box convert to v/v
       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT)
