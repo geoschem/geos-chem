@@ -619,10 +619,7 @@
      &                         IERR                             )
 
             ! Copy ZPJ from fast_jx_mod.F to PHOTOL array
-            ! DEBUGGING (ewl, 3/18/16)
-            ! Comment out PHOTOL setting to turn off photolysis for testing
-            !PHOTOL(1:JVN_) = ZPJ(L,1:JVN_,I,J)
-            ! END DEBUGGING
+            PHOTOL(1:JVN_) = ZPJ(L,1:JVN_,I,J)
 
          ELSE
 
