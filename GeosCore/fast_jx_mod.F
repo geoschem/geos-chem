@@ -59,9 +59,18 @@
 !  28 Mar 2013 - S. D. Eastham - Upgraded to Fast-JX v7.0
 !  20 Feb 2014 - M. Sulprizio  - Removed "define.h", this is now obsolete
 !  13 Nov 2014 - M. Yannetti   - Added PRECISION_MOD
+!  29 Mar 2016 - R. Yantosca   - Add flags for rxns adjusted by PHOTRATE_ADJ
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      ! Flags for certain photo-reactions that will be adjusted by 
+      ! subroutine PHOTRATE_ADJ, which is called by FlexChem (bmy 3/29/16)
+      INTEGER :: RXN_O2    = -1   ! O2  + jv --> O   + O
+      INTEGER :: RXN_O3_1  = -1   ! O3  + hv --> O2  + O
+      INTEGER :: RXN_O3_2a = -1   ! O3  + hv --> O2  + O(1D) #1
+      INTEGER :: RXN_O3_2b = -1   ! O3  + hv --> O2  + O(1D) #2
+      INTEGER :: RXN_H2SO4 = -1   ! SO4 + hv --> SO2 + 2OH
+
       CONTAINS      
 !EOC
 !------------------------------------------------------------------------------
@@ -2588,33 +2597,44 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 ! !USES:
 !
+      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE CHARPAK_MOD, ONLY : CSTRIP
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)                    ::  NUNIT, NJXX
-      CHARACTER(*), INTENT(IN)               ::  NAMFIL
-      CHARACTER*6, INTENT(IN),DIMENSION(NJXX):: TITLEJX
-      LOGICAL, INTENT(IN)                    :: am_I_Root
-!
-! !OUTPUT VARIABLES:
-!
+      INTEGER,          INTENT(IN)                  :: NUNIT
+      INTEGER,          INTENT(IN)                  :: NJXX
+      CHARACTER(LEN=*), INTENT(IN)                  :: NAMFIL
+      CHARACTER(LEN=6), INTENT(IN), DIMENSION(NJXX) :: TITLEJX
+      LOGICAL,          INTENT(IN)                  :: am_I_Root
 !
 ! !REMARKS:
+!  Now flag special reactions that are to be adjusted for FlexChem later.
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
 !  31 Mar 2013 - S. D. Eastham - Modified to track number of branches
+!  29 Mar 2016 - R. Yantosca   - Now flag rxn numbers for use in PHOTRATE_ADJ
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER   J,JJ,K
-      CHARACTER*120 CLINE
-      CHARACTER*50 T_REACT
-      CHARACTER*6  JMAP(JVN_), T_FJX
-      REAL(fp) F_FJX
+      ! Scalars
+      INTEGER            :: J, JJ, K
+      REAL(fp)           :: F_FJX
+
+      ! Strings
+      CHARACTER(LEN=6  ) :: T_FJX
+      CHARACTER(LEN=50 ) :: T_REACT
+      CHARACTER(LEN=50 ) :: TEXT
+      CHARACTER(LEN=80 ) :: MSG
+      CHARACTER(LEN=80 ) :: LOC = 'RD_JS_JX (GeosCore/fast_jx_mod.F)'
+      CHARACTER(LEN=120) :: CLINE
+
+      ! String arrays
+      CHARACTER(LEN=6)   :: JMAP(JVN_)
 
       !=================================================================
       ! RD_JS_JX begins here!
@@ -2687,6 +2707,80 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
             ENDIF
          endif
       enddo
+
+      !=================================================================
+      ! Flag special reactions that will be later adjusted by
+      ! routine PHOTRATE_ADJ (called from FlexChem)
+      !=================================================================
+
+      ! Loop over all photolysis reactions
+      DO K = 1, NRATJ
+
+         ! Strip all blanks from the reactants and products list
+         TEXT = JLABEL(K)
+         CALL CSTRIP( TEXT )
+
+         ! Look for certain reactions
+         SELECT CASE( TRIM( TEXT ) )
+         
+            ! O2 + hv -> O + O
+            CASE( 'O2PHOTONOO' )
+               RXN_O2 = K
+
+            ! O3 + hv -> O2 + O
+            CASE( 'O3PHOTONO2O' )
+               RXN_O3_1 = K
+
+            ! O3 + hv -> O2 + O(1D)
+            CASE( 'O3PHOTONO2O(1D)' )
+
+               ! NOTE: There are 2 reactions of this form.  We shall save
+               ! the first one that is encountered in RXN_O3_2a and the
+               ! second one in RXN_O3_2b. (bmy, 3/29/16)
+               IF ( RXN_O3_2a > 0 ) THEN
+                  RXN_O3_2b = K
+               ELSE
+                  RXN_O3_2a = K
+               ENDIF
+
+            ! SO4 + hv -> SO2 + OH + OH
+            CASE( 'SO4PHOTONSO2OHOH' )
+               RXN_H2SO4 = K
+
+            CASE DEFAULT
+               ! Nothing
+         END SELECT
+      ENDDO
+
+      !------------------------------------
+      ! Error check the various rxn flags
+      !------------------------------------
+      IF ( RXN_O2 < 0 ) THEN
+         MSG = 'Could not find rxn O2 + hv -> O + O'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
+      IF ( RXN_O3_1 < 0 ) THEN
+         MSG = 'Could not find rxn O3 + hv -> O2 + O'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
+      IF ( RXN_O3_2a < 0 ) THEN
+         MSG = 'Could not find rxn O3 + hv -> O2 + O(1D) #1'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
+      IF ( RXN_O3_2b  < 0 ) THEN
+         MSG = 'Could not find rxn O3 + hv -> O2 + O(1D) #2'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
+#if defined( UCX )
+      IF ( RXN_H2SO4  < 0 ) THEN
+         MSG = 'Could not find rxn SO4 + hv -> SO2 + OH + OH!'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+#endif
 
       END SUBROUTINE RD_JS_JX
 !EOC
@@ -4761,24 +4855,28 @@ c  Ensure all 'AN_' types are valid selections
 !     
 ! !INPUT PARAMETERS:
 !     
-      LOGICAL,        INTENT(IN)    :: am_I_Root ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
-      INTEGER,        INTENT(IN)    :: I,J,L     ! Grid box indices
-      REAL(kind=fp),  INTENT(IN)    :: C_H2O     ! H2O conc [molec/cm3]
-      REAL(kind=fp),  INTENT(IN)    :: FRAC      ! Result from SO4_PHOTFRAC in Flex_Chemdr
+      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+      INTEGER,        INTENT(IN)    :: I,J,L      ! Grid box indices
+      REAL(kind=fp),  INTENT(IN)    :: C_H2O      ! H2O conc [molec/cm3]
+      REAL(kind=fp),  INTENT(IN)    :: FRAC       ! Result of SO4_PHOTFRAC,
+!                                                 !  called from flex_chemdr.F
 !     
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(INOUT) :: State_Met ! Meteorology State object
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC ! Success or failure
+      INTEGER,        INTENT(OUT)   :: RC         ! Success or failure
 !
 ! !REMARKS:
 !  The J-value indices (2nd dimension of array ZPJ) were obtained from
 !  FJX_j2j.dat
+!
+!  %%%% NOTE: WE SHOULD UPDATE THE COMMENTS TO MAKE SURE THAT WE DO      %%%%
+!  %%%% NOT KEEP ANY CONFLICTING OR INCORRECT INFORMATION (bmy, 3/28/16) %%%%
 !
 ! !REVISION HISTORY:
 !  10 Mar 2016 - M. Sulprizio- Added ProTeX header
@@ -4813,13 +4911,25 @@ c  Ensure all 'AN_' types are valid selections
       ! Only allow photolysis of H2SO4 when gaseous (SDE 04/11/13)
       !
       !==============================================================
+
       ! Calculate if H2SO4 expected to be gaseous or aqueous
       ! Only allow photolysis above 6 hPa
-      ZPJ(L,100,I,J) = ZPJ(L,100,I,J) * FRAC
+      ! RXN_H2SO4 specifies SO4 + hv -> SO2 + OH + OH
+!-----------------------------------------------------------------------------
+! Prior to 3/29/16:
+! Now use the reaction flag instead of hardwiring the index (bmy, 3/29/16)
+!      ZPJ(L,100,I,J) = ZPJ(L,100,I,J) * FRAC
+!-----------------------------------------------------------------------------
+      ZPJ(L,RXN_H2SO4,I,J) = ZPJ(L,RXN_H2SO4,I,J) * FRAC
 
       ! Store unadjusted O2 rate for ND22
       IF ( ND22 > 0 .and. L <= LD22 .and. LTJV(I,J) > 0 ) THEN
-         AD22(I,J,L,15) = AD22(I,J,L,15) + ZPJ(L,1,I,J)
+!-----------------------------------------------------------------------------
+! Prior to 3/29/16:
+! Now use the reaction flag instead of hardwiring the index (bmy, 3/29/16)
+!         AD22(I,J,L,15) = AD22(I,J,L,15) + ZPJ(L,1,I,J)
+!-----------------------------------------------------------------------------
+         AD22(I,J,L,15) = AD22(I,J,L,15) + ZPJ(L,RXN_O2,I,J)
       ENDIF
 
 #endif
@@ -4835,20 +4945,39 @@ c  Ensure all 'AN_' types are valid selections
       ! the intermediate reactions are included - this would be
       ! double-counting (SDE 04/01/13)
       !==============================================================
-
 #if defined( UCX )
+
       ! Need to subtract O3->O1D from rate
-      ZPJ(L,2,I,J) = ZPJ(L,2,I,J) - ZPJ(L,3,I,J)
+      ! RXN_O3_1  specifies: O3 + hv -> O2 + O
+      ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D)
+!-----------------------------------------------------------------------------
+! Prior to 3/29/16:
+! Now use the reaction flag instead of hardwiring the index (bmy, 3/29/16)
+!      ZPJ(L,2,I,J) = ZPJ(L,2,I,J) - ZPJ(L,3,I,J)
+!-----------------------------------------------------------------------------
+      ZPJ(L,RXN_O3_1,I,J) = ZPJ(L,RXN_O3_1,I,J) - ZPJ(L,RXN_O3_2a,I,J)
 
       ! For UCX, store O1D and O3P rates separately
       IF ( ND22 > 0 .and. L <= LD22 .and. LTJV(I,J) > 0 ) THEN
-         AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,3,I,J)
-         AD22(I,J,L,6) = AD22(I,J,L,6) + ZPJ(L,2,I,J)
+!-----------------------------------------------------------------------------
+! Prior to 3/29/16:
+! Now use the reaction flag instead of hardwiring the index (bmy, 3/29/16)
+         AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,RXN_O3_2a,I,J)
+         AD22(I,J,L,6) = AD22(I,J,L,6) + ZPJ(L,RXN_O3_1, I,J)
+!-----------------------------------------------------------------------------
       ENDIF
+
 #else
+
       ! Store unadjusted total J-O3 as AD22(:,:,:,5)
+      ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D)
       IF ( ND22 > 0 .and. L <= LD22 .and. LTJV(I,J) > 0 ) THEN
-         AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,3,I,J)
+!-----------------------------------------------------------------------------
+! Prior to 3/29/16:
+! Now use the reaction flag instead of hardwiring the index (bmy, 3/29/16)
+!         AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,3,I,J)
+!-----------------------------------------------------------------------------
+         AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,RXN_O3_2a,I,J)
       ENDIF
 
       !========================================================
@@ -4882,8 +5011,11 @@ c  Ensure all 'AN_' types are valid selections
      &            2.15e-11_fp * EXP(110.e+0_fp*ITEMPK) * C_N2 +
      &            3.30e-11_fp * EXP( 55.e+0_fp*ITEMPK) * C_O2
 
-      ZPJ(L,3,I,J)   = ZPJ(L,3,I,J)   * RO1DplH2O / RO1D
-      ZPJ(L,103,I,J) = ZPJ(L,103,I,J) * RO1DplH2  / RO1D
+      ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D) #1
+      ZPJ(L,RXN_O3_2a,I,J) = ZPJ(L,RXN_O3_2a,I,J) * RO1DplH2O / RO1D
+
+      ! RXN_O3_2b specifies: O3 + hv -> O2 + O(1D) #2
+      ZPJ(L,RXN_O3_2b,I,J) = ZPJ(L,RXN_O3_2b,I,J) * RO1DplH2  / RO1D
 #endif
       
       END SUBROUTINE PHOTRATE_ADJ

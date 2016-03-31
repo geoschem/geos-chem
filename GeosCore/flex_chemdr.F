@@ -44,8 +44,12 @@
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : GET_YEAR
       USE TRACERID_MOD,         ONLY : IDTCH4
-      USE UCX_MOD,              ONLY : CALC_STRAT_AER, SO4_PHOTFRAC
-      USE UCX_MOD,              ONLY : UCX_NOX, UCX_H2SO4PHOT
+#if defined( UCX )
+      USE UCX_MOD,              ONLY : CALC_STRAT_AER
+      USE UCX_MOD,              ONLY : SO4_PHOTFRAC
+      USE UCX_MOD,              ONLY : UCX_NOX
+      USE UCX_MOD,              ONLY : UCX_H2SO4PHOT
+#endif
 
       ! mje
       USE GCKPP_HETRATES,       ONLY : SET_HET
@@ -62,90 +66,104 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
+      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(INOUT) :: State_Met ! Meteorology State object
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC ! Success or failure
+      INTEGER,        INTENT(OUT)   :: RC         ! Success or failure
 ! 
 ! !REVISION HISTORY:
 !  14 Dec 2015 - M.S. Long   - Initial version
 !  18 Dec 2015 - M. Sulprizio- Add calls to OHSAVE and DO_DIAG_OH
 !  22 Dec 2015 - M. Sulprizio- Set NUMDEN to State_Met%AIRNUMDEN for conversions
 !                              between v/v and molec/cm3
+!  28 Mar 2016 - R. Yantosca - Added several fixes for OpenMP parallelization
+!  30 Mar 2016 - R. Yantosca - Bug fix, now make sure to copy C back into
+!                              State_Chm%Species.  Also block out temp diags.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, L, N, JLOOP, MONTH, YEAR
-      INTEGER             :: WAVELENGTH
-      INTEGER             :: HCRC
-      INTEGER             :: N_TRACERS
-      LOGICAL             :: prtDebug
-      LOGICAL             :: LDUST
-      CHARACTER(LEN=155)  :: DiagnName
+      INTEGER                :: I, J, L, N, JLOOP, MONTH, YEAR
+      INTEGER                :: WAVELENGTH
+      INTEGER                :: HCRC
+      INTEGER                :: N_TRACERS
+      LOGICAL                :: prtDebug
+      LOGICAL                :: LDUST
+      CHARACTER(LEN=155)     :: DiagnName
 
       ! SAVEd variables
-      LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
-      INTEGER, SAVE       :: CH4_YEAR  = -1
+      LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
+      INTEGER, SAVE          :: CH4_YEAR  = -1
 
       ! For grid-box latitude
-      REAL(fp)            :: YLAT
+      REAL(fp)               :: YLAT
 
       ! For interannually-varying Methane
-      REAL(fp),SAVE       :: C3090S, C0030S, C0030N, C3090N
+      REAL(fp),SAVE          :: C3090S, C0030S, C0030N, C3090N
 
       ! mje Variables for holding rate diagnoastics
       ! mje DERIV: Concentrations derivatives for one box d[X]/dt
       ! mje GLOB_DERIV: Store global values of concentrations devivatives
       ! mje GLOB_RATES: Stores global values of fluxes through each reaction
-      REAL(kind=dp)       :: DERIV(NSPEC)
-      REAL(kind=dp)       :: GLOB_DERIV(IIPAR,JJPAR,LLPAR,NSPEC)
-      REAL(kind=dp)       :: GLOB_RATES(IIPAR,JJPAR,LLPAR,NREACT)
-      REAL(kind=dp)       :: GLOB_RCONST(IIPAR,JJPAR,LLPAR,NREACT)
+      REAL(kind=dp)          :: DERIV(NSPEC)
+      REAL(kind=dp)          :: GLOB_DERIV(IIPAR,JJPAR,LLPAR,NSPEC)
+      REAL(kind=dp)          :: GLOB_RATES(IIPAR,JJPAR,LLPAR,NREACT)
+      REAL(kind=dp)          :: GLOB_RCONST(IIPAR,JJPAR,LLPAR,NREACT)
 
       ! mje KPP variables
-      INTEGER             :: IERR
-      REAL(kind=fp)       :: T, TIN, TOUT
-      REAL(kind=dp)       :: RCNTRL(20)
-      REAL(kind=dp)       :: RSTATE(20)
-      INTEGER             :: ICNTRL(20)
-      INTEGER             :: ISTATUS(20)
+      INTEGER                :: IERR
+      REAL(kind=fp)          :: T, TIN, TOUT
+      REAL(kind=dp)          :: RCNTRL(20)
+      REAL(kind=dp)          :: RSTATE(20)
+      INTEGER                :: ICNTRL(20)
+      INTEGER                :: ISTATUS(20)
 
       ! mje Array to hold the molecular mass of the species
-      REAL(kind=fp)       :: TCVV(Input_Opt%N_TRACERS)
+      REAL(kind=fp)          :: TCVV(Input_Opt%N_TRACERS)
 
       ! mje STT holds the concentrations of Tracers
       REAL(kind=fp), POINTER :: STT(:,:,:,:)
 
       ! mje Array for bug checking
-      REAL(kind=fp)       :: AverageVAR(NSPEC)
-      REAL(kind=fp)       :: Mass, Start, Finish, rtim, itim
-      INTEGER             :: TotSteps, TotFuncs, TotJacob
-      INTEGER             :: TotAccep, TotRejec, TotNumLU
+      REAL(kind=fp)          :: AverageVAR(NSPEC)
+      REAL(kind=fp)          :: Mass, Start, Finish, rtim, itim
+      INTEGER                :: TotSteps, TotFuncs, TotJacob
+      INTEGER                :: TotAccep, TotRejec, TotNumLU
 
-      CHARACTER(LEN=255)  :: ERR_MSG
-      REAL(kind=fp)       :: SCOEFF(IIPAR,JJPAR,LLPAR,3)
+      CHARACTER(LEN=255)     :: ERR_MSG
 
-      prtDebug = Input_Opt%LPRT
-      LDUST    = Input_Opt%LDUST
+      ! For passing SO4_PHOTFRAC output to PHOTRATE_ADJ (bmy, 3/28/16)
+      REAL(kind=fp)          :: SO4_FRAC
 
-      itim = 0.
-      rtim = 0.
-      totsteps = 0
-      totfuncs = 0
-      totjacob = 0
-      totaccep = 0
-      totrejec = 0
-      totnumLU = 0
+      ! To avoid array temporaries in call to SET_HET (bmy, 3/28/16)
+      REAL(kind=fp)          :: SCOEFF(IIPAR,JJPAR,LLPAR,3)
+      REAL(kind=fp)          :: SCF(3)
+
+      !=================================================================
+      ! FLEX_CHEMDR begins here!
+      !=================================================================
+
+      ! Initialize variables
+      prtDebug  = Input_Opt%LPRT
+      LDUST     = Input_Opt%LDUST
+
+      itim      = 0.0_fp
+      rtim      = 0.0_fp
+      totsteps  = 0
+      totfuncs  = 0
+      totjacob  = 0
+      totaccep  = 0
+      totrejec  = 0
+      totnumLU  = 0
 
       ! Get month and year
       MONTH     = GET_MONTH()
@@ -158,7 +176,7 @@
       TCVV      = Input_Opt%TCVV
 
       ! mje link the STT Pointer to the State_Chm%Tracers stucture
-      STT =>  State_Chm%Tracers
+      STT       => State_Chm%Tracers
 
       ! Locate the tropopsheric boxes
       CALL RURALBOX( State_Met )
@@ -271,7 +289,12 @@
          CALL DEBUG_MSG( '### FLEX_CHEMDR: after RDUST' )
       ENDIF
 
-      ! MSL  For calculating hetchem rates
+      !=================================================================
+      ! Calculate hetchem rates
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, JLOOP )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -289,13 +312,19 @@
 
          ENDIF
 
-      END DO
-      END DO
-      END DO
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
+      !=================================================================
       ! Loop over tracers and grid boxes
       ! The following 4-loop block mimics partition.F
       ! -- Families are dealt with in the KLUDGE Pt.1 below
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
       DO N = 1, N_TRACERS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -303,8 +332,8 @@
 
          ! Convert STT from kg to molec/cm3
          STT(I,J,L,N) = STT(I,J,L,N) * Input_Opt%XNUMOL(N) /
-     &                  ( State_Met%AIRVOL(I,J,L) * 1e+6_fp *
-     &                  Input_Opt%TRACER_COEFF(N,1) )
+     &                 ( State_Met%AIRVOL(I,J,L) * 1e+6_fp *
+     &                   Input_Opt%TRACER_COEFF(N,1) )
 
          ! Copy STT to State_Chm%Species [molec/cm3]
          IF (STTTOCSPEC(N) .NE. 0) THEN 
@@ -315,13 +344,21 @@
       ENDDO
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
       
       CALL FAMILIES_KLUDGE(am_I_Root,STT,Input_Opt,State_Chm,1,RC)
  
-      ! Convert STT from molec/cm3 back to kg (required for gckpp_HetRates.F90)
-      ! NOTE: When we remove the tracer families we can get rid of this step
-      ! by converting units when we copy STT to State_Chm%Species and leaving
-      ! STT in units kg (mps, 1/28/16)
+      !=================================================================
+      ! Convert STT from molec/cm3 back to kg (required for 
+      ! gckpp_HetRates.F90) 
+      ! 
+      ! NOTE: When we remove the tracer families we can get rid of this 
+      ! step by converting units when we copy STT to State_Chm%Species 
+      ! and leaving STT in units kg (mps, 1/28/16)
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
       DO N = 1, N_TRACERS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -333,37 +370,61 @@
       ENDDO
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
-      !     imje  Calculate photolysis rates
       !=================================================================
       ! Call photolysis routine to compute J-Values
       !=================================================================
-      CALL FAST_JX( WAVELENGTH, am_I_Root, Input_Opt, State_Met, 
-     &              State_Chm,  RC )
+      CALL FAST_JX( WAVELENGTH, am_I_Root,  Input_Opt, 
+     &              State_Met,  State_Chm,  RC         )
+
+      !=================================================================
+      ! Set up integration convergence conditions and timesteps
+      ! (cf. M. J. Evans)
+      !
+      ! NOTE: ATOL and RTOL are defined in gckpp_Global.F90 so they
+      ! are probably only used as INTENT(IN).  Therefore, it is
+      ! probably safe to define them here outside the OpenMP loop.
+      ! (bmy, 3/28/16)
+      !
+      ! The ICNTRL vector specifies options for the solver.  We can
+      ! define ICNTRL outside of the "SOLVE CHEMISTRY" parallel loop 
+      ! below because it is passed to KPP as INTENT(IN). 
+      ! (bmy, 3/28/16)
+      !=================================================================
+
+      !%%%%% TIMESTEPS %%%%%
 
       ! mje Set up conditions for the integration
       ! mje chemical timestep and convert it to seconds.
-      DT   = GET_TS_CHEM() * 60d0
-      T    = 0d0
-      TIN  = T
-      TOUT = T + DT
+      DT        = GET_TS_CHEM() * 60d0
+      T         = 0d0
+      TIN       = T
+      TOUT      = T + DT
 
-      ! mje Set up integration convergence conditions
-      !RTOL = 1.d-1
-      !ATOL = 1.d0
-#if defined (UCX )
-      RTOL = 2e-2_dp
+      !%%%%% CONVERGENCE CRITERIA %%%%%
+
+      ! Absolute tolerance
+      ATOL      = 1e-2_dp    
+
+#if defined( UCX )
+      ! Relative tolerance, for UCX-based mechanisms
+      RTOL      = 2e-2_dp    
 #else
-      RTOL = 2e-1_dp
+      ! Relative tolerance, non-UCX mechanisms
+      RTOL      = 2e-1_dp    
 #endif
-      ATOL = 1e-2_dp
+
+      !%%%%% SOLVER OPTIONS %%%%%
+
+      ! Zero all slots of ICNTRL
+      ICNTRL    = 0
       
-      ! mje Set up internal integrator parameters 
-      ICNTRL = 0
-      RCNTRL = 0.
-      
-      ICNTRL(1) = 1	! 0 - non-autonomous, 1 - autonomous
-      ICNTRL(2) = 0	! 0 - vector tolerances, 1 - scalars
+      ! 0 - non-autonomous, 1 - autonomous
+      ICNTRL(1) = 1
+
+      ! 0 - vector tolerances, 1 - scalars	
+      ICNTRL(2) = 0	
       
       ! Select Integrator
       ! ICNTRL(3)  -> selection of a particular method.
@@ -375,14 +436,12 @@
       ! = 4 :  method is  Rodas3
       ! = 5:   method is  Rodas4
       ICNTRL(3) = 4
-      ICNTRL(7) = 1     ! No adjoint
 
-      ! mje setup some internal diagnostics
-      AVERAGEVAR(:) = 0.d0
-      MASS          = 0.d0
+      ! 0 - adjoint, 1 - no adjoint
+      ICNTRL(7) = 1
 
       !=================================================================
-      ! Solve Chemistry
+      ! %%%%% SOLVE CHEMISTRY -- This is the main KPP solver loop %%%%%
       !=================================================================
  100  format('No. of function calls:', i6, /,
      &       'No. of jacobian calls:', i6, /,
@@ -399,12 +458,25 @@
      &       'Hexit, last accepted step before exit:    ', f11.4, /,
      &       'Hnew, last predicted step (not yet taken):', f11.4 )
 
+      !-----------------------------------------------------------------
+      ! NOTE: The following variables are held THREADPRIVATE and 
+      ! therefore do not need to be included in the !$OMP+PRIVATE 
+      ! statements below: C, VAR, FIX, RCONST, TIME, TEMP, NUMDEN, 
+      ! H2O, PRESS, PHOTOL, and HET. (bmy, 3/28/16)
+      !-----------------------------------------------------------------
 !$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-!$OMP+PRIVATE( start, finish, YLAT, MASS )
-!$OMP+PRIVATE( ISTATUS, RSTATE, IERR )
-!$OMP+SCHEDULE( DYNAMIC )
+!$OMP+DEFAULT  ( SHARED                                      )
+!$OMP+PRIVATE  ( I,    J,        L,      N,       YLAT       )
+!$OMP+PRIVATE  ( SCF,  SO4_FRAC, IERR,   RCNTRL,  AVERAGEVAR )
+!$OMP+PRIVATE  ( MASS, START,    FINISH, ISTATUS, RSTATE     )
+!$OMP+REDUCTION( +:ITIM                                      )
+!$OMP+REDUCTION( +:RTIM                                      )
+!$OMP+REDUCTION( +:TOTSTEPS                                  )
+!$OMP+REDUCTION( +:TOTFUNCS                                  )
+!$OMP+REDUCTION( +:TOTJACOB                                  )
+!$OMP+REDUCTION( +:TOTACCEP                                  )
+!$OMP+REDUCTION( +:TOTREJEC                                  )
+!$OMP+REDUCTION( +:TOTNUMLU                                  )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -420,60 +492,86 @@
            IF ( I >  IIPAR - Input_Opt%NESTED_I0E ) CYCLE
          ENDIF
 
-         ! Grid-box latitude index
-         YLAT  = GET_YMID( I,J,L )
+         ! Grid-box latitude [degrees]
+         YLAT   = GET_YMID( I, J, L )
 
-         ! mje Set up the physical conditions for the current box
-         ! mje These variables are defined by the KPP definition files gckpp.kpp
-         ! mje #INLINE F90_GLOBAL    
+         ! Temperature [K]
          TEMP   = State_Met%T(I,J,L)
-         PRESS  = GET_PCENTER(I,J,L)
+
+         ! Pressure [hPa]
+         PRESS  = GET_PCENTER( I, J, L )
 
          ! mje Calculate NUMDEN based on ideal gas law (# cm-3)
          NUMDEN = State_Met%AIRNUMDEN(I,J,L)
 
          ! mje H2O arrives in g/kg needs to be in mol cm-3 
-         H2O = State_Met%AVGW(I,J,L)*State_Met%AIRNUMDEN(I,J,L)
+         H2O    = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
+         ! Initialize the KPP solver
          CALL Init_KPP( )
 
          !===========================================================
          ! Get rates for heterogeneous chemistry
          !===========================================================
-         call cpu_time(start)
-         HET(:,:) = 0.
-         CALL SET_HET(I,J,L,State_Chm,State_Met,Input_Opt,
-     &        scoeff(I,J,L,1:3))
 
+         ! Get starting time for rate computation
+         CALL CPU_TIME( start )
+
+         ! Zero the HET array (holds hetchem rates)
+         HET = 0.0_dp
+
+         ! Copy SCOEFF to SCF, this will avoid an array temporary
+         SCF = SCOEFF(I,J,L,:)
+
+         ! Set hetchem rates
+         CALL SET_HET( I,         J,         L, 
+     &                 State_Chm, State_Met, Input_Opt, SCF )
+
+         ! Copy SCF back into SCOEFF
+         SCOEFF(I,J,L,:) = SCF
+         
          !===========================================================
          ! Get photolysis rates
+         !
+         ! NOTE: The ordering of the photolysis reactions here is
+         ! the order in the Fast-J definition file FJX_j2j.dat.
+         ! I've assumed that these are the same as in the text files
+         ! but this may have been changed.  This needs to be checked
+         ! through more thoroughly -- M. Long (3/28/16)
          !===========================================================
          IF ( State_Met%SUNCOSmid(I,J) > 0.e+0_fp ) THEN
 
-            ! Daytime: Set up the photolysis rates
-            ! The order here is the order in the Fast-J definition files
-            ! I've assumed that these are the same as in the text files but this
-            ! may have been changed. 
-            ! This needs to be checked through more thoroughly
-            PHOTOL(1:JVN_) = 0.e+0_fp
-!            IF ( .not. Input_Opt%LUCX ) THEN ! If not UCX, then parameterize O(1D)
-            CALL PHOTRATE_ADJ( am_I_root, State_Met, 
-     &                         State_Chm, Input_Opt, 
-     &                         I, J, L, H2O, SO4_PHOTFRAC(I,J,L), IERR )
-!            ENDIF
+            !%%%%% DAYTIME: SET UP THE PHOTOLYSIS RATES %%%%%
+
+            ! Zero the KPP photolysis rates array
+            PHOTOL(1:JVN_) = 0.0_fp
+
+            ! Get the fraction of H2SO4 that is available for photolysis
+            ! (this is only valid for UCX-enabled mechanisms)
+#if defined( UCX )
+            SO4_FRAC = SO4_PHOTFRAC( I, J, L )
+#else
+            SO4_FRAC = 0.0_fp
+#endif
+
+            ! Adjust certain photolysis rates:
+            ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
+            ! (2) O3    + hv -> O2  + O         (UCX-based mechanisms)
+            ! (2) O3    + hv -> OH  + OH        (trop-only mechanisms)
+            CALL PHOTRATE_ADJ( am_I_root, State_Met, State_Chm,
+     &                         Input_Opt, I,         J,
+     &                         L,         H2O,       SO4_FRAC,
+     &                         IERR                             )
 
             ! Copy ZPJ from fast_jx_mod.F to PHOTOL array
             PHOTOL(1:JVN_) = ZPJ(L,1:JVN_,I,J)
 
-!            IF (Input_Opt%LUCX) THEN !Adjust SO4 photolysis rate
-!               ! There should be a better, more elegant means of indexing this.
-!               PHOTOL(100) = PHOTOL(100) * SO4_PHOTFRAC(I,J,L)
-!            ENDIF               !LUCX
-
          ELSE
 
-            ! Nighttime: Photolysis rates are zero
-            PHOTOL(1:JVN_) = 0.e+0_fp
+            !%%%%% NIGHTTIME: SHUT OFF PHOTOLYSIS %%%%%
+
+            ! Zero the KPP photolysis rate array
+            PHOTOL(1:JVN_) = 0.0_fp
 
          ENDIF
 
@@ -500,30 +598,32 @@
 !  - MOH is set according to region (continental BL, marine BL, free trop)
 !------------------------------------------------------------------------------
 
-         C(ind_ACTA)  = 0.e0_dp
-         C(ind_EOH)   = 0.e0_dp
-         C(ind_HCOOH) = 0.e0_dp
+         C(ind_ACTA)  = 0.0_dp
+         C(ind_EOH)   = 0.0_dp
+         C(ind_HCOOH) = 0.0_dp
+#if defined( UCX )
          IF (Input_Opt%LUCX) THEN ! Set fixed species concentrations 
-            C(ind_O2) = 0.2095e+0_fp * NUMDEN
-            C(ind_N2) = 0.7808e+0_fp * NUMDEN
-            C(ind_H2) = 0.5000e-6_fp * NUMDEN
+            C(ind_O2) = 0.2095e+0_dp * NUMDEN
+            C(ind_N2) = 0.7808e+0_dp * NUMDEN
+            C(ind_H2) = 0.5000e-6_dp * NUMDEN
          ENDIF !LUCX
+#endif
 
          IF ( IDTCH4 == 0 .and. IND_CH4 > 0 ) THEN
-         ! Set CH4 according to latitude
-         ! Convert from [ppbv CH4] to [molec CH4/cm3]
-         IF ( YLAT < -30e+0_fp ) THEN
-            C(ind_CH4) = C3090S * 1e-9_dp * NUMDEN
-         ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  ) THEN
-            C(ind_CH4) = C0030S * 1e-9_dp * NUMDEN
-         ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp ) THEN
-            C(ind_CH4) = C0030N * 1e-9_dp * NUMDEN
-         ELSE
-            C(ind_CH4) = C3090N * 1e-9_dp * NUMDEN
-         ENDIF
-         ENDIF ! IDTCH4, IND_CH4
+            ! Set CH4 according to latitude
+            ! Convert from [ppbv CH4] to [molec CH4/cm3]
+            IF ( YLAT < -30.0_fp ) THEN
+               C(ind_CH4) = C3090S * 1e-9_dp * NUMDEN
+            ELSE IF ( YLAT >= -30.0_fp .and. YLAT < 0.0_fp  ) THEN
+               C(ind_CH4) = C0030S * 1e-9_dp * NUMDEN
+            ELSE IF ( YLAT >=   0.0_fp .and. YLAT < 30.0_fp ) THEN
+               C(ind_CH4) = C0030N * 1e-9_dp * NUMDEN
+            ELSE
+               C(ind_CH4) = C3090N * 1e-9_dp * NUMDEN
+            ENDIF
+         ENDIF   ! IDTCH4, IND_CH4
 
-         ! Debug
+         !### Debug printout, we can remove it later
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
             DO N = 1,NSPEC
                write(*,'(2a,e12.4)') '<> b ', trim(SPC_NAMES(N))
@@ -531,28 +631,61 @@
             ENDDO
          ENDIF
 
-         ! starting value for integration time step
-         RCNTRL(3) = HSAVE_KPP(I,J,L)
-
-         ! VAR and FIX are chunks of array C (mps, 2/24/16)
-         VAR(:) = C(1:NVAR)
-         FIX(:) = C(NVAR+1:NSPEC)
-
          !===========================================================
          ! Update KPP's rates
          !===========================================================
+
+         ! VAR and FIX are chunks of array C (mps, 2/24/16)
+         !
+         ! NOTE: Because VAR and FIX are !$OMP+THREADPRIVATE, they
+         ! cannot appear in an EQUIVALENCE statement.  Therfore, we
+         ! will just copy the relevant elements of C to VAR and FIX
+         ! here. (bmy, 3/28/16)
+         VAR = C(1:NVAR)
+         FIX = C(NVAR+1:NSPEC)
+
+         ! Update the array of rate constants
          CALL Update_RCONST( )
-         call cpu_time(finish)
+
+         ! Get time when rate computation finished
+         CALL CPU_TIME( finish )
+
+         ! Compute how long it took for KPP to compute rates
          rtim = rtim + finish - start
+
+         !===========================================================
+         ! Set options for the KPP Integrator (M. J. Evans)
+         !
+         ! NOTE: Because RCNTRL(3) is set to an array value that
+         ! depends on (I,J,L), we must declare RCNTRL as PRIVATE
+         ! within the OpenMP parallel loop and define it just 
+         ! before the call to to Integrate. (bmy, 3/24/16)
+         !===========================================================
+
+         ! Zero all slots of RCNTRL
+         RCNTRL    = 0.0
+
+         ! Starting value for integration time step
+         RCNTRL(3) = HSAVE_KPP(I,J,L)
 
          !===========================================================
          ! Integrate the box forwards
          !===========================================================
-         call cpu_time(start)
+
+         ! Get time before integrator starts
+         call CPU_TIME( start )
+
+         ! Call the KPP integrator
          call Integrate( TIN,    TOUT,    ICNTRL, 
      &                   RCNTRL, ISTATUS, RSTATE, IERR )
-         call cpu_time(finish)
-         itim = itim + finish - start
+
+         ! Get time when integrator ends
+         call CPU_TIME( finish )
+
+         ! Compute how long the integrator took 
+         itim     = itim + finish - start
+
+         ! Compute other statistics from the integrator
          totfuncs = totfuncs + ISTATUS(1)
          totjacob = totjacob + ISTATUS(2)
          totsteps = totsteps + ISTATUS(3)
@@ -560,6 +693,7 @@
          totrejec = totrejec + ISTATUS(5)
          totnumLU = totnumLU + ISTATUS(6)
 
+         ! Zero certain species
          C(ind_ACTA)  = 0.e0_dp
          C(ind_EOH)   = 0.e0_dp
          C(ind_HCOOH) = 0.e0_dp
@@ -600,10 +734,24 @@
          C(1:NVAR)       = VAR(:)
          C(NVAR+1:NSPEC) = FIX(:)
 
-         ! save next integration time step
+         ! Save for next integration time step
          HSAVE_KPP(I,J,L) = RSTATE(Nhnew)
 
+         ! Save rate constants in global array
          GLOB_RCONST(I,J,L,:) = RCONST(:)
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% FOR DIAGNOSTIC PURPOSES ONLY, WE CAN REMOVE THIS LATER
+#if defined( DEVEL )
+         !=============================================================
+         ! mje some simple diagnostics to check that things make sense
+         ! mje these can be removed once we are happy with everything
+         !=============================================================
+
+         ! NOTE: We need to zero these here within the OpenMP loop
+         ! and declare these as !$OMP+PRIVATE. (bmy, 3/28/16)
+         AVERAGEVAR = 0.0_fp
+         MASS       = 0.0_fp
 
          ! mje some simple diagnostics to check that things make sense
          ! mje these can be removed once we are happy with everything
@@ -612,21 +760,32 @@
      &                    C(N)*State_Met%AD(I,J,L)
          ENDDO
          MASS=MASS+State_Met%AD(I,J,L)
+#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-         ! mje Check we have no negative values and copy the concentrations
-         ! mje calculated into State_Chm%Species
-         DO N=1,NSPEC
-            C(N) = MAX( C(N), 0E0_dp )
-            IF ( CSPECTOKPP(N) .eq. 0) CYCLE
-            State_Chm%Species(I,J,L,CSPECTOKPP(N))= real(C(N),kind=fp)
+         !==============================================================
+         ! Check we have no negative values and copy the concentrations
+         ! calculated from the C array back into State_Chm%Species
+         !==============================================================
+         DO N = 1, NSPEC
+
+            ! Set negative concentrations to zero
+            C(N) = MAX( C(N), 0.0E0_dp )
+            
+            ! Skip if this is not a KPP species
+            IF ( CSPECTOKPP(N) .eq. 0 ) CYCLE
+
+            ! Copy concentrations back into State_Chm%SPECIES
+            State_Chm%Species(I,J,L,CSPECTOKPP(N)) = real(C(N),kind=fp)
+
+            !### Debug output, we can remove it later
             IF (I.eq.36.and.J.eq.5.and.L.eq.1.and.N.eq.IND_OH) THEN
                write(*,'(a,2e12.4)') 'SPC_OH : ',c(N),
      &              State_Chm%Species(I,J,L,CSPECTOKPP(N))
             ENDIF
          ENDDO
 
-
-         ! Debug
+         !### Debug output, we can remove it later
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
             DO N = 1,NSPEC
                write(*,'(2a,e12.4)') '<> a ', trim(SPC_NAMES(N)),
@@ -644,19 +803,30 @@
       write(*,'(a,I9)') 'Flex Function Calls: ', totfuncs
       write(*,'(a,I9)') 'Flex Jacobian Calls: ', totjacob
       write(*,'(a,I9)') 'Flex Total Steps   : ', totsteps
-      write(*,'(a,I9)') 'Flex Accepted Steps: ', totaccep
       write(*,'(a,I9)') 'Flex Rejected Steps: ', totrejec
       write(*,'(a,I9)') 'Flex LU Decompos.  : ', totnumLU
 
-!     mje write out tropospheric mass weighted averages
-!      DO N=1,NSPEC
-!         WRITE (6,*) SPC_NAMES(N), AVERAGEVAR(N)/MASS
-!      ENDDO	
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% FOR DIAGNOSTIC PURPOSES ONLY, WE CAN REMOVE THIS LATER
+#if defined( DEVEL )
+      ! mje write out tropospheric mass weighted averages
+      DO N=1,NSPEC
+         WRITE (6,*) SPC_NAMES(N), AVERAGEVAR(N)/MASS
+      ENDDO	
+#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+      !=================================================================
       ! Convert STT from kg to molec/cm3
-      ! NOTE: When we remove the tracer families we can get rid of this step
-      ! because STT will be left in units kg and we can convert units from
-      ! molec/cm3/s to kg when we copy State_Chm%Species to STT (mps, 1/28/16)
+      !
+      ! NOTE: When we remove the tracer families we can get rid of this 
+      ! step because STT will be left in units kg and we can convert 
+      ! units from molec/cm3/s to kg when we copy State_Chm%Species to 
+      ! STT (mps, 1/28/16)
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
       DO N = 1, N_TRACERS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -668,11 +838,18 @@
       ENDDO
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
+      ! Kludge for families: species to tracers
       CALL FAMILIES_KLUDGE(am_I_Root,STT,Input_Opt,State_Chm,2,RC)
 
-      ! Loop over tracers
-      DO N=1,N_TRACERS
+      !=================================================================
+      ! Copy updated tracer concentrations back into STT
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+      DO N = 1, N_TRACERS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -691,6 +868,7 @@
       ENDDO
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
 #if defined( UCX )
       ! If using stratospheric chemistry, applying high-altitude
@@ -729,7 +907,7 @@
 
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! FOR DIAGNOSTIC PURPOSES ONLY:
+!%%% FOR DIAGNOSTIC PURPOSES ONLY, WE CAN REMOVE THIS LATER
 #if defined( DEVEL )
       ! mje  STT currently in kg / grid box convert to v/v
       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT)
