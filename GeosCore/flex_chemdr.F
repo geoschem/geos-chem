@@ -250,60 +250,35 @@
       ENDIF
 
       !================================================================
-      ! Zero out aromatic oxidation counter species (dkh, 10/06/06)
-      ! Also zero out LNRO2H and LNRO2N for NAP (hotp 6/25/09
-      ! NOTE: previously done in gasconc.F every timestep (ewl, 3/30/16)
+      ! Zero out certain species:
+      !    - isoprene oxidation counter species (dkh, bmy, 6/1/06)
+      !    - isoprene-NO3 oxidation counter species (hotp, 6/1/10)
+      !    - if SOA or SOA_SVPOA, aromatic oxidation counter species 
+      !      (dkh, 10/06/06)
+      !    - if SOA_SVPOA, LNRO2H and LNRO2N for NAP (hotp 6/25/09
+      ! Done in gasconc.F every timestep prior to FlexChem (ewl, 3/30/16)
       !=================================================================
-      IF ( Input_Opt%LSOA ) THEN
-
-         ! Check to make sure that LxRO2y has been listed as species
-         IF ( ind_LBRO2H > 0 .and.
-     &        ind_LBRO2N > 0 .and.
-     &        ind_LTRO2H > 0 .and.
-     &        ind_LTRO2N > 0 .and.
-     &        ind_LXRO2H > 0 .and.
-     &        ind_LXRO2N > 0  ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               State_Chm%Species(I,J,L,ind_LBRO2H)  = 0e+0_fp
-               State_Chm%Species(I,J,L,ind_LBRO2N)  = 0e+0_fp
-               State_Chm%Species(I,J,L,ind_LTRO2H)  = 0e+0_fp
-               State_Chm%Species(I,J,L,ind_ILTRO2N) = 0e+0_fp
-               State_Chm%Species(I,J,L,ind_LXRO2H)  = 0e+0_fp
-               State_Chm%Species(I,J,L,ind_LXRO2N)  = 0e+0_fp
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
+!$OMP+PRIVATE( N )
+      DO N = 1, Input_opt%N_SPECIES
 
-            ! Allow NAP to be present or not in rxns (9/13/09)
-            IF ( ind_LNRO2H > 0 .and. ind_LNRO2N > 0  ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L)
-               DO L = 1, LLPAR
-               DO J = 1, JJPAR
-               DO I = 1, IIPAR
-                  ! add NAP species (hotp 6/25/09)
-                  State_Chm%Species(I,J,L,ind_LNRO2H) = 0e+0_fp
-                  State_Chm%Species(I,J,L,ind_LNRO2N) = 0e+0_fp
-               ENDDO
-               ENDDO
-               ENDDO
-!$OMP END PARALLEL DO
-            ENDIF
-
-
-         ! Exit with an error message if it is not. 
-         ELSE
-            CALL ERROR_STOP( ' LRO2 not defined! ',
-     &                       ' Stop in flex_chemdr.F' )
+         ! isoprene oxidation counter species
+         IF ( State_Chm%Spec_Name(N) == 'LISOPOH' .or.
+     &        State_Chm%Spec_Name(N) == 'LISOPNO3' ) THEN
+               State_Chm%Species(:,:,:,N) = 0e+0_fp
          ENDIF
-      ENDIF
+
+         ! aromatic oxidation counter species
+         IF ( Input_Opt%LSOA .or. Input_Opt%LSVPOA ) THEN
+            SELECT CASE ( State_Chm%Spec_Name(N) )
+               CASE ( 'LBRO2H', 'LBRO2N', 'LTRO2H', 'LTRO2N',
+     &                'LXRO2H', 'LXRO2N', 'LNRO2H', 'LNRO2N' )
+                  State_Chm%Species(:,:,:,N) = 0e+0_fp
+            END SELECT
+         ENDIF
+      ENDDO
+!$OMP END PARALLEL DO
       
       !=================================================================
       ! Call RDAER -- computes aerosol optical depths
