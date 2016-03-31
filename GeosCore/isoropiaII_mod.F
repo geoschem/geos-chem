@@ -392,6 +392,7 @@
          TSO4     = STT(I,J,L,IDTSO4) * 1.e+3_fp / ( 96.e+0_fp * VOL )
 
 #endif
+
          ! Total NH3 [mole/m3] 
          TNH3     = STT(I,J,L,IDTNH4) * 1.e+3_fp / ( 18.e+0_fp * VOL ) +
      &              STT(I,J,L,IDTNH3) * 1.e+3_fp / ( 17.e+0_fp * VOL )

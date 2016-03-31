@@ -24,7 +24,7 @@ MODULE GCKPP_HETRATES
   LOGICAL, SAVE      :: KII_KI, PSCBOX, STRATBOX
   REAL(fp), SAVE     :: TEMPK, RELHUM, XSTKCF
   REAL(fp)           :: VPRESH2O, CONSEXP
-  REAL(fp), SAVE     :: TRC_NIT, TRC_SO4, TRC_HBr, TRC_HOBr, XNM_SO4, XNM_NIT
+  REAL(fp), SAVE     :: TRC_NIT, SPC_HBr, SPC_HOBr, SPC_SO4, SPC_NIT
   REAL(fp), SAVE     :: GAMMA_HO2, XTEMP, XDENA, ADJUSTEDRATE
   REAL(fp), SAVE     :: cld_brno3_rc, KI_HBR, KI_HOBr, QLIQ, QICE
   REAL(fp), SAVE, DIMENSION(25)  :: XAREA, XRADI
@@ -34,8 +34,8 @@ MODULE GCKPP_HETRATES
   REAL(fp)           :: hobr_rtemp, hbr_rtemp
 #if defined( UCX )
   INTEGER, SAVE      :: PSCIDX
-  REAL(fp), SAVE     :: SPC_N2O5, SPC_H2O,  SPC_HCl,   SPC_HBr
-  REAL(fp), SAVE     :: SPC_HOCl, SPC_HOBr, SPC_ClNO3, SPC_BrNO3
+  REAL(fp), SAVE     :: SPC_N2O5, SPC_H2O,   SPC_HCl
+  REAL(fp), SAVE     :: SPC_HOCl, SPC_ClNO3, SPC_BrNO3
   REAL(fp)           :: PSCEDUCTCONC(11,2)
   REAL(fp)           :: EDUCTCONC, LIMITCONC
 #endif
@@ -43,8 +43,8 @@ MODULE GCKPP_HETRATES
 !$OMP THREADPRIVATE( KII_KI,  NAERO,        N                        )
 !$OMP THREADPRIVATE( RELHUM,  CONSEXP,      VPRESH2O                 )
 !$OMP THREADPRIVATE( PSCBOX,  STRATBOX,     NATSURFACE               )
-!$OMP THREADPRIVATE( TRC_SO4, TRC_NIT,      TRC_HBr,    TRC_HOBr     )
-!$OMP THREADPRIVATE( XNM_SO4, XNM_NIT                                )
+!$OMP THREADPRIVATE( TRC_NIT, SPC_NIT,      SPC_HBr,    SPC_HOBr     )
+!$OMP THREADPRIVATE( SPC_SO4                                         )
 !$OMP THREADPRIVATE( XAREA,   XRADI,        TEMPK,      XTEMP        )
 !$OMP THREADPRIVATE( XDENA,   GAMMA_HO2,    QICE,       QLIQ         )
 !$OMP THREADPRIVATE( DUMMY,   ki_hbr,       ki_hobr,    cld_brno3_rc )
@@ -116,22 +116,20 @@ MODULE GCKPP_HETRATES
       RELHUM = RELHUM / VPRESH2O 
 
       ! Get tracer concentrations [kg]
-      IND = get_indx('SO4',IO%ID_TRACER,IO%TRACER_NAME)
-      IF (IND .le. 0) THEN
-         TRC_SO4    = 0.0e+0_fp
-         XNM_SO4    = 0.0e+0_fp
-      ELSE
-         TRC_SO4    = SC%Tracers(I,J,L,IND)
-         XNM_SO4    = IO%XNUMOL(IND)
-      ENDIF
-
       IND = get_indx('NIT',IO%ID_TRACER,IO%TRACER_NAME)
       IF (IND .le. 0) THEN
          TRC_NIT    = 0.0e+0_fp
-         XNM_NIT    = 0.0e+0_fp
+         SPC_NIT    = 0.0e+0_fp
       ELSE
          TRC_NIT    = SC%Tracers(I,J,L,IND)
-         XNM_NIT    = IO%XNUMOL(IND)
+         SPC_NIT    = TRC_NIT*1e-6_fp*IO%XNUMOL(IND)/SM%AIRVOL(I,J,L)
+      ENDIF
+
+      IND = get_indx('SO4',SC%Spec_ID,SC%Spec_Name)
+      IF (IND .le. 0) THEN
+         SPC_SO4    = 0.0e+0_fp
+      ELSE
+         SPC_SO4    = SC%Species(I,J,L,IND)
       ENDIF
 
       IND = get_indx('HBr',SC%Spec_ID,SC%Spec_Name)
@@ -734,12 +732,15 @@ MODULE GCKPP_HETRATES
             !    ratio of TMP2/TMP1 as calcrate does with its
             !    current settings.
             !    MSL - Feb. 16, 2016
-            TMP1 = (TRC_NIT*XNM_NIT)+(TRC_SO4*XNM_SO4)
-            TMP2 = TRC_NIT*XNM_NIT
+            TMP1 = SPC_NIT+SPC_SO4
+            TMP2 = SPC_NIT
             IF ( TMP1 .GT. 0.0 ) THEN
                XSTKCF = XSTKCF * ( 1.0e+0_fp - 0.9e+0_fp &
                                    *TMP2/TMP1 )
             ENDIF
+         IF (II.eq.37.and.JJ.eq.33.and.LL.eq.1) &
+              write(*,'(a,2e15.7)') '<> N2O5:', SPC_NIT, SPC_SO4
+
          ENDIF
          IF (N.eq.13) THEN
             ! Calculate for stratospheric liquid aerosol
