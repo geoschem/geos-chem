@@ -71,7 +71,7 @@ MODULE gckpp_Global
 
 ! INLINED global variable declarations
 
-      REAL(kind=dp) :: HET(NSPEC,2), PHOTOL(1000)
+      REAL(kind=dp) :: HET(NSPEC,3), PHOTOL(1000)
       REAL(kind=dp) :: NUMDEN, H2O, PRESS
 
 !$OMP THREADPRIVATE( C,   VAR,    FIX, RCONST, TIME        )
