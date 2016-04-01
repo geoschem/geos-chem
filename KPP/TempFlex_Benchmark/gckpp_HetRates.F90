@@ -57,8 +57,6 @@ MODULE GCKPP_HETRATES
   PRIVATE :: FYRNO3
   PRIVATE :: ARSL1K
 
-  PUBLIC :: SET_HET
-
   INTEGER            :: N
   INTEGER, SAVE      :: NAERO
   LOGICAL, SAVE      :: NATSURFACE, SAFEDIV
@@ -70,7 +68,6 @@ MODULE GCKPP_HETRATES
   REAL(fp), SAVE     :: GAMMA_HO2, XTEMP, XDENA, ADJUSTEDRATE
   REAL(fp), SAVE     :: cld_brno3_rc, KI_HBR, KI_HOBr, QLIQ, QICE
   REAL(fp), SAVE, DIMENSION(25)  :: XAREA, XRADI
-  REAL(fp),       PARAMETER      :: PSCMINLIFE=1.e-3_fp
   REAL(fp)           :: DUMMY, SCF2(3)
   REAL(fp), SAVE     :: KHETI_SLA(11)
   REAL(fp)           :: hobr_rtemp, hbr_rtemp
@@ -970,7 +967,7 @@ MODULE GCKPP_HETRATES
                XSTKCF = XSTKCF * ( 1.0e+0_fp - 0.9e+0_fp &
                                    *TMP2/TMP1 )
             ENDIF
-         IF (N.eq.13) THEN
+         ELSEIF (N.eq.13) THEN
             ! Calculate for stratospheric liquid aerosol
             ! Note that XSTKCF is actually a premultiplying
             ! factor in this case, including c-bar
@@ -2325,7 +2322,7 @@ MODULE GCKPP_HETRATES
 ! !INPUT PARAMETERS: 
 !
       ! Rate coefficients
-      REAL(fp) INTENT(IN) :: A, B
+      REAL(fp), INTENT(IN) :: A, B
 !
 ! !RETURN VALUE:
 !
@@ -2681,7 +2678,7 @@ MODULE GCKPP_HETRATES
 ! !INPUT PARAMETERS: 
 !
       ! Rate coefficients
-      REAL(fp) INTENT(IN) :: A, B
+      REAL(fp), INTENT(IN) :: A, B
 !
 ! !RETURN VALUE:
 !
@@ -2921,7 +2918,7 @@ MODULE GCKPP_HETRATES
             ENDIF
 
             ! Add to overall reaction rate
-            HET)HOBr_PSC = HET_HOBr_PSC + ADJUSTEDRATE
+            HET_HOBr_PSC = HET_HOBr_PSC + ADJUSTEDRATE
 
          ENDDO
 
