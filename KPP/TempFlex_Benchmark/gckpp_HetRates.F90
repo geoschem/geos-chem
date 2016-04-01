@@ -90,8 +90,8 @@ MODULE GCKPP_HETRATES
   REAL(fp) :: SPC_HBr,      SPC_HOBr
 #if defined( UCX )
   INTEGER  :: PSCIDX
-  REAL(fp) :: SPC_N2O5,     SPC_H2O,   SPC_HCl,   SPC_HBr
-  REAL(fp) :: SPC_HOCl,     SPC_HOBr,  SPC_ClNO3, SPC_BrNO3
+  REAL(fp) :: SPC_N2O5,     SPC_H2O,   SPC_HCl
+  REAL(fp) :: SPC_HOCl,     SPC_ClNO3, SPC_BrNO3
   REAL(fp) :: EDUCTCONC,    LIMITCONC
 #endif
 
@@ -115,8 +115,8 @@ MODULE GCKPP_HETRATES
 !$OMP THREADPRIVATE( XSTKCF,    ADJUSTEDRATE, SPC_HBr,    SPC_HOBr     )
 #if defined( UCX )
 !$OMP THREADPRIVATE( SPC_N2O5,  SPC_H2O,      SPC_HCl,    SPC_HOCl     )
-!$OMP THREADPRIVATE( SPC_ClNO3, SPC_BrNO3     KHETI_SLA,  PSCEDUCTCONC )
-!$OMP THREADPRIVATE( PSCIDX,    EDUCTCONC     LIMITCONC                ) 
+!$OMP THREADPRIVATE( SPC_ClNO3, SPC_BrNO3,    KHETI_SLA,  PSCEDUCTCONC )
+!$OMP THREADPRIVATE( PSCIDX,    EDUCTCONC,    LIMITCONC                ) 
 #endif
 !
 ! !DEFINED PARAMETERS:
@@ -2350,7 +2350,7 @@ MODULE GCKPP_HETRATES
 ! !INPUT PARAMETERS: 
 !
       ! Rate coefficients
-      REAL(fp) INTENT(IN) :: A, B
+      REAL(fp), INTENT(IN) :: A, B
 !
 ! !RETURN VALUE:
 !
@@ -2706,7 +2706,7 @@ MODULE GCKPP_HETRATES
 ! !INPUT PARAMETERS: 
 !
       ! Rate coefficients
-      REAL(fp) INTENT(IN) :: A, B
+      REAL(fp), INTENT(IN) :: A, B
 !
 ! !RETURN VALUE:
 !
@@ -2946,7 +2946,7 @@ MODULE GCKPP_HETRATES
             ENDIF
 
             ! Add to overall reaction rate
-            HET)HOBr_PSC = HET_HOBr_PSC + ADJUSTEDRATE
+            HET_HOBr_PSC = HET_HOBr_PSC + ADJUSTEDRATE
 
          ENDDO
 
