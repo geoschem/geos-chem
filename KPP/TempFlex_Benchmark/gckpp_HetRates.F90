@@ -56,27 +56,51 @@ MODULE GCKPP_HETRATES
   PRIVATE :: FYHORO
   PRIVATE :: FYRNO3
   PRIVATE :: ARSL1K
-
-  INTEGER            :: N
-  INTEGER, SAVE      :: NAERO
-  LOGICAL, SAVE      :: NATSURFACE, SAFEDIV
-  INTEGER            :: II,JJ,LL
-  LOGICAL, SAVE      :: KII_KI, PSCBOX, STRATBOX
-  REAL(fp), SAVE     :: TEMPK, RELHUM, XSTKCF
-  REAL(fp)           :: VPRESH2O, CONSEXP
-  REAL(fp), SAVE     :: TRC_NIT, SPC_HBr, SPC_HOBr, SPC_SO4, SPC_NIT
-  REAL(fp), SAVE     :: GAMMA_HO2, XTEMP, XDENA, ADJUSTEDRATE
-  REAL(fp), SAVE     :: cld_brno3_rc, KI_HBR, KI_HOBr, QLIQ, QICE
-  REAL(fp), SAVE, DIMENSION(25)  :: XAREA, XRADI
-  REAL(fp)           :: DUMMY, SCF2(3)
-  REAL(fp), SAVE     :: KHETI_SLA(11)
-  REAL(fp)           :: hobr_rtemp, hbr_rtemp
 #if defined( UCX )
-  INTEGER, SAVE      :: PSCIDX
-  REAL(fp), SAVE     :: SPC_N2O5, SPC_H2O,   SPC_HCl
-  REAL(fp), SAVE     :: SPC_HOCl, SPC_ClNO3, SPC_BrNO3
-  REAL(fp)           :: PSCEDUCTCONC(11,2)
-  REAL(fp)           :: EDUCTCONC, LIMITCONC
+  PRIVATE :: HETClNO3_PSC1
+  PRIVATE :: HETClNO3_PSC2
+  PRIVATE :: HETClNO3_PSC3
+  PRIVATE :: HETBrNO3_PSC
+  PRIVATE :: HETHOCl_PSC1
+  PRIVATE :: HETHOCl_PSC2
+  PRIVATE :: HETHOBr_PSC
+  PRIVATE :: HETN2O5_PSC
+#endif
+
+! These functions are only used for UCX-based mechanisms
+!
+! !PRIVATE DATA MEMBERS:
+!
+  !%%% NOTE: SOME OF THESE VARIABLE DEFINITIONS MAY BE BETTER IMPLEMENTED %%%
+  !%%% AS LOCAL VARIABLES WITHIN EACH OF THE FUNCTIONS.  DO THIS LATER.   %%%
+
+  ! Scalars
+  INTEGER  :: II,JJ,LL
+  INTEGER  :: N
+  INTEGER  :: NAERO
+  LOGICAL  :: NATSURFACE,   SAFEDIV
+  LOGICAL  :: KII_KI,       PSCBOX,    STRATBOX
+  REAL(fp) :: TEMPK,        RELHUM,    XSTKCF
+  REAL(fp) :: VPRESH2O,     CONSEXP
+  REAL(fp) :: TRC_NIT,      SPC_HBr,   SPC_HOBr,  SPC_SO4,     SPC_NIT
+  REAL(fp) :: GAMMA_HO2,    XTEMP,     XDENA,     ADJUSTEDRATE
+  REAL(fp) :: CLD_BRNO3_RC, KI_HBR,    KI_HOBr,   QLIQ,        QICE
+  REAL(fp) :: DUMMY
+  REAL(fp) :: hobr_rtemp,   hbr_rtemp
+#if defined( UCX )
+  INTEGER  :: PSCIDX
+  REAL(fp) :: SPC_N2O5,     SPC_H2O,   SPC_HCl
+  REAL(fp) :: SPC_HOCl,     SPC_ClNO3, SPC_BrNO3
+  REAL(fp) :: EDUCTCONC,    LIMITCONC
+#endif
+
+  ! Arrays
+  REAL(fp) :: SCF2(3)
+  REAL(fp) :: XAREA(25)
+  REAL(fp) :: XRADI(25)
+  REAL(fp) :: KHETI_SLA(11)
+#if defined( UCX )
+  REAL(fp) :: PSCEDUCTCONC(11,2)
 #endif
 
 !$OMP THREADPRIVATE( KII_KI,    NAERO,        N                        )
@@ -90,8 +114,8 @@ MODULE GCKPP_HETRATES
 !$OMP THREADPRIVATE( XSTKCF,    ADJUSTEDRATE, SPC_HBr,    SPC_HOBr     )
 #if defined( UCX )
 !$OMP THREADPRIVATE( SPC_N2O5,  SPC_H2O,      SPC_HCl,    SPC_HOCl     )
-!$OMP THREADPRIVATE( SPC_ClNO3, SPC_BrNO3     KHETI_SLA,  PSCEDUCTCONC )
-!$OMP THREADPRIVATE( PSCIDX,    EDUCTCONC     LIMITCONC                ) 
+!$OMP THREADPRIVATE( SPC_ClNO3, SPC_BrNO3,    KHETI_SLA,  PSCEDUCTCONC )
+!$OMP THREADPRIVATE( PSCIDX,    EDUCTCONC,    LIMITCONC                ) 
 #endif
 !
 ! !DEFINED PARAMETERS:
