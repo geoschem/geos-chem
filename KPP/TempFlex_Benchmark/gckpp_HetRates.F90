@@ -56,9 +56,7 @@ MODULE GCKPP_HETRATES
   PRIVATE :: FYHORO
   PRIVATE :: FYRNO3
   PRIVATE :: ARSL1K
-
 #if defined( UCX )
-  ! These functions are only used for UCX-based mechanisms
   PRIVATE :: HETClNO3_PSC1
   PRIVATE :: HETClNO3_PSC2
   PRIVATE :: HETClNO3_PSC3
@@ -68,6 +66,8 @@ MODULE GCKPP_HETRATES
   PRIVATE :: HETHOBr_PSC
   PRIVATE :: HETN2O5_PSC
 #endif
+
+! These functions are only used for UCX-based mechanisms
 !
 ! !PRIVATE DATA MEMBERS:
 !
@@ -82,16 +82,15 @@ MODULE GCKPP_HETRATES
   LOGICAL  :: KII_KI,       PSCBOX,    STRATBOX
   REAL(fp) :: TEMPK,        RELHUM,    XSTKCF
   REAL(fp) :: VPRESH2O,     CONSEXP
-  REAL(fp) :: TRC_NIT,      TRC_SO4,   XNM_SO4,   XNM_NIT
+  REAL(fp) :: TRC_NIT,      SPC_HBr,   SPC_HOBr,  SPC_SO4,     SPC_NIT
   REAL(fp) :: GAMMA_HO2,    XTEMP,     XDENA,     ADJUSTEDRATE
   REAL(fp) :: CLD_BRNO3_RC, KI_HBR,    KI_HOBr,   QLIQ,        QICE
   REAL(fp) :: DUMMY
   REAL(fp) :: hobr_rtemp,   hbr_rtemp
-  REAL(fp) :: SPC_HBr,      SPC_HOBr
 #if defined( UCX )
   INTEGER  :: PSCIDX
-  REAL(fp) :: SPC_N2O5,     SPC_H2O,   SPC_HCl,   SPC_HBr
-  REAL(fp) :: SPC_HOCl,     SPC_HOBr,  SPC_ClNO3, SPC_BrNO3
+  REAL(fp) :: SPC_N2O5,     SPC_H2O,   SPC_HCl
+  REAL(fp) :: SPC_HOCl,     SPC_ClNO3, SPC_BrNO3
   REAL(fp) :: EDUCTCONC,    LIMITCONC
 #endif
 
@@ -107,7 +106,7 @@ MODULE GCKPP_HETRATES
 !$OMP THREADPRIVATE( KII_KI,    NAERO,        N                        )
 !$OMP THREADPRIVATE( RELHUM,    CONSEXP,      VPRESH2O                 )
 !$OMP THREADPRIVATE( PSCBOX,    STRATBOX,     NATSURFACE               )
-!$OMP THREADPRIVATE( TRC_SO4,   TRC_NIT,      XNM_SO4,    XNM_NIT      )
+!$OMP THREADPRIVATE( TRC_NIT,   SPC_NIT,      SPC_SO4                  )
 !$OMP THREADPRIVATE( XAREA,     XRADI,        TEMPK,      XTEMP        )
 !$OMP THREADPRIVATE( XDENA,     GAMMA_HO2,    QICE,       QLIQ         )
 !$OMP THREADPRIVATE( DUMMY,     ki_hbr,       ki_hobr,    cld_brno3_rc )
@@ -115,8 +114,8 @@ MODULE GCKPP_HETRATES
 !$OMP THREADPRIVATE( XSTKCF,    ADJUSTEDRATE, SPC_HBr,    SPC_HOBr     )
 #if defined( UCX )
 !$OMP THREADPRIVATE( SPC_N2O5,  SPC_H2O,      SPC_HCl,    SPC_HOCl     )
-!$OMP THREADPRIVATE( SPC_ClNO3, SPC_BrNO3     KHETI_SLA,  PSCEDUCTCONC )
-!$OMP THREADPRIVATE( PSCIDX,    EDUCTCONC     LIMITCONC                ) 
+!$OMP THREADPRIVATE( SPC_ClNO3, SPC_BrNO3,    KHETI_SLA,  PSCEDUCTCONC )
+!$OMP THREADPRIVATE( PSCIDX,    EDUCTCONC,    LIMITCONC                ) 
 #endif
 !
 ! !DEFINED PARAMETERS:
@@ -225,22 +224,20 @@ MODULE GCKPP_HETRATES
       RELHUM = RELHUM / VPRESH2O 
 
       ! Get tracer concentrations [kg]
-      IND = get_indx('SO4',IO%ID_TRACER,IO%TRACER_NAME)
-      IF (IND .le. 0) THEN
-         TRC_SO4    = 0.0e+0_fp
-         XNM_SO4    = 0.0e+0_fp
-      ELSE
-         TRC_SO4    = SC%Tracers(I,J,L,IND)
-         XNM_SO4    = IO%XNUMOL(IND)
-      ENDIF
-
       IND = get_indx('NIT',IO%ID_TRACER,IO%TRACER_NAME)
       IF (IND .le. 0) THEN
          TRC_NIT    = 0.0e+0_fp
-         XNM_NIT    = 0.0e+0_fp
+         SPC_NIT    = 0.0e+0_fp
       ELSE
          TRC_NIT    = SC%Tracers(I,J,L,IND)
-         XNM_NIT    = IO%XNUMOL(IND)
+         SPC_NIT    = TRC_NIT*1e-6_fp*IO%XNUMOL(IND)/SM%AIRVOL(I,J,L)
+      ENDIF
+
+      IND = get_indx('SO4',SC%Spec_ID,SC%Spec_Name)
+      IF (IND .le. 0) THEN
+         SPC_SO4    = 0.0e+0_fp
+      ELSE
+         SPC_SO4    = SC%Species(I,J,L,IND)
       ENDIF
 
       IND = get_indx('HBr',SC%Spec_ID,SC%Spec_Name)
@@ -988,14 +985,13 @@ MODULE GCKPP_HETRATES
             !    ratio of TMP2/TMP1 as calcrate does with its
             !    current settings.
             !    MSL - Feb. 16, 2016
-            TMP1 = (TRC_NIT*XNM_NIT)+(TRC_SO4*XNM_SO4)
-            TMP2 = TRC_NIT*XNM_NIT
+            TMP1 = SPC_NIT+SPC_SO4
+            TMP2 = SPC_NIT
             IF ( TMP1 .GT. 0.0 ) THEN
                XSTKCF = XSTKCF * ( 1.0e+0_fp - 0.9e+0_fp &
                                    *TMP2/TMP1 )
             ENDIF
-         ENDIF
-         IF (N.eq.13) THEN
+         ELSEIF (N.eq.13) THEN
             ! Calculate for stratospheric liquid aerosol
             ! Note that XSTKCF is actually a premultiplying
             ! factor in this case, including c-bar
@@ -2350,7 +2346,7 @@ MODULE GCKPP_HETRATES
 ! !INPUT PARAMETERS: 
 !
       ! Rate coefficients
-      REAL(fp) INTENT(IN) :: A, B
+      REAL(fp), INTENT(IN) :: A, B
 !
 ! !RETURN VALUE:
 !
@@ -2706,7 +2702,7 @@ MODULE GCKPP_HETRATES
 ! !INPUT PARAMETERS: 
 !
       ! Rate coefficients
-      REAL(fp) INTENT(IN) :: A, B
+      REAL(fp), INTENT(IN) :: A, B
 !
 ! !RETURN VALUE:
 !
@@ -2946,7 +2942,7 @@ MODULE GCKPP_HETRATES
             ENDIF
 
             ! Add to overall reaction rate
-            HET)HOBr_PSC = HET_HOBr_PSC + ADJUSTEDRATE
+            HET_HOBr_PSC = HET_HOBr_PSC + ADJUSTEDRATE
 
          ENDDO
 

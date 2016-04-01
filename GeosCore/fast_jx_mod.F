@@ -2782,6 +2782,29 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       ENDIF
 #endif
 
+      !------------------------------------
+      ! Print out saved rxn flags
+      !------------------------------------
+      WRITE( 6, 100 ) REPEAT( '=', 79 )
+      wRITE( 6, 110 )
+      WRITE( 6, 120 ) RXN_O2
+      WRITE( 6, 130 ) RXN_O3_1
+      WRITE( 6, 140 ) RXN_O3_2a
+      WRITE( 6, 150 ) RXN_O3_2b
+#if defined( UCX )
+      WRITE( 6, 160 ) RXN_H2SO4
+#endif
+      WRITE( 6, 100 ) REPEAT( '=', 79 )
+
+      ! FORMAT statements
+ 100  FORMAT( a                                                 )
+ 110  FORMAT( 'Photo rxn flags saved for use in PHOTRATE_ADJ:', / )
+ 120  FORMAT( 'RXN_O2    [ O2  + hv -> O + O         ]  =  ', i5 )
+ 130  FORMAT( 'RXN_O3_1  [ O3  + hv -> O2 + O        ]  =  ', i5 )
+ 140  FORMAT( 'RXN_O3_2a [ O3  + hv -> O2 + O(1D) #1 ]  =  ', i5 )
+ 150  FORMAT( 'RXN_O3_2b [ O3  + hv -> O2 + O(1D) #2 ]  =  ', i5 )
+ 160  FORMAT( 'RXN_H2SO4 [ SO4 + hv -> SO2 + OH + OH ]  =  ', i5 )
+
       END SUBROUTINE RD_JS_JX
 !EOC
 !------------------------------------------------------------------------------
