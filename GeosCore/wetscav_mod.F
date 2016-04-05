@@ -227,17 +227,18 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_GCTM_MOD
+      USE PHYSCONSTANTS
       USE ERROR_MOD 
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+#if defined( DEVEL )
       USE TENDENCIES_MOD
+#endif
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE UNITCONV_MOD
-
-#if   defined ( DEVEL )
+#if defined( NC_DIAG )
       USE HCO_ERROR_MOD
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
@@ -292,9 +293,10 @@
       LOGICAL  :: doPrt
       REAL(fp) :: DT_TEND
 
-      ! For new diagnostics
-#if   defined( DEVEL )
-      INTEGER                :: N, cID, HCRC
+      ! For netCDF diagnostics
+#if defined( NC_DIAG )
+      INTEGER                :: N, L, cID, HCRC
+      CHARACTER(LEN=60)      :: DiagnName
       REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
       REAL(fp), POINTER      :: TMP3D(:,:,:) => NULL()
       REAL(fp), POINTER      :: TMP2D(:,:  ) => NULL()
@@ -328,8 +330,8 @@
 #endif
 
       !=================================================================
-      ! For new diagnostics, mirror old species
-#if   defined( DEVEL )
+      ! For netCDF diagnostics, mirror old species
+#if   defined( NC_DIAG )
       IF ( Input_Opt%ND39 > 0 ) THEN
          ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
          BEFORE = State_Chm%Tracers
@@ -402,10 +404,14 @@
 #endif
 
       !---------------------
-      ! New diagnostics 
+      ! NetCDF diagnostics 
       !---------------------
-#if   defined( DEVEL )
-      IF ( Input_Opt%ND39 > 0 ) THEN
+#if   defined( NC_DIAG )
+      ! Use ND38 as indicator for entire wet scavenging diagnostic group
+      IF ( Input_Opt%ND38 > 0 ) THEN
+
+         ! Assume success
+         HCRC = HCO_SUCCESS
 
          ! Time step
          DT = GET_TS_DYN() * 60e+0_fp
@@ -416,30 +422,36 @@
          ! Loop over all tracers
          DO N = 1, Input_Opt%N_TRACERS
 
-            ! Is this a tracer selected for diagnostics?
-            IF ( ANY( Input_Opt%TINDEX(39,:) == N ) ) THEN
+            ! Is this a tracer selected for wetscav diagnostics?
+            IF ( ANY( Input_Opt%TINDEX(38,:) == N ) ) THEN
 
-               ! Loss rate [kg/s] (eventually will be kg/m2/s)
-               ! Convert kg/kg/s to kg/s so that the vertical
+               ! Convert [kg/kg/s] to [kg/m2/s] so that the vertical
                ! sum makes physical sense (ewl, 8/14/15)
                TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Tracers(:,:,:,N) )
      &                 * State_Met%DELP * 1.e+2_fp 
      &                 * ( 1.e+0_fp - 1.e-3_fp * State_Met%SPHU ) 
-     &                 / ( G0_100 * DT ) * State_Met%AREA_M2(I,J,1) 
+     &                 / ( G0_100 * DT )
 
+               ! Convert loss rate [kg/m2/s] to [kg/s] for diagnostics 
+               ! NOTE: eventually diagnostic unit will be [kg/m2/s]
+               DO L = 1, LLPAR
+                  TMP3d(:,:,L) = TMP3d(:,:,L) * State_Met%AREA_M2(:,:,1)
+               ENDDO
                TMP2D = SUM(TMP3D,DIM=3)
 
-               ! Update diagnostics
-               cID = 39000 + N
+               ! Update diagnostics using diagnostic name
+               DiagnName = 'WETSCAV_DEPLOSS_' 
+     &                     // TRIM( Input_Opt%TRACER_NAME(N) )
+
                CALL Diagn_Update ( am_I_Root, HcoState,
-     &                             cID     = cID,
+     &                             cName   = DiagnName,
      &                             Array2D = TMP2D,
      &                             COL     = Input_Opt%DIAG_COLLECTION,
      &                             PosOnly = .TRUE., 
      &                             RC      = HCRC )
                IF ( HCRC /= HCO_SUCCESS ) THEN
-                  CALL ERROR_STOP ( 'Error updating wetscav diagn ' // 
-     &               'for species ' // TRIM(Input_Opt%TRACER_NAME(N)), 
+                  CALL ERROR_STOP ( 'Error updating wetscav wetdep ' 
+     &               // ' loss diagnostic: ' // TRIM( DiagnName ), 
      &               'DO_WETDEP (wetscav_mod.F)' )
                ENDIF
             ENDIF
@@ -4232,7 +4244,7 @@
       USE CMN_SIZE_MOD                                 ! Size parameters
       USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
       USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
-#if !defined(NO_BPCH)
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD39              ! ND39 diag array
 #endif
       USE DIAG_MOD,           ONLY : CT16              ! ND16 diag counter
@@ -4409,7 +4421,7 @@
      &           AD17(I,J,L,NN,IDX) + RAINFRAC / F_RAINOUT
          ENDIF
 
-#if !defined(NO_BPCH)
+#if defined( BPCH_DIAG )
          ! ND39 diag -- save rainout losses in [kg/s] 
          ! NOTE: eventually change this to kg/m2/s (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
@@ -4488,7 +4500,7 @@
       USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
       USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
       USE DIAG_MOD,           ONLY : AD18              ! ND18 diag array
-#if !defined(NO_BPCH)
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD39              ! ND39 diag array
 #endif
       USE DIAG_MOD,           ONLY : CT16              ! ND16 diag counter
@@ -4905,7 +4917,7 @@
             ENDIF
          ENDIF
 
-#if !defined(NO_BPCH)
+#if defined( BPCH_DIAG )
          ! ND39 diag -- save rainout losses in [kg/s]
          ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
@@ -4979,7 +4991,7 @@
       USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
       USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
       USE DIAG_MOD,           ONLY : AD18              ! ND18 diag array
-#if !defined(NO_BPCH)
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD39              ! ND39 diag array
 #endif
       USE DIAG_MOD,           ONLY : CT16              ! ND16 diag counter
@@ -5161,7 +5173,7 @@
          ! Diagnostics
          !--------------------------------------------------------------
 
-#if !defined(NO_BPCH)
+#if defined( BPCH_DIAG )
          ! ND39 diag -- save rainout losses in [kg/s]
          ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
@@ -5236,7 +5248,7 @@
       USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
       USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
       USE DIAG_MOD,           ONLY : AD18              ! ND18 diag array
-#if !defined(NO_BPCH)
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD39              ! ND39 diag array
 #endif
       USE DIAG_MOD,           ONLY : CT16              ! ND16 diag counter
@@ -5385,7 +5397,7 @@
             AD18(I,J,L,NN,IDX) = AD18(I,J,L,NN,IDX) + TMP
          ENDIF
 
-#if !defined(NO_BPCH)
+#if defined( BPCH_DIAG )
          ! ND39 diag -- save washout loss in [kg/s]
          ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)

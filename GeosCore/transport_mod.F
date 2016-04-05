@@ -70,6 +70,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed "GEOS57" to "GEOSFP" in routine names
 !  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  12 Feb 2015 - E. Lundgren - Added functionality for writing diags to netcdf
 !  15 Apr 2015 - R. Yantosca - Add TARGET spec to A_M2 array
 !  24 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v) for advection
@@ -78,6 +79,8 @@
 !                              when using kg/kg total air in advection
 !  13 Aug 2015 - E. Lundgren - Tracer units are now input as kg/kg dry air 
 !                              (previously v/v)
+!  19 Jan 2016 - E. Lundgren - Move DiagnUpdate_Transport to diagnostics_mod
+!                              and consolidate netcdf and bpch diagnostic code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -132,7 +135,9 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TPCORE_BC_MOD,      ONLY : INIT_TPCORE_BC
       USE TIME_MOD,           ONLY : GET_TS_DYN
+#if defined( DEVEL )
       USE TENDENCIES_MOD
+#endif
       USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
@@ -271,7 +276,12 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
+#endif
+#if defined( NC_DIAG )
+      USE DIAGNOSTICS_MOD, ONLY : DIAGNUPDATE_TRANSPORT_FLUX
+#endif
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -290,7 +300,7 @@
 
       USE CMN_SIZE_MOD             ! Size parameters        
       USE CMN_DIAG_MOD             ! NDxx flags
-      USE CMN_GCTM_MOD             ! Physical constants
+      USE PHYSCONSTANTS            ! Physical constants
 !
 ! !INPUT PARAMETERS:
 !
@@ -348,6 +358,11 @@
       REAL(fp),  POINTER :: p_VWND   (:,:,:  )
       REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
       REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+      REAL(fp),  POINTER :: p_MFLEW  (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLNS  (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLUP  (:,:,:,:) => NULL()
+#endif
       REAL(fp),  POINTER :: p_STT    (:,:,:,:)
 
       ! For fields from Input_Opt
@@ -355,6 +370,14 @@
       LOGICAL            :: LPRT
       LOGICAL            :: LWINDO
       INTEGER            :: N_TRACERS
+
+#if defined( NC_DIAG )
+      ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
+      ! Note that these are different than if writing to bpch
+      REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,NNPAR)        
+      REAL(fp),  TARGET  :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,NNPAR)
+      REAL(fp),  TARGET  :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,NNPAR) 
+#endif
 
       !=================================================================
       ! GEOS4_GEOS5_GLOBAL_ADV begins here!
@@ -368,6 +391,13 @@
       LPRT      = Input_Opt%LPRT
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
+
+#if defined( NC_DIAG )
+      ! Initialize netcdf diagnostic arrays
+      MASSFLEW_NC = 0.0e+0_fp
+      MASSFLNS_NC = 0.0e+0_fp
+      MASSFLUP_NC = 0.0e+0_fp
+#endif
 
       ! Pick the proper # of tracers
 #if   defined( APM )
@@ -431,6 +461,20 @@
       p_XMASS   => XMASS            (:,:,LLPAR:1:-1  )
       p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
 
+      ! Diagnostic arrays are vertically flipped at writeout
+#if defined( BPCH_DIAG )
+      ! Point to global diag_mod arrays for bpch
+      p_MFLEW   => MASSFLEW
+      p_MFLNS   => MASSFLNS
+      p_MFLUP   => MASSFLUP
+#endif
+#if defined( NC_DIAG )
+      ! Point to local arrays for netcdf
+      p_MFLEW   => MASSFLEW_NC
+      p_MFLNS   => MASSFLNS_NC
+      p_MFLUP   => MASSFLUP_NC
+#endif
+
       ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg total  air before advection (ewl, 6/15/15)
       CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt, 
@@ -442,18 +486,27 @@
       ENDIF 
 
       ! Do the advection
-      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
-      ! are incremented upside-down (level 1 = top of the atmosphere).
-      ! The levels order is reversed only when written out in diag3.f
-      ! (ccc, 3/8/10)
       CALL TPCORE_FVDAS( D_DYN,  Re,        IIPAR,    JJPAR,
      &                   LLPAR,  JFIRST,    JLAST,    NG,
      &                   MG,     N_TOT_TRC, Ap,       Bp,
      &                   p_UWND, p_VWND,    P_TP1,    P_TP2,
      &                   P_TEMP, p_STT,     IORD,     JORD,      
-     &                   KORD,   N_ADJ,     p_XMASS,  p_YMASS,         
-     &                   LFILL,  MASSFLEW,  MASSFLNS, MASSFLUP,    
-     &                   A_M2,   ND24,      ND25,     ND26 )
+     &                   KORD,   N_ADJ,     p_XMASS,  p_YMASS, LFILL,  
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
+      ! are incremented upside-down (level 1 = top of the atmosphere).
+      ! The levels order is reversed only when written out in diag3.f
+      ! (ccc, 3/8/10)
+     &                   p_MFLEW,  p_MFLNS, p_MFLUP,
+#endif    
+     &                   A_M2, ND24, ND25, ND26 )
+
+#if defined( NC_DIAG )
+      IF ( Input_Opt%ND24 > 0 ) THEN 
+         CALL DiagnUpdate_Transport_Flux( am_I_Root, p_MFLEW, p_MFLNS, 
+     &                                    p_MFLUP, Input_Opt, RC )
+      ENDIF
+#endif
 
       ! Convert tracer concentration from kg/kg wet air to 
       ! kg/kg dry air after advection (ewl, 6/15/15)
@@ -466,7 +519,11 @@
       ENDIF 
 
       ! Free pointer memory
-      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
+      NULLIFY( p_UWND,  p_VWND,  p_STT   )
+      NULLIFY( p_XMASS, p_YMASS          )
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+      NULLIFY( p_MFLEW, p_MFLNS, p_MFLUP )
+#endif
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -504,7 +561,12 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
+#endif
+#if defined( NC_DIAG )
+      USE DIAGNOSTICS_MOD, ONLY : DIAGNUPDATE_TRANSPORT_FLUX
+#endif
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -522,7 +584,7 @@
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! NDxx flags
-      USE CMN_GCTM_MOD             ! Physical constants
+      USE PHYSCONSTANTS            ! Physical constants
 !
 ! !INPUT PARAMETERS:
 !
@@ -581,6 +643,11 @@
       REAL(fp),  POINTER :: p_VWND   (:,:,:  )
       REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
       REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+      REAL(fp),  POINTER :: p_MFLEW (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLNS (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLUP (:,:,:,:) => NULL()
+#endif
       REAL(fp),  POINTER :: p_STT    (:,:,:,:) ! v/v
 
       ! For fields from Input_Opt
@@ -588,6 +655,14 @@
       LOGICAL            :: LPRT
       LOGICAL            :: LWINDO
       INTEGER            :: N_TRACERS
+
+#if defined( NC_DIAG )
+      ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
+      ! Note that these are different than if writing to bpch
+      REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,NNPAR)        
+      REAL(fp),  TARGET  :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,NNPAR)
+      REAL(fp),  TARGET  :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,NNPAR) 
+#endif
 
       !=================================================================
       ! GCAP_GLOBAL_ADV begins here!
@@ -601,6 +676,13 @@
       LPRT      = Input_Opt%LPRT
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
+
+#if defined( NC_DIAG )
+      ! Initialize netcdf diagnostic arrays
+      MASSFLEW_NC = 0.0e+0_fp
+      MASSFLNS_NC = 0.0e+0_fp
+      MASSFLUP_NC = 0.0e+0_fp
+#endif
 
       ! Pick the proper # of tracers
 #if   defined( APM )
@@ -668,6 +750,17 @@
       p_STT     => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
       p_XMASS   => XMASS            (:,:,LLPAR:1:-1  )
       p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
+#if defined( BPCH_DIAG )
+      p_MFLEW   => MASSFLEW
+      p_MFLNS   => MASSFLNS
+      p_MFLUP   => MASSFLUP
+#endif
+#if defined( NC_DIAG )
+      p_MFLEW   => MASSFLEW_NC
+      p_MFLNS   => MASSFLNS_NC
+      p_MFLUP   => MASSFLUP_NC
+#endif
+
 
       ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg total air before advection (ewl, 6/15/15)
@@ -679,19 +772,28 @@
          RETURN
       ENDIF 
 
-      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
-      ! are incremented upside-down (level 1 = top of the atmosphere).
-      ! The levels order is reversed only when written out in diag3.f
-      ! (ccc, 3/8/10)
       ! Do the advection
       CALL TPCORE_FVDAS( D_DYN,   Re,        IIPAR,    JJPAR,
      &                   LLPAR,   JFIRST,    JLAST,    NG,
      &                   MG,      N_TOT_TRC, Ap,       Bp,
      &                   p_UWND,  p_VWND,    P_TP1,    P_TP2,
      &                   P_TEMP,  p_STT,     IORD,     JORD,      
-     &                   KORD,    N_ADJ,     p_XMASS,  p_YMASS,
-     &                   LFILL,   MASSFLEW,  MASSFLNS, MASSFLUP, 
-     &                   A_M2,    ND24,      ND25,     ND26 )
+     &                   KORD,    N_ADJ,     p_XMASS,  p_YMASS, LFILL,
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
+      ! are incremented upside-down (level 1 = top of the atmosphere).
+      ! The levels order is reversed only when written out in diag3.f
+      ! (ccc, 3/8/10)
+     &                   p_MFLEW,  p_MFLNS, p_MFLUP,
+#endif    
+     &                   A_M2, ND24, ND25, ND26 )
+
+#if defined( NC_DIAG )
+      IF ( Input_Opt%ND24 > 0 ) THEN
+         CALL DiagnUpdate_Transport_Flux( am_I_Root, p_MFLEW, p_MFLNS, 
+     &                                    p_MFLUP, Input_Opt, RC )
+      ENDIF
+#endif
 
       ! Convert tracer concentration from kg/kg total air to 
       ! kg/kg dry air after advection (ewl, 6/15/15)
@@ -704,7 +806,11 @@
       ENDIF 
 
       ! Free pointer memory
-      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
+      NULLIFY( p_UWND,  p_VWND,  p_STT   )
+      NULLIFY( p_XMASS, p_YMASS          )
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+      NULLIFY( p_MFLEW, p_MFLNS, p_MFLUP )
+#endif
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -744,7 +850,12 @@
 ! !USES:
 !
       ! References to F90 modules
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,                  ONLY : MASSFLEW, MASSFLNS, MASSFLUP
+#endif
+#if defined( NC_DIAG )
+      USE DIAGNOSTICS_MOD, ONLY : DIAGNUPDATE_TRANSPORT_FLUX
+#endif
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,        ONLY : OptInput
@@ -766,7 +877,7 @@
 
       USE CMN_SIZE_MOD                    ! Size parameters
       USE CMN_DIAG_MOD                    ! NDxx flags
-      USE CMN_GCTM_MOD                    ! Physical constants
+      USE PHYSCONSTANTS                   ! Physical constants
 !
 ! !INPUT PARAMETERS:
 !
@@ -825,16 +936,28 @@
       REAL(fp),  POINTER :: p_VWND  (:,:,:  ) => NULL()
       REAL(fp),  POINTER :: p_XMASS (:,:,:  ) => NULL()
       REAL(fp),  POINTER :: p_YMASS (:,:,:  ) => NULL()
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
       REAL(fp),  POINTER :: p_MFLEW (:,:,:,:) => NULL()
       REAL(fp),  POINTER :: p_MFLNS (:,:,:,:) => NULL()
       REAL(fp),  POINTER :: p_MFLUP (:,:,:,:) => NULL()
+#endif
       REAL(fp),  POINTER :: p_STT   (:,:,:,:) => NULL()
 
       ! For fields from Input_Opt
-      LOGICAL            :: LFILL
-      LOGICAL            :: LPRT
-      LOGICAL            :: LWINDO
-      INTEGER            :: N_TRACERS
+      LOGICAL          :: LFILL
+      LOGICAL          :: LPRT
+      LOGICAL          :: LWINDO
+      INTEGER          :: N_TRACERS
+      REAL(fp)         :: TCVV(Input_Opt%N_TRACERS)
+
+#if defined( NC_DIAG )
+      ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
+      ! Note that these are different than if writing to bpch
+      REAL(fp), TARGET :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,NNPAR)        
+      REAL(fp), TARGET :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,NNPAR)
+      REAL(fp), TARGET :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,NNPAR) 
+#endif
+
 
       !=================================================================
       ! DO_FVDAS_WINDOW_TRANSPORT begins here!
@@ -848,6 +971,13 @@
       LPRT      = Input_Opt%LPRT
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
+
+#if defined( NC_DIAG )
+      ! Initialize netcdf diagnostic arrays
+      MASSFLEW_NC = 0.0e+0_fp
+      MASSFLNS_NC = 0.0e+0_fp
+      MASSFLUP_NC = 0.0e+0_fp
+#endif
 
       ! Pick the proper # of tracers
 #if   defined( APM )
@@ -949,6 +1079,7 @@
       p_P_TEMP => P_TEMP(           I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1        )
                                    
+#if defined( BPCH_DIAG )
       p_MFLEW => MASSFLEW(          I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1,  
      &                              :,                         : )
@@ -960,6 +1091,21 @@
       p_MFLUP => MASSFLUP(          I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1,  
      &                              :,                         : )
+#endif
+#if defined( NC_DIAG )
+      p_MFLEW => MASSFLEW_NC(       I0_W1+1 : I0_W1+IM_W1,
+     &                              J0_W1+1 : J0_W1+JM_W1,  
+     &                              :,                         : )
+                                   
+      p_MFLNS => MASSFLNS_NC(       I0_W1+1 : I0_W1+IM_W1,
+     &                              J0_W1+1 : J0_W1+JM_W1,  
+     &                              :,                         : )
+                                   
+      p_MFLUP => MASSFLUP_NC(       I0_W1+1 : I0_W1+IM_W1,
+     &                              J0_W1+1 : J0_W1+JM_W1,  
+     &                              :,                         : )
+#endif
+
 
       p_A_M2  => A_M2( J0_W1+1 : J0_W1+JM_W1                     )
 
@@ -973,19 +1119,28 @@
          RETURN
       ENDIF 
 
-      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
-      ! are incremented upside-down (level 1 = top of the atmosphere).
-      ! The levels order is reversed only when written out in diag3.f
-      ! (ccc, 3/8/10)
       ! Do the advection
       CALL TPCORE_WINDOW( 
      &      D_DYN,   Re,       IM_W1,   JM_W1,   LLPAR, 
      &      JFIRST,  JLAST,    NG,      MG,      N_TOT_TRC, 
      &      Ap,      Bp,       p_UWND,  p_VWND,  p_P_TP1, 
      &      p_P_TP2, p_P_TEMP, p_STT,   IORD,    JORD, 
-     &      KORD,    N_ADJ,    p_XMASS, p_YMASS, p_MFLEW, 
-     &      p_MFLNS, p_MFLUP,  p_A_M2,  ND24,    ND25,    
-     &      ND26 ) 
+     &      KORD,    N_ADJ,    p_XMASS, p_YMASS, 
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
+      ! are incremented upside-down (level 1 = top of the atmosphere).
+      ! The levels order is reversed only when written out in diag3.f
+      ! (ccc, 3/8/10)
+     &                         p_MFLEW, p_MFLNS, p_MFLUP,
+#endif
+     &                          p_A_M2,   ND24,      ND25,     ND26 ) 
+
+#if defined( NC_DIAG )
+      IF ( Input_Opt%ND24 > 0 ) THEN
+         CALL DiagnUpdate_Transport_Flux( am_I_Root, p_MFLEW, p_MFLNS, 
+     &                                    p_MFLUP, Input_Opt, RC )
+      ENDIF
+#endif
 
       ! Convert tracer concentration from kg/kg wet air to 
       ! kg/kg dry air after advection (ewl, 6/15/15)
@@ -1001,8 +1156,10 @@
 
       ! Free pointer memory
       NULLIFY( p_UWND,  p_VWND,  p_STT,   p_XMASS  ) 
-      NULLIFY( p_YMASS, p_P_TP1, p_P_TP2, p_P_TEMP )
-      NULLIFY( p_MFLEW, p_MFLNS, p_MFLUP, p_A_M2   )
+      NULLIFY( p_YMASS, p_P_TP1, p_P_TP2, p_P_TEMP, p_A_M2 )
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+      NULLIFY( p_MFLEW, p_MFLNS, p_MFLUP )
+#endif
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -1080,7 +1237,7 @@
       USE TPCORE_FVDAS_MOD,   ONLY : INIT_TPCORE
 
       USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_GCTM_MOD         ! Re
+      USE PHYSCONSTANTS        ! Re
 !
 ! !INPUT PARAMETERS:
 !
@@ -1185,7 +1342,7 @@
       NG    = 0
       MG    = 0
 
-      ! YMID_R is latitude of grid box center [radians]
+      ! YMID_R is latitude of grid box center [radian]
       DO J = 1,JJPAR
          YMID_R(J) = GET_YMID_R( 1, J, 1 )
       ENDDO
@@ -1230,7 +1387,7 @@
       USE TPCORE_WINDOW_MOD,       ONLY : INIT_WINDOW
 
       USE CMN_SIZE_MOD                  ! Size parameters
-      USE CMN_GCTM_MOD                  ! Re
+      USE PHYSCONSTANTS                 ! Re
 
 !
 ! !INPUT PARAMETERS:
@@ -1384,6 +1541,7 @@
 !  (1 ) Remove reference to DSIG, it's obsolete. (bmy, 6/24/03)
 !  (2 ) Remove obsolete embedded chemistry arrays (bmy, 10/30/07)
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!  12 Feb 2015 - E. Lundgren - Added new diagnostics arrays for netcdf output
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1394,4 +1552,5 @@
 
       END SUBROUTINE CLEANUP_TRANSPORT
 !EOC
+
       END MODULE TRANSPORT_MOD

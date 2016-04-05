@@ -47,13 +47,14 @@ MODULE HCO_Unit_Mod
 !  16 Mar 2015 - R. Yantosca - Also allow "kg m-2 s-1" and similar units
 !  16 Mar 2015 - R. Yantosca - Add dobsons and dobsons/day units
 !  16 Jun 2015 - R. Yantosca - Add % and percent to the unitless list
+!  07 Jan 2016 - E. Lundgren - Update Avogadro's # to NIST 2014 value
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-  REAL(dp),  PARAMETER :: N_0             = 6.022e+23_dp
+  REAL(dp),  PARAMETER :: N_0             = 6.022140857e+23_dp
   REAL(hp),  PARAMETER :: SEC_IN_DAY      = 86400_hp
   REAL(hp),  PARAMETER :: SEC_IN_LEAPYEAR = SEC_IN_DAY * 366_hp 
   REAL(hp),  PARAMETER :: SEC_IN_REGYEAR  = SEC_IN_DAY * 365_hp

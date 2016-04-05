@@ -1413,6 +1413,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY:
 !     22 Jun 2009 - R. Yantosca - Copied from "drydep_mod.f"
+!     07 Jan 2016 - E. Lundgren - Update Avogadro's # to NIST 2014 value
 !EOP
 !------------------------------------------------------------------------------
 !BOC      
@@ -1421,10 +1422,10 @@ CONTAINS
 !
     REAL(hp), PARAMETER  :: XMAIR  = 28.8e-3_hp 
     REAL(hp), PARAMETER  :: RADAIR = 1.2e-10_hp
-    REAL(hp), PARAMETER  :: PI     = 3.1415926535897932e+0_hp
+    REAL(hp), PARAMETER  :: PI     = 3.14159265358979323e+0_hp
     REAL(hp), PARAMETER  :: RADX   = 1.5e-10_hp
     REAL(hp), PARAMETER  :: RGAS   = 8.32e+0_hp
-    REAL(hp), PARAMETER  :: AVOGAD = 6.023e+23_hp
+    REAL(hp), PARAMETER  :: AVOGAD = 6.022140857e+23_hp
 !
 ! !LOCAL VARIABLES:
 !

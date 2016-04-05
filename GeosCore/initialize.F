@@ -143,6 +143,8 @@
 !  17 Sep 2014 - M. Sulprizio- Now initialize AD61 for TOMAS
 !  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  17 Nov 2014 - C. Keller   - Now reset ND45 if IFLAG is set to 2.
+!  20 Jan 2016 - M. Sulprizio- Remove AD06, AD07, and AD08. These diagnostics
+!                              are tracked by HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -165,11 +167,11 @@
 
          ! Allocatable arrays are zeroed only if their
          ! respective diagnostics are turned on (bmy, 2/17/00)
+#if defined( BPCH_DIAG )
          IF ( ND01 > 0 ) AD01     = 0e0
          IF ( ND02 > 0 ) AD02     = 0e0
+#endif
          IF ( ND05 > 0 ) AD05     = 0e0
-         IF ( ND06 > 0 ) AD06     = 0e0
-         IF ( ND08 > 0 ) AD08     = 0e0
          IF ( ND12 > 0 ) AD12     = 0e0
          IF ( ND14 > 0 ) CONVFLUP = 0e+0_fp
          IF ( ND15 > 0 ) TURBFLUP = 0e+0_fp
@@ -178,37 +180,41 @@
          IF ( ND18 > 0 ) AD18     = 0e0         
          IF ( ND19 > 0 ) AD19     = 0e0
          IF ( ND22 > 0 ) AD22     = 0e0
-         IF ( ND24 > 0 ) MASSFLEW = 0e+0_fp
-         IF ( ND25 > 0 ) MASSFLNS = 0e+0_fp
-         IF ( ND26 > 0 ) MASSFLUP = 0e+0_fp
-         IF ( ND30 > 0 ) AD30     = 0e0
-         IF ( ND31 > 0 ) AD31     = 0e0
+#if defined( BPCH_DIAG )
+         IF ( ND24 > 0 ) MASSFLEW = 0e+0_fp  ! netcdf TRANSPORT diag group
+         IF ( ND25 > 0 ) MASSFLNS = 0e+0_fp  ! netcdf TRANSPORT diag group
+         IF ( ND26 > 0 ) MASSFLUP = 0e+0_fp  ! netcdf TRANSPORT diag group
+         IF ( ND30 > 0 ) AD30     = 0e0      ! netcdf LANDMAP (remove?)
+         IF ( ND31 > 0 ) AD31     = 0e0      ! netcdf MET diag group
+#endif
          IF ( ND33 > 0 ) AD33     = 0e0
          IF ( ND35 > 0 ) AD35     = 0e0
          IF ( ND37 > 0 ) AD37     = 0e0
-#if !defined( NO_BPCH )
-         IF ( ND38 > 0 ) AD38     = 0e0
-         IF ( ND39 > 0 ) AD39     = 0e0
+#if defined( BPCH_DIAG )
+         IF ( ND38 > 0 ) AD38     = 0e0      ! netcdf WETSCAV diag group
+         IF ( ND39 > 0 ) AD39     = 0e0      ! netcdf WETSCAV diag group
 #endif
          IF ( ND43 > 0 ) AD43     = 0e0
-#if !defined( NO_BPCH )
-         IF ( ND44 > 0 ) AD44     = 0e0
-         IF ( ND45 > 0 ) AD45     = 0e0
+#if defined( BPCH_DIAG )
+         IF ( ND44 > 0 ) AD44     = 0e0      ! netcdf DRYDEP diag group
+         IF ( ND45 > 0 ) AD45     = 0e0      ! netcdf TRACER diag group
 #endif
          IF ( ND47 > 0 ) AD47     = 0e0
          IF ( ND52 > 0 ) AD52     = 0e0
          IF ( ND54 > 0 ) AD54     = 0e0
-         IF ( ND55 > 0 ) AD55     = 0e0
-         IF ( ND57 > 0 ) AD57     = 0e0
+#if defined( BPCH_DIAG )
+         IF ( ND55 > 0 ) AD55     = 0e0      ! netcdf MET diag group
+         IF ( ND57 > 0 ) AD57     = 0e0      ! netcdf MET diag group
+#endif
          IF ( ND58 > 0 ) AD58     = 0e0
          IF ( ND60 > 0 ) AD60     = 0e0
          IF ( ND64 > 0 ) AD64     = 0e0
-         IF ( ND66 > 0 ) AD66     = 0e0
-         IF ( ND67 > 0 ) AD67     = 0e0
-#if !defined( NO_BPCH )
-         IF ( ND68 > 0 ) AD68     = 0e0
+#if defined( BPCH_DIAG )
+         IF ( ND66 > 0 ) AD66     = 0e0      ! netcdf MET diag group
+         IF ( ND67 > 0 ) AD67     = 0e0      ! netcdf MET diag group
+         IF ( ND68 > 0 ) AD68     = 0e0      ! netcdf MET diag group
+         IF ( ND69 > 0 ) AD69     = 0e0      ! netcdf MET diag group
 #endif
-         IF ( ND69 > 0 ) AD69     = 0e0
          IF ( ND72 > 0 ) AD72     = 0e0
 
          ! Daily max mean hourly surface v/v
@@ -239,7 +245,6 @@
 
          ! ND07 -- carbon aerosol emissions (rjp, tdf, bmy, 4/5/04)
          IF ( ND07 > 0 ) THEN
-            AD07       = 0e0
             AD07_BC    = 0e0
             AD07_OC    = 0e0
             AD07_HC    = 0e0
@@ -345,7 +350,7 @@
          IF ( ND43 >               0 ) CTOH       = 0
          IF ( ND43 >               0 ) CTO1D      = 0
          IF ( ND43 >               0 ) CTO3P      = 0
-#if !defined(NO_BPCH)
+#if defined( BPCH_DIAG )
          IF ( ND45 >               0 ) CTOTH      = 0
 #endif
          IF ( ND47 > 0 .OR. ND65 > 0 ) CTO3_24h   = 0

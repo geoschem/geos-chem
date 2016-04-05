@@ -134,6 +134,7 @@
 !                              module procedures to facilitate flex precision
 !  13 Aug 2015 - E. Lundgren - Add GIGC_ERROR which sets RC to GIGC_FAILURE
 !                              and print msg and location to log
+!  22 Jan 2016 - R. Yantosca - Remove SPARC, IBM #ifdefs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -162,7 +163,7 @@
 !
 ! !USES:
 !
-#if   defined( IBM_AIX ) || defined( IBM_XLF )
+#if defined( LINUX_PGI )
       USE IEEE_ARITHMETIC
 #endif
 !
@@ -191,44 +192,16 @@
 !        (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  22 Jan 2016 - R. Yantosca - Remove SPARC, IBM #ifdefs
+!  22 Jan 2016 - R. Yantosca - Use IEEE_IS_NAN for PGI compiler
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( LINUX_IFORT )
+#if defined( LINUX_IFORT )
       IT_IS_A_NAN = ISNAN( VALUE )    
-
 #elif defined( LINUX_PGI )
-
-      ! Declare IS_NAN as an external function
-      INTEGER, EXTERNAL  :: IS_NAN
-      
-      ! For LINUX or INTEL_FC compilers, use C routine "is_nan" to test if 
-      ! VALUE is NaN.   VALUE must be cast to DBLE since "is_nan" only
-      ! takes doubles.
-      IT_IS_A_NAN = ( IS_NAN( DBLE( VALUE ) ) /= 0 )
-
-#elif defined( SPARC )
-!-----------------------------------------------------------------------------
-! NOTE: If you compile with SunStudio11/12 with the -fast optimization, this 
-! will turn on -ftrap=common, which checks for NaN, invalid, division, and 
-! inexact IEEE math errors. (bmy, 12/18/07)
-!
-!      ! Declare IR_ISNAN as an external function
-!      INTEGER, EXTERNAL :: IR_ISNAN
-!
-!      ! Test if VALUE is a NaN
-!      IT_IS_A_NAN = ( IR_ISNAN( VALUE ) /= 0 )
-!-----------------------------------------------------------------------------
-      IT_IS_A_NAN = .FALSE.
-
-#elif defined( IBM_AIX ) || defined( IBM_XLF )
-
-      ! For IBM/AIX platform
-      IF ( IEEE_SUPPORT_DATATYPE( VALUE ) ) THEN
-         IT_IS_A_NAN = IEEE_IS_NAN( VALUE )
-      ENDIF
-
+      IT_IS_A_NAN = IEEE_IS_NAN( VALUE )
 #endif
 
       ! Return to calling program
@@ -251,7 +224,7 @@
 !
 ! !USES:
 !
-#if   defined( IBM_AIX ) || defined( IBM_XLF )
+#if defined( LINUX_PGI )
       USE IEEE_ARITHMETIC
 #endif
 !
@@ -280,43 +253,16 @@
 !        (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  22 Jan 2016 - R. Yantosca - Removed SPARC, IBM #ifdefs
+!  22 Jan 2016 - R. Yantosca - Use IEEE_IS_NAN for PGI compiler
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-#if   defined( LINUX_IFORT )
+#if defined( LINUX_IFORT )
       IT_IS_A_NAN = ISNAN( VALUE )      
-
 #elif defined( LINUX_PGI )
-
-      ! Declare IS_NAN as an external function
-      INTEGER, EXTERNAL  :: IS_NAN
-
-      ! For LINUX or INTEL_FC compilers, use C routine 
-      ! "is_nan" to test if VALUE is NaN.  
-      IT_IS_A_NAN = ( IS_NAN( VALUE ) /= 0 )
-
-#elif defined( SPARC )
-!-----------------------------------------------------------------------------
-! NOTE: If you compile with SunStudio11/12 with the -fast optimization, this 
-! will turn on -ftrap=common, which checks for NaN, invalid, division, and 
-! inexact IEEE math errors. (bmy, 12/18/07)
-!
-!      ! Declare ID_ISNAN as an external function
-!      INTEGER, EXTERNAL  :: ID_ISNAN
-!
-!      ! Test if VALUE is NaN
-!      IT_IS_A_NAN = ( ID_ISNAN( VALUE ) /= 0 )
-!-----------------------------------------------------------------------------
-      IT_IS_A_NAN = .FALSE.
-
-#elif defined( IBM_AIX ) || defined( IBM_XLF )
-
-       ! For IBM/AIX platform
-      IF ( IEEE_SUPPORT_DATATYPE( VALUE ) ) THEN
-         IT_IS_A_NAN = IEEE_IS_NAN( VALUE )
-      ENDIF
-
+      IT_IS_A_NAN = IEEE_IS_NAN( VALUE )
 #endif
 
       ! Return to calling program
@@ -339,7 +285,7 @@
 !
 ! !USES:
 !
-#if   defined( IBM_AIX ) || defined( IBM_XLF )
+#if defined( LINUX_PGI )
       USE IEEE_ARITHMETIC
 #endif
 !
@@ -369,6 +315,9 @@
 !        (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  22 Jan 2016 - R. Yantosca - Removed SPARC, IBM #ifdefs
+!  22 Jan 2016 - R. Yantosca - Use IEEE_IS_NAN for PGI compiler
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -387,36 +336,11 @@
       IT_IS_A_FINITE = ( FPC /= POS_INF .and. FPC /= NEG_INF .and. 
      &                   FPC /= SNAN    .and. FPC /= QNAN          )
 
-#elif defined( LINUX_PGI ) 
+#elif  defined( LINUX_PGI )
 
-      ! Declare IS_FINITE as an external function
-      INTEGER, EXTERNAL :: IS_FINITE
-      
-      ! For LINUX or INTEL_FC compilers use C routine "is_finite" to test 
-      ! if VALUE is finite.  VALUE must be cast to DBLE since "is_inf" 
-      ! only takes doubles. 
-      IT_IS_A_FINITE = ( IS_FINITE( DBLE( VALUE ) ) /= 0 )
+      ! PGI compiler
+      IT_IS_A_FINITE = IEEE_IS_FINITE( VALUE )
 
-#elif defined( SPARC )
-!-----------------------------------------------------------------------------
-! NOTE: If you compile with SunStudio11/12 with the -fast optimization, this 
-! will turn on -ftrap=common, which checks for NaN, invalid, division, and 
-! inexact IEEE math errors. (bmy, 12/18/07)
-!      ! Declare IR_FINITE as an external function
-!      INTEGER, EXTERNAL :: IR_FINITE
-!
-!      ! Test if VALUE is a finite number
-!      IT_IS_A_FINITE = ( IR_FINITE( VALUE ) /= 0 )
-!-----------------------------------------------------------------------------
-      IT_IS_A_FINITE = .TRUE.
-
-#elif defined( IBM_AIX ) || defined( IBM_XLF )
-
-      ! For IBM/AIX platform
-      IF ( IEEE_SUPPORT_DATATYPE( VALUE ) ) THEN
-         IT_IS_A_FINITE = IEEE_IS_FINITE( VALUE )
-      ENDIF 
-      
 #endif
       
       ! Return to calling program
@@ -439,7 +363,7 @@
 !
 ! !USES:
 !
-#if   defined( IBM_AIX ) || defined( IBM_XLF )
+#if defined( LINUX_PGI )
       USE IEEE_ARITHMETIC
 #endif
 !
@@ -469,6 +393,8 @@
 !        (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  22 Jan 2016 - R. Yantosca - Removed SPARC, IBM #ifdefs
+!  22 Jan 2016 - R. Yantosca - Use IEEE_IS_NAN for PGI compiler
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -489,33 +415,8 @@
 
 #elif defined( LINUX_PGI )
 
-      ! Declare IS_FINITE as an external function
-      INTEGER, EXTERNAL :: IS_FINITE
-
-      ! For LINUX or INTEL_FC compilers, use C routine 
-      ! "is_finite" to test if VALUE is infinity
-      IT_IS_A_FINITE = ( IS_FINITE( VALUE ) /= 0 )
-
-#elif defined( SPARC )
-!-----------------------------------------------------------------------------
-! NOTE: If you compile with SunStudio11/12 with the -fast optimization, this 
-! will turn on -ftrap=common, which checks for NaN, invalid, division, and 
-! inexact IEEE math errors. (bmy, 12/18/07)
-! 
-!      ! Declare ID_FINITE as an external function
-!      INTEGER, EXTERNAL :: ID_FINITE
-!
-!      ! Test if VALUE is a finite number
-!      IT_IS_A_FINITE = ( ID_FINITE( VALUE ) /= 0 )
-!-----------------------------------------------------------------------------
-      IT_IS_A_FINITE = .TRUE.
-
-#elif defined( IBM_AIX ) || defined( IBM_XLF )
-
-      ! For IBM/AIX platform
-      IF ( IEEE_SUPPORT_DATATYPE( VALUE ) ) THEN
-         IT_IS_A_FINITE = IEEE_IS_FINITE( VALUE )
-      ENDIF
+      ! PGI compiler
+      IT_IS_A_FINITE = IEEE_IS_FINITE( VALUE )
 
 #endif
       
@@ -1253,17 +1154,18 @@
 !  04 Jan 2010 - R. Yantosca - Initial version
 !  06 Feb 2015 - M. Yannetti - Needed to make the CUTOFF smaller for
 !                              REAL*4.
+!  22 Jan 2016 - R. Yantosca - Use lowercase for #ifdefs; PGI chokes if not.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-#IF DEFINED( USE_REAL8 )
+#if defined( USE_REAL8 )
       REAL(fp), PARAMETER :: CUTOFF = 600e+0_fp
-#ELSE
+#else
       REAL(fp), PARAMETER :: CUTOFF = 75e+0_fp
-#ENDIF
+#endif
 
       ! If -CUTOFF < x < CUTOFF, then it is safe to take EXP( x )
       F = ( ABS( X ) < CUTOFF )

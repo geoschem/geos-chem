@@ -1024,7 +1024,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GIGC_State_Met_Mod, ONLY : MetState
-    USE CMN_GCTM_MOD
+    USE PHYSCONSTANTS
 
 !
 ! !INPUT PARAMETERS: 
@@ -1143,7 +1143,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE CMN_GCTM_MOD
+    USE PHYSCONSTANTS
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1923,7 +1923,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GIGC_State_Met_Mod, ONLY : MetState
-    USE CMN_GCTM_MOD
+    USE PHYSCONSTANTS
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2006,7 +2006,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GIGC_State_Met_Mod, ONLY : MetState
-    USE CMN_GCTM_MOD
+    USE PHYSCONSTANTS
 !
 ! !INPUT PARAMETERS: 
 !

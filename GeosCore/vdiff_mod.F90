@@ -16,6 +16,7 @@ MODULE VDIFF_MOD
 ! !USES:
 !
   USE CMN_SIZE_MOD,  ONLY : IIPAR, JJPAR, LLPAR    ! Grid dimensions
+  USE PHYSCONSTANTS                                ! Physical constants
   USE ERROR_MOD,     ONLY : DEBUG_MSG              ! Routine for debug output
   USE VDIFF_PRE_MOD, ONLY : plev  => LLPAR         ! # of levels
   USE VDIFF_PRE_MOD, ONLY : PCNST                  ! N_TRACERS
@@ -35,25 +36,33 @@ MODULE VDIFF_MOD
 !  
   save
   
-
   integer :: plevp
 
-  real(fp), parameter ::          &
-       rearth = 6.37122e+6_fp,      & ! radius earth (m)
-       cpwv   = 1.81e+3_fp,         &
+  real(fp), parameter ::            &
        cpair  = 1004.64e+0_fp,      &
-       rair   = 287.04e+0_fp,       &
-       rh2o   = 461.e+0_fp,         &
-       zvir   = rh2o/rair - 1., &
-       gravit = 9.80616e+0_fp,      &
-       ra     = 1.e+0_fp/rearth,    &
-       epsilo = 0.622e+0_fp,        &
        latvap = 2.5104e+06_fp,      &
-       latice = 3.336e+5_fp,        &
-       cappa  = rair/cpair,     &
        rhoh2o = 1.e+3_fp,           &
-       r_g    = rair / gravit,  &
-       tfh2o  = 273.16e+0_fp
+       tfh2o  = 273.16e+0_fp,       &
+       rair   = Rd,                 & 
+       rh2o   = Rv,                 &         
+       gravit = g0,                 & 
+       zvir   = rh2o/rair - 1.,     &
+       cappa  = Rd/cpair,           &       
+       r_g    = Rd / g0                       
+
+  ! Obsolete variables and variables that are now defined with global params
+  ! (ewl, 1/7/16)
+!  real(fp), parameter ::          &
+!       rearth = 6.37122e+6_fp,      & ! not used
+!       cpwv   = 1.81e+3_fp,         & ! not used
+!       ra     = 1.e+0_fp/rearth,    & ! not used
+!       epsilo = 0.622e+0_fp,        & ! not used
+!       latice = 3.336e+5_fp,        & ! not used
+!       rair   = 287.04e+0_fp,       & ! now use global Rd
+!       rh2o   = 461.e+0_fp,         & ! now use global Rv
+!       gravit = 9.80616e+0_fp,      & ! now use global g0
+!       cappa  = rair/cpair,     &     ! now use global Rd
+!       r_g    = rair / gravit,  &     ! now use global Rd and g0
 
 !-----------------------------------------------------------------------
 ! 	... pbl constants
@@ -127,6 +136,8 @@ MODULE VDIFF_MOD
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  24 Jun 2014 - R. Yantosca - Now get PCNST from vdiff_pre_mod.F90
 !  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  07 Jan 2016 - E. Lundgren - Replace hard-coded physical params w/ global and
+!                              remove unused parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1816,7 +1827,7 @@ contains
     USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
     USE DIAG_MOD,           ONLY : AD44
 #endif
     USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP, NTRAIND, DEPSAV
@@ -1843,12 +1854,16 @@ contains
     USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, NCS, ND44, NDRYDEP
     USE MERCURY_MOD,        ONLY : HG_EMIS
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
+#if defined( DEVEL )
     USE TENDENCIES_MOD
+#endif
 
     ! HEMCO update
     USE HCO_INTERFACE_MOD,  ONLY : GetHcoID, GetHcoVal, GetHcoDiagn
-#if defined( DEVEL )
+#if defined( NC_DIAG )
+    USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
 
@@ -1918,37 +1933,40 @@ contains
 !                              Use virtual temperature in hypsometric eqn.
 !  10 Apr 2015 - C. Keller   - Now exchange PARANOX loss fluxes via HEMCO 
 !                              diagnostics.
+!  25 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostic
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    integer :: I,J,L,JLOOP,N,NN
+    integer :: I, J, L, JLOOP, N, NN, D, trc_id
 
 !    REAL(fp)                :: SNOW_HT !cdh - obsolete
     REAL(fp)                :: FRAC_NO_HG0_DEP !jaf 
-    LOGICAL               :: ZERO_HG0_DEP !jaf 
+    LOGICAL                 :: ZERO_HG0_DEP !jaf 
 
-    real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR) :: pmid, rpdel, rpdeli, zm
+    real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR)   :: pmid, rpdel, rpdeli, zm
     real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR+1) :: pint
     real(fp), TARGET, dimension(IIPAR,JJPAR,Input_Opt%N_TRACERS) :: sflx
-    real(fp), TARGET, dimension(IIPAR,JJPAR,Input_Opt%N_TRACERS) :: eflx, dflx ! surface flux
+    real(fp), TARGET, dimension(IIPAR,JJPAR,Input_Opt%N_TRACERS) :: eflx, dflx 
+                                                              ! surface flux
     real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR+1) :: cgs, kvh, kvm
-    real(fp), TARGET, dimension(IIPAR,JJPAR) :: pblh, tpert, qpert
-    real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR) :: thp         ! potential temperature
-    real(fp), TARGET, dimension(IIPAR,JJPAR) :: shflx    ! water vapor flux
-    real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR) :: t1
-    real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) :: as ! save tracer MR 
+    real(fp), TARGET, dimension(IIPAR,JJPAR)         :: pblh, tpert, qpert
+    real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR)   :: thp   ! potential temp
+    real(fp), TARGET, dimension(IIPAR,JJPAR)         :: shflx ! water vapor flux
+    real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR)   :: t1
+    real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) :: as 
+                                                         ! save tracer MR 
                                                          ! before vdiffdr
     real(fp) :: vtemp
     real(fp) :: p0 = 1.e+5_fp
     real(fp) :: dtime
     real(fp) :: wk1, wk2
     real(fp) :: soilflux
-    integer :: pbl_top
+    integer  :: pbl_top
       
-    REAL(fp)  :: DEP_KG !(cdh, 8/28/09)
+    REAL(fp) :: DEP_KG !(cdh, 8/28/09)
 
     ! Array to store a single level of the AS2 array,
     ! so as not to blow up the parallelization (ccc, 12/22.10)
@@ -1989,12 +2007,14 @@ contains
     REAL(fp)           :: TMPFLX, EMIS, DEP
     INTEGER            :: RC,     HCRC, TOPMIX
 
-    ! For HEMCO diagnostics
-#if defined( DEVEL )
+    ! For diagnostics
+    REAL(fp), TARGET   :: DryDepFlux( IIPAR, JJPAR ) 
+#if defined( NC_DIAG )
     REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
     REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
     REAL(fp)           :: Total
     INTEGER            :: cID
+    CHARACTER(LEN=30)  :: DiagnName
 #endif
 
     ! PARANOX loss fluxes (kg/m2/s), imported from 
@@ -2032,6 +2052,9 @@ contains
     shflx   = 0e+0_fp
     t1      = 0e+0_fp
     as2_scal= 0e+0_fp
+
+    ! Initialize diagnostic array (ND44)
+    DryDepFlux = 0e+0_fp
 
     ! Copy values from Input_Opt (bmy, 8/1/13)
     IS_CH4       = Input_Opt%ITS_A_CH4_SIM
@@ -2490,24 +2513,24 @@ contains
        IF ( IS_Hg ) THEN
           
           ! Loop over # of drydep species
-          DO N = 1, NUMDEP
+          DO D = 1, NUMDEP
              
              ! GEOS_Chem tracer number
-             NN = NTRAIND(N)
+             N = NTRAIND( D )
              
              ! Deposition mass, kg
-             DEP_KG = dflx( I, J, NN ) * GET_AREA_M2( I, J, 1 ) &
-                    * GET_TS_CONV()    * 60e+0_fp
+             DEP_KG = dflx( I, J, N ) * GET_AREA_M2( I, J, 1 ) &
+                    * GET_TS_CONV() * 60e+0_fp
 
-             IF ( IS_Hg2(NN) ) THEN 
+             IF ( IS_Hg2( N ) ) THEN 
                 
-                CALL ADD_HG2_DD( I, J, NN, DEP_KG )
-                CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG, State_Met )
+                CALL ADD_HG2_DD( I, J, N, DEP_KG )
+                CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_KG, State_Met )
 
-             ELSE IF ( IS_HgP( NN ) ) THEN
+             ELSE IF ( IS_HgP( N ) ) THEN
                 
-                CALL ADD_HGP_DD( I, J, NN, DEP_KG )
-                CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG, State_Met )
+                CALL ADD_HGP_DD( I, J, N, DEP_KG )
+                CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_KG, State_Met )
 
              ENDIF
 
@@ -2528,7 +2551,7 @@ contains
 #endif
 
     ! Write (surface) emissions into diagnostics
-#if defined( DEVEL )
+#if defined( NC_DIAG )
 
     ! Allocate temporary data array
     ALLOCATE(Ptr3D(IIPAR,JJPAR,LLPAR))
@@ -2554,30 +2577,34 @@ contains
           ENDIF
        ENDIF
 
-       ! Drydep fluxes
-       IF ( (ND44>0) .AND. (ANY(dflx(:,:,N) > 0.0_fp) ) ) THEN
-          Ptr2D => dflx(:,:,N)
-          cID = 44500 + N
-          CALL Diagn_Update( am_I_Root, HcoState,                 &
-                             cID     = cID,                       &
-                             Array2D = Ptr2D,                     &
-                             COL     = Input_Opt%DIAG_COLLECTION, &
-                             RC      = HCRC                        )
-          Ptr2D => NULL()
-       ENDIF
+       !! Drydep fluxes
+       !! Now update drydep flux diag below using molec/cm2/s
+       !IF ( (ND44>0) .AND. (ANY(dflx(:,:,N) > 0.0_fp) ) ) THEN
+       !   Ptr2D => dflx(:,:,N)
+       !   cID = 44500 + N
+       !   CALL Diagn_Update( am_I_Root,                           &
+       !                      cID     = cID,                       &
+       !                      Array2D = Ptr2D,                     &
+       !                      COL     = Input_Opt%DIAG_COLLECTION, &
+       !                      RC      = HCRC                        )
+       !   Ptr2D => NULL()
+       !ENDIF
     ENDDO
 
     DEALLOCATE(Ptr3D)
 
 #endif
 
+    !==============================================================
+    ! Calculate ND44 diagnostic: drydep flux loss [molec/cm2/s]
+    !==============================================================
 
     ! drydep fluxes diag. for SMVGEAR mechanism 
     ! for gases -- moved from DRYFLX in drydep_mod.f to here
     ! for aerosols -- 
     if (ND44 > 0 .or. LGTMM .or. LSOILNOX) then
 
-       do N = 1, NUMDEP
+       do D = 1, NUMDEP
 
 !          SELECT CASE ( NN )
              ! non gases + aerosols for fully chemistry 
@@ -2590,53 +2617,96 @@ contains
 !             CASE DEFAULT
 
           ! Locate position of each tracer in DEPSAV
-          NN = NTRAIND(N)
-          IF ( NN == 0 ) CYCLE 
+          ! (get tracer id)
+          ! NOTE: trc_id was previously NN and drydep id D
+          ! was previously N. This is changed for convention consistency
+          ! within subroutine (ewl, 1/25/16)
+          trc_id = NTRAIND( D )  
+          IF ( trc_id == 0 ) CYCLE 
 !          IF (NN == 0 .OR.       &
 !              NN == IDTDST1 .OR. & 
 !              NN == IDTDST2 .OR. &
 !              NN == IDTDST3 .OR. &
 !              NN == IDTDST4       ) CYCLE
 
-#if !defined( NO_BPCH )
-                ! only for the lowest model layer
-                ! Convert : kg/m2/s -> molec/cm2/s
-                ! consider timestep difference between convection and emissions
-		IF(ND44 > 0 .or. LGTMM) THEN                
-		AD44(:,:,N,1) = AD44(:,:,N,1) + dflx(:,:,NN) &
-                       / TRACER_MW_KG(NN) * 6.022e+23_fp * 1.e-4_fp &
-                       * GET_TS_CONV() / GET_TS_EMIS() 
-		ENDIF
+#if defined( BPCH_DIAG )
+      !===============================================================
+      ! Update dry deposition flux diagnostic for bpch output (ND44) 
+      !===============================================================
+	  IF( ND44 > 0 .or. LGTMM) THEN                
+             ! only for the lowest model layer
+             ! Convert : kg/m2/s -> molec/cm2/s
+             ! consider timestep difference between convection and emissions
+             ! Calculate flux [molec/cm2/s]
+             ! For bpch diagnostic output, save flux in global ADD 44 array
+	     AD44(:,:,D,1) = AD44(:,:,D,1) + dflx(:,:,trc_id)        &
+                             / TRACER_MW_KG(trc_id) * AVO * 1.e-4_fp &
+                             * GET_TS_CONV() / GET_TS_EMIS() 
+          ENDIF
+#endif
+#if defined( NC_DIAG )
+      !===============================================================
+      ! Update dry deposition flux diagnostic for netcdf output (ND44) 
+      !===============================================================
+	  IF( ND44 > 0 .or. LGTMM) THEN                
+
+             ! For netcdf output, save flux in local array before
+             ! passing to HEMCO
+             DryDepFlux = dflx(:,:,trc_id) / TRACER_MW_KG(trc_id) *   &
+                          AVO * 1.e-4_fp * GET_TS_CONV() / GET_TS_EMIS()
+             
+             ! If this tracer is scheduled for output in 
+             ! input.geos, then update the diagnostic
+             IF ( ANY( Input_Opt%TINDEX(44,:) == trc_id ) ) THEN
+
+                ! Update diagnostic container
+                DiagnName = 'DRYDEP_FLX_MIX_'                &
+                            // TRIM( Input_OPt%DEPNAME(D) )
+                Ptr2D => DryDepFlux
+                CALL Diagn_Update( am_I_Root, HcoState,                 &
+                                   cName   = TRIM( DiagnName),          &
+                                   Array2D = Ptr2D,                     & 
+                                   COL     = Input_Opt%DIAG_COLLECTION, &
+                                   RC      = HCRC                        )
+                Ptr2D => NULL()
+             
+                ! Stop with error if the diagnostic was unsuccessful
+                IF ( HCRC /= HCO_SUCCESS ) THEN
+                   CALL ERROR_STOP( 'Cannot update drydep flux' //       & 
+                                    ' diagnostic: ' // TRIM( DiagnName), &
+                                    'VDIFFDR (vdiff_mod.F)')
+                ENDIF
+             ENDIF
+          ENDIF
 #endif
 
-                ! If Soil NOx is turned on, then call SOIL_DRYDEP to
-                ! archive dry deposition fluxes for nitrogen species
-                ! (SOIL_DRYDEP will exit if it can't find a match.)
-		IF ( LSOILNOX ) THEN
-                   soilflux = 0e+0_fp
-                   DO J = 1, JJPAR
-                   DO I = 1, IIPAR
-                      soilflux = dflx(I,J,NN) &
-		        / TRACER_MW_KG(NN) * 6.022e+23_fp * 1.e-4_fp &
-                        * GET_TS_CONV() / GET_TS_EMIS()
-
-                      CALL SOIL_DRYDEP ( I, J, 1, NN, soilflux)
-                   ENDDO
-                   ENDDO
-		ENDIF
-
+          ! If Soil NOx is turned on, then call SOIL_DRYDEP to
+          ! archive dry deposition fluxes for nitrogen species
+          ! (SOIL_DRYDEP will exit if it can't find a match.)
+	  IF ( LSOILNOX ) THEN
+             soilflux = 0e+0_fp
+             DO J = 1, JJPAR
+             DO I = 1, IIPAR
+                soilflux = dflx(I,J,trc_id) &
+	          / TRACER_MW_KG(trc_id) * AVO * 1.e-4_fp &
+                  * GET_TS_CONV() / GET_TS_EMIS()
+          
+                CALL SOIL_DRYDEP ( I, J, 1, trc_id, soilflux)
+             ENDDO
+             ENDDO
+	  ENDIF
 !          END SELECT
-       enddo
+       enddo ! D 
 
        ! Add ITS_A_TAGOX_SIM (Lin, 06/21/08)
        IF ( IS_TAGOX ) THEN
           ! The first species, Ox, has been done above
           do N = 2, N_TRACERS 
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
              ! Convert : kg/m2/s -> molec/cm2/s
              ! Consider timestep difference between convection and emissions
              AD44(:,:,N,1) = AD44(:,:,N,1) + dflx(:,:,N) &
-                       / TRACER_MW_KG(1) * 6.022e+23_fp * 1.e-4_fp &
+                       / TRACER_MW_KG(1) * AVO * 1.e-4_fp &
                        * GET_TS_CONV() / GET_TS_EMIS()
              AD44(:,:,N,2) = AD44(:,:,1,2) ! drydep velocity
 #endif

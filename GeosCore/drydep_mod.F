@@ -17,11 +17,10 @@
 !
       USE CMN_SIZE_MOD                          ! Size parameters
       USE CMN_DIAG_MOD                          ! Diag counters & flags
-      USE CMN_GCTM_MOD                          ! Physical constants
+      USE PHYSCONSTANTS                         ! Physical constants
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
-      USE COMODE_LOOP_MOD                       ! Formerly "comode.h"
       USE DAO_MOD                               ! Met field subroutines
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
 #endif
       USE ERROR_MOD                             ! Error handling routines
@@ -190,13 +189,15 @@
 !  15 Jun 2015 - R. Yantosca - Disabled DRYFLXRnPbBe, also done in mixing_mod
 !  01 Oct 2015 - R. Yantosca - Remove DVZ_MINVAL function
 !  01 Oct 2015 - R. Yantosca - Added PRIVATE flag ID_ACET
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(f8), PARAMETER :: XCKMAN    = 0.4e+0_f8 ! Von Karman's constant
+      !REAL(f8), PARAMETER :: XCKMAN    = 0.4e+0_f8 ! Von Karman's constant
+                                                    ! Use global VON_KARMAN
       INTEGER,  PARAMETER :: NR_MAX    = 200       ! # of seasalt bins 
       INTEGER,  PARAMETER :: NDRYDTYPE = 11        ! # of drydep land types
 !
@@ -205,7 +206,6 @@
       !========================================================================
       !  MODULE VARIABLES:
       !
-      !  XCKMAN    : Von Karman constant?
       !  DRYDHNO3  : Internal flag for location of HNO3 in DEPVEL
       !  DRYDNO2   : Internal flag for location of NO2  in DEPVEL
       !  DRYDPAN   : Internal flag for location of PAN  in DEPVEL
@@ -317,6 +317,9 @@
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE UNITCONV_MOD
       USE Species_Mod,        ONLY : Species
+#if defined( NC_DIAG )
+      USE TRACERID_MOD,       ONLY : IDTISOPN, IDTMMN
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -401,6 +404,7 @@
 !                              enforce a minimum Vd for aerosol species
 !  01 Oct 2015 - R. Yantosca - Remove references to tracerid_mod.F (except
 !                              for TOMAS for now)
+!  21 Jan 2016 - E. Lundgren - Update netcdf diagnostics for drydep trcr names
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -408,7 +412,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER       :: I,   J,   L,  N, IJLOOP, NN, NDVZ, N_TRACERS
+      INTEGER       :: I,   J,   L,   D,   N, IJLOOP, NDVZ, N_TRACERS
       REAL(f8)      :: DVZ, THIK
 
       ! Arrays
@@ -440,10 +444,12 @@
       LOGICAL       :: PBL_DRYDEP 
       LOGICAL       :: LPRT
 
-#if defined( DEVEL )
+#if defined( NC_DIAG )
       ! Variables for netCDF diagnostics routines
       INTEGER           :: HCRC
-      INTEGER           :: cID
+      LOGICAL           :: First_ISOPN
+      LOGICAL           :: First_MMN
+      CHARACTER(LEN=30) :: DryDepName, DiagnName
       REAL(fp), TARGET  :: SAVE_DEPVEL(IIPAR,JJPAR,Input_Opt%NUMDEP)
       REAL(hp), POINTER :: Ptr2D(:,:) => NULL()
 #endif
@@ -458,7 +464,7 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
-#if defined( DEVEL )
+#if defined( NC_DIAG )
       ! Zero deposition velocity array
       SAVE_DEPVEL = 0.0_fp
 #endif
@@ -487,7 +493,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IJLOOP, THIK, N, NN, NDVZ, DVZ, ThisSpc )
+!$OMP+PRIVATE( I, J, IJLOOP, THIK, D, N, NDVZ, DVZ, ThisSpc )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -506,17 +512,17 @@
          IF (PBL_DRYDEP) THIK = MAX( ZH(IJLOOP), THIK )
 
          ! Loop over drydep species
-         DO N = 1, NUMDEP
+         DO D = 1, NUMDEP
 
             ! GEOS-CHEM tracer number
-            NN      =  NTRAIND(N)
+            N      =  NTRAIND(D)
 
             ! Get info about this species from the database
-            ThisSpc => State_Chm%SpcData(NN)%Info
+            ThisSpc => State_Chm%SpcData(N)%Info
 
             ! Index of drydep species in the DVEL array 
             ! as passed back from subroutine DEPVEL
-            NDVZ    =  NDVZIND(N)
+            NDVZ    =  NDVZIND(D)
 
             ! Dry deposition velocity [cm/s]
             DVZ     =  DVEL(IJLOOP,NDVZ) * 100.e+0_f8
@@ -565,7 +571,7 @@
 
             ! For ACET, we need to only do drydep over the land
             ! and not over the oceans.
-            IF ( NN == ID_ACET ) THEN
+            IF ( N == ID_ACET ) THEN
                IF ( IS_LAND( I, J, State_Met ) ) THEN
                   DVZ = 0.1e+0_f8
                ELSE
@@ -578,19 +584,23 @@
             !-----------------------------------------------------------
 
             ! Dry deposition frequency [1/s]
-            DEPSAV(I,J,N) = ( DVZ / 100.e+0_f8 ) / THIK
+            DEPSAV(I,J,D) = ( DVZ / 100.e+0_f8 ) / THIK
 
-#if defined( DEVEL )
+#if defined( NC_DIAG )
             ! Need to save dep velocity into 2-D array for netCDF diags
             ! Now save out frequency instead of velocity. We can change
             ! that if needed (ckeller, 3/11/15).
-            SAVE_DEPVEL(I,J,N) = DEPSAV(I,J,N) 
+            ! NOTE: for comparison with bpch, no longer save as frequency,
+            ! save instead as cm/s which is the bpch unit for this diag
+            ! (ewl, 1/22/16)
+            !SAVE_DEPVEL(I,J,D) = DEPSAV(I,J,D)
+            SAVE_DEPVEL(I,J,D) = DVZ
 #endif
 
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
             ! ND44 diagnostic: drydep velocity [cm/s]
             IF ( ND44 > 0 ) THEN 
-               AD44(I,J,N,2) = AD44(I,J,N,2) + DVZ
+               AD44(I,J,D,2) = AD44(I,J,D,2) + DVZ
             ENDIF
 #endif
 
@@ -601,31 +611,54 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( DEVEL )
+#if defined( NC_DIAG )
       !=================================================================
-      ! Update drydep velocity into new diagnostics structure
+      ! Update drydep velocity into netCDF diagnostics structure
       !=================================================================
       IF ( Input_Opt%ND44 > 0 ) THEN
 
+         ! Assume success
+         HCRC = HCO_SUCCESS
+
+         ! Special cases if ISOPN or MMN since there are two 
+         ! corresponding dry deposition species each, ISOPND and 
+         ! ISOPNB for ISOPN, and MACRN and MAVKN for MMN. Therefore, 
+         ! track when ISOPN and MMN are first encountered (ewl, 1/20/16)
+         First_ISOPN = .TRUE.
+         First_MMN = .TRUE.
+
          ! Loop over all depositing species
-         DO N = 1, Input_Opt%NUMDEP
+         DO D = 1, Input_Opt%NUMDEP
 
             ! Get the corresponding GEOS-Chem tracer number
-            NN = Input_Opt%NTRAIND(N)
+            N = NTRAIND(D)
 
             ! If this tracer number NN is scheduled for output in input.geos, 
             ! then archive the latest depvel data into the diagnostic structure
-            IF ( ANY( Input_Opt%TINDEX(44,:) == NN ) ) THEN
+            IF ( ANY( Input_Opt%TINDEX(44,:) == N ) ) THEN
 
-               ! Construct diagnostic ID
-               cID = 44000 + NN
-            
+               ! Construct diagnostic name
+               IF ( N == IDTISOPN .AND. First_ISOPN ) THEN
+                  DryDepName = 'ISOPND'
+                  First_ISOPN = .FALSE.
+               ELSE IF ( N == IDTISOPN .AND. .NOT. First_ISOPN ) THEN
+                  DryDepName = 'ISOPNB'
+               ELSE IF ( N == IDTMMN .AND. First_MMN ) THEN
+                  DryDepName = 'MACRN'
+                  First_MMN = .FALSE.
+               ELSE IF ( N == IDTMMN .AND. .NOT. First_MMN ) THEN
+                  DryDepName = 'MAVKN'
+               ELSE
+                  DryDepName =  Input_Opt%TRACER_NAME(N)
+               ENDIF
+               DiagnName = 'DRYDEP_VEL_' // TRIM( DryDepName )
+
                ! Point to the proper slice of the DEPSAV array
-               Ptr2D => SAVE_DEPVEL(:,:,N)
+               Ptr2D => SAVE_DEPVEL(:,:,D)
 
                ! Update the deposition velocity diagostics 
                CALL Diagn_Update( am_I_Root, HcoState,
-     &                            cID     = cID,               
+     &                            cName   = TRIM( DiagnName ),
      &                            Array2D = Ptr2D,
      &                            COL     = Input_Opt%DIAG_COLLECTION,
      &                            RC      = HCRC )
@@ -635,7 +668,8 @@
 
                ! Stop with error if the diagnostics were unsuccessful
                IF ( HCRC /= HCO_SUCCESS ) THEN
-                  CALL ERROR_STOP( 'Cannot update Depvel diagnostics',
+                  CALL ERROR_STOP( 'Cannot update drydep velocity' //
+     &                             ' diagnostic: ' // TRIM( DiagnName), 
      &                             'DO_DRYDEP (drydep_mod.F)')
                ENDIF
             ENDIF
@@ -1057,6 +1091,7 @@
 !  12 Aug 2015 - E. Lundgren - Now pass am_I_Root and RC to AERO_DIADEN 
 !                              to enable unit conversion in that routine
 !  22 Sep 2015 - R. Yantosca - Now use NUMDEP instead of MAXDEP for arrays
+!  15 Mar 2016 - C. Keller   - Prevent very small numbers of CORR1 and Z0OBK
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1156,6 +1191,9 @@
       ! For the species database
       INTEGER                :: SpcId
       TYPE(Species), POINTER :: ThisSpc => NULL()
+
+      ! Small number
+      REAL(fp), PARAMETER :: SMALL = 1.0e-10_f8
 
       !=================================================================
       ! DEPVEL begins here!
@@ -1422,7 +1460,8 @@
 !** exit for non-depositing species or aerosols.
                IF (.NOT. LDEP(K) .OR. AIROSOL(K)) GOTO 155
 
-               XMWH2O = 18.e-3_f8
+               !XMWH2O = 18.e-3_f8 ! Use global H2OMW (ewl, 1/6/16)
+               XMWH2O = H2OMW * 1.e-3_f8
                RIXX = RIX*DIFFG(TEMPK,PRESSU(IJLOOP),XMWH2O)/
      C              DIFFG(TEMPK,PRESSU(IJLOOP),XMW(K))
      C              + 1.e+0_f8/(HSTAR(K)/3000.e+0_f8+100.e+0_f8*F0(K))
@@ -1632,7 +1671,8 @@
             DO 200 IW=1,NWATER
                IF (IOLSON .NE. IWATER(IW)) GOTO 200
                ZO(LDT) = 1.4e-02_f8*USTAR(IJLOOP)*USTAR(IJLOOP)/
-     &                   9.8e+0_f8 + 1.1e-01_f8*XNU/USTAR(IJLOOP)   
+     &                   g0 + 1.1e-01_f8*XNU/USTAR(IJLOOP)   
+
                GOTO 210
  200        CONTINUE
             ZO(LDT) = DBLE(IZO(IOLSON))*1.e-4_f8
@@ -1719,7 +1759,8 @@
 !              where a=1.0, b=5.0 for 0 <= x <= 1, and
 !                    a=5.0, b=1.0 for x > 1.0 
 !*********************************************************************
-            CKUSTR = XCKMAN*USTAR(IJLOOP)
+
+            CKUSTR = VON_KARMAN * USTAR(IJLOOP)
 
             ! Define REYNO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
 #if   defined( GCAP )
@@ -1753,9 +1794,12 @@
             ENDIF
 !*                                 
             IF (CKUSTR.EQ.0.0e+0_f8) THEN
-               WRITE(6,212) IJLOOP,CKUSTR,XCKMAN,USTAR(IJLOOP)
+
+               WRITE(6,212) IJLOOP,CKUSTR,VON_KARMAN,USTAR(IJLOOP)
+
  212           FORMAT(1X,'IJLOOP= ',I4,1X,'CKUSTR=',E10.1,1X,
-     x              'XCKMAN= ',E12.4,1X,'USTAR(IJLOOP)= ',
+     x              'VON_KARMAN= ',E12.4,1X,'USTAR(IJLOOP)= ',
+
      x              E12.4)
                CLOSE(98)
                STOP             ! debug
@@ -1790,6 +1834,12 @@
                IF (CORR1.LE.0.0e+0_f8 .AND. Z0OBK .LT. -1.e+0_f8)THEN
 !*... unstable condition; set RA to zero. (first implemented in V. 3.2)
                   RA = 0.e+0_f8
+
+!*... error trap: prevent CORR1 or Z0OBK from being zero or close to
+!*... zero (ckeller, 3/15/16)
+               ELSEIF ( ABS(CORR1)<=SMALL .OR. ABS(Z0OBK)<=SMALL ) THEN
+                  RA = 0.e+0_f8
+
                ELSEIF (CORR1.LE.0.0e+0_f8 .AND. Z0OBK .GE. -1.e+0_f8) 
      &          THEN
 !*... unstable conditions; compute Ra as described above.
@@ -2002,6 +2052,7 @@
 !        Also now force REAL(f8) precision with D exponents.  Now use F90
 !        style syntax and updated comments. (bmy, 5/16/06)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  06 Jan 2016 - E. Lundgren - Now use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2012,19 +2063,19 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(f8), PARAMETER  :: XMAIR  = 28.8e-3_f8 
+      REAL(f8), PARAMETER  :: XMAIR  = 28.8e-3_f8 ! Moist air molec wt? (ewl)
       REAL(f8), PARAMETER  :: RADAIR = 1.2e-10_f8
-      REAL(f8), PARAMETER  :: PI     = 3.1415926535897932e+0_f8
+      !REAL(f8), PARAMETER  :: PI     = 3.1415926535897932e+0_f8 ! Use global PI
       REAL(f8), PARAMETER  :: RADX   = 1.5e-10_f8
-      REAL(f8), PARAMETER  :: RGAS   = 8.32e+0_f8
-      REAL(f8), PARAMETER  :: AVOGAD = 6.023e+23_f8
+      !REAL(f8), PARAMETER  :: RGAS   = 8.32e+0_f8     ! Now use global RSTARG
+      !REAL(f8), PARAMETER  :: AVOGAD = 6.023e+23_f8   ! Now use global AVO
 
       !=================================================================
       ! DIFFG begins here!
       !=================================================================
 
       ! Air density [molec/m3]
-      AIRDEN = ( PRESS * AVOGAD ) / ( RGAS * TK )
+      AIRDEN = ( PRESS * AVO ) / ( RSTARG * TK )
 
       ! DIAM is the collision diameter for gas X with air.
       DIAM   = RADX + RADAIR
@@ -2036,7 +2087,7 @@
      &         ( DIAM**2 ) )
 
       ! Calculate average speed of gas X; eq. 15.47 of Levine [1988]
-      SPEED  = SQRT( 8e+0_f8 * RGAS * TK / ( PI * XM ) )
+      SPEED  = SQRT( 8e+0_f8 * RSTARG * TK / ( PI * XM ) )
 
       ! Calculate diffusion coefficient of gas X in air; 
       ! eq. 8.9 of Seinfeld [1986]
@@ -2581,19 +2632,20 @@
 !       11, 2011) (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  14 Jun 2013 - R. Yantosca - Now pass Input_Opt via the arg list
+!  06 Jan 2015 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: N
+      INTEGER               :: N
       REAL(f8), PARAMETER   :: C1 = 0.7674e+0_f8,  C2 = 3.079e+0_f8, 
-     &                       C3 = 2.573e-11_f8, C4 = -1.424e+0_f8
-
-      REAL(f8), PARAMETER   :: G0 = 9.8e+0_f8
+     &                         C3 = 2.573e-11_f8, C4 = -1.424e+0_f8
+      !REAL(f8), PARAMETER   :: G0 = 9.8e+0_f8  ! Now use global g0
       REAL(f8), PARAMETER   :: BETA  = 2.e+0_f8
-      REAL(f8), PARAMETER   :: BOLTZ = 1.381e-23_f8  ! Boltzmann constant (J/K)
+      !REAL(f8), PARAMETER   :: BOLTZ = 1.381e-23_f8  ! Boltzmann constant (J/K)
+                                                      ! Now use global BOLTZ
       REAL(f8), PARAMETER   :: E0 = 3.e+0_f8
       REAL(f8)  :: AIRVS       ! kinematic viscosity of Air (m^2/s)
       REAL(f8)  :: DP          ! Diameter of aerosol [um]
@@ -2616,7 +2668,7 @@
       REAL(f8)  :: D0, D1  !lower and upper bounds of sea-salt dry diameter bins 
       REAL(f8)  :: DEDGE
       REAL(f8)  :: DEN1, WTP 
-      INTEGER :: ID,NR
+      INTEGER   :: ID,NR
       LOGICAL, SAVE          :: FIRST = .TRUE.
 
       !increment of radius for integration of settling velocity (um)
@@ -2639,8 +2691,7 @@
       ! 2) sigma of the size distribution
       REAL(f8),  PARAMETER     ::   SIG_A = 1.5e+0_f8
       REAL(f8),  PARAMETER     ::   SIG_C = 1.8e+0_f8
-      REAL(f8),  PARAMETER     :: PI =3.14159e+0_f8
-
+      !REAL(f8),  PARAMETER     :: PI =3.14159e+0_f8 ! Now use global PI
 
 !=======================================================================
 !   #  LUC [Zhang et al., 2001]                GEOS-CHEM LUC (Corr. #)
@@ -2799,8 +2850,8 @@
       !      
       !      Other updates for ocean surfaces:
       !         a)   Over ocean surfaces the formulation from Slinn & Slinn for
-      !              the resistance in the viscous layer is 
-      !                Rs = 1 / (Cd/XCKMAN*U10m*(Eb+Eim)+VTS)
+      !              the resistance in the viscous layer is
+      !                Rs = 1 / (Cd/VON_KARMAN*U10m*(Eb+Eim)+VTS)
       !              with  Cd=(Ustar/U10m)**2, and VTS is the gravitational
       !              settling in the viscous layer. Note that the gravitational
       !              settling calculated here for the viscous layer is >> than
@@ -2892,8 +2943,8 @@
       ! Dp [um] = particle diameter
       DP    = DIAM * 1.e+6_f8 
  
-      ! Constant for settling velocity calculation       
-      CONST = DEN * DIAM**2 * G0 / 18.e+0_f8
+      ! Constant for settling velocity calculation
+      CONST = DEN * DIAM**2 * g0 / 18.e+0_f8
 
       !=================================================================
       !   # air molecule number density
@@ -2968,7 +3019,7 @@
 
       ! Brownian diffusion constant for particle (m2/s)
       DIFF = BOLTZ * TEMP * SLIP 
-     &      / (3.e+0_f8 * 3.141592e+0_f8 * VISC * DIAM)  
+     &      / (3.e+0_f8 * PI * VISC * DIAM)  
 
       ! Schmidt number 
       SC   = AIRVS / DIFF                            
@@ -2976,10 +3027,10 @@
 
        ! Stokes number  
       IF ( AA < 0e+0_f8 ) then
-         ST   = VTS * USTAR * USTAR / ( AIRVS * G0 ) ! for smooth surface 
+         ST   = VTS * USTAR * USTAR / ( AIRVS * g0 ) ! for smooth surface 
          EIN  = 0e+0_f8
       ELSE
-         ST   = VTS   * USTAR / ( G0 * AA )          ! for vegetated surfaces
+         ST   = VTS   * USTAR / ( g0 * AA )          ! for vegetated surfaces
          EIN  = 0.5e+0_f8 * ( DIAM / AA )**2
       ENDIF
 
@@ -3002,7 +3053,7 @@
       ! Use the formulation of Slinn and Slinn (1980) for the impaction over
       ! water surfaces (jaegle 5/11/11)
       IF (LUC == 14) THEN
-         RS   = 1.e+0_f8 / (USTAR**2.e+0_f8/ (W10*XCKMAN) * 
+         RS   = 1.e+0_f8 / (USTAR**2.e+0_f8/ (W10*VON_KARMAN) * 
      &          (EB + EIM ) + VTS)
       ELSE
          RS   = 1.e+0_f8 / (E0 * USTAR * (EB + EIM + EIN) * R1 )
@@ -3040,6 +3091,7 @@
 !  11 May 2011 - L. Jaegle   - Initial version
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  14 Jun 2013 - R. Yantosca - Now accept Input_Opt via tha argument list
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3064,8 +3116,7 @@
       ! sigma of the size distribution
       REAL(f8), PARAMETER :: SIG_A = 1.5e+0_f8
       REAL(f8), PARAMETER :: SIG_C = 1.8e+0_f8
-      REAL(f8), PARAMETER :: PI    = 3.14159e+0_f8
-
+      !REAL(f8), PARAMETER :: PI    = 3.14159e+0_f8  ! Use global PI
 
       ! Number of bins between the lowest bound of of the accumulation mode
       ! sea salt and the upper bound of the coarse mode sea salt.
@@ -3144,6 +3195,7 @@
 !  (2 ) Renamed to DUST_SFCRSII, since this will only be used to compute
 !        aerodynamic resistance of dust aerosols.  (bec, bmy, 4/15/05)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  06 Jan 2016 - E. Lundgren - Use global physical paramters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3153,10 +3205,11 @@
       INTEGER               :: N
       REAL(f8), PARAMETER   :: C1 = 0.7674e+0_f8,  C2 = 3.079e+0_f8, 
      &                         C3 = 2.573e-11_f8, C4 = -1.424e+0_f8
-      REAL(f8), PARAMETER   :: G0 = 9.8e+0_f8
+      !REAL(f8), PARAMETER   :: G0 = 9.8e+0_f8 ! Use global g0
       REAL(f8), PARAMETER   :: BETA  = 2.e+0_f8
-      REAL(f8), PARAMETER   :: BOLTZ = 1.381e-23_f8  ! Baltzmann constant (J/K)
-      rEAL(f8), PARAMETER   :: E0 = 1.e+0_f8
+      !REAL(f8), PARAMETER   :: BOLTZ = 1.381e-23_f8  ! Boltzmann constant (J/K)
+                                                      ! Use global BOLTZ
+      REAL(f8), PARAMETER   :: E0 = 1.e+0_f8
       REAL(f8)  :: AIRVS       ! kinematic viscosity of Air (m^2/s)
       REAL(f8)  :: DP          ! Diameter of aerosol [um]
       REAL(f8)  :: PDP         ! Press * Dp      
@@ -3225,8 +3278,8 @@
       ! Dp [um] = particle diameter
       DP    = DIAM * 1.e+6_f8 
  
-      ! Constant for settling velocity calculation       
-      CONST = DEN * DIAM**2 * G0 / 18.e+0_f8
+      ! Constant for settling velocity calculation
+      CONST = DEN * DIAM**2 * g0 / 18.e+0_f8
        
       !=================================================================
       !   # air molecule number density
@@ -3263,15 +3316,15 @@
       VTS  = CONST * SLIP / VISC
 
       ! Brownian diffusion constant for particle (m2/s)
-      DIFF = BOLTZ * TEMP * SLIP 
-     &     / (3.e+0_f8 * 3.141592e+0_f8 * VISC * DIAM)  
+      DIFF = BOLTZ * TEMP * SLIP
+     &     / (3.e+0_f8 * Pi * VISC * DIAM)  
 
       ! Schmidt number and Diffusion term
       SC   = AIRVS / DIFF                            
       EB   = SC**(-0.666667e+0_f8)
 
       ! Stokes number and impaction term
-      ST   = VTS * USTAR * USTAR / ( AIRVS * G0 )
+      ST   = VTS * USTAR * USTAR / ( AIRVS * g0 )
       EIM  = 10.e+0_f8**(-3.e+0_f8 / ST) 
 
       ! surface resistance for particle
@@ -3320,6 +3373,7 @@
 !  (3 ) Modified hotp for non size resolved aerosols. This is just DUST_SFCRSII
 !        renamed and the diameter and density fixed. (hotp 7/12/07)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3329,9 +3383,10 @@
       INTEGER               :: N
       REAL(f8), PARAMETER   :: C1 = 0.7674e+0_f8,  C2 = 3.079e+0_f8, 
      &                         C3 = 2.573e-11_f8, C4 = -1.424e+0_f8
-      REAL(f8), PARAMETER   :: G0 = 9.8e+0_f8
+      !REAL(f8), PARAMETER   :: G0 = 9.8e+0_f8 ! Use global g0
       REAL(f8), PARAMETER   :: BETA  = 2.e+0_f8
-      REAL(f8), PARAMETER   :: BOLTZ = 1.381e-23_f8  ! Boltzmann constant (J/K)
+      !REAL(f8), PARAMETER   :: BOLTZ = 1.381e-23_f8  ! Boltzmann constant (J/K)
+                                                      ! Use global BOLTZ
       REAL(f8), PARAMETER   :: E0 = 3.e+0_f8
       REAL(f8)  :: AIRVS       ! kinematic viscosity of Air (m^2/s)
       REAL(f8)  :: DP          ! Diameter of aerosol [um]
@@ -3494,8 +3549,8 @@
       ! Dp [um] = particle diameter
       DP    = DIAM * 1.e+6_f8 
  
-      ! Constant for settling velocity calculation       
-      CONST = DEN * DIAM**2 * G0 / 18.e+0_f8
+      ! Constant for settling velocity calculation
+      CONST = DEN * DIAM**2 * g0 / 18.e+0_f8
        
       !=================================================================
       !   # air molecule number density
@@ -3532,8 +3587,8 @@
       VTS  = CONST * SLIP / VISC
 
       ! Brownian diffusion constant for particle (m2/s)
-      DIFF = BOLTZ * TEMP * SLIP 
-     &      / (3.e+0_f8 * 3.141592e+0_f8 * VISC * DIAM)  
+      DIFF = BOLTZ * TEMP * SLIP
+     &      / (3.e+0_f8 * Pi * VISC * DIAM)  
 
       ! Schmidt number 
       SC   = AIRVS / DIFF                            
@@ -3541,10 +3596,10 @@
 
        ! Stokes number  
       IF ( AA < 0e+0_f8 ) then
-         ST   = VTS * USTAR * USTAR / ( AIRVS * G0 ) ! for smooth surface 
+         ST   = VTS * USTAR * USTAR / ( AIRVS * g0 ) ! for smooth surface 
          EIN  = 0e+0_f8
       ELSE
-         ST   = VTS   * USTAR / ( G0 * AA )          ! for vegetated surfaces
+         ST   = VTS   * USTAR / ( g0 * AA )          ! for vegetated surfaces
          EIN  = 0.5e+0_f8 * ( DIAM / AA )**2
       ENDIF
 
@@ -3605,6 +3660,7 @@
 !  31 Jan 2014 - R. Yantosca - Now pass DIAM and DEN as arguments so as to
 !                              avoid parallelization errors when using
 !                              the TOMAS microphysics package.
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3614,9 +3670,10 @@
       INTEGER               :: N
       REAL(f8), PARAMETER   :: C1 = 0.7674e+0_f8,  C2 = 3.079e+0_f8, 
      &                         C3 = 2.573e-11_f8, C4 = -1.424e+0_f8
-      REAL(f8), PARAMETER   :: G0 = 9.8e+0_f8
+      !REAL(f8), PARAMETER   :: G0 = 9.8e+0_f8 ! Use global g0
       REAL(f8), PARAMETER   :: BETA  = 2.e+0_f8
-      REAL(f8), PARAMETER   :: BOLTZ = 1.381e-23_f8  ! Boltzmann constant (J/K)
+      !REAL(f8), PARAMETER   :: BOLTZ = 1.381e-23_f8  ! Boltzmann constant (J/K)
+                                                      ! Use global BOLTZ
       REAL(f8), PARAMETER   :: E0 = 3.e+0_f8
       REAL(f8)  :: AIRVS       ! kinematic viscosity of Air (m^2/s)
       REAL(f8)  :: DP          ! Diameter of aerosol [um]
@@ -3772,8 +3829,8 @@
       ! Dp [um] = particle diameter
       DP    = DIAM * 1.e+6_f8 
  
-      ! Constant for settling velocity calculation       
-      CONST = DEN * DIAM**2 * G0 / 18.e+0_f8
+      ! Constant for settling velocity calculation
+      CONST = DEN * DIAM**2 * g0 / 18.e+0_f8
        
       !=================================================================
       !   # air molecule number density
@@ -3810,8 +3867,8 @@
       VTS  = CONST * SLIP / VISC
 
       ! Brownian diffusion constant for particle (m2/s)
-      DIFF = BOLTZ * TEMP * SLIP 
-     &      / (3.e+0_f8 * 3.141592e+0_f8 * VISC * DIAM)  
+      DIFF = BOLTZ * TEMP * SLIP
+     &      / (3.e+0_f8 * Pi * VISC * DIAM)  
 
       ! Schmidt number 
       SC   = AIRVS / DIFF                            
@@ -3819,10 +3876,10 @@
 
        ! Stokes number  
       IF ( AA < 0e+0_f8 ) then
-         ST   = VTS * USTAR * USTAR / ( AIRVS * G0 ) ! for smooth surface 
+         ST   = VTS * USTAR * USTAR / ( AIRVS * g0 ) ! for smooth surface 
          EIN  = 0e+0_f8
       ELSE
-         ST   = VTS   * USTAR / ( G0 * AA )          ! for vegetated surfaces
+         ST   = VTS   * USTAR / ( g0 * AA )          ! for vegetated surfaces
          EIN  = 0.5e+0_f8 * ( DIAM / AA )**2
       ENDIF
 

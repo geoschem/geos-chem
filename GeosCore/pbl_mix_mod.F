@@ -120,7 +120,9 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CONV
+#if defined( DEVEL )
       USE TENDENCIES_MOD
+#endif
 #if   defined( APM ) 
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
@@ -245,7 +247,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
 
       USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_GCTM_MOD             ! Scale height
+      USE PHYSCONSTANTS            ! Scale height
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !

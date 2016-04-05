@@ -3257,8 +3257,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_CREATE( NcFile, nLon,  nLat,  nLev,  nTime, &
-                        fId,    lonID, latId, levId, timeId, VarCt )
+  SUBROUTINE NC_CREATE( NcFile, title, nLon,  nLat,  nLev,   &
+                        nTime,  fId,   lonID, latId, levId,  &
+                        timeId, VarCt, CREATE_NC4 )
 !
 ! !USES:
 !
@@ -3269,19 +3270,21 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN   )  :: ncFile   ! ncdf file path + name 
+    CHARACTER(LEN=*), INTENT(IN   )  :: title    ! ncdf file title
     INTEGER,          INTENT(IN   )  :: nLon     ! # of lons 
     INTEGER,          INTENT(IN   )  :: nLat     ! # of lats 
     INTEGER,          INTENT(IN   )  :: nLev     ! # of levs 
     INTEGER,          INTENT(IN   )  :: nTime    ! # of times 
+    LOGICAL,          OPTIONAL       :: CREATE_NC4 ! Save output as netCDF-4
 !
 ! !OUTPUT PARAMETERS:
 ! 
-    INTEGER,          INTENT(  OUT)  :: fId      ! file id 
-    INTEGER,          INTENT(  OUT)  :: lonId    ! lon id 
-    INTEGER,          INTENT(  OUT)  :: latId    ! lat id 
-    INTEGER,          INTENT(  OUT)  :: levId    ! lev id 
-    INTEGER,          INTENT(  OUT)  :: timeId   ! time id 
-    INTEGER,          INTENT(  OUT)  :: VarCt    ! variable counter 
+    INTEGER,          INTENT(  OUT)  :: fId        ! file id 
+    INTEGER,          INTENT(  OUT)  :: lonId      ! lon id 
+    INTEGER,          INTENT(  OUT)  :: latId      ! lat id 
+    INTEGER,          INTENT(  OUT)  :: levId      ! lev id 
+    INTEGER,          INTENT(  OUT)  :: timeId     ! time id 
+    INTEGER,          INTENT(  OUT)  :: VarCt      ! variable counter 
 !
 ! !REMARKS:
 !  Assumes that you have:
@@ -3293,16 +3296,26 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
+!  11 Jan 2016 - R. Yantosca - Added optional CREATE_NC4 to save as netCDF-4
+!  14 Jan 2016 - E. Lundgren - Pass title string for netcdf metadata
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: omode
+    INTEGER :: omode
+    LOGICAL :: SAVE_AS_NC4
 
-    ! Open filename
-    CALL NcCr_Wr( fId, TRIM(ncFile) )
+    ! Save a shadow variable 
+    IF ( PRESENT( CREATE_NC4 ) ) THEN
+       SAVE_AS_NC4 = CREATE_NC4
+    ELSE
+       SAVE_AS_NC4 = .FALSE.
+    ENDIF
+
+    ! Open filename.  Save file in netCDF-4 format if requested by user.
+    CALL NcCr_Wr( fId, TRIM(ncFile), SAVE_AS_NC4 )
 
     ! Turn filling off
     CALL NcSetFill( fId, NF_NOFILL, omode )     
@@ -3310,9 +3323,13 @@ CONTAINS
     !--------------------------------
     ! SET GLOBAL ATTRIBUTES
     !--------------------------------
-    CALL NcDef_Glob_Attributes( fId, 'title',   'HEMCO diagnostics' ) 
-    CALL NcDef_Glob_Attributes( fId, 'history', 'NC_CREATE.F90'     ) 
-    CALL NcDef_Glob_Attributes( fId, 'format',  'netCDF-3'          )
+    CALL NcDef_Glob_Attributes(    fId, 'title',   TRIM(title)         ) 
+    CALL NcDef_Glob_Attributes(    fId, 'history', 'NC_CREATE.F90'     ) 
+    IF ( SAVE_AS_NC4 ) THEN
+       CALL NcDef_Glob_Attributes( fId, 'format',  'netCDF-4'          )
+    ELSE
+       CALL NcDef_Glob_Attributes( fId, 'format',  'netCDF-3'          )
+    ENDIF
 
     !--------------------------------
     ! SET DIMENSIONS

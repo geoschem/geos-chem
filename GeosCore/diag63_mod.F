@@ -126,7 +126,7 @@
       USE ERROR_MOD,    ONLY : SAFE_DIV, ERROR_STOP
 
       USE CMN_O3_MOD	     ! Pure O3, SAVENO2
-      USE CMN_GCTM_MOD       ! XTRA2
+      USE PHYSCONSTANTS      ! XTRA2
 
       ! Connect to HEMCO diagnostics
       USE GIGC_ErrCode_Mod

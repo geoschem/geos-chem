@@ -159,12 +159,8 @@
       INTEGER            :: IU_GEOS
       INTEGER, PARAMETER :: FIRSTCOL = 26
       INTEGER, PARAMETER :: MAXDIM   = 500
-      INTEGER            :: CT1, CT2, CT3
+      INTEGER            :: CT1      = 0
       CHARACTER(LEN=255) :: FILENAME = 'input.geos'
-      CHARACTER(LEN=255) :: TOPTITLE
-      CHARACTER(LEN=255) :: BPCH_FILE
-      CHARACTER(LEN=255) :: DIAGINFO  
-      CHARACTER(LEN=255) :: TRACERINFO
 
       CONTAINS
 !EOC
@@ -249,6 +245,8 @@
       CHARACTER(LEN=1)   :: TAB   = ACHAR(9)
       CHARACTER(LEN=1)   :: SPACE = ' '
       CHARACTER(LEN=MAXDIM) :: LINE
+      CHARACTER(LEN=255) :: TOPTITLE
+
 
       !=================================================================
       ! READ_INPUT_FILE begins here!
@@ -993,7 +991,7 @@
          WRITE( 6, 100 ) 'Start time of run           : ', NYMDb, NHMSb
          WRITE( 6, 100 ) 'End time of run             : ', NYMDe, NHMSe
          WRITE( 6, 110 ) 'Run directory               : ',
-     &                    TRIM( Input_Opt% RUN_DIR )
+     &                    TRIM( Input_Opt%RUN_DIR )
          WRITE( 6, 110 ) 'Data Directory              : ',
      &                    TRIM( Input_Opt%DATA_DIR )
          WRITE( 6, 110 ) 'CHEM_INPUTS directory       : ',
@@ -1016,9 +1014,10 @@
      &                    TRIM( Input_Opt%TEMP_DIR )
          WRITE( 6, 110 ) 'Input restart file          : ', 
      &                    TRIM( Input_Opt%IN_RST_FILE )
-         WRITE( 6, 120 ) 'Create restart file?        : ', LSVGLB
+#if defined( BPCH_RST_OUT )
          WRITE( 6, 110 ) 'Output restart file(s)      : ', 
      &                    TRIM( Input_Opt%OUT_RST_FILE )
+#endif
          WRITE( 6, 120 ) 'Unzip met fields?           : ', LUNZIP
          WRITE( 6, 120 ) 'Wait for met fields?        : ', LWAIT
          WRITE( 6, 120 ) 'Use variable tropopause?    : ', LVARTROP
@@ -1367,7 +1366,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: N,  T,  C
-      LOGICAL            :: LSPLIT
       CHARACTER(LEN=255) :: C1, C2, LINE, NAME
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
       REAL(fp)           :: DUMMY
@@ -3464,9 +3462,11 @@
          WRITE( 6, 100     ) 'Online strat. H2O?          : ',LACTIVEH2O
          WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', 
      &        Input_Opt%TS_CHEM
+#if defined( BPCH_RST_OUT )
          WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
          WRITE( 6, 130     ) ' => CSPEC restart file?     : ', 
      &        TRIM( SPEC_RST_FILE )
+#endif
          WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
          WRITE( 6, 100     ) 'Online ozone for FAST-JX?   : ', LO3FJX
          WRITE( 6, 140     ) 'GAMMA HO2                   : ',
@@ -4261,7 +4261,7 @@
 !
       LOGICAL            :: EOF
       INTEGER            :: N
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), DIAGINFO, TRACERINFO
 
       !=================================================================
       ! READ_GAMAP_MENU begins here!
@@ -4517,7 +4517,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: M,      N,     N_MAX, N_TMP,   N_TRACERS
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION, BPCH_FILE
 
       !=================================================================
       ! READ_DIAGNOSTIC_MENU begins here!
@@ -4552,7 +4552,7 @@
       READ( SUBSTRS(1), * ) ND01
       IF ( .not. Input_Opt%ITS_A_RnPbBe_SIM ) ND01 = 0 
       CALL SET_TINDEX( am_I_Root, 01, ND01, SUBSTRS(2:N), N-1, N_MAX )
-      
+
       !--------------------------
       ! ND02: Rn-Pb-Be decay
       !--------------------------
@@ -4592,7 +4592,7 @@
       READ( SUBSTRS(1), * ) ND06
       IF ( .not. Input_Opt%LDUST ) ND06 = 0
       CALL SET_TINDEX( am_I_Root, 06, ND06, SUBSTRS(2:N), N-1, NDSTBIN )
-
+ 
       !--------------------------
       ! ND07: Carbon/SOA source
       !--------------------------
@@ -4609,8 +4609,10 @@
       IF ( .not. Input_Opt%LSSALT ) ND08 = 0
       CALL SET_TINDEX( am_I_Root, 08, ND08, SUBSTRS(2:N), N-1, PD08 )
 
+      ! Included in HEMCO diagnostics for netCDF
+
       !--------------------------
-      ! ND09: HCN/CH3CN
+      ! ND09: HCN/CH3CN (obsolete)
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:11' )
       READ( SUBSTRS(1), * ) ND09
@@ -4828,10 +4830,6 @@
       ENDIF
       CALL SET_TINDEX( am_I_Root, 38, ND38, SUBSTRS(2:N), N-1, N_TMP )
 
-      ! For netCDF diagnostics
-      Input_Opt%ND38_OUTPUT_FREQ = 'Daily'   ! Note, can change later
-      Input_Opt%ND38_OUTPUT_TYPE = 'Mean'
-
       !--------------------------
       ! ND39: Wet scav losses
       !--------------------------
@@ -4840,10 +4838,6 @@
       READ( SUBSTRS(1), * ) ND39
       IF ( .not. Input_Opt%LWETD ) ND39 = 0
       CALL SET_TINDEX( am_I_Root, 39, ND39, SUBSTRS(2:N), N-1, N_TMP )
-
-      ! For netCDF diagnostics
-      Input_Opt%ND39_OUTPUT_FREQ = 'Daily'   ! Note, can change later
-      Input_Opt%ND39_OUTPUT_TYPE = 'Mean'
 
       !--------------------------
       ! ND41: Afternoon PBL ht
@@ -4887,10 +4881,6 @@
       IF ( .not. Input_Opt%LDRYD ) ND44 = 0
       CALL SET_TINDEX( am_I_Root, 44, ND44, SUBSTRS(2:N), N-1, N_TMP )
 
-      ! For netCDF diagnostics
-      Input_Opt%ND44_OUTPUT_FREQ = 'Daily'    ! Note, can change later
-      Input_Opt%ND44_OUTPUT_TYPE = 'Mean'
-
       !--------------------------
       ! ND45: Tracer conc.
       !--------------------------
@@ -4900,10 +4890,6 @@
 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:48' ) 
       READ( SUBSTRS(1:N), * ) HR1_OTH, HR2_OTH
-
-      ! For netCDF diagnostics
-      Input_Opt%ND45_OUTPUT_FREQ = 'Daily'   ! Note, can change later
-      Input_Opt%ND45_OUTPUT_TYPE = 'Mean'
 
       !--------------------------
       ! ND46: Biogenic sources
@@ -5027,10 +5013,6 @@
       READ( SUBSTRS(1), * ) ND68
       CALL SET_TINDEX( am_I_Root, 68, ND68, SUBSTRS(2:N), N-1, PD68 )
 
-      ! For netCDF diagnostics
-      Input_Opt%ND68_OUTPUT_FREQ = 'Daily'   ! Note, can change later
-      Input_Opt%ND68_OUTPUT_TYPE = 'Mean'
-
       !--------------------------
       ! ND69: Surface areas
       !--------------------------
@@ -5070,6 +5052,31 @@
        MSG = 'If LRAD is true then ND72 diagnostic must be switched on'
        CALL ERROR_STOP( MSG, 'READ_DIAGNOSTIC_MENU ("input_mod.f")' )
       ENDIF
+
+#if defined( NC_DIAG )
+      !----------------------------------------------------------
+      ! NETCDF diagnostic output type (eventually read from file)
+      !----------------------------------------------------------
+      Input_Opt%TRANSPORT_OUTPUT_TYPE    = 'Mean'
+      Input_Opt%WETSCAV_OUTPUT_TYPE      = 'Mean'
+      Input_Opt%DRYDEP_OUTPUT_TYPE       = 'Mean'
+      Input_Opt%TRACER_CONC_OUTPUT_TYPE  = 'Mean'
+      Input_Opt%TRACER_EMIS_OUTPUT_TYPE  = 'Mean'
+      Input_Opt%MET_OUTPUT_TYPE          = 'Mean'
+
+      ! placeholders pending grouping of diagnostics
+      Input_Opt%ND01_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND02_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND12_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND14_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND15_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND16_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND17_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND18_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND19_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND30_OUTPUT_TYPE         = 'Mean'
+
+#endif
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:71' )
@@ -7798,6 +7805,7 @@
       USE APM_INIT_MOD,       ONLY : FE0
       USE APM_INIT_MOD,       ONLY : LAPM
       USE CHARPAK_MOD,        ONLY : STRREPL
+      USE PHYSCONSTANTS,      ONLY : AIRMW, AVO
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR
       USE GAMAP_MOD,          ONLY : DO_GAMAP
@@ -7827,6 +7835,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  06 Jan 2015 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7862,8 +7871,8 @@
 
       ! Increment the TCVV and XNUMOL arrays for APM tracers
       DO T = 1, N_APMTRA
-         Input_Opt%TCVV(N_TRACERS+T) = 28.97e+0_fp / APMTRACER_MW_G(T)
-         Input_Opt%XNUMOL(N_TRACERS+T) = 6.022e+23_fp / 
+         Input_Opt%TCVV(N_TRACERS+T) = AIRMW / APMTRACER_MW_G(T)
+         Input_Opt%XNUMOL(N_TRACERS+T) = AVO / 
      &                                   APMTRACER_MW_KG(T) 
       ENDDO
 

@@ -3426,11 +3426,11 @@ CONTAINS
        HcoID = GetHemcoId( 'NO', HcoState, LOC, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       ! Define collection: in development mode or if BPCH is disabled,
+       ! Define collection: in development mode or if netCDF is enabled,
        ! add it to the default HEMCO collection. Otherwise, add it to the
-       ! manual collection. The diagnostics is then written to bpch-file
-       ! in diag3.F
-#if    defined( DEVEL ) || defined( NO_BPCH )
+       ! manual collection and the diagnostics will be written to the
+       ! bpch file in diag3.F.
+#if defined( NC_DIAG )
        COL = HcoState%Diagn%HcoDiagnIDDefault
 #else
        COL = HcoState%Diagn%HcoDiagnIDManual

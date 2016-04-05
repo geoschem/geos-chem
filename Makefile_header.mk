@@ -183,6 +183,8 @@
 #  24 Aug 2015 - R. Yantosca - Bug fix: Add missing | when testing USER_DEFS
 #  07 Dec 2015 - R. Yantosca - Add "realclean_except_rrtmg" target that
 #                              replaces the RRTMG_CLEAN variabe
+#  10 Feb 2016 - E. Lundgren - Add BPCH restart file input and output switches
+#  11 Feb 2016 - E. Lundgren - Change BPCH to BPCH_DIAG, NETCDF to NC_DIAG
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -220,6 +222,9 @@ ERR_GIGC             :="Unable to find the GIGC configuration file. Have you dow
 
 # Error message for bad GIGC config
 ERR_GIGC             :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
+
+# Error message for diagnostics
+ERR_DIAG             :="Select one diagnostic output type: NC_DIAG=y or BPCH_DIAG=y"
 
 ###############################################################################
 ###                                                                         ###
@@ -265,24 +270,35 @@ ifndef TIMERS
  TIMERS              :=0
 endif
 
-# %%%%% Set default compiler %%%%%
-ifndef COMPILER
-  COMPILER           :=ifort
+# %%%%% Default to bpch input restart file disabled %%%%%
+ifndef BPCH_RST_IN
+ BPCH_RST_IN         :=no
 endif
 
-# %%%%% Test if IFORT compiler is selected %%%%%
+# %%%%% Default to bpch output restart file disabled %%%%%
+ifndef BPCH_RST_OUT
+ BPCH_RST_OUT        :=no
+endif
+
+# %%%%% Set default compiler %%%%%
+
+# %%%%% If COMPILER is not defined, default to the $(FC) variable, which %%%%%
+# %%%%% is set in your .bashrc, or when you load the compiler module     %%%%%
+ifndef COMPILER
+  COMPILER           :=$(FC)
+endif
+
+# %%%%% Test if Intel Fortran Compiler is selected %%%%%
 REGEXP               :=(^[Ii][Ff][Oo][Rr][Tt])
 ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
-  COMPLER            :=ifort
-  COMPILE_CMD        :=ifort
+  COMPILE_CMD        :=$(FC)
   USER_DEFS          += -DLINUX_IFORT
 endif
 
-# %%%%% Test if PGI compiler is selected  %%%%%
-REGEXP               :=(^[Pp][Gg][Ii])
+# %%%%% Test if PGI Fortran compiler is selected  %%%%%
+REGEXP               :=(^[Pp][Gg])
 ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
-  COMPILER           :=pgi
-  COMPILE_CMD        :=pgf90
+  COMPILE_CMD        :=$(FC)
   USER_DEFS          += -DLINUX_PGI
 endif
 
@@ -323,10 +339,56 @@ ifeq ($(shell [[ "$(EXTERNAL_FORCING)" =~ $(REGEXP) ]] && echo true),true)
   NO_GRID_NEEDED     :=1
 endif
 
-# %%%%% NO_BPCH (for disabling old diagnostic arrays) %%%%%
+#------------------------------------------------------------------------------
+# Restart settings
+#------------------------------------------------------------------------------
+
+# %%%%% BPCH_RST_IN (for using bpch restart file as input ) %%%%%
 REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(NO_BPCH)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DNO_BPCH
+ifeq ($(shell [[ "$(BPCH_RST_IN)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DBPCH_RST_IN
+endif
+
+# %%%%% BPCH_RST_OUT (for using bpch restart file as output ) %%%%%
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(BPCH_RST_OUT)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DBPCH_RST_OUT
+endif
+
+#------------------------------------------------------------------------------
+# Diagnostic settings
+#------------------------------------------------------------------------------
+
+# %%%%% Use netCDF diagnostics if DEVEL=y %%%%%
+ifdef DEVEL
+  NC_DIAG            :=yes
+  BPCH_DIAG          :=no
+endif
+
+# %%%%% Test for diagnostic output type, set to bpch if not specified %%%%%
+ifndef BPCH_DIAG
+  ifndef NC_DIAG
+    BPCH_DIAG        :=yes
+  endif
+endif
+
+# %%%%% ERROR CHECK!  Make sure only one diagnostic output type is selected %%%%%
+ifeq ($(BPCH_DIAG),y)
+  ifeq ($(NC_DIAG),y)
+    $(error $(ERR_DIAG))
+  endif
+endif 
+
+# %%%%% BPCH (for using old BPCH diagnostic output) %%%%%
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DBPCH_DIAG
+endif
+
+# %%%%% NETCDF (for using new netCDF diagnostic output) %%%%%
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DNC_DIAG
 endif
 
 #------------------------------------------------------------------------------
@@ -816,7 +878,6 @@ else
   # Use "nc-config --flibs" and nc-config --libs
   #-----------------------------------------------------------------------
   NC_LINK_CMD        := $(shell $(GC_BIN)/nc-config --flibs)
-  NC_LINK_CMD        += $(shell $(GC_BIN)/nc-config --libs)
 
 endif
 
@@ -900,11 +961,14 @@ endif
 
 ###############################################################################
 ###                                                                         ###
-###  IFORT compilation options.  This is the default compiler.              ###
+###  Define settings for the INTEL FORTRAN COMPILER (aka ifort)             ###
 ###                                                                         ###
 ###############################################################################
 
 ifeq ($(COMPILER),ifort) 
+
+  # Base set of compiler flags
+  FFLAGS             :=-cpp -w -auto -noalign -convert big_endian
 
   # Default optimization level for all routines (-O2)
   ifndef OPT
@@ -914,13 +978,11 @@ ifeq ($(COMPILER),ifort)
   # Pick compiler options for debug run or regular run 
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           :=-cpp -w -O0 -auto -noalign -convert big_endian
-    FFLAGS           += -g -check arg_temp_created -debug all
+    FFLAGS           += -g -O0 -check arg_temp_created -debug all
     TRACEBACK        := yes
     USER_DEFS        += -DDEBUG
   else
-    FFLAGS           :=-cpp -w $(OPT) -auto -noalign -convert big_endian
-    FFLAGS           += -vec-report0
+    FFLAGS           += $(OPT) -vec-report0
   endif
 
   # Prevent any optimizations that would change numerical results
@@ -1024,24 +1086,27 @@ endif
 
 ###############################################################################
 ###                                                                         ###
-###  Portland Group (PGF90) compilation options                             ###
+###  Define settings for the PORTLAND GROUP COMPILER (aka "pgfortran")      ###
 ###                                                                         ###
 ###############################################################################
 
-ifeq ($(COMPILER),pgi) 
+ifeq ($(COMPILER),pgfortran) 
+
+  # Base set of compiler flags
+  FFLAGS             :=-Kieee -byteswapio -Mpreprocess -m64
 
   # Default optimization level for all routines (-fast)
   ifndef OPT
-    OPT              :=-fast
+    OPT              :=-O2
    endif
 
   # Pick compiler options for debug run or regular run 
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           :=-byteswapio -Mpreprocess -g -O0 
+    FFLAGS           += -g -O0
     USER_DEFS        += -DDEBUG
   else
-    FFLAGS           :=-byteswapio -Mpreprocess $(OPT)
+    FFLAGS           += $(OPT)
   endif
 
   # Add options for medium memory model.  This is to prevent G-C from 
@@ -1051,7 +1116,7 @@ ifeq ($(COMPILER),pgi)
   # Turn on OpenMP parallelization
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(OMP)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           += -mp -Mnosgimp -Dmultitask
+    FFLAGS           += -mp
   endif
 
   # Add option for suppressing PGI non-uniform memory access (numa) library 
@@ -1063,7 +1128,7 @@ ifeq ($(COMPILER),pgi)
   # Add option for "array out of bounds" checking
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(BOUNDS)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           += -C
+    FFLAGS           += -Mbounds
   endif
 
   # Also add traceback option
@@ -1076,6 +1141,18 @@ ifeq ($(COMPILER),pgi)
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(KPP_SOLVE_ALWAYS)" =~ $(REGEXP) ]] && echo true),true)
     USER_DEFS        += -DKPP_SOLVE_ALWAYS
+  endif
+
+  # Turn on checking for floating-point exceptions
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(FPE)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -Ktrap=fp
+  endif
+
+  # Switch to add detailed compiler prinotut
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(INFO)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -Minfo
   endif
 
   # Add flexible precision declaration
@@ -1166,7 +1243,7 @@ export TIMERS
 ###############################################################################
 
 #headerinfo:
-#	@@echo '####### in Makefile_header.mk ########' 
+#	@@echo '####### in Makefile_header.mk ########'
 #	@@echo "COMPILER    : $(COMPILER)"
 #	@@echo "DEBUG       : $(DEBUG)"
 #	@@echo "BOUNDS      : $(BOUNDS)"

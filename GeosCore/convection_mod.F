@@ -17,7 +17,7 @@
 ! !USES:
 !
       USE GIGC_Errcode_Mod
-      USE CMN_GCTM_Mod
+      USE PHYSCONSTANTS    ! Physical parameters
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -96,7 +96,7 @@
       USE DIAG_MOD,           ONLY : CONVFLUP
       USE ERROR_MOD,          ONLY : GIGC_ERROR
       USE UNITCONV_MOD
-#if   !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD38
 #endif
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
@@ -111,17 +111,21 @@
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
       USE WETSCAV_MOD,        ONLY : H2O2s
       USE WETSCAV_MOD,        ONLY : SO2s
-#if   defined( APM )
+#if defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
 
-#if   defined ( DEVEL )
+#if defined( NC_DIAG )
       USE HCO_ERROR_MOD
       USE HCO_INTERFACE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+      USE WETSCAV_MOD,        ONLY : GET_WETDEP_IDWETD
+
 #endif
+#if defined( DEVEL )
       USE TENDENCIES_MOD
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -241,13 +245,14 @@
       REAL(fp), POINTER :: p_FSOL (:,:,:)
 #endif
 
-#if   defined ( DEVEL )
-      ! For new diagnostics
-      INTEGER                  :: IT, cID, HCRC
-      REAL(fp), ALLOCATABLE    :: BEFORE(:,:,:,:)
-      REAL(fp), POINTER        :: TMP3D(:,:,:) => NULL()
-      REAL(fp), POINTER        :: TMP2D(:,:  ) => NULL()
-      REAL(fp)                 :: DTIME
+#if defined ( NC_DIAG )
+      ! For netCDF diagnostics\
+      INTEGER                :: trc_id, D, HCRC
+      CHARACTER(LEN=60)      :: DiagnName
+      REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
+      REAL(fp), POINTER      :: TMP3D(:,:,:) => NULL()
+      REAL(fp), POINTER      :: TMP2D(:,:  ) => NULL()
+      REAL(fp)               :: DTIME
 #endif
 
       !=================================================================
@@ -278,13 +283,13 @@
          RETURN
       ENDIF  
 
-      ! For new diagnostics, archive old species concentration. At the 
+      ! For netCDF diagnostics, archive old species concentration. At the 
       ! moment, the new ND38 diagnostics only returns the total column 
       ! loss due to convection. For these values, we don't need to 
       ! write the diagnostics within the convection schemes but can
       ! simply take the difference between the original and updated 
       ! tracer field column.
-#if   defined( DEVEL )
+#if defined( NC_DIAG )
       IF ( Input_Opt%ND38 > 0 ) THEN
          ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
          BEFORE = State_Chm%Tracers
@@ -444,7 +449,7 @@
             ENDDO
          ENDIF
 
-#if !defined(NO_BPCH)
+#if defined( BPCH_DIAG )
          !--------------------------
          ! ND38 diagnostic [kg/s]
          !--------------------------
@@ -468,18 +473,18 @@
 !$OMP END PARALLEL DO
 
 #endif
-
+#if defined( NC_DIAG )
       !-----------------------------------------------------------------
-      ! New diagnostics (ND38)
+      ! NetCDF diagnostics (ND38)
       ! Write out the column mass difference before and after 
       ! convection.
       ! Note: The ND38 diagnostics is defined as a 2D diagnostics
-      ! (--> diagnostics_mod.F90). We pass here a 3D array to the
-      ! diagnostics, which will automatically be collapsed to a 2D
-      ! array within the diagnostics module (the vertical sum is taken).
+      ! (--> diagnostics_mod.F90).
       !-----------------------------------------------------------------
-#if   defined( DEVEL )
       IF ( Input_Opt%ND38 > 0 ) THEN
+
+         ! Assume success
+         HCRC = HCO_SUCCESS
 
          ! Time step
          DTIME = GET_TS_DYN() * 60e+0_fp
@@ -487,34 +492,39 @@
          ! Allocate temporary pointer
          ALLOCATE(TMP3D(IIPAR,JJPAR,LLPAR), TMP2D(IIPAR,JJPAR) )
         
-         ! Loop over all tracers
-         DO IT = 1, Input_Opt%N_TRACERS
+         ! Loop over all soluble tracers
+         DO D = 1, State_Chm%nWetDep
 
-            ! Is this a tracer selected for diagnostics?
-            IF ( ANY( Input_Opt%TINDEX(38,:) == IT ) ) THEN
+            ! Get GEOS-Chem tracer number
+            trc_id = GET_WETDEP_IDWETD( D )
 
-               ! Loss rate (kg/kg total air/s)
-               TMP3D = ( BEFORE(:,:,:,IT) - State_Chm%Tracers(:,:,:,IT))
-     &               / DTIME 
+            ! Is this a tracer selected for this diagnostics type?
+            IF ( ANY( Input_Opt%TINDEX(38,:) == trc_id ) ) THEN
 
-               ! Convert to kg/s
+               ! Loss rate [kg/kg total air per seconnd]
+               TMP3D = ( BEFORE(:,:,:,trc_id) - 
+     &                 State_Chm%Tracers(:,:,:,trc_id)) / DTIME 
+
+               ! Convert to [kg/s]
                ! Now use moist air mass rather than dry air mass (ewl, 6/23/15)
                TMP3D = TMP3D * State_Met%ADMOIST  
 
+               ! Sum over the column
                TMP2D = SUM(TMP3D,DIM=3) 
 
-               ! Update diagnostics. Pass 3D array. Will be collapsed to
-               ! column total in Diagn_Update.
-               cID = 38000 + IT
-               CALL Diagn_Update ( am_I_Root, HcoState,
-     &                             cID     = cID,
+               ! Update diagnostics based on name
+               DiagnName = 'WETSCAV_CONVLOSS_' 
+     &                     // TRIM( Input_Opt%TRACER_NAME( trc_id ) )
+
+               CALL Diagn_Update ( am_I_Root, HcoState, 
+     &                             cName   = TRIM( DiagnName ),
      &                             Array2D = TMP2D,
      &                             COL     = Input_Opt%DIAG_COLLECTION,
      &                             PosOnly = .TRUE.,
      &                             RC      = HCRC )
                IF ( HCRC /= HCO_SUCCESS ) THEN
-                  CALL ERROR_STOP ( 'Error updating conv loss diagn ' //
-     &               'for species ' // TRIM(Input_Opt%TRACER_NAME(IT)), 
+                  CALL ERROR_STOP ( 'Error updating wetscav conv loss '
+     &               // 'diagnostic: ' // TRIM( DiagnName ), 
      &               'DO_CONVECTION (convection_mod.F)' )
                ENDIF
             ENDIF
@@ -1148,7 +1158,7 @@
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
       USE DIAG_MOD,           ONLY : AD37
-#if   !defined ( NO_BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD38
 #endif
       USE DIAG_MOD,           ONLY : CONVFLUP
@@ -1833,7 +1843,7 @@
      &                                     * AREA_M2 
                      ENDIF
 
-#if !defined(NO_BPCH)
+#if defined( BPCH_DIAG )
                      !==================================================
                      ! ND38 Diagnostic: loss of soluble tracer to wet
                      ! scavenging in cloud updrafts [kg/s].  We must 
@@ -1841,11 +1851,6 @@
                      !==================================================
                      IF ( ( ND38 > 0 .or. LGTMM )
      &                    .and. ISOL > 0 .and. K <= LD38 ) THEN
-!#if defined ( DEBUG )
-!                        if(TCVV(IC) <= 0.e+0_fp) then
-!                           print *, I, J, K, IC, ISOL, TCVV(IC)
-!                        endif
-!#endif
 
                         AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) 
      &                              + T0 * AREA_M2 / DNS  
@@ -2011,7 +2016,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_GCTM_MOD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD

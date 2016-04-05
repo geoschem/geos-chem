@@ -329,6 +329,7 @@ CONTAINS
 !  08 May 2015 - C. Keller   - Now read/write restart variables from here to
 !                              accomodate replay runs in GEOS-5.
 !  25 May 2015 - C. Keller   - Now calculate SC5 via HCO_GetSUNCOS 
+!  29 Mar 2016 - C. Keller   - Bug fix: archive O3 deposition as positive flux.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -609,7 +610,8 @@ CONTAINS
           ELSE
 
              ! Deposition flux in kg/m2/s.
-             DEPO3(I,J) = iFlx
+             ! Make sure ozone deposition flux is positive (ckeller, 3/29/16).
+             DEPO3(I,J) = ABS(iFlx)
  
 !             ! Get mass of species. This can either be the total PBL
 !             ! column mass or the first layer only, depending on the 
@@ -2209,6 +2211,7 @@ CONTAINS
 !  04 Feb 2015 - C. Keller     - Updated for use in HEMCO.
 !  24 Sep 2015 - E. Lundgren   - ExtState vars O3, NO2, and NO now in
 !                                kg/kg dry air (previously kg)
+!  07 Jan 2016 - E. Lundgren   - Update H2O molec wt to match GC value
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2234,7 +2237,7 @@ CONTAINS
    CHARACTER(LEN=255)         :: MSG
    CHARACTER(LEN=255)         :: LOC = 'PARANOX_LUT' 
 
-   REAL(sp), PARAMETER        :: MWH2O = 18.0_sp
+   REAL(sp), PARAMETER        :: MWH2O = 18.016_sp
 
    !=================================================================
    ! PARANOX_LUT begins here!
@@ -2274,7 +2277,7 @@ CONTAINS
       ! weight is slightly inaccurate. C (ewl, 9/11/15)
       H2O = ExtState%SPHU%Arr%Val(I,J,1) * DENS &
           * HcoState%Phys%AIRMW / MWH2O 
-         
+   
       ! Calculate J(OH), the effective rate for O3+hv -> OH+OH,
       ! assuming steady state for O(1D).
       ! Rate coefficients are cm3/molec/s; concentrations are molec/cm3

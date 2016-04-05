@@ -129,6 +129,7 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+      USE PHYSCONSTANTS,      ONLY : BOLTZ, AVO, AIRMW
       USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, IXSAVE   
       USE COMODE_MOD,         ONLY : IYSAVE, IZSAVE,  JLOP       
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -176,7 +177,7 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER, SAVE :: N_CHEM_BOXES
       INTEGER       :: I, J, L, JLOOP
-      REAL(fp)      :: CONSEXP, TK, VPRESH2O
+      REAL(fp)      :: CONSEXP, TK, VPRESH2O, CONSVAP
       REAL(fp)      :: BOXVL
       
       !=================================================================
@@ -188,6 +189,10 @@
       NLAT   = JJPAR
       NVERT  = IVERT
       NPVERT = NVERT
+
+      ! Calculate condensation vapor pressure locally
+      ! and use Boltzmann's constant in PHYSCONSTANTS [J/K] (ewl, 1/4/16)
+      CONSVAP  = 6.1078e+03_fp / ( BOLTZ * 1e+7_fp )
 
       !=================================================================
       ! Pre-save SMVGEAR loop indices on the first call
@@ -295,8 +300,11 @@
             BOXVL          = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
             ! Air density in [molec/cm3]
+            ! Now use physical parameters from PHYSCONSTANTS (ewl, 1/4/16)
+!            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
+!     &                       BOXVL               * AVG  / WTAIR
             AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
-     &                       BOXVL               * AVG  / WTAIR
+     &                       BOXVL               * AVO  / AIRMW
 
             ! ABSHUM = absolute humidity [molec H2O/cm3 air]
             ABSHUM(JLOOP)  = State_Met%AVGW(I,J,L)  * AIRDENS(JLOOP)
@@ -865,10 +873,6 @@
       USE CMN_DIAG_MOD
       USE COMODE_LOOP_MOD
       USE COMODE_MOD,         ONLY : JLOP ! SDE 2013-12-30
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT
-      USE BPCH2_MOD,          ONLY : GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0
-      USE BPCH2_MOD,          ONLY : READ_BPCH2
       USE COMODE_MOD,         ONLY : ABSHUM
       USE COMODE_MOD,         ONLY : ERADIUS
       USE COMODE_MOD,         ONLY : IXSAVE
@@ -1560,26 +1564,28 @@
      &                                ( ERADIUS(JLOOP,NDUST+N) * 
      &                                  MSDENS(N) )  
 
-               WTAREA(JLOOP, N)   = TAREA(JLOOP, N+NDUST)
-               WERADIUS(JLOOP, N) = ERADIUS(JLOOP, N+NDUST)             
+               WTAREA(JLOOP, N+NDUST)   = TAREA(JLOOP, N+NDUST)
+               WERADIUS(JLOOP, N+NDUST) = ERADIUS(JLOOP, N+NDUST)     
 
                !include hydrophobic BC and OC
                !stored separate to hydrophillic in RT variables
                IF ((N.eq.2).or.(N.eq.3)) THEN
              
                   ! Dry surface area
+                  ! SDE 2015-10-27: RW is in um, but everything
+                  ! else is in terms of cm. Correct with 10^-4 factor
                   DRYAREA = 3.D0 * DAERSL(I,J,L,N-1) / ( RW(1) *
-     &                      MSDENS(N) )  
+     &                      1.0D-4 * MSDENS(N) )  
 
                   ! Add surface area to TAREA array
-                  TAREA(JLOOP,N+NDUST) = TAREA(JLOOP,N+NDUST) + DRYAREA
+                  TAREA(JLOOP,N+NDUST) = WTAREA(JLOOP,N+NDUST) + DRYAREA
 
                   ! Define a new effective radius that accounts 
                   ! for the hydrophobic aerosol 
-                  ERADIUS(JLOOP,NDUST+N) = ( ERADIUS(JLOOP,NDUST+N) *
-     &                                       TAREA(JLOOP,N+NDUST)   +
-     &                                       RW(1) * DRYAREA )      / 
-     &                                     ( TAREA(JLOOP,N+NDUST)   +
+                  ERADIUS(JLOOP,NDUST+N) = ( WERADIUS(JLOOP,NDUST+N) *
+     &                                       WTAREA(JLOOP,N+NDUST)   +
+     &                                       RW(1) * 1.0D-4 * DRYAREA )/
+     &                                     ( WTAREA(JLOOP,N+NDUST)   +
      &                                       DRYAREA )
                ENDIF !Hydrophobic aerosol surface area
             ENDIF    !Surface area calcs

@@ -170,6 +170,7 @@ MODULE HCO_Diagn_Mod
 !  06 Nov 2015 - C. Keller   - Added argument OutTimeStamp to collection to 
 !                              control the file output time stamp (beginning, 
 !                              middle, end of diagnostics interval).
+!  25 Jan 2016 - R. Yantosca - Added bug fixes for pgfortran compiler
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -829,6 +830,7 @@ CONTAINS
              RETURN
           ENDIF
        ENDIF
+! End conflict (ewl, 1/8/15)
     ENDIF
 
     !----------------------------------------------------------------------
@@ -1093,8 +1095,9 @@ CONTAINS
     ! Add to diagnostics list of this collection. 
     ! Insert at the beginning of the list.
     !-----------------------------------------------------------------------
+    
     IF ( ThisColl%nnDiagn > 0 ) THEN
-       ThisDiagn%NextCont => ThisColl%DiagnList
+       ThisDiagn%NextCont => ThisColl%DiagnList   
     ENDIF
     ThisColl%DiagnList => ThisDiagn
 
@@ -1464,7 +1467,7 @@ CONTAINS
 
     !-----------------------------------------------------------------
     ! Diagnostics levels to be used. By default, use only diagnostics
-    ! at the provided level. For instance, if a hierarchy number if 
+    ! at the provided level. For instance, if a hierarchy number is 
     ! given do not update diagnostics with the same species and 
     ! extension number but a hierarchy number of -1. If a diagnostics
     ! level is given, update all diagnostics up to this diagnostics
@@ -1977,8 +1980,10 @@ CONTAINS
                             AF, FOUND, DgnCont, COL=PS )
 
        IF ( .NOT. FOUND ) THEN
+
           DgnCont => NULL()
        ELSE
+
           ! Don't consider container if counter is zero. 
           IF ( SKIPZERO .AND. DgnCont%Counter == 0 ) THEN
              DgnCont => NULL()
@@ -2009,11 +2014,13 @@ CONTAINS
     ! list (or to head of list if DgnCont is not yet associated). 
     ! Number of updates since last output must be larger than zero!
     IF ( .NOT. CF ) THEN 
+
        IF ( .NOT. ASSOCIATED( DgnCont ) ) THEN
           DgnCont => ThisColl%DiagnList
        ELSE
           DgnCont => DgnCont%NextCont
        ENDIF
+
        DO WHILE ( ASSOCIATED ( DgnCont ) )
           ! Skip zero counters
           IF ( SKIPZERO .AND. DgnCont%Counter <= 0 ) THEN
@@ -2035,6 +2042,7 @@ CONTAINS
        ! Increase number of times this container has been called by
        ! Diagn_Get
        DgnCont%nnGetCalls = DgnCont%nnGetCalls + 1
+
     ENDIF
 
     ! Cleanup
@@ -2153,12 +2161,15 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE DiagnList_Cleanup ( DiagnList )
-! !INPUT ARGUMENTS:
+!
+! !INPUT PARAMETERS:
 !
     TYPE(DiagnCont), POINTER  :: DiagnList   ! List to be removed 
 !
 ! !REVISION HISTORY:
-!  19 Dec 2013 - C. Keller: Initialization
+!  19 Dec 2013 - C. Keller   - Initialization
+!  25 Jan 2016 - R. Yantosca - Bug fix for pgfortran compiler: Test if the
+!                              TMPCONT object is associated before deallocating
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2182,7 +2193,13 @@ CONTAINS
 
        ! Clean up this container 
        CALL DiagnCont_Cleanup( TmpCont )
-       DEALLOCATE ( TmpCont )
+!-------------------------------------------------------------------------
+! Prior to 1/25/16:
+! Make sure that TMPCONT is associated before deallocating.
+! The pgfortran compiler will choke on this (bmy, 1/25/16)
+!       DEALLOCATE ( TmpCont )
+!-------------------------------------------------------------------------
+       IF ( ASSOCIATED( TmpCont ) ) DEALLOCATE ( TmpCont )
 
        ! Advance
        TmpCont => NxtCont
@@ -3664,7 +3681,7 @@ CONTAINS
     TmpColl => Diagn%Collections
     DO WHILE ( ASSOCIATED(TmpColl) ) 
 
-       ! Check if this is the collection of insterest
+       ! Check if this is the collection of interest
        IF ( TmpColl%CollectionID == PS ) THEN
           FOUND = .TRUE.
           EXIT

@@ -125,6 +125,7 @@ CONTAINS
 !                              out lon & lat as float instead of double
 !  06 Nov 2015 - C. Keller   - Output time stamp is now determined from 
 !                              variable OutTimeStamp.
+!  14 Jan 2016 - E. Lundgren - Create netcdf title out of filename prefix
 !  20 Jan 2016 - C. Keller   - Added options DiagnRefTime and DiagnNoLevDim.
 !EOP
 !------------------------------------------------------------------------------
@@ -132,7 +133,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                   :: I, PS, CNT, levIdTmp
+    INTEGER                   :: I, PS, CNT, levIdTmp, indexL, indexR
     REAL(dp)                  :: GMT, JD1, JD1985, JD_DELTA, THISDAY
     REAL(sp)                  :: TMP, JD_DELTA_RND
     INTEGER                   :: YYYY, MM, DD, h, m, s
@@ -144,7 +145,7 @@ CONTAINS
     TYPE(DiagnCont), POINTER  :: ThisDiagn => NULL()
     INTEGER                   :: FLAG
     CHARACTER(LEN=255)        :: ncFile
-    CHARACTER(LEN=255)        :: Pfx 
+    CHARACTER(LEN=255)        :: Pfx, title 
     CHARACTER(LEN=255)        :: MSG 
     CHARACTER(LEN=255)        :: RefTime 
     CHARACTER(LEN=4 )         :: Yrs
@@ -291,6 +292,20 @@ CONTAINS
     ENDIF
     ncFile = TRIM(Pfx)//'.'//Yrs//Mts//Dys//hrs//mns//'.nc'
 
+    ! Use filename prefix for title, replacing '_' with spaces
+    ! NOTE: Prefix can only contain up to two underscores
+    indexL = SCAN( Pfx, '_', .FALSE. ) ! Return left-most position
+    indexR = SCAN( Pfx, '_', .TRUE.  ) ! Return right-most position
+    IF ( indexL > 0 .AND. indexR > 0 ) THEN
+       title = Pfx(1:indexL-1)        // ' ' //  &
+               Pfx(indexL+1:indexR-1) // ' ' //  &
+               Pfx(indexR+1:)
+    ELSE IF ( indexL > 0 .AND. indexR == 0 ) THEN
+       title = Pfx(1:indexL-1) // ' ' // Pfx(indexL+1:)
+    ELSE
+       title = Pfx
+    ENDIF
+
     ! verbose
     IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. PS==1 ) THEN
        MSG = 'Write diagnostics into file '//TRIM(ncFile)
@@ -303,10 +318,10 @@ CONTAINS
 
     ! Create output file
     IF ( NoLevDim ) THEN
-       CALL NC_CREATE( ncFile, nLon,  nLat,    -1,  nTime, &
+       CALL NC_CREATE( ncFile, title, nLon,  nLat,    -1,  nTime, &
                        fId,    lonId, latId, levId, timeId, VarCt ) 
     ELSE
-       CALL NC_CREATE( ncFile, nLon,  nLat,  nLev,  nTime, &
+       CALL NC_CREATE( ncFile, title, nLon,  nLat,  nLev,  nTime, &
                        fId,    lonId, latId, levId, timeId, VarCt ) 
     ENDIF
 

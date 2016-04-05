@@ -237,10 +237,10 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
     TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
@@ -270,6 +270,8 @@ CONTAINS
 !  26 Feb 2013 - R. Yantosca - Now pass Input_Opt to Init_GIGC_State_Chm
 !  28 Aug 2015 - R. Yantosca - Remove strat-chem options from call to 
 !                              Init_GIGC_State_Chm; this is done by HEMCO
+!  25 Jan 2016 - R. Yantosca - Bug fix: Declare Input_Opt as INTENT(INOUT),
+!                              to match the declaration in INIT_GIGC_STATE_CHM
 !EOP
 !------------------------------------------------------------------------------
 !BOC

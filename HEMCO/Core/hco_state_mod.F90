@@ -172,6 +172,8 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  20 Aug 2013 - C. Keller - Adapted from gigc_state_chm_mod.F90
+!  07 Jan 2016 - E. Lundgren - Add physical constant RSTARG and updated
+!                              Avgdr and g0 to NIST 2014 values
 !  15 Feb 2016 - C. Keller - Now pass HcoConfig object
 !EOP
 !------------------------------------------------------------------------------
@@ -293,14 +295,15 @@ CONTAINS
        CALL HCO_ERROR( HcoConfig%Err, 'HEMCO physical constants', RC )
        RETURN
     ENDIF
-    HcoState%Phys%Avgdr  = 6.022e23_dp
+    HcoState%Phys%Avgdr  = 6.022140857e23_dp
     HcoState%Phys%PI     = 3.14159265358979323_dp
     HcoState%Phys%PI_180 = HcoState%Phys%PI / 180.0_dp 
     HcoState%Phys%Re     = 6.375e6_dp
     HcoState%Phys%AIRMW  = 28.97_dp
-    HcoState%Phys%g0     = 9.8_dp
+    HcoState%Phys%g0     = 9.80665_dp
     HcoState%Phys%Rd     = 287.0_dp
     HcoState%Phys%Rdg0   = HcoState%Phys%Rd / HcoState%Phys%g0
+    HcoState%Phys%RSTARG = 8.31450_dp
 
     ! Timesteps
     HcoState%TS_EMIS = 0.0_sp 

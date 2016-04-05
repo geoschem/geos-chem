@@ -15,6 +15,7 @@
 !
 ! !USES:
 !
+      USE PHYSCONSTANTS
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -123,6 +124,7 @@
 !                              initialisation when emissions are off
 !  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  11 Mar 2015 - R. Yantosca - Add OH pointer for HEMCO data input
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -146,10 +148,10 @@
       ! FMOL_CO     - kg CO / mole CO
       ! XNUMOL_CO   - molecules CO / kg CO
       REAL(fp),  PARAMETER   :: FMOL_CO     = 28e-3_fp
-      REAL(fp),  PARAMETER   :: XNUMOL_CO   = 6.022e+23_fp/FMOL_CO
+      REAL(fp),  PARAMETER   :: XNUMOL_CO   = AVO/FMOL_CO
 
       ! Molecules C / kg C
-      REAL(fp),  PARAMETER   :: XNUMOL_C    = 6.022e+23_fp/12e-3_fp 
+      REAL(fp),  PARAMETER   :: XNUMOL_C    = AVO/12e-3_fp 
 
       CONTAINS
 !EOC
@@ -269,6 +271,7 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
 !  11 Mar 2015 - R. Yantosca - Remove references to global_nox_mod.F
 !  11 Mar 2015 - R. Yantosca - Now get OH via the HEMCO data structure
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -324,7 +327,7 @@
       LOGICAL,   PARAMETER   :: ALPHA_ISOP_FROM_NOX = .FALSE.
 
       ! MW of air (g/mol)
-      REAL(fp),  PARAMETER   :: WTAIR = 28.966e+0_fp
+      !REAL(fp),  PARAMETER   :: WTAIR = 28.966e+0_fp ! use global AIRMW
 
       ! Yield of CO from CH4
       REAL(fp),  PARAMETER   :: ALPHA_CH4  = 1e+0_fp
@@ -464,14 +467,14 @@
          ! STTCO [molec CO/cm3/kg CO] converts [kg CO] --> [molec CO/cm3]
          ! kg CO/box * box/cm3 * mole/0.028 kg CO * Avog.#/mole
          STTCO = 1e+0_fp     / AIRVOL(I,J,L) / 1e+6_fp /
-     &           FMOL_CO * 6.023e+23_fp
+     &           FMOL_CO * AVO
 
          ! GCO is CO concentration in [molec CO/cm3]
          GCO   = STT(I,J,L,1) * STTCO
          
          ! DENS is the number density of air [molec air/cm3]
          DENS  = AD(I,J,L) * 1000.e+0_fp   /
-     &           BOXVL     * 6.023e+23_fp  / WTAIR
+     &           BOXVL     * AVO  / AIRMW
 
          ! Cosine of the solar zenith angle [unitless]
          SUNCOS = State_Met%SUNCOSmid(I,J)
@@ -943,7 +946,6 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD
       USE CMN_SIZE_MOD
       USE GRID_MOD, ONLY : GET_YMID_R
       USE TIME_MOD, ONLY : ITS_A_NEW_DAY, GET_MINUTE,      GET_HOUR

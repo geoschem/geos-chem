@@ -16,6 +16,7 @@
 !
 ! !USES:
 !
+      USE PHYSCONSTANTS,      ONLY : BOLTZ, AVO, PI, RSTARG ! Physical params
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
       USE CMN_DIAG_MOD
@@ -297,6 +298,7 @@
       !LOGICAL :: LWARWICK_VSLS
       LOGICAL :: LDICARB
       REAL(fp)  :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)  :: CONSVAP
 
       ! For HEMCO drydep values (ckeller, 10/13/14)
       INTEGER :: TRCID
@@ -391,11 +393,11 @@
 ! AERSURF  = PARTICLE SURFACE AREA (CM2 CM-3)
 ! KTLOOP   = NUMBER OF GRID-CELLS IN A GRID-BLOCK
 ! AM       = MOLECULAR WEIGHT OF AIR (28.966 G MOLE-1)
-! AVG      = AVOGADRO'S NUMBER (6.02252E+23  # MOLE-1)
-! BOLTG    = BOLTZMANN'S CONSTANT (1.38054E-16 ERG K-1) 
+! AVG      = AVOGADRO'S NUMBER (# MOLE-1)
+! BOLTZ    = BOLTZMANN'S CONSTANT (1.3806485279e-23 J K-1) 
 ! RHO3     = DENSITY OF AIR         (G CM-3) = WTAIR*P(DYN CM-2)/(RSTARG*T) 
-! RSTARG   = BOLTG * AVG
-! DENAIR   = DENSITY OF AIR         (# CM-3) = P(DYNCM-2) / (T * BOLTG) 
+! RSTARG   = UNIVERSAL GAS CONSTANT [g/cm2/s2/mole/K]
+! DENAIR   = DENSITY OF AIR         (# CM-3) = P(DYNCM-2) / (T * BOLTZ *1e7) 
 ! CONCO2   = OXYGEN CONCENTRATION   (# CM-3)
 ! CONCN2   = NITROGEN CONCENTRATION (# CM-3)
 ! RRATE    = RATE CONST (EITHER S-1, CM**3-AIR #-1 S-1, CM**6 #-2 S-1,
@@ -479,6 +481,10 @@
 !
 ! ---------------------------     H2O     -----------------------------
 !
+      ! Calculate condensation vapor pressure locally
+      ! and use Boltzmann's constant in PHYSCONSTANTS [J/K] (ewl, 1/4/16)
+      CONSVAP  = 6.1078e+03_fp / ( BOLTZ * 1e+7_fp )
+
       IF (IH2O.GT.NGAS) THEN
          DO KLOOP      = 1, KTLOOP 
             TK               = T3K(KLOOP) 
@@ -2468,10 +2474,6 @@ c new OH+CO rate from JPL2006.
       REAL(fp)              :: kaq, kmt, o2_ss, fluxrxn, DFKG
       REAL(fp)              :: TEST
 
-
-      ! Avogadro's number
-      REAL(fp),  PARAMETER   :: Na = 6.022e+23_fp
-
       ! Ideal gas constant [atm cm3/mol/K], Raq
       REAL(fp),  PARAMETER   :: Raq=82.e+0_fp
 
@@ -2573,7 +2575,7 @@ c new OH+CO rate from JPL2006.
             !use quadratic formula to obtain [O2-] in particle of radius RADIUS
             A = -2e+0_fp * kaq
             B = -3e+0_fp * kmt / RADIUS / (H_eff * 0.082 * TEMP)
-            C =  3e+0_fp * kmt * HO2DENS * 1000e+0_fp / RADIUS / Na
+            C =  3e+0_fp * kmt * HO2DENS * 1000e+0_fp / RADIUS / AVO
 
             ! Error check that B^2-(4e+0_fp*A*C) is not negative
             TEST= B**2-(4e+0_fp*A*C)
@@ -2584,7 +2586,7 @@ c new OH+CO rate from JPL2006.
                 o2_ss= ( -B  -sqrt(B**2-(4e+0_fp*A*C)) )/(2e+0_fp*A)
 
                 ! Calculate the reactive flux
-                fluxrxn = kmt*HO2DENS - o2_ss*Na*kmt/H_eff/Raq/TEMP
+                fluxrxn = kmt*HO2DENS - o2_ss*AVO*kmt/H_eff/Raq/TEMP
 
                 IF ( fluxrxn <= 0e0_fp ) THEN
                    GAMMA = 0e+0_fp
@@ -2696,6 +2698,7 @@ c new OH+CO rate from JPL2006.
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2708,9 +2711,8 @@ c new OH+CO rate from JPL2006.
       ! Cloud droplet radius in marine warm clouds [cm]
       REAL(fp), PARAMETER :: XCLDR_MARI = 10.e-4_fp
 
-      REAL(fp), PARAMETER :: R = 8.314472                  ! [J/mol/K]
+      !REAL(fp), PARAMETER :: R = 8.314472    ! [J/mol/K] Now use global RSTARG
       REAL(fp), PARAMETER :: mw_brno3 = 0.142              ! [kg/mol]
-      rEAL(fp), PARAMETER :: pi = 3.14159265358979323846e+0_fp ! [unitless]
       REAL(fp), PARAMETER :: alpha = 0.3                   ! sticking coefficient
       REAL(fp), PARAMETER :: dens_h2o = 0.001e+0_fp            ! [kg/cm3]
 !
@@ -2751,7 +2753,7 @@ c new OH+CO rate from JPL2006.
       !   calculate the mean molecular speed of the
       !   molecules given the temperature.
       ! ----------------------------------------------
-      nu   = sqrt( 8.e+0_fp * R * T(I,J,L) / (mw_brno3 * pi) )
+      nu   = sqrt( 8.e+0_fp * RSTARG * T(I,J,L) / (mw_brno3 * PI) )
 
       ! ----------------------------------------------
       ! Test conditions to see if we want to continue

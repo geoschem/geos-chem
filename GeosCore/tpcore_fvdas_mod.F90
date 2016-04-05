@@ -199,6 +199,7 @@ MODULE Tpcore_FvDas_Mod
 !                             processing time.
 ! 20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 ! 21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+! 19 Jan 2016 - E. Lundgren - Consolidated bpch and netcdf diagnostics code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -221,7 +222,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_GCTM_MOD
+    USE PHYSCONSTANTS
 !
 ! !INPUT PARAMETERS: 
 !
@@ -348,6 +349,8 @@ CONTAINS
 !                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.
+!   12 Feb 2015 - E. Lundgren - Add new diagnostic arrays for writing
+!                               diagnostics ND24, ND25, and ND26 to netcdf.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -383,13 +386,18 @@ CONTAINS
                            ak,       bk,       u,        v,       ps1,      &
                            ps2,      ps,       q,        iord,    jord,     &
                            kord,     n_adj,    XMASS,    YMASS,   FILL,     &
-                           MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, ND24,     &
-                           ND25,     ND26 )
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+ !%%% Adding DiagnArrays for writing diagnostics to netcdf (ewl, 2/12/15).
+ !%%% MASSFLEW, MASSFLNS, and MASSFLUP are cumulative when BPCH=y. 
+ !%%% They are instantaneous when using NETCDF
+                           MASSFLEW, MASSFLNS, MASSFLUP,                    &
+#endif
+                           AREA_M2, ND24, ND25, ND26 )
 !
 ! !USES:
 !
     ! Include files w/ physical constants and met values
-    USE CMN_GCTM_MOD
+    USE PHYSCONSTANTS
 !
 ! !INPUT PARAMETERS: 
 !
@@ -466,10 +474,13 @@ CONTAINS
     ! Tracer "mixing ratios" [kg tracer/moist air kg]
     REAL(fp),  INTENT(INOUT), TARGET :: q(:,:,:,:)
 
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
     ! E/W, N/S, and up/down diagnostic mass fluxes
     REAL(fp),  INTENT(INOUT) :: MASSFLEW(:,:,:,:)  ! for ND24 diagnostic
     REAL(fp),  INTENT(INOUT) :: MASSFLNS(:,:,:,:)  ! for ND25 diagnostic
     REAL(fp),  INTENT(INOUT) :: MASSFLUP(:,:,:,:)  ! for ND26 diagnostic 
+#endif
+
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -988,11 +999,17 @@ CONTAINS
           DO J = JS2G0, JN2G0
           DO I = 1,     IM
 
-             ! Compute mass flux
+             ! Compute mass flux [kg/s]
              DTC(I,J,K) = FX(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT 
 
+#if defined( BPCH_DIAG )
              ! Save into MASSFLEW diagnostic array
              MASSFLEW(I,J,K,IQ) = MASSFLEW(I,J,K,IQ) + DTC(I,J,K)
+#endif 
+#if defined( NC_DIAG )
+             ! Save into diagnostic array for writing to netcdf
+             MASSFLEW(I,J,K,IQ) = DTC(I,J,K)
+#endif
 
           ENDDO
           ENDDO
@@ -1023,11 +1040,17 @@ CONTAINS
           DO J = 1, JM 
           DO I = 1, IM 
 
-             ! Compute mass flux
+             ! Compute mass flux [kg/s]
              DTC(I,J,K) = FY(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT 
 
+#if defined( BPCH_DIAG )
              ! Save into MASSFLNS diagnostic array
              MASSFLNS(I,J,K,IQ) = MASSFLNS(I,J,K,IQ) + DTC(I,J,K) 
+#endif
+#if defined( NC_DIAG )
+             ! Save into diagnostic array for writing to netcdf
+             MASSFLNS(I,J,K,IQ) = DTC(I,J,K)
+#endif
 
           ENDDO
           ENDDO
@@ -1069,10 +1092,10 @@ CONTAINS
           DO J  = 1, JM
           DO I  = 1, IM
 
-             ! Compute mass flux
+             ! Compute mass flux [kg/s]
              DTC(I,J,K) = ( Q(I,J,K,IQ) * DELP1(I,J,K)             &
                             - QTEMP(I,J,K,IQ) * DELP2(I,J,K) )     &
-                            * g0_100 * AREA_M2(J) 
+                            * g0_100 * AREA_M2(J) / DT
                 
              ! top layer should have no residual.  the small residual is 
              ! from a non-pressure fixed flux diag.  The z direction may 
@@ -1080,7 +1103,15 @@ CONTAINS
              !
              ! Uncomment now, since this is upflow into the box from its
              ! bottom (phs, 3/4/08)
-             MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K)/DT
+
+#if defined( BPCH_DIAG )
+             MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K)
+#endif 
+#if defined( NC_DIAG )
+             ! Save into diagnostic array for writing to netcdf
+             MASSFLUP(I,J,K,IQ) = DTC(I,J,K)
+#endif
+
           ENDDO
           ENDDO
           !$OMP END PARALLEL DO
@@ -1096,17 +1127,23 @@ CONTAINS
              DO J  = 1, JM
              DO I  = 1, IM
 
-                ! Compute tracer difference
+                ! Compute tracer difference [kg/s]
                 TRACE_DIFF = ( Q(I,J,K,IQ) * DELP1(I,J,K)             &
                                - QTEMP(I,J,K,IQ) * DELP2(I,J,K) )     &
-                               * AREA_M2(J) * g0_100  
+                               * AREA_M2(J) * g0_100 / DT
                 
-                ! Compute mass flux
+                ! Compute mass flux [kg/s]
                 DTC(I,J,K)         = DTC(I,J,K-1) + TRACE_DIFF
-                  
+
+#if defined( BPCH_DIAG )
                 ! Save to the MASSFLUP diagnostic array 
-                MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K)/DT
-                
+                MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K)
+#endif 
+#if defined( NC_DIAG )
+                ! Save into diagnostic array for writing to netcdf 
+                MASSFLUP(I,J,K,IQ) = DTC(I,J,K)
+#endif
+
              ENDDO
              ENDDO
              !$OMP END PARALLEL DO

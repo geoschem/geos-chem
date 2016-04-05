@@ -337,6 +337,7 @@
 !                              accomodate replay runs in GEOS-5.
 !  30 Sep 2015 - C. Keller   - Now add OCPI flux to BIOGENIC_OCPI diagnostics.
 !  12 Dec 2015 - C. Keller   - Apply e-folding times to past conditions.
+!  07 Jan 2016 - E. Lundgren - Update Avogadro's # to NIST 2014
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -403,7 +404,7 @@
       CHARACTER(LEN=255)  :: MSG
 
       ! Molecules C / kg C
-      REAL(hp), PARAMETER   :: XNUMOL_C = 6.022e+23_hp / 12e-3_hp
+      REAL(hp), PARAMETER   :: XNUMOL_C = 6.022140857e+23_hp / 12e-3_hp
       REAL(hp), PARAMETER   :: UNITCONV = 1.0_hp
 
       ! Fraction of yield of OC (hydrophilic) from terpene emissions
@@ -2441,7 +2442,8 @@
 
          ! PPFD at top of atmosphere
          PTOA    = 3000.0_hp + 99.0_hp * 
-     &             COS( 2._hp * 3.14_hp *( DOY - 10.0_hp ) / 365.0_hp )
+     &             COS( 2._hp * 3.14159265358979323_hp *
+     &             ( DOY - 10.0_hp ) / 365.0_hp )
 
          ! Above canopy transmission
          PHI     = PAC_INSTANT / ( SINbeta * PTOA )
@@ -2657,6 +2659,7 @@
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  (2 ) Modified to gamma_t_ld and to permit compound specific parameters
 !       CT1 and Ceo (dbm, 6/21/2012)
+!  07 Jan 2016 - Update ideal gas constant to NIST 2014 value
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2669,7 +2672,7 @@
 ! !DEFINED PARAMETERS:
 !
       ! Ideal gas constant [J/mol/K]
-      REAL(hp), PARAMETER   :: R   = 8.314e-3_hp
+      REAL(hp), PARAMETER   :: R   = 8.3144598e-3_hp
 
       !=================================================================
       ! GET_GAMMA_T_LD begins here!
@@ -3169,6 +3172,7 @@
 !        conifer tree, etc.) then to be correct we should have a 
 !        different CCE for each canopy type for each compound class
 !        (which would be 160 slightly different values of CCE)."
+!  07 Jan 2016 - E. Lundgren - Update ideal gas constant to NIST 2014 value
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3240,7 +3244,7 @@
       ! T = air temperature = 303K
       PT_15 = 297.0_hp
       T     = 303.0_hp
-      R     = 8.314e-3_hp
+      R     = 8.3144598e-3_hp
       ! parameters for isoprene
       CEO = 2.0_hp
       CT1 = 95.0_hp
@@ -4537,7 +4541,7 @@
       !=================================================================
 
       ! Set physical constants
-      PI_180     = HcoState%Phys%PI / 180.0_dp
+      PI_180     = HcoState%Phys%PI_180 
       Inst%D2RAD = PI_180                ! Degrees to radians
       Inst%RAD2D = 1.0_hp / PI_180       ! Radians to degrees
 

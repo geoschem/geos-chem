@@ -3779,7 +3779,9 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC 
 !
 ! !REVISION HISTORY:
-!  20 May 2015 - C. Keller: Initial version
+!  20 May 2015 - C. Keller   - Initial version
+!  22 Jan 2016 - R. Yantosca - Bug fix, removed & in the middle of the line
+!                              since the PGI compiler chokes on it.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3891,7 +3893,7 @@ CONTAINS
        ! Verbose
        IF ( am_I_Root .AND. HCO_IsVerb(HcoConfig%Err,2) ) THEN
           WRITE(MSG,*) 'Will use additional dimension on file ', &
-             TRIM(Dta%ncFile), & ': ', TRIM(Dta%ArbDimName), ' = ', &
+             TRIM(Dta%ncFile), ': ', TRIM(Dta%ArbDimName), ' = ', &
              TRIM(Dta%ArbDimVal)
           CALL HCO_MSG(HcoConfig%Err,MSG)
        ENDIF

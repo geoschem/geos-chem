@@ -121,12 +121,19 @@ CONTAINS
 ! !IROUTINE: HCOI_GC_Init
 !
 ! !DESCRIPTION: Subroutine HCOI\_GC\_INIT initializes the HEMCO derived
-! types and arrays. 
+! types and arrays. The HEMCO configuration is read from the HEMCO 
+! configuration file (as listed in Input_Opt%HcoConfigFile) and stored in 
+! the HEMCO configuration object. The entire HEMCO setup is based upon the
+! entries in the HEMCO configuration object. It is possible to explicitly 
+! provide a (previously read) HEMCO configuration object via input argument 
+! `HcoConfig`. In this case the HEMCO configuration file will not be read
+! any more. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_GC_Init( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+  SUBROUTINE HCOI_GC_Init( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                           RC,        HcoConfig ) 
 !
 ! !USES:
 !
@@ -153,14 +160,15 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
+    LOGICAL,          INTENT(IN   )          :: am_I_Root  ! root CPU?
+    TYPE(MetState),   INTENT(IN   )          :: State_Met  ! Met state
+    TYPE(ChmState),   INTENT(IN   )          :: State_Chm  ! Chemistry state 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
-    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+    TYPE(OptInput),   INTENT(INOUT)          :: Input_Opt  ! Input opts
+    TYPE(ConfigObj),  POINTER,      OPTIONAL :: HcoConfig  ! HEMCO config object
+    INTEGER,          INTENT(INOUT)          :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller    - Initial version 
@@ -169,6 +177,7 @@ CONTAINS
 !  30 Sep 2014 - R. Yantosca  - Now pass fields for aerosol and microphysics
 !                               options to extensions via HcoState
 !  13 Feb 2015 - C. Keller    - Now read configuration file in two steps.
+!  04 Apr 2016 - C. Keller    - Now accept optional input argument HcoConfig.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -178,7 +187,7 @@ CONTAINS
     LOGICAL                         :: LSTRAT,  FOUND
     INTEGER                         :: nHcoSpc, HMRC
     CHARACTER(LEN=255)              :: OptName, LOC, MSG
-    TYPE(ConfigObj), POINTER        :: HcoConfig => NULL()
+    TYPE(ConfigObj), POINTER        :: iHcoConfig => NULL()
 
     !=================================================================
     ! HCOI_GC_INIT begins here!
@@ -207,24 +216,27 @@ CONTAINS
     ! (ckeller, 2/13/15).
     !=================================================================
 
+    ! If HcoConfig is provided
+    IF ( PRESENT(HcoConfig) ) iHcoConfig => HcoConfig
+
     ! Phase 1: read settings and switches
-    CALL Config_ReadFile( am_I_Root, HcoConfig, Input_Opt%HcoConfigFile, 1, HMRC )
+    CALL Config_ReadFile( am_I_Root, iHcoConfig, Input_Opt%HcoConfigFile, 1, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Config_ReadFile', LOC )
 
     ! Check settings
-    CALL CheckSettings( am_I_Root, HcoConfig, Input_Opt, &
+    CALL CheckSettings( am_I_Root, iHcoConfig, Input_Opt, &
                         State_Met, State_Chm, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'CheckSettings', LOC )
 
     ! Phase 2: read fields
-    CALL Config_ReadFile( am_I_Root, HcoConfig, Input_Opt%HcoConfigFile, 2, HMRC )
+    CALL Config_ReadFile( am_I_Root, iHcoConfig, Input_Opt%HcoConfigFile, 2, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Config_ReadFile', LOC )
 
     !=================================================================
     ! Open logfile 
     !=================================================================
     IF ( am_I_Root ) THEN
-       CALL HCO_LOGFILE_OPEN( HcoConfig%Err, RC=HMRC ) 
+       CALL HCO_LOGFILE_OPEN( iHcoConfig%Err, RC=HMRC ) 
        IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Open Logfile', LOC )
     ENDIF
 
@@ -247,8 +259,9 @@ CONTAINS
 
     !-----------------------------------------------------------------
     ! Now that number of HEMCO species are known, initialize HEMCO
-    ! state object.
-    CALL HcoState_Init( am_I_Root, HcoState, HcoConfig, nHcoSpc, HMRC )
+    ! state object. Links the HEMCO configuration file object 
+    ! iHcoConfig to HcoState%Config.
+    CALL HcoState_Init( am_I_Root, HcoState, iHcoConfig, nHcoSpc, HMRC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HcoState_Init', LOC )
 
     !-----------------------------------------------------------------
@@ -409,6 +422,9 @@ CONTAINS
     !=================================================================
     ! Cleanup and quit
     !=================================================================
+
+    ! Eventually remove pointer
+    IF ( PRESENT(HcoConfig) ) iHcoConfig => NULL()
 
     ! Leave w/ success
     RC = GIGC_SUCCESS
@@ -2352,7 +2368,7 @@ CONTAINS
     USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
 
     USE CMN_SIZE_MOD  ! Size parameters
-    USE CMN_GCTM_MOD
+    USE PHYSCONSTANTS
 !
 ! !REMARKS:
 !  Moved here from the obsolete global_oh_mod.F.

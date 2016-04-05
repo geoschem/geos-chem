@@ -382,7 +382,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE PASSIVE_TRACER_INQUIRE ( am_I_Root, TrcID, RC, IsPassive, InitConc ) 
+  SUBROUTINE PASSIVE_TRACER_INQUIRE ( TrcID, IsPassive, InitConc ) 
 !
 ! !USES:
 !
@@ -390,12 +390,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,            INTENT(IN   )  :: am_I_Root  ! Root CPU? 
     INTEGER,            INTENT(IN   )  :: TrcID      ! GC tracer ID 
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,            INTENT(INOUT)  :: RC         ! Return code 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -440,9 +435,6 @@ CONTAINS
     ! Pass to output
     IF ( PRESENT(IsPassive) ) IsPassive = IsPass
     IF ( PRESENT(InitConc ) ) InitConc  = InConc
-
-    ! Return w/ success
-    RC = GIGC_SUCCESS
 
   END SUBROUTINE PASSIVE_TRACER_INQUIRE
 !EOC

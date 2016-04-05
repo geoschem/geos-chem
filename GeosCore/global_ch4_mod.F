@@ -15,6 +15,7 @@
 !
 ! !USES:
 !
+      USE PHYSCONSTANTS,ONLY : AVO, AIRMW
       USE HCO_ERROR_MOD    ! For HEMCO error reporting
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
 
@@ -39,7 +40,7 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      REAL(fp), PARAMETER,   PUBLIC :: XNUMOL_CH4 = 6.0221d23 / 16d-3
+      REAL(fp), PARAMETER,   PUBLIC :: XNUMOL_CH4 = AVO / 16d-3
 
 #if defined( USE_CH4_BUDGET_DIAG )
       REAL(fp), ALLOCATABLE, PUBLIC :: TCH4(:,:,:,:)
@@ -101,6 +102,7 @@
 !                              tology (not used anywhere)
 !  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  04 Mar 2015 - R. Yantosca - Now use REAL(f4) for HCO_GetPtr pointer args
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !------------------------------------------------------------------------------
 !BOC
 !     
@@ -124,7 +126,7 @@
       ! Number of CH4 budget types 
       INTEGER,  PARAMETER    :: N_CH4     = 12
 
-      REAL(fp), PARAMETER    :: XNUMOL_OH = 6.0221e+23_fp / 17e-3_fp  ! molec OH / kg OH
+      REAL(fp), PARAMETER    :: XNUMOL_OH = AVO / 17e-3_fp  ! molec OH / kg OH
       REAL(fp), PARAMETER    :: CM3PERM3  = 1.e+6_fp
 !
 ! !LOCAL VARIABLES:
@@ -958,6 +960,7 @@
 !  23 Jul 2014 - R. Yantosca - Reference ITS_IN_THE_CHEMGRID (chemgrid_mod.F)
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  17 Sep 2014 - C. Keller   - Now use HEMCO to get CH4 loss and OH conc. field.
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -965,7 +968,7 @@
 ! !DEFINED PARAMETERS:
 !
       ! Weight of air (taken from "comode.h") 
-      REAL(fp), PARAMETER      :: WTAIR = 28.966e+0_fp
+      ! REAL(fp), PARAMETER      :: WTAIR = 28.966e+0_fp ! Use global AIRMW
 !
 ! !LOCAL VARIABLES:
 !
@@ -1020,7 +1023,7 @@
 
          ! Air density [molec/cm3]
          BAIRDENS(I,J,L) = State_Met%AD(I,J,L) * 1000e+0_fp   /
-     &                     BOXVL               * 6.023e+23_fp / WTAIR
+     &                     BOXVL               * AVO / AIRMW
       ENDDO
       ENDDO
       ENDDO
@@ -1562,6 +1565,7 @@
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root and RC
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  24 Mar 2015 - E. Lundgren - Now pass Input_Opt to Check_STT
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1569,7 +1573,7 @@
 ! !DEFINED PARAMETERS:
 !
       ! Weight of air (taken from "comode.h") 
-      REAL(fp), PARAMETER   :: WTAIR = 28.966e+0_fp
+      !REAL(fp), PARAMETER   :: WTAIR = 28.966e+0_fp ! Use global AIRMW
 !
 ! !LOCAL VARIABLES:
 !
@@ -1620,8 +1624,8 @@
 
                ! Air density [molec/cm3]
                BAIRDENS(I,J,L) = State_Met%AD(I,J,L) * 1e+3_fp      / 
-     &                           BOXVL               * 6.023e+23_fp /
-     &                           WTAIR
+     &                           BOXVL               * AVO /
+     &                           AIRMW
             ENDDO
             ENDDO
             ENDDO
@@ -1736,7 +1740,7 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,  ONLY : BPCH2,       BPCH2_HDR,   GET_MODELNAME
+!      USE BPCH2_MOD,  ONLY : BPCH2,       BPCH2_HDR,   GET_MODELNAME
       USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,   ONLY : GET_MONTH,   GET_YEAR
       USE TIME_MOD,   ONLY : GET_DIAGb,   GET_CT_DYN

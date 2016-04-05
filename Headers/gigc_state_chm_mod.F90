@@ -22,6 +22,7 @@ MODULE GIGC_State_Chm_Mod
 !
 ! USES:
 !
+  USE PhysConstants    ! Physical constants
   USE Precision_Mod    ! GEOS-Chem precision types 
   USE Species_Mod      ! For species database object
 
@@ -112,6 +113,7 @@ MODULE GIGC_State_Chm_Mod
 !  13 Aug 2015 - E. Lundgren - Add tracer units string to ChmState derived type 
 !  28 Aug 2015 - R. Yantosca - Remove strat chemistry fields, these are now
 !                              handled by the HEMCO component
+!  05 Jan 2016 - E. Lundgren - Use global physical constants
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -321,10 +323,14 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: LM          ! # longitudes on this PET
     INTEGER,        INTENT(IN)    :: nTracers    ! # advected tracers
     INTEGER,        INTENT(IN)    :: nSpecies    ! # chemical species
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!-----------------------------------------------------------------------------
+! Prior to 1/25/15:
+!    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!-----------------------------------------------------------------------------
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
@@ -476,10 +482,10 @@ CONTAINS
        Input_Opt%TRACER_MW_kg(N) = EmMW_g * 1e-3_fp
 
        ! Ratio of MW dry air / MW tracer
-       Input_Opt%TCVV(N)         = 28.97e+0_fp  / Input_Opt%TRACER_MW_G(N)
+       Input_Opt%TCVV(N)         = AIRMW / Input_Opt%TRACER_MW_G(N)
 
        ! Molecules tracer / kg tracer
-       Input_Opt%XNUMOL(N)       = 6.022e+23_fp / Input_Opt%TRACER_MW_KG(N)
+       Input_Opt%XNUMOL(N)       = AVO / Input_Opt%TRACER_MW_KG(N)
 
        ! Print to screen
        IF ( am_I_Root ) THEN

@@ -454,7 +454,8 @@ chemdr.o                    : chemdr.F                                       \
                               diag_oh_mod.o           diag_pl_mod.o          \
                               dust_mod.o              future_emissions_mod.o \
                               planeflight_mod.o       restart_mod.o          \
-                              tracerid_mod.o          hco_interface_mod.o
+                              tracerid_mod.o          hco_interface_mod.o    \
+                              diagnostics_mod.o
 
 chemgrid_mod.o              : chemgrid_mod.F                                 \
                               comode_mod.o            dao_mod.o              \
@@ -465,7 +466,7 @@ chemistry_mod.o             : chemistry_mod.F                                \
                               c2h6_mod.o              carbon_mod.o           \
                               comode_mod.o            dust_mod.o             \
                               drydep_mod.o            global_ch4_mod.o       \
-                              mercury_mod.o           optdepth_mod.o         \
+                              mercury_mod.o                                  \
                               passive_tracer_mod.o                           \
                               pops_mod.o              rpmares_mod.o          \
                               RnPbBe_mod.o            seasalt_mod.o          \
@@ -616,7 +617,7 @@ diagoh.o                    : diagoh.F                                       \
 
 dust_mod.o                  : dust_mod.F                                     \
                               comode_mod.o            diag_mod.o             \
-                              drydep_mod.o            hcoi_gc_main_mod.o     \
+                              drydep_mod.o            hco_interface_mod.o    \
                               tomas_mod.o             tracerid_mod.o
 
 emissions_mod.o             : emissions_mod.F90                              \
@@ -847,8 +848,6 @@ ohsave.o                    : ohsave.F                                       \
 olson_landmap_mod.o         : olson_landmap_mod.F90                          \
                               mapping_mod.o
 
-optdepth_mod.o              : optdepth_mod.F          diag_mod.o  
-
 partition.o                 : partition.F                                    \
                               comode_mod.o            tracerid_mod.o
 
@@ -886,8 +885,10 @@ reader.o                    : reader.F
 read_jv_atms_dat.o          : read_jv_atms_dat.F90
 
 restart_mod.o               : restart_mod.F                                  \
-                              comode_mod.o                                   \
-                              passive_tracer_mod.o
+                              passive_tracer_mod.o                           \
+                              comode_mod.o            hcoi_gc_main_mod.o     \
+                              ocean_mercury_mod.o     tracerid_mod.o         \
+                              hco_interface_mod.o
 
 RnPbBe_mod.o                : RnPbBe_mod.F                                   \
                               chemgrid_mod.o          diag_mod.o             \
@@ -911,7 +912,7 @@ seasalt_mod.o               : seasalt_mod.F           dao_mod.o              \
                               diag_mod.o              drydep_mod.o           \
                               pbl_mix_mod.o           tomas_mod.o            \
                               tracerid_mod.o          vdiff_pre_mod.o        \
-                              tracer_mod.o            hcoi_gc_main_mod.o
+                              tracer_mod.o            hco_interface_mod.o
 
 set_prof_o3.o               : set_prof_o3.F                                   
 
@@ -993,7 +994,8 @@ tracerid_mod.o              : tracerid_mod.F                                 \
                               tracer_mod.o
 
 transport_mod.o             : transport_mod.F                                \
-                              diag_mod.o              pjc_pfix_mod.o         \
+                              diag_mod.o              diagnostics_mod.o      \
+                              pjc_pfix_mod.o                                 \
                               tpcore_bc_mod.o         tpcore_fvdas_mod.o     \
                               tracer_mod.o            tpcore_window_mod.o    \
                               tendencies_mod.o        pjc_pfix_window_mod.o  \

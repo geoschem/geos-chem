@@ -71,8 +71,8 @@
 !     
 ! !USES:
 !     
+      USE PHYSCONSTANTS    ! Physical parameters
       USE inquireMod, ONLY : findFreeLUN
-
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -129,7 +129,7 @@
       REAL(fp),  PARAMETER   :: FMOL_CO2   = 44e-3_fp
 
       ! XNUMOL_CO2   - molecules CO2 / kg CO2 
-      REAL(fp),  PARAMETER   :: XNUMOL_CO2 = 6.022e+23_fp / FMOL_CO2
+      REAL(fp),  PARAMETER   :: XNUMOL_CO2 = AVO / FMOL_CO2
 
       CONTAINS
 !EOC
@@ -151,7 +151,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_GCTM_MOD
       USE GIGC_ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE DIAG04_MOD,         ONLY : AD04, ND04
@@ -932,10 +931,8 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE CMN_SIZE_MOD        ! Size parameters
       USE FILE_MOD,      ONLY : IOERROR
-
-      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1157,10 +1154,8 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE CMN_SIZE_MOD        ! Size parameters
       USE FILE_MOD,      ONLY : IOERROR
-
-      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1311,10 +1306,8 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE CMN_SIZE_MOD        ! Size parameters
       USE FILE_MOD,      ONLY : IOERROR
-
-      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !OUTPUT PARAMETERS:
 !

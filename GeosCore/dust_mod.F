@@ -259,7 +259,7 @@
 !
 ! !USES:
 ! 
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE DRYDEP_MOD,         ONLY : NUMDEP, NTRAIND
@@ -416,9 +416,10 @@
 !               endif
 !debug-----
             ENDDO
-#if !defined( NO_BPCH )
+
+#if defined( BPCH_DIAG )
          !========================================================      
-         ! ND44: Dry deposition diagnostic [#/cm2/s]
+         ! ND44: Dry deposition diagnostic [#/cm2/s] (bpch)
          !========================================================
             IF ( ND44 > 0 ) THEN
                AD44(I,J,Input_Opt%IDDEP(BIN),1) = 
@@ -426,6 +427,7 @@
                AD44(I,J,NN,1) = AD44(I,J,NN,1) + FLUXD
             ENDIF
 #endif
+
          ENDDO
       ENDDO
       ENDDO
@@ -622,10 +624,10 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
+      USE PHYSCONSTANTS,      ONLY : g0          ! Accel due to gravity [m/s2]
       USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE GIGC_ErrCode_Mod
@@ -633,6 +635,12 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if defined( NC_DIAG )
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
+      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -666,6 +674,7 @@
 !                              aerosols (T.D. Fairlie)
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
 !                              remove dependency on pressure_mod
+!  25 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostic
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -701,7 +710,15 @@
       REAL(fp)              :: VTS(LLPAR)  
 
       ! Molecules tracer / kg tracer, from Input Options
-      REAL(fp)              :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)              :: XNUMOL(Input_Opt%N_TRACERS) 
+
+#if defined( NC_DIAG )
+      ! For netcdf diagnostics (ND44 drydep flux)
+      INTEGER               :: drydep_id, trc_id, HCRC
+      CHARACTER(LEN=30)     :: DiagnName
+      REAL(fp), TARGET      :: DryDepFlux( IIPAR, JJPAR, NDSTBIN ) 
+      REAL(fp), POINTER     :: Ptr2D(:,:) => NULL()
+#endif
 !
 ! !DEFINED PARAMETERS:
 !      
@@ -724,6 +741,11 @@
       ! Dust settling timestep [s]
       DT_SETTL  = GET_TS_CHEM() * 60e+0_fp
 
+#if defined( NC_DIAG )
+      ! Initialize diagnostic array (ND44)
+      DryDepFlux = 0e+0_fp
+#endif
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,     J,        L,    N,     DEN,  REFF, DP    )
@@ -737,7 +759,7 @@
          DEN   = Input_Opt%DUSTDEN(N)
          REFF  = Input_Opt%DUSTREFF(N)
          DP    = 2e+0_fp * REFF * 1.e+6_fp    ! Dp [um] = particle diameter
-         CONST = 2e+0_fp * DEN * REFF**2 * G0 / 9e+0_fp
+         CONST = 2e+0_fp * DEN * REFF**2 * g0 / 9e+0_fp
 
          ! Loop over latitudes
          DO J = 1, JJPAR
@@ -820,7 +842,7 @@
                ENDDO
 
                !========================================================      
-               ! ND44: Dry deposition diagnostic [#/cm2/s]
+               ! ND44: Dry deposition diagnostic [molec/cm2/s] 
                !========================================================
                IF ( ND44 > 0 ) THEN
 
@@ -834,23 +856,74 @@
                      TOT2 = TOT2 + TC(I,J,L,N)
                   ENDDO
 
-                  ! Convert dust flux from [kg/s] to [#/cm2/s]
+                  ! Convert dust flux from [kg/s] to [molec/cm2/s]
                   FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
                   FLUX = FLUX * XNUMOL(INDEX) / AREA_CM2 
 
-#if !defined( NO_BPCH )
-                  ! Save in AD44
+#if defined( BPCH_DIAG )
+                  ! For bpch diagnostic, save in global array AD44
 !tdf                  AD44(I,J,Input_Opt%IDDEP(N),1) = 
 !tdf     &            AD44(I,J,Input_OPt%IDDEP(N),1) + FLUX
                   AD44(I,J,Input_Opt%IDDEP(N+IDISP),1) =
      &            AD44(I,J,Input_Opt%IDDEP(N+IDISP),1) + FLUX
 #endif
+#if defined( NC_DIAG )
+                  ! For netcdf diagnostic, store data in local array
+                  DryDepFlux(I,J,N) = FLUX
+#endif
                ENDIF
 
-            ENDDO
-         ENDDO
-      ENDDO
+            ENDDO 
+         ENDDO    
+      ENDDO       
 !$OMP END PARALLEL DO
+
+#if defined( NC_DIAG )
+      !========================================================      
+      ! ND44: Dry deposition diagnostic [molec/cm2/s] (netcdf) 
+      !========================================================
+      IF ( ND44 > 0 ) THEN
+
+         ! Loop over dust bins
+         DO N = 1, NDSTBIN
+
+            ! Get drydep id
+            drydep_id = Input_Opt%IDDEP(N+IDISP)
+
+            ! Get tracer id
+            trc_id = Input_Opt%NTRAIND( drydep_id )
+         
+            ! If this tracer number NN is scheduled for output in input.geos, 
+            ! then archive the latest depvel data into the diagnostic structure
+            IF ( ANY( Input_Opt%TINDEX(44,:) == trc_id ) ) THEN
+         
+               ! Define name of diagnostic
+               DiagnName = 'DRYDEP_FLX_CHEM_' // 
+     &                     TRIM( Input_Opt%DEPNAME( drydep_id ) )
+               
+               ! Point to data
+               Ptr2D => DryDepFlux(:,:,N)
+               
+               ! Update diagnostic container
+               CALL Diagn_Update( am_I_Root, HcoState, 
+     &                            cName   = TRIM( DiagnName),         
+     &                            Array2D = Ptr2D,                      
+     &                            COL     = Input_Opt%DIAG_COLLECTION, 
+     &                            RC      = HCRC    )
+
+               ! Free the pointer
+               Ptr2D => NULL()
+               
+               ! Stop with error if the diagnostic was unsuccessful
+               IF ( HCRC /= HCO_SUCCESS ) THEN
+                  CALL ERROR_STOP( 'Cannot update drydep flux' //        
+     &                             ' diagnostic: ' // TRIM( DiagnName), 
+     &                             'DRY_SETTLING (dust_mod.F)')
+               ENDIF
+            ENDIF
+         ENDDO
+      ENDIF
+#endif
 
       END SUBROUTINE DRY_SETTLING
 !EOC
@@ -1711,6 +1784,7 @@
 !
 ! !USES:
 !
+      USE PHYSCONSTANTS,      ONLY : PI
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_MOD,         ONLY : ERADIUS, JLOP,   TAREA
       USE ERROR_MOD,          ONLY : IT_IS_NAN
@@ -1754,13 +1828,13 @@
 !                              as arguments
 !  14 Nov 2013 - M. Sulprizio- Bug fix: Avoid div-by-zero in calculation of
 !                              gas-to-particle rate constants for SO2 and HNO3
+!  05 Jan 2016 - E. Lundgren - Use global PI
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp), PARAMETER :: PI = 3.14159265
       REAL(fp), PARAMETER :: MINDAT = 1.d-20
 
       ! Need this for dust
@@ -2189,6 +2263,7 @@
 !
 ! !USES:
 !
+      USE PHYSCONSTANTS,      ONLY : PI
       USE CMN_SIZE_MOD
 !      USE DRYDEP_MOD,         ONLY : NTRAIND
       USE ERROR_MOD,          ONLY : ALLOC_ERR
@@ -2226,6 +2301,7 @@
 !                              we can use the species database
 !  30 Sep 2015 - R. Yantosca - DD_A_Density is now renamed to Density
 !  30 Sep 2015 - R. Yantosca - DD_A_Radius is now renamed to Radius
+!  05 Jan 2016 - E. Lundgren - Use global parameter PI
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2238,7 +2314,6 @@
 #if   defined( TOMAS )
       INTEGER            :: I
       INTEGER            :: BIN
-      REAL(fp),  PARAMETER :: PI = 3.14159265e+0_fp  !(win, 7/17/09)
 #endif
 
       ! Objects

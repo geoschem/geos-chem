@@ -17,8 +17,9 @@
 !
 ! !USES:
 !
-      USE inquireMod, ONLY : findFreeLUN
-      USE ERROR_MOD,  ONLY : DEBUG_MSG
+      USE PHYSCONSTANTS        ! Physical parameters
+      USE inquireMod,   ONLY : findFreeLUN
+      USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE CMN_SIZE_MOD
 
 !#if !defined(ESMF_)
@@ -103,6 +104,8 @@
 !  14 Jan 2014 - C. Keller     - Now read and diagnose STATE_PSC through HEMCO.
 !  08 Apr 2015 - R. Yantosca   - Now make READ_PSC_FILE a PUBLIC routine
 !  08 May 2015 - C. Keller     - Added WRITE_STATE_PSC
+!  05 Jan 2016 - E. Lundgren   - Use global physical parameters AVO, PI, AIRMW, 
+!                                RE, RSTARG, and ATM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -117,8 +120,6 @@
       ! T_STS           : Maximum temperature of STS formation (K)
       ! I_SLA           : Index of liquid aerosols
       ! I_SPA           : Index of particulate PSCs
-      ! AVOGADRO        : Avogadro's number (#/mole)
-      ! R_UNIV          : Universal gas constant (J/mol K)
       ! INITMR_BASIS    : Year for which the initializing mixing ratios
       !                   were calculated (needed for future-scaling)
       ! UCXNETCDF       : Read data from NetCDF
@@ -130,8 +131,6 @@
       REAL(fp), PARAMETER           :: T_STS=240.0e+0_fp
       INTEGER,  PARAMETER           :: I_SLA=1
       INTEGER,  PARAMETER           :: I_SPA=2
-      REAL(fp), PARAMETER           :: AVOGADRO=6.022e+23_fp
-      REAL(fp), PARAMETER           :: R_UNIV = 8.31448e+0_fp
       INTEGER,  PARAMETER           :: INITMR_BASIS = 2005
 
 #if defined(ESMF_)
@@ -1028,7 +1027,6 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE CMN_GCTM_MOD,       ONLY : PI, RE
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1280,7 +1278,7 @@
 
          ! Calculate air number density (molec/cm3)
          ! Now using dry air partial pressure (ewl, 3/2/15)
-         NDAIR = State_Met%PMID_DRY(I,J,L)*1.d-4*AVOGADRO/(R_UNIV*T3K)
+         NDAIR = State_Met%PMID_DRY(I,J,L)*1.d-4*AVO/(RSTARG*T3K)
          XAIR  = NDAIR / State_Met%AD(I,J,L)
 
          ! Calculate local NOx, N2O and O3 number density
@@ -2520,7 +2518,6 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND44
-      USE CMN_GCTM_MOD             ! g0
       USE CMN_FJX_MOD,        ONLY : RAA, IND999
       USE COMODE_MOD,         ONLY : JLOP,WERADIUS,ERADIUS
       USE ERROR_MOD,          ONLY : IT_IS_NAN,ERROR_STOP
@@ -2759,9 +2756,9 @@
                VNAT(L) = 0e+0_fp
             ELSE
                ! Calculate common variables first
-               sp_Num = P * 1.e+3_fp * 6.023e+23_fp / (8.314 * Temp)
-               sp_Lambda = 1.e+6_fp/(1.41421*sp_Num*3.141592*
-     &                    (3.7e-10_fp)**2)
+               sp_Num = P * 1.e+3_fp * AVO / (RSTARG * Temp)
+               sp_Lambda = 1.e+6_fp / ( SQRT(2e+0_fp) * sp_Num * PI
+     &                     * (3.7e-10_fp)**2 )
 
                ! Viscosity [Pa*s] of air as a function of temperature 
                VISC = 1.458e-6_fp * (Temp)**(1.5e+0_fp) 
@@ -3237,7 +3234,6 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
-      USE CMN_GCTM_MOD,       ONLY : AIRMW
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -3309,7 +3305,7 @@
          GF_INVT0 = 1.e+0_fp/GF_T0
          GF_LOGP0 = (-1.e+0_fp*GF_DELTAHBYR*GF_INVT0) + 16.259e+0_fp
          GF_BFACTOR = 0.38e+0_fp/(GF_TC - GF_T0)
-         GF_ATMCONV = LOG(101325.e+0_fp)
+         GF_ATMCONV = LOG(ATM)
       ENDIF
 
 !$OMP PARALLEL DO
@@ -3432,7 +3428,6 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
-      USE CMN_GCTM_MOD,       ONLY : AIRMW, PI
       USE COMODE_MOD,         ONLY : CSPEC,JLOP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -3700,7 +3695,7 @@
                STATE_LOCAL  = NINT(STATE_PSC(I,J,L))
 
                ! Calculate local air density
-               DENAIR = AVOGADRO * PCENTER_PA / (TCENTER*R_UNIV)
+               DENAIR = AVO * PCENTER_PA / (TCENTER*RSTARG)
                INVAIR = AIRMW / State_Met%AD(I,J,L)
 
                ! Get available NO3 mass
@@ -3730,9 +3725,9 @@
                ELSE
                   ! Calculate saturation pressures
                   PSATHNO3 = (10.e+0_fp**(((TSATHNO3_A+(TCENTER*
-     &            TSATHNO3_B))*LOG10(H2OPP*760.0e+0_fp/101325.0e+0_fp))+
+     &            TSATHNO3_B))*LOG10(H2OPP*760.0e+0_fp/ATM))+
      &            (TSATHNO3_C+(TSATHNO3_D*TINV)+(TSATHNO3_E*
-     &            TCENTER))))*101325.0e+0_fp/760.0e+0_fp
+     &            TCENTER))))*ATM/760.0e+0_fp
 
                   PSATH2O = 10.0e+0_fp**((TSATH2O_A*TINV)+TSATH2O_B)
 
@@ -3746,9 +3741,9 @@
                      TOFFSET = TCENTER + T_NAT_SUPERCOOL
                      PSATHNO3_SUPERCOOL = 10.e+0_fp**(((TSATHNO3_A+
      &                  (TOFFSET*TSATHNO3_B))*LOG10(H2OPP*760.0e+0_fp/
-     &                  101325.0e+0_fp))+
+     &                  ATM))+
      &                  (TSATHNO3_C+(TSATHNO3_D/TOFFSET)+(TSATHNO3_E*
-     &                  TOFFSET)))*101325.0e+0_fp/760.0e+0_fp
+     &                  TOFFSET)))*ATM/760.0e+0_fp
                   ELSE
                      ! Make homogeneous nucleation impossible
                      TOFFSET = 280.0e+0_fp
@@ -3814,7 +3809,7 @@
      &                              State_Met%AD(I,J,L)
                      ENDIF
                      VOL_ICE = H2O_BOX_S * DENAIR * (1.e-3_fp) * ICEMW /
-     &                             (DENSICE*AVOGADRO) ! m3 ice/m3 air 
+     &                             (DENSICE*AVO) ! m3 ice/m3 air 
                   ELSE
                      VOL_ICE = 0e+0_fp
                      H2O_BOX_S = 0e+0_fp
@@ -3833,7 +3828,7 @@
                      ! Therefore volume calculation must be done
                      ! with care!
                      VOL_NAT = HNO3_BOX_S * DENAIR * (1.e-3_fp) *
-     &                         NATMW / (DENSNAT*AVOGADRO)
+     &                         NATMW / (DENSNAT*AVO)
                      KG_NAT  = HNO3_BOX_S * NATMW *
      &                         State_Met%AD(I,J,L) / AIRMW
 
@@ -4419,8 +4414,6 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD,      ONLY : PI
-
       ! Temporary - for debug
       USE ERROR_MOD,     ONLY : IT_IS_NAN,ERROR_STOP     ! Test for NaN
       USE ERROR_MOD,     ONLY : SAFE_EXP,SAFE_DIV, DEBUG_MSG
@@ -4457,6 +4450,7 @@
 ! !REVISION HISTORY: 
 !  19 Apr 2013 - S. D. Eastham - Initial version
 !  16 Apr 2015 - M. Yannetti   - Changed EXP to SAFE_EXP in H_HCL
+!  01 Jan 2016 - E. Lundgren   - Calculate R_ATM from global params
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4509,7 +4503,7 @@
       REAL(fp) :: PVAP_HOBr
 
       ! R in m3.atm/(mol K)
-      REAL(fp), PARAMETER :: R_ATM = 8.205e-5_fp
+      REAL(fp), PARAMETER :: R_ATM = Rd * AIRMW * 1e-3_fp / ATM
 
       ! Transitional variables
       REAL(fp) :: DENSITY
@@ -4557,21 +4551,21 @@
       TCENTER = TCENTER_IN
 
       ! Calculate partial pressure of H2O & HNO3
-      ! PCENTER is in hPa
-      PATMH2O  = H2OSUM  * PCENTER / 1013.0e+0_fp
+      ! PCENTER is in hPa, so need to convert ATM from Pa to hPa
+      PATMH2O  = H2OSUM  * PCENTER / (ATM*1e-2_fp)
 
       ! Carslaw only valid for 2e-5 < PPH2O < 2e-3 (hPa)
       PATMH2O = MAX(PATMH2O,1.9738465e-8_fp)
       PATMH2O = MIN(PATMH2O,1.9738465e-6_fp)
 
-      PATMHNO3 = HNO3SUM * PCENTER / 1013.0e+0_fp
-      PATMHCl  = HClSUM  * PCENTER / 1013.0e+0_fp
-      PATMHOCl = HOClSUM * PCENTER / 1013.0e+0_fp
-      PATMHBr  = HBrSUM  * PCENTER / 1013.0e+0_fp
-      PATMHOBr = HOBrSUM * PCENTER / 1013.0e+0_fp
+      PATMHNO3 = HNO3SUM * PCENTER / (ATM*1e-2_fp)
+      PATMHCl  = HClSUM  * PCENTER / (ATM*1e-2_fp)
+      PATMHOCl = HOClSUM * PCENTER / (ATM*1e-2_fp)
+      PATMHBr  = HBrSUM  * PCENTER / (ATM*1e-2_fp)
+      PATMHOBr = HOBrSUM * PCENTER / (ATM*1e-2_fp)
 
       ! Moles of H2SO4 per m3 air
-      MOLDENS_H2SO4 = 100.e+0_fp*PCENTER*H2SO4SUM/(8.314e+0_fp*TCENTER)
+      MOLDENS_H2SO4 = 100.e+0_fp*PCENTER*H2SO4SUM/(RSTARG*TCENTER)
 
       ! Nucleation temperature of ice
       T_ICE = 2668.70e+0_fp/
@@ -4687,7 +4681,7 @@
      &      5632.0e+0_fp*W_H2SO4**2)-LOG(W_HNO3+0.610e+0_fp*W_H2SO4)-
      &      LOG(36.461e+0_fp/(1000.0e+0_fp+98.076e+0_fp*
      &      M_H2SO4+63.012e+0_fp*
-     &      M_HNO3)))*1013.0e+0_fp
+     &      M_HNO3)))*(ATM*1e-2_fp)
          M_HCl = (1.0e+0_fp/R_ATM/TCENTER*PATMHCL)/
      &      (MOLDENS_H2SO4/M_H2SO4 + 1.0e+0_fp/R_ATM/TCENTER/H_HCL)
          W_HCL=M_HCL*36.461e+0_fp/(1.0e+3_fp+98.076e+0_fp*M_H2SO4+
@@ -4729,7 +4723,7 @@
      &      7680.0e+0_fp*W_H2SO4**2)-LOG(W_HNO3+0.410e+0_fp*W_H2SO4)-
      &      LOG(36.461e+0_fp/(1000.0e+0_fp+98.076e+0_fp*
      &      M_H2SO4+63.012e+0_fp*
-     &      M_HNO3)))*1013.0e+0_fp
+     &      M_HNO3)))*(ATM*1e-2_fp)
          M_HBr = (1.0e+0_fp/R_ATM/TCENTER*PATMHBr)/
      &      (MOLDENS_H2SO4/M_H2SO4 + 1.0e+0_fp/R_ATM/TCENTER/H_HBr)
          W_HBr=M_HBr*80.91e+0_fp/(1.0e+3_fp+98.076e+0_fp*M_H2SO4+
@@ -4840,7 +4834,6 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD,    ONLY : PI, g0
       USE ERROR_MOD,       ONLY : ERROR_STOP
 !
 ! !INPUT PARAMETERS:
@@ -4920,7 +4913,6 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD,       ONLY : PI
       ! Temporary - for debug
       USE ERROR_MOD,     ONLY : IT_IS_NAN,ERROR_STOP     ! Test for NaN
 !
@@ -5059,10 +5051,10 @@
      &     -(1.76+2.52e-4_f8*WT*WT)*SQRT(T) +
      &     (-805.89+253.05*WT**0.076)/SQRT(T))
 
-      HClPP = HClSUM*P/1013.25e+0_f8 ! Note atm, not hPa
-      ClNO3PP = ClNO3SUM*P/1013.25e+0_f8
-      BrNO3PP = BrNO3SUM*P/1013.25e+0_f8
-      HOBrPP = HOBrSUM*P/1013.25 ! Note atm, not hPa
+      HClPP = HClSUM*P/(ATM*1e-2_f8) ! Note atm, not hPa
+      ClNO3PP = ClNO3SUM*P/(ATM*1e-2_f8)
+      BrNO3PP = BrNO3SUM*P/(ATM*1e-2_f8)
+      HOBrPP = HOBrSUM*P/(ATM*1e-2_f8) ! Note atm, not hPa
  
       ! Should we bother running calculations?
       HClOK = (HClPP .gt. 1.e-30_f8)
@@ -5258,10 +5250,6 @@
 !
       REAL(fp) FUNCTION MOLEC_SPEED(T,MOLMASS)
 !
-! !USES:
-!
-      USE CMN_GCTM_MOD, ONLY : PI
-!
 ! !INPUT PARAMETERS:
 !
       REAL(fp), INTENT(IN)          :: T       ! Temperature (K)
@@ -5277,7 +5265,7 @@
       ! MOLEC_SPEED begins here!
       !=================================================================
 
-      MOLEC_SPEED=SQRT(8.0e+0_fp*8.31451e+7_fp*T/(PI*MOLMASS))
+      MOLEC_SPEED=SQRT(8.0e+0_fp*RSTARG*1e+7_fp*T/(PI*MOLMASS))
 
       END FUNCTION MOLEC_SPEED
 !EOC
@@ -5464,7 +5452,6 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CMN_SIZE_MOD
-      USE CMN_GCTM_MOD
       USE ERROR_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState

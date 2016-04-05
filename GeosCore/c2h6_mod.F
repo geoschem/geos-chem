@@ -16,6 +16,7 @@
 ! !USES:
 !
       USE PRECISION_MOD
+      USE PHYSCONSTANTS, ONLY : AVO
 
       IMPLICIT NONE
       PRIVATE
@@ -62,6 +63,7 @@
 !                              be called from input_mod.F
 !  20 Jun 2014 - R. Yantosca - Remove obsolete code now replaced by HEMCO
 !  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  06 Jan 2016 - E. Lundgren - Use global physical params
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -72,7 +74,7 @@
       REAL(fp), PARAMETER   :: FMOL_C2H6 = 30e-3_fp
 
       ! Ratio of [molec C2H6/kg C2H6]
-      REAL(fp), PARAMETER   :: XNUMOL_C2H6 = 6.022e+23_fp/FMOL_C2H6
+      REAL(fp), PARAMETER   :: XNUMOL_C2H6 = AVO/FMOL_C2H6
 !
 ! PRIVATE TYPES:
 !

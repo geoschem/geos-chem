@@ -231,7 +231,7 @@
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND44, ND65, LD65
-      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
+      USE PHYSCONSTANTS            ! SCALE_HEIGHT
 !
 ! !INPUT PARAMETERS: 
 !

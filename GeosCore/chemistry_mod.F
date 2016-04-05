@@ -105,7 +105,6 @@
       USE GLOBAL_CH4_MOD,     ONLY : CHEMCH4
       USE ISOROPIAII_MOD,     ONLY : DO_ISOROPIAII
       USE MERCURY_MOD,        ONLY : CHEMMERCURY
-      USE OPTDEPTH_MOD,       ONLY : OPTDEPTH
       USE POPS_MOD,           ONLY : CHEMPOPS
       USE RnPbBe_MOD,         ONLY : CHEMRnPbBe
       USE RPMARES_MOD,        ONLY : DO_RPMARES
@@ -118,7 +117,9 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTISOP
       USE TRACERID_MOD,       ONLY : IDTDST1
+#if defined( DEVEL )
       USE TENDENCIES_MOD
+#endif
       USE UNITCONV_MOD
       USE PASSIVE_TRACER_MOD, ONLY : CHEM_PASSIVE_TRACER 
 
@@ -229,6 +230,9 @@
 !  18 May 2015 - R. Yantosca - Remove DIAG_STATE_PSC, that is not used anymore
 !  15 Jun 2015 - R. Yantosca - Removed calls to DRYFLXRnPbBe, that's obsolete
 !  04 Sep 2015 - C. Keller   - Added passive tracer call.
+!  17 Mar 2016 - M. Sulprizio- Remove call to OPTDEPTH. The optical depth fields
+!                              are now saved into State_Met%OPTD in the routines
+!                              that read the met fields from disk.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -338,11 +342,6 @@
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT                      => State_Chm%Tracers
-
-      ! Compute optical depths (except for CH4 simulation)
-      IF ( .not. IT_IS_A_CH4_SIM ) THEN
-         CALL OPTDEPTH( am_I_Root, Input_Opt, State_Met, RC )
-      ENDIF
 
       !=================================================================
       ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)

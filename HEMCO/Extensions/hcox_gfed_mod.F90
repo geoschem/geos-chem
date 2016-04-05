@@ -59,6 +59,14 @@ MODULE HCOX_GFED_MOD
 !
 ! Field NAMASK must be defined in section mask of the HEMCO configuration file.
 !                                                                             
+! For SOA_SVPOA mechanism:
+! * If tracers POG1 and POG2 are specified, emissions are calculated from OC,
+!   multiplied by a POG scale factor (Scaling_POG1, Scaling_POG2) that must be
+!   specified in the HEMCO configuration file.
+! * If tracer NAP is specified, emissions are calculated from CO, multiplied
+!   by a NAP scale factor (Scaling_NAP) that must be specified in the HEMCO
+!   configuration file.
+!
 !  References:
 !  ============================================================================
 !  (1 ) Original GFED3 database from Guido van der Werf 
@@ -147,26 +155,19 @@ MODULE HCOX_GFED_MOD
   !              emission factor type. The filename of the emissions
   !              emissions factor table is specified in the HEMCO
   !              configuration file. All scale factors in kg/kgDM.
-  ! COScale    : CO scale factor to account for production from 
-  !              VOCs. Read from HEMCO configuration file.
   ! OCPIfrac   : Fraction of OC that converts into hydrophilic OC.
   !              Can be set in HEMCO configuration file (default=0.5)
   ! BCPIfrac   : Fraction of BC that converts into hydrophilic BC.
   !              Can be set in HEMCO configuration file (default=0.2)
-  ! POASCALE  : Scale factor for POA. If tracer POA1 is specified, 
-  !             emissions are calculated from OC, multiplied by a
-  !             POA scale factor that must be specified in the HEMCO
-  !             configuration file (POA scale).
-  ! NAPSCALE  : Scale factor for NAP. If tracer NAP is specified, 
-  !             emissions are calculated from CO, multiplied by a
-  !             NAP scale factor that must be specified in the HEMCO
-  !             configuration file (NAP scale).
+  ! POG1frac   : Fraction of SVOC that is assigned to POG1.
+  !              Can be set in HEMCO configuration file (default=0.49)
   !=================================================================
   REAL(hp), ALLOCATABLE, TARGET  :: GFED3_EMFAC(:,:)
   REAL(hp), ALLOCATABLE, TARGET  :: GFED4_EMFAC(:,:)
   REAL(hp),              POINTER :: GFED_EMFAC (:,:) => NULL()
   REAL(sp)                       :: OCPIfrac 
   REAL(sp)                       :: BCPIfrac
+  REAL(sp)                       :: POG1frac
 
   !=================================================================
   ! DATA ARRAY POINTERS 
@@ -390,6 +391,10 @@ CONTAINS
              SpcArr = SpcArr * BCPIfrac
           CASE ( 'BCPO' )
              SpcArr = SpcArr * (1.0_sp - BCPIfrac)
+          CASE ( 'POG1' )
+             SpcArr = SpcArr * POG1frac
+          CASE ( 'POG2' )
+             SpcArr = SpcArr * (1.0_sp - POG1frac)
        END SELECT
 
        ! Check for masking
@@ -456,6 +461,9 @@ CONTAINS
 !  11 Nov 2014 - C. Keller     - Now get hydrophilic fractions via config file
 !  22 Apr 2015 - R. Yantosca   - Now explicitly test for "POA scale factor"
 !                                and "NAP scale factor" to avoid search errors
+!  07 Jan 2016 - M. Sulprizio  - Change 'POA1' to 'POG1' to better reflect that
+!                                SVOC emissions are added to the gas-phase
+!                                species in carbon_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -546,11 +554,22 @@ CONTAINS
        OCPIfrac = ValSp
     ENDIF
 
-    ! Error check: OCPIfrac and BCPI frac must be between 0 and 1
+    ! Try to read POG1 fraction of SVOC. Defaults to 0.49.
+    CALL GetExtOpt ( HcoState%Config, ExtNr, 'fraction POG1', &
+                     OptValSp=ValSp, FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND ) THEN
+       POG1frac = 0.49
+    ELSE
+       POG1frac = ValSp
+    ENDIF
+
+    ! Error check: OCPIfrac, BCPIfrac, and POG1frac must be between 0 and 1
     IF ( OCPIfrac < 0.0_sp .OR. OCPIfrac > 1.0_sp .OR. &
-         BCPIfrac < 0.0_sp .OR. BCPIfrac > 1.0_sp     ) THEN
-       WRITE(MSG,*) 'hydrophilic fractions must be between 0-1: ', &
-          OCPIfrac, BCPIfrac
+         BCPIfrac < 0.0_sp .OR. BCPIfrac > 1.0_sp .OR. &
+         POG1frac < 0.0_sp .OR. POG1frac > 1.0_sp     ) THEN
+       WRITE(MSG,*) 'fractions must be between 0-1: ', &
+          OCPIfrac, BCPIfrac, POG1frac
        CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ENDIF
@@ -624,6 +643,8 @@ CONTAINS
        CALL HCO_MSG(HcoState%Config%Err,MSG )
        WRITE(MSG,*) '   - Hydrophilic BC fraction : ', BCPIfrac
        CALL HCO_MSG(HcoState%Config%Err,MSG )
+       WRITE(MSG,*) '   - POG1 fraction           : ', POG1frac
+       CALL HCO_MSG(HcoState%Config%Err,MSG )
     ENDIF
 
     ! Get HEMCO species IDs of all species specified in configuration file
@@ -695,7 +716,8 @@ CONTAINS
              SpcName = 'OC'
           ENDIF
        ENDIF
-       IF ( TRIM(SpcName) == 'POA1' ) SpcName = 'OC'
+       IF ( TRIM(SpcName) == 'POG1' ) SpcName = 'OC'
+       IF ( TRIM(SpcName) == 'POG2' ) SpcName = 'OC'
        IF ( TRIM(SpcName) == 'NAP'  ) SpcName = 'CO'
 
        ! Search for matching GFED species by name

@@ -251,6 +251,7 @@ MODULE HCO_TYPES_MOD
      REAL(dp) :: g0      ! Gravity at surface of earth (m/s2)
      REAL(dp) :: Rd      ! Gas Constant (R) in dry air (J/K/kg)
      REAL(dp) :: Rdg0    ! Rd/g0
+     REAL(dp) :: RSTARG  ! Universal gas constant [J/K/mol]
   END TYPE HcoPhys 
 
   !=========================================================================

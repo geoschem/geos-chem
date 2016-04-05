@@ -21,6 +21,7 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+      USE PHYSCONSTANTS,      ONLY : g0
       USE DIAG_MOD,           ONLY : AD44
       USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, NTRAIND 
       USE DUST_MOD,           ONLY : SETTLEDUST   
@@ -88,7 +89,6 @@
       REAL(fp)               :: DEN,   DP,    PDP,  TEMP,  P
       REAL(fp)               :: CONST, SLIP,  VISC, DELZ,  DELZ1
       REAL(fp)               :: TOT1,  TOT2
-      REAL(fp),  PARAMETER   :: Go = 9.8e+0_fp  !Gravitational accel [m/s2]
       REAL(fp)               :: TC(LLPAR),  TC0(LLPAR)
       INTEGER,SAVE           :: DRYD(IBINS)
       LOGICAL,SAVE           :: FIRST = .TRUE.
@@ -216,7 +216,7 @@ cdbg      print *, dryd(:)
 
          DP  = SIZ_DIA(IJLOOP, BIN) * 1.d6 ![=] um
          DEN = SIZ_DEN(IJLOOP, BIN) ![=] kg/m3
-         CONST = DEN *  (DP*1.d-6)**2.d0 * Go / 18.d0  
+         CONST = DEN *  (DP*1.d-6)**2.d0 * g0 / 18.d0  
 
 !debug            if(i==ix .and. j==jx .and. bin==bb) then
 !               print *, 'L, P, Dp, DEN, SLIP, VISC, VTS(L)'
@@ -309,7 +309,7 @@ cdbg      print *, dryd(:)
             ENDDO
 
 
-#if !defined( NO_BPCH ) 
+#if defined( BPCH_DIAG ) 
             !========================================================      
             ! ND44: Dry deposition diagnostic [#/cm2/s]
             !========================================================
@@ -426,7 +426,7 @@ c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
             ENDIF
 ! ******************************************************************************
                
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
             !==============================================================
             ! ND44 Diagnostic: Drydep flux of bin1,..,bin30 [molec/cm2/s]
             !==============================================================
@@ -479,7 +479,7 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
          RKT = DEPSAV(I,J,H2SO4ID)* GET_FRAC_UNDER_PBLTOP( I, J, L)
          Y = Y0 * EXP(-RKT)
 ! ******************************************************************************
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
          !==============================================================
          ! ND44 Diagnostic: Drydep flux of H2SO4 [molec/cm2/s]
          !==============================================================

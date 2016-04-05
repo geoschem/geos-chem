@@ -18,6 +18,7 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CHEMGRID_MOD,       ONLY : COPY_FULL_CHEMGRID
+      USE PHYSCONSTANTS,      ONLY : BOLTZ
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
       USE COMODE_MOD,         ONLY : ABSHUM
@@ -144,6 +145,7 @@
       REAL(fp)  :: S2CON,GRCONC1,GRCONC2,GRCONC3,SUMRMS,SUMFRACS,QNEW
       REAL(fp)  :: QACC,FRACDIF,FRACABS,AVGERR,RMSCUR
       REAL(fp)  :: TK,CONSEXP,VPRESH2O,CONST
+      REAL(fp)  :: CONSVAP
 
       ! For fields from Input_Opt
       INTEGER         :: NTRACER
@@ -183,6 +185,27 @@
       !=================================================================
       IF ( FIRSTCHEM ) THEN
 
+         ! Echo some input to the screen
+         WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+         WRITE( 6, '(a,/)' ) 'C S P E C  -  Use Background Values'
+         WRITE( 6, '(a)' ) 'GASCONC: Assigning values to CSPEC'
+
+         ! Loop over species to write out background values to log
+         WRITE( 6, 150 )
+ 150     FORMAT( /,'Using default background of each species ',
+     &          'from globchem.dat [mol mol-1]:' )
+         DO 27 JGAS = 1, NTSPEC(NCS)
+            WRITE( 6, 160 ) JGAS, TRIM( NAMEGAS(JGAS) ), 
+     &                      QBKCHEM(JGAS,NCS)
+ 160        FORMAT( 'Species ', i3, ', ', a9, ':  ', es15.9 )
+ 27      CONTINUE
+
+
+         ! Write header to log for min and max value post-conversion
+         WRITE( 6, 170 )
+ 170     FORMAT( /,'Min and Max of each species after unit conversion',
+     &           ' [molec/cm3/box]:' )
+
          ! Loop over species
          DO 28 JGAS = 1, NTSPEC(NCS)
 
@@ -206,7 +229,7 @@
             ! the OH concentration and the methylchloroform lifetime.
             !
             ! We specify the MOH concentration as ppbv, but then we
-            ! need to multiply by PRESS3(JLOOP) / ( T3(JLOOP) * BK )
+            ! need to multiply by PRESS3(JLOOP) / ( T3(JLOOP) * BOLTZ * 1e7 )
             ! in order to convert to [molec/cm3].  (bdf, bmy, 2/22/02)
             !===========================================================
             IF ( NAMEGAS(JGAS) == 'MOH' ) THEN
@@ -217,8 +240,11 @@
                DO IX = 1, IIPAR
 
                   ! Conversion factor
-                  CONST = State_Met%PMID_DRY(IX,IY,IZ) * 1000e+0_fp / 
-     &                  ( State_Met%T(IX,IY,IZ) * BK )
+                  ! Now use Boltzmann's constant in PHYSCONSTANTS [J/K], not 
+                  ! BK in COMODE_LOOP_MOD [erg/K]) (ewl, 1/4/16)
+                  CONST = State_Met%PMID_DRY(IX,IY,IZ) * 1000e+0_fp /
+!     &                  ( State_Met%T(IX,IY,IZ) * BK )
+     &                  ( State_Met%T(IX,IY,IZ) * BOLTZ * 1e+7_fp )
                 
                   !------------------------------
                   ! Test for altitude
@@ -245,6 +271,7 @@
 
                         ! Make sure MOH conc. is not negative (SMAL2 = 1d-99)
                         CSPEC_FULL(IX,IY,IZ,JGAS) = 
+
      &                       MAX(CSPEC_FULL(IX,IY,IZ,JGAS),SMAL2)
                      ENDIF
 
@@ -285,8 +312,11 @@
                DO IX = 1, IIPAR
 
                   ! Conversion factor
+                  ! Now use Boltzmann's constant in PHYSCONSTANTS [J/K], not 
+                  ! BK in COMODE_LOOP_MOD [erg/K]) (ewl, 1/4/16)
                   CONST = State_Met%PMID_DRY(IX,IY,IZ) * 1000e+0_fp /
-     &                  ( State_Met%T(IX,IY,IZ) * BK )
+!     &                  ( State_Met%T(IX,IY,IZ) * BK )
+     &                  ( State_Met%T(IX,IY,IZ) * BOLTZ * 1e+7_fp )
                 
                   ! Copy default background conc. from "globchem.dat" to CSPEC
                   CSPEC_FULL(IX,IY,IZ,JGAS) = QBKCHEM(JGAS,NCS)* CONST
@@ -299,11 +329,25 @@
                   IF (NAMEGAS(JGAS).EQ.'EMISSION') THEN
                      CSPEC_FULL(IX,IY,IZ,JGAS) = QBKCHEM(JGAS,NCS)
                   ENDIF
+
                ENDDO
                ENDDO
                ENDDO
             ENDIF
+
+            ! Print the min & max of this species
+            WRITE( 6, 180 ) JGAS,
+     &                      TRIM( NAMEGAS(JGAS) ),  
+     &                      MINVAL(CSPEC_FULL(:,:,:,JGAS)), 
+     &                      MAXVAL(CSPEC_FULL(:,:,:,JGAS))
+ 180        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
+     &              '  Max = ', es15.9 )
+
  28      CONTINUE
+
+         ! Mark end of section in log
+         WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+
       ENDIF        !(FIRSTCHEM)
       
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
@@ -387,6 +431,11 @@
 ! ABSHUM   = RELATIVE HUMIDITY (FRACTION)    [output]
 ! TK       = TEMPERATURE (K)
 !
+      ! Calculate condensation vapor pressure locally
+      ! and use Boltzmann's constant in PHYSCONSTANTS [J/K], not 
+      ! BK in COMODE_LOOP_MOD [erg/K]) (ewl, 1/4/16)
+      CONSVAP  = 6.1078e+03_fp / ( BOLTZ * 1e+7_fp )
+
       IF (IH2O.GT.NGAS) THEN
          DO 33 JLOOP    = 1, NTTLOOP
             TK            = T3(JLOOP)

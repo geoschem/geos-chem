@@ -135,9 +135,9 @@
       USE CMN_FJX_MOD,         ONLY : ACOEF_RTWV, BCOEF_RTWV, CCOEF_RTWV 
       USE CMN_FJX_MOD,         ONLY : WVAA,       NWVAA
       USE CMN_FJX_MOD,         ONLY : NWVAA0
-      USE CMN_GCTM_MOD,        ONLY : AIRMW, PI
+      USE PHYSCONSTANTS,       ONLY : AIRMW, PI, AVO
       USE COMODE_MOD,          ONLY : AIRDENS,        CSPEC,       JLOP
-      USE COMODE_LOOP_MOD,     ONLY : ICH4, AVG, WTAIR
+      USE COMODE_LOOP_MOD,     ONLY : ICH4
       USE DIAG_MOD,            ONLY : AD72
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
@@ -194,6 +194,8 @@
 !  12 Aug 2015 - E. Lundgren - Incoming tracer units are now [kg/kg] and
 !                              are converted to [kg] for RRTMG
 !  12 Aug 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
+!  19 Jan 2016 - E. Lundgren - Use global physical constants from physconstants
+!                              rather than comode_loop_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -793,7 +795,7 @@
             AIR_TMP = State_Met%AIRDEN(I,J,L)*
      &                State_Met%BXHEIGHT(I,J,L)*1.0E-1
             !! DENSITY OF AIR IN MOLEC/CM2
-            AIR_TMP = AVG*AIR_TMP/WTAIR
+            AIR_TMP = AVO*AIR_TMP/AIRMW
 
             CALL SET_PROF_O3 (YLAT,THISMONTH,THISDAY,
      &                        T_CTM,  P_CTM,

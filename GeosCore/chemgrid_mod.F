@@ -1161,18 +1161,34 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG_TROPOPAUSE( State_Met )
+      SUBROUTINE DIAG_TROPOPAUSE( am_I_Root, Input_Opt, State_Met, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! Diagnostic switches
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD55
-      USE GIGC_State_Met_Mod, ONLY : MetState
+#endif
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState    
+#if defined( NC_DIAG )
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE Error_Mod,          ONLY : Error_Stop
+      USE HCO_Diagn_Mod,      ONLY : Diagn_Update
+      USE HCO_Error_Mod
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
+      TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(INOUT) :: RC           ! Success or failure
 !
 ! !REMARKS:
 !  For GEOS-4, GEOS-5, 'MERRA', we use the tropopause pressure from the met 
@@ -1221,85 +1237,56 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE and GET_PCENTER with
 !                              State_Met%PEDGE and State_Met%PMID.
 !                              Remove dependency on pressure_mod.
+!  21 Jan 2016 - E. Lundgren - Update diagnostic for netcdf output using HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 !
 ! !LOCAL VARIABLES:
-! 
-      ! Scalars
-      INTEGER :: I, J,    L,  L_TP
-      REAL(fp)  :: H, FRAC, Pb, Pt
-
-      !=================================================================
-      ! %%%%% GEOS-4, GEOS-5, MERRA met fields %%%%%
-      !
-      ! We get tropopause pressure directly from the met field archive
-      ! Compute tropopause height to be consistent w/ the pressure
-      !=================================================================
-      IF ( ND55 > 0 ) THEN
-
-         ! Loop over surface grid boxes
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L_TP, H, Pb, Pt, FRAC )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            !---------------------------
-            ! Compute quantities
-            !---------------------------
-    
-            ! For this (I,J) column, get the level where the t'pause occurs
-            L_TP = GET_TPAUSE_LEVEL( I, J, State_Met )
-
-            ! Get height (from surface to top edge) of all boxes that lie
-            ! totally w/in the troposphere.  NOTE: Grid box (I,J,L_TP-1)
-            ! is the highest purely tropospheric grid box in the column.
-            H    = SUM( State_Met%BXHEIGHT( I, J, 1:L_TP-1 ) )
-
-            ! Get the pressures [hPa] at the bottom and top edges
-            ! of the grid box in which the tropopause occurs
-            Pb   = State_Met%PEDGE( I, J, L_TP   )  
-            Pt   = State_Met%PEDGE( I, J, L_TP+1 )
-
-            ! FRAC is the fraction of the grid box (I,J,L_TP) 
-            ! that lies totally within the troposphere
-            FRAC = ( Pb - State_Met%TROPP(I,J) ) / ( Pb - Pt ) 
-
-            ! Add to H the height [m] of the purely tropospheric 
-            ! fraction of grid box (I,J,L_TP)
-            H    = H + ( FRAC * State_Met%BXHEIGHT(I,J,L_TP) )
-
-            !---------------------------
-            ! Archive into ND55 array
-            !---------------------------
-            AD55(I,J,1) = AD55(I,J,1) + L_TP        ! T'pause level
-            AD55(I,J,2) = AD55(I,J,2) + H/1.0e+3_fp     ! T'pause height [km]
-            AD55(I,J,3) = AD55(I,J,3) +             ! T'pause pressure [hPa]
-     &                    State_Met%TROPP(I,J)
-
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
-      ENDIF
-
-#else
-
 !
-! !LOCAL VARIABLES:
-! 
-      ! Scalars
+      !Scalars
       INTEGER :: I, J, L
 
-      ! Arrays
+      ! Met-specific variables
+#if defined( GCAP )
       REAL(fp)  :: H(IIPAR,JJPAR,LLPAR)
+#else
+      INTEGER   :: L_TP
+      REAL(fp)  :: H, FRAC, Pb, Pt
+#endif
 
+#if defined( NC_DIAG )
+      ! NetCDF diagnostic variables
+      INTEGER           :: M, HCRC
+      CHARACTER(LEN=60) :: LOC = 'Diag_Tropopause (chemgrid_mod.F)' 
+      CHARACTER(LEN=60) :: DiagnName, MSG
+      REAL(fp), TARGET  :: TRPAUSE_L(IIPAR,JJPAR)
+      REAL(fp), TARGET  :: TRPAUSE_P(IIPAR,JJPAR)
+      REAL(fp), TARGET  :: TRPAUSE_H(IIPAR,JJPAR)
+      REAL(fp), POINTER :: Ptr2D(:,:) => NULL()
+#endif
+
+      !=======================================================================
+      ! DIAG_TROPOPAUSE begins here!
+      !=======================================================================
+
+      ! Assume successful return
+      RC = GIGC_SUCCESS
+
+      ! Exit if diagnostic is not turned on
+#if defined( BPCH_DIAG )
+      IF ( Input_Opt%ND55 <= 0 ) RETURN
+#endif
+#if defined( NC_DIAG )
+      ! If outputting NetCDF, temporarily using ND68 as indicator since
+      ! tropopause will be output as part of Met diagnostic group
+      IF ( Input_Opt%ND68 <= 0 ) RETURN
+#endif
+      
+#if defined( GCAP)
       !=================================================================
-      ! %%%%% ALL OTHER MET FIELDS %%%%%
+      ! %%%%% GCAP MET FIELDS ONLY %%%%%
       !
       ! We compute tropopause pressure from the tropopause level (which 
       ! is taken from the thermally-derived annual mean tropopause data 
@@ -1330,33 +1317,131 @@
       !=================================================================
       ! ND55: Tropopause level, height [ km ], and pressure [ mb ]
       !=================================================================
-      IF ( ND55 > 0 ) THEN
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-            ! Get the tropopause level
-            L           = GET_TPAUSE_LEVEL( I, J, State_Met )
+         ! Get the tropopause level
+         L           = GET_TPAUSE_LEVEL( I, J, State_Met )
 
-            ! If we are using the variable tropopause, then (I,J,L) is the
-            ! highest purely tropospheric grid box.  The grid box in which
-            ! the tropopause actually occurs is then (I,J,L+1).
-            IF ( LVARTROP ) L = L + 1
+         ! If we are using the variable tropopause, then (I,J,L) is the
+         ! highest purely tropospheric grid box.  The grid box in which
+         ! the tropopause actually occurs is then (I,J,L+1).
+         IF ( LVARTROP ) L = L + 1
 
-            ! Archive level at which tropopause occurs
-            AD55(I,J,1) = AD55(I,J,1) + L
+#if defined( BPCH_DIAG )
+         ! Archive level at which tropopause occurs
+         AD55(I,J,1) = AD55(I,J,1) + L
 
-            ! Archive tropopause height [km]
-            AD55(I,J,2) = AD55(I,J,2) + H(I,J,L) / 1.0e+3_fp ! m --> km
+         ! Archive tropopause height [km]
+         AD55(I,J,2) = AD55(I,J,2) + H(I,J,L) / 1.0e+3_fp ! m --> km
 
-            ! We have to estimate the tropopause pressure from the 
-            ! tropopause level.  Archive the pressure at the midpoint
-            ! of the level in which the tropopause occurs.  NOTE: this may
-            ! result in lower minimum tropopause pressure than reality.
-            AD55(I,J,3) = AD55(I,J,3) + State_Met%PMID(I,J,L)
+         ! We have to estimate the tropopause pressure from the 
+         ! tropopause level.  Archive the pressure at the midpoint
+         ! of the level in which the tropopause occurs.  NOTE: this may
+         ! result in lower minimum tropopause pressure than reality.
+         AD55(I,J,3) = AD55(I,J,3) + State_Met%PMID(I,J,L)
+#endif
+#if defined( NC_DIAG )
+         TRPAUSE_L(I,J) = L                       ! tropopause level
+         TRPAUSE_H(I,J) = H(I,J,L) / 1.0e+3_fp    ! tropopause height [km]
+         TRPAUSE_P(I,J) = State_Met%PMID(I,J,L)   ! tropopause press [hPa]
+#endif
+      ENDDO
+      ENDDO
+#else
+      !=================================================================
+      ! %%%%% GEOS-4, GEOS-5, GEOS-FP, MERRA, MERRA2 met fields %%%%%
+      !
+      ! We get tropopause pressure directly from the met field archive
+      ! Compute tropopause height to be consistent w/ the pressure
+      !=================================================================
 
-         ENDDO
-         ENDDO
-      ENDIF
+         ! Loop over surface grid boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L_TP, H, Pb, Pt, FRAC )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         !---------------------------
+         ! Compute quantities
+         !---------------------------
+ 
+         ! For this (I,J) column, get the level where the t'pause occurs
+         L_TP = GET_TPAUSE_LEVEL( I, J, State_Met )
+
+         ! Get height (from surface to top edge) of all boxes that lie
+         ! totally w/in the troposphere.  NOTE: Grid box (I,J,L_TP-1)
+         ! is the highest purely tropospheric grid box in the column.
+         H    = SUM( State_Met%BXHEIGHT( I, J, 1:L_TP-1 ) )
+
+         ! Get the pressures [hPa] at the bottom and top edges
+         ! of the grid box in which the tropopause occurs
+         Pb   = State_Met%PEDGE( I, J, L_TP   )  
+         Pt   = State_Met%PEDGE( I, J, L_TP+1 )
+
+         ! FRAC is the fraction of the grid box (I,J,L_TP) 
+         ! that lies totally within the troposphere
+         FRAC = ( Pb - State_Met%TROPP(I,J) ) / ( Pb - Pt ) 
+
+         ! Add to H the height [m] of the purely tropospheric 
+         ! fraction of grid box (I,J,L_TP)
+         H    = H + ( FRAC * State_Met%BXHEIGHT(I,J,L_TP) )
+
+#if defined( BPCH_DIAG )
+         !---------------------------
+         ! Archive into ND55 array
+         !---------------------------
+         AD55(I,J,1) = AD55(I,J,1) + L_TP        ! T'pause level
+         AD55(I,J,2) = AD55(I,J,2) + H/1.0e+3_fp     ! T'pause height [km]
+         AD55(I,J,3) = AD55(I,J,3) +             ! T'pause pressure [hPa]
+     &                    State_Met%TROPP(I,J)
+#endif
+#if defined( NC_DIAG )
+         TRPAUSE_L(I,J) = FLOAT( L_TP )          ! tropopause level
+         TRPAUSE_H(I,J) = H / 1.0e+3_fp          ! tropopause height [km]
+         TRPAUSE_P(I,J) = State_Met%TROPP(I,J)   ! tropopause press [hPa]
+#endif
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+#if defined( NC_DIAG )
+      ! Assume success
+      HCRC = HCO_SUCCESS
+
+      ! Loop over tropopause diagnostics
+      DO M = 1, 3
+   
+         ! Define diagnostic name and update diagnostic container
+         SELECT CASE ( M )
+            CASE ( 1 )
+               DiagnName = 'MET_2D_TRPAUSE_LVL'
+               Ptr2D => TRPAUSE_L
+            CASE ( 2 )
+               DiagnName = 'MET_2D_TRPAUSE_HGHT'
+               Ptr2D => TRPAUSE_H
+            CASE ( 3 )
+               DiagnName = 'MET_2D_TRPAUSE_PRESS'
+               Ptr2D => TRPAUSE_P
+         END SELECT
+
+         CALL Diagn_Update( am_I_Root, HcoState, 
+     &                      cName     = TRIM( DiagnName ),            
+     &                      Array2D   = Ptr2D,                        
+     &                      RC        = HCRC )
+   
+         ! Free the pointers
+         Ptr2D => NULL()
+   
+         ! Stop with error if the diagnostics update was unsuccessful
+         IF ( HCRC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot update diagnostic: ' // TRIM( DiagnName )
+            CALL ERROR_STOP( MSG, LOC ) 
+         ENDIF 
+ 
+      ENDDO
+#endif
 
 #endif
 

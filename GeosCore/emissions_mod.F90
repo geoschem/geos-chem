@@ -44,12 +44,13 @@ CONTAINS
 ! !IROUTINE: EMISSIONS_INIT
 !
 ! !DESCRIPTION: Subroutine EMISSIONS\_INIT calls the HEMCO - GEOS-Chem
-! interface initialization routines.
+! interface initialization routines. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EMISSIONS_INIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+  SUBROUTINE EMISSIONS_INIT( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                             RC,        HcoConfig ) 
 !
 ! !USES:
 !
@@ -59,17 +60,19 @@ CONTAINS
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_INIT
+    USE HCO_TYPES_MOD,      ONLY : ConfigObj
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
+    LOGICAL,          INTENT(IN   )          :: am_I_Root  ! root CPU?
+    TYPE(MetState),   INTENT(IN   )          :: State_Met  ! Met state
+    TYPE(ChmState),   INTENT(IN   )          :: State_Chm  ! Chemistry state 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
-    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+    TYPE(OptInput),   INTENT(INOUT)          :: Input_Opt  ! Input opts
+    TYPE(ConfigObj),  POINTER,      OPTIONAL :: HcoConfig  ! HEMCO config object
+    INTEGER,          INTENT(INOUT)          :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
 !  27 Aug 2014 - C. Keller    - Initial version 
@@ -85,7 +88,8 @@ CONTAINS
     RC = GIGC_SUCCESS
 
     ! Initialize the HEMCO environment for this GEOS-Chem run.
-    CALL HCOI_GC_Init( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+    CALL HCOI_GC_Init( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                       RC,        HcoConfig=HcoConfig ) 
     IF ( RC/=GIGC_SUCCESS ) RETURN 
 
   END SUBROUTINE EMISSIONS_INIT

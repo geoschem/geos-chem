@@ -147,7 +147,6 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: MOISTQ    (:,:,:) ! Tendency in sp. humidity 
                                             ! [kg/kg moist air/s]
      REAL(fp), POINTER :: OPTD      (:,:,:) ! Visible optical depth [1]
-     REAL(fp), POINTER :: OPTDEP    (:,:,:) ! Visible optical depth [1]
      REAL(fp), POINTER :: PEDGE     (:,:,:) ! Wet air pressure [hPa] @ level 
                                             ! edges [hPa]
      REAL(fp), POINTER :: PFICU     (:,:,:) ! Dwn flux ice prec:conv [kg/m2/s]
@@ -264,6 +263,7 @@ MODULE GIGC_State_Met_Mod
 !  04 Mar 2016 - C. Keller   - Add CNV_FRC for convective fraction. Currently
 !                              not a standard GEOS-FP output, only used in 
 !                              online model (ESMF). 
+!  17 Mar 2016 - M. Sulprizio- Remove OPTDEP. Instead, we now solely use OPTD.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -752,10 +752,6 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%OPTD     = 0.0_fp
                                                
-    ALLOCATE( State_Met%OPTDEP    ( IM, JM, LM   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Met%OPTDEP   = 0.0_fp
-
     ALLOCATE( State_Met%PEDGE     ( IM, JM, LM+1 ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%PEDGE    = 0.0_fp
@@ -1110,7 +1106,6 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%DTRAIN     )) DEALLOCATE( State_Met%DTRAIN     )
     IF ( ASSOCIATED( State_Met%MOISTQ     )) DEALLOCATE( State_Met%MOISTQ     )
     IF ( ASSOCIATED( State_Met%OPTD       )) DEALLOCATE( State_Met%OPTD       )
-    IF ( ASSOCIATED( State_Met%OPTDEP     )) DEALLOCATE( State_Met%OPTDEP     )
     IF ( ASSOCIATED( State_Met%PEDGE      )) DEALLOCATE( State_Met%PEDGE      )
     IF ( ASSOCIATED( State_Met%PEDGE_DRY  )) DEALLOCATE( State_Met%PEDGE_DRY  )
     IF ( ASSOCIATED( State_Met%PMID       )) DEALLOCATE( State_Met%PMID       )
