@@ -380,26 +380,14 @@ CONTAINS
                    IF ( .NOT. ASSOCIATED(PLVEC(N)%LOSS) ) THEN
                       k = 0.0_fp
                    ELSE
-                      ! SDE 2016-04-05: Currently ExtData does not flip the
-                      ! vertical levels correctly
-#if defined( EXTERNAL_GRID )
-                      k = PLVEC(N)%LOSS(I,J,LLPAR+1-L)
-#else
                       k = PLVEC(N)%LOSS(I,J,L)
-#endif
                    ENDIF
 
                    ! prod term [v/v/s --> kg/s]
                    IF ( .NOT. ASSOCIATED(PLVEC(N)%PROD) ) THEN
                       P = 0.0_fp 
                    ELSE
-                      ! SDE 2016-04-05: Currently ExtData does not flip the
-                      ! vertical levels correctly
-#if defined( EXTERNAL_GRID )
-                      P = PLVEC(N)%PROD(I,J,LLPAR+1-L) * AD(I,J,L) / TCVV(NN) 
-#else
                       P = PLVEC(N)%PROD(I,J,L) * AD(I,J,L) / TCVV(NN) 
-#endif
                    ENDIF
 
                    M0 = STT(I,J,L,NN)                       ! initial mass [kg]
@@ -478,13 +466,7 @@ CONTAINS
                 M = AD(I,J,L) / BOXVL * XNUMOLAIR
 
                 ! OH number density [molec cm-3]
-                ! SDE 2016-04-05: Currently ExtData does not flip the
-                ! vertical levels correctly
-#if defined( EXTERNAL_GRID )
-                mOH = M * STRAT_OH(I,J,LLPAR+1-L)
-#else
                 mOH = M * STRAT_OH(I,J,L)
-#endif
 
                 ! Temperature at grid box (I,J,L) in K
                 TK = T(I,J,L)
@@ -569,26 +551,14 @@ CONTAINS
                 ! Now get Br data through HEMCO pointers (ckeller, 12/30/14).
                 IF ( State_Met%SUNCOS(I,J) > 0.e+0_fp ) THEN
                    ! daytime [ppt] -> [kg]
-                   ! SDE 2016-04-05: Currently ExtData does not flip the
-                   ! vertical levels correctly
-#if defined( EXTERNAL_GRID )
-                   BryTmp = BrPtrDay(NN)%MR(I,J,LLPAR+1-L)   &
-#else
                    BryTmp = BrPtrDay(NN)%MR(I,J,L)   &
-#endif
                           * 1.e-12_fp                & ! convert from [ppt]
                           * AD(I,J,L)                &
                           / TCVV(GC_Bry_TrID(NN))
 
                 ELSE
                    ! nighttime [ppt] -> [kg]
-                   ! SDE 2016-04-05: Currently ExtData does not flip the
-                   ! vertical levels correctly
-#if defined( EXTERNAL_GRID )
-                   BryTmp = BrPtrNight(NN)%MR(I,J,LLPAR+1-L)   &
-#else
-                   BryTmp = BrPtrNight(NN)%MR(I,J,L)   &
-#endif
+                   BryTmp = BrPtrNight(NN)%MR(I,J,L) &
                           * 1.e-12_fp                & ! convert from [ppt]
                           * AD(I,J,L)                &
                           / TCVV(GC_Bry_TrID(NN))
