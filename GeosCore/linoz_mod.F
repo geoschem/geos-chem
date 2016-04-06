@@ -447,8 +447,8 @@
             ! ENDIF
 
                ! Skip if tracer is negative
-               
-               IF ( STT(I,J,L,NTRACER) .LE. 0.e+0_fp ) CYCLE
+               ! SDE 2016-04-06: Changed from LE to LT
+               IF ( STT(I,J,L,NTRACER) .LT. 0.e+0_fp ) CYCLE
 
                ! calculate ozone column above box (and save)
                ! dcolo3 = ozone column (in DU) in given layer
