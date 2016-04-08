@@ -288,7 +288,7 @@
             END SELECT
          
             ! Define container name and ID
-            ContainerName = 'Ocean_Hg_Total_' // TRIM( Tracer )
+            ContainerName = 'Ocean_' // TRIM( Tracer ) // '_total'
             cID = cID + 1
             
             ! Create container
@@ -314,13 +314,13 @@
          DO M = 1, 4
             SELECT CASE( M )
                CASE ( 1 )
-                  Prefix = 'Snow_Hg_Ocean_Hg0_'  ! Reducible on ocean
+                  Prefix = 'Snow_Hg_Ocean_Hg0'  ! Reducible on ocean
                CASE ( 2 )
-                  Prefix = 'Snow_HgN_Ocean_Hg0_' ! Non-reducible on ocean
+                  Prefix = 'Snow_HgN_Ocean_Hg0' ! Non-reducible on ocean
                CASE ( 3 )
-                  Prefix = 'Snow_Hg_Land_Hg0_'   ! Reducible on land
+                  Prefix = 'Snow_Hg_Land_Hg0'   ! Reducible on land
                CASE ( 4 )
-                  Prefix = 'Snow_HgN_Land_Hg0_'  ! Non-reducible on land
+                  Prefix = 'Snow_HgN_Land_Hg0'  ! Non-reducible on land
             END SELECT
          
             ! Loop over all categories to include tagged Hg
@@ -331,7 +331,7 @@
                   ContainerName = TRIM( Prefix )
                ELSE
                   ! Append category name
-                  ContainerName = TRIM( Prefix ) // '_Tagged_' 
+                  ContainerName = TRIM( Prefix ) // '_'
      &                            // TRIM( Input_Opt%Hg_CAT(N) )      
                ENDIF
                cID = cId + 1
@@ -375,9 +375,8 @@
                DO N = 2, N_Hg_CATS
                
                   ! Define container name and ID
-                  ContainerName = 'Ocean_Hg_Tagged_' // 
-     &                            TRIM( Input_Opt%Hg_CAT(N) ) //
-     &                            '_' // TRIM( Tracer )
+                  ContainerName = 'Ocean_' // TRIM( TRACER ) // '_' 
+     &                            // TRIM( Input_Opt%Hg_CAT(N) )
 
                   cID = cId + 1
                
@@ -957,7 +956,7 @@ dvected tracer input  restart file
                CASE ( 3 )
                   Tracer = 'HgP' 
             END SELECT
-            v_name = 'Ocean_Hg_Total_' // TRIM( Tracer )  
+            v_name = 'Ocean_' // TRIM( Tracer ) // '_total' 
 
             ! Zero temporary array and set pointer
             Temp2D = 0.e+0_fp 
@@ -993,20 +992,20 @@ dvected tracer input  restart file
                ! Define variable name
                SELECT CASE( M )
                   CASE ( 1 )
-                     Prefix = 'Snow_Hg_Ocean_Hg0_'  ! Reducible on ocean
+                     Prefix = 'Snow_Hg_Ocean_Hg0'  ! Reducible on ocean
                   CASE ( 2 )
-                     Prefix = 'Snow_HgN_Ocean_Hg0_' ! Non-reducible on ocean
+                     Prefix = 'Snow_HgN_Ocean_Hg0' ! Non-reducible on ocean
                   CASE ( 3 )
-                     Prefix = 'Snow_Hg_Land_Hg0_'   ! Reducible on land
+                     Prefix = 'Snow_Hg_Land_Hg0'   ! Reducible on land
                   CASE ( 4 )
-                     Prefix = 'Snow_HgN_Land_Hg0_'  ! Non-reducible on land
+                     Prefix = 'Snow_HgN_Land_Hg0'  ! Non-reducible on land
                END SELECT
                
                IF ( N == 1 ) THEN
                   v_name = TRIM( Prefix )
                ELSE
                   ! Append category name if tagged
-                  v_name = TRIM( Prefix ) // '_Tagged_' 
+                  v_name = TRIM( Prefix ) // '_'
      &                     // TRIM( Input_Opt%Hg_CAT(N) )
                ENDIF
 
@@ -1057,9 +1056,8 @@ dvected tracer input  restart file
                      CASE ( 3 )
                         Tracer = 'HgP' 
                   END SELECT
-                  v_name = 'Ocean_Hg_Tagged_' // 
-     &                     TRIM( Input_Opt%Hg_CAT(N) ) //
-     &                     '_' // TRIM( Tracer )
+                  v_name = 'Ocean_' // TRIM( Tracer ) // '_'
+     &                     // TRIM( Input_Opt%Hg_CAT(N) )
                   
                   ! Zero temporary array and set pointer
                   Temp2D = 0.e+0_fp 
@@ -1847,7 +1845,7 @@ dvected tracer input  restart file
                   Tracer = 'HgP' 
                   Temp2D = HgPaq(:,:,ID_Hg_tot)
             END SELECT
-            ContainerName = 'Ocean_Hg_Total_' // TRIM( Tracer )
+            ContainerName = 'Ocean_' // TRIM( Tracer ) // '_total'
             Ptr2D => Temp2D
 
             ! Populate container with data
@@ -1880,16 +1878,16 @@ dvected tracer input  restart file
                Temp2D = 0.e+0_fp
                SELECT CASE( M )
                   CASE ( 1 )
-                     Prefix = 'Snow_Hg_Ocean_Hg0_'  ! Reducible on ocean
+                     Prefix = 'Snow_Hg_Ocean_Hg0'  ! Reducible on ocean
                      Temp2D = SNOW_HG_OC(:,:,N)
                   CASE ( 2 )
-                     Prefix = 'Snow_HgN_Ocean_Hg0_' ! Non-reducible on ocean
+                     Prefix = 'Snow_HgN_Ocean_Hg0' ! Non-reducible on ocean
                      Temp2D = SNOW_HG_STORED_OC(:,:,N)
                   CASE ( 3 )
-                     Prefix = 'Snow_Hg_Land_Hg0_'  ! Reducible on land
+                     Prefix = 'Snow_Hg_Land_Hg0'  ! Reducible on land
                      Temp2D = SNOW_HG_LN(:,:,N)
                   CASE ( 4 )
-                     Prefix = 'Snow_HgN_Land_Hg0_' ! Non-reducible on land
+                     Prefix = 'Snow_HgN_Land_Hg0' ! Non-reducible on land
                      Temp2D = SNOW_HG_STORED_LN(:,:,N)
                END SELECT
                Ptr2D => Temp2D
@@ -1899,7 +1897,7 @@ dvected tracer input  restart file
                   ContainerName = TRIM( Prefix )
                ELSE
                   ! Append category name if tagged
-                  ContainerName = TRIM( Prefix ) // '_Tagged_' 
+                  ContainerName = TRIM( Prefix ) // '_'
      &                            // TRIM( Input_Opt%Hg_CAT(N) )
                ENDIF
                
@@ -1947,10 +1945,8 @@ dvected tracer input  restart file
                         Temp2D = HgPaq(:,:,N)
                   END SELECT
                   Ptr2D => Temp2D
-                  ContainerName = 'Ocean_Hg_Tagged_' // 
-     &                            TRIM( Input_Opt%Hg_CAT(N) ) // 
-     &                            '_' //TRIM( Tracer ) 
-                  
+                  ContainerName = 'Ocean_' // Trim( Tracer ) // '_' 
+     &                            // TRIM( Input_Opt%Hg_CAT(N) )                  
                   ! Populate container with data
                   CALL Diagn_Update( am_I_Root,                   
      &                               cName   = TRIM( ContainerName ),
