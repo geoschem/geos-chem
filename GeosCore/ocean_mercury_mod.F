@@ -3485,7 +3485,7 @@
 
       ! Format strings
  130  FORMAT( /, 'Total masses for each ocean tracer: ' ) 
- 140  FORMAT( 'Tracer ', i3, ' (', a10, ') ', es12.5, 1x, a4)
+ 140  FORMAT( 'Tracer ', i3, ' (', a10, ') ', es15.9, 1x, a4)
 
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )

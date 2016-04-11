@@ -566,6 +566,7 @@ dvected tracer input  restart file
 
       ! For Hg simulation restart file
       USE OCEAN_MERCURY_MOD,  ONLY : Hg0aq, Hg2aq, HgPaq, Hgaq_tot
+      USE OCEAN_MERCURY_MOD,  ONLY : CHECK_OCEAN_MERCURY
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC,  SNOW_HG_STORED_OC
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_LN,  SNOW_HG_STORED_LN
       USE TRACERID_MOD,       ONLY : ID_Hg0, ID_Hg2, ID_HgP, ID_Hg_tot
@@ -599,6 +600,7 @@ dvected tracer input  restart file
 ! !LOCAL VARIABLES:
 !
       INTEGER              :: I, J, L, M, N      ! lon, lat, lev, indexes
+      INTEGER              :: Tracer_id          ! ocean Hg tracer ids
       CHARACTER(LEN=10)    :: SPC_NAME, UNIT
       CHARACTER(LEN=60)    :: Prefix, Tracer
       REAL(fp)             :: Background_VV      ! background species conc
@@ -735,7 +737,7 @@ dvected tracer input  restart file
 
       ! Print mean atmospheric kg/kg for each tracer to log
       WRITE( 6, 130 )
- 130  FORMAT( /, 'Mean mass mixing ratio per tracer [kg/kg]: ' ) 
+ 130  FORMAT( /, 'Mean mass mixing ratio per tracer: ' ) 
       
       DO N = 1, Input_Opt%N_TRACERS
       
@@ -806,7 +808,7 @@ dvected tracer input  restart file
                ! Initialize temporary array for this tracer and point to it
                ! use 1e-30 as min (hotp 2/25/09)
                ! NOTE: the 1.0e-30 minimum is for [molec/cm3] in legacy
-               Temp3D = 1.0e-30_fp 
+               Temp3D = 1.0e-30_fp
                Ptr3D => Temp3D
 
                ! Define variable name
@@ -938,55 +940,125 @@ dvected tracer input  restart file
       !=================================================================
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
-         ! NOTE: set ocean_mercury_mod.F module variables
+         ! Print total mass to log
+         WRITE( 6, 200 )
+ 200     FORMAT( /, 'Total mass of each ocean and snow Hg tracer: ' ) 
 
          !--------------------------------------------------------------
-         ! Total mercury in ocean
+         ! Total Hg in ocean
          !--------------------------------------------------------------
-
-         ! Loop over Hg0, Hg2, and HgP
          DO M = 1, 3
 
             ! Define variable name
             SELECT CASE( M )
                CASE ( 1 )
                   Tracer = 'Hg0' 
+                  Tracer_id = ID_Hg0(1)
                CASE ( 2 )
                   Tracer = 'Hg2'
+                  Tracer_id = ID_Hg2(1)
                CASE ( 3 )
                   Tracer = 'HgP' 
+                  Tracer_id = ID_HgP(1)
             END SELECT
             v_name = 'Ocean_' // TRIM( Tracer )
 
             ! Zero temporary array and set pointer
-            Temp2D = 0.e+0_fp 
+            Temp2D = 0.0d4 
             Ptr2D => Temp2D
 
             ! Read variable from restart file
             CALL NcRd( Ptr2D, fId, TRIM(v_name), st3d, ct3d )
 
-            ! Set ocean mercury data
+            ! Check for negative concentrations (jaf, 7/6/11)
+            DO I = 1, IIPAR
+            DO J = 1, JJPAR
+               IF ( Temp2D(I,J) < 0 ) THEN
+                  Temp2D(I,J) = 0.0d4
+               ENDIF
+            ENDDO
+            ENDDO
+
+            ! Assign ocean mercury data and write total mass to log file
             SELECT CASE( M )
                CASE ( 1 )
                   Hg0aq(:,:,ID_Hg_tot) = Ptr2D
+                  WRITE( 6, 210 ) Tracer_id, v_name, 
+     &                            SUM( Hg0aq(:,:,ID_Hg_tot) ), 'kg'
                CASE ( 2 )
                   Hg2aq(:,:,ID_Hg_tot) = Ptr2D
+                  WRITE( 6, 210 ) Tracer_id, v_name, 
+     &                            SUM( Hg2aq(:,:,ID_Hg_tot) ), 'kg'
                CASE ( 3 )
                   HgPaq(:,:,ID_Hg_tot) = Ptr2D
+                  WRITE( 6, 210 ) Tracer_id, v_name, 
+     &                            SUM( HgPaq(:,:,ID_Hg_tot) ), 'kg'
             END SELECT
 
             ! Nullify pointer
             Ptr2D => NULL()
-
          ENDDO
+
+         !--------------------------------------------------------------
+         ! Additional tagged Hg tracers in ocean
+         !--------------------------------------------------------------
+         IF ( Input_Opt%LSPLIT ) THEN
+            DO N = 2, N_Hg_CATS
+               DO M = 1, 3
+
+                  ! Define variable name
+                  SELECT CASE( M )
+                     CASE ( 1 )
+                        Tracer = 'Hg0' 
+                        Tracer_id = ID_Hg0(N)
+                     CASE ( 2 )
+                        Tracer = 'Hg2'
+                        Tracer_id = ID_Hg2(N)
+                     CASE ( 3 )
+                        Tracer = 'HgP' 
+                        Tracer_id = ID_HgP(N)
+                  END SELECT
+                  v_name = 'Ocean_' // TRIM( Tracer ) // '_'
+     &                     // TRIM( Input_Opt%Hg_CAT(N) )
+                  
+                  ! Zero temporary array and set pointer
+                  Temp2D = 0.e+0_fp 
+                  Ptr2D => Temp2D
+
+                  ! Read variable from restart file
+                  CALL NcRd( Ptr2D, fId, TRIM(v_name), st3d, ct3d )
+
+                  ! Assign ocean mercury data and write total mass to log
+                  SELECT CASE( M )
+                     CASE ( 1 )
+                        Hg0aq(:,:,N) = Ptr2D
+                        WRITE( 6, 210 ) Tracer_id, v_name, 
+     &                                  SUM( Hg0aq(:,:,N) ), 'kg'
+                     CASE ( 2 )
+                        Hg2aq(:,:,N) = Ptr2D
+                        WRITE( 6, 210 ) Tracer_id, v_name, 
+     &                                  SUM( Hg2aq(:,:,N) ), 'kg'
+                     CASE ( 3 )
+                        HgPaq(:,:,N) = Ptr2D
+                        WRITE( 6, 210 ) Tracer_id, v_name, 
+     &                                  SUM( HgPaq(:,:,N) ), 'kg'
+                  END SELECT
+
+                  ! Nullify pointer
+                  Ptr2D => NULL()
+               ENDDO
+            ENDDO
+
+            ! Make sure tagged & total tracers sum up
+            IF ( Input_Opt%USE_CHECKS ) THEN
+               CALL CHECK_OCEAN_MERCURY( 'end of READ_GC_RESTART_NC' )
+            ENDIF
+         ENDIF
 
          !--------------------------------------------------------------
          ! Hg snowpack on land and ocean
          !--------------------------------------------------------------
-         ! Loop over categories 
          DO N = 1, N_Hg_CATS
-
-            ! Loop over 4 combinations of reducibility and sfc type
             DO M = 1, 4               
 
                ! Define variable name
@@ -1010,22 +1082,30 @@ dvected tracer input  restart file
                ENDIF
 
                ! Zero temporary array and set pointer
-               Temp2D = 0.e+0_fp 
+               Temp2D = 0.0d4 
                Ptr2D => Temp2D
 
                ! Read variable from restart file
-               CALL NcRd( Temp2D, fId, TRIM(v_name), st3d, ct3d )
+               CALL NcRd( Ptr2D, fId, TRIM(v_name), st3d, ct3d )
 
-               ! Define ocean mercury data
+               ! Assign ocean mercury data and write total mass to file
                SELECT CASE( M )
                   CASE ( 1 )
-                     SNOW_HG_OC(:,:,N) = Temp2D
+                     SNOW_HG_OC(:,:,N) = Ptr2D
+                     WRITE( 6, 210 ) 1, v_name, 
+     &                     SUM( SNOW_HG_OC(:,:,N) ), 'kg'
                   CASE ( 2 )
-                     SNOW_HG_STORED_OC(:,:,N) = Temp2D
+                     SNOW_HG_STORED_OC(:,:,N) = Ptr2D
+                     WRITE( 6, 210 ) 1, v_name, 
+     &                     SUM( SNOW_HG_STORED_OC(:,:,N) ), 'kg'
                   CASE ( 3 )
-                     SNOW_HG_LN(:,:,N) = Temp2D
+                     SNOW_HG_LN(:,:,N) = Ptr2D
+                     WRITE( 6, 210 ) 1, v_name, 
+     &                     SUM( SNOW_HG_LN(:,:,N) ), 'kg'
                   CASE ( 4 )
-                     SNOW_HG_STORED_LN(:,:,N) = Temp2D
+                     SNOW_HG_STORED_LN(:,:,N) = Ptr2D
+                     WRITE( 6, 210 ) 1, v_name, 
+     &                     SUM( SNOW_HG_STORED_LN(:,:,N) ), 'kg'
                END SELECT
 
                ! Nullify pointer
@@ -1034,96 +1114,9 @@ dvected tracer input  restart file
             ENDDO
          ENDDO
 
-         !--------------------------------------------------------------
-         ! If tagged Hg simulation, also write tagged Hg(0), Hg(II), 
-         ! and Hg(P) in ocean
-         !--------------------------------------------------------------
-         IF ( Input_Opt%LSPLIT ) THEN
-
-            ! Loop over tagged Hg categories
-            DO N = 2, N_Hg_CATS
-               !write( HgCatIndexString, '(I5)' ) N
-
-               ! Loop over Hg0, Hg2, and HgP
-               DO M = 1, 3
-
-                  ! Define variable name
-                  SELECT CASE( M )
-                     CASE ( 1 )
-                        Tracer = 'Hg0' 
-                     CASE ( 2 )
-                        Tracer = 'Hg2'
-                     CASE ( 3 )
-                        Tracer = 'HgP' 
-                  END SELECT
-                  v_name = 'Ocean_' // TRIM( Tracer ) // '_'
-     &                     // TRIM( Input_Opt%Hg_CAT(N) )
-                  
-                  ! Zero temporary array and set pointer
-                  Temp2D = 0.e+0_fp 
-                  Ptr2D => Temp2D
-
-                  ! Read variable from restart file
-                  CALL NcRd( Ptr2D, fId, TRIM(v_name), st3d, ct3d )
-
-                  ! Set ocean mercury data
-                  SELECT CASE( M )
-                     CASE ( 1 )
-                        Hg0aq(:,:,N) = Ptr2D
-                     CASE ( 2 )
-                        Hg2aq(:,:,N) = Ptr2D
-                     CASE ( 3 )
-                        HgPaq(:,:,N) = Ptr2D
-                  END SELECT
-
-                  ! Nullify pointer
-                  Ptr2D => NULL()
-
-               ENDDO
-            ENDDO
-         ENDIF
-
-!!         ! Write Hg totals to log
-!!         ! Echo info
-!!         WRITE( 6, 200 )
-!!         
-!!         ! Hg0
-!!         DO NN = 1, N_Hg_CATS
-!!            WRITE( 6, 210 ) ID_Hg0(NN), TRACER_NAME( Id_Hg0(NN) ), 
-!!     &                      SUM( Hg0aq(:,:,NN) ),  'kg'
-!!         ENDDO
-!!         
-!!         ! Hg2
-!!         DO NN = 1, N_Hg_CATS
-!!            WRITE( 6, 210 ) ID_Hg2(NN), TRACER_NAME( Id_Hg2(NN) ), 
-!!     &                      SUM( Hg2aq(:,:,NN) ), 'kg'
-!!         ENDDO
-!!         
-!!         ! HgP
-!!         WRITE( 6, 210 ) 3, 'HgP       ', SUM( HgPaq ), 'kg'
-!!         
-!!         ! Snow Hg (jaf, 6/17/11)
-!!         WRITE( 6, 210 ) 1, 'Reducible snow Hg ocean',SUM(SNOW_HG_OC),
-!!     &                      'kg'
-!!         WRITE( 6, 210 ) 1, 'Non-reducible snow Hg ocean',
-!!     &                       SUM(SNOW_HG_STORED_OC), 'kg'
-!!         WRITE( 6, 210 ) 1, 'Reducible snow Hg land', SUM(SNOW_HG_LN),
-!!     &                      'kg'
-!!         WRITE( 6, 210 ) 1, 'Non-reducible snow Hg land',
-!!     &                       SUM(SNOW_HG_STORED_LN), 'kg'
-!!         
-!!         ! Format strings
-!! 200     FORMAT( /, 'Total masses for each ocean tracer: ' ) 
-!! 210     FORMAT( 'Tracer ', i3, ' (', a10, ') ', es12.5, 1x, a4)
-!!         
-!!         ! Fancy output
-!!         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-!!         
-!!         ! Make sure tagged & total tracers sum up
-!!         IF ( Input_Opt%USE_CHECKS .and. Input_Opt%LSPLIT ) THEN
-!!            CALL CHECK_OCEAN_MERCURY( 'end of READ_GC_RESTART_NC' )
-!!         ENDIF
-
+         ! Format string for printing Hg masses to log
+ 210     FORMAT( 'Tracer ', i3, ': ', a20, ' ', es15.9, 1x, a4)
+         
       ENDIF
 
       !=================================================================
@@ -1361,7 +1354,7 @@ dvected tracer input  restart file
 
       ! Print mean atmospheric kg/kg for each tracer
       WRITE( 6, 130 )
- 130  FORMAT( /, 'Mean mass mixing ratio of each tracer [kg/kg]: ' ) 
+ 130  FORMAT( /, 'Mean mass mixing ratio of each tracer: ' ) 
 
       DO N = 1, Input_Opt%N_TRACERS
 
@@ -1542,7 +1535,8 @@ dvected tracer input  restart file
       USE HCOIO_Diagn_Mod,    ONLY : HCOIO_Diagn_WriteOut
 
       ! For Hg simulation
-      USE OCEAN_MERCURY_MOD,  ONLY : Hg0aq, Hg2aq, HgPaq, Hgaq_tot
+      USE OCEAN_MERCURY_MOD,  ONLY : Hg0aq, Hg2aq, HgPaq, Hgaq_tot 
+      USE OCEAN_MERCURY_MOD,  ONLY : CHECK_OCEAN_MERCURY     
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC,  SNOW_HG_STORED_OC
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_LN,  SNOW_HG_STORED_LN
       USE TRACERID_MOD,       ONLY : ID_Hg0, ID_Hg2, ID_HgP, ID_Hg_tot
@@ -1574,6 +1568,7 @@ dvected tracer input  restart file
       ! Local Variables      
       INTEGER              :: I, J, L, M, N, HCRC
       INTEGER              :: GC_RST_Collection
+      INTEGER              :: Tracer_id    ! id for ocean Hg tracers
       REAL(fp)             :: CONV_FACTOR  ! convert molec/cm3 -> mol/mol
       REAL*4               :: SMALL_NUM
       CHARACTER(LEN=60)    :: ContainerName, Tracer, Prefix
@@ -1625,10 +1620,8 @@ dvected tracer input  restart file
       !=================================================================
 
       ! Print min and max to log for testing if in debug mode
-      IF ( Input_Opt%LPRT ) THEN
-         WRITE( 6, 110 )
- 110     FORMAT( /, 'Min and Max of each tracer in file [mol/mol]:' )
-      ENDIF
+      WRITE( 6, 110 )
+ 110  FORMAT( /, 'Min and Max of each tracer in file [mol/mol]:' )
 
       DO N = 1, Input_Opt%N_TRACERS
       
@@ -1647,12 +1640,10 @@ dvected tracer input  restart file
      &                      RC      = HCRC )
       
          ! Print the min & max of each tracer written to file (if debug)
-         IF ( Input_Opt%LPRT ) THEN
-            WRITE( 6, 120 ) N, TRIM( Input_Opt%TRACER_NAME(N) ),
-     &                      MINVAL( Temp3D ), MAXVAL( Temp3D )
- 120        FORMAT( 'Tracer ', i3, ', ', a8, ': Min = ', es15.9, 
-     &              '  Max = ',es15.9)
-         ENDIF
+         WRITE( 6, 120 ) N, TRIM( Input_Opt%TRACER_NAME(N) ),
+     &                   MINVAL( Temp3D ), MAXVAL( Temp3D )
+ 120     FORMAT( 'Tracer ', i3, ', ', a8, ': Min = ', es15.9, 
+     &           '  Max = ',es15.9)
 
          ! Free the pointer
          Ptr3D => NULL()
@@ -1823,29 +1814,38 @@ dvected tracer input  restart file
 
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
-         ! NOTE: use ocean_mercury_mod.F module variables as data source
+         ! Print total mass to log
+         WRITE( 6, 170 )
+ 170     FORMAT( /, 'Total mass of each ocean and snow Hg tracer: ' ) 
 
          !--------------------------------------------------------------
-         ! Total mercury in ocean
+         ! Total Hg in ocean
          !--------------------------------------------------------------
-
-         ! Loop over Hg0, Hg2, and HgP
          DO M = 1, 3
 
-            ! Define container name and point to data
-            Temp2D = 0.e+0_fp
+            ! Define container name, point to data, and write total 
+            ! mass to log
+            Temp2D = 0.0d4
             SELECT CASE( M )
                CASE ( 1 )
-                  Tracer = 'Hg0' 
+                  ContainerName = 'Ocean_Hg0' 
+                  Tracer_id = ID_Hg0(1)
                   Temp2D = Hg0aq(:,:,ID_Hg_tot)
+                  WRITE( 6, 180 ) Tracer_id, ContainerName, 
+     &                            SUM( Hg0aq(:,:,ID_Hg_tot) ), 'kg'
                CASE ( 2 )
-                  Tracer = 'Hg2'
+                  ContainerName = 'Ocean_Hg2'
+                  Tracer_id = ID_Hg2(1)
                   Temp2D = Hg2aq(:,:,ID_Hg_tot)
+                  WRITE( 6, 180 ) Tracer_id, ContainerName, 
+     &                            SUM( Hg2aq(:,:,ID_Hg_tot) ), 'kg'
                CASE ( 3 )
-                  Tracer = 'HgP' 
+                  ContainerName = 'Ocean_HgP' 
+                  Tracer_id = ID_HgP(1)
                   Temp2D = HgPaq(:,:,ID_Hg_tot)
+                  WRITE( 6, 180 ) Tracer_id, ContainerName, 
+     &                            SUM( HgPaq(:,:,ID_Hg_tot) ), 'kg'
             END SELECT
-            ContainerName = 'Ocean_' // TRIM( Tracer )
             Ptr2D => Temp2D
 
             ! Populate container with data
@@ -1857,7 +1857,7 @@ dvected tracer input  restart file
 
             ! Free the pointer
             Ptr2D => NULL()
-            
+
             IF ( HCRC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot update restart tracer container: ' 
      &               // TRIM( ContainerName )
@@ -1866,29 +1866,87 @@ dvected tracer input  restart file
          ENDDO
 
          !--------------------------------------------------------------
+         ! Additional tagged Hg tracers in ocean
+         !--------------------------------------------------------------
+         IF ( Input_Opt%LSPLIT ) THEN
+            DO N = 2, N_Hg_CATS
+               DO M = 1, 3
+
+                  ! Define container name, point to data, and print 
+                  ! total mass to log
+                  Temp2D = 0.0d4
+                  SELECT CASE( M )
+                     CASE ( 1 )
+                        Tracer = 'Hg0' 
+                        Tracer_id = ID_Hg0(N)
+                        Temp2D = Hg0aq(:,:,N)
+                     CASE ( 2 )
+                        Tracer = 'Hg2'
+                        Tracer_id = ID_Hg2(N)
+                        Temp2D = Hg2aq(:,:,N)
+                     CASE ( 3 )
+                        Tracer = 'HgP' 
+                        Tracer_id = ID_HgP(N)
+                        Temp2D = HgPaq(:,:,N)
+
+                  END SELECT
+                  Ptr2D => Temp2D
+                  ContainerName = 'Ocean_' // Trim( Tracer ) // '_' 
+     &                            // TRIM( Input_Opt%Hg_CAT(N) )                  
+                  ! Populate container with data
+                  CALL Diagn_Update( am_I_Root,                   
+     &                               cName   = TRIM( ContainerName ),
+     &                               COL     = GC_RST_Collection,
+     &                               Array2D = Ptr2D,             
+     &                               RC      = HCRC )
+                  
+                  ! Free the pointer
+                  Ptr2D => NULL()
+                  
+                  ! Make sure tagged & total tracers sum up
+                  IF ( Input_Opt%USE_CHECKS ) THEN
+                     CALL CHECK_OCEAN_MERCURY(
+     &                          'end of MAKE_OCEAN_Hg_RESTART' )
+                  ENDIF
+            
+                  IF ( HCRC /= HCO_SUCCESS ) THEN
+                     MSG = 'Cannot update restart tracer container: ' 
+     &                     // TRIM( ContainerName )
+                     CALL ERROR_STOP( MSG, LOC ) 
+                  ENDIF
+               ENDDO
+            ENDDO
+         ENDIF
+
+         !--------------------------------------------------------------
          ! Hg snowpack on land and ocean
          !--------------------------------------------------------------
-         ! Loop over categories
          DO N = 1, N_Hg_CATS
-
-            ! Loop over 4 combinations of reducibility and sfc type
             DO M = 1, 4               
 
-               ! Define data and point to it
-               Temp2D = 0.e+0_fp
+               ! Define data, point to it, and print total mass to log
+               Temp2D = 0.0d4
                SELECT CASE( M )
                   CASE ( 1 )
                      Prefix = 'Snow_Hg_Ocean_Hg0'  ! Reducible on ocean
                      Temp2D = SNOW_HG_OC(:,:,N)
+                     WRITE( 6, 180 ) 1, Prefix, 
+     &                         SUM( SNOW_HG_OC(:,:,N) ), 'kg'
                   CASE ( 2 )
                      Prefix = 'Snow_HgN_Ocean_Hg0' ! Non-reducible on ocean
                      Temp2D = SNOW_HG_STORED_OC(:,:,N)
+                     WRITE( 6, 180 ) 1, Prefix, 
+     &                         SUM( SNOW_HG_STORED_OC(:,:,N) ), 'kg'
                   CASE ( 3 )
                      Prefix = 'Snow_Hg_Land_Hg0'  ! Reducible on land
                      Temp2D = SNOW_HG_LN(:,:,N)
+                     WRITE( 6, 180 ) 1, Prefix, 
+     &                         SUM( SNOW_HG_LN(:,:,N) ), 'kg'
                   CASE ( 4 )
                      Prefix = 'Snow_HgN_Land_Hg0' ! Non-reducible on land
                      Temp2D = SNOW_HG_STORED_LN(:,:,N)
+                     WRITE( 6, 180 ) 1, Prefix, 
+     &                         SUM( SNOW_HG_STORED_LN(:,:,N) ), 'kg'
                END SELECT
                Ptr2D => Temp2D
 
@@ -1919,53 +1977,9 @@ dvected tracer input  restart file
             ENDDO
          ENDDO
 
-         !--------------------------------------------------------------
-         ! If tagged Hg simulation, also write tagged Hg(0), Hg(II), 
-         ! and Hg(P) in ocean
-         !--------------------------------------------------------------
-         IF ( Input_Opt%LSPLIT ) THEN
-
-            ! Loop over tagged Hg categories
-            DO N = 2, N_Hg_CATS
-
-               ! Loop over Hg0, Hg2, and HgP
-               DO M = 1, 3
-
-                  ! Define container name and point to data
-                  Temp2D = 0.e+0_fp
-                  SELECT CASE( M )
-                     CASE ( 1 )
-                        Tracer = 'Hg0' 
-                        Temp2D = Hg0aq(:,:,N)
-                     CASE ( 2 )
-                        Tracer = 'Hg2'
-                        Temp2D = Hg2aq(:,:,N)
-                     CASE ( 3 )
-                        Tracer = 'HgP' 
-                        Temp2D = HgPaq(:,:,N)
-                  END SELECT
-                  Ptr2D => Temp2D
-                  ContainerName = 'Ocean_' // Trim( Tracer ) // '_' 
-     &                            // TRIM( Input_Opt%Hg_CAT(N) )                  
-                  ! Populate container with data
-                  CALL Diagn_Update( am_I_Root,                   
-     &                               cName   = TRIM( ContainerName ),
-     &                               COL     = GC_RST_Collection,
-     &                               Array2D = Ptr2D,             
-     &                               RC      = HCRC )
-                  
-                  ! Free the pointer
-                  Ptr2D => NULL()
-                  
-                  IF ( HCRC /= HCO_SUCCESS ) THEN
-                     MSG = 'Cannot update restart tracer container: ' 
-     &                     // TRIM( ContainerName )
-                     CALL ERROR_STOP( MSG, LOC ) 
-                  ENDIF
-               ENDDO
-            ENDDO
-         ENDIF
-
+         ! Format string for printing Hg masses to log
+ 180     FORMAT( 'Tracer ', i3, ': ', a20, ' ', es15.9, 1x, a4)
+         
       ENDIF
 
       !=================================================================
@@ -1984,6 +1998,9 @@ dvected tracer input  restart file
      &                           UsePrevTime = .FALSE.,                    
      &                           COL         = GC_RST_Collection,  
      &                           RC          = RC                )
+
+      ! End restart write section of log file
+      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
 
       !### Debug
       IF ( Input_Opt%LPRT .AND. am_I_Root ) THEN 
