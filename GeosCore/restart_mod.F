@@ -288,7 +288,7 @@
             END SELECT
          
             ! Define container name and ID
-            ContainerName = 'Ocean_' // TRIM( Tracer ) // '_total'
+            ContainerName = 'Ocean_' // TRIM( Tracer )
             cID = cID + 1
             
             ! Create container
@@ -956,7 +956,7 @@ dvected tracer input  restart file
                CASE ( 3 )
                   Tracer = 'HgP' 
             END SELECT
-            v_name = 'Ocean_' // TRIM( Tracer ) // '_total' 
+            v_name = 'Ocean_' // TRIM( Tracer )
 
             ! Zero temporary array and set pointer
             Temp2D = 0.e+0_fp 
@@ -1845,7 +1845,7 @@ dvected tracer input  restart file
                   Tracer = 'HgP' 
                   Temp2D = HgPaq(:,:,ID_Hg_tot)
             END SELECT
-            ContainerName = 'Ocean_' // TRIM( Tracer ) // '_total'
+            ContainerName = 'Ocean_' // TRIM( Tracer )
             Ptr2D => Temp2D
 
             ! Populate container with data
