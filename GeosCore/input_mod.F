@@ -4527,6 +4527,14 @@
       ! Get max number of tracers
       N_MAX = MIN( N_TRACERS, NNPAR )
 
+      IF ( .not. Input_Opt%LEMIS ) THEN
+         WRITE( 6, '(a)' ) 'WARNING: Emissions are turned off. The'
+         WRITE( 6, '(a)' ) ' following diagnostics will also be turned'
+         WRITE( 6, '(a)' ) ' off:  ND01, ND04, ND06, ND07, ND08, ND11,'
+         WRITE( 6, '(a)' ) ' ND13, ND28, ND29, ND32, ND34, ND36, ND46,'
+         WRITE( 6, '(a)' ) ' ND53, ND56, ND58'
+      ENDIF
+
       ! Binary punch file name
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:1' )
       READ( SUBSTRS(1:N), '(a)' ) BPCH_FILE
@@ -4539,7 +4547,8 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:3' )
       READ( SUBSTRS(1), * ) ND01
-      IF ( .not. Input_Opt%ITS_A_RnPbBe_SIM ) ND01 = 0 
+      IF ( .not. Input_Opt%ITS_A_RnPbBe_SIM .or.
+     &     .not. Input_Opt%LEMIS ) ND01 = 0 
       CALL SET_TINDEX( am_I_Root, 01, ND01, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
@@ -4563,7 +4572,8 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:6' )
       READ( SUBSTRS(1), * ) ND04
-      IF ( .not. Input_Opt%ITS_A_CO2_SIM ) ND04 = 0
+      IF ( .not. Input_Opt%ITS_A_CO2_SIM .or.
+     &     .not. Input_Opt%LEMIS ) ND04 = 0
       CALL SET_TINDEX( am_I_Root, 04, ND04, SUBSTRS(2:N), N-1, PD04 )
 
       !--------------------------
@@ -4579,7 +4589,8 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:8' )
       READ( SUBSTRS(1), * ) ND06
-      IF ( .not. Input_Opt%LDUST ) ND06 = 0
+      IF ( .not. Input_Opt%LDUST .or.
+     &     .not. Input_Opt%LEMIS ) ND06 = 0
       CALL SET_TINDEX( am_I_Root, 06, ND06, SUBSTRS(2:N), N-1, NDSTBIN )
  
       !--------------------------
@@ -4587,7 +4598,8 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:9' )
       READ( SUBSTRS(1), * ) ND07
-      IF ( .not. Input_Opt%LCARB ) ND07 = 0
+      IF ( .not. Input_Opt%LCARB .or.
+     &     .not. Input_Opt%LEMIS ) ND07 = 0
       CALL SET_TINDEX( am_I_Root, 07, ND07, SUBSTRS(2:N), N-1, PD07 )
 
       !--------------------------
@@ -4595,7 +4607,8 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:10' )
       READ( SUBSTRS(1), * ) ND08
-      IF ( .not. Input_Opt%LSSALT ) ND08 = 0
+      IF ( .not. Input_Opt%LSSALT .or.
+     &     .not. Input_Opt%LEMIS ) ND08 = 0
       CALL SET_TINDEX( am_I_Root, 08, ND08, SUBSTRS(2:N), N-1, PD08 )
 
       ! Included in HEMCO diagnostics for netCDF
@@ -4621,6 +4634,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:13' )
       READ( SUBSTRS(1), * ) ND11
+      IF ( .not. Input_Opt%LEMIS ) ND11 = 0
       CALL SET_TINDEX( am_I_Root, 11, ND11, SUBSTRS(2:N), N-1, PD11 )
 
       !--------------------------
@@ -4635,7 +4649,8 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:15' )
       READ( SUBSTRS(1), * ) ND13
-      IF ( .not. Input_Opt%LSULF ) ND13 = 0
+      IF ( .not. Input_Opt%LSULF .or.
+     &     .not. Input_Opt%LEMIS ) ND13 = 0
       CALL SET_TINDEX( am_I_Root, 13, ND13, SUBSTRS(2:N), N-1, PD13 )
 
       !--------------------------
@@ -4743,12 +4758,14 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:29' )
       READ( SUBSTRS(1), * ) ND28
+      IF ( .not. Input_Opt%LEMIS ) ND28 = 0
  
       !--------------------------
       ! ND29: CO sources
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:30' )
       READ( SUBSTRS(1), * ) ND29
+      IF ( .not. Input_Opt%LEMIS ) ND29 = 0
       CALL SET_TINDEX( am_I_Root, 29, ND29, SUBSTRS(2:N), N-1, PD29 )
 
       !--------------------------
@@ -4770,6 +4787,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:33' )
       READ( SUBSTRS(1), * ) ND32
+      IF ( .not. Input_Opt%LEMIS ) ND32 = 0
       CALL SET_TINDEX( am_I_Root, 32, ND32, SUBSTRS(2:N), N-1, PD32 )
 
       !--------------------------
@@ -4784,6 +4802,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:35' )
       READ( SUBSTRS(1), * ) ND34
+      IF ( .not. Input_Opt%LEMIS ) ND34 = 0
 
       !--------------------------
       ! ND35: 500 hPa tracer
@@ -4797,6 +4816,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:37' )
       READ( SUBSTRS(1), * ) ND36
+      IF ( .not. Input_Opt%LEMIS ) ND36 = 0
       CALL SET_TINDEX( am_I_Root, 
      &                 36, ND36, SUBSTRS(2:N), N-1, N_TRACERS )      
 
@@ -4885,6 +4905,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:49' )
       READ( SUBSTRS(1), * ) ND46
+      IF ( .not. Input_Opt%LEMIS ) ND46 = 0
       CALL SET_TINDEX( am_I_Root, 46, ND46, SUBSTRS(2:N), N-1, PD46 )
 
       !--------------------------
@@ -4907,7 +4928,8 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:52' )
       READ( SUBSTRS(1), * ) ND53
-      IF ( .not. Input_Opt%ITS_A_POPS_SIM ) ND53 = 0
+      IF ( .not. Input_Opt%ITS_A_POPS_SIM .or.
+     &     .not. Input_Opt%LEMIS) ND53 = 0
       CALL SET_TINDEX( am_I_Root, 53, ND53, SUBSTRS(2:N), N-1, PD53 )
 
       !--------------------------
@@ -4929,6 +4951,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:55' )
       READ( SUBSTRS(1), * ) ND56
+      IF ( .not. Input_Opt%LEMIS ) ND56 = 0
       CALL SET_TINDEX( am_I_Root, 56, ND56, SUBSTRS(2:N), N-1, PD56 )
 
       !--------------------------
@@ -4943,6 +4966,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:57' )
       READ( SUBSTRS(1), * ) ND58
+      IF ( .not. Input_Opt%LEMIS ) ND58 = 0
       CALL SET_TINDEX( am_I_Root, 58, ND58, SUBSTRS(2:N), N-1, PD58 )
 
       !--------------------------
@@ -6420,6 +6444,11 @@
       ! Turn on ND63 diagnostic
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd63_menu:1' )
       READ( SUBSTRS(1:N), * ) DO_ND63
+      IF ( DO_ND63 .and .not. Input_Opt%LEMIS ) THEN
+         WRITE( 6, '(a)' ) 'WARNING: Emissions are turned off. ND63'
+         WRITE( 6, '(a)' ) 'will also be turned off.'
+         DO_ND63 = .FALSE.
+      ENDIF
 
       ! Instantaneous 3-D timeseries file
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd63_menu:2' )
