@@ -88,6 +88,7 @@ MODULE STRAT_CHEM_MOD
 !  16 Jan 2015 - C. Keller   - Now read all prod/loss fields and OH conc.
 !                              through HEMCO.
 !   4 Mar 2015 - R. Yantosca - Declare pointer args for HCO_GetPtr as REAL(f4)
+!  06 Apr 2016 - C. Keller   - Add Minit_Is_Set and SET_MINIT.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -161,6 +162,9 @@ MODULE STRAT_CHEM_MOD
   REAL(f4), ALLOCATABLE :: MInit(:,:,:,:)      ! Init. atm. state for STE period
   REAL(f4), ALLOCATABLE :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
                                                !   (total P - L) [kg period-1]
+
+  ! Minit_Is_Set indicates whether Minit has been set or not
+  LOGICAL               :: Minit_Is_Set = .FALSE. 
 
   !=================================================================
   ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -338,6 +342,13 @@ CONTAINS
 
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### STRAT_CHEM: at DO_STRAT_CHEM' )
+    ENDIF
+
+    ! Eventually set Minit
+    IF ( .NOT. Minit_Is_Set ) THEN
+       CALL SET_MINIT( am_I_Root, Input_Opt, State_Met, &
+                       State_Chm, errCode )
+       IF ( errCode /= GIGC_SUCCESS ) RETURN
     ENDIF
 
     !======================>==========================================
@@ -1418,27 +1429,13 @@ CONTAINS
     ALLOCATE( MInit( IIPAR, JJPAR, LLPAR, N_TRACERS ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'MInit' )
 
-    ! Convert State_Chm%TRACERS from [kg/kg dry air] to [kg] so
-    ! that initial state of atmosphere is in same units as
-    ! chemistry ([kg]), and then convert back after MInit is assigned 
-    ! (ewl, 8/10/15)
-    CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  &
-                                State_Chm, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL GIGC_Error('Unit conversion error', RC, &
-                       'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
-       RETURN
-    ENDIF 
-    
-    MInit = STT
-    
-    CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  &
-                                State_Chm, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL GIGC_Error('Unit conversion error', RC, &
-                       'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
-       RETURN
-    ENDIF 
+    ! Set MINIT. Ignore in ESMF environment because State_Chm%Tracers
+    ! is not yet filled during initialization. (ckeller, 4/6/16)
+#if !defined( ESMF_ )
+    CALL SET_MINIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+                    
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+#endif
 
     ! Array to determine the mean tropopause level over the period
     ! for which STE is being estimated.
@@ -1458,6 +1455,103 @@ CONTAINS
     NULLIFY( STT )
 
   END SUBROUTINE INIT_STRAT_CHEM
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: SET_MINIT 
+!
+! !DESCRIPTION: Sets the MINIT array to current values in State_Chm%Tracers.
+!\\
+!\\
+! !INTERFACE:
+!      
+  SUBROUTINE SET_MINIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!
+! !USES:
+!
+    USE ERROR_MOD,          ONLY : GIGC_ERROR
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE UNITCONV_MOD
+
+    IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+! 
+! !REVISION HISTORY:
+!  06 Apr 2016 - C. Keller   - Initial version: moved outside of 
+!                              INIT_STRAT_CHEM so that it can be called from
+!                              within DO_STRAT_CHEM (for ESMF applications).
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Pointers
+    ! We need to define local arrays to hold corresponding values 
+    ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+    REAL(fp), POINTER :: STT(:,:,:,:)
+
+    !=================================================================
+    ! SET_MINIT begins here!
+    !=================================================================
+
+    ! Assume success
+    RC                       = GIGC_SUCCESS
+
+    ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
+    STT => State_Chm%Tracers
+
+    ! Safety check that STT is non-zero.
+    IF ( SUM(STT) <= 0.0_fp ) RETURN
+
+    ! Convert State_Chm%TRACERS from [kg/kg dry air] to [kg] so
+    ! that initial state of atmosphere is in same units as
+    ! chemistry ([kg]), and then convert back after MInit is assigned 
+    ! (ewl, 8/10/15)
+    CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  &
+                                State_Chm, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL GIGC_Error('Unit conversion error', RC, &
+                       'Routine SET_MINIT in strat_chem_mod.F')
+       RETURN
+    ENDIF 
+    
+    MInit = STT
+    
+    CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  &
+                                State_Chm, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL GIGC_Error('Unit conversion error', RC, &
+                       'Routine SET_MINIT in strat_chem_mod.F')
+       RETURN
+    ENDIF 
+
+    ! Minit is now set
+    MInit_Is_Set = .TRUE.
+
+    ! Free pointer
+    NULLIFY( STT )
+
+  END SUBROUTINE SET_MINIT 
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
