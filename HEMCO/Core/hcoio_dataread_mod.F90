@@ -3057,6 +3057,7 @@ CONTAINS
        CALL FileData_ArrCheck( Lct%Dct%Dta, 1, 1, NT, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
        DO I = 1, NT
+          If (I==1) Write(6,'(a)') 'Initializing VALS...'
           Lct%Dct%Dta%V2(I)%Val(1,1) = Vals(I)
        ENDDO
 
