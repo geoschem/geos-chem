@@ -396,7 +396,6 @@ CONTAINS
             ! Create container
             CALL Diagn_Create( am_I_Root,                     &
                  Col       = Collection,        & 
-                 cID       = cID,               &
                  cName     = TRIM( DiagnName ), &
                  AutoFill  = 0,                 &
                  ExtNr     = -1,                &
