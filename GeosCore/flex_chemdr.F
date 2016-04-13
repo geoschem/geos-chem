@@ -699,27 +699,29 @@
          C(ind_HCOOH) = 0.e0_dp
 
          ! Try another time if it failed
-!         IF ( IERR < 0 ) THEN
+         IF ( IERR < 0 ) THEN
 !            write(6,*) ''
 !            write(6,100) istatus(1:8),rstate(1:3)
 !            write(6,*) ''
 !            write(ERR_MSG,'(a,i3)') 'Integrator error code :',IERR
 !            write(6,*)  'I, J, L ', I, J, L
-!
+
 !            ! Reset first time step and start concentrations
 !            ! Retry the integration with non-optimized
 !            ! settings
-!            RCNTRL(3)  = 0e+0_fp
-!!            CALL Init_KPP( )
-!            CALL Update_RCONST( )
-!            call Integrate( TIN,    TOUT,    ICNTRL, 
-!     &                      RCNTRL, ISTATUS, RSTATE, IERR )
-!            IF ( IERR < 0 ) THEN 
-!               print*, 'failed twice !!! '
-!!               CALL ERROR_STOP(ERR_MSG, 'INTEGRATE_KPP')
-!            ENDIF
-!            
-!         ENDIF
+            RCNTRL(3)  = 0e+0_fp
+            CALL Init_KPP( )
+            VAR = C(1:NVAR)
+            FIX = C(NVAR+1:NSPEC)
+            CALL Update_RCONST( )
+            call Integrate( TIN,    TOUT,    ICNTRL, 
+     &                      RCNTRL, ISTATUS, RSTATE, IERR )
+            IF ( IERR < 0 ) THEN 
+               print*, 'failed twice !!! '
+               CALL ERROR_STOP(ERR_MSG, 'INTEGRATE_KPP')
+            ENDIF
+            
+         ENDIF
 
          ! mje calculate some diagnostics
          ! mje calculate d[X]/dt for all the species
