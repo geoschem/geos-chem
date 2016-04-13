@@ -843,10 +843,10 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% FOR DIAGNOSTIC PURPOSES ONLY, WE CAN REMOVE THIS LATER
 #if defined( DEVEL )
-      ! mje write out tropospheric mass weighted averages
-      DO N=1,NSPEC
-         WRITE (6,*) SPC_NAMES(N), AVERAGEVAR(N)/MASS
-      ENDDO	
+!      ! mje write out tropospheric mass weighted averages
+!      DO N=1,NSPEC
+!         WRITE (6,*) SPC_NAMES(N), AVERAGEVAR(N)/MASS
+!      ENDDO	
 #endif
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
