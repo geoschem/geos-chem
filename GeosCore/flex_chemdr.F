@@ -248,6 +248,38 @@
      &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
       ENDIF
+
+      !================================================================
+      ! Zero out certain species:
+      !    - isoprene oxidation counter species (dkh, bmy, 6/1/06)
+      !    - isoprene-NO3 oxidation counter species (hotp, 6/1/10)
+      !    - if SOA or SOA_SVPOA, aromatic oxidation counter species 
+      !      (dkh, 10/06/06)
+      !    - if SOA_SVPOA, LNRO2H and LNRO2N for NAP (hotp 6/25/09
+      ! Done in gasconc.F every timestep prior to FlexChem (ewl, 3/30/16)
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( N )
+      DO N = 1, Input_opt%N_SPECIES
+
+         ! isoprene oxidation counter species
+         IF ( State_Chm%Spec_Name(N) == 'LISOPOH' .or.
+     &        State_Chm%Spec_Name(N) == 'LISOPNO3' ) THEN
+               State_Chm%Species(:,:,:,N) = 0e+0_fp
+         ENDIF
+
+         ! aromatic oxidation counter species
+         IF ( Input_Opt%LSOA .or. Input_Opt%LSVPOA ) THEN
+            SELECT CASE ( State_Chm%Spec_Name(N) )
+               CASE ( 'LBRO2H', 'LBRO2N', 'LTRO2H', 'LTRO2N',
+     &                'LXRO2H', 'LXRO2N', 'LNRO2H', 'LNRO2N' )
+                  State_Chm%Species(:,:,:,N) = 0e+0_fp
+            END SELECT
+         ENDIF
+      ENDDO
+!$OMP END PARALLEL DO
+      
       !=================================================================
       ! Call RDAER -- computes aerosol optical depths
       !=================================================================

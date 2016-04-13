@@ -56,7 +56,9 @@ MODULE GCKPP_HETRATES
   PRIVATE :: FYHORO
   PRIVATE :: FYRNO3
   PRIVATE :: ARSL1K
+
 #if defined( UCX )
+  ! These functions are only used for UCX-based mechanisms
   PRIVATE :: HETClNO3_PSC1
   PRIVATE :: HETClNO3_PSC2
   PRIVATE :: HETClNO3_PSC3
@@ -66,57 +68,29 @@ MODULE GCKPP_HETRATES
   PRIVATE :: HETHOBr_PSC
   PRIVATE :: HETN2O5_PSC
 #endif
-
-! These functions are only used for UCX-based mechanisms
 !
 ! !PRIVATE DATA MEMBERS:
 !
-  !%%% NOTE: SOME OF THESE VARIABLE DEFINITIONS MAY BE BETTER IMPLEMENTED %%%
-  !%%% AS LOCAL VARIABLES WITHIN EACH OF THE FUNCTIONS.  DO THIS LATER.   %%%
-
   ! Scalars
-  INTEGER  :: II,JJ,LL
-  INTEGER  :: N
   INTEGER  :: NAERO
-  LOGICAL  :: NATSURFACE,   SAFEDIV
-  LOGICAL  :: KII_KI,       PSCBOX,    STRATBOX
-  REAL(fp) :: TEMPK,        RELHUM,    XSTKCF
-  REAL(fp) :: VPRESH2O,     CONSEXP
-  REAL(fp) :: TRC_NIT,      SPC_HBr,   SPC_HOBr,  SPC_SO4,     SPC_NIT
-  REAL(fp) :: GAMMA_HO2,    XTEMP,     XDENA,     ADJUSTEDRATE
-  REAL(fp) :: CLD_BRNO3_RC, KI_HBR,    KI_HOBr,   QLIQ,        QICE
-  REAL(fp) :: DUMMY
-  REAL(fp) :: hobr_rtemp,   hbr_rtemp
-#if defined( UCX )
-  INTEGER  :: PSCIDX
-  REAL(fp) :: SPC_N2O5,     SPC_H2O,   SPC_HCl
-  REAL(fp) :: SPC_HOCl,     SPC_ClNO3, SPC_BrNO3
-  REAL(fp) :: EDUCTCONC,    LIMITCONC
-#endif
+  LOGICAL  :: NATSURFACE,   PSCBOX,    STRATBOX
+  REAL(fp) :: TEMPK,        RELHUM,    TRC_NIT, SPC_SO4
+  REAL(fp) :: SPC_NIT,      GAMMA_HO2, XTEMP,   XDENA
+  REAL(fp) :: CLD_BRNO3_RC, KI_HBR,    KI_HOBr, QLIQ
+  REAL(fp) :: QICE
 
   ! Arrays
   REAL(fp) :: SCF2(3)
   REAL(fp) :: XAREA(25)
   REAL(fp) :: XRADI(25)
   REAL(fp) :: KHETI_SLA(11)
-#if defined( UCX )
-  REAL(fp) :: PSCEDUCTCONC(11,2)
-#endif
 
-!$OMP THREADPRIVATE( KII_KI,    NAERO,        N                        )
-!$OMP THREADPRIVATE( RELHUM,    CONSEXP,      VPRESH2O                 )
-!$OMP THREADPRIVATE( PSCBOX,    STRATBOX,     NATSURFACE               )
-!$OMP THREADPRIVATE( TRC_NIT,   SPC_NIT,      SPC_SO4                  )
-!$OMP THREADPRIVATE( XAREA,     XRADI,        TEMPK,      XTEMP        )
-!$OMP THREADPRIVATE( XDENA,     GAMMA_HO2,    QICE,       QLIQ         )
-!$OMP THREADPRIVATE( DUMMY,     ki_hbr,       ki_hobr,    cld_brno3_rc )
-!$OMP THREADPRIVATE( SAFEDIV,   hbr_rtemp,    hobr_rtemp               )
-!$OMP THREADPRIVATE( XSTKCF,    ADJUSTEDRATE, SPC_HBr,    SPC_HOBr     )
-#if defined( UCX )
-!$OMP THREADPRIVATE( SPC_N2O5,  SPC_H2O,      SPC_HCl,    SPC_HOCl     )
-!$OMP THREADPRIVATE( SPC_ClNO3, SPC_BrNO3,    KHETI_SLA,  PSCEDUCTCONC )
-!$OMP THREADPRIVATE( PSCIDX,    EDUCTCONC,    LIMITCONC                ) 
-#endif
+!$OMP THREADPRIVATE( NAERO,        NATSURFACE, PSCBOX,   STRATBOX )
+!$OMP THREADPRIVATE( TEMPK,        RELHUM,     TRC_NIT,  SPC_SO4  )
+!$OMP THREADPRIVATE( SPC_NIT,      GAMMA_HO2,  XTEMP,    XDENA    )
+!$OMP THREADPRIVATE( CLD_BRNO3_RC, KI_HBR,     KI_HOBr,  QLIQ     )
+!$OMP THREADPRIVATE( QICE,         SCF2,       XAREA,    XRADI    )
+!$OMP THREADPRIVATE( KHETI_SLA                                    )
 !
 ! !DEFINED PARAMETERS:
 !
@@ -147,6 +121,8 @@ MODULE GCKPP_HETRATES
 !  29 Mar 2016 - R. Yantosca - Added ProTeX headers
 !  29 Mar 2016 - R. Yantosca - Moved all the UCX-based functions to the
 !                              end of the module, for clarity
+!  01 Apr 2016 - R. Yantosca - Remove many global variables that can be
+!                              declared locally from the THREADPRIVATEs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -183,36 +159,73 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
+!  01 Apr 2016 - R. Yantosca - Define many variables locally that don't
+!                              need to be in the THREADPRIVATE statements 
+!  01 Apr 2016 - R. Yantosca - Remove KII_KI; we now declare that locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: IND
+      ! Scalars
+      LOGICAL  :: SAFEDIV
+      INTEGER  :: IND
+      REAL(fp) :: ADJUSTEDRATE, CONSEXP,  DUMMY,    HBr_RTEMP
+      REAL(fp) :: HOBr_RTEMP,   QICE,     QLIQ,     SPC_BrNO3
+      REAL(fp) :: SPC_ClNO3,    SPC_H2O,  SPC_HBr,  SPC_HCl
+      REAL(fp) :: SPC_HOBr,     SPC_HOCl, SPC_N2O5, VPRESH2O
+
+#if defined( UCX )
+      ! Variables for UCX-based mechanisms
+      INTEGER  :: PSCIDX
+      REAL(fp) :: EDUCTCONC
+      REAL(fp) :: LIMITCONC
+      REAL(fp) :: PSCEDUCTCONC(11,2)
+#endif
 
       !====================================================================
       ! SET_HET begins here!
       !====================================================================
 
-      ! For Debugging
-      II = I
-      JJ = J
-      LL = L
+      ! Zero scalars and arrays
+      ADJUSTEDRATE  = 0.0_fp
+      CONSEXP       = 0.0_fp
+      DUMMY         = 0.0_fp
+      HBr_RTEMP     = 0.0_fp
+      HOBr_RTEMP    = 0.0_fp
+      KHETI_SLA     = 0.0_fp
+      NAERO         = SC%nAero
+      QICE          = 0.0_fp
+      QLIQ          = 0.0_fp
+      SPC_BrNO3     = 0.0_fp
+      SPC_ClNO3     = 0.0_fp
+      SPC_H2O       = 0.0_fp
+      SPC_HBr       = 0.0_fp
+      SPC_HCl       = 0.0_fp
+      SPC_HOBr      = 0.0_fp
+      SPC_HOCl      = 0.0_fp
+      SPC_N2O5      = 0.0_fp
+      VPRESH2O      = 0.0_fp
 
-      ! Divide by educt concentration
-      KII_KI     = .false.
-
-      ! Initialize logicals for UCX
-      PSCBOX     = .false.
-      STRATBOX   = .false.
-      NATSURFACE = .false.
-
-      NAERO = SC%nAero
+      ! Initialize logicals
+      SAFEDIV       = .FALSE.
+      PSCBOX        = .FALSE.
+      STRATBOX      = .FALSE.
+      NATSURFACE    = .FALSE.
 
 #if defined( UCX )
-      ! Copy sticking coefficients for PSC reactions on SLA
-      KHETI_SLA(:) = SC%KHETI_SLA(I,J,L,:)
+      !-----------------------------
+      ! Initialize for UCX
+      !-----------------------------
+
+      ! Zero variables for UCX
+      EDUCTCONC     = 0.0_fp
+      LIMITCONC     = 0.0_fp
+      PSCEDUCTCONC  = 0.0_fp
+
+      ! KHETI_SLA = sticking coefficients for PSC reactions on SLA
+      KHETI_SLA     = SC%KHETI_SLA(I,J,L,:)
 #endif
 
       ! Calculate RH. Not clear why the result of this calc is 
@@ -221,7 +234,7 @@ MODULE GCKPP_HETRATES
       CONSEXP       = 17.2693882e+0_fp * (SM%T(I,J,L) - 273.16e+0_fp) / &
                       (SM%T(I,J,L) - 35.86e+0_fp)
       VPRESH2O      = CONSVAP * EXP(CONSEXP) / SM%T(I,J,L) 
-      RELHUM = RELHUM / VPRESH2O 
+      RELHUM        = RELHUM / VPRESH2O 
 
       ! Get tracer concentrations [kg]
       IND = get_indx('NIT',IO%ID_TRACER,IO%TRACER_NAME)
@@ -394,30 +407,31 @@ MODULE GCKPP_HETRATES
          ki_hbr = 0e+0_fp
          ki_hobr = 0e+0_fp
       ENDIF
-
-      HET = 0.
+      
+      ! Zero the HET array
+      HET = 0.0_dp
 
       !----------------------------------------------------------------
       ! Calculate and pass het rates to the KPP rate array
       !----------------------------------------------------------------
-      HET(ind_HO2,1)   = HETHO2(        3.30E1_fp, 2E-1_fp)
-      HET(ind_NO2,1)   = HETNO2(        4.60E1_fp, 1E-4_fp)
-      HET(ind_NO3,1)   = HETNO3(        6.20E1_fp, 1E-1_fp)
-      HET(ind_N2O5,1)  = HETN2O5(       1.08E2_fp, 1E-1_fp)
+      HET(ind_HO2,  1) = HETHO2(        3.30E1_fp, 2E-1_fp)
+      HET(ind_NO2,  1) = HETNO2(        4.60E1_fp, 1E-4_fp)
+      HET(ind_NO3,  1) = HETNO3(        6.20E1_fp, 1E-1_fp)
+      HET(ind_N2O5, 1) = HETN2O5(       1.08E2_fp, 1E-1_fp)
       HET(ind_BrNO3,1) = HETBrNO3(      1.42E2_fp, 3E-1_fp)
-      HET(ind_HOBr,1)  = HETHOBr(       0.97E2_fp, 2E-1_fp)
-      HET(ind_HBr,1)   = HETHBr(        0.81E2_fp, 2E-1_fp)
-      HET(ind_HOBr,2)  = HETHOBr_ice(   0.97E2_fp, 1E-1_fp)
-      HET(ind_HBr,2)   = HETHBr_ice(    0.81E2_fp, 1E-1_fp)
+      HET(ind_HOBr, 1) = HETHOBr(       0.97E2_fp, 2E-1_fp)
+      HET(ind_HBr,  1) = HETHBr(        0.81E2_fp, 2E-1_fp)
+      HET(ind_HOBr ,2) = HETHOBr_ice(   0.97E2_fp, 1E-1_fp)
+      HET(ind_HBr,  2) = HETHBr_ice(    0.81E2_fp, 1E-1_fp)
 #if defined( UCX )
-      HET(ind_N2O5,2)  = HETN2O5_PSC(   1.08E2_fp, 0E+0_fp)
+      HET(ind_N2O5, 2) = HETN2O5_PSC(   1.08E2_fp, 0E+0_fp)
       HET(ind_ClNO3,1) = HETClNO3_PSC1( 0.97E2_fp, 0E+0_fp)
       HET(ind_ClNO3,2) = HETClNO3_PSC2( 0.97E2_fp, 0E+0_fp)
       HET(ind_ClNO3,3) = HETClNO3_PSC3( 0.97E2_fp, 0E+0_fp)
       HET(ind_BrNO3,2) = HETBrNO3_PSC(  1.42E2_fp, 0E+0_fp)
-      HET(ind_HOCl,1)  = HETHOCl_PSC1(  0.52E2_fp, 0E+0_fp)
-      HET(ind_HOCl,2)  = HETHOCl_PSC2(  0.52E2_fp, 0E+0_fp)
-      HET(ind_HOBr,3)  = HETHOBr_PSC(   0.97E2_fp, 0E+0_fp)
+      HET(ind_HOCl, 1) = HETHOCl_PSC1(  0.52E2_fp, 0E+0_fp)
+      HET(ind_HOCl, 2) = HETHOCl_PSC2(  0.52E2_fp, 0E+0_fp)
+      HET(ind_HOBr, 3) = HETHOBr_PSC(   0.97E2_fp, 0E+0_fp)
 #endif
 
       !----------------------------------------------------------------
@@ -644,15 +658,25 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL  :: DO_EDUCT
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
       ! Initialize
       HET_NO3      = 0.0_fp
       ADJUSTEDRATE = 0.0_fp
+      XSTKCF       = 0.0_fp
+
+      ! Don't do PSC rate adjustment
+      DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
       DO N = 1, NAERO
@@ -669,7 +693,7 @@ MODULE GCKPP_HETRATES
                                (A**0.5_FP))
          ENDIF
          
-         IF (KII_KI .and. N.gt.12) THEN
+         IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
             IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
                ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
@@ -710,15 +734,25 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL  :: DO_EDUCT
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
       ! Initialize
       HET_NO2      = 0.0_fp
       ADJUSTEDRATE = 0.0_fp
+      XSTKCF       = 0.0_fp
+
+      ! Don't do PSC rate adjustment
+      DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
       DO N = 1, NAERO
@@ -732,10 +766,10 @@ MODULE GCKPP_HETRATES
          ELSE
             ! Reaction rate for surface of aerosol
             ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                               (A**0.5_FP))
+                               (A**0.5_fp))
          ENDIF
          
-         IF (KII_KI .and. N.gt.12) THEN
+         IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
             IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
                ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
@@ -776,15 +810,25 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  29 Mar 2016 - R. Yantosca - Added ProTeX headers
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL  :: DO_EDUCT
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
       ! Initialize
       HET_HO2      = 0.0_fp
       ADJUSTEDRATE = 0.0_fp
+      XSTKCF       = 0.0_fp
+
+      ! Don't do PSC rate adjustment
+      DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
       DO N = 1, NAERO
@@ -806,7 +850,7 @@ MODULE GCKPP_HETRATES
                                (A**0.5_FP))
          ENDIF
          
-         IF (KII_KI .and. N.gt.12) THEN
+         IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
             IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
                ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
@@ -847,15 +891,25 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  29 Mar 2016 - R. Yantosca - Added ProTeX headers
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Define local variable for educt adjustment
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL  :: DO_EDUCT
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
       ! Initialize
       HET_HBr      = 0.0_fp
       ADJUSTEDRATE = 0.0_fp
+      XSTKCF       = 0.0_fp
+
+      ! Only apply PSC rate adjustment if at high altitude
+      DO_EDUCT     = STRATBOX
 
       ! Loop over aerosol types
       DO N = 1, NAERO
@@ -863,9 +917,6 @@ MODULE GCKPP_HETRATES
          ! jpp, 3/22/11: set the sticking coefficient to 
          !  ~0 for aerosol types we don't want reactions on
          !  for the HBr and HOBr surface reaction
-         
-         ! Only apply adjustment if at high altitude
-         KII_KI = STRATBOX
          
          ! Select proper aerosol type
          IF ( (N == 8) .OR. (N == 11) .OR. (N == 12)) THEN
@@ -890,8 +941,8 @@ MODULE GCKPP_HETRATES
          ENDIF
 
          scf2(2) = xstkcf
-         
-         IF (KII_KI .and. N.gt.12) THEN
+
+         IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
             IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
                ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
@@ -901,7 +952,7 @@ MODULE GCKPP_HETRATES
          ! Add to overall reaction rate
          HET_HBr = HET_HBr + ADJUSTEDRATE
 
-      END DO
+      ENDDO
 
     END FUNCTION HETHBr
 !EOC
@@ -932,20 +983,30 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp) :: TMP1, TMP2
-
+      LOGICAL  :: DO_EDUCT
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+      REAL(fp) :: TMP1,   TMP2
+!
+! !DEFINED PARAMETERS:
+!
       ! Initialize
       HET_N2O5     = 0.0_fp
       ADJUSTEDRATE = 0.0_fp
+      XSTKCF       = 0.0_fp
+      TMP1         = 0.0_fp
+      TMP2         = 0.0_fp
 
-      ! Always apply adjustment
-      KII_KI = .TRUE.
+      ! Always apply PSC rate adjustment
+      DO_EDUCT     = .TRUE.
 
       ! Loop over aerosol types
       DO N = 1, NAERO
@@ -1002,7 +1063,7 @@ MODULE GCKPP_HETRATES
                                (A**0.5_FP))
          ENDIF
          
-         IF (KII_KI .and. N.gt.12) THEN
+         IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
             IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
                ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
@@ -1043,22 +1104,29 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL  :: DO_EDUCT
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
       ! Initialize
       HET_BrNO3    = 0.0_fp
       ADJUSTEDRATE = 0.0_fp
+      XSTKCF       = 0.0_fp
+
+      ! Only apply PSC rate adjustment if at high altitude
+      DO_EDUCT     = STRATBOX
 
       ! Loop over aerosol types
       DO N = 1, NAERO
 
-         ! Only apply adjustment if at high altitude
-         KII_KI = STRATBOX
-         
          ! Get the aerosol type
          ! If it's sulfate then use 0.8 for alpha, following
          !  JPL 2006 kinetics evaluation... holds for many
@@ -1096,8 +1164,8 @@ MODULE GCKPP_HETRATES
             ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
                                (A**0.5_FP))
          ENDIF
-         
-         IF (KII_KI .and. N.gt.12) THEN
+
+         IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
             IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
                ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
@@ -1140,15 +1208,25 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL  :: DO_EDUCT
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
       ! Initialize
       HET_HOBr     = 0.0_fp
       ADJUSTEDRATE = 0.0_fp
+      XSTKCF       = 0.0_fp
+
+      ! Only apply PSC rate adjustment if at high altitude
+      DO_EDUCT     = STRATBOX
 
       ! Loop over aerosol types
       DO N = 1, NAERO
@@ -1157,9 +1235,6 @@ MODULE GCKPP_HETRATES
          !  ~0 for aerosol types we don't want reactions on
          !  for the HBr and HOBr surface reaction
 
-         ! Only apply adjustment if at high altitude
-         KII_KI = STRATBOX
-         
          ! Select proper aerosol type
          IF ( (N == 8) .OR. (N == 11) .OR. (N == 12)) THEN
             ! sulfate, 2 modes of sea-salt
@@ -1182,7 +1257,7 @@ MODULE GCKPP_HETRATES
                                (A**0.5_FP))
          ENDIF
          
-         IF (KII_KI .and. N.gt.12) THEN
+         IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
             IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
                ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
@@ -2268,18 +2343,25 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL  :: DO_EDUCT
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
       ! Initialize
       HET_N2O5_PSC = 0.0_fp
       ADJUSTEDRATE = 0.0_fp
+      XSTKCF       = 0.0_fp
 
-      ! Always apply adjustment
-      KII_KI = .TRUE.
+      ! Always apply PSC rate adjustment
+      DO_EDUCT     = .TRUE.
 
       ! Only consider PSC reactions in strat
       IF (STRATBOX) THEN
@@ -2312,7 +2394,7 @@ MODULE GCKPP_HETRATES
                                   (A**0.5_FP))
             ENDIF
 
-            IF (KII_KI .and. N.gt.12) THEN
+            IF ( DO_EDUCT .and. N > 12 ) THEN
                ! PSC reaction - prevent excessive reaction rate
                IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
                   ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
@@ -2357,18 +2439,25 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL  :: DO_EDUCT
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
       ! Initialize
       HET_ClNO3_PSC1 = 0.0_fp
       ADJUSTEDRATE   = 0.0_fp
+      XSTKCF         = 0.0_fp
 
-      ! Always apply adjustment
-      KII_KI = .TRUE.
+      ! Always apply PSC rate adjustment
+      DO_EDUCT       = .TRUE.
 
       ! Only consider PSC reactions in strat
       IF (STRATBOX) THEN
@@ -2401,7 +2490,7 @@ MODULE GCKPP_HETRATES
                                   (A**0.5_FP))
             ENDIF
 
-            IF (KII_KI .and. N.gt.12) THEN
+            IF ( DO_EDUCT .and. N > 12 ) THEN
                ! PSC reaction - prevent excessive reaction rate
                IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
                   ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
@@ -2446,18 +2535,25 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL  :: DO_EDUCT
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
       ! Initialize
       HET_ClNO3_PSC2 = 0.0_fp
       ADJUSTEDRATE   = 0.0_fp
+      XSTKCF         = 0.0_fp
 
-      ! Always apply adjustment
-      KII_KI = .TRUE.
+      ! Always apply PSC rate adjustment
+      DO_EDUCT       = .TRUE.
 
       ! Only consider PSC reactions in strat
       IF (STRATBOX) THEN
@@ -2490,7 +2586,7 @@ MODULE GCKPP_HETRATES
                                   (A**0.5_FP))
             ENDIF
 
-            IF (KII_KI .and. N.gt.12) THEN
+            IF ( DO_EDUCT .and. N > 12 ) THEN
                ! PSC reaction - prevent excessive reaction rate
                IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
                   ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
@@ -2535,18 +2631,25 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL  :: DO_EDUCT
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
       ! Initialize
       HET_ClNO3_PSC3 = 0.0_fp
       ADJUSTEDRATE   = 0.0_fp
+      XSTKCF         = 0.0_fp
 
-      ! Always apply adjustment
-      KII_KI = .TRUE.
+      ! Always apply PSC rate adjustment
+      DO_EDUCT       = .TRUE.
 
       ! Only consider PSC reactions in strat
       IF (STRATBOX) THEN
@@ -2579,7 +2682,7 @@ MODULE GCKPP_HETRATES
                                   (A**0.5_FP))
             ENDIF
 
-            IF (KII_KI .and. N.gt.12) THEN
+            IF ( DO_EDUCT .and. N > 12 ) THEN
                ! PSC reaction - prevent excessive reaction rate
                IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
                   ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
@@ -2624,18 +2727,25 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL  :: DO_EDUCT
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
       ! Initialize
       HET_BrNO3_PSC = 0.0_fp
       ADJUSTEDRATE  = 0.0_fp
+      XSTKCF        = 0.0_fp
 
-      ! Always apply adjustment
-      KII_KI = .TRUE.
+      ! Always apply PSC rate adjustment
+      DO_EDUCT      = .TRUE.
 
       ! Only consider PSC reactions in strat
       IF (STRATBOX) THEN
@@ -2668,7 +2778,7 @@ MODULE GCKPP_HETRATES
                                   (A**0.5_FP))
             ENDIF
 
-            IF (KII_KI .and. N.gt.12) THEN
+            IF ( DO_EDUCT .and. N > 12 ) THEN
                ! PSC reaction - prevent excessive reaction rate
                IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
                   ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
@@ -2713,18 +2823,25 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL  :: DO_EDUCT
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
       ! Initialize
       HET_HOCl_PSC1 = 0.0_fp
       ADJUSTEDRATE  = 0.0_fp
+      XSTKCF        = 0.0_fp
 
-      ! Always apply adjustment
-      KII_KI = .TRUE.
+      ! Always apply PSC rate adjustment
+      DO_EDUCT      = .TRUE.
 
       ! Only consider PSC reactions in strat
       IF (STRATBOX) THEN
@@ -2757,7 +2874,7 @@ MODULE GCKPP_HETRATES
                                   (A**0.5_FP))
             ENDIF
 
-            IF (KII_KI .and. N.gt.12) THEN
+            IF ( DO_EDUCT .and. N > 12 ) THEN
                ! PSC reaction - prevent excessive reaction rate
                IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
                   ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
@@ -2802,17 +2919,25 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL  :: DO_EDUCT
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
 
       ! Initialize
       HET_HOCl_PSC2 = 0.0_fp
       ADJUSTEDRATE  = 0.0_fp
+      XSTKCF        = 0.0_fp
 
-      ! Always apply adjustment
-      KII_KI = .TRUE.
+      ! Always apply PSC rate adjustment
+      DO_EDUCT      = .TRUE.
 
       ! Only consider PSC reactions in strat
       IF (STRATBOX) THEN
@@ -2845,7 +2970,7 @@ MODULE GCKPP_HETRATES
                                   (A**0.5_FP))
             ENDIF
 
-            IF (KII_KI .and. N.gt.12) THEN
+            IF ( DO_EDUCT .and. N > 12 ) THEN
                ! PSC reaction - prevent excessive reaction rate
                IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
                   ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
@@ -2890,18 +3015,25 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL  :: DO_EDUCT
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
       ! Initialize
       HET_HOBr_PSC = 0.0_fp
       ADJUSTEDRATE = 0.0_fp
+      XSTKCF       = 0.0_fp
 
-      ! Always apply adjustment
-      KII_KI = .TRUE.
+      ! Always apply PSC rate adjustment
+      DO_EDUCT     = .TRUE.
 
       ! Only consider PSC reactions in strat
       IF (STRATBOX) THEN
@@ -2934,7 +3066,7 @@ MODULE GCKPP_HETRATES
                                   (A**0.5_FP))
             ENDIF
 
-            IF (KII_KI .and. N.gt.12) THEN
+            IF ( DO_EDUCT .and. N > 12 ) THEN
                ! PSC reaction - prevent excessive reaction rate
                IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
                   ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
