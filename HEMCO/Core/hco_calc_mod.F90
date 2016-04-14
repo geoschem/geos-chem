@@ -155,6 +155,8 @@ CONTAINS
 !  03 Aug 2014 - C. Keller   - Bug fix for adding data to diagnostics. Now
 !                              explicitly check for new species OR category.
 !  21 Aug 2014 - C. Keller   - Added concentration.
+!  14 Apr 2016 - C. Keller   - Bug fix: avoid double-counting if multiple 
+!                              regional inventories have the same hierarchy.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -179,6 +181,12 @@ CONTAINS
     REAL(hp)                :: Mask  ( HcoState%NX, &
                                        HcoState%NY, &
                                        HcoState%NZ   )
+    REAL(hp)                :: HirFlx( HcoState%NX, &
+                                       HcoState%NY, &
+                                       HcoState%NZ   )
+    REAL(hp)                :: HirMsk( HcoState%NX, &
+                                       HcoState%NY, &
+                                       HcoState%NZ   )
 
     ! Integers
     INTEGER             :: ThisSpc, PrevSpc ! current and previous species ID
@@ -190,7 +198,7 @@ CONTAINS
     INTEGER             :: nI, nJ, nL 
     INTEGER             :: nnSpec, FLAG
 
-    LOGICAL             :: Found, DoDiagn
+    LOGICAL             :: Found, DoDiagn, EOL, UpdateCat
 
     ! For error handling & verbose mode
     CHARACTER(LEN=255)  :: MSG
@@ -217,6 +225,8 @@ CONTAINS
     ! Initialize
     SpcFlx(:,:,:)    = 0.0_hp
     CatFlx(:,:,:)    = 0.0_hp
+    HirFlx(:,:,:)    = 0.0_hp
+    HirMsk(:,:,:)    = 0.0_hp
     PrevSpc          = -1
     PrevHir          = -1
     PrevCat          = -1
@@ -260,78 +270,123 @@ CONTAINS
     !=================================================================
 
     ! Point to the head of the emissions linked list
+    EOL = .FALSE. ! End of list
     Lct => NULL()
     CALL ListCont_NextCont ( HcoState%EmisList, Lct, FLAG ) 
 
     ! Do until end of EmisList (==> loop over all emission containers) 
-    DO WHILE ( FLAG == HCO_SUCCESS )
+    DO
+       ! Have we reached the end of the list? 
+       IF ( FLAG /= HCO_SUCCESS ) THEN 
+          EOL = .TRUE.
+       ELSE
+          EOL = .FALSE.
+       ENDIF
 
        ! ------------------------------------------------------------
        ! Select container and update all working variables & arrays.
        ! ------------------------------------------------------------
+       IF ( .NOT. EOL ) THEN
 
-       ! Dct is the current data container 
-       Dct => Lct%Dct
+          ! Dct is the current data container 
+          Dct => Lct%Dct
 
-       ! Check if this is a base field 
-       IF ( Dct%DctType /= HCO_DCTTYPE_BASE ) THEN
-          CALL ListCont_NextCont ( HcoState%EmisList, Lct, FLAG )
-          CYCLE
+          ! Check if this is a base field 
+          IF ( Dct%DctType /= HCO_DCTTYPE_BASE ) THEN
+             CALL ListCont_NextCont ( HcoState%EmisList, Lct, FLAG )
+             CYCLE
+          ENDIF
+
+          ! Sanity check: Make sure this container holds data.
+          ! 'Empty' containers are possible if the simulation time
+          ! is outside of the specified data time range and time
+          ! slice cycling is deactivated (CycleFlag > 1). 
+          IF( .NOT. FileData_ArrIsDefined(Lct%Dct%Dta) ) THEN
+             CALL ListCont_NextCont ( HcoState%EmisList, Lct, FLAG )
+             CYCLE
+          ENDIF
+
+          ! Check if this is the specified extension number
+          IF ( Dct%ExtNr /= ExtNr ) THEN 
+             CALL ListCont_NextCont ( HcoState%EmisList, Lct, FLAG )
+             CYCLE
+          ENDIF
+
+          ! Advance to next container if the species ID is outside 
+          ! the specified species range (SpcMin - SpcMax). Consider 
+          ! all species above SpcMin if SpcMax is negative!
+          IF( (  Dct%HcoID < SpcMin                     ) .OR. &
+              ( (Dct%HcoID > SpcMax) .AND. (SpcMax > 0) ) ) THEN
+             CALL ListCont_NextCont ( HcoState%EmisList, Lct, FLAG )
+             CYCLE
+          ENDIF
+
+          ! Advance to next emission field if the emission category of 
+          ! the current container is outside of the specified species 
+          ! range (CatMin - CatMax). Consider all categories above CatMin
+          ! if CatMax is negative!
+          IF( (  Dct%Cat < CatMin                     ) .OR. &
+              ( (Dct%Cat > CatMax) .AND. (CatMax > 0) ) ) THEN
+             CALL ListCont_NextCont ( HcoState%EmisList, Lct, FLAG )
+             CYCLE
+          ENDIF
+
+          ! Check if this container holds data in the desired unit format,
+          ! i.e. concentration data if UseConc is enabled, emission data
+          ! otherwise.
+          IF ( UseConc /= Dct%Dta%IsConc ) THEN
+             CALL ListCont_NextCont ( HcoState%EmisList, Lct, FLAG )
+             CYCLE
+          ENDIF 
+
+          ! Update working variables
+          ThisSpc = Dct%HcoID
+          ThisCat = Dct%Cat
+          ThisHir = Dct%Hier
+
+       ! If end of list, use dummy values for ThisSpc, ThisCat and ThisHir
+       ! to make sure that emissions are added to HEMCO in the section
+       ! below!
+       ELSE
+          ThisSpc = -1
+          ThisCat = -1
+          ThisHir = -1
+       ENDIF  
+
+       !--------------------------------------------------------------------
+       ! Before computing emissions of current data container make sure that
+       ! emissions of previous container are properly archived.
+       !--------------------------------------------------------------------
+
+       ! Add emissions on hierarchy level to the category flux array. Do
+       ! this only if this is a new species, a new category or a new 
+       ! hierarchy level.
+       ! Note: no need to add to diagnostics because hierarchy level 
+       ! diagnostics are filled right after computing the emissions of
+       ! a given data container (towards the end of the DO loop).
+       IF ( (ThisHir /= PrevHir) .OR. &
+            (ThisSpc /= PrevSpc) .OR. &
+            (ThisCat /= PrevCat)        ) THEN
+
+          ! Add hierarchy level emissions to category array over the
+          ! covered regions.
+          CatFlx = ( (1.0_hp - HirMsk) * CatFlx ) + HirFlx
+
+          ! Reset
+          HirFlx = 0.0_hp
+          HirMsk = 0.0_hp
        ENDIF
-
-       ! Sanity check: Make sure this container holds data.
-       ! 'Empty' containers are possible if the simulation time
-       ! is outside of the specified data time range and time
-       ! slice cycling is deactivated (CycleFlag > 1). 
-       IF( .NOT. FileData_ArrIsDefined(Lct%Dct%Dta) ) THEN
-          CALL ListCont_NextCont ( HcoState%EmisList, Lct, FLAG )
-          CYCLE
-       ENDIF
-
-       ! Check if this is the specified extension number
-       IF ( Dct%ExtNr /= ExtNr ) THEN 
-          CALL ListCont_NextCont ( HcoState%EmisList, Lct, FLAG )
-          CYCLE
-       ENDIF
-
-       ! Advance to next container if the species ID is outside 
-       ! the specified species range (SpcMin - SpcMax). Consider 
-       ! all species above SpcMin if SpcMax is negative!
-       IF( (  Dct%HcoID < SpcMin                     ) .OR. &
-           ( (Dct%HcoID > SpcMax) .AND. (SpcMax > 0) ) ) THEN
-          CALL ListCont_NextCont ( HcoState%EmisList, Lct, FLAG )
-          CYCLE
-       ENDIF
-
-       ! Advance to next emission field if the emission category of 
-       ! the current container is outside of the specified species 
-       ! range (CatMin - CatMax). Consider all categories above CatMin
-       ! if CatMax is negative!
-       IF( (  Dct%Cat < CatMin                     ) .OR. &
-           ( (Dct%Cat > CatMax) .AND. (CatMax > 0) ) ) THEN
-          CALL ListCont_NextCont ( HcoState%EmisList, Lct, FLAG )
-          CYCLE
-       ENDIF
-
-       ! Check if this container holds data in the desired unit format,
-       ! i.e. concentration data if UseConc is enabled, emission data
-       ! otherwise.
-       IF ( UseConc /= Dct%Dta%IsConc ) THEN
-          CALL ListCont_NextCont ( HcoState%EmisList, Lct, FLAG )
-          CYCLE
-       ENDIF 
-
-       ! Update working variables
-       ThisSpc = Dct%HcoID
-       ThisCat = Dct%Cat
-       ThisHir = Dct%Hier
 
        !--------------------------------------------------------------------
        ! If this is a new species or category, pass the previously collected 
        ! emissions to the species array. Update diagnostics at category level.
        ! Skip this step for first species, i.e. if PrevSpc is still -1. 
        !--------------------------------------------------------------------
-       IF ( (PrevSpc>0) .AND. (ThisCat/=PrevCat .OR. ThisSpc/=PrevSpc) ) THEN
+       UpdateCat = .FALSE.
+       IF ( ThisCat /= PrevCat ) UpdateCat = .TRUE.
+       IF ( ThisSpc /= PrevSpc ) UpdateCat = .TRUE.
+       IF ( PrevCat <= 0 .OR. PrevSpc <= 0 ) UpdateCat = .FALSE.
+       IF ( UpdateCat ) THEN
 
           ! CatFlx holds the emissions for this category. Pass this to 
           ! the species array SpcFlx.
@@ -366,51 +421,58 @@ CONTAINS
           ! when entering a new category.
           CatFlx(:,:,:)  = 0.0_hp
           PrevHir        = -1
-          ThisCat        = Dct%Cat
-
        ENDIF
 
        !--------------------------------------------------------------------
        ! If this is a new species, pass previously calculated emissions
        ! to the final emissions array in HcoState. 
        ! Update diagnostics at extension number level. 
+       ! Don't do before first emission calculation, i.e. if PrevSpc 
+       ! is still the initialized value of -1!
        !--------------------------------------------------------------------
-       IF ( ThisSpc /= PrevSpc ) THEN
+       IF ( ThisSpc /= PrevSpc .AND. PrevSpc > 0 ) THEN
 
-          ! Don't do before first emission calculation, i.e. if PrevSpc 
-          ! is still the initialized value of -1!
-          IF ( PrevSpc > 0 ) THEN
+          ! Add to OutArr
+          OutArr(:,:,:) = OutArr(:,:,:) + SpcFlx(:,:,:)
 
-             ! Add to OutArr
-             OutArr(:,:,:) = OutArr(:,:,:) + SpcFlx(:,:,:)
-
-             ! testing only
-             IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
-                WRITE(MSG,*) 'Added total emissions to output array: '
-                CALL HCO_MSG(HcoState%Config%Err,MSG)
-                WRITE(MSG,*) 'Species: ', PrevSpc
-                CALL HCO_MSG(HcoState%Config%Err,MSG)
-                WRITE(MSG,*) 'SpcFlx : ', SUM(SpcFlx)
-                CALL HCO_MSG(HcoState%Config%Err,MSG)
-                WRITE(MSG,*) 'OutArr : ', SUM(OutArr)
-                CALL HCO_MSG(HcoState%Config%Err,MSG)
-             ENDIF
-
-             ! Add to diagnostics at extension number level. 
-             ! The same diagnostics may be updated multiple times during 
-             ! the same time step, continuously adding emissions to it.
-             IF ( Diagn_AutoFillLevelDefined(HcoState%Diagn,2) .AND. DoDiagn ) THEN 
-                CALL Diagn_Update(am_I_Root, HcoState,  ExtNr=ExtNr,  &
-                                  Cat=-1,    Hier=-1,  HcoID=PrevSpc, &
-                                  AutoFill=1,Array3D=SpcFlx, COL=-1, RC=RC ) 
-                IF ( RC /= HCO_SUCCESS ) RETURN
-             ENDIF
-
-             ! Reset arrays and previous hierarchy. 
-             SpcFlx(:,:,:)  =  0.0_hp
-             PrevCat        =  -1
-             OutArr         => NULL()
+          ! testing only
+          IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
+             WRITE(MSG,*) 'Added total emissions to output array: '
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
+             WRITE(MSG,*) 'Species: ', PrevSpc
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
+             WRITE(MSG,*) 'SpcFlx : ', SUM(SpcFlx)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
+             WRITE(MSG,*) 'OutArr : ', SUM(OutArr)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
+
+          ! Add to diagnostics at extension number level. 
+          ! The same diagnostics may be updated multiple times during 
+          ! the same time step, continuously adding emissions to it.
+          IF ( Diagn_AutoFillLevelDefined(HcoState%Diagn,2) .AND. DoDiagn ) THEN 
+             CALL Diagn_Update(am_I_Root, HcoState,  ExtNr=ExtNr,  &
+                               Cat=-1,    Hier=-1,  HcoID=PrevSpc, &
+                               AutoFill=1,Array3D=SpcFlx, COL=-1, RC=RC ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN
+          ENDIF
+
+          ! Reset arrays and previous hierarchy. 
+          SpcFlx(:,:,:)  =  0.0_hp
+          PrevCat        =  -1
+          PrevHir        =  -1
+          OutArr         => NULL()
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Exit DO loop here if end of list
+       !--------------------------------------------------------------------
+       IF ( EOL ) EXIT
+
+       !--------------------------------------------------------------------
+       ! Update/archive information on species level if needed
+       !--------------------------------------------------------------------
+       IF ( ThisSpc /= PrevSpc .AND. ThisSpc > 0 ) THEN
 
           ! Update number of species for which emissions have been
           ! calculated. 
@@ -471,7 +533,6 @@ CONTAINS
                            TRIM(HcoState%Spc(ThisSpc)%SpcName)
              CALL HCO_MSG( HcoState%Config%Err, MSG, SEP1='-', SEP2='-' )
           ENDIF
- 
        ENDIF
 
        !--------------------------------------------------------------------
@@ -507,33 +568,34 @@ CONTAINS
        ENDIF
 
        ! ------------------------------------------------------------
-       ! Collect all emissions of the same category (and species) in 
-       ! array CatFlx.
+       ! Collect all emissions of the same category (and species) on
+       ! the hierarchy level into array HirFlx. HirMsk contains the
+       ! combined covered region. That is, if there are two regional
+       ! inventories with the same hierarchy HirMsk will cover both
+       ! of these regions.
        ! The specified field hierarchies determine whether the
-       ! temporary emissions are added to CatFlx (if hierarchy is
-       ! the same as the previously used hierarchy), or if they 
-       ! overwrite the previous values in CatFlx (if hierarchy is 
-       ! higher than the previous hierarchy).
+       ! temporary emissions are added (if hierarchy is the same
+       ! as the previously used hierarchy), or if they overwrite the 
+       ! previous values in HirFlx (if hierarchy is higher than the 
+       ! previous hierarchy).
        ! ------------------------------------------------------------
 
-       ! Add emissions to the category array CatFlx if this hierarchy
+       ! Add emissions to the hierarchy array HirFlx if this hierarchy
        ! is the same as previous hierarchy
        IF ( ThisHir == PrevHir ) THEN
+          HirFlx = HirFlx + TmpFlx
+          HirMsk = HirMsk + Mask
 
-          ! Only over masked area
-          ! CatFlx = CatFlx + ( Mask * TmpFlx )
-          CatFlx = CatFlx + TmpFlx
- 
+          ! Make sure mask values do not exceed 1.0 
+          WHERE(HirMsk > 1.0 ) HirMsk = 1.0
+
        ! If hierarchy is larger than those of the previously used
-       ! fields, overwrite CatFlx w/ new values. 
-       ELSEIF ( ThisHir > PrevHir ) THEN
-          !CatFlx = ( (1.0_hp - Mask) * CatFlx ) + ( Mask * TmpFlx )
-          CatFlx = ( (1.0_hp - Mask) * CatFlx ) + TmpFlx
-
+       ! fields, overwrite HirFlx with new values. 
        ELSE
-          MSG = 'Hierarchy error in calc_emis: ' // TRIM(Dct%cName)
-          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
-          RETURN
+
+          HirFlx = TmpFlx
+          HirMsk = Mask
+
        ENDIF
 
        ! Update diagnostics at hierarchy level. Make sure that only 
@@ -561,57 +623,6 @@ CONTAINS
        CALL ListCont_NextCont( HcoState%EmisList, Lct, FLAG )
 
     ENDDO ! Loop over EmisList
-
-    !=======================================================================
-    ! Also pass emissions of the last category to output array 
-    !=======================================================================
-    IF ( nnSpec > 0 ) THEN
-       SpcFlx(:,:,:) = SpcFlx(:,:,:) + CatFlx(:,:,:)
-       OutArr(:,:,:) = OutArr(:,:,:) + SpcFlx(:,:,:)
-
-       ! verbose mode 
-       IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
-          WRITE(MSG,*) 'Added category emissions to species array: '
-          CALL HCO_MSG(HcoState%Config%Err,MSG)
-          WRITE(MSG,*) 'Species       : ', PrevSpc
-          CALL HCO_MSG(HcoState%Config%Err,MSG)
-          WRITE(MSG,*) 'Category      : ', PrevCat
-          CALL HCO_MSG(HcoState%Config%Err,MSG)
-          WRITE(MSG,*) 'Cat. emissions: ', SUM(CatFlx) 
-          CALL HCO_MSG(HcoState%Config%Err,MSG)
-          WRITE(MSG,*) 'Spc. emissions: ', SUM(SpcFlx) 
-          CALL HCO_MSG(HcoState%Config%Err,MSG)
-       ENDIF
-
-       ! Diagnostics at category level
-       IF ( Diagn_AutoFillLevelDefined(HcoState%Diagn,3) .AND. DoDiagn ) THEN
-          CALL Diagn_Update( am_I_Root,   HcoState, ExtNr=ExtNr,   &
-                             Cat=PrevCat, Hier=-1,  HcoID=PrevSpc, &
-                             AutoFill=1,  Array3D=CatFlx, COL=-1, RC=RC ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDIF
-
-       ! Diagnostics at extension number level
-       IF ( Diagn_AutoFillLevelDefined(HcoState%Diagn,2) .AND. DoDiagn ) THEN 
-          CALL Diagn_Update( am_I_Root,  HcoState,       ExtNr=ExtNr,   &
-                             Cat=-1,     Hier=-1,        HcoID=PrevSpc, &
-                             AutoFill=1, Array3D=SpcFlx, COL=-1, RC=RC   )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDIF
-
-       ! Verbose mode 
-       IF ( Hco_IsVerb(HcoState%Config%Err,3) ) THEN
-          WRITE(MSG,*) 'Added total emissions to output array: '
-          CALL HCO_MSG(HcoState%Config%Err,MSG)
-          WRITE(MSG,*) 'Species: ', PrevSpc
-          CALL HCO_MSG(HcoState%Config%Err,MSG)
-          WRITE(MSG,*) 'SpcFlx : ', SUM(SpcFlx)
-          CALL HCO_MSG(HcoState%Config%Err,MSG)
-          WRITE(MSG,*) 'OutArr : ', SUM(OutArr)
-          CALL HCO_MSG(HcoState%Config%Err,MSG)
-       ENDIF
-
-    ENDIF ! nnSpec > 0
 
     ! Make sure internal pointers are nullified 
     Lct    => NULL()
@@ -1175,6 +1186,9 @@ CONTAINS
 !\\
 !  This subroutine is only called by HCO\_CalcEmis and for fields with a valid
 !  species ID, i.e. for base emission fields. 
+!
+! !!! WARNING: this routine is not actively developed any more and may lag
+! !!! behind Get\_Current\_Emissions
 !\\
 !\\
 ! !INTERFACE:
