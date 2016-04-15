@@ -1316,6 +1316,7 @@
 !$OMP+PRIVATE( AW0,      QW0,     SSW0,     ASYW0,    REFF      )
 !$OMP+PRIVATE( SCALEA,   SCALEQ,  SCALESSA, SCALEASY, FRAC      )
 !$OMP+PRIVATE( SCALER,   SCALEOD, SCALEVOL, DRYAREA             )
+!$OMP+PRIVATE( TK,       CONSEXP, VPRESH2O, RELHUM              )
 #if defined( RRTMG )
 !$OMP+PRIVATE( IR                                               )
 #endif
