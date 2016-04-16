@@ -569,19 +569,22 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Tend_Stage1( am_I_Root, Input_Opt, State_Met, &
-                          State_Chm, TendName,  IsInvv,    RC ) 
+                          State_Chm, TendName,  RC ) 
 !
 ! !USES:
 !
+    USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   ) :: am_I_Root  ! Are we on the root CPU?
     TYPE(OptInput),   INTENT(IN   ) :: Input_Opt  ! Input opts
     TYPE(MetState),   INTENT(IN   ) :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! Chemistry state 
     CHARACTER(LEN=*), INTENT(IN   ) :: TendName   ! tendency name 
-    LOGICAL,          INTENT(IN   ) :: IsInvv     ! Is STT in v/v? 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm  ! Chemistry state 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -600,6 +603,7 @@ CONTAINS
     LOGICAL                  :: FOUND 
     REAL(f4), POINTER        :: Ptr3D(:,:,:) => NULL()
     TYPE(TendClass), POINTER :: ThisTend => NULL()
+    CHARACTER(LEN=63)        :: OrigUnit 
     CHARACTER(LEN=255)       :: MSG
     CHARACTER(LEN=255)       :: LOC = 'TEND_STAGE1 (tendencies_mod.F)' 
     
@@ -614,6 +618,11 @@ CONTAINS
     CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, ThisTend=ThisTend )
     IF ( .NOT. FOUND .OR. .NOT. ASSOCIATED(ThisTend) ) RETURN
 
+    ! Convert tracers to kg/kg dry
+    CALL Convert_Units( am_I_Root, Input_Opt, State_Met, &
+                        State_Chm, 'kg/kg dry', RC, InUnit=OrigUnit )
+    IF ( RC/= HCO_SUCCESS ) RETURN
+
     ! Loop over # of tendencies species
     DO I = 1, nSpc 
 
@@ -623,14 +632,10 @@ CONTAINS
        ! Get pointer to 3D array to be filled 
        Ptr3D => ThisTend%Tendency(I)%Arr
 
-       ! Fill 3D array with current values. Make sure it's in v/v
+       ! Fill 3D array with current values. 
+       ! Convert from kg/kg dry to v/v dry
        Ptr3D = 0.0_f4
-       IF ( IsInvv ) THEN
-          Ptr3D = State_Chm%Tracers(:,:,:,I)
-       ELSE
-          Ptr3D = State_Chm%Tracers(:,:,:,I) &
-                * Input_Opt%TCVV(I) / State_Met%AD(:,:,:)
-       ENDIF
+       Ptr3D = State_Chm%Tracers(:,:,:,I) * Input_Opt%TCVV(I)
 
        ! Cleanup
        Ptr3D => NULL()
@@ -638,6 +643,11 @@ CONTAINS
 
     ! Update stage 
     ThisTend%Stage = 1
+
+    ! Convert tracers back to original unit 
+    CALL Convert_Units( am_I_Root, Input_Opt, State_Met, &
+                        State_Chm, OrigUnit,  RC )
+    IF ( RC/= HCO_SUCCESS ) RETURN
 
     ! Cleanup
     ThisTend => NULL()
@@ -658,10 +668,11 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Tend_Stage2( am_I_Root, Input_Opt, State_Met, &
-                          State_Chm, TendName,  IsInvv, DT, RC ) 
+                          State_Chm, TendName,  DT, RC ) 
 !
 ! !USES:
 !
+    USE UNITCONV_MOD
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
 !
@@ -670,10 +681,12 @@ CONTAINS
     LOGICAL,          INTENT(IN   ) :: am_I_Root  ! Are we on the root CPU?
     TYPE(OptInput),   INTENT(IN   ) :: Input_Opt  ! Input opts
     TYPE(MetState),   INTENT(IN   ) :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! Chemistry state 
     CHARACTER(LEN=*), INTENT(IN   ) :: TendName   ! tendency name 
-    LOGICAL,          INTENT(IN   ) :: IsInvv     ! Is tracer in v/v? 
     REAL(fp),         INTENT(IN   ) :: DT         ! delta time, in seconds 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm  ! Chemistry state 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -698,6 +711,7 @@ CONTAINS
     REAL(f4)                 :: TMP (IIPAR,JJPAR,LLPAR)
     TYPE(TendClass), POINTER :: ThisTend => NULL()
     CHARACTER(LEN=63)        :: DiagnName
+    CHARACTER(LEN=63)        :: OrigUnit 
     CHARACTER(LEN=255)       :: MSG
     CHARACTER(LEN=255)       :: LOC = 'TEND_STAGE2 (tendencies_mod.F)' 
    
@@ -729,6 +743,11 @@ CONTAINS
        ZeroTend = .TRUE.
     ENDIF
 
+    ! Convert tracers to kg/kg dry
+    CALL Convert_Units( am_I_Root, Input_Opt, State_Met, &
+                        State_Chm, 'kg/kg dry', RC, InUnit=OrigUnit )
+    IF ( RC/= HCO_SUCCESS ) RETURN
+
     ! Loop over # of tendencies species
     DO I = 1, nSpc 
 
@@ -747,12 +766,8 @@ CONTAINS
           Tend = 0.0_f4
        ELSE
           ! TMP is the current concentration in v/v
-          IF ( IsInvv ) THEN
-             TMP = State_Chm%Tracers(:,:,:,I)
-          ELSE
-             TMP = State_Chm%Tracers(:,:,:,I) &
-                 * Input_Opt%TCVV(I) / State_Met%AD(:,:,:)
-          ENDIF
+          ! Convert from kg/kg dry to v/v dry
+          TMP = State_Chm%Tracers(:,:,:,I) * Input_Opt%TCVV(I)
 
           ! Calculate tendency 
           Tend = ( TMP - Ptr3D ) / REAL(DT,f4)
@@ -777,6 +792,11 @@ CONTAINS
 
     ! Update stage 
     ThisTend%Stage = 2
+
+    ! Convert tracers back to original unit 
+    CALL Convert_Units( am_I_Root, Input_Opt, State_Met, &
+                        State_Chm, OrigUnit,  RC )
+    IF ( RC/= HCO_SUCCESS ) RETURN
 
     ! Cleanup
     ThisTend => NULL()

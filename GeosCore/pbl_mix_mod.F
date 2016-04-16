@@ -205,7 +205,7 @@
          ! already in v/v (ckeller, 7/15/2015)
 #if defined( DEVEL ) 
          CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met,
-     &                     State_Chm, 'PBLMIX', .TRUE., RC )
+     &                     State_Chm, 'PBLMIX', RC )
 #endif
 
          ! Do complete mixing of tracers in the PBL (if necessary)
@@ -216,7 +216,7 @@
 #if defined( DEVEL ) 
          DT_TEND = GET_TS_CONV() * 60.0_fp
          CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met,
-     &                     State_Chm, 'PBLMIX', .TRUE., DT_TEND, RC )
+     &                     State_Chm, 'PBLMIX', DT_TEND, RC )
 #endif
       ENDIF
 

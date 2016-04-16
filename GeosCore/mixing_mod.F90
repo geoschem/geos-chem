@@ -409,7 +409,7 @@ CONTAINS
     ! Archive concentrations for tendencies (ckeller, 7/15/2015) 
 #if defined( DEVEL )
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, &
-                        State_Chm, 'FLUX', .FALSE., RC )
+                        State_Chm, 'FLUX', RC )
 #endif
 
     ! Do for every tracer and grid box
@@ -697,7 +697,7 @@ CONTAINS
       ! Calculate tendencies and write to diagnostics (ckeller, 7/15/2015)
 #if defined( DEVEL )
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, &
-                        State_Chm, 'FLUX', .FALSE., TS, RC )
+                        State_Chm, 'FLUX', TS, RC )
 #endif
 
 

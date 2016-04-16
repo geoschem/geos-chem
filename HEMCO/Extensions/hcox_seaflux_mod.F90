@@ -235,7 +235,7 @@ CONTAINS
        SeaConc => NULL()
 
        ! Eventually add to dry deposition diagnostics
-       ContName = 'DEPVEL_' // TRIM(HcoState%Spc(HcoID)%SpcName)
+       ContName = 'DRYDEP_VEL_' // TRIM(HcoState%Spc(HcoID)%SpcName)
        Arr2D    => SINK
        CALL Diagn_Update( am_I_Root, HcoState,      &
                           cName   = TRIM(ContName), &

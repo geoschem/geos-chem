@@ -32,6 +32,11 @@ MODULE UnitConv_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! Wrapper routine
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  PUBLIC :: Convert_Units
+
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ! State_Chm%TRACERS: TOTAL <-> DRY 
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -116,6 +121,144 @@ MODULE UnitConv_Mod
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: convert_units
+!
+! !DESCRIPTION: Subroutine Convert\_Units is a wrapper function to convert
+!  the tracer input array to a desired unit. This routine is currently only
+!  used by tendences\_mod.F90 and incomplete. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Convert_Units ( am_I_Root, Input_Opt, State_Met, &
+                             State_Chm, OutUnit,   RC, InUnit ) 
+!
+! !USES:
+!
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,          INTENT(IN)            :: am_I_Root   ! Are we on the root CPU?
+    TYPE(OptInput),   INTENT(IN)            :: Input_Opt   ! Input Options object
+    TYPE(MetState),   INTENT(IN)            :: State_Met   ! Meteorology state object
+    CHARACTER(LEN=*), INTENT(IN)            :: OutUnit     ! Desired output unit
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState),   INTENT(INOUT)         :: State_Chm   ! Chemistry state object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT)           :: RC          ! Success or failure?
+    CHARACTER(LEN=*), INTENT(OUT), OPTIONAL :: InUnit      ! Units of input data 
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  14 Apr 2016 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: MSG, LOC
+    LOGICAL            :: DONE
+
+    !====================================================================
+    ! Convert_Units begins here!
+    !====================================================================
+
+    ! Assume success
+    RC =  GIGC_SUCCESS
+
+    ! Archive units of input data
+    IF ( PRESENT(InUnit) ) InUnit = State_Chm%Trac_Units 
+
+    ! Initialize flag to indicate if we are done or not
+    DONE = .FALSE.
+
+    ! Leave here if data is already on desired units
+    IF ( TRIM(OutUnit) == TRIM(State_Chm%Trac_Units) ) DONE = .TRUE. 
+
+    !====================================================================
+    ! Convert to kg/kg dry
+    !====================================================================
+    IF ( .NOT. DONE .AND. TRIM(OutUnit) == 'kg/kg dry' ) THEN 
+
+       IF ( TRIM(State_Chm%Trac_Units) == 'v/v dry' ) THEN
+          CALL Convert_VVDry_to_KgKgDry( am_I_Root, Input_Opt, State_Chm, RC ) 
+          IF ( RC /= GIGC_SUCCESS ) RETURN
+          DONE = .TRUE.
+
+       ELSEIF ( TRIM(State_Chm%Trac_Units) == 'kg' ) THEN
+          CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+          IF ( RC /= GIGC_SUCCESS ) RETURN
+          DONE = .TRUE.
+
+       ELSEIF ( TRIM(State_Chm%Trac_Units) == 'kg/m2' ) THEN
+          CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+          IF ( RC /= GIGC_SUCCESS ) RETURN
+          DONE = .TRUE.
+       ENDIF
+    ENDIF
+
+    !====================================================================
+    ! Convert to v/v dry
+    !====================================================================
+    IF ( .NOT. DONE .AND. TRIM(OutUnit) == 'v/v dry' ) THEN 
+
+       IF ( TRIM(State_Chm%Trac_Units) == 'kg/kg dry' ) THEN
+          CALL Convert_KgKgDry_to_VVDry( am_I_Root, Input_Opt, State_Chm, RC ) 
+          IF ( RC /= GIGC_SUCCESS ) RETURN
+          DONE = .TRUE.
+       ENDIF
+    ENDIF
+
+    !====================================================================
+    ! Convert to kg
+    !====================================================================
+    IF ( .NOT. DONE .AND. TRIM(OutUnit) == 'kg' ) THEN 
+
+       IF ( TRIM(State_Chm%Trac_Units) == 'kg/kg dry' ) THEN
+          CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+          IF ( RC /= GIGC_SUCCESS ) RETURN
+          DONE = .TRUE.
+       ENDIF
+    ENDIF
+
+    !====================================================================
+    ! Convert to kg/m2
+    !====================================================================
+    IF ( .NOT. DONE .AND. TRIM(OutUnit) == 'kg/m2' ) THEN 
+
+       IF ( TRIM(State_Chm%Trac_Units) == 'kg/kg dry' ) THEN
+          CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+          IF ( RC /= GIGC_SUCCESS ) RETURN
+          DONE = .TRUE.
+       ENDIF
+    ENDIF
+
+    !====================================================================
+    ! Error check
+    !====================================================================
+    IF ( .NOT. DONE ) THEN 
+       MSG = 'Cannot convert from '//TRIM(InUnit)//' to '//TRIM(OutUnit)
+       LOC = 'Routine Convert_Units in unitconv_mod.F90'
+       CALL GIGC_Error( MSG, RC, LOC )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Convert_Units
+!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

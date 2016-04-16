@@ -2094,7 +2094,7 @@ contains
     ! is already in v/v (ckeller, 7/15/2015).
 #if defined(DEVEL)
     CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, &
-                      State_Chm, 'PBLMIX', .TRUE., RC )
+                      State_Chm, 'PBLMIX', RC )
 #endif
 
 ! (Turn off parallelization for now, skim 6/20/12)
@@ -2867,7 +2867,7 @@ contains
     ! Compute tendencies and write to diagnostics (ckeller, 7/15/2015)
 #if defined(DEVEL)
     CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, &
-                      State_Chm, 'PBLMIX', .TRUE., dtime, RC )
+                      State_Chm, 'PBLMIX', dtime, RC )
 #endif
 
 !      !### Debug

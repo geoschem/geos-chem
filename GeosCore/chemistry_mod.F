@@ -348,7 +348,7 @@
       !=================================================================
 #if defined( DEVEL )
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'CHEM', .FALSE., RC )
+     &                  State_Chm, 'CHEM', RC )
 #endif
 
       !=================================================================
@@ -731,7 +731,7 @@
 #if defined( DEVEL )
       DT_TEND = GET_TS_CHEM() * 60.0_fp
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'CHEM', .FALSE., DT_TEND, RC )
+     &                  State_Chm, 'CHEM', DT_TEND, RC )
 #endif
 
       ! Free pointer

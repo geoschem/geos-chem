@@ -326,7 +326,7 @@
       !=================================================================
 #if defined( DEVEL )
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'WETD', .FALSE., RC )
+     &                  State_Chm, 'WETD', RC )
 #endif
 
       !=================================================================
@@ -469,7 +469,7 @@
 #if defined( DEVEL )
       DT_TEND = GET_TS_DYN() * 60.0_fp
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'WETD', .FALSE., DT_TEND, RC )
+     &                  State_Chm, 'WETD', DT_TEND, RC )
 #endif
 
       END SUBROUTINE DO_WETDEP

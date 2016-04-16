@@ -208,7 +208,7 @@
       !=================================================================
 #if defined( DEVEL )
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'ADV', .TRUE., RC )
+     &                  State_Chm, 'ADV', RC )
 #endif
 
       !=================================================================
@@ -252,7 +252,7 @@
 #if defined( DEVEL )
       DT = GET_TS_DYN() * 60.0_fp
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'ADV', .TRUE., DT, RC )
+     &                  State_Chm, 'ADV', DT, RC )
 #endif
 
       ! Return to calling program
