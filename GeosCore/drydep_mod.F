@@ -4300,11 +4300,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
       DMID = 0e+0_f8
 
-      Input_Opt%NUMDEP            = NUMDEP
-      Input_Opt%NDVZIND(1:NUMDEP) = NDVZIND(1:NUMDEP)
-      Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
-      Input_Opt%NTRAIND(1:NUMDEP) = NTRAIND(1:NUMDEP)
-
       !=================================================================
       ! Echo information to stdout
       !=================================================================
@@ -4365,7 +4360,18 @@
       ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
       ! sea salt aerosols (jaegle 5/11/11)
       CALL INIT_WEIGHTSS( Input_Opt )
-      
+    
+      ! Archive variables in Input_Opt 
+      ! Moved after READ_DRYDEP_INPUTS because I'm experiencing memory
+      ! leaks if done beforehand. Best would be to execute
+      ! READ_DRYDEP_INPUTS only on the root CPU and then broadcast the
+      ! values but this solution here at least appears to fix the problem. 
+      ! (ckeller, 4/15/16)
+      Input_Opt%NUMDEP            = NUMDEP
+      Input_Opt%NDVZIND(1:NUMDEP) = NDVZIND(1:NUMDEP)
+      Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
+      Input_Opt%NTRAIND(1:NUMDEP) = NTRAIND(1:NUMDEP)
+ 
       END SUBROUTINE INIT_DRYDEP
 !EOC
 !------------------------------------------------------------------------------
