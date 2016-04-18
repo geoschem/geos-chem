@@ -38,8 +38,8 @@ MODULE gckpp_Global
 ! FIX - Concentrations of fixed species (global)
   REAL(kind=dp) :: FIX(NFIX)
 ! VAR, FIX are chunks of array C
-      EQUIVALENCE( C(1),VAR(1) )
-      EQUIVALENCE( C(124),FIX(1) )
+!      EQUIVALENCE( C(1),VAR(1) )
+!      EQUIVALENCE( C(124),FIX(1) )
 ! RCONST - Rate constants (global)
   REAL(kind=dp) :: RCONST(NREACT)
 ! TIME - Current integration time
@@ -81,8 +81,8 @@ MODULE gckpp_Global
       REAL(dp), ALLOCATABLE :: AER_AREA(:), AER_RADIUS(:)
       REAL(dp) AIRDEN, MW, HET_HO2
 
-!!$OMP THREADPRIVATE(VAR, C , TEMP, NUMDEN, EMISS, DRYLOSS)
-!!$OMP THREADPRIVATE( IX, IY, IZ )
+!$OMP THREADPRIVATE( C,   VAR,    FIX, RCONST, TIME        )
+!$OMP THREADPRIVATE( TEMP,NUMDEN, H2O, PRESS,  PHOTOL, HET )
 
 ! INLINED global variable declarations
 

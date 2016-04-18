@@ -4883,7 +4883,8 @@ c  Ensure all 'AN_' types are valid selections
       INTEGER,        INTENT(IN)    :: I,J,L      ! Grid box indices
       REAL(kind=fp),  INTENT(IN)    :: C_H2O      ! H2O conc [molec/cm3]
       REAL(kind=fp),  INTENT(IN)    :: FRAC       ! Result of SO4_PHOTFRAC,
-!                                                 !  called from flex_chemdr.F
+                                                  !  called from flex_chemdr.F
+      REAL(kind=fp)  :: RO1DplH2O, RO1DplH2, RO1D
 !     
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4913,6 +4914,7 @@ c  Ensure all 'AN_' types are valid selections
       REAL(fp) :: C_O2, C_N2, C_H2
       LOGICAL  :: LJO1DH2, LJO1DH2O
 
+!!$OMP+PRIVATE(  RO1DplH2O, RO1DplH2, RO1D )
 
       ! Initialize fields from State_Met
       AD     = State_Met%AIRNUMDEN(I,J,L)
