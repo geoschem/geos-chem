@@ -38,8 +38,8 @@ MODULE gckpp_Global
 ! FIX - Concentrations of fixed species (global)
   REAL(kind=dp) :: FIX(NFIX)
 ! VAR, FIX are chunks of array C
-      EQUIVALENCE( C(1),VAR(1) )
-      EQUIVALENCE( C(128),FIX(1) )
+!      EQUIVALENCE( C(1),VAR(1) )
+!      EQUIVALENCE( C(128),FIX(1) )
 ! RCONST - Rate constants (global)
   REAL(kind=dp) :: RCONST(NREACT)
 ! TIME - Current integration time
@@ -71,18 +71,15 @@ MODULE gckpp_Global
 
 ! INLINED global variable declarations
 
-      REAL(kind=dp), PARAMETER :: SMAL2 = 1.0d-99
-      REAL(kind=dp) :: DRYLOSS(NSPEC), EMISS(NSPEC), HET(NSPEC,2)
-      REAL(kind=dp) :: NUMDEN, H2O, PRESS, PHOTOL(1000)
-      INTEGER       :: NUMPHOT
-      INTEGER       :: IX,IY,IZ
-! For Heterogeneous rate calculations (MSL, Jan 30, 2014)
-      INTEGER       N_AER
-      REAL(dp), ALLOCATABLE :: AER_AREA(:), AER_RADIUS(:)
-      REAL(dp) AIRDEN, MW, HET_HO2
+      REAL(kind=dp) :: HET(NSPEC,3), PHOTOL(1000)
+      REAL(kind=dp) :: NUMDEN, H2O, PRESS
 
-!!$OMP THREADPRIVATE(VAR, C , TEMP, NUMDEN, EMISS, DRYLOSS)
-!!$OMP THREADPRIVATE( IX, IY, IZ )
+!-----------------------------------------------------------------------
+! NOTE: The following variables need to be declared THREADPRIVATE
+! because they get written to within an OpenMP parallel loop
+!-----------------------------------------------------------------------
+!$OMP THREADPRIVATE( C,       VAR, FIX,    RCONST, TIME, TEMP  )
+!$OMP THREADPRIVATE( CFACTOR, HET, PHOTOL, NUMDEN, H2O,  PRESS )
 
 ! INLINED global variable declarations
 

@@ -30,6 +30,8 @@ MODULE gckpp_Function
 ! A - Rate for each equation
   REAL(kind=dp) :: A(NREACT)
 
+!$OMP THREADPRIVATE( A )
+
 CONTAINS
 
 
