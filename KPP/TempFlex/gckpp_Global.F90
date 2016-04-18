@@ -74,8 +74,12 @@ MODULE gckpp_Global
       REAL(kind=dp) :: HET(NSPEC,3), PHOTOL(1000)
       REAL(kind=dp) :: NUMDEN, H2O, PRESS
 
-!$OMP THREADPRIVATE( C,   VAR,    FIX, RCONST, TIME        )
-!$OMP THREADPRIVATE( TEMP,NUMDEN, H2O, PRESS,  PHOTOL, HET )
+!-----------------------------------------------------------------------
+! NOTE: The following variables need to be declared THREADPRIVATE
+! because they get written to within an OpenMP parallel loop
+!-----------------------------------------------------------------------
+!$OMP THREADPRIVATE( C,       VAR, FIX,    RCONST, TIME, TEMP  )
+!$OMP THREADPRIVATE( CFACTOR, HET, PHOTOL, NUMDEN, H2O,  PRESS )
 
 END MODULE gckpp_Global
 
