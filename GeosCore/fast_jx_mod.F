@@ -4938,21 +4938,13 @@ c  Ensure all 'AN_' types are valid selections
       ! Calculate if H2SO4 expected to be gaseous or aqueous
       ! Only allow photolysis above 6 hPa
       ! RXN_H2SO4 specifies SO4 + hv -> SO2 + OH + OH
-!-----------------------------------------------------------------------------
-! Prior to 3/29/16:
-! Now use the reaction flag instead of hardwiring the index (bmy, 3/29/16)
-!      ZPJ(L,100,I,J) = ZPJ(L,100,I,J) * FRAC
-!-----------------------------------------------------------------------------
       ZPJ(L,RXN_H2SO4,I,J) = ZPJ(L,RXN_H2SO4,I,J) * FRAC
 
       ! Store unadjusted O2 rate for ND22
-      IF ( ND22 > 0 .and. L <= LD22 .and. LTJV(I,J) > 0 ) THEN
-!-----------------------------------------------------------------------------
-! Prior to 3/29/16:
-! Now use the reaction flag instead of hardwiring the index (bmy, 3/29/16)
-!         AD22(I,J,L,15) = AD22(I,J,L,15) + ZPJ(L,1,I,J)
-!-----------------------------------------------------------------------------
-         AD22(I,J,L,15) = AD22(I,J,L,15) + ZPJ(L,RXN_O2,I,J)
+      IF ( ND22 > 0 ) THEN
+         IF ( L <= LD22 .and. LTJV(I,J) > 0 ) THEN
+            AD22(I,J,L,15) = AD22(I,J,L,15) + ZPJ(L,RXN_O2,I,J)
+         ENDIF
       ENDIF
 
 #endif
@@ -4973,34 +4965,24 @@ c  Ensure all 'AN_' types are valid selections
       ! Need to subtract O3->O1D from rate
       ! RXN_O3_1  specifies: O3 + hv -> O2 + O
       ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D)
-!-----------------------------------------------------------------------------
-! Prior to 3/29/16:
-! Now use the reaction flag instead of hardwiring the index (bmy, 3/29/16)
-!      ZPJ(L,2,I,J) = ZPJ(L,2,I,J) - ZPJ(L,3,I,J)
-!-----------------------------------------------------------------------------
       ZPJ(L,RXN_O3_1,I,J) = ZPJ(L,RXN_O3_1,I,J) - ZPJ(L,RXN_O3_2a,I,J)
 
       ! For UCX, store O1D and O3P rates separately
-      IF ( ND22 > 0 .and. L <= LD22 .and. LTJV(I,J) > 0 ) THEN
-!-----------------------------------------------------------------------------
-! Prior to 3/29/16:
-! Now use the reaction flag instead of hardwiring the index (bmy, 3/29/16)
-         AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,RXN_O3_2a,I,J)
-         AD22(I,J,L,6) = AD22(I,J,L,6) + ZPJ(L,RXN_O3_1, I,J)
-!-----------------------------------------------------------------------------
+      IF ( ND22 > 0  ) THEN
+         IF ( L <= LD22 .and. LTJV(I,J) > 0 ) THEN
+            AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,RXN_O3_2a,I,J)
+            AD22(I,J,L,6) = AD22(I,J,L,6) + ZPJ(L,RXN_O3_1, I,J)
+         ENDIF
       ENDIF
 
 #else
 
       ! Store unadjusted total J-O3 as AD22(:,:,:,5)
       ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D)
-      IF ( ND22 > 0 .and. L <= LD22 .and. LTJV(I,J) > 0 ) THEN
-!-----------------------------------------------------------------------------
-! Prior to 3/29/16:
-! Now use the reaction flag instead of hardwiring the index (bmy, 3/29/16)
-!         AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,3,I,J)
-!-----------------------------------------------------------------------------
-         AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,RXN_O3_2a,I,J)
+      IF ( ND22 > 0 ) THEN
+         IF ( L <= LD22 .and. LTJV(I,J) > 0 ) THEN
+            AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,RXN_O3_2a,I,J)
+         ENDIF
       ENDIF
 
       !========================================================

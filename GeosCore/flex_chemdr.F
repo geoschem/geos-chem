@@ -658,8 +658,8 @@
          !### Debug printout, we can remove it later
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
             DO N = 1,NSPEC
-               write(*,'(2a,e12.4)') '<> b ', trim(SPC_NAMES(N))
-     &              ,C(N)
+               write(*,'(a5,a10,es13.6)') '<> b ', 
+     &              trim(SPC_NAMES(N)), C(N)
             ENDDO
          ENDIF
 
@@ -695,7 +695,7 @@
          !===========================================================
 
          ! Zero all slots of RCNTRL
-         RCNTRL    = 0.0
+         RCNTRL    = 0.0_fp
 
          ! Starting value for integration time step
          RCNTRL(3) = HSAVE_KPP(I,J,L)
@@ -738,9 +738,9 @@
 !            write(ERR_MSG,'(a,i3)') 'Integrator error code :',IERR
 !            write(6,*)  'I, J, L ', I, J, L
 
-!            ! Reset first time step and start concentrations
-!            ! Retry the integration with non-optimized
-!            ! settings
+            ! Reset first time step and start concentrations
+            ! Retry the integration with non-optimized
+            ! settings
             RCNTRL(3)  = 0e+0_fp
             CALL Init_KPP( )
             VAR = C(1:NVAR)
@@ -813,8 +813,8 @@
             State_Chm%Species(I,J,L,CSPECTOKPP(N)) = real(C(N),kind=fp)
 
             !### Debug output, we can remove it later
-            IF (I.eq.36.and.J.eq.5.and.L.eq.1.and.N.eq.IND_OH) THEN
-               write(*,'(a,2e12.4)') 'SPC_OH : ',c(N),
+            IF (I.eq.10.and.J.eq.10.and.L.eq.10.and.N.eq.IND_OH) THEN
+               write(*,'(a9,2es13.6)') 'SPC_OH : ',c(N),
      &              State_Chm%Species(I,J,L,CSPECTOKPP(N))
             ENDIF
          ENDDO
@@ -822,8 +822,8 @@
          !### Debug output, we can remove it later
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
             DO N = 1,NSPEC
-               write(*,'(2a,e12.4)') '<> a ', trim(SPC_NAMES(N)),
-     &              C(N)
+               write(*,'(a5,a10,es13.6)') '<> a ', 
+     &              trim(SPC_NAMES(N)), C(N)
             ENDDO
          ENDIF
 
