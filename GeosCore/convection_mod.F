@@ -1863,6 +1863,13 @@
                      ! ADD_Hg2_WET and ADD_HgP_WET. We must also divide 
                      ! by DNS, the # of internal timesteps. 
                      ! (sas, bmy, eck, eds, 1/19/05, 1/6/06, 7/30/08)
+                     !
+                     ! NOTE: Passing WET_Hg2 and WET_HgP as defined
+                     ! below to ADD_Hg2_SNOWPACK results in parallelization 
+                     ! differences in diagnostic HG-SRCE and 
+                     ! restart variable Snow_HgN_Land_Hg0. This is a 
+                     ! known issue that has not yet been resolved. 
+                     ! (ewl, 4/12/16)
                      !=================================================
                      IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
@@ -1872,6 +1879,7 @@
                         
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_Hg2_WD( I, J, IC, WET_Hg2 )
+
                         CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2,
      &                                         State_Met )
                      ENDIF
@@ -1884,6 +1892,7 @@
 
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_HgP_WD( I, J, IC, WET_HgP )
+
                         CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP,
      &                                         State_Met )
                      ENDIF
