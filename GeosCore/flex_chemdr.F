@@ -494,7 +494,7 @@
       ! NOTE: The following variables are held THREADPRIVATE and 
       ! therefore do not need to be included in the !$OMP+PRIVATE 
       ! statements below: C, VAR, FIX, RCONST, TIME, TEMP, NUMDEN, 
-      ! H2O, PRESS, PHOTOL, and HET. (bmy, 3/28/16)
+      ! H2O, PRESS, PHOTOL, HET, and CFACTOR. (bmy, 3/28/16)
       !-----------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT  ( SHARED                                      )
@@ -509,12 +509,36 @@
 !$OMP+REDUCTION( +:TOTACCEP                                  )
 !$OMP+REDUCTION( +:TOTREJEC                                  )
 !$OMP+REDUCTION( +:TOTNUMLU                                  )
+!$OMP+SCHEDULE ( DYNAMIC, 1                                  )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! mje If we are not in the troposphere don't do the chemistry!
-         IF (.not. ITS_IN_THE_CHEMGRID(I,J,L,State_Met)) CYCLE
+         !==============================================================
+         ! For safety's sake, zero variables for each grid box (I,J,L),
+         ! whether or not chemistry will be done there.
+         !==============================================================
+         HET      = 0.0_dp    ! Het chem array
+         H2O      = 0.0_dp    ! H2O concentration
+         IERR     = 0         ! Success or failure flag
+         ISTATUS  = 0.0_dp    ! Rosenbrock output 
+         PHOTOL   = 0.0_dp    ! Photolysis array
+         PRESS    = 0.0_dp    ! Pressure
+         NUMDEN   = 0.0_dp    ! Air number density
+         RCNTRL   = 0.0_fp    ! Rosenbrock input
+         RSTATE   = 0.0_dp    ! Rosenbrock output
+         SCF      = 0.0_dp    ! For hetchem diagnostics
+         SO4_FRAC = 0.0_fp    ! Fraction of SO4 available for photolysis
+         TEMP     = 0.0_fp    ! Temperature
+         YLAT     = 0.0_fp    ! Latitude
+
+         !==============================================================
+         ! Test if we need to do the chemistry for box (I,J,L),
+         ! otherwise move onto the next box.
+         !==============================================================
+
+         ! If we are not in the troposphere don't do the chemistry!
+         IF ( .not. ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) CYCLE
 
          ! Skipping buffer zone (lzh, 08/10/2014)
          IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
@@ -523,6 +547,10 @@
            IF ( I <=         Input_Opt%NESTED_I0W ) CYCLE
            IF ( I >  IIPAR - Input_Opt%NESTED_I0E ) CYCLE
          ENDIF
+
+         !==============================================================
+         ! Initialize quantities for boxes where chemistry happens
+         !==============================================================
 
          ! Grid-box latitude [degrees]
          YLAT   = GET_YMID( I, J, L )
@@ -539,7 +567,7 @@
          ! mje H2O arrives in g/kg needs to be in mol cm-3 
          H2O    = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
-         ! Initialize the KPP solver
+         ! Intialize CFACTOR, VAR, and FIX arrays
          CALL Init_KPP( )
 
          !===========================================================
@@ -549,13 +577,10 @@
          ! Get starting time for rate computation
          CALL CPU_TIME( start )
 
-         ! Zero the HET array (holds hetchem rates)
-         HET = 0.0_dp
-
          ! Copy SCOEFF to SCF, this will avoid an array temporary
          SCF = SCOEFF(I,J,L,:)
 
-         ! Set hetchem rates
+        ! Set hetchem rates
          CALL SET_HET( I,         J,         L, 
      &                 State_Chm, State_Met, Input_Opt, SCF )
 
@@ -563,7 +588,7 @@
          SCOEFF(I,J,L,:) = SCF
          
          !===========================================================
-         ! Get photolysis rates
+         ! Get photolysis rates (daytime only)
          !
          ! NOTE: The ordering of the photolysis reactions here is
          ! the order in the Fast-J definition file FJX_j2j.dat.
@@ -572,11 +597,6 @@
          ! through more thoroughly -- M. Long (3/28/16)
          !===========================================================
          IF ( State_Met%SUNCOSmid(I,J) > 0.e+0_fp ) THEN
-
-            !%%%%% DAYTIME: SET UP THE PHOTOLYSIS RATES %%%%%
-
-            ! Zero the KPP photolysis rates array
-            PHOTOL(1:JVN_) = 0.0_fp
 
             ! Get the fraction of H2SO4 that is available for photolysis
             ! (this is only valid for UCX-enabled mechanisms)
@@ -590,20 +610,12 @@
             ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
             ! (2) O3    + hv -> O2  + O         (UCX-based mechanisms)
             ! (2) O3    + hv -> OH  + OH        (trop-only mechanisms)
-            CALL PHOTRATE_ADJ( am_I_root, State_Met, State_Chm,
-     &                         Input_Opt, I,         J,
-     &                         L,         H2O,       SO4_FRAC,
-     &                         IERR                             )
+            CALL PHOTRATE_ADJ( am_I_root, I,        J,
+     &                         L,         NUMDEN,   TEMP,
+     &                         H2O,       SO4_FRAC, IERR  )
 
             ! Copy ZPJ from fast_jx_mod.F to PHOTOL array
             PHOTOL(1:JVN_) = ZPJ(L,1:JVN_,I,J)
-
-         ELSE
-
-            !%%%%% NIGHTTIME: SHUT OFF PHOTOLYSIS %%%%%
-
-            ! Zero the KPP photolysis rate array
-            PHOTOL(1:JVN_) = 0.0_fp
 
          ENDIF
 

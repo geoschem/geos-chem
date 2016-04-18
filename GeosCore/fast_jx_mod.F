@@ -4861,9 +4861,9 @@ c  Ensure all 'AN_' types are valid selections
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PHOTRATE_ADJ( am_I_root, State_Met, 
-     &                         State_Chm, Input_Opt, 
-     &                         I, J, L, C_H2O, FRAC, RC )
+      SUBROUTINE PHOTRATE_ADJ( am_I_root, I,    J,
+     &                         L,         AD,   TEMP,
+     &                         C_H2O,     FRAC, RC      )
 !
 ! !USES:
 !
@@ -4871,28 +4871,21 @@ c  Ensure all 'AN_' types are valid selections
       USE DIAG_MOD,           ONLY : AD22, LTJV
       USE COMODE_Loop_Mod
       USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE Precision_Mod,      ONLY : fp
 !     
 ! !INPUT PARAMETERS:
 !     
-      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
-      INTEGER,        INTENT(IN)    :: I,J,L      ! Grid box indices
-      REAL(kind=fp),  INTENT(IN)    :: C_H2O      ! H2O conc [molec/cm3]
-      REAL(kind=fp),  INTENT(IN)    :: FRAC       ! Result of SO4_PHOTFRAC,
-!                                                 !  called from flex_chemdr.F
-!     
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+      LOGICAL,   INTENT(IN)  :: am_I_Root  ! Is this the root CPU?
+      INTEGER,   INTENT(IN)  :: I, J, L    ! Grid box indices (lon, lat, lev)
+      REAL(fp),  INTENT(IN)  :: AD         ! Air number density [molec/m3] ??
+      REAL(fp),  INTENT(IN)  :: TEMP       ! Temperature [K]
+      REAL(fp),  INTENT(IN)  :: C_H2O      ! H2O conc [molec/cm3]
+      REAL(fp),  INTENT(IN)  :: FRAC       ! Result of SO4_PHOTFRAC,
+                                           !  called from flex_chemdr.F
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC         ! Success or failure
+      INTEGER,   INTENT(OUT) :: RC         ! Success or failure
 !
 ! !REMARKS:
 !  The J-value indices (2nd dimension of array ZPJ) were obtained from
@@ -4903,36 +4896,30 @@ c  Ensure all 'AN_' types are valid selections
 !
 ! !REVISION HISTORY:
 !  10 Mar 2016 - M. Sulprizio- Added ProTeX header
+!  18 Apr 2016 - R. Yantosca - Remove Input_Opt, State_Met, State_Chm args
+!                              and pass air density & temperature instead
+!  18 Apr 2016 - R. Yantosca - Also prevent div-by-zero conditions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-!
-      REAL(fp) :: AD, ITEMPK
-      REAL(fp) :: C_O2, C_N2, C_H2
-      LOGICAL  :: LJO1DH2, LJO1DH2O
+! 
+      REAL(fp) :: C_O2,      C_N2,     C_H2, ITEMPK
+      REAL(fp) :: RO1DplH2O, RO1DplH2, RO1D
 
+      !==============================================================
+      ! PHOTRATE_ADJ begins here!
+      !==============================================================
 
-      ! Initialize fields from State_Met
-      AD     = State_Met%AIRNUMDEN(I,J,L)
-      ITEMPK = 1.e+0_fp/State_Met%T(I,J,L)
-
-      ! Set species concentrations
-      C_O2 = 0.2095e+0_fp * AD
-      C_N2 = 0.7808e+0_fp * AD
-
-      ! Added H2 concentration (bhh, jmao, eam, 7/18/11)
-      ! Seasonal variability of H2 may be important, 
-      ! but not included in this update (bhh, jmao, eam, 7/18/11)
-      C_H2 = 0.5000e-6_fp * AD
+      ! Assume success
+      RC = GIGC_SUCCESS
 
 #if defined( UCX )
       !==============================================================
       ! SPECIAL TREATMENT FOR H2SO4+hv -> SO2 + 2OH
       !
       ! Only allow photolysis of H2SO4 when gaseous (SDE 04/11/13)
-      !
       !==============================================================
 
       ! Calculate if H2SO4 expected to be gaseous or aqueous
@@ -5010,17 +4997,37 @@ c  Ensure all 'AN_' types are valid selections
       ! (bhh, jmao, eam, 7/18/11)
       !========================================================
 
-      RO1DplH2O = 1.63e-10_fp * EXP( 60.e+0_fp*ITEMPK) * C_H2O
-      RO1DplH2  = 1.2e-10 * C_H2
-      RO1D      = RO1DplH2O + RO1DplH2 +
-     &            2.15e-11_fp * EXP(110.e+0_fp*ITEMPK) * C_N2 +
-     &            3.30e-11_fp * EXP( 55.e+0_fp*ITEMPK) * C_O2
+      ! Inverse temperature [K-1]
+      ITEMPK    = 1.0_fp / TEMP
 
-      ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D) #1
-      ZPJ(L,RXN_O3_2a,I,J) = ZPJ(L,RXN_O3_2a,I,J) * RO1DplH2O / RO1D
+      ! Set species concentrations [molec/m3] ???
+      C_O2      = 0.2095e+0_fp * AD
+      C_N2      = 0.7808e+0_fp * AD
 
-      ! RXN_O3_2b specifies: O3 + hv -> O2 + O(1D) #2
-      ZPJ(L,RXN_O3_2b,I,J) = ZPJ(L,RXN_O3_2b,I,J) * RO1DplH2  / RO1D
+      ! Added H2 concentration (bhh, jmao, eam, 7/18/11)
+      ! Seasonal variability of H2 may be important, 
+      ! but not included in this update (bhh, jmao, eam, 7/18/11)
+      C_H2      = 0.5000e-6_fp * AD
+
+      RO1DplH2O = 1.63e-10_fp * EXP(  60.0_fp * ITEMPK ) * C_H2O
+
+      RO1DplH2  = 1.2e-10                                * C_H2
+
+      RO1D      = RO1DplH2O
+     &          + RO1DplH2  
+     &          + 2.15e-11_fp * EXP( 110.0_fp * ITEMPK ) * C_N2
+     &          + 3.30e-11_fp * EXP(  55.0_fp * ITEMPK ) * C_O2
+
+      ! Prevent div-by-zero
+      IF ( RO1D > 0.0_fp ) THEN
+
+         ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D) #1
+         ZPJ(L,RXN_O3_2a,I,J) = ZPJ(L,RXN_O3_2a,I,J) * RO1DplH2O / RO1D
+
+         ! RXN_O3_2b specifies: O3 + hv -> O2 + O(1D) #2
+         ZPJ(L,RXN_O3_2b,I,J) = ZPJ(L,RXN_O3_2b,I,J) * RO1DplH2  / RO1D
+
+      ENDIF
 #endif
       
       END SUBROUTINE PHOTRATE_ADJ
