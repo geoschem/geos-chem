@@ -37,9 +37,18 @@ MODULE FLEXCHEM_SETUP_MOD
 !
 ! !PRIVATE TYPES:
 !
+  ! Index arrays
   INTEGER,   ALLOCATABLE :: STTTOCSPEC(:)
   INTEGER,   ALLOCATABLE :: CSPECTOKPP(:)
+
+  ! Save the H value for the Rosenbrock solver
   REAL(fp),  ALLOCATABLE :: HSAVE_KPP(:,:,:) 
+
+  ! Tracer and species indices for use in FAMILIES_KLUDGE
+  INTEGER                :: T_MMN,   S_MVKN,    S_MACRN
+  INTEGER                :: T_ISOPN, S_ISOPND,  S_ISOPNB
+  INTEGER                :: T_CFCX,  S_CFC113,  S_CFC114,   S_CFC115
+  INTEGER                :: T_HCFCX, S_HCFC123, S_HCFC141b, S_HCFC142b
 
 CONTAINS
 !EOC  
@@ -65,7 +74,9 @@ CONTAINS
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Create
     USE HCO_ERROR_MOD
     USE GIGC_ErrCode_Mod
-    USE GIGC_State_Chm_Mod, ONLY : Register_Tracer, Register_Species
+    USE GIGC_State_Chm_Mod, ONLY : Register_Tracer
+    USE GIGC_State_Chm_Mod, ONLY : Register_Species
+    USE GIGC_State_Chm_Mod, ONLY : Get_Indx
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE gckpp_Global,       ONLY : NSPEC, NREACT
     USE gckpp_Monitor,      ONLY : SPC_NAMES, EQN_NAMES
@@ -384,47 +395,74 @@ CONTAINS
 ! Initialize Diagnostics Per the new diagnostic package | M. Long 1-21-15
 !------------------------------------------------------------------------------
     
-      DO D = 1, Input_Opt%N_TRACERS
+    DO D = 1, Input_Opt%N_TRACERS
          
-            !-----------------------------------------------------------
-            ! Create containers for tracer concentration
-            !-----------------------------------------------------------
+       !-----------------------------------------------------------
+       ! Create containers for tracer concentration
+       !-----------------------------------------------------------
 
-            ! Diagnostic name
-            DiagnName = TRIM( Input_Opt%TRACER_NAME(D) )
-
-            ! Create container
-            CALL Diagn_Create( am_I_Root,                     &
-                 Col       = Collection,        & 
-                 cName     = TRIM( DiagnName ), &
-                 AutoFill  = 0,                 &
-                 ExtNr     = -1,                &
-                 Cat       = -1,                &
-                 Hier      = -1,                &
-                 HcoID     = -1,                &
-                 SpaceDim  =  3,                &
-                 LevIDx    = -1,                &
-                 OutUnit   = 'cm-3',            &
-                 OutOper   = TRIM( OutOper   ), &
-                 OkIfExist = .TRUE.,            &
-                 RC        = RC )
+       ! Diagnostic name
+       DiagnName = TRIM( Input_Opt%TRACER_NAME(D) )
+       
+       ! Create container
+       CALL Diagn_Create( am_I_Root,                     &
+                          Col       = Collection,        & 
+                          cName     = TRIM( DiagnName ), &
+                          AutoFill  = 0,                 &
+                          ExtNr     = -1,                &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  =  3,                &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'cm-3',            &
+                          OutOper   = TRIM( OutOper   ), &
+                          OkIfExist = .TRUE.,            &
+                          RC        = RC )
             
-            IF ( RC /= HCO_SUCCESS ) THEN
-               write(*,*) 'Collection: ', collection, RC, trim(writefreq),trim(outoper)
-               MSG = ': Cannot create diagnostics: ' // TRIM(DiagnName)
-               CALL ERROR_STOP( MSG, LOC ) 
-            ENDIF
-      ENDDO
+       IF ( RC /= HCO_SUCCESS ) THEN
+          write(*,*) 'Collection: ', collection, RC, trim(writefreq),trim(outoper)
+          MSG = ': Cannot create diagnostics: ' // TRIM(DiagnName)
+          CALL ERROR_STOP( MSG, LOC ) 
+       ENDIF
+    ENDDO
 #endif
 
-      IF (am_I_Root) THEN
-         write(*,'(a)') ' KPP Reaction Reference '
-         DO D = 1,NREACT
-            write(*,'(i,a3,a85)') D,' | ',EQN_NAMES(D)
-         END DO
-      ENDIF
+    IF (am_I_Root) THEN
+       write(*,'(a)') ' KPP Reaction Reference '
+       DO D = 1,NREACT
+          write(*,'(i,a3,a85)') D,' | ',EQN_NAMES(D)
+       END DO
+    ENDIF
 
 100 FORMAT( '     - INIT_FLEXCHEM: Allocating arrays for FLEX_CHEMISTRY' )
+
+    !=====================================================================
+    ! Save species indices during the Init phase to avoid
+    ! repeated costly string matching operations
+    !=====================================================================
+
+    ! MMN family
+    T_MMN      = Get_Indx( 'MMN',      State_Chm%Trac_ID, State_Chm%Trac_Name )
+    S_MVKN     = Get_Indx( 'MVKN',     State_Chm%Spec_ID, State_Chm%Spec_Name )
+    S_MACRN    = Get_Indx( 'MACRN',    State_Chm%Spec_ID, State_Chm%Spec_Name )
+
+    ! ISOPN family
+    T_ISOPN    = Get_Indx( 'ISOPN',    State_Chm%Trac_ID, State_Chm%Trac_Name )
+    S_ISOPND   = Get_Indx( 'ISOPND',   State_Chm%Spec_ID, State_Chm%Spec_Name )
+    S_ISOPNB   = Get_Indx( 'ISOPNB',   State_Chm%Spec_ID, State_Chm%Spec_Name )
+
+    ! CFCX family
+    T_CFCX     = Get_Indx( 'CFCX',     State_Chm%Trac_ID, State_Chm%Trac_Name )
+    S_CFC113   = Get_Indx( 'CFC113',   State_Chm%Spec_ID, State_Chm%Spec_Name )
+    S_CFC114   = Get_Indx( 'CFC114',   State_Chm%Spec_ID, State_Chm%Spec_Name )
+    S_CFC115   = Get_Indx( 'CFC115',   State_Chm%Spec_ID, State_Chm%Spec_Name )
+
+    ! HCFCX family
+    T_HCFCX    = Get_Indx( 'HCFCX',    State_Chm%Trac_ID, State_Chm%Trac_Name )
+    S_HCFC123  = Get_Indx( 'HCFC123',  State_Chm%Spec_ID, State_Chm%Spec_Name )
+    S_HCFC141b = Get_Indx( 'HCFC141b', State_Chm%Spec_ID, State_Chm%Spec_Name )
+    S_HCFC142b = Get_Indx( 'HCFC142b', State_Chm%Spec_ID, State_Chm%Spec_Name )
 
     ! Return to calling program
     RETURN
@@ -432,7 +470,6 @@ CONTAINS
   END SUBROUTINE INIT_FLEXCHEM
 
   SUBROUTINE FAMILIES_KLUDGE(am_I_Root,STT,IO,SC,OPT,RC)
-    USE GIGC_State_Chm_Mod,   ONLY : Get_Indx
     USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
     REAL(kind=fp)  :: STT(:,:,:,:)
     TYPE(OptInput) :: IO ! Short-hand for Input_Opt
@@ -468,11 +505,11 @@ CONTAINS
 
     IF (OPT .eq. 1) THEN
       ! Part 1: From Tracers to Species
+
       ! -- Process MMN family
-      ! -- Get the tracer and species indices. Currently hardwired.
-      N  = get_indx('MMN',  SC%Trac_ID,SC%Trac_Name)  ! MMN
-      S1 = get_indx('MVKN', SC%Spec_ID,SC%Spec_Name)  ! MVKN
-      S2 = get_indx('MACRN',SC%Spec_ID,SC%Spec_Name)  ! MACRN
+      N  = T_MMN     ! MMN   species index
+      S1 = S_MVKN    ! MVKN  species index
+      S2 = S_MACRN   ! MACRN species index
 
       STT(:,:,:,N) = STT(:,:,:,N)*IO%TRACER_COEFF(N,1) ! A correction...
       ! ... to account for the division by TRACER_COEFF above.
@@ -497,9 +534,9 @@ CONTAINS
 
       ! -- Process ISOPN family
       ! -- Get the tracer and species indices
-      N  = get_indx('ISOPN',  SC%Trac_ID,SC%Trac_Name)  ! MMN
-      S1 = get_indx('ISOPND', SC%Spec_ID,SC%Spec_Name)  ! MVKN
-      S2 = get_indx('ISOPNB', SC%Spec_ID,SC%Spec_Name)  ! MACRN
+      N  = T_ISOPN    ! ISOPN  tracer  index
+      S1 = S_ISOPND   ! ISOPND species index
+      S2 = S_ISOPNB   ! ISOPNB species index
 
       STT(:,:,:,N) = STT(:,:,:,N)*IO%TRACER_COEFF(N,1) ! A correction...
       ! ... to account for the division by TRACER_COEFF above.
@@ -525,11 +562,10 @@ CONTAINS
 #if defined( UCX )
       IF ( IO%LUCX ) THEN
          ! -- Process CFCX family
-         ! -- Get the tracer and species indices. Currently hardwired.
-         N  = get_indx('CFCX',   SC%Trac_ID,SC%Trac_Name)
-         S1 = get_indx('CFC113', SC%Spec_ID,SC%Spec_Name)
-         S2 = get_indx('CFC114', SC%Spec_ID,SC%Spec_Name)
-         S3 = get_indx('CFC115', SC%Spec_ID,SC%Spec_Name)
+         N  = T_CFCX     ! CFCX   tracer  index
+         S1 = S_CFC113   ! CFC113 species index
+         S2 = S_CFC114   ! CFC114 species index
+         S3 = S_CFC115   ! CFC115 species index
 
          STT(:,:,:,N) = STT(:,:,:,N)*IO%TRACER_COEFF(N,1) ! A correction...
          ! ... to account for the division by TRACER_COEFF above.
@@ -562,11 +598,10 @@ CONTAINS
          SC%Species(:,:,:,S3) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
 
          ! -- Process HCFCX family
-         ! -- Get the tracer and species indices. Currently hardwired.
-         N  = get_indx('HCFCX',    SC%Trac_ID,SC%Trac_Name)
-         S1 = get_indx('HCFC123',  SC%Spec_ID,SC%Spec_Name)
-         S2 = get_indx('HCFC141b', SC%Spec_ID,SC%Spec_Name)
-         S3 = get_indx('HCFC142b', SC%Spec_ID,SC%Spec_Name)
+         N  = T_HCFCX      ! HCFCX    tracer  index
+         S1 = S_HCFC123    ! HCFC123  species index
+         S2 = S_HCFC141b   ! HCFC141b species index
+         S3 = S_HCFC142b   ! HCFC142b species index
 
          STT(:,:,:,N) = STT(:,:,:,N)*IO%TRACER_COEFF(N,1) ! A correction...
          ! ... to account for the division by TRACER_COEFF above.
@@ -602,46 +637,48 @@ CONTAINS
 
       ! E -- N -- D -- O -- F -- K -- L -- U -- D -- G -- E -- -- P -- T -- 1
       ELSEIF (OPT .eq. 2) THEN
-      ! K -- L -- U -- D -- G -- E -- -- P -- T -- 2
-      ! Part 2: From Species to Tracers
-      ! -- Process MMN family
-      ! -- Get the tracer and species indices
-      N  = get_indx('MMN',  SC%Trac_ID,SC%Trac_Name)  ! MMN
-      S1 = get_indx('MVKN', SC%Spec_ID,SC%Spec_Name)  ! MVKN
-      S2 = get_indx('MACRN',SC%Spec_ID,SC%Spec_Name)  ! MACRN
-      STT(:,:,:,N) = &
-              (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
-             +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2))
-      ! -- Process ISOPN family
-      ! -- Get the tracer and species indices
-      N  = get_indx('ISOPN',  SC%Trac_ID,SC%Trac_Name)  ! MMN
-      S1 = get_indx('ISOPND', SC%Spec_ID,SC%Spec_Name)  ! MVKN
-      S2 = get_indx('ISOPNB', SC%Spec_ID,SC%Spec_Name)  ! MACRN
-      STT(:,:,:,N) = &
-              (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
-             +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2))
+         ! K -- L -- U -- D -- G -- E -- -- P -- T -- 2
+         ! Part 2: From Species to Tracers
 
+         ! -- Process MMN family
+         N  = T_MMN     ! MMN   species index
+         S1 = S_MVKN    ! MVKN  species index
+         S2 = S_MACRN   ! MACRN species index
+         STT(:,:,:,N) = &
+               (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
+              +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2))
+
+         ! -- Process ISOPN family
+         ! -- Get the tracer and species indices
+         N  = T_ISOPN    ! ISOPN  tracer  index
+         S1 = S_ISOPND   ! ISOPND species index
+         S2 = S_ISOPNB   ! ISOPNB species index
+         STT(:,:,:,N) = &
+               (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
+              +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2))
+         
 #if defined( UCX )
-      ! -- Process CFCX family
-      ! -- Get the tracer and species indices. Currently hardwired.
-      N  = get_indx('CFCX',   SC%Trac_ID,SC%Trac_Name)
-      S1 = get_indx('CFC113', SC%Spec_ID,SC%Spec_Name)
-      S2 = get_indx('CFC114', SC%Spec_ID,SC%Spec_Name)
-      S3 = get_indx('CFC115', SC%Spec_ID,SC%Spec_Name)
-      STT(:,:,:,N) = &
-              (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
-             +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
-             +(SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3))
-      ! -- Process HCFCX family
-      ! -- Get the tracer and species indices. Currently hardwired.
-      N  = get_indx('HCFCX',    SC%Trac_ID,SC%Trac_Name)
-      S1 = get_indx('HCFC123',  SC%Spec_ID,SC%Spec_Name)
-      S2 = get_indx('HCFC141b', SC%Spec_ID,SC%Spec_Name)
-      S3 = get_indx('HCFC142b', SC%Spec_ID,SC%Spec_Name)
-      STT(:,:,:,N) = &
-              (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
-             +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
-             +(SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3))
+         ! -- Process CFCX family
+         N  = T_CFCX     ! CFCX   tracer  index
+         S1 = S_CFC113   ! CFC113 species index
+         S2 = S_CFC114   ! CFC114 species index
+         S3 = S_CFC115   ! CFC115 species index
+
+         STT(:,:,:,N) = &
+               (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
+              +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
+              +(SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3))
+
+         ! -- Process HCFCX family
+         N  = T_HCFCX      ! HCFCX    tracer  index
+         S1 = S_HCFC123    ! HCFC123  species index
+         S2 = S_HCFC141b   ! HCFC141b species index
+         S3 = S_HCFC142b   ! HCFC142b species index
+
+         STT(:,:,:,N) = &
+               (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
+              +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
+              +(SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3))
 #endif
       ! E -- N -- D -- O -- F -- K -- L -- U -- D -- G -- E -- -- P -- T -- 2
 
