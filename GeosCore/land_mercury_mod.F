@@ -553,15 +553,19 @@
       ! so that total deposition to soil equals total emission from soil,
       ! while also requiring global mean soil Hg concentration of 45 ng/g 
       ! Update for v11 GEOS-5 & GEOS-FP at 4x5 (J Fisher 3/2016)
-#if defined (GRID4x5)
+      ! Assume same factor for all resolutions for now and therefore
+      ! comment out resolution dependence. Users of 2x2.5 or nested
+      ! resolutions are encouraged to test and update these as needed (J
+      ! Fisher 4/2016)
+!#if defined (GRID4x5)
 #if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp * 0.9688e+0_fp
 #else
       REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp * 0.7156e+0_fp
 #endif
-#elif defined(GRID2x25)
-      REAL(fp), PARAMETER :: SOIL_EMIS_FAC=1.6e-2_fp
-#elif defined(GRID05x0625)
+!#elif defined(GRID2x25)
+!      REAL(fp), PARAMETER :: SOIL_EMIS_FAC=1.6e-2_fp
+!#elif defined(GRID05x0625)
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! bmy, 8/12/15, add pre-defined SOIL_EMIS_FAC for 05x0667 simulation
       ! This is a non-physical value and would need to be changed for an
@@ -569,25 +573,25 @@
       !
       ! %%% NOTE: Bob Y. used same value as for GRID05x0666  %%%
       ! %%% Team Hg will have to supply a better value later %%%
-      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp  ! yzh
+!      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp  ! yzh
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#elif defined(GRID05x0666)
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! lhu, 1/5/2012, add pre-defined SOIL_EMIS_FAC for 05x0667 simulation
-      ! This is a non-physical value and would need to be changed for an
-      ! actual mercury simulation
-      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp  ! yzh
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#elif defined(GRID025x03125)
+!#elif defined(GRID05x0666)
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! lhu, 1/5/2012, add pre-defined SOIL_EMIS_FAC for 05x0667 simulation
       ! This is a non-physical value and would need to be changed for an
       ! actual mercury simulation
-      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = -9.0e+99_fp
+!      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp  ! yzh
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#else  ! This sets a default value for GCM & ESMF COUPLING
-      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 2.4e-2_fp*.5742e+0_fp ! for sunlight function
-#endif
+!#elif defined(GRID025x03125)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! lhu, 1/5/2012, add pre-defined SOIL_EMIS_FAC for 05x0667 simulation
+      ! This is a non-physical value and would need to be changed for an
+      ! actual mercury simulation
+!      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = -9.0e+99_fp
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!#else  ! This sets a default value for GCM & ESMF COUPLING
+!      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 2.4e-2_fp*.5742e+0_fp ! for sunlight function
+!#endif
 
       !=================================================================
       ! SOILEMIS begins here!
