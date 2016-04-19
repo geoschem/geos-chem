@@ -6444,7 +6444,7 @@
       ! Turn on ND63 diagnostic
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd63_menu:1' )
       READ( SUBSTRS(1:N), * ) DO_ND63
-      IF ( DO_ND63 .and .not. Input_Opt%LEMIS ) THEN
+      IF ( DO_ND63 .and. .not. Input_Opt%LEMIS ) THEN
          WRITE( 6, '(a)' ) 'WARNING: Emissions are turned off. ND63'
          WRITE( 6, '(a)' ) 'will also be turned off.'
          DO_ND63 = .FALSE.
