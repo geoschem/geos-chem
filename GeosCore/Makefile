@@ -599,7 +599,7 @@ flex_chemdr.o               : aerosol_mod.o           comode_mod.o           \
                               fast_jx_mod.o
 
 flexchem_setup_mod.o        : flexchem_setup_mod.F90                         \
-                              restart_mod.o
+                              restart_mod.o           chemgrid_mod.o
 
 future_emissions_mod.o      : future_emissions_mod.F
 
