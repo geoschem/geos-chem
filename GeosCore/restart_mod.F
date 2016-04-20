@@ -995,19 +995,19 @@ dvected tracer input  restart file
                CASE ( 1 )
                   Hg0aq(:,:,ID_Hg_tot) = Ptr2D
                   IF ( FOUND ) THEN
-                     WRITE( 6, 220 ) TRIM( v_name ), 
+                     WRITE( 6, 220 ) v_name, 
      &                               SUM( Hg0aq(:,:,ID_Hg_tot) ), 'kg'
                   ENDIF
                CASE ( 2 )
                   Hg2aq(:,:,ID_Hg_tot) = Ptr2D
                   IF ( FOUND ) THEN
-                     WRITE( 6, 220 ) TRIM( v_name ), 
+                     WRITE( 6, 220 ) v_name, 
      &                               SUM( Hg2aq(:,:,ID_Hg_tot) ), 'kg'
                   ENDIF
                CASE ( 3 )
                   HgPaq(:,:,ID_Hg_tot) = Ptr2D
                   IF ( FOUND ) THEN
-                     WRITE( 6, 220 ) TRIM( v_name ), 
+                     WRITE( 6, 220 ) v_name, 
      &                               SUM( HgPaq(:,:,ID_Hg_tot) ), 'kg'
                   ENDIF
             END SELECT
@@ -1058,19 +1058,19 @@ dvected tracer input  restart file
                      CASE ( 1 )
                         Hg0aq(:,:,N) = Ptr2D
                         IF ( FOUND ) THEN
-                           WRITE( 6, 220 ) TRIM( v_name ), 
+                           WRITE( 6, 220 ) v_name, 
      &                                     SUM( Hg0aq(:,:,N) ), 'kg'
                         ENDIF
                      CASE ( 2 )
                         Hg2aq(:,:,N) = Ptr2D
                         IF ( FOUND ) THEN
-                           WRITE( 6, 220 ) TRIM( v_name ), 
+                           WRITE( 6, 220 ) v_name, 
      &                                     SUM( Hg2aq(:,:,N) ), 'kg'
                         ENDIF
                      CASE ( 3 )
                         HgPaq(:,:,N) = Ptr2D
                         IF ( FOUND ) THEN
-                           WRITE( 6, 220 ) TRIM( v_name ), 
+                           WRITE( 6, 220 ) v_name, 
      &                                     SUM( HgPaq(:,:,N) ), 'kg'
                         ENDIF
                   END SELECT
