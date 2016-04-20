@@ -531,6 +531,8 @@
 !                              the GEOS-4 U and V wind fields
 !  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
 !  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
+!  17 Mar 2016 - M. Sulprizio- Read optical depth into State_Met%OPTD instead of
+!                              State_Met%OPTDEP (obsolete).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -569,7 +571,7 @@
      &              HKBETA     = State_Met%HKBETA,   
      &              HKETA      = State_Met%HKETA,   
      &              MOISTQ     = State_Met%MOISTQ, 
-     &              OPTDEPTH   = State_Met%OPTDEP, 
+     &              OPTDEPTH   = State_Met%OPTD, 
      &              Q          = State_Met%SPHU,        
      &              T          = State_Met%T,           
      &              U          = State_Met%U,          
@@ -596,7 +598,7 @@
      &              DQVDTMST   = State_Met%DQVDTMST,
      &              DTRAIN     = State_Met%DTRAIN,     
      &              MOISTQ     = State_Met%MOISTQ,      
-     &              OPTDEPTH   = State_Met%OPTDEP, 
+     &              OPTDEPTH   = State_Met%OPTD, 
      &              PV         = State_Met%PV,              
      &              RH         = State_Met%RH,             
      &              Q          = State_Met%SPHU,             
@@ -624,7 +626,7 @@
      &              DNDN       = State_Met%DNDN,         
      &              ENTRAIN    = State_Met%ENTRAIN,    
      &              MOISTQ     = State_Met%MOISTQ,
-     &              OPTDEPTH   = State_Met%OPTDEP,    
+     &              OPTDEPTH   = State_Met%OPTD,    
      &              Q          = State_Met%SPHU,            
      &              T          = State_Met%T,                
      &              U          = State_Met%U,
@@ -661,8 +663,10 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD   ! Size parameters
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD   ! ND67
       USE DIAG_MOD, ONLY : AD67
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -684,15 +688,11 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL             :: IS_ND67 
       INTEGER             :: I, J
       
       !=================================================================
       ! MAKE_GCAP_CLDFRC begins here!
       !=================================================================
-
-      ! Is the ND67 diagnostic turned on?
-      IS_ND67 = ( ND67 > 0 )
 
       ! Make 2-D cloud fraction
 !$OMP PARALLEL DO
@@ -704,8 +704,10 @@
          ! Take max value
          CLDFRC(I,J) = MAXVAL( CLDF(I,J,:) )
 
+#if defined( BPCH_DIAG )
          ! Store in ND67 diagnostic if necessary
-         IF ( IS_ND67 ) AD67(I,J,10) = AD67(I,J,10) + CLDFRC(I,J)
+         IF ( ND67 > 0 ) AD67(I,J,10) = AD67(I,J,10) + CLDFRC(I,J)
+#endif
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -843,10 +845,13 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE PHYSCONSTANTS
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
-      USE CMN_GCTM_MOD
+      USE DIAG_MOD,           ONLY : AD21
       USE DIAG_MOD,           ONLY : AD66
       USE DIAG_MOD,           ONLY : AD67
+#endif
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_A6
@@ -975,6 +980,7 @@
 !  06 Nov 2014 - R. Yantosca - All input arguments are now declared as (I,J,L) 
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_A6 with TRANSFER_3D
 !  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
+!  02 Feb 2016 - E. Lundgren - Block of diagnostics with if defined BPCH
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1668,6 +1674,15 @@
          MOISTQ = -MOISTQ / 8.64d7
       ENDIF
 
+#if defined( BPCH_DIAG )
+      !=================================================================
+      !          %%%%% ND21 diagnostic: OPTD and CLDF %%%%%
+      !=================================================================
+      IF ( ND21 > 0 ) THEN
+         AD21(:,:,1:LD21,1) = AD21(:,:,1:LD21,1) + OPTDEPTH(:,:,1:LD21)
+         AD21(:,:,1:LD21,2) = AD21(:,:,1:LD21,2) + CLDF(:,:,1:LD21)
+      ENDIF
+
       !=================================================================
       ! ND66 diagnostic: A-6 fields
       !
@@ -1733,6 +1748,7 @@
       IF ( ND67 > 0 ) THEN 
          IF ( PRESENT( CLDTOPS ) ) AD67(:,:,16) = AD67(:,:,16) + CLDTOPS
       ENDIF  
+#endif
 
       !=================================================================
       ! Update A-6 fields diagnostic counter

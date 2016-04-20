@@ -217,6 +217,7 @@ CONTAINS
     USE HCO_State_Mod,     ONLY : HcoState_Init
     USE HCO_Driver_Mod,    ONLY : HCO_Init
     USE HCOX_Driver_Mod,   ONLY : HCOX_Init
+    USE HCO_EXTLIST_Mod,   ONLY : GetExtOpt, CoreNr
 !
 ! !INPUT PARAMETERS:
 !
@@ -236,6 +237,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: nnMatch
+    LOGICAL            :: Dum, Found
     CHARACTER(LEN=255) :: LOC
 
     !=================================================================
@@ -302,6 +304,12 @@ CONTAINS
 
     ! Let HEMCO schedule the diagnostics output
     HcoState%Options%HcoWritesDiagn = .TRUE.
+
+    ! If not explicitly set, make sure that option Field2Diagn is true
+    CALL GetExtOpt ( CoreNr, 'ConfigField to diagnostics', &
+                     OptValBool=Dum, Found=Found, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. Found ) HcoState%Options%Field2Diagn = .TRUE.
 
     !=================================================================
     ! Initialize HEMCO internal lists and variables. All data
@@ -589,7 +597,7 @@ CONTAINS
 ! !USES:
 !
     USE inquireMod,      ONLY : findfreeLUN
-    USE HCO_EXTLIST_Mod, ONLY : GetExtOpt, CoreNr
+    USE HCO_EXTLIST_Mod, ONLY : HCO_GetOpt, GetExtOpt, CoreNr
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -631,7 +639,15 @@ CONTAINS
     CALL GetExtOpt ( CoreNr, 'SpecFile', OptValChar=MySpecFile, &
                      Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( FOUND ) SpecFile = MySpecFile
+    IF ( FOUND ) THEN
+       SpecFile = MySpecFile
+    ELSE
+       MSG = 'Please provide filename with species definitions ' // &
+             'in the configuration file settings, e.g. ' // &
+             'SpecFile: MySpecies.rc'
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
 
     ! Find a free file LUN
     IU_FILE = findFreeLUN()
@@ -710,7 +726,7 @@ CONTAINS
        ! molecular coefficient, and Henry coefficients K0, CR, pKa (in this
        ! order).
        DO I = 1, 8
-   
+  
           ! Get lower and upper index of species ID (first entry in row).
           ! Skip all leading spaces.
           UPP = LOW
@@ -722,12 +738,24 @@ CONTAINS
                 CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
-             UPP = NextCharPos( TRIM(DUM), HCO_SPC(), LOW )
+             UPP = NextCharPos( TRIM(DUM), HCO_SPC, LOW )
              IF ( UPP < 0 ) UPP = LNG
           ENDDO
    
           UPP = UPP - 1 ! Don't read space
-   
+
+          ! Error check
+          IF ( UPP > LNG ) THEN
+             WRITE(MSG,*) 'Error reading species property ', I, &
+                          ' on line ', TRIM(DUM), '. Each ', &
+                          'species definition line is expected ', &
+                          'to have 8 entries (ID, Name, MW, MWemis, ', &
+                          'MOLECRATIO, K0, CR, PKA, e.g.: ', &
+                          '1 CO   28.0 28.0 1.0 0.0 0.0 0.0'
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC ) 
+             RETURN
+          ENDIF
+ 
           ! Read into vector
           SELECT CASE ( I ) 
              CASE ( 1 )
@@ -790,8 +818,9 @@ CONTAINS
 ! !USES:
 !
 !    USE Grid_Mod,        ONLY : DoGridComputation
-    USE inquireMod,      ONLY : findFreeLUN
-    USE HCO_ExtList_Mod, ONLY : GetExtOpt, CoreNr
+    USE inquireMod,      ONLY  : findFreeLUN
+    USE HCO_ExtList_Mod, ONLY  : HCO_GetOpt, GetExtOpt, CoreNr
+    USE HCO_VertGrid_Mod, ONLY : HCO_VertGrid_Define
 !
 ! !INPUT PARAMETERS:
 !
@@ -805,6 +834,7 @@ CONTAINS
 !  13 Sep 2013 - C. Keller - Initial Version
 !  11 May 2015 - C. Keller - Now provide lon/lat edges instead of assuming
 !                            global grid. 
+!  10 Sep 2015 - C. Keller - Allow to provide mid-points instead of edges.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -815,17 +845,19 @@ CONTAINS
     INTEGER               :: NX, NY, NZ
     INTEGER               :: I, J, N, LNG, LOW, UPP
     INTEGER               :: SZ(3)
-    INTEGER               :: IU_FILE, IOS
+    INTEGER               :: IU_FILE, IOS, STRT
     REAL(hp)              :: RG(4)
     REAL(hp)              :: XMIN, XMAX
     REAL(hp)              :: YMIN, YMAX
     REAL(hp)              :: DVAL
     REAL(hp)              :: DLON, DLAT
     REAL(hp)              :: PI_180, YDGR, YSN, SIN_DELTA, AM2 
+    REAL(hp), ALLOCATABLE :: Ap(:), Bp(:)
     LOGICAL               :: FOUND,   EOF
-    CHARACTER(LEN=255)    :: MSG, LOC 
+    CHARACTER(LEN=255)    :: LOC 
+    CHARACTER(LEN=  1)    :: COL 
     CHARACTER(LEN=255)    :: MyGridFile 
-    CHARACTER(LEN=2047)   :: DUM
+    CHARACTER(LEN=2047)   :: MSG, DUM
 
     !=================================================================
     ! SET_GRID begins here
@@ -842,6 +874,9 @@ CONTAINS
                      Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) GridFile = MyGridFile
+
+    ! Write colon character to local variable
+    COL = HCO_GetOpt( 'Colon' )
 
     ! ------------------------------------------------------------------
     ! Open grid file
@@ -879,7 +914,7 @@ CONTAINS
 
        ! Read integer after colon (this is the dimension size)
        LNG = LEN(TRIM(DUM))
-       LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
+       LOW = NextCharPos ( TRIM(DUM), COL, 1 )
        IF ( LOW < 0 .OR. LOW == LNG ) THEN
           MSG = 'Cannot extract size information from ' // TRIM(DUM)
           CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
@@ -908,16 +943,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    IF ( XMIN < -180.0_hp ) THEN
-       WRITE(MSG,*) 'Lower longitude must be between -180 and 180 degE: ', XMIN
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF   
-    IF ( XMAX > 180.0_hp ) THEN
-       WRITE(MSG,*) 'Upper longitude must be between -180 and 180 degE: ', XMAX
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF   
+    ! Restrict latitude values to -90.0 and 90.0. 
     IF ( YMIN < -90.0_hp ) THEN
        WRITE(MSG,*) 'Lower latitude must be between -90 and 90 degN: ', YMIN
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
@@ -945,10 +971,10 @@ CONTAINS
           CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
- 
+
        ! Read integer after colon (this is the dimension size)
        LNG = LEN(TRIM(DUM))
-       LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
+       LOW = NextCharPos ( TRIM(DUM), COL, 1 )
        IF ( LOW < 0 .OR. LOW == LNG ) THEN
           MSG = 'Cannot extract size information from ' // TRIM(DUM)
           CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
@@ -964,42 +990,265 @@ CONTAINS
     NY = SZ(2)
     NZ = SZ(3)
 
-    ! Close file
-    CLOSE( IU_FILE )      
-
     ! ------------------------------------------------------------------
     ! Now that sizes are known, allocate all arrays
     ! ------------------------------------------------------------------
-    ALLOCATE ( XMID     (NX,  NY,  1) )
-    ALLOCATE ( YMID     (NX,  NY,  1) )
-    ALLOCATE ( XEDGE    (NX+1,NY,  1) )
-    ALLOCATE ( YEDGE    (NX,  NY+1,1) )
-    ALLOCATE ( YSIN     (NX,  NY+1,1) )
-    ALLOCATE ( AREA_M2  (NX,  NY,  1) )
-    XMID      = 0.0_hp
-    YMID      = 0.0_hp
-    XEDGE     = 0.0_hp
-    YEDGE     = 0.0_hp
-    YSIN      = 0.0_hp
-    AREA_M2   = 0.0_hp
+    ALLOCATE ( XMID     (NX,  NY,  1   ) )
+    ALLOCATE ( YMID     (NX,  NY,  1   ) )
+    ALLOCATE ( XEDGE    (NX+1,NY,  1   ) )
+    ALLOCATE ( YEDGE    (NX,  NY+1,1   ) )
+    ALLOCATE ( YSIN     (NX,  NY+1,1   ) )
+    ALLOCATE ( AREA_M2  (NX,  NY,  1   ) )
+    ALLOCATE ( AP       (          NZ+1) )
+    ALLOCATE ( BP       (          NZ+1) )
+    YSIN      = HCO_MISSVAL
+    AREA_M2   = HCO_MISSVAL
+    XMID      = HCO_MISSVAL
+    YMID      = HCO_MISSVAL
+    XEDGE     = HCO_MISSVAL
+    YEDGE     = HCO_MISSVAL
+    AP        = HCO_MISSVAL
+    BP        = HCO_MISSVAL
+
+    ! ------------------------------------------------------------------
+    ! Check if grid box edges and/or midpoints are explicitly given.
+    ! Those need be provided on one line, e.g.:
+    ! YEDGE: -90.0 -89.0 -86.0 ... 86.0 89.0 90.0
+    ! ------------------------------------------------------------------
+    DO N = 1, 6 ! check for XEDGE, YEDGE, XMID, YMID
+
+       ! Try to read line
+       CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Error reading grid edges and/or midpoints in ' // TRIM(GridFile)
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       ! Exit loop here if end of file
+       IF ( EOF ) EXIT
+
+       ! Read XEDGES or YEDGES
+       LNG = -1
+       IF ( DUM(1:5) == 'XEDGE' .OR. DUM(1:5) == 'YEDGE' ) THEN 
+          LNG  = LEN(TRIM(DUM))
+          STRT = 7 ! Start at string position 7 (e.g. 'XEDGE: XXX')
+       ELSEIF ( DUM(1:4) == 'XMID' .OR. DUM(1:4) == 'YMID' ) THEN 
+          LNG = LEN(TRIM(DUM))
+          STRT = 6 ! Start at string position 6 (e.g. 'XMID: XXX')
+       ELSEIF ( DUM(1:2) == 'AP' .OR. DUM(1:2) == 'BP' ) THEN 
+          LNG = LEN(TRIM(DUM))
+          STRT = 4 ! Start at string position 4 (e.g. 'AP: XXX')
+       ENDIF
+
+       IF ( LNG > 0 ) THEN
+
+          LOW = -1
+          UPP = -1
+          I   = 0
+
+          ! Walk through entire string
+          DO J = STRT, LNG
+
+             ! Need to evaluate if this is the last string character and/or 
+             ! whitespace character
+             IF ( TRIM(DUM(J:J)) == HCO_SPC ) THEN 
+
+                ! If the lower substring bound is not set yet, assume that this
+                ! is a lower substring bound, and continue search for upper bound
+                IF ( LOW == -1 ) LOW = J
+
+                ! Make sure the substring bounds are valid values
+                IF ( (J-1) >= (LOW+1) ) THEN
+                   UPP = J
+                ELSE
+                   LOW = J
+                ENDIF
+
+             ENDIF
+
+             ! If this is the last character, set upper substring bound to J 
+             IF ( J == LNG ) UPP = J 
+ 
+             ! Read substring if both bounds are defined
+             IF ( UPP > LOW ) THEN
+
+                ! Read value 
+                READ( DUM(LOW:UPP), * ) DVAL
+
+                ! Index to fill 
+                I = I + 1
+
+                ! Pass to XEDGE
+                IF ( TRIM(DUM(1:5)) == 'XEDGE' ) THEN
+                   IF ( I > NX+1 ) THEN
+                      WRITE(MSG,*) 'More than ', NX+1, ' longitude edges found in ', TRIM(DUM)
+                      CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                      RETURN
+                   ENDIF 
+                   XEDGE(I,:,1) = DVAL
+
+                ! Pass to YEDGE
+                ELSEIF ( TRIM(DUM(1:5)) == 'YEDGE' ) THEN
+                   IF ( I > NY+1 ) THEN
+                      WRITE(MSG,*) 'More than ', NY+1, ' latitude edges found in ', TRIM(DUM)
+                      CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                      RETURN
+                   ENDIF 
+                   YEDGE(:,I,1) = DVAL
+
+                ! Pass to XMID 
+                ELSEIF ( TRIM(DUM(1:4)) == 'XMID' ) THEN
+                   IF ( I > NX ) THEN
+                      WRITE(MSG,*) 'More than ', NX, ' latitude mid-points found in ', TRIM(DUM)
+                      CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                      RETURN
+                   ENDIF 
+                   XMID(I,:,1) = DVAL
+             
+                ! Pass to YMID
+                ELSEIF ( TRIM(DUM(1:4)) == 'YMID' ) THEN
+                   IF ( I > NY ) THEN
+                      WRITE(MSG,*) 'More than ', NY, ' latitude mid-points found in ', TRIM(DUM)
+                      CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                      RETURN
+                   ENDIF 
+                   YMID(:,I,1) = DVAL
+
+                ! Pass to Ap  
+                ELSEIF ( TRIM(DUM(1:2)) == 'AP' ) THEN
+                   IF ( I > (NZ+1) ) THEN
+                      WRITE(MSG,*) 'More than ', NZ+1, ' Ap values found in ', TRIM(DUM)
+                      CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                      RETURN
+                   ENDIF 
+                   AP(I) = DVAL
+             
+                ! Pass to Bp  
+                ELSEIF ( TRIM(DUM(1:2)) == 'BP' ) THEN
+                   IF ( I > (NZ+1) ) THEN
+                      WRITE(MSG,*) 'More than ', NZ+1, ' Bp values found in ', TRIM(DUM)
+                      CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                      RETURN
+                   ENDIF 
+                   BP(I) = DVAL
+                ENDIF
+             
+                ! Update bounds 
+                LOW = UPP
+             ENDIF
+          ENDDO
+
+          ! Error check: all values must have been filled
+          IF ( TRIM(DUM(1:5)) == 'XEDGE' .AND. I /= NX+1 ) THEN
+             WRITE(MSG,*) 'Error reading XEDGES: exactly ', NX+1, ' values must be given: ', TRIM(DUM)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          IF ( TRIM(DUM(1:5)) == 'YEDGE' .AND. I /= NY+1 ) THEN
+             WRITE(MSG,*) 'Error reading YEDGES: exactly ', NY+1, ' values must be given: ', TRIM(DUM)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          IF ( TRIM(DUM(1:4)) == 'XMID' .AND. I /= NX ) THEN
+             WRITE(MSG,*) 'Error reading XMID: exactly ', NX, ' values must be given: ', TRIM(DUM)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          IF ( TRIM(DUM(1:4)) == 'YMID' .AND. I /= NY ) THEN
+             WRITE(MSG,*) 'Error reading YMID: exactly ', NY, ' values must be given: ', TRIM(DUM)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          IF ( TRIM(DUM(1:2)) == 'AP' .AND. I /= NZ+1 ) THEN
+             WRITE(MSG,*) 'Error reading AP: exactly ', NZ+1, ' values must be given: ', TRIM(DUM)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          IF ( TRIM(DUM(1:2)) == 'BP' .AND. I /= NZ+1 ) THEN
+             WRITE(MSG,*) 'Error reading BP: exactly ', NZ+1, ' values must be given: ', TRIM(DUM)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+
+       ENDIF
+    ENDDO
+
+    ! Error check: if AP is given, Bp must be given as well
+    IF ( ALL(AP==HCO_MISSVAL) .AND. .NOT. ALL(BP==HCO_MISSVAL) ) THEN
+       WRITE(MSG,*) 'At least a few AP values are missing, please provide exactly ', &
+                    NZ+1, 'AP and BP values.'
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ELSEIF ( .NOT. ALL(AP==HCO_MISSVAL) .AND. ALL(BP==HCO_MISSVAL) ) THEN
+       WRITE(MSG,*) 'At least a few BP values are missing, please provide exactly ', &
+                    NZ+1, 'AP and BP values.'
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+
+    ! ------------------------------------------------------------------
+    ! Close file
+    ! ------------------------------------------------------------------
+    CLOSE( IU_FILE )      
 
     ! ------------------------------------------------------------------
     ! Fill grid box values
     ! ------------------------------------------------------------------
-    DLON = ( XMAX - XMIN ) / NX
     DLAT = ( YMAX - YMIN ) / NY
 
     ! Now fill values
     DO J = 1, NY
     DO I = 1, NX
 
-       ! Set longitude and latitude edge values
-       XEDGE(I,J,1) = XMIN + ( (I-1) * DLON )
-       YEDGE(I,J,1) = YMIN + ( (J-1) * DLAT )
+       ! Set longitude and latitude edge values if not read from disk
+       IF ( XEDGE(I,J,1) == HCO_MISSVAL ) THEN
+
+          ! eventually get from mid-points
+          IF ( XMID(I,J,1) /= HCO_MISSVAL ) THEN
+             IF ( I > 1 ) THEN 
+                DLON         = XMID(I,J,1) - XMID(I-1,J,1)
+             ELSE
+                DLON         = XMID(I+1,J,1) - XMID(I,J,1)
+             ENDIF
+             XEDGE(I,J,1) = XMID(I,J,1) - DLON/2.0
+
+          ! otherwise assume constant grid spacing
+          ELSE
+             DLON = ( XMAX - XMIN ) / NX
+             XEDGE(I,J,1) = XMIN + ( (I-1) * DLON )
+          ENDIF
+       ELSE
+          DLON = XEDGE(I+1,J,1) - XEDGE(I,J,1)
+       ENDIF
+ 
+       IF ( YEDGE(I,J,1) == HCO_MISSVAL ) THEN
+
+          ! eventually get from mid-points
+          IF ( YMID(I,J,1) /= HCO_MISSVAL ) THEN
+             IF ( J > 1 ) THEN 
+                DLAT         = YMID(I,J,1) - YMID(I,J-1,1)
+             ELSE
+                DLAT         = YMID(I,J+1,1) - YMID(I,J,1)
+             ENDIF
+             YEDGE(I,J,1) = YMID(I,J,1) - DLAT/2.0
+
+          ! otherwise assume constant grid spacing
+          ELSE
+             DLAT = ( YMAX - YMIN ) / NY
+             YEDGE(I,J,1) = YMIN + ( (J-1) * DLAT )
+          ENDIF       
+       ELSE
+          DLAT = YEDGE(I,J+1,1) - YEDGE(I,J,1)
+       ENDIF       
 
        ! Set mid values
-       XMID(I,J,1) = XEDGE(I,J,1) + ( DLON / 2.0_hp )
-       YMID(I,J,1) = YEDGE(I,J,1) + ( DLAT / 2.0_hp )
+       IF ( XMID(I,J,1) == HCO_MISSVAL ) THEN
+          XMID(I,J,1) = XEDGE(I,J,1) + ( DLON / 2.0_hp )
+       ENDIF
+       IF ( YMID(I,J,1) == HCO_MISSVAL ) THEN
+          YMID(I,J,1) = YEDGE(I,J,1) + ( DLAT / 2.0_hp )
+       ENDIF
 
        ! Get sine of latitude edges
        YDGR        = PI_180 * YEDGE(I,J,1)  ! radians       
@@ -1008,10 +1257,14 @@ CONTAINS
 
        ! Eventually set uppermost edge
        IF ( I == NX ) THEN
-          XEDGE(I+1,J,1) = XMIN + I * DLON
+          IF ( XEDGE(I+1,J,1) == HCO_MISSVAL ) THEN
+             XEDGE(I+1,J,1) = XMIN + I * DLON
+          ENDIF
        ENDIF
        IF ( J == NY ) THEN
-          YEDGE(I,J+1,1) = YMIN + J * DLAT
+          IF ( YEDGE(I,J+1,1) == HCO_MISSVAL ) THEN
+             YEDGE(I,J+1,1) = YMIN + J * DLAT
+          ENDIF
           YDGR           = PI_180 * YEDGE(I,J+1,1)  ! radians       
           YSN            = SIN( YDGR )              ! sine
           YSIN(I,J+1,1)  = YSN
@@ -1040,6 +1293,15 @@ CONTAINS
     HcoState%NY = NY
     HcoState%NZ = NZ 
 
+    ! Vertical grid definition
+    IF ( ANY(AP/=HCO_MISSVAL) ) THEN
+       CALL HCO_VertGrid_Define( am_I_Root, HcoState%Grid%zGrid, NZ, &
+                                 Ap=Ap, Bp=Bp, RC=RC )
+    ELSE
+       CALL HCO_VertGrid_Define( am_I_Root, HcoState%Grid%zGrid, NZ, RC=RC )
+    ENDIF
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! Set pointers to grid variables
     HcoState%Grid%XMID%Val       => XMID   (:,:,1)
     HcoState%Grid%YMID%Val       => YMID   (:,:,1)
@@ -1053,6 +1315,7 @@ CONTAINS
     HcoState%Grid%PEDGE%Val      => NULL()
     HcoState%Grid%BXHEIGHT_M%Val => NULL()
     HcoState%Grid%ZSFC%Val       => NULL()
+    HcoState%Grid%PSFC%Val       => NULL()
 
     ! Write grid information to log-file
     WRITE(MSG,*) 'HEMCO grid definitions:'
@@ -1064,14 +1327,14 @@ CONTAINS
     CALL HCO_MSG(MSG)
     WRITE(MSG,*) ' --> Number of levels         : ', NZ
     CALL HCO_MSG(MSG)
-    WRITE(MSG,*) ' --> Lon min, max [deg E]     : ', XMIN, XMAX
+    WRITE(MSG,*) ' --> Lon range [deg E]        : ', XMIN, XMAX
     CALL HCO_MSG(MSG)
-    WRITE(MSG,*) ' --> Lon delta    [deg E]     : ', DLON
+    WRITE(MSG,*) ' --> Lat range [deg N]        : ', YMIN, YMAX
     CALL HCO_MSG(MSG)
-    WRITE(MSG,*) ' --> Lat min, max [deg N]     : ', YMIN, YMAX
-    CALL HCO_MSG(MSG)
-    WRITE(MSG,*) ' --> Lat delta    [deg N]     : ', DLAT
-    CALL HCO_MSG(MSG,SEP2="-")
+
+    ! Cleanup
+    IF ( ALLOCATED(AP) ) DEALLOCATE(AP)
+    IF ( ALLOCATED(BP) ) DEALLOCATE(BP)
 
     ! Return w/ success
     RC = HCO_SUCCESS
@@ -1125,7 +1388,7 @@ CONTAINS
 
     ! For error handling
     LOC = 'Get_nnMatch (hco_standalone_mod.F90)'
-    
+   
     ! Extract number of HEMCO species and corresponding species names 
     ! as read from the HEMCO config. file.
     nHcoSpec = Config_GetnSpecies ( ) 
@@ -1412,7 +1675,7 @@ CONTAINS
 ! !USES:
 !
     USE inquireMod,      ONLY : findfreeLUN
-    USE HCO_Extlist_Mod, ONLY : GetExtOpt, CoreNr
+    USE HCO_Extlist_Mod, ONLY : HCO_GetOpt, GetExtOpt, CoreNr
 !
 ! !INPUT PARAMETERS:
 !
@@ -1433,6 +1696,7 @@ CONTAINS
     INTEGER             :: AS, IOS, IU_FILE
     INTEGER             :: I,  N,   LNG, LOW
     LOGICAL             :: EOF, FOUND
+    CHARACTER(LEN=  1)  :: COL
     CHARACTER(LEN=255)  :: MSG, LOC, DUM
     CHARACTER(LEN=255)  :: MyTimeFile 
 
@@ -1451,6 +1715,9 @@ CONTAINS
 
     ! Find a free file LUN
     IU_FILE = findFreeLUN()
+
+    ! Write colon character to local variable
+    COL = HCO_GetOpt( 'Colon' )
 
     ! Open time file 
     OPEN( IU_FILE, FILE=TRIM(TimeFile), STATUS='OLD', IOSTAT=IOS )
@@ -1472,7 +1739,7 @@ CONTAINS
      
        ! Remove 'BEGIN: ' or 'END: ' at the beginning 
        LNG = LEN(TRIM(DUM))
-       LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
+       LOW = NextCharPos ( TRIM(DUM), COL, 1 )
        IF ( LOW < 0 .OR. LOW == LNG ) THEN
           MSG = 'Cannot extract index after colon: ' // TRIM(DUM)
           CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
@@ -1510,7 +1777,7 @@ CONTAINS
 
     ! Get index after colon 
     LNG = LEN(TRIM(DUM))
-    LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
+    LOW = NextCharPos ( TRIM(DUM), COL, 1 )
     IF ( LOW < 0 .OR. LOW == LNG ) THEN
        MSG = 'Cannot extract index after colon: ' // TRIM(DUM)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
@@ -1546,8 +1813,8 @@ CONTAINS
 ! !USES:
 !
     USE HCO_ARR_MOD,        ONLY : HCO_ArrAssert
-    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
     USE HCO_GEOTOOLS_MOD,   ONLY : HCO_GetSUNCOS
+    USE HCO_GEOTOOLS_MOD,   ONLY : HCO_CalcVertGrid
     USE HCOX_STATE_MOD,     ONLY : ExtDat_Set
 !
 ! !INPUT PARAMETERS:
@@ -1568,13 +1835,12 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER                       :: I,  J,  L 
-    INTEGER                       :: NX, NY, NZ
-    REAL(sp), POINTER             :: Ptr3D(:,:,:) => NULL()
-    REAL(sp), POINTER             :: Ptr2D(:,:  ) => NULL()
-    REAL(hp)                      :: P1, P2
+    REAL(hp), POINTER             :: PSFC(:,:  )  => NULL()
+    REAL(hp), POINTER             :: ZSFC(:,:  )  => NULL()
+    REAL(hp), POINTER             :: TK  (:,:,:)  => NULL()
+    REAL(hp), POINTER             :: BXHEIGHT(:,:,:)  => NULL()
+    REAL(hp), POINTER             :: PEDGE(:,:,:)  => NULL()
     CHARACTER(LEN=255)            :: MSG
-    LOGICAL                       :: ERR, FOUND
     LOGICAL, SAVE                 :: FIRST = .TRUE.
     CHARACTER(LEN=255), PARAMETER :: LOC = 'ExtState_SetFields (hcoi_standalone_mod.F90)'
 
@@ -1585,50 +1851,6 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER( LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-    !-----------------------------------------------------------------
-    ! Try to get pressure edges from external file.
-    !-----------------------------------------------------------------
-    CALL HCO_GetPtr( am_I_Root, 'PEDGE', Ptr3D, RC, FOUND=FOUND )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! If found, copy to pressure edge array
-    IF ( FOUND ) THEN
-
-       ! On first call, check array size dimensions. These are 
-       ! expected to correspond to the HEMCO grid (NX, NY, NZ+1).
-       IF ( FIRST ) THEN
-          NX = SIZE(Ptr3D,1)
-          NY = SIZE(Ptr3D,2)
-          NZ = SIZE(Ptr3D,3)
-
-          ! Make sure size dimensions are correct
-          IF ( ( NX /=  HcoState%NX    ) .OR. &
-               ( NY /=  HcoState%NY    ) .OR. &
-               ( NZ /= (HcoState%NZ+1) )       ) THEN
-             WRITE(MSG,*) 'Dimensions of field PEDGE do not correspond ', &
-                          'to simulation grid: Expected dimensions: ',       &
-                          HcoState%NX, HcoState%NY, HcoState%NZ+1,           &
-                          '; dimensions of PEDGE: ', NX, NY, NZ
-             CALL HCO_ERROR( MSG, RC )
-             RETURN     
-          ENDIF
-
-          CALL HCO_ArrAssert( HcoState%Grid%PEDGE, NX, NY, NZ, RC ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDIF 
-       HcoState%Grid%PEDGE%Val = Ptr3D
-       Ptr3D => NULL()
-
-    ! If not found, prompt a warning on the first call.
-    ELSE
-       IF ( FIRST ) THEN
-          MSG = 'PEDGE is not a field in HEMCO configuration file '      // &
-                '- cannot fill pressure edges. This may cause problems ' // &
-                'in vertical interpolation and/or some of the extensions!'
-          CALL HCO_WARNING ( MSG, RC, WarnLev=1 )
-       ENDIF
-    ENDIF
 
     !-----------------------------------------------------------------
     ! 2D fields 
@@ -1735,6 +1957,9 @@ CONTAINS
     CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%AIRVOL, 'AIRVOL', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%AIRDEN, 'AIRDEN', RC, FIRST )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%O3, 'O3', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1762,6 +1987,27 @@ CONTAINS
     !-----------------------------------------------------------------
 
     !-----------------------------------------------------------------
+    ! Check for vertical grid update. This will try to read the 
+    ! vertical grid quantities from disk or calculate them from other
+    ! quantities read from disk. 
+    !-----------------------------------------------------------------
+
+    ! Eventually get temperature from disk
+    IF ( ExtState%TK%DoUse ) TK => ExtState%TK%Arr%Val
+
+    ! Attempt to calculate vertical grid quantities
+    CALL HCO_CalcVertGrid( am_I_Root, HcoState, PSFC,    &
+                           ZSFC,  TK, BXHEIGHT, PEDGE, RC  )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Reset pointers
+    PSFC     => NULL()
+    ZSFC     => NULL()
+    TK       => NULL()
+    BXHEIGHT => NULL()
+    PEDGE    => NULL()
+
+    !-----------------------------------------------------------------
     ! If needed, calculate SUNCOS values
     !-----------------------------------------------------------------
     IF ( ExtState%SUNCOS%DoUse ) THEN
@@ -1772,210 +2018,6 @@ CONTAINS
 
        CALL HCO_GetSUNCOS( am_I_Root, HcoState, ExtState%SUNCOS%Arr%Val, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------
-    ! Grid box heights in meters. First try to get them from an 
-    ! external file. If not defined in there, try to calculate them
-    ! from grid box pressure edges and temperature via the hydrostatic
-    ! equation.
-    !-----------------------------------------------------------------
-    CALL HCO_GetPtr( am_I_Root, 'BXHEIGHT_M', Ptr3D, RC, FOUND=FOUND )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! If found, copy to pressure edge array
-    IF ( FOUND ) THEN
-
-       ! On first call, check array size dimensions. These are 
-       ! expected to correspond to the HEMCO grid (NX, NY, NZ).
-       IF ( FIRST ) THEN
-          NX = SIZE(Ptr3D,1)
-          NY = SIZE(Ptr3D,2)
-          NZ = SIZE(Ptr3D,3)
-
-          ! Make sure size dimensions are correct
-          IF ( ( NX /=  HcoState%NX  ) .OR. &
-               ( NY /=  HcoState%NY  ) .OR. &
-               ( NZ /= (HcoState%NZ) )       ) THEN
-             WRITE(MSG,*) 'Dimensions of field BXHEIGHT_M do not correspond ', &
-                          'to simulation grid: Expected dimensions: ',         &
-                          HcoState%NX, HcoState%NY, HcoState%NZ,               &
-                          '; dimensions of BXHEIGHT_M: ', NX, NY, NZ
-             CALL HCO_ERROR( MSG, RC )
-             RETURN     
-          ENDIF
-
-          CALL HCO_ArrAssert( HcoState%Grid%BXHEIGHT_M, NX, NY, NZ, RC ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDIF 
-       HcoState%Grid%BXHEIGHT_M%Val = Ptr3D
-       Ptr3D => NULL()
-
-       ! Verbose
-       IF ( FIRST .AND. Hco_IsVerb(1) ) THEN
-          MSG = 'Grid box heights read from field BXHEIGHT_M'
-          CALL HCO_MSG(MSG,SEP1=' ',SEP2=' ')
-       ENDIF
-
-    ! If not found, check if we can calculate it from pressure edges and temperature
-    ELSEIF ( ExtState%TK%DoUse .AND. ASSOCIATED(HcoState%Grid%PEDGE%Val) ) THEN
-
-       ! Make sure array is defined
-       CALL HCO_ArrAssert( HcoState%Grid%BXHEIGHT_M, HcoState%NX,   &
-                           HcoState%NY,              HcoState%NZ, RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
-       ! Assume no error until otherwise
-       ERR = .FALSE.
-
-       ! Calculate box heights
-!$OMP PARALLEL DO                                                      &
-!$OMP DEFAULT( SHARED )                                                &
-!$OMP PRIVATE( I, J, L, P1, P2 )                                       & 
-!$OMP SCHEDULE( DYNAMIC )
-       DO L = 1, HcoState%NZ
-       DO J = 1, HcoState%NY
-       DO I = 1, HcoState%NX
-       
-          ! Pressure at bottom and top edge [hPa]
-          P1 = HcoState%Grid%PEDGE%Val(I,J,L)
-          P2 = HcoState%Grid%PEDGE%Val(I,J,L+1)
-
-          ! Box height
-          IF ( P2 == 0.0_hp ) THEN
-             ERR = .TRUE.
-          ELSE
-             HcoState%Grid%BXHEIGHT_M%Val(I,J,L) = HcoState%Phys%Rdg0 &
-                                                 * ExtState%TK%Arr%Val(I,J,L) &
-                                                 * LOG( P1 / P2 )
-          ENDIF
-       ENDDO !I
-       ENDDO !J
-       ENDDO !L
-!$OMP END PARALLEL DO
-
-       ! Error check
-       IF ( ERR ) THEN
-          MSG = 'Cannot calculate grid box heights - at least one pressure edge ' // &
-                'value is zero! You can either provide an updated pressure edge ' // &
-                'field (PEDGE) or add a field with the grid box heigths to your ' // &
-                'configuration file (BXHEIGHT_M)'
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-
-       ! Verbose
-       IF ( FIRST .AND. Hco_IsVerb(1) ) THEN
-          MSG = 'Grid box heights approximated from hydrostatic equation'
-          CALL HCO_MSG(MSG,SEP1=' ',SEP2=' ')
-       ENDIF
-
-    ! Otherwise, prompt a warning on the first call 
-    ELSE
-       IF ( FIRST ) THEN
-          MSG = 'BXHEIGHT_M is not a field in HEMCO configuration file '   // &
-                '- cannot fill grid box heights. This may cause problems ' // &
-                'in some of the extensions (if so, they will crash)!'
-          CALL HCO_WARNING ( MSG, RC, WarnLev=1 )
-       ENDIF
-    ENDIF
-
-    !-----------------------------------------------------------------
-    ! Surface geopotential height 
-    !-----------------------------------------------------------------
-    CALL HCO_GetPtr( am_I_Root, 'ZSFC', Ptr2D, RC, FOUND=FOUND )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! If found, copy to pressure edge array
-    IF ( FOUND ) THEN
-
-       ! On first call, check array size dimensions. These are 
-       ! expected to correspond to the HEMCO grid (NX, NY, NZ).
-       IF ( FIRST ) THEN
-          NX = SIZE(Ptr2D,1)
-          NY = SIZE(Ptr2D,2)
-
-          ! Make sure size dimensions are correct
-          IF ( ( NX /=  HcoState%NX  ) .OR. &
-               ( NY /=  HcoState%NY  )       ) THEN
-             WRITE(MSG,*) 'Dimensions of field ZSFC do not correspond ', &
-                          'to simulation grid: Expected dimensions: ',         &
-                          HcoState%NX, HcoState%NY,                            &
-                          '; dimensions of ZSFC: ', NX, NY
-             CALL HCO_ERROR( MSG, RC )
-             RETURN     
-          ENDIF
-
-          CALL HCO_ArrAssert( HcoState%Grid%ZSFC, NX, NY, RC ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDIF 
-       HcoState%Grid%ZSFC%Val = Ptr2D
-       Ptr2D => NULL()
-
-       ! Verbose
-       IF ( FIRST .AND. Hco_IsVerb(1) ) THEN
-          MSG = 'Surface geopotential heights read from field ZSFC'
-          CALL HCO_MSG(MSG,SEP1=' ',SEP2=' ')
-       ENDIF
-
-    ! If not found, check if we can calculate it from pressure edges and temperature
-    ELSEIF ( ExtState%TK%DoUse .AND. ASSOCIATED(HcoState%Grid%PEDGE%Val) ) THEN
-
-       ! Make sure array is defined
-       CALL HCO_ArrAssert( HcoState%Grid%ZSFC, HcoState%NX, HcoState%NY, RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
-       ! Assume no error until otherwise
-       ERR = .FALSE.
-
-       ! Approximate geopotential heights
-!$OMP PARALLEL DO                                                      &
-!$OMP DEFAULT( SHARED )                                                &
-!$OMP PRIVATE( I, J, P1, P2 )                                       & 
-!$OMP SCHEDULE( DYNAMIC )
-       DO J = 1, HcoState%NY
-       DO I = 1, HcoState%NX
-       
-          ! Pressure at bottom and top edge [Pa]
-          P1 = 101325.0
-          P2 = HcoState%Grid%PEDGE%Val(I,J,1)
-
-          ! Box height
-          IF ( P2 == 0.0_hp ) THEN
-             ERR = .TRUE.
-          ELSE
-             HcoState%Grid%ZSFC%Val(I,J) = HcoState%Phys%Rdg0 &
-                                         * ExtState%TK%Arr%Val(I,J,1) &
-                                         * LOG( P1 / P2 )
-          ENDIF
-       ENDDO !I
-       ENDDO !J
-!$OMP END PARALLEL DO
-
-       ! Error check
-       IF ( ERR ) THEN
-          MSG = 'Cannot calculate surface geopotential heights - at least one ' // &
-                'surface pressure value is zero! You can either provide an '    // &
-                'updated pressure edge field (PEDGE) or add a field with the '  // &
-                'surface geopotential height to your configuration file (ZSFC)'
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-
-       ! Verbose
-       IF ( FIRST .AND. Hco_IsVerb(1) ) THEN
-          MSG = 'Geopotential heights approximated from hydrostatic equation'
-          CALL HCO_MSG(MSG,SEP1=' ',SEP2=' ')
-       ENDIF
-
-    ! Otherwise, prompt a warning on the first call 
-    ELSE
-       IF ( FIRST ) THEN
-          MSG = 'ZSFC is not a field in HEMCO configuration file '   // &
-                '- cannot define surface geopotential height. This may cause ' // &
-                'problems in some of the extensions (if so, they will crash)!'
-          CALL HCO_WARNING ( MSG, RC, WarnLev=1 )
-       ENDIF
     ENDIF
 
     !-----------------------------------------------------------------
@@ -2070,14 +2112,18 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  08 Sep 2014 - C. Keller - Initial Version
+!  13 Jul 2015 - C. Keller - Bug fix: now save YYYYMMDD and hhmmss in different
+!                            variables to avoid integer truncation errors.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER       :: THISDATETIME
-    INTEGER, SAVE :: ENDDATETIME = -1
+    INTEGER       :: THISYYYYMMDD
+    INTEGER       :: THIShhmmss
+    INTEGER, SAVE :: ENDYYYYMMDD = -1
+    INTEGER, SAVE :: ENDhhmmss   = -1
 
     !=================================================================
     ! IsEndOfSimulation begins here
@@ -2087,17 +2133,21 @@ CONTAINS
     IsEnd = .FALSE.
 
     ! Calculate simulation end datetime if not yet done so
-    IF ( ENDDATETIME < 0 ) THEN
-       ENDDATETIME = YRS(2)*10000000000 + MTS(2)*100000000 + DYS(2)*1000000 &
-                   + HRS(2)*10000       + MNS(2)*100       + SCS(2)
+    IF ( ENDYYYYMMDD < 0 ) THEN
+       ENDYYYYMMDD = YRS(2)*10000 + MTS(2)*100 + DYS(2)
+       ENDhhmmss   = HRS(2)*10000 + MNS(2)*100 + SCS(2)
     ENDIF
 
     ! Calculate current datetime
-    THISDATETIME = YR*10000000000 + MT*100000000 + DY*1000000 &
-                 + HR*10000       + MN*100       + SC
+    THISYYYYMMDD = YR*10000 + MT*100 + DY
+    THIShhmmss   = HR*10000 + MN*100 + SC
 
     ! Check if current datetime is beyond simulation end date
-    IF ( THISDATETIME >= ENDDATETIME ) IsEnd = .TRUE.
+    IF ( THISYYYYMMDD > ENDYYYYMMDD ) THEN
+       IsEnd = .TRUE.
+    ELSEIF ( (THISYYYYMMDD == ENDYYYYMMDD) .AND. (THIShhmmss >= ENDhhmmss) ) THEN
+       IsEnd = .TRUE.
+    ENDIF
 
   END FUNCTION IsEndOfSimulation
 !EOC

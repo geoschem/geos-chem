@@ -95,7 +95,6 @@
       USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
       USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR, LLPAR
       USE CMN_SIZE_MOD,       ONLY : NDUST,   MAXIJ
-      USE COMODE_LOOP_MOD,    ONLY : CONSVAP,AVG,RSTARG
       USE ERROR_MOD,          ONLY : ERROR_STOP, ALLOC_ERR
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_ErrCode_Mod
@@ -220,6 +219,7 @@
 !                              EXTERNAL_GRID.
 !  09 Apr 2015 - R. Yantosca - Bug fixes: Add missing vars to !$OMP+PRIVATE
 !                              clause and error check for JLOOP > 0
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as for GEOS-FP
 !  21 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !EOP
 !------------------------------------------------------------------------------
@@ -386,13 +386,13 @@
             ! Directly use OPTDEPTH = TAUCLD * CLDTOT
             !===========================================================
 
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
             ! Column cloud fraction (not less than zero)
             CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
             WHERE ( CLDF1D < 0e+0_fp ) CLDF1D = 0e+0_fp
                
-            ! NOTE: For GEOS-5, GEOS-FP, and MERRA met fields, the optical
+            ! For GEOS-5, GEOS-FP, MERRA, and MERRA2 met fields, the optical
             ! depth is the in-cloud optical depth.  At this point it has 
             ! NOT been multiplied by cloud fraction yet.  Therefore, we can
             ! just apply the ! we can just apply the linear overlap formula 
@@ -420,7 +420,7 @@
             CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
             WHERE ( CLDF1D < 0e+0_fp ) CLDF1D = 0e+0_fp
                
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
             ! NOTE: For GEOS-5, GEOS-FP, and MERRA met fields, the optical
             ! depth is the in-cloud optical depth.  At this point it has 
@@ -2823,6 +2823,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !
 ! !USES:
 !
+      USE PHYSCONSTANTS,ONLY : PI
 !
 ! !INPUT PARAMETERS:
 !
@@ -2843,19 +2844,19 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Adapted from Fast-JX v7.0
+!  06 Jan 2016 - E. Lundgren   - Use global PI rather than local definition
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)  PI, PI180
+      REAL(fp)  PI180
 
       !=================================================================
       ! SOLAR_JX begins here!
       !=================================================================
 
-      PI     = 3.141592653589793e+0_fp
       PI180  = PI/180.e+0_fp
       SZA    = acos(COSSZA)/PI180
 
@@ -4137,6 +4138,7 @@ C---Always does PL(2) = P[1]
 !
 ! !USES:
 !
+      USE PHYSCONSTANTS,      ONLY : AIRMW, AVO, g0, BOLTZ ! Physical parameters
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
@@ -4165,6 +4167,7 @@ C---Always does PL(2) = P[1]
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2013 - S. D. Eastham - Adapted from J. Mao code
+!  05 Jan 2016 - E. Lundgren   - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4224,8 +4227,8 @@ C---Always does PL(2) = P[1]
       PSTD(52) = 0.e+0_fp
 
       ! Mass factor - delta-Pressure [hPa] to delta-Column [molec/cm2]
-      MASFAC = 100.e+0_fp * 6.022e+23_fp / 
-     &        ( 28.97e+0_fp * 9.8e+0_fp * 10.e+0_fp )
+      MASFAC = 100.e+0_fp * AVO / 
+     &        ( AIRMW * g0 * 10.e+0_fp )
 
       ! Select appropriate monthly and latitudinal profiles
       ! Now use YLAT instead of Oliver's YDGRD(NSLAT) (bmy, 9/13/99) 
@@ -4263,7 +4266,7 @@ C---Always does PL(2) = P[1]
       !=================================================================
       Z_CLIM(1) = 0.e+0_fp
       DO I = 1, L_   
-         SCALEH = 1.3806e-19_fp * MASFAC * T_CLIM(I)
+         SCALEH = BOLTZ * 1.e+4_fp * MASFAC * T_CLIM(I)
 
          Z_CLIM(I+1) = Z_CLIM(I) - 
      &        ( LOG( P_CTM(I+1) / P_CTM(I) ) * SCALEH )
@@ -4856,7 +4859,8 @@ c  Ensure all 'AN_' types are valid selections
 !
 ! !IROUTINE: photrate_adj
 !
-! !DESCRIPTION: Subroutine PHOTRATE\_ADJ
+! !DESCRIPTION: Subroutine PHOTRATE\_ADJ adjusts certain photolysis rates
+!  for chemistry.
 !\\
 !\\
 ! !INTERFACE:
@@ -4888,8 +4892,6 @@ c  Ensure all 'AN_' types are valid selections
       INTEGER,   INTENT(OUT) :: RC         ! Success or failure
 !
 ! !REMARKS:
-!  The J-value indices (2nd dimension of array ZPJ) were obtained from
-!  FJX_j2j.dat
 !
 !  %%%% NOTE: WE SHOULD UPDATE THE COMMENTS TO MAKE SURE THAT WE DO      %%%%
 !  %%%% NOT KEEP ANY CONFLICTING OR INCORRECT INFORMATION (bmy, 3/28/16) %%%%

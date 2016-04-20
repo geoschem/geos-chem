@@ -223,15 +223,15 @@
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
       USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
       USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
+      USE TRACERID_MOD,       ONLY : IDTPASV
 
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD	           ! SAVEOH
-      USE CMN_GCTM_MOD             ! XTRA2
+      USE PHYSCONSTANTS            ! XTRA2, XNUMOLAIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -288,10 +288,14 @@
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod.
+!  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod
+!  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg and
+!                              remove AD pointer
 !  15 Apr 2015 - M. Sulprizio- Comment out emission diagnostics for now. These
 !                              are now handled by the HEMCO.
 !  24 Jun 2015 - E. Lundgren - Add code to print out mass conservation output,
 !                              blocked off by #if defined( MASSCONS )
+!  17 Nov 2015 - E. Lundgren - Bug fix in masscons kg calculation: use AD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -315,14 +319,12 @@
       CHARACTER(LEN=40)        :: UNIT
       CHARACTER(LEN=255)       :: FILENAME
 
-#if defined( MASSCONS )
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%%  MASS CONSERVATION TEST:                                  %%%
       !%%%  Define extra quantities for mass conservation printout   %%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       INTEGER                  :: IU_TRCR
       REAL(fp)                 :: TOTALMASS
-#endif
 
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER                  :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
@@ -334,9 +336,12 @@
       REAL(fp)                 :: TCVV(Input_Opt%N_TRACERS)
  
       ! Pointers
-      REAL(fp), POINTER        :: STT(:,:,:,:)
-      REAL(fp), POINTER        :: AD(:,:,:)
+      REAL(fp), POINTER          :: STT(:,:,:,:)
+      REAL(fp), POINTER          :: AD(:,:,:)
 
+      ! For mass conservation tests
+      LOGICAL                  :: DO_MASSCONS
+      
       !=================================================================
       ! DIAG49 begins here!
       !=================================================================
@@ -351,6 +356,11 @@
       TCVV          = Input_Opt%TCVV(1:N_TRACERS)
 
 #if defined( MASSCONS )
+      DO_MASSCONS   = .TRUE.
+#else
+      DO_MASSCONS   = .FALSE.
+#endif
+      
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%%  MASS CONSERVATION TEST:                                  %%%
       !%%%  If we are just printing out mass conservation, we can    %%%
@@ -358,8 +368,9 @@
       !%%%  only interested in printing out the sum of tracers.      %%%
       !%%%  (ewl, 6/24/15)                                           %%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      DO_DIAG_WRITE = .FALSE.
-#endif
+      IF ( DO_MASSCONS .or. IDTPASV > 0 ) THEN
+         DO_DIAG_WRITE = .FALSE.
+      ENDIF
 
       ! Initialize pointers
       STT          => State_Chm%Tracers
@@ -456,13 +467,13 @@
             GMNL     = ND49_NL
             GMTRC    = N
             
-#if defined( MASSCONS )
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%%  MASS CONSERVATION TEST (ewl, 6/24/15)              %%%
             !%%%  Declare a variable for total mass of tracer.       %%%
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            TOTALMASS = 0.0e+0_fp
-#endif
+            IF ( DO_MASSCONS .or. IDTPASV > 0 ) THEN
+               TOTALMASS = 0.0e+0_fp
+            ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -474,64 +485,65 @@
             DO X = 1, ND49_NI
                I = GET_I( X )
 
-#if defined( MASSCONS ) 
                !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                !%%%  MASS CONSERVATION TEST (ewl, 6/24/15)           %%%
                !%%%  Archive output in kg (not v/v) for printout     %%%
                !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-               Q(X,Y,K) = STT(I,J,L,N)
-#else
-               ! Normal ND49 output, archive in v/v
-               Q(X,Y,K) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
-#endif
+               IF ( DO_MASSCONS .or. IDTPASV > 0 ) THEN
+                  Q(X,Y,K) = STT(I,J,L,N) * State_Met%AD(I,J,L)
+               ELSE
+                  ! Normal ND49 output, archive in v/v
+                  Q(X,Y,K) = STT(I,J,L,N) * TCVV(N)
+               ENDIF
                
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( MASSCONS )
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%%  MASS CONSERVATION TEST (ewl, 6/16/15)              %%%
             !%%%  Sum the mass and write out to an ASCII file        %%%
             !%%%  Use the filename from Input_Opt%ND49_FILE          %%%
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            IF ( DO_MASSCONS .or. IDTPASV > 0 ) THEN
 
-            ! Sum the mass of tracer in kg
-            TOTALMASS = SUM( Q )
+               ! Sum the mass of tracer in kg
+               TOTALMASS = SUM( Q )
 
-            ! Find a free file LUN
-            IU_TRCR   = findFreeLUN()
+               ! Find a free file LUN
+               IU_TRCR   = findFreeLUN()
 
-            ! Get the timestamp string
-            STAMP     = TIMESTAMP_STRING()
+               ! Get the timestamp string
+               STAMP     = TIMESTAMP_STRING()
 
-            ! Print info that we are opening the file 
-            WRITE( 6, 300 ) TRIM( Input_Opt%ND49_FILE ), IU_TRCR
- 300        FORMAT( 'DIAG49_MOD: Opening ', a ', on unit', i4 )
+               ! Print info that we are opening the file 
+               WRITE( 6, 300 ) TRIM( Input_Opt%ND49_FILE ), IU_TRCR
+ 300           FORMAT( 'DIAG49_MOD: Opening ', a ', on unit', i4 )
 
-            ! Open the output file in append mode
-            OPEN( IU_TRCR, FILE   = TRIM( Input_Opt%ND49_FILE ),
-     &                     STATUS = 'UNKNOWN', 
-     &                     ACCESS = "APPEND", 
-     &                     IOSTAT = IOS )
+               ! Open the output file in append mode
+               OPEN( IU_TRCR, FILE   = TRIM( Input_Opt%ND49_FILE ),
+     &                        STATUS = 'UNKNOWN', 
+     &                        ACCESS = "APPEND", 
+     &                        IOSTAT = IOS )
 
-            ! Stop if we can't append to the file
-            IF ( IOS > 0 ) THEN
-               CALL IOERROR( IOS, IU_TRCR, 'diag49: masscons #1' )
+               ! Stop if we can't append to the file
+               IF ( IOS > 0 ) THEN
+                  CALL IOERROR( IOS, IU_TRCR, 'diag49: masscons #1' )
+               ENDIF
+
+               ! Write tracer mass, date, and time
+               WRITE( IU_TRCR, *, IOSTAT=IOS ) STAMP, ' : ', TOTALMASS
+
+               ! Stop if we can't write to the file
+               IF ( IOS > 0 ) THEN
+                  CALL IOERROR( IOS, IU_TRCR, 'diag49: masscons #2' )
+               ENDIF
+
+               ! Close file
+               CLOSE( IU_TRCR )
+
             ENDIF
-
-            ! Write tracer mass, date, and time
-            WRITE( IU_TRCR, *, IOSTAT=IOS ) TOTALMASS, ' : ',  STAMP
-
-            ! Stop if we can't write to the file
-            IF ( IOS > 0 ) THEN
-               CALL IOERROR( IOS, IU_TRCR, 'diag49: masscons #2' )
-            ENDIF
-
-            ! Close file
-            CLOSE( IU_TRCR )
-#endif            
 
          ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
 
@@ -581,50 +593,86 @@
                ! Temp variable for accumulation
                TMP = 0e0_fp
             
+!               ! NO
+!               TMP = TMP + ( TCVV(IDTNO)         *
+!     &                       STT(I,J,L,IDTNO)    /
+!     &                       AD(I,J,L) )
+!
+!               ! NO2
+!               TMP = TMP + ( TCVV(IDTNO2)        *
+!     &                       STT(I,J,L,IDTNO2)   /
+!     &                       AD(I,J,L) )
+!
+!               ! PAN
+!               TMP = TMP + ( TCVV(IDTPAN)        * 
+!     &                       STT(I,J,L,IDTPAN)   / 
+!     &                       AD(I,J,L) )
+!
+!               ! HNO3
+!               TMP = TMP + ( TCVV(IDTHNO3)       *
+!     &                       STT(I,J,L,IDTHNO3)  / 
+!     &                       AD(I,J,L) )
+!            
+!               ! PMN
+!               TMP = TMP + ( TCVV(IDTPMN)        *
+!     &                       STT(I,J,L,IDTPMN)   / 
+!     &                       AD(I,J,L) )
+!
+!               ! PPN
+!               TMP = TMP + ( TCVV(IDTPPN)        * 
+!     &                       STT(I,J,L,IDTPPN)   / 
+!     &                       AD(I,J,L) )
+! 
+!               ! R4N2
+!               TMP = TMP + ( TCVV(IDTR4N2)       *
+!     &                       STT(I,J,L,IDTR4N2)  / 
+!     &                       AD(I,J,L) )
+!            
+!               ! N2O5
+!               TMP = TMP + ( 2e+0_fp * TCVV(IDTN2O5) *
+!     &                       STT(I,J,L,IDTN2O5)  / 
+!     &                       AD(I,J,L) )
+!                        
+!               ! HNO4
+!               TMP = TMP + ( TCVV(IDTHNO4)       *
+!     &                       STT(I,J,L,IDTHNO4)  / 
+!     &                       AD(I,J,L) )
+
                ! NO
                TMP = TMP + ( TCVV(IDTNO)         *
-     &                       STT(I,J,L,IDTNO)    /
-     &                       AD(I,J,L) )
+     &                       STT(I,J,L,IDTNO) )
 
                ! NO2
                TMP = TMP + ( TCVV(IDTNO2)        *
-     &                       STT(I,J,L,IDTNO2)   /
-     &                       AD(I,J,L) )
+     &                       STT(I,J,L,IDTNO2) )  
 
                ! PAN
                TMP = TMP + ( TCVV(IDTPAN)        * 
-     &                       STT(I,J,L,IDTPAN)   / 
-     &                       AD(I,J,L) )
+     &                       STT(I,J,L,IDTPAN) )
 
                ! HNO3
                TMP = TMP + ( TCVV(IDTHNO3)       *
-     &                       STT(I,J,L,IDTHNO3)  / 
-     &                       AD(I,J,L) )
+     &                       STT(I,J,L,IDTHNO3) )
             
                ! PMN
                TMP = TMP + ( TCVV(IDTPMN)        *
-     &                       STT(I,J,L,IDTPMN)   / 
-     &                       AD(I,J,L) )
+     &                       STT(I,J,L,IDTPMN) )
 
                ! PPN
                TMP = TMP + ( TCVV(IDTPPN)        * 
-     &                       STT(I,J,L,IDTPPN)   / 
-     &                       AD(I,J,L) )
+     &                       STT(I,J,L,IDTPPN) )
  
                ! R4N2
                TMP = TMP + ( TCVV(IDTR4N2)       *
-     &                       STT(I,J,L,IDTR4N2)  / 
-     &                       AD(I,J,L) )
+     &                       STT(I,J,L,IDTR4N2) )
             
                ! N2O5
                TMP = TMP + ( 2e+0_fp * TCVV(IDTN2O5) *
-     &                       STT(I,J,L,IDTN2O5)  / 
-     &                       AD(I,J,L) )
+     &                       STT(I,J,L,IDTN2O5) )
                         
                ! HNO4
                TMP = TMP + ( TCVV(IDTHNO4)       *
-     &                       STT(I,J,L,IDTHNO4)  / 
-     &                       AD(I,J,L) )
+     &                       STT(I,J,L,IDTHNO4) )
 
                ! Save afternoon points
                Q(X,Y,K) = Q(X,Y,K) + TMP
@@ -775,8 +823,10 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
+!               Q(X,Y,K) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
+!     &                      TCVV(IDTSALA)      / AD(I,J,L) 
                Q(X,Y,K) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
-     &                      TCVV(IDTSALA)      / AD(I,J,L) 
+     &                      TCVV(IDTSALA)     
             ENDDO
             ENDDO
             ENDDO
@@ -1524,7 +1574,7 @@
 
       ! Free pointers
       NULLIFY( STT )
-      NULLIFY( AD  )
+!      NULLIFY( AD  )
 
       END SUBROUTINE DIAG49
 !EOC

@@ -8,9 +8,8 @@
 !  
 !  Module Variables:
 !  ============================================================================
-!  (1 ) GRAV     (REAL(fp) ) : Gravitational constant [m/s2]
-!  (2 ) SMALLEST (REAL(fp) ) : A very small double-precision number 
-!  (3 ) TINYNUM  (REAL(fp) ) : 2 times the SMALLEST
+!  (1 ) SMALLEST (REAL(fp) ) : A very small double-precision number 
+!  (2 ) TINYNUM  (REAL(fp) ) : 2 times the SMALLEST
 !
 !  Module Routines:
 !  ============================================================================
@@ -54,7 +53,7 @@
       !=================================================================
 
       ! Constants
-      REAL(fp),  PARAMETER :: GRAV     = 9.8e+0_fp
+      !REAL(fp),  PARAMETER :: GRAV     = 9.8e+0_fp ! Use global g0
       REAL(fp),  PARAMETER :: SMALLEST = TINY(1.0e+0_fp)
       REAL(fp),  PARAMETER :: TINYNUM  = 2*SMALLEST
 
@@ -438,7 +437,7 @@
 !******************************************************************************
 !
       ! References to F90 modules
-#if !defined ( NO_BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,     ONLY : AD38
 #endif
       USE DIAG_MOD,     ONLY : CONVFLUP
@@ -446,7 +445,7 @@
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD 
-      USE CMN_GCTM_MOD     ! Universal parameters
+      USE PHYSCONSTANTS    ! Universal parameters
   
       ! Arguments
       INTEGER, INTENT(IN)      :: J
@@ -719,7 +718,7 @@
                !==================================================
                NN = INDEXSOL(M)
 
-#if !defined ( NO_BPCH )
+#if defined( BPCH_DIAG )
                IF ( ND38 > 0 .and. NN > 0 ) THEN
  
                   ! Grid box indices 

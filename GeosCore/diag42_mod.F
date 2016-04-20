@@ -84,6 +84,7 @@
 !
 ! !USES:
 !
+      USE PHYSCONSTANTS,      ONLY : ATM
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -130,6 +131,8 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  26 Feb 2015 - E. Lundgren - Remove dependency on pressure_mod (not used)
+!  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
+!  06 Jan 2016 - E. Lundgren - Use global physical parameter ATM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -152,7 +155,7 @@
 ! !DEFINED PARAMETERS:
 !
       ! Factor for computing standard volume
-      REAL(fp), PARAMETER :: STD_VOL_FAC = 1013.25e+0_fp / 273.15e+0_fp
+      REAL(fp), PARAMETER :: STD_VOL_FAC = ATM * 1e-2_fp / 273.15e+0_fp
      
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -200,8 +203,13 @@
          ! (LTOTH=1 if between OTH_HR1 and OTH_HR2, LTOTH=0 otherwise)
          !FACTOR        = 1d9 / State_Met%AIRVOL(I,J,L) * LTOTH(I,J) 
 
-         ! Conversion factor from [kg] --> [ug/m3]
-         FACTOR        = 1e+9_fp / State_Met%AIRVOL(I,J,L)
+         ! Conversion factor from [kg] --> [ug/m3] 
+         ! (removed by ewl, 3/25/15)
+         ! FACTOR        = 1e+9_fp / State_Met%AIRVOL(I,J,L)
+
+         ! Conversion factor from [kg/kg] --> [ug/m3] 
+         ! (ewl, 3/25/15)
+         FACTOR        = 1e+9_fp * State_Met%AIRDEN(I,J,L)
 
          ! SOAupdate: AD42(1-11) updated (hotp 7/29/10)
          ! TSOA (terpene SOA) (hotp 5/24/10)

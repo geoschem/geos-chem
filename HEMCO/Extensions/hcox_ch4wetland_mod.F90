@@ -18,9 +18,23 @@
 ! both. Both sources can be enabled/disabled in the HEMCO configuration file.
 !\\
 !\\
-! The accepted species are: CH4 or CH4\_tot for total CH4, CH4\_ri for rice
-! only, and CH4\_we for wetland only. Any combination of these species IDs
-! can be provided (but at least one valid species ID needs to be given).
+! This extension can calculate emissions for as many species as desired. Those
+! can be listed in the extensions settings (see below), together with individual
+! scale factors and masks. For example, to calculate emissions for total CH4 and
+! two tagged CH4 species (CH4\_NA and CH4\_EU) with NA emissions scaled by a 
+! factor of 1.1, as well as applying the gridded factors NAFIELD and EUFIELD to 
+! CH4\_NA and CH4\_EU, respectively:
+!
+!121     CH4_WETLANDS       : on    CH4/CH4\_NA/CH4\_EU
+!    --> Wetlands           :       true
+!    --> Rice               :       true
+!    --> Scaling\_CH4\_NA   :       1.10
+!    --> ScaleField\_CH4\_NA:       NAFIELD
+!    --> ScaleField\_CH4\_EU:       EUFIELD 
+!
+! The fields NAFIELD and EUFIELD must be defined in the base emission section of 
+! the HEMCO configuration file. You can apply any scale factors/masks to that
+! field.
 !\\
 !\\
 ! References:
@@ -37,6 +51,7 @@ MODULE HCOX_CH4WETLAND_Mod
 ! 
   USE HCO_Error_MOD
   USE HCO_Diagn_MOD
+  USE HCOX_TOOLS_MOD
   USE HCO_State_MOD,  ONLY : HCO_State
   USE HCOX_State_MOD, ONLY : Ext_State
 
@@ -60,6 +75,8 @@ MODULE HCOX_CH4WETLAND_Mod
 !  11 Dec 2013 - C. Keller   - Now define container name during initialization
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  11 Jun 2015 - C. Keller   - Update to support multiple species with individual
+!                              scale factors and mask regions.
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -67,9 +84,14 @@ MODULE HCOX_CH4WETLAND_Mod
 !
   ! Module variables related to extension settings
   INTEGER                     :: ExtNr
-  INTEGER                     :: IDTtot
   LOGICAL                     :: DoWetland 
   LOGICAL                     :: DoRice
+
+  ! Number of CH4 tracers and scale factors associated with them
+  INTEGER                        :: nSpc
+  INTEGER,           ALLOCATABLE :: SpcIDs(:)
+  REAL(sp),          ALLOCATABLE :: SpcScal(:)
+  CHARACTER(LEN=61), ALLOCATABLE :: SpcScalFldNme(:)
 
   ! Pointers to data read through configuration file
   REAL(sp), POINTER           :: RICE        (:,:) => NULL()
@@ -120,10 +142,13 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER                  :: N
+
     LOGICAL, SAVE            :: FIRST   = .TRUE.
     LOGICAL, SAVE            :: DoDiagn = .FALSE.
 
     ! Array holding the CH4 emissions
+    REAL(hp)                 :: CH4tmp(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET         :: CH4wtl(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET         :: CH4rce(HcoState%NX,HcoState%NY)
     TYPE(DiagnCont), POINTER :: TmpCnt     => NULL()
@@ -225,13 +250,22 @@ CONTAINS
     ! Total CH4 emissions [kg/m2/s]
     CH4wtl = CH4wtl + CH4rce 
 
-    ! Set flux in HEMCO object [kg/m2/s]
-    CALL HCO_EmisAdd ( am_I_Root, HcoState, CH4wtl, IDTtot, RC, ExtNr=ExtNr )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       CALL HCO_ERROR( 'HCO_EmisAdd error: CH4wtl', RC )
-       RETURN 
-    ENDIF
- 
+    ! Add flux to all species, eventually apply scaling & masking
+    DO N = 1, nSpc
+
+       ! Apply scale factor
+       CH4tmp = CH4wtl * SpcScal(N)
+
+       ! Check for masking
+       CALL HCOX_SCALE ( am_I_Root, HcoState, CH4tmp, SpcScalFldNme(N), RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Add emissions 
+       CALL HCO_EmisAdd ( am_I_Root, HcoState, CH4tmp, SpcIDs(N), RC, ExtNr=ExtNr )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDDO 
+
+
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
 
@@ -291,6 +325,7 @@ CONTAINS
 !  12 Feb 2014 - K. Wecht    - Updated for 0.25 x 0.3125 NA grid
 !  09 Apr 2014 - R. Yantosca - Bug fix, extend #ifdef for MERRA met fields
 !  11 Sep 2014 - C. Keller   - Now a HEMCO extension
+!  12 Aug 2015 - R. Yantosca - Extend #ifdef for MERRA2 met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -417,7 +452,7 @@ CONTAINS
                 ENDIF
              ENDIF
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
              ! We want emissions from any box that contains some land
              ! FRLAND is fraction of grid box that is land
              IF ( ExtState%FRLAND%Arr%Val(I,J) > 0) THEN 
@@ -626,6 +661,7 @@ CONTAINS
 !
     USE HCO_ExtList_Mod,        ONLY : GetExtNr
     USE HCO_ExtList_Mod,        ONLY : GetExtOpt
+    USE HCO_ExtList_Mod,        ONLY : GetExtSpcVal
     USE HCO_STATE_MOD,          ONLY : HCO_GetExtHcoID
 !
 ! !INPUT PARAMETERS:
@@ -648,11 +684,10 @@ CONTAINS
 ! !LOCAL VARIABLES
 !
     ! Scalars
-    INTEGER                        :: I, J, nSpc
-    CHARACTER(LEN=255)             :: NAME_OC, MSG, ERR
+    INTEGER                        :: N
+    CHARACTER(LEN=255)             :: MSG
 
     ! Arrays
-    INTEGER,           ALLOCATABLE :: HcoIDs(:)
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
 
     !=================================================================
@@ -668,23 +703,16 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! HEMCO species IDs of species names defined in config. file 
-    CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
+    CALL HCO_GetExtHcoID( HcoState, ExtNr, SpcIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Only one species name must be given!
-    IF ( nSpc /= 1 ) THEN
-       MSG = 'CH4 wetland extension accepts only one species!'
-       CALL HCO_ERROR ( MSG, RC ) 
-       RETURN
-    ENDIF
-    IDTtot = HcoIDs(1)
+    ! Get species scale factors
+    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'Scaling', 1.0_sp, SpcScal, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Make sure species ID is valid 
-    IF ( IDTtot < 1 ) THEN
-       MSG = 'Invalid CH4 species: ' // TRIM(SpcNames(1))
-       CALL HCO_ERROR ( MSG, RC )
-       RETURN
-    ENDIF
+    ! Get mask field IDs
+    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'ScaleField', HCOX_NOSCALE, SpcScalFldNme, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Check if wetlands and/or rice emissions shall be used and save
     ! in module variables DoWetland and DoRice.
@@ -704,12 +732,18 @@ CONTAINS
     IF ( am_I_Root ) THEN
        MSG = 'Use wetland flux emissions (extension module)'
        CALL HCO_MSG( MSG,SEP1='-' )
-       WRITE(MSG,*) 'CH4 species ID       : ', IDTtot
-       CALL HCO_MSG( MSG )
        WRITE(MSG,*) 'Use wetlands         : ', DoWetland
        CALL HCO_MSG( MSG )
        WRITE(MSG,*) 'Use rice             : ', DoRice
        CALL HCO_MSG( MSG )
+       WRITE(MSG,*) 'Use the following species: '
+       CALL HCO_MSG( MSG )
+       DO N = 1, nSpc
+          WRITE(MSG,*) ' --> ', TRIM(SpcNames(N))
+          WRITE(MSG,*) '     Scale factor: ', SpcScal(N)
+          WRITE(MSG,*) '     Scale field : ', TRIM(SpcScalFldNme(N))
+          CALL HCO_MSG( MSG )
+       ENDDO
     ENDIF
 
     ! Register all required met fields
@@ -726,7 +760,6 @@ CONTAINS
     ExtState%Wetland_CH4 = .TRUE.
 
     ! Return w/ success
-    IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  )
     IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
     CALL HCO_LEAVE ( RC )
 
@@ -756,6 +789,10 @@ CONTAINS
     !=================================================================
     ! HCOX_CH4WETLAND_Final begins here!
     !=================================================================
+
+    IF ( ALLOCATED (SpcScal      ) ) DEALLOCATE(SpcScal      )
+    IF ( ALLOCATED (SpcIDs       ) ) DEALLOCATE(SpcIDs       )
+    IF ( ALLOCATED (SpcScalFldNme) ) DEALLOCATE(SpcScalFldNme)
 
   END SUBROUTINE HCOX_CH4WETLAND_Final
 !EOC

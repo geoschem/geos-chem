@@ -97,6 +97,7 @@ MODULE Regrid_A2A_Mod
   !---------------------------------------------------------------------------
   ! These were taken from CMN_GCTM_mod.F90.  This helps us to avoid depending 
   ! on GEOS-Chem modules in the core HEMCO modules.  (bmy, 7/14/14)
+  ! NOTE: CMN_GCTM_mod.F90 is now physconstants.F90 (ewl, 1/8/2016)
   !---------------------------------------------------------------------------
   REAL(fp), PARAMETER :: PI =   3.14159265358979323e+0_fp   ! Pi
   REAL(fp), PARAMETER :: Re =   6.375d6                 ! Earth radius [m]
@@ -1800,7 +1801,7 @@ CONTAINS
     ! to be used. Remapping will be restricted to this
     ! domain. This procedure allows remapping of nested
     ! domains onto larger (e.g. global) domains. 
-    ! ckeller, 2/11/15).
+    ! ckeller, (2/11/15).
     !===================================================================
     minlon = minval(lon1)
     maxlon = maxval(lon1)

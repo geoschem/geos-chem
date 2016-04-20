@@ -3251,7 +3251,7 @@ CONTAINS
                                 COL       = HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
-             IF ( RC /= HCO_SUCCESS ) RETURN 
+             IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
        ENDIF
 
@@ -3423,11 +3423,11 @@ CONTAINS
        HcoID = GetHemcoId( 'NO', HcoState, LOC, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       ! Define collection: in development mode or if BPCH is disabled,
+       ! Define collection: in development mode or if netCDF is enabled,
        ! add it to the default HEMCO collection. Otherwise, add it to the
-       ! manual collection. The diagnostics is then written to bpch-file
-       ! in diag3.F
-#if    defined( DEVEL ) || defined( NO_BPCH )
+       ! manual collection and the diagnostics will be written to the
+       ! bpch file in diag3.F.
+#if defined( NC_DIAG )
        COL = HcoDiagnIDDefault
 #else
        COL = HcoDiagnIDManual
@@ -3727,7 +3727,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: ExtNr, HcoID, N
+    INTEGER            :: ExtNr, HcoID, N, I
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGN_POPs (hcoi_gc_diagn_mod.F90)'
@@ -3752,89 +3752,8 @@ CONTAINS
           RETURN      
        ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 8/27/14:
-! Comment out for now -- Need to figure out how to track total POPs emissions
-! in HEMCO (mps/8/27/14)
-!       !-------------------------------------------
-!       ! %%%%% Total POP %%%%%
-!       !-------------------------------------------
-! 
-!       ! HEMCO species ID
-!       HcoID = GetHemcoId( 'POPG', HcoState, LOC, RC )
-!       IF ( RC /= HCO_SUCCESS ) RETURN
-!
-!       ! Create diagnostic container
-!       DiagnName = 'AD01_POPT_SOURCE'
-!       CALL Diagn_Create( am_I_Root,                     & 
-!                          HcoState  = HcoState,          &
-!                          cName     = TRIM( DiagnName ), &
-!                          ExtNr     = ExtNr,             &
-!                          Cat       = -1,                &
-!                          Hier      = -1,                &
-!                          HcoID     = HcoID,             &
-!                          SpaceDim  = 2,                 &
-!                          LevIDx    = -1,                &
-!                          OutUnit   = 'kg',              &
-!                          COL       = HcoDiagnIDManual,  &
-!                          AutoFill  = 1,                 &
-!                          RC        = RC                  ) 
-!       IF ( RC /= HCO_SUCCESS ) RETURN 
-!------------------------------------------------------------------------------
-
        !-------------------------------------------
-       ! %%%%% OC-phase POP %%%%%
-       !-------------------------------------------
- 
-       ! HEMCO species ID
-       HcoID = GetHemcoId( 'POPPOC', HcoState, LOC, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
-       ! Create diagnostic container
-       DiagnName = 'AD53_POPPOC_SOURCE'
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState  = HcoState,          &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = ExtNr,             &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg',              &
-                          COL       = HcoDiagnIDManual,  &
-                          AutoFill  = 1,                 &
-                          RC        = RC                  ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-
-       !-------------------------------------------
-       ! %%%%% BC-phase POP %%%%%
-       !-------------------------------------------
-
-       ! HEMCO species ID
-       HcoID = GetHemcoId( 'POPPBC', HcoState, LOC, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
-       ! Create diagnostic container
-       DiagnName = 'AD53_POPPBC_SOURCE'
-       CALL Diagn_Create( am_I_Root,                   & 
-                          HcoState  = HcoState,        &
-                          cName     = TRIM(DiagnName), &
-                          ExtNr     = ExtNr,           &
-                          Cat       = -1,              &
-                          Hier      = -1,              &
-                          HcoID     = HcoID,           &
-                          SpaceDim  = 2,               &
-                          LevIDx    = -1,              &
-                          OutUnit   = 'kg',            &
-                          COL       = HcoDiagnIDManual,&
-                          AutoFill  = 1,               &
-                          RC        = RC                ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
-
-       !-------------------------------------------
-       ! %%%%% Gas-phase POP %%%%%
+       ! %%%%% Gas-phase POP emissions %%%%%
        !-------------------------------------------
 
        ! HEMCO species ID
@@ -3857,6 +3776,108 @@ CONTAINS
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
+
+       !-------------------------------------------
+       ! %%%%% OC-phase POP emissions%%%%%
+       !-------------------------------------------
+ 
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'POPPOCPO', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'AD53_POPPOCPO_SOURCE'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg',              &
+                          COL       = HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+
+       !-------------------------------------------
+       ! %%%%% BC-phase POP emissions %%%%%
+       !-------------------------------------------
+
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'POPPBCPO', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'AD53_POPPBCPO_SOURCE'
+       CALL Diagn_Create( am_I_Root,                   & 
+                          HcoState  = HcoState,        &
+                          cName     = TRIM(DiagnName), &
+                          ExtNr     = ExtNr,           &
+                          Cat       = -1,              &
+                          Hier      = -1,              &
+                          HcoID     = HcoID,           &
+                          SpaceDim  = 2,               &
+                          LevIDx    = -1,              &
+                          OutUnit   = 'kg',            &
+                          COL       = HcoDiagnIDManual,&
+                          AutoFill  = 1,               &
+                          RC        = RC                ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       !-------------------------------------------
+       ! %%%%% Manual diagnostics %%%%%
+       !-------------------------------------------
+
+       DO I = 1,12
+
+          ! Define diagnostic names. These have to match the names
+          ! in hcox_gc_POPs_mod.F90.
+          IF ( I == 1 ) THEN
+             DiagnName = 'AD53_POPG_SOIL'
+          ELSEIF ( I == 2  ) THEN
+             DiagnName = 'AD53_POPG_LAKE'
+          ELSEIF ( I == 3  ) THEN
+             DiagnName = 'AD53_POPG_LEAF'
+          ELSEIF ( I == 4  ) THEN
+             DiagnName = 'AD53_SOIL2AIR'
+          ELSEIF ( I == 5  ) THEN
+             DiagnName = 'AD53_AIR2SOIL'
+          ELSEIF ( I == 6  ) THEN
+             DiagnName = 'AD53_LAKE2AIR'
+          ELSEIF ( I == 7  ) THEN
+             DiagnName = 'AD53_AIR2LAKE'
+          ELSEIF ( I == 8  ) THEN
+             DiagnName = 'AD53_LEAF2AIR'
+          ELSEIF ( I == 9  ) THEN
+             DiagnName = 'AD53_AIR2LEAF'
+          ELSEIF ( I == 10 ) THEN
+             DiagnName = 'AD53_SOILAIR_FUG'
+          ELSEIF ( I == 11 ) THEN
+             DiagnName = 'AD53_LAKEAIR_FUG'
+          ELSEIF ( I == 12 ) THEN
+             DiagnName = 'AD53_LEAFAIR_FUG'
+          ENDIF
+
+          CALL Diagn_Create( am_I_Root,                     & 
+                             HcoState  = HcoState,          &
+                             cName     = TRIM( DiagnName ), &
+                             ExtNr     = ExtNr,             &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = -1,                &
+                             SpaceDim  = 2,                 &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'kg',              &
+                             OutOper   = 'Mean',            &
+                             COL       = HcoDiagnIDManual,  &
+                             AutoFill  = 1,                 &
+                             RC        = RC                  ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDDO
+
     ENDIF
 
   END SUBROUTINE Diagn_POPs
@@ -4192,7 +4213,7 @@ CONTAINS
     ! %%%%% CH4 from biomass burning (automatically filled in extension)  %%%%%
     !--------------------------------------------------------------------------
 
-    ! HEMCO extension # for wetland ch4 
+    ! HEMCO extension # for biomass ch4 
     ExtNr = GetExtNr( 'GFED' )
     IF ( ExtNr <= 0 ) ExtNr = GetExtNr( 'FINN' )
     IF ( ExtNr <= 0 ) THEN

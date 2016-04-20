@@ -105,6 +105,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  18 Sep 2013 - M. Long     - Now use #if defined( ESMF_ ) for HPC code
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
+!  11 Aug 2015 - R. Yantosca - Added support for MERRA2 data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -316,11 +317,12 @@
 !                              the DEVEL tag when using traditional main.F.
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  23 Dec 2014 - M. Yannetti - Changed output to REAL(f8)
+!  11 Aug 2015 - R. Yantosca - Compute PEDGE for MERRA2 the same as for GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
@@ -390,6 +392,7 @@
 !  (1 ) Modified from GET_PEDGE (cdh, 1/22/09)
 !  02 Feb 2012 - R. Yantosca - Compute PEDGE for GEOS-5.7.2 the same as MERRA
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  11 Aug 2015 - R. Yantosca - Compute PEDGE for MERRA2 the same as for GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -397,7 +400,7 @@
       ! GET_PEDGE_FULLGRID begins here!
       !=================================================================
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
@@ -515,6 +518,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  11 Aug 2015 - R. Yantosca - Init MERRA2 Ap & Bp the same way as for GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -556,7 +560,7 @@
       EXTERNAL_PEDGE = 0e+0_fp
 #endif
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
       !=================================================================
       ! GEOS-5/MERRA vertical coordinates (47 or 72 levels)
@@ -565,7 +569,7 @@
 #if   defined( GRIDREDUCED )
 
       !-----------------------------------------------------------------
-      ! GEOS-5/MERRA 47-level reduced vertical grid
+      ! GEOS-5/MERRA/GEOS-FP/MERRA2 47-level reduced vertical grid
       !  
       !  Bottom   Bottom    # levels
       !  edge of  edge prs  lumped 

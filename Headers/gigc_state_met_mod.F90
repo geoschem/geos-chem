@@ -102,6 +102,7 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: SUNCOSmid (:,:  ) ! COS(SZA), midpt of chem timestep
 !     REAL(fp), POINTER :: SUNCOSmid5(:,:  ) ! COS(SZA), midpt of chem timestep
 !                                            !  5 hrs ago (for PARANOX)
+     REAL(fp), POINTER :: SWGDN     (:,:  ) ! Incident radiation @ grnd [W/m2]
      REAL(fp), POINTER :: TO3       (:,:  ) ! Total overhead O3 column [DU]
      REAL(fp), POINTER :: TO31      (:,:  ) ! Total O3 at timestep start [DU]
      REAL(fp), POINTER :: TO32      (:,:  ) ! Total O3 at timestep end [DU]
@@ -144,7 +145,6 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: MOISTQ    (:,:,:) ! Tendency in sp. humidity 
                                             ! [kg/kg moist air/s]
      REAL(fp), POINTER :: OPTD      (:,:,:) ! Visible optical depth [1]
-     REAL(fp), POINTER :: OPTDEP    (:,:,:) ! Visible optical depth [1]
      REAL(fp), POINTER :: PEDGE     (:,:,:) ! Wet air pressure [hPa] @ level 
                                             ! edges [hPa]
      REAL(fp), POINTER :: PFICU     (:,:,:) ! Dwn flux ice prec:conv [kg/m2/s]
@@ -214,6 +214,8 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: AD        (:,:,:) ! Dry air mass [kg] in grid box
      REAL(fp), POINTER :: ADMOIST   (:,:,:) ! Moist air mass [kg] in grid box
      REAL(fp), POINTER :: AIRVOL    (:,:,:) ! Grid box volume [m3] (dry air)
+     REAL(fp), POINTER :: DELP_PREV (:,:,:) ! Previous State_Met%DELP
+     REAL(fp), POINTER :: SPHU_PREV (:,:,:) ! Previous State_Met%SPHU
 
      !----------------------------------------------------------------------
      ! Land type and leaf area index (LAI) fields for dry deposition
@@ -230,6 +232,9 @@ MODULE GIGC_State_Met_Mod
 
 
   END TYPE MetState
+!
+! !REMARKS:
+!  In MERRA2, PS and SLP are kept in Pa (not converted to hPa).
 !
 ! !REVISION HISTORY: 
 !  19 Oct 2012 - R. Yantosca - Initial version, split off from gc_type_mod.F90
@@ -251,8 +256,13 @@ MODULE GIGC_State_Met_Mod
 !                              Add MOISTMW to use TCVV with moist mixing ratio. 
 !  25 May 2015 - C. Keller   - Removed SUNCOSmid5 (now calculated by HEMCO).
 !  08 Jul 2015 - E. Lundgren - Add XCHLR and XCHLR2 for organic marine aerosols
+!  11 Aug 2015 - R. Yantosca - Extend #ifdefs for MERRA2 met fields
+!  22 Sep 2015 - E. Lundgren - Add SWGDN for incident radiation at ground
+!  28 Oct 2015 - E. Lundgren - Add previous delta-P and specific humidity for
+!                              tracer mass conservation in mixing ratio update
 !  21 Dec 2015 - M. Sulprizio- Add AIRNUMDEN, which is the same as AIRDEN but
 !                              has units molec/cm3 for the chemistry routines.
+!  17 Mar 2016 - M. Sulprizio- Remove OPTDEP. Instead, we now solely use OPTD.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -475,6 +485,10 @@ CONTAINS
 !    IF ( RC /= GIGC_SUCCESS ) RETURN
 !    State_Met%SUNCOSmid5 = 0.0_fp
 
+    ALLOCATE( State_Met%SWGDN     ( IM, JM ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SWGDN    = 0.0_fp
+
     ALLOCATE( State_Met%TO3       ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%TO3      = 0.0_fp
@@ -578,10 +592,10 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%TTO3     = 0.0_fp
 
-#elif defined( GEOS_FP ) || defined( MERRA )
+#elif defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
 
     !=======================================================================
-    ! GEOS-5.7.x / MERRA met fields
+    ! MERRA, GEOS-FP, and MERRA2 met fields
     !=======================================================================
     ALLOCATE( State_Met%FRSEAICE  ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -693,6 +707,10 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%DELP     = 0.0_fp
 
+    ALLOCATE( State_Met%DELP_PREV ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%DELP_PREV= 0.0_fp
+
     ALLOCATE( State_Met%DQRCU     ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%DQRCU    = 0.0_fp
@@ -729,10 +747,6 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%OPTD     = 0.0_fp
                                                
-    ALLOCATE( State_Met%OPTDEP    ( IM, JM, LM   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Met%OPTDEP   = 0.0_fp
-
     ALLOCATE( State_Met%PEDGE     ( IM, JM, LM+1 ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%PEDGE    = 0.0_fp
@@ -776,6 +790,10 @@ CONTAINS
     ALLOCATE( State_Met%SPHU      ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%SPHU     = 0.0_fp
+
+    ALLOCATE( State_Met%SPHU_PREV ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%SPHU_PREV= 0.0_fp
                                                
     ALLOCATE( State_Met%T         ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
@@ -864,14 +882,14 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%ZMMU     = 0.0_fp
 
-#elif defined( GEOS_FP ) || defined( MERRA )
+#elif defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
 
     !=======================================================================
-    ! GEOS-5.7.x / MERRA met fields
+    ! MERRA, GEOS-FP, and MERRA2 met fields
     !=======================================================================
 
     ! Pick the proper vertical dimension
-#if defined( GEOS_FP )
+#if defined( GEOS_FP ) || defined( MERRA2 )
     LX = LM + 1           ! For fields that are on level edges
 #else
     LX = LM               ! For fields that are on level centers
@@ -1049,14 +1067,15 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%SUNCOS     )) DEALLOCATE( State_Met%SUNCOS     )
     IF ( ASSOCIATED( State_Met%SUNCOSmid  )) DEALLOCATE( State_Met%SUNCOSmid  )
 !    IF ( ASSOCIATED( State_Met%SUNCOSmid5 )) DEALLOCATE( State_Met%SUNCOSmid5 )
+    IF ( ASSOCIATED( State_Met%SWGDN      )) DEALLOCATE( State_Met%SWGDN      )
     IF ( ASSOCIATED( State_Met%TROPP      )) DEALLOCATE( State_Met%TROPP      )
     IF ( ASSOCIATED( State_Met%TS         )) DEALLOCATE( State_Met%TS         )
     IF ( ASSOCIATED( State_Met%TSKIN      )) DEALLOCATE( State_Met%TSKIN      )
     IF ( ASSOCIATED( State_Met%TO3        )) DEALLOCATE( State_Met%TO3        )
     IF ( ASSOCIATED( State_Met%U10M       )) DEALLOCATE( State_Met%U10M       )
     IF ( ASSOCIATED( State_Met%USTAR      )) DEALLOCATE( State_Met%USTAR      )
-    IF ( ASSOCIATED( State_Met%UVALBEDO   )) DEALLOCATE( State_Met%V10M       )
-    IF ( ASSOCIATED( State_Met%V10M       )) DEALLOCATE( State_Met%UVALBEDO   )
+    IF ( ASSOCIATED( State_Met%UVALBEDO   )) DEALLOCATE( State_Met%UVALBEDO   )
+    IF ( ASSOCIATED( State_Met%V10M       )) DEALLOCATE( State_Met%V10M       )
     IF ( ASSOCIATED( State_Met%Z0         )) DEALLOCATE( State_Met%Z0         )
 
     ! 3-D fields
@@ -1072,6 +1091,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%CLDF       )) DEALLOCATE( State_Met%CLDF       )
     IF ( ASSOCIATED( State_Met%CMFMC      )) DEALLOCATE( State_Met%CMFMC      )
     IF ( ASSOCIATED( State_Met%DELP       )) DEALLOCATE( State_Met%DELP       )
+    IF ( ASSOCIATED( State_Met%DELP_PREV  )) DEALLOCATE( State_Met%DELP_PREV  )
     IF ( ASSOCIATED( State_Met%DQRCU      )) DEALLOCATE( State_Met%DQRCU      )
     IF ( ASSOCIATED( State_Met%DQRLSAN    )) DEALLOCATE( State_Met%DQRLSAN    )
     IF ( ASSOCIATED( State_Met%DQIDTMST   )) DEALLOCATE( State_Met%DQIDTMST   )
@@ -1081,7 +1101,6 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%DTRAIN     )) DEALLOCATE( State_Met%DTRAIN     )
     IF ( ASSOCIATED( State_Met%MOISTQ     )) DEALLOCATE( State_Met%MOISTQ     )
     IF ( ASSOCIATED( State_Met%OPTD       )) DEALLOCATE( State_Met%OPTD       )
-    IF ( ASSOCIATED( State_Met%OPTDEP     )) DEALLOCATE( State_Met%OPTDEP     )
     IF ( ASSOCIATED( State_Met%PEDGE      )) DEALLOCATE( State_Met%PEDGE      )
     IF ( ASSOCIATED( State_Met%PEDGE_DRY  )) DEALLOCATE( State_Met%PEDGE_DRY  )
     IF ( ASSOCIATED( State_Met%PMID       )) DEALLOCATE( State_Met%PMID       )
@@ -1093,6 +1112,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%QL         )) DEALLOCATE( State_Met%QL         )
     IF ( ASSOCIATED( State_Met%RH         )) DEALLOCATE( State_Met%RH         )
     IF ( ASSOCIATED( State_Met%SPHU       )) DEALLOCATE( State_Met%SPHU       )
+    IF ( ASSOCIATED( State_Met%SPHU_PREV  )) DEALLOCATE( State_Met%SPHU_PREV  )
     IF ( ASSOCIATED( State_Met%T          )) DEALLOCATE( State_Met%T          )
     IF ( ASSOCIATED( State_Met%TV         )) DEALLOCATE( State_Met%TV         )
     IF ( ASSOCIATED( State_Met%TAUCLI     )) DEALLOCATE( State_Met%TAUCLI     )
@@ -1151,9 +1171,9 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%TO32       )) DEALLOCATE( State_Met%TO32       )
     IF ( ASSOCIATED( State_Met%TTO3       )) DEALLOCATE( State_Met%TTO3       )
 
-#elif defined( GEOS_FP ) || defined( MERRA )
+#elif defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
     !========================================================================
-    ! Fields specific to the GMAO MERRA and GEOS-5.7.x met data products
+    ! Fields specific to the GMAO GEOS-FP, MERRA, and MERRA-2 met products
     !========================================================================
 
     ! 2-D fields

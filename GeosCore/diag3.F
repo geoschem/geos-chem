@@ -16,6 +16,7 @@
 ! !USES:
 !
       ! Modules from Headers directory
+      USE PHYSCONSTANTS,      ONLY : AVO     ! Avogadro's #
       USE CMN_SIZE_MOD                       ! Size parameters
       USE CMN_O3_MOD                         ! FMOL, XNUMOL
       USE CMN_DIAG_MOD                       ! Diagnostic switches & arrays
@@ -263,6 +264,7 @@
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !  22 May 2015 - R. Yantosca - Replace NOXEXTENT with 2 in TOMAS #if blocks
 !  07 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
+!  05 Jan 2016 - E. Lundgren - Use GC global param AVO instead of from HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -327,13 +329,13 @@
       CHARACTER(LEN=255)       :: MSG
       TYPE(DiagnCont), POINTER :: DiagnCnt => NULL() 
       TYPE(HCO_State), POINTER :: HcoState => NULL()
-      REAL(hp)                 :: FACTOR
-      REAL(hp), PARAMETER      :: GPERKG   = 1000e+0_hp
-      REAL(hp), PARAMETER      :: MWC      = 12e+0_hp
-      REAL(hp), PARAMETER      :: CM2PERM2 = 10000e+0_hp
-      REAL(hp), PARAMETER      :: S_DMS    = 32e+0_hp / 62e+0_hp
-      REAL(hp), PARAMETER      :: S_SO2    = 32e+0_hp / 64e+0_hp
-      REAL(hp), PARAMETER      :: S_SO4    = 32e+0_hp / 96e+0_hp
+      REAL(fp)                 :: FACTOR
+      REAL(fp), PARAMETER      :: GPERKG   = 1000e+0_fp
+      REAL(fp), PARAMETER      :: MWC      = 12e+0_fp
+      REAL(fp), PARAMETER      :: CM2PERM2 = 10000e+0_fp
+      REAL(fp), PARAMETER      :: S_DMS    = 32e+0_fp / 62e+0_fp
+      REAL(fp), PARAMETER      :: S_SO2    = 32e+0_fp / 64e+0_fp
+      REAL(fp), PARAMETER      :: S_SO4    = 32e+0_fp / 96e+0_fp
 
       CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG3 (diag3.F)'
 
@@ -400,6 +402,7 @@
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
          CALL ERROR_STOP ( 'HcoState not defined!', LOC ) 
       ENDIF
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND01: Rn, Pb, Be emissions (Category: "RN--SRCE")
@@ -434,7 +437,7 @@
          IF ( IDTRn > 0 ) THEN
             DiagnName    = 'AD01_Rn_SOURCE'
             N            = IDTRn
-            FACTOR       = 1.0e+0_hp
+            FACTOR       = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,     N, 1, -1, .TRUE., FACTOR, RC    )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -502,6 +505,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD02) )
          ENDDO
       ENDIF
+#endif
 !
 !******************************************************************************
 !  ND03: Diagnostics from Hg0/Hg2/HgP offline simulation (eck, bmy, 1/20/05)
@@ -561,6 +565,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD05) )
          ENDDO
       ENDIF
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND06: Dust aerosol emissions
@@ -576,7 +581,7 @@
          ! Category & unit string
          UNIT     = 'kg'
          CATEGORY = 'DUSTSRCE'
-         FACTOR   = 1.0e+0_hp
+         FACTOR   = 1.0e+0_fp
 
          ! Loop over # of dust bins
          DO N = 1, Input_Opt%N_DUST_BINS
@@ -653,6 +658,7 @@
          ENDIF
 
       ENDIF     
+#endif
 !
 !******************************************************************************
 !  ND07: Emissions of BC and OC aerosols
@@ -681,6 +687,7 @@
          ! defined in hcoi_gc_diagn_mod.F
          !--------------------------------------------------------------
 
+#if defined( BPCH_DIAG )
          ! Do for BC and OC
          DO J = 1, 2
 
@@ -789,6 +796,7 @@
                DiagnCnt => NULL()
             ENDDO !I
          ENDDO !J
+#endif
 
          !--------------------------------------------------------------
          ! Other BC diagnostics
@@ -818,14 +826,16 @@
             UNIT      = 'kgC'
             N         = IDTOCPI
 
+#if defined( BPCH_DIAG )
             !%%%%% Biogenic OC (kg/m2/s --> kg) %%%%%
             CATEGORY  = 'OC-BIOG'
             DiagnName = 'BIOGENIC_OCPI'
             FACTOR    = SECONDS
+
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                 UNIT, N, 1, -1, .TRUE., FACTOR, RC, AreaScal=1 )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-
+#endif
          
             !%%%%% Hydrophilic OC from hydrophobic OC %%%%%
             CATEGORY     = 'PL-OC=$'
@@ -1237,6 +1247,7 @@
             ENDIF
          ENDIF
       ENDIF   
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND08: Sea salt aerosol emissions
@@ -1293,6 +1304,7 @@
          ENDIF
 
       ENDIF   
+#endif
 !
 !******************************************************************************
 !  ND09: HCN/CH3CN sources/sinks (Categories: "HCN-PL-$", "HCN-SRCE")
@@ -1364,6 +1376,7 @@
             ENDIF
          ENDDO
       ENDIF
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND11: Acetone source & sink diagnostic (Category: "ACETSRCE")
@@ -1387,7 +1400,7 @@
          UNIT     = 'atoms C/cm2/s'
 
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR   = GPERKG / MWC * HcoState%Phys%Avgdr / 
+         FACTOR   = GPERKG / MWC * AVO / 
      &              CM2PERM2
 
          ! Loop over all four emission sources
@@ -1413,6 +1426,8 @@
 
          ENDDO
       ENDIF
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND12: distribution of surface emissions in the boundry layer: [fraction]
@@ -1436,6 +1451,8 @@
      &               IIPAR,     JJPAR,     LLCHEM,   IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD12) )
       ENDIF
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND13: Sulfur emissions (for DMS/SO2/SO4/MSA/NH3/NH4/NIT chemistry)
@@ -1564,7 +1581,7 @@
          DiagnName = 'AD13_NH3_ANTHROPOGENIC'
          UNIT      = 'kg'
          CATEGORY  = 'NH3-ANTH'
-         FACTOR    = 1.0e+0_hp
+         FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
      &                   UNIT, IDTNH3, 1, -1, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
@@ -1572,7 +1589,7 @@
          !%%%%%  Natural source NH3 %%%%%
          DiagnName = 'AD13_NH3_NATURAL'
          CATEGORY  = 'NH3-NATU'
-         FACTOR    = 1.0e+0_hp
+         FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
      &                   UNIT, IDTNH3, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
@@ -1588,12 +1605,14 @@
          !%%%%% Biofuel NH3 %%%%%
          DiagnName = 'AD13_NH3_BIOFUEL'
          CATEGORY  = 'NH3-BIOF'
-         FACTOR    = 1.0e+0_hp
+         FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
      &                   UNIT, IDTNH3, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
       ENDIF    
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND14: Upward mass flux from wet convection (NFCLDMX)
@@ -1704,7 +1723,7 @@
       IF ( ND17 > 0 ) THEN
          UNIT = 'unitless'
 
-         ! Get max # of soluble tracers for this simulation
+         ! Get actual # of wet-deposited tracers for this simulation
          NMAX = GET_WETDEP_NSOL()
 
          ! Loop over soluble tracers
@@ -1771,9 +1790,10 @@
       IF ( ND18 > 0 ) THEN
          UNIT = 'unitless'
 
-         ! Get max # of soluble tracers for this simulation
+         ! Get actual # of wet-deposited tracers for this simulation
          NMAX = GET_WETDEP_NSOL()
 
+         ! Get actual # of wet-deposited tracers for this simulation
          DO N = 1, NMAX
 
             ! Tracer number
@@ -1846,6 +1866,7 @@
      &               JFIRST,    LFIRST,    AD19(:,:,:) )
 
 	ENDIF
+#endif
 !
 !******************************************************************************
 !  ND21: Optical depth diagnostics
@@ -1853,31 +1874,62 @@
 !   # : Field : Description                        : Units    : Scale factor
 !  --------------------------------------------------------------------------
 !  (1 ) OPTD   Cloud Optical Depth                 : unitless : SCALECHEM
-!  (2 ) CLMO   Max Overlap Cloud Fraction (GEOS1,S): unitless : SCALECHEM
-!   or  CLDF   3-D Total Cloud fraction   (GEOS3,4): unitless : SCALECHEM
+!  (2 ) CLDTOT 3-D Total Cloud fraction            : unitless : SCALECHEM
 !  (3 ) CLRO   Random  Overlap Cloud Fraction      : unitless : SCALECHEM
-!  (4 ) OPD    Mineral Dust Optical Depth (400 nm) : unitless : none
+!  (4 ) OPD    Mineral Dust Optical Depth (wvlen 1): unitless : none
 !  (5 ) SD     Mineral Dust Surface Area           : cm2/cm3  : none
-!  (6 ) OPSO4  Sulfate Optical Depth (400 nm)      : unitless : SCALECHEM
+!  (6 ) OPSO4  Sulfate Optical Depth    (wavelen 1): unitless : SCALECHEM
 !  (7 ) HGSO4  Hygroscopic growth of SO4           : unitless : SCALECHEM
 !  (8 ) SSO4   Sulfate Surface Area                : cm2/cm3  : SCALECHEM
-!  (9 ) OPBC   Black Carbon Optical Depth (400 nm) : unitless : SCALECHEM
+!  (9 ) OPBC   Black Carbon Optical Depth (wvlen 1): unitless : SCALECHEM
 !  (10) HGBC   Hygroscopic growth of BC            : unitless : SCALECHEM
 !  (11) SBC    Black Carbon Surface Area           : cm2/cm3  : SCALECHEM
-!  (12) OPOC   Organic C Optical Depth (400 nm)    : unitless : SCALECHEM
+!  (12) OPOC   Organic C Optical Depth  (wavelen 1): unitless : SCALECHEM
 !  (13) HGOC   Hygroscopic growth of OC            : unitless : SCALECHEM
 !  (14) SOC    Organic Carbon Surface Area         : cm2/cm3  : SCALECHEM
-!  (15) OPSSa  Sea Salt (accum) Opt Depth (400 nm) : unitless : SCALECHEM
+!  (15) OPSSa  Sea Salt (accum) Opt Depth (wvlen 1): unitless : SCALECHEM
 !  (16) HGSSa  Hygroscopic growth of SSa           : unitless : SCALECHEM
 !  (17) SSSa   Sea Salt (accum) Surface Area       : cm2/cm3  : SCALECHEM
-!  (18) OPSSc  Sea Salt (coarse) Opt Depth(400 nm) : unitless : SCALECHEM
+!  (18) OPSSc  Sea Salt (coarse) Opt Depth(wvlen 1): unitless : SCALECHEM
 !  (19) HGSSc  Hygroscopic growth of SSc           : unitless : SCALECHEM
 !  (20) SSSc   Sea Salt (coarse) Surface Area      : cm2/cm3  : SCALECHEM  
-!  (21-27)     Dust Optical Depth for each size    : unitless : SCALECHEM 
-!  (28) ODSLA  Strat. liquid aerosol optical depth : unitless : SCALECHEM
-!  (29) SASLA  Strat. liquid aerosol surface area  : cm2/cm3  : SCALECHEM 
-!  (30) ODSPA  Strat. particulate optical depth    : unitless : SCALECHEM
-!  (31) SASPA  Strat. particula. soln. surf. area  : cm2/cm3  : SCALECHEM 
+!  (21) OPD1   Dust Optical Depth Bin 1   (wvlen 1): unitless : SCALECHEM 
+!  (22) OPD2   Dust Optical Depth Bin 2   (wvlen 1): unitless : SCALECHEM 
+!  (23) OPD3   Dust Optical Depth Bin 3   (wvlen 1): unitless : SCALECHEM 
+!  (24) OPD4   Dust Optical Depth Bin 4   (wvlen 1): unitless : SCALECHEM 
+!  (25) OPD5   Dust Optical Depth Bin 5   (wvlen 1): unitless : SCALECHEM 
+!  (26) OPD6   Dust Optical Depth Bin 6   (wvlen 1): unitless : SCALECHEM 
+!  (27) OPD7   Dust Optical Depth Bin 7   (wvlen 1): unitless : SCALECHEM
+!  (28) OPSO4  Sulfate Optical Depth    (wavelen 2): unitless : SCALECHEM
+!  (29) OPBC   Black Carbon Optical Depth (wvlen 2): unitless : SCALECHEM
+!  (30) OPOC   Organic C Optical Depth  (wavelen 2): unitless : SCALECHEM
+!  (31) OPSSa  Sea Salt (accum) Opt Depth (wvlen 2): unitless : SCALECHEM
+!  (32) OPSSc  Sea Salt (coarse) Opt Depth(wvlen 2): unitless : SCALECHEM
+!  (33) OPD1   Dust Optical Depth Bin 1   (wvlen 2): unitless : SCALECHEM 
+!  (34) OPD2   Dust Optical Depth Bin 2   (wvlen 2): unitless : SCALECHEM 
+!  (35) OPD3   Dust Optical Depth Bin 3   (wvlen 2): unitless : SCALECHEM 
+!  (36) OPD4   Dust Optical Depth Bin 4   (wvlen 2): unitless : SCALECHEM 
+!  (37) OPD5   Dust Optical Depth Bin 5   (wvlen 2): unitless : SCALECHEM 
+!  (38) OPD6   Dust Optical Depth Bin 6   (wvlen 2): unitless : SCALECHEM 
+!  (39) OPD7   Dust Optical Depth Bin 7   (wvlen 2): unitless : SCALECHEM
+!  (40) OPSO4  Sulfate Optical Depth    (wavelen 3): unitless : SCALECHEM
+!  (41) OPBC   Black Carbon Optical Depth (wvlen 3): unitless : SCALECHEM
+!  (42) OPOC   Organic C Optical Depth  (wavelen 3): unitless : SCALECHEM
+!  (43) OPSSa  Sea Salt (accum) Opt Depth (wvlen 3): unitless : SCALECHEM
+!  (44) OPSSc  Sea Salt (coarse) Opt Depth(wvlen 3): unitless : SCALECHEM
+!  (45) OPD1   Dust Optical Depth Bin 1   (wvlen 3): unitless : SCALECHEM 
+!  (46) OPD2   Dust Optical Depth Bin 2   (wvlen 3): unitless : SCALECHEM 
+!  (47) OPD3   Dust Optical Depth Bin 3   (wvlen 3): unitless : SCALECHEM 
+!  (48) OPD4   Dust Optical Depth Bin 4   (wvlen 3): unitless : SCALECHEM 
+!  (49) OPD5   Dust Optical Depth Bin 5   (wvlen 3): unitless : SCALECHEM 
+!  (50) OPD6   Dust Optical Depth Bin 6   (wvlen 3): unitless : SCALECHEM 
+!  (51) OPD7   Dust Optical Depth Bin 7   (wvlen 3): unitless : SCALECHEM 
+!  (52) ODSLA  Strat. liquid aerosol optical depth : unitless : SCALECHEM
+!  (53) SASLA  Strat. liquid aerosol surface area  : cm2/cm3  : SCALECHEM 
+!  (54) NDSLA  Strat. liquid aerosol number density: num/cm3  : SCALECHEM 
+!  (55) ODSPA  Strat. particulate optical depth    : unitless : SCALECHEM
+!  (56) SASPA  Strat. particula. soln. surf. area  : cm2/cm3  : SCALECHEM 
+!  (57) NDSPA  Strat. particula. soln. number dens,: num/cm3  : SCALECHEM 
 !
 !  NOTES:
 !  (1 ) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
@@ -1898,24 +1950,28 @@
       IF ( ND21 > 0 ) THEN
          CATEGORY = 'OD-MAP-$'
 
-         ! ND21 is updated every chem timestep 
-         SCALEX = SCALECHEM
-
          DO M = 1, TMAX(21)
             N  = TINDEX(21,M)
             IF ( N > PD21 ) CYCLE
             NN = N 
                
             ! Select proper unit string (cf list above)
+            ! Make sure OPTD and CLDF use SCALE_A3. Rest of fields are
+            ! updated every chem timestep and use SCALECHEM. (mps, 3/17/16)
             SELECT CASE( N ) 
+               CASE ( 1, 2 )
+                  UNIT   = 'unitless'
+                  SCALEX = SCALE_A3
                CASE ( 3 )
                   ! This diagnostic is for a GEOS-1/GEOS-STRAT field
                   ! so skip it! (bmy, 12/16/11)
                   CYCLE
                CASE ( 5, 8, 11, 14, 17, 20, 53, 56 )
-                  UNIT = 'cm2/cm3'
+                  UNIT   = 'cm2/cm3'
+                  SCALEX = SCALECHEM
                CASE DEFAULT
-                  UNIT = 'unitless'
+                  UNIT   = 'unitless'
+                  SCALEX = SCALECHEM
             END SELECT
 
            ! Is this something that we want to output?
@@ -2204,6 +2260,7 @@
             ENDIF
          ENDDO    
       ENDIF     
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND24: Eastward mass flux from transport (TPCORE, XTP)
@@ -2303,6 +2360,8 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD26) )
          ENDDO
       ENDIF
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND28: Biomass burning diagnostic 
@@ -2621,6 +2680,8 @@
          ENDIF
 
       ENDIF
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND29: CO source diagnostics
@@ -2676,6 +2737,8 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDDO
       ENDIF
+#endif
+#if defined( BPCH)
 !
 !******************************************************************************
 !  ND30: Land map diagnostic
@@ -2701,6 +2764,8 @@
      &               IIPAR,     JJPAR,     1,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
       ENDIF
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND31: Surface pressure diagnostic
@@ -2731,6 +2796,9 @@
      &               IIPAR,     JJPAR,     LD31,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD31) )
       ENDIF
+
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND32: NOx source diagnostic
@@ -2878,6 +2946,8 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
       ENDIF
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND33: Atmospheric column sum of Tracer
@@ -2911,6 +2981,8 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF  
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND34: Biofuel burning diagnostic 
@@ -3080,7 +3152,7 @@
          !%%%%% NH3 %%%%%
          IF ( IDTNH3 > 0 ) THEN
             DiagnName = 'BIOFUEL_NH3'
-            UNIT      = 'atoms C/cm2/s'
+            UNIT      = 'molec/cm2/s'
             N         = IDTNH3
             FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -3088,6 +3160,7 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
       ENDIF
+#endif
 !
 !******************************************************************************
 !  ND35: Tracer concentration at 500 mb 
@@ -3119,6 +3192,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF  
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND36: Anthropogenic source diagnostic
@@ -3256,6 +3330,7 @@
 
          ENDDO ! I
       ENDIF
+#endif
 !
 !******************************************************************************
 !  ND37: Fraction of tracer scavenged in convective cloud updrafts
@@ -3269,7 +3344,7 @@
          CATEGORY = 'MC-FRC-$'
          UNIT     = 'unitless'
 
-         ! Get actual # of soluble tracers
+         ! Get actual # of wet-deposited tracers for this simulation
          NMAX = GET_WETDEP_NSOL()
 
          ! Loop over soluble tracers
@@ -3302,7 +3377,7 @@
       ENDIF
 !
 
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
 
 !******************************************************************************
 !  ND38: Rainout loss of tracer in convective updrafts
@@ -3368,7 +3443,7 @@
 
          ! Get actual # of soluble tracers
          M = GET_WETDEP_NSOL()
-            
+
          ! Loop over soluble tracers
          DO N = 1, M
                
@@ -3568,7 +3643,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD43) )
          ENDDO
       ENDIF
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND44: Drydep flux (molec/cm2/s) and velocity (cm/s) diagnostics
@@ -3904,7 +3979,34 @@
      &                  IIPAR,     JJPAR,     LD45,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD45) )
 
+            IF ( N == IDTPASV ) THEN
+
+               ! Also save out passive tracer in v/v total air (mps, 11/18/15)
+               DO L = 1, LD45
+                  ARRAY(:,:,L) = AD45(:,:,L,N+1) / SCALE_TMP(:,:)
+               ENDDO
+
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, NN+1,    
+     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                     IIPAR,     JJPAR,     LD45,     IFIRST,     
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD45) )
+
+               ! Also save out passive tracer in kg/kg total air (mps, 11/18/15)
+               DO L = 1, LD45
+                  ARRAY(:,:,L) = AD45(:,:,L,N+2) / SCALE_TMP(:,:)
+               ENDDO
+
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, NN+2,    
+     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                     IIPAR,     JJPAR,     LD45,     IFIRST,     
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD45) )
+
+            ENDIF
+
          ENDDO
+
       ENDIF
 
 #if   defined( APM )
@@ -3936,6 +4038,7 @@
       ENDIF
 #endif
 #endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND46: Biogenic source diagnostic
@@ -4096,8 +4199,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 4
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * AVO / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4109,8 +4211,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 5
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 5e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * AVO / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4136,8 +4237,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 7
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * AVO / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4149,8 +4249,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 8
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * AVO / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4162,8 +4261,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 9
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * AVO / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4175,8 +4273,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 10
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * AVO / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4188,8 +4285,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 11
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * AVO / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4201,8 +4297,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 12
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * AVO / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4214,8 +4309,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 13
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * AVO / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4227,7 +4321,7 @@
          UNIT      = 'molec/cm2/s'
          N         = 14
          ! Conversion factor from kg/m2/s to molec/cm2/s
-         FACTOR    = ( HcoState%Phys%Avgdr / 46.025e+0_hp ) / CM2PERM2
+         FACTOR    = ( AVO / 46.025e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4239,7 +4333,7 @@
          UNIT      = 'molec/cm2/s'
          N         = 15
          ! Conversion factor from kg/m2/s to molec/cm2/s
-         FACTOR    = ( HcoState%Phys%Avgdr / 60.052e+0_hp ) / CM2PERM2
+         FACTOR    = ( AVO / 60.052e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4265,8 +4359,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 17
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * AVO / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4278,7 +4371,7 @@
          UNIT      = 'molec/cm2/s'
          N         = 18
          ! Conversion factor from kg/m2/s to molec/cm2/s
-         FACTOR    =  ( HcoState%Phys%Avgdr / 32.042e+0_hp )/ CM2PERM2
+         FACTOR    =  ( AVO / 32.042e+0_fp )/ CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4290,8 +4383,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 19
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 2e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * AVO / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4303,8 +4395,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 20
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 15e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * AVO / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4316,8 +4407,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 21
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 15e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * AVO / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4329,8 +4419,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 22
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 15e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * AVO / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4467,6 +4556,7 @@
          ENDIF
 
       ENDIF
+#endif
 !
 !******************************************************************************
 !  ND47: Tracer Mixing Ratio (v/v) for Levels L = 1, LD47
@@ -4540,34 +4630,54 @@
 !
 !   # : Field  : Description                    : Units      : Scale factor
 !  ----------------------------------------------------------------------------
-!  (1 ) POPT   : Emissions of total POPs        : kg/s       : SCALESRCE
-!  (2 ) POPPOC : Emissions of OC-sorbed POP     : kg/s       : SCALESRCE
-!  (3 ) POPPBC : Emissions of BC-sorbed POP     : kg/s       : SCALESRCE
-!  (4 ) POPG   : Emissions of gas-phase POP     : kg/s       : SCALESRCE
-!  (5 ) POPPOC : Gross POP OC lost to gas       : kg         : 1
-!  (6 ) POPPOC : Gross POP OC formed from gas   : kg         : 1
-!  (7 ) POPPBC : Gross POP BC lost to gas       : kg         : 1
-!  (8 ) POPPBC : Gross POP BC formed from gas   : kg         : 1
-!  (9 ) POPG   : Prod of POPG from rxn with OH  : kg         : 1
-!  (10) POPPOC : Prod of POPOC from rxn with O3 : kg         : 1
-!  (11) POPPBC : Prod of POPBC from rxn with O3 : kg         : 1
+!  (1 ) POPT     : Emissions of total POPs        : kg       : 1
+!  (2 ) OCPO em  : Emissions of OC-sorbed POP     : kg       : 1
+!  (3 ) BCPO em  : Emissions of BC-sorbed POP     : kg       : 1
+!  (4 ) G em     : Emissions of gas-phase POP     : kg       : 1
+!  (5 ) kgGsoil  : Secondary emissions from soil  : kg       : 1
+!  (6 ) kgGlake  : Secondary emissions from lake  : kg       : 1
+!  (7 ) kgGleaf  : Secondary emissions from leaf  : kg       : 1
+!  (8 ) soi2air  : Secondary positive soil flux   : ng/m2/day: 1
+!  (9 ) air2soi  : Secondary negative soil flux   : ng/m2/day: 1
+!  (10) lak2air  : Secondary positive lake flux   : ng/m2/day: 1
+!  (11) air2lak  : Secondary negative lake flux   : ng/m2/day: 1
+!  (12) lea2air  : Secondary positive leaf flux   : ng/m2/day: 1
+!  (13) air2lea  : Secondary negative leaf flux   : ng/m2/day: 1
+!  (14) soi/air  : Fugacity ratios soil/air       : unitless : 1
+!  (15) lak/air  : Fugacity ratios lake/air       : unitless : 1
+!  (16) lea/air  : Fugacity ratios leaf/air       : unitless : 1
+!  (17) OCPO2G   : Gross POP OC lost to gas       : kg       : 1
+!  (18) G2OCPO   : Gross POP OC formed from gas   : kg       : 1
+!  (19) BCPO2G   : Gross POP BC lost to gas       : kg       : 1
+!  (20) G2BCPO   : Gross POP BC formed from gas   : kg       : 1
+!  (21) OHoxG    : Prod of POPG from rxn with OH  : kg       : 1
+!  (22) O3oxOCPO : Prod of POPOCPO from rxn w/ O3 : kg       : 1
+!  (23) O3oxOCPI : Prod of POPOCPI from rxn w/ O3 : kg       : 1
+!  (24) O3oxBCPO : Prod of POPBCPO from rxn w/ O3 : kg       : 1
+!  (25) O3oxBCPI : Prod of POPBCPI from rxn w/ O3 : kg       : 1
+!  (26) NO3xOCPO : Prod of POPOCPO from rxn w/ NO3: kg       : 1
+!  (27) NO3xOCPI : Prod of POPOCPI from rxn w/ NO3: kg       : 1
+!  (28) NO3xBCPO : Prod of POPBCPO from rxn w/ NO3: kg       : 1
+!  (29) NO3xBCPI : Prod of POPBCPI from rxn w/ NO3: kg       : 1
 !******************************************************************************
 !
       IF ( ND53 > 0 .and. Input_Opt%ITS_A_POPS_SIM ) THEN
 
          CATEGORY = 'PG-SRCE'
-         UNIT     = 'kg'
 
-         IF ( IDTPOPPOC > 0 .and. IDTPOPPBC > 0 .and. IDTPOPG > 0 ) THEN
+         IF ( IDTPOPPOCPO > 0 .and.
+     &        IDTPOPPBCPO > 0 .and.
+     &        IDTPOPG     > 0 ) THEN
 
-            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             ! Total POP emissions
-            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             !---------------------------------------------------------
             ! (1) Get OC POP emissions from HEMCO data structure
             !---------------------------------------------------------
-            DiagnName = 'AD53_POPPOC_SOURCE'
+            DiagnName = 'AD53_POPPOCPO_SOURCE'
+            UNIT      = 'kg'
             N         = 1
             DiagnCnt  => NULL()
 
@@ -4596,7 +4706,7 @@
             !---------------------------------------------------------
             ! (2) Get BC POP emissions from HEMCO data structure
             !---------------------------------------------------------
-            DiagnName = 'AD53_POPPBC_SOURCE'
+            DiagnName = 'AD53_POPPBCPO_SOURCE'
             DiagnCnt  => NULL()
 
             ! Get diagnostics from HEMCO
@@ -4655,12 +4765,13 @@
 
          ENDIF
 
-         IF ( IDTPOPPOC > 0 ) THEN
+         IF ( IDTPOPPOCPO > 0 ) THEN
 
-            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             ! OC-sorbed POP emissions
-            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            DiagnName = 'AD53_POPPOC_SOURCE'
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            DiagnName = 'AD53_POPPOCPO_SOURCE'
+            UNIT      = 'kg'
             N         = 2
             FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -4669,12 +4780,13 @@
 
          ENDIF
 
-         IF ( IDTPOPPBC > 0) THEN
+         IF ( IDTPOPPBCPO > 0) THEN
 
-            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             ! BC-sorbed POP emissions
-            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            DiagnName = 'AD53_POPPBC_SOURCE'
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            DiagnName = 'AD53_POPPBCPO_SOURCE'
+            UNIT      = 'kg'
             N         = 3
             FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -4685,9 +4797,9 @@
 
          IF ( IDTPOPG > 0 ) THEN
 
-            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             ! Gas-phase POP emissions
-            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             DiagnName = 'AD53_POPG_SOURCE'
             N         = 4
             FACTOR    = 1.0e+0_fp
@@ -4696,6 +4808,138 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          ENDIF
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! Secondary POP emissions from soil
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         DiagnName = 'AD53_POPG_SOIL'
+         UNIT      = 'kg'
+         N         = 5
+         FACTOR    = 1.0e+0_fp
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! Secondary POP emissions from lake
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         DiagnName = 'AD53_POPG_LAKE'
+         UNIT      = 'kg'
+         N         = 6
+         FACTOR    = 1.0e+0_fp
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! Secondary POP emissions from leaf
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         DiagnName = 'AD53_POPG_LEAF'
+         UNIT      = 'kg'
+         N         = 7
+         FACTOR    = 1.0e+0_fp
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! Secondary positive soil flux
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         DiagnName = 'AD53_SOIL2AIR'
+         UNIT      = 'ng/m2/day'
+         N         = 8
+         FACTOR    = 1.0e+0_fp
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! Secondary negative soil flux
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         DiagnName = 'AD53_AIR2SOIL'
+         UNIT      = 'ng/m2/day'
+         N         = 9
+         FACTOR    = 1.0e+0_fp
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! Secondary positive lake flux
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         DiagnName = 'AD53_LAKE2AIR'
+         UNIT      = 'ng/m2/day'
+         N         = 10
+         FACTOR    = 1.0e+0_fp
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! Secondary negative lake flux
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         DiagnName = 'AD53_AIR2LAKE'
+         UNIT      = 'ng/m2/day'
+         N         = 11
+         FACTOR    = 1.0e+0_fp
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! Secondary positive leaf flux
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         DiagnName = 'AD53_LEAF2AIR'
+         UNIT      = 'ng/m2/day'
+         N         = 12
+         FACTOR    = 1.0e+0_fp
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! Secondary negative leaf flux
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         DiagnName = 'AD53_AIR2LEAF'
+         UNIT      = 'ng/m2/day'
+         N         = 13
+         FACTOR    = 1.0e+0_fp
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! Fugacity ratios for soils (soil/air)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         DiagnName = 'AD53_SOILAIR_FUG'
+         Unit      = 'unitless'
+         N         = 14
+         FACTOR    = 1.0e+0_fp
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! Fugacity ratios for lakes (water/air)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         DiagnName = 'AD53_LAKEAIR_FUG'
+         Unit      = 'unitless'
+         N         = 15
+         FACTOR    = 1.0e+0_fp
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! Fugacity ratios for leaves (leaf sfc/air)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         DiagnName = 'AD53_LEAFAIR_FUG'
+         Unit      = 'unitless'
+         N         = 16
+         FACTOR    = 1.0e+0_fp
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          ! Write the remaining ND53 diagnostics 
          CALL WRITE_DIAG53
@@ -4724,6 +4968,7 @@
      &               IIPAR,     JJPAR,     LD54,     IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD54) )
       ENDIF
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND55: Tropopause diagnostics
@@ -4762,6 +5007,8 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND56: Lightning flash rate diagnostics (ltm, bmy, 5/5/06))
@@ -4820,6 +5067,8 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)   
 
       ENDIF
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND57: THETA
@@ -4843,7 +5092,7 @@
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD57) )
       ENDIF
 
-
+#endif
 !
 !******************************************************************************
 !  ND58: CH4 Emission Diagnostics
@@ -5357,8 +5606,9 @@
                ! Grid box surface area [cm2]
                AREA_M2 = GET_AREA_M2( I, J, 1 )
 
-               ARRAY(I,J,1) = ( SUM( STT(I,J,:,N) ) * 6.022e+22_fp )
-     &                      / ( Input_Opt%TRACER_MW_G(N) * AREA_M2  )
+               ARRAY(I,J,1) = ( SUM( STT(I,J,:,N) ) * AVO )
+     &                        / ( Input_Opt%TRACER_MW_G(N) 
+     &                                 * AREA_M2 * 10.e+0_fp )
             ENDDO
             ENDDO
 
@@ -5493,6 +5743,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD65) )
          ENDDO       
       ENDIF
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND66: GMAO 3-D fields 
@@ -5520,7 +5771,7 @@
       IF ( ND66 > 0 ) THEN
          CATEGORY = 'DAO-3D-$'
 
-#if   defined( GEOS_FP )
+#if   defined( GEOS_FP ) || defined( MERRA2 )
          SCALE_ND66 = SCALE_A3   ! For GEOS-FP,  ND66 is 3-hr time-avg data
 #elif defined( MERRA )
          SCALE_ND66 = SCALE_A3   ! For MERRA,    ND66 is 3-hr time-avg data
@@ -5541,7 +5792,7 @@
 
                ! TMPU
                CASE ( 3 )
-#if   defined( GEOS_FP )
+#if   defined( GEOS_FP ) || defined( MERRA2 )
                   SCALEX = SCALE_I3      ! T is an I3 field in GEOS-5.7.x
 #else
                   SCALEX = SCALE_ND66
@@ -5550,7 +5801,7 @@
 
                ! SPHU
                CASE ( 4 )
-#if   defined( GEOS_FP )
+#if   defined( GEOS_FP ) || defined( MERRA2 )
                   SCALEX = SCALE_I3      ! SPHU is an I3 field in GEOS-5.7.x
 #else
                   SCALEX = SCALE_ND66
@@ -5575,6 +5826,8 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD66) )
          ENDDO
       ENDIF
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND67: GMAO surface fields
@@ -5627,7 +5880,7 @@
 
 #if   defined( MERRA )
          SCALE_ND67 = SCALE_A1    ! For MERRA,      ND67 fields are hourly
-#elif defined( GEOS_FP )
+#elif defined( GEOS_FP ) || defined( MERRA2 ) 
          SCALE_ND67 = SCALE_A1    ! For GEOS-FP,    ND67 fields are hourly
 #else
          SCALE_ND67 = SCALE_A3    ! Otherwise, most ND67 fields are 3-hourly
@@ -5680,7 +5933,7 @@
                   SCALEX = SCALED
                   UNIT   = 'm'
                CASE ( 16 )
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
                   SCALEX = SCALE_A3     ! MERRA/GEOS-FP CLDTOPS 3-hr avg'd
 #else 
                   SCALEX = SCALE_A6     ! Otherwise CLDTOPS is 6-hr time avg'd
@@ -5690,7 +5943,7 @@
                   SCALEX = SCALE_ND67
                   UNIT   = 'hPa'
                CASE ( 18 ) 
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
                  SCALEX = SCALE_A1      ! MERRA/GEOS-FP SLP is hourly
 #else
                  SCALEX = SCALE_I6      ! Otherwise SLP is 6-h inst.
@@ -5725,8 +5978,8 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
-
-#if !defined(NO_BPCH)
+#endif
+#if defined( BPCH_DIAG )
 !******************************************************************************
 !  ND68: Grid box diagnostics
 !
@@ -5764,6 +6017,7 @@
          ENDDO
       ENDIF
 #endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND69: Grid Box Surface Areas
@@ -5809,7 +6063,8 @@
 
          CALL UPDATE_DEP( N )
       ENDIF
-            
+#endif
+#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND71: Tracer Mixing Ratio (v/v) at surface, maximum value
@@ -5840,6 +6095,8 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
+
+#endif
 
       ! Echo output
       WRITE( 6, '(a)' ) '     - DIAG3: Diagnostics written to bpch!'
@@ -5966,7 +6223,7 @@
 !  corresponding diagnostics array to the bpch output file. 
 !\\
 !\\
-!  NOTE: This is a "bridge" routine intended to provide backwards compatbility 
+!  NOTE: This is a "bridge" routine intended to provide backwards compatibility 
 !  with the existing GEOS-Chem diagnostics.  Eventually we will write all 
 !  GEOS-Chem diagnostics to netCDF format but we are not yet at that point.
 !\\

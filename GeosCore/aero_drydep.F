@@ -21,9 +21,11 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+      USE PHYSCONSTANTS,      ONLY : g0
       USE DIAG_MOD,           ONLY : AD44
       USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, NTRAIND 
       USE DUST_MOD,           ONLY : SETTLEDUST   
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -68,6 +70,8 @@
 !  05 Nov 2014 - M. Yannetti - PRECISION_MOD convert REAL*8 to REAL(fp)
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
 !                              Remove dependency on pressure_mod.
+!  12 Aug 2015 - E. Lundgren - Now pass am_I_Root and RC to AERO_DIADEN 
+!                              to enable unit conversion if needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -75,18 +79,17 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                :: I, J, L, N, JC, BIN, ID, IJLOOP
-      REAL(fp)                 :: DTCHEM,  AREA_CM2, FLUX
-      REAL(fp)                 :: X, X0(IBINS, ICOMP-IDIAG+1)
-      REAL(fp)                 :: Y, Y0, RKT
-      REAL(fp)                 :: NU0(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL(fp)                 :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL(fp)                 :: SIZ_DIA(IIPAR*JJPAR,IBINS)
-      REAL(fp)                 :: SIZ_DEN(IIPAR*JJPAR,IBINS)
-      REAL(fp)                 :: DEN,   DP,    PDP,  TEMP,  P
-      REAL(fp)                 :: CONST, SLIP,  VISC, DELZ,  DELZ1
-      REAL(fp)                 :: TOT1,  TOT2
-      REAL(fp),  PARAMETER     :: Go = 9.8e+0_fp  !Gravitational accel [m/s2]
-      REAL(fp)                 :: TC(LLPAR),  TC0(LLPAR)
+      REAL(fp)               :: DTCHEM,  AREA_CM2, FLUX
+      REAL(fp)               :: X, X0(IBINS, ICOMP-IDIAG+1)
+      REAL(fp)               :: Y, Y0, RKT
+      REAL(fp)               :: NU0(IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp)               :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp)               :: SIZ_DIA(IIPAR*JJPAR,IBINS)
+      REAL(fp)               :: SIZ_DEN(IIPAR*JJPAR,IBINS)
+      REAL(fp)               :: DEN,   DP,    PDP,  TEMP,  P
+      REAL(fp)               :: CONST, SLIP,  VISC, DELZ,  DELZ1
+      REAL(fp)               :: TOT1,  TOT2
+      REAL(fp)               :: TC(LLPAR),  TC0(LLPAR)
       INTEGER,SAVE           :: DRYD(IBINS)
       LOGICAL,SAVE           :: FIRST = .TRUE.
       INTEGER,SAVE           :: H2SO4ID
@@ -98,6 +101,7 @@
       !debug
       integer   :: ii, jj , ix, jx, bb, ll
       data ii,jj, ix, jx, bb, ll /55, 29, 55, 29, 1, 1 /
+      CHARACTER(LEN=255) :: LOC, MSG
 
       ! For fields from Input_Opt
       LOGICAL         :: LPRT
@@ -115,6 +119,13 @@
 
       ! Assume success
       RC        = GIGC_SUCCESS
+
+      ! Check that tracer units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+         LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
+         CALL GIGC_Error( MSG, RC, LOC )
+      ENDIF
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM    = GET_TS_CHEM() * 60d0
@@ -183,8 +194,12 @@ cdbg      print *, dryd(:)
       IF ( DOSETTLING ) THEN
 
       ! SIZ_DIA [=] m  and SIZ_DEN [=] kg/m3
-      CALL AERO_DIADEN( SIZ_DIA(:,:), SIZ_DEN(:,:), 1, 
-     &                  Input_Opt,    State_Met,    State_Chm )
+      CALL AERO_DIADEN( am_I_Root, 1,       Input_Opt, State_Met,
+     &                  State_Chm, SIZ_DIA, SIZ_DEN,   RC         )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP('CALL AERO_DIADEN',
+     &                   'AERO_DRYDEP in aero_drydep.F')
+      ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+PRIVATE( BIN, I, J, IJLOOP, DP, DEN, CONST, L, P, TEMP )
@@ -201,7 +216,7 @@ cdbg      print *, dryd(:)
 
          DP  = SIZ_DIA(IJLOOP, BIN) * 1.d6 ![=] um
          DEN = SIZ_DEN(IJLOOP, BIN) ![=] kg/m3
-         CONST = DEN *  (DP*1.d-6)**2.d0 * Go / 18.d0  
+         CONST = DEN *  (DP*1.d-6)**2.d0 * g0 / 18.d0  
 
 !debug            if(i==ix .and. j==jx .and. bin==bb) then
 !               print *, 'L, P, Dp, DEN, SLIP, VISC, VTS(L)'
@@ -294,7 +309,7 @@ cdbg      print *, dryd(:)
             ENDDO
 
 
-#if !defined( NO_BPCH ) 
+#if defined( BPCH_DIAG ) 
             !========================================================      
             ! ND44: Dry deposition diagnostic [#/cm2/s]
             !========================================================
@@ -411,7 +426,7 @@ c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
             ENDIF
 ! ******************************************************************************
                
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
             !==============================================================
             ! ND44 Diagnostic: Drydep flux of bin1,..,bin30 [molec/cm2/s]
             !==============================================================
@@ -464,7 +479,7 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
          RKT = DEPSAV(I,J,H2SO4ID)* GET_FRAC_UNDER_PBLTOP( I, J, L)
          Y = Y0 * EXP(-RKT)
 ! ******************************************************************************
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
          !==============================================================
          ! ND44 Diagnostic: Drydep flux of H2SO4 [molec/cm2/s]
          !==============================================================
@@ -497,6 +512,14 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
       NULLIFY( STT      )
       NULLIFY( BXHEIGHT )
       NULLIFY( T        )
+
+      ! Check that tracer units are still in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect tracer units at end of routine: ' 
+     &            // TRIM(State_Chm%Trac_Units)
+         LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
+         CALL GIGC_Error( MSG, RC, LOC )
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE AERO_DRYDEP

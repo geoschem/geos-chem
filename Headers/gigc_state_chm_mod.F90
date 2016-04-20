@@ -22,7 +22,10 @@ MODULE GIGC_State_Chm_Mod
 !
 ! USES:
 !
-  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+  USE PhysConstants    ! Physical constants
+  USE Precision_Mod    ! GEOS-Chem precision types 
+  USE Species_Mod      ! For species database object
+
   IMPLICIT NONE
   PRIVATE
 !
@@ -41,37 +44,37 @@ MODULE GIGC_State_Chm_Mod
   !=========================================================================
   TYPE, PUBLIC :: ChmState
 
+     ! Number of species
+     INTEGER                    :: nSpecies             ! # of species
+     INTEGER                    :: nAdvect              ! # of advected species
+     INTEGER                    :: nDrydep              ! # of drydep species
+     INTEGER                    :: nWetDep              ! # of wetdep species
+
+     ! Physical properties about tracers & species
+     TYPE(SpcPtr),      POINTER :: SpcData(:)           ! Species database
+
      ! Advected tracers
-     INTEGER,           POINTER :: Trac_Id    (:      )  ! Tracer ID #'s
-     CHARACTER(LEN=14), POINTER :: Trac_Name  (:      )  ! Tracer names
-     REAL(fp),          POINTER :: Tracers    (:,:,:,:)  ! Tracer conc [kg]
+     INTEGER,           POINTER :: Trac_Id    (:      ) ! Tracer ID #'s
+     CHARACTER(LEN=14), POINTER :: Trac_Name  (:      ) ! Tracer names
+     REAL(fp),          POINTER :: Tracers    (:,:,:,:) ! Tracer conc 
+                                                        ! [kg trcr/kg dry air]
+     CHARACTER(LEN=20)          :: Trac_Units           ! Tracer units
 
      ! Chemical species
-     INTEGER,           POINTER :: Spec_Id    (:      )  ! Species ID # 
-     CHARACTER(LEN=14), POINTER :: Spec_Name  (:      )  ! Species names
-     REAL(fp),          POINTER :: Species    (:,:,:,:)  ! Species [molec/cm3]
+     INTEGER,           POINTER :: Spec_Id    (:      ) ! Species ID # 
+     CHARACTER(LEN=14), POINTER :: Spec_Name  (:      ) ! Species names
+     REAL(fp),          POINTER :: Species    (:,:,:,:) ! Species [molec/cm3]
 
      ! Aerosol quantities
-     REAL(fp),          POINTER :: AeroArea   (:,:,:,:)  ! Aerosol Area [cm2/cm3]
-     REAL(fp),          POINTER :: AeroRadi   (:,:,:,:)  ! Aerosol Radius [cm]
-     INTEGER                    :: nAero                 ! Number of Aerosol Types
+     REAL(fp),          POINTER :: AeroArea   (:,:,:,:) ! Aerosol Area [cm2/cm3]
+     REAL(fp),          POINTER :: AeroRadi   (:,:,:,:) ! Aerosol Radius [cm]
+     INTEGER                    :: nAero                ! Number of Aerosol Types
 
 #if defined( ESMF_ )
      ! Chemical rates & rate parameters
-     INTEGER,           POINTER :: JLOP       (:,:,:  )  ! 1-D SMVGEAR index
-     INTEGER,           POINTER :: JLOP_PREV  (:,:,:  )  ! JLOP, prev timestep
+     INTEGER,           POINTER :: JLOP       (:,:,:  ) ! 1-D SMVGEAR index
+     INTEGER,           POINTER :: JLOP_PREV  (:,:,:  ) ! JLOP, prev timestep
 #endif
-
-     ! NOTE: Comment out for now, leave for future expansion (bmy, 11/20/12)
-     !! Stratospheric chemistry 
-     !INTEGER,           POINTER :: Schm_Id    (:      )  ! Strat Chem ID #'s
-     !CHARACTER(LEN=14), POINTER :: Schm_Name  (:      )  ! Strat Chem Names
-     !REAL(fp),          POINTER :: Schm_P     (:,:,:,:)  ! Strat prod [v/v/s]
-     !REAL(fp),          POINTER :: Schm_k     (:,:,:,:)  ! Strat loss [1/s]
-     !INTEGER,           POINTER :: Schm_BryId (:      )  ! Bry tracer #'s
-     !CHARACTER(LEN=14), POINTER :: Schm_BryNam(:      )  ! Bry Names
-     !REAL(fp),          POINTER :: Schm_BryDay(:,:,:,:)  ! Bry, Day
-     !REAL(fp),          POINTER :: Schm_BryNit(:,:,:,:)  ! Bry, Night
 
      ! Fields for UCX mechanism
      REAL(f4),           POINTER :: STATE_PSC (:,:,:)   ! PSC type (see Kirner
@@ -94,6 +97,11 @@ MODULE GIGC_State_Chm_Mod
 !                              all species.
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  11 Dec 2014 - R. Yantosca - Keep JLOP and JLOP_PREV for ESMF runs only
+!  17 Feb 2015 - E. Lundgren - New tracer units kg/kg dry air (previously kg)
+!  13 Aug 2015 - E. Lundgren - Add tracer units string to ChmState derived type 
+!  28 Aug 2015 - R. Yantosca - Remove strat chemistry fields, these are now
+!                              handled by the HEMCO component
+!  05 Jan 2016 - E. Lundgren - Use global physical constants
 !  28 Jan 2016 - M. Sulprizio- Add STATE_PSC, KHETI_SLA. These were previously
 !                              local arrays in ucx_mod.F, but now need to be
 !                              accessed in gckpp_HetRates.F90.
@@ -286,15 +294,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_GIGC_State_Chm( am_I_Root, IM,        JM,       LM,       &
-                                  nTracers,  nSpecies,  nSchm,    nSchmBry, &
-                                  Input_Opt, State_Chm, nAerosol, RC        )
+  SUBROUTINE Init_GIGC_State_Chm( am_I_Root, IM,        JM,        &   
+                                  LM,        nTracers,  nSpecies,  &
+                                  Input_Opt, State_Chm, nAerosol,  &
+                                  RC                               )
 !
 ! !USES:
 !
-    USE Comode_Loop_Mod,    ONLY   : ILONG, ILAT, IPVERT
+    USE Comode_Loop_Mod,      ONLY : ILONG, ILAT, IPVERT
     USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY   : OptInput
+    USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+    USE Species_Mod,          ONLY : Spc_GetNumSpecies
+    USE Species_Database_Mod, ONLY : Init_Species_Database
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -303,14 +314,16 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: JM          ! # longitudes on this PET
     INTEGER,        INTENT(IN)    :: LM          ! # longitudes on this PET
     INTEGER,        INTENT(IN)    :: nTracers    ! # advected tracers
-    INTEGER,        INTENT(IN)    :: nSpecies    ! # chemical species  
     INTEGER,        INTENT(IN)    :: nAerosol    ! # aerosol species
-    INTEGER,        INTENT(IN)    :: nSchm       ! # of strat chem species
-    INTEGER,        INTENT(IN)    :: nSchmBry    ! # of Bry species, strat chm
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    INTEGER,        INTENT(IN)    :: nSpecies    ! # chemical species
+!-----------------------------------------------------------------------------
+! Prior to 1/25/15:
+!    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!-----------------------------------------------------------------------------
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
@@ -331,17 +344,24 @@ CONTAINS
 !  26 Feb 2013 - M. Long     - Now pass Input_Opt via the argument list
 !  26 Feb 2013 - M. Long     - Now allocate the State_Chm%DEPSAV field
 !  11 Dec 2014 - R. Yantosca - Remove TRAC_TEND and DEPSAV fields
-!  28 Jan 2016 - M. Sulprizio- Remove NBIOMAX argument since it is not used
+!  13 Aug 2015 - E. Lundgren - Initialize trac_units to ''
+!  28 Aug 2015 - R. Yantosca - Remove stratospheric chemistry fields; 
+!                              these are all now read in via HEMCO
+!  28 Aug 2015 - R. Yantosca - Also initialize the species database object
+!  09 Oct 2015 - R. Yantosca - Bug fix: set State_Chm%SpcData to NULL
+!  16 Dec 2015 - R. Yantosca - Now overwrite the Input_Opt%TRACER_MW_G and
+!                              related fields w/ info from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    INTEGER                       :: MAX_DEP
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER  :: N, C
+    REAL(fp) :: EmMW_g
 
     ! Assume success until otherwise
     RC = GIGC_SUCCESS
-
-    ! Maximum # of drydep species
-    MAX_DEP = Input_Opt%MAX_DEP
 
     !=====================================================================
     ! Allocate and initialize advected tracer fields
@@ -405,53 +425,6 @@ CONTAINS
     State_Chm%JLOP_PREV = 0
 #endif
 
-! NOTE: Comment out for now, leave for future expansion (bmy, 11/20/12)
-!    !=====================================================================
-!    ! Allocate and initialize stratospheric chemistry fields
-!    !=====================================================================
-!
-!    ! Only allocate if strat chem is turned on
-!    IF ( nSchm > 0 ) THEN
-!
-!       ALLOCATE( State_Chm%Schm_Id    (             nSchm      ), STAT=RC )
-!       IF ( RC /= GIGC_SUCCESS ) RETURN
-!       State_Chm%Schm_Id = 0
-!       
-!       ALLOCATE( State_Chm%Schm_Name  (             nSchm      ), STAT=RC )
-!       IF ( RC /= GIGC_SUCCESS ) RETURN
-!       State_Chm%Schm_Name = ''
-!       
-!       ALLOCATE( State_Chm%Schm_P     ( IM, JM, LM, nSchm      ), STAT=RC )
-!       IF ( RC /= GIGC_SUCCESS ) RETURN
-!       State_Chm%Schm_P = 0e+0_fp
-!       
-!       ALLOCATE( State_Chm%Schm_k     ( IM, JM, LM, nSchm      ), STAT=RC )
-!       IF ( RC /= GIGC_SUCCESS ) RETURN
-!       State_Chm%Schm_k = 0e+0_fp
-!    
-!    ENDIF
-!
-!    ! Only allocate if strat chem is turned on
-!    IF ( nSchmBry > 0 ) THEN
-!   
-!       ALLOCATE( State_Chm%Schm_BryId (             nSchmBry   ), STAT=RC )
-!       IF ( RC /= GIGC_SUCCESS ) RETURN
-!       State_Chm%Schm_BryId = 0
-!       
-!       ALLOCATE( State_Chm%Schm_BryNam(             nSchmBry   ), STAT=RC )
-!       IF ( RC /= GIGC_SUCCESS ) RETURN
-!       State_Chm%Schm_BryNam = ''
-!
-!       ALLOCATE( State_Chm%Schm_BryDay( IM, JM, LM, nSchmBry   ), STAT=RC )
-!       IF ( RC /= GIGC_SUCCESS ) RETURN
-!       State_Chm%Schm_BryDay = 0e+0_fp
-!
-!       ALLOCATE( State_Chm%Schm_BryNit( IM, JM, LM, nSchmBry   ), STAT=RC )
-!       IF ( RC /= GIGC_SUCCESS ) RETURN
-!       State_Chm%Schm_BryNit = 0e+0_fp
-!
-!    ENDIF
-
     !=====================================================================
     ! Allocate and initialize fields for UCX mechamism
     !=====================================================================
@@ -463,6 +436,111 @@ CONTAINS
     ALLOCATE( State_Chm%KHETI_SLA     ( IM, JM, LM, 11         ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Chm%KHETI_SLA = 0.0_fp
+
+    !=====================================================================
+    ! Initialize fields
+    !=====================================================================
+
+    ! Number of species
+    State_Chm%nSpecies    = 0
+    State_Chm%nAdvect     = 0
+    State_Chm%nDryDep     = 0
+    State_Chm%nWetDep     = 0
+
+    ! Species database
+    State_Chm%SpcData     => NULL()
+
+    ! Tracer units
+    State_Chm%Trac_Units  = ''
+
+    !=====================================================================
+    ! Populate the species database object field
+    ! (assumes Input_Opt has already been initialized)
+    !=====================================================================
+    CALL Init_Species_Database( am_I_Root = am_I_Root,          &
+                                Input_Opt = Input_Opt,          &
+                                SpcData   = State_Chm%SpcData,  &
+                                RC         = RC                 )
+
+    !=====================================================================
+    ! Determine the number of advected, drydep, wetdep, and total species
+    !=====================================================================
+
+    ! The total number of species is the size of SpcData
+    State_Chm%nSpecies = SIZE( State_Chm%SpcData )
+
+    ! Get the number of advected, dry-deposited, and wet-deposited species
+    CALL Spc_GetNumSpecies( State_Chm%nAdvect,  &
+                            State_Chm%nDryDep,  &
+                            State_Chm%nWetDep  )
+
+    !=======================================================================
+    ! Now use the molecular weights from the species database and overwrite
+    ! the molecular weight-related fields of the Input_Opt object.  Also
+    ! echo to screen the TRACER MENU quantities that used to be printed
+    ! in routine READ_INPUT_FILE (in GeosCore/input_mod.F).
+    !=======================================================================
+    IF ( am_I_Root ) THEN
+       WRITE( 6,'(/,a)' ) 'TRACER MENU (==> denotes SMVGEAR emitted species)'
+       WRITE( 6,'(  a)' ) REPEAT( '-', 48 )
+       WRITE( 6,'(  a)' ) '  # Tracer          g/mole'
+    ENDIF
+
+    ! Loop over the number of tracers
+    DO N = 1, Input_Opt%N_TRACERS
+
+       ! Get emitted molecular weight from the species database
+       EmMW_g                    = State_Chm%SpcData(N)%Info%EmMW_g
+
+       ! Now use MW from the species database instead of from the
+       ! input.geos file.  This eliminates discrepancies. (bmy, 12/16/15)
+       Input_Opt%TRACER_MW_g(N)  = EmMW_g
+       Input_Opt%TRACER_MW_kg(N) = EmMW_g * 1e-3_fp
+
+       ! Ratio of MW dry air / MW tracer
+       Input_Opt%TCVV(N)         = AIRMW / Input_Opt%TRACER_MW_G(N)
+
+       ! Molecules tracer / kg tracer
+       Input_Opt%XNUMOL(N)       = AVO / Input_Opt%TRACER_MW_KG(N)
+
+       ! Print to screen
+       IF ( am_I_Root ) THEN
+
+          ! Write tracer number, name, & mol wt
+          WRITE( 6, 100 ) Input_Opt%ID_TRACER(N),              &
+                          Input_Opt%TRACER_NAME(N),            &
+                          Input_Opt%TRACER_MW_G(N)
+
+          ! If a family tracer (or just a tracer w/ emission)
+          ! then also print info about species
+          IF ( Input_Opt%TRACER_N_CONST(N) > 1   .or.          &
+               Input_Opt%ID_EMITTED(N) > 0     ) THEN
+
+             ! Loop over member species
+             DO C = 1, Input_Opt%TRACER_N_CONST(N)
+
+                ! Also flag which is the emitted tracer
+                IF ( Input_Opt%ID_EMITTED(N) == C ) THEN
+                   WRITE( 6,110 ) Input_Opt%TRACER_COEFF(N,C), &
+                                  Input_Opt%TRACER_CONST(N,C)
+                ELSE
+                   WRITE( 6,120 ) Input_Opt%TRACER_COEFF(N,C), &
+                                  Input_Opt%TRACER_CONST(N,C)
+                ENDIF
+             ENDDO
+          ENDIF
+       ENDIF
+    ENDDO
+
+    ! Echo output
+    IF ( am_I_Root ) THEN
+       WRITE( 6, '(a  )' ) REPEAT( '=', 79 )
+    ENDIF
+
+    ! Format statement
+100 FORMAT( I3, 1x, A10, 6x, F7.2 )
+110 FORMAT( 5x, '===> ', f4.1, 1x, A6  )
+120 FORMAT( 5x, '---> ', f4.1, 1x, A4  )
 
   END SUBROUTINE Init_GIGC_State_Chm
 !EOC
@@ -484,6 +562,7 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_ErrCode_Mod 
+    USE Species_Database_Mod, ONLY : Cleanup_Species_Database
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -506,6 +585,9 @@ CONTAINS
 !  26 Oct 2012 - R. Yantosca - Now deallocate Strat_P, Strat_k fields
 !  26 Feb 2013 - M. Long     - Now deallocate State_Chm%DEPSAV
 !  11 Dec 2014 - R. Yantosca - Remove TRAC_TEND and DEPSAV fields
+!  28 Aug 2015 - R. Yantosca - Remove stratospheric chemistry fields; 
+!                              these are all now read in via HEMCO
+!  28 Aug 2015 - R. Yantosca - Also initialize the species database object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -533,20 +615,12 @@ CONTAINS
     IF ( ASSOCIATED(State_Chm%JLOP_PREV  ) ) DEALLOCATE(State_Chm%JLOP_PREV  )
 #endif    
 
-    ! NOTE: Comment out for now, leave for future expansion (bmy, 11/26/12)
-    !! Stratospheric chemistry 
-    !IF ( ASSOCIATED(State_Chm%Schm_Id    ) ) DEALLOCATE(State_Chm%Schm_Id    )
-    !IF ( ASSOCIATED(State_Chm%Schm_Name  ) ) DEALLOCATE(State_Chm%Schm_Name  )
-    !IF ( ASSOCIATED(State_Chm%Schm_P     ) ) DEALLOCATE(State_Chm%Schm_P     )
-    !IF ( ASSOCIATED(State_Chm%Schm_k     ) ) DEALLOCATE(State_Chm%Schm_k     )
-    !IF ( ASSOCIATED(State_Chm%Schm_BryId ) ) DEALLOCATE(State_Chm%Schm_BryId )
-    !IF ( ASSOCIATED(State_Chm%Schm_BryNam) ) DEALLOCATE(State_Chm%Schm_BryNam)
-    !IF ( ASSOCIATED(State_Chm%Schm_BryDay) ) DEALLOCATE(State_Chm%Schm_BryDay)
-    !IF ( ASSOCIATED(State_Chm%Schm_BryNit) ) DEALLOCATE(State_Chm%Schm_BryNit)
-
     ! Fields for UCX mechamism
     IF ( ASSOCIATED(State_Chm%STATE_PSC  ) ) DEALLOCATE(State_Chm%STATE_PSC  )
     IF ( ASSOCIATED(State_Chm%KHETI_SLA  ) ) DEALLOCATE(State_Chm%KHETI_SLA  )
+
+    ! Deallocate the species database object field
+    CALL Cleanup_Species_Database( am_I_Root, State_Chm%SpcData, RC )
 
   END SUBROUTINE Cleanup_GIGC_State_Chm
 !EOC

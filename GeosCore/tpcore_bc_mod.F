@@ -483,6 +483,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_NYMD,  GET_NHMS
       USE TIME_MOD,           ONLY : GET_TAU,   TIMESTAMP_STRING
+      USE UNITCONV_MOD
 #if   defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
@@ -515,6 +516,9 @@
 !                              instead of from GeosUtil/file_mod.F
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  17 Feb 2014 - E. Lundgren - Move temporary unit change to vol/vol to within
+!                              this subroutine
+!  13 Aug 2015 - E. Lundgren - Tracer units are now [kg/kg dry air]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -583,7 +587,7 @@
       MODELNAME = GET_MODELNAME()
       TAU       = GET_TAU()
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -797,7 +801,7 @@
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-
+!  13 Aug 2014 - E. Lundgren - Tracer units are now [kg/kg dry air]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -834,7 +838,7 @@
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
 #endif
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -1838,6 +1842,14 @@
          J1_BC_NA = 26                       ! 4x5  lat index, LL corner
          I2_BC_NA = 25                       ! 4x5  lon index, UR corner
          J2_BC_NA = 39                       ! 4x5  lat index, UR corner
+
+#elif defined( MERRA2 )
+         !%%%%% 4x5 BC REGION FOR NORTH AMERICA NESTED GRID (MERRA2)
+         I1_BC_NA = 9                        ! 4x5  lon index, LL corner
+         J1_BC_NA = 26                       ! 4x5  lat index, LL corner
+         I2_BC_NA = 29                       ! 4x5  lon index, UR corner
+         J2_BC_NA = 41                       ! 4x5  lat index, UR corner
+
 #else
          !%%%%% 4x5 BC REGION FOR NORTH AMERICA NESTED GRID %%%%%
          I1_BC_NA = 9                        ! 4x5  lon index, LL corner
@@ -1858,6 +1870,14 @@
          J1_BC_NA = 51                       ! 2x25 lat index, LL corner
          I2_BC_NA = 49                       ! 2x25 lon index, UR corner
          J2_BC_NA = 76                       ! 2x25 lat index, UR corner
+
+#elif defined( MERRA2 )
+         !%%%%% 2x25 BC REGION FOR NORTH AMERICA NESTED GRID (MERRA2)
+         I1_BC_NA = 17                       ! 2x25 lon index, LL corner
+         J1_BC_NA = 51                       ! 2x25 lat index, LL corner
+         I2_BC_NA = 57                       ! 2x25 lon index, UR corner
+         J2_BC_NA = 81                       ! 2x25 lat index, UR corner
+
 #else
          !%%%%% 2x25 BC REGION FOR NORTH AMERICA NESTED GRID %%%%%
          I1_BC_NA = 17                       ! 2x25 lon index, LL corner
@@ -1927,6 +1947,14 @@
          I2_BC_CH = 65                       ! 4x5 lon index, UR corner
          J2_BC_CH = 37                       ! 4x5 lat index, UR corner
 
+#elif defined( MERRA2 )
+         !%%%%% 4x5 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
+         !%%%%% NESTED CHINA GRID (MERRA2 only)        %%%%%
+         I1_BC_CH = 49                       ! 4x5 lon index, LL corner
+         J1_BC_CH = 21                       ! 4x5 lat index, LL corner
+         I2_BC_CH = 67                       ! 4x5 lon index, UR corner
+         J2_BC_CH = 37                       ! 4x5 lat index, UR corner
+
 #else
 
          !%%%%% 4x5 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
@@ -1951,6 +1979,15 @@
          I1_BC_CH = 101                      ! 2x25 lon index, LL corner
          J1_BC_CH = 53                       ! 2x25 lat index, LL corner
          I2_BC_CH = 129                      ! 2x25 lon index, UR corner
+         J2_BC_CH = 74                       ! 2x25 lat index, UR corner
+
+#elif defined( MERRA2 )
+
+         !%%%%% 2x25 BC REGION FOR "GEOS-Chem CLASSIC" %%%%%
+         !%%%%% NESTED CHINA GRID (MERRA2 only)       %%%%%
+         I1_BC_CH = 97                       ! 2x25 lon index, LL corner
+         J1_BC_CH = 41                       ! 2x25 lat index, LL corner
+         I2_BC_CH = 133                      ! 2x25 lon index, UR corner
          J2_BC_CH = 74                       ! 2x25 lat index, UR corner
 
 #else

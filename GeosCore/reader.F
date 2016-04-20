@@ -36,6 +36,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  04 Aug 2015 - M. Long     - Removed ".rc" file specifier. Not necessary.
+!  22 Jan 2016 - R. Yantosca - Line buffer smv2.log file for PGI compiler
 !******************************************************************************
 !
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
@@ -43,8 +44,9 @@
       USE inquireMod, ONLY : findFreeLUN
       USE CMN_SIZE_MOD                       ! Size parameters
       USE COMODE_LOOP_MOD                    ! SMVGEAR II arrays
-      USE CMN_GCTM_MOD                       ! Re, PI
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE PHYSCONSTANTS                      ! Re, PI
+      USE PRECISION_MOD                      ! For GEOS-Chem Precision (fp)
+      USE FILE_MOD,   ONLY : LINE_BUFFER
 
       IMPLICIT NONE
 
@@ -103,7 +105,6 @@
       REAL(fp)              :: ERRMAXS, YLOWS, YHIS, HMAXDAYS
       REAL(fp)              :: ABHI,    ABLO
       CHARACTER(LEN=255)  :: FILENAME
-
 
       NAMELIST /CTLFLG/ IFSOLVE, ITESTGEAR,   
      1                  IFURBAN, IFTROP,  IFSTRAT
@@ -282,6 +283,10 @@
 
          IO93 = IU_SMV2LOG
          OPEN( IO93, FILE='smv2.log', STATUS='UNKNOWN' )
+
+         ! Tell PGI compiler to line-buffer smv2.log, so that 
+         ! we can see the results while GC is running.
+         CALL LINE_BUFFER( IO93 )
 !
 ! *********************************************************************
 ! *                    PRINT INFORMATION FROM m.dat                   *
@@ -337,21 +342,7 @@
             WRITE( IO93, '(a)' )
          ENDIF
       ENDIF
-!
-! *********************************************************************
-! *******             THE VALUES OF BASIC PARAMETERS            *******
-! *********************************************************************
-! BOLTG   = BOLTZMANN"S CONSTANT, 1.381E-16 ERG DEG K**-1 = RGAS / AVG 
-!         = (1 J = 10**7 ERG = 1 N-M = 1 KG M2 S-2)
-! RSTARG  = UNIVERSAL GAS CONSTANT = 8.3145E+07 G CM2 S-2 MOLE-1 K-1
-! AVG     = AVOGADRO"S NUMBER,MOL**-1
-! WTAIR   = MOLECULAR WEIGHT OF AIR; 
-! RGAS    = GAS CONSTANT             (ERG DEG K-1 MOL-1) 
-!           1 ERG = 1 DYNE-CM = 10**-7 J
-!           1 ATM = 1.013 BAR = 10**5 PA. 1PA = 1 N M-2 = 10 DYNES CM-2.
-! SCDAY   = SECONDS PER DAY
-!
-!
+
       NMASBAL     = 9 
       NAMEMB(  1) = 'SULFUR ATOMS'
       NAMEMB(  2) = 'NITROGEN NO3'

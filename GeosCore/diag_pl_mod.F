@@ -606,6 +606,7 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_DIAG_MOD
+      USE PHYSCONSTANTS
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
       USE GIGC_ErrCode_Mod
@@ -707,8 +708,8 @@
             ! Calculate H2SO4 production rate [kg s-1] in each time step 
             ! (win, 8/4/09)
             IF ( IS_PSO4 ) THEN 
-               H2SO4RATE(I,J,L) = State_Chm%Species(I,J,L,IFAM(N)) / 
-     &                            6.022e+23_fp  *
+               H2SO4RATE(I,J,L) = State_Chm%Species(I,J,L,IFAM(N)) /
+     &                            AVO *
      &                            98.e-3_fp * State_Met%AIRVOL(I,J,L) *
      &                            1e+6_fp   / CHEMINTV
             ENDIF

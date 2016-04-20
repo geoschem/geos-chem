@@ -80,7 +80,8 @@ CONTAINS
     Write (6,*) &
          '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
     
-    Write (6,*) '!! ' // Trim (err_msg)
+!    Write (6,*) '!! ' // Trim (err_msg)
+    Write (6,'(a)') '!! ' // Trim (err_msg)
 
     if (err_num_ints == 1) then
        Write (6,*) '!! ', err_int1

@@ -41,6 +41,7 @@ MODULE HCOX_LightNOx_Mod
 !
   USE HCO_Error_Mod
   USE HCO_Diagn_Mod
+  USE HCOX_TOOLS_MOD
   USE HCO_State_Mod,  ONLY : HCO_State
   USE HCOX_State_MOD, ONLY : Ext_State
 
@@ -136,6 +137,8 @@ MODULE HCOX_LightNOx_Mod
 !  26 Feb 2015 - R. Yantosca - Restore reading the lightning CDF's from an
 !                              ASCII file into the PROFILE array.  This helps
 !                              to reduce compilation time.
+!  31 Jul 2015 - C. Keller   - Added option to define scalar/gridded scale 
+!                              factors via HEMCO configuration file. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -172,6 +175,14 @@ MODULE HCOX_LightNOx_Mod
 
   ! OTD scale factors read through configuration file
   REAL(sp), POINTER :: OTDLIS(:,:) => NULL()
+
+  ! Overall scale factor to be applied to lightning NOx emissions. Must
+  ! be defined in the HEMCO configuration file as extension attribute 
+  ! 'Scaling_NO'. 
+  ! SpcScalFldNme is the name of the gridded scale factor. Must be provided
+  ! in the HEMCO configuration file as extension attribute 'ScaleField_NO'.
+  REAL(sp), ALLOCATABLE          :: SpcScalVal(:)
+  CHARACTER(LEN=61), ALLOCATABLE :: SpcScalFldNme(:)
 
 CONTAINS
 !EOC
@@ -327,6 +338,8 @@ CONTAINS
 !  11 Mar 2015 - C. Keller   - Now determine LTOP from buoyancy for grid boxes
 !                              where convection is explicitly resolved. For now,
 !                              this will only work in an ESMF environment.
+!  31 Jul 2015 - C. Keller   - Take into account scalar/gridded scale factors
+!                              defined in HEMCO configuration file.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1047,6 +1060,23 @@ CONTAINS
     ENDDO
 !$OMP END PARALLEL DO
 
+    !-----------------------------------------------------------------
+    ! Eventually add scale factors 
+    !-----------------------------------------------------------------
+
+    ! Eventually apply species specific scale factor
+    IF ( SpcScalVal(1) /= 1.0_sp ) THEN
+       SLBASE = SLBASE * SpcScalVal(1)
+    ENDIF
+
+    ! Eventually apply spatiotemporal scale factors
+    CALL HCOX_SCALE ( am_I_Root, HcoState, SLBASE, TRIM(SpcScalFldNme(1)), RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !-----------------------------------------------------------------
+    ! Eventually add diagnostics 
+    !-----------------------------------------------------------------
+
     ! Eventually add individual diagnostics. These go by names!
     IF ( DoDiagn ) THEN
        DiagnID =  56001
@@ -1527,6 +1557,7 @@ CONTAINS
 !  14 Jan 2015 - L. Murray   - Updated GEOS-FP files through Oct 2014
 !  01 Apr 2015 - R. Yantosca - Cosmetic changes
 !  01 Apr 2015 - R. Yantosca - Bug fix: GRID025x0325 should be GRID025x03125
+!  01 Mar 2016 - L. Murray   - Add preliminary values for MERRA-2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1562,6 +1593,12 @@ CONTAINS
 
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7167603d0
+
+#elif defined( GRID05x0625   ) && defined( NESTED_CH )
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 9.1040315d0
+
+#elif defined( GRID05x0625   ) && defined( NESTED_NA )
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.9683646d0
 
 #endif
 
@@ -1672,6 +1709,49 @@ CONTAINS
        BETA = ANN_AVG_FLASHRATE / 720.10258d0
     ENDIF
 
+#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_NA )
+
+    !------------------------------------------
+    ! MERRA-2: Nested North America simulation
+    !------------------------------------------
+
+    ! Constrained with simulated "climatology" for
+    ! Jan 2009 - Dec 2014. Will need to be updated as more
+    ! met fields become available (ltm, 2016-03-01).
+    BETA = ANN_AVG_FLASHRATE / 256.00370d0
+
+#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_CH )
+
+    !---------------------------------------
+    ! MERRA-2: Nested China simulation
+    !---------------------------------------
+
+    ! Constrained with simulated "climatology" for
+    ! Jan 2009 - Dec 2014. Will need to be updated as more
+    ! met fields become available (ltm, 2016-03-01).
+    BETA = ANN_AVG_FLASHRATE / 1096.5130d0
+    
+#elif defined( MERRA2 ) && defined( GRID2x25 )
+
+    !---------------------------------------
+    ! MERRA2: 2 x 2.5 global simulation
+    !---------------------------------------
+
+    ! To be generated. Force graceful model stop below by
+    ! setting BETA equal to 1.0 here (ltm, 2016-03-01).
+    BETA = 1d0
+
+#elif defined( MERRA2 ) && defined( GRID4x5 )
+
+    !---------------------------------------
+    ! MERRA2: 4 x 5 global simulation
+    !---------------------------------------
+
+    ! Constrained with simulated "climatology" for
+    ! Jan 2009 - Dec 2014. Will need to be updated as more
+    ! met fields become available (ltm, 2016-03-01).
+    BETA = ANN_AVG_FLASHRATE / 99.585661d0
+
 #elif defined( MERRA ) && defined( GRID2x25 )
 
     !---------------------------------------
@@ -1776,9 +1856,14 @@ CONTAINS
        WRITE( *,* ) 'to get lightnox working for you.'
        WRITE( *,* ) ''
        WRITE( *,* ) 'You may remove this trap in lightnox_nox_mod.f'
-       WRITE( *,* ) 'at your own peril, but be aware that the'
-       WRITE( *,* ) 'magnitude and distribution of lightnox may be'
-       WRITE( *,* ) 'unrealistic.'
+       WRITE( *,* ) 'at your own peril, by either commenting out'
+       WRITE( *,* ) 'the call to HCO_ERROR in '
+       WRITE( *,* ) 'HEMCO/Extensions/hcox_lightnox_mod.F90, or by manually'
+       WRITE( *,* ) 'setting BETA in the HEMCO configuration file to a'
+       WRITE( *,* ) ' value other than 1.0 (see below).'
+       WRITE( *,* ) ''
+       WRITE( *,* ) 'However, be aware that the magnitude and distribution'
+       WRITE( *,* )' of lightning NOx may be wildly unrealistic.'
        WRITE( *,* ) ''
        WRITE( *,* ) 'You can explicitly set the beta value in your'
        WRITE( *,* ) 'HEMCO configuration file by adding it to the'
@@ -1818,6 +1903,7 @@ CONTAINS
     USE HCO_Chartools_Mod, ONLY : HCO_CharParse
     USE HCO_ExtList_Mod,   ONLY : GetExtNr
     USE HCO_ExtList_Mod,   ONLY : GetExtOpt
+    USE HCO_ExtList_Mod,   ONLY : GetExtSpcVal
     USE HCO_State_Mod,     ONLY : HCO_GetHcoID
     USE HCO_State_Mod,     ONLY : HCO_GetExtHcoID
     USE HCO_ReadList_Mod,  ONLY : ReadList_Remove
@@ -1906,13 +1992,24 @@ CONTAINS
     ENDIF
     IDTNO = HcoIDs(1)
 
+    ! Get species scale factor
+    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'Scaling', 1.0_sp, SpcScalVal, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'ScaleField', HCOX_NOSCALE, SpcScalFldNme, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! Echo info about this extension
     IF ( am_I_Root ) THEN
        MSG = 'Use lightning NOx emissions (extension module)'
        CALL HCO_MSG( MSG, SEP1='-' )
-       WRITE(MSG,*) 'Use species ', TRIM(SpcNames(1)), '->', IDTNO 
+       WRITE(MSG,*) ' - Use species ', TRIM(SpcNames(1)), '->', IDTNO 
        CALL HCO_MSG(MSG)
-       WRITE(MSG,*) 'Use OTD-LIS factors from file? ', LOTDLOC 
+       WRITE(MSG,*) ' - Use OTD-LIS factors from file? ', LOTDLOC 
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) ' - Use scalar scale factor: ', SpcScalVal(1)
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) ' - Use gridded scale field: ', TRIM(SpcScalFldNme(1))
        CALL HCO_MSG(MSG)
     ENDIF
 
@@ -2051,8 +2148,10 @@ CONTAINS
     ! Free pointer
     OTDLIS => NULL()
 
-    IF ( ALLOCATED( PROFILE ) ) DEALLOCATE( PROFILE )
-    IF ( ALLOCATED( SLBASE  ) ) DEALLOCATE( SLBASE  )
+    IF ( ALLOCATED( PROFILE       ) ) DEALLOCATE ( PROFILE       )
+    IF ( ALLOCATED( SLBASE        ) ) DEALLOCATE ( SLBASE        )
+    IF ( ALLOCATED( SpcScalVal    ) ) DEALLOCATE ( SpcScalVal    )
+    IF ( ALLOCATED( SpcScalFldNme ) ) DEALLOCATE ( SpcScalFldNme )
 
   END SUBROUTINE HCOX_LightNOx_Final
 !EOC

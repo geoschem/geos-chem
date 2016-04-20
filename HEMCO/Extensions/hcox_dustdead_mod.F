@@ -73,6 +73,9 @@
 !  06 Oct 2014 - C. Keller   - Allow mass flux tuning factor be set in
 !                              configuration file.
 !  08 Jul 2015 - M. Sulprizio- Now include dust alkalinity source (tdf 04/10/08)
+!  07 Jan 2016 - E. Lundgren - Change dry air gas constant and molec wt to 
+!                              match main GC and update acc due to gravity and 
+!                              universal gas constant to NIST 2014
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -111,12 +114,12 @@
       REAL(sp), POINTER           :: VAI_DST(:,:) => NULL()
 
       ! Fundamental physical constants
-      REAL*8,  PARAMETER   :: GAS_CST_UNV      = 8.31441d0
+      REAL*8,  PARAMETER   :: GAS_CST_UNV      = 8.3144598d0
       REAL*8,  PARAMETER   :: MMW_H2O          = 1.8015259d-02
-      REAL*8,  PARAMETER   :: MMW_DRY_AIR      = 28.9644d-3
+      REAL*8,  PARAMETER   :: MMW_DRY_AIR      = 28.97d-3
       REAL*8,  PARAMETER   :: CST_VON_KRM      = 0.4d0
-      REAL*8,  PARAMETER   :: GRV_SFC          = 9.80616d0
-      REAL*8,  PARAMETER   :: GAS_CST_DRY_AIR  = 287.05d0
+      REAL*8,  PARAMETER   :: GRV_SFC          = 9.80665d0
+      REAL*8,  PARAMETER   :: GAS_CST_DRY_AIR  = 287.0d0
       REAL*8,  PARAMETER   :: RDS_EARTH        = 6.37122d+6
       REAL*8,  PARAMETER   :: GAS_CST_H2O      = 461.65D0
       REAL*8,  PARAMETER   :: SPC_HEAT_DRY_AIR = 1005.0d0
@@ -259,7 +262,7 @@
 ! !DEFINED PARAMETERS:
 !
 !      REAL*8, PARAMETER      :: Ch_dust = 9.375d-10
-!      REAL*8, PARAMETER      :: g0      = 9.8d0 
+!      REAL*8, PARAMETER      :: g0      = 9.80665d0 
 !      REAL*8, PARAMETER      :: G       = g0 * 1.D2
 !      REAL*8, PARAMETER      :: RHOA    = 1.25D-3
       REAL*8, PARAMETER      :: CP      = 1004.16d0
@@ -5387,47 +5390,7 @@ c Fix up for negative argument, erf, etc.
       !=================================================================
 
       ! Global mass flux tuning factor (a posteriori) [frc]
-#if   defined( GEOS_FP ) && defined( GRID025x03125 )
-
-#if defined(NESTED_CH)  
-
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%%       NOTE: NEED TO SCALE THIS FOR GEOS-FP nested CH!         %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! Copy the 05x0666 scale factors for now
-      ! (skim, 5/20/12)
-      FLX_MSS_FDG_FCT = 3.23d-4
-#elif defined(NESTED_SE)  
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%%       NOTE: NEED TO SCALE THIS FOR GEOS-FP nested SE!         %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! Copy the 05x0666 scale factors for now
-      ! (skim, 5/20/12)
-      FLX_MSS_FDG_FCT = 3.23d-4
-#elif defined(NESTED_NA)
-      !----------------------------------------------------------------
-      ! Based on results from GEOS-FP 0.25x0.3125 NA for 08/2012-08/2013
-      ! compared to 2006 GEOS-5 0.5x0.666 NA
-      !
-      !   (GEOS-FP - GEOS-5)/GEOS-5 * 100 is 80.04% in each size bin.
-      !
-      ! We need to scale to the parameter FLX_MSS_FDG_FCT to make the
-      ! dust emissions consistent. Consequently, to bring GEOS-FP nested
-      ! NA dust emissions down to GEOS-5 nested NA levels, we need use
-      ! a FLX_MSS_FDG_FCT of:
-      !
-      !             1 / (1 + 0.8004) = 0.5554
-      !
-      !             2.16d-4 * 0.5554 = 1.20d-4   ( 2.16d-4 is factor for
-      !                                            GEOS-5 nested NA )
-      !
-      !    -- M. Sulprizio, 15 Jan 2014
-      !----------------------------------------------------------------
-      FLX_MSS_FDG_FCT = 1.20d-4
-#endif
-
-      ! Global mass flux tuning factor (a posteriori) [frc]
-#elif defined( GEOS_5 ) && defined( GRID05x0666 )
+#if defined( GEOS_5 ) && defined( GRID05x0666 )
 
 #if defined(NESTED_CH)  
       ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
@@ -5471,6 +5434,48 @@ c Fix up for negative argument, erf, etc.
       !----------------------------------------------------------------
       FLX_MSS_FDG_FCT = 7.0d-4 / 0.731d0
 
+#elif   defined( GEOS_FP ) && defined( GRID025x03125 )
+
+#if defined(NESTED_CH)
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%       NOTE: NEED TO SCALE THIS FOR GEOS-FP nested CH!         %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! Copy the 05x0666 scale factors for now (skim, 5/20/12)
+      FLX_MSS_FDG_FCT = 3.23d-4
+
+#elif defined(NESTED_SE)
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%       NOTE: NEED TO SCALE THIS FOR GEOS-FP nested SE!         %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! Copy the 05x0666 scale factors for now (skim, 5/20/12)
+      FLX_MSS_FDG_FCT = 3.23d-4
+
+#elif defined(NESTED_NA)
+
+      !----------------------------------------------------------------
+      ! Based on results from GEOS-FP 0.25x0.3125 NA for 08/2012-08/2013
+      ! compared to 2006 GEOS-5 0.5x0.666 NA
+      !
+      !   (GEOS-FP - GEOS-5)/GEOS-5 * 100 is 80.04% in each size bin.
+      !
+      ! We need to scale to the parameter FLX_MSS_FDG_FCT to make the
+      ! dust emissions consistent. Consequently, to bring GEOS-FP nested
+      ! NA dust emissions down to GEOS-5 nested NA levels, we need use
+      ! a FLX_MSS_FDG_FCT of:
+      !
+      !             1 / (1 + 0.8004) = 0.5554
+      !
+      !             2.16d-4 * 0.5554 = 1.20d-4   ( 2.16d-4 is factor for
+      !                                            GEOS-5 nested NA )
+      !
+      !    -- M. Sulprizio, 15 Jan 2014
+      !----------------------------------------------------------------
+      FLX_MSS_FDG_FCT = 1.20d-4
+
+#endif
+
 #elif defined( GEOS_FP ) && defined( GRID2x25 )
 
       !----------------------------------------------------------------
@@ -5506,6 +5511,86 @@ c Fix up for negative argument, erf, etc.
       !    -- R. Yantosca, M. Sulprizio, 06 Jan 2014
       !----------------------------------------------------------------
       FLX_MSS_FDG_FCT = 7.0d-4 * 1.1898d0
+
+#elif defined( MERRA2 ) && defined( GRID05x0625 )
+
+#if defined(NESTED_CH)
+
+      !----------------------------------------------------------------
+      ! Based on results from MERRA2 0.5x0.625 CH for 2011 compared to
+      ! GEOS-5 0.5x0.666 CH for 2011
+      !
+      !   (MERRA2 - GEOS-5)/GEOS-5 * 100 is 5.788% in each size bin.
+      !
+      ! We need to scale to the parameter FLX_MSS_FDG_FCT to make the
+      ! dust emissions consistent. Consequently, to bring MERRA2 nested
+      ! CH dust emissions down to GEOS-5 nested CH levels, we need use
+      ! a FLX_MSS_FDG_FCT of:
+      !
+      !             1 / (1 + 0.05788) = 0.9453
+      !
+      !             3.23d-4 * 0.9453 = 3.05d-4   ( 3.23d-4 is factor for
+      !                                            GEOS-5 nested CH )
+      !
+      ! NOTE: The MERRA2 0.5x0.625 CH grid extends further west (to 60E)
+      ! than the GEOS-5 0.5x0.666 CH grid (to 70E). For this calculation,
+      ! any dust emissions in the 60E-70E band in the MERRA2 CH output
+      ! were ignored.
+      !
+      !    -- M. Sulprizio, 22 Feb 2016
+      !----------------------------------------------------------------
+      FLX_MSS_FDG_FCT = 3.05d-4
+
+#elif defined(NESTED_NA)
+
+      !----------------------------------------------------------------
+      ! Based on results from MERRA2 0.5x0.625 NA for 2012 compared to
+      ! GEOS-5 0.5x0.666 CH for 2012
+      !
+      !   (MERRA2 - GEOS-5)/GEOS-5 * 100 is 25.02% in each size bin.
+      !
+      ! We need to scale to the parameter FLX_MSS_FDG_FCT to make the
+      ! dust emissions consistent. Consequently, to bring MERRA2 nested
+      ! NA dust emissions down to GEOS-5 nested NA levels, we need use
+      ! a FLX_MSS_FDG_FCT of:
+      !
+      !             1 / (1 + 0.2502) = 0.7999
+      !
+      !             2.16d-4 * 0.7999 = 1.73d-4   ( 2.16d-4 is factor for
+      !                                            GEOS-5 nested NA )
+      !
+      !    -- M. Sulprizio, 22 Feb 2016
+      !----------------------------------------------------------------
+      FLX_MSS_FDG_FCT = 1.73d-4
+
+#endif
+
+#elif defined( MERRA2 ) && defined( GRID2x25 )
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: RETUNING FOR MERRA2 2x25 IS NEEDED ONCE MET IS AVAILABLE %%%
+      !%%%       Add placeholder value for now (bmy, 8/12/15)             %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! Use GEOS-5 value for now (mps, 1/6/16)
+      FLX_MSS_FDG_FCT = 4.9d-4
+
+#elif defined( MERRA2 ) && defined( GRID4x5 )
+
+      !----------------------------------------------------------------
+      ! Based on results from MERRA2 4x5 for 2012
+      !
+      !   (MERRA2 - GEOS-5)/GEOS-5 * 100 is -10.86% in each size bin.
+      !
+      ! We need to scale to the parameter FLX_MSS_FDG_FCT to make the
+      ! dust emissions consistent.  Consequently, to bring 2012 MERRA2
+      ! dust emissions up to 2012 GEOS-5 levels, we need to MULTIPLY the
+      ! FLX_MSS_FDG_FCT used for GEOS-5 by:
+      !
+      !             1 / (1. - 0.1086) = 1 / 0.8913 = 1.1219
+      !
+      !    -- M. Sulprizio, 12 Feb 2016
+      !----------------------------------------------------------------
+      FLX_MSS_FDG_FCT = 7.0d-4 * 1.1219d0
 
 #else
 

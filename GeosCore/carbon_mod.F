@@ -16,8 +16,9 @@
 !
 ! !USES:
 !
-      USE HCO_ERROR_MOD    ! For HEMCO error reporting
-      USE PRECISION_MOD   ! For GEOS-Chem Precisions (fp, f4, f8)
+      USE PHYSCONSTANTS
+      USE HCO_ERROR_MOD                    ! For HEMCO error reporting
+      USE PRECISION_MOD                    ! For GEOS-Chem Precisions
 
       IMPLICIT NONE
       PRIVATE
@@ -196,6 +197,9 @@
 !  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  13 Nov 2014 - C. Keller   - Added EMISSCARBON to make sure that SESQ and POA
 !                              emissions are properly passed from HEMCO.
+!  05 Jan 2016 - E. Lundgren - Use global physical parameters (AIRMW and AVO)
+!  14 Jan 2016 - M. Sulprizio- POAEMISS(:,:,:,1) now represents POG1 and
+!                              POAEMISS(:,:,:,2) now represents POG2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -204,7 +208,7 @@
 !
 !
       ! Molecules OH  per kg OH [molec/kg]
-      REAL(fp), PARAMETER   :: XNUMOL_OH  = 6.022e+23_fp / 17e-3_fp
+      REAL(fp), PARAMETER   :: XNUMOL_OH  = AVO / 17e-3_fp
       REAL(fp), PARAMETER   :: CM3PERM3   = 1.e+6_fp
 
       ! OM/OC for POA (hotp 7/26/10)
@@ -254,24 +258,6 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL               :: USE_BOND_BIOBURN = .FALSE.
-      INTEGER               :: DRYBCPI, DRYOCPI, DRYBCPO, DRYOCPO
-      ! SOAupdate: update dry deposited species (hotp 5/20/10)
-      INTEGER               :: DRYPOA1,  DRYPOA2,  DRYPOG1,  DRYPOG2
-      INTEGER               :: DRYOPOA1, DRYOPOA2, DRYOPOG1, DRYOPOG2
-      INTEGER               :: DRYMTPA,  DRYLIMO,  DRYMTPO
-      INTEGER               :: DRYTSOA1, DRYTSOG1
-      INTEGER               :: DRYTSOA2, DRYTSOG2
-      INTEGER               :: DRYTSOA3, DRYTSOG3
-      INTEGER               :: DRYTSOA0, DRYTSOG0
-      INTEGER               :: DRYISOA1, DRYISOG1
-      INTEGER               :: DRYISOA2, DRYISOG2
-      INTEGER               :: DRYISOA3, DRYISOG3
-      INTEGER               :: DRYASOAN
-      INTEGER               :: DRYASOA1, DRYASOG1
-      INTEGER               :: DRYASOA2, DRYASOG2
-      INTEGER               :: DRYASOA3, DRYASOG3
-      INTEGER               :: DRYSOAG,  DRYSOAM
       INTEGER               :: I1_NA,    J1_NA
       INTEGER               :: I2_NA,    J2_NA
       ! Rate constant for RO2+NO and RO2+HO2
@@ -337,7 +323,6 @@
       REAL(fp), SAVE, ALLOCATABLE :: BETANOSAVE(:,:,:)
 
       ! semivolpoa2: array for POA emissions (hotp 2/27/09)
-      ! semivolpoa3: separate BB,BF from anth (hotp 3/13/09)
       REAL(fp), SAVE, ALLOCATABLE :: POAEMISS(:,:,:,:)
 
       ! Array for initial OA+OG (hotp 5/17/10)
@@ -392,26 +377,8 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACERID_MOD,       ONLY : IDTBCPI,  IDTBCPO
-      USE TRACERID_MOD,       ONLY : IDTOCPI,  IDTOCPO
-      USE TRACERID_MOD,       ONLY : IDTSOAG,  IDTSOAM
-      ! Add lumped arom/IVOC (hotp 5/14/10)
-      USE TRACERID_MOD,       ONLY : IDTASOAN
-      USE TRACERID_MOD,       ONLY : IDTASOA1, IDTASOG1
-      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOG2
-      USE TRACERID_MOD,       ONLY : IDTASOA3, IDTASOG3
-      ! 1 and 2 POA (hotp 10/11/09)
-      USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTOPOA1
-      USE TRACERID_MOD,       ONLY : IDTPOA2,  IDTOPOA2
-      USE TRACERID_MOD,       ONLY : IDTPOG1,  IDTOPOG1
-      USE TRACERID_MOD,       ONLY : IDTPOG2,  IDTOPOG2
-      ! need isoprene semivols for offline sim (hotp 5/20/10)
-      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOG1
-      USE TRACERID_MOD,       ONLY : IDTISOA2, IDTISOG2
-      USE TRACERID_MOD,       ONLY : IDTISOA3, IDTISOG3
+      USE TRACERID_MOD
 #if   defined( TOMAS )
-      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1          !(win, 1/25/10)
-      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1  !(win, 1/25/10)
       USE TOMAS_MOD,          ONLY : IBINS                       !(win, 1/25/10)
 #endif
 !
@@ -577,50 +544,6 @@
 
          ! Reset first-time flag
          FIRSTCHEM = .FALSE.
-
-         ! Debug info (hotp 5/17/10)
-         !IF ( prtDebug ) THEN
-         !   print*,'The following species have been identified'
-         !   print*,'as dry dep species in CHEMCARBON (carbon_mod.f)'
-         !   print*, 'ASOAN ', DEPNAME(DRYASOAN)
-         !   print*, 'ASOA1 ', DEPNAME(DRYASOA1)
-         !   print*, 'ASOA2 ', DEPNAME(DRYASOA2)
-         !   print*, 'ASOA3 ', DEPNAME(DRYASOA3)
-         !   print*, 'ASOG1 ', DEPNAME(DRYASOG1)
-         !   print*, 'ASOG2 ', DEPNAME(DRYASOG2)
-         !   print*, 'ASOG3 ', DEPNAME(DRYASOG3)
-         !   IF ( IDTPOA1 > 0 ) THEN
-         !      print*, 'POA1  ', DEPNAME(DRYPOA1)
-         !      print*, 'POA2  ', DEPNAME(DRYPOA2)
-         !      print*, 'POG1  ', DEPNAME(DRYPOG1)
-         !      print*, 'POG2  ', DEPNAME(DRYPOG2)
-         !      print*, 'OPOA1 ', DEPNAME(DRYOPOA1)
-         !      print*, 'OPOA2 ', DEPNAME(DRYOPOA2)
-         !      print*, 'OPOG1 ', DEPNAME(DRYOPOG1)
-         !      print*, 'OPOG2 ', DEPNAME(DRYOPOG2)
-         !   ENDIF
-         !   ! isoprene semivols (hotp 5/20/10)
-         !   print*, 'ISOA1 ', DEPNAME(DRYISOA1)
-         !   print*, 'ISOA2 ', DEPNAME(DRYISOA2)
-         !   print*, 'ISOA3 ', DEPNAME(DRYISOA3)
-         !   print*, 'ISOG1 ', DEPNAME(DRYISOG1)
-         !   print*, 'ISOG2 ', DEPNAME(DRYISOG2)
-         !   print*, 'ISOG3 ', DEPNAME(DRYISOG3)
-         !   ! mono+sesq semivols (hotp 5/20/10)
-         !   print*, 'TSOA1 ', DEPNAME(DRYTSOA1)
-         !   print*, 'TSOA2 ', DEPNAME(DRYTSOA2)
-         !   print*, 'TSOA3 ', DEPNAME(DRYTSOA3)
-         !   print*, 'TSOA0 ', DEPNAME(DRYTSOA0)
-         !   print*, 'TSOG1 ', DEPNAME(DRYTSOG1)
-         !   print*, 'TSOG2 ', DEPNAME(DRYTSOG2)
-         !   print*, 'TSOG3 ', DEPNAME(DRYTSOG3)
-         !   print*, 'TSOG0 ', DEPNAME(DRYTSOG0)
-         !   ! gas precursors (hotp 5/20/10)
-         !   print*, 'MTPA  ', DEPNAME(DRYMTPA) 
-         !   print*, 'LIMO  ', DEPNAME(DRYLIMO) 
-         !   print*, 'MTPO  ', DEPNAME(DRYMTPO) 
-         !ENDIF
-
       ENDIF
 
       !=================================================================
@@ -816,6 +739,7 @@
 !  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
 !  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
 !                              so we can greatly collapse this code
+!  23 Sep 2015 - R. Yantosca - Remove reference to DRYBCPO, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -835,7 +759,7 @@
       !=================================================================
 
       ! Return if BCPO isn't defined
-      IF ( IDTBCPO == 0 .or. DRYBCPO == 0 ) RETURN
+      IF ( IDTBCPO == 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -954,6 +878,7 @@
 !  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
 !  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
 !                              so we can greatly collapse this code
+!  23 Sep 2015 - R. Yantosca - Remove reference to DRYBCPI, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -969,7 +894,7 @@
       !=================================================================
 
       ! Return if BCPI isn't defined
-      IF ( IDTBCPI == 0 .or. DRYBCPI == 0 ) RETURN
+      IF ( IDTBCPI == 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -1062,6 +987,7 @@
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
 !  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
+!  23 Sep 2015 - R. Yantosca - Remove reference to DRYOCPO, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1081,7 +1007,7 @@
       !=================================================================
 
       ! Return if OCPO isn't defined
-      IF ( IDTOCPO == 0 .or. DRYOCPO == 0 ) RETURN
+      IF ( IDTOCPO == 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -1200,6 +1126,7 @@
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
 !  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
+!  23 Sep 2015 - R. Yantosca - Remove reference to DRYOCPI, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1213,7 +1140,7 @@
       !=================================================================
       ! CHEM_OCPI begins here!
       !=================================================================
-      IF ( IDTOCPI == 0 .or. DRYOCPI == 0 ) RETURN
+      IF ( IDTOCPI == 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -1290,8 +1217,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                :: I, J, L, K
-      REAL(fp)                 :: DTCHEM
-      REAL(fp),  PARAMETER     :: TAU_HYDRO = 1.15e+0_fp  ! [=]day
+      REAL(fp)               :: DTCHEM
+      REAL(fp),  PARAMETER   :: TAU_HYDRO = 1.15e+0_fp  ! [=]day
 
       !=================================================================
       ! AGING_CARB begins here!
@@ -1408,8 +1335,6 @@
       REAL(fp) :: XSQMW       ! Square root of molecular weight [g/mole]
       REAL(fp) :: CRITRH      ! Critical RH [%], above which 
                               !  heteorogeneous chem takes place
-      REAL(fp) :: XNAVO       ! Avogadro number
-
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
@@ -1435,9 +1360,6 @@
 
       ! Critical RH, above which heteorogeneous chem takes place
       CRITRH = 35.0e+0_fp   ! [%]
-
-      ! Avogadro number
-      XNAVO = 6.022e+23_fp
 
       ! Uptake coefficient from Liggio et al. [2005b]
       XGAMMA = 2.9e-3_fp
@@ -1481,7 +1403,7 @@
             XGASM   = STT( I, J, L, IDTGLYX )
 
             ! Get gas concentration at grid box [molec/cm3]
-            XGASC   = XGASM / (XMW*1.e-3_fp) * XNAVO / (XAIRM3*1.e+6_fp)
+            XGASC   = XGASM / (XMW*1.e-3_fp) * AVO / (XAIRM3*1.e+6_fp)
 
             !---------------------------------------
             ! Gas phase diffusion coeff [cm2/s]           
@@ -1526,7 +1448,7 @@
                      !---------------------------------------
                      XUPTK0 = XARSL1K * XGASC * DTCHEM
                      XUPTK1 = XUPTK0 /
-     &                        XNAVO*(XMW*1.e-3_fp)*(XAIRM3*1.e+6_fp)
+     &                        AVO*(XMW*1.e-3_fp)*(XAIRM3*1.e+6_fp)
                      XUPTKSUM = XUPTKSUM + XUPTK1
 
 	            ENDIF
@@ -1656,7 +1578,6 @@
       REAL(fp) :: XSQMW       ! Square root of molecular weight [g/mole]
       REAL(fp) :: CRITRH      ! Critical RH [%], above which 
                               !  heteorogeneous chem takes place
-      REAL(fp) :: XNAVO       ! Avogadro number
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -1683,9 +1604,6 @@
 
       ! Critical RH, above which heteorogeneous chem takes place
       CRITRH = 35.0e+0_fp   ! [%]
-
-      ! Avogadro number
-      XNAVO = 6.022e+23_fp
 
       ! Uptake coefficient from Liggio et al. [2005b]
       XGAMMA = 2.9e-3_fp
@@ -1729,7 +1647,7 @@
             XGASM   = STT( I, J, L, IDTMGLY )
 
             ! Get gas concentration at grid box [molec/cm3]
-            XGASC   = XGASM / (XMW*1.e-3_fp) * XNAVO / (XAIRM3*1.e+6_fp)
+            XGASC   = XGASM / (XMW*1.e-3_fp) * AVO / (XAIRM3*1.e+6_fp)
 
             !---------------------------------------
             ! Gas phase diffusion coeff [cm2/s]           
@@ -1774,7 +1692,7 @@
                      !---------------------------------------
                      XUPTK0 = XARSL1K * XGASC * DTCHEM
                      XUPTK1 = XUPTK0 /
-     &                        XNAVO*(XMW*1.e-3_fp)*(XAIRM3*1.e+6_fp)
+     &                        AVO*(XMW*1.e-3_fp)*(XAIRM3*1.e+6_fp)
                      XUPTKSUM = XUPTKSUM + XUPTK1
 
 	            ENDIF
@@ -1842,29 +1760,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM,      GET_MONTH
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_BPCH
-      ! new mtp formulation (hotp 5/20/10)
-      USE TRACERID_MOD,       ONLY : IDTOCPI,  IDTOCPO
-      USE TRACERID_MOD,       ONLY : IDTMTPA,  IDTLIMO, IDTMTPO
-      ! mono+sesq products
-      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOG1
-      USE TRACERID_MOD,       ONLY : IDTTSOA2, IDTTSOG2
-      USE TRACERID_MOD,       ONLY : IDTTSOA3, IDTTSOG3
-      USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
-      ! isoprene products
-      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOG1
-      USE TRACERID_MOD,       ONLY : IDTISOA2, IDTISOG2
-      USE TRACERID_MOD,       ONLY : IDTISOA3, IDTISOG3
-      ! semivolpoa: add POA (hotp 2/26/09)
-      USE TRACERID_MOD,       ONLY : IDTPOA1,IDTPOA2
-      USE TRACERID_MOD,       ONLY : IDTPOG1, IDTPOG2
-      ! semivolpoa4opoa: add OPOA, OPOG (hotp 3/18/09)
-      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOG1
-      USE TRACERID_MOD,       ONLY : IDTOPOA2, IDTOPOG2
-      ! lumped arom/IVOC (hotp 5/14/10)
-      USE TRACERID_MOD,       ONLY : IDTASOAN
-      USE TRACERID_MOD,       ONLY : IDTASOA1, IDTASOG1
-      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOG2
-      USE TRACERID_MOD,       ONLY : IDTASOA3, IDTASOG3
+      USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -1892,9 +1788,9 @@
 !                                                                             .
 !  As of 5/20/10: Havala's New formulation
 !                                                                             .
-!  ==========================================
-!  FOR SEMIVOLATILE POA and IVOC simulations:
-!  ==========================================
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  % FOR SEMIVOLATILE POA and IVOC (aka SOA_SVPOA) simulations:      %
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  GEOS-Chem treats formation of aerosol from 11 parent hydrocarbons
 !  and oxidation by OH, O3, and NO3:
 !                                                                             .
@@ -1935,9 +1831,9 @@
 !                                                                             .
 !  The following should NOT be defined for semivol POA: OCPI, OCPO
 !                                                                             .
-!  ============================================================
-!  FOR NON-VOLATILE TRADITIONAL POA (and no IVOCs) simulations:
-!  ============================================================
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  % FOR NON-VOLATILE TRADITIONAL POA (aka SOA) simulations:         %
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  GEOS-Chem treats formation of aerosol from 8 parent hydrocarbons
 !  and oxidation by OH, O3, and NO3:
 !                                                                             .
@@ -2146,7 +2042,7 @@
          print*, 'species   ','global sum   ', 
      &              'box 20,33,2   ', 'box 20,33,10    '
 
-         IF ( IDTPOA1 > 0 ) THEN
+         IF ( Input_Opt%LSVPOA ) THEN
             print*,'POA1', SUM(STT(:,:,:,IDTPOA1))
             print*,'POA2', SUM(STT(:,:,:,IDTPOA2))
             print*,'POG1', SUM(STT(:,:,:,IDTPOG1))
@@ -2157,16 +2053,16 @@
             print*,'OPOG2',SUM(STT(:,:,:,IDTOPOG2))
          ENDIF
 
-         ! semivolpoa3: separate BB,BF from anth (hotp 3/13/09)
-         print*, 'POAEMISS,1,BB,BF',
+         ! semivolpoa3: debug POAEMISS
+         print*, 'POAEMISS,1,POG1',
      &                 SUM(POAEMISS(:,:,:,1)),POAEMISS(20,33,2,1),
      &                     POAEMISS(20,33,10,1)
-         print*, 'POAEMISS,2,ANTH',
+         print*, 'POAEMISS,2,POG2',
      &                 SUM(POAEMISS(:,:,:,2)),POAEMISS(20,33,2,2),
      &                     POAEMISS(20,33,10,2)
-      
+
          ! 10/12/09 debug
-         IF ( IDTPOA1 > 0 ) THEN
+         IF ( Input_Opt%LSVPOA ) THEN
             print*,'POAG tot', SUM(STT(:,:,:,IDTPOA1))+
      &                         SUM(STT(:,:,:,IDTPOA2))+
      &                         SUM(STT(:,:,:,IDTPOG1))+
@@ -2262,9 +2158,9 @@
             ENDDO          
          ENDIF
 
-         ! Convert from [ugC/m3] to [ug/m3]
          ! semivolpoa4opoa: add OPOA mass (hotp 3/18/09)
          ! Check to make sure OPOA is defined (hotp 8/24/09)
+         ! Convert from [ugC/m3] to [ug/m3]
          IF ( IDTOPOA1 > 0 ) THEN
             JHC = PARENTOPOA
             JSV = IDSV(JHC)
@@ -2463,7 +2359,7 @@
       !### Now only print when ND70 is turned on (bmy, 4/21/10)
       IF ( prtDebug ) THEN
 
-         IF ( IDTPOA1 > 0 ) THEN
+         IF ( Input_Opt%LSVPOA ) THEN
             ! 10/12/09 debug            
             print*,'POAG tot', SUM(STT(:,:,:,IDTPOA1))+
      &                         SUM(STT(:,:,:,IDTPOA2))+
@@ -2516,7 +2412,7 @@
          print*, 'species   ','global sum   ', 
      &           'box 20,33,2   ', 'box 20,33,10    '
 
-         IF ( IDTPOA1 > 0 ) THEN
+         IF ( Input_Opt%LSVPOA ) THEN
             print*,'POA1 ', SUM(STT(:,:,:,IDTPOA1))
             print*,'POA2 ', SUM(STT(:,:,:,IDTPOA2))
             print*,'POG1 ', SUM(STT(:,:,:,IDTPOG1))
@@ -2535,7 +2431,7 @@
          print*, 'POGRXN p1', SUM(GLOB_POGRXN(:,:,:,1))
          print*, 'POGRXN p2', SUM(GLOB_POGRXN(:,:,:,2))
 
-         ! semivolpoa3: separate BB,BF from anth (hotp 3/13/09)
+         ! semivolpoa3: POG1 + POG2
          print*, 'POAEMISS tot',
      &              SUM(POAEMISS(:,:,:,:)),
      &              POAEMISS(20,33,2,1)+POAEMISS(20,33,2,2),
@@ -3700,16 +3596,13 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      ! semivolpoa4: oxidation diagnostic for POG (hotp 3/28/09)
       USE DIAG_MOD,           ONLY : AD07_HC
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
-      ! new mtp (hotp 5/34/10)
-      USE TRACERID_MOD,       ONLY : IDTMTPA, IDTLIMO, IDTMTPO
-      USE TRACERID_MOD,       ONLY : IDTNAP,  IDTPOA1
+      USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3738,6 +3631,20 @@
 !
       INTEGER,        INTENT(OUT)   :: RC            ! Success or failure?
 ! 
+! !REMARKS:
+!  SVOCs should immediately partition upon emission
+!  SVOCs also react in the gas-phase
+!  If SVOCs were emitted before reactions, we wouldn't know how
+!  much to put in each phase
+!  H.O.T. Pye decided to emit them after the existing SVOCs
+!  react in the gas-phase. Thus the order of operations is:
+!    SVOC + OH in gas-phase
+!    SVOC emission (added to gas-phase GM0)
+!    partitioning
+!    dry dep
+!    wet dep
+!    etc
+!
 ! !REVISION HISTORY:
 !  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
@@ -3997,6 +3904,7 @@
          ELSEIF ( JHC == PARENTPOA ) THEN
 
              ! semivolpoa4opoa: DO NOTHING NOW
+             !
              ! SVOCs should immediately partition upon emission
              ! SVOCs also react in the gas-phase
              ! If SVOCs were emitted here, how would you know how
@@ -4010,12 +3918,11 @@
              ! dry dep
              ! wet dep
              ! etc
-              
+             !
              ! DO IPR = 1, NPROD(JHC)
              ! DO NOX =1, NNOX(JHC)
              !    ! DELHC is now emission of POA
-             !    ! semivolpoa3: separate BB,BF from anth (hotp 3/13/09)
-             !    !DELHC(IPR) = POAEMISS(I,J,L) ! DELHC not a function of IPR
+             !    DELHC(IPR) = POAEMISS(I,J,L) ! DELHC not a function of IPR
              !    DELHC(IPR) = POAEMISS(I,J,L,NOX) 
              !    GM0(NOX,IPR,JHC) = GM0(NOX,IPR,JHC) 
              ! &                     + ALPHA(NOX,IPR,JHC)*DELHC(IPR)
@@ -4077,8 +3984,9 @@
 
       ENDDO  ! JHC                  
 
+      ! semivolpoa4opoa: emit POA last (after OPOA formation) (hotp 3/18/09)
+      ! SVOC emissions are added to gas-phase GM0
       IF ( IDTPOA1 > 0 ) THEN
-         ! semivolpoa4opoa: emit POA last (after OPOA formation) (hotp 3/18/09)
          JHC = PARENTPOA
    
          ! Use IDSV (hotp 5/14/10)
@@ -4086,9 +3994,8 @@
    
          DO IPR = 1, NPROD(JSV)
          DO NOX = 1, NNOX(JSV)   ! update dims (hotp 5/22/10)
-            ! DELHC is now emission of POA
-            ! semivolpoa3: separate BB,BF from anth (hotp 3/13/09)
-            DELHC(IPR) = POAEMISS(I,J,L,1) + POAEMISS(I,J,L,2)
+            ! DELHC is now emission of SVOC (POG1 + POG2)
+            DELHC(IPR)   = POAEMISS(I,J,L,1) + POAEMISS(I,J,L,2) 
             GM0(IPR,JSV) = GM0(IPR,JSV) 
      &                   + ALPHA(NOX,IPR,JHC)*DELHC(IPR)
    
@@ -4141,22 +4048,7 @@
 !
       USE CMN_SIZE_MOD
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      ! new mtp (hotp 5/24/10)
-      USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
-      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
-      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      ! semivolpoa2: add POG, POA (hotp 3/2/09)
-      USE TRACERID_MOD,       ONLY : IDTPOA1, IDTPOG1
-      USE TRACERID_MOD,       ONLY : IDTPOA2, IDTPOG2
-      ! semivolpoa4: add OPOA, OPOG (hotp 3/27/09)
-      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOG1
-      USE TRACERID_MOD,       ONLY : IDTOPOA2, IDTOPOG2
-      ! Lumped aromatic/IVOC tracers (hotp 5/13/10)
-      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
-      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
-      USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+      USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4264,7 +4156,8 @@
       ! POA-Primary SVOCs (hotp 5/13/10)
       JHC = PARENTPOA
       JSV = IDSV(JHC)
-      IF ( IDTPOA1 > 0 ) THEN ! (hotp 8/24/09)
+      IF ( IDTPOA1 > 0 .and. IDTPOA2 > 0 .and.
+     &     IDTPOG1 > 0 .and. IDTPOG2 > 0 ) THEN
          ! gas phase
          GM0(1,JSV) = STT(I,J,L,IDTPOG1)
          GM0(2,JSV) = STT(I,J,L,IDTPOG2)
@@ -4279,7 +4172,8 @@
       ! OPOA-Oxidized SVOCs (hotp 5/13/10)
       JHC = PARENTOPOA
       JSV = IDSV(JHC)
-      IF ( IDTOPOA1 > 0 ) THEN ! (hotp 8/24/09)
+      IF ( IDTOPOA1 > 0 .and. IDTOPOA2 > 0 .and.
+     &     IDTOPOG1 > 0 .and. IDTOPOG2 > 0 ) THEN
          ! gas phase
          GM0(1,JSV) = STT(I,J,L,IDTOPOG1)
          GM0(2,JSV) = STT(I,J,L,IDTOPOG2)
@@ -4314,22 +4208,7 @@
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07_HC 
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      ! new mtp (hotp 5/24/10)
-      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
-      USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
-      ! semivolpoa2: add POA,POG (hotp 3/2/09)
-      USE TRACERID_MOD,       ONLY : IDTPOA1, IDTPOG1
-      USE TRACERID_MOD,       ONLY : IDTPOA2, IDTPOG2
-      ! semivolpoa4: add OPOA, OPOG (hotp 3/27/09)
-      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOG1
-      USE TRACERID_MOD,       ONLY : IDTOPOA2, IDTOPOG2
-      ! Lumped aromatic/IVOC aerosol (hotp 5/13/10)
-      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
-      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
-      USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+      USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4651,8 +4530,8 @@
       ! Lump of products of 10th Hydrocarbon class (POA) 
       ! semivolpoa2: lump POA (hotp 2/27/09)
       !=================================================================
-
-      IF ( IDTPOA1 > 0 ) THEN ! (hotp 8/24/09)
+      IF ( IDTPOA1 > 0 .and. IDTPOA2 > 0 .and.
+     &     IDTPOG1 > 0 .and. IDTPOG2 > 0 ) THEN
  
          ! Initialize
          !JHC     = 10
@@ -4719,8 +4598,8 @@
       ! Lump of products of 11th Hydrocarbon class (OPOA) 
       ! semivolpoa4opoa: lump OPOA (hotp 2/27/09)
       !=================================================================
-
-      IF ( IDTOPOA1 > 0 ) THEN ! (hotp 8/24/09)
+      IF ( IDTOPOA1 > 0 .and. IDTOPOA2 > 0 .and.
+     &     IDTOPOG1 > 0 .and. IDTOPOG2 > 0 ) THEN
  
          ! Initialize
          GASMASS = 0e+0_fp
@@ -4956,9 +4835,12 @@
       TSCALE = 2.*3600.    
 #elif defined( GRID05x0666 ) 
       TSCALE = 1.*3600.
+#elif defined( GRID05x0625 )
+      ! Copy the 05x0666 timescale for now
+      TSCALE = 1.*3600.
+#elif defined( GRID025x03125 )
       ! Copy the 05x0666 timescale for now
       ! (skim, 5/20/12)
-#elif defined( GRID025x03125 )
       TSCALE = 1.*3600.
 #endif
         !Prior to 10/28/08 (win)     
@@ -5273,48 +5155,30 @@ ccc
 ! !IROUTINE: emisscarbon 
 !
 ! !DESCRIPTION: Subroutine EMISSCARBON is the emissions routine for the carbon 
-! module. All carbon emissions, incl. SESQ and POA, are calculated through 
-! HEMCO and this module simply makes sure that the SESQ and POA emissions (if
+! module. All carbon emissions, incl. SESQ and SVOC, are calculated through 
+! HEMCO and this module simply makes sure that the SESQ and SVOC emissions (if
 ! defined) are properly passed to the internal arrays. 
-!\\
-!\\
-! POA emissions are expected to be fully calculated by HEMCO, e.g. its emissions
-! need be specified in the HEMCO configuration file. In the original code, the
-! emissions were calculated by scaling anthropogenic, biofuel and biomass burning
-! OC emissions. The same behavior can be achieved in HEMCO by assigning the desired
-! POA tracer name to the given source type, e.g.:
-!
-!0 BOND\_ANTH .../Bond\_fossil.nc OC 2000/1-12/1/0 C xy kg/m2/s POA1 70/300 1 1
-!
-! It is assumed here that emissions that shall go into array POAEMISS(:,:,:,1) 
-! represent tracer POA1 and POAEMISS(:,:,:,2) represent tracer POG1.
-!\\
-!\\
-! IMPORTANT: the POA emissions scale factor should be applied through HEMCO. In
-! the example above, scale factor 300 represents the scale POA scale factor. The
-! same scale factor should also be applied to the biomass burning extensions.
 !\\
 !\\
 ! !INTERFACE:
 !
       SUBROUTINE EMISSCARBON( am_I_Root, Input_Opt, 
-     &                        State_Met, State_Chm, RC )
+     &                        State_Met, RC )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-      USE GIGC_State_Chm_Mod,    ONLY : ChmState
       USE GIGC_State_Met_Mod,    ONLY : MetState
-      USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR
-      USE TRACERID_MOD,          ONLY : IDTPOA1, IDTPOG1
-      USE PBL_MIX_MOD,           ONLY : GET_PBL_MAX_L
-      USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL
       USE GRID_MOD,              ONLY : GET_AREA_M2
-      USE TIME_MOD,              ONLY : GET_TS_EMIS
       USE HCOI_GC_MAIN_MOD,      ONLY : GetHcoState, GetHcoID, GetHcoVal
       USE HCO_STATE_MOD,         ONLY : HCO_STATE
       USE HCO_ERROR_MOD
+      USE PBL_MIX_MOD,           ONLY : GET_PBL_MAX_L
+      USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL
+      USE TIME_MOD,              ONLY : GET_TS_EMIS
+      USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS:
 !      
@@ -5324,11 +5188,37 @@ ccc
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState),  INTENT(INOUT)  :: State_Chm   ! Chemistry State object
       INTEGER,         INTENT(INOUT)  :: RC          ! Failure?
+!
+! !REMARKS:
+! SVOC emissions are expected to be fully calculated by HEMCO, i.e. its
+! emissions need be specified in the HEMCO configuration file. In the original
+! code, the emissions were calculated by scaling anthropogenic, biofuel and
+! biomass burning OC emissions. The same behavior can be achieved in HEMCO
+! by assigning the desired SVOC tracer name to the given source type, e.g.:
+!
+! 0 BOND\_ANTH\_POG1 Bond\_fossil.nc OC 2000/1-12/1/0 C xy kg/m2/s POG1 74 1 1
+!
+! All POG1 emissions (anthropogenic + biofuel + biomass burning) will go into
+! POAEMISS(:,:,:,1) and all POG2 emissions will go into POAEMISS(:,:,:,2). SVOC
+! emissions are assigned to POG1 and POG2 in HEMCO using a ratio of 0.49:0.51.
+! We no longer separate anthropogenic from biofuel and biomass burning since
+! this appears to have been done only for debugging purposes. Routine CHEM_NVOC
+! handles passing POAEMISS to the two gas-phase semivolatile species in the
+! GM0 array.
+!
+! IMPORTANT: The SVOC emissions scale factor should be applied through HEMCO.
+! In the example above, scale factor 74 represents the scale factor POGSCAL.
+! The SCALING_POG1 scale factor is applied to the GFED biomass burning
+! extensions. The two scale factors should be set to the same value in the
+! HEMCO configuration file. The recommended value is 1.27.
 ! 
 ! !REVISION HISTORY:
 !  11 Nov 2014 - C. Keller   - Initial version
+!  11 Sep 2015 - E. Lundgren - Remove State_Chm from arguments since not used
+!  14 Jan 2016 - M. Sulprizio- Emit SVOC emissions as POG1 and POG2 (not POA1
+!                              and POG1) in HEMCO to better reflect that these
+!                              emissions are added to the gas-phase species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5337,7 +5227,7 @@ ccc
 !
       TYPE(HCO_STATE), POINTER :: HcoState => NULL()
       INTEGER                  :: I, J, L, PBL_MAX
-      INTEGER                  :: HCOPOA1, HCOPOG1
+      INTEGER                  :: HCOPOG1, HCOPOG2
       REAL(fp)                 :: EMIS, TMPFLX
       REAL(fp)                 :: F_OF_PBL      
       LOGICAL                  :: FOUND
@@ -5359,7 +5249,7 @@ ccc
          RETURN
       ENDIF
 
-      ! Eventually get HEMCO ID of species SESQ 
+      ! Get HEMCO ID of species SESQ 
       IF ( SESQID == -999 ) THEN
          SESQID = GetHcoID( 'SESQ' )
       ENDIF
@@ -5369,24 +5259,22 @@ ccc
          ENDIF
       ENDIF
  
-      ! Get HEMCO ID of tracer POA1 and POG1
-      HCOPOA1 = GetHcoID( TrcID=IDTPOA1 )
+      ! Get HEMCO ID of species POG1 and POG2
       HCOPOG1 = GetHcoID( TrcID=IDTPOG1 )
-
-      ! Check if POA emission arrays are indeed defined
-      IF ( HCOPOA1 > 0 ) THEN
-         IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOA1)%Emis%Val) ) THEN
-            HCOPOA1 = -1
-         ENDIF
-      ENDIF
       IF ( HCOPOG1 > 0 ) THEN
          IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG1)%Emis%Val) ) THEN
             HCOPOG1 = -1
          ENDIF
       ENDIF
+      HCOPOG2 = GetHcoID( TrcID=IDTPOG2 )
+      IF ( HCOPOG2 > 0 ) THEN
+         IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG2)%Emis%Val) ) THEN
+            HCOPOG2 = -1
+         ENDIF
+      ENDIF
 
-      ! Nothing to do if none of the species is defined
-      IF ( SESQID <= 0 .AND. HCOPOA1 <= 0 .AND. HCOPOG1 <= 0 ) RETURN
+      ! Nothing to do if none of the species are defined
+      IF ( SESQID <= 0 .AND. HCOPOG1 <= 0 .AND. HCOPOG2 <=0 ) RETURN
  
       ! Maximum extent of PBL [model levels]
       PBL_MAX = GET_PBL_MAX_L()
@@ -5401,13 +5289,12 @@ ccc
          ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
          F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
 
+         ! Add sesquiterpene emissions from HEMCO to ORVC_SESQ array.
+         ! We assume all SESQ emissions are placed in surface level.
          IF ( SESQID > 0 ) THEN
-            ! Sesquiterpenes emissions are caluclated in HEMCO. 
-            ! Units are kgC/m2/s, convert to kgC/box here.
-            ! We assume all SESQ emissions are placed in surface
-            ! level.
             CALL GetHcoVal( SESQID, I, J, 1, FOUND, Emis=EMIS )
             IF ( FOUND ) THEN
+               ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
                TMPFLX           = Emis        * GET_TS_EMIS()   * 
      &                            60.0e+0_fp  * GET_AREA_M2(I,J,1)
                ORVC_SESQ(I,J,L) = ORVC_SESQ(I,J,L)
@@ -5415,14 +5302,26 @@ ccc
             ENDIF
          ENDIF
 
-         ! For POA, add emissions to POAEMISS array. Mix entire
-         ! column emissions evenly in the PBL.
-         IF ( HCOPOA1 > 0 ) THEN
-            TMPFLX = SUM(HcoState%Spc(HCOPOA1)%Emis%Val(I,J,:))
+         ! Add SVOC emissions from HEMCO to POAEMISS array.
+         ! Mix entire column emissions evenly in the PBL.
+         !
+         ! All SVOC emissions are now assigned to the POG1 and POG2 species in
+         ! HEMCO to reflect that these emissions are added to the gas-phase
+         ! species. The assignment of SVOC emissions to the two gas-phase
+         ! species is actually performed in routine CHEM_NVOC. We also no
+         ! longer separate anthropogenic from BF and BB emissions because
+         ! this appears to have been done only for debugging purposes.
+         ! (mps, 1/14/16)
+         IF ( HCOPOG1 > 0 ) THEN
+            ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
+            TMPFLX = SUM(HcoState%Spc(HCOPOG1)%Emis%Val(I,J,:))
+     &               * GET_TS_EMIS() * 60.0e+0_fp  * GET_AREA_M2(I,J,1)
             POAEMISS(I,J,L,1) = F_OF_PBL * TMPFLX
          ENDIF 
-         IF ( HCOPOG1 > 0 ) THEN
-            TMPFLX = SUM(HcoState%Spc(HCOPOG1)%Emis%Val(I,J,:))
+         IF ( HCOPOG2 > 0 ) THEN
+            ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
+            TMPFLX = SUM(HcoState%Spc(HCOPOG2)%Emis%Val(I,J,:))
+     &               * GET_TS_EMIS() * 60.0e+0_fp  * GET_AREA_M2(I,J,1)
             POAEMISS(I,J,L,2) = F_OF_PBL * TMPFLX
          ENDIF 
       ENDDO
@@ -5430,9 +5329,8 @@ ccc
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Reset POA emissions to zero to make sure that they are
+      ! Reset SVOC emissions to zero to make sure that they are
       ! not double-counted (when doing PBL mixing) 
-      IF ( HCOPOA1>0) HcoState%Spc(HCOPOA1)%Emis%Val = 0.0d0
       IF ( HCOPOG1>0) HcoState%Spc(HCOPOG1)%Emis%Val = 0.0d0
 
       END SUBROUTINE EMISSCARBON
@@ -5464,8 +5362,8 @@ ccc
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD
+      USE UNITCONV_MOD
 !
 ! TOMAS DIAGNs:
 !
@@ -5510,8 +5408,6 @@ ccc
       REAL(fp)                 :: DTSRCE, AREA_M2
 
       ! Arrays
-      REAL(fp), DIMENSION(7)   :: DBGANTHRO
-      REAL(fp), DIMENSION(3)   :: DBGBIO
       REAL(fp)                 :: BCFF(IIPAR, JJPAR, IBINS, 2)
       REAL(fp)                 :: OCFF(IIPAR, JJPAR, IBINS, 2)
       REAL(fp)                 :: BCBF(IIPAR, JJPAR, IBINS, 2)
@@ -5526,9 +5422,9 @@ ccc
       REAL(fp)                 :: OCSRC(IIPAR, JJPAR, IBINS, 2)
       REAL(fp)                 :: NUMBSRC(IIPAR, JJPAR, IBINS)
       REAL(fp)                 :: AREA(IIPAR, JJPAR)
-      REAL*4               :: BOXVOL  ! calculated from State_Met
-      REAL*4               :: TEMPTMS ! calculated from State_Met
-      REAL*4               :: PRES    ! calculated from State_Met
+      REAL*4                   :: BOXVOL  ! calculated from State_Met
+      REAL*4                   :: TEMPTMS ! calculated from State_Met
+      REAL*4                   :: PRES    ! calculated from State_Met
 
       REAL(fp)                 :: TMP_MASS(IIPAR, JJPAR, IBINS)
 
@@ -5579,6 +5475,17 @@ ccc
 
       ! Grid box aarea
       AREA = HcoState%Grid%AREA_M2%Val(:,:)
+
+      ! Convert State_Chm%Tracers from [kg/kg dry air] to [kg] for TOMAS.
+      ! This will be removed once TOMAS uses mixing ratio instead of mass 
+      ! as tracer units (ewl, 9/11/15)
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
+     &                            State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                     'Routine EMISSCARBONTOMAS in carbon_mod.F')
+         RETURN
+      ENDIF 
 
       ! ---------BC---------------------------------------------------
       DgnName = 'BCPI_ANTH'
@@ -5807,12 +5714,12 @@ ccc
          TEMPTMS = State_Met%T(I,J,1)
          PRES    = GET_PCENTER(i,j,1)*100.0 ! in Pa
          IF ( TERP_ORGC(I,J) > 0.d0 )
-     &        CALL SOACOND( OC2OM * TERP_ORGC(I,J), I, J, 1,
-     &               BOXVOL, TEMPTMS, PRES, State_Chm )
+     &        CALL SOACOND( am_I_Root, OC2OM * TERP_ORGC(I,J), I, J, 1,
+     &               BOXVOL, TEMPTMS, PRES, State_Chm, RC )
             IF ( xSOA == 1) Then  !JKodros, switch from tomas_mod (6/15)
                IF ( XTRA_ORG_A(I,J) > 0.d0 )  ! (SDD, 01/14)
-     &            CALL SOACOND( XTRA_ORG_A(I,J), I, J, 1,
-     &               BOXVOL, TEMPTMS, PRES, State_Chm )
+     &            CALL SOACOND( am_I_Root, XTRA_ORG_A(I,J), I, J, 1,
+     &               BOXVOL, TEMPTMS, PRES, State_Chm, RC )
 
             ENDIF
       ENDDO
@@ -5821,6 +5728,15 @@ ccc
      &    CALL DEBUG_MSG( '### EMISCARB: after SOACOND (BIOG) ' )
 
       ENDIF  ! size resolved > 0
+
+      ! Convert State_Chm%Tracers back to kg (ewl, 9/11/15)
+      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
+     &                             State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'Routine EMISSCARBONTOMAS in carbon_mod.F')
+         RETURN
+      ENDIF  
 
       END SUBROUTINE EMISSCARBONTOMAS
 #endif
@@ -5971,7 +5887,6 @@ ccc
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD
       USE CMN_SIZE_MOD
       USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
       USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
@@ -6276,7 +6191,7 @@ ccc
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp),  PARAMETER :: XNUMOL_NO3 = 6.022e+23_fp / 62e-3_fp
+      REAL(fp),  PARAMETER :: XNUMOL_NO3 = AVO / 62e-3_fp
 !
 ! !LOCAL VARIABLES:
 !
@@ -6335,7 +6250,7 @@ ccc
 
             ! At night: Get NO3 [v/v] and convert it to [kg]
             NO3_MOLEC_CM3 = NO3(I,J,L) * State_Met%AD(I,J,L) *
-     &                      ( 62e+0_fp/28.97e+0_fp )
+     &                      ( 62e+0_fp/AIRMW )
 
             ! Convert NO3 from [kg] to [molec/cm3]
             BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -6383,7 +6298,6 @@ ccc
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDO3
 !
 ! !INPUT PARAMETERS: 
@@ -6410,14 +6324,17 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  18 Sep 2014 - M. Sulprizio- Now get O3 for offline aerosol sim from HEMCO
+!  24 Mar 2015 - E. Lundgren - Replace dependency on tracer_mod with
+!                              CMN_GTCM_MOD for XNUMOLAIR
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
+!  06 Jan 2016 - E. Lundgren - Use global physical parameter AVO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp),  PARAMETER :: XNUMOL_O3 = 6.022e+23_fp / 48e-3_fp
+      REAL(fp),  PARAMETER :: XNUMOL_O3 = AVO / 48e-3_fp
 !
 ! !LOCAL VARIABLES:
 !
@@ -6452,7 +6369,7 @@ ccc
 
             ! Get O3 [v/v] and convert it to [kg]
             O3_MOLEC_CM3 = O3(I,J,L) * State_Met%AD(I,J,L) *
-     &                     ( 48e+0_fp/28.97e+0_fp )
+     &                     ( 48e+0_fp / AIRMW )
                
             ! Convert O3 from [kg] to [molec/cm3]
             BOXVL        = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -7035,6 +6952,7 @@ ccc
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7046,7 +6964,6 @@ ccc
       REAL(fp), PARAMETER :: XCLDR_MARI = 10.e-4_fp ! Cloud droplet radius in marine
                                                !  warm clouds [cm]
       REAL(fp), PARAMETER :: XMW = 58.e+0_fp         ! Molec wt of glyoxal [g/mole]
-      REAL(fp), PARAMETER :: XNAVO = 6.023e+23_fp    ! Avogadro's number
       REAL(fp), PARAMETER :: MINDAT = 1.e-20_fp     ! Minimum GLYX mixing ratio to
                                                !  calculate cloud uptake
       REAL(fp), PARAMETER :: XGAMMA = 2.9e-3_fp     ! Uptake coefficient (Assume
@@ -7116,12 +7033,12 @@ ccc
          XGASM   = STT( I, J, L, IDTGLYX )
 
          ! Get gas concentration at grid box [molec/cm3]
-         XGASC   = XGASM / (XMW*1.e-3_fp) * XNAVO / (XAIRM3*1.e+6_fp) 
+         XGASC   = XGASM / (XMW*1.e-3_fp) * AVO / (XAIRM3*1.e+6_fp) 
 
          ! GET gas mixing ratio [v/v]
-         XGASMIX = XGASM / XMW / ( XAIRM / 28.97e+0_fp )
+         XGASMIX = XGASM / XMW / ( XAIRM / AIRMW )
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -7194,7 +7111,7 @@ ccc
             !---------------------------------------
             ! Maximum potential uptake of gas mass [kg/box]
             !---------------------------------------
-            XUPTKMAX = XDELTAC * 1.e+6_fp / XNAVO * XMW * 1.e-3_fp 
+            XUPTKMAX = XDELTAC * 1.e+6_fp / AVO * XMW * 1.e-3_fp 
      &               * XAIRM3
 
             !---------------------------------------
@@ -7274,6 +7191,7 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7286,7 +7204,6 @@ ccc
                                                !  warm clouds [cm]
       REAL(fp), PARAMETER :: XMW = 72.e+0_fp         ! Molec wt of methylglyoxal
                                                !  [g/mole]
-      REAL(fp), PARAMETER :: XNAVO = 6.023e+23_fp    ! Avogadro's number
       REAL(fp), PARAMETER :: MINDAT = 1.e-20_fp     ! Minimum GLYX mixing ratio to
                                                !  calculate cloud uptake
       REAL(fp), PARAMETER :: XGAMMA = 2.9e-3_fp     ! Uptake coefficient (Assume
@@ -7356,12 +7273,12 @@ ccc
          XGASM   = STT( I, J, L, IDTMGLY )
 
          ! Get gas concentration at grid box [molec/cm3]
-         XGASC   = XGASM / (XMW*1.e-3_fp) * XNAVO / (XAIRM3*1.e+6_fp) 
+         XGASC   = XGASM / (XMW*1.e-3_fp) * AVO / (XAIRM3*1.e+6_fp) 
 
          ! GET gas mixing ratio [v/v]
-         XGASMIX = XGASM / XMW / ( XAIRM / 28.97e+0_fp )
+         XGASMIX = XGASM / XMW / ( XAIRM / AIRMW )
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -7432,7 +7349,7 @@ ccc
             !---------------------------------------
             ! Maximum potential uptake of gas mass [kg/box]
             !---------------------------------------
-            XUPTKMAX = XDELTAC * 1.e6_fp / XNAVO * XMW * 1.e-3_fp 
+            XUPTKMAX = XDELTAC * 1.e6_fp / AVO * XMW * 1.e-3_fp 
      &               * XAIRM3
 
             !---------------------------------------
@@ -8857,6 +8774,9 @@ ccc
 !  26 Sep 2013 - R. Yantosca - Removed SEAC4RS Cpp switch, this is supplanted
 !                              by NESTED_NA
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  11 Aug 2015 - R. Yantosca - Add support for MERRA2 data
+!  23 Sep 2015 - R. Yantosca - Remove reference to DRY* flags, they're obsolete
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8924,7 +8844,7 @@ ccc
       OCCONV = 0e+0_fp
 
       ! semivolpoa2: for POA emissions (hotp 2/27/09)
-      ! semivolpoa3: separate BB,BF from ANTH (hotp 3/13/09)
+      ! Store POG1 and POG2 separately (mps, 1/14/16)
       ALLOCATE( POAEMISS( IIPAR, JJPAR, LLPAR, 2 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'POAEMISS' )
       POAEMISS = 0e+0_fp
@@ -9004,7 +8924,7 @@ ccc
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_SESQ' )
          ORVC_SESQ = 0e+0_fp
 
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
          ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
          ! directly from the met fields.  (skim, bmy, 1/14/10)
          ALLOCATE( VCLDF( IIPAR, JJPAR, LLCHEM ), STAT=AS )
@@ -9112,147 +9032,6 @@ ccc
 
 #endif
 #endif
-          
-      !=================================================================
-      ! Find drydep species in DEPSAV
-      !=================================================================
-
-      ! Initialize flags
-      DRYBCPI  = 0
-      DRYOCPI  = 0
-      DRYBCPO  = 0
-      DRYOCPO  = 0
-      DRYPOA1  = 0
-      DRYPOA2  = 0
-      DRYPOG1  = 0
-      DRYPOG2  = 0
-      DRYOPOA1 = 0
-      DRYOPOA2 = 0
-      DRYOPOG1 = 0
-      DRYOPOG2 = 0
-      DRYMTPA  = 0
-      DRYLIMO  = 0
-      DRYMTPO  = 0
-      DRYTSOA1 = 0
-      DRYTSOG1 = 0
-      DRYTSOA2 = 0
-      DRYTSOG2 = 0
-      DRYTSOA3 = 0
-      DRYTSOG3 = 0
-      DRYTSOA0 = 0
-      DRYTSOG0 = 0
-      DRYISOA1 = 0
-      DRYISOG1 = 0
-      DRYISOA2 = 0
-      DRYISOG2 = 0
-      DRYISOA3 = 0
-      DRYISOG3 = 0
-      DRYASOAN = 0
-      DRYASOA1 = 0
-      DRYASOG1 = 0
-      DRYASOA2 = 0
-      DRYASOG2 = 0
-      DRYASOA3 = 0
-      DRYASOG3 = 0
-      DRYSOAG  = 0
-      DRYSOAM  = 0
-
-      ! Locate drydep indices for each carbon or SOA aerosol 
-      ! in the list of dry depositing species.
-      IF ( Input_Opt%LDRYD ) THEN
-         DO N = 1, Input_Opt%NUMDEP
-            SELECT CASE ( TRIM( Input_Opt%DEPNAME(N) ) )
-               CASE ( 'BCPI' )
-                  DRYBCPI = N
-               CASE ( 'OCPI' )
-                  DRYOCPI = N
-               CASE ( 'BCPO' )
-                  DRYBCPO = N
-               CASE ( 'OCPO' )
-                  DRYOCPO = N
-               ! semivolpoa: add POA (hotp 2/26/09)
-               CASE ( 'POA1'  )
-                  DRYPOA1  = N
-               CASE ( 'POA2'  )
-                  DRYPOA2  = N
-               ! semivolpoa2: add POG (hotp 3/2/09)
-               CASE ( 'POG1'  )
-                  DRYPOG1  = N
-               CASE ( 'POG2'  )
-                  DRYPOG2  = N
-               ! semivolpoa4opoa: add OPOA and OPOG (hotp 3/18/09)
-               CASE ( 'OPOA1' )
-                  DRYOPOA1 = N
-               CASE ( 'OPOA2' )
-                  DRYOPOA2 = N
-               CASE ( 'OPOG1' )
-                  DRYOPOG1 = N
-               CASE ( 'OPOG2' )
-                  DRYOPOG2 = N
-               ! Lumped arom/IVOC (hotp 5/13/10)
-               CASE ( 'ASOAN' )
-                  DRYASOAN = N 
-               CASE ( 'ASOA1' )
-                  DRYASOA1 = N 
-               CASE ( 'ASOA2' )
-                  DRYASOA2 = N 
-               CASE ( 'ASOA3' )
-                  DRYASOA3 = N 
-               CASE ( 'ASOG1' )
-                  DRYASOG1 = N 
-               CASE ( 'ASOG2' )
-                  DRYASOG2 = N 
-               CASE ( 'ASOG3' )
-                  DRYASOG3 = N
-               ! removed ALPH,LIMO,ALCO,SOA1-4,SOG1-4
-               ! and replaced with new mtp (hotp 5/20/10)
-               ! precursors
-               CASE ( 'MTPA' )
-                  DRYMTPA = N 
-               CASE ( 'LIMO' )
-                  DRYLIMO = N 
-               CASE ( 'MTPO' )
-                  DRYMTPO = N 
-               ! terpenes (hotp 7/29/10)
-               CASE ( 'TSOA1' )
-                  DRYTSOA1 = N 
-               CASE ( 'TSOA2' )
-                  DRYTSOA2 = N 
-               CASE ( 'TSOA3' )
-                  DRYTSOA3 = N 
-               CASE ( 'TSOA0' )
-                  DRYTSOA0 = N 
-               CASE ( 'TSOG1' )
-                  DRYTSOG1 = N 
-               CASE ( 'TSOG2' )
-                  DRYTSOG2 = N 
-               CASE ( 'TSOG3' )
-                  DRYTSOG3 = N 
-               CASE ( 'TSOG0' )
-                  DRYTSOG0 = N
-               ! isoprene (hotp 7/29/10)
-               CASE ( 'ISOA1' )
-                  DRYISOA1 = N 
-               CASE ( 'ISOA2' )
-                  DRYISOA2 = N 
-               CASE ( 'ISOA3' )
-                  DRYISOA3 = N 
-               CASE ( 'ISOG1' )
-                  DRYISOG1 = N 
-               CASE ( 'ISOG2' )
-                  DRYISOG2 = N 
-               CASE ( 'ISOG3' )
-                  DRYISOG3 = N
-               CASE ( 'SOAG' )
-                  DRYSOAG = N
-               CASE ( 'SOAM' )
-                  DRYSOAM = N
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT        
-         ENDDO
-      ENDIF
-
       END SUBROUTINE INIT_CARBON
 !EOC
 !------------------------------------------------------------------------------

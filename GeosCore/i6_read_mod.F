@@ -755,9 +755,11 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD66
       USE DIAG_MOD,           ONLY : AD67
+#endif
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_I6
@@ -819,6 +821,7 @@
 !  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  03 Dec 2014 - R. Yantosca - Bug fix: remove TRANSFER_2D from GEOS-4 block
+!  02 Feb 2016 - E. Lundgren - Block of diagnostics with if defined BPCH
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1125,6 +1128,7 @@
       ! Increment KDI6FLDS -- this is the # of times READ_I6 is called. 
       CALL SET_CT_I6( INCREMENT=.TRUE. )
 
+#if defined( BPCH_DIAG )
       !=================================================================
       ! ND66 diagnostic: I-6 fields (3-dimensional)
       !
@@ -1163,6 +1167,7 @@
          IF( PRESENT( TROPP ) ) AD67(:,:,17) = AD67(:,:,17) + TROPP
          IF( PRESENT( SLP   ) ) AD67(:,:,18) = AD67(:,:,18) + SLP
       ENDIF 
+#endif
 
       END SUBROUTINE READ_I6
 !EOC

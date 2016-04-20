@@ -129,6 +129,7 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+      USE PHYSCONSTANTS,      ONLY : BOLTZ, AVO, AIRMW
       USE COMODE_MOD,         ONLY : ABSHUM, IXSAVE   
       USE COMODE_MOD,         ONLY : IYSAVE, IZSAVE,  JLOP       
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -164,8 +165,8 @@
 !  08 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
-!  02 Mar 2015 - E. Lundgren - Remove MAKE_AVGW call. State_Met%AVGW now
-!                              set in AIRQNT within dao_mod.F.
+!  02 Mar 2015 - E. Lundgren - Remove MAKE_AVGW call since State_Met%AVGW is
+!                              now set in AIRQNT within dao_mod.F
 !  01 Apr 2015 - R. Yantosca - Bug fix: BOXVL needs to be !$OMP PRIVATE
 !  21 Dec 2015 - M. Sulprizio- Remove calculation of BOXVL and AIRDENS. Get
 !                              these fields directly from State_Met instead.
@@ -178,7 +179,7 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER, SAVE :: N_CHEM_BOXES
       INTEGER       :: I, J, L, JLOOP
-      REAL(fp)      :: CONSEXP, TK, VPRESH2O
+      REAL(fp)      :: CONSEXP, TK, VPRESH2O, CONSVAP
       
       !=================================================================
       ! AEROSOL_RURALBOX begins here!
@@ -189,6 +190,10 @@
       NLAT   = JJPAR
       NVERT  = IVERT
       NPVERT = NVERT
+
+      ! Calculate condensation vapor pressure locally
+      ! and use Boltzmann's constant in PHYSCONSTANTS [J/K] (ewl, 1/4/16)
+      CONSVAP  = 6.1078e+03_fp / ( BOLTZ * 1e+7_fp )
 
       !=================================================================
       ! Pre-save SMVGEAR loop indices on the first call
@@ -300,8 +305,11 @@
 !            BOXVL          = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 !
 !            ! Air density in [molec/cm3]
+!            ! Now use physical parameters from PHYSCONSTANTS (ewl, 1/4/16)
+!!            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
+!!     &                       BOXVL               * AVG  / WTAIR
 !            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
-!     &                       BOXVL               * AVG  / WTAIR
+!     &                       BOXVL               * AVO  / AIRMW
 !------------------------------------------------------------------------------
 
             ! ABSHUM = absolute humidity [molec H2O/cm3 air]
@@ -347,6 +355,7 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CMN_SIZE_MOD
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -367,6 +376,7 @@
       USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
       USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
       USE UCX_MOD,            ONLY : KG_STRAT_AER
+      USE UNITCONV_MOD
 #if   defined( TOMAS ) 
       USE TRACERID_MOD,       ONLY : IDTDUST1
       USE TOMAS_MOD,          ONLY : IBINS
@@ -411,6 +421,8 @@
 !  07 Apr 2015 - R. Yantosca - Add check to prevent div-by-zero errors
 !  25 Jun 2015 - E. Lundgren - Use L. Zhang dust size distribution params for 
 !                              mineral dust aerosols (non-TOMAS)
+!  13 Aug 2015 - E. Lundgren - Convert tracer units to kg if input units are
+!                              mixing ratio
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -447,6 +459,7 @@
       LOGICAL             :: LSOA
       LOGICAL             :: LSSALT
       LOGICAL             :: LSULF
+      LOGICAL             :: UNITCONVERSION
 
       ! Pointers
       REAL(fp), POINTER   :: STT(:,:,:,:)
@@ -460,11 +473,31 @@
       RC     = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LCARB  = Input_Opt%LCARB
-      LDUST  = Input_Opt%LDUST
-      LSOA   = Input_Opt%LSOA
-      LSSALT = Input_Opt%LSSALT
-      LSULF  = Input_Opt%LSULF
+      LCARB     = Input_Opt%LCARB
+      LDUST     = Input_Opt%LDUST
+      LSOA      = Input_Opt%LSOA
+      LSSALT    = Input_Opt%LSSALT
+      LSULF     = Input_Opt%LSULF
+
+      ! If tracer units are 'kg/kg dry', convert to [kg] for this routine.
+      ! Otherwise, if tracer units are not 'kg', throw an error to the 
+      ! calling routine (ewl, 8/12/15)
+      UNITCONVERSION = .FALSE.
+      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg dry' ) THEN
+         CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met, 
+     &                               State_Chm, RC )  
+         UNITCONVERSION = .TRUE.
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL GIGC_Error('Unit conversion error', RC, 
+     &                      'AEROSOL_CONC in aerosol_mod.F')
+            RETURN
+         ENDIF
+      ELSE IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         CALL GIGC_Error('Unexpected tracer units' // 
+     &                   State_Chm%Trac_Units, RC, 
+     &                   'AEROSOL_CONC in aerosol_mod')
+         RETURN
+      ENDIF
 
       ! Initialize pointers
       STT    => State_Chm%Tracers
@@ -802,6 +835,18 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! If units were originally 'kg/kg dry', convert [kg] back to mixing 
+      ! ratio (ewl, 8/12/15)
+      IF ( UNITCONVERSION ) THEN
+         CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met, 
+     &                               State_Chm, RC )  
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL GIGC_Error('Unit conversion error', RC, 
+     &                      'AEROSOL_CONC in aerosol_mod.F')
+            RETURN
+         ENDIF
+      ENDIF
+
       ! Free pointers
       NULLIFY( STT    )
       NULLIFY( AIRVOL )
@@ -835,10 +880,6 @@
       USE CMN_DIAG_MOD
       USE COMODE_LOOP_MOD
       USE COMODE_MOD,         ONLY : JLOP ! SDE 2013-12-30
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT
-      USE BPCH2_MOD,          ONLY : GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0
-      USE BPCH2_MOD,          ONLY : READ_BPCH2
       USE COMODE_MOD,         ONLY : ABSHUM
       USE COMODE_MOD,         ONLY : ERADIUS
       USE COMODE_MOD,         ONLY : IXSAVE
@@ -929,6 +970,7 @@
 !                              so that we cycle if JLOOP <= 0
 !  24 Jun 2015 - M. Sulprizio- Update organic aerosol density MSDENS(3) from
 !                              1800 to 1300 kg/m3 (E. Marais, M. Hammer)
+!  15 Oct 2015 - C. Keller   - Empty ODAER before refilling.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1199,6 +1241,11 @@
       !set default values for RH index array
       IRHARR(:,:,:)=1
 
+      ! Empty ODAER before refilling. This is required to make sure that
+      ! all gridboxes outside the chemistry grid are zero and do not carry
+      ! over values from previous time steps. (ckeller, 10/15/15)
+      ODAER(:,:,:,:,:) = 0.0d0
+
       ! DAR 09/2013
       ! There are two ways RDAER can be called:
       ! (1) When Fast-J requires aerosol optics at 1000nm (ODSWITCH=0)
@@ -1343,7 +1390,7 @@
             ! JLOOP and COMODE_MOD will be REMOVED
             TK            = State_Met%T(I,J,L)
             CONSEXP       = 17.2693882e+0_fp * (TK - 273.16e+0_fp) /
-     1           (TK - 35.86e+0_fp)
+     &                      (TK - 35.86e+0_fp)
             VPRESH2O      = CONSVAP * EXP(CONSEXP) / TK 
             RELHUM = ABSHUM(JLOOP) / VPRESH2O 
 
@@ -1538,26 +1585,28 @@
      &                                ( ERADIUS(JLOOP,NDUST+N) * 
      &                                  MSDENS(N) )  
 
-               WTAREA(JLOOP, N)   = TAREA(JLOOP, N+NDUST)
-               WERADIUS(JLOOP, N) = ERADIUS(JLOOP, N+NDUST)             
+               WTAREA(JLOOP, N+NDUST)   = TAREA(JLOOP, N+NDUST)
+               WERADIUS(JLOOP, N+NDUST) = ERADIUS(JLOOP, N+NDUST)     
 
                !include hydrophobic BC and OC
                !stored separate to hydrophillic in RT variables
                IF ((N.eq.2).or.(N.eq.3)) THEN
              
                   ! Dry surface area
+                  ! SDE 2015-10-27: RW is in um, but everything
+                  ! else is in terms of cm. Correct with 10^-4 factor
                   DRYAREA = 3.D0 * DAERSL(I,J,L,N-1) / ( RW(1) *
-     &                      MSDENS(N) )  
+     &                      1.0D-4 * MSDENS(N) )  
 
                   ! Add surface area to TAREA array
-                  TAREA(JLOOP,N+NDUST) = TAREA(JLOOP,N+NDUST) + DRYAREA
+                  TAREA(JLOOP,N+NDUST) = WTAREA(JLOOP,N+NDUST) + DRYAREA
 
                   ! Define a new effective radius that accounts 
                   ! for the hydrophobic aerosol 
-                  ERADIUS(JLOOP,NDUST+N) = ( ERADIUS(JLOOP,NDUST+N) *
-     &                                       TAREA(JLOOP,N+NDUST)   +
-     &                                       RW(1) * DRYAREA )      / 
-     &                                     ( TAREA(JLOOP,N+NDUST)   +
+                  ERADIUS(JLOOP,NDUST+N) = ( WERADIUS(JLOOP,NDUST+N) *
+     &                                       WTAREA(JLOOP,N+NDUST)   +
+     &                                       RW(1) * 1.0D-4 * DRYAREA )/
+     &                                     ( WTAREA(JLOOP,N+NDUST)   +
      &                                       DRYAREA )
                ENDIF !Hydrophobic aerosol surface area
             ENDIF    !Surface area calcs

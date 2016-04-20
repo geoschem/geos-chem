@@ -231,7 +231,7 @@
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND44, ND65, LD65
-      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
+      USE PHYSCONSTANTS            ! SCALE_HEIGHT
 !
 ! !INPUT PARAMETERS: 
 !
@@ -265,7 +265,11 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 (hyl,bmy,11/3/11)
-!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally\
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
+!  25 Sep 2015 - E. Lundgren - Fix bug in setting X upper bound for ITS_IN_EUR
+!  22 Oct 2015 - E. Lundgren - Fix PBLTOP and MTTOP levels for 750 hPa and
+!                              350 hPa for GEOS-5, MERRA, GEOS-FP and MERRA2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -302,9 +306,9 @@
 #if   defined( GEOS_4 )
       PBLTOP = 5
       MTTOP  = 10
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
-      PBLTOP = 5
-      MTTOP  = 10
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+      PBLTOP = 16
+      MTTOP  = 27
 #endif
 
 #if defined( USE_ALL_TAGO3_TRACERS )
@@ -320,7 +324,7 @@
       ITS_IN_UT  = ( L >  MTTOP  .and. ITS_IN_TROP                     )
 
       ITS_IN_NH  = ( Y >=   0.0                                        )
-      ITS_IN_EUR = ( Y >=  36.0 .and. ( X >  -15.0 .and. X >=   55.0 ) )
+      ITS_IN_EUR = ( Y >=  36.0 .and. ( X >  -15.0 .and. X <=   55.0 ) )
       ITS_IN_NAM = ( Y >=  15.0 .and. ( X > -127.5 .and. X <=  -65.0 ) )
       ITS_IN_AS  = ( Y >= -10.0 .and. ( X >   55.0 .and. X <=  145.0 ) )
       ITS_IN_ATL = ( ITS_IN_NH  .and. ( X >  -65.0 .and. X <=  -15.0 ) )

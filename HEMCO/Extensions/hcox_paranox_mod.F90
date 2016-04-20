@@ -2208,6 +2208,9 @@ CONTAINS
 !                                LUT interpolation code by G.C.M. Vinken and
 !                                M. Payer. LUT now includes wind speed.
 !  04 Feb 2015 - C. Keller     - Updated for use in HEMCO.
+!  24 Sep 2015 - E. Lundgren   - ExtState vars O3, NO2, and NO now in
+!                                kg/kg dry air (previously kg)
+!  07 Jan 2016 - E. Lundgren   - Update H2O molec wt to match GC value
 !  20 Apr 2016 - M. Sulprizio  - Remove calculation of J(OH). We now get J(OH),
 !                                the effective rate for O3+hv(+H2O)->OH+OH,
 !                                directly from FAST-JX. In FlexChem, adjustment
@@ -2241,8 +2244,8 @@ CONTAINS
    ! PARANOX_LUT begins here!
    !=================================================================
 
-   ! Air mass, kg
-   AIR  = ExtState%AIR%Arr%Val(I,J,1)
+   ! Air mass [kg]
+   AIR = ExtState%AIR%Arr%Val(I,J,1)
 
    ! Air temperature, K
    Tair = ExtState%T2M%Arr%Val(I,J)
@@ -2286,11 +2289,19 @@ CONTAINS
 
    ! J(NO2), 1/s
    VARS(2) = JNO2                           
-      
+ 
+! old     
+!   ! O3 concentration in ambient air, ppb
+!   VARS(3) = ExtState%O3%Arr%Val(I,J,1) / AIR   &
+!           * HcoState%Phys%AIRMW        / MW_O3 &
+!           * 1.e9_sp
+! new
    ! O3 concentration in ambient air, ppb
-   VARS(3) = ExtState%O3%Arr%Val(I,J,1) / AIR   &
+   ! NOTE: ExtState%O3 units are now kg/kg dry air (ewl, 9/11/15)
+   VARS(3) = ExtState%O3%Arr%Val(I,J,1)         &
            * HcoState%Phys%AIRMW        / MW_O3 &
            * 1.e9_sp
+! end new (ewl)
 
    ! Solar elevation angle, degree
    ! SEA0 = SEA when emitted from ship, 5-h before current model time
@@ -2310,12 +2321,22 @@ CONTAINS
       ENDIF
    ENDIF
 
+! old
+!   ! NOx concetration in ambient air, ppt
+!   VARS(7) = ( ( ExtState%NO%Arr%Val(I,J,1)  / AIR        &
+!           *     HcoState%Phys%AIRMW         / MW_NO  )   &
+!           +   ( ExtState%NO2%Arr%Val(I,J,1) / AIR        &
+!           *     HcoState%Phys%AIRMW         / MW_NO2 ) ) &
+!           * 1.e12_sp
+! new
    ! NOx concetration in ambient air, ppt
-   VARS(7) = ( ( ExtState%NO%Arr%Val(I,J,1)  / AIR        &
+   ! NOTE: ExtState vars NO and NO2 units are now kg/kg dry air (ewl, 9/11/15)
+   VARS(7) = ( ( ExtState%NO%Arr%Val(I,J,1)               &
            *     HcoState%Phys%AIRMW         / MW_NO  )   &
-           +   ( ExtState%NO2%Arr%Val(I,J,1) / AIR        &
+           +   ( ExtState%NO2%Arr%Val(I,J,1)              &
            *     HcoState%Phys%AIRMW         / MW_NO2 ) ) &
            * 1.e12_sp
+! end new (ewl)
 
       ! Wind speed, m/s
    VARS(8) = SQRT( ExtState%U10M%Arr%Val(I,J)**2 & 
@@ -2331,7 +2352,7 @@ CONTAINS
 !      write(*,*) 'VARS(6): ', VARS(6)
 !      write(*,*) 'VARS(7): ', VARS(7)
 !      write(*,*) 'VARS(8): ', VARS(8)
-!      write(*,*) 'AIR    : ', AIR 
+!      write(*,*) 'AIR    : ', ExtState%AIR%Arr%Val(I,J,1) 
 !      write(*,*) 'AIRMW  : ', HcoState%Phys%AIRMW
 !      write(*,*) 'MWNO, NO2, O3: ', MW_NO, MW_NO2, MW_O3
 !      write(*,*) 'O3conc: ', ExtState%O3%Arr%Val(I,J,1) 

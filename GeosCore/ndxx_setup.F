@@ -16,7 +16,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE NDXX_SETUP( am_I_Root, Input_Opt, RC )
+      SUBROUTINE NDXX_SETUP( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -30,9 +30,8 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE PLANEFLIGHT_MOD,    ONLY : SETUP_PLANEFLIGHT
-      USE WETSCAV_MOD,        ONLY : GET_WETDEP_NMAX
-
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, IDIAG   !(win, 7/9/09)
       USE TRACERID_MOD,       ONLY : IDTNK1    !(win, 7/14/09)
@@ -47,15 +46,16 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)     :: am_I_Root 
+      LOGICAL,        INTENT(IN)     :: am_I_Root   ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(OptInput), INTENT(INOUT)  :: Input_Opt
+      TYPE(OptInput), INTENT(INOUT)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(INOUT)  :: State_Chm   ! Chemistry state object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)    :: RC
+      INTEGER,        INTENT(OUT)    :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  16 Jun 1998 - I. Bey, R. Yantosca - Initial version
@@ -209,6 +209,10 @@
 !  15 Aug 2014 - R. Yantosca - Removed reference to biofuel_mod.F
 !  15 Aug 2014 - R. Yantosca - Now reference all arrays in diag_mod.F
 !  22 May 2015 - R. Yantosca - Removed variables made obsolete by HEMCO
+!  03 Sep 2015 - R. Yantosca - Now pass State_Chm to this routine so that
+!                              we can take advantage of the species database
+!  20 Jan 2016 - M. Sulprizio- Remove code to allocate the AD06, AD07, and AD08
+!                              arrays. These diagnostics are tracked by HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -295,8 +299,10 @@
       !=================================================================
       IF ( ND01 > 0 ) THEN 
          LD01 = MIN( ND01, LLPAR )
+#if defined( BPCH_DIAG )
          ALLOCATE( AD01( IIPAR, JJPAR, LD01 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD01' )
+#endif
       ENDIF
 
       !=================================================================
@@ -304,9 +310,10 @@
       !=================================================================
       IF ( ND02 > 0 ) THEN 
          LD02 = MIN( ND02, LLPAR )
-
+#if defined( BPCH_DIAG )
          ALLOCATE( AD02( IIPAR, JJPAR, LD02, N_TRACERS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD02' )
+#endif
       ENDIF
 
       !=================================================================
@@ -321,23 +328,11 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD05' )
       ENDIF
 
-      !================================================================
-      ! ND06: Dust emissions
-      !================================================================
-      IF ( ND06 > 0 .and. LDUST ) THEN 
-         !tdf Include dust alkalinity tracers
-         ALLOCATE( AD06( IIPAR, JJPAR, NDSTBIN*2 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD06' )
-      ENDIF
-
       !=================================================================
       ! ND07: Carbonaceous aerosols emissions and chemical conversion
       !=================================================================
       IF ( ND07 > 0 .and. LCARB ) THEN 
          LD07 = MIN( ND07, LLPAR )
-
-         ALLOCATE( AD07( IIPAR, JJPAR, PD07 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07' )
 
          ALLOCATE( AD07_BC( IIPAR, JJPAR, LD07 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_BC' )
@@ -363,14 +358,6 @@
 #endif
 
       ENDIF  
-
-      !================================================================
-      ! ND08: Dust emissions
-      !================================================================
-      IF ( ND08 > 0 .and. LSSALT ) THEN 
-         ALLOCATE( AD08( IIPAR, JJPAR, PD08 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD08' )
-      ENDIF
 
       !=================================================================
       ! ND09: HCN / CH3CN source & sink
@@ -441,10 +428,20 @@
       !       and conv precipitation) --> uses AD17 array (allocatable)
       !=================================================================
       IF ( ND17 > 0 ) THEN
-         LD17 = MIN( ND17, LLPAR )
 
-         ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX( am_I_Root, Input_Opt, RC )
+         ! Get # of soluble tracers for this simulation
+         NMAX = State_Chm%nWetDep
+
+         ! Turn off ND17 if there are no wetdep species
+         IF ( NMAX == 0 ) THEN 
+            ND17 = 0
+            IF ( am_I_Root ) THEN 
+               print*, '### No wetdep species, so turn off ND17'
+            ENDIF
+         ENDIF
+
+         ! Number of levels
+         LD17 = MIN( ND17, LLPAR )
 
          ! Store both LS and convective rainout fractions
          ALLOCATE( AD17( IIPAR, JJPAR, LD17, NMAX, 2 ), STAT=AS ) 
@@ -460,10 +457,20 @@
       !       and convective precipitation) --> uses AD18 array (alloc.)
       !=================================================================
       IF ( ND18 > 0 ) THEN
-         LD18 = MIN( ND18, LLPAR )
 
-         ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX( am_I_Root, Input_Opt, RC )
+         ! Get # of soluble tracers for this simulation
+         NMAX = State_Chm%nWetDep
+
+         ! Turn off ND17 if there are no wetdep species
+         IF ( NMAX == 0 ) THEN 
+            ND18 = 0
+            IF ( am_I_Root ) THEN 
+               print*, '### No wetdep species, so turn off ND18'
+            ENDIF
+         ENDIF
+
+         ! Number of levels
+         LD18 = MIN( ND18, LLPAR )
 
          ! Store both LS and convective rainout fractions         
          ALLOCATE( AD18( IIPAR, JJPAR, LD18, NMAX, 2 ), STAT=AS) 
@@ -486,7 +493,6 @@
       ENDIF 
 
       !=================================================================
-      !
       ! ND20: Save O3 P-L losses to disk for single-tracer O3 run
       !       in the PL24H array.  Also turn on ND65, since the P-L 
       !       rates are computed by ND65.  
@@ -555,6 +561,7 @@
          ND26 = LLPAR
       ENDIF
 
+
       !=================================================================
       ! ND24: Eastward mass flux from transport [kg/s] 
       !       --> uses MASSFLEW array (allocatable)
@@ -562,12 +569,13 @@
       IF ( ND24 > 0 ) THEN
          LD24 = MIN( ND24, LLPAR )
          NMAX = MIN( N_TRACERS, NNPAR )
-      
+#if defined( BPCH_DIAG )      
          ALLOCATE( MASSFLEW( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLEW' )
       ELSE
          ALLOCATE( MASSFLEW( 1, 1, 1, 1 ), STAT=AS) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLEW' )
+#endif
       ENDIF
 
       !=================================================================
@@ -577,12 +585,13 @@
       IF ( ND25 > 0 ) THEN
          LD25 = MIN( ND25, LLPAR )
          NMAX = MIN( N_TRACERS, NNPAR )
-
+#if defined( BPCH_DIAG )      
          ALLOCATE( MASSFLNS( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLNS' ) 
       ELSE
          ALLOCATE( MASSFLNS( 1, 1, 1, 1 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLNS' ) 
+#endif
       ENDIF
 
       !=================================================================
@@ -592,20 +601,23 @@
       IF ( ND26 > 0 ) THEN
          LD26 = MIN( ND26, LLPAR )
          NMAX = MIN( N_TRACERS, NNPAR )
-
+#if defined( BPCH_DIAG )      
          ALLOCATE( MASSFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLUP' )
       ELSE
          ALLOCATE( MASSFLUP( 1, 1, 1, 1 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLUP' )
+#endif
       ENDIF
 
       !=================================================================
       ! ND30: Land/water/ice flags
       !=================================================================      
       IF ( ND30 > 0 ) THEN
+#if defined( BPCH_DIAG )
          ALLOCATE( AD30( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD30' )
+#endif
       ENDIF
 
       !=================================================================
@@ -613,9 +625,10 @@
       !=================================================================
       IF ( ND31 > 0 ) THEN
          LD31 = MIN( ND31, LLPAR+1 )
-
+#if defined( BPCH_DIAG )
          ALLOCATE( AD31( IIPAR, JJPAR, LD31 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD31' )
+#endif
       ENDIF
 
       !=================================================================
@@ -641,10 +654,20 @@
       !       --> Uses AD37 array (allocatable)
       !=================================================================
       IF ( ND37 > 0 ) THEN
-         LD37 = MIN( ND37, LLPAR )
          
-         ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX( am_I_Root, Input_Opt, RC )
+         ! Get # of soluble tracers for this simulation
+         NMAX = State_Chm%nWetDep
+
+         ! Turn off ND37 if there are no wetdep species
+         IF ( NMAX == 0 ) THEN 
+            ND37 = 0
+            IF ( am_I_Root ) THEN 
+               print*, '### No wetdep species, so turn off ND37'
+            ENDIF
+         ENDIF
+
+         ! Number of levels
+         LD37 = MIN( ND37, LLPAR )
 
          ! Allocate array accordingly
          IF ( NMAX > 0 ) THEN
@@ -653,26 +676,27 @@
          ENDIF
       ENDIF
 
-#if !defined(NO_BPCH)
       !=================================================================
       ! ND38: Rainout of tracer (nfcldmx.f) 
       !       --> uses AD38 array (allocatable)
       !=================================================================
       ! Allocate AD38 for GTMM. (ccc, 10/29/09)
       IF ( ND38 > 0 .OR. LGTMM ) THEN
+
+         ! Get # of soluble tracers for this simulation
+         NMAX = State_Chm%nWetDep
          LD38 = MIN( ND38, LLPAR )
 
          ! If GTMM on and LD38 off, ND38 should be LLPAR, (ccc, 10/29/09)
          IF ( ND38 == 0 ) LD38 = LLPAR
          
-         ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX( am_I_Root, Input_Opt, RC )
-
+#if defined( BPCH_DIAG )
          ! Allocate AD38 array accordingly
          IF ( NMAX > 0 ) THEN
             ALLOCATE( AD38( IIPAR, JJPAR, LD38, NMAX ), STAT=AS )
             IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD38' )
          ENDIF
+#endif
       ENDIF
 
       !=================================================================
@@ -686,16 +710,17 @@
          ! If GTMM on and ND38 off, ND38 should be LLPAR, (ccc, 10/29/09)
          IF ( ND39 == 0 ) LD39 = LLPAR
 
-         ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX( am_I_Root, Input_Opt, RC )
-         
+         ! Get # of soluble tracers for this simulation
+         NMAX = State_Chm%nWetDep
+
+#if defined( BPCH_DIAG )        
          ! Allocate AD39 array accordingly
          IF ( NMAX > 0 ) THEN
             ALLOCATE( AD39( IIPAR, JJPAR, LD39, NMAX ), STAT=AS )
             IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD39' )
          ENDIF
-      ENDIF
 #endif
+      ENDIF
 
       !=================================================================
       ! ND42: SOA concentration
@@ -811,7 +836,6 @@
 
       ENDIF
 
-#if !defined( NO_BPCH )
       !=================================================================
       ! ND44: Drydep fluxes [s-1] and drydep velocities [cm/s]
       !       --> uses AD44 arrays (allocatable)
@@ -820,43 +844,36 @@
       ! Turn off ND44 if drydep is turned off
       IF ( .not. LDRYD ) ND44 = 0
 
-      ! Allocate arrays for ND44
-      ! Allocate AD44 for LGTMM. (ccc, 10/29/09)
-      IF ( ND44 > 0 .OR. LGTMM ) THEN
-
-         ! Get number of tracers for ND44
-         IF ( IT_IS_A_TAGOX_SIM .or. IT_IS_A_MERCURY_SIM ) THEN
-            NMAX = N_TRACERS
-         ELSE
-
+      IF ( ND44 > 0 ) THEN
 #if   defined( TOMAS )
-            ! add space in diag array for TOMAS aerosol mass (win, 7/14/09)
-            IF ( IDTNK1 > 1 ) THEN 
-               NMAX = NUMDEP + ( ICOMP - IDIAG )* IBINS 
-            ELSE
-               NMAX = NUMDEP
-            ENDIF
-#else
-            NMAX = NUMDEP
-#endif
-
+         ! add space in diag array for TOMAS aerosol mass (win, 7/14/09)
+         ! Now use State_Chm%nDryDep for # dry depositing species
+         ! (ewl, 10/14/15)
+         IF ( IDTNK1 > 1 ) THEN
+            NMAX = State_Chm%nDryDep + ( ICOMP - IDIAG )* IBINS
+         ELSE
+            NMAX = State_Chm%nDryDep
          ENDIF
-
+#else
+         ! Number of dry depositing species
+         NMAX = State_Chm%nDryDep
+#endif
+#if defined( BPCH_DIAG )
          ! Allocate AD44 array
          ALLOCATE( AD44( IIPAR, JJPAR, NMAX, 2 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD44' )
-      ENDIF
 #endif
+      ENDIF
       
       !=================================================================
       ! ND45: Tracer concentrations [v/v] between HR1_OTH and HR2_OTH
       !       --> uses AD45 array (allocatable)
       !=================================================================
-#if !defined(NO_BPCH)
       IF ( ND45 > 0 ) THEN
          LD45 = MIN( ND45,        LLPAR   )
-         NMAX = MIN( N_TRC_TOT+1, NNPAR+1 )
+         NMAX = MIN( N_TRC_TOT+2, NNPAR+2 )
 
+#if defined( BPCH_DIAG )
          ! Accumulating diagnostic array
          ! Resize to NMAX to save memory (bmy, 10/18/00)
          ALLOCATE( AD45( IIPAR, JJPAR, LD45, NMAX ), STAT=AS )
@@ -869,9 +886,8 @@
          ! Number of times LT is between HR1_OTH and HR2_OTH
          ALLOCATE( CTOTH( IIPAR, JJPAR ), STAT=AS )
          IF ( AS > 0 ) CALL ALLOC_ERR( 'CTOTH' )
-
-      ENDIF
 #endif
+      ENDIF
 
       !=================================================================
       ! ND47: 24-h averaged tracer concentration [v/v]
@@ -882,7 +898,7 @@
       !=================================================================
       IF ( ND47 > 0 ) THEN
          LD47 = MIN( ND47,        LLPAR   )
-         NMAX = MIN( N_TRACERS+1, NNPAR+1 )
+         NMAX = MIN( N_TRACERS+2, NNPAR+2 )
 
          ! Resize to NMAX to save memory (bmy, 10/18/00)
          ALLOCATE( AD47( IIPAR, JJPAR, LD47, NMAX ), STAT=AS )
@@ -927,6 +943,7 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD54' )
       ENDIF
 
+#if defined( BPCH_DIAG )
       !=================================================================
       ! ND55: Tropopause diagnostics [level, height, and pressure]
       !       --> uses AD55 array (allocatable)
@@ -935,6 +952,7 @@
          ALLOCATE( AD55( IIPAR, JJPAR, PD55 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD55' )
       ENDIF
+#endif
 
       !=================================================================
       ! ND56: Lightning flash rate diagnostics
@@ -946,10 +964,10 @@
       !=================================================================
       IF ( ND57 > 0 ) THEN
          LD57 = MIN( ND57, LLPAR)
-
+#if defined( BPCH_DIAG )
          ALLOCATE( AD57( IIPAR, JJPAR, LD57 ), STAT=AS )
-
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD57' )
+#endif
       ENDIF
 
       !=================================================================
@@ -1047,10 +1065,8 @@
       ! ND60: WETLAND FRACTION 
       !=================================================================
       IF ( ND60 > 0 ) THEN 
- 
          ALLOCATE( AD60( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60' )
-
       ENDIF
 
 #endif
@@ -1089,11 +1105,13 @@
       !=================================================================
       IF ( ND66 > 0 ) THEN
          LD66 = MIN( ND66, LLPAR )
-
+#if defined( BPCH_DIAG )
          ALLOCATE( AD66( IIPAR, JJPAR, LD66, PD66 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD66' )
+#endif
       ENDIF
 
+#if defined( BPCH_DIAG )
       !=================================================================
       ! ND67: DAO A-3 and surface fields 
       !       --> Uses AD67 array (allocatable)
@@ -1102,6 +1120,7 @@
          ALLOCATE( AD67( IIPAR, JJPAR, PD67 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD67' )
       ENDIF
+#endif
 
       !=================================================================
       ! ND68: Air mass diagnostics (BXHEIGHT, AD, AVGW, N_AIR)
@@ -1109,12 +1128,13 @@
       !=================================================================
       IF ( ND68 > 0 ) THEN
          LD68 = MIN( ND68, LLPAR )
-#if !defined(NO_BPCH)
+#if defined( BPCH_DIAG )
          ALLOCATE( AD68( IIPAR, JJPAR, LD68, PD68 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD68' )
 #endif
       ENDIF
 
+#if defined( BPCH_DIAG )
       !=================================================================
       ! ND69: DXYP -- grid box surface areas [m^2] 
       !       --> uses AD69 array (allocatable)
@@ -1123,6 +1143,7 @@
          ALLOCATE( AD69( IIPAR, JJPAR, PD69 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD69' )
       ENDIF
+#endif
 
       !=================================================================
       ! ND71: Maximum tracer concentration [v/v]

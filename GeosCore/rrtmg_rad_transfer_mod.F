@@ -104,9 +104,10 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_RRTMG_RAD_TRANSFER( THISDAY,   THISMONTH, ICLD, 
-     &                                  ISPECMENU, ISEED,     Input_Opt,
-     &                                  State_Met, State_Chm  )
+      SUBROUTINE DO_RRTMG_RAD_TRANSFER( am_I_Root, THISDAY,   THISMONTH, 
+     &                                  ICLD,      ISPECMENU, ISEED,     
+     &                                  Input_Opt, State_Met, State_Chm,
+     &                                  RC  )
 !
 ! !USES:
 !
@@ -134,9 +135,11 @@
       USE CMN_FJX_MOD,         ONLY : ACOEF_RTWV, BCOEF_RTWV, CCOEF_RTWV 
       USE CMN_FJX_MOD,         ONLY : WVAA,       NWVAA
       USE CMN_FJX_MOD,         ONLY : NWVAA0
-      USE CMN_GCTM_MOD,        ONLY : AIRMW, PI
-      USE COMODE_LOOP_MOD,     ONLY : ICH4, AVG, WTAIR
+      USE PHYSCONSTANTS,       ONLY : AIRMW, PI, AVO
+      USE COMODE_LOOP_MOD,     ONLY : ICH4
       USE DIAG_MOD,            ONLY : AD72
+      USE ERROR_MOD
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,  ONLY : OptInput
       USE GIGC_State_Met_Mod,  ONLY : MetState
       USE GIGC_State_Chm_Mod,  ONLY : ChmState
@@ -145,9 +148,11 @@
       USE TIME_MOD,            ONLY : GET_DAY_OF_YEAR, GET_HOUR
       USE TOMS_MOD,            ONLY : GET_OVERHEAD_O3
       USE TRACERID_MOD
+      USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! root CPU?
       INTEGER,        INTENT(IN)    :: THISDAY     ! CURRENT DAY
       INTEGER,        INTENT(IN)    :: THISMONTH   ! CURRENT MONTH
       INTEGER,        INTENT(IN)    :: ISPECMENU   ! THE SPECIES BEING INCLUDED
@@ -155,12 +160,16 @@
       INTEGER,        INTENT(IN)    :: ISEED  
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       INTEGER,        INTENT(INOUT) :: ICLD        ! CLOUD FLAG FOR RRTMG
                                                    ! 0-NOCLOUD, 1-GREY CLOUD
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Failure or success
 !
 ! !REMARKS:
 !  THIS ROUTINE PASSES INPUTS TO THE RRTMG DRIVER ROUTINE "RAD_DRIVER"
@@ -181,8 +190,13 @@
 !                              (I,J,L) ordering.  This is for the NASA GCM.
 !  02 Jun 2015 - R. Yantosca - Bug fix: Add missing variables to OMP PRIVATE
 !  03 Jun 2015 - R. Yantosca - Now use pointers to avoid array temporaries
+!  12 Aug 2015 - E. Lundgren - Incoming tracer units are now [kg/kg] and
+!                              are converted to [kg] for RRTMG
+!  12 Aug 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
 !  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met object
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
+!  19 Jan 2016 - E. Lundgren - Use global physical constants from physconstants
+!                              rather than comode_loop_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -198,7 +212,7 @@
       LOGICAL                :: LOUTPUTAERO  ! OUTPUT AEROSOL DIAGNOSTICS?
       INTEGER                :: NAD72        ! NUMBER OF OUTPUTS PER FIELD
       INTEGER                :: ITIMEVALS(8)
-      INTEGER                :: IDIAGOUT     ! INDEX OF SPECIES OPTICS FOR OUTPUT
+      INTEGER                :: IDIAGOUT     ! INDEX OF SPECIES OPTICS FOR OUTPUT     
       REAL*8                 :: OLDSECS, NEWSECS
 
       !-----------------------------------------------------------------
@@ -464,10 +478,22 @@
       ! DO_RRTMG_RAD_TRANSFER begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Get fields from Input_Opt
       N_TRACERS   = Input_Opt%N_TRACERS
       XNUMOL      = Input_Opt%XNUMOL
       TRACER_MW_G = Input_Opt%TRACER_MW_G(1:N_TRACERS)
+
+      ! Convert tracer units to [kg] for RRTMG (ewl, 8/12/15)
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
+     &                            State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC,     
+     &                   'DO_RRTMG_RAD_TRANSFER')
+         RETURN
+      ENDIF
 
       !=================================================================
       ! PREPARE INPUTS FOR RAD_DRIVER
@@ -762,7 +788,7 @@
             AIR_TMP = State_Met%AIRDEN(I,J,L)*
      &                State_Met%BXHEIGHT(I,J,L)*1.0E-1
             !! DENSITY OF AIR IN MOLEC/CM2
-            AIR_TMP = AVG*AIR_TMP/WTAIR
+            AIR_TMP = AVO*AIR_TMP/AIRMW
 
             CALL SET_PROF_O3 (YLAT,THISMONTH,THISDAY,
      &                        T_CTM,  P_CTM,
@@ -1531,6 +1557,7 @@
          AD72(I,J,OUTIDX+(8+3*(W-1))*NAD72) = 
      &   AD72(I,J,OUTIDX+(8+3*(W-1))*NAD72) + AODOUT
          AD72(I,J,OUTIDX+(9+3*(W-1))*NAD72) = 
+
      &   AD72(I,J,OUTIDX+(9+3*(W-1))*NAD72) + SSAOUT
          AD72(I,J,OUTIDX+(10+3*(W-1))*NAD72)= 
      &   AD72(I,J,OUTIDX+(10+3*(W-1))*NAD72) + ASYMOUT
@@ -1539,6 +1566,15 @@
       ENDDO 
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Convert tracer units back to [kg/kg] after RRTMG (ewl, 8/12/15)
+      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
+     &                            State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC,     
+     &                   'DO_RRTMG_RAD_TRANSFER')
+         RETURN
+      ENDIF
 
 !EOC
       END SUBROUTINE DO_RRTMG_RAD_TRANSFER

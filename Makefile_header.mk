@@ -179,6 +179,12 @@
 #  30 Jul 2015 - M. Yannetti - Added TIMERS.
 #  03 Aug 2015 - M. Sulprizio- NEST=cu to now sets CPP switch w/ -DNESTED_CU for
 #                              custom nested grids
+#  11 Aug 2015 - R. Yantosca - Add MERRA2 as a met field option
+#  24 Aug 2015 - R. Yantosca - Bug fix: Add missing | when testing USER_DEFS
+#  07 Dec 2015 - R. Yantosca - Add "realclean_except_rrtmg" target that
+#                              replaces the RRTMG_CLEAN variabe
+#  10 Feb 2016 - E. Lundgren - Add BPCH restart file input and output switches
+#  11 Feb 2016 - E. Lundgren - Change BPCH to BPCH_DIAG, NETCDF to NC_DIAG
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -196,10 +202,10 @@ SHELL                :=/bin/bash
 ERR_CMPLR            :="Select a compiler: COMPILER=ifort, COMPILER=pgi"
 
 # Error message for bad MET input
-ERR_MET              :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp)"
+ERR_MET              :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp, MET=merra2)"
 
 # Error message for bad GRID input
-ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=025x03125"
+ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=05x0625, GRID=025x03125"
 
 # Error message for bad NEST input
 ERR_NEST             :="Select a nested grid: NEST=ch, NEST=eu, NEST=na NEST=se, NEST=cu"
@@ -216,6 +222,9 @@ ERR_GIGC             :="Unable to find the GIGC configuration file. Have you dow
 
 # Error message for bad GIGC config
 ERR_GIGC             :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
+
+# Error message for diagnostics
+ERR_DIAG             :="Select one diagnostic output type: NC_DIAG=y or BPCH_DIAG=y"
 
 ###############################################################################
 ###                                                                         ###
@@ -261,24 +270,35 @@ ifndef TIMERS
  TIMERS              :=0
 endif
 
-# %%%%% Set default compiler %%%%%
-ifndef COMPILER
-  COMPILER           :=ifort
+# %%%%% Default to bpch input restart file disabled %%%%%
+ifndef BPCH_RST_IN
+ BPCH_RST_IN         :=no
 endif
 
-# %%%%% Test if IFORT compiler is selected %%%%%
+# %%%%% Default to bpch output restart file disabled %%%%%
+ifndef BPCH_RST_OUT
+ BPCH_RST_OUT        :=no
+endif
+
+# %%%%% Set default compiler %%%%%
+
+# %%%%% If COMPILER is not defined, default to the $(FC) variable, which %%%%%
+# %%%%% is set in your .bashrc, or when you load the compiler module     %%%%%
+ifndef COMPILER
+  COMPILER           :=$(FC)
+endif
+
+# %%%%% Test if Intel Fortran Compiler is selected %%%%%
 REGEXP               :=(^[Ii][Ff][Oo][Rr][Tt])
 ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
-  COMPLER            :=ifort
-  COMPILE_CMD        :=ifort
+  COMPILE_CMD        :=$(FC)
   USER_DEFS          += -DLINUX_IFORT
 endif
 
-# %%%%% Test if PGI compiler is selected  %%%%%
-REGEXP               :=(^[Pp][Gg][Ii])
+# %%%%% Test if PGI Fortran compiler is selected  %%%%%
+REGEXP               :=(^[Pp][Gg])
 ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
-  COMPILER           :=pgi
-  COMPILE_CMD        :=pgf90
+  COMPILE_CMD        :=$(FC)
   USER_DEFS          += -DLINUX_PGI
 endif
 
@@ -319,10 +339,56 @@ ifeq ($(shell [[ "$(EXTERNAL_FORCING)" =~ $(REGEXP) ]] && echo true),true)
   NO_GRID_NEEDED     :=1
 endif
 
-# %%%%% NO_BPCH (for disabling old diagnostic arrays) %%%%%
+#------------------------------------------------------------------------------
+# Restart settings
+#------------------------------------------------------------------------------
+
+# %%%%% BPCH_RST_IN (for using bpch restart file as input ) %%%%%
 REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(NO_BPCH)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DNO_BPCH
+ifeq ($(shell [[ "$(BPCH_RST_IN)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DBPCH_RST_IN
+endif
+
+# %%%%% BPCH_RST_OUT (for using bpch restart file as output ) %%%%%
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(BPCH_RST_OUT)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DBPCH_RST_OUT
+endif
+
+#------------------------------------------------------------------------------
+# Diagnostic settings
+#------------------------------------------------------------------------------
+
+# %%%%% Use netCDF diagnostics if DEVEL=y %%%%%
+ifdef DEVEL
+  NC_DIAG            :=yes
+  BPCH_DIAG          :=no
+endif
+
+# %%%%% Test for diagnostic output type, set to bpch if not specified %%%%%
+ifndef BPCH_DIAG
+  ifndef NC_DIAG
+    BPCH_DIAG        :=yes
+  endif
+endif
+
+# %%%%% ERROR CHECK!  Make sure only one diagnostic output type is selected %%%%%
+ifeq ($(BPCH_DIAG),y)
+  ifeq ($(NC_DIAG),y)
+    $(error $(ERR_DIAG))
+  endif
+endif 
+
+# %%%%% BPCH (for using old BPCH diagnostic output) %%%%%
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DBPCH_DIAG
+endif
+
+# %%%%% NETCDF (for using new netCDF diagnostic output) %%%%%
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DNC_DIAG
 endif
 
 #------------------------------------------------------------------------------
@@ -399,19 +465,6 @@ ifeq ($(shell [[ "$(RRTMG)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DRRTMG
 endif
 
-# %%%%% Give users the option to make realclean except for RRTMG   %%%%%
-# %%%%% if they set variables  RRTMG_NOCLEAN=y or RRTMG_NO_CLEAN=y %%%%%
-# %%%%% This should help reduce the amount of time to recompile.   %%%%%
-RRTMG_CLEAN          :=1
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(RRTMG_NO_CLEAN)" =~ $(REGEXP) ]] && echo true),true)
-  RRTMG_CLEAN        :=0
-endif
-ifeq ($(shell [[ "$(RRTMG_NOCLEAN)" =~ $(REGEXP) ]] && echo true),true)
-  RRTMG_CLEAN        :=0
-endif
-
-
 #------------------------------------------------------------------------------
 # Met field settings
 #------------------------------------------------------------------------------
@@ -420,7 +473,7 @@ endif
 # to compile with "clean", "distclean", "realclean", "doc", "help",
 # "ncdfcheck", or "libnc".  These targets don't depend on the value of MET.
 ifndef MET
-  REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout.|baselib.)
+  REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout|wipeout.|baselib.)
   ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ $(REGEXP) ]] && echo true),true)
     NO_MET_NEEDED    :=1
   else
@@ -449,10 +502,17 @@ ifndef NO_MET_NEEDED
     USER_DEFS        += -DGEOS_5
   endif
 
-  # %%%%% MERRA %%%%%
+  # %%%%% MERRA or MERRA2 %%%%%
+  # We have to employ a double regexp test in order to prevent
+  # inadvertently setting MERRA if we want MERRA2. (bmy, 8/11/15)
   REGEXP             :=(^[Mm][Ee][Rr][Rr][Aa])
   ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DMERRA
+    REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2|^[Mm][Ee][Rr][Rr][Aa].2)
+    ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+      USER_DEFS      += -DMERRA2
+    else
+      USER_DEFS      += -DMERRA
+    endif
   endif
 
   # %%%%% GEOS-FP %%%%%
@@ -471,7 +531,7 @@ ifndef NO_MET_NEEDED
   endif
 
   # %%%%% ERROR CHECK!  Make sure our MET selection is valid! %%%%%
-  REGEXP             :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_FP)
+  REGEXP             :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_FP|\-DMERRA2)
   ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
     $(error $(ERR_MET))
   endif
@@ -489,7 +549,7 @@ endif  # NO_MET_NEEDED
 # "ncdfcheck", or "libnc".  These targets don't depend on the value of GRID.
 ifndef NO_GRID_NEEDED
   ifndef GRID
-    REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout.|baselib.|^wipeout)
+    REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout|wipeout.|baselib.|^wipeout)
     ifeq ($(shell [[ $(MAKECMDGOALS) =~ $(REGEXP) ]] && echo true),true)
       NO_GRID_NEEDED :=1
     else
@@ -538,6 +598,25 @@ ifndef NO_GRID_NEEDED
     endif
   endif
 
+  # %%%%% 0.5 x 0.625 %%%%%
+  REGEXP             :=(^05.0625|^0\.5.0\.625)
+  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
+
+    # Ensure that MET=geos-fp
+    REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2)|(^[Mm][Ee][Rr][Rr][Aa].2)
+    ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+      $(error When GRID=05x0625, you can only use MET=merra2)
+    endif
+
+    # Ensure that a nested-grid option is selected
+    ifndef NEST
+      $(error $(ERR_NEST))
+    else
+      NEST_NEEDED    :=1
+      USER_DEFS      += -DGRID05x0625
+    endif
+  endif
+
   # %%%%% 0.25 x 0.3125 %%%%%
   REGEXP             :=(^025.03125|^0\.25.0\.3125)
   ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
@@ -558,7 +637,7 @@ ifndef NO_GRID_NEEDED
   endif
 
   # %%%%% ERROR CHECK!  Make sure our GRID selection is valid! %%%%%
-  REGEXP             := ((\-DGRID)?4x5|2x25|1x125|05x0666|025x03125)
+  REGEXP             := ((\-DGRID)?4x5|2x25|1x125|05x0666|05x0625|025x03125)
   ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
     $(error $(ERR_GRID))
   endif
@@ -799,7 +878,6 @@ else
   # Use "nc-config --flibs" and nc-config --libs
   #-----------------------------------------------------------------------
   NC_LINK_CMD        := $(shell $(GC_BIN)/nc-config --flibs)
-  NC_LINK_CMD        += $(shell $(GC_BIN)/nc-config --libs)
 
 endif
 
@@ -883,11 +961,14 @@ endif
 
 ###############################################################################
 ###                                                                         ###
-###  IFORT compilation options.  This is the default compiler.              ###
+###  Define settings for the INTEL FORTRAN COMPILER (aka ifort)             ###
 ###                                                                         ###
 ###############################################################################
 
 ifeq ($(COMPILER),ifort) 
+
+  # Base set of compiler flags
+  FFLAGS             :=-cpp -w -auto -noalign -convert big_endian
 
   # Default optimization level for all routines (-O2)
   ifndef OPT
@@ -897,13 +978,11 @@ ifeq ($(COMPILER),ifort)
   # Pick compiler options for debug run or regular run 
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           :=-cpp -w -O0 -auto -noalign -convert big_endian
-    FFLAGS           += -g -check arg_temp_created -debug all
+    FFLAGS           += -g -O0 -check arg_temp_created -debug all
     TRACEBACK        := yes
     USER_DEFS        += -DDEBUG
   else
-    FFLAGS           :=-cpp -w $(OPT) -auto -noalign -convert big_endian
-    FFLAGS           += -vec-report0
+    FFLAGS           += $(OPT) -vec-report0
   endif
 
   # Prevent any optimizations that would change numerical results
@@ -1007,24 +1086,27 @@ endif
 
 ###############################################################################
 ###                                                                         ###
-###  Portland Group (PGF90) compilation options                             ###
+###  Define settings for the PORTLAND GROUP COMPILER (aka "pgfortran")      ###
 ###                                                                         ###
 ###############################################################################
 
-ifeq ($(COMPILER),pgi) 
+ifeq ($(COMPILER),pgfortran) 
+
+  # Base set of compiler flags
+  FFLAGS             :=-Kieee -byteswapio -Mpreprocess -m64
 
   # Default optimization level for all routines (-fast)
   ifndef OPT
-    OPT              :=-fast
+    OPT              :=-O2
    endif
 
   # Pick compiler options for debug run or regular run 
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           :=-byteswapio -Mpreprocess -g -O0 
+    FFLAGS           += -g -O0
     USER_DEFS        += -DDEBUG
   else
-    FFLAGS           :=-byteswapio -Mpreprocess $(OPT)
+    FFLAGS           += $(OPT)
   endif
 
   # Add options for medium memory model.  This is to prevent G-C from 
@@ -1034,7 +1116,7 @@ ifeq ($(COMPILER),pgi)
   # Turn on OpenMP parallelization
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(OMP)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           += -mp -Mnosgimp -Dmultitask
+    FFLAGS           += -mp
   endif
 
   # Add option for suppressing PGI non-uniform memory access (numa) library 
@@ -1046,7 +1128,7 @@ ifeq ($(COMPILER),pgi)
   # Add option for "array out of bounds" checking
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(BOUNDS)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           += -C
+    FFLAGS           += -Mbounds
   endif
 
   # Also add traceback option
@@ -1059,6 +1141,18 @@ ifeq ($(COMPILER),pgi)
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(KPP_SOLVE_ALWAYS)" =~ $(REGEXP) ]] && echo true),true)
     USER_DEFS        += -DKPP_SOLVE_ALWAYS
+  endif
+
+  # Turn on checking for floating-point exceptions
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(FPE)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -Ktrap=fp
+  endif
+
+  # Switch to add detailed compiler prinotut
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(INFO)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -Minfo
   endif
 
   # Add flexible precision declaration
@@ -1149,7 +1243,7 @@ export TIMERS
 ###############################################################################
 
 #headerinfo:
-#	@@echo '####### in Makefile_header.mk ########' 
+#	@@echo '####### in Makefile_header.mk ########'
 #	@@echo "COMPILER    : $(COMPILER)"
 #	@@echo "DEBUG       : $(DEBUG)"
 #	@@echo "BOUNDS      : $(BOUNDS)"

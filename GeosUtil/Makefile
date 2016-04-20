@@ -68,6 +68,8 @@
 #  23 Jul 2014 - R. Yantosca - Removed global_grid_mod.F90; it's obsolete
 #  08 Jan 2015 - E. Lundgren - Add module for unit conversion
 #  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
+#  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
+#  22 Jan 2016 - R. Yantosca - Remove linux_err.o
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -100,11 +102,6 @@ ifeq ($(COMPILER),ifort)
   OBJECTS += ifort_errmsg.o
 endif
 
-# Special files just for PGI
-ifeq ($(COMPILER),pgi) 
-  OBJECTS += linux_err.o
-endif
-
 # List of module files.  Convert to lowercase, then prefix directory name.
 MODULES   :=$(OBJECTS:.o=.mod)
 MODULES   :=$(shell echo $(MODULES) | tr A-Z a-z)
@@ -119,7 +116,7 @@ LIBRARY   :=libGeosUtil.a
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean help debug
+.PHONY: clean help debug slowclean
 
 lib: $(OBJECTS)
 	$(AR) crs $(LIBRARY) $(OBJECTS)
@@ -127,6 +124,10 @@ lib: $(OBJECTS)
 
 clean:
 	@echo "===> Making clean in directory: GeosUtil <==="
+	@rm -f *.o *.mod *.a *.x
+
+slowclean:
+	@echo "===> Making slowclean in directory: GeosUtil <==="
 	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 help:
@@ -169,7 +170,7 @@ bpch2_mod.o       : bpch2_mod.F           \
 charpak_mod.o     : charpak_mod.F
 
 error_mod.o       : error_mod.F           \
-                    geos_timers.o
+                    geos_timers_mod.o
 
 file_mod.o        : file_mod.F            \
                     error_mod.o
@@ -186,8 +187,6 @@ ifort_errmsg.o    : ifort_errmsg.F
 inquireMod.o      : inquireMod.F90
 
 julday_mod.o      : julday_mod.F
-
-linux_err.o       : linux_err.c
 
 pressure_mod.o    : pressure_mod.F        \
                     error_mod.o
@@ -206,7 +205,7 @@ transfer_mod.o    : transfer_mod.F        \
 unitconv_mod.o	  : unitconv_mod.F90      \
                     error_mod.o
 
-geos_timers.o     : geos_timers.F         
+geos_timers_mod.o : geos_timers_mod.F
 
 #%%% NOTE: THIS IS NOW OBSOLETE, WE SHOULD REMOVE IT %%% 
 # NOTE: if HDF5=yes then we need to also look for the hdf5.mod 

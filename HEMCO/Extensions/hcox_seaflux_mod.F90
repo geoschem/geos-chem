@@ -95,6 +95,7 @@ MODULE HCOX_SeaFlux_Mod
 !  11 Dec 2013 - C. Keller   - Now define container name during initialization
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  06 Nov 2015 - C. Keller   - Now use land type definitions instead of FRCLND
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -277,6 +278,7 @@ CONTAINS
     USE Ocean_ToolBox_Mod,  ONLY : CALC_KG
     USE Henry_Mod,          ONLY : CALC_KH, CALC_HEFF
     USE HCO_CALC_MOD,       ONLY : HCO_CheckDepv
+    USE HCO_GeoTools_Mod,   ONLY : HCO_LANDTYPE
 !
 ! !INPUT PARAMETERS:
 !
@@ -304,13 +306,16 @@ CONTAINS
 !  climatologies for these parameter at some point nevertheless!
 !
 ! !REVISION HISTORY: 
-!  16 Apr 2013 - C. Keller - Initial version
-!  15 Aug 2014 - C. Keller - Now restrict calculations to temperatures above
-!                            10 deg C.
-!  03 Oct 2014 - C. Keller - Added surface temperature limit of 45 degrees C
-!                            to avoid negative Schmidt numbers.
-!  07 Oct 2014 - C. Keller - Now use skin temperature instead of air temperature
-!  06 Mar 2015 - C. Keller - Now calculate deposition rate over entire PBL.
+!  16 Apr 2013 - C. Keller   - Initial version
+!  15 Aug 2014 - C. Keller   - Now restrict calculations to temperatures above
+!                              10 deg C.
+!  03 Oct 2014 - C. Keller   - Added surface temperature limit of 45 degrees C
+!                              to avoid negative Schmidt numbers.
+!  07 Oct 2014 - C. Keller   - Now use skin temperature instead of air temperature
+!  06 Mar 2015 - C. Keller   - Now calculate deposition rate over entire PBL.
+!  14 Oct 2015 - R. Yantosca - Pulled variables MW, VB, SCW out of the parallel 
+!                              loop.
+!  06 Nov 2015 - C. Keller   - Now use HCO_LANDTYPE instead of FRCLND
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -351,28 +356,53 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Init
-    SOURCE(:,:) = 0d0
-    SINK  (:,:) = 0d0
+    SOURCE  = 0.0_hp
+    SINK    = 0.0_hp
 
     ! Extract Henry coefficients
-    K0  = HcoState%Spc(HcoID)%HenryK0
-    CR  = HcoState%Spc(HcoID)%HenryCR
-    PKA = HcoState%Spc(HcoID)%HenryPKA
+    K0      = HcoState%Spc(HcoID)%HenryK0
+    CR      = HcoState%Spc(HcoID)%HenryCR
+    PKA     = HcoState%Spc(HcoID)%HenryPKA
+
+    ! molecular weight [g/mol]
+    ! Use real species molecular weight and not the emitted 
+    ! molecular weight. The molecular weight is only needed to
+    ! calculate the air-side Schmidt number, which should be 
+    ! using the actual species MW.
+    MW      = HcoState%Spc(HcoID)%MW_g
+
+    ! Liquid molar volume at boiling point [cm3/mol]
+    VB      = OcSpecs(OcID)%LiqVol
+
+    ! Get parameterization type for Schmidt number in water 
+    SCW     = OcSpecs(OcID)%SCWPAR
+
+    ! Molecular weight [g/mol]
+    ! Use real species molecular weight and not the emitted 
+    ! molecular weight. The molecular weight is only needed to
+    ! calculate the air-side Schmidt number, which should be 
+    ! using the actual species MW.
+    MW = HcoState%Spc(HcoID)%MW_g
+
+    ! Liquid molar volume at boiling point [cm3/mol]
+    VB = OcSpecs(OcID)%LiqVol
+
+    ! Get parameterization type for Schmidt number in water 
+    SCW = OcSpecs(OcID)%SCWPAR
 
     ! Model surface layer
-    L = 1
+    L       = 1
 
     ! Write out original warning status
     OLDWARN = WARN
 
     ! Loop over all grid boxes. Only emit into lowest layer
 
-!$OMP PARALLEL DO                                                   &
-!$OMP DEFAULT( SHARED )                                             &
-!$OMP PRIVATE( I,           J,        N,        TK                ) &
-!$OMP PRIVATE( TC,          P,        MW,       VB                ) &
-!$OMP PRIVATE( V,           KH,       RC,       HEFF,   SCW       ) &
-!$OMP PRIVATE( KG,          IJSRC,    PBL_MAX,  DEP_HEIGHT        ) &
+!$OMP PARALLEL DO                                     &
+!$OMP DEFAULT( SHARED )                               &
+!$OMP PRIVATE( I,  J,     N,        TK,        TC   ) & 
+!$OMP PRIVATE( P,  V,     KH,       RC,        HEFF ) &
+!$OMP PRIVATE( KG, IJSRC, PBL_MAX,  DEP_HEIGHT      ) &
 !$OMP SCHEDULE( DYNAMIC )
 
     DO J = 1, HcoState%NY
@@ -384,9 +414,9 @@ CONTAINS
        ! Assume no air-sea exchange over snow/ice (ALBEDO > 0.4)
        IF ( ExtState%ALBD%Arr%Val(I,J) > 0.4_hp ) CYCLE
 
-       ! Do only over the ocean, i.e. if land fraction is less
-       ! than 0.8
-       IF ( ExtState%FRCLND%Arr%Val(I,J) < 0.8_hp ) THEN
+       ! Do only over the ocean:
+       IF ( HCO_LANDTYPE( ExtState%WLI%Arr%Val(I,J), &
+                          ExtState%ALBD%Arr%Val(I,J) ) == 0 ) THEN 
 
           !-----------------------------------------------------------
           ! Get grid box and species specific quantities
@@ -416,20 +446,6 @@ CONTAINS
           ! surface pressure [Pa]
           P = HcoState%Grid%PEDGE%Val(I,J,L)
 
-          ! molecular weight [g/mol]
-          ! Use real species molecular weight and not the emitted 
-          ! molecular weight. The molecular weight is only needed to
-          ! calculate the air-side Schmidt number, which should be 
-          ! using the actual species MW.
-          MW = HcoState%Spc(HcoID)%MW_g
-
-          ! Liquid molar volume at boiling point [cm3/mol]
-          VB = OcSpecs(OcID)%LiqVol
-
-          ! Salinity [ppt]
-          ! Set to constant value for now!
-!          S = 35d0 
-
           ! 10-m wind speed [m/s] 
           V = ExtState%U10M%Arr%Val(I,J)**2 + &
               ExtState%V10M%Arr%Val(I,J)**2
@@ -455,9 +471,6 @@ CONTAINS
           ! Gas over liquid
           KH   = 1d0 / KH
           HEFF = 1d0 / HEFF
-
-          ! Get parameterization type for Schmidt number in water 
-          SCW = OcSpecs(OcID)%SCWPAR
 
           !-----------------------------------------------------------
           ! Calculate exchange velocity KG in [m s-1]
@@ -519,6 +532,7 @@ CONTAINS
     ENDDO !I
     ENDDO !J
 !$OMP END PARALLEL DO
+
 
     ! Check exit status
     IF ( RC /= HCO_SUCCESS ) THEN
@@ -764,8 +778,9 @@ CONTAINS
     ExtState%V10M%DoUse        = .TRUE.
     ExtState%TSKIN%DoUse       = .TRUE.
     ExtState%ALBD%DoUse        = .TRUE.
-    ExtState%FRCLND%DoUse      = .TRUE.
+    ExtState%WLI%DoUse         = .TRUE.
     ExtState%FRAC_OF_PBL%DoUse = .TRUE.
+!    ExtState%FRCLND%DoUse      = .TRUE.
     
     ! Enable extensions
     ExtState%SeaFlux = .TRUE.

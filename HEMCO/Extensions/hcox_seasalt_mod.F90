@@ -161,6 +161,9 @@ CONTAINS
 !                              derived type object
 !  15 Dec 2013 - C. Keller   - Now a HEMCO extension 
 !  09 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
+!  19 Oct 2015 - C. Keller   - Now pass I and J index to EMIT_SSABr2 to support
+!                              curvilinear grids.
+!  22 Oct 2015 - E. Lundgren - Bug fix: include CHLR in OMP PRIVATE statement
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -216,7 +219,7 @@ CONTAINS
 !$OMP DEFAULT( SHARED )                                                &
 !$OMP PRIVATE( I, J, A_M2, W10M, SST, SCALE, SSA_BR2, N              ) &
 !$OMP PRIVATE( SALT, SALT_N, R, SALT_NR, BR2_NR, RC                  ) & 
-!$OMP PRIVATE( OMSS1, OMSS2                                          ) & 
+!$OMP PRIVATE( OMSS1, OMSS2, CHLR                                    ) & 
 !$OMP SCHEDULE( DYNAMIC )
 
     ! Loop over surface boxes 
@@ -292,7 +295,7 @@ CONTAINS
                    !              Dry Radius bin. [kg]
                    SALT_NR = ( SRRC(R,N) * A_M2 * W10M**3.41d0 )
                    CALL EMIT_SSABr2( am_I_Root, ExtState,  HcoState, &
-                                     J,         RRMID(R,N), SALT_NR,  &
+                                     I, J,      RRMID(R,N), SALT_NR,  &
                                      BR2_NR,    RC                    )
                    IF ( RC /= HCO_SUCCESS ) THEN
                       ERR = .TRUE.
@@ -1013,8 +1016,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Emit_SsaBr2( am_I_Root, ExtState, HcoState, ilat, &
-                          rmid,      p_kgsalt, br2_emiss_kg, RC )
+  SUBROUTINE Emit_SsaBr2( am_I_Root,  ExtState, HcoState, ilon, &
+                          ilat, rmid, p_kgsalt, br2_emiss_kg, RC )
 !
 ! !USE:
 !
@@ -1025,6 +1028,7 @@ CONTAINS
     LOGICAL,         INTENT(IN   )  :: am_I_Root ! root CPU?
     TYPE(Ext_State), POINTER        :: ExtState  ! Module options  
     TYPE(HCO_State), POINTER        :: HcoState  ! Output obj
+    INTEGER,         INTENT(IN)     :: ilon      ! Grid longitude index
     INTEGER,         INTENT(IN)     :: ilat      ! Grid latitude index
     REAL*8,          INTENT(IN)     :: rmid      ! Dry radius of aerosol
     REAL*8,          INTENT(IN)     :: p_kgsalt  ! SeaSalt aerosol production [kgNaCl]
@@ -1057,6 +1061,8 @@ CONTAINS
 !                              from Yang et al. (2008)
 !  07 Aug 2013 - C. Keller   - Moved to SeaSalt_mod.F 
 !  15 Dec 2013 - C. Keller   - Now a HEMCO extension 
+!  19 Oct 2015 - C. Keller   - Now use lon and lat index to work on curvilinear
+!                              grids.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1143,7 +1149,7 @@ CONTAINS
 
 
     ! Apply seasonality to latitudes south of 30S
-    IF ( HcoState%Grid%YMID%Val(1,ilat) < -30.0 ) THEN
+    IF ( HcoState%Grid%YMID%Val(ilon,ilat) < -30.0 ) THEN
        ! Divide by mean value 0.4 = (dfmax+dfmin)/2 to keep
        ! seasonal dependence along with size dependence
        seasonal = ( dfmax + (dfmin - dfmax) / 2.d0 *                  &

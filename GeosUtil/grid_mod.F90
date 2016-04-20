@@ -17,7 +17,7 @@ MODULE Grid_Mod
 ! 
 ! !USES:
 !
-  USE CMN_GCTM_Mod     ! Physical constants
+  USE PHYSCONSTANTS    ! Physical constants
   USE Error_Mod        ! Error-handling routines
   USE Precision_Mod    ! For GEOS-Chem Precision (fp)
 
@@ -723,8 +723,8 @@ CONTAINS
     LOGICAL,  INTENT(IN)   :: am_I_Root      ! Root CPU?
     INTEGER,  INTENT(IN)   :: NX             ! # of lons
     INTEGER,  INTENT(IN)   :: NY             ! # of lats
-    REAL(f4), INTENT(IN)   :: lonCtr(NX,NY)  ! Lon ctrs [deg]
-    REAL(f4), INTENT(IN)   :: latCtr(NX,NY)  ! Lat ctrs [deg]
+    REAL(f4), INTENT(IN)   :: lonCtr(NX,NY)  ! Lon ctrs [rad]
+    REAL(f4), INTENT(IN)   :: latCtr(NX,NY)  ! Lat ctrs [rad]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -734,6 +734,8 @@ CONTAINS
 !  02 Jan 2014 - C. Keller   - Initial version
 !  26 Mar 2015 - R. Yantosca - Fix apparent optimization error by using 
 !                              scalars in call to the SIN function
+!  03 Sep 2015 - C. Keller   - Bug fix: need to explicitly calculate adjacent
+!                              mid-point to calculate first xedge and yedge. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -742,7 +744,7 @@ CONTAINS
 !
     INTEGER            :: I,         J,        L
     INTEGER            :: NI,        NJ,       NL
-    REAL(fp)           :: YEDGE_VAL, YSIN_VAL
+    REAL(fp)           :: YEDGE_VAL, YSIN_VAL, TMP
     CHARACTER(LEN=255) :: MSG
 
     !======================================================================
@@ -778,13 +780,15 @@ CONTAINS
 
        ! Edges: approximate from neighboring mid points.
        IF ( I == 1 ) THEN
-          XEDGE(I,J,L) = XMID(I,J,L) - ( ( XMID(I+1,J,L) - XMID(I,J,L) ) / 2.0_f4 )
+          TMP           = RoundOff( lonCtr(I+1,J) / PI_180, 4 )
+          XEDGE(I,J,L)  = XMID(I,J,L) - ( ( TMP - XMID(I,J,L) ) / 2.0_f4 )
        ELSE
           XEDGE(I,J,L) = ( XMID(I,J,L) + XMID(I-1,J,L) ) / 2.0_f4
        ENDIF
 
        IF ( J == 1 ) THEN
-          YEDGE(I,J,L) = YMID(I,J,L) - ( ( YMID(I,J+1,L) - YMID(I,J,L) ) / 2.0_f4 )
+          TMP          = RoundOff( latCtr(I,J+1) / PI_180, 4 )
+          YEDGE(I,J,L) = YMID(I,J,L) - ( ( TMP - YMID(I,J,L) ) / 2.0_f4 )
        ELSE
           YEDGE(I,J,L) = ( YMID(I,J,L) + YMID(I,J-1,L) ) / 2.0_f4
        ENDIF
@@ -1530,11 +1534,6 @@ CONTAINS
     ! Assume success
     RC        = GIGC_SUCCESS
 
-!-----------------------------------------------------------------------------
-! Prior to 4/1/15:
-!    ! First assume that we are doing a global simulation
-!    IS_NESTED = .FALSE.
-!-----------------------------------------------------------------------------
     ! IS_NESTED is now a local shadow variable (bmy, 4/1/15)
     IS_NESTED = Input_Opt%ITS_A_NESTED_GRID
 
@@ -1572,27 +1571,6 @@ CONTAINS
     ALLOCATE( AREA_M2( IM,   JM,   L ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'AREA_M2' )
     AREA_M2 = 0e+0_fp
-
-!-----------------------------------------------------------------------------
-! Prior to 4/1/15:
-! Now use the value of Input_Opt%ITS_A_NESTED_GRID, which is set in 
-! input_mod.F. (bmy, 4/1/15)
-!#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
-!
-!    !======================================================================
-!    ! Special settings for nested-grid simulations only
-!    !======================================================================
-!
-!    ! Denote that this is a nested-grid simulation
-!    IS_NESTED = .TRUE.
-!    
-!    ! Allocate nested-grid window array of lat centers (radians)
-!    ALLOCATE( YMID_R_W( IM, 0:JM+1, L ), STAT=AS ) 
-!    IF ( RC /= 0 ) CALL ALLOC_ERR( 'YMID_R_W' )
-!    YMID_R_W = 0e+0_fp
-!
-!#endif
-!-----------------------------------------------------------------------------
 
     !======================================================================
     ! Special settings for nested-grid simulations only

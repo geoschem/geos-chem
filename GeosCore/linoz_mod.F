@@ -23,7 +23,7 @@
 !
 ! !PRIVATE DATA MEMBERS:
 !
-      REAL(fp), ALLOCATABLE :: TLSTT(:,:,:)
+      REAL(fp), ALLOCATABLE :: TLSTT(:,:,:,:)
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -100,6 +100,7 @@
 !  18 Mar 2013 - R. Yantosca - Comment out STRAT_INIT, it's not called
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  19 Oct 2015 - C. Keller   - TLSTT is now 4D to work on curvilinear grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -211,6 +212,7 @@
 !
       USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL 
       USE CHEMGRID_MOD,       ONLY : GET_MAX_CHEMGRID_LEVEL
+      USE PHYSCONSTANTS,      ONLY : AIRMW, AVO ! Physical params
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -261,6 +263,8 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER and GET_PEDGE with
 !                              State_Met%PMID and State_Met%PEDGE. Remove
 !                              dependency on pressure_mod.
+!  19 Oct 2015 - C. Keller   - TLSTT is now 4D to work on curvilinear grids
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -306,7 +310,7 @@
       N_TRACERS  = Input_Opt%N_TRACERS
       TCVV       = Input_Opt%TCVV(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg] from State_Chm object
+      ! Initialize GEOS-Chem tracer array [v/v dry air] from State_Chm object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -456,14 +460,14 @@
                   dcolo3(i,j,l) = (stt(i,j,l,NTRACER) *
      &                 State_Met%AD(I,J,L) /
      &                 TCVV(NTRACER))      / GET_AREA_CM2(I,J,L) *
-     &                 6.022e+23_fp / (28.97/TCVV(NTRACER)*1e-3_fp) / 
+     &                 AVO / (AIRMW/TCVV(NTRACER)*1e-3_fp) / 
      &                 2.687e+16_fp
                   colo3(i,j,l) = dcolo3(i,j,l)*0.5
                else
                   dcolo3(i,j,l) = (stt(i,j,l,NTRACER) * 
      &                 State_Met%AD(I,J,L) / 
      &                 TCVV(NTRACER))      / GET_AREA_CM2(I,J,L) *
-     &                 6.022e+23_fp / (28.97/TCVV(NTRACER)*1e-3_fp) / 
+     &                 AVO / (AIRMW/TCVV(NTRACER)*1e-3_fp) / 
      &                 2.687e+16_fp
                   colo3(i,j,l) = colo3(i,j,l+1) +
      &                 (dcolo3(i,j,l)+dcolo3(i,j,l+1))*0.5
@@ -471,20 +475,20 @@
                out_data(i,j,l) = colo3(i,j,l)
 
                ! ++++++ climatological P-L:   ++++++          
-               climpml=tlstt(j,l,4)      ! Climatological P-L = (P-L)^o
+               climpml=tlstt(i,j,l,4)      ! Climatological P-L = (P-L)^o
 
                ! ++++++ local ozone feedback: ++++++ 
-               dero3=tlstt(j,l,5)               ! Derivative w.r.t. O3. 
+               dero3=tlstt(i,j,l,5)               ! Derivative w.r.t. O3. 
                                                 !  dero3=-1/(time constant)
                IF (dero3.EQ.0) CYCLE            ! Skip Linoz if lifetime 
                                                 !  is infinite.
-               climo3=tlstt(j,l,1)              ! Climatological O3 = f^o
-               derco3=tlstt(j,l,7)              ! Derivative w.r.t. Column O3
-               dco3=(colo3(i,j,l)-tlstt(j,l,3)) ! deviation from o3 climatology.
+               climo3=tlstt(i,j,l,1)              ! Climatological O3 = f^o
+               derco3=tlstt(i,j,l,7)              ! Derivative w.r.t. Column O3
+               dco3=(colo3(i,j,l)-tlstt(i,j,l,3)) ! deviation from o3 climatology.
                ! ++++++ temperature feedback: ++++++ 
-               dertmp=tlstt(j,l,6)              ! Derivative w.r.t. Temperature
+               dertmp=tlstt(i,j,l,6)              ! Derivative w.r.t. Temperature
                dtmp=(State_Met%T(I,J,L) -       ! Deviation in Temperature 
-     &                tlstt(j,l,2))             !  from climatology.
+     &                tlstt(i,j,l,2))             !  from climatology.
 
                ! ++++++ calculate steady-state ozone: ++++++ 
                sso3=climo3 - (climpml+dtmp*dertmp+dco3*derco3)/dero3 
@@ -575,6 +579,7 @@
 !  18 Mar 2013 - R. Yantosca - Accept Input_Opt, RC arguments.  Use fields
 !                              from Input_Opt to facilitate GC/GEOS-5 interface
 !  18 Mar 2013 - R. Yantosca - Cosmetic changes, updated comments
+!  19 Oct 2015 - C. Keller   - TLSTT is now 4D to work on curvilinear grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -593,7 +598,7 @@
       INTEGER           :: NMONTHS_LINOZ
 
       ! Arrays
-      INTEGER           :: JLATMD(JJPAR                  )
+!      INTEGER           :: JLATMD(JJPAR                  )
       REAL(fp)            :: P0L   (LLPAR+1                )
       REAL(fp)            :: STRT0L(LLPAR+1                )
       REAL(fp)            :: STRT1L(LLPAR+1                )
@@ -672,12 +677,14 @@
         YSTRT(J) = YSTRT(J-1) + 10.e+0_fp
       enddo
 
-      ! JLATMD(J) is the nearest-neighbor LINOZ data column corresponding
-      ! to each GEOS-Chem latitude index J. (dbj, 6/25/03)
-      DO J = 1, JJPAR
-         JXXX      = INT( 0.1e+0_fp * GET_YMID(1,J,1) + 10.e+0_fp )
-         JLATMD(J) = MIN( 18,     MAX( 1, JXXX )          )
-      ENDDO
+      ! TLSTT is now 4D. Need to calculate latitude indeces inside of loop.
+      ! (ckeller, 10/19/15)
+      !! JLATMD(J) is the nearest-neighbor LINOZ data column corresponding
+      !! to each GEOS-Chem latitude index J. (dbj, 6/25/03)
+      !DO J = 1, JJPAR
+      !   JXXX      = INT( 0.1e+0_fp * GET_YMID(1,J,1) + 10.e+0_fp )
+      !   JLATMD(J) = MIN( 18,     MAX( 1, JXXX )          )
+      !ENDDO
 
       ! P0L are the pressure at the level edges of each GEOS-Chem
       ! grid box, assuming a surface pressure of 1010 hPa (dbj, 6/25/03)
@@ -717,10 +724,15 @@
 
          ! Loop over GEOS-Chem latitudes
          DO J = 1, JM
+         DO I = 1, IM
 
             ! JJ is the index of the nearest LINOZ data column
             ! corresponding to GEOS-Chem latitude index J
-            JJ = JLATMD(J)
+            ! Now explicitly calculate for every grid box to account for
+            ! curvilinear grids. (ckeller, 10/19/15)
+            ! JJ = JLATMD(J)
+            JXXX = INT( 0.1e+0_fp * GET_YMID(I,J,1) + 10.e+0_fp )
+            JJ   = MIN( 18, MAX( 1, JXXX ) )
 
             ! Loop over the # of levels in the LINOZ climatology
             DO K = 1, NLEVELS_LINOZ
@@ -757,8 +769,9 @@
             ! for exact CTM layers LM down
             ! Order reversed from C.McLinden version {PJC}
             DO LR = 1,LLPAR  
-               TLSTT(J,LR,N) = STRT0L(LLPAR+1-LR)
+               TLSTT(I,J,LR,N) = STRT0L(LLPAR+1-LR)
             ENDDO
+         ENDDO     ! loop over I
          ENDDO     ! loop over J
       ENDDO      ! loop over N
 
@@ -1315,6 +1328,7 @@
 !                              within the Input_Opt object.
 !  18 Mar 2013 - R. Yantosca - Accept am_I_Root, Input_Opt, RC arguments
 !  14 Mar 2013 - M. Payer    - Replace Ox with O3 for full-chemistry simulation
+!  19 Oct 2015 - C. Keller   - TLSTT is now 4D to work on curvilinear grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1322,7 +1336,8 @@
       RC = GIGC_SUCCESS
 
       ! Allocate TLSTT array
-      ALLOCATE( TLSTT( JJPAR, 
+      ALLOCATE( TLSTT( IIPAR, 
+     &                 JJPAR, 
      &                 LLPAR, 
      &                 Input_Opt%LINOZ_NFIELDS ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'TPARM' )

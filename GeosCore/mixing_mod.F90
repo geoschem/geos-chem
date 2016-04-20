@@ -59,7 +59,6 @@ CONTAINS
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
     USE VDIFF_MOD,          ONLY : DO_PBL_MIX_2
-    USE DAO_MOD,            ONLY : CONVERT_UNITS
 !
 ! !INPUT PARAMETERS:
 !
@@ -97,7 +96,8 @@ CONTAINS
        CALL DO_PBL_MIX_2( am_I_Root, .FALSE. ,  Input_Opt, &
                           State_Met, State_Chm, RC          )
     ELSE 
-       CALL DO_PBL_MIX( .FALSE., Input_Opt, State_Met, State_Chm )
+       CALL DO_PBL_MIX( am_I_Root, .FALSE.,   Input_Opt, &
+                        State_Met, State_Chm, RC          )
     ENDIF
 
   END SUBROUTINE INIT_MIXING 
@@ -122,10 +122,10 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE ERROR_MOD,          ONLY : GIGC_ERROR
     USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
     USE VDIFF_MOD,          ONLY : DO_PBL_MIX_2
-    USE DAO_MOD,            ONLY : CONVERT_UNITS
+    USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -145,10 +145,16 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  04 Mar 2015 - C. Keller    - Initial version 
+!  12 Aug 2015 - E. Lundgren  - Input tracer units are now [kg/kg] and 
+!                               are converted to [v/v] for mixing
+!  30 Sep 2014 - E. Lundgren  - Move unit conversion for DO_TEND to DO_TEND
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    LOGICAL       :: OnlyAbovePBL
+!
+! LOCAL VARIABLES:
+!
+    LOGICAL   :: OnlyAbovePBL
 
     !=================================================================
     ! DO_MIXING begins here!
@@ -156,6 +162,15 @@ CONTAINS
 
     ! Assume success
     RC = GIGC_SUCCESS
+
+    ! Convert [kg/kg dry air] to [v/v dry air] for mixing (ewl, 8/12/15)
+    CALL Convert_KgKgDry_to_VVDry( am_I_Root, Input_Opt, &
+                                   State_Chm, RC )  
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL GIGC_Error('Unit conversion error', RC, &
+                       'DO_MIXING in mixing_mod.F')
+       RETURN
+    ENDIF  
 
     ! ------------------------------------------------------------------
     ! Do non-local PBL mixing. This will apply the tracer tendencies
@@ -181,27 +196,30 @@ CONTAINS
     ! capped at the tropopause to avoid build-up in stratosphere.
     ! ------------------------------------------------------------------
 
-    ! DO_TEND operates in units of kg. The tracer arrays enters as
-    ! v/v, hence need to convert before and after.
-    ! v/v --> kg
-    CALL CONVERT_UNITS( 2, Input_Opt%N_TRACERS, Input_Opt%TCVV, &
-                        State_Met%AD, State_Chm%Tracers ) 
-
     ! Apply tendencies
     CALL DO_TEND ( am_I_Root, Input_Opt,    State_Met, &
                    State_Chm, OnlyAbovePBL, RC          )
 
-    ! Convert back: kg --> v/v
-    CALL CONVERT_UNITS( 1, Input_Opt%N_TRACERS, Input_Opt%TCVV, &
-                        State_Met%AD, State_Chm%Tracers ) 
-
     ! ------------------------------------------------------------------
     ! Do full pbl mixing. This fully mixes the updated tracer 
     ! concentrations within the PBL. 
+    ! 
+    ! Now also archive concentrations and calculate turbulence 
+    ! tendencies (ckeller, 7/15/2015)
     ! ------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. .NOT. Input_Opt%LNLPBL ) THEN
-       CALL DO_PBL_MIX( Input_Opt%LTURB, Input_Opt, State_Met, State_Chm )
+       CALL DO_PBL_MIX( am_I_Root, Input_Opt%LTURB, Input_Opt, & 
+                        State_Met, State_Chm,       RC )
     ENDIF
+
+    ! Convert tracer conc back to [kg/kg dry air] after mixing (ewl, 8/12/15)
+    CALL Convert_VVDry_to_KgKgDry( am_I_Root, Input_Opt, &
+                                   State_Chm, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL GIGC_Error('Unit conversion error', RC, &
+                       'DO_MIXING in mixing_mod.F')
+       RETURN
+    ENDIF  
 
   END SUBROUTINE DO_MIXING 
 !EOC
@@ -224,6 +242,9 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
+#if defined( DEVEL )
+    USE TENDENCIES_MOD
+#endif
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -234,21 +255,23 @@ CONTAINS
     USE TRACERID_MOD,       ONLY : IDTPRPE, IDTO3,   IDTHNO3
     USE TRACERID_MOD,       ONLY : IDTBrO,  IDTBr2,  IDTBr,   IDTHOBr
     USE TRACERID_MOD,       ONLY : IDTHBr,  IDTBrNO3 
+    USE UNITCONV_MOD
     USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal, GetHcoDiagn
     USE TIME_MOD,           ONLY : GET_TS_DYN
     USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
-    USE DRYDEP_MOD,         ONLY : NTRAIND, DEPSAV
+    USE DRYDEP_MOD,         ONLY : DEPSAV
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
-    USE CMN_GCTM_MOD,       ONLY : AVO
+    USE PHYSCONSTANTS,      ONLY : AVO
     USE CMN_DIAG_MOD,       ONLY : ND44
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
     USE DIAG_MOD,           ONLY : AD44
 #endif
-#if defined( DEVEL )
+#if defined( NC_DIAG )
     USE HCO_ERROR_MOD
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+    USE TRACERID_MOD,       ONLY : IDTISOPN, IDTMMN
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -274,15 +297,20 @@ CONTAINS
 !                              diagnostics.
 !  12 Jun 2015 - R. Yantosca - Bug fix in SAFE_DIV: the denominator was
 !                              arranged wrongly.  Now corrected.
+!  18 Jun 2015 - C. Keller   - Now restrict all emissions to chemistry grid
+!                              if UCX=false.
+!  30 Sep 2015 - E. Lundgren - Now convert locally to kg/m2 for area-independent
+!                              compatibility between tracer units and flux
+!  16 Mar 2016 - E. Lundgren - Exclude specialty simulations in restriction of
+!                              all emissions to chemistry grid if UCX=false
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, J, L, L1, L2, N, NN
+    INTEGER            :: I, J, L, L1, L2, N, D, NN
     INTEGER            :: DRYDEPID
-    INTEGER            :: HCRC
     INTEGER            :: PBL_TOP, DRYD_TOP, EMIS_TOP
     REAL(fp)           :: TS, TMP, FRQ, RKT, FRAC, FLUX, AREA_M2
     REAL(fp)           :: MWkg, DENOM
@@ -292,14 +320,16 @@ CONTAINS
     LOGICAL            :: DryDepSpec, EmisSpec
 
     ! For diagnostics
-#if defined( DEVEL )
-    INTEGER            :: cID
-    REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
+#if defined( NC_DIAG )
+    INTEGER            :: cID, trc_id, HCRC
+    CHARACTER(LEN=30)  :: DiagnName
+    REAL(fp), TARGET   :: DryDepFlux( IIPAR, JJPAR, Input_Opt%NUMDEP ) 
     REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
-    REAL(fp), TARGET   :: EMIS(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) 
-    REAL(fp), TARGET   :: DEP (IIPAR,JJPAR,      Input_Opt%N_TRACERS) 
-    REAL(fp)           :: TOTFLUX(Input_Opt%N_TRACERS)
-    REAL(fp)           :: TOTDEP (Input_Opt%N_TRACERS)
+
+    ! tracer emissions diagnostic (does not correspond to any bpch diags)
+    REAL(fp), TARGET   :: EMIS( IIPAR, JJPAR, LLPAR, Input_Opt%N_TRACERS ) 
+    REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
+    REAL(fp)           :: TOTFLUX( Input_Opt%N_TRACERS )
 #endif
 
     ! PARANOX loss fluxes (kg/m2/s). These are obtained from the 
@@ -327,6 +357,19 @@ CONTAINS
     LDRYD      = Input_Opt%LDRYD 
     PBL_DRYDEP = Input_Opt%PBL_DRYDEP
 
+    ! DO_TEND previously operated in units of kg. The tracer arrays are in
+    ! v/v for mixing, hence needed to convert before and after.
+    ! CALL CONVERT_UNITS( 2, Input_Opt%N_TRACERS, Input_Opt%TCVV, &
+    !                     State_Met%AD, State_Chm%Tracers ) 
+    ! Now use units kg/m2 as State_Chm%TRACERS units in DO_TEND to 
+    ! remove area-dependency (ewl, 9/30/15)
+    ! v/v --> kg/m2
+    CALL Convert_VVDry_to_KgKgDry( am_I_Root, Input_Opt,  &
+                                   State_Chm, RC )
+
+    CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,   &
+                                  State_Met, State_Chm, RC )
+
     ! Get time step [s]
     IF ( PRESENT(DT) ) THEN
        TS = DT
@@ -346,25 +389,30 @@ CONTAINS
     IF ( FIRST ) THEN
        IF ( .NOT. Input_Opt%LNLPBL ) THEN
           CALL GetHcoDiagn( am_I_Root, 'PARANOX_O3_DEPOSITION_FLUX'  , &
-                            .FALSE.,   HCRC, Ptr2D = PNOXLOSS_O3         ) 
+                            .FALSE.,   RC, Ptr2D = PNOXLOSS_O3          ) 
           CALL GetHcoDiagn( am_I_Root, 'PARANOX_HNO3_DEPOSITION_FLUX', &
-                            .FALSE.,   HCRC, Ptr2D = PNOXLOSS_HNO3       ) 
+                            .FALSE.,   RC, Ptr2D = PNOXLOSS_HNO3        ) 
        ENDIF
        FIRST = .FALSE.
     ENDIF
 
-    ! Init diagnostics
+#if defined( NC_DIAG )
+    ! Initialize local diagnostic variables
+    DryDepFlux  = 0.0_fp
+    EMIS        = 0.0_fp
+    TOTFLUX     = 0.0_fp
+#endif
+
+    ! Archive concentrations for tendencies (ckeller, 7/15/2015) 
 #if defined( DEVEL )
-    DEP     = 0.0_fp
-    EMIS    = 0.0_fp
-    TOTFLUX = 0.0_fp
-    TOTDEP  = 0.0_fp
+      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, &
+                        State_Chm, 'FLUX', .FALSE., RC )
 #endif
 
     ! Do for every tracer and grid box
 !$OMP PARALLEL DO                                                    &
 !$OMP DEFAULT ( SHARED )                                             &
-!$OMP PRIVATE( I, J, L, L1, L2, N, NN, PBL_TOP, FND, TMP, DRYDEPID ) &
+!$OMP PRIVATE( I, J, L, L1, L2, N, D, PBL_TOP, FND, TMP, DRYDEPID ) &
 !$OMP PRIVATE( FRQ, RKT, FRAC, FLUX, AREA_M2,   MWkg, ChemGridOnly ) & 
 !$OMP PRIVATE( DryDepSpec, EmisSpec, DRYD_TOP,  EMIS_TOP, PNOXLOSS ) &
 !$OMP PRIVATE( DENOM                                               )
@@ -384,12 +432,12 @@ CONTAINS
 
           ! Get dry deposition index DRYDEPID. This is the ID used by
           ! drydep_mod.F90 for this species. 
-          DO NN = 1, Input_Opt%NUMDEP
-             IF ( NTRAIND(NN) == N ) THEN
-                DRYDEPID = NN
+          DO D = 1, Input_Opt%NUMDEP
+             IF ( Input_Opt%NTRAIND(D) == N ) THEN
+                DRYDEPID = D
                 EXIT
              ENDIF
-          ENDDO !NN
+          ENDDO ! D
 
           ! Check if this is a HEMCO drydep species 
           DryDepSpec = ( DRYDEPID > 0 )
@@ -427,9 +475,6 @@ CONTAINS
 
           ! Get PBL_TOP at this grid box
           PBL_TOP = State_Met%PBL_TOP_L(I,J)
-
-          ! Grid box area
-          AREA_M2 = State_Met%AREA_M2(I,J,1)
 
           ! Molecular weight in kg
           MWkg = Input_Opt%TRACER_MW_KG(N)
@@ -476,6 +521,14 @@ CONTAINS
                   N == IDTHBr  .OR. N == IDTBrNO3       ) THEN
                 ChemGridOnly = .TRUE.
              ENDIF
+          ENDIF
+
+          ! For non-UCX runs, never emit above the chemistry grid.
+          ! (ckeller, 6/18/15)
+          ! Exclude all specialty simulations (ewl, 3/17/16)
+          IF ( Input_Opt%ITS_A_FULLCHEM_SIM .AND.  &
+               .NOT. Input_Opt%LUCX ) THEN
+             ChemGridOnly = .TRUE.
           ENDIF
 
           ! Restrict to chemistry grid
@@ -539,21 +592,20 @@ CONTAINS
                    FRAC = EXP(-RKT)
 
                    ! Apply dry deposition
-                   State_Chm%Tracers(I,J,L,N) = FRAC * State_Chm%Tracers(I,J,L,N)
+                   State_Chm%Tracers(I,J,L,N) = FRAC *    &
+                                                State_Chm%Tracers(I,J,L,N)
 
-                   ! Loss in kg
+                   ! Loss in kg/m2
                    FLUX = ( 1.0_fp - FRAC ) * State_Chm%Tracers(I,J,L,N) 
 
                    ! Eventually add PARANOX loss. PNOXLOSS is in kg/m2/s. 
-                   ! Convert to kg.
                    IF ( PNOXLOSS > 0 ) THEN
-                      FLUX = FLUX + ( PNOXLOSS * AREA_M2 * TS )
+                      FLUX = FLUX + ( PNOXLOSS * TS )
                    ENDIF 
 
-#if defined( DEVEL )
-                   ! Archive deposition flux in kg/m2/s
-                   DEP(I,J,N) = DEP(I,J,N) + ( FLUX / AREA_M2 / TS )
-                   TOTDEP(N)  = TOTDEP(N) + FLUX
+#if defined( NC_DIAG )
+                   ! Prior to 1/22/16, archive deposition flux in kg/m2/s:
+                   !DepFluxes(I,J,N) = DepFluxes(I,J,N) + ( FLUX / TS )
 #endif
 !                   IF (AREA_M2 .eq. 0.0_fp) THEN
 !                     PRINT*, "FLUX: ", FLUX
@@ -570,25 +622,33 @@ CONTAINS
                    !
                    ! NOTE: The original computation was:
                    !   FLUX = FLUX / MWkg * AVO / TS / ( AREA_M2 * 1.0e4_fp ) ]
-                   ! so we the denominator as we had it was wrong.
+                   ! so the denominator as we had it was wrong.
                    ! Now corrected (elundgren, bmy, 6/12/15)
-                   DENOM = ( MWkg * TS * AREA_M2 * 1.0e+4_fp ) / AVO
-                   FLUX  = SAFE_DIV( FLUX, DENOM, 0.0e+0_fp ) 
+                   DENOM = ( MWkg * TS * 1.0e+4_fp ) / AVO
+                   FLUX  = SAFE_DIV( FLUX, DENOM, 0.0e+0_fp )  ! molec/cm2/s
 
-                   ! Diagnostics. These are the same as DRYFLX.
-                   ! Diagnostics are in molec/cm2/s.
-#if !defined( NO_BPCH )
-                   ! ND44 diagnostics
-                   IF ( ND44 > 0 .and. DryDepID > 0 ) THEN
-                      AD44(I,J,DryDepID,1) = AD44(I,J,DryDepID,1) + FLUX
-                   ENDIF
-#endif
                    ! Eventually add to SOIL_DRYDEP
                    IF ( Input_Opt%LSOILNOX ) THEN
                       CALL SOIL_DRYDEP( I, J, L, N, FLUX )
                    ENDIF
-                ENDIF
 
+      !========================================================      
+      ! ND44: Dry deposition diagnostic [molec/cm2/s]
+      !========================================================
+                   IF ( ND44 > 0 .and. DryDepID > 0 ) THEN
+#if defined( BPCH_DIAG )
+                      ! For bpch diagnostic, store data in global AD44 array
+                      AD44(I,J,DryDepID,1) = AD44(I,J,DryDepID,1) + FLUX
+#endif
+#if defined( NC_DIAG )
+                      ! For netcdf diagnostic, store data in local array
+                      ! Now use same units as bpch for comparison (ewl, 1/22/16)
+                      DryDepFlux(I,J,DryDepID) = DryDepFlux(I,J,DryDepID) &
+                                                + FLUX
+#endif
+                   ENDIF
+
+                ENDIF ! apply drydep
              ENDIF ! L <= PBLTOP
 
              !----------------------------------------------------------
@@ -603,17 +663,17 @@ CONTAINS
                 ! Add emissions (if any)
                 IF ( FND .AND. (TMP > 0.0_fp) ) THEN
 
-                   ! Flux: [kg] = [kg m-2 s-1 ] x [s] x [m2]
-                   FLUX = TMP * TS * AREA_M2
+                   ! Flux: [kg/m2] = [kg m-2 s-1 ] x [s]
+                   FLUX = TMP * TS
 
                    ! Add to tracer array
                    State_Chm%Tracers(I,J,L,N) = State_Chm%Tracers(I,J,L,N) & 
                                               + FLUX 
 
-                   ! Update diagnostics
-#if defined( DEVEL )
-                   EMIS(I,J,L,N) = TMP
-                   TOTFLUX(N)    = TOTFLUX(N) + FLUX 
+#if defined( NC_DIAG )
+                   ! Update new tracer emissions diagnostics
+                   EMIS(I,J,L,N) = TMP                 ! kg/m2/s
+                   TOTFLUX(N)    = TOTFLUX(N) + FLUX   ! kg/m2/s
 #endif
                 ENDIF
              ENDIF
@@ -624,32 +684,80 @@ CONTAINS
     ENDDO !N
 !$OMP END PARALLEL DO
 
+      ! Calculate tendencies and write to diagnostics (ckeller, 7/15/2015)
 #if defined( DEVEL )
-    !-------------------------------------------------------------------
-    ! Update diagnostics that will get saved to netCDF files.
-    ! These are defined in diagnostics_mod.F90
-    ! 
-    ! NOTE: For now, this is only activated by compiling with DEVEL=y,
-    ! but in the future this will replace the bpch diagnostics!
-    !-------------------------------------------------------------------
+      CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, &
+                        State_Chm, 'FLUX', .FALSE., TS, RC )
+#endif
+
+
+#if defined( NC_DIAG )
+    !========================================================      
+    ! ND44: Dry deposition diagnostic [molec/cm2/s] (netcdf) 
+    !========================================================
+    IF ( Input_Opt%ND44 > 0 ) THEN
+
+       ! Assume success
+       HCRC = HCO_SUCCESS
+
+       ! Loop over all depositing species
+       DO D = 1, Input_Opt%NUMDEP
+       
+          ! Get the corresponding GEOS-Chem tracer number
+          trc_id = Input_Opt%NTRAIND( D )
+       
+          ! If this tracer number is scheduled for output in input.geos, 
+          ! then archive the latest depvel data into the diagnostic structure
+          IF ( ANY( Input_Opt%TINDEX(44,:) == trc_id ) ) THEN
+       
+             ! Define diagnostic name
+             DiagnName = 'DRYDEP_FLX_MIX_' // TRIM( Input_OPt%DEPNAME(D) )
+
+             ! Point to data
+             Ptr2D => DryDepFlux(:,:,D)
+
+             ! Update diagnostic container
+             CALL Diagn_Update( am_I_Root,                           &
+                                cName     = TRIM( DiagnName),        &
+                                Array2D = Ptr2D,                     &
+                                COL     = Input_Opt%DIAG_COLLECTION, &
+                                RC      = HCRC                          )
+       
+             ! Free the pointer
+             Ptr2D => NULL()
+       
+             ! Stop with error if the diagnostics were unsuccessful
+             IF ( HCRC /= HCO_SUCCESS ) THEN
+                CALL ERROR_STOP( 'Cannot update drydep flux' //       &
+                                 ' diagnostic: ' // TRIM( DiagnName), &
+                                 'DO_TEND (mixing_mod.F)')
+             ENDIF
+          ENDIF
+       ENDDO
+    ENDIF
+
+    ! For now, always output tracer emissions diagnostic since there
+    ! is no logical switch for it in Input_Mod, nor an entry in input.geos
     DO N = 1, Input_Opt%N_TRACERS
  
        ! Skip if there are no emissions
        IF ( TOTFLUX(N) == 0.0_fp ) CYCLE
 
        ! Only if HEMCO tracer is defined
+       ! NOTE: For other netcdf diagnostics we look at Input_Opt%TINDEX
+       ! to see which tracers are turned on for the diagnostic
        cID = GetHcoID( TrcID=N )
        IF ( cID > 0 ) THEN 
 
           ! Define diagnostics name
-          cID = 10000 + cID
+          DiagnName = 'TRACER_EMIS_' // TRIM( Input_Opt%TRACER_NAME(N) )
 
           ! Point to species slice 
           Ptr3D => EMIS(:,:,:,N)
 
           ! Update the emissions diagnostics
           CALL Diagn_Update( am_I_Root,                           &
-                             cID     = cID,                       &
+                             cName   = TRIM( DiagnName ),         &
                              Array3D = Ptr3D,                     &
                              Total   = TOTFLUX(N),                &
                              COL     = Input_Opt%DIAG_COLLECTION, &
@@ -660,25 +768,19 @@ CONTAINS
 
           ! Error check
           IF ( HCRC /= HCO_SUCCESS ) THEN
-             CALL ERROR_STOP ('Error updating diagnostics: '// &
-                              'TRACER_EMIS_'//TRIM(Input_Opt%TRACER_NAME(N)), &
+             CALL ERROR_STOP ('Error updating diagnostics: '// DiagnName, &
                               'DO_TEND (mixing_mod.F90)' )
           ENDIF
        ENDIF
-
-       ! Drydep fluxes
-       IF ( Input_Opt%ND44 > 0 .AND. ( TOTDEP(N) > 0.0_fp ) ) THEN
-          Ptr2D => DEP(:,:,N)
-          cID = 44500 + N
-          CALL Diagn_Update( am_I_Root,                           &
-                             cID     = cID,                       &
-                             Array2D = Ptr2D,                     &
-                             COL     = Input_Opt%DIAG_COLLECTION, &
-                             RC      = HCRC                        )
-          Ptr2D => NULL()
-       ENDIF
     ENDDO
+
 #endif
+
+    ! Convert State_Chm%TRACERS back: kg/m2 --> v/v (ewl, 9/30/15)
+    CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,   &
+                                  State_Met, State_Chm, RC )
+    CALL Convert_KgKgDry_to_VVDry( am_I_Root, Input_Opt,          &
+                                   State_Chm, RC )
 
   END SUBROUTINE DO_TEND 
 !EOC

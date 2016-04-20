@@ -110,20 +110,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_PBL_MIX( DO_TURBDAY, Input_Opt, 
-     &                       State_Met,  State_Chm  )
+      SUBROUTINE DO_PBL_MIX( am_I_Root,  DO_TURBDAY, Input_Opt, 
+     &                       State_Met,  State_Chm,  RC )
 !
 ! !USES:
 !
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TIME_MOD,           ONLY : GET_TS_CONV
+#if defined( DEVEL )
+      USE TENDENCIES_MOD
+#endif
 #if   defined( APM ) 
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
 !
 ! !INPUT PARAMETERS: 
 !
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Root CPU? 
       LOGICAL,        INTENT(IN)    :: DO_TURBDAY  ! =T means call TURBDAY 
                                                    !    for full PBL mixing
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
@@ -132,6 +138,7 @@
 !
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      INTEGER,        INTENT(INOUT) :: RC          ! Return code
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -149,6 +156,7 @@
       LOGICAL, SAVE  :: FIRST = .TRUE.
       INTEGER        :: N_TOT_TRC
       INTEGER        :: N_TRACERS
+      REAL(fp)       :: DT_TEND
 
       ! Arrays
       REAL(fp)         :: TCVV(Input_Opt%N_TRACERS)
@@ -162,6 +170,9 @@
       ! DO_PBL_MIX begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Get fields from the Input_OPt object
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV      = Input_Opt%TCVV(1:N_TRACERS)
@@ -173,7 +184,7 @@
       N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
 #endif
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -187,9 +198,29 @@
       ! -> now done in main.F (ckeller, 3/5/15)
 !      CALL COMPUTE_PBL_HEIGHT( State_Met )
 
-      ! Do complete mixing of tracers in the PBL (if necessary)
-      IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV, State_Met )
+      ! The following only needs be done if turbulence is turned on...
+      IF ( DO_TURBDAY ) THEN
 
+         ! Archive tracer concentrations for tendencies. Tracers are 
+         ! already in v/v (ckeller, 7/15/2015)
+#if defined( DEVEL ) 
+         CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met,
+     &                     State_Chm, 'PBLMIX', .TRUE., RC )
+#endif
+
+         ! Do complete mixing of tracers in the PBL (if necessary)
+         CALL TURBDAY( N_TOT_TRC, STT, TCVV, 
+     &                 Input_Opt, State_Met )
+
+         ! Archive tracer concentrations for tendencies (ckeller, 7/15/2015)
+#if defined( DEVEL ) 
+         DT_TEND = GET_TS_CONV() * 60.0_fp
+         CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met,
+     &                     State_Chm, 'PBLMIX', .TRUE., DT_TEND, RC )
+#endif
+      ENDIF
+
+      ! First-time initialization
       ! Free pointer
       NULLIFY( STT )
 
@@ -216,7 +247,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
 
       USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_GCTM_MOD             ! Scale height
+      USE PHYSCONSTANTS            ! Scale height
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -431,11 +462,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TURBDAY( NTRC, TC, TCVV, State_Met )              
+      SUBROUTINE TURBDAY( NTRC, TC, TCVV, Input_Opt, State_Met )              
 !
 ! !USES:
 !
       USE DIAG_MOD,           ONLY : TURBFLUP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CONV
 
@@ -452,6 +484,7 @@
 
       ! Meteorology State object
       TYPE(MetState), INTENT(IN)    :: State_Met
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -520,6 +553,7 @@
 !   2 Mar 2012 - R. Yantosca - Remove reference to GET_AREA_M2
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  15 Jul 2015 - C. Keller   - Added tendencies module
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -540,7 +574,7 @@
       !=================================================================
 
       ! First-time initialization
-      IF ( FIRST ) THEN
+      IF ( FIRST .and. Input_Opt%RootCPU ) THEN
 
          ! Echo info
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )

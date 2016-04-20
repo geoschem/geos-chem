@@ -34,6 +34,7 @@
       USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
       USE DUST_MOD,                ONLY : CLEANUP_DUST
       USE ERROR_MOD,               ONLY : DEBUG_MSG
+      USE GEOSFP_READ_MOD,         ONLY : CLEANUP_GEOSFP_READ
       USE GET_NDEP_MOD,            ONLY : CLEANUP_GET_NDEP
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GRID_MOD,                ONLY : CLEANUP_GRID
@@ -45,6 +46,7 @@
       USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
       USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
       USE LAND_MERCURY_MOD,        ONLY : CLEANUP_LAND_MERCURY
+      USE MERRA2_READ_MOD,         ONLY : CLEANUP_MERRA2_READ
       USE PBL_MIX_MOD,             ONLY : CLEANUP_PBL_MIX
       USE PJC_PFIX_MOD,            ONLY : CLEANUP_PJC_PFIX
       USE PLANEFLIGHT_MOD,         ONLY : CLEANUP_PLANEFLIGHT
@@ -58,8 +60,7 @@
 #endif
       USE TOMS_MOD,                ONLY : CLEANUP_TOMS
       USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
-      USE TPCORE_GEOS5_WINDOW_MOD, ONLY : EXIT_GEOS5_TPCORE_WINDOW
-      USE TPCORE_GEOSFP_WINDOW_MOD,ONLY : EXIT_GEOSFP_TPCORE_WINDOW !clb
+      USE TPCORE_WINDOW_MOD,       ONLY : EXIT_TPCORE_WINDOW
       USE UCX_MOD,                 ONLY : CLEANUP_UCX
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
 #if   defined( APM )
@@ -82,7 +83,7 @@
       USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
 !#endif
 
-#if defined( DEVEL )
+#if defined( NC_DIAG )
       ! Cleanup routine for netCDF diagnostics structure
       USE DIAGNOSTICS_MOD,         ONLY : DIAGNOSTICS_FINAL
 #endif
@@ -193,6 +194,8 @@
 !  (46) Added call to CLEANUP_GLOBAL_BC, which deallocates arrays from
 !       "global_bc_mod.f"  (clf, 2/28/2011) 
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2011 - C. Friedman - Added call to CLEANUP_GLOBAL_OC, which 
+!                              deallocates arrays from "global_oc_mod.f"
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
 !  19 Mar 2012 - M. Payer    - Remove call to CLEANUP_ACETONE. It is no longer
@@ -207,6 +210,7 @@
 !                              removed all allocatable arrays from dao_mod.F
 !  03 Dec 2012 - R. Yantosca - Now call Cleanup_CMN_SIZE
 !  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
+!  06 Mar 2013 - H. Amos     - Merge C. Friedman's PAH code
 !  14 Mar 2013 - M. Payer    - Restore reference to CLEANUP_DAO. Some arrays
 !                              have been restored to dao_mod.F for use in
 !                              the vertical regridding of OH for offline
@@ -259,8 +263,8 @@
       ! first.
       CALL CLEANUP_UCX( am_I_Root )
 
-#if defined( DEVEL )
-      ! Cleanup the new netCDF diagnostics structure
+#if defined( NC_DIAG )
+      ! Cleanup the netCDF diagnostics structure
       CALL DIAGNOSTICS_FINAL( am_I_Root, Input_Opt, RC )
 #endif
 
@@ -327,11 +331,8 @@
       CALL CLEANUP_MCICA_CLOUDS
 #endif
 
-#if   defined( GEOS_5 ) && defined( GRID05x0666 )
-      CALL EXIT_GEOS5_TPCORE_WINDOW() 
-#elif defined( GEOS_FP) && defined( GRID025x03125)
-      ! clb
-      CALL EXIT_GEOSFP_TPCORE_WINDOW()
+#if   defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125)
+      CALL EXIT_TPCORE_WINDOW() 
 #else
       CALL EXIT_TPCORE()
 #endif
@@ -344,5 +345,12 @@
       CALL Cleanup_VDIFF_PRE  ( am_I_Root, RC )
       CALL Cleanup_CMN_FJX    ( am_I_Root, RC )
 
+      ! Close GEOS-FP or MERRA2 met field files that may still be open
+#if defined( GEOS_FP )
+      CALL Cleanup_GeosFp_Read()
+#elif defined( MERRA2 )
+      CALL Cleanup_Merra2_Read()
+#endif
+      
       END SUBROUTINE CLEANUP
 !EOC

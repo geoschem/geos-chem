@@ -54,7 +54,9 @@
       INTEGER,  ALLOCATABLE, PUBLIC :: IYSAVE(:)
       INTEGER,  ALLOCATABLE, PUBLIC :: IZSAVE(:)
       INTEGER,  ALLOCATABLE, PUBLIC :: JLOP(:,:,:)
+#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       INTEGER,  ALLOCATABLE, PUBLIC :: JLOP_PREVIOUS(:,:,:)
+#endif
       REAL(fp), ALLOCATABLE, PUBLIC :: REMIS(:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: TAREA(:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: WTAREA(:,:)
@@ -194,7 +196,6 @@
 !         AIRDENS = 0e+0_fp      
 !------------------------------------------------------------------------------
 ! Prior to 12/22/15:
-!
 !         ALLOCATE( CSPEC( ITLOOP, IGAS ), STAT=AS )
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC' )
 !         CSPEC = 0e+0_fp
@@ -233,9 +234,11 @@
          JLOP = 0
       
          !vartrop fix (dkh, 05/08/11)
+#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
          ALLOCATE( JLOP_PREVIOUS( ILONG, ILAT, IPVERT ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'JLOP_PREVIOUS' )
          JLOP_PREVIOUS = 0
+#endif
 
 !------------------------------------------------------------------------------
 ! Prior to 12/21/15:
@@ -313,9 +316,11 @@
          JLOP = 0
 
          !vartrop fix (dkh, 05/08/11)
+#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
          ALLOCATE( JLOP_PREVIOUS(ILONG, ILAT, IPVERT ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'JLOP_PREVIOUS' )
          JLOP_PREVIOUS = 0
+#endif
 
          ALLOCATE( TAREA( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAREA' )
@@ -373,7 +378,9 @@
       IF ( ALLOCATED( IYSAVE        ) ) DEALLOCATE( IYSAVE        )
       IF ( ALLOCATED( IZSAVE        ) ) DEALLOCATE( IZSAVE        )
       IF ( ALLOCATED( JLOP          ) ) DEALLOCATE( JLOP          )
+#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       IF ( ALLOCATED( JLOP_PREVIOUS ) ) DEALLOCATE( JLOP_PREVIOUS )
+#endif
       IF ( ALLOCATED( REMIS         ) ) DEALLOCATE( REMIS         )
       IF ( ALLOCATED( TAREA         ) ) DEALLOCATE( TAREA         )
       IF ( ALLOCATED( WTAREA        ) ) DEALLOCATE( WTAREA        )

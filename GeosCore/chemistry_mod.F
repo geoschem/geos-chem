@@ -16,7 +16,7 @@
 ! !USES:
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-      USE GEOS_TIMERS      ! For optional timing of components
+      USE GEOS_TIMERS_MOD  ! For GEOS-Chem timers (optional)
 
       IMPLICIT NONE
       PRIVATE
@@ -58,6 +58,8 @@
 !  15 Dec 2014 - M. Yannetti - KPP code is commented out unless compiling KPP
 !  08 Jan 2015 - M. Sulprizio- Now restrict KPP to REAL*8 to allow for KPP code
 !                              to compile properly
+!  13 Aug 2015 - E. Lundgren - Tracer units are now kg/kg and converted to
+!                              kg within DO_CHEMISTRY
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -92,7 +94,7 @@
       USE COMODE_LOOP_MOD     
       USE DUST_MOD,           ONLY : CHEMDUST
       USE DUST_MOD,           ONLY : RDUST_ONLINE
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -100,7 +102,6 @@
       USE GLOBAL_CH4_MOD,     ONLY : CHEMCH4
       USE ISOROPIAII_MOD,     ONLY : DO_ISOROPIAII
       USE MERCURY_MOD,        ONLY : CHEMMERCURY
-      USE OPTDEPTH_MOD,       ONLY : OPTDEPTH
       USE POPS_MOD,           ONLY : CHEMPOPS
       USE RnPbBe_MOD,         ONLY : CHEMRnPbBe
       USE RPMARES_MOD,        ONLY : DO_RPMARES
@@ -113,6 +114,10 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTISOP
       USE TRACERID_MOD,       ONLY : IDTDST1
+#if defined( DEVEL )
+      USE TENDENCIES_MOD
+#endif
+      USE UNITCONV_MOD
 #if defined (UCX )
       USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
       USE UCX_MOD,            ONLY : READ_PSC_FILE
@@ -213,6 +218,7 @@
 !                              now obtained either from CMN_SIZE_mod.F or
 !                              from the Input_Opt object
 !  05 Mar 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC to DRYFLX
+!  25 Mar 2013 - H. Amos     - merged C. Friedman's PAH code into v9-01-03
 !  28 Mar 2013 - S.D. Eastham- Updated to use FAST_JX_MOD
 !  31 May 2013 - R. Yantosca - Now pass Input_Opt, State_Chm to DO_TOMAS
 !  19 May 2014 - C. Keller   - Removed call for acetone ocean sink - now done
@@ -221,13 +227,15 @@
 !  08 May 2015 - C. Keller   - Added WRITE_STATE_PSC.
 !  18 May 2015 - R. Yantosca - Remove DIAG_STATE_PSC, that is not used anymore
 !  15 Jun 2015 - R. Yantosca - Removed calls to DRYFLXRnPbBe, that's obsolete
+!  17 Mar 2016 - M. Sulprizio- Remove call to OPTDEPTH. The optical depth fields
+!                              are now saved into State_Met%OPTD in the routines
+!                              that read the met fields from disk.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER       :: N_TRACERS, N
       INTEGER       :: N_TROP
       INTEGER       :: MONTH
       INTEGER       :: YEAR
@@ -259,6 +267,9 @@
       ! SAVEd variables
       LOGICAL, SAVE :: FIRST = .TRUE.
 
+      ! Chemistry time step in seconds
+      REAL(fp)      :: DT_TEND
+
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
@@ -272,7 +283,6 @@
       RC                       = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS                = Input_Opt%N_TRACERS
       LCARB                    = Input_Opt%LCARB                        
       LCHEM                    = Input_Opt%LCHEM
       LCRYST                   = Input_Opt%LCRYST
@@ -300,24 +310,43 @@
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
-      ! NOTE: State_Chm%TRACERS needs to enter this routine with
-      ! units of [kg].  If we are calling this routine from the 
+      ! NOTE (pre-8/14/15): State_Chm%TRACERS needs to enter this routine
+      ! with units of [kg].  If we are calling this routine from the 
       ! traditional "main.F" driver, then the tracers are already in
       ! [kg] and no further unit conversion is necessary.  If on the
       ! other hand we are calling this routine from the ESMF interface,
       ! then we need to convert State_Chm%TRACERS from [v/v] to [kg]
       ! in the calling routine GIGC_Do_Chem (in ESMF/gigc_chemdr.F90).
       ! (bmy, 4/4/13) 
+      !
+      ! (post-8/14/15) Now DO_CHEMISTRY is passed tracer concentration in 
+      ! units of kg/kg and must be converted to kg at the start of the
+      ! routine. Units are then converted back to kg/kg at the end. To work
+      ! in an ESMF environment, GIGC_Do_Chem (in ESMF/gigc_chemdr.F90)
+      ! will need to be updated to convert State_Chm%TRACERS from [v/v]
+      ! to [kg/kg dry air]. (ewl, 8/13/15)
       !-----------------------------------------------------------------
+
+      ! Convert tracer units from [kg/kg] to [kg] for chemistry (ewl, 8/12/15)
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
+     &                            State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                      'DO_CHEMISTRY in chemistry_mod.F')
+         RETURN
+      ENDIF  
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT                      => State_Chm%Tracers
 
-      ! Compute optical depths (except for CH4 simulation)
-      IF ( .not. IT_IS_A_CH4_SIM ) THEN
-         CALL OPTDEPTH( am_I_Root, Input_Opt, State_Met, RC )
-      ENDIF
+      !=================================================================
+      ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
+      !=================================================================
+#if defined( DEVEL )
+      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
+     &                  State_Chm, 'CHEM', .FALSE., RC )
+#endif
 
       !=================================================================
       ! If LCHEM=T then call the chemistry subroutines
@@ -330,10 +359,10 @@
          !---------------------------------
          IF ( IT_IS_A_FULLCHEM_SIM ) THEN 
 
-      ! MSL - Flexchem
-      ! Initialize photochemistry & tracer->species mapping
-      ! For FULLCHEM, INPHOT was previously done in chemdr, 
-      ! but chemdr is gone.
+            ! MSL - Flexchem
+            ! Initialize photochemistry & tracer->species mapping
+            ! For FULLCHEM, INPHOT was previously done in chemdr, 
+            ! but chemdr is gone.
             IF (FIRST) THEN
                CALL INIT_FLEXCHEM( Input_Opt, State_Met, State_Chm,
      &              am_I_Root, RC )
@@ -341,7 +370,7 @@
      &              CALL DEBUG_MSG( '### MAIN: a INIT_FLEXCHEM' )
                FIRST = .FALSE.
             ENDIF
-      ! MSL ----------
+            ! MSL ----------
 
 #if defined( UCX )
             ! We need to get the STATE_PSC from the HEMCO restart file.
@@ -357,27 +386,50 @@
      &           state_chm%tracers(10,10,10,69)
 
 #endif
-            RC = GEOS_Timer_Start ( "Chemistry-Gas-Phase" )
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
+#endif
 
             ! Call gas-phase chemistry
             CALL FLEX_CHEMDR
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-            RC = GEOS_Timer_End ( "Chemistry-Gas-Phase" )
+            ! Check units (ewl, 10/5/15)
+            IF (TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+               CALL ERROR_STOP('Incorrect tracer units after CHEMDR', 
+     &                      'DO_CHEMISTRY in chemistry_mod.F')
+            ENDIF  
+
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
+#endif
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) THEN 
 
-               RC = GEOS_Timer_Start ( "Chemistry-Stratospheric" )
+#if defined( USE_TIMERS )
+               CALL GEOS_Timer_Start( "=> Strat chem", RC )
+#endif
 
                CALL DO_STRAT_CHEM
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-               RC = GEOS_Timer_End ( "Chemistry-Stratospheric" )
+               ! Check units (ewl, 10/5/15)
+               IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+                  CALL ERROR_STOP('Incorrect tracer units after'
+     &                             // ' DO_STRAT_CHEM', 
+     &                      'DO_CHEMISTRY in chemistry_mod.F')
+               ENDIF  
+
+#if defined( USE_TIMERS )
+               CALL GEOS_Timer_End( "=> Strat chem", RC )
+#endif
 
             ENDIF
 
-            RC = GEOS_Timer_Start( "Aerosols" )
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
+#endif
 
             ! Do seasalt aerosol chemistry
             IF ( LSSALT ) THEN
@@ -391,31 +443,28 @@
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 #endif
 
-            RC = GEOS_Timer_End( "Aerosols" )
-
             ! Also do sulfate chemistry
             IF ( LSULF ) THEN
-
-               RC = GEOS_Timer_Start ( "Chemistry-Sulfate" )
 
                ! Do sulfate chemistry
                CALL CHEMSULFATE
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-               RC = GEOS_Timer_End ( "Chemistry-Sulfate" )
+               ! Check units (ewl, 10/5/15)
+               IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+                  CALL ERROR_STOP('Incorrect tracer units after'
+     &                             // ' CHEMSULFATE', 
+     &                      'DO_CHEMISTRY in chemistry_mod.F')
+               ENDIF  
 
                ! Do aerosol thermodynamic equilibrium
                IF ( LSSALT ) THEN
-
-                  RC = GEOS_Timer_Start( "Aerosols" )
 
 #if   !defined( NO_ISORROPIA )
                   ! ISOROPIA takes Na+, Cl- into account
                   CALL DO_ISOROPIAII
      &               ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 #endif
-
-                  RC = GEOS_Timer_End( "Aerosols" )
 
                ELSE
 
@@ -426,8 +475,6 @@
                ENDIF
 
             ENDIF
-
-            RC = GEOS_Timer_Start( "Aerosols" )
 
             ! Do carbonaceous aerosol chemistry
             IF ( LCARB ) THEN
@@ -446,10 +493,21 @@
             IF ( IDTNK1 > 0 ) THEN 
                CALL DO_TOMAS
      &             ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               IF ( RC /= GIGC_SUCCESS ) RETURN
             ENDIF
+
+            ! Check units (ewl, 10/5/15)
+            IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+               CALL ERROR_STOP('Incorrect tracer units after'
+     &                             // ' DO_TOMAS', 
+     &                      'DO_CHEMISTRY in chemistry_mod.F')
+            ENDIF  
+
 #endif
 
-            RC = GEOS_Timer_End( "Aerosols" )
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_End( "=> All aerosol chem", RC )
+#endif
 
             ! ND43 chemical production
             CALL DIAGOH()
@@ -468,13 +526,15 @@
          !---------------------------------
          ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
-            RC = GEOS_Timer_Start( "Aerosols" )
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
+#endif
 
             ! Define loop index and other SMVGEAR arrays
             ! N_TROP, the # of trop boxes, is returned
             CALL AEROSOL_RURALBOX( N_TROP,    am_I_Root, 
      &                             Input_Opt, State_Met  )
- 
+
             ! Initialize FAST-JX quantities for computing AOD's
             IF ( FIRST ) THEN
 
@@ -492,6 +552,13 @@
             ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
             CALL AEROSOL_CONC
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+            ! Check units (ewl, 10/5/15)
+            IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+               CALL ERROR_STOP('Incorrect tracer units after'
+     &                             // ' AEROSOL_CONC', 
+     &                      'DO_CHEMISTRY in chemistry_mod.F')
+            ENDIF  
 
             ! Compute AOD's and surface areas at 999 nm
             MONTH      = 0
@@ -544,7 +611,7 @@
 
             !*** MINERAL DUST AEROSOLS ***
             IF ( LDUST ) THEN 
-               ! Do dust aerosol chemsitry
+               ! Do dust aerosol chemistry
                CALL CHEMDUST
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
@@ -555,7 +622,9 @@
      &               SOILDUST,  WAVELENGTH, RC         )
             ENDIF
 
-            RC = GEOS_Timer_End( "Aerosols" )
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_End( "=> All aerosol chem", RC )
+#endif
 
          !---------------------------------
          ! Rn-Pb-Be
@@ -628,7 +697,7 @@
          ENDIF
 
       ENDIF
-      
+     
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
@@ -640,7 +709,33 @@
       ! then we need to convert State_Chm%TRACERS from [kg] to [v/v]
       ! in the calling routine GIGC_Do_Chem (in ESMF/gigc_chemdr.F90).
       ! (bmy, 4/4/13) 
+      !
+      !
+      ! Now DO_CHEMISTRY is passed tracer concentration in units of 
+      ! kg/kg and is converted to kg at the start of the routine.
+      ! Units are then converted back to kg/kg at the end. To work in
+      ! an ESMF environment, GIGC_Do_Chem (in ESMF/gigc_chemdr.F90)
+      ! will need to be updated to convert State_Chm%TRACERS from [kg]
+      ! to [kg/kg dry air] at the end (not [v/v]). (ewl, 8/13/15)
       !-----------------------------------------------------------------
+      ! Convert tracer units back to [kg/kg] after chemistry (ewl, 8/12/15)
+      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
+     &                            State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                      'DO_CHEMISTRY in chemistry_mod.F')
+         RETURN
+      ENDIF  
+
+      !=================================================================
+      ! Calculate tendencies and write to diagnostics 
+      ! (ckeller,7/15/2015)
+      !=================================================================
+#if defined( DEVEL )
+      DT_TEND = GET_TS_CHEM() * 60.0_fp
+      CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
+     &                  State_Chm, 'CHEM', .FALSE., DT_TEND, RC )
+#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -700,6 +795,8 @@
 !  13 Nov 2012 - R. Yantosca - Now pass Input_Opt and RC arguments for GIGC
 !  15 Nov 2012 - M. Payer    - Now pass all met fields via State_Met
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  12 Aug 2015 - E. Lundgren  - Input tracer units are now [kg/kg] and 
+!                               are converted to [kg] for recomputing OD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -733,7 +830,7 @@
       LSULF                = Input_Opt%LSULF
       LSOA                 = Input_Opt%LSOA
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
-      IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM    
+      IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM 
 
       ! First make sure chemistry is turned on
       IF ( LCHEM ) THEN

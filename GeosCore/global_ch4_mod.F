@@ -15,6 +15,7 @@
 !
 ! !USES:
 !
+      USE PHYSCONSTANTS,ONLY : AVO, AIRMW
       USE HCO_ERROR_MOD    ! For HEMCO error reporting
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
 
@@ -39,13 +40,14 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      REAL(fp), PARAMETER,   PUBLIC :: XNUMOL_CH4 = 6.0221d23 / 16d-3
+      REAL(fp), PARAMETER,   PUBLIC :: XNUMOL_CH4 = AVO / 16d-3
 
 #if defined( USE_CH4_BUDGET_DIAG )
       REAL(fp), ALLOCATABLE, PUBLIC :: TCH4(:,:,:,:)
 #endif
 
       ! Make CH4_EMIS now public so that it can be used by vdiff_mod.F90
+      ! Methane emissions units are [kg/m2/s]
       REAL(fp),  ALLOCATABLE, PUBLIC :: CH4_EMIS(:,:,:)
 ! 
 ! !REVISION HISTORY: 
@@ -100,6 +102,7 @@
 !                              tology (not used anywhere)
 !  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  04 Mar 2015 - R. Yantosca - Now use REAL(f4) for HCO_GetPtr pointer args
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !------------------------------------------------------------------------------
 !BOC
 !     
@@ -123,7 +126,7 @@
       ! Number of CH4 budget types 
       INTEGER,  PARAMETER    :: N_CH4     = 12
 
-      REAL(fp), PARAMETER    :: XNUMOL_OH = 6.0221e+23_fp / 17e-3_fp  ! molec OH / kg OH
+      REAL(fp), PARAMETER    :: XNUMOL_OH = AVO / 17e-3_fp  ! molec OH / kg OH
       REAL(fp), PARAMETER    :: CM3PERM3  = 1.e+6_fp
 !
 ! !LOCAL VARIABLES:
@@ -327,7 +330,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE EMISSCH4( am_I_Root, Input_Opt,
-     &                     State_Met, State_Chm, RC )
+     &                     State_Met, RC )
 !
 ! !USES:
 !
@@ -335,7 +338,6 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -350,10 +352,6 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -394,6 +392,9 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  11 Apr 2014 - R. Yantosca - Remove call to INIT_GLOBAL_CH4
 !  09 Sep 2014 - C. Keller   - Implemented HEMCO
+!  11 Sep 2015 - E. Lundgren - Remove area-dependency (except for global mass
+!                              sums) by outputting diagnostics as kg/m2 not kg
+!  11 Sep 2015 - E. Lundgren - Remove State_Chm from arg list since not used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -459,7 +460,7 @@
       ! HEMCO stores emissions of all tracers internally in the HEMCO
       ! state object. Here, we pass these emissions into module array 
       ! CH4_EMIS. These values are then either added to the tracers 
-      ! array (full mixing scheme) or used lateron in vdiff_mod.F90 if 
+      ! array (full mixing scheme) or used later on in vdiff_mod.F90 if 
       ! the non-local PBL mixing scheme is used.
       ! The CH4_EMIS array is mostly used for backwards compatibility
       ! (especially the diagnostics). It is also used to ensure that 
@@ -658,7 +659,9 @@
          IREF = I + I0
 
          ! Grid box surface area [m2]
-         AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J)
+         ! No longer needed since ND58 is now area-independent with 
+         ! units kg/m2 (ewl, 9/11/15)
+!         AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J)
 
          ! The following is now done in mixing_mod.F90 (ckeller, 3/4/15)
 !         ! Offline CH4 only
@@ -683,13 +686,14 @@
          IF ( ND58 > 0 ) THEN
 
             ! All emission sources excluding soil absorption
+            ! Units of ND58 are now kg/m2 (previously kg) (ewl, 9/11/15)
             AD58(IREF,JREF,1) = AD58(IREF,JREF,1) + 
      &         ( CH4_EMIS(IREF,JREF,1) + CH4_EMIS(IREF,JREF,11) )
-     &           * DTSRCE * AREA_M2 
+     &           * DTSRCE
 
             DO N = 2, PD58
                AD58(IREF,JREF,N) = AD58(IREF,JREF,N) + 
-     &            CH4_EMIS(IREF,JREF,N) * DTSRCE * AREA_M2
+     &            CH4_EMIS(IREF,JREF,N) * DTSRCE
             ENDDO
          ENDIF
 
@@ -703,6 +707,11 @@
          ! Sum up CH4 budgets
          !
          ! TCH4      - # molecules emitted from different sources
+         !
+         ! NOTE: The CH4 budget variable TCH4 is area-dependent. 
+         ! We will keep as part of specialty sim option USE_CH4_BUDGET_DIAG
+         ! temporarily (ewl, 9/11/15)
+         !
          !===============================================================
 
          DO J = 1,JJPAR
@@ -757,6 +766,12 @@
          !
          ! SUMANTHRO - Total anthropogenic emissions [molec/cm2/s]
          ! SUMBIOG   - Total biogenic      emissions [molec/cm2/s]
+         !
+         ! NOTE: The CH4 budgets DBGANTHRO(N) and DBGBIO(N) are 
+         ! area-dependent. We will keep calculating the mass budgets 
+         ! internally temporarily until we are set up to convert 
+         ! kg/m2 to kg during post-processing. (ewl, 9/11/15)
+         !
          !===============================================================
 
          ! Debug counters
@@ -947,6 +962,7 @@
 !  23 Jul 2014 - R. Yantosca - Reference ITS_IN_THE_CHEMGRID (chemgrid_mod.F)
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  17 Sep 2014 - C. Keller   - Now use HEMCO to get CH4 loss and OH conc. field.
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -954,7 +970,7 @@
 ! !DEFINED PARAMETERS:
 !
       ! Weight of air (taken from "comode.h") 
-      REAL(fp), PARAMETER      :: WTAIR = 28.966e+0_fp
+      ! REAL(fp), PARAMETER      :: WTAIR = 28.966e+0_fp ! Use global AIRMW
 !
 ! !LOCAL VARIABLES:
 !
@@ -1012,7 +1028,7 @@
 
          ! Air density [molec/cm3]
          BAIRDENS(I,J,L) = State_Met%AD(I,J,L) * 1000e+0_fp   /
-     &                     BOXVL               * 6.023e+23_fp / WTAIR
+     &                     BOXVL               * AVO / AIRMW
       ENDDO
       ENDDO
       ENDDO
@@ -1556,6 +1572,8 @@
 !                              derived type object
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root and RC
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  24 Mar 2015 - E. Lundgren - Now pass Input_Opt to Check_STT
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1563,7 +1581,7 @@
 ! !DEFINED PARAMETERS:
 !
       ! Weight of air (taken from "comode.h") 
-      REAL(fp), PARAMETER   :: WTAIR = 28.966e+0_fp
+      !REAL(fp), PARAMETER   :: WTAIR = 28.966e+0_fp ! Use global AIRMW
 !
 ! !LOCAL VARIABLES:
 !
@@ -1614,8 +1632,8 @@
 
                ! Air density [molec/cm3]
                BAIRDENS(I,J,L) = State_Met%AD(I,J,L) * 1e+3_fp      / 
-     &                           BOXVL               * 6.023e+23_fp /
-     &                           WTAIR
+     &                           BOXVL               * AVO /
+     &                           AIRMW
             ENDDO
             ENDDO
             ENDDO
@@ -1699,7 +1717,8 @@
 !      FIRSTCHEM = .FALSE.
 
       ! Check STT for negatives and NaN
-      CALL CHECK_STT( State_Chm, 'IN global_ch4_mod.F: CH4_STRAT' )
+      CALL CHECK_STT( State_Chm, Input_Opt,
+     &                'IN global_ch4_mod.F: CH4_STRAT' )
 
       ! Free pointer
       NULLIFY( STT )
@@ -1729,7 +1748,7 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,  ONLY : BPCH2,       BPCH2_HDR,   GET_MODELNAME
+!      USE BPCH2_MOD,  ONLY : BPCH2,       BPCH2_HDR,   GET_MODELNAME
       USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,   ONLY : GET_MONTH,   GET_YEAR
       USE TIME_MOD,   ONLY : GET_DIAGb,   GET_CT_DYN

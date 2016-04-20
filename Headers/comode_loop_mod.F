@@ -138,7 +138,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  22 May 2015 - R. Yantosca -  
-
+!  23 Sep 2015 - E. Lundgren - Add Criegee chemistry (E. Marais, D. Millet)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -285,31 +285,41 @@
       ! (now make these PARAMETERS instead of COMMON block variables)
       !---------------------------------------------------------------
 
+      ! Now use AVO in PHYSCONSTANTS and comment out definition here 
+      ! (ewl, 1/4/16)
       ! Avogadro's #
-      REAL(fp), PARAMETER :: AVG      = 6.02252e+23_fp
+      !REAL(fp), PARAMETER :: AVG      = 6.02252e+23_fp
 
+      ! Now use BOLTZ in PHYSCONSTANTS [J/K] multiplied by 1e+7 and comment 
+      ! out definition here (ewl, 1/4/16)
       ! Boltzmann's constant [erg/K]
-      REAL(fp), PARAMETER :: BK       = 1.38054e-16_fp
-      REAL(fp), PARAMETER :: BOLTG    = 1.38054e-16_fp
+      !REAL(fp), PARAMETER :: BK       = 1.38054e-16_fp
+      !REAL(fp), PARAMETER :: BOLTG    = 1.38054e-16_fp
 
+      ! Now define CONSVAP locally in routines that use it and comment
+      ! out definition here (ewl, 1/4/16)
       ! Condensation vapor pressure ?????? 
-      REAL(fp), PARAMETER :: CONSVAP  = 6.1078e+03_fp / BOLTG
+      !REAL(fp), PARAMETER :: CONSVAP  = 6.1078e+03_fp / BOLTG
       
-      ! PI (same value as in CMN_GCTM) and related quantities
-      REAL(fp), PARAMETER :: ONEPI    = 3.14159265358979323e+0_fp 
-      REAL(fp), PARAMETER :: EIGHTDPI = 8.e+0_fp / ONEPI
+      ! Now use PI from PHYSCONSTANTS and calculate 8/PI locally (ewl, 1/4/16)
+      !REAL(fp), PARAMETER :: ONEPI    = 3.14159265358979323e+0_fp 
+      !REAL(fp), PARAMETER :: EIGHTDPI = 8.e+0_fp / ONEPI
 
+      ! Comment out since not used (ewl, 1/4/16)
       ! Gas constant [erg/K/mole]
-      REAL(fp), PARAMETER :: RGAS     = BOLTG * AVG
-      
+      !REAL(fp), PARAMETER :: RGAS     = BOLTG * AVG
+
+      ! Now use RSTARG in PHYSCONSTANTS multiplied by 1.e+07_fp and
+      ! comment out definition here (ewl, 1/4/16)
       ! Universal gas constant [g/cm2/s2/mole/K]
-      REAL(fp), PARAMETER :: RSTARG   = 8.31450e+07_fp
+      !REAL(fp), PARAMETER :: RSTARG   = 8.31450e+07_fp
 
       ! Seconds per day
       REAL(fp), PARAMETER :: SCDAY    = 86400.0e+0_fp
 
+      ! Now use AIRMW from PHYSCONSTANTS (ewl, 1/4/16)
       ! Molecular weight of air [g/mol]
-      REAL(fp), PARAMETER :: WTAIR    = 28.966e+0_fp
+      !REAL(fp), PARAMETER :: WTAIR    = 28.966e+0_fp
 
       !---------------------------------------------------------------
       ! Small number tolerances
@@ -411,6 +421,7 @@
       ! Added NKO2PHOT to flag the O2 photolysis reaction (SDE 03/28/13)
       ! Added NKSO4PHOT to flag the H2SO4 photolysis reaction (SDE 04/11/13)
       ! Added NKPSC to flag PSC heterogeneous reactions (SDE 04/17/13)
+      ! Added NNADDAT for Criegee intermediates (eam, dbm, 9/23/15)
       INTEGER            NNADD1,        NNADDA(ICS),  NNADDB(  ICS), 
      &                   NNADDC(ICS),   NNADDD(ICS),  NNADDK(  ICS), 
      &                   NNADDV(ICS),   NNADDZ,       
@@ -423,8 +434,9 @@
      &                   NKBrNO3,       NKHOBr,       NK1HBr, 
      &                   NK2HOBr,       NK2HBr,       NNRO2HO2(ICS),
      &                   NKO2PHOT(ICS), NKSO4PHOT(ICS),
-     &                   NKPSC(ICS,11), NKO3PPHOT(ICS)
-     
+     &                   NKPSC(ICS,11), NKO3PPHOT(ICS),
+     &                   NNADDAT(ICS) 
+    
       ! SDE 05/14/13: Tracking O1D, O3P, N and H
       INTEGER ::         IO1D, IO3P, INATOM, IHATOM, INO
       INTEGER ::         NKNOPHOT
@@ -470,6 +482,7 @@
       ! Add NKSPECG for DMS+OH+O2 rxn (bdf, bmy, 4/18/03)
       ! Added NKSPECF, NKSPECH to /IDICS/ for C2H4 chemistry (tmf, 3/6/09) 
       ! Added NKSPECRO2HO2 for RO2+HO2 (jmao, 11/17/2012)
+      ! Added NKSPECAT for Criegee intermediates (eam, dbm, 9/23/15)
       INTEGER ::
      &  NMOTH(   ICS), NTSPEC( ICS), JPHOTRAT(ICS),
      &  ISGAINR( ICS), ISPORL( ICS), NOGAINE( ICS),   NOUSE(    ICS),
@@ -483,7 +496,8 @@
      &  NKSPECA(  MAXGL3,ICS), NKSPECB(  MAXGL3,ICS),
      &  NKSPECC(MAXGL3,ICS),NKSPECD(MAXGL3,ICS),NKSPECK(MAXGL3,ICS),
      &  NKSPECG(MAXGL2,ICS),NKSPECRO2HO2(MAXGL3,ICS),
-     &  NKSPECF(MAXGL3,ICS), NKSPECH(MAXGL3,ICS)
+     &  NKSPECF(MAXGL3,ICS), NKSPECH(MAXGL3,ICS),
+     &  NKSPECAT(MAXGL3,ICS)
 
       ! re-define some nkspec* arrays for harvard chem mechanism (bdf)
       INTEGER ::        NOLOSP(ICP),    NGNFRAC(ICP),    NOLOSRAT(ICP), 

@@ -78,6 +78,7 @@ MODULE HCO_Calc_Mod
   PUBLIC  :: HCO_CalcEmis
   PUBLIC  :: HCO_CheckDepv
   PUBLIC  :: HCO_EvalFld
+  PUBLIC  :: HCO_MaskFld
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -520,12 +521,14 @@ CONTAINS
        IF ( ThisHir == PrevHir ) THEN
 
           ! Only over masked area
-          CatFlx = CatFlx + ( Mask * TmpFlx )
+          ! CatFlx = CatFlx + ( Mask * TmpFlx )
+          CatFlx = CatFlx + TmpFlx
  
        ! If hierarchy is larger than those of the previously used
        ! fields, overwrite CatFlx w/ new values. 
        ELSEIF ( ThisHir > PrevHir ) THEN
-          CatFlx = ( (1.0_hp - Mask) * CatFlx ) + ( Mask * TmpFlx )
+          !CatFlx = ( (1.0_hp - Mask) * CatFlx ) + ( Mask * TmpFlx )
+          CatFlx = ( (1.0_hp - Mask) * CatFlx ) + TmpFlx
 
        ELSE
           MSG = 'Hierarchy error in calc_emis: ' // TRIM(Dct%cName)
@@ -537,11 +540,14 @@ CONTAINS
        ! positive values are used.
        ! The same diagnostics may be updated multiple times 
        ! during the same time step, continuously adding
-       ! emissions to it. 
+       ! emissions to it.
+       ! Now remove PosOnly flag. TmpFlx is initialized to zero, so it's 
+       ! ok to keep negative values (ckeller, 7/12/15).
        IF ( Diagn_AutoFillLevelDefined(4) .AND. DoDiagn ) THEN 
           CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                   &
                              Cat=ThisCat,Hier=ThisHir,   HcoID=ThisSpc, &
-                             AutoFill=1, Array3D=TmpFlx, PosOnly=.TRUE.,&
+                             !AutoFill=1, Array3D=TmpFlx, PosOnly=.TRUE.,&
+                             AutoFill=1, Array3D=TmpFlx, &
                              COL=-1, RC=RC ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -791,7 +797,7 @@ CONTAINS
 
     ! Verbose 
     IF ( HCO_IsVerb(2) ) THEN
-       write(MSG,*) 'Calculate emissions for ', TRIM(BaseDct%cName)
+       WRITE(MSG,*) 'Evaluate field ', TRIM(BaseDct%cName)
        CALL HCO_MSG(MSG,SEP1=' ')
     ENDIF
 
@@ -1145,6 +1151,9 @@ CONTAINS
 
     ! Update optional variables
     IF ( PRESENT(UseLL) ) UseLL = UppLL
+
+    ! Weight output emissions by mask
+    OUTARR_3D = OUTARR_3D * MASK
 
     ! Cleanup and leave w/ success
     ScalDct => NULL()
@@ -1902,5 +1911,142 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE GetMaskVal
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_MaskFld
+!
+! !DESCRIPTION: Subroutine HCO\_MaskFld is a helper routine to get the mask
+! field with the given name. The returned mask field is fully evaluated,
+! e.g. the data operation flag associated with this mask field is already 
+! taken into account. For instance, if the data operator of a mask field is
+! set to 3, the returned array contains already the mirrored mask values.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_MaskFld ( am_I_Root, HcoState, MaskName, Mask, RC, FOUND )
+!
+! !USES:
+!
+    USE HCO_STATE_MOD,    ONLY : HCO_State
+    USE HCO_EMISLIST_MOD, ONLY : EmisList_NextCont
+    USE HCO_DATACONT_MOD, ONLY : ListCont_Find
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN   )           :: am_I_Root    ! Root CPU?
+    TYPE(HCO_STATE), POINTER                 :: HcoState
+    CHARACTER(LEN=*),INTENT(IN   )           :: MaskName 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(sp),        INTENT(INOUT)           :: Mask(:,:)
+    INTEGER,         INTENT(INOUT)           :: RC
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(  OUT), OPTIONAL :: FOUND 
+!
+! !REVISION HISTORY:
+!  11 Jun 2015 - C. Keller   - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER                 :: I, J, FLAG
+
+    LOGICAL                 :: FND, ERR
+    LOGICAL                 :: Fractions
+
+    TYPE(ListCont), POINTER :: EmisList => NULL()
+    TYPE(ListCont), POINTER :: MaskLct  => NULL() 
+
+    CHARACTER(LEN=255)      :: MSG
+    CHARACTER(LEN=255)      :: LOC = 'HCO_MaskFld (hco_calc_mod.F90)' 
+
+    !=================================================================
+    ! HCO_MaskFld begins here
+    !=================================================================
+
+    ! Init: default is mask value of 1
+    MASK = 1.0_sp
+    ERR  = .FALSE.
+    FND  = .FALSE.
+
+    ! Get pointer to head of EmisList 
+    CALL EmisList_NextCont( EmisList, FLAG )
+
+    ! Search for mask field within EmisList
+    IF ( FLAG == HCO_SUCCESS ) THEN
+       CALL ListCont_Find ( EmisList, TRIM(MaskName), FND, MaskLct )
+    ENDIF
+
+    IF ( .NOT. FND .AND. .NOT. PRESENT(FOUND) ) THEN
+       MSG = 'Cannot find mask field ' // TRIM(MaskName)
+       CALL HCO_MSG(MSG,SEP1='!')
+       MSG = 'Make sure this field is listed in the mask section '  // &
+           'of the HEMCO configuration file. You may also need to ' // &
+           'set the optional attribute `ReadAlways` to `yes`, e.g.' 
+       CALL HCO_MSG(MSG)
+       MSG = '5000 TESTMASK     -140/10/-40/90 - - - xy 1 1 -140/10/-40/90 yes'
+       CALL HCO_MSG(MSG)
+       CALL HCO_ERROR ( 'Error reading mask '//TRIM(MaskName), RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+    IF ( PRESENT(FOUND) ) FOUND = FND 
+    
+    ! Do only if found
+    IF ( FND ) THEN
+   
+       ! Use mask fractions?
+       Fractions = HcoState%Options%MaskFractions
+
+       ! Make sure mask array has correct dimensions
+       IF ( SIZE(MASK,1) /= HcoState%NX .OR. SIZE(MASK,2) /= HcoState%NY ) THEN
+          WRITE(MSG,*) 'Input mask array has wrong dimensions. Must be ', &
+             HcoState%NX, HcoState%NY, ' but found ', SIZE(MASK,1), SIZE(MASK,2)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       ! Do for every grid box
+!$OMP PARALLEL DO                                                      &
+!$OMP DEFAULT( SHARED )                                                &
+!$OMP PRIVATE( I, J                                                  ) & 
+!$OMP SCHEDULE( DYNAMIC )
+       DO J = 1, HcoState%NY 
+       DO I = 1, HcoState%NX 
+          CALL GetMaskVal ( am_I_Root, MaskLct%Dct, I, J, Mask(I,J), Fractions, RC )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ERR = .TRUE.
+             EXIT
+          ENDIF
+       ENDDO
+       ENDDO
+!$OMP END PARALLEL DO
+
+       ! Error check
+       IF ( ERR ) THEN
+          MSG = 'Error in GetMaskVal'
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+    ENDIF
+
+    ! Free pointer
+    EmisList => NULL()
+    MaskLct  => NULL()
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_MaskFld
 !EOC
 END MODULE HCO_Calc_Mod

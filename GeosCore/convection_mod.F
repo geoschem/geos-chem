@@ -17,7 +17,7 @@
 ! !USES:
 !
       USE GIGC_Errcode_Mod
-      USE CMN_GCTM_Mod
+      USE PHYSCONSTANTS    ! Physical parameters
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -94,8 +94,9 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : CONVFLUP
+      USE ERROR_MOD,          ONLY : GIGC_ERROR
       USE UNITCONV_MOD
-#if   !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD38
 #endif
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
@@ -106,17 +107,23 @@
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE TRACERID_MOD
       USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE TIME_MOD,           ONLY : GET_TS_CONV
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
       USE WETSCAV_MOD,        ONLY : H2O2s
       USE WETSCAV_MOD,        ONLY : SO2s
-#if   defined( APM )
+#if defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
 
-#if   defined ( DEVEL )
+#if defined( NC_DIAG )
       USE HCO_ERROR_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+      USE WETSCAV_MOD,        ONLY : GET_WETDEP_IDWETD
+
+#endif
+#if defined( DEVEL )
+      USE TENDENCIES_MOD
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -182,6 +189,8 @@
 !                              passing State_Met array slice
 !  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v)
+!  10 Aug 2015 - E. Lundgren - Incoming tracer units are now kg/kg dry air
+!  11 Aug 2015 - R. Yantosca - Added support for MERRA2 data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -191,18 +200,21 @@
       ! Scalars
       INTEGER           :: N_TOT_TRC             ! # of tracers to convect
       INTEGER           :: N_TRACERS
+      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+      REAL(fp)          :: DT_TEND
 
       ! Pointers
       ! Define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. Units are 
-      ! initially v/v dry air but will be converted to
-      ! kg/kg total air for convection (ewl, 23/15)
+      ! initially kg/kg dry air but will be converted to
+      ! kg/kg total air for convection (ewl, 8/10/15)
       REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! MERRA or GEOS-FP met fields definitions
       !=================================================================
-#if defined( MERRA ) || defined( GEOS_FP )
+#if defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       
       ! Scalars          
       INTEGER           :: I, J, L, N, NN, TS_DYN
@@ -232,9 +244,10 @@
       REAL(fp), POINTER :: p_FSOL (:,:,:)
 #endif
 
-#if   defined ( DEVEL )
-      ! For new diagnostics
-      INTEGER                :: IT, cID, HCRC
+#if defined ( NETCDF )
+      ! For netCDF diagnostics\
+      INTEGER                :: trc_id, D, HCRC
+      CHARACTER(LEN=60)      :: DiagnName
       REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
       REAL(fp), POINTER      :: TMP3D(:,:,:) => NULL()
       REAL(fp), POINTER      :: TMP2D(:,:  ) => NULL()
@@ -245,26 +258,37 @@
       ! DO_CONVECT begins here!
       !=================================================================
 
+      !=================================================================
+      ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
+      !=================================================================
+#if defined( DEVEL )
+      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
+     &                  State_Chm, 'CONV', .TRUE., RC )
+#endif
+
       ! Assume success
       RC        =  GIGC_SUCCESS
 
       ! Copy values from Input_Opt
       N_TRACERS         = Input_Opt%N_TRACERS
 
-      ! Convert State_Chm%Tracers from [v/v dry air] to 
-      ! [kg/kg total air] prior to convection (ewl, 6/23/15)
-      CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, 
-     &                               Input_Opt, State_Chm, RC)
-      CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS,  
+      ! Convert State_Chm%Tracers from [kg/kg dry air] to 
+      ! [kg/kg total air] prior to convection (ewl, 8/10/15)
+      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
      &                                   State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'DO_CONVECTION in convection_mod.F')
+         RETURN
+      ENDIF  
 
-      ! For new diagnostics, archive old species concentration. At the 
+      ! For netCDF diagnostics, archive old species concentration. At the 
       ! moment, the new ND38 diagnostics only returns the total column 
       ! loss due to convection. For these values, we don't need to 
       ! write the diagnostics within the convection schemes but can
       ! simply take the difference between the original and updated 
       ! tracer field column.
-#if   defined( DEVEL )
+#if defined( NC_DIAG )
       IF ( Input_Opt%ND38 > 0 ) THEN
          ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
          BEFORE = State_Chm%Tracers
@@ -322,7 +346,7 @@
       CALL NFCLDMX( am_I_Root, Input_Opt, State_Met, 
      &              State_Chm, RC )
 
-#elif defined( MERRA ) || defined( GEOS_FP )
+#elif defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
       !=================================================================
       ! MERRA or GEOS-FP met fields
@@ -424,7 +448,7 @@
             ENDDO
          ENDIF
 
-#if !defined(NO_BPCH)
+#if defined( BPCH_DIAG )
          !--------------------------
          ! ND38 diagnostic [kg/s]
          !--------------------------
@@ -448,18 +472,18 @@
 !$OMP END PARALLEL DO
 
 #endif
-
+#if defined( NC_DIAG )
       !-----------------------------------------------------------------
-      ! New diagnostics (ND38)
+      ! NetCDF diagnostics (ND38)
       ! Write out the column mass difference before and after 
       ! convection.
       ! Note: The ND38 diagnostics is defined as a 2D diagnostics
-      ! (--> diagnostics_mod.F90). We pass here a 3D array to the
-      ! diagnostics, which will automatically be collapsed to a 2D
-      ! array within the diagnostics module (the vertical sum is taken).
+      ! (--> diagnostics_mod.F90).
       !-----------------------------------------------------------------
-#if   defined( DEVEL )
       IF ( Input_Opt%ND38 > 0 ) THEN
+
+         ! Assume success
+         HCRC = HCO_SUCCESS
 
          ! Time step
          DTIME = GET_TS_DYN() * 60e+0_fp
@@ -467,34 +491,39 @@
          ! Allocate temporary pointer
          ALLOCATE(TMP3D(IIPAR,JJPAR,LLPAR), TMP2D(IIPAR,JJPAR) )
         
-         ! Loop over all tracers
-         DO IT = 1, Input_Opt%N_TRACERS
+         ! Loop over all soluble tracers
+         DO D = 1, State_Chm%nWetDep
 
-            ! Is this a tracer selected for diagnostics?
-            IF ( ANY( Input_Opt%TINDEX(38,:) == IT ) ) THEN
+            ! Get GEOS-Chem tracer number
+            trc_id = GET_WETDEP_IDWETD( D )
 
-               ! Loss rate (kg/kg total air/s)
-               TMP3D = ( BEFORE(:,:,:,IT) - State_Chm%Tracers(:,:,:,IT))
-     &               / DTIME 
+            ! Is this a tracer selected for this diagnostics type?
+            IF ( ANY( Input_Opt%TINDEX(38,:) == trc_id ) ) THEN
 
-               ! Convert to kg/s
+               ! Loss rate [kg/kg total air per seconnd]
+               TMP3D = ( BEFORE(:,:,:,trc_id) - 
+     &                 State_Chm%Tracers(:,:,:,trc_id)) / DTIME 
+
+               ! Convert to [kg/s]
                ! Now use moist air mass rather than dry air mass (ewl, 6/23/15)
                TMP3D = TMP3D * State_Met%ADMOIST  
 
+               ! Sum over the column
                TMP2D = SUM(TMP3D,DIM=3) 
 
-               ! Update diagnostics. Pass 3D array. Will be collapsed to
-               ! column total in Diagn_Update.
-               cID = 38000 + IT
+               ! Update diagnostics based on name
+               DiagnName = 'WETSCAV_CONVLOSS_' 
+     &                     // TRIM( Input_Opt%TRACER_NAME( trc_id ) )
+
                CALL Diagn_Update ( am_I_Root,
-     &                             cID     = cID,
+     &                             cName   = TRIM( DiagnName ),
      &                             Array2D = TMP2D,
      &                             COL     = Input_Opt%DIAG_COLLECTION,
      &                             PosOnly = .TRUE.,
      &                             RC      = HCRC )
                IF ( HCRC /= HCO_SUCCESS ) THEN
-                  CALL ERROR_STOP ( 'Error updating conv loss diagn ' //
-     &               'for species ' // TRIM(Input_Opt%TRACER_NAME(IT)), 
+                  CALL ERROR_STOP ( 'Error updating wetscav conv loss '
+     &               // 'diagnostic: ' // TRIM( DiagnName ), 
      &               'DO_CONVECTION (convection_mod.F)' )
                ENDIF
             ENDIF
@@ -506,11 +535,24 @@
 #endif
 
       ! Convert tracer concentration from kg/kg total air to 
-      ! mol/mol dry air after convection (ewl, 6/23/15)
-      CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS,  
+      ! kg/kg dry air after convection (ewl, 8/10/15)
+      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
      &                                   State_Met, State_Chm, RC ) 
-      CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, 
-     &                               Input_Opt, State_Chm, RC)
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'DO_CONVECTION in convection_mod.F')
+         RETURN
+      ENDIF  
+
+      !=================================================================
+      ! Calculate tendencies and write to diagnostics 
+      ! (ckeller,7/15/2015)
+      !=================================================================
+#if defined( DEVEL )
+      DT_TEND = GET_TS_CONV() * 60.0_fp
+      CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
+     &                  State_Chm, 'CONV', .TRUE., DT_TEND, RC )
+#endif
 
       END SUBROUTINE DO_CONVECTION
 !EOC
@@ -1115,7 +1157,7 @@
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
       USE DIAG_MOD,           ONLY : AD37
-#if   !defined ( NO_BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD38
 #endif
       USE DIAG_MOD,           ONLY : CONVFLUP
@@ -1438,7 +1480,7 @@
       NLAY = LLPAR
 
       ! Convection timestep [s]
-      NDT  = GET_TS_CONV() * 60e+0_fp
+      NDT  = GET_TS_CONV() * 60
 
       !=================================================================
       ! Define active convective region, from J = JS(outh) to 
@@ -1800,7 +1842,7 @@
      &                                     * AREA_M2 
                      ENDIF
 
-#if !defined(NO_BPCH)
+#if defined( BPCH_DIAG )
                      !==================================================
                      ! ND38 Diagnostic: loss of soluble tracer to wet
                      ! scavenging in cloud updrafts [kg/s].  We must 
@@ -1808,11 +1850,6 @@
                      !==================================================
                      IF ( ( ND38 > 0 .or. LGTMM )
      &                    .and. ISOL > 0 .and. K <= LD38 ) THEN
-!#if defined ( DEBUG )
-!                        if(TCVV(IC) <= 0.e+0_fp) then
-!                           print *, I, J, K, IC, ISOL, TCVV(IC)
-!                        endif
-!#endif
 
                         AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) 
      &                              + T0 * AREA_M2 / DNS  
@@ -1829,12 +1866,10 @@
                      !=================================================
                      IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
-                        ! Wet scavenged Hg(II) in [kg/s]
-                        WET_Hg2 = T0 * AREA_M2 / DNS   
-
-                        ! Convert [kg/s] to [kg]
-                        WET_Hg2 = WET_Hg2 * NDT 
-
+                        ! Wet scavenged Hg(II) in [kg/s], converted
+                        ! to [kg] by multiplying by NDT
+                        WET_Hg2 = T0 * AREA_M2 / DNS * NDT
+                        
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_Hg2_WD( I, J, IC, WET_Hg2 )
                         CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2,
@@ -1843,11 +1878,9 @@
 
                      IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
 
-                        ! Wet scavenged Hg(P) in [kg/s]
-                        WET_HgP = T0 * AREA_M2 / DNS
-
-                        ! Convert [kg/s] to [kg]
-                        WET_HgP = WET_HgP * NDT 
+                        ! Wet scavenged Hg(P) in [kg/s], converted 
+                        ! to [kg] by multiplying by NDT
+                        WET_HgP = T0 * AREA_M2 / DNS * NDT
 
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_HgP_WD( I, J, IC, WET_HgP )
@@ -1982,7 +2015,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_GCTM_MOD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
@@ -2097,6 +2129,11 @@
 !  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v)
 !  22 Jun 2015 - E. Lundgren - Move QB_NUM calculation to within timestep loop
+!  12 Aug 2015 - R. Yantosca - Treat MERRA2 in same way as we do for GEOS-FP
+!  14 Sep 2015 - E. Lundgren - Apply bug fixes provided by Viral Shah:
+!                              -- Prevent ALPHA > 1 in washout of aerosols 
+!                              -- Add tracer GAINED to Q before WETLOSS
+!                                 calculation in aerosol washout
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2158,9 +2195,9 @@
       Q        => State_Chm%TRACERS (I,J,:,:      ) ! Tracer concentration
                                                     ! [mol/mol total air] 
                                                 
-#if   defined( GEOS_FP )
+#if   defined( GEOS_FP ) || defined( MERRA2 )
 
-      !%%%%% FOR GEOS-FP, PFICU and PFLCU are on level edges %%%%%
+      !%%%%% FOR GEOS-FP/MERRA2, PFICU and PFLCU are on level edges %%%%%
       PFICU    => State_Met%PFICU   (I,J,2:LLPAR+1) ! Dwnwd flx of conv 
                                                     !  ice precip [kg/m2/s]
       PFLCU    => State_Met%PFLCU   (I,J,2:LLPAR+1) ! Dwnwd flux of conv   
@@ -2713,12 +2750,47 @@
                      !   PDOWN is in units of [cm3/cm2/s]
                      !   Factor of 10 in denom for unit conversion
                      !     1000 kg/m3 * 0.01 m/cm = 10 kg/m2/cm
-                     ALPHA   = REEVAPCN(K) * BMASS(K)
-     &                           / ( PDOWN(K+1) * 10e+0_fp )
+                      
+!                    ! Prior to 9/14/15 - the value of ALPHA, which should be 
+!                    ! less than or equal to 1, is sometimes much higher than 
+!                    ! 1. Since ALPHA is used to calculate resuspension of 
+!                    ! precipitating mass from above, these high values of      
+!                    ! ALPHA lead to a gain in tracer mass at the lower levels 
+!                    ! in excess of what is coming from above (V. Shah, 9/14/15)
+!                    ALPHA   = REEVAPCN(K) * BMASS(K)
+!     &                          / ( PDOWN(K+1) * 10e+0_fp )
+!                    ! ALPHA2 is the fraction of the rained-out aerosols
+!                    ! that gets resuspended in grid box (I,J,L)
+!                    ALPHA2  = 0.5e+0_fp * ALPHA
 
-                     ! ALPHA2 is the fraction of the rained-out aerosols
-                     ! that gets resuspended in grid box (I,J,L)
-                     ALPHA2  = 0.5e+0_fp * ALPHA
+                     ! %%%% CASE 1 %%%%
+                     ! Partial re-evaporation. Less precip is leaving
+                     ! the grid box then entered from above (V. Shah, 9/14/15)
+                     IF ( PDOWN(K+1) > PDOWN(K) .AND.
+     &                    PDOWN(K)   > TINYNUM        ) THEN
+
+                        ! Define ALPHA, the fraction of raindrops that
+                        ! re-evaporate when falling from grid box
+                        ! (I,J,L+1) to (I,J,L)
+                        ALPHA = REEVAPCN(K) * BMASS(K)
+     &                          / ( PDOWN(K+1) * 10e+0_fp  )   
+
+                        ! For safety
+                        ALPHA = MIN( ALPHA, 1e+0_fp ) 
+
+                        ! ALPHA2 is the fraction of the rained-out aerosols
+                        ! that gets resuspended in grid box (I,J,L)
+                        ALPHA2  = 0.5e+0_fp * ALPHA
+
+                     ENDIF
+
+                     ! %%%% CASE 2 %%%%
+                     ! Total re-evaporation. Precip entered from above,
+                     ! but no precip is leaving grid box (ALPHA = 2 so
+                     ! that  ALPHA2 = 1) (V. Shah, 9/14/15)
+                     IF ( PDOWN(K) < TINYNUM ) THEN
+                        ALPHA2 = 1e+0_fp
+                     ENDIF
 
                      ! GAINED is the rained out aerosol coming down from 
                      ! grid box (I,J,L+1) that will evaporate and re-enter 
@@ -2726,7 +2798,13 @@
                      ! [kg tracer/m2/timestep]
                      GAINED  = T0_SUM * ALPHA2
 
-                     WETLOSS = Q(K,IC) * BMASS(K) * WASHFRAC - GAINED
+                     ! Amount of aerosol lost to washout in grid box [kg/m2]
+                     ! (V. Shah, 9/14/15)
+!                    ! Prior to 9/14/15 - the amount of tracer GAINED is 
+!                    ! (mistakenly) not added to Q before WETLOSS is calculated
+!                    !   WETLOSS = Q(K,IC) * BMASS(K) * WASHFRAC - GAINED
+                     WETLOSS = ( Q(K,IC) * BMASS(K) + GAINED ) *
+     &                         WASHFRAC - GAINED
 
                      ! LOST is the rained out aerosol coming down from
                      ! grid box (I,J,L+1) that will remain in the liquid

@@ -19,6 +19,7 @@ MODULE HCOX_SoilNOx_Mod
   USE HCO_ERROR_Mod
   USE HCO_CHARTOOLS_MOD
   USE HCO_DIAGN_Mod
+  USE HCOX_TOOLS_MOD
   USE HCOX_State_Mod,     ONLY : Ext_State
   USE HCO_STATE_Mod,      ONLY : HCO_State
 
@@ -146,6 +147,12 @@ MODULE HCOX_SoilNOx_Mod
   ! DRYCOEFF (if read from settings in configuration file)
   REAL(hp), ALLOCATABLE, TARGET :: DRYCOEFF(:)
 
+  ! Overall scale factor to be applied to total soil NOx emissions. Must
+  ! be defined in the HEMCO configuration file as extension attribute 
+  ! 'Scaling_NO'
+  REAL(sp), ALLOCATABLE          :: SpcScalVal(:)
+  CHARACTER(LEN=61), ALLOCATABLE :: SpcScalFldNme(:)
+
   ! Diagnostics to write out the pulse (testing only)
 #if defined(DEVEL) 
   REAL(sp), ALLOCATABLE, TARGET :: DGN_PULSE    (:,:  )
@@ -259,6 +266,7 @@ CONTAINS
     USE HCO_FLuxArr_Mod,    ONLY : HCO_EmisAdd
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE HCO_ExtList_Mod,    ONLY : GetExtOpt
+    USE HCO_ExtList_Mod,    ONLY : HCO_GetOpt
     USE HCO_Restart_Mod,    ONLY : HCO_RestartGet
     USE HCO_Restart_Mod,    ONLY : HCO_RestartWrite
 !
@@ -386,7 +394,8 @@ CONTAINS
              RETURN
           ENDIF
           ALLOCATE(VecDp(MaxDryCoeff))
-          CALL HCO_CharSplit( DMY, HCO_SEP(), HCO_WCD(), VecDp, N, RC )
+          CALL HCO_CharSplit( DMY, HCO_GetOpt('Separator'), &
+                              HCO_GetOpt('Wildcard'), VecDp, N, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           ALLOCATE(DRYCOEFF(N))
           DRYCOEFF(1:N) = VecDp(1:N)
@@ -519,6 +528,19 @@ CONTAINS
 !$OMP END PARALLEL DO
 
     !-----------------------------------------------------------------
+    ! EVENTUALLY ADD SCALE FACTORS 
+    !-----------------------------------------------------------------
+
+    ! Eventually apply species specific scale factor
+    IF ( SpcScalVal(1) /= 1.0_sp ) THEN
+       FLUX_2D = FLUX_2D * SpcScalVal(1)
+    ENDIF
+
+    ! Eventually apply spatiotemporal scale factors
+    CALL HCOX_SCALE ( am_I_Root, HcoState, FLUX_2D, TRIM(SpcScalFldNme(1)), RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !-----------------------------------------------------------------
     ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS 
     !-----------------------------------------------------------------
 
@@ -597,6 +619,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_ExtList_Mod,        ONLY : GetExtNr, GetExtOpt
+    USE HCO_ExtList_Mod,        ONLY : GetExtSpcVal
     USE HCO_STATE_MOD,          ONLY : HCO_GetExtHcoID
     USE HCO_Restart_Mod,        ONLY : HCO_RestartDefine
 !
@@ -649,7 +672,7 @@ CONTAINS
  
     ! Get global scale factor
     FERT_SCALE = HCOX_SoilNOx_GetFertScale()
- 
+
     ! Get HEMCO species IDs
     CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -660,22 +683,27 @@ CONTAINS
     ENDIF
     IDTNO = HcoIDs(1)
 
+    ! Get species scale factor
+    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'Scaling', 1.0_sp, SpcScalVal, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'ScaleField', HCOX_NOSCALE, SpcScalFldNme, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! Verbose mode
     IF ( am_I_Root ) THEN
        MSG = 'Use soil NOx emissions (extension module)'
        CALL HCO_MSG( MSG, SEP1='-' )
 
-       WRITE(MSG,*) '   - NOx species:', TRIM(SpcNames(1)), IDTNO
+       WRITE(MSG,*) '   - NOx species            : ', TRIM(SpcNames(1)), IDTNO
        CALL HCO_MSG(MSG)
-       WRITE(MSG,*) '   - Use fertilizer NOx: ', LFERTILIZERNOX
+       WRITE(MSG,*) '   - NOx scale factor       : ', SpcScalVal(1) 
        CALL HCO_MSG(MSG)
-       WRITE(MSG,*) '   - Global scale factor: ', FERT_SCALE 
+       WRITE(MSG,*) '   - NOx scale field        : ', TRIM(SpcScalFldNme(1))
        CALL HCO_MSG(MSG)
-       MSG = '   --> Restart variables are taken from file specified in'
+       WRITE(MSG,*) '   - Use fertilizer NOx     : ', LFERTILIZERNOX
        CALL HCO_MSG(MSG)
-       MSG = '       the config. file - I hope this file contains the'
-       CALL HCO_MSG(MSG)
-       MSG = '       simulation start date!!!' 
+       WRITE(MSG,*) '   - Fertilizer scale factor: ', FERT_SCALE 
        CALL HCO_MSG(MSG,SEP2='-')
     ENDIF
 
@@ -843,6 +871,8 @@ CONTAINS
     IF ( ALLOCATED (CANOPYNOX    ) ) DEALLOCATE ( CANOPYNOX     )
     IF ( ASSOCIATED(DEP_RESERVOIR) ) DEALLOCATE ( DEP_RESERVOIR )
     IF ( ALLOCATED (DRYCOEFF     ) ) DEALLOCATE ( DRYCOEFF      )
+    IF ( ALLOCATED( SpcScalVal   ) ) DEALLOCATE ( SpcScalVal    )
+    IF ( ALLOCATED( SpcScalFldNme) ) DEALLOCATE ( SpcScalFldNme )
 #if defined(DEVEL)
     IF ( ALLOCATED(DGN_PULSE) ) DEALLOCATE(DGN_PULSE)
 #endif
@@ -1368,6 +1398,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY:
 !     22 Jun 2009 - R. Yantosca - Copied from "drydep_mod.f"
+!     07 Jan 2016 - E. Lundgren - Update Avogadro's # to NIST 2014 value
 !EOP
 !------------------------------------------------------------------------------
 !BOC      
@@ -1376,10 +1407,10 @@ CONTAINS
 !
     REAL(hp), PARAMETER  :: XMAIR  = 28.8e-3_hp 
     REAL(hp), PARAMETER  :: RADAIR = 1.2e-10_hp
-    REAL(hp), PARAMETER  :: PI     = 3.1415926535897932e+0_hp
+    REAL(hp), PARAMETER  :: PI     = 3.14159265358979323e+0_hp
     REAL(hp), PARAMETER  :: RADX   = 1.5e-10_hp
     REAL(hp), PARAMETER  :: RGAS   = 8.32e+0_hp
-    REAL(hp), PARAMETER  :: AVOGAD = 6.023e+23_hp
+    REAL(hp), PARAMETER  :: AVOGAD = 6.022140857e+23_hp
 !
 ! !LOCAL VARIABLES:
 !

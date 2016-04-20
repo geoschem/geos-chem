@@ -95,6 +95,10 @@ lib: $(OBJECTS)
 
 clean:
 	@echo "===> Making clean in directory: ISOROPIA <==="
+	@rm -f *.o *.mod *.a *.x
+
+slowclean:
+	@echo "===> Making slowclean in directory: ISOROPIA <==="
 	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 debug:

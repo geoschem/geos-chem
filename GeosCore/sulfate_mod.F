@@ -17,6 +17,7 @@
 !
 ! !USES:
 !
+      USE PHYSCONSTANTS    ! Physical parameters
       USE HCO_ERROR_MOD    ! For HEMCO error handling
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
 
@@ -154,6 +155,9 @@
 !  12 Jun 2015 - R. Yantosca   - Now remove orphaned ND44 variables
 !  12 Jun 2015 - R. Yantosca   - Remove CHEM_NH3 and CHEM_NH4 routines
 !                                because drydep is now done in mixing_mod.F90
+!  23 Sep 2015 - R. Yantosca   - Remove DRY* flags for most species except
+!                                for those used in GRAV_SETTLING
+!  05 Jan 2016 - E. Lundgren   - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -168,12 +172,12 @@
       ! XNUMOL_NO3 : Molecules NO3 per kg NO3         [molec/kg]
       ! TCVV_S     : Ratio: Molwt air / Molwt S       [unitless]
       !=======================================================================
-      REAL(fp),  PARAMETER   :: XNUMOL_OH   = 6.022e+23_fp / 17e-3_fp
-      REAL(fp),  PARAMETER   :: XNUMOL_O3   = 6.022e+23_fp / 48e-3_fp
-      REAL(fp),  PARAMETER   :: XNUMOL_NO3  = 6.022e+23_fp / 62e-3_fp
-      REAL(fp),  PARAMETER   :: XNUMOL_H2O2 = 6.022e+23_fp / 34e-3_fp
-      REAL(fp),  PARAMETER   :: TCVV_S      = 28.97e+0_fp  / 32e+0_fp 
-      REAL(fp),  PARAMETER   :: TCVV_N      = 28.97e+0_fp  / 14e+0_fp ! tdf
+      REAL(fp),  PARAMETER   :: XNUMOL_OH   = AVO / 17e-3_fp
+      REAL(fp),  PARAMETER   :: XNUMOL_O3   = AVO / 48e-3_fp
+      REAL(fp),  PARAMETER   :: XNUMOL_NO3  = AVO / 62e-3_fp
+      REAL(fp),  PARAMETER   :: XNUMOL_H2O2 = AVO / 34e-3_fp
+      REAL(fp),  PARAMETER   :: TCVV_S      = AIRMW / 32e+0_fp 
+      REAL(fp),  PARAMETER   :: TCVV_N      = AIRMW / 14e+0_fp ! tdf
       REAL(fp),  PARAMETER   :: SMALLNUM    = 1e-20_fp
       REAL(fp),  PARAMETER   :: CM3PERM3    = 1.e6_fp
 
@@ -190,20 +194,8 @@
       ! MODULE VARIABLES:
       !
       ! DMSo       : DMS oceanic emissions            [v/v/timestep]
-      ! DRYH2O2    : Pointer to H2O2  in DEPVEL array [unitless] 
-      ! DRYSO2     : Pointer to SO2   in DEPVEL array [unitless]
-      ! DRYSO4     : Pointer to SO4   in DEPVEL array [unitless]
       ! DRYSO4s    : Pointer to SO4s  in DEPVEL array [unitless]
-      ! DRYMSA     : Pointer to MSA   in DEPVEL array [unitless]
-      ! DRYNH3     : Pointer to NH3   in DEPVEL array [unitless]
-      ! DRYNH4     : Pointer to NH4   in DEPVEL array [unitless]
-      ! DRYNIT     : Pointer to NIT   in DEPVEL array [unitless]
       ! DRYNITs    : Pointer to NITs  in DEPVEL array [unitless]
-      ! DRYSO4aq   : Pointer to SO4aq in DEPVEL array [unitless]
-      ! DRYAS      : Pointer to AS    in DEPVEL array [unitless]  
-      ! DRYAHS     : Pointer to AHS   in DEPVEL array [unitless]
-      ! DRYLET     : Pointer to LET   in DEPVEL array [unitless]
-      ! DRYNH4aq   : Pointer to NH4aq in DEPVEL array [unitless]
       !
       !%%% NOTE: THESE ARE NOW OBTAINED VIA HEMCO (bmy, 5/22/15) %%%%%%%%%%%
       !% ENH3_an    : NH3 anthropogenic emissions      [kg NH3/box/s]
@@ -265,12 +257,6 @@
       REAL(fp),  ALLOCATABLE :: SO4_BIOF(:,:)
 #endif
 
-      ! Pointers to drydep species w/in DEPSAV
-      INTEGER                :: DRYSO2,  DRYSO4,   DRYMSA,  DRYNH3  
-      INTEGER                :: DRYNH4,  DRYNIT,   DRYSO4s, DRYNITs
-      INTEGER                :: DRYH2O2, DRYSO4aq, DRYAS,   DRYAHS
-      INTEGER                :: DRYLET,  DRYNH4aq
-
       ! These are pointers to fields in the HEMCO data structure.
       ! Declare these with REAL(fp), aka REAL*4. (bmy, 3/4/15)
       REAL(f4), POINTER      :: O3m(:,:,:)      => NULL()
@@ -284,8 +270,9 @@
 
       ! Emission timestep (imported from HEMCO)
       REAL(fp)               :: TS_EMIS
-
-      !tdf Added pointers to nitrate and sulfate on dust (04/08/08)
+      
+      ! Flags to drydep indices for certain species
+      INTEGER                :: DRYSO4s,  DRYNITs
       INTEGER                :: DRYNITd1, DRYNITd2, DRYNITd3, DRYNITd4
       INTEGER                :: DRYSO4d1, DRYSO4d2, DRYSO4d3, DRYSO4d4
 
@@ -477,9 +464,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD                   
-      USE DAO_MOD,            ONLY : CONVERT_UNITS
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -498,6 +483,7 @@
       USE TRACERID_MOD,       ONLY : IDTNITd1, IDTNITd2
       USE TRACERID_MOD,       ONLY : IDTNITd3, IDTNITd4
       USE UCX_MOD,            ONLY : SETTLE_STRAT_AER
+      USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -558,6 +544,7 @@
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !  18 Sep 2014 - M. Sulprizio- Get oxidant fields for offline aerosol
 !                              simulation from HEMCO
+!  30 Sep 2015 - E. Lundgren - Now use UNITCONV_MOD conversion routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -579,8 +566,6 @@
       LOGICAL           :: LPRT
       LOGICAL           :: LGRAVSTRAT
       LOGICAL           :: LDSTUP
-      INTEGER           :: N_TRACERS
-      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -609,8 +594,6 @@
       LPRT                 = Input_Opt%LPRT
       LGRAVSTRAT           = Input_Opt%LGRAVSTRAT
       LDSTUP               = Input_Opt%LDSTUP
-      N_TRACERS            = Input_Opt%N_TRACERS
-      TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
@@ -784,7 +767,13 @@
 #endif
 
       ! Convert all tracers in STT from [kg] -> [v/v]
-      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT )
+      CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,
+     &                          State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'CHEM_SULFATE in sulfate_mod.F')
+         RETURN
+      ENDIF
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
       ENDIF
@@ -856,7 +845,13 @@
       ENDIF
 
       ! Convert STT from [v/v] -> [kg]
-      CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT )
+      CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt, 
+     &                          State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'CHEM_SULFATE in sulfate_mod.F')
+         RETURN
+      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -865,6 +860,8 @@
       FIRSTCHEM = .FALSE. 
          
       END SUBROUTINE CHEMSULFATE
+!EOC
+#if defined( TOMAS )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -879,13 +876,13 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( TOMAS )
       SUBROUTINE EMISSSULFATETOMAS( am_I_Root, Input_Opt,
      &                         State_Met, State_Chm, RC )
 
 ! !USES:
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -895,6 +892,7 @@
       USE TOMAS_MOD,          ONLY : IBINS,      ICOMP,   IDIAG
       USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
       USE TOMAS_MOD,          ONLY : SRTNH4
+      USE UNITCONV_MOD
 !#endif
 !
 ! !INPUT PARAMETERS:
@@ -918,7 +916,7 @@
       INTEGER       :: TID, I, J, L
       REAL*8        :: MK_TEMP(IBINS)
       INTEGER       :: ii=53, jj=29, ll=1
-
+      
       ! Pointers
       ! We need to define local arrays to hold corresponding values
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
@@ -927,6 +925,18 @@
       !=================================================================
       ! EMISSSULFATETOMAS begins here!
       !=================================================================
+
+      ! Convert State_Chm%Tracers from [kg/kg dry air] to [kg] for TOMAS.
+      ! This will be removed once TOMAS uses mixing ratio instead of mass 
+      ! as tracer units (ewl, 9/11/15)
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
+     &                            State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'Routine EMISSSULFATETOMAS in sulfate_mod.F')
+         RETURN
+      ENDIF 
+
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       STT => State_Chm%Tracers
 
@@ -975,13 +985,21 @@
      &        BINMASS(:,:,:,1:IBINS*(ICOMP-IDIAG))
       ENDIF
 
-
       ! Free pointer
       NULLIFY( STT )
 
-      END SUBROUTINE EMISSSULFATETOMAS
-#endif
+      ! Convert State_Chm%Tracers back to kg (ewl, 9/11/15)
+      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
+     &                             State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'Routine EMISSSULFATETOMAS in sulfate_mod.F')
+         RETURN
+      ENDIF  
 
+      END SUBROUTINE EMISSSULFATETOMAS
+!EOC
+#endif
 !
 !-----------------------------------------------------------------------------
 !                  Jack Kodros re-writing this
@@ -1003,7 +1021,6 @@
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND13 (for now)
-      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
 
       ! HEMCO update
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState, GetHcoDiagn
@@ -1013,7 +1030,7 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1280,6 +1297,8 @@
             TSCALE = 2.*3600.
 #elif defined( GRID1x1   )
             TSCALE = 2.*3600.
+#elif defined( GRID05x0625 )
+            TSCALE = 1.*3600.  ! Placeholder: the 0.5 x 0.666 value
 #elif defined( GRID05x0666 )
             TSCALE = 1.*3600.
 #elif defined( GRID025x03125 )
@@ -1439,10 +1458,9 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD        
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44
 #endif
 !      USE DRYDEP_MOD,         ONLY : DEPSAV
@@ -1458,6 +1476,11 @@
       USE TRACERID_MOD,       ONLY : IDTSO4d4, IDTNITd4
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if defined( NC_DIAG )
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
+      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1503,6 +1526,7 @@
 !  06 Jan 2015 - M. Yannetti - Changed some variables to f8 as needed
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
 !                              remove dependency on pressure_mod.
+!  22 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1548,6 +1572,14 @@
       REAL(f8)               :: RHO1, WTP, RHO
       REAL(fp)               :: DEN !tdf
  
+#if defined( NC_DIAG )
+      ! for netcdf diagnostics (ND44 drydep flux)
+      INTEGER            :: drydep_id, trc_id, HCRC
+      CHARACTER(LEN=30)  :: DiagnName
+      REAL(fp), TARGET   :: DryDepFlux( IIPAR, JJPAR ) 
+      REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
+#endif
+
       ! Arrays
       INTEGER                :: IDDEP(10)
       INTEGER                :: IDTRC(10)	
@@ -1581,6 +1613,11 @@
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
+
+#if defined( NC_DIAG )
+      ! Initialize diagnostic array (ND44)
+      DryDepFlux = 0e+0_fp
+#endif
 
       ! Store in IDDEP array
       IDDEP(1)  = DRYSO4s
@@ -1822,9 +1859,9 @@
      &                *  TC(I,J,L+1) )
          ENDDO
          
-#if !defined( NO_BPCH )
          !==============================================================
-         ! ND44 diagnostic: sea salt loss [molec/cm2/s]
+         ! Calculate ND44 diagnostic: drydep flux [molec/cm2/s]
+         ! (specifically sea salt loss diagnostics)
          !==============================================================
          IF ( ND44 > 0 ) THEN
 
@@ -1844,14 +1881,66 @@
             ! Convert sea salt/dust flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
             FLUX     = FLUX * XNUMOL(IDTRC(N)) / AREA_CM2 
-   
-            ! Store in AD44 array
+
+#if defined( BPCH_DIAG )   
+            ! Store in global AD44 array for bpch diagnostic output
             AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
-         ENDIF
 #endif
-      ENDDO
-      ENDDO
+#if defined( NC_DIAG )
+            ! Store in local array for netcdf diagnostic
+            DryDepFlux(I,J) = FLUX
+#endif
+         ENDIF
+      ENDDO ! I
+      ENDDO ! J
 !$OMP END PARALLEL DO
+
+#if defined( NC_DIAG )
+      !===============================================================
+      ! Update dry deposition flux diagnostic for netcdf output (ND44) 
+      !===============================================================
+      IF  ( Input_Opt%ND44 > 0 ) THEN
+       
+         ! Assume success
+         HCRC = HCO_SUCCESS
+         
+         ! Get drydep id
+         drydep_id = IDDEP(N)
+
+         ! Get tracer id
+         trc_id = Input_Opt%NTRAIND( drydep_id )
+
+         ! If this tracer number NN is scheduled for output in input.geos, 
+         ! then archive the latest depvel data into the diagnostic structure
+         IF ( ANY( Input_Opt%TINDEX(44,:) == trc_id ) ) THEN
+
+           ! Define diagnostic name
+           DiagnName = 'DRYDEP_FLX_CHEM_' // 
+     &                 TRIM( Input_Opt%DEPNAME( drydep_id ) )
+           
+           ! Point to the flux data
+           Ptr2D => DryDepFlux
+           
+           ! Update diagnostics container
+           CALL Diagn_Update( am_I_Root,                           
+     &                        cName   = TRIM( DiagnName),        
+     &                        Array2D = Ptr2D,                     
+     &                        COL     = Input_Opt%DIAG_COLLECTION, 
+     &                        RC      = HCRC                      )
+           
+           ! Free the pointer
+           Ptr2D => NULL()
+           
+           ! Stop with error if the diagnostics were unsuccessful
+           IF ( HCRC /= HCO_SUCCESS ) THEN
+              CALL ERROR_STOP( 'Cannot update drydep flux' //       
+     &                         ' diagnostic: ' // TRIM( DiagnName), 
+     &                         'GRAV_SETTLING (sulfate_mod.F)')
+           ENDIF
+         ENDIF
+      ENDIF
+#endif
+
 
       END SUBROUTINE GRAV_SETTLING
 !EOC
@@ -1875,7 +1964,6 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CMN_GCTM_MOD         
       USE CMN_DIAG_MOD         
       USE CMN_SIZE_MOD         
       USE DIAG_MOD,           ONLY : AD05
@@ -1996,7 +2084,7 @@
       IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
       XNUMOL      = Input_Opt%XNUMOL
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -2004,7 +2092,7 @@
       DTCHEM      = GET_TS_CHEM() * 60e+0_fp
 
       ! Factor to convert AIRDEN from kgair/m3 to molecules/cm3:
-      f           = 1000.e+0_fp / AIRMW * 6.022e+23_fp * 1.e-6_fp
+      f           = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
       
       !=================================================================
       ! Do the chemistry over all chemically-active grid boxes!
@@ -2194,14 +2282,10 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT
-      USE BPCH2_MOD,          ONLY : GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      USE CMN_GCTM_MOD
-#if !defined( NO_BPCH )
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44 
 #endif
       USE GIGC_ErrCode_Mod
@@ -2271,7 +2355,8 @@
 !  18 Sep 2014 - M. Sulprizio- Now get J(H2O2) and PH2O2m from HEMCO
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
-!EOP
+!  23 Sep 2015 - R. Yantosca - Remove reference to obsolete DRYH2O2 flag
+!EOC
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -2302,7 +2387,7 @@
       !=================================================================
       ! CHEM_H2O2 begins here!
       !=================================================================
-      IF ( IDTH2O2 == 0 .or. DRYH2O2 == 0 ) RETURN 
+      IF ( IDTH2O2 == 0 ) RETURN 
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -2312,7 +2397,7 @@
       TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT    => State_Chm%Tracers
 
@@ -2320,7 +2405,7 @@
       DT        = GET_TS_CHEM() * 60e+0_fp
 
       ! Factor to convert AIRDEN from kgair/m3 to molecules/cm3:
-      F         = 1000.e+0_fp / AIRMW * 6.022d23 * 1.e-6_fp
+      F         = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
       
       !=================================================================
       ! Loop over tropopsheric grid boxes and do chemistry
@@ -2407,7 +2492,6 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_WATER
@@ -2528,6 +2612,8 @@
 !  12 Jan 2015 - C. Keller   - Now allow NDENS_SALA and NDENS_SALC to be empty.
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
+!  23 Sep 2015 - R. Yantosca - Remove reference to obsolete DRYSO2 flag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2537,7 +2623,7 @@
 !      REAL(fp),  PARAMETER    :: HPLUS  = 3.16227766016837953d-5  !pH = 4.5
       REAL(fp),  PARAMETER  :: HPLUS_45  = 3.16227766016837953e-5_fp  !pH = 4.5
       REAL(fp),  PARAMETER  :: HPLUS_50  = 1.0e-5_fp  !pH = 5.0
-      REAL(fp),  PARAMETER  :: MINDAT = 1.e-20_fp
+      REAL(fp),  PARAMETER  :: MINDAT    = 1.e-20_fp
 !
 ! !LOCAL VARIABLES:
 !
@@ -2598,7 +2684,7 @@
       ! CHEM_SO2 begins here!
       !=================================================================
 
-      IF ( IDTH2O2 == 0 .or. IDTSO2 == 0 .or. DRYSO2 == 0 ) RETURN
+      IF ( IDTH2O2 == 0 .or. IDTSO2 == 0 ) RETURN
 
       ! Assume success
       RC          = GIGC_SUCCESS
@@ -2611,7 +2697,7 @@
       XNUMOL      = Input_Opt%XNUMOL(1:N_TRACERS)
       LDSTUP      = Input_Opt%LDSTUP
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -2619,7 +2705,7 @@
       DTCHEM   = GET_TS_CHEM() * 60e+0_fp
 
       ! Factor to convert AIRDEN from [kg air/m3] to [molec air/cm3]
-      F        = 1000.e+0_fp / AIRMW * 6.022e+23_fp * 1.e-6_fp
+      F        = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
 
       ! On first call, get pointers to HEMCO diagnostics arrays.
       ! These are the sea salt aerosol number densities for the fine
@@ -2680,7 +2766,7 @@
 
          ! PATM  : Atmospheric pressure in atm
          ! Now use dry air partial pressure (ewl, 4/28/15)
-         PATM   = State_Met%PMID_DRY( I, J, L ) / 1013.25e+0_fp
+         PATM   = State_Met%PMID_DRY( I, J, L ) / ( ATM * 1.e-2_fp )
 
          ! TK : Temperature [K]
          TK     = State_Met%T(I,J,L)
@@ -2859,7 +2945,7 @@
          ! Update SO2 concentration after cloud chemistry          
          ! SO2 chemical loss rate = SO4 production rate [v/v/timestep]
          !==============================================================
-#if   defined ( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined ( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -2996,7 +3082,7 @@
             ! [moles/liter]
 	    ! Use a cloud scavenging ratio of 0.7 
 	    SO4nss  =  STT(I,J,L,IDTSO4) * State_Met%AIRDEN(I,J,L) *
-     &                 0.7e+0_fp / ( 28.97e+0_fp * LWC )
+     &                 0.7e+0_fp / ( AIRMW * LWC )
 
 	    ! Get total ammonia (NH3 + NH4+) concentration [v/v]
 	    ! Use a cloud scavenging ratio of 0.7 for NH4+
@@ -3427,7 +3513,6 @@
       !USE DIAG_MOD,        ONLY : AD09
       !---------------------------------------------------------------
       USE CMN_DIAG_MOD             ! ND05, LD05
-      USE CMN_GCTM_MOD          
       USE CMN_SIZE_MOD          
       USE DIAG_MOD,           ONLY : AD05
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
@@ -3440,7 +3525,6 @@
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_MONTH 
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDTHNO3
       USE TRACERID_MOD,       ONLY : IDTNITs
       USE TRACERID_MOD,       ONLY : IDTSO2
@@ -3503,6 +3587,9 @@
 !  12 Sep 2013 - M. Sulprizio- Added loss of HNO3 on sea salt diagnostic
 !                              (T.D. Fairlie)
 !  18 Sep 2014 - M. Sulprizio- Now get HNO3 for offline aerosol sim from HEMCO
+!  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod since
+!                              XNUMOLAIR now defined in CMN_GTCM_MOD
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3510,7 +3597,7 @@
 ! !DEFINED PARAMETERS:
 !
       REAL(fp),  PARAMETER :: MINDAT    = 1.0e-20_fp 
-      REAL(fp),  PARAMETER :: TCVV_HNO3 = 28.97e+0_fp / 63.0e+0_fp 
+      REAL(fp),  PARAMETER :: TCVV_HNO3 = AIRMW / 63.0e+0_fp 
 !
 ! !LOCAL VARIABLES:
 !
@@ -3579,7 +3666,7 @@
 
          !tdf Note 28.97/63.0 = Mw(air)/Mw(HNO3)
          !    so RHS of HNO3_eq is  moles(HNO3) / gridbox
-         HNO3_eq = HNO3_vv * AD(I,J,L) / ( 28.97e+0_fp / 63e+0_fp ) 
+         HNO3_eq = HNO3_vv * AD(I,J,L) / ( AIRMW / 63e+0_fp ) 
      &           / 63.e-3_fp
 
       ELSE
@@ -3588,7 +3675,7 @@
          HNO3_vv = HNO3(I,J,L)
 
          ! Convert HNO3 [v/v] to [equivalents]
-         HNO3_eq = HNO3_vv * AD(I,J,L) / ( 28.97e+0_fp / 63e+0_fp ) 
+         HNO3_eq = HNO3_vv * AD(I,J,L) / ( AIRMW / 63e+0_fp ) 
      &           / 63.e-3_fp
 
       ENDIF
@@ -3631,7 +3718,7 @@
       F_HNO3_A = MAX( F_HNO3_A, 1.0e-32_fp )
 
       ! Convert to [eq/timestep] 
-      N_FLUX_A = F_HNO3_A * AD(I,J,L) / ( 28.97e+0_fp / 63e+0_fp ) 
+      N_FLUX_A = F_HNO3_A * AD(I,J,L) / ( AIRMW / 63e+0_fp ) 
      &         / 0.063e+0_fp
 
       ! Available flux of HNO3 to coarse sea salt aerosols [v/v/timestep]
@@ -3640,7 +3727,7 @@
       F_HNO3_C = MAX( F_HNO3_C, 1.0e-32_fp )
 
       ! convert to [eq/timestep] 
-      N_FLUX_C = F_HNO3_C * AD(I,J,L) / ( 28.97e+0_fp / 63e+0_fp ) 
+      N_FLUX_C = F_HNO3_C * AD(I,J,L) / ( AIRMW / 63e+0_fp ) 
      &         / 0.063e+0_fp
 
       ! Total flux of HNO3
@@ -4033,7 +4120,7 @@
       !    Hence, H2SO4_eq =  2 * moles(H2SO4) / gridbox
 
       H2SO4_eq = ( 2.e+0_fp * H2SO4_cd * AD(I,J,L) ) 
-     &         / ( 28.97e+0_fp / 98.e+0_fp ) / 98.e-3_fp
+     &         / ( AIRMW / 98.e+0_fp ) / 98.e-3_fp
       H2SO4_eq = MAX( H2SO4_eq, MINDAT )
       !tdf 2/13/2K9
 
@@ -4047,7 +4134,7 @@
 
          HNO3_vv = STT(I,J,L,IDTHNO3)
          HNO3_eq = HNO3_vv * AD(I,J,L) /
-     &             ( 28.97e+0_fp / 63.e+0_fp ) / 63.e-3_fp
+     &             ( AIRMW / 63.e+0_fp ) / 63.e-3_fp
 
       ELSE
 
@@ -4055,7 +4142,7 @@
          HNO3_vv = HNO3(I,J,L)
 
          ! Convert HNO3 [v/v] to [equivalents]
-         HNO3_eq = HNO3_vv * AD(I,J,L) / ( 28.97e+0_fp / 63e+0_fp ) 
+         HNO3_eq = HNO3_vv * AD(I,J,L) / ( AIRMW / 63e+0_fp ) 
      &           / 63.e-3_fp
 
       ENDIF
@@ -4119,7 +4206,7 @@
 
          ! Available flux of H2SO4 converted to [eq/timestep]
          H_FLUX_A = 2.e+0_fp * F_H2SO4_A * AD(I,J,L) 
-     &            / ( 28.97e+0_fp / 98.e+0_fp ) / 0.098e+0_fp
+     &            / ( AIRMW / 98.e+0_fp ) / 0.098e+0_fp
          H_FLUX (IBIN) = H_FLUX_A
 
          ! Total available flux of H2SO4 [v/v/timestep]
@@ -4146,7 +4233,7 @@
 
          ! Available flux of HNO3 converted to [eq/timestep]
          N_FLUX_A = F_HNO3_A * AD(I,J,L) /
-     &              ( 28.97e+0_fp / 63.e+0_fp ) / 0.063e+0_fp
+     &              ( AIRMW / 63.e+0_fp ) / 0.063e+0_fp
          N_FLUX (IBIN) = N_FLUX_A
 
          !tdf 3/28/2K8
@@ -4187,7 +4274,7 @@
          ! In this case, we have taken the valency of alkalinity as 2.
          ! Units of ALK1_eq (below) work out to be moles * 2.
          ALK1_eq     = 2.e+0_fp * ALK1_vv * AD(I,J,L)
-     &               / ( 28.97e+0_fp / 40.e+0_fp ) / 40.e-3_fp
+     &               / ( AIRMW / 40.e+0_fp ) / 40.e-3_fp
 
          !---------------------------------------------------------------
          ! DIAGNOSTIC -- leave uncommented for now (bec, bmy, 4/13/05)
@@ -4321,7 +4408,7 @@
       END DO
 
       !Modified H2SO4 [eq] converted back to [v/v]
-      H2SO4_gas       = H2SO4_new * 0.098e+0_fp * ( 28.97e+0_fp
+      H2SO4_gas       = H2SO4_new * 0.098e+0_fp * ( AIRMW
      &                  / 98.e+0_fp ) / AD(I,J,L) / 2.0e+0_fp
       H2SO4_gas       = MAX( H2SO4_gas, MINDAT )
 
@@ -4386,7 +4473,7 @@
 
          ALK1_vv     = ALK (IBIN)
          ALK1_eq     = 2.e+0_fp * ALK1_vv * AD(I,J,L)
-     &               / ( 28.97e+0_fp / 40.e+0_fp ) / 40.e-3_fp
+     &               / ( AIRMW / 40.e+0_fp ) / 40.e-3_fp
          T_SO2       = TITR_SO2 (IBIN)
          T_HNO3      = TITR_HNO3 (IBIN)
 
@@ -4411,7 +4498,7 @@
 
          ! Return remaining DUST Alkalinity [v/v]
          ALKA_vv     = ALKA_eq / AD(I,J,L)
-     &               * ( 28.97e+0_fp / 40.e+0_fp ) * 40e-3_fp / 2.e+0_fp
+     &               * ( AIRMW / 40.e+0_fp ) * 40e-3_fp / 2.e+0_fp
          ALKA (IBIN) = ALKA_vv
 
       END DO
@@ -5474,7 +5561,6 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp), PARAMETER   :: PI    = 3.14159e+0_fp
       REAL(fp), PARAMETER   :: SS_DEN = 2200.e+0_fp !dry sea-salt density [kg/m3]
       ! sigma of the size distribution for sea-salt (Jaegle et al., 2011)
       REAL(fp), PARAMETER   :: SIG_S = 1.8e+0_fp
@@ -5719,6 +5805,7 @@
 !  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
 !  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
 !                              so we can greatly collapse this code
+!  23 Sep 2015 - R. Yantosca - Remove references to DRYSO4 and DRYSO4s
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5748,7 +5835,6 @@
 
       ! Return if tracers are not defined
       IF ( IDTSO4 == 0 .or. IDTSO4s == 0 ) RETURN
-      IF ( DRYSO4 == 0 .or. DRYSO4s == 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -5891,11 +5977,13 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
-      USE DAO_MOD,            ONLY : CONVERT_UNITS 
+      USE ERROR_MOD
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptINput 
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TOMAS_MOD,          ONLY : AQOXID, GETACTBIN
+      USE UNITCONV_MOD
 ! JKodros (6/2/15 - Allow for different TOMAS bin lengths)
 # if   defined( TOMAS12 )
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTNK5
@@ -5936,6 +6024,7 @@
 !  31 May 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm
 !                              and RC arguments
 !  31 May 2013 - R. Yantosca - Now pass State_Chm to TOMAS routines
+!  30 Sep 2015 - E. Lundgren - Now use UNITCONV_MOD conversion routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5948,27 +6037,26 @@
       REAL(fp)          :: SO4OXID
 
       ! For values from Input_Opt
-      INTEGER           :: N_TRACERS
-      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
       REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
-
-      ! Pointers
-      REAL(fp), POINTER :: AD(:,:,:)
 
       !=================================================================
       ! CHEM_SO4_AQ begins here!
       !=================================================================
  
-      ! Copy values from Input_Opt
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+      ! Assume success
+      RC  = GIGC_SUCCESS
 
-      ! Initialize pointers
-      AD     => State_Met%AD
+      ! Copy values from Input_Opt
+      XNUMOL    = Input_Opt%XNUMOL(1:Input_Opt%N_TRACERS)
 
       ! Convert STT from [v/v] -> [kg] 
-      CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, State_Chm%Tracers )
+      CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt,
+     &                          State_Met, State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'CHEM_SO4_AQ in sulfate_mod.F')
+         RETURN
+      ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -5982,39 +6070,41 @@
          ! Skip non-chemistry boxes
          IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
-         SO4OXID = PSO4_SO2AQ(I,J,L) * AD(I,J,L)/ TCVV(IDTSO4)
+         SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L)
+     &               / Input_Opt%TCVV(IDTSO4)
 
          IF ( SO4OXID > 0e+0_fp ) THEN
 ! JKodros (6/2/15 - Set activating bin based on which TOMAS bin length being used)
 # if   defined( TOMAS12 )
-                CALL GETACTBIN
-     &         ( I, J, L, IDTNK5, .TRUE. , BINACT1, State_Chm )
+            CALL GETACTBIN
+     &         ( I, J, L, IDTNK5, .TRUE. , BINACT1, State_Chm, RC )
 
             CALL GETACTBIN
-     &         ( I, J, L, IDTNK5, .FALSE., BINACT2, State_Chm )
+     &         ( I, J, L, IDTNK5, .FALSE., BINACT2, State_Chm, RC )
 # elif defined ( TOMAS15 )
-                CALL GETACTBIN
-     &         ( I, J, L, IDTNK8, .TRUE. , BINACT1, State_Chm )
+            CALL GETACTBIN
+     &         ( I, J, L, IDTNK8, .TRUE. , BINACT1, State_Chm, RC )
 
             CALL GETACTBIN
-     &         ( I, J, L, IDTNK8, .FALSE., BINACT2, State_Chm )
+     &         ( I, J, L, IDTNK8, .FALSE., BINACT2, State_Chm, RC )
 # elif defined ( TOMAS30 )
             CALL GETACTBIN
-     &         ( I, J, L, IDTNK10, .TRUE. , BINACT1, State_Chm )
+     &         ( I, J, L, IDTNK10, .TRUE. , BINACT1, State_Chm, RC )
 
             CALL GETACTBIN
-     &         ( I, J, L, IDTNK10, .FALSE., BINACT2, State_Chm )
+     &         ( I, J, L, IDTNK10, .FALSE., BINACT2, State_Chm, RC )
 # else
             CALL GETACTBIN
-     &         ( I, J, L, IDTNK20, .TRUE. , BINACT1, State_Chm )
+     &         ( I, J, L, IDTNK20, .TRUE. , BINACT1, State_Chm, RC )
 
             CALL GETACTBIN
-     &         ( I, J, L, IDTNK20, .FALSE., BINACT2, State_Chm )
+     &         ( I, J, L, IDTNK20, .FALSE., BINACT2, State_Chm, RC )
 # endif
 
             KMIN = ( BINACT1 + BINACT2 )/ 2.
 
-            CALL AQOXID( SO4OXID, KMIN, I, J, L, State_Met, State_Chm )
+            CALL AQOXID( am_I_Root, SO4OXID, KMIN, I, J, L, Input_Opt,
+     &                   State_Met, State_Chm, RC )
          ENDIF
       ENDDO
       ENDDO
@@ -6022,11 +6112,14 @@
 !$OMP END PARALLEL DO
 
        ! Convert STT from [kg] -> [v/v] 
-      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, State_Chm%Tracers )
+      CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,
+     &                          State_Met, State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'CHEM_SO4_AQ in sulfate_mod.F')
+         RETURN
+      ENDIF
       
-      ! Free pointers
-      NULLIFY( AD )
-
       END SUBROUTINE CHEM_SO4_AQ
 !EOC
 #endif
@@ -6050,7 +6143,6 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
@@ -6113,6 +6205,7 @@
 !  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
 !  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
 !                              so we can greatly collapse this code
+!  23 Sep 2015 - R. Yantosca - Remove references to obsolete DRYMSA flag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6129,12 +6222,12 @@
       !=================================================================
       ! CHEM_MSA begins here!
       !=================================================================
-      IF ( IDTMSA == 0 .or. DRYMSA == 0 ) RETURN
+      IF ( IDTMSA == 0 ) RETURN
 
       ! Assume success
       RC  = GIGC_SUCCESS
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -6263,6 +6356,7 @@
 !  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
 !  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
 !                              so we can greatly collapse this code
+!  23 Sep 2015 - R. Yantosca - Remove reference to DRYNIT, DRYNITs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6293,7 +6387,6 @@
 
       ! Return if tracers are not defined
       IF ( IDTNIT == 0 .or. IDTNITs == 0 ) RETURN
-      IF ( DRYNIT == 0 .or. DRYNITs == 0 ) RETURN
 
       ! Assume success
       RC  = GIGC_SUCCESS
@@ -6301,7 +6394,7 @@
       ! Copy fields from INPUT_OPT to local variables for use below
       LDSTUP    = Input_Opt%LDSTUP
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -6717,7 +6810,7 @@
 
             ! At night: Get NO3 [v/v] and convert it to [kg]
             NO3_MOLEC_CM3 = NO3(I,J,L)     * State_Met%AD(I,J,L) *
-     &                      ( 62e+0_fp/28.97e+0_fp ) 
+     &                      ( 62e+0_fp/AIRMW ) 
 
             ! Convert NO3 from [kg] to [molec/cm3]
             NO3_MOLEC_CM3 = NO3_MOLEC_CM3  * XNUMOL_NO3 / BOXVL
@@ -6762,7 +6855,6 @@
       USE GIGC_Input_Opt_MOd, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDO3
 !
 ! !INPUT PARAMETERS: 
@@ -6783,6 +6875,8 @@
 !  04 Mar 2013 - R. Yantosca - Now pass Input_Opt%ITS_A_FULLCHEM_SIM and
 !                              Input_Opt%ITS_AN_AEROSOL_SIM
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  24 Mar 2015 - E. Lundgren - Replace dependency on tracer_mod with
+!                              CMN_GTCM_MOD to get XNUMOLAIR.
 !  22 Dec 2015 - M. Sulprizio- Remove references to CSPEC and JLOOP. We now get
 !                              species concentrations from State_Chm%Species.
 !EOP
@@ -6857,7 +6951,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_GCTM_MOD
       USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
       USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
       USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
@@ -7072,7 +7165,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp), PARAMETER :: PI = 3.14159265
       REAL(fp)            :: N1, N2, Kt
       REAL(fp)            :: HGF, ALK
       REAL(fp)            :: RAD1, RAD2, RAD3
@@ -7303,20 +7395,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_SULFATE( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_SULFATE( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -7357,7 +7451,11 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: AS, I, J, N
+      ! Scalars
+      INTEGER :: AS, I, J, N
+
+      ! Objects
+      TYPE(Species), POINTER :: ThisSpc => NULL()
 
       !=================================================================
       ! INIT_SULFATE begins here!
@@ -7411,7 +7509,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOx_SCALE' )
       SOx_SCALE = 0e+0_fp
 
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
       ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
       ! directly from the met fields.  (skim, bmy, 1/14/10)
       ALLOCATE( VCLDF( IIPAR, JJPAR, LLCHEM ), STAT=AS )
@@ -7457,28 +7555,12 @@
       !=================================================================
 
       ! Initialize flags
-      DRYH2O2  = 0
-      DRYSO2   = 0
-      DRYSO4   = 0
       DRYSO4s  = 0
-      DRYMSA   = 0
-      DRYNH3   = 0
-      DRYNH4   = 0
-      DRYNIT   = 0
-      DRYSO4s  = 0
-      DRYAS    = 0
-      DRYAHS   = 0
-      DRYLET   = 0
-      DRYSO4aq = 0
-      DRYNH4aq = 0  
-
-      !tdf dust-sulfate flags
+      DRYNITs  = 0
       DRYSO4d1 = 0
       DRYSO4d2 = 0
       DRYSO4d3 = 0
       DRYSO4d4 = 0
-
-      !tdf dust-nitrate flags
       DRYNITd1 = 0
       DRYNITd2 = 0
       DRYNITd3 = 0
@@ -7486,57 +7568,41 @@
 
       ! Locate position of each tracer in DEPSAV
       IF ( Input_Opt%LDRYD ) THEN
-         DO N = 1, Input_Opt%NUMDEP
-            SELECT CASE ( TRIM( Input_Opt%DEPNAME(N) ) )
-               CASE ( 'H2O2'   )
-                  DRYH2O2  = N
-               CASE ( 'SO2'   )
-                  DRYSO2   = N
-               CASE ( 'SO4'   )
-                  DRYSO4   = N
-               CASE ( 'SO4S'   )
-                  DRYSO4s  = N
-               CASE ( 'MSA'   )
-                  DRYMSA   = N
-               CASE ( 'NH3'   )
-                  DRYNH3   = N
-               CASE ( 'NH4'   )
-                  DRYNH4   = N
-               CASE ( 'NIT'   )
-                  DRYNIT   = N
-               CASE ( 'NITS'   )
-                  DRYNITs  = N
-               CASE ( 'AS'    )
-                  DRYAS    = N
-               CASE ( 'AHS'   )
-                  DRYAHS   = N
-               CASE ( 'LET'   )
-                  DRYLET   = N
-               CASE ( 'SO4aq' )
-                  DRYSO4aq = N
-               CASE ( 'NH4aq' )
-                  DRYNH4aq = N
-               !tdf dust-sulfate
+
+         ! Loop over all species
+         DO N = 1, State_Chm%nSpecies
+
+            ! Get info for each species from the species database
+            ThisSpc => State_Chm%SpcData(N)%Info
+
+            ! Save dry deposition indices for selected species
+            SELECT CASE ( TRIM( ThisSpc%Name ) )
+               CASE ( 'SO4s'   )
+                  DRYSO4s  = ThisSpc%DryDepId
+               CASE ( 'NITs'   )
+                  DRYNITs  = ThisSpc%DryDepId
                CASE ( 'SO4D1' )
-                  DRYSO4d1 = N
+                  DRYSO4d1 = ThisSpc%DryDepId
                CASE ( 'SO4D2' )
-                  DRYSO4d2 = N
+                  DRYSO4d2 = ThisSpc%DryDepId
                CASE ( 'SO4D3' )
-                  DRYSO4d3 = N
+                  DRYSO4d3 = ThisSpc%DryDepId
                CASE ( 'SO4D4' )
-                  DRYSO4d4 = N
-               !tdf dust-nitrate
+                  DRYSO4d4 = ThisSpc%DryDepId
                CASE ( 'NITD1' )
-                  DRYNITd1 = N
+                  DRYNITd1 = ThisSpc%DryDepId
                CASE ( 'NITD2' )
-                  DRYNITd2 = N
+                  DRYNITd2 = ThisSpc%DryDepId
                CASE ( 'NITD3' )
-                  DRYNITd3 = N
+                  DRYNITd3 = ThisSpc%DryDepId
                CASE ( 'NITD4' )
-                  DRYNITd4 = N
+                  DRYNITd4 = ThisSpc%DryDepId
                CASE DEFAULT
                   ! Nothing
-            END SELECT        
+            END SELECT  
+
+            ! Free pointer
+            ThisSpc => NULL()
          ENDDO
       ENDIF
 

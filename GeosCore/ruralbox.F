@@ -23,6 +23,7 @@
       USE COMODE_MOD,         ONLY : IZSAVE, JLOP
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE CMN_SIZE_MOD             ! Size parameters
+      USE PHYSCONSTANTS,      ONLY : AVO, AIRMW 
       USE COMODE_LOOP_MOD          ! NPVERT
       USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
 
@@ -77,6 +78,7 @@
 !  21 Dec 2015 - M. Sulprizio- Remove calculation of VOLUME, AIRDENS, T3, and
 !                              PRESS3. Get these fields directly from State_Met
 !                              instead.
+!  04 Jan 2016 - E. Lundgren - Use physical parameters in PHYSCONSTANTS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -195,8 +197,11 @@
 !           VOLUME(JLOOP)  = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 !
 !           ! get air density in (molecs cm^-3)
-!           AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
-!    &                       VOLUME(JLOOP) * AVG / WTAIR
+!            ! Now use paramters from PHYSCONSTANTS (ewl, 1/4/16)
+!!            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
+!!     &                       VOLUME(JLOOP) * AVG / WTAIR
+!            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
+!     &                       VOLUME(JLOOP) * AVO / AIRMW
 !
 !           ! get temperature
 !           T3(JLOOP)      = State_Met%T(I,J,L)

@@ -1229,6 +1229,7 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
+      USE PHYSCONSTANTS,      ONLY : BOLTZ
       USE COMODE_LOOP_MOD
       USE COMODE_MOD,         ONLY : ABSHUM, TAREA
 #if   defined( TOMAS )
@@ -1289,6 +1290,8 @@
 !  12 Jan 2015 - L. Schiferl - Allow for more precision in TAUE computation
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod. 
+!  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met object
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !EOP
@@ -1304,6 +1307,7 @@
       INTEGER             :: LPLANE, IWV, ISPC, K
       REAL(fp)            :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
       REAL(fp)            :: VARI(NPVAR)
+      REAL(fp)            :: CONSVAP
 
       ! Aerosol types: SULF, BLKC, ORGC, SALA, SALC 
       INTEGER             :: IND(5) = (/ 22, 29, 36, 43, 50 /)
@@ -1506,6 +1510,12 @@
                            CONSEXP  = 17.2693882e+0_fp * 
      &                                (TK - 273.16e+0_fp) / 
      &                                (TK - 35.86e+0_fp)
+
+                           ! Define condensation vapor pressure locally.
+                           ! Use BOLTZ [J/K] from PHYSCONSTANTS rather than 
+                           ! BOLTG [ergs/K] in comode_loop_mod (ewl, 1/4/16)
+                           CONSVAP  = 6.1078e+03_fp  
+     &                                / ( BOLTZ * 1e+7_fp)
                            
                            VPRESH2O = CONSVAP * EXP(CONSEXP) * 1e+0_fp 
      &                              / TK
@@ -1565,7 +1575,7 @@
                   CASE ( 1009 )
                      VARI(V) = L
 
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
                   !--------------------------
                   ! GEOS-Chem SEAICE frac's
                   !--------------------------
@@ -1765,9 +1775,8 @@
                      ! Chemistry State object (mpayer, 12/6/12)
                      STT => State_Chm%Tracers
                      
-                     ! Convert from [kg] --> [v/v]
-                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N) /
-     &                         State_Met%AD(I,J,L)
+                     ! Convert from [kg/kg] --> [v/v] (ewl, 8/11/15)
+                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N)
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
 
