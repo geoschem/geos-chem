@@ -1449,8 +1449,6 @@
          ! Echo info
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          WRITE( 6, '(a)' ) 'N F C L D M X  -- by S-J Lin'
-         WRITE( 6, '(a)' ) 'Modified for GEOS-CHEM by Bob Yantosca'
-         WRITE( 6, '(a)' ) 'Last Modification Date: 1/27/04'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
 #if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
@@ -1863,13 +1861,6 @@
                      ! ADD_Hg2_WET and ADD_HgP_WET. We must also divide 
                      ! by DNS, the # of internal timesteps. 
                      ! (sas, bmy, eck, eds, 1/19/05, 1/6/06, 7/30/08)
-                     !
-                     ! NOTE: Passing WET_Hg2 and WET_HgP as defined
-                     ! below to ADD_Hg2_SNOWPACK results in parallelization 
-                     ! differences in diagnostic HG-SRCE and 
-                     ! restart variable Snow_HgN_Land_Hg0. This is a 
-                     ! known issue that has not yet been resolved. 
-                     ! (ewl, 4/12/16)
                      !=================================================
                      IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
