@@ -104,7 +104,7 @@ MODULE HCOI_GC_Main_Mod
 
   ! Arrays to store J-values (used by Paranox extension)
   REAL(hp), ALLOCATABLE, TARGET :: JNO2(:,:)
-  REAL(hp), ALLOCATABLE, TARGET :: JO1D(:,:)
+  REAL(hp), ALLOCATABLE, TARGET :: JOH(:,:)
 
   ! Sigma coordinate (temporary)
   REAL(hp), ALLOCATABLE, TARGET :: ZSIGMA(:,:,:)
@@ -701,7 +701,7 @@ CONTAINS
     IF ( ALLOCATED ( HCO_FRAC_OF_PBL ) ) DEALLOCATE( HCO_FRAC_OF_PBL )
     IF ( ALLOCATED ( HCO_SZAFACT     ) ) DEALLOCATE( HCO_SZAFACT     )
     IF ( ALLOCATED ( JNO2            ) ) DEALLOCATE( JNO2            )
-    IF ( ALLOCATED ( JO1D            ) ) DEALLOCATE( JO1D            )
+    IF ( ALLOCATED ( JOH             ) ) DEALLOCATE( JOH             )
     IF ( ALLOCATED ( SUMCOSZA        ) ) DEALLOCATE( SUMCOSZA        ) 
 
   END SUBROUTINE HCOI_GC_Final
@@ -928,10 +928,10 @@ CONTAINS
        JNO2 = 0.0e0_hp
     ENDIF
 
-    IF ( ExtState%JO1D%DoUse ) THEN 
-       ALLOCATE( JO1D(IIPAR,JJPAR),STAT=AS)
-       IF ( AS/=0 ) CALL ERROR_STOP ( 'JO1D', LOC )
-       JO1D = 0.0e0_hp
+    IF ( ExtState%JOH%DoUse ) THEN 
+       ALLOCATE( JOH(IIPAR,JJPAR),STAT=AS)
+       IF ( AS/=0 ) CALL ERROR_STOP ( 'JOH', LOC )
+       JOH = 0.0e0_hp
     ENDIF
 
     ! ----------------------------------------------------------------
@@ -1081,8 +1081,8 @@ CONTAINS
             'JNO2',  HCRC,      FIRST,    JNO2            )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%JO1D, &
-            'JO1D',  HCRC,      FIRST,    JO1D            )  
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%JOH, &
+            'JOH',   HCRC,      FIRST,    JOH             )  
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%FRAC_OF_PBL, &
@@ -1345,6 +1345,8 @@ CONTAINS
 !  20 Aug 2014 - M. Sulprizio- Add PBL_MAX and FRAC_OF_PBL for POPs simulation
 !  02 Oct 2014 - C. Keller   - PEDGE is now in HcoState%Grid
 !  11 Mar 2015 - R. Yantosca - Now call GET_SZAFACT in this module
+!  20 Apr 2016 - M. Sulprizio- Change JO1D to JOH to reflect that the array now
+!                              holds the effective O3 + hv -> 2OH rates
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1421,12 +1423,12 @@ CONTAINS
        ! This code was moved from hcox_paranox_mod.F90 to break
        ! dependencies to GC specific code (ckeller, 07/28/14).
        IF ( L==1 .AND.                                    &
-            (ExtState%JNO2%DoUse .OR. ExtState%JO1D%DoUse) ) THEN
+            (ExtState%JNO2%DoUse .OR. ExtState%JOH%DoUse) ) THEN
 
           ! Check if sun is up
           IF ( State_Met%SUNCOS(I,J) == 0d0 ) THEN
              IF ( ExtState%JNO2%DoUse ) JNO2 = 0.0_hp
-             IF ( ExtState%JO1D%DoUse ) JO1D = 0.0_hp
+             IF ( ExtState%JOH%DoUse  ) JOH  = 0.0_hp
           ELSE
              ! Loop over photolysis reactions to find NO2, O3
              KMAX = JPHOTRAT(NCS)
@@ -1443,13 +1445,13 @@ CONTAINS
                       IF ( ExtState%JNO2%DoUse ) &
                          JNO2(I,J) = FJXFUNC(I,J,1,K,1,SPECNAME)
                    CASE ( 'O3'  )
-                      IF ( ExtState%JO1D%DoUse ) &
+                      IF ( ExtState%JOH%DoUse ) &
 #if defined( UCX )
-                      ! IMPORTANT: Need branck *2* for O1D
-                      ! Branch 1 is O3P!
-                      JO1D(I,J) = FJXFUNC(I,J,1,L,2,SPECNAME)
+                      ! IMPORTANT: Need branch *2* for O3 + hv -> 2OH
+                      !            Branch 1 is O3P!
+                      JOH(I,J) = FJXFUNC(I,J,1,L,2,SPECNAME)
 #else
-                      JO1D(I,J) = FJXFUNC(I,J,1,L,1,SPECNAME)
+                      JOH(I,J) = FJXFUNC(I,J,1,L,1,SPECNAME)
 #endif
                    CASE DEFAULT
                 END SELECT

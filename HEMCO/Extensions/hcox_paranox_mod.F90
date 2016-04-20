@@ -39,7 +39,7 @@
 ! 11707-11722, doi:10.5194/acp-11-11707-2011, 2011.
 ! \end{itemize}
 !
-! The initial initial look up tables (LUT) distributed with GEOS-Chem v9-01-03
+! The initial look up tables (LUT) distributed with GEOS-Chem v9-01-03
 ! used 7 input variables: Temperature, J(NO2), J(O1D), solar elevation angles
 ! at emission time and 5 hours later, and ambient concentrations of NOx
 ! and O3. This version was documented by  Vinken et al. (2011). Subsequently, 
@@ -101,8 +101,8 @@ MODULE HCOX_ParaNOx_MOD
 !  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  06 Jun 2014 - R. Yantosca - Now indended with F90 free-format
 !  25 Jun 2014 - R. Yantosca - Now pass the look-up-table filenames
-!  15 Jul 2014 - C. Holmes   - Make module variables allocatable, since they are 
-!                              used only in full chemistry simulations.
+!  15 Jul 2014 - C. Holmes   - Make module variables allocatable, since they
+!                              are used only in full chemistry simulations.
 !  22 Jul 2014 - R. Yantosca - Added shadow copy of FAST-JX function FJXFUNC
 !  28 Jul 2014 - C. Keller   - Now pass J-Values through ExtState. This makes
 !                              the FJXFUNC shadow copy obsolete
@@ -118,6 +118,10 @@ MODULE HCOX_ParaNOx_MOD
 !                              HEMCO configuration file.
 !  10 Apr 2015 - C. Keller   - Now exchange deposition fluxes via diagnostics.
 !                              Keep units of kg/m2/s for loss rates.
+!  20 Apr 2016 - M. Sulprizio- Get J(OH) directly from FAST-JX and remove all
+!                              references to J(O1D). In FlexChem, adjustment of
+!                              photolysis rates are now done in routine
+!                              PHOTRATE_ADJ (found in GeosCore/fast_jx_mod.F).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -444,6 +448,15 @@ CONTAINS
     ! Deposition fluxes
     DEPO3    = 0.0_sp
     DEPHNO3  = 0.0_sp
+
+!------------------------------------------------------------------------
+!    ! Debug
+!    print*, '### In EVOLVE_PLUME:'
+!    print*, '### JOH: ',  SUM   ( ExtState%JOH%Arr%Val ),  &
+!                          MAXVAL( ExtState%JOH%Arr%Val )
+!    print*, '### JNO2: ', SUM   ( ExtState%JNO2%Arr%Val ),  &
+!                          MAXVAL( ExtState%JNO2%Arr%Val )
+!------------------------------------------------------------------------
 
     ! Loop over all grid boxes
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1174,7 +1187,6 @@ CONTAINS
    ExtState%NO%DoUse          = .TRUE.
    ExtState%AIR%DoUse         = .TRUE.
    ExtState%AIRVOL%DoUse      = .TRUE.
-   ExtState%SPHU%DoUse        = .TRUE.
    ExtState%SUNCOS%DoUse      = .TRUE.
    ExtState%T2M%DoUse         = .TRUE.
    ExtState%U10M%DoUse        = .TRUE.
@@ -1184,7 +1196,7 @@ CONTAINS
       ExtState%HNO3%DoUse     = .TRUE.
    ENDIF
    ExtState%JNO2%DoUse        = .TRUE.
-   ExtState%JO1D%DoUse        = .TRUE.
+   ExtState%JOH%DoUse         = .TRUE.
 
    ! Enable module
    ExtState%ParaNOx = .TRUE.
@@ -2148,8 +2160,8 @@ CONTAINS
 !     WS     : wind speed, m/s
 !
 ! In GEOS-Chem v9-01-03 through v9-02, the effects of wind speed on FNOx and OPE
-! were not included (wind speed set at 6 m/s). The JRatio also used J(O1D) rather 
-! than J(OH); this has only a small effect on interpolated values.
+! were not included (wind speed set at 6 m/s). The JRatio also used J(O1D)
+! rather than J(OH); this has only a small effect on interpolated values.
 ! To reproduce the behavior of these earlier versions, modify code below marked 
 ! with ******* and call READ\_PARANOX\_LUT\_v913 in emissions\_mod.F
 !\\
@@ -2192,10 +2204,15 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !     Jun 2010 - G.C.M. Vinken - Initial version
-!  03 Jun 2013 - C. Holmes     - Heavily modified and simplified from previous LUT 
-!                                interpolation code by G.C.M. Vinken and 
+!  03 Jun 2013 - C. Holmes     - Heavily modified and simplified from previous
+!                                LUT interpolation code by G.C.M. Vinken and
 !                                M. Payer. LUT now includes wind speed.
 !  04 Feb 2015 - C. Keller     - Updated for use in HEMCO.
+!  20 Apr 2016 - M. Sulprizio  - Remove calculation of J(OH). We now get J(OH),
+!                                the effective rate for O3+hv(+H2O)->OH+OH,
+!                                directly from FAST-JX. In FlexChem, adjustment
+!                                of the photolysis rates are done in routine
+!                                PHOTRATE_ADJ (found in GeosCore/fast_jx_mod.F).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2205,8 +2222,7 @@ CONTAINS
    INTEGER                    :: I1,I2,I3,I4,I5,I6,I7,I8
    REAL(sp)                   :: FNOX_TMP, DNOX_TMP, OPE_TMP, MOE_TMP
    REAL(sp)                   :: WEIGHT
-   REAL(sp)                   :: DENS, JNO2, JO1D, JOH, TAIR
-   REAL(sp)                   :: H2O
+   REAL(sp)                   :: JNO2, JOH, TAIR
    REAL(sp)                   :: AIR
    REAL*8                     :: MOE
 
@@ -2221,8 +2237,6 @@ CONTAINS
    CHARACTER(LEN=255)         :: MSG
    CHARACTER(LEN=255)         :: LOC = 'PARANOX_LUT' 
 
-   REAL(sp), PARAMETER        :: MWH2O = 18.0_sp
-
    !=================================================================
    ! PARANOX_LUT begins here!
    !=================================================================
@@ -2230,18 +2244,12 @@ CONTAINS
    ! Air mass, kg
    AIR  = ExtState%AIR%Arr%Val(I,J,1)
 
-   ! Air density, molec/cm3
-   DENS = AIR                            * 1.e3_sp             &
-        / ExtState%AIRVOL%Arr%Val(I,J,1) / HcoState%Phys%AIRMW &
-        * HcoState%Phys%Avgdr            / 1.e6_sp
-
    ! Air temperature, K
    Tair = ExtState%T2M%Arr%Val(I,J)
 
 !   ! for debugging only
 !   if(I==3.and.J==35)then
 !      write(*,*) 'Call PARANOX_LUT @ ',I,J
-!      write(*,*) 'DENS: ', DENS
 !      write(*,*) 'Tair: ', Tair
 !      write(*,*) 'SUNCOSmid: ', ExtState%SUNCOSmid%Arr%Val(I,J)
 !   endif
@@ -2252,29 +2260,13 @@ CONTAINS
       ! J(NO2), 1/s
       JNO2 = ExtState%JNO2%Arr%Val(I,J)
 
-      ! J(O1D), 1/s
-      JO1D = ExtState%JO1D%Arr%Val(I,J)
-
-      ! H2O, molec/cm3. Get from specific humidity, which is in kg/kg.
-      H2O = ExtState%SPHU%Arr%Val(I,J,1) * DENS &
-          * HcoState%Phys%AIRMW / MWH2O 
-         
-      ! Calculate J(OH), the effective rate for O3+hv -> OH+OH,
-      ! assuming steady state for O(1D).
-      ! Rate coefficients are cm3/molec/s; concentrations are molec/cm3
-      ! This should match the O3+hv (+H2O) -> OH+OH kinetics in calcrate.F
-      JOH = JO1D *                                            &
-            1.63e-10 * EXP( 60.e0/Tair) * H2O /               &
-          ( 1.63e-10 * EXP( 60.e0/Tair) * H2O +             &
-            1.20e-10                    * DENS * 0.5000e-6  + &
-            2.15e-11 * EXP(110.e0/Tair) * DENS * 0.7808e0   + &
-            3.30e-11 * EXP( 55.e0/Tair) * DENS * 0.2095e0   )
+      ! J(OH) - effective rate for O3+hv(+H2O)-> OH+OH, 1/s
+      JOH = ExtState%JOH%Arr%Val(I,J)
 
    ELSE
 
       ! J-values are zero when sun is down
       JNO2 = 0e0_sp
-      JO1D = 0e0_sp
       JOH  = 0e0_sp
  
    ENDIF
@@ -2282,9 +2274,7 @@ CONTAINS
 !   ! for debugging only
 !   if(I==3.and.J==35)then
 !      write(*,*) 'JNO2: ', JNO2
-!      write(*,*) 'JO1D: ', JO1D
 !      write(*,*) 'JOH : ', JOH
-!      write(*,*) 'H2O : ', H2O
 !   endif
 
    !========================================================================
