@@ -723,6 +723,11 @@
          call Integrate( TIN,    TOUT,    ICNTRL, 
      &                   RCNTRL, ISTATUS, RSTATE, IERR )
 
+         ! Print grid box indices to screen if integrate failed
+         IF ( IERR < 0 ) THEN
+            print*, '### INTEGRATE RETURNED ERROR AT: ', I, J, L
+         ENDIF
+
          ! Get time when integrator ends
          call CPU_TIME( finish )
 
@@ -761,7 +766,7 @@
             call Integrate( TIN,    TOUT,    ICNTRL, 
      &                      RCNTRL, ISTATUS, RSTATE, IERR )
             IF ( IERR < 0 ) THEN 
-               print*, 'failed twice !!! '
+               print*, '## INTEGRATE FAILED TWICE !!! '
                CALL ERROR_STOP(ERR_MSG, 'INTEGRATE_KPP')
             ENDIF
             
@@ -788,25 +793,25 @@
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% FOR DIAGNOSTIC PURPOSES ONLY, WE CAN REMOVE THIS LATER
-#if defined( DEVEL )
-         !=============================================================
-         ! mje some simple diagnostics to check that things make sense
-         ! mje these can be removed once we are happy with everything
-         !=============================================================
-
-         ! NOTE: We need to zero these here within the OpenMP loop
-         ! and declare these as !$OMP+PRIVATE. (bmy, 3/28/16)
-         AVERAGEVAR = 0.0_fp
-         MASS       = 0.0_fp
-
-         ! mje some simple diagnostics to check that things make sense
-         ! mje these can be removed once we are happy with everything
-         DO N=1,NSPEC
-            AVERAGEVAR(N)=AVERAGEVAR(N)+
-     &                    C(N)*State_Met%AD(I,J,L)
-         ENDDO
-         MASS=MASS+State_Met%AD(I,J,L)
-#endif
+!#if defined( DEVEL )
+!         !=============================================================
+!         ! mje some simple diagnostics to check that things make sense
+!         ! mje these can be removed once we are happy with everything
+!         !=============================================================
+!
+!         ! NOTE: We need to zero these here within the OpenMP loop
+!         ! and declare these as !$OMP+PRIVATE. (bmy, 3/28/16)
+!         AVERAGEVAR = 0.0_fp
+!         MASS       = 0.0_fp
+!
+!         ! mje some simple diagnostics to check that things make sense
+!         ! mje these can be removed once we are happy with everything
+!         DO N=1,NSPEC
+!            AVERAGEVAR(N)=AVERAGEVAR(N)+
+!     &                    C(N)*State_Met%AD(I,J,L)
+!         ENDDO
+!         MASS=MASS+State_Met%AD(I,J,L)
+!#endif
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          !==============================================================
@@ -854,12 +859,12 @@
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% FOR DIAGNOSTIC PURPOSES ONLY, WE CAN REMOVE THIS LATER
-#if defined( DEVEL )
+!#if defined( DEVEL )
 !      ! mje write out tropospheric mass weighted averages
 !      DO N=1,NSPEC
 !         WRITE (6,*) SPC_NAMES(N), AVERAGEVAR(N)/MASS
 !      ENDDO	
-#endif
+!#endif
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       !=================================================================
