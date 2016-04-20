@@ -2522,15 +2522,11 @@ contains
                     * GET_TS_CONV() * 60e+0_fp
 
              IF ( IS_Hg2( N ) ) THEN 
-                
-                CALL ADD_HG2_DD( I, J, N, DEP_KG )
+                CALL ADD_HG2_DD      ( I, J, N, DEP_KG            )
                 CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_KG, State_Met )
-
              ELSE IF ( IS_HgP( N ) ) THEN
-                
-                CALL ADD_HGP_DD( I, J, N, DEP_KG )
+                CALL ADD_HGP_DD      ( I, J, N, DEP_KG            )
                 CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_KG, State_Met )
-
              ENDIF
 
           ENDDO
