@@ -1449,8 +1449,6 @@
          ! Echo info
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          WRITE( 6, '(a)' ) 'N F C L D M X  -- by S-J Lin'
-         WRITE( 6, '(a)' ) 'Modified for GEOS-CHEM by Bob Yantosca'
-         WRITE( 6, '(a)' ) 'Last Modification Date: 1/27/04'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
 #if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
@@ -1902,7 +1900,7 @@
                         ! to [kg] by multiplying by NDT
                         WET_HgP = T0 * AREA_M2 / DNS * NDT
 
-                        ! Pass toq "ocean_mercury_mod.f"
+                        ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_HgP_WD      ( I, J, IC, WET_HgP  ) 
                         CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP,
      &                                         State_Met          )

@@ -132,6 +132,7 @@
 !                              (orig. 8/12/11)
 !  17 Aug 2015 - J. Fisher   - Add Arctic NPP, Chl from Anne Soerensen
 !                              (orig. 3/19/13)
+!  28 Mar 2016 - E. Lundgren - Read/write nc restart file from restart_mod.F
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
@@ -152,6 +153,7 @@
 
       ! ... except these routines
       PUBLIC :: INIT_OCEAN_MERCURY
+      PUBLIC :: CHECK_OCEAN_MERCURY   ! Call from restart_mod for nc rst (ewl)
       PUBLIC :: CLEANUP_OCEAN_MERCURY
       PUBLIC :: OCEAN_MERCURY_FLUX
       PUBLIC :: READ_OCEAN_Hg_RESTART
@@ -196,13 +198,15 @@
       REAL(fpp)   :: dFLOW2
       REAL(fpp)   :: FLOWNOW 
 
-      ! Arrays
+      ! Public arrays used for netcdf restart file read/write (ewl, 3/29/16)
+      REAL(fpp), PUBLIC, ALLOCATABLE :: Hg0aq(:,:,:)
+      REAL(fpp), PUBLIC, ALLOCATABLE :: Hg2aq(:,:,:)
+      REAL(fpp), PUBLIC, ALLOCATABLE :: HgPaq(:,:,:)
+      REAL(fpp), PUBLIC, ALLOCATABLE :: Hgaq_tot(:,:,:)
+
+      ! Private arrays
       REAL(fpp),  ALLOCATABLE :: dMLD(:,:)
-      REAL(fpp),  ALLOCATABLE :: Hg0aq(:,:,:)
-      REAL(fpp),  ALLOCATABLE :: Hg2aq(:,:,:)
-      REAL(fpp),  ALLOCATABLE :: HgPaq(:,:,:)
       REAL(fpp),  ALLOCATABLE :: HgPaq_SUNK(:,:,:) !eds 5/15/12 fix
-      REAL(fpp),  ALLOCATABLE :: Hgaq_tot(:,:,:)
 !      REAL(fpp),  ALLOCATABLE :: MLD(:,:)
       REAL(fpp),  ALLOCATABLE :: MLDav(:,:)
       REAL(fpp),  ALLOCATABLE :: newMLD(:,:)
@@ -3481,7 +3485,7 @@
 
       ! Format strings
  130  FORMAT( /, 'Total masses for each ocean tracer: ' ) 
- 140  FORMAT( 'Tracer ', i3, ' (', a10, ') ', es12.5, 1x, a4)
+ 140  FORMAT( 'Tracer ', i3, ' (', a10, ') ', es15.9, 1x, a4)
 
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
