@@ -531,6 +531,8 @@
 !                              the GEOS-4 U and V wind fields
 !  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
 !  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
+!  17 Mar 2016 - M. Sulprizio- Read optical depth into State_Met%OPTD instead of
+!                              State_Met%OPTDEP (obsolete).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -569,7 +571,7 @@
      &              HKBETA     = State_Met%HKBETA,   
      &              HKETA      = State_Met%HKETA,   
      &              MOISTQ     = State_Met%MOISTQ, 
-     &              OPTDEPTH   = State_Met%OPTDEP, 
+     &              OPTDEPTH   = State_Met%OPTD, 
      &              Q          = State_Met%SPHU,        
      &              T          = State_Met%T,           
      &              U          = State_Met%U,          
@@ -596,7 +598,7 @@
      &              DQVDTMST   = State_Met%DQVDTMST,
      &              DTRAIN     = State_Met%DTRAIN,     
      &              MOISTQ     = State_Met%MOISTQ,      
-     &              OPTDEPTH   = State_Met%OPTDEP, 
+     &              OPTDEPTH   = State_Met%OPTD, 
      &              PV         = State_Met%PV,              
      &              RH         = State_Met%RH,             
      &              Q          = State_Met%SPHU,             
@@ -624,7 +626,7 @@
      &              DNDN       = State_Met%DNDN,         
      &              ENTRAIN    = State_Met%ENTRAIN,    
      &              MOISTQ     = State_Met%MOISTQ,
-     &              OPTDEPTH   = State_Met%OPTDEP,    
+     &              OPTDEPTH   = State_Met%OPTD,    
      &              Q          = State_Met%SPHU,            
      &              T          = State_Met%T,                
      &              U          = State_Met%U,
@@ -846,6 +848,7 @@
       USE PHYSCONSTANTS
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD21
       USE DIAG_MOD,           ONLY : AD66
       USE DIAG_MOD,           ONLY : AD67
 #endif
@@ -1672,6 +1675,14 @@
       ENDIF
 
 #if defined( BPCH_DIAG )
+      !=================================================================
+      !          %%%%% ND21 diagnostic: OPTD and CLDF %%%%%
+      !=================================================================
+      IF ( ND21 > 0 ) THEN
+         AD21(:,:,1:LD21,1) = AD21(:,:,1:LD21,1) + OPTDEPTH(:,:,1:LD21)
+         AD21(:,:,1:LD21,2) = AD21(:,:,1:LD21,2) + CLDF(:,:,1:LD21)
+      ENDIF
+
       !=================================================================
       ! ND66 diagnostic: A-6 fields
       !

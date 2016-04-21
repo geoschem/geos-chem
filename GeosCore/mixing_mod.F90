@@ -301,6 +301,8 @@ CONTAINS
 !                              if UCX=false.
 !  30 Sep 2015 - E. Lundgren - Now convert locally to kg/m2 for area-independent
 !                              compatibility between tracer units and flux
+!  16 Mar 2016 - E. Lundgren - Exclude specialty simulations in restriction of
+!                              all emissions to chemistry grid if UCX=false
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -523,7 +525,11 @@ CONTAINS
 
           ! For non-UCX runs, never emit above the chemistry grid.
           ! (ckeller, 6/18/15)
-          IF ( .NOT. Input_Opt%LUCX ) ChemGridOnly = .TRUE.
+          ! Exclude all specialty simulations (ewl, 3/17/16)
+          IF ( Input_Opt%ITS_A_FULLCHEM_SIM .AND.  &
+               .NOT. Input_Opt%LUCX ) THEN
+             ChemGridOnly = .TRUE.
+          ENDIF
 
           ! Restrict to chemistry grid
           IF ( ChemGridOnly ) THEN

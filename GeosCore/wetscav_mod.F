@@ -3434,20 +3434,17 @@
 
                ! Check if it is a gaseous Hg2 tag
                IF ( IS_Hg2( N ) ) THEN
-
-                  CALL ADD_Hg2_WD      ( I, J, N, DEP_HG )
+                  CALL ADD_Hg2_WD      ( I, J, N, DEP_HG            )
                   CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_HG, State_Met )
 
                ! Check if it is a HgP tag
                ELSE IF ( IS_HgP( N ) ) THEN
-                  
-                  CALL ADD_HgP_WD      ( I, J, N, DEP_HG )
+                  CALL ADD_HgP_WD      ( I, J, N, DEP_HG            )
                   CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_HG, State_Met )
                   
                ENDIF
 
             ENDDO
-            
          ENDIF
 
       ENDDO
@@ -4001,14 +3998,12 @@
 
                ! Check if it is a gaseous Hg2 tag
                IF ( IS_Hg2( N ) ) THEN
-
-                  CALL ADD_Hg2_WD      ( I, J, N, DEP_HG )
+                  CALL ADD_Hg2_WD      ( I, J, N, DEP_HG            )
                   CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_HG, State_Met )
 
                ! Check if it is a HgP tag
                ELSE IF ( IS_HgP( N ) ) THEN
-                  
-                  CALL ADD_HgP_WD      ( I, J, N, DEP_HG )
+                  CALL ADD_HgP_WD      ( I, J, N, DEP_HG            )
                   CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_HG, State_Met )
                   
                ENDIF

@@ -434,11 +434,17 @@
      7                               FRAC_SNOW_OR_ICE
      &                               * MAX( 0.4e+0_fp*DEP_HG2, 0e+0_fp )
 
-         ! Store diagnostic of TOTAL HgII/HgP deposition to snow/ice
-         IF ( ND03 > 0 ) AD03(I,J,21,1) = AD03(I,J,21,1)   +
-     &                                    FRAC_SNOW_OR_ICE *
-     &                                    MAX(DEP_HG2, 0e+0_fp) 
-
+!----------------------------------------------------------------------------
+! Prior to 4/20/16:
+! NOTE: Slot #21 of ND03 is now the production of Hg2 with rxn from O3,
+! so this diagnostic archiving statement may be outdated.  Need to check
+! with Team Hg.  For now comment it out, as this is what is preventing
+! GC from passing unit tests. (bmy, 4/20/16)
+!         ! Store diagnostic of TOTAL HgII/HgP deposition to snow/ice
+!         IF ( ND03 > 0 ) AD03(I,J,21,1) = AD03(I,J,21,1)   +
+!     &                                    FRAC_SNOW_OR_ICE *
+!     &                                    MAX(DEP_HG2, 0e+0_fp) 
+!----------------------------------------------------------------------------
       ENDIF
 
       END SUBROUTINE ADD_HG2_SNOWPACK

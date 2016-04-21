@@ -1359,7 +1359,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE            :: FIRST = .TRUE.
-      LOGICAL, SAVE            :: IS_Hg = .TRUE.
+!      LOGICAL, SAVE            :: IS_Hg = .TRUE.
       INTEGER                  :: I, J, K, KTOP, L, N, NDT
       INTEGER                  :: IC, ISTEP, JUMP, JS, JN, NS
       INTEGER                  :: IMR, JNP, NLAY, AS
@@ -1449,8 +1449,6 @@
          ! Echo info
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          WRITE( 6, '(a)' ) 'N F C L D M X  -- by S-J Lin'
-         WRITE( 6, '(a)' ) 'Modified for GEOS-CHEM by Bob Yantosca'
-         WRITE( 6, '(a)' ) 'Last Modification Date: 1/27/04'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
 #if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
@@ -1467,8 +1465,8 @@
          ENDDO
 #endif
 
-         ! Flag to denote if this is a mercury simulation (sas, bmy, 1/19/05)
-         IS_Hg = ITS_A_MERCURY_SIM
+!         ! Flag to denote if this is a mercury simulation (sas, bmy, 1/19/05)
+!         IS_Hg = ITS_A_MERCURY_SIM
 
          ! Reset first time flag
          FIRST = .FALSE.
@@ -1722,6 +1720,10 @@
                ! Grid box surface area [m2]
                AREA_M2 = GET_AREA_M2( I, J, K )
 
+               ! Initialize
+               WET_Hg2 = 0.0_fp
+               WET_HgP = 0.0_fp
+               
 !==============================================================================
 !  (5.1)  M a s s   B a l a n c e   i n   C l o u d  ===>  QC(I,J)
 !
@@ -1749,22 +1751,22 @@
 !  CMOUT > 0 and will prevent floating-point exception.
 !==============================================================================
 
-                  IF ( CLDMAS(I,J,K-1) .gt. TINY ) THEN
-                     CMOUT    = CLDMAS(I,J,K) + DTRN(I,J,K)
-                     ENTRN    = CMOUT         - CLDMAS(I,J,K-1)
-                     QC_PRES  = QC(I,J) * ( 1e+0_fp - F(I,J,K,IC) )
-                     QC_SCAV  = QC(I,J) * F(I,J,K,IC)
+               IF ( CLDMAS(I,J,K-1) .gt. TINY ) THEN
+                  CMOUT    = CLDMAS(I,J,K) + DTRN(I,J,K)
+                  ENTRN    = CMOUT         - CLDMAS(I,J,K-1)
+                  QC_PRES  = QC(I,J) * ( 1e+0_fp - F(I,J,K,IC) )
+                  QC_SCAV  = QC(I,J) * F(I,J,K,IC)
 !#if defined ( DEBUG )
 !       IF ( IC == 129 ) THEN
 !          print *, I, J, K, QC_PRES, QC_SCAV, QC(I,J), F(I,J,K,IC)
 !       ENDIF
 !#endif
-
-                     IF ( ENTRN .ge. 0 ) THEN
-                        QC(I,J) = ( CLDMAS(I,J,K-1) * QC_PRES       + 
-     &                              ENTRN           * Q(I,J,K,IC) ) / 
-     &                              CMOUT
-                     ENDIF   
+                  
+                  IF ( ENTRN .ge. 0 ) THEN
+                     QC(I,J) = ( CLDMAS(I,J,K-1) * QC_PRES       + 
+     &                           ENTRN           * Q(I,J,K,IC) ) / 
+     &                           CMOUT
+                  ENDIF   
 
 !==============================================================================
 !  (5.2)  M a s s   B a l a n c e   i n   L e v e l  ===>  Q(I,J,K,IC)
@@ -1807,93 +1809,111 @@
 !  The term T0 is the amount of tracer that is scavenged out of the box.
 !  Compute that term here for the ND38 diagnostic below. (bmy, 1/27/03)
 !==============================================================================
-                     T0   =  CLDMAS(I,J,K-1) * QC_SCAV   
-                     T1   =  CLDMAS(I,J,K-1) * QC_PRES
-                     T2   = -CLDMAS(I,J,K  ) * QC(I,J       )
-                     T3   =  CLDMAS(I,J,K  ) * Q (I,J,K+1,IC)
-                     T4   = -CLDMAS(I,J,K-1) * Q (I,J,K,  IC)
+                  T0   =  CLDMAS(I,J,K-1) * QC_SCAV   
+                  T1   =  CLDMAS(I,J,K-1) * QC_PRES
+                  T2   = -CLDMAS(I,J,K  ) * QC(I,J       )
+                  T3   =  CLDMAS(I,J,K  ) * Q (I,J,K+1,IC)
+                  T4   = -CLDMAS(I,J,K-1) * Q (I,J,K,  IC)
 
-                     TSUM = T1 + T2 + T3 + T4 
+                  TSUM = T1 + T2 + T3 + T4 
 
-                     DELQ = ( SDT / BMASS(I,J,K) ) * TSUM
+                  DELQ = ( SDT / BMASS(I,J,K) ) * TSUM
 
-                     ! If DELQ > Q then do not make Q negative!!!
-                     IF ( Q(I,J,K,IC) + DELQ < 0 ) THEN
-                        DELQ = -Q(I,J,K,IC)
-                     ENDIF
+                  ! If DELQ > Q then do not make Q negative!!!
+                  IF ( Q(I,J,K,IC) + DELQ < 0 ) THEN
+                     DELQ = -Q(I,J,K,IC)
+                  ENDIF
 
-                     Q(I,J,K,IC) = Q(I,J,K,IC) + DELQ
+                  Q(I,J,K,IC) = Q(I,J,K,IC) + DELQ
                                 
-                     !==================================================
-                     ! ND14 Diagnostic: Upward mass flux due to wet 
-                     ! convection.  The diagnostic ND14 works only for 
-                     ! levels >= than 3.  This is ok for now since I 
-                     ! want to have a closed budget with a box starting 
-                     ! from the ground.
-                     !
-                     ! DTCSUM(I,J,K,IC) is the flux (kg/box/sec) in 
-                     ! the box (I,J), for the tracer IC going out of 
-                     ! the top of the layer K to the layer above (K+1) 
-                     ! (bey, 11/10/99).      
-                     !==================================================
-
-                     IF ( ND14 > 0 ) THEN
-                        DTCSUM(I,J,K,IC) = DTCSUM(I,J,K,IC) + (-T2-T3)  
-     &                                     * AREA_M2 
-                     ENDIF
+                  !=====================================================
+                  ! ND14 Diagnostic: Upward mass flux due to wet 
+                  ! convection.  The diagnostic ND14 works only for 
+                  ! levels >= than 3.  This is ok for now since I 
+                  ! want to have a closed budget with a box starting 
+                  ! from the ground.
+                  !
+                  ! DTCSUM(I,J,K,IC) is the flux (kg/box/sec) in 
+                  ! the box (I,J), for the tracer IC going out of 
+                  ! the top of the layer K to the layer above (K+1) 
+                  ! (bey, 11/10/99).      
+                  !=====================================================
+                  IF ( ND14 > 0 ) THEN
+                     DTCSUM(I,J,K,IC) = DTCSUM(I,J,K,IC) + (-T2-T3)  
+     &                                * AREA_M2 
+                  ENDIF
 
 #if defined( BPCH_DIAG )
-                     !==================================================
-                     ! ND38 Diagnostic: loss of soluble tracer to wet
-                     ! scavenging in cloud updrafts [kg/s].  We must 
-                     ! divide by DNS, the # of internal timesteps.
-                     !==================================================
-                     IF ( ( ND38 > 0 .or. LGTMM )
-     &                    .and. ISOL > 0 .and. K <= LD38 ) THEN
+                  !=====================================================
+                  ! ND38 Diagnostic: loss of soluble tracer to wet
+                  ! scavenging in cloud updrafts [kg/s].  We must 
+                  ! divide by DNS, the # of internal timesteps.
+                  !=====================================================
+                  IF ( ( ND38 > 0 .or. LGTMM )
+     &                 .and. ISOL > 0 .and. K <= LD38 ) THEN
 
-                        AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) 
-     &                              + T0 * AREA_M2 / DNS  
+                     AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) 
+     &                                + T0 * AREA_M2 / DNS  
 
-                     ENDIF
+                  ENDIF
 #endif
-  
-                     !=================================================
-                     ! Pass the amount of Hg2 and HgP lost in wet 
-                     ! scavenging [kg] to "ocean_mercury_mod.f" via 
-                     ! ADD_Hg2_WET and ADD_HgP_WET. We must also divide 
-                     ! by DNS, the # of internal timesteps. 
-                     ! (sas, bmy, eck, eds, 1/19/05, 1/6/06, 7/30/08)
-                     !=================================================
-                     IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
+ 
+                  !=====================================================
+                  ! Pass the amount of Hg2 and HgP lost in wet 
+                  ! scavenging [kg] to "ocean_mercury_mod.f" via 
+                  ! ADD_Hg2_WET and ADD_HgP_WET. We must also divide 
+                  ! by DNS, the # of internal timesteps. 
+                  ! (sas, bmy, eck, eds, 1/19/05, 1/6/06, 7/30/08)
+                  !
+                  ! IMPORTANT NOTE: WET_Hg2 and WET_HgP are defined
+                  ! on each 3-D (I,J,K) iteration.  But in routines
+                  ! ADD_Hg2_WD and ADD_Hg2_SNOWPACK, these are saved to 
+                  ! diagnostic arrays that have only 2-D (I,J) spatial 
+                  ! size.  This can cause slight numerical differences 
+                  ! when OpenMP parallelization is turned on, because 
+                  ! one CPU is trying to write to the diagnostic arrays
+                  ! simultaneously.  To avoid this situation, we call 
+                  ! ADD_Hg2_WD and ADD_Hg2_SNOWPACK from within an 
+                  ! !$OMP CRITICAL block, which ensures that only one 
+                  ! CPU at a time can write to the diagnostic arrays.
+                  ! (bmy, 4/20/16)
+                  !=====================================================
+                  IF ( ITS_A_MERCURY_SIM ) THEN
+!$OMP CRITICAL
+                     ! Is it a Hg2 tracer?
+                     IF ( IS_Hg2( IC ) ) THEN
 
                         ! Wet scavenged Hg(II) in [kg/s], converted
                         ! to [kg] by multiplying by NDT
                         WET_Hg2 = T0 * AREA_M2 / DNS * NDT
                         
                         ! Pass to "ocean_mercury_mod.f"
-                        CALL ADD_Hg2_WD( I, J, IC, WET_Hg2 )
+                        CALL ADD_Hg2_WD      ( I, J, IC, WET_Hg2  )
                         CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2,
-     &                                         State_Met )
+     &                                         State_Met          )
                      ENDIF
 
-                     IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
+                     ! Is it a HgP tracer?
+                     IF ( IS_HgP( IC ) ) THEN
 
                         ! Wet scavenged Hg(P) in [kg/s], converted 
                         ! to [kg] by multiplying by NDT
                         WET_HgP = T0 * AREA_M2 / DNS * NDT
 
                         ! Pass to "ocean_mercury_mod.f"
-                        CALL ADD_HgP_WD( I, J, IC, WET_HgP )
+                        CALL ADD_HgP_WD      ( I, J, IC, WET_HgP  ) 
                         CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP,
-     &                                         State_Met )
+     &                                         State_Met          )
                      ENDIF
+!$OMP END CRITICAL
+                  ENDIF
 
-                  !=====================================================
-                  ! No cloud transport if cloud mass flux < TINY; 
-                  ! Change Qc to q
-                  !=====================================================
-                  ELSE                     
-                     QC(I,J) = Q(I,J,K,IC)
+               !========================================================
+               ! No cloud transport if cloud mass flux < TINY; 
+               ! Change Qc to q
+               !========================================================
+               ELSE                     
+                  QC(I,J) = Q(I,J,K,IC)
 
 #if   defined( GEOS_5 ) 
                      !--------------------------------------------------

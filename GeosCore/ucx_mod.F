@@ -4542,18 +4542,18 @@
       TCENTER = TCENTER_IN
 
       ! Calculate partial pressure of H2O & HNO3
-      ! PCENTER is in hPa
-      PATMH2O  = H2OSUM  * PCENTER / ATM
+      ! PCENTER is in hPa, so need to convert ATM from Pa to hPa
+      PATMH2O  = H2OSUM  * PCENTER / (ATM*1e-2_fp)
 
       ! Carslaw only valid for 2e-5 < PPH2O < 2e-3 (hPa)
       PATMH2O = MAX(PATMH2O,1.9738465e-8_fp)
       PATMH2O = MIN(PATMH2O,1.9738465e-6_fp)
 
-      PATMHNO3 = HNO3SUM * PCENTER / ATM
-      PATMHCl  = HClSUM  * PCENTER / ATM
-      PATMHOCl = HOClSUM * PCENTER / ATM
-      PATMHBr  = HBrSUM  * PCENTER / ATM
-      PATMHOBr = HOBrSUM * PCENTER / ATM
+      PATMHNO3 = HNO3SUM * PCENTER / (ATM*1e-2_fp)
+      PATMHCl  = HClSUM  * PCENTER / (ATM*1e-2_fp)
+      PATMHOCl = HOClSUM * PCENTER / (ATM*1e-2_fp)
+      PATMHBr  = HBrSUM  * PCENTER / (ATM*1e-2_fp)
+      PATMHOBr = HOBrSUM * PCENTER / (ATM*1e-2_fp)
 
       ! Moles of H2SO4 per m3 air
       MOLDENS_H2SO4 = 100.e+0_fp*PCENTER*H2SO4SUM/(RSTARG*TCENTER)
@@ -4672,7 +4672,7 @@
      &      5632.0e+0_fp*W_H2SO4**2)-LOG(W_HNO3+0.610e+0_fp*W_H2SO4)-
      &      LOG(36.461e+0_fp/(1000.0e+0_fp+98.076e+0_fp*
      &      M_H2SO4+63.012e+0_fp*
-     &      M_HNO3)))*1013.0e+0_fp
+     &      M_HNO3)))*(ATM*1e-2_fp)
          M_HCl = (1.0e+0_fp/R_ATM/TCENTER*PATMHCL)/
      &      (MOLDENS_H2SO4/M_H2SO4 + 1.0e+0_fp/R_ATM/TCENTER/H_HCL)
          W_HCL=M_HCL*36.461e+0_fp/(1.0e+3_fp+98.076e+0_fp*M_H2SO4+
@@ -4714,7 +4714,7 @@
      &      7680.0e+0_fp*W_H2SO4**2)-LOG(W_HNO3+0.410e+0_fp*W_H2SO4)-
      &      LOG(36.461e+0_fp/(1000.0e+0_fp+98.076e+0_fp*
      &      M_H2SO4+63.012e+0_fp*
-     &      M_HNO3)))*1013.0e+0_fp
+     &      M_HNO3)))*(ATM*1e-2_fp)
          M_HBr = (1.0e+0_fp/R_ATM/TCENTER*PATMHBr)/
      &      (MOLDENS_H2SO4/M_H2SO4 + 1.0e+0_fp/R_ATM/TCENTER/H_HBr)
          W_HBr=M_HBr*80.91e+0_fp/(1.0e+3_fp+98.076e+0_fp*M_H2SO4+

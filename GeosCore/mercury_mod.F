@@ -1056,10 +1056,24 @@
             ! aerosol, so all Hg2p deposition is dry deposition
             DEP_Hg2p_DRY = DEP_Hg2p
 
+            !=================================================================
             ! Add deposited Hg(II) to the ocean module. OCEAN_MERCURY_MOD
             ! determines whether the box is marine, so we don't need to here.
             ! We should add an if statement to test whether DYNAMIC LAND is 
             ! active.
+            !
+            ! IMPORTANT NOTE: DEP_Hg2G, DEP_Hg2P, and DEP_Hg2_DRY are defined
+            ! on each 3-D (I,J,K) iteration.  But in routines ADD_Hg2_DD,
+            ! ADD_Hg2_WD and ADD_Hg2_SNOWPACK, these are saved to diagnostic 
+            ! arrays that have only 2-D (I,J) spatial size.  This can cause 
+            ! slight numerical differences when OpenMP parallelization is 
+            ! turned on, because more than one CPU is trying to write to the 
+            ! diagnostic arrays simultaneously.  To avoid this situation, we 
+            ! call  ADD_Hg2_WD and ADD_Hg2_SNOWPACK from within an 
+            ! !$OMP CRITICAL block, which ensures that only one CPU at a time 
+            ! can write to the diagnostic arrays. (bmy, 4/20/16)
+            !=================================================================
+!$OMP CRITICAL
             IF ( LDYNOCEAN ) THEN
                NN = ID_Hg2(N)
                CALL ADD_Hg2_DD( I, J, NN, DEP_Hg2G )
@@ -1074,6 +1088,7 @@
                DEP_HG2_DRY = DEP_HG2g_DRY + DEP_HG2p_DRY
                CALL ADD_HG2_SNOWPACK( I, J, NN, DEP_HG2_DRY, State_Met )
             ENDIF           
+!$OMP END CRITICAL
 
 #if defined( BPCH_DIAG )
             !=================================================================
