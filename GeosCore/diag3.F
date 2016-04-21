@@ -3338,7 +3338,7 @@
                   FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                CASE ( 'COeur'  ) 
                   DiagnName = 'ANTHROPOGENIC_TAGCO_EUR'
-                  UNIT      = 'molec/cqm2/s'
+                  UNIT      = 'molec/cm2/s'
                   N         = ThisSpc%ModelId
                   FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                CASE ( 'COasia' ) 
