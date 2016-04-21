@@ -125,8 +125,8 @@ CONTAINS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
-    OutOper    = Input_Opt%ND45_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND45_OUTPUT_FREQ
+    OutOper    = 'Instantaneous'
+    WriteFreq  = 'Always'
 
     IF ( am_I_Root ) WRITE( 6, 100 )
     ALLOCATE( STTTOCSPEC(Input_Opt%N_TRACERS), STAT=RC )
