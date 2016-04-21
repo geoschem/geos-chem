@@ -268,6 +268,7 @@
 !  22 May 2015 - R. Yantosca - Replace NOXEXTENT with 2 in TOMAS #if blocks
 !  07 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !  05 Jan 2016 - E. Lundgren - Use GC global param AVO instead of from HEMCO
+!  21 Apr 2016 - R. Yantosca - Fixed typo that was preventing ND29 output
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2710,7 +2711,7 @@
 !******************************************************************************
 !
       IF ( ND29 > 0 ) THEN
-         
+
          ! Diagnostic category and units
          CATEGORY = 'CO--SRCE'
 
@@ -2725,7 +2726,7 @@
          IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
             NN = 24
          ELSE
-            N  = 6
+            NN = 6
          ENDIF
 
          ! Loop over all slots of ND29 
