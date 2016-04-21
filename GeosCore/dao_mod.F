@@ -268,7 +268,7 @@
       USE PRESSURE_MOD    
 
       ! Temporary fix for calculating air density (mps, 12/23/15)
-      USE COMODE_LOOP_MOD, ONLY : WTAIR, AVG
+      USE PHYSCONSTANTS,        ONLY : AIRMW, AVO
 !
 ! !INPUT PARAMETERS:
 !
@@ -759,7 +759,7 @@
 ! calculation above using the ideal gas law (mps, 12/23/15)
          State_Met%AIRNUMDEN(I,J,L) = (State_Met%AD(I,J,L)*1000.e+0_fp) 
      &                              / (State_Met%AIRVOL(I,J,L)*1e+6_fp)
-     &                              *  AVG / WTAIR
+     &                              *  AVO / AIRMW
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ENDDO

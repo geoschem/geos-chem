@@ -69,7 +69,8 @@ CONTAINS
 
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE CMN_SIZE_MOD
-    USE COMODE_LOOP_MOD,    ONLY : QBKGAS, NGAS, NAMEGAS, BK, SMAL2
+    USE COMODE_LOOP_MOD,    ONLY : QBKGAS, NGAS, NAMEGAS, SMAL2
+    USE PHYSCONSTANTS,      ONLY : BOLTZ
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Create
     USE HCO_ERROR_MOD
@@ -263,8 +264,9 @@ CONTAINS
                 DO I = 1, IIPAR
 
                    ! Set grid box dry air density [molec/cm3]
+                   !AIRNUMDEN = State_Met%AIRNUMDEN(I,J,L)
                    AIRNUMDEN = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp / &
-                       ( State_Met%T(I,J,L) * BK ) !State_Met%AIRNUMDEN(I,J,L)
+                       ( State_Met%T(I,J,L) * ( BOLTZ * 1e+7_fp ) ) 
 
                    !========================================================
                    ! For methanol (MOH), now use different initial background
@@ -287,7 +289,7 @@ CONTAINS
                    ! lifetime.
                    !
                    ! We specify the MOH concentration as ppbv, but then we
-                   ! need to multiply by PRESS3(JLOOP) / ( T3(JLOOP) * BK )
+                   ! need to multiply by PRESS3(JLOOP) / ( T3(JLOOP) * BOLTZ )
                    ! in order to convert to [molec/cm3].  (bdf, bmy, 2/22/02)
                    !========================================================
                    IF ( NAMEGAS(N) == 'MOH' ) THEN

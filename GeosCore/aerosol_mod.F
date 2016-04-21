@@ -129,7 +129,7 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE PHYSCONSTANTS,      ONLY : BOLTZ, AVO, AIRMW
+      USE PHYSCONSTANTS,      ONLY : BOLTZ, AVO, AIRMW, CONSVAP
       USE COMODE_MOD,         ONLY : ABSHUM, IXSAVE   
       USE COMODE_MOD,         ONLY : IYSAVE, IZSAVE,  JLOP       
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -170,6 +170,8 @@
 !  01 Apr 2015 - R. Yantosca - Bug fix: BOXVL needs to be !$OMP PRIVATE
 !  21 Dec 2015 - M. Sulprizio- Remove calculation of BOXVL and AIRDENS. Get
 !                              these fields directly from State_Met instead.
+!  21 Apr 2016 - M. Sulprizio- Get CONSVAP from physconstants.F instead of
+!                              computing locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -179,7 +181,7 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER, SAVE :: N_CHEM_BOXES
       INTEGER       :: I, J, L, JLOOP
-      REAL(fp)      :: CONSEXP, TK, VPRESH2O, CONSVAP
+      REAL(fp)      :: CONSEXP, TK, VPRESH2O
       
       !=================================================================
       ! AEROSOL_RURALBOX begins here!
@@ -190,10 +192,6 @@
       NLAT   = JJPAR
       NVERT  = IVERT
       NPVERT = NVERT
-
-      ! Calculate condensation vapor pressure locally
-      ! and use Boltzmann's constant in PHYSCONSTANTS [J/K] (ewl, 1/4/16)
-      CONSVAP  = 6.1078e+03_fp / ( BOLTZ * 1e+7_fp )
 
       !=================================================================
       ! Pre-save SMVGEAR loop indices on the first call
@@ -878,7 +876,8 @@
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      USE COMODE_LOOP_MOD
+      USE PHYSCONSTANTS,      ONLY : CONSVAP
+      USE COMODE_LOOP_MOD,    ONLY : IOUT, NTLOOP
       USE COMODE_MOD,         ONLY : JLOP ! SDE 2013-12-30
       USE COMODE_MOD,         ONLY : ABSHUM
       USE COMODE_MOD,         ONLY : ERADIUS

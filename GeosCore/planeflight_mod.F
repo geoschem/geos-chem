@@ -1229,7 +1229,7 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE PHYSCONSTANTS,      ONLY : BOLTZ
+      USE PHYSCONSTANTS,      ONLY : CONSVAP
       USE COMODE_LOOP_MOD
       USE COMODE_MOD,         ONLY : ABSHUM, TAREA
 #if   defined( TOMAS )
@@ -1294,6 +1294,8 @@
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met object
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
+!  21 Apr 2016 - M. Sulprizio- Get CONSVAP from PHYSCONSTANTS instead of
+!                              computing locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1307,7 +1309,6 @@
       INTEGER             :: LPLANE, IWV, ISPC, K
       REAL(fp)            :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
       REAL(fp)            :: VARI(NPVAR)
-      REAL(fp)            :: CONSVAP
 
       ! Aerosol types: SULF, BLKC, ORGC, SALA, SALC 
       INTEGER             :: IND(5) = (/ 22, 29, 36, 43, 50 /)
@@ -1510,12 +1511,6 @@
                            CONSEXP  = 17.2693882e+0_fp * 
      &                                (TK - 273.16e+0_fp) / 
      &                                (TK - 35.86e+0_fp)
-
-                           ! Define condensation vapor pressure locally.
-                           ! Use BOLTZ [J/K] from PHYSCONSTANTS rather than 
-                           ! BOLTG [ergs/K] in comode_loop_mod (ewl, 1/4/16)
-                           CONSVAP  = 6.1078e+03_fp  
-     &                                / ( BOLTZ * 1e+7_fp)
                            
                            VPRESH2O = CONSVAP * EXP(CONSEXP) * 1e+0_fp 
      &                              / TK

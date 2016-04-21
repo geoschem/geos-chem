@@ -79,7 +79,18 @@
       ! ATM : Standard atmosphere [Pa]  (Source: NIST, 2014)
       REAL(fp), PARAMETER :: ATM     = 1.01325e+5_fp
 
-
+      ! Condensation vapor pressure
+      ! ** NEED SOURCE **
+      !  We think 6.1078 hPa is the saturation vapor pressure at 273.16 K, the
+      !   triple point of water, but this needs to be confirmed (mps, 4/21/16)
+      !  Use BOLTZ [J/K] rather than BOLTG [ergs/K] from comode_loop_mod
+      !   (ewl, 1/4/16)
+      REAL(fp), PARAMETER :: CONSVAP  = 6.1078e+03_fp /
+     &                                  ( BOLTZ * 1e+7_fp )
+!
+! !REFERENCES:
+! (1) NIST, 2014. Website: http://physics.nist.gov/cuu/Constants/index.html
+!
 ! !REVISION HISTORY:
 !  25 Jun 2002 - R. Yantosca - Initial version
 !  23 Aug 2011 - M. Long     - Converted to Module from Header file
@@ -93,6 +104,7 @@
 !                              definition of XNUMOLAIR. Add BOLTZ.
 !  08 Jan 2016 - E. Lundgren - Rename this file to physconstants.F. Previously
 !                              it was called CMN_GCTM_mod.F
+!  21 Apr 2016 - M. Sulprizio- Move CONSVAP here from comode_loop_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -296,7 +296,7 @@
       !REAL(fp), PARAMETER :: BK       = 1.38054e-16_fp
       !REAL(fp), PARAMETER :: BOLTG    = 1.38054e-16_fp
 
-      ! Now define CONSVAP locally in routines that use it and comment
+      ! Now define CONSVAP in PHYSCONSTANTS and comment
       ! out definition here (ewl, 1/4/16)
       ! Condensation vapor pressure ?????? 
       !REAL(fp), PARAMETER :: CONSVAP  = 6.1078e+03_fp / BOLTG
