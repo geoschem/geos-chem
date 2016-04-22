@@ -2879,134 +2879,134 @@
       END SUBROUTINE FILL_CHEM_STATE_NAME_IDs
 !EOC 
 !------------------------------------------------------------------------------
-
-      FUNCTION IS_Hg0( N ) RESULT( IT_IS_Hg0 )
 !
-!******************************************************************************
-!  Function IS_Hg0 returns TRUE if tracer N is a total or tagged Hg0 tracer.
-!  (cdh, bmy, 12/15/05)
+!      FUNCTION IS_Hg0( N ) RESULT( IT_IS_Hg0 )
+!!
+!!******************************************************************************
+!!  Function IS_Hg0 returns TRUE if tracer N is a total or tagged Hg0 tracer.
+!!  (cdh, bmy, 12/15/05)
+!!
+!!  Arguments as Input:
+!!  ============================================================================
+!!  (1 ) N (INTEGER) : GEOS-CHEM tracer number
+!!
+!!  NOTES:
+!!******************************************************************************
+!!
+!      ! Arguments
+!      INTEGER, INTENT(IN) :: N
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) N (INTEGER) : GEOS-CHEM tracer number
+!      ! Local variables
+!      LOGICAL             :: IT_IS_Hg0
+!      INTEGER             :: C
 !
-!  NOTES:
-!******************************************************************************
+!      !=================================================================
+!      ! IS_Hg0 begins here!
+!      !=================================================================
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: N
-
-      ! Local variables
-      LOGICAL             :: IT_IS_Hg0
-      INTEGER             :: C
-
-      !=================================================================
-      ! IS_Hg0 begins here!
-      !=================================================================
-
-      ! Initialize
-      IT_IS_Hg0 = .FALSE.
-
-      ! Loop over Hg0 categories
-      DO C = 1, N_Hg_CATS
-         
-         ! Exit with TRUE if corresponds to an Hg0 tracer
-         IF ( N == ID_Hg0(C) ) THEN
-            IT_IS_Hg0 = .TRUE.
-            EXIT
-         ENDIF
-
-      ENDDO
-
-      ! Return to calling program
-      END FUNCTION IS_Hg0
-
-!------------------------------------------------------------------------------
-
-      FUNCTION IS_Hg2( N ) RESULT( IT_IS_Hg2 )
+!      ! Initialize
+!      IT_IS_Hg0 = .FALSE.
 !
-!******************************************************************************
-!  Function IS_Hg2 returns TRUE if tracer N is a total or tagged Hg2 tracer.
-!  (cdh, bmy, 12/15/05)
+!      ! Loop over Hg0 categories
+!      DO C = 1, N_Hg_CATS
+!         
+!         ! Exit with TRUE if corresponds to an Hg0 tracer
+!         IF ( N == ID_Hg0(C) ) THEN
+!            IT_IS_Hg0 = .TRUE.
+!            EXIT
+!         ENDIF
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) N (INTEGER) : GEOS-CHEM tracer number
+!      ENDDO
 !
-!  NOTES:
-!******************************************************************************
+!      ! Return to calling program
+!      END FUNCTION IS_Hg0
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: N
-
-      ! Local variables
-      LOGICAL             :: IT_IS_Hg2
-      INTEGER             :: C
-
-      !=================================================================
-      ! IS_Hg2 begins here!
-      !=================================================================
-
-      ! Initialize
-      IT_IS_Hg2 = .FALSE.
-
-      ! Loop over Hg2 categories
-      DO C = 1, N_Hg_CATS
-         
-         ! Exit with TRUE if corresponds to an Hg2 tracer
-         IF ( N == ID_Hg2(C) ) THEN
-            IT_IS_Hg2 = .TRUE.
-            EXIT
-         ENDIF
-
-      ENDDO
-
-      ! Return to calling program
-      END FUNCTION IS_Hg2
-
-!------------------------------------------------------------------------------
-
-      FUNCTION IS_HgP( N ) RESULT( IT_IS_HgP )
+!!------------------------------------------------------------------------------
 !
-!******************************************************************************
-!  Function IS_HgP returns TRUE if tracer N is a total or tagged HgP tracer.
-!  (cdh, bmy, 12/15/05)
+!      FUNCTION IS_Hg2( N ) RESULT( IT_IS_Hg2 )
+!!
+!!******************************************************************************
+!!  Function IS_Hg2 returns TRUE if tracer N is a total or tagged Hg2 tracer.
+!!  (cdh, bmy, 12/15/05)
+!!
+!!  Arguments as Input:
+!!  ============================================================================
+!!  (1 ) N (INTEGER) : GEOS-CHEM tracer number
+!!
+!!  NOTES:
+!!******************************************************************************
+!!
+!      ! Arguments
+!      INTEGER, INTENT(IN) :: N
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) N (INTEGER) : GEOS-CHEM tracer number
+!      ! Local variables
+!      LOGICAL             :: IT_IS_Hg2
+!      INTEGER             :: C
 !
-!  NOTES:
-!******************************************************************************
+!      !=================================================================
+!      ! IS_Hg2 begins here!
+!      !=================================================================
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: N
-
-      ! Local variables
-      LOGICAL             :: IT_IS_HgP
-      INTEGER             :: C
-
-      !=================================================================
-      ! IS_HgP begins here!
-      !=================================================================
-
-      ! Initialize
-      IT_IS_HgP = .FALSE.
-
-      ! Loop over Hg2 categories
-      DO C = 1, N_Hg_CATS
-         
-         ! Exit with TRUE if corresponds to an HgP tracer
-         IF ( N == ID_HgP(C) ) THEN
-            IT_IS_HgP = .TRUE.
-            EXIT
-         ENDIF
-
-      ENDDO
-
-      ! Return to calling program
-      END FUNCTION IS_HgP
-
+!      ! Initialize
+!      IT_IS_Hg2 = .FALSE.
+!
+!      ! Loop over Hg2 categories
+!      DO C = 1, N_Hg_CATS
+!         
+!         ! Exit with TRUE if corresponds to an Hg2 tracer
+!         IF ( N == ID_Hg2(C) ) THEN
+!            IT_IS_Hg2 = .TRUE.
+!            EXIT
+!         ENDIF
+!
+!      ENDDO
+!
+!      ! Return to calling program
+!      END FUNCTION IS_Hg2
+!
+!!------------------------------------------------------------------------------
+!
+!      FUNCTION IS_HgP( N ) RESULT( IT_IS_HgP )
+!!
+!!******************************************************************************
+!!  Function IS_HgP returns TRUE if tracer N is a total or tagged HgP tracer.
+!!  (cdh, bmy, 12/15/05)
+!!
+!!  Arguments as Input:
+!!  ============================================================================
+!!  (1 ) N (INTEGER) : GEOS-CHEM tracer number
+!!
+!!  NOTES:
+!!******************************************************************************
+!!
+!      ! Arguments
+!      INTEGER, INTENT(IN) :: N
+!
+!      ! Local variables
+!      LOGICAL             :: IT_IS_HgP
+!      INTEGER             :: C
+!
+!      !=================================================================
+!      ! IS_HgP begins here!
+!      !=================================================================
+!
+!      ! Initialize
+!      IT_IS_HgP = .FALSE.
+!
+!      ! Loop over Hg2 categories
+!      DO C = 1, N_Hg_CATS
+!         
+!         ! Exit with TRUE if corresponds to an HgP tracer
+!         IF ( N == ID_HgP(C) ) THEN
+!            IT_IS_HgP = .TRUE.
+!            EXIT
+!         ENDIF
+!
+!      ENDDO
+!
+!      ! Return to calling program
+!      END FUNCTION IS_HgP
+!
 !------------------------------------------------------------------------------
 
       FUNCTION GET_Hg0_CAT( N ) RESULT( NN )

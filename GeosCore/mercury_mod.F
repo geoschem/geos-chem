@@ -1084,9 +1084,13 @@
 
             ! Add deposited Hg(II) to the snowpack
             IF ( LHGSNOW ) THEN
-               NN = ID_Hg2(N)
-               DEP_HG2_DRY = DEP_HG2g_DRY + DEP_HG2p_DRY
-               CALL ADD_HG2_SNOWPACK( I, J, NN, DEP_HG2_DRY, State_Met )
+               NN          =  ID_Hg2(N)
+               ThisSpc     => State_Chm%SpcData(NN)%Info
+               DEP_HG2_DRY =  DEP_HG2g_DRY + DEP_HG2p_DRY
+               CALL ADD_HG2_SNOWPACK( I, J, NN,  DEP_HG2_DRY, 
+     &                                State_Met, ThisSpc )
+
+               ThisSpc=> NULL()
             ENDIF           
 !$OMP END CRITICAL
 

@@ -128,6 +128,11 @@ MODULE Species_Mod
      LOGICAL            :: MP_SizeResAer    ! T=size-resolved aerosol (TOMAS)
      LOGICAL            :: MP_SizeResNum    ! T=size-resolved aerosol number
 
+     ! Mercury parameters
+     LOGICAL            :: Is_Hg0           ! T=total or tagged Hg0 species
+     LOGICAL            :: Is_Hg2           ! T=total or tagged Hg2 species
+     LOGICAL            :: Is_HgP           ! T=total or tagged HgP species
+
   END TYPE Species
 !
 ! !DEFINED PARAMETERS
@@ -167,6 +172,7 @@ MODULE Species_Mod
 !  01 Oct 2015 - R. Yantosca - Add field DD_DvzMinVal
 !  16 Oct 2015 - E. Lundgren - Add WD_Is_H2SO4 field to flag special case of
 !                              H2SO4 wet deposition for microphysics
+!  22 Apr 2016 - R. Yantosca - Added Is_Hg0, Is_Hg2, Is_HgP species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -379,7 +385,8 @@ CONTAINS
                          WD_LiqAndGas,  WD_ConvFacI2G, WD_AerScavEff,  &
                          WD_KcScaleFac, WD_RainoutEff, WD_CoarseAer,   &
                          Is_Advected,   Is_Gas,        Is_Drydep,      &
-                         Is_Wetdep,     RC                            )
+                         Is_Wetdep,     Is_Hg0,        Is_Hg2,         &
+                         Is_HgP,        RC                            )
 !
 ! !USES:
 !
@@ -432,6 +439,9 @@ CONTAINS
     LOGICAL,          OPTIONAL    :: Is_Gas           ! Gas (T) or aerosol (F)?
     LOGICAL,          OPTIONAL    :: Is_Drydep        ! Is it dry deposited?
     LOGICAL,          OPTIONAL    :: Is_Wetdep        ! Is it wet deposited?
+    LOGICAL,          OPTIONAL    :: Is_Hg0           ! Denotes Hg0 species
+    LOGICAL,          OPTIONAL    :: Is_Hg2           ! Denotes Hg2 species
+    LOGICAL,          OPTIONAL    :: Is_HgP           ! Denotes HgP species
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -462,6 +472,7 @@ CONTAINS
 !  04 Sep 2015 - R. Yantosca - Add arguments WD_RainoutEff, WD_CoarseAer,
 !                              and WD_SizeResAer
 !  24 Sep 2015 - R. Yantosca - Added WD_KcScaleFac argument
+!  22 Apr 2016 - R. Yantosca - Added Is_Hg0, Is_Hg2, Is_HgP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -813,6 +824,33 @@ CONTAINS
        ThisSpc%MP_SizeResNum = .FALSE.
     ENDIF
 
+    !---------------------------------------------------------------------
+    ! Is it a Hg0 species (total or tagged)?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( Is_Hg0 ) ) THEN
+       ThisSpc%Is_Hg0 = Is_Hg0
+    ELSE
+       ThisSpc%Is_Hg0 = .FALSE.
+    ENDIF
+    
+    !---------------------------------------------------------------------
+    ! Is it a Hg2 species (total or tagged)?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( Is_Hg2 ) ) THEN
+       ThisSpc%Is_Hg2 = Is_Hg2
+    ELSE
+       ThisSpc%Is_Hg2 = .FALSE.
+    ENDIF
+    
+    !---------------------------------------------------------------------
+    ! Is it a HgP species (total or tagged)?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( Is_HgP ) ) THEN
+       ThisSpc%Is_HgP = Is_HgP
+    ELSE
+       ThisSpc%Is_HgP = .FALSE.
+    ENDIF
+    
     !---------------------------------------------------------------------
     ! Sanity checks
     !---------------------------------------------------------------------

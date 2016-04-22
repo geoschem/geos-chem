@@ -305,22 +305,24 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE ADD_HG2_SNOWPACK( I, J, N, DEP_Hg2, State_Met )
+      SUBROUTINE ADD_HG2_SNOWPACK( I,       J,         N, 
+     &                             DEP_Hg2, State_Met, ThisSpc )
 !
 ! !USES:
 !
       USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
       USE DIAG03_MOD,         ONLY : AD03, ND03
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE SPECIES_MOD,        ONLY : Species
       USE TRACERID_MOD,       ONLY : GET_Hg2_CAT, GET_HgP_CAT
-      USE TRACERID_MOD,       ONLY : IS_Hg2,      IS_HgP
 !
 ! !INPUT PARAMETERS:
 !
       ! Arguments as input
       INTEGER,        INTENT(IN)  :: I, J, N
-      REAL(fp),         INTENT(IN)  :: Dep_Hg2
+      REAL(fp),       INTENT(IN)  :: Dep_Hg2     
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      TYPE(Species),  INTENT(IN)  :: ThisSpc     ! Species databasee entry
 !
 ! !REVISION HISTORY:
 !  02 Sep 2008 - C. Holmes   - Initial version
@@ -338,6 +340,7 @@
 !  06 Aug 2015 - J. Fisher   - Store reservoir of non-reducible Hg in snowpack
 !                              (orig. 29/11/11)
 !  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS_FP
+!  22 Apr 2016 - R. Yantosca - ThisSpc now passes species database info
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -357,10 +360,20 @@
       ! Return if snowpack model is disabled
       IF (.NOT. LHGSNOW) RETURN
 
-      IF ( IS_Hg2( N ) ) THEN
+!-------------------------------------------------------------------
+! Prior to 4/22/16:
+! Now get Is_Hg2 from the species database (bmy, 4/22/16)
+!      IF ( IS_Hg2( N ) ) THEN
+!-------------------------------------------------------------------
+      IF ( ThisSpc%Is_Hg2 ) THEN
          ! Get Hg2 category number
          NN = GET_Hg2_CAT( N ) 
-      ELSE IF ( IS_HgP( N ) ) THEN
+!-------------------------------------------------------------------
+! Prior to 4/22/16:
+! Now get Is_HgP from the species database (bmy, 4/22/16)
+!      ELSE IF ( IS_HgP( N ) ) THEN
+!-------------------------------------------------------------------
+      ELSE IF ( ThisSpc%Is_HgP ) THEN 
          ! Get HgP category number
          NN = GET_HgP_CAT( N ) 
       ENDIF

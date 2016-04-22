@@ -119,6 +119,7 @@ CONTAINS
 !  18 Nov 2015 - M. Sulprizio- Add passive tracers PASV to RnPbBe simulation
 !  16 Dec 2015 - R. Yantosca - Use MW_g = 31.4 g/mol for SO4s and NITs
 !  15 Mar 2016 - R. Yantosca - Added tagged CO tracer names
+!  22 Apr 2016 - R. Yantosca - Now define Is_Hg0, Is_Hg2, Is_HgP fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2817,6 +2818,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Hg0        = T,                            &
                               DD_F0         = 1.0e-5_fp,                    &
                               DD_Hstar_old  = 0.11_fp,                      &
                               RC            = RC )
@@ -2839,6 +2841,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_Hg2        = T,                            &
                               DD_F0         = 0.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 1.40e+4_f8 * To_M_atm,        &
@@ -2903,6 +2906,7 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_HgP        = T,                            &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
