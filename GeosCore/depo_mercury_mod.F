@@ -345,9 +345,10 @@
 ! !LOCAL VARIABLES:
 !
       ! Local variables
-      REAL(fp)  :: FRAC_SNOW_OR_ICE, FRAC_O
-      LOGICAL :: IS_SNOW_OR_ICE 
-      INTEGER :: NN
+      REAL(fp) :: FRAC_SNOW_OR_ICE, FRAC_O
+      REAL(f4) :: TEMP
+      LOGICAL  :: IS_SNOW_OR_ICE 
+      INTEGER  :: NN
 
       !=================================================================
       ! ADD_HG2_SNOWPACK begins here!
@@ -435,15 +436,33 @@
      &                               * MAX( 0.4e+0_fp*DEP_HG2, 0e+0_fp )
 
 !----------------------------------------------------------------------------
-! Prior to 4/20/16:
-! NOTE: Slot #21 of ND03 is now the production of Hg2 with rxn from O3,
-! so this diagnostic archiving statement may be outdated.  Need to check
-! with Team Hg.  For now comment it out, as this is what is preventing
-! GC from passing unit tests. (bmy, 4/20/16)
-!         ! Store diagnostic of TOTAL HgII/HgP deposition to snow/ice
-!         IF ( ND03 > 0 ) AD03(I,J,21,1) = AD03(I,J,21,1)   +
-!     &                                    FRAC_SNOW_OR_ICE *
-!     &                                    MAX(DEP_HG2, 0e+0_fp) 
+! NOTE: Archiving to AD03(I,J,21,1) causes the slot #4 of the PL-HG2-$ 
+! diagnostic to yield different results when comparing a GEOS-5 Hg simulation
+! done on a single processor to one done with multi-processors.  (In other
+! words, the unit test result is "yellow").  The magnitude of the differences
+! are very small, and on the order of numerical noise.
+! 
+! We have traced this behavior to the call to ADD_Hg2_SNOWPACK for HgP from 
+! routine NFCLDMX (in GeosCore/convection_mod.f).  We hypothesize that this 
+! issue may have two causes: (1) updating the AD03 array (which is 2-D) from
+! within a 3-D parallel loop, and (2) possible numerical roundoff when 
+! casting the REAL*8 value to REAL*4.  
+!
+! The results of the simulation in the tracer restart files are identical,
+! so technically, the GEOS-5 Hg simulations pass the unit test. 
+!
+! It is probably not possible to avoid the numerical differences in slot #4
+! of the PL-HG2-$ diagnostic without redesiging the diagnostics.  For the 
+! time being, we will leave the code as-is but just note that differences
+! will occur in this diagnostic.
+! 
+!    -- Bob Yantosca (22 Apr 2016)
+!
+         ! Store diagnostic of TOTAL HgII/HgP deposition to snow/ice
+         IF ( ND03 > 0 ) AD03(I,J,21,1) = AD03(I,J,21,1)   +
+     &                                    FRAC_SNOW_OR_ICE *
+     &                                    MAX(DEP_HG2, 0e+0_fp) 
+         ENDIF
 !----------------------------------------------------------------------------
       ENDIF
 

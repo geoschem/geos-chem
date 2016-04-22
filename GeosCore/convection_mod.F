@@ -1902,8 +1902,31 @@
 
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_HgP_WD      ( I, J, IC, WET_HgP  ) 
+!------------------------------------------------------------------------------
+! NOTE: This call to ADD_HG2_SNOWPACK is known to cause very small (numerical
+! noise) differences in slot #4 of the PL-HG2-$ diagnostic when comparing
+! a GEOS-5 Hg simulation done on a single processor with one done on multi-
+! processors.  (In other words, the unit test result is "yellow").  The 
+! magnitude of the differences are very small, and on the order of numerical 
+! noise.
+!
+! We hypothesize that this issue may have two causes: (1) updating the AD03 
+! array (which is 2-D) from within a 3-D parallel loop, and (2) possible 
+! numerical roundoff when casting the REAL*8 value to REAL*4.  
+!
+! The results of the simulation in the tracer restart files are identical,
+! so technically, the GEOS-5 Hg simulations pass the unit test. 
+!
+! It is probably not possible to avoid the numerical differences in slot #4
+! of the PL-HG2-$ diagnostic without redesiging the diagnostics.  For the 
+! time being, we will leave the code as-is but just note that differences
+! will occur in this diagnostic.
+! 
+!    -- Bob Yantosca (22 Apr 2016)
+! 
                         CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP,
      &                                         State_Met          )
+!------------------------------------------------------------------------------
                      ENDIF
 !$OMP END CRITICAL
                   ENDIF
