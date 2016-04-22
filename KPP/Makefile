@@ -131,22 +131,18 @@ slowclean:
 	@$(MAKE) -C $(KPP_CHEM) slowclean
 
 realclean:
-	@$(MAKE) -C benchmark          clean
-	@$(MAKE) -C SOA                clean
-	@$(MAKE) -C SOA_SVPOA          clean
-	@$(MAKE) -C UCX                clean
-	@$(MAKE) -C NOx_Ox_HC_Aer_Br   clean
-	@$(MAKE) -C TempFlex           clean
-	@$(MAKE) -C TempFlex_Benchmark clean
-	@$(MAKE) -C TempFlex_SOA       clean
-	@$(MAKE) -C TempFlex_SOA_SVPOA clean
+	@$(MAKE) -C Standard clean
+	@$(MAKE) -C SOA       clean
+	@$(MAKE) -C SOA_SVPOA clean
+	@$(MAKE) -C Tropchem  clean
+	@$(MAKE) -C UCX       clean
 
 slowrealclean:
-	@$(MAKE) -C benchmark        slowclean
-	@$(MAKE) -C SOA              slowclean
-	@$(MAKE) -C SOA_SVPOA        slowclean
-	@$(MAKE) -C UCX              slowclean
-	@$(MAKE) -C NOx_Ox_HC_Aer_Br slowclean
+	@$(MAKE) -C Standard  slowclean
+	@$(MAKE) -C SOA       slowclean
+	@$(MAKE) -C SOA_SVPOA slowclean
+	@$(MAKE) -C Tropchem  slowclean
+	@$(MAKE) -C UCX       slowclean
 
 help:
 	@$(MAKE) -C $(HELP) 

@@ -411,34 +411,40 @@ endif
 # %%%%% Test if CHEM=SOA %%%%%
 REGEXP               :=(^[Ss][Oo][Aa])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=TempFlex_SOA
+  KPP_CHEM           :=SOA
   IS_CHEM_SET        :=1
 endif
 
 # %%%%% Test if CHEM=SOA_SVPOA %%%%%
 REGEXP               :=(^[Ss][Oo][Aa]_[Ss][Vv][Pp][Oo][Aa])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=TempFlex_SOA_SVPOA
+  KPP_CHEM           :=SOA_SVPOA
   IS_CHEM_SET        :=1
 endif
 
 # %%%%% Test if CHEM=NOx_Ox_HC_Aer_Br %%%%%
 REGEXP               :=(^[Nn][Oo][Xx]_[Oo][Xx]_[Hh][Cc]_[Aa][Ee][Rr]_[Bb][Rr])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=TempFlex
+  KPP_CHEM           :=Tropchem
   IS_CHEM_SET        :=1
 endif
 
 # %%%%% Test if CHEM=tropchem (synonym for NOx_Ox_HC_Aer_Br) %%%%%
 REGEXP               :=(^[Tt][Rr][Oo][Pp][Cc][Hh][Ee][Mm])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=TempFlex
+  KPP_CHEM           :=Tropchem
   IS_CHEM_SET        :=1
 endif
 
-# %%%%%  Default setting: CHEM=benchmark %%%%%
+# %%%%%  Default setting: CHEM=standard (aka benchmark) %%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# NOTE: For clarify in the future, the default setting should be to not set
+# KPP_CHEM or IS_CHEM_SET if the CHEM compiler option is not passed. The default
+# option would be reserved for specialty simulations that do not require the KPP
+# code to be compiled. (mps, 4/22/16)
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ifeq ($(IS_CHEM_SET),0)
-  KPP_CHEM           :=TempFlex_Benchmark
+  KPP_CHEM           :=Standard
   IS_CHEM_SET        :=1
 endif
 
