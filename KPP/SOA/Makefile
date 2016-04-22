@@ -1,1 +1,1 @@
-../Benchmark/Makefile
+../Standard/Makefile
