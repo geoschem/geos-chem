@@ -125,12 +125,14 @@ MODULE HcoX_FINN_Mod
   !=================================================================
   ! SPECIES VARIABLES 
   !
+  ! nSpcMax        : Maximum number of emitted species
   ! nSpc           : Number of used species (specified in config. file)
   ! SpcNames       : Names of all used species
   ! HcoIDs         : HEMCO species IDs of all used species 
   ! FinnIDs        : Index of used species within FINN
   ! FINN_SPEC_NAME : Names of all FINN species
   !=================================================================
+  INTEGER,           PARAMETER   :: nSpcMax = 100
   INTEGER                        :: nSpc
   CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
   CHARACTER(LEN=61), ALLOCATABLE :: SpcScalFldNme(:)
@@ -217,7 +219,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER             :: N, NF, ID, HcoID
+    INTEGER             :: N, M, NF
+    INTEGER             :: FinnID, HcoID
 !    LOGICAL, SAVE       :: FIRST = .TRUE.
     LOGICAL             :: DoRepeat
     INTEGER             :: Cnt
@@ -310,19 +313,19 @@ CONTAINS
     ! Calculate emissions for all selected species
     !-----------------------------------------------------------------------
 
-    ! Loop over FINN species
-    DO N = 1, N_SPEC
+    ! Loop over all emitted species
+    DO N = 1, nSpc
 
-       ! ID is the index of the suite of defined species. 
-       ID = FinnIDs(N)
-       IF ( ID <= 0 ) CYCLE
+       ! ID is the FINN species index of this species 
+       FinnID = FinnIDs(N)
+       IF ( FinnID <= 0 ) CYCLE
 
-       ! HcoID is the species index in HEMCO
-       HcoID = HcoIDs(ID)
+       ! HcoID is the HEMCO species index of this species 
+       HcoID = HcoIDs(N)
        IF ( HcoID < 0 ) CYCLE
 
        ! Species with no emission factor have FINN_EMFAC=0
-       IF ( MAXVAL(FINN_EMFAC(N,:)) <= 0.0_hp ) CYCLE
+       IF ( MAXVAL(FINN_EMFAC(FinnID,:)) <= 0.0_hp ) CYCLE
 
        ! SpcArr are the total biomass burning emissions for this
        ! species. TypArr are the emissions from a given vegetation type. 
@@ -353,7 +356,7 @@ CONTAINS
           ! type and sum to get total emissions for the species on the
           ! native grid - emissions are in [kg CO2/m2/s[. FINN_EMFAC is
           ! in [kg X]/[kg CO2].
-          TypArr(:,:) = THISTYP(:,:) * FINN_EMFAC(N,NF)
+          TypArr(:,:) = THISTYP(:,:) * FINN_EMFAC(FinnID,NF)
 
           ! TODO: Add to diagnostics here
 
@@ -485,6 +488,14 @@ CONTAINS
     REAL(sp)              :: ValSp
     CHARACTER(LEN=255)    :: MSG, EF_CO2_FILE, VOC_SPEC_FILE
 
+    ! Temporary variables. These values will be passed to module
+    ! array nSpc, SpcNames, etc. 
+    INTEGER                        :: tnSpc
+    CHARACTER(LEN=31), ALLOCATABLE :: tSpcNames(:)
+    CHARACTER(LEN=61), ALLOCATABLE :: tSpcScalFldNme(:)
+    REAL(sp),          ALLOCATABLE :: tSpcScal(:)
+    INTEGER,           ALLOCATABLE :: tHcoIDs(:)
+
     ! Arrays
     REAL(dp), ALLOCATABLE :: EMFAC_IN(:,:)
     REAL(dp), ALLOCATABLE :: NMOC_RATIO_IN(:,:)
@@ -576,13 +587,21 @@ CONTAINS
     ENDIF
     FINN_EMFAC = 0.0_dp
 
-    ! FinnIDs maps the FINN species onto the suite of specified species.
-    ALLOCATE ( FinnIDs ( N_SPEC ), STAT=AS )
+    ! Allocate and initialize vectors holding species information for
+    ! all species to be emitted 
+    ALLOCATE ( FinnIDs(nSpcMax), HcoIDs(nSpcMax), SpcNames(nSpcMax), &
+               SpcScal(nSpcMax), SpcScalFldNme(nSpcMax), STAT=AS )
+
     IF ( AS/=0 ) THEN
-       CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate FinnIDs', RC )
+       CALL HCO_ERROR( 'Cannot allocate FinnIDs', RC )
        RETURN
     ENDIF
-    FinnIDs = -1
+    nSpc             = 0
+    FinnIDs(:)       = -1
+    HcoIDs(:)        = -1
+    SpcScal          = 1.0_sp
+    SpcNames(:)      = ''
+    SpcScalFldNme(:) = HCOX_NOSCALE
 
     !----------------------------------------------------------------------- 
     ! Define FINN species names
@@ -692,22 +711,22 @@ CONTAINS
     ENDIF
 
     ! Get HEMCO species IDs of all species specified in configuration file
-    CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC)
+    CALL HCO_GetExtHcoID( HcoState, ExtNr, tHcoIDs, tSpcNames, tnSpc, RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( nSpc == 0 ) THEN
+    IF ( tnSpc == 0 ) THEN
        MSG = 'No FINN species specified'
        CALL HCO_ERROR(HcoState%Config%Err,MSG, RC ) 
        RETURN
     ENDIF
 
     ! Get species scale factors
-    CALL GetExtSpcVal( HcoState%Config, ExtNr, nSpc, &
-                       SpcNames, 'Scaling', 1.0_sp, SpcScal, RC )
+    CALL GetExtSpcVal( HcoState%Config, ExtNr, tnSpc, &
+                       tSpcNames, 'Scaling', 1.0_sp, tSpcScal, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get species mask fields
-    CALL GetExtSpcVal( HcoState%Config, ExtNr, nSpc, &
-                       SpcNames, 'ScaleField', HCOX_NOSCALE, SpcScalFldNme, RC )
+    CALL GetExtSpcVal( HcoState%Config, ExtNr, tnSpc, &
+                       tSpcNames, 'ScaleField', HCOX_NOSCALE, tSpcScalFldNme, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Error trap: in previous versions, CO, POA and NAP scale factor were given as
@@ -735,9 +754,9 @@ CONTAINS
     ! Also get appropriate emission ratios to CO2 (jaf, 10/2/13).
     ! Do this only for species selected for emission calculation. For
     ! all others, keep default values in FINN_EMFAC.
-    DO L = 1, nSpc
-       IF ( HcoIDs(L) < 0 ) CYCLE
-       SpcName  = SpcNames(L)
+    DO L = 1, tnSpc
+       IF ( tHcoIDs(L) < 0 ) CYCLE
+       SpcName  = tSpcNames(L)
        N_LUMPED = 0
        Matched  = .FALSE.
        Missing  = .TRUE.
@@ -765,26 +784,52 @@ CONTAINS
        IF ( TRIM(SpcName) == 'NAP'  ) SpcName = 'CO'
        IF ( TRIM(SpcName) == 'NO'   ) SpcName = 'NOx'
        IF ( TRIM(SpcName) == 'MTPA' ) SpcName = 'APINE'
+       IF ( TRIM(SpcName) == 'Hg0'  ) SpcName = 'CO'
 
        ! For lumped species, we have to repeat the lookup multiple times,
        ! so use a while loop here.  For example, for species TOLU this will 
        ! make sure that FINN species 'TOLU', 'ETBENZ', and 'STYR' are 
-       ! associated with HEMCO species TOLU.
+       ! associated with HEMCO species TOLU. Variable nSpc keeps track of 
+       ! the total number of species emitted by FINN. All species vectors
+       ! (FinnIDs, HcoIDs, SpcNames, SpcScal, etc.) contain nSpc valid
+       ! elements. 
        DO WHILE ( Missing )
 
           ! Search for SpcName in FINN
           DO N = 1, N_SPEC 
              IF ( TRIM(SpcName) == TRIM(FINN_SPEC_NAME(N)) ) THEN
-                FinnIDs(N) = L
-                Matched    = .TRUE.
-  
+
+                ! Update number of species to be emitted via FINN and
+                ! archive all related information in vectors FinnIDs, 
+                ! HcoIDs, SpcNames, etc.
+
+                ! nSpc is the total number of emitted FINN species. Must
+                ! not exceed nSpcMax.
+                nSpc = nSpc + 1             
+                IF ( nSpc > nSpcMax ) THEN
+                   MSG = 'nSpc greater than nSpcMax, please increase ' // &
+                         'parameter `nSpcMax` in hcox_finn_mod.F90'
+                   CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC )
+                   RETURN
+                ENDIF
+
+                ! Archive corresponding FINN species ID, HEMCO species ID,
+                ! scale factor, etc.
+                Matched             = .TRUE.
+                FinnIDs(nSpc)       = N
+                HcoIDs (nSpc)       = tHcoIDs(L)
+                SpcNames(nSpc)      = tSpcNames(L) 
+                SpcScalFldNme(nSpc) = tSpcScalFldNme(L) 
+                SpcScal(nSpc)       = tSpcScal(L)
+
+                ! Verbose
                 IF ( am_I_Root ) THEN 
                    MSG = '   - FINN species ' // TRIM(FINN_SPEC_NAME(N)) // &
-                         '     will be emitted as ' // TRIM(SpcNames(L))
+                         '     will be emitted as ' // TRIM(SpcNames(nSpc))
                    CALL HCO_MSG(HcoState%Config%Err,MSG )
-                WRITE(MSG,*) '     --> Uniform scale factor : ', SpcScal(N)
+                WRITE(MSG,*) '     --> Uniform scale factor : ', SpcScal(nSpc)
                 CALL HCO_MSG(HcoState%Config%Err,MSG )
-                WRITE(MSG,*) '     --> Scale field          : ', TRIM(SpcScalFldNme(N)) 
+                WRITE(MSG,*) '     --> Scale field          : ', TRIM(SpcScalFldNme(nSpc)) 
                 CALL HCO_MSG(HcoState%Config%Err,MSG )
                 ENDIF   
 
@@ -811,7 +856,7 @@ CONTAINS
                          AdjFact = 1.0_dp / MW_CO2
                       ELSE
                          AdjFact = 1.0_dp / MW_CO2 * &
-                                   HcoState%Spc(HcoIDs(L))%EmMW_g
+                                   HcoState%Spc(HcoIDs(nSpc))%EmMW_g
                       ENDIF
                       FINN_EMFAC(N,:) = AdjFact / EMFAC_IN(M,:)
                       IF ( am_I_Root ) THEN
@@ -854,8 +899,8 @@ CONTAINS
                 ! so we also multiply here by the number of carbon atoms/molec.
                 IF ( IS_NMOC ) THEN
                    DO M = 1, N_EMFAC
-                      C_MOLEC         = HcoState%Spc(HcoIDs(L))%MolecRatio
-                      AdjFact         = HcoState%Spc(HcoIDs(L))%EmMW_g
+                      C_MOLEC         = HcoState%Spc(HcoIDs(nSpc))%MolecRatio
+                      AdjFact         = HcoState%Spc(HcoIDs(nSpc))%EmMW_g
                       FINN_EMFAC(N,M) = NMOC_EMFAC(M)             * &
                                         ( NMOC_RATIO(M) * C_MOLEC ) * &
                                         ( AdjFact       * 1e-3_hp )
@@ -875,7 +920,7 @@ CONTAINS
           ! them will be added to the same model species.
    
           ! --> TMB is lumped into XYLE
-          IF ( SpcNames(L) == 'XYLE' ) THEN
+          IF ( SpcNames(nSpc) == 'XYLE' ) THEN
              IF ( N_LUMPED == 0 ) THEN
                 SpcName  = 'TMB'
                 Missing  = .TRUE.
@@ -884,7 +929,7 @@ CONTAINS
           ENDIF
 
           ! --> ETBENZ and STYR are lumped into TOLU
-          IF ( SpcNames(L) == 'TOLU' ) THEN
+          IF ( SpcNames(nSpc) == 'TOLU' ) THEN
              IF ( N_LUMPED == 0 ) THEN
                 SpcName  = 'ETBENZ'
                 Missing  = .TRUE.
@@ -897,7 +942,7 @@ CONTAINS
           ENDIF
 
           ! --> BPINE and CARENE are lumped into MTPA
-          IF ( SpcNames(L) == 'MTPA' ) THEN
+          IF ( SpcNames(nSpc) == 'MTPA' ) THEN
              IF ( N_LUMPED == 0 ) THEN
                 SpcName  = 'BPINE'
                 Missing  = .TRUE.
@@ -924,8 +969,12 @@ CONTAINS
     ExtState%FINN = .TRUE.
 
     ! Cleanup
-    IF ( ALLOCATED(EMFAC_IN     ) ) DEALLOCATE( EMFAC_IN      )
-    IF ( ALLOCATED(NMOC_RATIO_IN) ) DEALLOCATE( NMOC_RATIO_IN )
+    IF ( ALLOCATED(EMFAC_IN        )) DEALLOCATE( EMFAC_IN       )
+    IF ( ALLOCATED(NMOC_RATIO_IN   )) DEALLOCATE( NMOC_RATIO_IN  )
+    IF ( ALLOCATED(tHcoIDs         )) DEALLOCATE( tHcoIDs        )
+    IF ( ALLOCATED(tSpcNames       )) DEALLOCATE( tSpcNames      )
+    IF ( ALLOCATED(tSpcScalFldNme  )) DEALLOCATE( tSpcScalFldNme )
+    IF ( ALLOCATED(tSpcScal        )) DEALLOCATE( tSpcScal       )
  
     ! Return w/ success
     CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
