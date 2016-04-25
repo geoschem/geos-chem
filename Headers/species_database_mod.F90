@@ -145,9 +145,14 @@ CONTAINS
     INTEGER             :: DryDepID_PAN
     INTEGER             :: DryDepID_HNO3
 
-    ! For tagged Hg species
-    CHARACTER(LEN=4),  POINTER :: Hg_CAT(:)
-    CHARACTER(LEN=40), POINTER :: Hg_CAT_FULL(:)
+    ! For Tagged Hg species
+    INTEGER             :: Hg0_CAT
+    INTEGER             :: Hg2_CAT
+    INTEGER             :: HgP_CAT
+
+!    ! For tagged Hg species
+!    CHARACTER(LEN=4),  POINTER :: Hg_CAT(:)
+!    CHARACTER(LEN=40), POINTER :: Hg_CAT_FULL(:)
 
     ! For values from Input_Opt
     LOGICAL             :: prtDebug
@@ -165,16 +170,15 @@ CONTAINS
     ! Initialize
     DryDepID_PAN  = 0
     DryDepID_HNO3 = 0
+    Hg0_CAT       = 0
+    Hg2_CAT       = 0
+    HgP_CAT       = 0
 
     ! Copy values from Input_Opt
     prtDebug      = ( Input_Opt%LPRT .and. am_I_Root )
 
     ! Number of species
     nSpecies      = Input_Opt%N_TRACERS
-
-    ! Initialize pointers for tagged Hg simulations
-    Hg_CAT      => Input_Opt%Hg_CAT
-    Hg_CAT_FULL => Input_Opt%Hg_CAT_FULL
 
     ! Initialize the species vector
     CALL SpcData_Init( am_I_Root, nSpecies, SpcData, RC )
@@ -2806,13 +2810,100 @@ CONTAINS
                 'HG0_SEA', 'HG0_JPN', 'HG0_OCE', 'HG0_SO',  'HG0_BB',       &
                 'HG0_GEO', 'HG0_ATL', 'HG0_NAT', 'HG0_SAT', 'HG0_NPA',      &
                 'HG0_ARC', 'HG0_ANT', 'HG0_OCN', 'HG0_STR'   )
+             
+             ! Standardize tagged Hg0 tracer names 
+             SELECT CASE( TRIM( NameAllCaps ) ) 
+                CASE( 'HG0_CAN' )
+                   Name     = 'Hg0_can'
+                   FullName = 'Elemental mercury from Canada'
+                CASE( 'HG0_USA' )
+                   Name     = 'Hg0_usa'
+                   FullName = 'Elemental mercury from USA'
+                CASE( 'HG0_CAM' )
+                   Name     = 'Hg0_cam'
+                   FullName = 'Elemental mercury from Central America'
+                CASE( 'HG0_SAM' )
+                   Name     = 'Hg0_sam'
+                   FullName = 'Elemental mercury from South America'
+                CASE( 'HG0_WAF' )
+                   Name     = 'Hg0_waf'
+                   FullName = 'Elemental mercury from West Africa'
+                CASE( 'HG0_EAF' ) 
+                   Name     = 'Hg0_eaf'
+                   FullName = 'Elemental mercury from East Africa'
+                CASE( 'HG0_SAF' )
+                   Name     = 'Hg0_saf'
+                   FullName = 'Elemental mercury from South Africa'
+                CASE( 'HG0_NAF' )
+                   Name     = 'Hg0_naf'
+                   FullName = 'Elemental mercury from North Africa'
+                CASE( 'HG0_EUR' )
+                   Name     = 'Hg0_eur'
+                   FullName = 'Elemental mercury from OECD Europe'
+                CASE( 'HG0_EEU' )
+                   Name     = 'Hg0_eeu'
+                   FullName = 'Elemental mercury from Eastern Europe'
+                CASE( 'HG0_MDE' )
+                   Name     = 'Hg0_mde'
+                   FullName = 'Elemental mercury from Middle East'
+                CASE( 'HG0_SOV' )
+                   Name     = 'Hg0_sov'
+                   FullName = 'Elemental mercury from former USSR'
+                CASE( 'HG0_SAS' )
+                   Name     = 'Hg0_sas'
+                   FullName = 'Elemental mercury from South Asia'
+                CASE( 'HG0_EAS' )
+                   Name     = 'Hg0_eas'
+                   FullName = 'Elemental mercury from East Asia'
+                CASE( 'HG0_SEA' )
+                   Name     = 'Hg0_sea'
+                   FullName = 'Elemental mercury from Southeast Asia'
+                CASE( 'HG0_JPN' )
+                   Name     = 'Hg0_jpn'
+                   FullName = 'Elemental mercury from Japan'
+                CASE( 'HG0_OCE' )
+                   Name     = 'Hg0_oce'
+                   FullName = 'Elemental mercury from Oceania'
+                CASE( 'HG0_SO'  )  
+                   Name     = 'Hg0_so'
+                   FullName = 'Elemental mercury from Organic Soil'
+                CASE( 'HG0_BB'  )
+                   Name     = 'Hg0_bb'
+                   FullName = 'Elemental mercury from Biomass Burning'
+                CASE( 'HG0_GEO' )
+                   Name     = 'Hg0_geo'
+                   FullName = 'Elemental mercury from Geogenic Sources'
+                CASE( 'HG0_ATL' )
+                   Name     = 'Hg0_atl'
+                   FullName = 'Elemental mercury from Midatlantic Subsurface Water'
+                CASE( 'HG0_NAT' )
+                   Name     = 'Hg0_nat'
+                   FullName = 'Elemental mercury from N. Atlantic Subsurface Water'
+                CASE( 'HG0_SAT' )
+                   Name     = 'Hg0_sat'
+                   FullName = 'Elemental mercury from S. Atlantic Subsurface Water'
+                CASE( 'HG0_NPA' )
+                   Name     = 'Hg0_npa'
+                   FullName = 'Elemental mercury from N. Pacific Subsurface Water'
+                CASE( 'HG0_ARC' )
+                   Name     = 'Hg0_arc'
+                   FullName = 'Elemental mercury from Arctic Subsurface Water'
+                CASE( 'HG0_ANT' ) 
+                   Name     = 'Hg0_ant'
+                   FullName = 'Elemental mercury from Antarctic Subsurface Water'
+                CASE( 'HG0_OCN' )
+                   Name     = 'Hg0_ocn'
+                   FullName = 'Elemental mercury from Indo-Pacific Subsurface Water'
+                CASE( 'HG0_STR' )
+                   Name     = 'Hg0_str'
+                   FullName = 'Elemental mercury from Stratosphere'
+             END SELECT
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
-                              Name          = 'Hg0' // TRIM(Hg_CAT(N)),     &
-                              FullName      = 'Elemental mercury' //        &
-                                               TRIM(Hg_CAT_FULL(N)),        &
+                              Name          = Name,                         &
+                              FullName      = FullName,                     &
                               MW_g          = 201.0_fp,                     &
                               Is_Advected   = T,                            &
                               Is_Gas        = T,                            &
@@ -2830,12 +2921,99 @@ CONTAINS
                 'HG2_GEO', 'HG2_ATL', 'HG2_NAT', 'HG2_SAT', 'HG2_NPA',      &
                 'HG2_ARC', 'HG2_ANT', 'HG2_OCN', 'HG2_STR'   )
 
+             ! Standardize tagged Hg0 tracer names 
+             SELECT CASE( TRIM( NameAllCaps ) ) 
+                CASE( 'HG2_CAN' )
+                   Name     = 'Hg2_can'
+                   FullName = 'Divalent mercury from Canada'
+                CASE( 'HG2_USA' )
+                   Name     = 'Hg2_usa'
+                   FullName = 'Divalent mercury from USA'
+                CASE( 'HG2_CAM' )
+                   Name     = 'Hg2_cam'
+                   FullName = 'Divalent mercury from Central America'
+                CASE( 'HG2_SAM' )
+                   Name     = 'Hg2_sam'
+                   FullName = 'Divalent mercury from South America'
+                CASE( 'HG2_WAF' )
+                   Name     = 'Hg2_waf'
+                   FullName = 'Divalent mercury from West Africa'
+                CASE( 'HG2_EAF' ) 
+                   Name     = 'Hg2_eaf'
+                   FullName = 'Divalent mercury from East Africa'
+                CASE( 'HG2_SAF' )
+                   Name     = 'Hg2_saf'
+                   FullName = 'Divalent mercury from South Africa'
+                CASE( 'HG2_NAF' )
+                   Name     = 'Hg2_naf'
+                   FullName = 'Divalent mercury from North Africa'
+                CASE( 'HG2_EUR' )
+                   Name     = 'Hg2_eur'
+                   FullName = 'Divalent mercury from OECD Europe'
+                CASE( 'HG2_EEU' )
+                   Name     = 'Hg2_eeu'
+                   FullName = 'Divalent mercury from Eastern Europe'
+                CASE( 'HG2_MDE' )
+                   Name     = 'Hg2_mde'
+                   FullName = 'Divalent mercury from Middle East'
+                CASE( 'HG2_SOV' )
+                   Name     = 'Hg2_sov'
+                   FullName = 'Divalent mercury from former USSR'
+                CASE( 'HG2_SAS' )
+                   Name     = 'Hg2_sas'
+                   FullName = 'Divalent mercury from South Asia'
+                CASE( 'HG2_EAS' )
+                   Name     = 'Hg2_eas'
+                   FullName = 'Divalent mercury from East Asia'
+                CASE( 'HG2_SEA' )
+                   Name     = 'Hg2_sea'
+                   FullName = 'Divalent mercury from Southeast Asia'
+                CASE( 'HG2_JPN' )
+                   Name     = 'Hg2_jpn'
+                   FullName = 'Divalent mercury from Japan'
+                CASE( 'HG2_OCE' )
+                   Name     = 'Hg2_oce'
+                   FullName = 'Divalent mercury from Oceania'
+                CASE( 'HG2_SO'  )  
+                   Name     = 'Hg2_so'
+                   FullName = 'Divalent mercury from Organic Soil'
+                CASE( 'HG2_BB'  )
+                   Name     = 'Hg2_bb'
+                   FullName = 'Divalent mercury from Biomass Burning'
+                CASE( 'HG2_GEO' )
+                   Name     = 'Hg2_geo'
+                   FullName = 'Divalent mercury from Geogenic Sources'
+                CASE( 'HG2_ATL' )
+                   Name     = 'Hg2_atl'
+                   FullName = 'Divalent mercury from Midatlantic Subsurface Water'
+                CASE( 'HG2_NAT' )
+                   Name     = 'Hg2_nat'
+                   FullName = 'Divalent mercury from N. Atlantic Subsurface Water'
+                CASE( 'HG2_SAT' )
+                   Name     = 'Hg2_sat'
+                   FullName = 'Divalent mercury from S. Atlantic Subsurface Water'
+                CASE( 'HG2_NPA' )
+                   Name     = 'Hg2_npa'
+                   FullName = 'Divalent mercury from N. Pacific Subsurface Water'
+                CASE( 'HG2_ARC' )
+                   Name     = 'Hg2_arc'
+                   FullName = 'Divalent mercury from Arctic Subsurface Water'
+                CASE( 'HG2_ANT' ) 
+                   Name     = 'Hg2_ant'
+                   FullName = 'Divalent mercury from Antarctic Subsurface Water'
+                CASE( 'HG2_OCN' )
+                   Name     = 'Hg2_ocn'
+                   FullName = 'Divalent mercury from Indo-Pacific Subsurface Water'
+                CASE( 'HG2_STR' )
+                   Name     = 'Hg2_str'
+                   FullName = 'Divalent mercury from Stratosphere'
+             END SELECT
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
-                              Name          = 'Hg2' // TRIM(Hg_CAT(N)),     &
-                              FullName      = 'Divalent mercury' //         &
-                                               TRIM(Hg_CAT_FULL(N)),        &
+                              Name          = Name,                         &
+                              FullName      = FullName,                     &
                               MW_g          = 201.0_fp,                     &
                               Is_Advected   = T,                            &
                               Is_Gas        = T,                            &
@@ -2860,6 +3038,94 @@ CONTAINS
                 'HGP_SEA', 'HGP_JPN', 'HGP_OCE', 'HGP_SO',  'HGP_BB',       &
                 'HGP_GEO', 'HGP_ATL', 'HGP_NAT', 'HGP_SAT', 'HGP_NPA',      &
                 'HGP_ARC', 'HGP_ANT', 'HGP_OCN', 'HGP_STR' )
+
+             ! Standardize tagged HgP tracer names 
+             SELECT CASE( TRIM( NameAllCaps ) ) 
+                CASE( 'HGP_CAN' )
+                   Name     = 'HgP_can'
+                   FullName = 'Particulate mercury from Canada'
+                CASE( 'HGP_USA' )
+                   Name     = 'HgP_usa'
+                   FullName = 'Particulate mercury from USA'
+                CASE( 'HGP_CAM' )
+                   Name     = 'HgP_cam'
+                   FullName = 'Particulate mercury from Central America'
+                CASE( 'HGP_SAM' )
+                   Name     = 'HgP_sam'
+                   FullName = 'Particulate mercury from South America'
+                CASE( 'HGP_WAF' )
+                   Name     = 'HgP_waf'
+                   FullName = 'Particulate mercury from West Africa'
+                CASE( 'HGP_EAF' ) 
+                   Name     = 'HgP_eaf'
+                   FullName = 'Particulate mercury from East Africa'
+                CASE( 'HGP_SAF' )
+                   Name     = 'HgP_saf'
+                   FullName = 'Particulate mercury from South Africa'
+                CASE( 'HGP_NAF' )
+                   Name     = 'HgP_naf'
+                   FullName = 'Particulate mercury from North Africa'
+                CASE( 'HGP_EUR' )
+                   Name     = 'HgP_eur'
+                   FullName = 'Particulate mercury from OECD Europe'
+                CASE( 'HGP_EEU' )
+                   Name     = 'HgP_eeu'
+                   FullName = 'Particulate mercury from Eastern Europe'
+                CASE( 'HGP_MDE' )
+                   Name     = 'HgP_mde'
+                   FullName = 'Particulate mercury from Middle East'
+                CASE( 'HGP_SOV' )
+                   Name     = 'HgP_sov'
+                   FullName = 'Particulate mercury from former USSR'
+                CASE( 'HGP_SAS' )
+                   Name     = 'HgP_sas'
+                   FullName = 'Particulate mercury from South Asia'
+                CASE( 'HGP_EAS' )
+                   Name     = 'HgP_eas'
+                   FullName = 'Particulate mercury from East Asia'
+                CASE( 'HGP_SEA' )
+                   Name     = 'HgP_sea'
+                   FullName = 'Particulate mercury from Southeast Asia'
+                CASE( 'HGP_JPN' )
+                   Name     = 'HgP_jpn'
+                   FullName = 'Particulate mercury from Japan'
+                CASE( 'HGP_OCE' )
+                   Name     = 'HgP_oce'
+                   FullName = 'Particulate mercury from Oceania'
+                CASE( 'HGP_SO'  )  
+                   Name     = 'HgP_so'
+                   FullName = 'Particulate mercury from Organic Soil'
+                CASE( 'HGP_BB'  )
+                   Name     = 'HgP_bb'
+                   FullName = 'Particulate mercury from Biomass Burning'
+                CASE( 'HGP_GEO' )
+                   Name     = 'HgP_geo'
+                   FullName = 'Particulate mercury from Geogenic Sources'
+                CASE( 'HGP_ATL' )
+                   Name     = 'HgP_atl'
+                   FullName = 'Particulate mercury from Midatlantic Subsurface Water'
+                CASE( 'HGP_NAT' )
+                   Name     = 'HgP_nat'
+                   FullName = 'Particulate mercury from N. Atlantic Subsurface Water'
+                CASE( 'HGP_SAT' )
+                   Name     = 'HgP_sat'
+                   FullName = 'Particulate mercury from S. Atlantic Subsurface Water'
+                CASE( 'HGP_NPA' )
+                   Name     = 'HgP_npa'
+                   FullName = 'Particulate mercury from N. Pacific Subsurface Water'
+                CASE( 'HGP_ARC' )
+                   Name     = 'HgP_arc'
+                   FullName = 'Particulate mercury from Arctic Subsurface Water'
+                CASE( 'HGP_ANT' ) 
+                   Name     = 'HgP_ant'
+                   FullName = 'Particulate mercury from Antarctic Subsurface Water'
+                CASE( 'HGP_OCN' )
+                   Name     = 'HgP_ocn'
+                   FullName = 'Particulate mercury from Indo-Pacific Subsurface Water'
+                CASE( 'HGP_STR' )
+                   Name     = 'HgP_str'
+                   FullName = 'Particulate mercury from Stratosphere'
+             END SELECT
 
              !%%% NOTE: In the prior code, the rainout fraction for HgP
              !%%% was computed before the shunt that turned off rainout
@@ -2898,9 +3164,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
-                              Name          = 'HgP' // TRIM(Hg_CAT(N)),     &
-                              FullName      = 'Particulate mercury' //      &
-                                               TRIM(Hg_CAT_FULL(N)),        &
+                              Name          = Name,                         &
+                              FullName      = FullName,                     &
                               MW_g          = 201.0_fp,                     &
                               Is_Advected   = T,                            &
                               Is_Gas        = F,                            &
@@ -3633,9 +3898,6 @@ CONTAINS
        IF ( prtDebug ) CALL Spc_Print( am_I_Root, SpcData(N)%Info, RC )
 
     ENDDO
-
-    ! Free pointers
-    NULLIFY( Hg_CAT, Hg_CAT_FULL )
 
   END SUBROUTINE Init_Species_Database
 !EOC

@@ -37,7 +37,10 @@ MODULE Species_Mod
   INTEGER, PRIVATE :: AdvectCount = 0    ! Counter of advected species
   INTEGER, PRIVATE :: DryDepCount = 0    ! Counter of dry-deposited species
   INTEGER, PRIVATE :: WetDepCount = 0    ! Counter of wet-deposited species
-
+  INTEGER, PRIVATE :: Hg0Count    = 0    ! Number of Hg0 tracers
+  INTEGER, PRIVATE :: Hg2Count    = 0    ! Number of Hg2 tracers
+  INTEGER, PRIVATE :: HgPCount    = 0    ! Number of HgP tracers
+  
   !=========================================================================
   ! Type for ASCII sums (fast-species lookup algorithm)
   !=========================================================================
@@ -128,10 +131,13 @@ MODULE Species_Mod
      LOGICAL            :: MP_SizeResAer    ! T=size-resolved aerosol (TOMAS)
      LOGICAL            :: MP_SizeResNum    ! T=size-resolved aerosol number
 
-     ! Mercury parameters
+     ! Tagged mercury parameters
      LOGICAL            :: Is_Hg0           ! T=total or tagged Hg0 species
      LOGICAL            :: Is_Hg2           ! T=total or tagged Hg2 species
      LOGICAL            :: Is_HgP           ! T=total or tagged HgP species
+     INTEGER            :: Hg0_Cat          ! Tagged Hg0 category number
+     INTEGER            :: Hg2_Cat          ! Tagged Hg2 category number
+     INTEGER            :: HgP_Cat          ! Tagged HgP category number
 
   END TYPE Species
 !
@@ -829,6 +835,13 @@ CONTAINS
     !---------------------------------------------------------------------
     IF ( PRESENT( Is_Hg0 ) ) THEN
        ThisSpc%Is_Hg0 = Is_Hg0
+
+       ! Increment count and index of Hg0 categories
+       IF ( Is_Hg0 ) THEN
+          Hg0Count        = Hg0Count + 1
+          ThisSpc%Hg0_Cat = Hg0Count
+       ENDIF
+
     ELSE
        ThisSpc%Is_Hg0 = .FALSE.
     ENDIF
@@ -838,6 +851,13 @@ CONTAINS
     !---------------------------------------------------------------------
     IF ( PRESENT( Is_Hg2 ) ) THEN
        ThisSpc%Is_Hg2 = Is_Hg2
+
+       ! Increment count of Hg2 species
+       IF ( Is_Hg2 ) THEN
+          Hg2Count        = Hg2Count + 1
+          ThisSpc%Hg2_Cat = Hg2Count
+       ENDIF
+
     ELSE
        ThisSpc%Is_Hg2 = .FALSE.
     ENDIF
@@ -847,6 +867,13 @@ CONTAINS
     !---------------------------------------------------------------------
     IF ( PRESENT( Is_HgP ) ) THEN
        ThisSpc%Is_HgP = Is_HgP
+
+       ! Increment count of HgP species
+       IF ( Is_HgP ) THEN
+          HgPCount        = HgPCount + 1
+          ThisSpc%HgP_Cat = HgPCount
+       ENDIF
+
     ELSE
        ThisSpc%Is_HgP = .FALSE.
     ENDIF
@@ -1062,24 +1089,32 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_GetNumSpecies( nAdvect, nDryDep, nWetDep )
+  SUBROUTINE Spc_GetNumSpecies( nAdvect,  nDryDep,  nWetDep,  &
+                                nHg0Cats, nHg2Cats, nHgPCats )
 !
 ! !OUTPUT PARAMETERS:
 !
     INTEGER, INTENT(OUT) :: nAdvect   ! # of advected species
     INTEGER, INTENT(OUT) :: nDryDep   ! # of dry-deposited species
     INTEGER, INTENT(OUT) :: nWetDep   ! # of wet-deposited species
+    INTEGER, INTENT(OUT) :: nHg0Cats  ! # of Hg0 categories
+    INTEGER, INTENT(OUT) :: nHg2Cats  ! # of Hg0 categories
+    INTEGER, INTENT(OUT) :: nHgPCats  ! # of Hg0 categories
 ! 
 ! !REVISION HISTORY: 
-!   2 Sep 2015 - R. Yantosca - Initial version
+!  02 Sep 2015 - R. Yantosca - Initial version
+!  25 Apr 2016 - R. Yantosca - Also return the # of Hg0, Hg2, HgP categories
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
     ! Return module variables
-    nAdvect = AdvectCount
-    nDryDep = DryDepCount
-    nWetDep = WetDepCount
+    nAdvect  = AdvectCount
+    nDryDep  = DryDepCount
+    nWetDep  = WetDepCount
+    nHg0Cats = Hg0Count
+    nHg2Cats = Hg2Count
+    nHgPCats = HgPCount
     
   END SUBROUTINE Spc_GetNumSpecies
 !EOC
