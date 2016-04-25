@@ -4425,7 +4425,7 @@
 ! !USES:
 !
       USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE
-      USE DIAG03_MOD,   ONLY : ND03,      PD03,      INIT_DIAG03
+      USE DIAG03_MOD,   ONLY : ND03,      PD03
       USE DIAG03_MOD,   ONLY : PD03_PL    !eds 9/9/10
       USE DIAG04_MOD,   ONLY : ND04,      PD04,      INIT_DIAG04
       USE DIAG41_MOD,   ONLY : ND41,      PD41,      INIT_DIAG41
@@ -5189,7 +5189,12 @@
       !================================================================
 
       ! Allocate diagnostic arrays
-      CALL INIT_DIAG03
+!-----------------------------------------------------------------------------
+! Prior to 4/25/16:
+! Need to move INIT_DIAG03 to GIGC_Init_Extra so that we can use the
+! species database in the State_Chm object (bmy, 4/25/16)
+!      CALL INIT_DIAG03
+!-----------------------------------------------------------------------------
       CALL INIT_DIAG04
       CALL INIT_DIAG41
       CALL INIT_DIAG42( am_I_Root, Input_Opt, RC )
@@ -7210,10 +7215,6 @@
 ! !USES:
 !
       ! References to F90 modules
-      USE MERCURY_MOD,       ONLY : INIT_MERCURY
-      USE OCEAN_MERCURY_MOD, ONLY : INIT_OCEAN_MERCURY
-      USE DEPO_MERCURY_MOD,  ONLY : INIT_DEPO_MERCURY
-      USE LAND_MERCURY_MOD,  ONLY : INIT_LAND_MERCURY
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
@@ -7239,6 +7240,7 @@
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  25 Apr 2016 - R. Yantosca - Now init mercury modules from GIGC_INIT_EXTRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7348,6 +7350,7 @@
     
       !=================================================================
       ! Copy to Input Options object
+      ! NOTE: Hg modules will be initialized from GIGC_INIT_EXTRA
       !=================================================================
       Input_Opt%ANTHRO_Hg_YEAR = ANTHRO_Hg_YEAR
       Input_Opt%HG_SCENARIO    = HG_SCENARIO
@@ -7363,17 +7366,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-
-      ! If we are performing a Hg simulation ...
-      IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN 
-
-         ! Initialize Mercury simulation routines
-         CALL INIT_MERCURY      ( am_I_Root, Input_Opt, RC )
-         CALL INIT_LAND_MERCURY ( am_I_Root, Input_Opt, RC )
-         CALL INIT_DEPO_MERCURY ( am_I_Root, Input_Opt, RC )
-         CALL INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, RC )
-
-      ENDIF
 
       END SUBROUTINE READ_MERCURY_MENU
 !EOC
@@ -8398,6 +8390,8 @@
       USE CO2_Mod,            ONLY : Init_CO2
       USE C2H6_Mod,           ONLY : Init_C2H6
       USE Chemgrid_Mod,       ONLY : Init_Chemgrid
+      USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
+      USE Diag03_Mo           ONLY : Init_Diag03
       USE Drydep_Mod,         ONLY : Init_Drydep
       USE Dust_Mod,           ONLY : Init_Dust
       USE Error_Mod,          ONLY : Debug_Msg
@@ -8407,7 +8401,9 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE Global_CH4_Mod,     ONLY : Init_Global_CH4
       USE Linoz_Mod,          ONLY : Init_Linoz
-      USE Modis_Lai_Mod,      ONLY : Init_Modis_Lai
+      USE Land_Mercury_Mod,   ONLY : Init_Land_Mercury
+      USE Mercury_Mod,        ONLY : Init_Mercury
+      USE Ocean_Mercury_Mod,  ONLY : Init_Ocean_Mercury
       USE POPs_Mod,           ONLY : Init_POPs
       USE Seasalt_Mod,        ONLY : Init_SeaSalt
       USE Sulfate_Mod,        ONLY : Init_Sulfate
@@ -8466,6 +8462,8 @@
 !                              replicates the prior behavior,
 !  23 Sep 2015 - R. Yantosca - Now pass State_Chm to INIT_SEASALT
 !  23 Sep 2015 - R. Yantosca - Now pass State_Chm to INIT_SULFATE
+!  25 Apr 2016 - R. Yantosca - Now call INIT_DIAG03 here
+!  25 Apr 2016 - R. Yantosca - Now initialize all mercury modules from here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8630,6 +8628,14 @@
          CALL Init_POPs( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
 
+      ! Initialize Mercury simulation routines
+      IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN 
+         CALL INIT_MERCURY      ( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL INIT_LAND_MERCURY ( am_I_Root, Input_Opt,            RC )
+         CALL INIT_DEPO_MERCURY ( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, State_Chm, RC )
+      ENDIF
+
       !=================================================================
       ! Initialize GEOS-Chem bpch diagnostics here.  This allows us to
       ! take advantage of the species database object. (bmy, 8/31/15)
@@ -8637,6 +8643,9 @@
 
       ! Allocate and initialize variables
       CALL NDXX_SETUP( am_I_Root, Input_Opt, State_Chm, RC )
+
+      ! Initialize the Hg diagnostics (bpch)
+      CALL INIT_DIAG03( State_Chm )
 
       ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
       CALL DO_GAMAP( am_I_Root, Input_Opt, State_Chm, RC )

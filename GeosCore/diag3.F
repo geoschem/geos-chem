@@ -519,7 +519,9 @@
 !  ND03: Diagnostics from Hg0/Hg2/HgP offline simulation (eck, bmy, 1/20/05)
 !******************************************************************************
 !
-      IF ( ND03 > 0 ) CALL WRITE_DIAG03( am_I_Root, Input_Opt, RC )
+      IF ( ND03 > 0 ) THEN
+         CALL WRITE_DIAG03( am_I_Root, Input_Opt, State_Chm, RC )
+      ENDIF
 !
 !******************************************************************************
 !  ND04: Diagnostics from CO2 simulation (pns, bmy, 7/26/05)

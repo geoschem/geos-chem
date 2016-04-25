@@ -462,6 +462,7 @@
 !  12 Aug 2015 - R. Yantosca - Added support for MERRA2 meteorology
 !  05 Jan 2016 - E. Lundgren - Use Henry's constant from species database and
 !                              calculate dry air gas constant from global params
+!  25 Apr 2016 - R. Yantosca - Now pass Hg category # to ADD_Hg2_* routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -469,7 +470,7 @@
 ! !LOCAL VARIABLES:
 
       LOGICAL, SAVE   :: FIRST = .TRUE.
-      INTEGER         :: I, J, L, K, N, NN, MONTH, NSTEPS
+      INTEGER         :: I, J, L, K, N, NN, MONTH, NSTEPS, Hg_Cat
       REAL(fp)        :: K_DRYD0, K_DRYD2G, K_DRYD2P, K_SALT
       REAL(fp)        :: C_OH, C_O3, C_BR, C_BRO
       REAL(fp)        :: K_OH, K_O3, K_BR, K_BRO
@@ -676,7 +677,7 @@
 !$OMP+PRIVATE( GROSS_OX, GROSS_OX_BR, GROSS_OX_OH, GROSS_OX_O3 )
 !$OMP+PRIVATE( GROSS_RED, NET_OX )
 !$OMP+PRIVATE( AREA_CM2,  DEP_DRY_FLX )
-!$OMP+PRIVATE( F_HG0_DEP )
+!$OMP+PRIVATE( F_HG0_DEP, Hg_Cat )
 !%%%% NOTE: LOOP IS IN WRONG ORDER, WILL BE MORE EFFICIENT IF REVERSED %%%%
 !%%%% Putting this loop in the correct order causes differences in the %%%%
 !%%%% AD03_HG2_SS diagnostic array when using mp vs sp (mps, 9/3/15)   %%%%
@@ -1075,22 +1076,21 @@
             !=================================================================
 !$OMP CRITICAL
             IF ( LDYNOCEAN ) THEN
-               NN = ID_Hg2(N)
-               CALL ADD_Hg2_DD( I, J, NN, DEP_Hg2G )
 
-               NN = ID_HgP(N)
-               CALL ADD_HgP_DD( I, J, NN, DEP_Hg2P )
+               ! Archive dry deposited Hg2 for Hg category # N
+               CALL ADD_Hg2_DD( I, J, N, DEP_Hg2G )
+
+               ! Archive dry-deposited HgP for Hg category # N
+               CALL ADD_HgP_DD( I, J, N, DEP_Hg2P )
+
             ENDIF           
 
             ! Add deposited Hg(II) to the snowpack
             IF ( LHGSNOW ) THEN
-               NN          =  ID_Hg2(N)
-               ThisSpc     => State_Chm%SpcData(NN)%Info
                DEP_HG2_DRY =  DEP_HG2g_DRY + DEP_HG2p_DRY
-               CALL ADD_HG2_SNOWPACK( I, J, NN,  DEP_HG2_DRY, 
-     &                                State_Met, ThisSpc )
+               CALL ADD_HG2_SNOWPACK( I, J, N, DEP_HG2_DRY, 
+     &                                         State_Met    )
 
-               ThisSpc=> NULL()
             ENDIF           
 !$OMP END CRITICAL
 
@@ -4557,7 +4557,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_MERCURY( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_MERCURY( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -4567,12 +4567,13 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : N_Hg_CATS
+      USE GIGC_Input_Opt_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -4590,6 +4591,7 @@
 !  11 Apr 2012 - R. Yantosca - Now move LAI initialization to main.F
 !  03 Jun 2013 - R. Yantosca - Now use fields from Input_Opt
 !  12 Mar 2015 - R. Yantosca - Now test if HEMCO_Collections are defined
+!  25 Apr 2016 - R. Yantosca - Now use species database for tagHg indexing
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4603,6 +4605,7 @@
       LOGICAL             :: LNLPBL
       LOGICAL             :: LGTMM
       INTEGER             :: N_TRACERS
+      INTEGER             :: N_Hg_CATS
       INTEGER             :: AS, N
       CHARACTER(LEN=255)  :: LOCATION
 
@@ -4622,6 +4625,9 @@
       LNLPBL         = Input_Opt%LNLPBL           ! Use non-local PBL?
       LSPLIT         = Input_Opt%LSPLIT           ! Tagged simulation?
       N_TRACERS      = Input_Opt%N_TRACERS        ! # of Hg tracers
+
+      ! Get the # of tagHg categories from State_Chm
+      N_Hg_CATS      = State_Chm%N_Hg_CATS
 
       ! Location string for ERROR_STOP
       LOCATION       = 'DEFINE_TAGGED_Hg ("mercury_mod.f")'
