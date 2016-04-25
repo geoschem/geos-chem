@@ -631,25 +631,17 @@
             ENDIF
          ENDDO
 
-!------------------------------------------------------------------------------
-! Prior to 2/10/16:
-! Set CH4 according to latitude (mps, 2/10/16)
-!------------------------------------------------------------------------------
-!------------------------------------------------------------------------------
-! Prior to 2/12/16:
-! Default concentrations of MOH and H2 are now handled in flexchem_setup.F90
-!  - MOH is set according to region (continental BL, marine BL, free trop)
-!------------------------------------------------------------------------------
-
          C(ind_ACTA)  = 0.0_dp
          C(ind_EOH)   = 0.0_dp
          C(ind_HCOOH) = 0.0_dp
 #if defined( UCX )
-         IF (Input_Opt%LUCX) THEN ! Set fixed species concentrations 
-            C(ind_O2) = 0.2095e+0_dp * NUMDEN
-            C(ind_N2) = 0.7808e+0_dp * NUMDEN
-            C(ind_H2) = 0.5000e-6_dp * NUMDEN
-         ENDIF !LUCX
+         C(ind_O2) = 0.2095e+0_dp * NUMDEN
+         C(ind_N2) = 0.7808e+0_dp * NUMDEN
+         C(ind_H2) = 0.5000e-6_dp * NUMDEN
+#else
+         ! Need to copy H2O to the C array for KPP (mps, 4/25/16)
+         ! NOTE: H2O is a tracer in UCX and is obtained from State_Chem%Species
+         C(ind_H2O) = H2O
 #endif
 
          IF ( IDTCH4 == 0 .and. IND_CH4 > 0 ) THEN
