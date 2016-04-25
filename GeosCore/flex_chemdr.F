@@ -25,8 +25,7 @@
       USE DAO_MOD
       USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
       USE DUST_MOD
-      USE ERROR_MOD,            ONLY : DEBUG_MSG
-      USE ERROR_MOD,            ONLY : ERROR_STOP
+      USE ERROR_MOD
       USE FAST_JX_MOD
       USE FLEXCHEM_SETUP_MOD
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
@@ -43,6 +42,7 @@
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : GET_YEAR
       USE TRACERID_MOD,         ONLY : IDTCH4
+      USE UNITCONV_MOD
 #if defined( UCX )
       USE UCX_MOD,              ONLY : CALC_STRAT_AER
       USE UCX_MOD,              ONLY : SO4_PHOTFRAC
@@ -960,7 +960,13 @@
 !%%% FOR DIAGNOSTIC PURPOSES ONLY, WE CAN REMOVE THIS LATER
 #if defined( DEVEL )
       ! mje  STT currently in kg / grid box convert to v/v
-      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT)
+      CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,
+     &                          State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'CHEM_SULFATE in sulfate_mod.F')
+         RETURN
+      ENDIF
 
       DO N=1,N_TRACERS
 
@@ -983,7 +989,13 @@
       ENDDO
 
       ! mje convert the STT array from v/v to kg / grid box
-      CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT)
+      CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt, 
+     &                          State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'CHEM_SULFATE in sulfate_mod.F')
+         RETURN
+      ENDIF
 
       DO N=1,NSPEC
 

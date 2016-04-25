@@ -330,7 +330,7 @@
 
       !=================================================================
       ! For netCDF diagnostics, mirror old species
-#if   defined( NETCDF )
+#if   defined( NC_DIAG )
       IF ( Input_Opt%ND39 > 0 ) THEN
          ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
          BEFORE = State_Chm%Tracers
@@ -405,7 +405,7 @@
       !---------------------
       ! NetCDF diagnostics 
       !---------------------
-#if   defined( NETCDF )
+#if   defined( NC_DIAG )
       ! Use ND38 as indicator for entire wet scavenging diagnostic group
       IF ( Input_Opt%ND38 > 0 ) THEN
 

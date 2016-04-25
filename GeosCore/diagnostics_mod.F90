@@ -2801,7 +2801,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE HCO_Diagn_Mod,      ONLY : Diagn_Update
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Update, DiagnCont, DiagnCont_Find
     USE TRACERID_MOD,       ONLY : IDTO3
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE PRESSURE_MOD,       ONLY : GET_PEDGE
@@ -2977,7 +2977,7 @@ CONTAINS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
-    OutOper    = Input_Opt%ND45_OUTPUT_TYPE
+    OutOper    = 'Instantaneous'
 
     ! Loop over # of rates
     DO D = 1, NREACT
@@ -3121,7 +3121,7 @@ CONTAINS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
-    OutOper    = Input_Opt%ND45_OUTPUT_TYPE
+    OutOper    = 'Instantaneous'
 
     ! Loop over # of rates
     DO D = 1, NSPEC

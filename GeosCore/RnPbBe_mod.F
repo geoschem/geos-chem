@@ -385,7 +385,7 @@
                AD01(I,J,L)             = AD01(I,J,L) + 
      &                                   ( ADD_Pb / DTCHEM )
 #endif
-#if ( NETCDF )
+#if defined ( NC_DIAG )
                PB_EMISS(I,J,L) = ADD_Pb / DTCHEM
 #endif
             ENDIF
