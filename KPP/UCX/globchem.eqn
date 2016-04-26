@@ -256,7 +256,7 @@
 {163} MACR + O3 = 0.415OH + 0.317HO2 + 
        0.767CO + 0.211CH2OO + 0.880MGLY + 
        0.120CH2O + 0.022MGLYOO + 0.099MCO3 :           GCARR(1.40E-15, 0.0E+00, -2100.0);
-{164} ISOP + NO3 = INO2 + LISOPNO3 :                   GCARR(3.30E-12, 0.0E+00, -450.0);
+{164} ISOP + NO3 = INO2 :                              GCARR(3.30E-12, 0.0E+00, -450.0);
 {165} MACR + NO3 = MAN2 :                              GCARR(2.30E-15, 0.0E+00, 0.0);
 {166} MACR + NO3 = MAO3 + HNO3 :                       GCARR(1.10E-15, 0.0E+00, 0.0);
 {167} RCO3 + MO2 = CH2O + HO2 + ETO2 :                 GCARR(1.68E-12, 0.0E+00, 500.0);
@@ -365,384 +365,374 @@
 {232} NO3 + NO3 = 2.000NO2 + O2 :                      GCARR(8.50E-13, 0.0E+00, -2450.0);
 {233} MO2 + NO2 {+M} = MPN {+M} :                      GCJPLPR(1.00E-30, 4.8E+00, 0.0, 7.2E-12, 2.1E0, 0.0, 0.6, 0.0, 0.0);
 {234} MPN {+M} = MO2 + NO2 :                           GCJPLPR(1.05E-02, 4.8E+00, -11234.0, 7.58E16, 2.1E0, -11234.0, 0.6, 0.0, 0.0);
-{278} ISOPNB + O3 = 0.610MVKN + 0.390MACRN + 
+{273} ISOPNB + O3 = 0.610MVKN + 0.390MACRN + 
        0.270OH + CH2O :                                GCARR(1.06E-16, 0.0E+00, 0.0);
-{279} ISOPND + O3 = 0.500PROPNN + 
+{274} ISOPND + O3 = 0.500PROPNN + 
        0.500ETHLN + 0.270OH + 0.500GLYC + 
        0.500HAC :                                      GCARR(5.30E-17, 0.0E+00, 0.0);
-{285} HO2 = O2 :                                       HET(ind_HO2,1);
-{286} NO2 = 0.500HNO3 + 0.500HNO2 :                    HET(ind_NO2,1);
-{287} NO3 = HNO3 :                                     HET(ind_NO3,1);
-{288} N2O5 = 2.000HNO3 :                               HET(ind_N2O5,1);
-{289} DMS + OH = SO2 + MO2 + CH2O :                    GCARR(1.20E-11, 0.0E+00, -280.0);
-{290} DMS + OH = 0.750SO2 + 0.250MSA + MO2 :           GC_DMSOH(8.20E-39, 0.0E+00, 5376.0, 1.05E-5, 0.0, 3644.0);
-{291} DMS + NO3 = SO2 + HNO3 + MO2 + CH2O :            GCARR(1.90E-13, 0.0E+00, 530.0);
-{292} SO2 + OH {+M} = SO4 + HO2 :                      GCJPLPR(3.30E-31, 4.3E+00, 0.0, 1.6E-12, 0.0, 0.0, 0.6, 0.0, 0.0);
-{293} Br + O3 = BrO + O2 :                             GCARR(1.60E-11, 0.0E+00, -780.0);
-{294} BrO + HO2 = HOBr + O2 :                          GCARR(4.50E-12, 0.0E+00, 460.0);
-{295} Br + HO2 = HBr + O2 :                            GCARR(4.80E-12, 0.0E+00, -310.0);
-{296} HBr + OH = Br + H2O :                            GCARR(5.50E-12, 0.0E+00, 200.0);
-{297} BrO + BrO = 2.000Br + O2 :                       GCARR(2.40E-12, 0.0E+00, 40.0);
-{298} BrO + BrO = Br2 + O2 :                           GCARR(2.80E-14, 0.0E+00, 860.0);
-{299} BrO + NO = Br + NO2 :                            GCARR(8.80E-12, 0.0E+00, 260.0);
-{300} Br + BrNO3 = Br2 + NO3 :                         GCARR(4.90E-11, 0.0E+00, 0.0);
-{301} Br2 + OH = HOBr + Br :                           GCARR(2.10E-11, 0.0E+00, 240.0);
-{302} HOBr + O = OH + BrO :                            GCARR(1.20E-10, 0.0E+00, -430.0);
-{303} HBr + O = OH + Br :                              GCARR(5.80E-12, 0.0E+00, -1500.0);
-{304} BrO + OH = Br + HO2 :                            GCARR(1.70E-11, 0.0E+00, 250.0);
-{305} Br + NO3 = BrO + NO2 :                           GCARR(1.60E-11, 0.0E+00, 0.0);
-{306} Br + CH2O = HBr + HO2 + CO :                     GCARR(1.70E-11, 0.0E+00, -800.0);
-{307} Br + ALD2 = HBr + MCO3 + CO :                    GCARR(1.30E-11, 0.0E+00, -360.0);
-{308} Br + ACET = HBr + ATO2 + CO :                    GCARR(1.66E-10, 0.0E+00, -7000.0);
-{309} Br + C2H6 = HBr + ETO2 + CO :                    GCARR(2.36E-10, 0.0E+00, -6411.0);
-{310} Br + C3H8 = HBr + A3O2 + CO :                    GCARR(8.77E-11, 0.0E+00, -4330.0);
-{311} Br + NO2 {+M} = BrNO2 {+M} :                     GCJPLPR(4.20E-31, 2.4E+00, 0.0, 2.7E-11, 0.0, 0.0, 0.6, 0.0, 0.0);
-{312} BrO + NO2 {+M} = BrNO3 {+M} :                    GCJPLPR(5.20E-31, 3.2E+00, 0.0, 6.9E-12, 2.9E0, 0.0, 0.6, 0.0, 0.0);
-{313} CHBr3 + OH = 3.000Br :                           GCARR(1.35E-12, 0.0E+00, -600.0);
-{314} CH2Br2 + OH = 2.000Br :                          GCARR(2.00E-12, 0.0E+00, -840.0);
-{315} CH3Br + OH = Br + H2O + HO2 :                    GCARR(2.35E-12, 0.0E+00, -1300.0);
-{316} BrNO3 + H2O = HOBr + HNO3 :                      HET(ind_BrNO3,1);
-{317} HOBr = 0.500Br2 + H2O :                          HET(ind_HOBr,1);
-{318} HBr = 0.500Br2 :                                 HET(ind_HBr,1);
-{319} HOBr = 0.500Br2 + H2O :                          HET(ind_HOBr,2);
-{320} HBr = 0.500Br2 :                                 HET(ind_HBr,2);
-{325} HC5 + OH = HC5OO :                               GCARR(3.35E-11, 0.0E+00, 380.0);
-{326} HC5OO + NO = NO2 + 0.216GLYX + 
+{280} HO2 = O2 :                                       HET(ind_HO2,1);
+{281} NO2 = 0.500HNO3 + 0.500HNO2 :                    HET(ind_NO2,1);
+{282} NO3 = HNO3 :                                     HET(ind_NO3,1);
+{283} N2O5 = 2.000HNO3 :                               HET(ind_N2O5,1);
+{284} DMS + OH = SO2 + MO2 + CH2O :                    GCARR(1.20E-11, 0.0E+00, -280.0);
+{285} DMS + OH = 0.750SO2 + 0.250MSA + MO2 :           GC_DMSOH(8.20E-39, 0.0E+00, 5376.0, 1.05E-5, 0.0, 3644.0);
+{286} DMS + NO3 = SO2 + HNO3 + MO2 + CH2O :            GCARR(1.90E-13, 0.0E+00, 530.0);
+{287} SO2 + OH {+M} = SO4 + HO2 :                      GCJPLPR(3.30E-31, 4.3E+00, 0.0, 1.6E-12, 0.0, 0.0, 0.6, 0.0, 0.0);
+{288} Br + O3 = BrO + O2 :                             GCARR(1.60E-11, 0.0E+00, -780.0);
+{289} BrO + HO2 = HOBr + O2 :                          GCARR(4.50E-12, 0.0E+00, 460.0);
+{290} Br + HO2 = HBr + O2 :                            GCARR(4.80E-12, 0.0E+00, -310.0);
+{291} HBr + OH = Br + H2O :                            GCARR(5.50E-12, 0.0E+00, 200.0);
+{292} BrO + BrO = 2.000Br + O2 :                       GCARR(2.40E-12, 0.0E+00, 40.0);
+{293} BrO + BrO = Br2 + O2 :                           GCARR(2.80E-14, 0.0E+00, 860.0);
+{294} BrO + NO = Br + NO2 :                            GCARR(8.80E-12, 0.0E+00, 260.0);
+{295} Br + BrNO3 = Br2 + NO3 :                         GCARR(4.90E-11, 0.0E+00, 0.0);
+{296} Br2 + OH = HOBr + Br :                           GCARR(2.10E-11, 0.0E+00, 240.0);
+{297} HOBr + O = OH + BrO :                            GCARR(1.20E-10, 0.0E+00, -430.0);
+{298} HBr + O = OH + Br :                              GCARR(5.80E-12, 0.0E+00, -1500.0);
+{299} BrO + OH = Br + HO2 :                            GCARR(1.70E-11, 0.0E+00, 250.0);
+{300} Br + NO3 = BrO + NO2 :                           GCARR(1.60E-11, 0.0E+00, 0.0);
+{301} Br + CH2O = HBr + HO2 + CO :                     GCARR(1.70E-11, 0.0E+00, -800.0);
+{302} Br + ALD2 = HBr + MCO3 + CO :                    GCARR(1.30E-11, 0.0E+00, -360.0);
+{303} Br + ACET = HBr + ATO2 + CO :                    GCARR(1.66E-10, 0.0E+00, -7000.0);
+{304} Br + C2H6 = HBr + ETO2 + CO :                    GCARR(2.36E-10, 0.0E+00, -6411.0);
+{305} Br + C3H8 = HBr + A3O2 + CO :                    GCARR(8.77E-11, 0.0E+00, -4330.0);
+{306} Br + NO2 {+M} = BrNO2 {+M} :                     GCJPLPR(4.20E-31, 2.4E+00, 0.0, 2.7E-11, 0.0, 0.0, 0.6, 0.0, 0.0);
+{307} BrO + NO2 {+M} = BrNO3 {+M} :                    GCJPLPR(5.20E-31, 3.2E+00, 0.0, 6.9E-12, 2.9E0, 0.0, 0.6, 0.0, 0.0);
+{308} CHBr3 + OH = 3.000Br :                           GCARR(1.35E-12, 0.0E+00, -600.0);
+{309} CH2Br2 + OH = 2.000Br :                          GCARR(2.00E-12, 0.0E+00, -840.0);
+{310} CH3Br + OH = Br + H2O + HO2 :                    GCARR(2.35E-12, 0.0E+00, -1300.0);
+{311} BrNO3 + H2O = HOBr + HNO3 :                      HET(ind_BrNO3,1);
+{312} HOBr = 0.500Br2 + H2O :                          HET(ind_HOBr,1);
+{313} HBr = 0.500Br2 :                                 HET(ind_HBr,1);
+{314} HOBr = 0.500Br2 + H2O :                          HET(ind_HOBr,2);
+{315} HBr = 0.500Br2 :                                 HET(ind_HBr,2);
+{320} HC5 + OH = HC5OO :                               GCARR(3.35E-11, 0.0E+00, 380.0);
+{321} HC5OO + NO = NO2 + 0.216GLYX + 
        0.234MGLY + 0.234GLYC + 0.216HAC + 
        0.290DHMOB + 0.170MOBA + 0.090RCHO + 
        HO2 + 0.090CO :                                 GC_RO2NO('B', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);
-{327} HC5OO + NO = HNO3 :                              GC_RO2NO('A', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);
-{328} HC5OO + HO2 = 0.100IAP + 0.900OH + 
+{322} HC5OO + NO = HNO3 :                              GC_RO2NO('A', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);
+{323} HC5OO + HO2 = 0.100IAP + 0.900OH + 
        0.900MGLY + 0.900GLYC + 0.900HO2 :              GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 5.0, 0.0, 0.0);
-{329} ISOPND + OH = ISOPNDO2 :                         GCARR(2.64E-11, 0.0E+00, 380.0);
-{330} ISOPNB + OH = ISOPNBO2 :                         GCARR(3.61E-12, 0.0E+00, 380.0);
-{331} ISOPNDO2 + NO = 0.070MACRN + 
+{324} ISOPND + OH = ISOPNDO2 :                         GCARR(2.64E-11, 0.0E+00, 380.0);
+{325} ISOPNB + OH = ISOPNBO2 :                         GCARR(3.61E-12, 0.0E+00, 380.0);
+{326} ISOPNDO2 + NO = 0.070MACRN + 
        0.310HCOOH + 0.440HAC + 0.130ETHLN + 
        0.650CH2O + 1.340NO2 + 0.150GLYC + 
        0.310NO3 + 0.150PROPNN + 0.340MEK + 
        0.350HO2 :                                      GC_RO2NO('B', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);
-{332} ISOPNDO2 + NO = HNO3 :                           GC_RO2NO('A', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);
-{333} ISOPNDO2 + HO2 = 0.035MACRN + 
+{327} ISOPNDO2 + NO = HNO3 :                           GC_RO2NO('A', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);
+{328} ISOPNDO2 + HO2 = 0.035MACRN + 
        0.155HCOOH + 0.220HAC + 0.065ETHLN + 
        0.325CH2O + 0.170NO2 + 0.075GLYC + 
        0.155NO3 + 0.075PROPNN + 0.170MEK + 
        0.175HO2 + 0.500OH + 0.500ISNP :                GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 5.0, 0.0, 0.0);
-{334} ISOPNBO2 + NO = 0.600GLYC + 0.600HAC + 
+{329} ISOPNBO2 + NO = 0.600GLYC + 0.600HAC + 
        0.400CH2O + 0.260MACRN + 0.400HO2 + 
        0.140MVKN + 1.600NO2 :                          GC_RO2NO('B', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);
-{335} ISOPNBO2 + NO = HNO3 :                           GC_RO2NO('A', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);
-{336} ISOPNBO2 + HO2 = 0.300GLYC + 0.300HAC + 
+{330} ISOPNBO2 + NO = HNO3 :                           GC_RO2NO('A', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);
+{331} ISOPNBO2 + HO2 = 0.300GLYC + 0.300HAC + 
        0.200CH2O + 0.130MACRN + 0.070MVKN + 
        0.300NO2 + 0.200HO2 + 0.500OH + 
        0.500ISNP :                                     GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 5.0, 0.0, 0.0);
-{337} ISNP + OH = 0.612OH + 0.612R4N1 + 
+{332} ISNP + OH = 0.612OH + 0.612R4N1 + 
        0.193ISOPNBO2 + 0.193ISOPNDO2 :                 GCARR(4.75E-12, 0.0E+00, 200.0);
-{338} MVKN + OH = 0.650HCOOH + NO3 + 
+{333} MVKN + OH = 0.650HCOOH + NO3 + 
        0.650MGLY + 0.350CH2O + 0.350PYAC :             GCARR(1.50E-12, 0.0E+00, 380.0);
-{339} MACRN + OH = MACRNO2 :                           GCARR(1.39E-11, 0.0E+00, 380.0);
-{340} MACRNO2 + NO = 0.080ACTA + 0.080CH2O + 
+{334} MACRN + OH = MACRNO2 :                           GCARR(1.39E-11, 0.0E+00, 380.0);
+{335} MACRNO2 + NO = 0.080ACTA + 0.080CH2O + 
        0.150NO3 + 0.070HCOOH + 0.070MGLY + 
        0.850HAC + 0.850NO2 + 0.930CO2 + NO2 :          GCARR(2.70E-12, 0.0E+00, 350.0);
-{341} MACRNO2 + HO2 = 0.080ACTA + 0.080CH2O + 
+{336} MACRNO2 + HO2 = 0.080ACTA + 0.080CH2O + 
        0.150NO3 + 0.070HCOOH + 0.070MGLY + 
        0.850HAC + 0.850NO2 + 0.930CO2 + OH :           GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 4.0, 0.0, 0.0);
-{342} MACRNO2 + NO2 {+M} = PMNN :                      GCJPLPR(9.00E-28, 8.9E+00, 0.0, 7.7E-12, 0.2, 0.0, 0.6, 0.0, 0.0);
-{343} PMNN = MACRNO2 + NO2 :                           GCJPLEQ(9.00E-29, 0.0E+00, 14000.0, 9.00E-28, 8.9E0, 0.0, 7.7E-12, 0.2, 0., 0.6, 0., 0.);
-{344} DHMOB + OH = 1.500CO + HO2 + 0.500HAC + 
+{337} MACRNO2 + NO2 {+M} = PMNN :                      GCJPLPR(9.00E-28, 8.9E+00, 0.0, 7.7E-12, 0.2, 0.0, 0.6, 0.0, 0.0);
+{338} PMNN = MACRNO2 + NO2 :                           GCJPLEQ(9.00E-29, 0.0E+00, 14000.0, 9.00E-28, 8.9E0, 0.0, 7.7E-12, 0.2, 0., 0.6, 0., 0.);
+{339} DHMOB + OH = 1.500CO + HO2 + 0.500HAC + 
        0.500MEK :                                      GCARR(2.52E-12, 0.0E+00, 410.0);
-{345} DIBOO + NO = HO2 + NO2 + 0.520GLYC + 
+{340} DIBOO + NO = HO2 + NO2 + 0.520GLYC + 
        0.520MGLY + 0.480HAC + 0.480GLYX :              GC_RO2NO('B', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);
-{346} DIBOO + NO = HNO3 :                              GC_RO2NO('A', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);
-{347} DIBOO + HO2 = 0.150HO2 + 0.150OH + 
+{341} DIBOO + NO = HNO3 :                              GC_RO2NO('A', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);
+{342} DIBOO + HO2 = 0.150HO2 + 0.150OH + 
        0.078GLYC + 0.078MGLY + 0.072HAC + 
        0.072GLYX + 0.850R4P :                          GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 5.0, 0.0, 0.0);
-{348} MOBA + OH = MOBAOO :                             GCARR(2.79E-11, 0.0E+00, 380.0);
-{349} MOBAOO + NO = RCHO + CO2 + HO2 + NO2 :           GC_RO2NO('B', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);
-{350} MOBAOO + NO = HNO3 :                             GC_RO2NO('A', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);
-{351} MOBAOO + HO2 = 0.500OH + 0.500HO2 + 
+{343} MOBA + OH = MOBAOO :                             GCARR(2.79E-11, 0.0E+00, 380.0);
+{344} MOBAOO + NO = RCHO + CO2 + HO2 + NO2 :           GC_RO2NO('B', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);
+{345} MOBAOO + NO = HNO3 :                             GC_RO2NO('A', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);
+{346} MOBAOO + HO2 = 0.500OH + 0.500HO2 + 
        0.500RCHO + 0.500CO2 + 0.500R4P :               GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 5.0, 0.0, 0.0);
-{352} MOBA + O3 = OH + HO2 + CO2 + MEK :               GCARR(2.00E-17, 0.0E+00, 0.0);
-{353} ETHLN + OH = CH2O + CO2 + NO2 :                  GCARR(1.00E-11, 0.0E+00, 0.0);
-{354} PROPNN + OH = NO2 + MGLY :                       GCARR(1.00E-15, 0.0E+00, 0.0);
-{355} CH2OO + NO = CH2O + NO2 :                        GCARR(1.00E-14, 0.0E+00, 0.0);
-{356} CH2OO + NO2 = CH2O + NO3 :                       GCARR(1.00E-15, 0.0E+00, 0.0);
-{357} CH2OO + SO2 = CH2O + SO4 :                       GCARR(7.00E-14, 0.0E+00, 0.0);
-{358} CH2OO + H2O = CH2O + H2O2 :                      GCARR(6.00E-18, 0.0E+00, 0.0);
-{359} CH2OO + H2O = HCOOH :                            GCARR(1.00E-17, 0.0E+00, 0.0);
-{360} MACROO + CO = MACR :                             GCARR(1.20E-15, 0.0E+00, 0.0);
-{361} MACROO + NO = MACR + NO2 :                       GCARR(1.00E-14, 0.0E+00, 0.0);
-{362} MACROO + NO2 = MACR + NO3 :                      GCARR(1.00E-15, 0.0E+00, 0.0);
-{363} MACROO + SO2 = MACR + SO4 :                      GCARR(7.00E-14, 0.0E+00, 0.0);
-{364} MACROO + H2O = MRP :                             GCARR(1.00E-17, 0.0E+00, 0.0);
-{365} MACROO + H2O = MACR + H2O2 :                     GCARR(6.00E-18, 0.0E+00, 0.0);
-{366} MVKOO + CO = MVK :                               GCARR(1.20E-15, 0.0E+00, 0.0);
-{367} MVKOO + NO = MVK + NO2 :                         GCARR(1.00E-14, 0.0E+00, 0.0);
-{368} MVKOO + NO2 = MVK + NO3 :                        GCARR(1.00E-15, 0.0E+00, 0.0);
-{369} MVKOO + SO2 = MVK + SO4 :                        GCARR(7.00E-14, 0.0E+00, 0.0);
-{370} MVKOO + H2O = MVK + H2O2 :                       GCARR(6.00E-18, 0.0E+00, 0.0);
-{371} MGLYOO + CO = MGLY :                             GCARR(1.20E-15, 0.0E+00, 0.0);
-{372} MGLYOO + NO = MGLY + NO2 :                       GCARR(1.00E-14, 0.0E+00, 0.0);
-{373} MGLYOO + NO2 = MGLY + NO3 :                      GCARR(1.00E-15, 0.0E+00, 0.0);
-{374} MGLYOO + SO2 = MGLY + SO4 :                      GCARR(7.00E-14, 0.0E+00, 0.0);
-{375} MGLYOO + H2O = MGLY + H2O2 :                     GCARR(6.00E-18, 0.0E+00, 0.0);
-{376} MGLOO + CO = MGLY :                              GCARR(1.20E-15, 0.0E+00, 0.0);
-{377} MGLOO + NO = MGLY + NO2 :                        GCARR(1.00E-14, 0.0E+00, 0.0);
-{378} MGLOO + NO2 = MGLY + NO3 :                       GCARR(1.00E-15, 0.0E+00, 0.0);
-{379} MGLOO + SO2 = MGLY + SO4 :                       GCARR(7.00E-14, 0.0E+00, 0.0);
-{380} MGLOO + H2O = MCO3 + MO2 :                       GCARR(1.00E-17, 0.0E+00, 0.0);
-{381} MGLOO + H2O = MGLY + H2O2 :                      GCARR(6.00E-18, 0.0E+00, 0.0);
-{382} CH3CHOO + CO = ALD2 :                            GCARR(1.20E-15, 0.0E+00, 0.0);
-{383} CH3CHOO + NO = ALD2 + NO2 :                      GCARR(1.00E-14, 0.0E+00, 0.0);
-{384} CH3CHOO + NO2 = ALD2 + NO3 :                     GCARR(1.00E-15, 0.0E+00, 0.0);
-{385} CH3CHOO + SO2 = ALD2 + SO4 :                     GCARR(7.00E-14, 0.0E+00, 0.0);
-{386} CH3CHOO + H2O = ALD2 + H2O2 :                    GCARR(6.00E-18, 0.0E+00, 0.0);
-{387} CH3CHOO + H2O = ACTA :                           GCARR(1.00E-17, 0.0E+00, 0.0);
-{388} GAOO + CO = GLYC :                               GCARR(1.20E-15, 0.0E+00, 0.0);
-{389} GAOO + NO = GLYC + NO2 :                         GCARR(1.00E-14, 0.0E+00, 0.0);
-{390} GAOO + NO2 = GLYC + NO3 :                        GCARR(1.00E-15, 0.0E+00, 0.0);
-{391} GAOO + SO2 = GLYC + SO4 :                        GCARR(7.00E-14, 0.0E+00, 0.0);
-{392} GAOO + H2O = GLYC + H2O2 :                       GCARR(6.00E-18, 0.0E+00, 0.0);
-{393} GAOO + H2O = HAC :                               GCARR(1.00E-17, 0.0E+00, 0.0);
-{394} BENZ + OH = BRO2 :                               GCARR(2.33E-12, 0.0E+00, -193.0);
-{395} TOLU + OH = TRO2 :                               GCARR(1.81E-12, 0.0E+00, 338.0);
-{396} XYLE + OH = XRO2 :                               GCARR(2.31E-11, 0.0E+00, 0.0);
-{397} MONX = 3.000CH2O :                               GCARR(1.07E-05, 0.0E+00, 0.0);
-{398} BRO2 + HO2 = LBRO2H :                            GCARR(1.40E-12, 0.0E+00, 700.0);
-{399} BRO2 + NO = LBRO2N :                             GCARR(2.60E-12, 0.0E+00, 350.0);
-{400} TRO2 + HO2 = LTRO2H :                            GCARR(1.40E-12, 0.0E+00, 700.0);
-{401} TRO2 + NO = LTRO2N :                             GCARR(2.60E-12, 0.0E+00, 350.0);
-{402} XRO2 + HO2 = LXRO2H :                            GCARR(1.40E-12, 0.0E+00, 700.0);
-{403} XRO2 + NO = LXRO2N :                             GCARR(2.60E-12, 0.0E+00, 350.0);
-{407} O1D + H2O = 2.000OH :                            GCARR(1.63E-10, 0.0E+00, 60.0);
-{408} O1D + N2 = O + N2 :                              GCARR(2.15E-11, 0.0E+00, 110.0);
-{409} O1D + O2 = O + O2 :                              GCARR(3.30E-11, 0.0E+00, 55.0);
-{410} O1D + H2 = H + OH :                              GCARR(1.20E-10, 0.0E+00, 0.0);
-{411} O1D + N2O = N2 + O2 :                            GCARR(4.63E-11, 0.0E+00, 20.0);
-{412} O1D + N2O = 2.000NO :                            GCARR(7.25E-11, 0.0E+00, 20.0);
-{413} O1D + CH4 = MO2 + OH :                           GCARR(1.31E-10, 0.0E+00, 0.0);
-{414} O1D + CH4 = CH2O + H2 :                          GCARR(0.09E-10, 0.0E+00, 0.0);
-{415} O1D + CH4 = CH2O + H + HO2 :                     GCARR(0.35E-10, 0.0E+00, 0.0);
-{416} O + O2 {+M} = O3 {+M} :                          GCARR(6.00E-34, 2.4E+00, 0.0);
-{417} O + O3 = 2.000O2 :                               GCARR(8.00E-12, 0.0E+00, -2060.0);
-{418} OH + H2 = H2O + H :                              GCARR(2.80E-12, 0.0E+00, -1800.0);
-{419} O + OH = O2 + H :                                GCARR(1.80E-11, 0.0E+00, 180.0);
-{420} HO2 + O = OH + O2 :                              GCARR(3.00E-11, 0.0E+00, 200.0);
-{421} O1D + O3 = 2.000O2 :                             GCARR(1.20E-10, 0.0E+00, 0.0);
-{422} O1D + O3 = 2.000O + O2 :                         GCARR(1.20E-10, 0.0E+00, 0.0);
-{423} OCS + O = CO + SO2 :                             GCARR(2.10E-11, 0.0E+00, -2200.0);
-{424} OCS + OH = CO2 + SO2 :                           GCARR(1.10E-13, 0.0E+00, -1200.0);
-{425} NO2 + O = NO + O2 :                              GCARR(5.10E-12, 0.0E+00, 210.0);
-{426} NO3 + O = NO2 + O2 :                             GCARR(1.00E-11, 0.0E+00, 0.0);
-{427} NO + O {+M} = NO2 {+M} :                         GCJPLPR(9.00E-32, 1.5E+00, 0.0, 3.0E-11, 0.0E0, 0.0, 0.6, 0.0, 0.0);
-{428} NO2 + O {+M} = NO3 {+M} :                        GCJPLPR(2.50E-31, 1.8E+00, 0.0, 2.2E-11, 0.7E0, 0.0, 0.6, 0.0, 0.0);
-{429} H2O2 + O = OH + HO2 :                            GCARR(1.40E-12, 0.0E+00, -2000.0);
-{430} H + O2 {+M} = HO2 {+M} :                         GCJPLPR(4.40E-32, 1.3E+00, 0.0, 7.5E-11, -0.2E0, 0.0, 0.6, 0.0, 0.0);
-{431} H + O3 = OH + O2 :                               GCARR(1.40E-10, 0.0E+00, -470.0);
-{432} H + HO2 = 2.000OH :                              GCARR(7.20E-11, 0.0E+00, 0.0);
-{433} H + HO2 = O + H2O :                              GCARR(1.60E-12, 0.0E+00, 0.0);
-{434} H + HO2 = H2 + O2 :                              GCARR(6.90E-12, 0.0E+00, 0.0);
-{435} N + O2 = NO + O :                                GCARR(1.50E-11, 0.0E+00, -3600.0);
-{436} N + NO = N2 + O :                                GCARR(2.10E-11, 0.0E+00, 100.0);
-{437} N + NO2 = N2O + O :                              GCARR(5.80E-12, 0.0E+00, 220.0);
-{438} BrO + O = Br + O2 :                              GCARR(1.90E-11, 0.0E+00, 230.0);
-{439} CH2O + O = CO + HO2 + OH :                       GCARR(3.40E-11, 0.0E+00, -1600.0);
-{440} O1D + HCl = 0.090O + 0.090HCl + 
+{347} MOBA + O3 = OH + HO2 + CO2 + MEK :               GCARR(2.00E-17, 0.0E+00, 0.0);
+{348} ETHLN + OH = CH2O + CO2 + NO2 :                  GCARR(1.00E-11, 0.0E+00, 0.0);
+{349} PROPNN + OH = NO2 + MGLY :                       GCARR(1.00E-15, 0.0E+00, 0.0);
+{350} CH2OO + NO = CH2O + NO2 :                        GCARR(1.00E-14, 0.0E+00, 0.0);
+{351} CH2OO + NO2 = CH2O + NO3 :                       GCARR(1.00E-15, 0.0E+00, 0.0);
+{352} CH2OO + SO2 = CH2O + SO4 :                       GCARR(7.00E-14, 0.0E+00, 0.0);
+{353} CH2OO + H2O = CH2O + H2O2 :                      GCARR(6.00E-18, 0.0E+00, 0.0);
+{354} CH2OO + H2O = HCOOH :                            GCARR(1.00E-17, 0.0E+00, 0.0);
+{355} MACROO + CO = MACR :                             GCARR(1.20E-15, 0.0E+00, 0.0);
+{356} MACROO + NO = MACR + NO2 :                       GCARR(1.00E-14, 0.0E+00, 0.0);
+{357} MACROO + NO2 = MACR + NO3 :                      GCARR(1.00E-15, 0.0E+00, 0.0);
+{358} MACROO + SO2 = MACR + SO4 :                      GCARR(7.00E-14, 0.0E+00, 0.0);
+{359} MACROO + H2O = MRP :                             GCARR(1.00E-17, 0.0E+00, 0.0);
+{360} MACROO + H2O = MACR + H2O2 :                     GCARR(6.00E-18, 0.0E+00, 0.0);
+{361} MVKOO + CO = MVK :                               GCARR(1.20E-15, 0.0E+00, 0.0);
+{362} MVKOO + NO = MVK + NO2 :                         GCARR(1.00E-14, 0.0E+00, 0.0);
+{363} MVKOO + NO2 = MVK + NO3 :                        GCARR(1.00E-15, 0.0E+00, 0.0);
+{364} MVKOO + SO2 = MVK + SO4 :                        GCARR(7.00E-14, 0.0E+00, 0.0);
+{365} MVKOO +H2O = MVK + H2O2 :                        GCARR(6.00E-18, 0.0E+00, 0.0);
+{366} MGLYOO + CO = MGLY :                             GCARR(1.20E-15, 0.0E+00, 0.0);
+{367} MGLYOO + NO = MGLY + NO2 :                       GCARR(1.00E-14, 0.0E+00, 0.0);
+{368} MGLYOO + NO2 = MGLY + NO3 :                      GCARR(1.00E-15, 0.0E+00, 0.0);
+{369} MGLYOO + SO2 = MGLY + SO4 :                      GCARR(7.00E-14, 0.0E+00, 0.0);
+{370} MGLYOO + H2O = MGLY + H2O2 :                     GCARR(6.00E-18, 0.0E+00, 0.0);
+{371} MGLOO + CO = MGLY :                              GCARR(1.20E-15, 0.0E+00, 0.0);
+{372} MGLOO + NO = MGLY + NO2 :                        GCARR(1.00E-14, 0.0E+00, 0.0);
+{373} MGLOO + NO2 = MGLY + NO3 :                       GCARR(1.00E-15, 0.0E+00, 0.0);
+{374} MGLOO + SO2 = MGLY + SO4 :                       GCARR(7.00E-14, 0.0E+00, 0.0);
+{375} MGLOO + H2O = MCO3 + MO2 :                       GCARR(1.00E-17, 0.0E+00, 0.0);
+{376} MGLOO + H2O = MGLY + H2O2 :                      GCARR(6.00E-18, 0.0E+00, 0.0);
+{377} CH3CHOO + CO = ALD2 :                            GCARR(1.20E-15, 0.0E+00, 0.0);
+{378} CH3CHOO + NO = ALD2 + NO2 :                      GCARR(1.00E-14, 0.0E+00, 0.0);
+{379} CH3CHOO + NO2 = ALD2 + NO3 :                     GCARR(1.00E-15, 0.0E+00, 0.0);
+{380} CH3CHOO + SO2 = ALD2 + SO4 :                     GCARR(7.00E-14, 0.0E+00, 0.0);
+{381} CH3CHOO + H2O = ALD2 + H2O2 :                    GCARR(6.00E-18, 0.0E+00, 0.0);
+{382} CH3CHOO + H2O = ACTA :                           GCARR(1.00E-17, 0.0E+00, 0.0);
+{383} GAOO + CO = GLYC :                               GCARR(1.20E-15, 0.0E+00, 0.0);
+{384} GAOO + NO = GLYC + NO2 :                         GCARR(1.00E-14, 0.0E+00, 0.0);
+{385} GAOO + NO2 = GLYC + NO3 :                        GCARR(1.00E-15, 0.0E+00, 0.0);
+{386} GAOO + SO2 = GLYC + SO4 :                        GCARR(7.00E-14, 0.0E+00, 0.0);
+{387} GAOO + H2O = GLYC + H2O2 :                       GCARR(6.00E-18, 0.0E+00, 0.0);
+{388} GAOO + H2O = HAC :                               GCARR(1.00E-17, 0.0E+00, 0.0);
+{389} O1D + H2O = 2.000OH :                            GCARR(1.63E-10, 0.0E+00, 60.0);
+{390} O1D + N2 = O + N2 :                              GCARR(2.15E-11, 0.0E+00, 110.0);
+{391} O1D + O2 = O + O2 :                              GCARR(3.30E-11, 0.0E+00, 55.0);
+{392} O1D + H2 = H + OH :                              GCARR(1.20E-10, 0.0E+00, 0.0);
+{393} O1D + N2O = N2 + O2 :                            GCARR(4.63E-11, 0.0E+00, 20.0);
+{394} O1D + N2O = 2.000NO :                            GCARR(7.25E-11, 0.0E+00, 20.0);
+{395} O1D + CH4 = MO2 + OH :                           GCARR(1.31E-10, 0.0E+00, 0.0);
+{396} O1D + CH4 = CH2O + H2 :                          GCARR(0.09E-10, 0.0E+00, 0.0);
+{397} O1D + CH4 = CH2O + H + HO2 :                     GCARR(0.35E-10, 0.0E+00, 0.0);
+{398} O + O2 {+M} = O3 {+M} :                          GCARR(6.00E-34, 2.4E+00, 0.0);
+{399} O + O3 = 2.000O2 :                               GCARR(8.00E-12, 0.0E+00, -2060.0);
+{400} OH + H2 = H2O + H :                              GCARR(2.80E-12, 0.0E+00, -1800.0);
+{401} O + OH = O2 + H :                                GCARR(1.80E-11, 0.0E+00, 180.0);
+{402} HO2 + O = OH + O2 :                              GCARR(3.00E-11, 0.0E+00, 200.0);
+{403} O1D + O3 = 2.000O2 :                             GCARR(1.20E-10, 0.0E+00, 0.0);
+{404} O1D + O3 = 2.000O + O2 :                         GCARR(1.20E-10, 0.0E+00, 0.0);
+{405} OCS + O = CO + SO2 :                             GCARR(2.10E-11, 0.0E+00, -2200.0);
+{406} OCS + OH = CO2 + SO2 :                           GCARR(1.10E-13, 0.0E+00, -1200.0);
+{407} NO2 + O = NO + O2 :                              GCARR(5.10E-12, 0.0E+00, 210.0);
+{408} NO3 + O = NO2 + O2 :                             GCARR(1.00E-11, 0.0E+00, 0.0);
+{409} NO + O {+M} = NO2 {+M} :                         GCJPLPR(9.00E-32, 1.5E+00, 0.0, 3.0E-11, 0.0E0, 0.0, 0.6, 0.0, 0.0);
+{410} NO2 + O {+M} = NO3 {+M} :                        GCJPLPR(2.50E-31, 1.8E+00, 0.0, 2.2E-11, 0.7E0, 0.0, 0.6, 0.0, 0.0);
+{411} H2O2 + O = OH + HO2 :                            GCARR(1.40E-12, 0.0E+00, -2000.0);
+{412} H + O2 {+M} = HO2 {+M} :                         GCJPLPR(4.40E-32, 1.3E+00, 0.0, 7.5E-11, -0.2E0, 0.0, 0.6, 0.0, 0.0);
+{413} H + O3 = OH + O2 :                               GCARR(1.40E-10, 0.0E+00, -470.0);
+{414} H + HO2 = 2.000OH :                              GCARR(7.20E-11, 0.0E+00, 0.0);
+{415} H + HO2 = O + H2O :                              GCARR(1.60E-12, 0.0E+00, 0.0);
+{416} H + HO2 = H2 + O2 :                              GCARR(6.90E-12, 0.0E+00, 0.0);
+{417} N + O2 = NO + O :                                GCARR(1.50E-11, 0.0E+00, -3600.0);
+{418} N + NO = N2 + O :                                GCARR(2.10E-11, 0.0E+00, 100.0);
+{419} N + NO2 = N2O + O :                              GCARR(5.80E-12, 0.0E+00, 220.0);
+{420} BrO + O = Br + O2 :                              GCARR(1.90E-11, 0.0E+00, 230.0);
+{421} CH2O + O = CO + HO2 + OH :                       GCARR(3.40E-11, 0.0E+00, -1600.0);
+{422} O1D + HCl = 0.090O + 0.090HCl + 
        0.240H + 0.670Cl + 0.240ClO + 
        0.670OH :                                       GCARR(1.50E-10, 0.0E+00, 0.0);
-{441} O1D + HBr = 0.200O + 0.200HBr + 
+{423} O1D + HBr = 0.200O + 0.200HBr + 
        0.150BrO + 0.650OH + 0.150H + 
        0.650Br :                                       GCARR(1.50E-10, 0.0E+00, 0.0);
-{442} O1D + Cl2 = 0.250O + 0.250Cl2 + 
+{424} O1D + Cl2 = 0.250O + 0.250Cl2 + 
        0.750Cl + 0.750ClO :                            GCARR(2.70E-10, 0.0E+00, 0.0);
-{443} O1D + CCl4 = 0.140O + 0.140CCl4 + 
+{425} O1D + CCl4 = 0.140O + 0.140CCl4 + 
        0.860ClO + 2.580Cl :                            GCARR(3.30E-10, 0.0E+00, 0.0);
-{444} O1D + CH3Br = 0.440BrO + MO2 + 
+{426} O1D + CH3Br = 0.440BrO + MO2 + 
        0.560Br :                                       GCARR(1.80E-10, 0.0E+00, 0.0);
-{445} O1D + CH2Br2 = 0.050O + 0.050CH2Br2 + 
+{427} O1D + CH2Br2 = 0.050O + 0.050CH2Br2 + 
        0.950BrO + 0.950Br :                            GCARR(2.70E-10, 0.0E+00, 0.0);
-{446} O1D + CHBr3 = 0.320O + 0.320CHBr3 + 
+{428} O1D + CHBr3 = 0.320O + 0.320CHBr3 + 
        0.680BrO + 1.360Br :                            GCARR(6.60E-10, 0.0E+00, 0.0);
-{447} O1D + HCFC22 = 0.280O + 0.280HCFC22 + 
+{429} O1D + HCFC22 = 0.280O + 0.280HCFC22 + 
        0.550ClO + 0.170Cl :                            GCARR(1.00E-10, 0.0E+00, 0.0);
-{448} O1D + CFC11 = 0.120O + 0.120CFC11 + 
+{430} O1D + CFC11 = 0.120O + 0.120CFC11 + 
        0.880ClO + 1.760Cl :                            GCARR(2.30E-10, 0.0E+00, 0.0);
-{449} O1D + CFC12 = 0.140O + 0.140CFC12 + 
+{431} O1D + CFC12 = 0.140O + 0.140CFC12 + 
        0.860ClO + 1.720Cl :                            GCARR(1.40E-10, 0.0E+00, 0.0);
-{450} O1D + H1211 = 0.360O + 0.360H1211 + 
+{432} O1D + H1211 = 0.360O + 0.360H1211 + 
        0.310BrO + 0.310Cl + 0.330Br + 
        0.330ClO :                                      GCARR(1.50E-10, 0.0E+00, 0.0);
-{451} O1D + H1301 = 0.590O + 0.590H1301 + 
+{433} O1D + H1301 = 0.590O + 0.590H1301 + 
        0.410BrO :                                      GCARR(1.00E-10, 0.0E+00, 0.0);
-{452} O1D + HCFC141b = 0.310O + 
+{434} O1D + HCFC141b = 0.310O + 
        0.310HCFC141b + 0.690ClO + 0.690Cl :            GCARR(2.60E-10, 0.0E+00, 0.0);
-{453} O1D + HCFC142b = 0.260O + 
+{435} O1D + HCFC142b = 0.260O + 
        0.260HCFC142b + 0.740ClO :                      GCARR(2.20E-10, 0.0E+00, 0.0);
-{454} O1D + HCFC123 = 0.210O + 0.210HCFC123 + 
+{436} O1D + HCFC123 = 0.210O + 0.210HCFC123 + 
        0.790Cl + 0.790ClO :                            GCARR(2.00E-10, 0.0E+00, 0.0);
-{455} O1D + CFC113 = 0.250O + 0.250CFC113 + 
+{437} O1D + CFC113 = 0.250O + 0.250CFC113 + 
        1.500Cl + 0.750ClO :                            GCARR(2.00E-10, 0.0E+00, 0.0);
-{456} O1D + CFC114 = 0.250O + 0.250CFC114 + 
+{438} O1D + CFC114 = 0.250O + 0.250CFC114 + 
        0.750Cl + 0.750ClO :                            GCARR(1.30E-10, 0.0E+00, 0.0);
-{457} O1D + CFC115 = 0.700O + 0.700CFC115 + 
+{439} O1D + CFC115 = 0.700O + 0.700CFC115 + 
        0.300ClO :                                      GCARR(5.00E-11, 0.0E+00, 0.0);
-{458} O1D + H2402 = 0.250O + 0.250H2402 + 
+{440} O1D + H2402 = 0.250O + 0.250H2402 + 
        0.750Br + 0.750BrO :                            GCARR(1.60E-10, 0.0E+00, 0.0);
-{459} OH + Cl2 = HOCl + Cl :                           GCARR(2.60E-12, 0.0E+00, -1100.0);
-{460} MO2 + ClO = ClOO + HO2 + CH2O :                  GCARR(3.30E-12, 0.0E+00, -115.0);
-{461} OH + ClO = HO2 + Cl :                            GCARR(7.40E-12, 0.0E+00, 270.0);
-{462} OH + ClO = HCl + O2 :                            GCARR(6.00E-13, 0.0E+00, 230.0);
-{463} OH + OClO = HOCl + O2 :                          GCARR(1.40E-12, 0.0E+00, 600.0);
-{464} OH + Cl2O2 = HOCl + ClOO :                       GCARR(6.00E-13, 0.0E+00, 670.0);
-{465} OH + HCl = H2O + Cl :                            GCARR(1.80E-12, 0.0E+00, -250.0);
-{466} OH + HOCl = H2O + ClO :                          GCARR(3.00E-12, 0.0E+00, -500.0);
-{467} OH + ClNO2 = HOCl + NO2 :                        GCARR(2.40E-12, 0.0E+00, -1250.0);
-{468} OH + ClNO3 = HOCl + NO3 :                        GCARR(1.20E-12, 0.0E+00, -330.0);
-{469} OH + CH3Cl = Cl + HO2 + H2O :                    GCARR(2.40E-12, 0.0E+00, -1250.0);
-{470} OH + CH3CCl3 = 3.000Cl + H2O :                   GCARR(1.64E-12, 0.0E+00, -1520.0);
-{471} OH + HCFC22 = Cl + H2O :                         GCARR(1.05E-12, 0.0E+00, -1600.0);
-{472} OH + HCFC141b = 2.000Cl + H2O :                  GCARR(1.25E-12, 0.0E+00, -1600.0);
-{473} OH + HCFC142b = Cl + H2O :                       GCARR(1.30E-12, 0.0E+00, -1770.0);
-{474} OH + HCFC123 = 2.000Cl + H2O :                   GCARR(6.30E-13, 0.0E+00, -850.0);
-{475} CH4 + Cl = HCl + MO2 :                           GCARR(7.30E-12, 0.0E+00, -1280.0);
-{476} CH2O + Cl = CO + HCl + HO2 :                     GCARR(8.10E-11, 0.0E+00, -30.0);
-{477} Cl + O3 = ClO + O2 :                             GCARR(2.30E-11, 0.0E+00, -200.0);
-{478} Cl + H2 = H + HCl :                              GCARR(3.05E-11, 0.0E+00, -2270.0);
-{479} Cl + H2O2 = HO2 + HCl :                          GCARR(1.10E-11, 0.0E+00, -980.0);
-{480} Cl + HO2 = O2 + HCl :                            GCARR(1.40E-11, 0.0E+00, 270.0);
-{481} Cl + HO2 = OH + ClO :                            GCARR(3.60E-11, 0.0E+00, -375.0);
-{482} ClO + O = Cl + O2 :                              GCARR(2.80E-11, 0.0E+00, 85.0);
-{483} ClO + HO2 = O2 + HOCl :                          GCARR(2.60E-12, 0.0E+00, 290.0);
-{484} ClO + NO = Cl + NO2 :                            GCARR(6.40E-12, 0.0E+00, 290.0);
-{485} ClO + NO2 {+M} = ClNO3 {+M} :                    GCJPLPR(1.80E-31, 3.4E+00, 0.0, 1.50E-11, 1.9E0, 0.0, 0.6, 0.0, 0.0);
-{486} ClO + ClO = Cl2 + O2 :                           GCARR(1.00E-12, 0.0E+00, -1590.0);
-{487} ClO + ClO = Cl + ClOO :                          GCARR(3.00E-11, 0.0E+00, -2450.0);
-{488} ClO + ClO = OClO + Cl :                          GCARR(3.50E-13, 0.0E+00, -1370.0);
-{489} Cl + O2 {+M} = ClOO {+M} :                       GCJPLPR(2.20E-33, 3.1E+00, 0.0, 1.8E-10, 0.0, 0.0, 0.6, 0.0, 0.0);
-{490} ClOO {+M} = Cl + O2 {+M} :                       GCJPLPR(3.33E-09, 3.1E+00, -2502.0, 2.73E+14, 0.0, -2502.0, 0.6, 0.0, 0.0);
-{491} ClO + ClO {+M} = Cl2O2 {+M} :                    GCJPLPR(1.60E-32, 4.5E+00, 0.0, 3.0E-12, 2.0E0, 0.0, 0.6, 0.0, 0.0);
-{492} Cl2O2 {+M} = 2.000ClO {+M} :                     GCJPLPR(9.30E-06, 4.5E+00, -8649.0, 1.74E+15, 2.0E0, -8649.0, 0.6, 0.0, 0.0);
-{493} ClOO + Cl = Cl2 + O2 :                           GCARR(2.30E-10, 0.0E+00, 0.0);
-{494} ClOO + Cl = 2.000ClO :                           GCARR(1.20E-11, 0.0E+00, 0.0);
-{495} ClO + BrO = Br + OClO :                          GCARR(9.50E-13, 0.0E+00, 550.0);
-{496} ClO + BrO = Br + ClOO :                          GCARR(2.30E-12, 0.0E+00, 260.0);
-{497} ClO + BrO = BrCl + O2 :                          GCARR(4.10E-13, 0.0E+00, 290.0);
-{498} ClNO3 + O = ClO + NO3 :                          GCARR(3.60E-12, 0.0E+00, -840.0);
-{499} ClNO3 + Cl = Cl2 + NO3 :                         GCARR(6.50E-12, 0.0E+00, 135.0);
-{500} CH3Cl + Cl = CO + 2.000HCl + HO2 :               GCARR(2.17E-11, 0.0E+00, -1130.0);
-{502} N2O5 + HCl = ClNO2 + HNO3 :                      HET(ind_N2O5,2);
-{503} ClNO3 + H2O = HOCl + HNO3 :                      HET(ind_ClNO3,1);
-{504} ClNO3 + HCl = Cl2 + HNO3 :                       HET(ind_ClNO3,2);
-{505} ClNO3 + HBr = BrCl + HNO3 :                      HET(ind_ClNO3,3);
-{506} BrNO3 + HCl = BrCl + HNO3 :                      HET(ind_BrNO3,2);
-{507} HOCl + HCl = Cl2 + H2O :                         HET(ind_HOCl,1);
-{508} HOCl + HBr = BrCl + H2O :                        HET(ind_HOCl,2);
-{509} HOBr + HCl = BrCl + H2O :                        HET(ind_HOBr,3);
+{441} OH + Cl2 = HOCl + Cl :                           GCARR(2.60E-12, 0.0E+00, -1100.0);
+{442} MO2 + ClO = ClOO + HO2 + CH2O :                  GCARR(3.30E-12, 0.0E+00, -115.0);
+{443} OH + ClO = HO2 + Cl :                            GCARR(7.40E-12, 0.0E+00, 270.0);
+{444} OH + ClO = HCl + O2 :                            GCARR(6.00E-13, 0.0E+00, 230.0);
+{445} OH + OClO = HOCl + O2 :                          GCARR(1.40E-12, 0.0E+00, 600.0);
+{446} OH + Cl2O2 = HOCl + ClOO :                       GCARR(6.00E-13, 0.0E+00, 670.0);
+{447} OH + HCl = H2O + Cl :                            GCARR(1.80E-12, 0.0E+00, -250.0);
+{448} OH + HOCl = H2O + ClO :                          GCARR(3.00E-12, 0.0E+00, -500.0);
+{449} OH + ClNO2 = HOCl + NO2 :                        GCARR(2.40E-12, 0.0E+00, -1250.0);
+{450} OH + ClNO3 = HOCl + NO3 :                        GCARR(1.20E-12, 0.0E+00, -330.0);
+{451} OH + CH3Cl = Cl + HO2 + H2O :                    GCARR(2.40E-12, 0.0E+00, -1250.0);
+{452} OH + CH3CCl3 = 3.000Cl + H2O :                   GCARR(1.64E-12, 0.0E+00, -1520.0);
+{453} OH + HCFC22 = Cl + H2O :                         GCARR(1.05E-12, 0.0E+00, -1600.0);
+{454} OH + HCFC141b = 2.000Cl + H2O :                  GCARR(1.25E-12, 0.0E+00, -1600.0);
+{455} OH + HCFC142b = Cl + H2O :                       GCARR(1.30E-12, 0.0E+00, -1770.0);
+{456} OH + HCFC123 = 2.000Cl + H2O :                   GCARR(6.30E-13, 0.0E+00, -850.0);
+{457} CH4 + Cl = HCl + MO2 :                           GCARR(7.30E-12, 0.0E+00, -1280.0);
+{458} CH2O + Cl = CO + HCl + HO2 :                     GCARR(8.10E-11, 0.0E+00, -30.0);
+{459} Cl + O3 = ClO + O2 :                             GCARR(2.30E-11, 0.0E+00, -200.0);
+{460} Cl + H2 = H + HCl :                              GCARR(3.05E-11, 0.0E+00, -2270.0);
+{461} Cl + H2O2 = HO2 + HCl :                          GCARR(1.10E-11, 0.0E+00, -980.0);
+{462} Cl + HO2 = O2 + HCl :                            GCARR(1.40E-11, 0.0E+00, 270.0);
+{463} Cl + HO2 = OH + ClO :                            GCARR(3.60E-11, 0.0E+00, -375.0);
+{464} ClO + O = Cl + O2 :                              GCARR(2.80E-11, 0.0E+00, 85.0);
+{465} ClO + HO2 = O2 + HOCl :                          GCARR(2.60E-12, 0.0E+00, 290.0);
+{466} ClO + NO = Cl + NO2 :                            GCARR(6.40E-12, 0.0E+00, 290.0);
+{467} ClO + NO2 {+M} = ClNO3 {+M} :                    GCJPLPR(1.80E-31, 3.4E+00, 0.0, 1.50E-11, 1.9E0, 0.0, 0.6, 0.0, 0.0);
+{468} ClO + ClO = Cl2 + O2 :                           GCARR(1.00E-12, 0.0E+00, -1590.0);
+{469} ClO + ClO = Cl + ClOO :                          GCARR(3.00E-11, 0.0E+00, -2450.0);
+{470} ClO + ClO = OClO + Cl :                          GCARR(3.50E-13, 0.0E+00, -1370.0);
+{471} Cl + O2 {+M} = ClOO {+M} :                       GCJPLPR(2.20E-33, 3.1E+00, 0.0, 1.8E-10, 0.0, 0.0, 0.6, 0.0, 0.0);
+{472} ClOO {+M} = Cl + O2 {+M} :                       GCJPLPR(3.33E-09, 3.1E+00, -2502.0, 2.73E+14, 0.0, -2502.0, 0.6, 0.0, 0.0);
+{473} ClO + ClO {+M} = Cl2O2 {+M} :                    GCJPLPR(1.60E-32, 4.5E+00, 0.0, 3.0E-12, 2.0E0, 0.0, 0.6, 0.0, 0.0);
+{474} Cl2O2 {+M} = 2.000ClO {+M} :                     GCJPLPR(9.30E-06, 4.5E+00, -8649.0, 1.74E+15, 2.0E0, -8649.0, 0.6, 0.0, 0.0);
+{475} ClOO + Cl = Cl2 + O2 :                           GCARR(2.30E-10, 0.0E+00, 0.0);
+{476} ClOO + Cl = 2.000ClO :                           GCARR(1.20E-11, 0.0E+00, 0.0);
+{477} ClO + BrO = Br + OClO :                          GCARR(9.50E-13, 0.0E+00, 550.0);
+{478} ClO + BrO = Br + ClOO :                          GCARR(2.30E-12, 0.0E+00, 260.0);
+{479} ClO + BrO = BrCl + O2 :                          GCARR(4.10E-13, 0.0E+00, 290.0);
+{480} ClNO3 + O = ClO + NO3 :                          GCARR(3.60E-12, 0.0E+00, -840.0);
+{481} ClNO3 + Cl = Cl2 + NO3 :                         GCARR(6.50E-12, 0.0E+00, 135.0);
+{482} CH3Cl + Cl = CO + 2.000HCl + HO2 :               GCARR(2.17E-11, 0.0E+00, -1130.0);
+{484} N2O5 + HCl = ClNO2 + HNO3 :                      HET(ind_N2O5,2);
+{485} ClNO3 + H2O = HOCl + HNO3 :                      HET(ind_ClNO3,1);
+{486} ClNO3 + HCl = Cl2 + HNO3 :                       HET(ind_ClNO3,2);
+{487} ClNO3 + HBr = BrCl + HNO3 :                      HET(ind_ClNO3,3);
+{488} BrNO3 + HCl = BrCl + HNO3 :                      HET(ind_BrNO3,2);
+{489} HOCl + HCl = Cl2 + H2O :                         HET(ind_HOCl,1);
+{490} HOCl + HBr = BrCl + H2O :                        HET(ind_HOCl,2);
+{491} HOBr + HCl = BrCl + H2O :                        HET(ind_HOBr,3);
 //
 // photolysis reactions
 //
-{510} O3 + hv = O + O2 :                               PHOTOL(2);
-{511} O3 + hv = O1D + O2 :                             PHOTOL(3);
-{512} O2 + hv = 2.000O :                               PHOTOL(1);
-{513} NO2 + hv = NO + O :                              PHOTOL(11);
-{514} H2O2 + hv = OH + OH :                            PHOTOL(9);
-{515} MP + hv = CH2O + HO2 + OH :                      PHOTOL(10);
-{516} CH2O + hv = HO2 + H + CO :                       PHOTOL(7);
-{517} CH2O + hv = H2 + CO :                            PHOTOL(8);
-{518} HNO3 + hv = OH + NO2 :                           PHOTOL(16);
-{519} HNO2 + hv = OH + NO :                            PHOTOL(15);
-{520} HNO4 + hv = OH + NO3 :                           PHOTOL(17);
-{521} HNO4 + hv = HO2 + NO2 :                          PHOTOL(18);
-{522} NO3 + hv = NO2 + O :                             PHOTOL(12);
-{523} NO3 + hv = NO + O2 :                             PHOTOL(13);
-{524} N2O5 + hv = NO3 + NO2 :                          PHOTOL(14);
-{525} ALD2 + hv = 0.880MO2 + HO2 + 0.880CO + 
+{492} O3 + hv = O + O2 :                               PHOTOL(2);
+{493} O3 + hv = O1D + O2 :                             PHOTOL(3);
+{494} O2 + hv = 2.000O :                               PHOTOL(1);
+{495} NO2 + hv = NO + O :                              PHOTOL(11);
+{496} H2O2 + hv = OH + OH :                            PHOTOL(9);
+{497} MP + hv = CH2O + HO2 + OH :                      PHOTOL(10);
+{498} CH2O + hv = HO2 + H + CO :                       PHOTOL(7);
+{499} CH2O + hv = H2 + CO :                            PHOTOL(8);
+{500} HNO3 + hv = OH + NO2 :                           PHOTOL(16);
+{501} HNO2 + hv = OH + NO :                            PHOTOL(15);
+{502} HNO4 + hv = OH + NO3 :                           PHOTOL(17);
+{503} HNO4 + hv = HO2 + NO2 :                          PHOTOL(18);
+{504} NO3 + hv = NO2 + O :                             PHOTOL(12);
+{505} NO3 + hv = NO + O2 :                             PHOTOL(13);
+{506} N2O5 + hv = NO3 + NO2 :                          PHOTOL(14);
+{507} ALD2 + hv = 0.880MO2 + HO2 + 0.880CO + 
        0.120MCO3 :                                     PHOTOL(61);
-{526} ALD2 + hv = CH4 + CO :                           PHOTOL(62);
-{527} PAN + hv = 0.700MCO3 + 0.700NO2 + 0.300MO2 + 
+{508} ALD2 + hv = CH4 + CO :                           PHOTOL(62);
+{509} PAN + hv = 0.700MCO3 + 0.700NO2 + 0.300MO2 + 
        0.300NO3 :                                      PHOTOL(59);
-{528} RCHO + hv = ETO2 + HO2 + CO :                    PHOTOL(70);
-{529} ACET + hv = MCO3 + MO2 :                         PHOTOL(76);
-{530} ACET + hv = 2.000MO2 + CO :                      PHOTOL(77);
-{531} MEK + hv = 0.850MCO3 + 0.850ETO2 + 
+{510} RCHO + hv = ETO2 + HO2 + CO :                    PHOTOL(70);
+{511} ACET + hv = MCO3 + MO2 :                         PHOTOL(76);
+{512} ACET + hv = 2.000MO2 + CO :                      PHOTOL(77);
+{513} MEK + hv = 0.850MCO3 + 0.850ETO2 + 
        0.150MO2 + 0.150RCO3 :                          PHOTOL(69);
-{532} GLYC + hv = 0.900CH2O + 1.730HO2 + CO + 
+{514} GLYC + hv = 0.900CH2O + 1.730HO2 + CO + 
        0.070OH + 0.100MOH :                            PHOTOL(68);
-{533} GLYX + hv = 2.000HO2 + 2.000CO :                 PHOTOL(72);
-{534} GLYX + hv = H2 + 2.000CO :                       PHOTOL(73);
-{535} GLYX + hv = CH2O + CO :                          PHOTOL(74);
-{536} MGLY + hv = MCO3 + CO + HO2 :                    PHOTOL(71);
-{537} MVK + hv = PRPE + CO :                           PHOTOL(63);
-{538} MVK + hv = MCO3 + CH2O + CO + HO2 :              PHOTOL(64);
-{539} MVK + hv = MO2 + RCO3 :                          PHOTOL(65);
-{540} MACR + hv = CO + HO2 + CH2O + MCO3 :             PHOTOL(66);
-{541} HAC + hv = MCO3 + CH2O + HO2 :                   PHOTOL(75);
-{542} INPN + hv = OH + HO2 + RCHO + NO2 :              PHOTOL(78);
-{543} PRPN + hv = OH + HO2 + RCHO + NO2 :              PHOTOL(79);
-{544} ETP + hv = OH + HO2 + ALD2 :                     PHOTOL(80);
-{545} RA3P + hv = OH + HO2 + RCHO :                    PHOTOL(81);
-{546} RB3P + hv = OH + HO2 + ACET :                    PHOTOL(82);
-{547} R4P + hv = OH + HO2 + RCHO :                     PHOTOL(83);
-{548} PP + hv = OH + HO2 + ALD2 + CH2O :               PHOTOL(84);
-{549} RP + hv = OH + HO2 + ALD2 :                      PHOTOL(85);
-{550} RIP + hv = OH + HO2 + 0.710CH2O + 0.425MVK + 
+{515} GLYX + hv = 2.000HO2 + 2.000CO :                 PHOTOL(72);
+{516} GLYX + hv = H2 + 2.000CO :                       PHOTOL(73);
+{517} GLYX + hv = CH2O + CO :                          PHOTOL(74);
+{518} MGLY + hv = MCO3 + CO + HO2 :                    PHOTOL(71);
+{519} MVK + hv = PRPE + CO :                           PHOTOL(63);
+{520} MVK + hv = MCO3 + CH2O + CO + HO2 :              PHOTOL(64);
+{521} MVK + hv = MO2 + RCO3 :                          PHOTOL(65);
+{522} MACR + hv = CO + HO2 + CH2O + MCO3 :             PHOTOL(66);
+{523} HAC + hv = MCO3 + CH2O + HO2 :                   PHOTOL(75);
+{524} INPN + hv = OH + HO2 + RCHO + NO2 :              PHOTOL(78);
+{525} PRPN + hv = OH + HO2 + RCHO + NO2 :              PHOTOL(79);
+{526} ETP + hv = OH + HO2 + ALD2 :                     PHOTOL(80);
+{527} RA3P + hv = OH + HO2 + RCHO :                    PHOTOL(81);
+{528} RB3P + hv = OH + HO2 + ACET :                    PHOTOL(82);
+{529} R4P + hv = OH + HO2 + RCHO :                     PHOTOL(83);
+{530} PP + hv = OH + HO2 + ALD2 + CH2O :               PHOTOL(84);
+{531} RP + hv = OH + HO2 + ALD2 :                      PHOTOL(85);
+{532} RIP + hv = OH + HO2 + 0.710CH2O + 0.425MVK + 
        0.285MACR + 0.290HC5 :                          PHOTOL(86);
-{551} IAP + hv = OH + HO2 + 0.670CO + 0.190H2 + 
+{533} IAP + hv = OH + HO2 + 0.670CO + 0.190H2 + 
        0.360HAC + 0.260GLYC + 0.580MGLY :              PHOTOL(87);
-{552} ISNP + hv = OH + HO2 + RCHO + NO2 :              PHOTOL(88);
-{553} VRP + hv = OH + 0.300HO2 + 0.300CH2O + 
+{534} ISNP + hv = OH + HO2 + RCHO + NO2 :              PHOTOL(88);
+{535} VRP + hv = OH + 0.300HO2 + 0.300CH2O + 
        0.700MCO3 + 0.700GLYC + 0.300MGLY :             PHOTOL(89);
-{554} MRP + hv = OH + HO2 + HAC + 0.500CO + 
+{536} MRP + hv = OH + HO2 + HAC + 0.500CO + 
        0.500CH2O :                                     PHOTOL(90);
-{555} MAOP + hv = OH + CH2O + MCO3 :                   PHOTOL(91);
-{556} R4N2 + hv = NO2 + 0.320ACET + 0.190MEK + 
+{537} MAOP + hv = OH + CH2O + MCO3 :                   PHOTOL(91);
+{538} R4N2 + hv = NO2 + 0.320ACET + 0.190MEK + 
        0.180MO2 + 0.270HO2 + 0.320ALD2 + 
        0.130RCHO + 0.050A3O2 + 0.180B3O2 + 
        0.320ETO2 :                                     PHOTOL(98);
-{557} MAP + hv = OH + MO2 :                            PHOTOL(99);
-{558} MACRN + hv = NO2 + HAC + MGLY + 0.500CH2O + 
+{539} MAP + hv = OH + MO2 :                            PHOTOL(99);
+{540} MACRN + hv = NO2 + HAC + MGLY + 0.500CH2O + 
        HO2 + 0.500CO :                                 PHOTOL(92);
-{559} MVKN + hv = GLYC + NO2 + MCO3 :                  PHOTOL(93);
-{560} ISOPNB + hv = HC5 + NO2 + HO2 :                  PHOTOL(94);
-{561} Br2 + hv = 2.000Br :                             PHOTOL(23);
-{562} BrO + hv = Br + O :                              PHOTOL(28);
-{563} HOBr + hv = Br + OH :                            PHOTOL(32);
-{564} BrNO3 + hv = Br + NO3 :                          PHOTOL(29);
-{565} BrNO3 + hv = BrO + NO2 :                         PHOTOL(30);
-{566} BrNO2 + hv = Br + NO2 :                          PHOTOL(31);
-{567} CHBr3 + hv = 3.000Br :                           PHOTOL(56);
-{568} MPN + hv = CH2O + NO3 + HO2 :                    PHOTOL(104);
-{569} MPN + hv = MO2 + NO2 :                           PHOTOL(105);
-{570} ISOPND + hv = HC5 + NO2 + HO2 :                  PHOTOL(95);
-{571} PROPNN + hv = CH2O + NO2 + CO + MO2 :            PHOTOL(96);
-{572} ATOOH + hv = OH + CH2O + MCO3 :                  PHOTOL(97);
-{573} N2O + hv = N2 + O1D :                            PHOTOL(36);
-{574} OCS + hv = SO2 + CO :                            PHOTOL(34);
-{575} SO4 + hv = SO2 + 2.000OH :                       PHOTOL(100);
-{577} NO + hv = O + N :                                PHOTOL(6);
-{578} CH3Br + hv = MO2 + Br :                          PHOTOL(50);
-{579} BrCl + hv = Br + Cl :                            PHOTOL(33);
-{580} Cl2 + hv = 2.000Cl :                             PHOTOL(22);
-{581} ClO + hv = Cl + O :                              PHOTOL(27);
-{582} OClO + hv = ClO + O :                            PHOTOL(25);
-{583} Cl2O2 + hv = Cl + ClOO :                         PHOTOL(26);
-{584} ClNO2 + hv = Cl + NO2 :                          PHOTOL(21);
-{585} ClNO3 + hv = Cl + NO3 :                          PHOTOL(19);
-{586} ClNO3 + hv = ClO + NO2 :                         PHOTOL(20);
-{587} HOCl + hv = Cl + OH :                            PHOTOL(24);
-{588} CH3Cl + hv = MO2 + Cl :                          PHOTOL(43);
-{589} CH3CCl3 + hv = 3.000Cl :                         PHOTOL(44);
-{590} CCl4 + hv = 4.000Cl :                            PHOTOL(42);
-{591} CFC11 + hv = 3.000Cl :                           PHOTOL(37);
-{592} CFC12 + hv = 2.000Cl :                           PHOTOL(38);
-{593} CFC113 + hv = 3.000Cl :                          PHOTOL(39);
-{594} CFC114 + hv = 2.000Cl :                          PHOTOL(40);
-{595} CFC115 + hv = Cl :                               PHOTOL(41);
-{596} HCFC123 + hv = 2.000Cl :                         PHOTOL(47);
-{597} HCFC141b + hv = 2.000Cl :                        PHOTOL(48);
-{598} HCFC142b + hv = 2.000Cl :                        PHOTOL(49);
-{599} HCFC22 + hv = 2.000Cl :                          PHOTOL(46);
-{600} H1301 + hv = Br :                                PHOTOL(53);
-{601} H1211 + hv = Cl + Br :                           PHOTOL(51);
-{602} H2402 + hv = 2.000Br :                           PHOTOL(54);
-{603} CH2Br2 + hv = 2.000Br :                          PHOTOL(55);
-{604} ClOO + hv = Cl + O2 :                            PHOTOL(102);
+{541} MVKN + hv = GLYC + NO2 + MCO3 :                  PHOTOL(93);
+{542} ISOPNB + hv = HC5 + NO2 + HO2 :                  PHOTOL(94);
+{543} Br2 + hv = 2.000Br :                             PHOTOL(23);
+{544} BrO + hv = Br + O :                              PHOTOL(28);
+{545} HOBr + hv = Br + OH :                            PHOTOL(32);
+{546} BrNO3 + hv = Br + NO3 :                          PHOTOL(29);
+{547} BrNO3 + hv = BrO + NO2 :                         PHOTOL(30);
+{548} BrNO2 + hv = Br + NO2 :                          PHOTOL(31);
+{549} CHBr3 + hv = 3.000Br :                           PHOTOL(56);
+{550} MPN + hv = CH2O + NO3 + HO2 :                    PHOTOL(104);
+{551} MPN + hv = MO2 + NO2 :                           PHOTOL(105);
+{552} ISOPND + hv = HC5 + NO2 + HO2 :                  PHOTOL(95);
+{553} PROPNN + hv = CH2O + NO2 + CO + MO2 :            PHOTOL(96);
+{554} ATOOH + hv = OH + CH2O + MCO3 :                  PHOTOL(97);
+{555} N2O + hv = N2 + O1D :                            PHOTOL(36);
+{556} OCS + hv = SO2 + CO :                            PHOTOL(34);
+{557} SO4 + hv = SO2 + 2.000OH :                       PHOTOL(100);
+{559} NO + hv = O + N :                                PHOTOL(6);
+{560} CH3Br + hv = MO2 + Br :                          PHOTOL(50);
+{561} BrCl + hv = Br + Cl :                            PHOTOL(33);
+{562} Cl2 + hv = 2.000Cl :                             PHOTOL(22);
+{563} ClO + hv = Cl + O :                              PHOTOL(27);
+{564} OClO + hv = ClO + O :                            PHOTOL(25);
+{565} Cl2O2 + hv = Cl + ClOO :                         PHOTOL(26);
+{566} ClNO2 + hv = Cl + NO2 :                          PHOTOL(21);
+{567} ClNO3 + hv = Cl + NO3 :                          PHOTOL(19);
+{568} ClNO3 + hv = ClO + NO2 :                         PHOTOL(20);
+{569} HOCl + hv = Cl + OH :                            PHOTOL(24);
+{570} CH3Cl + hv = MO2 + Cl :                          PHOTOL(43);
+{571} CH3CCl3 + hv = 3.000Cl :                         PHOTOL(44);
+{572} CCl4 + hv = 4.000Cl :                            PHOTOL(42);
+{573} CFC11 + hv = 3.000Cl :                           PHOTOL(37);
+{574} CFC12 + hv = 2.000Cl :                           PHOTOL(38);
+{575} CFC113 + hv = 3.000Cl :                          PHOTOL(39);
+{576} CFC114 + hv = 2.000Cl :                          PHOTOL(40);
+{577} CFC115 + hv = Cl :                               PHOTOL(41);
+{578} HCFC123 + hv = 2.000Cl :                         PHOTOL(47);
+{579} HCFC141b + hv = 2.000Cl :                        PHOTOL(48);
+{580} HCFC142b + hv = 2.000Cl :                        PHOTOL(49);
+{581} HCFC22 + hv = 2.000Cl :                          PHOTOL(46);
+{582} H1301 + hv = Br :                                PHOTOL(53);
+{583} H1211 + hv = Cl + Br :                           PHOTOL(51);
+{584} H2402 + hv = 2.000Br :                           PHOTOL(54);
+{585} CH2Br2 + hv = 2.000Br :                          PHOTOL(55);
+{586} ClOO + hv = Cl + O2 :                            PHOTOL(102);
