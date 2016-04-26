@@ -2146,12 +2146,12 @@
 #endif
 
       !-------------------------------------------------
-      ! Print msg if ISORROPIA is turned off for debug
+      ! Print msg if DEVEL is turned on for testing
       !-------------------------------------------------
 #if   defined( DEVEL ) 
-      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
-      WRITE( 6, '(a)' ) '# USING -DDEVEL FOR TESTING GCHP  #'
-      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
+      WRITE( 6, '(a)' ) REPEAT( '#', 34 )
+      WRITE( 6, '(a)' ) '# USING -DDEVEL FOR TESTING GCHP #'
+      WRITE( 6, '(a)' ) REPEAT( '#', 34 )
 #endif
 
       

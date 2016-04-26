@@ -147,9 +147,24 @@
       REAL(kind=fp)          :: SCOEFF(IIPAR,JJPAR,LLPAR,3)
       REAL(kind=fp)          :: SCF(3)
 
+      ! For testing only, may be removed later (mps, 4/26/16)
+      LOGICAL :: DO_HETCHEM
+      LOGICAL :: DO_PHOTCHEM
+
       !=================================================================
       ! FLEX_CHEMDR begins here!
       !=================================================================
+
+      ! Turn heterogeneous chemistry and photolysis on/off here
+      ! This is for testing only and may be removed later (mps, 4/26/16)
+      DO_HETCHEM  = .TRUE.
+      DO_PHOTCHEM = .TRUE.
+      WRITE( 6, '(a)' ) REPEAT( '#', 32 )
+      WRITE( 6, '(a,l,a)' ) '# FLEX_CHEMDR: DO_HETCHEM  =',
+     &                         DO_HETCHEM,  ' #'
+      WRITE( 6, '(a,l,a)' ) '# FLEX_CHEMDR: DO_PHOTCHEM =',
+     &                         DO_PHOTCHEM, ' #'
+      WRITE( 6, '(a)' ) REPEAT( '#', 32 )
 
       ! Initialize variables
       prtDebug  = Input_Opt%LPRT
@@ -321,7 +336,8 @@
       ENDIF
 
       !=================================================================
-      ! Calculate hetchem rates
+      ! Copy aerosol areas into State_Chm
+      !  -- Should be moved to AerosolMod once JLOOP is gone
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -335,12 +351,8 @@
 
          ! If this is a valid grid box
          IF ( JLOOP > 0 ) THEN
-
-            ! Copy aerosol areas into State_Chm
-            !  -- Should be moved to AerosolMod once JLOOP is gone
             State_Chm%AeroArea(I,J,L,:) = TAREA(JLOOP,:)
             State_Chm%AeroRadi(I,J,L,:) = ERADIUS(JLOOP,:)
-
          ENDIF
 
       ENDDO
@@ -576,16 +588,20 @@
          ! Get starting time for rate computation
          CALL CPU_TIME( start )
 
-         ! Copy SCOEFF to SCF, this will avoid an array temporary
-         SCF = SCOEFF(I,J,L,:)
+         IF ( DO_HETCHEM ) THEN
 
-        ! Set hetchem rates
-         CALL SET_HET( I,         J,         L, 
-     &                 State_Chm, State_Met, Input_Opt, SCF )
+            ! Copy SCOEFF to SCF, this will avoid an array temporary
+            SCF = SCOEFF(I,J,L,:)
 
-         ! Copy SCF back into SCOEFF
-         SCOEFF(I,J,L,:) = SCF
+            ! Set hetchem rates
+            CALL SET_HET( I,         J,         L, 
+     &                    State_Chm, State_Met, Input_Opt, SCF )
+
+            ! Copy SCF back into SCOEFF
+            SCOEFF(I,J,L,:) = SCF
          
+         ENDIF
+
          !===========================================================
          ! Get photolysis rates (daytime only)
          !
@@ -613,8 +629,12 @@
      &                         L,         NUMDEN,   TEMP,
      &                         H2O,       SO4_FRAC, IERR  )
 
-            ! Copy ZPJ from fast_jx_mod.F to PHOTOL array
-            PHOTOL(1:JVN_) = ZPJ(L,1:JVN_,I,J)
+            IF ( DO_PHOTCHEM ) THEN
+
+               ! Copy ZPJ from fast_jx_mod.F to PHOTOL array
+               PHOTOL(1:JVN_) = ZPJ(L,1:JVN_,I,J)
+
+            ENDIF
 
          ENDIF
 
