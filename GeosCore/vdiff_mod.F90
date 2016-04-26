@@ -2028,6 +2028,7 @@ contains
 
     ! For pointing to the species database
     TYPE(Species),  POINTER :: ThisSpc => NULL()
+    INTEGER                 :: Hg_Cat
 
     !=================================================================
     ! vdiffdr begins here!
@@ -2162,12 +2163,12 @@ contains
     ! (ccc, bmy, 12/20/10)
     as2_scal = as2(:,:,1,:)
 
-!$OMP PARALLEL DO                                                     &
-!$OMP DEFAULT( SHARED )                                               &
-!$OMP PRIVATE( I,      J,               L,           N,      NN     ) &
-!$OMP PRIVATE( WK1,    WK2,             PBL_TOP,     DEP_KG, TOPMIX ) &
-!$OMP PRIVATE( fnd,    emis,            dep                         ) &
-!$OMP PRIVATE( TMPFLX, FRAC_NO_HG0_DEP, ZERO_HG0_DEP, ThisSpc       )
+!$OMP PARALLEL DO                                                         &
+!$OMP DEFAULT( SHARED )                                                   &
+!$OMP PRIVATE( I,      J,               L,            N,       NN       ) &
+!$OMP PRIVATE( WK1,    WK2,             PBL_TOP,      DEP_KG,  TOPMIX   ) &
+!$OMP PRIVATE( fnd,    emis,            dep                             ) &
+!$OMP PRIVATE( TMPFLX, FRAC_NO_HG0_DEP, ZERO_HG0_DEP, ThisSpc, Hg_Cat   )
     do J = 1, JJPAR
     do I = 1, IIPAR
 
@@ -2540,11 +2541,23 @@ contains
                     * GET_TS_CONV() * 60e+0_fp
 
              IF ( ThisSpc%Is_Hg2 ) THEN
-                CALL ADD_HG2_DD      ( I, J, N, DEP_KG                     )
-                CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_KG, State_Met, ThisSpc )
-              ELSE IF ( ThisSpc%Is_HgP ) THEN 
-                CALL ADD_HGP_DD      ( I, J, N, DEP_KG                     )
-                CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_KG, State_Met, ThisSpc )
+
+                ! Get the category number for this Hg2 tracer
+                Hg_Cat = ThisSpc%Hg2_Cat
+
+                ! Archive dry-deposited Hg2
+                CALL ADD_Hg2_DD      ( I, J, Hg_Cat, DEP_KG            )
+                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_KG, State_Met )
+
+             ELSE IF ( ThisSpc%Is_HgP ) THEN 
+
+                ! Get the category number for this HgP tracer
+                Hg_Cat = ThisSpc%HgP_Cat
+
+                ! Archive dry-deposited HgP
+                CALL ADD_HgP_DD      ( I, J, Hg_Cat, DEP_KG            )
+                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_KG, State_Met )
+
              ENDIF
 
              ! Free pointer

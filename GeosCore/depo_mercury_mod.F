@@ -72,9 +72,31 @@
 !  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
 !  06 Aug 2015 - J. Fisher   - Add stored snow Hg reservoirs (orig.
 !                              29/11/11)
+!  26 Apr 2016 - R. Yantosca - Make N_Hg_CATS IDTHg0, IDTHg2 module variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES:
+!
+      !-----------------------------------------------------------------
+      ! Now keep local Hg tracer indexing variables instead of getting
+      ! them from tracerid_mod.f.  The tracerid_mod.f module is going
+      ! to be removed for the FlexChem implementation. (bmy, 4/26/16)
+      !-----------------------------------------------------------------
+      
+      ! Scalars for Hg indexing 
+      INTEGER          :: N_Hg_CATS
+      INTEGER          :: IDTHg0
+      INTEGER          :: IDTHg2
+
+      ! Pointers for Hg Indexing
+      INTEGER, POINTER :: Id_Hg0 (:) => NULL()
+      INTEGER, POINTER :: Id_Hg2 (:) => NULL()
+      INTEGER, POINTER :: Id_HgP (:) => NULL()
+      INTEGER, POINTER :: Hg0_CAT(:) => NULL()
+      INTEGER, POINTER :: Hg2_CAT(:) => NULL()
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -601,11 +623,10 @@
       USE FILE_MOD,      ONLY : IOERROR
       USE inquireMod,    ONLY : findFreeLun
       USE TIME_MOD,      ONLY : EXPAND_DATE
-!%%%      USE TRACERID_MOD,  ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
-!%%%      USE TRACERID_MOD,  ONLY : ID_Hg0,      ID_Hg2
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Species_Mod,        ONLY : Species
       USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS:
@@ -647,6 +668,9 @@
       CHARACTER(LEN=40)     :: UNIT     
       CHARACTER(LEN=40)     :: RESERVED
   
+      ! Pointers
+      TYPE(Species), POINTER :: ThisSpc => NULL()
+
       !=================================================================
       ! READ_GTMM_RESTART begins here!
       !=================================================================
@@ -654,134 +678,131 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Comment out for now (bmy, 4/25/16)
-!%%%
-!%%%      ! Find a free file LUN
-!%%%      IU_FILE  = findFreeLUN()
-!%%%
-!%%%      ! Copy input file name to a local variable
-!%%%      FILENAME = TRIM( Input_Opt%RUN_DIR ) // TRIM( GTMM_RST_FILE )
-!%%%    
-!%%%      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
-!%%%      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
-!%%%    
-!%%%      ! Echo some input to the screen
-!%%%      IF ( am_I_Root ) THEN
-!%%%         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-!%%%         WRITE( 6, 100   ) 
-!%%%         WRITE( 6, 110   ) TRIM( FILENAME ), IU_FILE
-!%%% 100     FORMAT( 'G T M M  H g   R E S T A R T   F I L E   I N P U T' )
-!%%% 110     FORMAT( /, 'READ_GTMM_RESTART: Reading ', a, ' on unit ', i6 )
-!%%%      ENDIF
-!%%%
-!%%%      ! Open the binary punch file for input
-!%%%      CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
-!%%%    
-!%%%      !=================================================================
-!%%%      ! Read concentrations -- store in the TRACER array
-!%%%      !=================================================================
-!%%%      DO 
-!%%%         READ( IU_FILE, IOSTAT=IOS )                              
-!%%%     &        MODELNAME, LONRES, LATRES, HALFPOLAR, CENTER180
-!%%%       
-!%%%         ! IOS < 0 is end-of-file, so exit
-!%%%         IF ( IOS < 0 ) EXIT
-!%%%       
-!%%%         ! IOS > 0 is a real I/O error -- print error message
-!%%%         IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'rd_gtmm_rst:1' )
-!%%%       
-!%%%         READ( IU_FILE, IOSTAT=IOS )                               
-!%%%     &        CATEGORY, NTRACER,  UNIT, ZTAU0,  ZTAU1,  RESERVED,  
-!%%%     &        NI,       NJ,       NL,   IFIRST, JFIRST, LFIRST,    
-!%%%     &        NSKIP
-!%%%       
-!%%%         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rd_gtmm_rst:2' )
-!%%%       
-!%%%         READ( IU_FILE, IOSTAT=IOS )                               
-!%%%     &        ( ( FLUX(I,J), I=1,NI ), J=1,NJ )
-!%%%       
-!%%%         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rd_gtmm_rst:3' )
-!%%%       
-!%%%         !==============================================================
-!%%%         ! Assign data from the TRACER array to the STT array.
-!%%%         !==============================================================
-!%%%       
-!%%%         ! Process dry deposition data 
-!%%%         IF ( CATEGORY(1:8) == 'DRYD-FLX' ) THEN 
-!%%%          
-!%%%            ! Make sure array dimensions are of global size
-!%%%            ! (NI=IIPAR; NJ=JJPAR, NL=LLPAR), or stop the run
-!%%%            CALL CHECK_DIMENSIONS( NI, NJ, NL )
-!%%%          
-!%%%            ! Save into arrays
-!%%%            IF ( ANY( ID_Hg0 == NTRACER ) ) THEN
-!%%%             
-!%%%               !----------
-!%%%               ! Hg(0)
-!%%%               !----------
-!%%%             
-!%%%               ! Get the Hg category #
-!%%%               NN              = GET_Hg0_CAT( NTRACER )
-!%%%             
-!%%%               ! Store ocean Hg(0) in Hg0aq array
-!%%%               Hg0dryGEOS(:,:)   = FLUX(:,:)
-!%%%             
-!%%%               ! Increment NCOUNT
-!%%%               NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
-!%%%             
-!%%%            ELSE IF ( ANY( ID_Hg2 == NTRACER ) ) THEN
-!%%%             
-!%%%               !----------
-!%%%               ! Hg(II)
-!%%%               !----------
-!%%%             
-!%%%               ! Get the Hg category #
-!%%%               NN              = GET_Hg2_CAT( NTRACER )
-!%%%             
-!%%%               ! Store ocean Hg(II) in Hg2_aq array
-!%%%               HgIIdryGEOS(:,:)   = FLUX(:,:)
-!%%%             
-!%%%               ! Increment NCOUNT
-!%%%               NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
-!%%%             
-!%%%            ENDIF
-!%%%         ENDIF
-!%%%       
-!%%%         ! Process wet deposition data
-!%%%         IF ( CATEGORY(1:8) == 'WETDLS-$' ) THEN 
-!%%%
-!%%%            ! Make sure array dimensions are of global size
-!%%%            ! (NI=IIPAR; NJ=JJPAR, NL=LLPAR), or stop the run
-!%%%            ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%%            ! %%%% KLUDGE: CHECK_DIMENSIONS only works for NL=1 !!!!
-!%%%            ! And we are only interested by the surface flux...
-!%%%            NL = 1
-!%%%            ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%%            CALL CHECK_DIMENSIONS( NI, NJ, NL )
-!%%%          
-!%%%            IF ( ANY( ID_Hg2 == NTRACER ) ) THEN
-!%%%             
-!%%%               !----------
-!%%%               ! Hg(II)
-!%%%               !----------
-!%%%             
-!%%%               ! Get the Hg category #
-!%%%               NN              = GET_Hg2_CAT( NTRACER )
-!%%%             
-!%%%               ! Store ocean Hg(II) in Hg2_aq array
-!%%%               HgIIwetGEOS(:,:)   = FLUX(:,:)
-!%%%             
-!%%%               ! Increment NCOUNT
-!%%%               NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
-!%%%             
-!%%%            ENDIF
-!%%%         ENDIF
-!%%%      ENDDO
-!%%%    
-!%%%      ! Close file
-!%%%      CLOSE( IU_FILE )      
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      ! Find a free file LUN
+      IU_FILE  = findFreeLUN()
+
+      ! Copy input file name to a local variable
+      FILENAME = TRIM( Input_Opt%RUN_DIR ) // TRIM( GTMM_RST_FILE )
+    
+      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
+      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
+    
+      ! Echo some input to the screen
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         WRITE( 6, 100   ) 
+         WRITE( 6, 110   ) TRIM( FILENAME ), IU_FILE
+ 100     FORMAT( 'G T M M  H g   R E S T A R T   F I L E   I N P U T' )
+ 110     FORMAT( /, 'READ_GTMM_RESTART: Reading ', a, ' on unit ', i6 )
+      ENDIF
+
+      ! Open the binary punch file for input
+      CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
+    
+      !=================================================================
+      ! Read concentrations -- store in the TRACER array
+      !=================================================================
+      DO 
+         READ( IU_FILE, IOSTAT=IOS )                              
+     &        MODELNAME, LONRES, LATRES, HALFPOLAR, CENTER180
+       
+         ! IOS < 0 is end-of-file, so exit
+         IF ( IOS < 0 ) EXIT
+       
+         ! IOS > 0 is a real I/O error -- print error message
+         IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'rd_gtmm_rst:1' )
+       
+         READ( IU_FILE, IOSTAT=IOS )                               
+     &        CATEGORY, NTRACER,  UNIT, ZTAU0,  ZTAU1,  RESERVED,  
+     &        NI,       NJ,       NL,   IFIRST, JFIRST, LFIRST,    
+     &        NSKIP
+       
+         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rd_gtmm_rst:2' )
+       
+         READ( IU_FILE, IOSTAT=IOS )                               
+     &        ( ( FLUX(I,J), I=1,NI ), J=1,NJ )
+       
+         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rd_gtmm_rst:3' )
+       
+         !==============================================================
+         ! Assign data from the TRACER array to the STT array.
+         !==============================================================
+       
+         ! Process dry deposition data 
+         IF ( CATEGORY(1:8) == 'DRYD-FLX' ) THEN 
+          
+            ! Make sure array dimensions are of global size
+            ! (NI=IIPAR; NJ=JJPAR, NL=LLPAR), or stop the run
+            CALL CHECK_DIMENSIONS( NI, NJ, NL )
+          
+            ! Save into arrays
+            IF ( ANY( ID_Hg0 == NTRACER ) ) THEN
+             
+               !----------
+               ! Hg(0)
+               !----------
+             
+               ! Get the Hg category #
+               NN              = Hg0_Cat(NTRACER) 
+
+               ! Store ocean Hg(0) in Hg0aq array
+               Hg0dryGEOS(:,:) = FLUX(:,:)
+             
+               ! Increment NCOUNT
+               NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
+             
+            ELSE IF ( ANY( ID_Hg2 == NTRACER ) ) THEN
+             
+               !----------
+               ! Hg(II)
+               !----------
+
+               ! Get the Hg category #
+               NN               = Hg2_Cat(NTRACER)
+
+               ! Store ocean Hg(II) in Hg2_aq array
+               HgIIdryGEOS(:,:) = FLUX(:,:)
+             
+               ! Increment NCOUNT
+               NCOUNT(NTRACER)  = NCOUNT(NTRACER) + 1
+             
+            ENDIF
+         ENDIF
+       
+         ! Process wet deposition data
+         IF ( CATEGORY(1:8) == 'WETDLS-$' ) THEN 
+
+            ! Make sure array dimensions are of global size
+            ! (NI=IIPAR; NJ=JJPAR, NL=LLPAR), or stop the run
+            ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            ! %%%% KLUDGE: CHECK_DIMENSIONS only works for NL=1 !!!!
+            ! And we are only interested by the surface flux...
+            NL = 1
+            ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            CALL CHECK_DIMENSIONS( NI, NJ, NL )
+          
+            IF ( ANY( ID_Hg2 == NTRACER ) ) THEN
+             
+               !----------
+               ! Hg(II)
+               !----------
+             
+               ! Get the Hg category #
+               NN               = Hg2_Cat(NTRACER)
+             
+               ! Store ocean Hg(II) in Hg2_aq array
+               HgIIwetGEOS(:,:) = FLUX(:,:)
+             
+               ! Increment NCOUNT
+               NCOUNT(NTRACER)  = NCOUNT(NTRACER) + 1
+             
+            ENDIF
+         ENDIF
+      ENDDO
+    
+      ! Close file
+      CLOSE( IU_FILE )      
     
       END SUBROUTINE READ_GTMM_RESTART
 !EOC
@@ -807,7 +828,6 @@
       USE DIAG_MOD,     ONLY : AD44
 #endif
       USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_CHEM 
-      USE TRACERID_MOD, ONLY : IDTHg0, IDTHg2
 !
 ! !INPUT PARAMETERS:
 !
@@ -940,6 +960,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -959,23 +980,81 @@
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
 !  06 Aug 2015 - J. Fisher   - Add stored snow Hg reservoirs (orig. 29/11/11)
-!  25 Apr 2016 - R. Yantosca - Now get N_HG_CATS from State_Chm
-
+!  25 Apr 2016 - R. Yantosca - Now handle all Hg indexing locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: N_Hg_CATS
+      ! Scalars
+      INTEGER                :: N, C
 
-      ! Number of tagged Hg categories
-      N_Hg_CATS = State_Chm%N_Hg_CATS
+      ! Pointers
+      TYPE(Species), POINTER :: ThisSpc => NULL()
+
+      !=================================================================
+      ! INIT_DEPO_MERCURY begins here!
+      !=================================================================
 
       ! GTMM restart file name
       GTMM_RST_FILE = Input_Opt%GTMM_RST_FILE
+    
+      !================================================================
+      ! Initialize local Hg indexing variables.  These used to be 
+      ! contained in tracerid_mod.F, but tracerid_mod.F is going
+      ! to be removed with the FlexChem implementation (bmy, 4/26/16)
+      !================================================================
 
+      ! Now get # of tagHg categories from State_Chm
+      N_Hg_CATS = State_Chm%N_Hg_CATS
+     
+      ! Hg species index corresponding to a given Hg category number
+      Id_Hg0    => State_Chm%Id_Hg0
+      Id_Hg2    => State_Chm%Id_Hg2
+      Id_HgP    => State_Chm%Id_HgP
+
+      ! Category numbers for each Hg0 tracer
+      ALLOCATE( Hg0_Cat( State_Chm%nSpecies ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hg0_Cat' )
+      Hg0_Cat = 0
+
+      ! Category numbers for each Hg2 tracer
+      ALLOCATE( Hg2_Cat( State_Chm%nSpecies ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hg0_Cat' )
+      Hg2_Cat = 0
+
+      ! Loop ovver all Hg species
+      DO N = 1, State_Chm%nSpecies
+
+         ! Point to the Species Database entry for tracer # N
+         ThisSpc => State_Chm%SpcData(N)%Info
+
+         ! Define local IDTHg0 and IDTHg2 flags
+         SELECT CASE( TRIM( ThisSpc%Name ) )
+            CASE( 'Hg0' ) 
+               IDTHg0  = ThisSpc%ModelId
+            CASE( 'Hg2' ) 
+               IDTHg2 = ThisSpc%ModelId
+            CASE DEFAULT
+               ! Do nothing
+         END SELECT
+
+         ! Store the Hg0 and Hg2 category numbers for each tracer
+         ! for future lookup in READ_GTMM_RESTART (bmy, 4/26/16)
+         IF ( ThisSpc%Is_Hg0 ) THEN
+            Hg0_Cat(N) = ThisSpc%Hg0_Cat
+         ELSE iF ( ThisSpc%Is_Hg2 ) THEN
+            Hg2_Cat(N) = ThisSpc%Hg2_Cat
+         ENDIF
+
+         ! Free pointer
+         ThisSpc => NULL()
+      ENDDO
+
+      !================================================================
       ! Allocate arrays
+      !================================================================
       ALLOCATE( DD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'DD_Hg2' )
       DD_Hg2 = 0e+0_fp
@@ -1022,6 +1101,7 @@
          HG2mth_wd = 0e+0_fp
       ENDIF
 
+
       END SUBROUTINE INIT_DEPO_MERCURY
 !EOC
 !------------------------------------------------------------------------------
@@ -1060,6 +1140,14 @@
       IF ( ALLOCATED( HG2mth_dd   ) ) DEALLOCATE( HG2mth_dd   )
       IF ( ALLOCATED( HG2mth_wd   ) ) DEALLOCATE( HG2mth_wd   )
       
+      ! Free pointers
+      Id_Hg0 => NULL()
+      Id_Hg2 => NULL()
+      Id_HgP => NULL()
+
+      IF ( ASSOCIATED( Hg0_Cat ) ) DEALLOCATE( Hg0_CAT )
+      IF ( ASSOCIATED( Hg2_Cat ) ) DEALLOCATE( Hg2_CAT )
+
       END SUBROUTINE CLEANUP_DEPO_MERCURY
 
       END MODULE DEPO_MERCURY_MOD

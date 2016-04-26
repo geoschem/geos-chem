@@ -2829,7 +2829,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE WETDEP( am_I_Root, Input_Opt, State_Met, State_Chm, 
-     &                   RC, LS )
+     &                   RC,        LS                               )
 !
 ! !USES:
 !
@@ -3037,6 +3037,7 @@
 !                              whether the dynamic ocean is used
 !  22 Sep 2015 - E. Lundgren - Tracer units now converted to kg/m2 from kg/kg
 !  22 Apr 2016 - R. Yantosca - Now get Is_Hg2, Is_HgP from species database
+!  25 Apr 2016 - R. Yantosca - Now get the Hg category # from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3047,7 +3048,8 @@
       LOGICAL, SAVE      :: FIRST = .TRUE.
       LOGICAL            :: IS_Hg
       LOGICAL            :: KIN
-      INTEGER            :: I, IDX, J, L, N, NN
+      INTEGER            :: I,     IDX,    J,         L
+      INTEGER            :: N,     NN,     Hg_Cat
       REAL(fp)           :: Q,     QDOWN,  DT,        DT_OVER_TAU
       REAL(fp)           :: K,     K_MIN,  K_RAIN,    RAINFRAC
       REAL(fp)           :: F,     FTOP,   F_PRIME,   WASHFRAC
@@ -3108,10 +3110,10 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,       J,      FTOP,      ERRMSG,    F          )
-!$OMP+PRIVATE( F_PRIME, K_RAIN, L,         Q,         QDOWN      )
-!$OMP+PRIVATE( NN,      N,      F_RAINOUT, F_WASHOUT             )
-!$OMP+PRIVATE( DEP_HG,  ThisSpc                                  )
+!$OMP+PRIVATE( I,       J,       FTOP,      ERRMSG,    F          )
+!$OMP+PRIVATE( F_PRIME, K_RAIN,  L,         Q,         QDOWN      )
+!$OMP+PRIVATE( NN,      N,       F_RAINOUT, F_WASHOUT             )
+!$OMP+PRIVATE( DEP_HG,  ThisSpc, Hg_Cat                           )
 !$OMP+SCHEDULE( DYNAMIC )   
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -3430,7 +3432,11 @@
 
             ! Loop over soluble tracers and/or aerosol tracers
             DO NN = 1, NSOL
-               N = IDWETD(NN)
+
+               ! Convert wetdep index to advected tracer index
+               N      = IDWETD(NN)
+
+               ! Amount of Hg deposited out of the column
                DEP_HG = DSTT(NN,1,I,J)
 
                ! Point to the Species Database entry for tracer N
@@ -3438,15 +3444,25 @@
 
                ! Check if it is a gaseous Hg2 tag
                IF ( ThisSpc%Is_Hg2 ) THEN
-                  CALL ADD_Hg2_WD      ( I, J, N,   DEP_HG  )
-                  CALL ADD_Hg2_SNOWPACK( I, J, N,   DEP_HG, 
-     &                                   State_Met, ThisSpc )
+                  
+                  ! Get the category # for this Hg2 tracer
+                  Hg_Cat = ThisSpc%Hg2_Cat
+                  
+                  ! Archive wet-deposited Hg2
+                  CALL ADD_Hg2_WD      ( I, J, Hg_Cat, DEP_HG    )
+                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_HG, 
+     &                                                 State_Met )
 
                ! Check if it is a HgP tag
                ELSE IF ( ThisSpc%Is_HgP ) THEN 
-                  CALL ADD_HgP_WD      ( I, J, N,   DEP_HG  )
-                  CALL ADD_Hg2_SNOWPACK( I, J, N,   DEP_HG, 
-     &                                   State_Met, ThisSpc )
+                                    
+                  ! Get the category # for this HgP tracer
+                  Hg_Cat = ThisSpc%HgP_Cat
+
+                  ! Archive wet-deposited HgP
+                  CALL ADD_HgP_WD      ( I, J, Hg_Cat, DEP_HG    )
+                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_HG, 
+     &                                                 State_Met )
                   
                ENDIF
 
@@ -3646,6 +3662,7 @@
 !  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
 !                              whether the dynamic ocean is used
 !  22 Apr 2016 - R. Yantosca - Now get Is_Hg2, Is_HgP from species database
+!  25 Apr 2016 - R. Yantosca - Now get the Hg category # from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3657,7 +3674,8 @@
       LOGICAL            :: IS_Hg
       LOGICAL            :: KIN
       LOGICAL            :: IS_RAINOUT, IS_WASHOUT, IS_BOTH
-      INTEGER            :: I, IDX, J, L, N, NN
+      INTEGER            :: I,     IDX,    J,         L
+      INTEGER            :: N,     NN,     Hg_Cat
       REAL(fp)           :: Q,     QDOWN,  DT,        DT_OVER_TAU
       REAL(fp)           :: K,     K_MIN,  K_RAIN,    RAINFRAC
       REAL(fp)           :: F,     FTOP,   F_PRIME,   WASHFRAC
@@ -3722,7 +3740,7 @@
 !$OMP+PRIVATE( NN,          ERRMSG,     F,           F_PRIME    )
 !$OMP+PRIVATE( F_RAINOUT,   F_WASHOUT,  K_RAIN,      Q          )       
 !$OMP+PRIVATE( QDOWN,       IS_RAINOUT, IS_WASHOUT,  N          ) 
-!$OMP+PRIVATE( DEP_HG,      ThisSpc                             )
+!$OMP+PRIVATE( DEP_HG,      ThisSpc,    Hg_Cat                  )
 !$OMP+SCHEDULE( DYNAMIC )   
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -4002,23 +4020,37 @@
 
             ! Loop over soluble tracers and/or aerosol tracers
             DO NN = 1, NSOL
-               N = IDWETD(NN)
-               DEP_HG = DSTT(NN,1,I,J)
+
+               ! Convert wetdep index to advected tracer index
+               N       = IDWETD(NN)
+
+               ! Amount of Hg wet-deposited out of the column
+               DEP_HG  = DSTT(NN,1,I,J)
 
                ! Point to the Species Database entry for tracer N
                ThisSpc => State_Chm%SpcData(N)%Info
 
                ! Check if it is a gaseous Hg2 tag
                IF ( ThisSpc%Is_Hg2 ) THEN
-                  CALL ADD_Hg2_WD      ( I, J, N,   DEP_HG  )
-                  CALL ADD_Hg2_SNOWPACK( I, J, N,   DEP_HG, 
-     &                                   State_Met, ThisSpc )
+                  
+                  ! Get the category # for this Hg2 tracer
+                  Hg_Cat = ThisSpc%Hg2_Cat
+
+                  ! Archive wet-deposited Hg2
+                  CALL ADD_Hg2_WD      ( I, J, Hg_Cat, DEP_HG    )
+                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_HG, 
+     &                                                 State_Met )
 
                ! Check if it is a HgP tag
                ELSE IF ( ThisSpc%Is_HgP ) THEN
-                  CALL ADD_HgP_WD      ( I, J, N,   DEP_HG  )
-                  CALL ADD_Hg2_SNOWPACK( I, J, N,   DEP_HG, 
-     &                                   State_Met, ThisSpc )
+                  
+                  ! Get the category # for this HgP tracer
+                  Hg_Cat = ThisSpc%HgP_Cat
+
+                  ! Archive wet-deposited HgP
+                  CALL ADD_HgP_WD      ( I, J, Hg_Cat, DEP_HG    )
+                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_HG, 
+     &                                                 State_Met )
                   
                ENDIF
 

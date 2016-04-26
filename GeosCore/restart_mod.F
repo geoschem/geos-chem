@@ -107,26 +107,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GC_RESTART_NC( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_GC_RESTART_NC( am_I_Root, Input_Opt, 
+     &                               State_Chm, RC         )
 !
 ! !USES:
 !
       USE COMODE_LOOP_MOD,    ONLY : NTSPEC, IFAM, NAMEGAS
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : AREA_M2
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : N_Hg_CATS
 
       USE HCO_Error_Mod
       USE HCO_Diagn_Mod
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,          INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
+      LOGICAL,          INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(OptInput),   INTENT(INOUT) :: Input_Opt   ! Input Options object
+      TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry state object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -135,6 +137,8 @@
 ! !REVISION HISTORY: 
 !  09 Feb 2016 - E. Lundgren - Initial version
 !  20 Apr 2016 - E. Lundgren - Implement ocean and snow Hg variables
+!  26 Apr 2016 - R. Yantosca - Now 
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -150,6 +154,10 @@
       CHARACTER(LEN=255) :: MSG, LOC = 
      &                      'INIT_GC_RESTART_NC (restart_mod.F90)'
 
+      ! For Hg indexing 
+      INTEGER                   :: N_Hg_CATS
+      CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:) => NULL()
+
       !=================================================================
       ! INIT_GC_RESTART_NC begins here!
       !=================================================================
@@ -161,7 +169,6 @@
       GridAreas_ptr    => AREA_M2(:,:,1)
       TS     =  GET_TS_CHEM() * 60.0_sp
 
-      !
       ! Create restart collection for GEOS-Chem.  This will keep the
       ! GEOS-Chem restart separate from other output.
       !
@@ -195,6 +202,20 @@
       
       ! Save GEOS-Chem restart collection ID in Input_Opt
       Input_Opt%GC_RST_COLLECTION = GC_RST_Collection
+
+      !=================================================================
+      ! Now handle indexing of Hg tracers locally.  These variables
+      ! were in tracerid_mod.F, which will be removed (bmy, 4/26/16)
+      !=================================================================
+      IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+
+         ! Now get the # of tagged Hg categories from State_Chm
+         N_Hg_CATS = State_Chm%N_Hg_CATS
+
+         ! Now get Hg category names from State_Chm
+         Hg_Cat_Name => State_Chm%Hg_Cat_Name
+         
+      ENDIF
 
       !=================================================================
       ! Create tracer restart containers
@@ -290,6 +311,7 @@
          
             ! Define container name and ID
             ContainerName = 'Ocean_' // TRIM( Tracer )
+            print*, '@@@ 1 : ', TRIM( ContainerName )
             cID = cID + 1
             
             ! Create container
@@ -332,9 +354,16 @@
                   ContainerName = TRIM( Prefix )
                ELSE
                   ! Append category name
-                  ContainerName = TRIM( Prefix ) // '_'
-     &                            // TRIM( Input_Opt%Hg_CAT(N+2) )      
+!------------------------------------------------------------------------------
+! Prior to 4/26/16:
+! Now get Hg_CAT_NAME from State_Chm (bmy, 4/26/16)
+!                  ContainerName = TRIM( Prefix ) // '_'
+!     &                            // TRIM( Input_Opt%Hg_CAT(N+2) )      
+!------------------------------------------------------------------------------
+                  ContainerName = TRIM( Prefix         ) // '_' //
+     &                            TRIM( Hg_Cat_Name(N) )
                ENDIF
+               print*, '@@@ 2 : ', TRIM( ContainerName )
                cID = cId + 1
             
                ! Create container
@@ -376,8 +405,15 @@
                DO N = 2, N_Hg_CATS
                
                   ! Define container name and ID
-                  ContainerName = 'Ocean_' // TRIM( TRACER ) // '_' 
-     &                            // TRIM( Input_Opt%Hg_CAT(N+2) )
+!-----------------------------------------------------------------------------
+! Prior to 4/26/16:
+! Now get Hg_CAT_NAME from State_Chm (bmy, 4/26/16)
+!                  ContainerName = 'Ocean_' // TRIM( TRACER ) // '_' 
+!     &                            // TRIM( Input_Opt%Hg_CAT(N+2) )
+!-----------------------------------------------------------------------------
+                  ContainerName = 'Ocean_' // TRIM( TRACER         ) //
+     &                            '_'      // TRIM( Hg_Cat_Name(N) )
+                  print*, '@@@ 3 : ', TRIM( ContainerName )
 
                   cID = cId + 1
                
@@ -399,6 +435,9 @@
                ENDDO
             ENDDO
          ENDIF
+
+         ! Free Hg index pointers
+         Hg_Cat_Name => NULL()
 
       ENDIF
 
@@ -518,7 +557,8 @@ dvected tracer input  restart file
       ! Read ocean Hg initial conditions (if needed)
       IF ( Input_Opt%ITS_A_MERCURY_SIM .AND.
      &     Input_Opt%LDYNOCEAN ) THEN
-         CALL READ_OCEAN_Hg_RESTART( YYYYMMDD, HHMMSS, Input_Opt )
+         CALL READ_OCEAN_Hg_RESTART( YYYYMMDD,  HHMMSS, 
+     &                               Input_Opt, State_Chm )
       ENDIF
 #else
       ! Read NetCDF restart file
@@ -570,8 +610,6 @@ dvected tracer input  restart file
       USE OCEAN_MERCURY_MOD,  ONLY : CHECK_OCEAN_MERCURY
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC,  SNOW_HG_STORED_OC
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_LN,  SNOW_HG_STORED_LN
-      USE TRACERID_MOD,       ONLY : ID_Hg0, ID_Hg2, ID_HgP, ID_Hg_tot
-      USE TRACERID_MOD,       ONLY : N_Hg_CATS
 !
 ! !INPUT PARAMETERS: 
 !
@@ -624,29 +662,59 @@ dvected tracer input  restart file
       INTEGER              :: st3d(3), ct3d(3)   ! 3D and 4D variable arrays
                                                  ! (includes time as dim)
       ! Temporary arrays and pointers
-      REAL*4, TARGET  :: Temp2D(IIPAR,JJPAR) 
-      REAL*4, TARGET  :: Temp3D( IIPAR, JJPAR, LLPAR )
-      REAL*4, POINTER :: Ptr2D(:,:) => NULL()
-      REAL*4, POINTER :: Ptr3D(:,:,:) => NULL()
+      REAL*4,  TARGET      :: Temp2D(IIPAR,JJPAR) 
+      REAL*4,  TARGET      :: Temp3D(IIPAR,JJPAR,LLPAR)
+      REAL*4,  POINTER     :: Ptr2D(:,:  ) => NULL()
+      REAL*4,  POINTER     :: Ptr3D(:,:,:) => NULL()
 
       ! Other
       CHARACTER(LEN=255)   :: LOC
+
+      ! For Hg species indexing (bmy, 4/26/16)
+      INTEGER                   :: N_Hg_CATS 
+      INTEGER                   :: Id_Hg_tot
+      INTEGER,          POINTER :: Id_Hg0     (:) => NULL()
+      INTEGER,          POINTER :: Id_Hg2     (:) => NULL()
+      INTEGER,          POINTER :: Id_HgP     (:) => NULL()
+      CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:) => NULL()
 
       !=================================================================
       ! READ_GC_RESTART_NC begins here!
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Name of this routine
-      LOC = 'READ_GC_RESTART_NC (restart_mod.F)'
+      LOC       = 'READ_GC_RESTART_NC (restart_mod.F)'
 
       ! Copy input filename to a local variable
-      nc_file = TRIM( INPUT_RESTART_FILE )
+      nc_file   = TRIM( INPUT_RESTART_FILE )
 
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
+
+      !=================================================================
+      ! Now handle indexing for Hg species locally (bmy, 4/26/16)
+      ! These were formerly in tracerid_mod.F, which is being removed
+      !=================================================================
+      IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+
+         ! Now get the # of tagHg categories from State_Chm
+         N_Hg_CATS   =  State_Chm%N_Hg_CATS
+
+         ! Names for each of the Hg categories
+         Hg_Cat_Name => State_Chm%Hg_Cat_Name
+    
+         ! Hg species index corresponding to a given Hg category number
+         Id_Hg0      => State_Chm%Id_Hg0
+         Id_Hg2      => State_Chm%Id_Hg2
+         Id_HgP      => State_Chm%Id_HgP
+
+         ! ID_Hg_Tot is always the first category
+         Id_Hg_Tot   =  Id_Hg0(1)
+
+      ENDIF
 
       !=================================================================
       ! Open GEOS-Chem restart file
@@ -1035,8 +1103,15 @@ dvected tracer input  restart file
                         Tracer = 'HgP' 
                         Tracer_id = ID_HgP(N)
                   END SELECT
-                  v_name = 'Ocean_' // TRIM( Tracer ) // '_'
-     &                     // TRIM( Input_Opt%Hg_CAT(N+2) )
+!-----------------------------------------------------------------------------
+! Prior to 4/26/16:
+! Now get Hg_Cat_Names from State_Chm (bmy, 4/26/16)
+!                  v_name = 'Ocean_' // TRIM( Tracer ) // '_'
+!     &                     // TRIM( Input_Opt%Hg_CAT(N+2) )
+!-----------------------------------------------------------------------------
+                  v_name = 'Ocean_' // TRIM( Tracer         ) //
+     &                     '_'      // TRIM( Hg_Cat_Name(N) )
+                  print*, '@@@ 4 : ', TRIM( v_Name )
 
                   ! Zero temporary array and set pointer
                   Temp2D = 0.0d4
@@ -1108,9 +1183,16 @@ dvected tracer input  restart file
                   v_name = TRIM( Prefix )
                ELSE
                   ! Append category name if tagged
-                  v_name = TRIM( Prefix ) // '_'
-     &                     // TRIM( Input_Opt%Hg_CAT(N+2) )
+!-----------------------------------------------------------------------------
+! Prior to 4/26/16:
+! Now get Hg_Cat_Names from State_Chm (bmy, 4/26/16)
+!                  v_name = TRIM( Prefix ) // '_'
+!     &                     // TRIM( Input_Opt%Hg_CAT(N+2) )
+!-----------------------------------------------------------------------------
+                  v_name = TRIM( Prefix         ) // '_' //
+     &                     TRIM( Hg_Cat_Name(N) ) 
                ENDIF
+               print*, '@@@ 5 : ', TRIM( v_name )
 
                ! Zero temporary array and set pointer
                Temp2D = 0.0d4 
@@ -1172,12 +1254,19 @@ dvected tracer input  restart file
  230        FORMAT( /, 'NOTE: all variables not found are initialized ',
      &                 'to zero') 
          ENDIF
-         
+
+         ! Free pointers for Hg indexing
+         Id_Hg0      => NULL()
+         Id_Hg2      => NULL()
+         Id_HgP      => NULL()
+         Hg_Cat_Name => NULL()
+
       ENDIF
 
       !=================================================================
       ! Clean up
       !=================================================================
+      
 
       ! Mark end of section in log
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -1595,8 +1684,6 @@ dvected tracer input  restart file
       USE OCEAN_MERCURY_MOD,  ONLY : CHECK_OCEAN_MERCURY     
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC,  SNOW_HG_STORED_OC
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_LN,  SNOW_HG_STORED_LN
-      USE TRACERID_MOD,       ONLY : ID_Hg0, ID_Hg2, ID_HgP, ID_Hg_tot
-      USE TRACERID_MOD,       ONLY : N_Hg_CATS
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1636,8 +1723,14 @@ dvected tracer input  restart file
       REAL*4, TARGET       :: Temp3D( IIPAR, JJPAR, LLPAR )
       REAL*4, TARGET       :: Temp2D( IIPAR, JJPAR )
       REAL*4, POINTER      :: Ptr3D(:,:,:) => NULL()
-      REAL*4, POINTER      :: Ptr2D(:,:) => NULL()
+      REAL*4, POINTER      :: Ptr2D(:,:  ) => NULL()
 
+      ! For indexing of Hg species
+      INTEGER              :: N_Hg_CATS
+      INTEGER              :: Id_Hg_tot
+      INTEGER, POINTER     :: Id_Hg0(:) => NULL()
+      INTEGER, POINTER     :: Id_Hg2(:) => NULL()
+      INTEGER, POINTER     :: Id_HgP(:) => NULL()
 
       ! Pointer to HEMCO state (is this needed?)
       TYPE(HCO_STATE), POINTER :: HcoState => NULL()
@@ -1654,6 +1747,26 @@ dvected tracer input  restart file
 
       ! Set minimum value of species concentration [molec/cm3/box]
       SMALL_NUM = 1.e-30_sp
+
+      !=================================================================
+      ! Initialize local Hg indexing variables.  These used to be 
+      ! contained in tracerid_mod.F, but tracerid_mod.F is going
+      ! to be removed with the FlexChem implementation (bmy, 4/26/16)
+      !=================================================================
+      IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN 
+         
+         ! Now get the # of tagHg categories from State_Chm
+         N_Hg_CATS =  State_Chm%N_Hg_CATS
+
+         ! Hg species index corresponding to a given Hg category number
+         Id_Hg0    => State_Chm%Id_Hg0
+         Id_Hg2    => State_Chm%Id_Hg2
+         Id_HgP    => State_Chm%Id_HgP
+
+         ! Total Hg is always the first category
+         ID_Hg_Tot = Id_Hg0(1)
+
+      ENDIF
 
       !=================================================================
       ! Construct output restart filename
@@ -2064,6 +2177,11 @@ dvected tracer input  restart file
       !=================================================================
       ! Write output NetCDF restart file using HEMCO 
       !=================================================================
+
+      ! Free pointers
+      Id_Hg0 => NULL()
+      Id_Hg2 => NULL() 
+      Id_HgP => NULL() 
 
       ! Get pointer to HEMCO state object.
       CALL GetHcoState( HcoState )

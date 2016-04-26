@@ -36,7 +36,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
-      USE TRACERID_MOD,       ONLY : ID_HG2, ID_HGP, ID_Hg_TOT
       USE TRACERID_MOD,       ONLY : IDTPASV
       USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
 
@@ -191,6 +190,10 @@
       REAL(fp)           :: Arr2D(IIPAR,JJPAR)
       CHARACTER(LEN=255) :: DiagnName
 
+      ! For Hg diagnostics
+      INTEGER            :: Id_Hg2
+      INTEGER            :: Id_HgP
+
       !=================================================================
       ! DIAG1 begins here!
       !=================================================================
@@ -263,6 +266,10 @@
       !-----------------------------------------------!
       IF(ND03 > 0) THEN
 
+         ! Indices for total Hg2 and HgP.  NOTE: Id_Hg_tot is always 1!
+         Id_Hg2 = State_Chm%Id_Hg2(1)
+         Id_HgP = State_Chm%Id_Hg2(1)
+         
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L)
@@ -271,22 +278,14 @@
         DO I = 1, IIPAR
 
           ! Reactive gaseous mercury, RGM
-!          AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
-!     &                      State_Chm%Tracers(I,J,L,ID_Hg2(ID_Hg_tot)) *
-!     &                      TCVV(ID_Hg2(ID_Hg_tot)) /
-!     &                      State_Met%AD(I,J,L) *1e+12_fp
           AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
-     &                      State_Chm%Tracers(I,J,L,ID_Hg2(ID_Hg_tot)) *
-     &                      TCVV(ID_Hg2(ID_Hg_tot)) * 1e+12_fp
+     &                      State_Chm%Tracers(I,J,L,ID_Hg2) *
+     &                      TCVV(ID_Hg2) * 1e+12_fp
 
           ! Reactive particulate mercury, PBM
-!          AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
-!     &                      State_Chm%Tracers(I,J,L,ID_HgP(ID_Hg_tot)) *
-!     &                      TCVV(ID_HgP(ID_Hg_tot)) / 
-!     &                      State_Met%AD(I,J,L) *1e+12_fp
           AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
-     &                      State_Chm%Tracers(I,J,L,ID_HgP(ID_Hg_tot)) *
-     &                      TCVV(ID_HgP(ID_Hg_tot)) * 1e+12_fp
+     &                      State_Chm%Tracers(I,J,L,ID_HgP) *
+     &                      TCVV(ID_HgP) * 1e+12_fp
                                                        
         ENDDO
         ENDDO

@@ -797,6 +797,7 @@
 !  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v)
 !  22 Apr 2016 - R. Yantosca - Now get IS_Hg2, Is_HgP from species database
+!  25 Apr 2016 - R. Yantosca - Now pass Hg category # to ADD_Hg2_* functions
 !******************************************************************************
 !
       ! References to F90 modules
@@ -845,7 +846,7 @@
       INTEGER                      :: II,      JJ,      LL,      NN
       INTEGER                      :: I,       K,       KBM,     KK     
       INTEGER                      :: KKP1,    KM1,     KP1,     KTM     
-      INTEGER                      :: M,       ISTEP
+      INTEGER                      :: M,       ISTEP,   Hg_Cat
       REAL(fp)                     :: CABV,    CBEL,    CDIFR,   CD2
       REAL(fp)                     :: DENOM,   SMALL,   MBSTH,   MUPDUDP
       REAL(fp)                     :: MINC,    MAXC,    QN,      FLUXIN
@@ -1249,10 +1250,13 @@
      &                          * ( 1e+0_fp - FISG(I,K) ) 
      &                          * AREA_M2 * g0_100 / DELT 
 
+                     ! Category # for this Hg2 species
+                     Hg_Cat = ThisSpc%Hg2_Cat
+
                      ! Pass to "ocean_mercury_mod.f"
-                     CALL ADD_Hg2_WD( II, J, M, WET_Hg2 )
-                     CALL ADD_Hg2_SNOWPACK( II, J, M,  WET_Hg2, 
-     &                                      State_Met, ThisSpc )
+                     CALL ADD_Hg2_WD      ( II, J, Hg_Cat, WET_Hg2   )
+                     CALL ADD_Hg2_SNOWPACK( II, J, Hg_Cat, WET_Hg2, 
+     &                                                     State_Met )
                   ENDIF
                   !eck/eds
                   IF ( ThisSpc%Is_HgP ) THEN
@@ -1269,10 +1273,13 @@
      &                         * ( 1e+0_fp - FISG(I,K) )
      &                          * AREA_M2 * g0_100 / DELT 
 
+                     ! Category # for this Hg2 species
+                     Hg_Cat = ThisSpc%HgP_Cat
+
                      ! Pass to "ocean_mercury_mod.f"
-                     CALL ADD_HgP_WD( II, J, M, WET_HgP )
-                     CALL ADD_Hg2_SNOWPACK( II, J, M,  WET_HgP,
-     &                                      State_Met, ThisSpc )
+                     CALL ADD_HgP_WD      ( II, J, Hg_Cat, WET_HgP   )
+                     CALL ADD_Hg2_SNOWPACK( II, J, Hg_Cat, WET_HgP,
+     &                                                     State_Met )
                   ENDIF
                ENDIF
 

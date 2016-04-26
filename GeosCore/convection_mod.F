@@ -1364,7 +1364,7 @@
       LOGICAL, SAVE            :: FIRST = .TRUE.
       INTEGER                  :: I, J, K, KTOP, L, N, NDT
       INTEGER                  :: IC, ISTEP, JUMP, JS, JN, NS
-      INTEGER                  :: IMR, JNP, NLAY, AS
+      INTEGER                  :: IMR, JNP, NLAY, AS, Hg_Cat
       REAL(fp)                 :: SDT, CMOUT, ENTRN, DQ, AREA_M2
       REAL(fp)                 :: T0, T1, T2, T3, T4, TSUM, DELQ
       REAL(fp)                 :: DTCSUM( IIPAR, JJPAR, LLPAR,
@@ -1614,7 +1614,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( CMOUT, DELQ, ENTRN, I, IC, ISTEP, ISOL, J, AREA_M2, K  ) 
 !$OMP+PRIVATE( MB, QB, QC, QC_PRES, QC_SCAV, T0, T1, T2, T3, T4, TSUM )
-!$OMP+PRIVATE( WET_Hg2, WET_HgP, ThisSpc                              )
+!$OMP+PRIVATE( WET_Hg2, WET_HgP, ThisSpc, Hg_Cat                      )
 !$OMP+SCHEDULE( DYNAMIC )
       DO IC = 1, NC
 
@@ -1890,10 +1890,13 @@
                         ! to [kg] by multiplying by NDT
                         WET_Hg2 = T0 * AREA_M2 / DNS * NDT
                         
+                        ! Category # for this Hg2 tracer
+                        Hg_Cat  = ThisSpc%Hg2_Cat
+
                         ! Pass to "ocean_mercury_mod.f"
-                        CALL ADD_Hg2_WD      ( I, J, IC,  WET_Hg2  )
-                        CALL ADD_Hg2_SNOWPACK( I, J, IC,  WET_Hg2,
-     &                                         State_Met, ThisSpc  )
+                        CALL ADD_Hg2_WD      ( I, J, Hg_Cat, WET_Hg2   )
+                        CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_Hg2,
+     &                                                       State_Met )
                      ENDIF
 
                      ! Is it a HgP tracer?
@@ -1903,8 +1906,11 @@
                         ! to [kg] by multiplying by NDT
                         WET_HgP = T0 * AREA_M2 / DNS * NDT
 
+                        ! Category # for this Hg2 tracer
+                        Hg_Cat  = ThisSpc%Hg2_Cat
+
                         ! Pass to "ocean_mercury_mod.f"
-                        CALL ADD_HgP_WD      ( I, J, IC, WET_HgP   ) 
+                        CALL ADD_HgP_WD      ( I, J, Hg_Cat, WET_HgP   ) 
 !------------------------------------------------------------------------------
 ! NOTE: This call to ADD_HG2_SNOWPACK is known to cause very small (numerical
 ! noise) differences in slot #4 of the PL-HG2-$ diagnostic when comparing
@@ -1927,8 +1933,8 @@
 ! 
 !    -- Bob Yantosca (22 Apr 2016)
 ! 
-                        CALL ADD_Hg2_SNOWPACK( I, J, IC,  WET_HgP,
-     &                                         State_Met, ThisSpc  )
+                        CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_HgP,
+     &                                                       State_Met )
 !------------------------------------------------------------------------------
                      ENDIF
 !$OMP END CRITICAL
@@ -2183,7 +2189,7 @@
 !                              -- Add tracer GAINED to Q before WETLOSS
 !                                 calculation in aerosol washout
 !  22 Apr 2016 - R. Yantosca - Now get Is_Hg2 & Is_HgP from species database
-!  22 Apr 2016 - R. Yantosca - Now pass ThisSpc to ADD_HG2_SNOWPACK
+!  25 Apr 2016 - R. Yantosca - Now pass Hg category # to ADD_Hg2_* functions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2198,7 +2204,7 @@
       LOGICAL             :: AER,         IS_Hg 
       INTEGER             :: IC,          ISTEP,    K,       KTOP
       INTEGER             :: NC,          NDT,      NLAY,    NS    
-      INTEGER             :: CLDBASE
+      INTEGER             :: CLDBASE,     Hg_Cat
       REAL(fp)            :: CMFMC_BELOW, ALPHA,    ALPHA2
       REAL(fp)            :: CMOUT,       DELQ,     DQ,      DNS
       REAL(fp)            :: ENTRN,       QC,       QC_PRES, QC_SCAV 
@@ -2975,10 +2981,13 @@
                ! Wet scavenged Hg(II) in [kg]
                WET_Hg2 = ( T0_SUM * AREA_M2 )
 
+               ! Category # for this Hg2 species
+               Hg_Cat  = ThisSpc%Hg2_Cat
+
                ! Pass to "ocean_mercury_mod.f"
-               CALL ADD_Hg2_WD      ( I, J, IC,  WET_Hg2  )
-               CALL ADD_Hg2_SNOWPACK( I, J, IC,  WET_Hg2, 
-     &                                State_Met, ThisSpc  )
+               CALL ADD_Hg2_WD      ( I, J, Hg_Cat, WET_Hg2   )
+               CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_Hg2, 
+     &                                              State_Met )
             ENDIF
 
             !--------------------------------------
@@ -2989,10 +2998,13 @@
                ! Wet scavenged Hg(P) in [kg]
                WET_HgP = ( T0_SUM * AREA_M2 )
 
+               ! Category # for this Hg2 species
+               Hg_Cat  = ThisSpc%HgP_Cat
+
                ! Pass to "ocean_mercury_mod.f"
-               CALL ADD_HgP_WD      ( I, J, IC,  WET_HgP  )
-               CALL ADD_Hg2_SNOWPACK( I, J, IC,  WET_HgP, 
-     &                                State_Met, ThisSpc  )
+               CALL ADD_HgP_WD      ( I, J, Hg_Cat, WET_HgP   )
+               CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_HgP, 
+     &                                              State_Met )
             ENDIF
 
          ENDDO               ! End internal timestep loop

@@ -51,6 +51,9 @@
 !
 ! !PRIVATE TYPES:
 !
+      ! Keep a shadow variable of N_HG_CATS for backwards compatibility
+      INTEGER                :: N_HG_CATS
+
       ! Plant transpiration rate [m/s]
       REAL(fp),  ALLOCATABLE :: TRANSP(:,:)
 
@@ -77,8 +80,6 @@
       USE DEPO_MERCURY_MOD,   ONLY : WD_HGP, WD_HG2, DD_HGP, DD_HG2
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
-      USE TRACERID_MOD,       ONLY : ID_Hg0,          N_Hg_CATS
-
       USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
@@ -88,7 +89,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),         INTENT(OUT) :: LFLUX(IIPAR,JJPAR,N_Hg_CATS) ! Hg0 flux
+      REAL(fp),       INTENT(OUT) :: LFLUX(IIPAR,JJPAR,N_Hg_CATS) ! Hg0 flux
                                                                   !  [kg/s]
 !
 ! !REVISION HISTORY:
@@ -693,8 +694,6 @@
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC, SNOW_HG_LN
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
-      USE TRACERID_MOD,       ONLY : N_Hg_CATS
-
       USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
@@ -1137,7 +1136,8 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE INIT_LAND_MERCURY( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_LAND_MERCURY( am_I_Root, Input_Opt, 
+     &                              State_Chm, RC         )
 ! 
 ! !USES:
 !
@@ -1145,11 +1145,16 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1164,6 +1169,11 @@
       !=================================================================
       ! INIT_MERCURY begins here!
       !=================================================================
+
+      ! Save State_Chm%N_Hg_CATS in a shadow variable
+      N_Hg_CATS = State_Chm%N_Hg_CATS
+      print*, '### In INIT_LAND_MERCURY #########################'
+      print*, '### N_Hg_CATS : ', N_Hg_CATS
 
       END SUBROUTINE INIT_LAND_MERCURY
 !EOC

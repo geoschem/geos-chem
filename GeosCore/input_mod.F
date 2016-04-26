@@ -8391,7 +8391,7 @@
       USE C2H6_Mod,           ONLY : Init_C2H6
       USE Chemgrid_Mod,       ONLY : Init_Chemgrid
       USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
-      USE Diag03_Mo           ONLY : Init_Diag03
+      USE Diag03_Mod,         ONLY : Init_Diag03
       USE Drydep_Mod,         ONLY : Init_Drydep
       USE Dust_Mod,           ONLY : Init_Dust
       USE Error_Mod,          ONLY : Debug_Msg
@@ -8403,6 +8403,7 @@
       USE Linoz_Mod,          ONLY : Init_Linoz
       USE Land_Mercury_Mod,   ONLY : Init_Land_Mercury
       USE Mercury_Mod,        ONLY : Init_Mercury
+      USE Modis_Lai_Mod,      ONLY : Init_Modis_Lai
       USE Ocean_Mercury_Mod,  ONLY : Init_Ocean_Mercury
       USE POPs_Mod,           ONLY : Init_POPs
       USE Seasalt_Mod,        ONLY : Init_SeaSalt
@@ -8631,7 +8632,7 @@
       ! Initialize Mercury simulation routines
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN 
          CALL INIT_MERCURY      ( am_I_Root, Input_Opt, State_Chm, RC )
-         CALL INIT_LAND_MERCURY ( am_I_Root, Input_Opt,            RC )
+         CALL INIT_LAND_MERCURY ( am_I_Root, Input_Opt, State_Chm, RC )
          CALL INIT_DEPO_MERCURY ( am_I_Root, Input_Opt, State_Chm, RC )
          CALL INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF

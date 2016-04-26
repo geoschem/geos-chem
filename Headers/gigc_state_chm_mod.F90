@@ -76,6 +76,7 @@ MODULE GIGC_State_Chm_Mod
      INTEGER,           POINTER :: ID_Hg0     (:      ) ! Hg0 cat <-> tracer #
      INTEGER,           POINTER :: ID_Hg2     (:      ) ! Hg0 cat <-> tracer #
      INTEGER,           POINTER :: ID_HgP     (:      ) ! Hg0 cat <-> tracer #
+     CHARACTER(LEN=4),  POINTER :: Hg_Cat_Name(:      ) ! Category names
 
   END TYPE ChmState
 !
@@ -553,14 +554,22 @@ CONTAINS
        ! Index array: Hg0 species # <--> Hg0 category #
        ALLOCATE( State_Chm%Id_Hg0( State_Chm%N_Hg_CATS ), STAT=RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
+       State_Chm%Id_Hg0 = 0
 
        ! Index array: Hg2 species # <--> Hg0 category #
        ALLOCATE( State_Chm%Id_Hg2( State_Chm%N_Hg_CATS ), STAT=RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
+       State_Chm%Id_Hg2 = 0
 
        ! Index array: HgP species # <--> Hg0 category #
        ALLOCATE( State_Chm%Id_HgP( State_Chm%N_Hg_CATS ), STAT=RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
+       State_Chm%Id_HgP = 0
+
+       ! Hg category names
+       ALLOCATE( State_Chm%Hg_Cat_Name( State_Chm%N_Hg_CATS ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       State_Chm%Hg_Cat_Name = ''
 
        ! Loop over all species
        DO N = 1, State_Chm%nSpecies
@@ -585,6 +594,18 @@ CONTAINS
 
           ! Free pointer
           ThisSpc => NULL()
+       ENDDO
+
+       ! Loop over Hg categories (except the first
+       DO C = 2, State_Chm%N_Hg_CATS
+
+          ! Hg0 tracer number corresponding to this category
+          N                        =  State_Chm%Id_Hg0(C)
+
+          ! The category name (e.g. "_can") follows the "Hg0"
+          ThisSpc                  => State_Chm%SpcData(N)%Info
+          State_Chm%Hg_Cat_Name(C) =  ThisSpc%Name(4:7)
+          ThisSpc                  => NULL()
        ENDDO
     ENDIF
 

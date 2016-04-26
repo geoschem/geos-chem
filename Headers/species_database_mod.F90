@@ -2813,6 +2813,9 @@ CONTAINS
              
              ! Standardize tagged Hg0 tracer names 
              SELECT CASE( TRIM( NameAllCaps ) ) 
+                CASE( 'HG0'     )
+                   Name     = 'Hg0'
+                   FullName = 'Elemental mercury'
                 CASE( 'HG0_CAN' )
                    Name     = 'Hg0_can'
                    FullName = 'Elemental mercury from Canada'
@@ -2923,6 +2926,9 @@ CONTAINS
 
              ! Standardize tagged Hg0 tracer names 
              SELECT CASE( TRIM( NameAllCaps ) ) 
+                CASE( 'HG2'     )
+                   Name     = 'Hg2'
+                   FullName = 'Divalent mercury'
                 CASE( 'HG2_CAN' )
                    Name     = 'Hg2_can'
                    FullName = 'Divalent mercury from Canada'
@@ -3040,7 +3046,10 @@ CONTAINS
                 'HGP_ARC', 'HGP_ANT', 'HGP_OCN', 'HGP_STR' )
 
              ! Standardize tagged HgP tracer names 
-             SELECT CASE( TRIM( NameAllCaps ) ) 
+             SELECT CASE( TRIM( NameAllCaps ) )
+                 CASE( 'HGP'     )
+                   Name     = 'HgP'
+                   FullName = 'Particulate mercury'
                 CASE( 'HGP_CAN' )
                    Name     = 'HgP_can'
                    FullName = 'Particulate mercury from Canada'

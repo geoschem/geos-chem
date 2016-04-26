@@ -804,7 +804,7 @@
 #endif 
 
 #if !defined( BPCH_RST_OUT )
-      CALL INIT_GC_RESTART_NC( am_I_Root, Input_Opt, RC )
+      CALL INIT_GC_RESTART_NC( am_I_Root, Input_Opt, State_Chm, RC )
 #endif
 
 #if defined( USE_TIMERS )
@@ -979,37 +979,35 @@
          CALL GEOS_Timer_End( "Diagnostics", RC )
 #endif
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: Bob Y. blocked out this section of code which only executes if
-!%%% the GTMM Mercury Model is being used.  The bpch restart files are being 
-!%%% phased out.  It is unclear anyone is still using the GTMM land Hg model 
-!%%% anymore.  If so, then we can investigate a way to add the GTMM diagnostic 
-!%%% quantities into the netCDF restart file. (bmy, 4/22/16)
-!%%%
-!%%%         !=============================================================
-!%%%         !   ***** W R I T E   MERCURY RESTART  F I L E *****
-!%%%         !     ***** MUST be done after call to diag3 *****
-!%%%         !=============================================================
-!%%%         ! Make land restart file: for GTMM runs only, beginning of each 
-!%%%         ! month but not start of the run.
-!%%%         IF ( LGTMM .AND. ITS_A_NEW_MONTH() .AND. NYMD /= NYMDb ) THEN
-!%%%            IF (.NOT.( ITS_TIME_FOR_BPCH() )) THEN
-!%%%               N = 1
-!%%%               NNN = GET_WETDEP_IDWETD( N )
-!%%%               DO WHILE( .NOT.(IS_Hg2( NNN )) )
-!%%%               
-!%%%                  N = N + 1
-!%%%                  ! Tracer number
-!%%%                  NNN = GET_WETDEP_IDWETD( N )
-!%%%
-!%%%               ENDDO
-!%%%
-!%%%               CALL UPDATE_DEP( N )
-!%%%            ENDIF
-!%%%            CALL MAKE_GTMM_RESTART( am_I_Root, Input_Opt, NYMD, 
-!%%%     &                              NHMS,      TAU,       RC    )
-!%%%         ENDIF
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !=============================================================
+         !   ***** W R I T E   MERCURY RESTART  F I L E *****
+         !     ***** MUST be done after call to diag3 *****
+         !=============================================================
+         ! Make land restart file: for GTMM runs only, beginning of each 
+         ! month but not start of the run.
+!         IF ( LGTMM .AND. ITS_A_NEW_MONTH() .AND. NYMD /= NYMDb ) THEN
+!            IF (.NOT.( ITS_TIME_FOR_BPCH() )) THEN
+               N = 1
+               NNN = GET_WETDEP_IDWETD( N )
+               !DO WHILE( .NOT.( IS_Hg2( NNN )) )
+               DO
+
+                  ! Exit once we encounter Hg2
+                  If ( State_Chm%SpcData(NNN)%Info%Is_Hg2 ) THEN
+                     EXIT
+                  ENDIF
+
+                  N = N + 1
+                  ! Tracer number
+                  NNN = GET_WETDEP_IDWETD( N )
+               ENDDO
+               print*, '### N, NNN: ', N, NNN
+               CALL UPDATE_DEP( N )
+!            ENDIF
+!            CALL MAKE_GTMM_RESTART( am_I_Root, Input_Opt, NYMD, 
+!     &                              NHMS,      TAU,       RC    )
+!         ENDIF
+          stop
 
          !==============================================================
          !       ***** T E S T   F O R   E N D   O F   R U N *****
