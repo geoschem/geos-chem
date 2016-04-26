@@ -101,7 +101,8 @@ gckpp_Hessian.o       : gckpp_Parameters.o      \
                         gckpp_HessianSP.o
 
 gckpp_HetRates.o      : gckpp_HetRates.F90      \
-	                gckpp_Parameters.o      \
+                        gckpp_Global.o          \
+                        gckpp_Parameters.o      \
                         gckpp_Precision.o
 
 gckpp_Initialize.o    : gckpp_Parameters.o      \
