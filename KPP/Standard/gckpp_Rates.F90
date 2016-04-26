@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Fri Apr 22 17:50:52 2016
+! Time                 : Tue Apr 26 17:39:55 2016
 ! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/v11-01f_Standard
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -834,7 +834,7 @@ SUBROUTINE Update_RCONST ( )
   RCONST(349) = (GCARR(1.31E-10,0.0E+00,0.0))
   RCONST(350) = (GCARR(0.09E-10,0.0E+00,0.0))
   RCONST(351) = (GCARR(0.35E-10,0.0E+00,0.0))
-  RCONST(352) = (GCARR(6.00E-34,2.4E+00,0.0))
+  RCONST(352) = (GCARR(6.00E-34,2.4E+00,0.0)*NUMDEN)
   RCONST(353) = (GCARR(8.00E-12,0.0E+00,-2060.0))
   RCONST(354) = (GCARR(2.80E-12,0.0E+00,-1800.0))
   RCONST(355) = (GCARR(1.80E-11,0.0E+00,180.0))
