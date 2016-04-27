@@ -311,7 +311,6 @@
          
             ! Define container name and ID
             ContainerName = 'Ocean_' // TRIM( Tracer )
-            print*, '@@@ 1 : ', TRIM( ContainerName )
             cID = cID + 1
             
             ! Create container
@@ -354,16 +353,9 @@
                   ContainerName = TRIM( Prefix )
                ELSE
                   ! Append category name
-!------------------------------------------------------------------------------
-! Prior to 4/26/16:
-! Now get Hg_CAT_NAME from State_Chm (bmy, 4/26/16)
-!                  ContainerName = TRIM( Prefix ) // '_'
-!     &                            // TRIM( Input_Opt%Hg_CAT(N+2) )      
-!------------------------------------------------------------------------------
                   ContainerName = TRIM( Prefix         ) // '_' //
      &                            TRIM( Hg_Cat_Name(N) )
                ENDIF
-               print*, '@@@ 2 : ', TRIM( ContainerName )
                cID = cId + 1
             
                ! Create container
@@ -405,15 +397,8 @@
                DO N = 2, N_Hg_CATS
                
                   ! Define container name and ID
-!-----------------------------------------------------------------------------
-! Prior to 4/26/16:
-! Now get Hg_CAT_NAME from State_Chm (bmy, 4/26/16)
-!                  ContainerName = 'Ocean_' // TRIM( TRACER ) // '_' 
-!     &                            // TRIM( Input_Opt%Hg_CAT(N+2) )
-!-----------------------------------------------------------------------------
                   ContainerName = 'Ocean_' // TRIM( TRACER         ) //
      &                            '_'      // TRIM( Hg_Cat_Name(N) )
-                  print*, '@@@ 3 : ', TRIM( ContainerName )
 
                   cID = cId + 1
                
@@ -1103,15 +1088,8 @@ dvected tracer input  restart file
                         Tracer = 'HgP' 
                         Tracer_id = ID_HgP(N)
                   END SELECT
-!-----------------------------------------------------------------------------
-! Prior to 4/26/16:
-! Now get Hg_Cat_Names from State_Chm (bmy, 4/26/16)
-!                  v_name = 'Ocean_' // TRIM( Tracer ) // '_'
-!     &                     // TRIM( Input_Opt%Hg_CAT(N+2) )
-!-----------------------------------------------------------------------------
                   v_name = 'Ocean_' // TRIM( Tracer         ) //
      &                     '_'      // TRIM( Hg_Cat_Name(N) )
-                  print*, '@@@ 4 : ', TRIM( v_Name )
 
                   ! Zero temporary array and set pointer
                   Temp2D = 0.0d4
@@ -1183,16 +1161,9 @@ dvected tracer input  restart file
                   v_name = TRIM( Prefix )
                ELSE
                   ! Append category name if tagged
-!-----------------------------------------------------------------------------
-! Prior to 4/26/16:
-! Now get Hg_Cat_Names from State_Chm (bmy, 4/26/16)
-!                  v_name = TRIM( Prefix ) // '_'
-!     &                     // TRIM( Input_Opt%Hg_CAT(N+2) )
-!-----------------------------------------------------------------------------
                   v_name = TRIM( Prefix         ) // '_' //
      &                     TRIM( Hg_Cat_Name(N) ) 
                ENDIF
-               print*, '@@@ 5 : ', TRIM( v_name )
 
                ! Zero temporary array and set pointer
                Temp2D = 0.0d4 

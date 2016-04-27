@@ -1172,8 +1172,6 @@
 
       ! Save State_Chm%N_Hg_CATS in a shadow variable
       N_Hg_CATS = State_Chm%N_Hg_CATS
-      print*, '### In INIT_LAND_MERCURY #########################'
-      print*, '### N_Hg_CATS : ', N_Hg_CATS
 
       END SUBROUTINE INIT_LAND_MERCURY
 !EOC

@@ -985,13 +985,11 @@
          !=============================================================
          ! Make land restart file: for GTMM runs only, beginning of each 
          ! month but not start of the run.
-!         IF ( LGTMM .AND. ITS_A_NEW_MONTH() .AND. NYMD /= NYMDb ) THEN
-!            IF (.NOT.( ITS_TIME_FOR_BPCH() )) THEN
+         IF ( LGTMM .AND. ITS_A_NEW_MONTH() .AND. NYMD /= NYMDb ) THEN
+            IF (.NOT.( ITS_TIME_FOR_BPCH() )) THEN
                N = 1
                NNN = GET_WETDEP_IDWETD( N )
-               !DO WHILE( .NOT.( IS_Hg2( NNN )) )
                DO
-
                   ! Exit once we encounter Hg2
                   If ( State_Chm%SpcData(NNN)%Info%Is_Hg2 ) THEN
                      EXIT
@@ -1001,13 +999,11 @@
                   ! Tracer number
                   NNN = GET_WETDEP_IDWETD( N )
                ENDDO
-               print*, '### N, NNN: ', N, NNN
                CALL UPDATE_DEP( N )
-!            ENDIF
-!            CALL MAKE_GTMM_RESTART( am_I_Root, Input_Opt, NYMD, 
-!     &                              NHMS,      TAU,       RC    )
-!         ENDIF
-          stop
+            ENDIF
+            CALL MAKE_GTMM_RESTART( am_I_Root, Input_Opt, NYMD, 
+     &                              NHMS,      TAU,       RC    )
+         ENDIF
 
          !==============================================================
          !       ***** T E S T   F O R   E N D   O F   R U N *****

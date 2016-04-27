@@ -4481,16 +4481,6 @@
          ThisSpc => NULL()
       ENDDO
 
-      print*, '### INIT_OCEAN_MERCURY #################'
-      print*, '### N_Hg_CATS = ', N_HG_CATS
-      PRINT*, '### ID_Hg_tot = ', ID_Hg_tot
-      print*, '### ID_Hg_atl = ', ID_Hg_atl
-      print*, '### ID_Hg_nat = ', ID_Hg_nat
-      print*, '### ID_Hg_sat = ', ID_Hg_sat
-      print*, '### ID_Hg_npa = ', ID_Hg_npa
-      print*, '### ID_Hg_arc = ', ID_Hg_arc
-      print*, '### ID_Hg_ant = ', ID_Hg_ant
-
       !-----------------------------------------------------------------
       ! Allocate these arrays regardless of whether you are using
       ! the dynamic ocean.  These are needed for Hg2 partitioning.
