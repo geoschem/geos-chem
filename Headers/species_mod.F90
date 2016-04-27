@@ -135,9 +135,7 @@ MODULE Species_Mod
      LOGICAL            :: Is_Hg0           ! T=total or tagged Hg0 species
      LOGICAL            :: Is_Hg2           ! T=total or tagged Hg2 species
      LOGICAL            :: Is_HgP           ! T=total or tagged HgP species
-     INTEGER            :: Hg0_Cat          ! Tagged Hg0 category number
-     INTEGER            :: Hg2_Cat          ! Tagged Hg2 category number
-     INTEGER            :: HgP_Cat          ! Tagged HgP category number
+     INTEGER            :: Hg_Cat           ! Tagged Hg category number
 
   END TYPE Species
 !
@@ -838,8 +836,8 @@ CONTAINS
 
        ! Increment count and index of Hg0 categories
        IF ( Is_Hg0 ) THEN
-          Hg0Count        = Hg0Count + 1
-          ThisSpc%Hg0_Cat = Hg0Count
+          Hg0Count       = Hg0Count + 1
+          ThisSpc%Hg_Cat = Hg0Count
        ENDIF
 
     ELSE
@@ -854,8 +852,8 @@ CONTAINS
 
        ! Increment count of Hg2 species
        IF ( Is_Hg2 ) THEN
-          Hg2Count        = Hg2Count + 1
-          ThisSpc%Hg2_Cat = Hg2Count
+          Hg2Count       = Hg2Count + 1
+          ThisSpc%Hg_Cat = Hg2Count
        ENDIF
 
     ELSE
@@ -870,8 +868,8 @@ CONTAINS
 
        ! Increment count of HgP species
        IF ( Is_HgP ) THEN
-          HgPCount        = HgPCount + 1
-          ThisSpc%HgP_Cat = HgPCount
+          HgPCount       = HgPCount + 1
+          ThisSpc%Hg_Cat = HgPCount
        ENDIF
 
     ELSE

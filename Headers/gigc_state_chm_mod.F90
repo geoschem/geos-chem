@@ -579,17 +579,17 @@ CONTAINS
           
           ! Populate the Hg0 index array
           IF ( ThisSpc%Is_Hg0 ) THEN
-             State_Chm%Id_Hg0(ThisSpc%Hg0_Cat) = ThisSpc%ModelId
+             State_Chm%Id_Hg0(ThisSpc%Hg_Cat) = ThisSpc%ModelId
           ENDIF
 
           ! Populate the Hg2 index array
           IF ( ThisSpc%Is_Hg2 ) THEN
-             State_Chm%Id_Hg2(ThisSpc%Hg2_Cat) = ThisSpc%ModelId
+             State_Chm%Id_Hg2(ThisSpc%Hg_Cat) = ThisSpc%ModelId
           ENDIF
 
           ! Populate the HgP index array
           IF ( ThisSpc%Is_HgP ) THEN
-             State_Chm%Id_HgP(ThisSpc%HgP_Cat) = ThisSpc%ModelId
+             State_Chm%Id_HgP(ThisSpc%Hg_Cat) = ThisSpc%ModelId
           ENDIF
 
           ! Free pointer

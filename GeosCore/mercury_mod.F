@@ -4634,67 +4634,67 @@
          SELECT CASE( TRIM( ThisSpc%Name ) )
             CASE( 'Hg0'     )
                IDTHg0    = ThisSpc%ModelId
-               ID_Hg_tot = ThisSpc%Hg0_Cat
+               ID_Hg_tot = ThisSpc%Hg_Cat
             CASE( 'Hg2'     )
                IDTHg2    = ThisSpc%ModelId
             CASE( 'HgP'     )
                IDTHgP    = ThisSpc%ModelId
             CASE( 'Hg0_can' )
-               ID_Hg_can = ThisSpc%Hg0_Cat
+               ID_Hg_can = ThisSpc%Hg_Cat
             CASE( 'Hg0_usa' )
-               ID_Hg_usa = ThisSpc%Hg0_Cat
+               ID_Hg_usa = ThisSpc%Hg_Cat
             CASE( 'Hg0_cam' )
-               ID_Hg_cam = ThisSpc%Hg0_Cat 
+               ID_Hg_cam = ThisSpc%Hg_Cat 
             CASE( 'Hg0_sam' )
-               ID_Hg_sam = ThisSpc%Hg0_Cat 
+               ID_Hg_sam = ThisSpc%Hg_Cat 
             CASE( 'Hg0_waf' )
-               ID_Hg_waf = ThisSpc%Hg0_cat
+               ID_Hg_waf = ThisSpc%Hg_Cat
             CASE( 'Hg0_eaf' )
-               ID_Hg_eaf = ThisSpc%Hg0_cat 
+               ID_Hg_eaf = ThisSpc%Hg_Cat 
             CASE( 'Hg0_saf' )
-               ID_Hg_saf = ThisSpc%Hg0_cat 
+               ID_Hg_saf = ThisSpc%Hg_Cat 
             CASE( 'Hg0_naf' )
-               ID_Hg_naf = ThisSpc%Hg0_cat
+               ID_Hg_naf = ThisSpc%Hg_Cat
             CASE( 'Hg0_eur' )
-               ID_Hg_eur = ThisSpc%Hg0_cat 
+               ID_Hg_eur = ThisSpc%Hg_Cat 
             CASE( 'Hg0_eeu' )
-               ID_Hg_eeu = ThisSpc%Hg0_cat 
+               ID_Hg_eeu = ThisSpc%Hg_Cat 
             CASE( 'Hg0_sov' )
-               ID_Hg_sov = ThisSpc%Hg0_cat
+               ID_Hg_sov = ThisSpc%Hg_Cat
             CASE( 'Hg0_mde' )
-               ID_Hg_mde = ThisSpc%Hg0_cat 
+               ID_Hg_mde = ThisSpc%Hg_Cat 
             CASE( 'Hg0_sas' )
-               ID_Hg_sas = ThisSpc%Hg0_cat 
+               ID_Hg_sas = ThisSpc%Hg_Cat 
             CASE( 'Hg0_eas' )
-               ID_Hg_eas = ThisSpc%Hg0_cat
+               ID_Hg_eas = ThisSpc%Hg_Cat
             CASE( 'Hg0_sea' )
-               ID_Hg_sea = ThisSpc%Hg0_cat 
+               ID_Hg_sea = ThisSpc%Hg_Cat 
             CASE( 'Hg0_jpn' )
-               ID_Hg_jpn = ThisSpc%Hg0_cat 
+               ID_Hg_jpn = ThisSpc%Hg_Cat 
             CASE( 'Hg0_oce' )
-               ID_Hg_oce = ThisSpc%Hg0_cat
+               ID_Hg_oce = ThisSpc%Hg_Cat
             CASE( 'Hg0_so'  )
-               ID_Hg_so  = ThisSpc%Hg0_cat 
+               ID_Hg_so  = ThisSpc%Hg_Cat 
             CASE( 'Hg0_bb'  )
-               ID_Hg_bb  = ThisSpc%Hg0_cat 
+               ID_Hg_bb  = ThisSpc%Hg_Cat 
             CASE( 'Hg0_geo' )
-               ID_Hg_geo = ThisSpc%Hg0_cat
+               ID_Hg_geo = ThisSpc%Hg_Cat
             CASE( 'Hg0_atl' ) 
-               ID_Hg_atl = ThisSpc%Hg0_Cat
+               ID_Hg_atl = ThisSpc%Hg_Cat
             CASE( 'Hg0_nat' )
-               ID_Hg_nat = ThisSpc%Hg0_Cat
+               ID_Hg_nat = ThisSpc%Hg_Cat
             CASE( 'Hg0_sat' )
-               ID_Hg_sat = ThisSpc%Hg0_Cat
+               ID_Hg_sat = ThisSpc%Hg_Cat
             CASE( 'Hg0_npa' )
-               ID_Hg_npa = ThisSpc%Hg0_Cat
+               ID_Hg_npa = ThisSpc%Hg_Cat
             CASE( 'Hg0_arc' )
-               ID_Hg_arc = ThisSpc%Hg0_Cat
+               ID_Hg_arc = ThisSpc%Hg_Cat
             CASE( 'Hg0_ant' )
-               ID_Hg_ant = ThisSpc%Hg0_Cat
+               ID_Hg_ant = ThisSpc%Hg_Cat
             CASE( 'Hg0_ocn' )
-               ID_Hg_ocn = ThisSpc%Hg0_Cat
+               ID_Hg_ocn = ThisSpc%Hg_Cat
             CASE( 'Hg0_str' )
-               ID_Hg_str = ThisSpc%Hg0_cat
+               ID_Hg_str = ThisSpc%Hg_cat
             CASE DEFAULT
                ! Do nothing
          END SELECT

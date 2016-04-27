@@ -3342,7 +3342,7 @@
 ! Prior to 4/25/16:
 !               NN              = GET_Hg0_CAT( NTRACER )
 !-----------------------------------------------------------------------------
-               NN              = ThisSpc%Hg0_Cat
+               NN              = ThisSpc%Hg_Cat
 
                ! Store ocean Hg(0) in Hg0aq array
                Hg0aq(:,:,NN)   = Hg_OCEAN(:,:,1)
@@ -3372,7 +3372,7 @@
 ! Prior to 4/25/16:
 !               NN              = GET_Hg2_CAT( NTRACER )
 !-----------------------------------------------------------------------------
-               NN              = ThisSpc%Hg2_Cat
+               NN              = ThisSpc%Hg_Cat
 
                ! Store ocean Hg(II) in Hg2_aq array
                Hg2aq(:,:,NN)   = Hg_OCEAN(:,:,1)
@@ -3401,7 +3401,7 @@
 ! Prior to 4/25/16:
 !               NN              = GET_HgP_CAT( NTRACER )
 !-----------------------------------------------------------------------------
-               NN                   = ThisSpc%Is_HgP
+               NN                   = ThisSpc%Hg_Cat
 
                ! Particulate Hg
                HgPaq(:,:,NN)        = Hg_OCEAN(:,:,1)
@@ -3429,7 +3429,7 @@
 ! Prior to 4/25/16:
 !               NN              = GET_Hg0_CAT( NTRACER )
 !-----------------------------------------------------------------------------
-               NN              = ThisSpc%Hg0_Cat
+               NN              = ThisSpc%Hg_Cat
               
                ! Store ocean Hg(0) in Hg0aq array
                SNOW_HG_STORED_OC(:,:,NN)   = Hg_OCEAN(:,:,1)
@@ -3444,7 +3444,7 @@
 ! Prior to 4/25/16:
 !               NN              = GET_Hg0_CAT( NTRACER )
 !-----------------------------------------------------------------------------
-               NN              = ThisSpc%Hg0_Cat
+               NN              = ThisSpc%Hg_Cat
 
                ! Store ocean Hg(0) in Hg0aq array
                SNOW_HG_OC(:,:,NN)   = Hg_OCEAN(:,:,1)
@@ -3460,7 +3460,7 @@
 ! Prior to 4/25/16:
 !               NN              = GET_Hg0_CAT( NTRACER )
 !-----------------------------------------------------------------------------
-               NN              = ThisSpc%Hg0_Cat
+               NN              = ThisSpc%Hg_Cat
 
                ! Store ocean Hg(0) in Hg0aq array
                SNOW_HG_STORED_LN(:,:,NN)   = Hg_OCEAN(:,:,1)
@@ -3475,7 +3475,7 @@
 ! Prior to 4/25/16:
 !               NN              = GET_Hg0_CAT( NTRACER )
 !-----------------------------------------------------------------------------
-               NN              = ThisSpc%Hg0_Cat
+               NN              = ThisSpc%Hg_Cat
 
                ! Store ocean Hg(0) in Hg0aq array
                SNOW_HG_LN(:,:,NN)   = Hg_OCEAN(:,:,1)
@@ -4458,21 +4458,21 @@
          ! Save ocean Hg categories into module variable indices
          SELECT CASE( TRIM( ThisSpc%Name ) )
             CASE( 'Hg0'     ) 
-               ID_Hg_tot = ThisSpc%Hg0_Cat
+               ID_Hg_tot = ThisSpc%Hg_Cat
             CASE( 'Hg0_atl' ) 
-               ID_Hg_atl = ThisSpc%Hg0_Cat
+               ID_Hg_atl = ThisSpc%Hg_Cat
             CASE( 'Hg0_nat' )
-               ID_Hg_nat = ThisSpc%Hg0_Cat
+               ID_Hg_nat = ThisSpc%Hg_Cat
             CASE( 'Hg0_sat' )
-               ID_Hg_sat = ThisSpc%Hg0_Cat
+               ID_Hg_sat = ThisSpc%Hg_Cat
             CASE( 'Hg0_npa' )
-               ID_Hg_npa = ThisSpc%Hg0_Cat
+               ID_Hg_npa = ThisSpc%Hg_Cat
             CASE( 'Hg0_arc' )
-               ID_Hg_arc = ThisSpc%Hg0_Cat
+               ID_Hg_arc = ThisSpc%Hg_Cat
             CASE( 'Hg0_ant' )
-               ID_Hg_ant = ThisSpc%Hg0_Cat
+               ID_Hg_ant = ThisSpc%Hg_Cat
             CASE( 'Hg0_ocn' )
-               ID_Hg_ocn = ThisSpc%Hg0_Cat
+               ID_Hg_ocn = ThisSpc%Hg_Cat
             CASE DEFAULT
                ! Do nothing
          END SELECT

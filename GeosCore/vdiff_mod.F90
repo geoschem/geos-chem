@@ -2543,7 +2543,7 @@ contains
              IF ( ThisSpc%Is_Hg2 ) THEN
 
                 ! Get the category number for this Hg2 tracer
-                Hg_Cat = ThisSpc%Hg2_Cat
+                Hg_Cat = ThisSpc%Hg_Cat
 
                 ! Archive dry-deposited Hg2
                 CALL ADD_Hg2_DD      ( I, J, Hg_Cat, DEP_KG            )
@@ -2552,7 +2552,7 @@ contains
              ELSE IF ( ThisSpc%Is_HgP ) THEN 
 
                 ! Get the category number for this HgP tracer
-                Hg_Cat = ThisSpc%HgP_Cat
+                Hg_Cat = ThisSpc%Hg_Cat
 
                 ! Archive dry-deposited HgP
                 CALL ADD_HgP_DD      ( I, J, Hg_Cat, DEP_KG            )

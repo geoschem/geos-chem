@@ -1251,7 +1251,7 @@
      &                          * AREA_M2 * g0_100 / DELT 
 
                      ! Category # for this Hg2 species
-                     Hg_Cat = ThisSpc%Hg2_Cat
+                     Hg_Cat = ThisSpc%Hg_Cat
 
                      ! Pass to "ocean_mercury_mod.f"
                      CALL ADD_Hg2_WD      ( II, J, Hg_Cat, WET_Hg2   )
@@ -1274,7 +1274,7 @@
      &                          * AREA_M2 * g0_100 / DELT 
 
                      ! Category # for this Hg2 species
-                     Hg_Cat = ThisSpc%HgP_Cat
+                     Hg_Cat = ThisSpc%Hg_Cat
 
                      ! Pass to "ocean_mercury_mod.f"
                      CALL ADD_HgP_WD      ( II, J, Hg_Cat, WET_HgP   )

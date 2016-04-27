@@ -1891,7 +1891,7 @@
                         WET_Hg2 = T0 * AREA_M2 / DNS * NDT
                         
                         ! Category # for this Hg2 tracer
-                        Hg_Cat  = ThisSpc%Hg2_Cat
+                        Hg_Cat  = ThisSpc%Hg_Cat
 
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_Hg2_WD      ( I, J, Hg_Cat, WET_Hg2   )
@@ -1907,7 +1907,7 @@
                         WET_HgP = T0 * AREA_M2 / DNS * NDT
 
                         ! Category # for this Hg2 tracer
-                        Hg_Cat  = ThisSpc%Hg2_Cat
+                        Hg_Cat  = ThisSpc%Hg_Cat
 
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_HgP_WD      ( I, J, Hg_Cat, WET_HgP   ) 
@@ -2982,7 +2982,7 @@
                WET_Hg2 = ( T0_SUM * AREA_M2 )
 
                ! Category # for this Hg2 species
-               Hg_Cat  = ThisSpc%Hg2_Cat
+               Hg_Cat  = ThisSpc%Hg_Cat
 
                ! Pass to "ocean_mercury_mod.f"
                CALL ADD_Hg2_WD      ( I, J, Hg_Cat, WET_Hg2   )
@@ -2999,7 +2999,7 @@
                WET_HgP = ( T0_SUM * AREA_M2 )
 
                ! Category # for this Hg2 species
-               Hg_Cat  = ThisSpc%HgP_Cat
+               Hg_Cat  = ThisSpc%Hg_Cat
 
                ! Pass to "ocean_mercury_mod.f"
                CALL ADD_HgP_WD      ( I, J, Hg_Cat, WET_HgP   )

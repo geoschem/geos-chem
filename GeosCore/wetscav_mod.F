@@ -3446,7 +3446,7 @@
                IF ( ThisSpc%Is_Hg2 ) THEN
                   
                   ! Get the category # for this Hg2 tracer
-                  Hg_Cat = ThisSpc%Hg2_Cat
+                  Hg_Cat = ThisSpc%Hg_Cat
                   
                   ! Archive wet-deposited Hg2
                   CALL ADD_Hg2_WD      ( I, J, Hg_Cat, DEP_HG    )
@@ -3457,7 +3457,7 @@
                ELSE IF ( ThisSpc%Is_HgP ) THEN 
                                     
                   ! Get the category # for this HgP tracer
-                  Hg_Cat = ThisSpc%HgP_Cat
+                  Hg_Cat = ThisSpc%Hg_Cat
 
                   ! Archive wet-deposited HgP
                   CALL ADD_HgP_WD      ( I, J, Hg_Cat, DEP_HG    )
@@ -4034,7 +4034,7 @@
                IF ( ThisSpc%Is_Hg2 ) THEN
                   
                   ! Get the category # for this Hg2 tracer
-                  Hg_Cat = ThisSpc%Hg2_Cat
+                  Hg_Cat = ThisSpc%Hg_Cat
 
                   ! Archive wet-deposited Hg2
                   CALL ADD_Hg2_WD      ( I, J, Hg_Cat, DEP_HG    )
@@ -4045,7 +4045,7 @@
                ELSE IF ( ThisSpc%Is_HgP ) THEN
                   
                   ! Get the category # for this HgP tracer
-                  Hg_Cat = ThisSpc%HgP_Cat
+                  Hg_Cat = ThisSpc%Hg_Cat
 
                   ! Archive wet-deposited HgP
                   CALL ADD_HgP_WD      ( I, J, Hg_Cat, DEP_HG    )

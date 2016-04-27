@@ -1008,7 +1008,7 @@
 
       ! Now get # of tagHg categories from State_Chm
       N_Hg_CATS = State_Chm%N_Hg_CATS
-     
+
       ! Hg species index corresponding to a given Hg category number
       Id_Hg0    => State_Chm%Id_Hg0
       Id_Hg2    => State_Chm%Id_Hg2
@@ -1043,9 +1043,9 @@
          ! Store the Hg0 and Hg2 category numbers for each tracer
          ! for future lookup in READ_GTMM_RESTART (bmy, 4/26/16)
          IF ( ThisSpc%Is_Hg0 ) THEN
-            Hg0_Cat(N) = ThisSpc%Hg0_Cat
+            Hg0_Cat(N) = ThisSpc%Hg_Cat
          ELSE iF ( ThisSpc%Is_Hg2 ) THEN
-            Hg2_Cat(N) = ThisSpc%Hg2_Cat
+            Hg2_Cat(N) = ThisSpc%Hg_Cat
          ENDIF
 
          ! Free pointer
