@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Tue Apr 26 17:43:33 2016
+! Time                 : Wed Apr 27 11:33:57 2016
 ! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/v11-01f_UCX
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -207,7 +207,7 @@ CONTAINS
 
     O2 = NUMDEN*0.2095e0_dp
     R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    GC_GLYXNO3 = R0*(O2+3.5E+18_fp)/(2.E+0_fp*O2+3.5E+18_fp)
+    GC_GLYXNO3 = R0*(O2+3.5E+18_dp)/(2.E+0_dp*O2+3.5E+18_dp)
     
   END FUNCTION GC_GLYXNO3
 
