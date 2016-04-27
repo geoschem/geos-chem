@@ -1108,7 +1108,6 @@
                DEP_HG2_DRY =  DEP_HG2g_DRY + DEP_HG2p_DRY
                CALL ADD_HG2_SNOWPACK( I, J, N, DEP_HG2_DRY, 
      &                                         State_Met    )
-
             ENDIF           
 !$OMP END CRITICAL
 
@@ -4585,7 +4584,6 @@
       LOGICAL             :: LNLPBL
       LOGICAL             :: LGTMM
       INTEGER             :: N_TRACERS
-      INTEGER             :: N_Hg_CATS
       INTEGER             :: AS, N
       CHARACTER(LEN=255)  :: LOCATION
 
