@@ -1067,7 +1067,6 @@
       ! Strings
       CHARACTER(LEN=255) :: 
      & LOC = 'OCEAN_MERCURY_FLUX (GeosCore/ocean_mercury_mod.f)'
-
       
       IF (LOCEANCOEF) THEN
          k_ox_dark = 10d0**(-5.2d0)
@@ -2466,9 +2465,9 @@
      &                                    X <= 0e+0_fpp ) ) ) THEN
                SELECT CASE ( THISMONTH )
                   CASE( 7, 8, 9 ) ! summer
-                      MLD(I,J) = ArcticMLD_summer
+                     MLD(I,J) = ArcticMLD_summer
                   CASE DEFAULT    ! rest of year
-                      MLD(I,J) = ArcticMLD_other
+                     MLD(I,J) = ArcticMLD_other
                END SELECT
 
                ! Also set up MLD tendency in cm/s for each half month

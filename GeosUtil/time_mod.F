@@ -4544,6 +4544,7 @@
 !  01 Apr 2004 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  12 Oct 2011 - R. Yantosca - Modified for central chemistry timestep option
+!  27 Apr 2016 - E. Lundgren - Include minute condition for first day of month
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4567,8 +4568,8 @@
 
       ! Emissions timestep [hours]
       TS = DBLE( TS_EMIS ) / 60e+0_f8
-     
-      IF ( DAY == 1 .and. HOUR == 0 ) THEN
+
+      IF ( DAY == 1 .and. HOUR == 0 .and. MINUTE == 0 ) THEN
 
          !==============================================================
          ! FOR THE FIRST DAY OF THE MONTH
@@ -4629,7 +4630,7 @@
          IS_NEW_MONTH = .FALSE.
 
       ENDIF
-
+      
       END FUNCTION ITS_A_NEW_MONTH
 !EOC
 !------------------------------------------------------------------------------
