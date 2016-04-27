@@ -1691,20 +1691,21 @@ dvected tracer input  restart file
      &                       'WRITE_GC_NC_RESTART (restart_mod.F90)'
 
       ! Temporary arrays and pointers
-      REAL*4, TARGET       :: Temp3D( IIPAR, JJPAR, LLPAR )
-      REAL*4, TARGET       :: Temp2D( IIPAR, JJPAR )
-      REAL*4, POINTER      :: Ptr3D(:,:,:) => NULL()
-      REAL*4, POINTER      :: Ptr2D(:,:  ) => NULL()
+      REAL*4,            TARGET :: Temp3D( IIPAR, JJPAR, LLPAR )
+      REAL*4,            TARGET :: Temp2D( IIPAR, JJPAR )
+      REAL*4,           POINTER :: Ptr3D(:,:,:) => NULL()
+      REAL*4,           POINTER :: Ptr2D(:,:  ) => NULL()
 
       ! For indexing of Hg species
-      INTEGER              :: N_Hg_CATS
-      INTEGER              :: Id_Hg_tot
-      INTEGER, POINTER     :: Id_Hg0(:) => NULL()
-      INTEGER, POINTER     :: Id_Hg2(:) => NULL()
-      INTEGER, POINTER     :: Id_HgP(:) => NULL()
+      INTEGER                   :: N_Hg_CATS
+      INTEGER                   :: Id_Hg_tot
+      INTEGER,          POINTER :: Id_Hg0     (:) => NULL()
+      INTEGER,          POINTER :: Id_Hg2     (:) => NULL()
+      INTEGER,          POINTER :: Id_HgP     (:) => NULL()
+      CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:) => NULL()
 
       ! Pointer to HEMCO state (is this needed?)
-      TYPE(HCO_STATE), POINTER :: HcoState => NULL()
+      TYPE(HCO_STATE),  POINTER :: HcoState       => NULL()
 
       !=================================================================
       ! WRITE_GC_RESTART_NC begins here!
@@ -1727,15 +1728,18 @@ dvected tracer input  restart file
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN 
          
          ! Now get the # of tagHg categories from State_Chm
-         N_Hg_CATS =  State_Chm%N_Hg_CATS
+         N_Hg_CATS   =  State_Chm%N_Hg_CATS
+
+         ! Names for each of the Hg categories
+         Hg_Cat_Name => State_Chm%Hg_Cat_Name
 
          ! Hg species index corresponding to a given Hg category number
-         Id_Hg0    => State_Chm%Id_Hg0
-         Id_Hg2    => State_Chm%Id_Hg2
-         Id_HgP    => State_Chm%Id_HgP
+         Id_Hg0      => State_Chm%Id_Hg0
+         Id_Hg2      => State_Chm%Id_Hg2
+         Id_HgP      => State_Chm%Id_HgP
 
          ! Total Hg is always the first category
-         ID_Hg_Tot = Id_Hg0(1)
+         ID_Hg_Tot   =  Id_Hg0(1)
 
       ENDIF
 
@@ -1952,7 +1956,6 @@ dvected tracer input  restart file
       !=================================================================
       ! If Hg simulation, populate ocean mercury restart containers
       !=================================================================
-
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
          ! Print total mass to log
@@ -2031,8 +2034,9 @@ dvected tracer input  restart file
                         Temp2D = HgPaq(:,:,N)
                   END SELECT
                   Ptr2D => Temp2D
-                  ContainerName = 'Ocean_' // Trim( Tracer ) // '_' 
-     &                            // TRIM( Input_Opt%Hg_CAT(N+2) )                  
+                  ContainerName = 'Ocean_' // Trim( Tracer         ) // 
+     &                            '_'      // TRIM( Hg_Cat_Name(N) )
+
                   ! Populate container with data
                   CALL Diagn_Update( am_I_Root,                   
      &                               cName   = TRIM( ContainerName ),
@@ -2101,8 +2105,8 @@ dvected tracer input  restart file
                   ContainerName = TRIM( Prefix )
                ELSE
                   ! Append category name if tagged
-                  ContainerName = TRIM( Prefix ) // '_'
-     &                            // TRIM( Input_Opt%Hg_CAT(N+2) )
+                  ContainerName = TRIM( Prefix         ) // '_' //
+     &                            TRIM( Hg_Cat_Name(N) )
                ENDIF
                
                ! Populate container with data
@@ -2142,17 +2146,18 @@ dvected tracer input  restart file
 
          ! Format string for printing Hg masses to log
  180     FORMAT( a24, ':   ', es15.9, 1x, a4)
-         
+
+         ! Free pointers for Hg indexing
+         Hg_Cat_Name => NULL()
+         Id_Hg0      => NULL()
+         Id_Hg2      => NULL() 
+         Id_HgP      => NULL() 
+
       ENDIF
 
       !=================================================================
       ! Write output NetCDF restart file using HEMCO 
       !=================================================================
-
-      ! Free pointers
-      Id_Hg0 => NULL()
-      Id_Hg2 => NULL() 
-      Id_HgP => NULL() 
 
       ! Get pointer to HEMCO state object.
       CALL GetHcoState( HcoState )
