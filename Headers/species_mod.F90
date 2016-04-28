@@ -482,7 +482,7 @@ CONTAINS
     IF ( PRESENT( ModelID ) ) THEN
        ThisSpc%ModelID = ModelID
     ELSE
-       ThisSpc%ModelID = -1
+       ThisSpc%ModelID = MISSING_INT
     ENDIF
 
     !---------------------------------------------------------------------
@@ -732,6 +732,7 @@ CONTAINS
 
     ELSE
        ThisSpc%Is_Advected = .FALSE.
+       ThisSpc%AdvectID    = MISSING_INT
     ENDIF
 
     !---------------------------------------------------------------------
