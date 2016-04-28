@@ -2190,6 +2190,8 @@
 !                                 calculation in aerosol washout
 !  22 Apr 2016 - R. Yantosca - Now get Is_Hg2 & Is_HgP from species database
 !  25 Apr 2016 - R. Yantosca - Now pass Hg category # to ADD_Hg2_* functions
+!  28 Apr 2016 - R. Yantosca - Rewrite Is_Hg block to avoid unassociated
+!                              pointer seg faults
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2342,8 +2344,8 @@
       !========================================================================
       DO IC = 1, NC
 
-         ! Point to the Species Database entry for tracer IC
-         ThisSpc => State_Chm%SpcData(IC)%Info 
+         ! Free pointer
+         ThisSpc => NULL()
 
          ! Initialize
          DIAG14(:,IC) = 0e+0_fp                      ! ND14 diag array      
@@ -2971,46 +2973,54 @@
             ! "ocean_mercury_mod.f" via ADD_Hg2_WET and ADD_HgP_WET.   We must 
             ! also divide  by DNS, the # of internal timesteps. 
             ! (sas, bmy, eck, eds, 1/19/05, 1/6/06, 7/30/08)
+            !
+            ! NOTE: Reorder 
             !==================================================================
- 
-            !--------------------------------------
-            ! Hg2 
-            !--------------------------------------
-            IF ( IS_Hg .and. ThisSpc%IS_Hg2 ) THEN
+            IF ( Is_Hg ) THEN
 
-               ! Wet scavenged Hg(II) in [kg]
-               WET_Hg2 = ( T0_SUM * AREA_M2 )
+               ! Point to the Species Database entry for tracer IC
+               ThisSpc => State_Chm%SpcData(IC)%Info 
 
-               ! Category # for this Hg2 species
-               Hg_Cat  = ThisSpc%Hg_Cat
+               !--------------------------------------
+               ! Hg2 
+               !--------------------------------------
+               IF ( ThisSpc%IS_Hg2 ) THEN
 
-               ! Pass to "ocean_mercury_mod.f"
-               CALL ADD_Hg2_WD      ( I, J, Hg_Cat, WET_Hg2   )
-               CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_Hg2, 
+                  ! Wet scavenged Hg(II) in [kg]
+                  WET_Hg2 = ( T0_SUM * AREA_M2 )
+
+                  ! Category # for this Hg2 species
+                  Hg_Cat  = ThisSpc%Hg_Cat
+
+                  ! Pass to "ocean_mercury_mod.f"
+                  CALL ADD_Hg2_WD      ( I, J, Hg_Cat, WET_Hg2   )
+                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_Hg2, 
      &                                              State_Met )
-            ENDIF
+               ENDIF
 
-            !--------------------------------------
-            ! HgP
-            !--------------------------------------
-            IF ( IS_Hg .and. ThisSpc%Is_HgP ) THEN
+               !--------------------------------------
+               ! HgP
+               !--------------------------------------
+               IF ( ThisSpc%Is_HgP ) THEN
 
-               ! Wet scavenged Hg(P) in [kg]
-               WET_HgP = ( T0_SUM * AREA_M2 )
+                  ! Wet scavenged Hg(P) in [kg]
+                  WET_HgP = ( T0_SUM * AREA_M2 )
 
-               ! Category # for this Hg2 species
-               Hg_Cat  = ThisSpc%Hg_Cat
+                  ! Category # for this Hg2 species
+                  Hg_Cat  = ThisSpc%Hg_Cat
 
-               ! Pass to "ocean_mercury_mod.f"
-               CALL ADD_HgP_WD      ( I, J, Hg_Cat, WET_HgP   )
-               CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_HgP, 
+                  ! Pass to "ocean_mercury_mod.f"
+                  CALL ADD_HgP_WD      ( I, J, Hg_Cat, WET_HgP   )
+                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_HgP, 
      &                                              State_Met )
+               ENDIF
+
+               ! Free pointers
+               ThisSpc => NULL()
+
             ENDIF
 
          ENDDO               ! End internal timestep loop
-
-         ! Free pointer
-         ThisSpc => NULL()
       ENDDO                  ! End loop over tracers
 
       !================================================================
