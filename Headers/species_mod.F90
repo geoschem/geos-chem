@@ -37,7 +37,10 @@ MODULE Species_Mod
   INTEGER, PRIVATE :: AdvectCount = 0    ! Counter of advected species
   INTEGER, PRIVATE :: DryDepCount = 0    ! Counter of dry-deposited species
   INTEGER, PRIVATE :: WetDepCount = 0    ! Counter of wet-deposited species
-
+  INTEGER, PRIVATE :: Hg0Count    = 0    ! Number of Hg0 tracers
+  INTEGER, PRIVATE :: Hg2Count    = 0    ! Number of Hg2 tracers
+  INTEGER, PRIVATE :: HgPCount    = 0    ! Number of HgP tracers
+  
   !=========================================================================
   ! Type for ASCII sums (fast-species lookup algorithm)
   !=========================================================================
@@ -128,6 +131,12 @@ MODULE Species_Mod
      LOGICAL            :: MP_SizeResAer    ! T=size-resolved aerosol (TOMAS)
      LOGICAL            :: MP_SizeResNum    ! T=size-resolved aerosol number
 
+     ! Tagged mercury parameters
+     LOGICAL            :: Is_Hg0           ! T=total or tagged Hg0 species
+     LOGICAL            :: Is_Hg2           ! T=total or tagged Hg2 species
+     LOGICAL            :: Is_HgP           ! T=total or tagged HgP species
+     INTEGER            :: Hg_Cat           ! Tagged Hg category number
+
   END TYPE Species
 !
 ! !DEFINED PARAMETERS
@@ -167,6 +176,7 @@ MODULE Species_Mod
 !  01 Oct 2015 - R. Yantosca - Add field DD_DvzMinVal
 !  16 Oct 2015 - E. Lundgren - Add WD_Is_H2SO4 field to flag special case of
 !                              H2SO4 wet deposition for microphysics
+!  22 Apr 2016 - R. Yantosca - Added Is_Hg0, Is_Hg2, Is_HgP species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -379,7 +389,8 @@ CONTAINS
                          WD_LiqAndGas,  WD_ConvFacI2G, WD_AerScavEff,  &
                          WD_KcScaleFac, WD_RainoutEff, WD_CoarseAer,   &
                          Is_Advected,   Is_Gas,        Is_Drydep,      &
-                         Is_Wetdep,     RC                            )
+                         Is_Wetdep,     Is_Hg0,        Is_Hg2,         &
+                         Is_HgP,        RC                            )
 !
 ! !USES:
 !
@@ -432,6 +443,9 @@ CONTAINS
     LOGICAL,          OPTIONAL    :: Is_Gas           ! Gas (T) or aerosol (F)?
     LOGICAL,          OPTIONAL    :: Is_Drydep        ! Is it dry deposited?
     LOGICAL,          OPTIONAL    :: Is_Wetdep        ! Is it wet deposited?
+    LOGICAL,          OPTIONAL    :: Is_Hg0           ! Denotes Hg0 species
+    LOGICAL,          OPTIONAL    :: Is_Hg2           ! Denotes Hg2 species
+    LOGICAL,          OPTIONAL    :: Is_HgP           ! Denotes HgP species
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -462,6 +476,7 @@ CONTAINS
 !  04 Sep 2015 - R. Yantosca - Add arguments WD_RainoutEff, WD_CoarseAer,
 !                              and WD_SizeResAer
 !  24 Sep 2015 - R. Yantosca - Added WD_KcScaleFac argument
+!  22 Apr 2016 - R. Yantosca - Added Is_Hg0, Is_Hg2, Is_HgP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -815,6 +830,54 @@ CONTAINS
     ENDIF
 
     !---------------------------------------------------------------------
+    ! Is it a Hg0 species (total or tagged)?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( Is_Hg0 ) ) THEN
+       ThisSpc%Is_Hg0 = Is_Hg0
+
+       ! Increment count and index of Hg0 categories
+       IF ( Is_Hg0 ) THEN
+          Hg0Count       = Hg0Count + 1
+          ThisSpc%Hg_Cat = Hg0Count
+       ENDIF
+
+    ELSE
+       ThisSpc%Is_Hg0 = .FALSE.
+    ENDIF
+    
+    !---------------------------------------------------------------------
+    ! Is it a Hg2 species (total or tagged)?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( Is_Hg2 ) ) THEN
+       ThisSpc%Is_Hg2 = Is_Hg2
+
+       ! Increment count of Hg2 species
+       IF ( Is_Hg2 ) THEN
+          Hg2Count       = Hg2Count + 1
+          ThisSpc%Hg_Cat = Hg2Count
+       ENDIF
+
+    ELSE
+       ThisSpc%Is_Hg2 = .FALSE.
+    ENDIF
+    
+    !---------------------------------------------------------------------
+    ! Is it a HgP species (total or tagged)?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( Is_HgP ) ) THEN
+       ThisSpc%Is_HgP = Is_HgP
+
+       ! Increment count of HgP species
+       IF ( Is_HgP ) THEN
+          HgPCount       = HgPCount + 1
+          ThisSpc%Hg_Cat = HgPCount
+       ENDIF
+
+    ELSE
+       ThisSpc%Is_HgP = .FALSE.
+    ENDIF
+    
+    !---------------------------------------------------------------------
     ! Sanity checks
     !---------------------------------------------------------------------
 
@@ -1025,24 +1088,32 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_GetNumSpecies( nAdvect, nDryDep, nWetDep )
+  SUBROUTINE Spc_GetNumSpecies( nAdvect,  nDryDep,  nWetDep,  &
+                                nHg0Cats, nHg2Cats, nHgPCats )
 !
 ! !OUTPUT PARAMETERS:
 !
     INTEGER, INTENT(OUT) :: nAdvect   ! # of advected species
     INTEGER, INTENT(OUT) :: nDryDep   ! # of dry-deposited species
     INTEGER, INTENT(OUT) :: nWetDep   ! # of wet-deposited species
+    INTEGER, INTENT(OUT) :: nHg0Cats  ! # of Hg0 categories
+    INTEGER, INTENT(OUT) :: nHg2Cats  ! # of Hg0 categories
+    INTEGER, INTENT(OUT) :: nHgPCats  ! # of Hg0 categories
 ! 
 ! !REVISION HISTORY: 
-!   2 Sep 2015 - R. Yantosca - Initial version
+!  02 Sep 2015 - R. Yantosca - Initial version
+!  25 Apr 2016 - R. Yantosca - Also return the # of Hg0, Hg2, HgP categories
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
     ! Return module variables
-    nAdvect = AdvectCount
-    nDryDep = DryDepCount
-    nWetDep = WetDepCount
+    nAdvect  = AdvectCount
+    nDryDep  = DryDepCount
+    nWetDep  = WetDepCount
+    nHg0Cats = Hg0Count
+    nHg2Cats = Hg2Count
+    nHgPCats = HgPCount
     
   END SUBROUTINE Spc_GetNumSpecies
 !EOC

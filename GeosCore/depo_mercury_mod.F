@@ -72,9 +72,31 @@
 !  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
 !  06 Aug 2015 - J. Fisher   - Add stored snow Hg reservoirs (orig.
 !                              29/11/11)
+!  26 Apr 2016 - R. Yantosca - Make N_Hg_CATS IDTHg0, IDTHg2 module variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES:
+!
+      !-----------------------------------------------------------------
+      ! Now keep local Hg tracer indexing variables instead of getting
+      ! them from tracerid_mod.f.  The tracerid_mod.f module is going
+      ! to be removed for the FlexChem implementation. (bmy, 4/26/16)
+      !-----------------------------------------------------------------
+      
+      ! Scalars for Hg indexing 
+      INTEGER          :: N_Hg_CATS
+      INTEGER          :: IDTHg0
+      INTEGER          :: IDTHg2
+
+      ! Pointers for Hg Indexing
+      INTEGER, POINTER :: Id_Hg0 (:) => NULL()
+      INTEGER, POINTER :: Id_Hg2 (:) => NULL()
+      INTEGER, POINTER :: Id_HgP (:) => NULL()
+      INTEGER, POINTER :: Hg0_CAT(:) => NULL()
+      INTEGER, POINTER :: Hg2_CAT(:) => NULL()
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -90,17 +112,14 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE ADD_Hg2_DD( I, J, N, DRY_Hg2)
-!
-! !USES
-!
-      USE TRACERID_MOD, ONLY : GET_Hg2_CAT
+      SUBROUTINE ADD_Hg2_DD( I, J, HG_CAT, DRY_Hg2 )
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)   :: I, J, N   ! GEOS-Chem long, lat and tracer index
-      REAL(fp),  INTENT(IN)   :: DRY_Hg2   ! Hg(II) dry deposited out of the 
-                                         ! atmosphere [kg]
+      INTEGER,  INTENT(IN) :: I, J      ! Grid box lon & lat indices
+      INTEGER,  INTENT(IN) :: Hg_Cat    ! Hg category number
+      REAL(fp), INTENT(IN) :: DRY_Hg2   ! Hg(II) dry deposited out of the 
+                                        !  atmosphere [kg]
 !
 ! !REVISION HISTORY:
 !  19 Jan 2005 - S. Strode, C. Holmes - Initial version
@@ -108,25 +127,15 @@
 !        call GET_Hg2_CAT to return the Hg category #. (cdh, bmy, 3/28/06)
 !  23 Apr 2010 - C. Carouge  - Moved from ocean_mercury_mod.f to
 !                              depo_mercury_mod.f
+!  25 Apr 2016 - R. Yantosca - Remove reference to GET_HG2_CAT, we now pass
+!                              this in as an argument.  Rename NN to Hg2_Cat.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: NN
-      
-      !=================================================================
-      ! ADD_Hg2_DD begins here!
-      !=================================================================
-
-      ! Get the index for DD_Hg2 based on the tracer number
-      NN = GET_Hg2_CAT( N )
 
       ! Store dry deposited Hg(II) into DD_Hg2 array
-      IF ( NN > 0 ) THEN
-         DD_Hg2(I,J,NN) = DD_Hg2(I,J,NN) + DRY_Hg2
-        
+      IF ( Hg_Cat > 0 ) THEN
+         DD_Hg2(I,J,Hg_Cat) = DD_Hg2(I,J,Hg_Cat) + DRY_Hg2
       ENDIF
      
       END SUBROUTINE ADD_Hg2_DD
@@ -144,17 +153,14 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE ADD_Hg2_WD( I, J, N, WET_Hg2 )
-!
-! !USES
-!
-      USE TRACERID_MOD, ONLY : GET_Hg2_CAT
+      SUBROUTINE ADD_Hg2_WD( I, J, Hg_Cat, WET_Hg2 )
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)   :: I, J, N   ! GEOS-Chem long, lat and tracer index
-      REAL(fp),  INTENT(IN)   :: WET_Hg2   ! Hg(II) scavenged out of the 
-                                         ! atmosphere [kg]
+      INTEGER,   INTENT(IN) :: I, J      ! Grid box lon & lat indices
+      INTEGER,   INTENT(IN) :: Hg_Cat    ! Hg category number
+      REAL(fp),  INTENT(IN) :: WET_Hg2   ! Hg(II) scavenged out of the 
+                                         !  atmosphere [kg]
 !
 ! !REVISION HISTORY:
 !  19 Jan 2005 - S. Strode, C. Holmes - Initial version
@@ -162,25 +168,15 @@
 !        call GET_Hg2_CAT to return the Hg category #. (cdh, bmy, 3/28/06)
 !  23 Apr 2010 - C. Carouge  - Moved from ocean_mercury_mod.f to
 !                              depo_mercury_mod.f
+!  25 Apr 2016 - R. Yantosca - Remove reference to GET_HG2_CAT, we now pass
+!                              this in as an argument.  Rename NN to Hg2_Cat.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: NN
 
-      !=================================================================
-      ! ADD_Hg2_WD begins here!
-      !=================================================================
-
-      ! Get Hg2 category number
-      NN = GET_Hg2_CAT( N ) 
-     
       ! Store wet deposited Hg(II) into WD_Hg2 array
-      IF ( NN > 0 ) THEN
-         WD_Hg2(I,J,NN) = WD_Hg2(I,J,NN) + WET_Hg2
-         
+      IF ( Hg_Cat > 0 ) THEN
+         WD_Hg2(I,J,Hg_Cat) = WD_Hg2(I,J,Hg_Cat) + WET_Hg2
       ENDIF
 
       END SUBROUTINE ADD_Hg2_WD
@@ -198,17 +194,14 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE ADD_HgP_DD( I, J, N, DRY_HgP )
-!
-! !USES
-!
-      USE TRACERID_MOD, ONLY : GET_HgP_CAT
+      SUBROUTINE ADD_HgP_DD( I, J, Hg_Cat, DRY_HgP )
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)   :: I, J, N   ! GEOS-Chem long, lat and tracer index
-      REAL(fp),  INTENT(IN)   :: DRY_HgP   ! HgP dry deposited out of the 
-                                         ! atmosphere [kg]
+      INTEGER,  INTENT(IN) :: I, J      ! Grid box lon & lat indices
+      INTEGER,  INTENT(IN) :: Hg_Cat    ! Hg category number
+      REAL(fp), INTENT(IN) :: DRY_HgP   ! HgP dry deposited out of the 
+                                        !  atmosphere [kg]
 !
 ! !REVISION HISTORY:
 !  19 Jan 2005 - S. Strode, C. Holmes - Initial version
@@ -216,25 +209,15 @@
 !        call GET_HgP_CAT to return the Hg category #. (cdh, bmy, 3/28/06)
 !  23 Apr 2010 - C. Carouge  - Moved from ocean_mercury_mod.f to
 !                              depo_mercury_mod.f
+!  25 Apr 2016 - R. Yantosca - Remove reference to GET_HGP_CAT, we now pass
+!                              this in as an argument.  Rename NN to HgP_Cat.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: NN
-
-      !=================================================================
-      ! ADD_HgP_DD begins here!
-      !=================================================================
-      
-      ! Get the index for DD_Hg2 based on the tracer number
-      NN = GET_HgP_CAT( N )
 
       ! Store dry deposited Hg(II) into DD_Hg2 array
-      IF ( NN > 0 ) THEN
-         DD_HgP(I,J,NN) = DD_HgP(I,J,NN) + DRY_HgP
-        
+      IF ( Hg_Cat > 0 ) THEN
+         DD_HgP(I,J,Hg_Cat) = DD_HgP(I,J,Hg_Cat) + DRY_HgP
       ENDIF
 
       END SUBROUTINE ADD_HgP_DD
@@ -252,17 +235,14 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE ADD_HgP_WD( I, J, N, WET_HgP )
-!
-! !USES
-!
-      USE TRACERID_MOD, ONLY : GET_HgP_CAT
+      SUBROUTINE ADD_HgP_WD( I, J, Hg_Cat, WET_HgP )
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)   :: I, J, N   ! GEOS-Chem long, lat and tracer index
-      REAL(fp),  INTENT(IN)   :: WET_HgP   ! HgP scavenged out of the 
-                                         ! atmosphere [kg]
+      INTEGER,  INTENT(IN) :: I, J      ! Grid box lon & lat indices
+      INTEGER,  INTENT(IN) :: Hg_Cat    ! Hg category number
+      REAL(fp), INTENT(IN) :: WET_HgP   ! HgP scavenged out of the 
+                                        !  atmosphere [kg]
 !
 ! !REVISION HISTORY:
 !  19 Jan 2005 - S. Strode, C. Holmes - Initial version
@@ -270,25 +250,15 @@
 !        call GET_HgP_CAT to return the Hg category #. (cdh, bmy, 3/28/06)
 !  23 Apr 2010 - C. Carouge  - Moved from ocean_mercury_mod.f to
 !                              depo_mercury_mod.f
+!  25 Apr 2016 - R. Yantosca - Remove reference to GET_HGP_CAT, we now pass
+!                              this in as an argument.  Rename NN to HgP_Cat.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: NN
 
-      !=================================================================
-      ! ADD_Hg2_WD begins here!
-      !=================================================================
-      
-      ! Get Hg2 category number
-      NN = GET_HgP_CAT( N ) 
-
-       ! Store wet deposited HgP into WD_HgP array
-      IF ( NN > 0 ) THEN
-         WD_HgP(I,J,NN) = WD_HgP(I,J,NN) + WET_HgP
-        
+      ! Store wet deposited HgP into WD_HgP array
+      IF ( Hg_Cat > 0 ) THEN
+         WD_HgP(I,J,Hg_Cat) = WD_HgP(I,J,Hg_Cat) + WET_HgP
       ENDIF
       
       END SUBROUTINE ADD_HgP_WD
@@ -305,21 +275,21 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE ADD_HG2_SNOWPACK( I, J, N, DEP_Hg2, State_Met )
+      SUBROUTINE ADD_HG2_SNOWPACK( I, J, Hg_Cat, DEP_Hg2, State_Met )
 !
 ! !USES:
 !
       USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
       USE DIAG03_MOD,         ONLY : AD03, ND03
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : GET_Hg2_CAT, GET_HgP_CAT
-      USE TRACERID_MOD,       ONLY : IS_Hg2,      IS_HgP
+      USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
       ! Arguments as input
-      INTEGER,        INTENT(IN)  :: I, J, N
-      REAL(fp),         INTENT(IN)  :: Dep_Hg2
+      INTEGER,        INTENT(IN)  :: I, J        ! Grid box lon & lat indices
+      INTEGER,        INTENT(IN)  :: Hg_Cat      ! Hg category number
+      REAL(fp),       INTENT(IN)  :: Dep_Hg2     ! Hg2 (or HgP) deposited
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY:
@@ -338,6 +308,9 @@
 !  06 Aug 2015 - J. Fisher   - Store reservoir of non-reducible Hg in snowpack
 !                              (orig. 29/11/11)
 !  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS_FP
+!  25 Apr 2016 - R. Yantosca - Remove reference to routines GET_HG2_CAT and
+!                              GET_HGP_CAT, these are now passed in as the
+!                              Hg_Cat argument.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -345,25 +318,20 @@
 ! !LOCAL VARIABLES:
 !
       ! Local variables
-      REAL(fp)  :: FRAC_SNOW_OR_ICE, FRAC_O
-      LOGICAL :: IS_SNOW_OR_ICE 
-      INTEGER :: NN
+      INTEGER  :: NN
+      LOGICAL  :: IS_SNOW_OR_ICE 
+      REAL(fp) :: FRAC_SNOW_OR_ICE
+      REAL(fp) :: FRAC_O
 
       !=================================================================
       ! ADD_HG2_SNOWPACK begins here!
       !=================================================================
       
+      ! Store the Hg category number in NN
+      NN = Hg_Cat
+
       ! Return if snowpack model is disabled
-      IF (.NOT. LHGSNOW) RETURN
-
-      IF ( IS_Hg2( N ) ) THEN
-         ! Get Hg2 category number
-         NN = GET_Hg2_CAT( N ) 
-      ELSE IF ( IS_HgP( N ) ) THEN
-         ! Get HgP category number
-         NN = GET_HgP_CAT( N ) 
-      ENDIF
-
+      IF ( .NOT. LHGSNOW ) RETURN
 
       ! Except with MERRA, we can't distinguish land fractions, so we use a 
       ! land fraction of 1 and only use boxes that are mostly snow/ice. 
@@ -435,15 +403,32 @@
      &                               * MAX( 0.4e+0_fp*DEP_HG2, 0e+0_fp )
 
 !----------------------------------------------------------------------------
-! Prior to 4/20/16:
-! NOTE: Slot #21 of ND03 is now the production of Hg2 with rxn from O3,
-! so this diagnostic archiving statement may be outdated.  Need to check
-! with Team Hg.  For now comment it out, as this is what is preventing
-! GC from passing unit tests. (bmy, 4/20/16)
-!         ! Store diagnostic of TOTAL HgII/HgP deposition to snow/ice
-!         IF ( ND03 > 0 ) AD03(I,J,21,1) = AD03(I,J,21,1)   +
-!     &                                    FRAC_SNOW_OR_ICE *
-!     &                                    MAX(DEP_HG2, 0e+0_fp) 
+! NOTE: Archiving to AD03(I,J,21,1) causes the slot #4 of the PL-HG2-$ 
+! diagnostic to yield different results when comparing a GEOS-5 Hg simulation
+! done on a single processor to one done with multi-processors.  (In other
+! words, the unit test result is "yellow").  The magnitude of the differences
+! are very small, and on the order of numerical noise.
+! 
+! We have traced this behavior to the call to ADD_Hg2_SNOWPACK for HgP from 
+! routine NFCLDMX (in GeosCore/convection_mod.f).  We hypothesize that this 
+! issue may have two causes: (1) updating the AD03 array (which is 2-D) from
+! within a 3-D parallel loop, and (2) possible numerical roundoff when 
+! casting the REAL*8 value to REAL*4.  
+!
+! The results of the simulation in the tracer restart files are identical,
+! so technically, the GEOS-5 Hg simulations pass the unit test. 
+!
+! It is probably not possible to avoid the numerical differences in slot #4
+! of the PL-HG2-$ diagnostic without redesiging the diagnostics.  For the 
+! time being, we will leave the code as-is but just note that differences
+! will occur in this diagnostic.
+! 
+!    -- Bob Yantosca (22 Apr 2016)
+!
+         ! Store diagnostic of TOTAL HgII/HgP deposition to snow/ice
+         IF ( ND03 > 0 ) AD03(I,J,21,1) = AD03(I,J,21,1)   +
+     &                                    FRAC_SNOW_OR_ICE *
+     &                                    MAX(DEP_HG2, 0e+0_fp) 
 !----------------------------------------------------------------------------
       ENDIF
 
@@ -502,7 +487,6 @@
       USE BPCH2_MOD
       USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE TRACERID_MOD,  ONLY : ID_Hg0, ID_Hg2, ID_Hg_tot
       USE TIME_MOD,      ONLY : GET_CT_DYN, GET_CT_CHEM
       USE inquireMod,    ONLY : findFreeLUN
       USE CMN_SIZE_MOD                 ! Size parameters
@@ -639,11 +623,10 @@
       USE FILE_MOD,      ONLY : IOERROR
       USE inquireMod,    ONLY : findFreeLun
       USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE TRACERID_MOD,  ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
-      USE TRACERID_MOD,  ONLY : ID_Hg0,      ID_Hg2
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Species_Mod,        ONLY : Species
       USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS:
@@ -685,12 +668,16 @@
       CHARACTER(LEN=40)     :: UNIT     
       CHARACTER(LEN=40)     :: RESERVED
   
+      ! Pointers
+      TYPE(Species), POINTER :: ThisSpc => NULL()
+
       !=================================================================
       ! READ_GTMM_RESTART begins here!
       !=================================================================
 
       ! Assume success
       RC = GIGC_SUCCESS
+
 
       ! Find a free file LUN
       IU_FILE  = findFreeLUN()
@@ -757,10 +744,10 @@
                !----------
              
                ! Get the Hg category #
-               NN              = GET_Hg0_CAT( NTRACER )
-             
+               NN              = Hg0_Cat(NTRACER) 
+
                ! Store ocean Hg(0) in Hg0aq array
-               Hg0dryGEOS(:,:)   = FLUX(:,:)
+               Hg0dryGEOS(:,:) = FLUX(:,:)
              
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
@@ -770,15 +757,15 @@
                !----------
                ! Hg(II)
                !----------
-             
+
                ! Get the Hg category #
-               NN              = GET_Hg2_CAT( NTRACER )
-             
+               NN               = Hg2_Cat(NTRACER)
+
                ! Store ocean Hg(II) in Hg2_aq array
-               HgIIdryGEOS(:,:)   = FLUX(:,:)
+               HgIIdryGEOS(:,:) = FLUX(:,:)
              
                ! Increment NCOUNT
-               NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
+               NCOUNT(NTRACER)  = NCOUNT(NTRACER) + 1
              
             ENDIF
          ENDIF
@@ -802,13 +789,13 @@
                !----------
              
                ! Get the Hg category #
-               NN              = GET_Hg2_CAT( NTRACER )
+               NN               = Hg2_Cat(NTRACER)
              
                ! Store ocean Hg(II) in Hg2_aq array
-               HgIIwetGEOS(:,:)   = FLUX(:,:)
+               HgIIwetGEOS(:,:) = FLUX(:,:)
              
                ! Increment NCOUNT
-               NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
+               NCOUNT(NTRACER)  = NCOUNT(NTRACER) + 1
              
             ENDIF
          ENDIF
@@ -841,7 +828,6 @@
       USE DIAG_MOD,     ONLY : AD44
 #endif
       USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_CHEM 
-      USE TRACERID_MOD, ONLY : IDTHg0, IDTHg2
 !
 ! !INPUT PARAMETERS:
 !
@@ -964,7 +950,8 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE INIT_DEPO_MERCURY( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_DEPO_MERCURY( am_I_Root, Input_Opt, 
+     &                              State_Chm, RC         )
 !
 ! !USES
 !
@@ -972,32 +959,102 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : N_Hg_CATS
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  23 Apr 2010 - C. Carouge  - Moved arrays allocation from ocean_mercury_mod.f
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
 !  06 Aug 2015 - J. Fisher   - Add stored snow Hg reservoirs (orig. 29/11/11)
+!  25 Apr 2016 - R. Yantosca - Now handle all Hg indexing locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
+      INTEGER                :: N, C
+
+      ! Pointers
+      TYPE(Species), POINTER :: ThisSpc => NULL()
+
+      !=================================================================
+      ! INIT_DEPO_MERCURY begins here!
+      !=================================================================
+
       ! GTMM restart file name
       GTMM_RST_FILE = Input_Opt%GTMM_RST_FILE
+    
+      !================================================================
+      ! Initialize local Hg indexing variables.  These used to be 
+      ! contained in tracerid_mod.F, but tracerid_mod.F is going
+      ! to be removed with the FlexChem implementation (bmy, 4/26/16)
+      !================================================================
 
+      ! Now get # of tagHg categories from State_Chm
+      N_Hg_CATS = State_Chm%N_Hg_CATS
+
+      ! Hg species index corresponding to a given Hg category number
+      Id_Hg0    => State_Chm%Id_Hg0
+      Id_Hg2    => State_Chm%Id_Hg2
+      Id_HgP    => State_Chm%Id_HgP
+
+      ! Category numbers for each Hg0 tracer
+      ALLOCATE( Hg0_Cat( State_Chm%nSpecies ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hg0_Cat' )
+      Hg0_Cat = 0
+
+      ! Category numbers for each Hg2 tracer
+      ALLOCATE( Hg2_Cat( State_Chm%nSpecies ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hg0_Cat' )
+      Hg2_Cat = 0
+
+      ! Loop ovver all Hg species
+      DO N = 1, State_Chm%nSpecies
+
+         ! Point to the Species Database entry for tracer # N
+         ThisSpc => State_Chm%SpcData(N)%Info
+
+         ! Define local IDTHg0 and IDTHg2 flags
+         SELECT CASE( TRIM( ThisSpc%Name ) )
+            CASE( 'Hg0' ) 
+               IDTHg0  = ThisSpc%ModelId
+            CASE( 'Hg2' ) 
+               IDTHg2 = ThisSpc%ModelId
+            CASE DEFAULT
+               ! Do nothing
+         END SELECT
+
+         ! Store the Hg0 and Hg2 category numbers for each tracer
+         ! for future lookup in READ_GTMM_RESTART (bmy, 4/26/16)
+         IF ( ThisSpc%Is_Hg0 ) THEN
+            Hg0_Cat(N) = ThisSpc%Hg_Cat
+         ELSE iF ( ThisSpc%Is_Hg2 ) THEN
+            Hg2_Cat(N) = ThisSpc%Hg_Cat
+         ENDIF
+
+         ! Free pointer
+         ThisSpc => NULL()
+      ENDDO
+
+      !================================================================
       ! Allocate arrays
+      !================================================================
       ALLOCATE( DD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'DD_Hg2' )
       DD_Hg2 = 0e+0_fp
@@ -1044,6 +1101,7 @@
          HG2mth_wd = 0e+0_fp
       ENDIF
 
+
       END SUBROUTINE INIT_DEPO_MERCURY
 !EOC
 !------------------------------------------------------------------------------
@@ -1082,6 +1140,14 @@
       IF ( ALLOCATED( HG2mth_dd   ) ) DEALLOCATE( HG2mth_dd   )
       IF ( ALLOCATED( HG2mth_wd   ) ) DEALLOCATE( HG2mth_wd   )
       
+      ! Free pointers
+      Id_Hg0 => NULL()
+      Id_Hg2 => NULL()
+      Id_HgP => NULL()
+
+      IF ( ASSOCIATED( Hg0_Cat ) ) DEALLOCATE( Hg0_CAT )
+      IF ( ASSOCIATED( Hg2_Cat ) ) DEALLOCATE( Hg2_CAT )
+
       END SUBROUTINE CLEANUP_DEPO_MERCURY
 
       END MODULE DEPO_MERCURY_MOD

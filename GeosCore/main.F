@@ -804,7 +804,7 @@
 #endif 
 
 #if !defined( BPCH_RST_OUT )
-      CALL INIT_GC_RESTART_NC( am_I_Root, Input_Opt, RC )
+      CALL INIT_GC_RESTART_NC( am_I_Root, Input_Opt, State_Chm, RC )
 #endif
 
 #if defined( USE_TIMERS )
@@ -989,14 +989,16 @@
             IF (.NOT.( ITS_TIME_FOR_BPCH() )) THEN
                N = 1
                NNN = GET_WETDEP_IDWETD( N )
-               DO WHILE( .NOT.(IS_Hg2( NNN )) )
-               
+               DO
+                  ! Exit once we encounter Hg2
+                  If ( State_Chm%SpcData(NNN)%Info%Is_Hg2 ) THEN
+                     EXIT
+                  ENDIF
+
                   N = N + 1
                   ! Tracer number
                   NNN = GET_WETDEP_IDWETD( N )
-
                ENDDO
-
                CALL UPDATE_DEP( N )
             ENDIF
             CALL MAKE_GTMM_RESTART( am_I_Root, Input_Opt, NYMD, 

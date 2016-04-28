@@ -190,7 +190,7 @@
 ! !PRIVATE TYPES:
 !
       ! Parameters
-      REAL(fp),  PARAMETER   :: SMALLNUM = 1e-20_fp
+      REAL(fp),  PARAMETER  :: SMALLNUM = 1e-20_fp
 
       ! Arrays
       INTEGER,  ALLOCATABLE :: AN_Hg0(:,:)    ! Index array for anth Hg0 regions
@@ -277,6 +277,31 @@
       REAL(f4), POINTER :: O3  (:,:,:) => NULL()
       REAL(f4), POINTER :: OH  (:,:,:) => NULL()
       REAL(f4), POINTER :: JNO2(:,:,:) => NULL()
+
+      !-----------------------------------------------------------------
+      ! Now keep local Hg tracer indexing variables instead of getting
+      ! them from tracerid_mod.f.  The tracerid_mod.f module is going
+      ! to be removed for the FlexChem implementation. (bmy, 4/26/16)
+      !-----------------------------------------------------------------
+
+      ! Scalars for Hg indexing
+      INTEGER           :: N_Hg_CATS
+      INTEGER           :: IDTHg0,     IDTHg2,     IDTHgP
+      INTEGER           :: ID_Hg_tot,  ID_Hg_can,  ID_Hg_usa
+      INTEGER           :: ID_Hg_cam,  ID_Hg_sam,  ID_Hg_waf
+      INTEGER           :: ID_Hg_eaf,  ID_Hg_saf,  ID_Hg_naf
+      INTEGER           :: ID_Hg_eur,  ID_Hg_eeu,  ID_Hg_sov
+      INTEGER           :: ID_Hg_mde,  ID_Hg_sas,  ID_Hg_eas
+      INTEGER           :: ID_Hg_sea,  ID_Hg_jpn,  ID_Hg_oce
+      INTEGER           :: ID_Hg_so,   ID_Hg_bb,   ID_Hg_geo
+      INTEGER           :: ID_Hg_atl,  ID_Hg_nat,  ID_Hg_sat
+      INTEGER           :: ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
+      INTEGER           :: ID_Hg_ocn,  ID_Hg_str
+
+      ! Pointers for Hg indexing
+      INTEGER, POINTER  :: Id_Hg0(:) => NULL()
+      INTEGER, POINTER  :: Id_Hg2(:) => NULL()
+      INTEGER, POINTER  :: Id_HgP(:) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
@@ -338,13 +363,6 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_A3 
-      USE TRACERID_MOD,       ONLY : ID_Hg0
-      USE TRACERID_MOD,       ONLY : ID_Hg2
-      USE TRACERID_MOD,       ONLY : ID_HgP
-      USE TRACERID_MOD,       ONLY : ID_HG_TOT
-      USE TRACERID_MOD,       ONLY : N_HG_CATS
-      USE TRACERID_MOD,       ONLY : IDTHG2
-
 !
 ! !INPUT PARAMETERS:
 !
@@ -462,6 +480,7 @@
 !  12 Aug 2015 - R. Yantosca - Added support for MERRA2 meteorology
 !  05 Jan 2016 - E. Lundgren - Use Henry's constant from species database and
 !                              calculate dry air gas constant from global params
+!  25 Apr 2016 - R. Yantosca - Now pass Hg category # to ADD_Hg2_* routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -469,7 +488,7 @@
 ! !LOCAL VARIABLES:
 
       LOGICAL, SAVE   :: FIRST = .TRUE.
-      INTEGER         :: I, J, L, K, N, NN, MONTH, NSTEPS
+      INTEGER         :: I, J, L, K, N, NN, MONTH, NSTEPS, Hg_Cat
       REAL(fp)        :: K_DRYD0, K_DRYD2G, K_DRYD2P, K_SALT
       REAL(fp)        :: C_OH, C_O3, C_BR, C_BRO
       REAL(fp)        :: K_OH, K_O3, K_BR, K_BRO
@@ -676,7 +695,7 @@
 !$OMP+PRIVATE( GROSS_OX, GROSS_OX_BR, GROSS_OX_OH, GROSS_OX_O3 )
 !$OMP+PRIVATE( GROSS_RED, NET_OX )
 !$OMP+PRIVATE( AREA_CM2,  DEP_DRY_FLX )
-!$OMP+PRIVATE( F_HG0_DEP )
+!$OMP+PRIVATE( F_HG0_DEP, Hg_Cat )
 !%%%% NOTE: LOOP IS IN WRONG ORDER, WILL BE MORE EFFICIENT IF REVERSED %%%%
 !%%%% Putting this loop in the correct order causes differences in the %%%%
 !%%%% AD03_HG2_SS diagnostic array when using mp vs sp (mps, 9/3/15)   %%%%
@@ -1075,18 +1094,20 @@
             !=================================================================
 !$OMP CRITICAL
             IF ( LDYNOCEAN ) THEN
-               NN = ID_Hg2(N)
-               CALL ADD_Hg2_DD( I, J, NN, DEP_Hg2G )
 
-               NN = ID_HgP(N)
-               CALL ADD_HgP_DD( I, J, NN, DEP_Hg2P )
+               ! Archive dry deposited Hg2 for Hg category # N
+               CALL ADD_Hg2_DD( I, J, N, DEP_Hg2G )
+
+               ! Archive dry-deposited HgP for Hg category # N
+               CALL ADD_HgP_DD( I, J, N, DEP_Hg2P )
+
             ENDIF           
 
             ! Add deposited Hg(II) to the snowpack
             IF ( LHGSNOW ) THEN
-               NN = ID_Hg2(N)
-               DEP_HG2_DRY = DEP_HG2g_DRY + DEP_HG2p_DRY
-               CALL ADD_HG2_SNOWPACK( I, J, NN, DEP_HG2_DRY, State_Met )
+               DEP_HG2_DRY =  DEP_HG2g_DRY + DEP_HG2p_DRY
+               CALL ADD_HG2_SNOWPACK( I, J, N, DEP_HG2_DRY, 
+     &                                         State_Met    )
             ENDIF           
 !$OMP END CRITICAL
 
@@ -1487,11 +1508,9 @@
       USE OCEAN_MERCURY_MOD,  ONLY : OCEAN_MERCURY_FLUX
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE UNITCONV_MOD
-!      USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE 
 
       ! Added for GTMM (ccc, 11/19/09)
       USE LAND_MERCURY_MOD,   ONLY : GTMM_DR
-      USE TRACERID_MOD,       ONLY : ID_Hg_tot, ID_Hg0
 !
 !
 ! !INPUT PARAMETERS:
@@ -1827,18 +1846,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_TS_EMIS
-      USE TRACERID_MOD,       ONLY : ID_Hg_tot,  ID_Hg_can,  ID_Hg_usa
-      USE TRACERID_MOD,       ONLY : ID_Hg_cam,  ID_Hg_sam,  ID_Hg_waf
-      USE TRACERID_MOD,       ONLY : ID_Hg_eaf,  ID_Hg_saf,  ID_Hg_naf
-      USE TRACERID_MOD,       ONLY : ID_Hg_eur,  ID_Hg_eeu,  ID_Hg_sov
-      USE TRACERID_MOD,       ONLY : ID_Hg_mde,  ID_Hg_sas,  ID_Hg_eas
-      USE TRACERID_MOD,       ONLY : ID_Hg_sea,  ID_Hg_jpn,  ID_Hg_oce
-      USE TRACERID_MOD,       ONLY : ID_Hg_so,   ID_Hg_bb,   ID_Hg_geo
-      USE TRACERID_MOD,       ONLY : ID_Hg_atl,  ID_Hg_nat,  ID_Hg_sat
-      USE TRACERID_MOD,       ONLY : ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
-      USE TRACERID_MOD,       ONLY : ID_Hg_ocn,  ID_Hg_str
-      USE TRACERID_MOD,       ONLY : ID_Hg0
-      USE TRACERID_MOD,       ONLY : N_HG_CATS
 !
 ! !INPUT PARAMETERS:
 !
@@ -2612,17 +2619,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_TS_EMIS
-      USE TRACERID_MOD,       ONLY : ID_Hg_tot, ID_Hg2
-      USE TRACERID_MOD,       ONLY : ID_Hg_can,  ID_Hg_usa
-      USE TRACERID_MOD,       ONLY : ID_Hg_cam,  ID_Hg_sam,  ID_Hg_waf
-      USE TRACERID_MOD,       ONLY : ID_Hg_eaf,  ID_Hg_saf,  ID_Hg_naf
-      USE TRACERID_MOD,       ONLY : ID_Hg_eur,  ID_Hg_eeu,  ID_Hg_sov
-      USE TRACERID_MOD,       ONLY : ID_Hg_mde,  ID_Hg_sas,  ID_Hg_eas
-      USE TRACERID_MOD,       ONLY : ID_Hg_sea,  ID_Hg_jpn,  ID_Hg_oce
-      USE TRACERID_MOD,       ONLY : ID_Hg_so,   ID_Hg_bb,   ID_Hg_geo
-      USE TRACERID_MOD,       ONLY : ID_Hg_atl,  ID_Hg_nat,  ID_Hg_sat
-      USE TRACERID_MOD,       ONLY : ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
-      USE TRACERID_MOD,       ONLY : ID_Hg_ocn,  ID_Hg_str
 
       ! Testing only
       USE GRID_MOD, ONLY : GET_AREA_M2
@@ -2837,17 +2833,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_TS_EMIS 
-      USE TRACERID_MOD,       ONLY : ID_Hg_tot, ID_HgP
-      USE TRACERID_MOD,       ONLY : ID_Hg_can,  ID_Hg_usa
-      USE TRACERID_MOD,       ONLY : ID_Hg_cam,  ID_Hg_sam,  ID_Hg_waf
-      USE TRACERID_MOD,       ONLY : ID_Hg_eaf,  ID_Hg_saf,  ID_Hg_naf
-      USE TRACERID_MOD,       ONLY : ID_Hg_eur,  ID_Hg_eeu,  ID_Hg_sov
-      USE TRACERID_MOD,       ONLY : ID_Hg_mde,  ID_Hg_sas,  ID_Hg_eas
-      USE TRACERID_MOD,       ONLY : ID_Hg_sea,  ID_Hg_jpn,  ID_Hg_oce
-      USE TRACERID_MOD,       ONLY : ID_Hg_so,   ID_Hg_bb,   ID_Hg_geo
-      USE TRACERID_MOD,       ONLY : ID_Hg_atl,  ID_Hg_nat,  ID_Hg_sat
-      USE TRACERID_MOD,       ONLY : ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
-      USE TRACERID_MOD,       ONLY : ID_Hg_ocn,  ID_Hg_str
 !
 ! !INPUT PARAMETERS:
 !
@@ -4295,9 +4280,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE OCEAN_MERCURY_MOD,  ONLY : Fg
-      USE TRACERID_MOD,       ONLY : ID_HG2,     ID_HGP, N_HG_CATS
-
-
 !
 ! !INPUT PARAMETERS:
 !
@@ -4553,7 +4535,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_MERCURY( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_MERCURY( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -4563,12 +4545,14 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : N_Hg_CATS
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -4586,6 +4570,7 @@
 !  11 Apr 2012 - R. Yantosca - Now move LAI initialization to main.F
 !  03 Jun 2013 - R. Yantosca - Now use fields from Input_Opt
 !  12 Mar 2015 - R. Yantosca - Now test if HEMCO_Collections are defined
+!  25 Apr 2016 - R. Yantosca - Now use species database for tagHg indexing
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4601,6 +4586,9 @@
       INTEGER             :: N_TRACERS
       INTEGER             :: AS, N
       CHARACTER(LEN=255)  :: LOCATION
+
+      ! Pointers
+      TYPE(Species), POINTER :: ThisSpc => NULL()
 
       !=================================================================
       ! INIT_MERCURY begins here!
@@ -4621,6 +4609,97 @@
 
       ! Location string for ERROR_STOP
       LOCATION       = 'DEFINE_TAGGED_Hg ("mercury_mod.f")'
+
+      !=================================================================
+      ! Now handle Hg indexing locally (bmy, 4/26/16)
+      ! These were all in tracerid_mod.F, which is being removed
+      !=================================================================
+
+      ! Store the # of tagged Hg categories in a module variable
+      N_Hg_CATS = State_Chm%N_Hg_CATS
+      
+      ! Hg species index corresponding to a given Hg category number
+      Id_Hg0    => State_Chm%Id_Hg0
+      Id_Hg2    => State_Chm%Id_Hg2
+      Id_HgP    => State_Chm%Id_HgP
+
+      ! Locate various tracer flags
+      DO N = 1, State_Chm%nSpecies
+         
+         ! Point to the species database entry for tracer # N
+         ThisSpc => State_Chm%SpcData(N)%Info
+
+         SELECT CASE( TRIM( ThisSpc%Name ) )
+            CASE( 'Hg0'     )
+               IDTHg0    = ThisSpc%ModelId
+               ID_Hg_tot = ThisSpc%Hg_Cat
+            CASE( 'Hg2'     )
+               IDTHg2    = ThisSpc%ModelId
+            CASE( 'HgP'     )
+               IDTHgP    = ThisSpc%ModelId
+            CASE( 'Hg0_can' )
+               ID_Hg_can = ThisSpc%Hg_Cat
+            CASE( 'Hg0_usa' )
+               ID_Hg_usa = ThisSpc%Hg_Cat
+            CASE( 'Hg0_cam' )
+               ID_Hg_cam = ThisSpc%Hg_Cat 
+            CASE( 'Hg0_sam' )
+               ID_Hg_sam = ThisSpc%Hg_Cat 
+            CASE( 'Hg0_waf' )
+               ID_Hg_waf = ThisSpc%Hg_Cat
+            CASE( 'Hg0_eaf' )
+               ID_Hg_eaf = ThisSpc%Hg_Cat 
+            CASE( 'Hg0_saf' )
+               ID_Hg_saf = ThisSpc%Hg_Cat 
+            CASE( 'Hg0_naf' )
+               ID_Hg_naf = ThisSpc%Hg_Cat
+            CASE( 'Hg0_eur' )
+               ID_Hg_eur = ThisSpc%Hg_Cat 
+            CASE( 'Hg0_eeu' )
+               ID_Hg_eeu = ThisSpc%Hg_Cat 
+            CASE( 'Hg0_sov' )
+               ID_Hg_sov = ThisSpc%Hg_Cat
+            CASE( 'Hg0_mde' )
+               ID_Hg_mde = ThisSpc%Hg_Cat 
+            CASE( 'Hg0_sas' )
+               ID_Hg_sas = ThisSpc%Hg_Cat 
+            CASE( 'Hg0_eas' )
+               ID_Hg_eas = ThisSpc%Hg_Cat
+            CASE( 'Hg0_sea' )
+               ID_Hg_sea = ThisSpc%Hg_Cat 
+            CASE( 'Hg0_jpn' )
+               ID_Hg_jpn = ThisSpc%Hg_Cat 
+            CASE( 'Hg0_oce' )
+               ID_Hg_oce = ThisSpc%Hg_Cat
+            CASE( 'Hg0_so'  )
+               ID_Hg_so  = ThisSpc%Hg_Cat 
+            CASE( 'Hg0_bb'  )
+               ID_Hg_bb  = ThisSpc%Hg_Cat 
+            CASE( 'Hg0_geo' )
+               ID_Hg_geo = ThisSpc%Hg_Cat
+            CASE( 'Hg0_atl' ) 
+               ID_Hg_atl = ThisSpc%Hg_Cat
+            CASE( 'Hg0_nat' )
+               ID_Hg_nat = ThisSpc%Hg_Cat
+            CASE( 'Hg0_sat' )
+               ID_Hg_sat = ThisSpc%Hg_Cat
+            CASE( 'Hg0_npa' )
+               ID_Hg_npa = ThisSpc%Hg_Cat
+            CASE( 'Hg0_arc' )
+               ID_Hg_arc = ThisSpc%Hg_Cat
+            CASE( 'Hg0_ant' )
+               ID_Hg_ant = ThisSpc%Hg_Cat
+            CASE( 'Hg0_ocn' )
+               ID_Hg_ocn = ThisSpc%Hg_Cat
+            CASE( 'Hg0_str' )
+               ID_Hg_str = ThisSpc%Hg_cat
+            CASE DEFAULT
+               ! Do nothing
+         END SELECT
+
+         ! Free pointer
+         ThisSpc => NULL()
+      ENDDO
 
       !=================================================================
       ! Allocate arrays
@@ -5241,9 +5320,14 @@
       IF ( ALLOCATED( HG_EMIS   ) ) DEALLOCATE( HG_EMIS   ) 
   
       ! Free pointers to HEMCO fields
-      O3   => NULL()
-      OH   => NULL()
-      JNO2 => NULL()
+      O3    => NULL()
+      OH    => NULL()
+      JNO2  => NULL()
+
+      ! Free Hg indexing pointers
+      Id_Hg0 => NULL()
+      Id_Hg2 => NULL()
+      Id_HgP => NULL()
 
       END SUBROUTINE CLEANUP_MERCURY
 !EOC

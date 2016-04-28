@@ -519,7 +519,9 @@
 !  ND03: Diagnostics from Hg0/Hg2/HgP offline simulation (eck, bmy, 1/20/05)
 !******************************************************************************
 !
-      IF ( ND03 > 0 ) CALL WRITE_DIAG03( am_I_Root, Input_Opt, RC )
+      IF ( ND03 > 0 ) THEN
+         CALL WRITE_DIAG03( am_I_Root, Input_Opt, State_Chm, RC )
+      ENDIF
 !
 !******************************************************************************
 !  ND04: Diagnostics from CO2 simulation (pns, bmy, 7/26/05)
@@ -6134,23 +6136,30 @@
          ND69 = 0
       ENDIF
 
-      !==================================================================
-      ! Special case for mercury simulation. We need to store AD38, AD39,
-      ! AD44 to ensure that we have monthly average in GTMM restart file
-      !==================================================================
-      IF ( Input_Opt%LGTMM ) THEN
-         N = 1
-         NN = GET_WETDEP_IDWETD( N )
-         DO WHILE( .NOT.(IS_Hg2( NN )) )
-            
-            N = N + 1
-            ! Tracer number
-            NN = GET_WETDEP_IDWETD( N )
-            
-         ENDDO
-
-         CALL UPDATE_DEP( N )
-      ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: Bob Y. blocked out this section of code which only executes if
+!%%% the GTMM Mercury Model is being used.  The bpch restart files are being 
+!%%% phased out.  It is unclear anyone is still using the GTMM land Hg model 
+!%%% anymore.  If so, then we can investigate a way to add the GTMM diagnostic 
+!%%% quantities into the netCDF restart file. (bmy, 4/22/16)
+!%%%      !==================================================================
+!%%%      ! Special case for mercury simulation. We need to store AD38, AD39,
+!%%%      ! AD44 to ensure that we have monthly average in GTMM restart file
+!%%%      !==================================================================
+!%%%      IF ( Input_Opt%LGTMM ) THEN
+!%%%         N = 1
+!%%%         NN = GET_WETDEP_IDWETD( N )
+!%%%         DO WHILE( .NOT.(IS_Hg2( NN )) )
+!%%%            
+!%%%            N = N + 1
+!%%%            ! Tracer number
+!%%%            NN = GET_WETDEP_IDWETD( N )
+!%%%            
+!%%%         ENDDO
+!%%%
+!%%%         CALL UPDATE_DEP( N )
+!%%%      ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #endif
 #if defined( BPCH_DIAG )
 !

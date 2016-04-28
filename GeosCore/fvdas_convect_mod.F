@@ -172,7 +172,7 @@
       SUBROUTINE FVDAS_CONVECT( TDT,   NTRACE, Q,     RPDEL, ETA, 
      &                          BETA,  MU,     MD,    EU,    DP,    
      &                          NSTEP, FRACIS, INDEXSOL,
-     &                          Input_Opt, State_Met )
+     &                          Input_Opt, State_Met, State_Chm )
 !
 !******************************************************************************
 !  Subroutine FVDAS_CONVECT is the convection driver routine for GEOS-4/fvDAS
@@ -240,6 +240,7 @@
       USE CMN_SIZE_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -256,6 +257,7 @@
       REAL(fp),       INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -309,7 +311,7 @@
      &                    DUG,   EUG,       EDG,    DPG,  DSUBCLD,  
      &                    JT,    MX,        IDEEP,  1,    LENGATH, 
      &                    NSTEP, 0.5e+0_fp*TDT, FRACIS, 
-     &                    INDEXSOL, Input_Opt, State_Met )
+     &                    INDEXSOL, Input_Opt, State_Met, State_Chm )
             ENDIF
 
             !-----------------------------------
@@ -713,7 +715,7 @@
      &                     DU,    EU,     ED,     DP,   DSUBCLD,  
      &                     JT,    MX,     IDEEP,  IL1G, IL2G,     
      &                     NSTEP, DELT,   FRACIS, INDEXSOL,
-     &                     Input_Opt, State_Met )
+     &                     Input_Opt, State_Met, State_Chm )
 !
 !******************************************************************************
 !  Subroutine CONVTRAN applies the convective transport of trace species
@@ -743,6 +745,7 @@
 !  (19) INDEXSOL (INTEGER)   : Index array of soluble tracer numbers
 !  (20) Input_opt(OPTINPUT)  : Input options object
 !  (21) State_Met(METSTATE)  : Meteorological state object
+!  (21) State_Chm(CHMSTATE)  : Chemistry state object
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -793,6 +796,8 @@
 !  27 Apr 2015 - E. Lundgren - Replace 100/G0 with global param g0_100
 !  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v)
+!  22 Apr 2016 - R. Yantosca - Now get IS_Hg2, Is_HgP from species database
+!  25 Apr 2016 - R. Yantosca - Now pass Hg category # to ADD_Hg2_* functions
 !******************************************************************************
 !
       ! References to F90 modules
@@ -804,42 +809,44 @@
       USE DIAG_MOD,           ONLY : CONVFLUP 
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE TRACERID_MOD,       ONLY : IS_Hg2, IS_HgP !eck/eds
+      USE SPECIES_MOD,        ONLY : Species
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND38, LD38, ND14, LD14
       USE PHYSCONSTANTS            ! Universal constants
 
       ! Arguments
-      INTEGER,        INTENT(IN)     :: J
-      INTEGER,        INTENT(IN)     :: NTRACE  
-      REAL(fp),         INTENT(INOUT):: Q(IIPAR,JJPAR,LLPAR,NTRACE)  
-      REAL(fp),         INTENT(IN)   :: MU(IIPAR,LLPAR)      
-      REAL(fp),         INTENT(IN)   :: MD(IIPAR,LLPAR)      
-      REAL(fp),         INTENT(IN)   :: DU(IIPAR,LLPAR)      
-      REAL(fp),         INTENT(IN)   :: EU(IIPAR,LLPAR)      
-      REAL(fp),         INTENT(IN)   :: ED(IIPAR,LLPAR)      
-      REAL(fp),         INTENT(IN)   :: DP(IIPAR,LLPAR)      
-      REAL(fp),         INTENT(IN)   :: DSUBCLD(IIPAR)      
-      INTEGER,        INTENT(IN)     :: JT(IIPAR)          
-      INTEGER,        INTENT(IN)     :: MX(IIPAR)          
-      INTEGER,        INTENT(IN)     :: IDEEP(IIPAR)       
-      INTEGER,        INTENT(IN)     :: IL1G               
-      INTEGER,        INTENT(IN)     :: IL2G 
-      INTEGER,        INTENT(IN)     :: NSTEP               
-      REAL(fp),       INTENT(IN)     :: DELT                
-      REAL(fp),       INTENT(IN)     :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
-      INTEGER,        INTENT(IN)     :: INDEXSOL(NTRACE)
-      TYPE(OptInput), INTENT(IN)     :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)     :: State_Met   ! Meteorology State object
+      INTEGER,        INTENT(IN)    :: J
+      INTEGER,        INTENT(IN)    :: NTRACE  
+      REAL(fp),       INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)  
+      REAL(fp),       INTENT(IN)    :: MU(IIPAR,LLPAR)      
+      REAL(fp),       INTENT(IN)    :: MD(IIPAR,LLPAR)      
+      REAL(fp),       INTENT(IN)    :: DU(IIPAR,LLPAR)      
+      REAL(fp),       INTENT(IN)    :: EU(IIPAR,LLPAR)      
+      REAL(fp),       INTENT(IN)    :: ED(IIPAR,LLPAR)      
+      REAL(fp),       INTENT(IN)    :: DP(IIPAR,LLPAR)      
+      REAL(fp),       INTENT(IN)    :: DSUBCLD(IIPAR)      
+      INTEGER,        INTENT(IN)    :: JT(IIPAR)          
+      INTEGER,        INTENT(IN)    :: MX(IIPAR)          
+      INTEGER,        INTENT(IN)    :: IDEEP(IIPAR)       
+      INTEGER,        INTENT(IN)    :: IL1G               
+      INTEGER,        INTENT(IN)    :: IL2G 
+      INTEGER,        INTENT(IN)    :: NSTEP               
+      REAL(fp),       INTENT(IN)    :: DELT                
+      REAL(fp),       INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
+      INTEGER,        INTENT(IN)    :: INDEXSOL(NTRACE)
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object
 
       ! Local variables
       LOGICAL                      :: IS_Hg
       INTEGER                      :: II,      JJ,      LL,      NN
       INTEGER                      :: I,       K,       KBM,     KK     
       INTEGER                      :: KKP1,    KM1,     KP1,     KTM     
-      INTEGER                      :: M,       ISTEP
+      INTEGER                      :: M,       ISTEP,   Hg_Cat
       REAL(fp)                     :: CABV,    CBEL,    CDIFR,   CD2
       REAL(fp)                     :: DENOM,   SMALL,   MBSTH,   MUPDUDP
       REAL(fp)                     :: MINC,    MAXC,    QN,      FLUXIN
@@ -851,6 +858,9 @@
       REAL(fp)                     :: FISG(IIPAR,LLPAR)     
       REAL(fp)                     :: CONU(IIPAR,LLPAR)     
       REAL(fp)                     :: DCONDT(IIPAR,LLPAR)   
+
+      ! Pointers
+      TYPE(Species), POINTER       :: ThisSpc => NULL()
 
       !=================================================================
       ! CONVTRAN begins here!
@@ -881,6 +891,9 @@
 
       ! Loop ever each tracer
       DO M = 1, NTRACE
+
+         ! Point to the Species Database entry for tracer #M
+         ThisSpc => State_Chm%SpcData(M)%Info
 
          ! Gather up the tracer and set tend to zero
          DO K = 1,    LLPAR
@@ -1223,7 +1236,7 @@
                IF ( IS_Hg ) THEN
 
                   ! ... and if this is one of the Hg2 tracers
-                  IF ( IS_Hg2( M ) ) THEN
+                  if ( ThisSpc%Is_Hg2 ) THEN
 
                      ! GEOS-CHEM lon & lat indices
                      II      = IDEEP(I)
@@ -1237,13 +1250,16 @@
      &                          * ( 1e+0_fp - FISG(I,K) ) 
      &                          * AREA_M2 * g0_100 / DELT 
 
+                     ! Category # for this Hg2 species
+                     Hg_Cat = ThisSpc%Hg_Cat
+
                      ! Pass to "ocean_mercury_mod.f"
-                     CALL ADD_Hg2_WD( II, J, M, WET_Hg2 )
-                     CALL ADD_Hg2_SNOWPACK( II, J, M, WET_Hg2, 
-     &                                      State_Met )
+                     CALL ADD_Hg2_WD      ( II, J, Hg_Cat, WET_Hg2   )
+                     CALL ADD_Hg2_SNOWPACK( II, J, Hg_Cat, WET_Hg2, 
+     &                                                     State_Met )
                   ENDIF
                   !eck/eds
-                  IF ( IS_HgP( M ) ) THEN
+                  IF ( ThisSpc%Is_HgP ) THEN
 
                      ! GEOS-CHEM lon & lat indices
                      II      = IDEEP(I)
@@ -1257,10 +1273,13 @@
      &                         * ( 1e+0_fp - FISG(I,K) )
      &                          * AREA_M2 * g0_100 / DELT 
 
+                     ! Category # for this Hg2 species
+                     Hg_Cat = ThisSpc%Hg_Cat
+
                      ! Pass to "ocean_mercury_mod.f"
-                     CALL ADD_HgP_WD( II, J, M, WET_HgP )
-                     CALL ADD_Hg2_SNOWPACK( II, J, M, WET_HgP,
-     &                                      State_Met )
+                     CALL ADD_HgP_WD      ( II, J, Hg_Cat, WET_HgP   )
+                     CALL ADD_Hg2_SNOWPACK( II, J, Hg_Cat, WET_HgP,
+     &                                                     State_Met )
                   ENDIF
                ENDIF
 
@@ -1329,6 +1348,9 @@
                Q(IDEEP(I),J,K,M) = QN
             ENDDO 
          ENDDO    
+
+         ! Free pointer to species database
+         ThisSpc => NULL()
 
       ENDDO  !M ; End of tracer loop
 

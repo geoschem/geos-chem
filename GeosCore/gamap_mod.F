@@ -1814,6 +1814,7 @@
 !  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND71 to ND72 to
 !                              avoid conflicts with hourly max ppbv diagnostic.
 !  12 Aug 2015 - J. Fisher   - Add cryosphere Hg diagnostics
+!  25 Apr 2016 - R. Yantosca - Now get N_HG_CATS from State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1825,6 +1826,7 @@
 
       REAL(fp),     SAVE      :: POP_XMW
       REAL(fp)                :: DUM
+      INTEGER                 :: N_Hg_CATS
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
@@ -1839,6 +1841,9 @@
       DO_TIMESERIES = ( DO_SAVE_DIAG48 .or. DO_SAVE_DIAG49 .or.
      &                  DO_SAVE_DIAG50 .or. DO_SAVE_DIAG51 .or.
      &                  DO_SAVE_DIAG51b )
+
+      ! Save the # of tagHg categories in a local variable
+      N_Hg_CATS = State_Chm%N_Hg_CATS
 
       !----------------------------------
       ! General tracer information
