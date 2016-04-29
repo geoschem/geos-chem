@@ -282,6 +282,7 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  08 Aug 2015 - E. Lundgren - Tracer units are now input as [kg/kg]
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -297,8 +298,8 @@
       INTEGER                :: N, L, cID, HCRC
       CHARACTER(LEN=60)      :: DiagnName
       REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
-      REAL(fp), POINTER      :: TMP3D(:,:,:) => NULL()
-      REAL(fp), POINTER      :: TMP2D(:,:  ) => NULL()
+      REAL(fp), POINTER      :: TMP3D(:,:,:)
+      REAL(fp), POINTER      :: TMP2D(:,:  )
       REAL(fp)               :: DT
 #endif
 
@@ -308,6 +309,12 @@
 
       ! Assume success
       RC                =  GIGC_SUCCESS
+
+#if defined( NC_DIAG )
+      ! Initialize pointers
+      TMP3D             => NULL()
+      TMP2D             => NULL()
+#endif
 
       ! Copy values from Input_Opt to module shadow variables
       LPRT              = Input_Opt%LPRT
@@ -3038,6 +3045,7 @@
 !  22 Sep 2015 - E. Lundgren - Tracer units now converted to kg/m2 from kg/kg
 !  22 Apr 2016 - R. Yantosca - Now get Is_Hg2, Is_HgP from species database
 !  25 Apr 2016 - R. Yantosca - Now get the Hg category # from species database
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3067,10 +3075,8 @@
       CHARACTER(LEN=255) :: ERRMSG
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp),      POINTER :: STT(:,:,:,:) => NULL()
-      TYPE(Species), POINTER :: ThisSpc      => NULL()
+      REAL(fp),      POINTER :: STT(:,:,:,:)
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
@@ -3078,6 +3084,10 @@
 
       ! Is this a mercury simulation?
       IS_Hg = ( ITS_A_MERCURY_SIM )
+
+      ! Initialize pointers
+      STT     => NULL()
+      ThisSpc => NULL()
 
       ! Convert tracer concentration from mixing ratio (kg/kg dry air) to
       ! mass per unit area (kg/m2) for wet deposition since computation is
@@ -3663,6 +3673,7 @@
 !                              whether the dynamic ocean is used
 !  22 Apr 2016 - R. Yantosca - Now get Is_Hg2, Is_HgP from species database
 !  25 Apr 2016 - R. Yantosca - Now get the Hg category # from species database
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3693,10 +3704,8 @@
       CHARACTER(LEN=255) :: ERRMSG
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp),      POINTER :: STT(:,:,:,:) => NULL()
-      TYPE(Species), POINTER :: ThisSpc      => NULL()
+      REAL(fp),      POINTER :: STT(:,:,:,:)
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
@@ -3704,6 +3713,10 @@
 
       ! Is this a mercury simulation?
       IS_Hg = ITS_A_MERCURY_SIM
+
+      ! Initialize pointers
+      STT     => NULL()
+      ThisSpc => NULL()
 
       ! Convert tracer concentration from mixing ratio (kg/kg dry air) to
       ! mass per unit area (kg/m2) for wet deposition since computation is
@@ -4074,7 +4087,7 @@
       ENDIF  
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       END SUBROUTINE WETDEP_MERRA
 !EOC
@@ -4472,7 +4485,7 @@
       ENDDO
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       END SUBROUTINE DO_RAINOUT_ONLY
 !EOC
@@ -4657,7 +4670,7 @@
       ! Pointers
       ! We need to define local array to hold tracer concentraiton values 
       ! from the Chemistry State (State_Chm) object [kg/m2] (ewl, 9/29/15)
-      REAL(fp), POINTER      :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: STT(:,:,:,:)
 
 #if defined( TOMAS )
       REAL(fp)           :: REEVAPSO2  !(win, 7/16/09)
@@ -4970,7 +4983,7 @@
       ENDDO  
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
  
       END SUBROUTINE DO_WASHOUT_ONLY
 !EOC
@@ -5061,14 +5074,11 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER   :: N, NN
-      REAL(fp)  :: WETLOSS
+      INTEGER            :: N, NN
+      REAL(fp)           :: WETLOSS
 
       ! Pointers
-      ! We need to define local array to hold tracer concentraiton values 
-      ! from the Chemistry State (State_Chm) object [kg/m2] (ewl, 9/29/15)
-      REAL(fp), POINTER      :: STT(:,:,:,:)
-
+      REAL(fp), POINTER  :: STT(:,:,:,:)
 
 #if defined( TOMAS )
       REAL(fp)           :: REEVAPSO2  !(win, 7/16/09)
@@ -5225,7 +5235,7 @@
       ENDDO
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       END SUBROUTINE DO_COMPLETE_REEVAP
 !EOC
@@ -5835,6 +5845,7 @@
 !  22 Sep 2015 - R. Yantosca - Bug fix: only define the IDWETD array if
 !                              wetdep or drydep is turned on.  Also only
 !                              print info if wetdep is turned on.
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5850,7 +5861,7 @@
       CHARACTER(LEN=80)      :: LINE
 
       ! Pointers
-      TYPE(Species), POINTER :: ThisSpc => NULL()
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! INIT_WETSCAV begins here!
@@ -5858,6 +5869,9 @@
 
       ! Exit if we have already executed this routine
       IF ( .not. FIRST ) RETURN
+
+      ! Initialize
+      ThisSpc => NULL()
       
       ! Actual number of wet-depositing species
       NSOL = 0
@@ -6080,6 +6094,7 @@
 !                              but that is now called before the restart file
 !                              is read from disk.
 !  23 Sep 2015 - R. Yantosca - Now accept State_Chm as an argument
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6091,12 +6106,16 @@
       INTEGER           :: I, J, L
 
       ! Pointers
-      REAL(fp), POINTER :: PL => NULL()
-      REAL(fp), POINTER :: TK => NULL()
+      REAL(fp), POINTER :: PL
+      REAL(fp), POINTER :: TK
             
       !=====================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
       !=====================================================================
+
+      ! Initialize
+      PL => NULL()
+      TK => NULL()
 
       ! Only do computation if wetdep or convection is turned on
       IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN

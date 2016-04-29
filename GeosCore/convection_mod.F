@@ -191,6 +191,7 @@
 !                              (previously v/v)
 !  10 Aug 2015 - E. Lundgren - Incoming tracer units are now kg/kg dry air
 !  11 Aug 2015 - R. Yantosca - Added support for MERRA2 data
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -249,14 +250,19 @@
       INTEGER                :: trc_id, D, HCRC
       CHARACTER(LEN=60)      :: DiagnName
       REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
-      REAL(fp), POINTER      :: TMP3D(:,:,:) => NULL()
-      REAL(fp), POINTER      :: TMP2D(:,:  ) => NULL()
+      REAL(fp), POINTER      :: TMP3D(:,:,:)
+      REAL(fp), POINTER      :: TMP2D(:,:  )
       REAL(fp)               :: DTIME
 #endif
 
       !=================================================================
       ! DO_CONVECT begins here!
       !=================================================================
+#if defined ( NETCDF )
+      ! Initialize pointers
+      Tmp2d => NULL()
+      Tmp3d => NULL()
+#endif
 
       !=================================================================
       ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
@@ -378,7 +384,7 @@
      &                   Input_Opt, State_Met, State_Chm, RC ) 
 
          ! Free pointer memory
-         NULLIFY( p_FSOL )
+         p_FSOL => NULL()
 
       ENDDO
       
@@ -1355,6 +1361,7 @@
 !                              (previously v/v)
 !  22 Apr 2016 - R. Yantosca - Now get Is_Hg2 and Is_HgP from species database
 !  22 Apr 2016 - R. Yantosca - Now pass ThisSpc to ADD_HG2_SNOWPACK
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1415,11 +1422,11 @@
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object (mpayer, 12/6/12)
       ! and the Meteorology State (State_Met) Object
-      REAL(fp),      POINTER   :: Q        (:,:,:,:) => NULL()
-      REAL(fp),      POINTER   :: CLDMAS   (:,:,:  ) => NULL()
-      REAL(fp),      POINTER   :: DTRN     (:,:,:  ) => NULL()
-      REAL(fp),      POINTER   :: p_FSOL   (:,:,:  ) => NULL()
-      TYPE(Species), POINTER   :: ThisSpc            => NULL()
+      REAL(fp),      POINTER   :: Q        (:,:,:,:)
+      REAL(fp),      POINTER   :: CLDMAS   (:,:,:  )
+      REAL(fp),      POINTER   :: DTRN     (:,:,:  )
+      REAL(fp),      POINTER   :: p_FSOL   (:,:,:  )
+      TYPE(Species), POINTER   :: ThisSpc           
 
       !=================================================================
       ! NFCLDMX begins here!
@@ -1445,6 +1452,9 @@
       ! Initialize detrainment mass flux [kg/m2/s] from Meterology State
       ! object (ewl, 4/28/15)
       DTRN              => State_Met%DTRAIN
+
+      ! Initialize pointer to species database
+      ThisSpc           => NULL()
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -2192,52 +2202,54 @@
 !  25 Apr 2016 - R. Yantosca - Now pass Hg category # to ADD_Hg2_* functions
 !  28 Apr 2016 - R. Yantosca - Rewrite Is_Hg block to avoid unassociated
 !                              pointer seg faults
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp), PARAMETER :: TINYNUM = 1e-14_fp
-!
-! !LOCAL VARIABLES:
-!
-      ! Scalars
-      LOGICAL             :: AER,         IS_Hg 
-      INTEGER             :: IC,          ISTEP,    K,       KTOP
-      INTEGER             :: NC,          NDT,      NLAY,    NS    
-      INTEGER             :: CLDBASE,     Hg_Cat
-      REAL(fp)            :: CMFMC_BELOW, ALPHA,    ALPHA2
-      REAL(fp)            :: CMOUT,       DELQ,     DQ,      DNS
-      REAL(fp)            :: ENTRN,       QC,       QC_PRES, QC_SCAV 
-      REAL(fp)            :: SDT,         T0,       T0_SUM,  T1    
-      REAL(fp)            :: T2,          T3,       T4 
-      REAL(fp)            :: TSUM
-      REAL(fp)            :: LOST,        GAINED,   WETLOSS, MASS_WASH
-      REAL(fp)            :: MASS_NOWASH, QDOWN,    DT,      F_WASHOUT
-      REAL(fp)            :: K_RAIN,      WASHFRAC, WET_Hg2, WET_HgP 
-      REAL(fp)            :: MB,          QB,       QB_NUM
-
-      ! Arrays
-      REAL(fp)            :: BMASS       (LLPAR    )    
-      REAL(fp)            :: PDOWN       (LLPAR    )
+      REAL(fp), PARAMETER    :: TINYNUM = 1e-14_fp
+!                            
+! !LOCAL VARIABLES:          
+!                            
+      ! Scalars              
+      LOGICAL                :: AER,         IS_Hg 
+      INTEGER                :: IC,          ISTEP,     K        
+      INTEGER                :: KTOP,        NC,        NDT
+      INTEGER                :: NLAY,        NS,        CLDBASE
+      INTEGER                :: Hg_Cat
+      REAL(fp)               :: CMFMC_BELOW, ALPHA,     ALPHA2
+      REAL(fp)               :: CMOUT,       DELQ,      DQ
+      REAL(fp)               :: DNS,         ENTRN,     QC
+      REAL(fp)               :: QC_PRES,     QC_SCAV,   SDT
+      REAL(fp)               :: T0,          T0_SUM,    T1    
+      REAL(fp)               :: T2,          T3,        T4 
+      REAL(fp)               :: TSUM,        LOST,      GAINED  
+      REAL(fp)               :: WETLOSS,     MASS_WASH, MASS_NOWASH
+      REAL(fp)               :: QDOWN,       DT,        F_WASHOUT
+      REAL(fp)               :: K_RAIN,      WASHFRAC,  WET_Hg2
+      REAL(fp)               :: WET_HgP,     MB,        QB
+      REAL(fp)               :: QB_NUM
+                             
+      ! Arrays               
+      REAL(fp)               :: BMASS    (LLPAR    )    
+      REAL(fp)               :: PDOWN    (LLPAR    )
 
       ! Pointers
-      REAL(fp),  POINTER  :: BXHEIGHT (:        ) => NULL()
-      REAL(fp),  POINTER  :: CMFMC    (:        ) => NULL()
-      REAL(fp),  POINTER  :: DQRCU    (:        ) => NULL()
-      REAL(fp),  POINTER  :: DTRAIN   (:        ) => NULL()
-      REAL(fp),  POINTER  :: PFICU    (:        ) => NULL()
-      REAL(fp),  POINTER  :: PFLCU    (:        ) => NULL()
-      REAL(fp),  POINTER  :: REEVAPCN (:        ) => NULL()
-      REAL(fp),  POINTER  :: DELP     (:        ) => NULL()
-      REAL(fp),  POINTER  :: T        (:        ) => NULL()
-      REAL(fp),  POINTER  :: H2O2s    (:        ) => NULL()
-      REAL(fp),  POINTER  :: SO2s     (:        ) => NULL()
-      REAL(fp),  POINTER  :: Q        (:,:      ) => NULL()
-   
-      ! For the species database
-      TYPE(Species), POINTER :: ThisSpc => NULL()
+      REAL(fp),      POINTER :: BXHEIGHT (:        )
+      REAL(fp),      POINTER :: CMFMC    (:        )
+      REAL(fp),      POINTER :: DQRCU    (:        )
+      REAL(fp),      POINTER :: DTRAIN   (:        )
+      REAL(fp),      POINTER :: PFICU    (:        )
+      REAL(fp),      POINTER :: PFLCU    (:        )
+      REAL(fp),      POINTER :: REEVAPCN (:        )
+      REAL(fp),      POINTER :: DELP     (:        )
+      REAL(fp),      POINTER :: T        (:        )
+      REAL(fp),      POINTER :: H2O2s    (:        )
+      REAL(fp),      POINTER :: SO2s     (:        )
+      REAL(fp),      POINTER :: Q        (:,:      )
+      TYPE(Species), POINTER :: ThisSpc
 
       !========================================================================
       ! (0)  I n i t i a l i z a t i o n
@@ -2254,7 +2266,7 @@
       H2O2s    => H2O2s_3D          (I,J,:        ) ! H2O2s from sulfate_mod
       SO2s     => SO2s_3D           (I,J,:        ) ! SO2s from sulfate_mod
       Q        => State_Chm%TRACERS (I,J,:,:      ) ! Tracer concentration
-                                                    ! [mol/mol total air] 
+      ThisSpc  => NULL()                            ! Species database entry
                                                 
 #if   defined( GEOS_FP ) || defined( MERRA2 )
 
@@ -2995,7 +3007,7 @@
                   ! Pass to "ocean_mercury_mod.f"
                   CALL ADD_Hg2_WD      ( I, J, Hg_Cat, WET_Hg2   )
                   CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_Hg2, 
-     &                                              State_Met )
+     &                                                 State_Met )
                ENDIF
 
                !--------------------------------------
@@ -3012,14 +3024,13 @@
                   ! Pass to "ocean_mercury_mod.f"
                   CALL ADD_HgP_WD      ( I, J, Hg_Cat, WET_HgP   )
                   CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_HgP, 
-     &                                              State_Met )
+     &                                                 State_Met )
                ENDIF
 
                ! Free pointers
                ThisSpc => NULL()
-
+         
             ENDIF
-
          ENDDO               ! End internal timestep loop
       ENDDO                  ! End loop over tracers
 

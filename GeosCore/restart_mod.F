@@ -137,8 +137,7 @@
 ! !REVISION HISTORY: 
 !  09 Feb 2016 - E. Lundgren - Initial version
 !  20 Apr 2016 - E. Lundgren - Implement ocean and snow Hg variables
-!  26 Apr 2016 - R. Yantosca - Now 
-
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -149,7 +148,7 @@
       INTEGER            :: GC_RST_Collection, N, M, cID
       INTEGER            :: DeltaYMD, DeltaHMS 
       REAL(sp)           :: TS
-      REAL(fp), POINTER  :: GridAreas_ptr(:,:) => NULL()
+      REAL(fp), POINTER  :: GridAreas_ptr(:,:)
       CHARACTER(LEN=60)  :: ContainerName, Prefix, Tracer
       CHARACTER(LEN=255) :: MSG, LOC = 
      &                      'INIT_GC_RESTART_NC (restart_mod.F90)'
@@ -618,6 +617,7 @@ dvected tracer input  restart file
 !
 !  09 Feb 2016 - E. Lundgren - Initial version
 !  20 Apr 2016 - E. Lundgren - Implement ocean and snow Hg variables
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -649,8 +649,8 @@ dvected tracer input  restart file
       ! Temporary arrays and pointers
       REAL*4,  TARGET      :: Temp2D(IIPAR,JJPAR) 
       REAL*4,  TARGET      :: Temp3D(IIPAR,JJPAR,LLPAR)
-      REAL*4,  POINTER     :: Ptr2D(:,:  ) => NULL()
-      REAL*4,  POINTER     :: Ptr3D(:,:,:) => NULL()
+      REAL*4,  POINTER     :: Ptr2D(:,:  )
+      REAL*4,  POINTER     :: Ptr3D(:,:,:)
 
       ! Other
       CHARACTER(LEN=255)   :: LOC
@@ -658,10 +658,10 @@ dvected tracer input  restart file
       ! For Hg species indexing (bmy, 4/26/16)
       INTEGER                   :: N_Hg_CATS 
       INTEGER                   :: Id_Hg_tot
-      INTEGER,          POINTER :: Id_Hg0     (:) => NULL()
-      INTEGER,          POINTER :: Id_Hg2     (:) => NULL()
-      INTEGER,          POINTER :: Id_HgP     (:) => NULL()
-      CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:) => NULL()
+      INTEGER,          POINTER :: Id_Hg0     (:)
+      INTEGER,          POINTER :: Id_Hg2     (:)
+      INTEGER,          POINTER :: Id_HgP     (:)
+      CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:)
 
       !=================================================================
       ! READ_GC_RESTART_NC begins here!
@@ -669,6 +669,14 @@ dvected tracer input  restart file
 
       ! Assume success
       RC        = GIGC_SUCCESS
+
+      ! Initialize pointers
+      Ptr2D       => NULL()
+      Ptr3D       => NULL()
+      Id_Hg0      => NULL()
+      Id_Hg2      => NULL()
+      Id_HgP      => NULL()
+      Hg_Cat_Name => NULL()
 
       ! Name of this routine
       LOC       = 'READ_GC_RESTART_NC (restart_mod.F)'
@@ -1492,7 +1500,7 @@ dvected tracer input  restart file
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       END SUBROUTINE READ_GC_RESTART_BPCH
 !EOC
@@ -1607,7 +1615,7 @@ dvected tracer input  restart file
 #endif
 
       ! Free pointer
-      NULLIFY( TracerVV_ptr )
+      TracerVV_ptr => NULL()
 
       !### Debug
       IF ( Input_Opt%LPRT .AND. am_I_Root ) THEN 
@@ -1674,6 +1682,7 @@ dvected tracer input  restart file
 ! !REVISION HISTORY: 
 !  09 Feb 2016 - E. Lundgren - Initial version
 !  20 Apr 2016 - E. Lundgren - Implement ocean and snow Hg variables
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1693,26 +1702,35 @@ dvected tracer input  restart file
       ! Temporary arrays and pointers
       REAL*4,            TARGET :: Temp3D( IIPAR, JJPAR, LLPAR )
       REAL*4,            TARGET :: Temp2D( IIPAR, JJPAR )
-      REAL*4,           POINTER :: Ptr3D(:,:,:) => NULL()
-      REAL*4,           POINTER :: Ptr2D(:,:  ) => NULL()
+      REAL*4,           POINTER :: Ptr3D(:,:,:)
+      REAL*4,           POINTER :: Ptr2D(:,:  )
 
       ! For indexing of Hg species
       INTEGER                   :: N_Hg_CATS
       INTEGER                   :: Id_Hg_tot
-      INTEGER,          POINTER :: Id_Hg0     (:) => NULL()
-      INTEGER,          POINTER :: Id_Hg2     (:) => NULL()
-      INTEGER,          POINTER :: Id_HgP     (:) => NULL()
-      CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:) => NULL()
+      INTEGER,          POINTER :: Id_Hg0     (:)
+      INTEGER,          POINTER :: Id_Hg2     (:)
+      INTEGER,          POINTER :: Id_HgP     (:)
+      CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:)
 
       ! Pointer to HEMCO state (is this needed?)
-      TYPE(HCO_STATE),  POINTER :: HcoState       => NULL()
+      TYPE(HCO_STATE),  POINTER :: HcoState
 
       !=================================================================
       ! WRITE_GC_RESTART_NC begins here!
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC          = GIGC_SUCCESS
+
+      ! Initialize pointers
+      Ptr3D       => NULL()
+      Ptr2D       => NULL()
+      Id_Hg0      => NULL()
+      Id_Hg2      => NULL()
+      Id_HgP      => NULL()
+      Hg_Cat_Name => NULL()
+      HcoState    => NULL()
 
       ! Set the GEOS-Chem restart collection ID
       GC_RST_Collection = Input_Opt%GC_RST_COLLECTION
@@ -2939,7 +2957,7 @@ dvected tracer input  restart file
       CLOSE( IU_RST )      
 
       ! Free pointer
-      NULLIFY( CSPEC_FULL )
+      CSPEC_FULL => NULL()
 
       !### Debug
       IF ( Input_Opt%LPRT .AND. am_I_Root ) THEN

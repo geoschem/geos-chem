@@ -363,6 +363,7 @@ CONTAINS
 !  09 Oct 2015 - R. Yantosca - Bug fix: set State_Chm%SpcData to NULL
 !  16 Dec 2015 - R. Yantosca - Now overwrite the Input_Opt%TRACER_MW_G and
 !                              related fields w/ info from species database
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -375,7 +376,7 @@ CONTAINS
     REAL(fp)               :: EmMW_g
 
     ! Pointers
-    TYPE(Species), POINTER :: ThisSpc => NULL()
+    TYPE(Species), POINTER :: ThisSpc
 
     ! Assume success until otherwise
     RC = GIGC_SUCCESS
@@ -434,6 +435,7 @@ CONTAINS
 
     ! Species database
     State_Chm%SpcData     => NULL()
+    ThisSpc               => NULL()
 
     ! Advected tracers
     State_Chm%Trac_Id     = 0

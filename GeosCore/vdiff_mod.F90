@@ -1935,6 +1935,7 @@ contains
 !                              diagnostics.
 !  25 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostic
 !  22 Apr 2016 - R. Yantosca - Now get Hg info from species database
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2011,8 +2012,8 @@ contains
     ! For diagnostics
     REAL(fp), TARGET   :: DryDepFlux( IIPAR, JJPAR ) 
 #if defined( NC_DIAG )
-    REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
-    REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
+    REAL(fp), POINTER  :: Ptr3D(:,:,:)
+    REAL(fp), POINTER  :: Ptr2D(:,:)
     REAL(fp)           :: Total
     INTEGER            :: cID
     CHARACTER(LEN=30)  :: DiagnName
@@ -2027,7 +2028,7 @@ contains
     LOGICAL,           SAVE :: FIRST = .TRUE.
 
     ! For pointing to the species database
-    TYPE(Species),  POINTER :: ThisSpc => NULL()
+    TYPE(Species),  POINTER :: ThisSpc
     INTEGER                 :: Hg_Cat
 
     !=================================================================
@@ -2036,7 +2037,14 @@ contains
 
     !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR begins' )
-    
+
+    ! Initialize pointers
+    ThisSpc => NULL()
+#if defined( NC_DIAG )
+    Ptr3D   => NULL()
+    Ptr2D   => NULL()
+#endif
+
     ! Initialize local arrays. (ccc, 12/21/10)
     pmid    = 0e+0_fp
     rpdel   = 0e+0_fp

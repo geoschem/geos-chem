@@ -256,6 +256,8 @@
 
       ! Pointers to fields in the HEMCO data structure.
       ! These need to be declared REAL(f4), aka REAL*4.
+      ! NOTE: We can declare these NULL here because 
+      ! these are SAVED global pointers (bmy, 4/29/16)
       REAL(f4), POINTER :: CHL   (:,:) => NULL()
       REAL(f4), POINTER :: CHL_A (:,:) => NULL()
       REAL(f4), POINTER :: MLD   (:,:) => NULL()
@@ -278,6 +280,8 @@
       INTEGER           :: ID_Hg_ocn,  ID_Hg_tot
 
       ! Pointers for Hg indexing
+      ! NOTE: We can declare these NULL here because 
+      ! these are SAVED global pointers (bmy, 4/29/16)
       INTEGER, POINTER  :: Id_Hg0(:) => NULL()
       INTEGER, POINTER  :: Id_Hg2(:) => NULL()
       INTEGER, POINTER  :: Id_HgP(:) => NULL()
@@ -389,6 +393,7 @@
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
 !  13 Mar 2015 - R. Yantosca - Now remove bpch input
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !*****************************************************************************
 !
 ! !USES:
@@ -419,14 +424,14 @@
 !
       ! Pointers to fields in the HEMCO data structure
       ! These have to be declared REAL(f4), aka REAL*4.
-      REAL(f4), POINTER       :: ARRAYso4 (:,:,:) => NULL() ! so4
-      REAL(f4), POINTER       :: ARRAYnit (:,:,:) => NULL() ! nit
-      REAL(f4), POINTER       :: ARRAYnh4 (:,:,:) => NULL() ! nh4
-      REAL(f4), POINTER       :: ARRAYbcpi(:,:,:) => NULL() ! bcpi
-      REAL(f4), POINTER       :: ARRAYocpi(:,:,:) => NULL() ! ocpi
-      REAL(f4), POINTER       :: ARRAYbcpo(:,:,:) => NULL() ! bcpo
-      REAL(f4), POINTER       :: ARRAYocpo(:,:,:) => NULL() ! ocpo
-      REAL(f4), POINTER       :: ARRAYdst1(:,:,:) => NULL() ! dst1
+      REAL(f4), POINTER       :: ARRAYso4 (:,:,:)
+      REAL(f4), POINTER       :: ARRAYnit (:,:,:)
+      REAL(f4), POINTER       :: ARRAYnh4 (:,:,:)
+      REAL(f4), POINTER       :: ARRAYbcpi(:,:,:)
+      REAL(f4), POINTER       :: ARRAYocpi(:,:,:)
+      REAL(f4), POINTER       :: ARRAYbcpo(:,:,:)
+      REAL(f4), POINTER       :: ARRAYocpo(:,:,:)
+      REAL(f4), POINTER       :: ARRAYdst1(:,:,:)
 
       ! Arrays to hold bulk concentration and surface area
       REAL(f4)                :: ARRAYtemp(IGLOB,JGLOB,LGLOB)
@@ -449,8 +454,16 @@
       ! Assume success
       RC        =  GIGC_SUCCESS
 
-      ! Initialize
-      
+      ! Initialize pointers
+      ARRAYso4  => NULL() ! so4
+      ARRAYnit  => NULL() ! nit
+      ARRAYnh4  => NULL() ! nh4
+      ARRAYbcpi => NULL() ! bcpi
+      ARRAYocpi => NULL() ! ocpi
+      ARRAYbcpo => NULL() ! bcpo
+      ARRAYocpo => NULL() ! ocpo
+      ARRAYdst1 => NULL() ! dst1
+
       !----------------------------------------!
       ! Molecular weights, for unit conversion !
       !----------------------------------------!
@@ -1075,9 +1088,9 @@
       REAL(fpp), POINTER   :: STT(:,:,:,:)
 
       ! Pointers to fields in the HEMCO data structure
-      REAL(f4), POINTER    :: TOMS   (:,:) => NULL() ! O3   
-      REAL(f4), POINTER    :: TOMS_PD(:,:) => NULL() ! present day O3
-      REAL(f4), POINTER    :: TOMS_LT(:,:) => NULL() ! long-term O3
+      REAL(f4), POINTER    :: TOMS   (:,:)   ! O3   
+      REAL(f4), POINTER    :: TOMS_PD(:,:)   ! present day O3
+      REAL(f4), POINTER    :: TOMS_LT(:,:)   ! long-term O3
 
       ! Strings
       CHARACTER(LEN=255) :: 
@@ -1092,6 +1105,11 @@
       !=================================================================
       ! OCEAN_MERCURY_FLUX begins here!
       !=================================================================
+
+      ! Initialize pointers
+      TOMS    => NULL()
+      TOMS_PD => NULL()
+      TOMS_LT => NULL()
 
       ! Copy values from Input_Opt
       LSPLIT       = Input_Opt%LSPLIT
@@ -1108,11 +1126,6 @@
       ENDIF
 
       ! Molecular weight of Hg (applicable to all tagged tracers)
-!-----------------------------------------------------------------------------
-! Prior to 4/26/16:
-! ID_Hg_tot (the category for total Hg) is always 1 (bmy, 4/26/16)
-!      MHg = TRACER_MW_KG(ID_Hg_tot)
-!-----------------------------------------------------------------------------
       MHg = TRACER_MW_Kg(1)
 
       ! Get current month
@@ -2255,10 +2268,10 @@
 !$OMP END PARALLEL DO
 
       ! Free pointers
-      NULLIFY( STT     )
-      NULLIFY( TOMS    )
-      NULLIFY( TOMS_PD )
-      NULLIFY( TOMS_LT )
+       STT     => NULL()
+       TOMS    => NULL()
+       TOMS_PD => NULL()
+       TOMS_LT => NULL()
 
       !=================================================================
       ! Check tagged & total sums (if necessary)
@@ -3195,6 +3208,7 @@
 !  23 Jun 2014 - R. Yantosca - Now use Input_Opt instead of directory_mod.F
 !  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
 !  06 Aug 2015 - J. Fisher   - Add stored snow Hg reservoirs (orig. 11/29/11)
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3245,20 +3259,19 @@
       REAL(fpp)           :: TRACER_MW_KG(Input_Opt%N_TRACERS)
 
       ! For the species database
-      TYPE(Species), POINTER :: ThisSpc => NULL()
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! READ_OCEAN_Hg_RESTART begins here!
       !=================================================================
 
-      ! Copy values from Input_Opt
-      LPRT         = Input_Opt%LPRT
-      LSPLIT       = Input_Opt%LSPLIT
-      N_TRACERS    = Input_Opt%N_TRACERS
-      TRACER_NAME  = Input_Opt%TRACER_NAME(1:N_TRACERS)
-      TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
-
       ! Initialize some variables
+      ThisSpc         => NULL()
+      LPRT            = Input_Opt%LPRT
+      LSPLIT          = Input_Opt%LSPLIT
+      N_TRACERS       = Input_Opt%N_TRACERS
+      TRACER_NAME     = Input_Opt%TRACER_NAME(1:N_TRACERS)
+      TRACER_MW_KG    = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
       NCOUNT(:)       = 0
       Hg_OCEAN(:,:,:) = 0e0
 
@@ -4043,7 +4056,7 @@
 ! OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       ! FORMAT strings
  100  FORMAT( 'Hg0 error: ', 3i5, 4es13.6 )
@@ -4392,6 +4405,7 @@
 !  27 Aug 2015 - E. Lundgren - Hard-code interannual scaling of riverflow
 !                              and NPP to avoid reading ASCII
 !  25 Apr 2016 - R. Yantosca - Now handle all Hg indexing locally
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !******************************************************************************
 !
 ! !USES:
@@ -4407,7 +4421,7 @@
 
       ! For Hg indexing (bmy, 4/26/16)
       INTEGER                  :: N
-      TYPE(Species), POINTER   :: ThisSpc => NULL()
+      TYPE(Species), POINTER   :: ThisSpc
       
       ! For riverflow and NPP interannual scaling (jaf, 3/26/12)
       INTEGER                  :: THISYEAR, THISYEARINDEX

@@ -274,6 +274,8 @@
 
       ! Pointers to fields in the HEMCO data structure.
       ! These need to be declared REAL(f4), aka REAL*4.
+      ! (NOTE: We can set them to NULL here because 
+      ! they are globally SAVEd variables (bmy, 4/29/16)
       REAL(f4), POINTER :: O3  (:,:,:) => NULL()
       REAL(f4), POINTER :: OH  (:,:,:) => NULL()
       REAL(f4), POINTER :: JNO2(:,:,:) => NULL()
@@ -299,6 +301,8 @@
       INTEGER           :: ID_Hg_ocn,  ID_Hg_str
 
       ! Pointers for Hg indexing
+      ! (NOTE: We can set them to NULL here because 
+      ! they are globally SAVEd variables (bmy, 4/29/16)
       INTEGER, POINTER  :: Id_Hg0(:) => NULL()
       INTEGER, POINTER  :: Id_Hg2(:) => NULL()
       INTEGER, POINTER  :: Id_HgP(:) => NULL()
@@ -481,6 +485,7 @@
 !  05 Jan 2016 - E. Lundgren - Use Henry's constant from species database and
 !                              calculate dry air gas constant from global params
 !  25 Apr 2016 - R. Yantosca - Now pass Hg category # to ADD_Hg2_* routines
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -579,7 +584,7 @@
       CHARACTER(LEN=*), PARAMETER  :: METHOD='GoodsiteUpdate'
 
       ! Objects
-      TYPE(Species), POINTER :: ThisSpc => NULL()
+      TYPE(Species), POINTER :: ThisSpc
 
       !================================================================
       ! CHEMMERCURY begins here!
@@ -599,6 +604,7 @@
       ! Initialize pointers
       STT      => State_Chm%Tracers
       T        => State_Met%T
+      ThisSpc  => NULL()
 
       ! Get info about this species from the database
       ThisSpc => State_Chm%SpcData(IDTHG2)%Info
@@ -1193,9 +1199,9 @@
       CALL PARTITIONHG2( am_I_Root, Input_Opt, State_Chm, RC )
 
       ! Free pointer memory
-      NULLIFY( STT )
-      NULLIFY( T   )
-      NULLIFY( ThisSpc )
+      STT     => NULL()
+      T       => NULL()
+      ThisSpc => NULL()
 
       IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a CHEM_HgP' )
 
@@ -3082,6 +3088,7 @@
 !  06 Sep 2013 - R. Yantosca - Kludge: use GEOS-5 soil file for GEOS-4 testing
 !                              and debugging.  Worry about this later.
 !  24 Sep 2014 - C. Keller   - HEMCO update
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3101,8 +3108,8 @@
 
       ! HEMCO update
       CHARACTER(LEN=63)        :: DgnName
-      REAL(f4),        POINTER :: Ptr2D(:,:) => NULL()  
-      TYPE(HCO_STATE), POINTER :: HcoState   => NULL()
+      REAL(f4),        POINTER :: Ptr2D(:,:)
+      TYPE(HCO_STATE), POINTER :: HcoState
 
       ! Strings
       CHARACTER(LEN=255)       :: MSG
@@ -3114,6 +3121,10 @@
 
       ! Assume success
       RC             = GIGC_SUCCESS
+
+      ! Initialize pointers
+      Ptr2D          => NULL()  
+      HcoState       => NULL()
 
       ! Copy values from Input_Opt
       LDYNOCEAN      = Input_Opt%LDYNOCEAN 
@@ -4373,7 +4384,7 @@
 !$OMP END PARALLEL DO
       
       ! Free pointer memory
-      NULLIFY( STT )
+      STT => NULL()
 
       ! Return to calling program
       END SUBROUTINE PARTITIONHG2
@@ -4471,6 +4482,7 @@
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path'
 !  16 Mar 2015 - R. Yantosca - Remove bpch input
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4485,7 +4497,7 @@
       CHARACTER(LEN=255)  :: LOC = 'DO_RED_INPLUME (mercury_mod.F)'
 
       ! Pointers
-      REAL(f4), POINTER   :: E_ELEC_Hg2(:,:) => NULL()
+      REAL(f4), POINTER   :: E_ELEC_Hg2(:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -4494,6 +4506,10 @@
       !=================================================================
       ! DO_RED_INPLUME begins here!
       !=================================================================
+
+      ! Initialize
+      E_ELEC_Hg2 => NULL()
+
       
       ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
       CALL HCO_GetPtr( am_I_Root, 'CFPP_NEI2005_Hg2', E_ELEC_Hg2, RC )
@@ -4571,6 +4587,7 @@
 !  03 Jun 2013 - R. Yantosca - Now use fields from Input_Opt
 !  12 Mar 2015 - R. Yantosca - Now test if HEMCO_Collections are defined
 !  25 Apr 2016 - R. Yantosca - Now use species database for tagHg indexing
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4578,17 +4595,17 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL, SAVE       :: IS_INIT = .FALSE. 
-      LOGICAL             :: LSPLIT
-      LOGICAL             :: LDRYD
-      LOGICAL             :: LNLPBL
-      LOGICAL             :: LGTMM
-      INTEGER             :: N_TRACERS
-      INTEGER             :: AS, N
-      CHARACTER(LEN=255)  :: LOCATION
+      LOGICAL, SAVE          :: IS_INIT = .FALSE. 
+      LOGICAL                :: LSPLIT
+      LOGICAL                :: LDRYD
+      LOGICAL                :: LNLPBL
+      LOGICAL                :: LGTMM
+      INTEGER                :: N_TRACERS
+      INTEGER                :: AS, N
+      CHARACTER(LEN=255)     :: LOCATION
 
       ! Pointers
-      TYPE(Species), POINTER :: ThisSpc => NULL()
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! INIT_MERCURY begins here!
@@ -4600,7 +4617,8 @@
       ! Return if we have already allocated arrays
       IF ( IS_INIT ) RETURN
 
-      ! Copy values from Input_Opt
+      ! Initialize 
+      ThisSpc        => NULL()
       LDRYD          = Input_Opt%LDRYD            ! Use drydep?
       LGTMM          = Input_Opt%LGTMM            ! Use GTMM model?
       LNLPBL         = Input_Opt%LNLPBL           ! Use non-local PBL?

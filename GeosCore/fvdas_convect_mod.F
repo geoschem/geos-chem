@@ -798,6 +798,7 @@
 !                              (previously v/v)
 !  22 Apr 2016 - R. Yantosca - Now get IS_Hg2, Is_HgP from species database
 !  25 Apr 2016 - R. Yantosca - Now pass Hg category # to ADD_Hg2_* functions
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !******************************************************************************
 !
       ! References to F90 modules
@@ -860,7 +861,7 @@
       REAL(fp)                     :: DCONDT(IIPAR,LLPAR)   
 
       ! Pointers
-      TYPE(Species), POINTER       :: ThisSpc => NULL()
+      TYPE(Species), POINTER       :: ThisSpc
 
       !=================================================================
       ! CONVTRAN begins here!
@@ -869,6 +870,9 @@
       ! Is this a mercury simulation with dynamic ocean model?
       IS_Hg   = ( Input_Opt%ITS_A_MERCURY_SIM .and. 
      &            Input_Opt%LDYNOCEAN               )
+
+      ! Initialize 
+      ThisSpc => NULL()
 
       ! A small number
       SMALL   = 1.e-36_fp

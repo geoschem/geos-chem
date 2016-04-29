@@ -275,6 +275,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  15 Aug 2014 - R. Yantosca - Removed reference to IDBCO; now obsolete
 !  23 Sep 2014 - C. Keller   - Now use HEMCO diagnostics
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -302,8 +303,8 @@
 
       ! HEMCO update
       CHARACTER(LEN= 63)       :: DgnName
-      REAL(sp), POINTER        :: Ptr2D(:,:) => NULL()  
-      TYPE(HCO_STATE), POINTER :: HcoState   => NULL()
+      REAL(sp), POINTER        :: Ptr2D(:,:)
+      TYPE(HCO_STATE), POINTER :: HcoState
 
       CHARACTER(LEN=255)       :: MSG
       CHARACTER(LEN=255)       :: LOC ='BIOMASSHG (land_mercury_mod.F)'
@@ -311,6 +312,10 @@
       !=================================================================
       ! BIOMASSHG begins here!
       !=================================================================
+
+      ! Initialize pointers
+      Ptr2d    => NULL()
+      HcoState => NULL()
 
       ! Do biomass Hg emissions if biomass burning is on and it is a 
       ! present-day simulation (i.e. not preindustrial)

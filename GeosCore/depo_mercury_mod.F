@@ -91,6 +91,8 @@
       INTEGER          :: IDTHg2
 
       ! Pointers for Hg Indexing
+      ! NOTE: Because these are SAVEd pointers (by virtue of being 
+      ! module variables) we can set these to NULL here. (bmy, 4/29/16)
       INTEGER, POINTER :: Id_Hg0 (:) => NULL()
       INTEGER, POINTER :: Id_Hg2 (:) => NULL()
       INTEGER, POINTER :: Id_HgP (:) => NULL()
@@ -645,6 +647,7 @@
 ! !REVISION HISTORY:
 !  15 Sep 2009 - C. Carouge  - Initial version
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -662,14 +665,14 @@
       INTEGER               :: NTRACER,   NSKIP
       INTEGER               :: HALFPOLAR, CENTER180
       REAL*4                :: LONRES,    LATRES
-      REAL(fp)                :: ZTAU0,     ZTAU1
+      REAL(fp)              :: ZTAU0,     ZTAU1
       CHARACTER(LEN=20)     :: MODELNAME
       CHARACTER(LEN=40)     :: CATEGORY
       CHARACTER(LEN=40)     :: UNIT     
       CHARACTER(LEN=40)     :: RESERVED
   
       ! Pointers
-      TYPE(Species), POINTER :: ThisSpc => NULL()
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! READ_GTMM_RESTART begins here!
@@ -678,6 +681,8 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
+      ! Initialize
+      ThisSpc => NULL()
 
       ! Find a free file LUN
       IU_FILE  = findFreeLUN()
@@ -981,6 +986,7 @@
 !  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
 !  06 Aug 2015 - J. Fisher   - Add stored snow Hg reservoirs (orig. 29/11/11)
 !  25 Apr 2016 - R. Yantosca - Now handle all Hg indexing locally
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -991,7 +997,7 @@
       INTEGER                :: N, C
 
       ! Pointers
-      TYPE(Species), POINTER :: ThisSpc => NULL()
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! INIT_DEPO_MERCURY begins here!

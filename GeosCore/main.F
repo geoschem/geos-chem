@@ -285,6 +285,7 @@
 !  25 Jan 2016 - R. Yantosca - Call LINE_BUFFER to force PGI compiler to flush
 !                               STDOUT (unit=6) output to disk during a run
 !  03 Feb 2016 - E. Lundgren - Use routine MAKE_RESTART_FILES for all GC rsts
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -316,7 +317,7 @@
       INTEGER                  :: DATE(2)
 
       ! Derived type objects
-      TYPE(MapWeight), POINTER :: mapping(:,:) => NULL()
+      TYPE(MapWeight), POINTER :: mapping(:,:)
 
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
@@ -458,6 +459,9 @@
       !=================================================================
       !            ***** I N I T I A L I Z A T I O N *****
       !=================================================================
+
+      ! Initialize pointers
+      mapping => NULL()
 
 #if defined( USE_TIMERS )
       ! Call timer initilization

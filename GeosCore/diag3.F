@@ -269,6 +269,7 @@
 !  07 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !  05 Jan 2016 - E. Lundgren - Use GC global param AVO instead of from HEMCO
 !  21 Apr 2016 - R. Yantosca - Fixed typo that was preventing ND29 output
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -348,7 +349,7 @@
 
       ! To point to the species database
       CHARACTER(LEN=31)        :: Name
-      TYPE(Species), POINTER   :: ThisSpc => NULL()
+      TYPE(Species), POINTER   :: ThisSpc
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -360,8 +361,9 @@
       ! Assume success
       RC         = GIGC_SUCCESS
 
-      ! Copy values from Input_Opt
+      ! Initialize
       N_TRACERS  = Input_Opt%N_TRACERS
+      ThisSpc    => NULL()
 
       ! Pick the proper # of tracers
 #if   defined( APM )
