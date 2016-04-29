@@ -151,6 +151,7 @@
 !  19 Oct 2015 - C. Keller   - Now use Input_Opt%ND68 instead of ND68;
 !                              Rename AIRDEN diagnostics to AIRDENSITY to
 !                              avoid name conflict with GEOS-5 model.
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -184,8 +185,8 @@
       REAL(fp), TARGET   :: Landmap(IIPAR, JJPAR)
       INTEGER            :: TPL
       REAL(fp)           :: PRESS
-      REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
-      REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
+      REAL(fp), POINTER  :: Ptr3D(:,:,:)
+      REAL(fp), POINTER  :: Ptr2D(:,:)
       REAL(fp)           :: Arr3D(IIPAR,JJPAR,LLPAR)
       REAL(fp)           :: Arr2D(IIPAR,JJPAR)
       CHARACTER(LEN=255) :: DiagnName
@@ -205,6 +206,10 @@
       ITS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
       N_TRACERS          = Input_Opt%N_TRACERS
       TCVV               = Input_Opt%TCVV(1:N_TRACERS)
+
+      ! Initialize pointers
+      Ptr3D              => NULL()
+      Ptr2D              => NULL()
 
       ! Pick the proper # of tracers for diagnostics
 #if   defined( APM )

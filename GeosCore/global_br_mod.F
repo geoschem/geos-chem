@@ -65,6 +65,8 @@
 !
       ! Pointers to fields in the HEMCO data structure.
       ! These need to be declared REAL(f4), aka REAL*4.
+      ! NOTE: These are globally SAVEd variables so we can
+      ! nullify these in the declaration statement (bmy, 4/29/16)
       REAL(f4), POINTER :: Br_GC     (:,:,:) => NULL()
       REAL(f4), POINTER :: BrO_GC    (:,:,:) => NULL()
       REAL(f4), POINTER :: Br_GMI    (:,:,:) => NULL()

@@ -663,9 +663,9 @@ CONTAINS
     FIRST = .FALSE.    
 
     ! Free pointer
-    NULLIFY( STT )
-    NULLIFY( AD  )
-    NULLIFY( T   )
+    STT => NULL()
+    AD  => NULL()
+    T   => NULL()  
 
   END SUBROUTINE DO_STRAT_CHEM
 !EOC

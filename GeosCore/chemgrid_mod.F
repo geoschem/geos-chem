@@ -1237,6 +1237,8 @@
 !                              State_Met%PEDGE and State_Met%PMID.
 !                              Remove dependency on pressure_mod.
 !  21 Jan 2016 - E. Lundgren - Update diagnostic for netcdf output using HEMCO
+
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1263,7 +1265,7 @@
       REAL(fp), TARGET  :: TRPAUSE_L(IIPAR,JJPAR)
       REAL(fp), TARGET  :: TRPAUSE_P(IIPAR,JJPAR)
       REAL(fp), TARGET  :: TRPAUSE_H(IIPAR,JJPAR)
-      REAL(fp), POINTER :: Ptr2D(:,:) => NULL()
+      REAL(fp), POINTER :: Ptr2D(:,:)
 #endif
 
       !=======================================================================
@@ -1281,6 +1283,9 @@
       ! If outputting NetCDF, temporarily using ND68 as indicator since
       ! tropopause will be output as part of Met diagnostic group
       IF ( Input_Opt%ND68 <= 0 ) RETURN
+      
+      ! Nullify pointers
+      Ptr2d => NULL()
 #endif
       
 #if defined( GCAP)

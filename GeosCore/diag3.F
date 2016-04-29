@@ -332,8 +332,8 @@
       INTEGER                  :: AFill
       CHARACTER(LEN= 63)       :: DiagnName, SrcName, SpcName, FullName
       CHARACTER(LEN=255)       :: MSG
-      TYPE(DiagnCont), POINTER :: DiagnCnt => NULL() 
-      TYPE(HCO_State), POINTER :: HcoState => NULL()
+      TYPE(DiagnCont), POINTER :: DiagnCnt
+      TYPE(HCO_State), POINTER :: HcoState
       REAL(fp)                 :: FACTOR
       REAL(fp), PARAMETER      :: GPERKG   = 1000e+0_fp
       REAL(fp), PARAMETER      :: MWC      = 12e+0_fp
@@ -364,6 +364,8 @@
       ! Initialize
       N_TRACERS  = Input_Opt%N_TRACERS
       ThisSpc    => NULL()
+      DiagnCnt   => NULL() 
+      HcoState   => NULL()      
 
       ! Pick the proper # of tracers
 #if   defined( APM )
@@ -6370,6 +6372,7 @@
 !  13 Aug 2014 - R. Yantosca - Added ProTeX headers; cosmetic changes
 !  13 Aug 2014 - R. Yantosca - Bug fix, # of vertical levels in call to BPCH2
 !                              was 1 but should have been LEVS.  Now fixed.
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6385,14 +6388,15 @@
       CHARACTER(LEN=255)            :: MG
 
       ! Pointers
-      TYPE(DiagnCont),    POINTER   :: DgnCont  => NULL()
+      TYPE(DiagnCont),    POINTER   :: DgnCont
 
       !=================================================================
       ! DIAG2BPCH begins here!
       !=================================================================
 
-      ! Zero the entire array for safety's sake
-      ARRAY = 0e0
+      ! Initialize
+      ARRAY    = 0e0
+      DgnCont => NULL()
 
       ! Set default for area scaling
       ASCL = 0

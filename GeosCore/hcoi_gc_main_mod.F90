@@ -1547,17 +1547,18 @@ CONTAINS
 ! !REVISION HISTORY:
 !  08 Oct 2014 - C. Keller   - Initial version
 !  28 Sep 2015 - C. Keller   - Now call HCO_CalcVertGrid
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
-    REAL(hp), POINTER   :: PSFC    (:,:  ) => NULL()
-    REAL(hp), POINTER   :: ZSFC    (:,:  ) => NULL()    
-    REAL(hp), POINTER   :: TK      (:,:,:) => NULL()    
-    REAL(hp), POINTER   :: BXHEIGHT(:,:,:) => NULL()    
-    REAL(hp), POINTER   :: PEDGE   (:,:,:) => NULL()    
+    REAL(hp), POINTER   :: PSFC    (:,:  )
+    REAL(hp), POINTER   :: ZSFC    (:,:  )
+    REAL(hp), POINTER   :: TK      (:,:,:)
+    REAL(hp), POINTER   :: BXHEIGHT(:,:,:)
+    REAL(hp), POINTER   :: PEDGE   (:,:,:)
 
     !=================================================================
     ! GridEdge_Set begins here
@@ -2176,6 +2177,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  24 Sep 2014 - C. Keller   - Initial version
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2183,7 +2185,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                   :: FLAG, ERR, LevIDx, PS
-    TYPE(DiagnCont), POINTER  :: DgnCont  => NULL()
+    TYPE(DiagnCont), POINTER  :: DgnCont
 
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'GetHcoDiagn (hcoi_gc_diagn_mod.F90)'
@@ -2191,6 +2193,9 @@ CONTAINS
     !=======================================================================
     ! GetHcoDiagn begins here 
     !=======================================================================
+
+    ! Initialize
+    DgnCont => NULL()
 
     ! Set collection number
     PS = HcoDiagnIDManual

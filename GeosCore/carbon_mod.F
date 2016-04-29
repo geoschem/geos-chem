@@ -4965,7 +4965,7 @@ ccc
       ENDDO ! J loop
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       END SUBROUTINE EMITSGC
 !EOC
@@ -5209,13 +5209,14 @@ ccc
 !  14 Jan 2016 - M. Sulprizio- Emit SVOC emissions as POG1 and POG2 (not POA1
 !                              and POG1) in HEMCO to better reflect that these
 !                              emissions are added to the gas-phase species
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      TYPE(HCO_STATE), POINTER :: HcoState => NULL()
+      TYPE(HCO_STATE), POINTER :: HcoState
       INTEGER                  :: I, J, L, PBL_MAX
       INTEGER                  :: HCOPOG1, HCOPOG2
       REAL(fp)                 :: EMIS, TMPFLX
@@ -5229,9 +5230,10 @@ ccc
 
       ! Assume success
       RC = GIGC_SUCCESS
-
-      ! Reset POAEMISS
-      POAEMISS = 0e+0_fp
+      
+      ! Initialize
+      POAEMISS =  0e+0_fp
+      HcoState => NULL()
 
       ! Get pointer to HEMCO state object
       CALL GetHcoState ( HcoState )
@@ -5386,6 +5388,7 @@ ccc
 !  12 Jun 2015 - J. Kodros   - Initial version
 !  12 Jun 2015 - R. Yantosca - Bug fix: also add reference to DEBUG_MSG
 !  10 Jul 2015 - R. Yantosca - Fixed typo in ProTeX header
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5437,8 +5440,8 @@ ccc
       INTEGER                  :: N_TRACERS
       INTEGER                  :: ID_TRACER(Input_Opt%N_TRACERS)
       ! Pointers
-      TYPE(HCO_State), POINTER :: HcoState   => NULL()
-      REAL(f4),        POINTER :: Ptr2D(:,:) => NULL()
+      TYPE(HCO_State), POINTER :: HcoState
+      REAL(f4),        POINTER :: Ptr2D(:,:)
       !=================================================================
       ! EMISSCARBONTOMAS begins here!
       !=================================================================
@@ -5453,6 +5456,10 @@ ccc
       ! Copy values from Input_Opt
       N_TRACERS           = Input_Opt%N_TRACERS
       ID_TRACER           = Input_Opt%ID_TRACER(1:N_TRACERS)
+
+      ! Initialize pointers
+      HcoState            => NULL()
+      Ptr2D               => NULL()
 
       ! Import emissions from HEMCO (through HEMCO state)
       CALL GetHcoState( HcoState )

@@ -264,6 +264,7 @@
 !  11 Mar 2015 - R. Yantosca - Now get OH via the HEMCO data structure
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !  21 Mar 2016 - R. Yantosca - Now define FMOL_CO from the species database
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -298,10 +299,10 @@
       CHARACTER(LEN=255)     :: ERR_MSG
 
       ! Pointers to fields in State_Met and State_Chm
-      REAL(fp),      POINTER :: AD    (:,:,:  ) => NULL()
-      REAL(fp),      POINTER :: AIRVOL(:,:,:  ) => NULL()
-      REAL(fp),      POINTER :: STT   (:,:,:,:) => NULL()
-      REAL(fp),      POINTER :: T     (:,:,:  ) => NULL()
+      REAL(fp),      POINTER :: AD    (:,:,:  )
+      REAL(fp),      POINTER :: AIRVOL(:,:,:  )
+      REAL(fp),      POINTER :: STT   (:,:,:,:)
+      REAL(fp),      POINTER :: T     (:,:,:  )
 
       ! To get HEMCO values
       REAL(fp)               :: Emis
@@ -897,7 +898,10 @@
 !$OMP END PARALLEL DO
 
       ! Free pointers
-      NULLIFY( AD, AIRVOL, STT, T )
+      AD     => NULL()
+      AIRVOL => NULL()
+      STT    => NULL()
+      T      => NULL()
 
       END SUBROUTINE CHEM_TAGGED_CO
 !EOC

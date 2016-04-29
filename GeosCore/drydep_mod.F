@@ -404,6 +404,7 @@
 !  01 Oct 2015 - R. Yantosca - Remove references to tracerid_mod.F (except
 !                              for TOMAS for now)
 !  21 Jan 2016 - E. Lundgren - Update netcdf diagnostics for drydep trcr names
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -450,11 +451,11 @@
       LOGICAL           :: First_MMN
       CHARACTER(LEN=30) :: DryDepName, DiagnName
       REAL(fp), TARGET  :: SAVE_DEPVEL(IIPAR,JJPAR,Input_Opt%NUMDEP)
-      REAL(hp), POINTER :: Ptr2D(:,:) => NULL()
+      REAL(hp), POINTER :: Ptr2D(:,:)
 #endif
 
       ! Objects
-      TYPE(Species), POINTER :: ThisSpc => NULL()
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! DO_DRYDEP begins here!
@@ -463,9 +464,13 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
+      ! Initialize
+      ThisSpc => NULL()
+      
 #if defined( NC_DIAG )
-      ! Zero deposition velocity array
+      ! Initialize
       SAVE_DEPVEL = 0.0_fp
+      Ptr2D       => NULL()
 #endif
       
       ! Copy values from the Input Options object to local variables
@@ -1090,6 +1095,7 @@
 !  12 Aug 2015 - E. Lundgren - Now pass am_I_Root and RC to AERO_DIADEN 
 !                              to enable unit conversion in that routine
 !  22 Sep 2015 - R. Yantosca - Now use NUMDEP instead of MAXDEP for arrays
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1188,7 +1194,7 @@
 
       ! For the species database
       INTEGER                :: SpcId
-      TYPE(Species), POINTER :: ThisSpc => NULL()
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! DEPVEL begins here!
@@ -1205,11 +1211,12 @@
       ENDIF
 
       ! Initialize pointers
-      IREG  => State_Met%IREG
-      ILAND => State_Met%ILAND
-      IUSE  => State_Met%IUSE
-      XLAI  => State_Met%XLAI
-      IDEP  => Input_Opt%IDEP
+      IREG    => State_Met%IREG
+      ILAND   => State_Met%ILAND
+      IUSE    => State_Met%IUSE
+      XLAI    => State_Met%XLAI
+      IDEP    => Input_Opt%IDEP
+      ThisSpc => NULL()
 
       ! Is this a POPs simmulation?
       IS_POPS = Input_Opt%ITS_A_POPS_SIM  ! clf, 1/3/2011

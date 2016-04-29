@@ -5302,6 +5302,7 @@
 !  14 Jan 2015 - C. Keller     - Now read from HEMCO
 !   4 Mar 2015 - R. Yantosca   - Declare pointer args to HCO_GetPtr w/ REAL(f4)
 !  25 Mar 2015 - C. Keller     - Now use HEMCO restart module
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5315,7 +5316,7 @@
       CHARACTER(LEN=255) :: MSG
      
       ! Pointer to HEMCO state obj.
-      TYPE(HCO_State), POINTER  :: HcoState => NULL()
+      TYPE(HCO_State), POINTER  :: HcoState
 
       !=================================================================
       ! READ_PSC_FILE begins here!
@@ -5324,6 +5325,9 @@
       ! Assume success until otherwise 
       RC = GIGC_SUCCESS 
  
+      ! Initialize
+      HcoState => NULL()
+
       ! Only read on first call or after rewind
       IF ( .NOT. HcoClock_First ( .FALSE. ) .AND. 
      &     .NOT. HcoClock_Rewind( .FALSE. )      ) THEN
@@ -7001,16 +7005,18 @@
 ! !REVISION HISTORY: 
 !  14 Jan 2015 - C. Keller     - Initial version
 !  25 Mar 2015 - C. Keller     - Now use HEMCO restart module
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      TYPE(HCO_State), POINTER :: HcoState => NULL()
+      TYPE(HCO_State), POINTER :: HcoState
       CHARACTER(LEN=255)       :: MSG
       CHARACTER(LEN=255)       :: LOC = 'DIAGINIT_UCX (ucx_mod.F)' 
 
       !=================================================================
       ! DIAGINIT_UCX begins here!
       !=================================================================
+      HcoState => NULL()
 
       ! Define restart quantity    
       CALL GetHcoState( HcoState ) 
@@ -7066,15 +7072,17 @@
 !
 ! !REVISION HISTORY: 
 !  08 May 2015 - C. Keller     - Initial version
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      TYPE(HCO_STATE), POINTER  :: HcoState => NULL()
+      TYPE(HCO_STATE), POINTER  :: HcoState
 
       !=================================================================
       ! WRITE_STATE_PSC begins here!
       !=================================================================
-
+      HcoState => NULL()
+      
       ! Eventually write PSC_STATE to restart. 
       CALL GetHcoState ( HcoState )
 

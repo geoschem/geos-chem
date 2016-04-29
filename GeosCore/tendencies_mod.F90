@@ -253,7 +253,7 @@ CONTAINS
 
     ! Assume successful return
     RC = GIGC_SUCCESS
-
+    
     ! Check if class already exists
     CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN

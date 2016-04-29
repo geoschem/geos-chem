@@ -150,10 +150,6 @@ CONTAINS
     INTEGER             :: Hg2_CAT
     INTEGER             :: HgP_CAT
 
-!    ! For tagged Hg species
-!    CHARACTER(LEN=4),  POINTER :: Hg_CAT(:)
-!    CHARACTER(LEN=40), POINTER :: Hg_CAT_FULL(:)
-
     ! For values from Input_Opt
     LOGICAL             :: prtDebug
 !

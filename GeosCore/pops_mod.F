@@ -67,6 +67,8 @@
 
       ! Pointers to fields in the HEMCO data structure.
       ! These need to be declared REAL(f4), aka REAL*4.
+      ! NOTE: These are globally SAVEd pointers, so we can
+      ! nullify them in the declaration here (bmy, 4/29/16)
       REAL(f4), POINTER     :: C_OC(:,:,:) => NULL()
       REAL(f4), POINTER     :: C_BC(:,:,:) => NULL()
       REAL(f4), POINTER     :: O3(:,:,:)   => NULL()
@@ -1342,7 +1344,7 @@
       ENDDO
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       END SUBROUTINE CHEM_POPGP 
 !EOC
@@ -1840,8 +1842,9 @@
 
       ! Assume success
       RC = GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
+      
+      ! Initialize
+      ThisSpc   => NULL()
       LDRYD     = Input_Opt%LDRYD
       LNLPBL    = Input_Opt%LNLPBL
       LPRT      = Input_Opt%LPRT

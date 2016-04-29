@@ -92,6 +92,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -102,7 +103,7 @@ CONTAINS
     LOGICAL :: FND
 
     ! Pointers
-    REAL(f4), POINTER :: Ptr2D(:,:) => NULL()
+    REAL(f4), POINTER :: Ptr2D(:,:)
 
     !=======================================================================
     ! READ_UVALBEDO begins here!

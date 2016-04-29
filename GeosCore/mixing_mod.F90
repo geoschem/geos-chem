@@ -303,6 +303,7 @@ CONTAINS
 !                              compatibility between tracer units and flux
 !  16 Mar 2016 - E. Lundgren - Exclude specialty simulations in restriction of
 !                              all emissions to chemistry grid if UCX=false
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -324,11 +325,11 @@ CONTAINS
     INTEGER            :: cID, trc_id, HCRC
     CHARACTER(LEN=30)  :: DiagnName
     REAL(fp), TARGET   :: DryDepFlux( IIPAR, JJPAR, Input_Opt%NUMDEP ) 
-    REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
+    REAL(fp), POINTER  :: Ptr2D(:,:)
 
     ! tracer emissions diagnostic (does not correspond to any bpch diags)
     REAL(fp), TARGET   :: EMIS( IIPAR, JJPAR, LLPAR, Input_Opt%N_TRACERS ) 
-    REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
+    REAL(fp), POINTER  :: Ptr3D(:,:,:)
     REAL(fp)           :: TOTFLUX( Input_Opt%N_TRACERS )
 #endif
 
@@ -350,6 +351,11 @@ CONTAINS
 
     ! Special case that there is no dry deposition and emissions
     IF ( .NOT. Input_Opt%LDRYD .AND. .NOT. Input_Opt%LEMIS ) RETURN
+
+#if defined( NC_DIAG )
+    REAL(fp), POINTER  :: Ptr2D => NULL()
+    REAL(fp), POINTER  :: Ptr3D => NULL()
+#endif
 
     ! Shadow variables
     LSCHEM     = Input_Opt%LSCHEM
