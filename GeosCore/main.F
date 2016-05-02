@@ -286,6 +286,7 @@
 !                               STDOUT (unit=6) output to disk during a run
 !  03 Feb 2016 - E. Lundgren - Use routine MAKE_RESTART_FILES for all GC rsts
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  02 May 2016 - R. Yantosca - Now pass Input_Opt to cleanup_gigc_state_chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC

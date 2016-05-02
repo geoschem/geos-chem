@@ -364,6 +364,7 @@ CONTAINS
 !  16 Dec 2015 - R. Yantosca - Now overwrite the Input_Opt%TRACER_MW_G and
 !                              related fields w/ info from species database
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  02 May 2016 - R. Yantosca - Nullify Hg index fields for safety's sake
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -428,31 +429,36 @@ CONTAINS
     !=====================================================================
 
     ! Number of species
-    State_Chm%nSpecies    = 0
-    State_Chm%nAdvect     = 0
-    State_Chm%nDryDep     = 0
-    State_Chm%nWetDep     = 0
+    State_Chm%nSpecies    =  0
+    State_Chm%nAdvect     =  0
+    State_Chm%nDryDep     =  0
+    State_Chm%nWetDep     =  0
 
     ! Species database
     State_Chm%SpcData     => NULL()
     ThisSpc               => NULL()
 
     ! Advected tracers
-    State_Chm%Trac_Id     = 0
-    State_Chm%Trac_name   = ''
-    State_Chm%Tracers     = 0e+0_fp
-    State_Chm%Trac_Units  = ''
+    State_Chm%Trac_Id     =  0
+    State_Chm%Trac_name   =  ''
+    State_Chm%Tracers     =  0e+0_fp
+    State_Chm%Trac_Units  =  ''
 
     ! Chemical species
-    State_Chm%Spec_Id     = 0
-    State_Chm%Spec_Name   = ''
-    State_Chm%Species     = 0e+0_fp
+    State_Chm%Spec_Id     =  0
+    State_Chm%Spec_Name   =  ''
+    State_Chm%Species     =  0e+0_fp
 
-    ! Hg species
-    State_Chm%N_Hg_CATS   = 0
-    N_Hg0_CATS            = 0
-    N_Hg2_CATS            = 0
-    N_HgP_CATS            = 0
+    ! Hg species indexing
+    N_Hg0_CATS            =  0
+    N_Hg2_CATS            =  0
+    N_HgP_CATS            =  0
+    State_Chm%N_Hg_CATS   =  0
+    State_Chm%Hg_Cat_Name => NULL()
+    State_Chm%Id_Hg0      => NULL()
+    State_Chm%Id_Hg2      => NULL()
+    State_Chm%Id_HgP      => NULL()
+    St
 
     !=====================================================================
     ! Populate the species database object field
@@ -609,6 +615,7 @@ CONTAINS
           State_Chm%Hg_Cat_Name(C) =  ThisSpc%Name(4:7)
           ThisSpc                  => NULL()
        ENDDO
+       
     ENDIF
 
     ! Echo output
@@ -675,16 +682,46 @@ CONTAINS
     RC = GIGC_SUCCESS
 
     ! Deallocate fields
-    IF ( ASSOCIATED(State_Chm%Trac_Id    ) ) DEALLOCATE(State_Chm%Trac_Id    )
-    IF ( ASSOCIATED(State_Chm%Trac_Name  ) ) DEALLOCATE(State_Chm%Trac_Name  )
-    IF ( ASSOCIATED(State_Chm%Spec_Id    ) ) DEALLOCATE(State_Chm%Spec_Id    )
-    IF ( ASSOCIATED(State_Chm%Spec_Name  ) ) DEALLOCATE(State_Chm%Spec_Name  )
-    IF ( ASSOCIATED(State_Chm%Tracers    ) ) DEALLOCATE(State_Chm%Tracers    )
-    IF ( ASSOCIATED(State_Chm%Species    ) ) DEALLOCATE(State_Chm%Species    )
-    IF ( ASSOCIATED(State_Chm%Id_Hg0     ) ) DEALLOCATE(State_Chm%Id_Hg0     )
-    IF ( ASSOCIATED(State_Chm%Id_Hg2     ) ) DEALLOCATE(State_Chm%Id_Hg2     )
-    IF ( ASSOCIATED(State_Chm%Id_Hgp     ) ) DEALLOCATE(State_Chm%Id_HgP     )
-    
+    IF ( ASSOCIATED( State_Chm%Trac_Id ) ) THEN
+       DEALLOCATE( State_Chm%Trac_Id )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Trac_Name ) ) THEN
+       DEALLOCATE( State_Chm%Trac_Name  )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Spec_Id  ) ) THEN
+       DEALLOCATE( State_Chm%Spec_Id )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Spec_Name ) ) THEN
+       DEALLOCATE( State_Chm%Spec_Name  )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Tracers ) ) THEN
+       DEALLOCATE( State_Chm%Tracers )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Species ) ) THEN
+       DEALLOCATE( State_Chm%Species )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Hg_Cat_Name ) ) THEN
+       DEALLOCATE( State_Chm%Hg_Cat_Name )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Id_Hg0 ) ) THEN
+       DEALLOCATE( State_Chm%Id_Hg0 ) 
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Id_Hg2 ) ) THEN
+       DEALLOCATE( State_Chm%Id_Hg2 )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Id_HgP ) ) THEN
+       DEALLOCATE( State_Chm%Id_HgP )
+    ENDIF
+
 #if defined( ESMF_ )
     ! Keep these here for now, FLEXCHEM will remove these (bmy, 12/11/14)
     IF ( ASSOCIATED(State_Chm%JLOP       ) ) DEALLOCATE(State_Chm%JLOP       )
