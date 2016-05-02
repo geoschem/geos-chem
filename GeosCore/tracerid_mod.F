@@ -78,6 +78,7 @@
 !  07 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !  18 Nov 2015 - M. Sulprizio- Add passive tracer IDTPASV to RnPbBe simulation
 !  26 Apr 2016 - R. Yantosca - Now remove all Hg indexing variables
+!  02 May 2016 - R. Yantosca - Now remove all POPs tracer flags
 !******************************************************************************
 !
       ! for CTM tracers
@@ -181,10 +182,6 @@
 
       ! Online CH4 simulation (mpayer, 1/24/12)
       INTEGER            :: IDTCH4
-
-      ! For POPs simulation (clf, 2/11/2011)
-      INTEGER            :: IDTPOPPOCPO,  IDTPOPPBCPO,   IDTPOPG
-      INTEGER            :: IDTPOPPOCPI,  IDTPOPPBCPI
 
       ! For H2/HD simulation
       INTEGER            :: IDTH2, IDTHD ! (hup, phs, 9/18/07)
@@ -403,6 +400,7 @@
 !  15 Aug 2014 - R. Yantosca - Removed obsolete IDBF* and IDB* indices
 !  10 Aug 2015 - M. Sulprizio- Removed COUNT variable made obsolete by HEMCO
 !  26 Apr 2016 - R. Yantosca - Now remove all Hg indexing variables
+!  02 May 2016 - R. Yantosca - Now remove all POPs tracer flags
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1132,25 +1130,6 @@
             CASE ( 'HCN' )
                IDTCO    = 1
                EXIT
-
-            !--------------------------------
-            ! POPs
-            ! (eck, 9/20/10); (clf, 2/11/2011)
-            !--------------------------------
-            CASE ( 'POPG'     )
-               IDTPOPG      = N
-               
-            CASE ( 'POPPOCPO' )
-               IDTPOPPOCPO  = N
-
-            CASE ( 'POPPOCPI' )
-               IDTPOPPOCPI  = N
-
-            CASE ( 'POPPBCPO' )
-               IDTPOPPBCPO  = N
-
-            CASE ( 'POPPBCPI' )
-               IDTPOPPBCPI  = N
 
 #if   defined( TOMAS )
             !-----------------------------------

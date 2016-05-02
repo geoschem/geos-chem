@@ -76,6 +76,12 @@
 !
 ! !PRIVATE TYPES:
 !
+      ! Tracer and drydep flags
+      INTEGER,  PRIVATE     :: IDTPOPG
+      INTEGER,  PRIVATE     :: IDTPOPPBCPI
+      INTEGER,  PRIVATE     :: IDTPOPPBCPO 
+      INTEGER,  PRIVATE     :: IDTPOPPOCPI
+      INTEGER,  PRIVATE     :: IDTPOPPOCPO
       INTEGER,  PRIVATE     :: DRYPOPG
       INTEGER,  PRIVATE     :: DRYPOPP_BCPI
       INTEGER,  PRIVATE     :: DRYPOPP_BCPO
@@ -373,9 +379,6 @@
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTPOPG
-      USE TRACERID_MOD,       ONLY : IDTPOPPOCPO, IDTPOPPBCPO
-      USE TRACERID_MOD,       ONLY : IDTPOPPOCPI, IDTPOPPBCPI
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1823,6 +1826,8 @@
 !  10 Mar 2015 - R. Yantosca - Now always allocate ZERO_DVEL
 !  21 Sep 2015 - R. Yantosca - Now takes State_Chm as an argument, so that
 !                              we can take advantage of the species database
+!  02 May 2016 - R. Yantosca - Now make IDTPOP* flags as module variables
+!                              instead of getting them from tracerid_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1877,6 +1882,11 @@
       !=================================================================
 
       ! Initialize flags
+      IDTPOPG      = 0
+      IDTPOPPOCPO  = 0
+      IDTPOPPOCPI  = 0
+      IDTPOPPBCPO  = 0
+      IDTPOPPBCPI  = 0
       DRYPOPG      = 0
       DRYPOPP_OCPO = 0
       DRYPOPP_BCPO = 0
@@ -1894,14 +1904,19 @@
             
             SELECT CASE ( TRIM( ThisSpc%Name ) )
                CASE( 'POPG' )
+                  IDTPOPG      = ThisSpc%ModelId
                   DRYPOPG      = ThisSpc%DryDepId
                CASE( 'POPPOCPO' )
+                  IDTPOPPOCPO  = ThisSpc%ModelId
                   DRYPOPP_OCPO = ThisSpc%DryDepId
                CASE( 'POPPBCPO' )
+                  IDTPOPPBCPO  = ThisSpc%ModelId
                   DRYPOPP_BCPO = ThisSpc%DryDepId
                CASE( 'POPPOCPI' )
+                  IDTPOPPOCPI  = ThisSpc%ModelId
                   DRYPOPP_OCPI = ThisSpc%DryDepId
                CASE( 'POPPBCPI' )
+                  IDTPOPPBCPI  = ThisSpc%ModelId
                   DRYPOPP_BCPI = ThisSpc%DryDepId
                CASE DEFAULT
                   ! Nothing

@@ -350,6 +350,13 @@
       ! To point to the species database
       CHARACTER(LEN=31)        :: Name
       TYPE(Species), POINTER   :: ThisSpc
+
+      ! Now define local tracer flags so that we can remove these from 
+      ! tracerid_mod.F to facilitate FlexChem implementation (bmy, 5/2/16)
+      LOGICAL, SAVE            :: FIRST = .TRUE.
+      INTEGER, SAVE            :: IDTPOPG
+      INTEGER, SAVE            :: IDTPOPPOCPO, IDTPOPPOCPI
+      INTEGER, SAVE            :: IDTPOPPBCPO, IDTPOPPBCPI
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -390,6 +397,50 @@
       SCALE_I3   = DBLE( GET_CT_I3()   ) + 1e-32_fp
       SCALE_I6   = DBLE( GET_CT_I6()   ) + 1e-32_fp
       SCALEDIAG  = DBLE( GET_CT_DIAG() ) + 1e-32_fp
+
+!
+!******************************************************************************
+!  Now define local tracer flags for certain specialty simulations
+!  so that we can remove them from tracerid_mod.F (bmy, 5/2/16)
+!******************************************************************************
+!
+      IF ( FIRST ) THEN
+
+         ! Initialize
+         IDTPOPG      = 0
+         IDTPOPPOCPO  = 0
+         IDTPOPPOCPI  = 0
+         IDTPOPPBCPO  = 0
+         IDTPOPPBCPI  = 0
+
+         ! Loop over all species
+         DO N = 1, State_Chm%nSpecies
+
+            ! Get info about this species from the database
+            ThisSpc => State_Chm%SpcData(N)%Info
+            
+            SELECT CASE ( TRIM( ThisSpc%Name ) )
+               CASE( 'POPG' )
+                  IDTPOPG      = ThisSpc%ModelId
+               CASE( 'POPPOCPO' )
+                  IDTPOPPOCPO  = ThisSpc%ModelId
+               CASE( 'POPPBCPO' )
+                  IDTPOPPBCPO  = ThisSpc%ModelId
+               CASE( 'POPPOCPI' )
+                  IDTPOPPOCPI  = ThisSpc%ModelId
+               CASE( 'POPPBCPI' )
+                  IDTPOPPBCPI  = ThisSpc%ModelId
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+
+            ! Free pointer
+            ThisSpc => NULL()
+         ENDDO
+
+         ! Reset first-time flag
+         FIRST = .FALSE.
+      ENDIF
 !
 !******************************************************************************
 !  Setup for binary punch file:
