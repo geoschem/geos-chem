@@ -458,7 +458,6 @@ CONTAINS
     State_Chm%Id_Hg0      => NULL()
     State_Chm%Id_Hg2      => NULL()
     State_Chm%Id_HgP      => NULL()
-    St
 
     !=====================================================================
     ! Populate the species database object field
