@@ -148,7 +148,7 @@
       INTEGER            :: IDTPPN,  IDTISN1,  IDTR4N2, IDTPRPE, IDTC3H8
       INTEGER            :: IDTCH2O, IDTMP,    IDTN2O5, IDTHNO4, IDTC2H6
       INTEGER            :: IDTDMS,  IDTSO2,   IDTSO4,  IDTMSA,  IDTNH3
-      INTEGER            :: IDTNH4,  IDTNIT,   IDTRN,   IDTPB,   IDTBE7
+      INTEGER            :: IDTNH4,  IDTNIT
       INTEGER            :: IDTBCPI, IDTBCPO,  IDTOCPI, IDTOCPO, IDTDST1
       INTEGER            :: IDTDST2, IDTDST3,  IDTDST4, IDTSALA, IDTSALC
       INTEGER            :: IDTAS
@@ -170,7 +170,6 @@
       INTEGER            :: IDTPYPAN,IDTMAP
       INTEGER            :: IDTAP
       INTEGER            :: IDTMPN
-      INTEGER            :: IDTPASV
 
       ! Hydrophobic and hydrophilic marine organic aerosols (ewl, 7/7/15)
       INTEGER            :: IDTMOPO, IDTMOPI
@@ -1099,22 +1098,6 @@
              
             CASE ( 'O3STRT', 'O3STRAT' )
                IDTO3Strt = N
-
-            !--------------------------------
-            ! Rn-Pb-Be tracers
-            !--------------------------------
-            CASE ( 'RN', 'RN222' )
-               IDTRN    = N
- 
-            CASE ( 'PB', 'PB210' )
-               IDTPB    = N
-
-            CASE ( 'BE7' )
-               IDTBE7   = N
-
-            ! Passive tracer (mps, 11/18/15)
-            CASE ( 'PASV' )
-               IDTPASV  = N
 
             !--------------------------------
             ! CH3I and HCN tracers
@@ -2495,10 +2478,6 @@
       IDTSALC   = 0
       IDTMOPO   = 0
       IDTMOPI   = 0
-      IDTRN     = 0
-      IDTPB     = 0
-      IDTBE7    = 0
-      IDTPASV   = 0
       IDTGLYX   = 0
       IDTMGLY   = 0
       IDTBENZ   = 0

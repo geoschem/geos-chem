@@ -110,6 +110,12 @@ MODULE Diagnostics_Mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES:
+!
+  ! Local tracer ID flags
+  INTEGER :: IDTRn, IDTPb, IDTBe
+
 CONTAINS
 #if defined( NC_DIAG )
 !EOC
@@ -136,6 +142,7 @@ CONTAINS
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GRID_MOD,           ONLY : AREA_M2
     USE HCO_DIAGN_MOD
+    USE Species_Mod,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_TS_CHEM
 #if defined( DEVEL )
     USE TENDENCIES_MOD,     ONLY : TEND_INIT
@@ -182,6 +189,37 @@ CONTAINS
     ! Define collection variables
     AM2    => AREA_M2(:,:,1)
     TS     =  GET_TS_CHEM() * 60.0_sp
+
+    !-----------------------------------------------------------------------
+    ! Store local diagnostic tracer ID flags so that we can remove
+    ! these from tracerid_mod.F for FlexChem (bmy, 5/2/16)
+    !-----------------------------------------------------------------------
+
+    ! Initialize
+    IDTRn  = 0
+    IDTPb  = 0
+    IDTBe7 = 0
+
+    ! Loop over all species
+    DO N = 1, State_Chm%nSpecies
+
+       ! Get info about this species from the database
+       ThisSpc => State_Chm%SpcData(N)%Info
+            
+       SELECT CASE ( TRIM( ThisSpc%Name ) )
+          CASE( 'Rn'  )
+             IDTRn  = ThisSpc%ModelId
+          CASE( 'Pb'  )
+             IDTPb  = ThisSpc%ModelId
+          CASE( 'Be7' )
+             IDTBe7 = ThisSpc%ModelId
+          CASE DEFAULT
+             ! Nothing
+       END SELECT
+
+       ! Free pointer
+       ThisSpc => NULL()
+    ENDDO
 
     !-----------------------------------------------------------------------
     ! Create diagnostics collection for GEOS-Chem.  This will keep the

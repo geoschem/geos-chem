@@ -129,6 +129,9 @@
       CHARACTER(LEN=40)              :: NAME0, NAME1
       CHARACTER(LEN=40)              :: FNAME0
 
+      ! Locally-defined tracer ID flags
+      INTEGER                        :: IDTPASV
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -7723,6 +7726,7 @@
       USE HDF_MOD,     ONLY : HDFMOLC
       USE HDF_MOD,     ONLY : HDFMWT
       USE HDF_MOD,     ONLY : HDFSCALE
+      USE Species_Mod, ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -7764,8 +7768,9 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS, NYMDb, NHMSb
-      INTEGER :: MAXTRACER_HG
+      INTEGER                :: AS, NYMDb, NHMSb
+      INTEGER                :: MAXTRACER_HG, N
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! INIT_GAMAP begins here!
@@ -7894,6 +7899,27 @@
          HDFSCALE(:,:)  = SCALE(:,:)
          
       ENDIF
+
+      !=================================================================
+      ! Now define local tracer ID flags.  This will let us remove 
+      ! tracerid_mod.F in anticipation of FlexChem (bmy, 5/2/15)
+      !=================================================================
+      DO N = 1, State_Chm%nSpecies
+
+         ! Get info about this species from the database
+         ThisSpc => State_Chm%SpcData(N)%Info
+
+         ! Define tracer ID flags locally
+         SELECT CASE ( TRIM( ThisSpc%Name ) )
+            CASE( 'PASV' )
+               IDTPASV = ThisSpc%ModelId
+            CASE DEFAULT
+               ! Nothing
+         END SELECT
+
+         ! Free pointer
+         ThisSpc => NULL()
+      ENDDO
 
       END SUBROUTINE INIT_GAMAP
 !EOC

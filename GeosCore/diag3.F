@@ -270,6 +270,7 @@
 !  05 Jan 2016 - E. Lundgren - Use GC global param AVO instead of from HEMCO
 !  21 Apr 2016 - R. Yantosca - Fixed typo that was preventing ND29 output
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  02 May 2016 - R. Yantosca - Now declare POPs and Rn tracer flags locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -354,6 +355,8 @@
       ! Now define local tracer flags so that we can remove these from 
       ! tracerid_mod.F to facilitate FlexChem implementation (bmy, 5/2/16)
       LOGICAL, SAVE            :: FIRST = .TRUE.
+      INTEGER, SAVE            :: IDTRn,       IDTPb
+      INTEGER, SAVE            :: IDTBe7,      IDTPASV
       INTEGER, SAVE            :: IDTPOPG
       INTEGER, SAVE            :: IDTPOPPOCPO, IDTPOPPOCPI
       INTEGER, SAVE            :: IDTPOPPBCPO, IDTPOPPBCPI
@@ -407,6 +410,10 @@
       IF ( FIRST ) THEN
 
          ! Initialize
+         IDTRn        = 0
+         IDTPb        = 0
+         IDTBe7       = 0
+         IDTPASV      = 0
          IDTPOPG      = 0
          IDTPOPPOCPO  = 0
          IDTPOPPOCPI  = 0
@@ -420,7 +427,15 @@
             ThisSpc => State_Chm%SpcData(N)%Info
             
             SELECT CASE ( TRIM( ThisSpc%Name ) )
-               CASE( 'POPG' )
+               CASE( 'Rn'       )
+                  IDTRn        = ThisSpc%ModelId
+               CASE( 'Pb'       )
+                  IDTPb        = ThisSpc%ModelId
+               CASE( 'Be7'      )
+                  IDTBe7       = ThisSpc%ModelId
+               CASE( 'PASV'     )
+                  IDTPASV      = ThisSpc%ModelId
+               CASE( 'POPG'     )
                   IDTPOPG      = ThisSpc%ModelId
                CASE( 'POPPOCPO' )
                   IDTPOPPOCPO  = ThisSpc%ModelId

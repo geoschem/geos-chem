@@ -35,8 +35,8 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
-      USE TRACERID_MOD,       ONLY : IDTPASV
       USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
 
       ! For ND71
@@ -152,6 +152,7 @@
 !                              Rename AIRDEN diagnostics to AIRDENSITY to
 !                              avoid name conflict with GEOS-5 model.
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  02 May 2016 - R. Yantosca - Now declare IDTPASV locally
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -195,6 +196,11 @@
       INTEGER            :: Id_Hg2
       INTEGER            :: Id_HgP
 
+      ! For passive tracer diagnostics
+      TYPE(Species), POINTER :: ThisSpc
+      LOGICAL,       SAVE    :: FIRST = .TRUE.
+      INTEGER,       SAVE    :: IDTPASV
+
       !=================================================================
       ! DIAG1 begins here!
       !=================================================================
@@ -222,6 +228,33 @@
       IS_FULLCHEM = ITS_A_FULLCHEM_SIM
       IS_CHEM     = ITS_TIME_FOR_CHEM()
       
+      !---------------------------------------------
+      ! Find the IDTPASV tracer flag (bmy, 5/2/16)
+      !---------------------------------------------
+      IF ( FIRST ) THEN 
+
+         ! Initialize
+         IDTPASV = 0
+
+         ! Loop over all species
+         DO N = 1, State_Chm%nSpecies
+
+            ! Get info about this species from the database
+            ThisSpc => State_Chm%SpcData(N)%Info
+
+            ! Define tracer ID flags locally
+            SELECT CASE ( TRIM( ThisSpc%Name ) )
+               CASE( 'PASV' )
+                  IDTPASV  = ThisSpc%ModelId
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+
+            ! Free pointer
+            ThisSpc => NULL()
+         ENDDO
+      ENDIF
+
       ! Compute conc. in mixing ratio for ND35, ND45, ND47 diagnostics 
       IF ( ND35 > 0 .or. ND45 > 0 .or. ND47 > 0 .or. ND71 > 0 ) THEN
 !$OMP PARALLEL DO
