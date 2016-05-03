@@ -682,6 +682,7 @@ MODULE GCKPP_HETRATES
       DO N = 1, NAERO
 
          XSTKCF = B
+
          IF (N.eq.13) THEN
             ! Calculate for stratospheric liquid aerosol
             ! Note that XSTKCF is actually a premultiplying
@@ -758,6 +759,7 @@ MODULE GCKPP_HETRATES
       DO N = 1, NAERO
 
          XSTKCF = B
+
          IF (N.eq.13) THEN
             ! Calculate for stratospheric liquid aerosol
             ! Note that XSTKCF is actually a premultiplying
@@ -929,6 +931,7 @@ MODULE GCKPP_HETRATES
          ELSE
             XSTKCF = 0e+0_fp
          ENDIF
+
          IF (N.eq.13) THEN
             ! Calculate for stratospheric liquid aerosol
             ! Note that XSTKCF is actually a premultiplying
@@ -1052,7 +1055,9 @@ MODULE GCKPP_HETRATES
                XSTKCF = XSTKCF * ( 1.0e+0_fp - 0.9e+0_fp &
                                    *TMP2/TMP1 )
             ENDIF
-         ELSEIF (N.eq.13) THEN
+         ENDIF
+
+         IF (N.eq.13) THEN
             ! Calculate for stratospheric liquid aerosol
             ! Note that XSTKCF is actually a premultiplying
             ! factor in this case, including c-bar
@@ -1246,6 +1251,7 @@ MODULE GCKPP_HETRATES
          ELSE
             XSTKCF = 0e+0_fp
          ENDIF
+
          IF (N.eq.13) THEN
             ! Calculate for stratospheric liquid aerosol
             ! Note that XSTKCF is actually a premultiplying
