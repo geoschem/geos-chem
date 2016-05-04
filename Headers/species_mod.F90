@@ -22,42 +22,36 @@ MODULE Species_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+  PUBLIC :: Str2Hash
   PUBLIC :: SpcData_Init
-  PUBLIC :: SpcData_GetIndx
   PUBLIC :: SpcData_Cleanup
   PUBLIC :: Spc_Create
-  PUBLIC :: Spc_Print
+  PUBLIC :: Spc_GetIndx
   PUBLIC :: Spc_GetNumSpecies
+  PUBLIC :: Spc_Print
 !
 ! !PUBLIC TYPES: 
 !
   !=========================================================================
   ! Counters for the species indices
   !=========================================================================
-  INTEGER, PRIVATE :: AdvectCount = 0    ! Counter of advected species
-  INTEGER, PRIVATE :: DryDepCount = 0    ! Counter of dry-deposited species
-  INTEGER, PRIVATE :: WetDepCount = 0    ! Counter of wet-deposited species
-  INTEGER, PRIVATE :: Hg0Count    = 0    ! Number of Hg0 tracers
-  INTEGER, PRIVATE :: Hg2Count    = 0    ! Number of Hg2 tracers
-  INTEGER, PRIVATE :: HgPCount    = 0    ! Number of HgP tracers
+  INTEGER, PRIVATE :: AdvectCount = 0       ! Counter of advected species
+  INTEGER, PRIVATE :: DryDepCount = 0       ! Counter of dry-deposited species
+  INTEGER, PRIVATE :: WetDepCount = 0       ! Counter of wet-deposited species
+  INTEGER, PRIVATE :: Hg0Count    = 0       ! Number of Hg0 tracers
+  INTEGER, PRIVATE :: Hg2Count    = 0       ! Number of Hg2 tracers
+  INTEGER, PRIVATE :: HgPCount    = 0       ! Number of HgP tracers
   
   !=========================================================================
-  ! Type for ASCII sums (fast-species lookup algorithm)
-  !=========================================================================
-  TYPE, PUBLIC :: AsciiSum
-     INTEGER,           POINTER :: I(:)  !
-     CHARACTER(len=14), POINTER :: N(:)  !
-  END Type AsciiSum
-
-  !=========================================================================
-  ! Type for the species database object (vector of type Species)
+  ! Type for the Species Database object (vector of type Species)
   !=========================================================================
   TYPE, PUBLIC :: SpcPtr
-     TYPE(Species),     POINTER :: Info  ! Species type
+     TYPE(Species), POINTER :: Info         ! Species type
   END TYPE SpcPtr
 
   !=========================================================================
   ! Type for individual species information
+  ! (i.e. this is a single entry in the Species Database)
   !=========================================================================
   TYPE, PUBLIC :: Species
 
@@ -70,6 +64,7 @@ MODULE Species_Mod
      ! Names
      CHARACTER(LEN=31)  :: Name             ! Short name
      CHARACTER(LEN=80)  :: FullName         ! Long name
+     INTEGER            :: NameHash         ! Integer hash for short name
 
      ! Logical switches
      LOGICAL            :: Is_Gas           ! Is it a gas?  If not, aerosol.
@@ -177,10 +172,81 @@ MODULE Species_Mod
 !  16 Oct 2015 - E. Lundgren - Add WD_Is_H2SO4 field to flag special case of
 !                              H2SO4 wet deposition for microphysics
 !  22 Apr 2016 - R. Yantosca - Added Is_Hg0, Is_Hg2, Is_HgP species
+!  04 May 2016 - R. Yantosca - Added fast name lookup via hashing
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Str2Hash
+!
+! !DESCRIPTION: Returns a unique integer hash for a given character string.
+!  This allows us to implement a fast name lookup algorithm.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION Str2Hash( Str31 ) RESULT( Hash )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=31), INTENT(IN) :: Str31  ! String (31 chars long)
+!
+! !RETURN VALUE:
+!
+    INTEGER                       :: Hash   ! Hash value from string
+!
+! !REMARKS:
+!  (1) Algorithm taken from this web page:
+!       https://fortrandev.wordpress.com/2013/07/06/fortran-hashing-algorithm/
+!
+!  (2) The input string has to be 31 characters long in order to match
+!       the length of the NAME field in the Species type.  We need the string
+!       lengths to be consistent for the hash to always return the same value
+!       for the same string (including padding w/ spaces).
+!
+!  (3) For now, we only use the first 14 characers of the character string
+!       to compute the hash value.  Most GEOS-Chem species names only use
+!       at most 14 unique characters.  We can change this later if need be.
+!
+! !REVISION HISTORY:
+!  04 May 2016 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Initialize
+    Hash = 5381
+
+    !-----------------------------------------------------------------------
+    ! Construct the hash from the first 14 characters of the string
+    !
+    ! NOTE: It's MUCH faster to explicitly write these statements
+    ! instead of writing them using a DO loop (bmy, 5/4/16)
+    !-----------------------------------------------------------------------
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31( 1: 1) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31( 2: 2) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31( 3: 3) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31( 4: 4) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31( 5: 5) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31( 6: 6) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31( 7: 7) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31( 8: 8) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31( 9: 9) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31(10:10) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31(11:11) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31(12:12) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31(13:13) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31(14:14) )
+
+  END FUNCTION Str2Hash
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -221,7 +287,7 @@ CONTAINS
     INTEGER :: N, AS
 
     !=====================================================================
-    ! SpcPtr_Init begins here!
+    ! SpcData_Init begins here!
     !=====================================================================
 
     ! Check if already allocated
@@ -248,63 +314,67 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: SpcData_GetIndx 
+! !IROUTINE: Spc_GetIndx 
 !
-! !DESCRIPTION: Function SpcData\_GetIndx returns the index of a given 
+! !DESCRIPTION: Function Spc\_GetIndx returns the index of a given 
 !  species in the species data base object.  You can search by the short
 !  name or the full name of the species.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION SpcData_GetIndx( name, SpecDB, fullname ) RESULT( Indx )
+  FUNCTION Spc_GetIndx( Name31, SpecDB ) RESULT( Indx )
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*),     INTENT(IN) :: name       ! Species or tracer name
-    TYPE(SpcPtr),         POINTER    :: SpecDB(:)  ! Species database
-    LOGICAL, INTENT(IN),  OPTIONAL   :: fullname   ! Search in fullname?
+    CHARACTER(LEN=31), INTENT(IN) :: Name31     ! Species name (31 chars)
+    TYPE(SpcPtr),      POINTER    :: SpecDB(:)  ! Species Database object
 !
 ! !RETURN VALUE:
 !
-    INTEGER                          :: Indx       ! Index of this species 
+    INTEGER                       :: Indx       ! Index of this species
+!
+! !REMARKS:
+!  The input name field has to be 31 characters long in order to match
+!  the length of the NAME field in the Species type.  We need the string
+!  lengths to be consistent for the hash to always return the same value
+!  for the same string (including padding w/ spaces).
 !
 ! !REVISION HISTORY: 
 !  09 Oct 2012 - M. Long     - Initial version, based on gc_esmf_utils_mod.F90
 !  22 Jul 2015 - R. Yantosca - Cosmetic changes
+!  04 May 2016 - R. Yantosca - Now use hash comparison, it's faster
+!  04 May 2016 - R. Yantosca - Renamed to Spc_GetIndx
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    INTEGER :: M
-    LOGICAL :: do_fullname
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: N, Hash
 
-    ! Initialize
-    Indx= -1
-    IF ( PRESENT(fullname) ) THEN
-       do_fullname = fullname
-    ELSE
-       do_fullname = .FALSE.
-    ENDIF
+    !=====================================================================
+    ! Spc_GetIndex begins here!
+    !=====================================================================
 
-    ! Loop over all species names
-    DO M = 1, SIZE(SpecDB)
+    ! Initialize the output value
+    Indx   = -1
 
-       ! Return the index of the sought-for species
-       IF ( do_fullname ) THEN
-          IF( TRIM( name ) == TRIM( SpecDB(M)%Info%FullName ) ) THEN
-             Indx = SpecDB(M)%Info%ModelID
-             EXIT
-          ENDIF
+    ! Compute the hash corresponding to the given species name
+    Hash   = Str2Hash( Name31 )
 
-       ELSE
-          IF( TRIM( name ) == TRIM( SpecDB(M)%Info%Name ) ) THEN
-             Indx = SpecDB(M)%Info%ModelID
-             EXIT
-          ENDIF
+    ! Loop over all entries in the Species Database object
+    DO N = 1, SIZE( SpecDB )
+
+       ! Compare the hash we just created against the list of
+       ! species name hashes stored in the species database
+       IF( Hash == SpecDB(N)%Info%NameHash  ) THEN
+          Indx = SpecDB(N)%Info%ModelID
+          EXIT
        ENDIF
     ENDDO
 
-  END FUNCTION SpcData_GetIndx 
+  END FUNCTION Spc_GetIndx 
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -323,7 +393,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(SpcPtr), POINTER :: SpecDB(:)  ! Species database
+    TYPE(SpcPtr), POINTER :: SpecDB(:)  ! Species database object
 ! 
 ! !REVISION HISTORY: 
 !  20 Aug 2013 - C. Keller   - Adapted from gigc_state_chm_mod.F90
@@ -477,6 +547,7 @@ CONTAINS
 !                              and WD_SizeResAer
 !  24 Sep 2015 - R. Yantosca - Added WD_KcScaleFac argument
 !  22 Apr 2016 - R. Yantosca - Added Is_Hg0, Is_Hg2, Is_HgP
+!  04 May 2016 - R. Yantosca - Now construct hash value from short name
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -501,12 +572,14 @@ CONTAINS
     ENDIF
 
     !---------------------------------------------------------------------
-    ! Short name
+    ! Short name.  Also construct a hash value from the short name.
     !---------------------------------------------------------------------
     IF ( PRESENT( Name ) ) THEN
-       ThisSpc%Name = Name
+       ThisSpc%Name     = Name
+       ThisSpc%NameHash = Str2Hash( ThisSpc%Name )
     ELSE
-       ThisSpc%Name = ''
+       ThisSpc%Name     = ''
+       ThisSpc%NameHash = MISSING_INT
     ENDIF
 
     !---------------------------------------------------------------------

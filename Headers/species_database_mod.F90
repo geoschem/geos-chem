@@ -1969,11 +1969,6 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = 'NITs',                       &
                               FullName      = FullName,                     &
-!-----------------------------------------------------------------------------
-! Prior to 12/15/15:
-! Now use the molecular weight of SALC (bmy, 12/15/15)
-!                              MW_g          = 62.0_fp,                      &
-!-----------------------------------------------------------------------------
                               MW_g          = 31.4_fp,                      &
                               Is_Advected   = T,                            &
                               Is_Gas        = F,                            &
@@ -2614,11 +2609,6 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = 'SO4s',                       &
                               FullName      = FullName,                     &
-!------------------------------------------------------------------------------
-! Prior to 12/15/15:
-! Now use same molecular weight as SALC (bec, bmy, 12/15/15)
-!                              MW_g          = 96.0_fp,                      &
-!------------------------------------------------------------------------------
                               MW_g          = 31.4_fp,                      &
                               Is_Advected   = T,                            &
                               Is_Gas        = F,                            &
