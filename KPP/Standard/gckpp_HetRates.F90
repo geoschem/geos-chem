@@ -116,6 +116,9 @@ MODULE GCKPP_HETRATES
 !  aerosol area
 !
 ! !REVISION HISTORY:
+!  14 Dec 2015 - M. Long     - Initial version
+!  29 Jan 2016 - M. Sulprizio- Update to include heterogeneous chemistry for
+!                              UCX mechanism
 !  29 Mar 2016 - R. Yantosca - NOTE: SPC_HBR and SPC_HOBR are defined
 !                              for trop-only mechanisms
 !  29 Mar 2016 - R. Yantosca - Added ProTeX headers
@@ -389,7 +392,7 @@ MODULE GCKPP_HETRATES
       !  Calculate rate for cloud heterogeneous
       !  chemistry (jpp, 2/28/2011)
       ! ----------------------------------------------
-      IF (.not.PSCBOX) THEN
+      IF ( .not. PSCBOX ) THEN
          cld_brno3_rc = CLD1K_BrNO3(I,J,L,XDENA,QLIQ, SM )
       END IF
 
@@ -397,7 +400,7 @@ MODULE GCKPP_HETRATES
       !  Calculate rates for HOBr + HBr + ice --> Br2
       !  for cold and mixed clouds. (jpp, 6/16/2011)
       ! ----------------------------------------------
-      IF (.not.PSCBOX) THEN
+      IF ( .not. PSCBOX ) THEN
          DUMMY = 0.0e+0_fp
          CALL cldice_hbrhobr_rxn( I,J,L,XDENA,QICE,SPC_HBr,SPC_HOBr, &
               ki_hbr, ki_hobr, DUMMY, SM )
@@ -548,7 +551,8 @@ MODULE GCKPP_HETRATES
          !
          ! If all these checks are passed, we set k = ki/[B].
          ! Rxn 11 is first-order - ignore
-         IF (PSCIDX.eq.1) THEN
+         IF ( PSCIDX .eq. 1 ) THEN
+
             ! Convert from 1st-order to 2nd-order
             SAFEDIV = IS_SAFE_DIV(EDUCTCONC,LIMITCONC)
             IF (SAFEDIV) THEN
@@ -566,7 +570,9 @@ MODULE GCKPP_HETRATES
             ELSE
                ADJUSTEDRATE = 0e+0_fp
             ENDIF
-         ELSEIF (PSCIDX.ne.11) THEN
+
+         ELSEIF ( PSCIDX .ne. 11 ) THEN
+
             IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
                ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
             ENDIF
@@ -587,6 +593,7 @@ MODULE GCKPP_HETRATES
             ELSE
                ADJUSTEDRATE = 0e+0_fp
             ENDIF
+
          ENDIF
 
          ! Copy adjusted rates to HET
@@ -2348,9 +2355,12 @@ MODULE GCKPP_HETRATES
 !  This routine is only activated for UCX-based mechanisms.
 !
 ! !REVISION HISTORY:
+!  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
+!                              in calcrate.F
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
 !  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
 !  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2369,12 +2379,11 @@ MODULE GCKPP_HETRATES
       ! Always apply PSC rate adjustment
       DO_EDUCT     = .TRUE.
 
-      ! Only consider PSC reactions in strat
-      IF (STRATBOX) THEN
+      ! Loop over aerosol types
+      DO N = 1, NAERO
 
-         ! Loop over aerosol types
-         DO N = 1, NAERO
-
+         ! Only consider PSC reactions in strat
+         IF ( STRATBOX ) THEN
             IF (N.eq.8) THEN
                XSTKCF = 0.1e-4_fp ! Sulfate
             ELSEIF (N.eq.13) THEN
@@ -2388,31 +2397,32 @@ MODULE GCKPP_HETRATES
             ELSE
                XSTKCF = 0e+0_fp
             ENDIF
+         ELSE
+            XSTKCF = B
+         ENDIF
 
-            IF (N.eq.13) THEN
-               ! Calculate for stratospheric liquid aerosol
-               ! Note that XSTKCF is actually a premultiplying
-               ! factor in this case, including c-bar
-               ADJUSTEDRATE = XAREA(N) * XSTKCF
-            ELSE
-               ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                                  (A**0.5_FP))
+         IF (N.eq.13) THEN
+            ! Calculate for stratospheric liquid aerosol
+            ! Note that XSTKCF is actually a premultiplying
+            ! factor in this case, including c-bar
+            ADJUSTEDRATE = XAREA(N) * XSTKCF
+         ELSE
+            ! Reaction rate for surface of aerosol
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                               (A**0.5_FP))
+         ENDIF
+
+         IF ( DO_EDUCT .and. N > 12 ) THEN
+            ! PSC reaction - prevent excessive reaction rate
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
             ENDIF
+         ENDIF
 
-            IF ( DO_EDUCT .and. N > 12 ) THEN
-               ! PSC reaction - prevent excessive reaction rate
-               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
-               ENDIF
-            ENDIF
+         ! Add to overall reaction rate
+         HET_N2O5_PSC = HET_N2O5_PSC + ADJUSTEDRATE
 
-            ! Add to overall reaction rate
-            HET_N2O5_PSC = HET_N2O5_PSC + ADJUSTEDRATE
-
-         END DO
-
-      ENDIF
+      END DO
 
     END FUNCTION HETN2O5_PSC
 !EOC
@@ -2444,9 +2454,12 @@ MODULE GCKPP_HETRATES
 !  This routine is only activated for UCX-based mechanisms.
 !
 ! !REVISION HISTORY:
+!  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
+!                              in calcrate.F
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
 !  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
 !  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2465,12 +2478,11 @@ MODULE GCKPP_HETRATES
       ! Always apply PSC rate adjustment
       DO_EDUCT       = .TRUE.
 
-      ! Only consider PSC reactions in strat
-      IF (STRATBOX) THEN
+      ! Loop over aerosol types
+      DO N = 1, NAERO
 
-         ! Loop over aerosol types
-         DO N = 1, NAERO
-
+         ! Only consider PSC reactions in strat
+         IF ( STRATBOX ) THEN
             IF (N.eq.8) THEN
                XSTKCF = 0.1e-3_fp ! Sulfate
             ELSEIF (N.eq.13) THEN
@@ -2484,31 +2496,33 @@ MODULE GCKPP_HETRATES
             ELSE
                XSTKCF = 0e+0_fp
             ENDIF
+         ELSE
+            XSTKCF = B
+         ENDIF
 
-            IF (N.eq.13) THEN
-               ! Calculate for stratospheric liquid aerosol
-               ! Note that XSTKCF is actually a premultiplying
-               ! factor in this case, including c-bar
-               ADJUSTEDRATE = XAREA(N) * XSTKCF
-            ELSE
-               ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                                  (A**0.5_FP))
+
+         IF (N.eq.13) THEN
+            ! Calculate for stratospheric liquid aerosol
+            ! Note that XSTKCF is actually a premultiplying
+            ! factor in this case, including c-bar
+            ADJUSTEDRATE = XAREA(N) * XSTKCF
+         ELSE
+            ! Reaction rate for surface of aerosol
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                               (A**0.5_FP))
+         ENDIF
+
+         IF ( DO_EDUCT .and. N > 12 ) THEN
+            ! PSC reaction - prevent excessive reaction rate
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
             ENDIF
+         ENDIF
 
-            IF ( DO_EDUCT .and. N > 12 ) THEN
-               ! PSC reaction - prevent excessive reaction rate
-               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
-               ENDIF
-            ENDIF
+         ! Add to overall reaction rate
+         HET_ClNO3_PSC1 = HET_ClNO3_PSC1 + ADJUSTEDRATE
 
-            ! Add to overall reaction rate
-            HET_ClNO3_PSC1 = HET_ClNO3_PSC1 + ADJUSTEDRATE
-
-         END DO
-
-      ENDIF
+      END DO
 
     END FUNCTION HETClNO3_PSC1
 !EOC
@@ -2540,9 +2554,12 @@ MODULE GCKPP_HETRATES
 !  This routine is only activated for UCX-based mechanisms.
 !
 ! !REVISION HISTORY:
+!  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
+!                              in calcrate.F
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
 !  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
 !  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2561,12 +2578,11 @@ MODULE GCKPP_HETRATES
       ! Always apply PSC rate adjustment
       DO_EDUCT       = .TRUE.
 
-      ! Only consider PSC reactions in strat
-      IF (STRATBOX) THEN
+      ! Loop over aerosol types
+      DO N = 1, NAERO
 
-         ! Loop over aerosol types
-         DO N = 1, NAERO
-
+         ! Only consider PSC reactions in strat
+         IF ( STRATBOX ) THEN
             IF (N.eq.8) THEN
                XSTKCF = 0.1e-4_fp ! Sulfate
             ELSEIF (N.eq.13) THEN
@@ -2580,31 +2596,32 @@ MODULE GCKPP_HETRATES
             ELSE
                XSTKCF = 0e+0_fp
             ENDIF
+         ELSE
+            XSTKCF = B
+         ENDIF
 
-            IF (N.eq.13) THEN
-               ! Calculate for stratospheric liquid aerosol
-               ! Note that XSTKCF is actually a premultiplying
-               ! factor in this case, including c-bar
-               ADJUSTEDRATE = XAREA(N) * XSTKCF
-            ELSE
-               ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                                  (A**0.5_FP))
+         IF (N.eq.13) THEN
+            ! Calculate for stratospheric liquid aerosol
+            ! Note that XSTKCF is actually a premultiplying
+            ! factor in this case, including c-bar
+            ADJUSTEDRATE = XAREA(N) * XSTKCF
+         ELSE
+            ! Reaction rate for surface of aerosol
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                               (A**0.5_FP))
+         ENDIF
+
+         IF ( DO_EDUCT .and. N > 12 ) THEN
+            ! PSC reaction - prevent excessive reaction rate
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
             ENDIF
+         ENDIF
 
-            IF ( DO_EDUCT .and. N > 12 ) THEN
-               ! PSC reaction - prevent excessive reaction rate
-               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
-               ENDIF
-            ENDIF
+         ! Add to overall reaction rate
+         HET_ClNO3_PSC2 = HET_ClNO3_PSC2 + ADJUSTEDRATE
 
-            ! Add to overall reaction rate
-            HET_ClNO3_PSC2 = HET_ClNO3_PSC2 + ADJUSTEDRATE
-
-         END DO
-
-      ENDIF
+      END DO
 
     END FUNCTION HETClNO3_PSC2
 !EOC
@@ -2636,9 +2653,12 @@ MODULE GCKPP_HETRATES
 !  This routine is only activated for UCX-based mechanisms.
 !
 ! !REVISION HISTORY:
+!  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
+!                              in calcrate.F
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
 !  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
 !  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2657,12 +2677,11 @@ MODULE GCKPP_HETRATES
       ! Always apply PSC rate adjustment
       DO_EDUCT       = .TRUE.
 
-      ! Only consider PSC reactions in strat
-      IF (STRATBOX) THEN
+      ! Loop over aerosol types
+      DO N = 1, NAERO
 
-         ! Loop over aerosol types
-         DO N = 1, NAERO
-
+         ! Only consider PSC reactions in strat
+         IF ( STRATBOX ) THEN
             IF (N.eq.8) THEN
                XSTKCF = 0.e+0_fp ! Sulfate
             ELSEIF (N.eq.13) THEN
@@ -2676,31 +2695,32 @@ MODULE GCKPP_HETRATES
             ELSE
                XSTKCF = 0e+0_fp
             ENDIF
+         ELSE
+            XSTKCF = B
+         ENDIF
 
-            IF (N.eq.13) THEN
-               ! Calculate for stratospheric liquid aerosol
-               ! Note that XSTKCF is actually a premultiplying
-               ! factor in this case, including c-bar
-               ADJUSTEDRATE = XAREA(N) * XSTKCF
-            ELSE
-               ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                                  (A**0.5_FP))
+         IF (N.eq.13) THEN
+            ! Calculate for stratospheric liquid aerosol
+            ! Note that XSTKCF is actually a premultiplying
+            ! factor in this case, including c-bar
+            ADJUSTEDRATE = XAREA(N) * XSTKCF
+         ELSE
+            ! Reaction rate for surface of aerosol
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                               (A**0.5_FP))
+         ENDIF
+
+         IF ( DO_EDUCT .and. N > 12 ) THEN
+            ! PSC reaction - prevent excessive reaction rate
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
             ENDIF
+         ENDIF
 
-            IF ( DO_EDUCT .and. N > 12 ) THEN
-               ! PSC reaction - prevent excessive reaction rate
-               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
-               ENDIF
-            ENDIF
+         ! Add to overall reaction rate
+         HET_ClNO3_PSC3 = HET_ClNO3_PSC3 + ADJUSTEDRATE
 
-            ! Add to overall reaction rate
-            HET_ClNO3_PSC3 = HET_ClNO3_PSC3 + ADJUSTEDRATE
-
-         END DO
-
-      ENDIF
+      END DO
 
     END FUNCTION HETClNO3_PSC3
 !EOC
@@ -2732,9 +2752,12 @@ MODULE GCKPP_HETRATES
 !  This routine is only activated for UCX-based mechanisms.
 !
 ! !REVISION HISTORY:
+!  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
+!                              in calcrate.F
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
 !  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
 !  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2753,12 +2776,11 @@ MODULE GCKPP_HETRATES
       ! Always apply PSC rate adjustment
       DO_EDUCT      = .TRUE.
 
-      ! Only consider PSC reactions in strat
-      IF (STRATBOX) THEN
+      ! Loop over aerosol types
+      DO N = 1, NAERO
 
-         ! Loop over aerosol types
-         DO N = 1, NAERO
-
+         ! Only consider PSC reactions in strat
+         IF ( STRATBOX ) THEN
             IF (N.eq.8) THEN
                XSTKCF = 0.9e+0_fp ! Sulfate
             ELSEIF (N.eq.13) THEN
@@ -2772,31 +2794,33 @@ MODULE GCKPP_HETRATES
             ELSE
                XSTKCF = 0e+0_fp
             ENDIF
+         ELSE
+            XSTKCF = B
+         ENDIF
 
-            IF (N.eq.13) THEN
-               ! Calculate for stratospheric liquid aerosol
-               ! Note that XSTKCF is actually a premultiplying
-               ! factor in this case, including c-bar
-               ADJUSTEDRATE = XAREA(N) * XSTKCF
-            ELSE
-               ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                                  (A**0.5_FP))
+
+         IF (N.eq.13) THEN
+            ! Calculate for stratospheric liquid aerosol
+            ! Note that XSTKCF is actually a premultiplying
+            ! factor in this case, including c-bar
+            ADJUSTEDRATE = XAREA(N) * XSTKCF
+         ELSE
+            ! Reaction rate for surface of aerosol
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                               (A**0.5_FP))
+         ENDIF
+
+         IF ( DO_EDUCT .and. N > 12 ) THEN
+            ! PSC reaction - prevent excessive reaction rate
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
             ENDIF
+         ENDIF
 
-            IF ( DO_EDUCT .and. N > 12 ) THEN
-               ! PSC reaction - prevent excessive reaction rate
-               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
-               ENDIF
-            ENDIF
+         ! Add to overall reaction rate
+         HET_BrNO3_PSC = HET_BrNO3_PSC + ADJUSTEDRATE
 
-            ! Add to overall reaction rate
-            HET_BrNO3_PSC = HET_BrNO3_PSC + ADJUSTEDRATE
-
-         END DO
-
-      ENDIF
+      END DO
 
     END FUNCTION HETBrNO3_PSC
 !EOC
@@ -2828,9 +2852,12 @@ MODULE GCKPP_HETRATES
 !  This routine is only activated for UCX-based mechanisms.
 !
 ! !REVISION HISTORY:
+!  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
+!                              in calcrate.F
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
 !  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
 !  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2849,12 +2876,11 @@ MODULE GCKPP_HETRATES
       ! Always apply PSC rate adjustment
       DO_EDUCT      = .TRUE.
 
-      ! Only consider PSC reactions in strat
-      IF (STRATBOX) THEN
+      ! Loop over aerosol types
+      DO N = 1, NAERO
 
-         ! Loop over aerosol types
-         DO N = 1, NAERO
-
+         ! Only consider PSC reactions in strat
+         IF ( STRATBOX ) THEN
             IF (N.eq.8) THEN
                XSTKCF = 0.8e+0_fp ! Sulfate
             ELSEIF (N.eq.13) THEN
@@ -2868,31 +2894,32 @@ MODULE GCKPP_HETRATES
             ELSE
                XSTKCF = 0e+0_fp
             ENDIF
+         ELSE
+            XSTKCF = B
+         ENDIF
 
-            IF (N.eq.13) THEN
-               ! Calculate for stratospheric liquid aerosol
-               ! Note that XSTKCF is actually a premultiplying
-               ! factor in this case, including c-bar
-               ADJUSTEDRATE = XAREA(N) * XSTKCF
-            ELSE
-               ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                                  (A**0.5_FP))
+         IF (N.eq.13) THEN
+            ! Calculate for stratospheric liquid aerosol
+            ! Note that XSTKCF is actually a premultiplying
+            ! factor in this case, including c-bar
+            ADJUSTEDRATE = XAREA(N) * XSTKCF
+         ELSE
+            ! Reaction rate for surface of aerosol
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                               (A**0.5_FP))
+         ENDIF
+
+         IF ( DO_EDUCT .and. N > 12 ) THEN
+            ! PSC reaction - prevent excessive reaction rate
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
             ENDIF
+         ENDIF
 
-            IF ( DO_EDUCT .and. N > 12 ) THEN
-               ! PSC reaction - prevent excessive reaction rate
-               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
-               ENDIF
-            ENDIF
+         ! Add to overall reaction rate
+         HET_HOCl_PSC1 = HET_HOCl_PSC1 + ADJUSTEDRATE
 
-            ! Add to overall reaction rate
-            HET_HOCl_PSC1 = HET_HOCl_PSC1 + ADJUSTEDRATE
-
-         END DO
-
-      ENDIF
+      END DO
 
     END FUNCTION HETHOCl_PSC1
 !EOC
@@ -2924,9 +2951,12 @@ MODULE GCKPP_HETRATES
 !  This routine is only activated for UCX-based mechanisms.
 !
 ! !REVISION HISTORY:
+!  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
+!                              in calcrate.F
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
 !  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
 !  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2945,12 +2975,11 @@ MODULE GCKPP_HETRATES
       ! Always apply PSC rate adjustment
       DO_EDUCT      = .TRUE.
 
-      ! Only consider PSC reactions in strat
-      IF (STRATBOX) THEN
+      ! Loop over aerosol types
+      DO N = 1, NAERO
 
-         ! Loop over aerosol types
-         DO N = 1, NAERO
-
+         ! Only consider PSC reactions in strat
+         IF ( STRATBOX ) THEN
             IF (N.eq.8) THEN
                XSTKCF = 0.8e+0_fp ! Sulfate
             ELSEIF (N.eq.13) THEN
@@ -2964,31 +2993,32 @@ MODULE GCKPP_HETRATES
             ELSE
                XSTKCF = 0e+0_fp
             ENDIF
+         ELSE
+            XSTKCF = B
+         ENDIF
 
-            IF (N.eq.13) THEN
-               ! Calculate for stratospheric liquid aerosol
-               ! Note that XSTKCF is actually a premultiplying
-               ! factor in this case, including c-bar
-               ADJUSTEDRATE = XAREA(N) * XSTKCF
-            ELSE
-               ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                                  (A**0.5_FP))
+         IF (N.eq.13) THEN
+            ! Calculate for stratospheric liquid aerosol
+            ! Note that XSTKCF is actually a premultiplying
+            ! factor in this case, including c-bar
+            ADJUSTEDRATE = XAREA(N) * XSTKCF
+         ELSE
+            ! Reaction rate for surface of aerosol
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                               (A**0.5_FP))
+         ENDIF
+
+         IF ( DO_EDUCT .and. N > 12 ) THEN
+            ! PSC reaction - prevent excessive reaction rate
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
             ENDIF
+         ENDIF
 
-            IF ( DO_EDUCT .and. N > 12 ) THEN
-               ! PSC reaction - prevent excessive reaction rate
-               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
-               ENDIF
-            ENDIF
+         ! Add to overall reaction rate
+         HET_HOCl_PSC2 = HET_HOCl_PSC2 + ADJUSTEDRATE
 
-            ! Add to overall reaction rate
-            HET_HOCl_PSC2 = HET_HOCl_PSC2 + ADJUSTEDRATE
-
-         END DO
-
-      ENDIF
+      END DO
 
     END FUNCTION HETHOCl_PSC2
 !EOC
@@ -3020,9 +3050,12 @@ MODULE GCKPP_HETRATES
 !  This routine is only activated for UCX-based mechanisms.
 !
 ! !REVISION HISTORY:
+!  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
+!                              in calcrate.F
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
 !  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
 !  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3041,12 +3074,11 @@ MODULE GCKPP_HETRATES
       ! Always apply PSC rate adjustment
       DO_EDUCT     = .TRUE.
 
-      ! Only consider PSC reactions in strat
-      IF (STRATBOX) THEN
+      ! Loop over aerosol types
+      DO N = 1, NAERO
 
-         ! Loop over aerosol types
-         DO N = 1, NAERO
-
+         ! Only consider PSC reactions in strat
+         IF ( STRATBOX ) THEN
             IF (N.eq.8) THEN
                XSTKCF = 0.8e+0_fp ! Sulfate
             ELSEIF (N.eq.13) THEN
@@ -3060,31 +3092,32 @@ MODULE GCKPP_HETRATES
             ELSE
                XSTKCF = 0e+0_fp
             ENDIF
+         ELSE
+            XSTKCF = B
+         ENDIF
 
-            IF (N.eq.13) THEN
-               ! Calculate for stratospheric liquid aerosol
-               ! Note that XSTKCF is actually a premultiplying
-               ! factor in this case, including c-bar
-               ADJUSTEDRATE = XAREA(N) * XSTKCF
-            ELSE
-               ! Reaction rate for surface of aerosol
-               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                                  (A**0.5_FP))
+         IF (N.eq.13) THEN
+            ! Calculate for stratospheric liquid aerosol
+            ! Note that XSTKCF is actually a premultiplying
+            ! factor in this case, including c-bar
+            ADJUSTEDRATE = XAREA(N) * XSTKCF
+         ELSE
+            ! Reaction rate for surface of aerosol
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                               (A**0.5_FP))
+         ENDIF
+
+         IF ( DO_EDUCT .and. N > 12 ) THEN
+            ! PSC reaction - prevent excessive reaction rate
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
             ENDIF
+         ENDIF
 
-            IF ( DO_EDUCT .and. N > 12 ) THEN
-               ! PSC reaction - prevent excessive reaction rate
-               IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-                  ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
-               ENDIF
-            ENDIF
+         ! Add to overall reaction rate
+         HET_HOBr_PSC = HET_HOBr_PSC + ADJUSTEDRATE
 
-            ! Add to overall reaction rate
-            HET_HOBr_PSC = HET_HOBr_PSC + ADJUSTEDRATE
-
-         ENDDO
-
-      ENDIF
+      ENDDO
 
     END FUNCTION HETHOBr_PSC
 !EOC
@@ -3129,7 +3162,7 @@ MODULE GCKPP_HETRATES
 !                                objects via the arg list
 !  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
 !                                now done from DO_CHEMISTRY (chemistry_mod.F)
-!  28 Jan 2016 - M. Sulprizio  - Moved this routine from ucx_mod.F to
+!  29 Jan 2016 - M. Sulprizio  - Moved this routine from ucx_mod.F to
 !                                gckpp_HetRates.F90
 !EOP
 !------------------------------------------------------------------------------

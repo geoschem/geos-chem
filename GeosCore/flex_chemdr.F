@@ -736,7 +736,7 @@
 
          ! Print grid box indices to screen if integrate failed
          IF ( IERR < 0 ) THEN
-            print*, '### INTEGRATE RETURNED ERROR AT: ', I, J, L
+            WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
          ENDIF
 
          ! Get time when integrator ends
@@ -760,11 +760,6 @@
 
          ! Try another time if it failed
          IF ( IERR < 0 ) THEN
-!            write(6,*) ''
-!            write(6,100) istatus(1:8),rstate(1:3)
-!            write(6,*) ''
-!            write(ERR_MSG,'(a,i3)') 'Integrator error code :',IERR
-!            write(6,*)  'I, J, L ', I, J, L
 
             ! Reset first time step and start concentrations
             ! Retry the integration with non-optimized
@@ -777,7 +772,8 @@
             call Integrate( TIN,    TOUT,    ICNTRL, 
      &                      RCNTRL, ISTATUS, RSTATE, IERR )
             IF ( IERR < 0 ) THEN 
-               print*, '## INTEGRATE FAILED TWICE !!! '
+               WRITE(6,*) '## INTEGRATE FAILED TWICE !!! '
+               WRITE(ERR_MSG,'(a,i3)') 'Integrator error code :',IERR
                CALL ERROR_STOP(ERR_MSG, 'INTEGRATE_KPP')
             ENDIF
             
