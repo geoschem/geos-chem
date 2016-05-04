@@ -854,6 +854,15 @@ CONTAINS
                       IF ( TRIM(FINN_SPEC_NAME(N)) == 'OC' .OR. &
                            TRIM(FINN_SPEC_NAME(N)) == 'BC'       ) THEN
                          AdjFact = 1.0_dp / MW_CO2
+
+                      ! Make sure that adjustment factor for CO is always
+                      ! computed using the MW of CO. CO might be used as
+                      ! proxy for other species (e.g. Hg0), in which case
+                      ! we still want to normalize by the MW of CO. 
+                      ELSEIF ( TRIM(FINN_SPEC_NAME(N)) == 'CO' ) THEN
+                         AdjFact = 28.01_dp / MW_CO2
+
+                      ! Normalize by species' molecular weight.
                       ELSE
                          AdjFact = 1.0_dp / MW_CO2 * &
                                    HcoState%Spc(HcoIDs(nSpc))%EmMW_g
