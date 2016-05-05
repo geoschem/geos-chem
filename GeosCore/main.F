@@ -657,12 +657,22 @@
       CALL GEOS_Timer_End( "Reading met fields",  RC )
 #endif
 
-      ! Compute avg surface pressure near polar caps
+      ! MOISTURE FIX (ewl, 5/4/16)
+      CALL SET_DRY_SURFACE_PRESSURE( State_Met, 1 )
       CALL AVGPOLE( State_Met%PS1 )
-      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a AVGPOLE' )
-
-      CALL SET_FLOATING_PRESSURE( State_Met%PS1 )
+      CALL AVGPOLE( State_Met%PS1_DRY )
+      CALL SET_DRY_FLOATING_PRESSURE( State_Met%PS1_DRY )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a SET_DRY_FLT_PRS' )
+      CALL SET_WET_FLOATING_PRESSURE( State_Met )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
+
+      ! Prior to 04 May 2016:
+      !! Compute avg surface pressure near polar caps
+      !CALL AVGPOLE( State_Met%PS1 ) 
+      !IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a AVGPOLE' )
+      !
+      !CALL SET_FLOATING_PRESSURE( State_Met%PS1 )
+      !IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
 
       ! Call AIRQNT to compute initial air mass quantities
       ! Do not update initial tracer concentrations since not read 
@@ -1157,9 +1167,18 @@
          ! (Need to double-check that LMIN, Lmax are not used before-phs) 
          IF ( LVARTROP ) CALL CHECK_VAR_TROP( State_Met )
 
+         ! MOISTURE FIX (ewl, 5/4/16)
          ! If we are not doing transport, then make sure that
-         ! the floating pressure is set to PSC2 (bdf, bmy, 8/22/02)
-         IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( State_Met%PSC2 )
+         ! the dry floating pressure is set to PSC2_DRY
+         IF ( .not. LTRAN ) THEN
+            CALL SET_DRY_FLOATING_PRESSURE( State_Met%PSC2_DRY )
+            CALL SET_WET_FLOATING_PRESSURE( State_Met )
+         ENDIF
+
+         ! Prior to 04 May 2016:
+         !! If we are not doing transport, then make sure that
+         !! the floating pressure is set to PSC2 (bdf, bmy, 8/22/02)
+         !IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( State_Met%PSC2 )
 
          ! Compute updated airmass quantities at each grid box 
          ! and update tracer concentration to conserve tracer mass
@@ -2501,7 +2520,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE READ_MET_FIELDS()
-! 
+!
 ! !REMARKS:
 !  All variables used in this routine are declared above in the main 
 !  program, and as such, are visible here.
@@ -2560,7 +2579,12 @@
          D = GET_I3_TIME()
          CALL GEOSFP_READ_I3_2( D(1), D(2), Input_Opt, State_Met )
 
-         ! Compute avg pressure at polar caps 
+         ! MOISTURE FIX (ewl, 5/4/16)
+         ! Compute PS2_DRY and average at polar caps
+         CALL SET_DRY_SURFACE_PRESSURE( State_Met, 2 )
+         CALL AVGPOLE( State_Met%PS2_DRY )
+
+         ! Compute avg moist pressure at polar caps 
          CALL AVGPOLE( State_Met%PS2 )
 
       ENDIF
@@ -2594,7 +2618,12 @@
          D = GET_I3_TIME()
          CALL MERRA2_READ_I3_2( D(1), D(2), Input_Opt, State_Met )
 
-         ! Compute avg pressure at polar caps 
+         ! MOISTURE FIX (ewl, 5/4/16)
+         ! Compute PS2_DRY and average at polar caps
+         CALL SET_DRY_SURFACE_PRESSURE( State_Met, 2 )
+         CALL AVGPOLE( State_Met%PS2_DRY )
+
+         ! Compute avg moist pressure at polar caps 
          CALL AVGPOLE( State_Met%PS2 )
 
       ENDIF
@@ -2645,7 +2674,12 @@
          CALL OPEN_MERRA_I6_FIELDS ( D(1), D(2), Input_Opt            )
          CALL GET_MERRA_I6_FIELDS_2( D(1), D(2), Input_Opt, State_Met )
 
-         ! Compute avg pressure at polar caps 
+         ! MOISTURE FIX (ewl, 5/4/16)
+         ! Compute PS2_DRY and average at polar caps
+         CALL SET_DRY_SURFACE_PRESSURE( State_Met, 2 )
+         CALL AVGPOLE( State_Met%PS2_DRY )
+
+         ! Compute avg moist pressure at polar caps 
          CALL AVGPOLE( State_Met%PS2 )
 
       ENDIF
@@ -2737,6 +2771,11 @@
          CALL OPEN_I6_FIELDS ( D(1), D(2), Input_Opt            )
          CALL GET_I6_FIELDS_2( D(1), D(2), Input_Opt, State_Met )
 
+         ! MOISTURE FIX (ewl, 5/4/16)
+         ! Compute PS2_DRY and average at polar caps
+         CALL SET_DRY_SURFACE_PRESSURE( State_Met, 2 )
+         CALL AVGPOLE( State_Met%PS2_DRY )
+ 
          ! Compute avg pressure at polar caps 
          CALL AVGPOLE( State_Met%PS2 )
 

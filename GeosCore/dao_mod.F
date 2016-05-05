@@ -35,6 +35,7 @@
       PUBLIC  :: IS_WATER
       PUBLIC  :: IS_ICE
       PUBLIC  :: IS_NEAR      
+      PUBLIC  :: SET_DRY_SURFACE_PRESSURE  ! MOISTURE FIX (ewl, 5/4/16)
 !
 ! !REVISION HISTORY:
 !  26 Jun 2010 - R. Yantosca - Initial version
@@ -948,6 +949,11 @@
      &                       ( State_Met%PS2(I,J) - 
      &                         State_Met%PS1(I,J) ) * TC2 
 
+         ! MOISTURE FIX (ewl, 5/4/16)
+         State_Met%PSC2_DRY(I,J) = State_Met%PS1_DRY(I,J) +
+     &                           ( State_Met%PS2_DRY(I,J) - 
+     &                             State_Met%PS1_DRY(I,J) ) * TC2 
+
          ! Test if we are using the variable tropopause
          IF ( Input_Opt%LVARTROP ) THEN
  
@@ -989,6 +995,11 @@
          State_Met%PSC2(I,J) = State_Met%PS1(I,J)  +
      &                       ( State_Met%PS2(I,J)  -
      &                         State_Met%PS1(I,J)  ) * TC2 
+
+         ! MOISTURE FIX (ewl, 5/4/16)
+         State_Met%PSC2_DRY(I,J) = State_Met%PS1_DRY(I,J)  +
+     &                           ( State_Met%PS2_DRY(I,J)  -
+     &                             State_Met%PS1_DRY(I,J)  ) * TC2 
 
          ! Interpolate the GEOS-5 total O3 column [DU] to current time
          State_Met%TO3(I,J)  = State_Met%TO31(I,J) +
@@ -1036,6 +1047,11 @@
             State_Met%PSC2(I,J)  = State_Met%PS1(I,J) +
      &                           ( State_Met%PS2(I,J) - 
      &                             State_Met%PS1(I,J) ) * TC2 
+
+            ! MOISTURE FIX (ewl, 5/4/16)
+            State_Met%PSC2_DRY(I,J)  = State_Met%PS1_DRY(I,J) +
+     &                               ( State_Met%PS2_DRY(I,J) - 
+     &                                 State_Met%PS1_DRY(I,J) ) * TC2 
 
             ! Even though TROPP is a 3-hour average field, we 
             ! we still need to make sure to cap TROPP in the
@@ -1089,6 +1105,11 @@
      &                           ( State_Met%PS2(I,J) -
      &                             State_Met%PS1(I,J) ) * TC2 
 
+            ! MOISTURE FIX (ewl, 5/4/16)
+            State_Met%PSC2_DRY(I,J)  = State_Met%PS1_DRY(I,J) +
+     &                               ( State_Met%PS2_DRY(I,J) -
+     &                                 State_Met%PS1_DRY(I,J) ) * TC2 
+
             ! Even though TROPP is a 3-hour average field, we 
             ! we still need to make sure to cap TROPP in the
             ! polar regions (if the entire box is outside 60S-60N)
@@ -1128,7 +1149,189 @@
 !$OMP END PARALLEL DO
 #endif
 
+
+!!      ! DEBUGGING
+!!      PRINT *, "In INTERP"
+!!      PRINT *, "PSC2(56,20): ", State_Met%PSC2(56,20)
+!!      PRINT *, "PSC2_DRY(56,20): ", State_Met%PSC2_DRY(56,20)
+!!      PRINT *, "SPHU(56,20,1): ", State_Met%SPHU(56,20,1)
+!!#if defined( GEOS_FP ) || defined( MERRA_2 )
+!!      PRINT *, "SPHU1(56,20,1): ", State_Met%SPHU1(56,20,1)
+!!      PRINT *, "SPHU2(56,20,1): ", State_Met%SPHU2(56,20,1)
+!!#endif
+      ! END DEBUGGING
+
       END SUBROUTINE INTERP
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_dry_surface_pressure
+!
+! !DESCRIPTION: Subroutine SET\_DRY\_SURFACE\_PRESSURE sets the dry
+!  surface pressure PS1_DRY or PS2_DRY by removing the water vapor
+!  from MET pressure fields PS1 or PS2.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_DRY_SURFACE_PRESSURE( State_Met, PS_ID )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD 
+      USE ERROR_MOD,            ONLY : CHECK_VALUE
+      USE GIGC_State_Met_Mod,   ONLY : MetState
+      USE PRESSURE_MOD,         ONLY : GET_AP, GET_BP
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(IN)     :: PS_ID       ! 1 = PS1, 2 = PS2
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(INOUT)  :: State_Met   ! Object for met fields
+!
+! !REVISION HISTORY:
+!  03 May 2002 - E. Lundgren - Initial version (M. Lee, JPL) 
+! 
+! !REMARKS:
+!  This subroutine is an adaptation of the GEOS-Chem moisture fix 
+!  implemented by Meemong Lee (JPL) in the adjoint model.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
+      INTEGER            :: I, J, L
+      REAL(fp)           :: P_EDGE1, P_EDGE2
+
+      ! Pointers
+      REAL(fp), POINTER  :: PS_PTR(:,:)     => NULL()
+      REAL(fp), POINTER  :: PS_DRY_PTR(:,:) => NULL()
+      REAL(fp), POINTER  :: SPHU_PTR(:,:,:) => NULL()
+
+      !! Other variables that may or may not be used / kept around
+      !REAL(fp)           :: TMP1, TMP2 ! used?
+      !INTEGER            :: I2, J2     ! used?
+
+      !=================================================================
+      ! SET_DRY_SURFACE_PRESSURE begins here!
+      !=================================================================
+
+      ! Set pointers to State_Met fields. Use instantaneous specific
+      ! humidities if using GEOS-FP or MERRA-2.
+      IF ( PS_ID == 1 ) THEN
+         PS_PTR => State_Met%PS1
+         PS_DRY_PTR => State_Met%PS1_DRY
+#if defined( GEOS_FP ) || defined( MERRA2 )
+         SPHU_PTR => State_Met%SPHU1
+#else
+         SPHU_PTR => State_Met%SPHU
+#endif
+      ELSE IF ( PS_ID == 2 ) THEN
+         PS_PTR => State_Met%PS2
+         PS_DRY_PTR => State_Met%PS2_DRY
+#if defined( GEOS_FP ) || defined( MERRA2 )
+         SPHU_PTR => State_Met%SPHU2
+#else
+         SPHU_PTR => State_Met%SPHU
+#endif
+      ELSE 
+         ! Throw an error (to be added)
+      ENDIF
+
+      ! Reset dry surface pressure to zero
+      PS_DRY_PTR = 0.0e+0_fp
+
+      ! Sum dry pressure over all levels for each (lat,lon)
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, P_EDGE1, P_EDGE2 )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+      DO L = 1, LLPAR
+         P_EDGE1 = GET_AP(L) + GET_BP(L) * PS_PTR(I,J) 
+         P_EDGE2 = GET_AP(L+1) + GET_BP(L+1) * PS_PTR(I,J)
+         PS_DRY_PTR(I,J) = PS_DRY_PTR(I,J) + ( P_EDGE1 - P_EDGE2 ) 
+     &                     * ( 1.e+0_fp - SPHU_PTR(I,J,L) * 1.0e-3_fp )
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+
+      ! Set dry pressure to the moist pressure if negative
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         IF ( PS_DRY_PTR(I,J) < 0) THEN
+            PS_DRY_PTR(I,J) = PS_PTR(I,J)
+            ! Write to log that dry surface pressure was negative
+            ! (to be added)
+         ENDIF
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Adjoint code also sets PSC2, but PSC2 should be over-written
+      ! by the interpolation between PS1 and PS2 shortly after this
+      ! routine is called.
+      !DO J = 1, JJPAR
+      !DO I = 1, IIPAR
+      !  PSC2(I,J) = 0
+      !  DO L = 1, LLPAR
+      !    PSC2(I,J) = PSC2(I,J) + DELP(L,I,J)*(1-SPHU(I,J,L)*1.0e-3)
+      !  ENDDO
+      !  if (PSC2(I,J) < 0) then
+      !    print *, 'invalid PS: ', I, J, PSC2(I,J), PS(I,J)
+      !    print *, 'SPHU: ', SPHU(I,J,:)
+      !    PSC2(I,J) = PS(I,J)
+      !  endif
+      !  PS(I,J) = PSC2(I,J)
+      !ENDDO
+      !ENDDO
+
+!!      ! DEBUGGING
+!!      PRINT *, "In SET_DRY_SURFACE_PRESSURE"
+!!      PRINT *, "PS_ID: ", PS_ID
+!!      PRINT *, "PS(56,20): ", PS_PTR(56,20)
+!!      IF ( PS_ID == 1 ) THEN
+!!         PRINT *, "State_Met%PS1(56,20): ", State_Met%PS1(56,20)
+!!      ELSE
+!!         PRINT *, "State_Met%PS2(56,20): ", State_Met%PS2(56,20)
+!!      ENDIF
+!!      PRINT *, "PS_DRY(56,20): ", PS_DRY_PTR(56,20)
+!!      IF ( PS_ID == 1 ) THEN
+!!         PRINT *, "State_Met%PS1_DRY(56,20): ", 
+!!     &            State_Met%PS1_DRY(56,20)
+!!      ELSE
+!!         PRINT *, "State_Met%PS2_DRY(56,20): ", 
+!!     &            State_Met%PS2_DRY(56,20)
+!!      ENDIF
+!!      PRINT *, "SPHU(56,20,1): ", SPHU_PTR(56,20,1)
+!!      ! END DEBUGGING
+
+! reversibility test (MML)
+!      TMP2 = 0
+!      DO L = 1, LLPAR
+!        P1 = GET_AP(L) + GET_BP(L) * PS(I2,J2)
+!        P2 = GET_AP(L+1) + GET_BP(L+1) * PS(I2,J2)
+!        TMP2 = TMP2+(P1-P2)/(1-SPHU(I2,J2,L)*1.0e-3)
+!      ENDDO
+!      print *, TMP1, PS(I2,J2), TMP2
+
+      ! Nullify pointers
+      PS_PTR     => NULL()
+      PS_DRY_PTR => NULL()
+      SPHU_PTR   => NULL()
+
+      END SUBROUTINE SET_DRY_SURFACE_PRESSURE
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2122,6 +2325,7 @@
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  11 Aug 2015 - R. Yantosca - MERRA2 behaves in the same way as GEOS-FP
+!  03 May 2016 - E. Lundgren - Add PS1_DRY update
 
 !EOP
 !------------------------------------------------------------------------------
@@ -2140,40 +2344,45 @@
       !------------------
       ! GCAP met
       !------------------
-      State_Met%PS1    = State_Met%PS2     ! I6 surface pressure    [hPa]
-      State_Met%TROPP1 = State_Met%TROPP2  ! I6 tropopause pressure [hPa]
+      State_Met%PS1     = State_Met%PS2     ! I6 surface pressure    [hPa]
+      State_Met%PS1_DRY = State_Met%PS2_DRY ! I6 surface pressure    [hPa] 
+      State_Met%TROPP1  = State_Met%TROPP2  ! I6 tropopause pressure [hPa]
 
 #elif defined( GEOS_4 )
 
       !------------------
       ! GEOS-4 met
       !------------------
-      State_Met%PS1    = State_Met%PS2     ! I6 surface pressure    [hPa]
-      State_Met%TROPP1= State_Met%TROPP2  ! I6 tropopause pressure [hPa]
+      State_Met%PS1     = State_Met%PS2     ! I6 surface pressure    [hPa]
+      State_Met%PS1_DRY = State_Met%PS2_DRY ! I6 surface pressure    [hPa] 
+      State_Met%TROPP1  = State_Met%TROPP2  ! I6 tropopause pressure [hPa]
 
 #elif defined( GEOS_5 )
 
       !------------------
       ! GEOS-5 met
       !------------------
-      State_Met%PS1    = State_Met%PS2     ! I6 surface pressure    [hPa] 
+      State_Met%PS1     = State_Met%PS2     ! I6 surface pressure    [hPa] 
+      State_Met%PS1_DRY = State_Met%PS2_DRY ! I6 surface pressure    [hPa] 
 
 #elif defined( GEOS_FP ) || defined( MERRA2 )
 
       !------------------
       ! GEOS-FP met
       !------------------
-      State_Met%PS1    = State_Met%PS2     ! I3 surface pressure    [hPa]
-      State_Met%SPHU1  = State_Met%SPHU2   ! I3 specific humidity   [g/kg]
-      State_Met%TMPU1  = State_Met%TMPU2   ! I3 temperature         [K]
+      State_Met%PS1     = State_Met%PS2     ! I3 surface pressure    [hPa]
+      State_Met%PS1_DRY = State_Met%PS2_DRY ! I3 surface pressure    [hPa] 
+      State_Met%SPHU1   = State_Met%SPHU2   ! I3 specific humidity   [g/kg]
+      State_Met%TMPU1   = State_Met%TMPU2   ! I3 temperature         [K]
 
 #elif defined( MERRA )
 
       !------------------
       ! MERRA met
       !------------------
-      State_Met%PS1    = State_Met%PS2     ! I6 surface pressure    [hPa]
-      State_Met%RH1    = State_Met%RH2     ! I6 relative humidity   [%]
+      State_Met%PS1     = State_Met%PS2     ! I6 surface pressure    [hPa]
+      State_Met%PS1_DRY = State_Met%PS2_DRY ! I6 surface pressure    [hPa] 
+      State_Met%RH1     = State_Met%RH2     ! I6 relative humidity   [%]
 
 #endif
 

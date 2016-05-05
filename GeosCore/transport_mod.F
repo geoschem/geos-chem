@@ -17,6 +17,7 @@
 ! !USES:
 !
       USE PRECISION_MOD      ! For GEOS-Chem Precision (fp)
+      USE PRESSURE_MOD
 
       IMPLICIT NONE
       PRIVATE
@@ -289,7 +290,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PJC_PFIX_MOD,       ONLY : DO_PJC_PFIX
-      USE PRESSURE_MOD,       ONLY : SET_FLOATING_PRESSURE
       USE DAO_MOD,            ONLY : AIRQNT
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
@@ -428,12 +428,21 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! True surface pressure at midpoint of dynamic timestep [hPa]
-         P_TP1(I,J) = State_Met%PEDGE(I,J,1)
+         ! MOISTURE FIX (ewl, 5/4/16) - use dry floating pressure.
+         ! True dry surface pressure at midpoint of dynamic timestep [hPa]
+         P_TP1(I,J) = GET_PFLT_DRY(I,J)
 
-         ! True surface pressure at end of dynamic timestep [hPa]
-         P_TP2(I,J) = State_Met%PSC2(I,J)    
+         ! MOISTURE FIX (ewl, 5/4/16) - use dry interpolated met pressure. 
+         ! True dry surface pressure at end of dynamic timestep [hPa]
+         P_TP2(I,J) = State_Met%PSC2_DRY(I,J)    
    
+         ! Prior to 04 May 2016: P_TP1 and P_TP2 include moisture.
+         !! True surface pressure at midpoint of dynamic timestep [hPa]
+         !P_TP1(I,J) = State_Met%PEDGE(I,J,1)
+         !
+         !! True surface pressure at end of dynamic timestep [hPa]
+         !P_TP2(I,J) = State_Met%PSC2(I,J)    
+
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -475,15 +484,17 @@
       p_MFLUP   => MASSFLUP_NC
 #endif
 
-      ! Convert tracer concentration from kg/kg dry air to 
-      ! kg/kg total  air before advection (ewl, 6/15/15)
-      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt, 
-     &                                   State_Met, State_Chm, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                   'GEOS4_GEOS5_GLOBAL_ADV in transport_mod.F')
-         RETURN
-      ENDIF 
+      ! MOISTURE FIX (ewl, 5/4/16) - No unit conversion.
+      ! Prior to 04 May 2016: Convert to moist mixing ratio.
+      !! Convert tracer concentration from kg/kg dry air to 
+      !! kg/kg total  air before advection (ewl, 6/15/15)
+      !CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt, 
+      !&                                   State_Met, State_Chm, RC )
+      !IF ( RC /= GIGC_SUCCESS ) THEN
+      !   CALL GIGC_Error('Unit conversion error', RC, 
+      !&                   'GEOS4_GEOS5_GLOBAL_ADV in transport_mod.F')
+      !   RETURN
+      !ENDIF 
 
       ! Do the advection
       CALL TPCORE_FVDAS( D_DYN,  Re,        IIPAR,    JJPAR,
@@ -508,15 +519,17 @@
       ENDIF
 #endif
 
-      ! Convert tracer concentration from kg/kg wet air to 
-      ! kg/kg dry air after advection (ewl, 6/15/15)
-      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt, 
-     &                                   State_Met, State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                   'GEOS4_GEOS5_GLOBAL_ADV in transport_mod.F')
-         RETURN
-      ENDIF 
+      ! MOISTURE FIX (ewl, 5/4/16) - No unit conversion.
+      ! Prior to 04 May 2016: Convert from dry to moist mixing ratio.
+      !! Convert tracer concentration from kg/kg wet air to 
+      !! kg/kg dry air after advection (ewl, 6/15/15)
+      !CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt, 
+      !&                                   State_Met, State_Chm, RC ) 
+      !IF ( RC /= GIGC_SUCCESS ) THEN
+      !   CALL GIGC_Error('Unit conversion error', RC, 
+      !&                   'GEOS4_GEOS5_GLOBAL_ADV in transport_mod.F')
+      !   RETURN
+      !ENDIF 
 
       ! Free pointer memory
       NULLIFY( p_UWND,  p_VWND,  p_STT   )
@@ -529,9 +542,16 @@
       ! Reset surface pressure and ensure mass conservation
       !=================================================================
 
-      ! Reset the floating surface pressure with P_TP2, the "true"
-      ! surface pressure at the end of the dynamic timestep.
-      CALL SET_FLOATING_PRESSURE( P_TP2 )
+      ! MOISTURE FIX (ewl, 5/4/16) - Update dry floating pressure with
+      ! pressure-fixer output. Reconstruct wet floating pressure from dry
+      ! floating pressure for use with GET_PEDGE in AIRQNT.
+      CALL SET_DRY_FLOATING_PRESSURE( P_TP2 )
+      CALL SET_WET_FLOATING_PRESSURE( State_Met )
+
+      ! Prior to 04 May 2016: Floating pressure is wet.
+      !! Reset the floating surface pressure with P_TP2, the "true"
+      !! surface pressure at the end of the dynamic timestep.
+      !CALL SET_FLOATING_PRESSURE( P_TP2 )
 
       ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
       ! Do not update tracer mixing ratio
@@ -573,7 +593,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PJC_PFIX_MOD,       ONLY : DO_PJC_PFIX
-      USE PRESSURE_MOD,       ONLY : SET_FLOATING_PRESSURE
       USE DAO_MOD,            ONLY : AIRQNT
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
@@ -718,11 +737,21 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Psurface - PTOP at midpoint of dynamic timestep [hPa]
-         P_TP1(I,J) = State_Met%PEDGE(I,J,1) - PTOP
+         ! MOISTURE FIX (ewl, 5/4/16) - use dry floating pressure
+         ! True dry surface pressure at midpoint of dynamic timestep [hPa]
+         P_TP1(I,J) = GET_PFLT_DRY(I,J) - PTOP
 
-         ! Psurface - PTOP at end of dynamic timestep [hPa]
-         P_TP2(I,J) = State_Met%PSC2(I,J) - PTOP
+         ! MOISTURE FIX (ewl, 5/4/16) - use dry interpolated met pressure 
+         ! Dry Psurface - PTOP at end of dynamic timestep [hPa]
+         ! (assume negligible moisture at top of atmosphere)
+         P_TP2(I,J) = State_Met%PSC2_DRY(I,J) - PTOP
+
+         ! Prior to 04 May 2016: P_TP1 and P_TP2 include moisture.
+         !! Psurface - PTOP at midpoint of dynamic timestep [hPa]
+         !P_TP1(I,J) = State_Met%PEDGE(I,J,1) - PTOP
+         !
+         !! Psurface - PTOP at end of dynamic timestep [hPa]
+         !P_TP2(I,J) = State_Met%PSC2(I,J) - PTOP
 
       ENDDO
       ENDDO
@@ -761,16 +790,17 @@
       p_MFLUP   => MASSFLUP_NC
 #endif
 
-
-      ! Convert tracer concentration from kg/kg dry air to 
-      ! kg/kg total air before advection (ewl, 6/15/15)
-      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
-     &                                    State_Met, State_Chm, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                   'GCAP_GLOBAL_ADV in transport_mod.F')
-         RETURN
-      ENDIF 
+      ! MOISTURE FIX (ewl, 5/4/16) - No unit conversion.
+      !! Prior to 04 May 2016: Convert from dry to moist mixing ratio.
+      !! Convert tracer concentration from kg/kg dry air to 
+      !! kg/kg total air before advection (ewl, 6/15/15)
+      !CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
+      !&                                    State_Met, State_Chm, RC )
+      !IF ( RC /= GIGC_SUCCESS ) THEN
+      !   CALL GIGC_Error('Unit conversion error', RC, 
+      !&                   'GCAP_GLOBAL_ADV in transport_mod.F')
+      !   RETURN
+      !ENDIF 
 
       ! Do the advection
       CALL TPCORE_FVDAS( D_DYN,   Re,        IIPAR,    JJPAR,
@@ -795,15 +825,16 @@
       ENDIF
 #endif
 
-      ! Convert tracer concentration from kg/kg total air to 
-      ! kg/kg dry air after advection (ewl, 6/15/15)
-      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
-     &                                    State_Met, State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                   'GCAP_GLOBAL_ADV in transport_mod.F')
-         RETURN
-      ENDIF 
+      ! MOISTURE FIX (ewl, 5/4/16) - No unit conversion.
+      !! Prior to 04 May 2016: Convert from moist to dry mixing ratio.
+      !! Convert tracer concentration from kg/kg total air to 
+      !! kg/kg dry air after advection (ewl, 6/15/15)
+      !CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
+      !IF ( RC /= GIGC_SUCCESS ) THEN
+      !   CALL GIGC_Error('Unit conversion error', RC, 
+      !&                   'GCAP_GLOBAL_ADV in transport_mod.F')
+      !   RETURN
+      !ENDIF 
 
       ! Free pointer memory
       NULLIFY( p_UWND,  p_VWND,  p_STT   )
@@ -816,9 +847,17 @@
       ! Reset surface pressure and ensure mass conservation
       !=================================================================
 
-      ! Reset the floating surface pressure with P_TP2+PTOP, the "true"
-      ! surface pressure at the end of the dynamic timestep.
-      CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
+      ! MOISTURE FIX (ewl, 5/4/16) - Update dry floating pressure with
+      ! pressure-fixer output. Reconstruct wet floating pressure from dry
+      ! floating pressure for use with GET_PEDGE in AIRQNT.
+      ! (assume negligible moisture at top of atmosphere)
+      CALL SET_DRY_FLOATING_PRESSURE( P_TP2 + PTOP )
+      CALL SET_WET_FLOATING_PRESSURE( State_Met )
+
+      ! Prior to 04 May 2016: Floating pressure is wet.
+      !! Reset the floating surface pressure with P_TP2+PTOP, the "true"
+      !! surface pressure at the end of the dynamic timestep.
+      !CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
 
       ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
       ! Do not update tracer mixing ratio
@@ -863,7 +902,6 @@
       USE GIGC_State_Met_Mod,        ONLY : MetState
       USE GRID_MOD,                  ONLY : GET_XOFFSET,   GET_YOFFSET
       USE PJC_PFIX_WINDOW_MOD,       ONLY : DO_PJC_PFIX_WINDOW
-      USE PRESSURE_MOD,              ONLY : SET_FLOATING_PRESSURE
       USE DAO_MOD,                   ONLY : AIRQNT
       USE TIME_MOD,                  ONLY : GET_TS_DYN
       USE TPCORE_BC_MOD,             ONLY : I0_W, J0_W, I1_W, J1_W
@@ -1019,11 +1057,20 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! True surface pressure at midpoint of dynamic timestep [hPa]
-         P_TP1(I,J) = State_Met%PEDGE(I,J,1)
+         ! MOISTURE FIX (ewl, 5/4/16) - use dry floating pressure
+         ! True dry surface pressure at midpoint of dynamic timestep [hPa]
+         P_TP1(I,J) = GET_PFLT_DRY(I,J)
 
-         ! True surface pressure at end of dynamic timestep [hPa]
-         P_TP2(I,J) = State_Met%PSC2(I,J)
+         ! MOISTURE FIX (ewl, 5/4/16) - use dry interpolated met pressure 
+         ! True dry surface pressure at end of dynamic timestep [hPa]
+         P_TP2(I,J) = State_Met%PSC2_DRY(I,J)
+
+         ! Prior to 04 May 2016: P_TP1 and P_TP2 include moisture.
+         !! True surface pressure at midpoint of dynamic timestep [hPa]
+         !P_TP1(I,J) = State_Met%PEDGE(I,J,1)
+         !
+         !! True surface pressure at end of dynamic timestep [hPa]
+         !P_TP2(I,J) = State_Met%PSC2(I,J)
 
       ENDDO
       ENDDO
@@ -1109,15 +1156,17 @@
 
       p_A_M2  => A_M2( J0_W1+1 : J0_W1+JM_W1                     )
 
-      ! Convert tracer concentration from kg/kg dry air to 
-      ! kg/kg moist air before advection (ewl, 6/15/15)
-      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
-     &                                   State_Met, State_Chm, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                   'DO_WINDOW_TRANSPORT in transport_mod.F')
-         RETURN
-      ENDIF 
+      ! MOISTURE FIX (ewl, 5/4/16) - No unit conversion.
+      !! Prior to 04 May 2016: Convert from dry to moist mixing ratio.
+      !! Convert tracer concentration from kg/kg dry air to 
+      !! kg/kg moist air before advection (ewl, 6/15/15)
+      !CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
+      !&                                   State_Met, State_Chm, RC )
+      !IF ( RC /= GIGC_SUCCESS ) THEN
+      !   CALL GIGC_Error('Unit conversion error', RC, 
+      !&                   'DO_WINDOW_TRANSPORT in transport_mod.F')
+      !   RETURN
+      !ENDIF 
 
       ! Do the advection
       CALL TPCORE_WINDOW( 
@@ -1142,15 +1191,17 @@
       ENDIF
 #endif
 
-      ! Convert tracer concentration from kg/kg wet air to 
-      ! kg/kg dry air after advection (ewl, 6/15/15)
-      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
-     &                                   State_Met, State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                   'DO_WINDOW_TRANSPORT in transport_mod.F')
-         RETURN
-      ENDIF 
+      ! MOISTURE FIX (ewl, 5/4/16) - No unit conversion.
+      !! Prior to 04 May 2016: Convert from moist to dry mixing ratio.
+      !! Convert tracer concentration from kg/kg wet air to 
+      !! kg/kg dry air after advection (ewl, 6/15/15)
+      !CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
+      !&                                   State_Met, State_Chm, RC ) 
+      !IF ( RC /= GIGC_SUCCESS ) THEN
+      !   CALL GIGC_Error('Unit conversion error', RC, 
+      !&                   'DO_WINDOW_TRANSPORT in transport_mod.F')
+      !   RETURN
+      !ENDIF 
 
 !=========================================================================
 
@@ -1164,9 +1215,17 @@
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
       !=================================================================
-      ! Reset the floating surface pressure with P_TP2, the "true"
-      ! surface pressure at the end of the dynamic timestep.
-      CALL SET_FLOATING_PRESSURE( P_TP2 )
+
+      ! MOISTURE FIX (ewl, 5/4/16) - Update dry floating pressure with
+      ! pressure-fixer output. Reconstruct wet floating pressure from dry
+      ! floating pressure for use with GET_PEDGE in AIRQNT.
+      CALL SET_DRY_FLOATING_PRESSURE( P_TP2 )
+      CALL SET_WET_FLOATING_PRESSURE( State_Met )
+
+      !! Prior to 04 May 2016: Floating pressure is wet.
+      !! Reset the floating surface pressure with P_TP2, the "true"
+      !! surface pressure at the end of the dynamic timestep.
+      !CALL SET_FLOATING_PRESSURE( P_TP2 )
 
       ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
       ! Do not update tracer mixing ratio
@@ -1232,7 +1291,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_AREA_M2, GET_YMID_R
-      USE PRESSURE_MOD,       ONLY : GET_AP,      GET_BP
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD,   ONLY : INIT_TPCORE
 
@@ -1378,7 +1436,6 @@
       USE GIGC_Input_Opt_Mod,      ONLY : OptInput
       USE GRID_MOD,                ONLY : GET_AREA_M2
       USE GRID_MOD,                ONLY : GET_YMID_R_W
-      USE PRESSURE_MOD,            ONLY : GET_AP, GET_BP
       USE TIME_MOD,                ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD,        ONLY : INIT_TPCORE
       USE TPCORE_BC_MOD,           ONLY : I0_W, J0_W, I1_W, J1_W
