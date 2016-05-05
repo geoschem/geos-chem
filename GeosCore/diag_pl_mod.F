@@ -8,6 +8,18 @@
 ! !DESCRIPTION: Module DIAG\_PL\_MOD contains variables and routines which are 
 !  used to compute the production and loss of chemical families in the
 !  "full chemistry" (NOx-Ox-Hydrocarbon-aerosol) mechanism.
+!
+! !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! !% IMPORTANT: Prod/loss diagnostics currently unavailable               %
+! !%                                                                      %
+! !% As of v11-01g, the prod/loss diagnostics are unavailable because we  %
+! !% have removed the SMVGEAR solver for FlexChem. Mike Long has updated  %
+! !% KPP to reproduce the prod/loss functionality, but this still needs   %
+! !% to be connected to the GEOS-Chem diagnostics. We will restore the    %
+! !% prod/loss diagnotics when we complete conversion of GEOS-Chem        %
+! !% diagnostics from BPCH to netCDF format. This work should be done     %
+! !% prior to the v11-01 public release. (mps, 5/5/16)                    %
+! !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !\\
 !\\
 ! !INTERFACE:

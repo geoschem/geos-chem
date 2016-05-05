@@ -206,7 +206,6 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: TS_CHEM
      LOGICAL                     :: LSVCSPEC
      CHARACTER(LEN=255)          :: SPEC_RST_FILE
-     LOGICAL                     :: LKPP
      REAL(fp)                    :: GAMMA_HO2
      LOGICAL                     :: LUCX
      LOGICAL                     :: LCH4CHEM
@@ -938,7 +937,6 @@ CONTAINS
     Input_Opt%TS_CHEM                = 0
     Input_Opt%LSVCSPEC               = .FALSE. 
     Input_Opt%SPEC_RST_FILE          = ''
-    Input_Opt%LKPP                   = .FALSE. 
     Input_Opt%GAMMA_HO2              = 0e+0_fp
     Input_Opt%LUCX                   = .FALSE.
     Input_Opt%LCH4CHEM               = .FALSE.

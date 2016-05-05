@@ -367,7 +367,6 @@
       LOGICAL                  :: LDYNOCEAN
       LOGICAL                  :: LEMIS
       LOGICAL                  :: LGTMM
-      LOGICAL                  :: LKPP
       LOGICAL                  :: LLINOZ
       LOGICAL                  :: LNLPBL
       LOGICAL                  :: LPRT
@@ -506,7 +505,6 @@
       LDYNOCEAN           =  Input_Opt%LDYNOCEAN
       LEMIS               =  Input_Opt%LEMIS
       LGTMM               =  Input_Opt%LGTMM
-      LKPP                =  Input_Opt%LKPP
       LLINOZ              =  Input_Opt%LLINOZ
       LNLPBL              =  Input_Opt%LNLPBL
       LPRT                =  Input_Opt%LPRT

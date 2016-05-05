@@ -3263,7 +3263,7 @@
 !
       ! Scalars
       LOGICAL            :: LCHEM,    LSCHEM,   LLINOZ
-      LOGICAL            :: LSVCSPEC, LKPP,     LUCX    
+      LOGICAL            :: LSVCSPEC, LUCX
       LOGICAL            :: LO3FJX,   LCH4CHEM, LACTIVEH2O
       INTEGER            :: N
       INTEGER            :: TS_CHEM
@@ -3321,10 +3321,6 @@
       ! Species restart file name
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:9' )
       READ( SUBSTRS(1:N), '(a)' ) SPEC_RST_FILE
-
-      ! Use KPP solver ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:10' )
-      READ( SUBSTRS(1:N), * ) LKPP
 
       ! Use online ozone in extinction calculations for FAST-JX?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:11' )
@@ -3428,7 +3424,6 @@
       Input_Opt%LLINOZ        = LLINOZ
       Input_Opt%LSVCSPEC      = LSVCSPEC
       Input_Opt%SPEC_RST_FILE = TRIM( SPEC_RST_FILE )
-      Input_Opt%LKPP          = LKPP
       Input_Opt%LUCX          = LUCX
       Input_Opt%LCH4CHEM      = LCH4CHEM
       Input_Opt%LACTIVEH2O    = LACTIVEH2O
@@ -3456,7 +3451,6 @@
          WRITE( 6, 130     ) ' => Species restart file    : ', 
      &        TRIM( SPEC_RST_FILE )
 #endif
-         WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
          WRITE( 6, 100     ) 'Online ozone for FAST-JX?   : ', LO3FJX
          WRITE( 6, 140     ) 'GAMMA HO2                   : ',
      &      Input_Opt%GAMMA_HO2
@@ -6547,22 +6541,33 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL              :: LKPP,     EOF,  DO_SAVE_PL, DO_SAVE_O3
+      LOGICAL              :: EOF,      DO_SAVE_PL, DO_SAVE_O3
       INTEGER              :: F,        M,    N,          NFAM
       CHARACTER(LEN=255)   :: LOCATION, NAME, MSG 
 
       ! Arrays
       INTEGER              :: FAM_NMEM(MAXFAM)
-      REAL(fp)               :: FAM_COEF(MAXMEM,MAXFAM)
+      REAL(fp)             :: FAM_COEF(MAXMEM,MAXFAM)
       CHARACTER(LEN=14 )   :: FAM_NAME(MAXFAM)
       CHARACTER(LEN=14 )   :: FAM_TYPE(MAXFAM)
       CHARACTER(LEN=14 )   :: FAM_MEMB(MAXMEM,MAXFAM)
       CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM)
 
-
       !=================================================================
       ! READ_PROD_LOSS_MENU begins here!
       !=================================================================
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !% IMPORTANT: Prod/loss diagnostics currently unavailable               %
+      !%                                                                      %
+      !% As of v11-01g, the prod/loss diagnostics are unavailable because we  %
+      !% have removed the SMVGEAR solver for FlexChem. Mike Long has updated  %
+      !% KPP to reproduce the prod/loss functionality, but this still needs   %
+      !% to be connected to the GEOS-Chem diagnostics. We will restore the    %
+      !% prod/loss diagnotics when we complete conversion of GEOS-Chem        %
+      !% diagnostics from BPCH to netCDF format. This work should be done     %
+      !% prior to the v11-01 public release. (mps, 5/5/16)                    %
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Location string
       LOCATION = 'READ_PROD_LOSS_MENU ("input_mod.f")'
@@ -6652,7 +6657,10 @@
       ! Error check: ND65 not available for KPP
       !=================================================================
 
-      IF ( DO_SAVE_PL .AND. LKPP ) THEN
+      ! Temporarily turn off prod/loss diagnostic capability for
+      ! full-chemistry simulations. This should be restored for the
+      ! v11-01 release. (mps, 5/5/16)
+      IF ( DO_SAVE_PL .AND. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
          MSG = 'P/L families are incompatible with KPP. ' //
      &         'Please change one option'
          CALL ERROR_STOP( MSG, LOCATION )
