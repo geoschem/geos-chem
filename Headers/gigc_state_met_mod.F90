@@ -74,12 +74,12 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: PRECTOT   (:,:  ) ! Total precip @ ground [kg/m2/s]
      REAL(fp), POINTER :: PRECLSC   (:,:  ) ! LS precip @ ground [kg/m2/s]
      REAL(fp), POINTER :: PRECSNO   (:,:  ) ! Snow precip [kg/m2/s]
-     REAL(fp), POINTER :: PS1       (:,:  ) ! Sfc press at timestep start[hPa]
-                                            ! (wet air pressure)
-     REAL(fp), POINTER :: PS2       (:,:  ) ! Sfc press at timestep end [hPa]
-                                            ! (wet air pressure)
-     REAL(fp), POINTER :: PSC2      (:,:  ) ! Interpolated sfc pressure [hPa]
-                                            ! (wet air pressure)
+     REAL(fp), POINTER :: PS1       (:,:  ) ! Wet sfc press at dt start[hPa]
+     REAL(fp), POINTER :: PS2       (:,:  ) ! Wet sfc press at dt end [hPa]
+     REAL(fp), POINTER :: PSC2      (:,:  ) ! Wet interpolated sfc press [hPa]
+     REAL(fp), POINTER :: PS1_DRY   (:,:  ) ! Dry sfc press at dt start[hPa]
+     REAL(fp), POINTER :: PS2_DRY   (:,:  ) ! Dry sfc press at dt end [hPa]
+     REAL(fp), POINTER :: PSC2_DRY  (:,:  ) ! Dry interpolated sfc press [hPa]
      REAL(fp), POINTER :: RADLWG    (:,:  ) ! Net LW radiation @ ground [W/m2]
      REAL(fp), POINTER :: RADSWG    (:,:  ) ! Solar radiation @ ground [W/m2]
      REAL(fp), POINTER :: SEAICE00  (:,:  ) ! Sea ice coverage 00-10%
@@ -134,20 +134,16 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: DQRLSAN   (:,:,:) ! LS precip prod rate [kg/kg/s]
                                             ! (assume per dry air)
      REAL(fp), POINTER :: DQIDTMST  (:,:,:) ! Ice tendency, mst proc [kg/kg/s]
-                                            ! (assume per moist air)
      REAL(fp), POINTER :: DQLDTMST  (:,:,:) ! H2O tendency, mst proc [kg/kg/s]
-                                            ! (assume per moist air)
      REAL(fp), POINTER :: DQVDTMST  (:,:,:) ! Vapor tendency, mst proc [kg/kg/s]
-                                            ! (assume per moist air)
      REAL(fp), POINTER :: DTRAIN    (:,:,:) ! Detrainment flux [kg/m2/s]
      REAL(fp), POINTER :: ENTRAIN   (:,:,:) ! GCAP entrainment [Pa/s]
      REAL(fp), POINTER :: HKBETA    (:,:,:) ! Hack overshoot parameter [1]
      REAL(fp), POINTER :: HKETA     (:,:,:) ! Hack conv mass flux [kg/m2/s]
      REAL(fp), POINTER :: MOISTQ    (:,:,:) ! Tendency in sp. humidity 
-                                            ! [kg/kg moist air/s]
+                                            ! [kg/kg tot air/s]
      REAL(fp), POINTER :: OPTD      (:,:,:) ! Visible optical depth [1]
-     REAL(fp), POINTER :: PEDGE     (:,:,:) ! Wet air pressure [hPa] @ level 
-                                            ! edges [hPa]
+     REAL(fp), POINTER :: PEDGE     (:,:,:) ! Wet air press @ level edges [hPa]
      REAL(fp), POINTER :: PFICU     (:,:,:) ! Dwn flux ice prec:conv [kg/m2/s]
      REAL(fp), POINTER :: PFILSAN   (:,:,:) ! Dwn flux ice prec:LS+anv [kg/m2/s]
      REAL(fp), POINTER :: PFLCU     (:,:,:) ! Dwn flux liq prec:conv [kg/m2/s]
@@ -162,8 +158,7 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: RH        (:,:,:) ! Relative humidity [%]
      REAL(fp), POINTER :: RH1       (:,:,:) ! RH at timestep start [%]
      REAL(fp), POINTER :: RH2       (:,:,:) ! RH at timestep end [%]
-     REAL(fp), POINTER :: SPHU      (:,:,:) ! Specific humidity 
-                                            ! [g water vapor / kg moist air]
+     REAL(fp), POINTER :: SPHU      (:,:,:) ! Spcfc humidity [g H2O/kg tot air]
      REAL(fp), POINTER :: SPHU1     (:,:,:) ! Spec hum at timestep start [g/kg]
      REAL(fp), POINTER :: SPHU2     (:,:,:) ! Spec hum at timestep end [g/kg] 
      REAL(fp), POINTER :: T         (:,:,:) ! Temperature [K]
@@ -260,6 +255,7 @@ MODULE GIGC_State_Met_Mod
 !  28 Oct 2015 - E. Lundgren - Add previous delta-P and specific humidity for
 !                              tracer mass conservation in mixing ratio update
 !  17 Mar 2016 - M. Sulprizio- Remove OPTDEP. Instead, we now solely use OPTD.
+!  03 May 2016 - E. Lundgren - Add PSC2_DRY, PS1_DRY, and PS2_DRY
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -445,6 +441,18 @@ CONTAINS
     ALLOCATE( State_Met%PSC2      ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%PSC2     = 0.0_fp
+
+    ALLOCATE( State_Met%PS1_DRY    ( IM, JM ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PS1_DRY   = 0.0_fp
+
+    ALLOCATE( State_Met%PS2_DRY    ( IM, JM ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PS2_DRY   = 0.0_fp
+
+    ALLOCATE( State_Met%PSC2_DRY   ( IM, JM ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PSC2_DRY  = 0.0_fp
 
     ALLOCATE( State_Met%RADLWG    ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -1051,6 +1059,9 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%PS1        )) DEALLOCATE( State_Met%PS1        )
     IF ( ASSOCIATED( State_Met%PS2        )) DEALLOCATE( State_Met%PS2        )
     IF ( ASSOCIATED( State_Met%PSC2       )) DEALLOCATE( State_Met%PSC2       )
+    IF ( ASSOCIATED( State_Met%PS1_DRY    )) DEALLOCATE( State_Met%PS1_DRY    )
+    IF ( ASSOCIATED( State_Met%PS2_DRY    )) DEALLOCATE( State_Met%PS2_DRY    )
+    IF ( ASSOCIATED( State_Met%PSC2_DRY   )) DEALLOCATE( State_Met%PSC2_DRY   )
     IF ( ASSOCIATED( State_Met%RADLWG     )) DEALLOCATE( State_Met%RADLWG     )
     IF ( ASSOCIATED( State_Met%RADSWG     )) DEALLOCATE( State_Met%RADSWG     )
     IF ( ASSOCIATED( State_Met%SLP        )) DEALLOCATE( State_Met%SLP        )
