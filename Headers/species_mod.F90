@@ -191,11 +191,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION Str2Hash( Str31 ) RESULT( Hash )
+  FUNCTION Str2Hash( Str ) RESULT( Hash )
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=31), INTENT(IN) :: Str31  ! String (31 chars long)
+    CHARACTER(LEN=14), INTENT(IN) :: Str    ! String (14 chars long)
 !
 ! !RETURN VALUE:
 !
@@ -205,17 +205,13 @@ CONTAINS
 !  (1) Algorithm taken from this web page:
 !       https://fortrandev.wordpress.com/2013/07/06/fortran-hashing-algorithm/
 !
-!  (2) The input string has to be 31 characters long in order to match
-!       the length of the NAME field in the Species type.  We need the string
-!       lengths to be consistent for the hash to always return the same value
-!       for the same string (including padding w/ spaces).
-!
-!  (3) For now, we only use the first 14 characers of the character string
+!  (2) For now, we only use the first 14 characers of the character string
 !       to compute the hash value.  Most GEOS-Chem species names only use
 !       at most 14 unique characters.  We can change this later if need be.
 !
 ! !REVISION HISTORY:
 !  04 May 2016 - R. Yantosca - Initial version
+!  05 May 2016 - R. Yantosca - Now make the input string 14 chars long
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -226,25 +222,26 @@ CONTAINS
     Hash = 5381
 
     !-----------------------------------------------------------------------
-    ! Construct the hash from the first 14 characters of the string
+    ! Construct the hash from the first 14 characters of the string,
+    ! which is about the longest species name for GEOS-Chem.
     !
     ! NOTE: It's MUCH faster to explicitly write these statements
     ! instead of writing them using a DO loop (bmy, 5/4/16)
     !-----------------------------------------------------------------------
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31( 1: 1) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31( 2: 2) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31( 3: 3) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31( 4: 4) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31( 5: 5) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31( 6: 6) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31( 7: 7) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31( 8: 8) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31( 9: 9) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31(10:10) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31(11:11) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31(12:12) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31(13:13) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str31(14:14) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 1: 1) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 2: 2) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 3: 3) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 4: 4) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 5: 5) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 6: 6) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 7: 7) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 8: 8) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 9: 9) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(10:10) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(11:11) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(12:12) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(13:13) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(14:14) )
 
   END FUNCTION Str2Hash
 !EOC
@@ -323,35 +320,37 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION Spc_GetIndx( Name31, SpecDB ) RESULT( Indx )
+  FUNCTION Spc_GetIndx( Name, SpecDB ) RESULT( Indx )
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=31), INTENT(IN) :: Name31     ! Species name (31 chars)
-    TYPE(SpcPtr),      POINTER    :: SpecDB(:)  ! Species Database object
+    CHARACTER(LEN=*), INTENT(IN) :: Name       ! Species name
+    TYPE(SpcPtr),     POINTER    :: SpecDB(:)  ! Species Database object
 !
 ! !RETURN VALUE:
 !
-    INTEGER                       :: Indx       ! Index of this species
+    INTEGER                      :: Indx       ! Index of this species
 !
 ! !REMARKS:
-!  The input name field has to be 31 characters long in order to match
-!  the length of the NAME field in the Species type.  We need the string
-!  lengths to be consistent for the hash to always return the same value
-!  for the same string (including padding w/ spaces).
+!  The input name field has will get copied to an internal string that is
+!  14 characters long, for input into the Str2Hash function.  14 characters
+!  is about the longest species name for GEOS-Chem.  We can modify this
+!  if need be.
 !
 ! !REVISION HISTORY: 
 !  09 Oct 2012 - M. Long     - Initial version, based on gc_esmf_utils_mod.F90
 !  22 Jul 2015 - R. Yantosca - Cosmetic changes
 !  04 May 2016 - R. Yantosca - Now use hash comparison, it's faster
 !  04 May 2016 - R. Yantosca - Renamed to Spc_GetIndx
+!  05 May 2016 - R. Yantosca - The NAME argument is now of variable length 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: N, Hash
+    INTEGER           :: N, Hash
+    CHARACTER(LEN=14) :: Name14
 
     !=====================================================================
     ! Spc_GetIndex begins here!
@@ -361,7 +360,8 @@ CONTAINS
     Indx   = -1
 
     ! Compute the hash corresponding to the given species name
-    Hash   = Str2Hash( Name31 )
+    Name14 = Name
+    Hash   = Str2Hash( Name14 )
 
     ! Loop over all entries in the Species Database object
     DO N = 1, SIZE( SpecDB )
