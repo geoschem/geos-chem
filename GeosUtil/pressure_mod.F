@@ -324,6 +324,7 @@
       !=================================================================
 
       ! DEBUGGING (ewl)
+      PRINT *, " "
       PRINT *, "In SET_DRY_FLOATING_PRESSURE"
       PRINT *, "   Old PFLT_DRY(50,26): ", PFLT_DRY(50,26)
       ! END DEBUGGING
@@ -350,7 +351,6 @@
 
       ! DEBUGGING (ewl)
       PRINT *, "   New PFLT_DRY(50,26): ", PFLT_DRY(50,26)
-      PRINT *, " "
       ! END DEBUGGING
 
       ! Return to calling program
@@ -407,8 +407,8 @@
       !=================================================================
 
       ! DEBUGGING (ewl)
+      PRINT *, " "
       PRINT *, "In SET_WET_FLOATING_PRESSURE"
-      PRINT *, "   SPHU(50,26,1): ",   State_Met%SPHU(50,26,1)
       PRINT *, "   Old PFLT_WET(50,26): ", PFLT_WET(50,26)
       ! END DEBUGGING
 

@@ -929,6 +929,13 @@
       ENDIF
 #endif
 
+      ! DEBUGGING
+      PRINT *, " "
+      PRINT *, "In INTERP"
+      PRINT *, "   Old PSC2(56,20):     ", State_Met%PSC2(56,20)
+      PRINT *, "   Old PSC2_DRY(56,20): ", State_Met%PSC2_DRY(56,20)
+      ! END DEBUGGING
+
 #if   defined( GEOS_4 ) || defined( GCAP )
 
       !=================================================================
@@ -1149,16 +1156,10 @@
 !$OMP END PARALLEL DO
 #endif
 
-
-!!      ! DEBUGGING
-!!      PRINT *, "In INTERP"
-!!      PRINT *, "PSC2(56,20): ", State_Met%PSC2(56,20)
-!!      PRINT *, "PSC2_DRY(56,20): ", State_Met%PSC2_DRY(56,20)
-!!      PRINT *, "SPHU(56,20,1): ", State_Met%SPHU(56,20,1)
-!!#if defined( GEOS_FP ) || defined( MERRA_2 )
-!!      PRINT *, "SPHU1(56,20,1): ", State_Met%SPHU1(56,20,1)
-!!      PRINT *, "SPHU2(56,20,1): ", State_Met%SPHU2(56,20,1)
-!!#endif
+      ! DEBUGGING
+      PRINT *, " "
+      PRINT *, "   New PSC2(56,20):     ", State_Met%PSC2(56,20)
+      PRINT *, "   New PSC2_DRY(56,20): ", State_Met%PSC2_DRY(56,20)
       ! END DEBUGGING
 
       END SUBROUTINE INTERP
@@ -1221,6 +1222,23 @@
       !=================================================================
       ! SET_DRY_SURFACE_PRESSURE begins here!
       !=================================================================
+
+      ! DEBUGGING
+      PRINT *, " "
+      PRINT *, "In SET_DRY_SURFACE_PRESSURE"
+      IF ( PS_ID == 1 ) THEN
+         PRINT *, "   MET PS1(56,20):      ", State_Met%PS1(56,20)
+      ELSE
+         PRINT *, "   MET PS2(56,20):      ", State_Met%PS2(56,20)
+      ENDIF
+      IF ( PS_ID == 1 ) THEN
+         PRINT *, "   Old PS1_DRY(56,20):  ", 
+     &            State_Met%PS1_DRY(56,20)
+      ELSE
+         PRINT *, "   Old PS2_DRY(56,20):  ", 
+     &            State_Met%PS2_DRY(56,20)
+      ENDIF
+      ! END DEBUGGING
 
       ! Set pointers to State_Met fields. Use instantaneous specific
       ! humidities if using GEOS-FP or MERRA-2.
@@ -1297,25 +1315,16 @@
       !ENDDO
       !ENDDO
 
-!!      ! DEBUGGING
-!!      PRINT *, "In SET_DRY_SURFACE_PRESSURE"
-!!      PRINT *, "PS_ID: ", PS_ID
-!!      PRINT *, "PS(56,20): ", PS_PTR(56,20)
-!!      IF ( PS_ID == 1 ) THEN
-!!         PRINT *, "State_Met%PS1(56,20): ", State_Met%PS1(56,20)
-!!      ELSE
-!!         PRINT *, "State_Met%PS2(56,20): ", State_Met%PS2(56,20)
-!!      ENDIF
-!!      PRINT *, "PS_DRY(56,20): ", PS_DRY_PTR(56,20)
-!!      IF ( PS_ID == 1 ) THEN
-!!         PRINT *, "State_Met%PS1_DRY(56,20): ", 
-!!     &            State_Met%PS1_DRY(56,20)
-!!      ELSE
-!!         PRINT *, "State_Met%PS2_DRY(56,20): ", 
-!!     &            State_Met%PS2_DRY(56,20)
-!!      ENDIF
-!!      PRINT *, "SPHU(56,20,1): ", SPHU_PTR(56,20,1)
-!!      ! END DEBUGGING
+      ! DEBUGGING
+      IF ( PS_ID == 1 ) THEN
+         PRINT *, "   New PS1_DRY(56,20):  ", 
+     &            State_Met%PS1_DRY(56,20)
+      ELSE
+         PRINT *, "   New PS2_DRY(56,20):  ", 
+     &            State_Met%PS2_DRY(56,20)
+      ENDIF
+      PRINT *, " "
+      ! END DEBUGGING
 
 ! reversibility test (MML)
 !      TMP2 = 0

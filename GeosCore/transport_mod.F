@@ -446,6 +446,13 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! DEBUGGING (ewl)
+      PRINT *, " "
+      PRINT *, "In TRANSPORT_MOD"
+      PRINT *, "   P_TP1(56,20):        ", P_TP1(56,20)
+      PRINT *, "   P_TP2(56,20):        ", P_TP2(56,20)
+      ! END DEBUGGING
       
       !=================================================================
       ! Call the PJC/LLNL pressure fixer to get the adjusted air 
