@@ -50,8 +50,12 @@
 !
       ! Logical indicator of whether species data is read from NetCDF file 
       ! (true) or if default values (previously from globchem.dat) are 
-      ! used (false). This parameter is only used if using NetCDF files.
-      INTEGER, SAVE, PUBLIC :: SPC_IN_NC_RST  
+      ! used (false).
+      ! This is now used for both netCDF and BPCH species restart files
+      ! to make sure that we handle species conversions the same. This is
+      ! a temporary fix because we plan to remove the option to use BPCH
+      ! restarts in the near future. (mps, 5/9/16)
+      LOGICAL, SAVE, PUBLIC :: SPC_IN_NC_RST = .FALSE.
 
       ! Full path name of the advected tracer restart file (INPUT)
       CHARACTER(LEN=255)    :: INPUT_RESTART_FILE  
@@ -508,8 +512,8 @@ dvected tracer input  restart file
 
 #if defined( BPCH_RST_IN )
       ! Read binary-punch restart files
-      CALL READ_GC_RESTART_BPCH( YYYYMMDD,  HHMMSS,   Input_Opt, 
-     &                           State_Met, State_Chm )
+      CALL READ_GC_RESTART_BPCH( am_I_Root, YYYYMMDD,  HHMMSS,
+     &                           Input_Opt, State_Met, State_Chm, RC )
 
       ! Read ocean Hg initial conditions (if needed)
       IF ( Input_Opt%ITS_A_MERCURY_SIM .AND.
@@ -846,8 +850,8 @@ dvected tracer input  restart file
                ! default background values in units of [mol/mol].
                ! These values were traditionally stored in globchem.dat
                ! and assigned along with a unit conversion to [molec/cm3]
-               ! in gasconc called from chemdr. Now chemdr converts these
-               ! initial [mol/mol] values to [molec/cm3]. 
+               ! in gasconc called from chemdr. Now init_flexchem converts
+               ! these initial [mol/mol] values to [molec/cm3]. 
                ! Eventually store these values in the species database.
                SELECT CASE ( TRIM( SPC_NAME ) )
                   CASE ('CH2O', 'H2O2', 'HNO2', 'HNO3', 'HNO4') 
@@ -909,11 +913,10 @@ dvected tracer input  restart file
      &                    es15.9)
                ENDIF
 
-               ! NOTE: keep State_Chm%Species background values as
+               ! NOTE: Keep State_Chm%Species background values as
                ! mol/mol here to preserve location of unit conversion
-               ! used for binary-punch restart files. This is temporary
-               ! to minimize impact of the introduction of NetCDF restart
-               ! files and to minimize differences with FlexChem.
+               ! in pre-FlexChem code. This is temporary to minimize
+               ! differences with FlexChem.
 
             ENDIF
          ENDDO
@@ -950,13 +953,14 @@ dvected tracer input  restart file
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_GC_RESTART_BPCH( YYYYMMDD,  HHMMSS,
-     &                                 Input_Opt, State_Met, 
-     &                                 State_Chm ) 
+      SUBROUTINE READ_GC_RESTART_BPCH( am_I_Root, YYYYMMDD,  HHMMSS,
+     &                                 Input_Opt, State_Met, State_Chm,
+     &                                 RC ) 
 !
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
+      USE COMODE_LOOP_MOD,    ONLY : NTSPEC, NAMEGAS
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -966,6 +970,7 @@ dvected tracer input  restart file
 !
 ! !INPUT PARAMETERS: 
 !
+      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
       INTEGER,        INTENT(IN)    :: YYYYMMDD   ! YYYY/MM/DD GMT date
       INTEGER,        INTENT(IN)    :: HHMMSS     ! hh:mm:ss   GMT time
       TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
@@ -974,6 +979,10 @@ dvected tracer input  restart file
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+!
+! !OUTPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(OUT)   :: RC         ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  27 May 1999 - R. Yantosca - Initial version
@@ -1015,6 +1024,10 @@ dvected tracer input  restart file
 !  17 Feb 2015 - E. Lundgren - Change main units from kg to kg/kg.
 !                              Write mean kg/kg per tracer to log.
 !  09 Feb 2016 - E. Lundgren - Change name from READ_RESTART_FILE
+!  09 May 2016 - M. Sulprizio- Move code to read CSPEC restart file and code
+!                              to set species to default values here. This is
+!                              a temporary fix because we plan to remove the 
+!                              option to use BPCH restarts in the near future.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1045,7 +1058,12 @@ dvected tracer input  restart file
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: STT(:,:,:,:)
+
+      ! For setting species concentrations
+      LOGICAL             :: IT_EXISTS
+      CHARACTER(LEN=10)   :: SPC_NAME           ! species name 
+      REAL(fp)            :: Background_VV      ! background species conc
 
       !=================================================================
       ! READ_GC_RESTART_BPCH begins here!
@@ -1177,6 +1195,127 @@ dvected tracer input  restart file
 
       ! Free pointer
       NULLIFY( STT )
+
+      !=================================================================
+      ! Read species concentrations and store in array
+      !=================================================================
+
+      ! Only read species if chemistry simulation
+      IF ( Input_Opt%LCHEM .AND. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
+
+         ! Read CSPEC restart file if option is turned on in input.geos
+         IF ( Input_Opt%LSVCSPEC ) THEN
+
+            ! Read the species restart file.  If not found, then 
+            ! return IT_EXISTS = .FALSE.
+            CALL READ_CSPEC_FILE( am_I_Root, Input_Opt, YYYYMMDD,
+     &                            HHMMSS,    IT_EXISTS, State_Chm,
+     &                            RC )
+
+            ! Set species in restart file logical flag
+            IF ( IT_EXISTS ) THEN
+               SPC_IN_NC_RST = .TRUE.
+            ELSE
+               SPC_IN_NC_RST = .FALSE.
+            ENDIF
+
+         ENDIF
+
+         ! If no species restart file is found or if not using species
+         ! restart file then initialize species with default values
+         IF ( ( Input_Opt%LSVCSPEC .and. .not. IT_EXISTS ) .or.
+     &        ( .not. Input_Opt%LSVCSPEC ) ) THEN
+
+            ! Loop over KPP species
+            DO N = 1, NTSPEC(1)
+
+               ! If the species is included in the IFAM array, which denotes 
+               ! the index # of species in the CSPEC array that are "fake" ND65 
+               ! prod/loss families, then skip. 
+               !IF ( ANY( IFAM == N ) ) THEN
+               !   CYCLE
+               !ENDIF
+
+               ! Define species name
+               SPC_NAME = TRIM( NAMEGAS(N) )
+
+               ! If species data is not in the restart file, then assign
+               ! default background values in units of [mol/mol].
+               ! These values were traditionally stored in globchem.dat
+               ! and assigned along with a unit conversion to [molec/cm3]
+               ! in gasconc called from chemdr. Now chemdr converts these
+               ! initial [mol/mol] values to [molec/cm3]. 
+               ! Eventually store these values in the species database.
+               SELECT CASE ( TRIM( SPC_NAME ) )
+                  CASE ('CH2O', 'H2O2', 'HNO2', 'HNO3', 'HNO4') 
+                     Background_VV = 4.0e-15_fp
+                  CASE ('HO2', 'MO2', 'MP', 'N2O5', 'NO3', 'OH')
+                     Background_VV = 4.0e-15_fp
+                  CASE ('CH4')
+                     Background_VV = 1.7e-06_fp
+                  CASE ('CO')
+                     Background_VV = 1.0e-07_fp
+                  CASE ('CO2')
+                     Background_VV = 3.55e-04_fp
+                  CASE ('H2')
+                     Background_VV = 5.0e-07_fp
+                  CASE ('H2O')
+                     Background_VV = 1.839e-02_fp
+                  CASE ('M')
+                     Background_VV = 0.0e+0_fp
+                  CASE ('N2')
+                     Background_VV = 7.808e-01_fp
+                  CASE ('NO', 'NO2')
+                     Background_VV = 4.0e-13_fp
+                  CASE ('N2O')
+                     Background_VV = 3.0e-07_fp
+                  CASE ('EMISSION')
+                     Background_VV = 1.0e+0_fp
+                  CASE ('H', 'O', 'N')
+                     Background_VV = 4.0e-20_fp
+                  CASE ('O1D')
+                     IF ( Input_Opt%LUCX ) THEN
+                        Background_VV = 1.0e-15_fp
+                     ELSE
+                        Background_VV = 4.0e-22_fp
+                     ENDIF
+                  CASE ('O2')
+                     Background_VV = 2.095e-01_fp
+                  CASE ('O3')
+                     Background_VV = 2.0e-08_fp
+                  CASE ('OCS')
+                     Background_VV = 9.0e-15_fp
+                  CASE DEFAULT
+                     Background_VV = 1.0e-20_fp
+               END SELECT
+
+               ! Set 'DRY' species to all zeroes
+               IF ( SPC_NAME(1:3) == 'DRY') THEN
+                  Background_VV = 0.0e+0_fp
+               ENDIF
+
+               ! Put this array into State_Chm%Species [mol/mol], but
+               ! only up to LLCHEM levels
+               State_Chm%Species(:,:,1:LLCHEM,N) = Background_VV
+
+               ! Print the background value of this species if debugging
+               IF ( Input_Opt%LPRT ) THEN
+                  WRITE( 6, 190 ) N, TRIM( SPC_NAME ),
+     &                            Background_VV
+ 190              FORMAT('Species ', i3, ', ', a9, ': Background = ', 
+     &                    es15.9)
+               ENDIF
+
+               ! NOTE: Keep State_Chm%Species background values as
+               ! mol/mol here to preserve location of unit conversion
+               ! in pre-FlexChem code. This is temporary to minimize
+               ! differences with FlexChem.
+
+            ENDDO
+
+         ENDIF
+
+      ENDIF
 
       END SUBROUTINE READ_GC_RESTART_BPCH
 !EOC
