@@ -72,20 +72,23 @@
 !                              Remove dependency on pressure_mod.
 !  12 Aug 2015 - E. Lundgren - Now pass am_I_Root and RC to AERO_DIADEN 
 !                              to enable unit conversion if needed
+!  12 May 2016 - M. Sulprizio- Remove IJLOOP and changed SIZ_DIA and SIZ_DEN
+!                              array dimensions from (IIPAR*JJPAR,IBINS) to
+!                              (IIPAR,JJPAR,IBINS)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, J, L, N, JC, BIN, ID, IJLOOP
+      INTEGER                :: I, J, L, N, JC, BIN, ID
       REAL(fp)               :: DTCHEM,  AREA_CM2, FLUX
       REAL(fp)               :: X, X0(IBINS, ICOMP-IDIAG+1)
       REAL(fp)               :: Y, Y0, RKT
       REAL(fp)               :: NU0(IIPAR,JJPAR,LLPAR,IBINS)
       REAL(fp)               :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL(fp)               :: SIZ_DIA(IIPAR*JJPAR,IBINS)
-      REAL(fp)               :: SIZ_DEN(IIPAR*JJPAR,IBINS)
+      REAL(fp)               :: SIZ_DIA(IIPAR,JJPAR,IBINS)
+      REAL(fp)               :: SIZ_DEN(IIPAR,JJPAR,IBINS)
       REAL(fp)               :: DEN,   DP,    PDP,  TEMP,  P
       REAL(fp)               :: CONST, SLIP,  VISC, DELZ,  DELZ1
       REAL(fp)               :: TOT1,  TOT2
@@ -202,7 +205,7 @@ cdbg      print *, dryd(:)
       ENDIF
 
 !$OMP PARALLEL DO
-!$OMP+PRIVATE( BIN, I, J, IJLOOP, DP, DEN, CONST, L, P, TEMP )
+!$OMP+PRIVATE( BIN, I, J, DP, DEN, CONST, L, P, TEMP )
 !$OMP+PRIVATE( PDP, SLIP, VISC, VTS, JC, ID, TC0, TC )
 !$OMP+PRIVATE( DELZ, DELZ1, AREA_CM2, TOT1, TOT2, FLUX )
 !$OMP+DEFAULT( SHARED )
@@ -211,11 +214,8 @@ cdbg      print *, dryd(:)
       DO J = 1, JJPAR
       DO BIN = 1, IBINS
 
-         ! 1-D grid box index
-         IJLOOP      = ( (J-1) * IIPAR ) + I
-
-         DP  = SIZ_DIA(IJLOOP, BIN) * 1.d6 ![=] um
-         DEN = SIZ_DEN(IJLOOP, BIN) ![=] kg/m3
+         DP    = SIZ_DIA(I,J,BIN) * 1.d6 ![=] um
+         DEN   = SIZ_DEN(I,J,BIN) ![=] kg/m3
          CONST = DEN *  (DP*1.d-6)**2.d0 * g0 / 18.d0  
 
 !debug            if(i==ix .and. j==jx .and. bin==bb) then

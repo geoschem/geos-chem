@@ -216,6 +216,7 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: AIRVOL    (:,:,:) ! Grid box volume [m3] (dry air)
      REAL(fp), POINTER :: DELP_PREV (:,:,:) ! Previous State_Met%DELP
      REAL(fp), POINTER :: SPHU_PREV (:,:,:) ! Previous State_Met%SPHU
+     REAL(fp), POINTER :: ABSHUM    (:,:,:) ! Absolute humidity [H2O molec/cm3]
 
      !----------------------------------------------------------------------
      ! Land type and leaf area index (LAI) fields for dry deposition
@@ -263,6 +264,8 @@ MODULE GIGC_State_Met_Mod
 !  21 Dec 2015 - M. Sulprizio- Add AIRNUMDEN, which is the same as AIRDEN but
 !                              has units molec/cm3 for the chemistry routines.
 !  17 Mar 2016 - M. Sulprizio- Remove OPTDEP. Instead, we now solely use OPTD.
+!  12 May 2016 - M. Sulprizio- Add ABSHUM to replace 1D array previously in
+!                              comode_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -658,6 +661,10 @@ CONTAINS
     !=======================================================================
     ! Allocate 3-D Arrays
     !=======================================================================
+    ALLOCATE( State_Met%ABSHUM    ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%ABSHUM   = 0.0_fp
+
     ALLOCATE( State_Met%AD        ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%AD       = 0.0_fp

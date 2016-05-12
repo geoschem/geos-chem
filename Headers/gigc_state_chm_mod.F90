@@ -68,6 +68,8 @@ MODULE GIGC_State_Chm_Mod
      ! Aerosol quantities
      REAL(fp),          POINTER :: AeroArea   (:,:,:,:) ! Aerosol Area [cm2/cm3]
      REAL(fp),          POINTER :: AeroRadi   (:,:,:,:) ! Aerosol Radius [cm]
+     REAL(fp),          POINTER :: WetAeroArea(:,:,:,:) ! Aerosol Area [cm2/cm3]
+     REAL(fp),          POINTER :: WetAeroRadi(:,:,:,:) ! Aerosol Radius [cm]
      INTEGER                    :: nAero                ! Number of Aerosol Types
 
 #if defined( ESMF_ )
@@ -105,6 +107,8 @@ MODULE GIGC_State_Chm_Mod
 !  28 Jan 2016 - M. Sulprizio- Add STATE_PSC, KHETI_SLA. These were previously
 !                              local arrays in ucx_mod.F, but now need to be
 !                              accessed in gckpp_HetRates.F90.
+!  12 May 2016 - M. Sulprizio- Add WetAeroArea, WetAeroRadi to replace 1D arrays
+!                              WTARE, WERADIUS previously in comode_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -409,6 +413,14 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Chm%AeroRadi = 0e+0_fp
 
+    ALLOCATE( State_Chm%WetAeroArea   ( IM, JM, LM, nAerosol   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%WetAeroArea = 0e+0_fp
+
+    ALLOCATE( State_Chm%WetAeroRadi   ( IM, JM, LM, nAerosol   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%WetAeroRadi = 0e+0_fp
+
 #if defined( ESMF_ )
     !=====================================================================
     ! Allocate and initialize chemical rate fields
@@ -608,6 +620,8 @@ CONTAINS
     ! Aerosol quantities
     IF ( ASSOCIATED(State_Chm%AeroArea   ) ) DEALLOCATE(State_Chm%AeroArea   )
     IF ( ASSOCIATED(State_Chm%AeroRadi   ) ) DEALLOCATE(State_Chm%AeroRadi   )
+    IF ( ASSOCIATED(State_Chm%WetAeroArea) ) DEALLOCATE(State_Chm%WetAeroArea)
+    IF ( ASSOCIATED(State_Chm%WetAeroRadi) ) DEALLOCATE(State_Chm%WetAeroRadi)
 
 #if defined( ESMF_ )
     ! Keep these here for now, FLEXCHEM will remove these (bmy, 12/11/14)

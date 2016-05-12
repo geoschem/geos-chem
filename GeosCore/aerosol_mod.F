@@ -130,8 +130,8 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE PHYSCONSTANTS,      ONLY : BOLTZ, AVO, AIRMW, CONSVAP
-      USE COMODE_MOD,         ONLY : ABSHUM, IXSAVE   
-      USE COMODE_MOD,         ONLY : IYSAVE, IZSAVE,  JLOP       
+      USE COMODE_MOD,         ONLY : IXSAVE, IYSAVE, IZSAVE
+      USE COMODE_MOD,         ONLY : JLOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
 
@@ -172,6 +172,8 @@
 !                              these fields directly from State_Met instead.
 !  21 Apr 2016 - M. Sulprizio- Get CONSVAP from physconstants.F instead of
 !                              computing locally
+!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. ABSHUM
+!                              is now a 3D field in State_Met.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -311,17 +313,17 @@
 !------------------------------------------------------------------------------
 
             ! ABSHUM = absolute humidity [molec H2O/cm3 air]
-            ABSHUM(JLOOP)  = State_Met%AVGW(I,J,L)  *
-     &                       State_Met%AIRNUMDEN(I,J,L)
+            State_Met%ABSHUM(I,J,L) = State_Met%AVGW(I,J,L)  *
+     &                                State_Met%AIRNUMDEN(I,J,L)
 
             ! Convert ABSHUM to relative humidity [fraction]
             ! using the same algorithm as in "gasconc.f"
-            TK             = State_Met%T(I,J,L)
+            TK       = State_Met%T(I,J,L)
 
-            CONSEXP        = 17.2693882e0_fp      * 
-     &                     ( TK - 273.16e+0_fp ) / ( TK - 35.86e+0_fp )
-            VPRESH2O       = CONSVAP * EXP( CONSEXP ) / TK
-            ABSHUM(JLOOP) = ABSHUM(JLOOP) / VPRESH2O
+            CONSEXP  = 17.2693882e0_fp * 
+     &                 ( TK - 273.16e+0_fp ) / ( TK - 35.86e+0_fp )
+            VPRESH2O = CONSVAP * EXP( CONSEXP ) / TK
+            State_Met%ABSHUM(I,J,L) = State_Met%ABSHUM(I,J,L) / VPRESH2O
 
          ENDIF
       ENDDO
@@ -867,8 +869,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDAER( am_I_Root, Input_Opt, State_Met,  RC,
-     &                  MONTH,     YEAR,      ODSWITCH        )
+      SUBROUTINE RDAER( am_I_Root, Input_Opt, State_Met,  State_Chm,
+     &                  RC,        MONTH,     YEAR,       ODSWITCH   )
 !
 ! !USES:
 !
@@ -877,20 +879,17 @@
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE PHYSCONSTANTS,      ONLY : CONSVAP
+      USE COMODE_LOOP_MOD,    ONLY : IOUT
       USE COMODE_LOOP_MOD,    ONLY : IOUT, NTLOOP
       USE COMODE_MOD,         ONLY : JLOP ! SDE 2013-12-30
-      USE COMODE_MOD,         ONLY : ABSHUM
-      USE COMODE_MOD,         ONLY : ERADIUS
       USE COMODE_MOD,         ONLY : IXSAVE
       USE COMODE_MOD,         ONLY : IYSAVE
       USE COMODE_MOD,         ONLY : IZSAVE
-      USE COMODE_MOD,         ONLY : TAREA 
-      USE COMODE_MOD,         ONLY : WTAREA
-      USE COMODE_MOD,         ONLY : WERADIUS
       USE DIAG_MOD,           ONLY : AD21
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE TIME_MOD,           ONLY : SYSTEM_TIMESTAMP
@@ -913,6 +912,10 @@
                                                    !       at wavelength set 
                                                    !       in Radiation Menu
       TYPE(OptInput), INTENT(IN)  :: Input_Opt     ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:                             
 !
@@ -970,6 +973,10 @@
 !  24 Jun 2015 - M. Sulprizio- Update organic aerosol density MSDENS(3) from
 !                              1800 to 1300 kg/m3 (E. Marais, M. Hammer)
 !  15 Oct 2015 - C. Keller   - Empty ODAER before refilling.
+!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. ABSHUM
+!                              is now a 3D field in State_Met. ERADIUS, TAREA
+!                              WERADIUS, WTAREA are now pointers that point to
+!                              3D fields in State_Chm.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1058,6 +1065,10 @@
 
       ! Pointers
       REAL(fp), POINTER   :: BXHEIGHT(:,:,:)
+      REAL(fp), POINTER   :: ERADIUS(:,:,:,:)
+      REAL(fp), POINTER   :: TAREA(:,:,:,:)
+      REAL(fp), POINTER   :: WERADIUS(:,:,:,:)
+      REAL(fp), POINTER   :: WTAREA(:,:,:,:)
 
       !=================================================================
       ! RDAER begins here!
@@ -1079,7 +1090,11 @@
       LRAD                 = Input_Opt%LRAD
 
       ! Initialize pointers
-      BXHEIGHT            => State_Met%BXHEIGHT
+      BXHEIGHT            => State_Met%BXHEIGHT    ! Grid box height [m]
+      ERADIUS             => State_Chm%AeroRadi    ! Aerosol Radius [cm]
+      TAREA               => State_Chm%AeroArea    ! Aerosol Area [cm2/cm3]
+      WERADIUS            => State_Chm%WetAeroRadi ! Wet Aerosol Radius [cm]
+      WTAREA              => State_Chm%WetAeroArea ! Wet Aerosol Area [cm2/cm3]
 
       !=================================================================
       ! S U L F A T E   A E R O S O L S
@@ -1387,11 +1402,11 @@
             ! in GC-Classic (MSL)
             ! -- THIS SHOULD BE A TEMPORARY FIX!
             ! JLOOP and COMODE_MOD will be REMOVED
-            TK            = State_Met%T(I,J,L)
-            CONSEXP       = 17.2693882e+0_fp * (TK - 273.16e+0_fp) /
-     &                      (TK - 35.86e+0_fp)
-            VPRESH2O      = CONSVAP * EXP(CONSEXP) / TK 
-            RELHUM = ABSHUM(JLOOP) / VPRESH2O 
+            TK       = State_Met%T(I,J,L)
+            CONSEXP  = 17.2693882e+0_fp * (TK - 273.16e+0_fp) /
+     &                 (TK - 35.86e+0_fp)
+            VPRESH2O = CONSVAP * EXP(CONSEXP) / TK 
+            RELHUM   = State_met%ABSHUM(I,J,L) / VPRESH2O 
 
             ! Sort into relative humidity bins
             ! Currently uses the 0, 50, 70, 80, 90% RH bins
@@ -1574,18 +1589,18 @@
                !get scaling for R and VOL
                SCALER                 = REFF / RW(1)
                SCALEVOL               = SCALER**3
-               ERADIUS(JLOOP,NDUST+N) = 1.0D-4 * REFF
+               ERADIUS(I,J,L,N+NDUST) = 1.0D-4 * REFF
 
                ! Store aerosol surface areas in TAREA, and be sure
                ! to list them following the dust surface areas
-               TAREA(JLOOP,N+NDUST) = 3.D0                     * 
-     &                                WAERSL(I,J,L,N)          *  
-     &                                SCALEVOL                 / 
-     &                                ( ERADIUS(JLOOP,NDUST+N) * 
-     &                                  MSDENS(N) )  
+               TAREA(I,J,L,N+NDUST)   = 3.D0                     * 
+     &                                  WAERSL(I,J,L,N)          *  
+     &                                  SCALEVOL                 / 
+     &                                  ( ERADIUS(I,J,L,N+NDUST) * 
+     &                                    MSDENS(N) )  
 
-               WTAREA(JLOOP, N+NDUST)   = TAREA(JLOOP, N+NDUST)
-               WERADIUS(JLOOP, N+NDUST) = ERADIUS(JLOOP, N+NDUST)     
+               WTAREA(I,J,L,N+NDUST)   = TAREA(I,J,L,N+NDUST)
+               WERADIUS(I,J,L,N+NDUST) = ERADIUS(I,J,L,N+NDUST)     
 
                !include hydrophobic BC and OC
                !stored separate to hydrophillic in RT variables
@@ -1598,14 +1613,14 @@
      &                      1.0D-4 * MSDENS(N) )  
 
                   ! Add surface area to TAREA array
-                  TAREA(JLOOP,N+NDUST) = WTAREA(JLOOP,N+NDUST) + DRYAREA
+                  TAREA(I,J,L,N+NDUST) = WTAREA(I,J,L,N+NDUST) + DRYAREA
 
                   ! Define a new effective radius that accounts 
                   ! for the hydrophobic aerosol 
-                  ERADIUS(JLOOP,NDUST+N) = ( WERADIUS(JLOOP,NDUST+N) *
-     &                                       WTAREA(JLOOP,N+NDUST)   +
+                  ERADIUS(I,J,L,NDUST+N) = ( WERADIUS(I,J,L,NDUST+N) *
+     &                                       WTAREA(I,J,L,N+NDUST)   +
      &                                       RW(1) * 1.0D-4 * DRYAREA )/
-     &                                     ( WTAREA(JLOOP,N+NDUST)   +
+     &                                     ( WTAREA(I,J,L,N+NDUST)   +
      &                                       DRYAREA )
                ENDIF !Hydrophobic aerosol surface area
             ENDIF    !Surface area calcs
@@ -1627,7 +1642,7 @@
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, RAER, REFF, JLOOP )
+!$OMP+PRIVATE( I, J, L, RAER, REFF )
 !$OMP+PRIVATE( SADSTRAT, XSASTRAT )
 !$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLPAR
@@ -1639,14 +1654,15 @@
 
             ! Moved this from a separate loop for clarity
             IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-               JLOOP = JLOP(I,J,L)
+
                ! Add surface area to TAREA array
-               TAREA(JLOOP,NDUST+N) = SADSTRAT
-               WTAREA(JLOOP,NDUST+N) = SADSTRAT
+               TAREA(I,J,L,NDUST+N)  = SADSTRAT
+               WTAREA(I,J,L,NDUST+N) = SADSTRAT
 
                ! Store radius
-               ERADIUS(JLOOP,NDUST+N) = RAER
-               WERADIUS(JLOOP,NDUST+N) = RAER 
+               ERADIUS(I,J,L,NDUST+N)  = RAER
+               WERADIUS(I,J,L,NDUST+N) = RAER 
+
             ENDIF
 
             ! Store SAD
@@ -1796,6 +1812,7 @@
      &                   ODAER(I,J,L,IWVSELECT(2,W),N)))
                      ENDIF
                   ENDIF
+
                ENDDO
                ENDDO
                ENDDO
@@ -1816,8 +1833,9 @@
                ! Add aerosol surface areas
                IF ( L <= LD21 ) THEN
                   AD21(I,J,L,IOUT) = AD21(I,J,L,IOUT) +
-     &                                    TAREA(JLOOP,N+NDUST)
+     &                               TAREA(I,J,L,N+NDUST)
                ENDIF
+
             ENDDO
 
          ENDDO
@@ -1858,7 +1876,7 @@
       !TAREA(:,NDUST+NRHAER+2) = 0.d0 !SPA
 
       ! Free pointers
-      NULLIFY( BXHEIGHT )
+      NULLIFY( BXHEIGHT, ERADIUS, TAREA, WERADIUS, WTAREA )
 
       ! Reset first-time flag
       FIRST = .FALSE.

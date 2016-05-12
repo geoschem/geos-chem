@@ -564,8 +564,8 @@
             MONTH      = 0
             YEAR       = 0
             WAVELENGTH = 0
-            CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
-     &                  MONTH,     YEAR,      WAVELENGTH      )
+            CALL RDAER( am_I_Root, Input_Opt, State_Met, State_Chm,
+     &                  RC,        MONTH,     YEAR,      WAVELENGTH )
 
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
             IF ( LSULF ) THEN
@@ -618,8 +618,8 @@
                ! Compute dust OD's & surface areas
                WAVELENGTH = 0
                CALL RDUST_ONLINE
-     &             ( am_I_Root, Input_Opt,  State_Met, 
-     &               SOILDUST,  WAVELENGTH, RC         )
+     &             ( am_I_Root, Input_Opt,  State_Met, State_Chm,
+     &               SOILDUST,  WAVELENGTH, RC )
             ENDIF
 
 #if defined( USE_TIMERS )
@@ -851,8 +851,8 @@
 
                ! Calculate the AOD at the wavelength specified in jv_spec_aod
                WAVELENGTH = 1
-               CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
-     &                     MONTH,     YEAR,      WAVELENGTH      )
+               CALL RDAER( am_I_Root, Input_Opt, State_Met, State_Chm,
+     &                     RC,        MONTH,     YEAR,      WAVELENGTH )
 
                !### Debug
                IF ( LPRT .and. am_I_Root ) THEN 
@@ -870,12 +870,12 @@
                !===============================================================
                IF ( LDUST ) THEN
                   CALL RDUST_ONLINE
-     &               ( am_I_Root, Input_Opt,  State_Met,
-     &                 SOILDUST,  WAVELENGTH, RC         )
+     &               ( am_I_Root, Input_Opt,  State_Met, State_Chm,
+     &                 SOILDUST,  WAVELENGTH, RC )
 #if  !defined( TOMAS )
                ELSE
                   CALL RDUST_OFFLINE
-     &               ( am_I_Root, Input_Opt, State_Met,
+     &               ( am_I_Root, Input_Opt, State_Met,  State_Chm,
      &                 MONTH,     YEAR,      WAVELENGTH, RC )
 #endif
                ENDIF

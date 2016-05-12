@@ -25,7 +25,12 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC  :: ARCHIVE_RXNS_FOR_PF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 5/12/16:
+! This routine does not work with the FlexChem implementation. We need to
+! rewrite this code to get the necessary information from KPP (mps, 5/12/16)
+!      PUBLIC  :: ARCHIVE_RXNS_FOR_PF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       PUBLIC  :: CLEANUP_PLANEFLIGHT
       PUBLIC  :: PLANEFLIGHT
       PUBLIC  :: SETUP_PLANEFLIGHT
@@ -154,7 +159,7 @@
       ! For specifying SMVGEAR rxns to save at each flight point
       INTEGER                        :: NPREAC        
       INTEGER,           ALLOCATABLE :: PREAC(:) 
-      REAL(fp),            ALLOCATABLE :: PRRATE(:,:) 
+      REAL(fp),          ALLOCATABLE :: PRRATE(:,:) 
 
       ! For specifying RO2 constituents at each flight point
       INTEGER                        :: NPRO2
@@ -1231,7 +1236,6 @@
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE PHYSCONSTANTS,      ONLY : CONSVAP
       USE COMODE_LOOP_MOD
-      USE COMODE_MOD,         ONLY : ABSHUM, TAREA
 #if   defined( TOMAS )
       USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
 #endif
@@ -1515,7 +1519,7 @@
                            VPRESH2O = CONSVAP * EXP(CONSEXP) * 1e+0_fp 
      &                              / TK
                            
-                           VARI(V)  = ABSHUM(JLOOP) * 
+                           VARI(V)  = State_Met%ABSHUM(I,J,L) * 
      &                                VPRESH2O      /
      &                                State_Met%AIRNUMDEN(I,J,L)
                         ENDIF
@@ -1530,7 +1534,8 @@
 
                         IF ( JLOOP /= 0 ) THEN
                            DO N = 1, NDUST + NAER
-                              VARI(V) = VARI(V) + TAREA(JLOOP,N)
+                              VARI(V) = VARI(V) +
+     &                                  State_Chm%AeroArea(I,J,L,N)
                            ENDDO
                         ENDIF
 
@@ -1747,16 +1752,22 @@
                   CASE ( 4002 )
                      VARI(V) = OMMFP(I,J,LL) !L+1 sample 4/24/12
 
-                  !--------------------------
-                  ! SMVGEAR reaction rates
-                  !--------------------------
-                  CASE ( 10000:99999 )
-
-                     ! Increment reaction count
-                     R = R + 1
-
-                     ! Only archive where SMVGEAR chem is done 
-                     IF ( JLOOP /= 0 ) VARI(V) = PRRATE(JLOOP,R)
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 5/12/16:
+! This diagnostic does not work with the FlexChem implementation. We need to
+! rewrite ARCHIVE_RXNS_FOR_PF to get the necessary information from KPP
+! (mps, 5/12/16)
+!                  !--------------------------
+!                  ! SMVGEAR reaction rates
+!                  !--------------------------
+!                  CASE ( 10000:99999 )
+!
+!                     ! Increment reaction count
+!                     R = R + 1
+!
+!                     ! Only archive where SMVGEAR chem is done 
+!                     VARI(V) = PRRATE(JLOOP,R)
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                   !--------------------------
                   ! GEOS-CHEM tracers [v/v]
@@ -1848,7 +1859,7 @@
 !
       INTEGER,        INTENT(IN) :: IND         ! # of the flight track point
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2013,143 +2024,148 @@
 
       END SUBROUTINE WRITE_VARS_TO_FILE
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 5/12/16:
+! This routine does not work with the FlexChem implementation. We need to
+! rewrite this code to get the necessary information from KPP (mps, 5/12/16)
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: archive_rxns_for_PF
+!!
+!! !DESCRIPTION: Subroutine ARCHIVE\_RXNS\_FOR\_PF is called from "calcrate.f" 
+!!  to pass reaction rates from the SMVGEAR solver for the planeflight 
+!!  diagnostic. 
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE ARCHIVE_RXNS_FOR_PF( JO1D, N2O5 )
+!!
+!! !USES:
+!!
+!      USE COMODE_MOD, ONLY : IXSAVE
+!      USE COMODE_MOD, ONLY : IYSAVE
+!      USE COMODE_MOD, ONLY : IZSAVE
+!      USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
 !
-! !IROUTINE: archive_rxns_for_PF
+!      USE CMN_SIZE_MOD                     ! Size parameters
+!      USE COMODE_LOOP_MOD                  ! RRATE, JLOOPLO, KBLOOP
+!      USE CMN_DIAG_MOD                     ! ND40 switch
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      REAL(fp), INTENT(IN)  :: JO1D(KBLOOP)  ! JO1D photolysis rate [1/s]
+!      REAL(fp), INTENT(IN)  :: N2O5(KBLOOP)  ! N2O5 hydrolysis rate [molec/cm3/s]
+!! 
+!! !REVISION HISTORY: 
+!!  08 Jul 2002 - M. Evans    - Initial version
+!!  (1 ) Now avoid overflow/underflow errors in PRATE (bmy, 7/8/02)
+!!  (2 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
+!!        allocated memory before stopping the run (bmy, 10/15/02)
+!!  (3 ) Renamed PRATE to PRRATE to avoid conflict w/ SMVGEAR II (bmy, 4/1/03)
+!!  (4 ) Now also pass N2O5 hydrolysis rxn rate array via the arg list.  
+!!        Also bug fix: replace TMP with RATE in under/overflow checking
+!!        for JO1D and N2O5. (bmy, 8/8/03)      
+!!  (5 ) Bug fix: Replace with DO_PF since this variable is reset to either T 
+!!        or F each day depending on whether there is plane flight data 
+!!        available (bmy, 5/20/05)
+!!  29 Jul 2011 - R. Yantosca - Added ProTeX headers
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER            :: KLOOP, JLOOP, V, R, I, J, L 
+!      REAL(fp)             :: RATE
+!!
+!! !DEFINED PARAMETERS:
+!!
+!      ! Smallest, largest REAL*4 #'s representable on this machine
+!      REAL*4, PARAMETER  :: SMALLEST=TINY(1e0), LARGEST=HUGE(1e0)
 !
-! !DESCRIPTION: Subroutine ARCHIVE\_RXNS\_FOR\_PF is called from "calcrate.f" 
-!  to pass reaction rates from the SMVGEAR solver for the planeflight 
-!  diagnostic. 
-!\\
-!\\
-! !INTERFACE:
+!      !=================================================================
+!      ! ARCHIVE_RXNS_FOR_PF begins here!
+!      !=================================================================
+!      IF ( DO_PF ) THEN
 !
-      SUBROUTINE ARCHIVE_RXNS_FOR_PF( JO1D, N2O5 )
+!         ! Loop over SMVGEAR reactions
+!         DO R = 1, NPREAC
 !
-! !USES:
+!            ! Test SMVGEAR rxn number
+!            SELECT CASE ( PREAC(R) ) 
 !
-      USE COMODE_MOD, ONLY : IXSAVE
-      USE COMODE_MOD, ONLY : IYSAVE
-      USE COMODE_MOD, ONLY : IZSAVE
-      USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
-
-      USE CMN_SIZE_MOD                     ! Size parameters
-      USE COMODE_LOOP_MOD                  ! RRATE, JLOOPLO, KBLOOP
-      USE CMN_DIAG_MOD                     ! ND40 switch
+!               !-----------------------
+!               ! All except JO1D, N2O5
+!               !-----------------------
+!               CASE( 10000:19999 )
+!                         
+!                  ! Store rate in PRRATE
+!                  DO KLOOP = 1, KTLOOP
+!                     JLOOP = JLOOPLO + KLOOP
+!                     RATE  = RRATE(KLOOP,PREAC(R)-10000)
 !
-! !INPUT PARAMETERS: 
+!                     ! Avoid overflow/underflow
+!                     IF ( RATE < SMALLEST ) RATE = 0e0
+!                     IF ( RATE > LARGEST  ) RATE = LARGEST
 !
-      REAL(fp), INTENT(IN)  :: JO1D(KBLOOP)  ! JO1D photolysis rate [1/s]
-      REAL(fp), INTENT(IN)  :: N2O5(KBLOOP)  ! N2O5 hydrolysis rate [molec/cm3/s]
-! 
-! !REVISION HISTORY: 
-!  08 Jul 2002 - M. Evans    - Initial version
-!  (1 ) Now avoid overflow/underflow errors in PRATE (bmy, 7/8/02)
-!  (2 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
-!        allocated memory before stopping the run (bmy, 10/15/02)
-!  (3 ) Renamed PRATE to PRRATE to avoid conflict w/ SMVGEAR II (bmy, 4/1/03)
-!  (4 ) Now also pass N2O5 hydrolysis rxn rate array via the arg list.  
-!        Also bug fix: replace TMP with RATE in under/overflow checking
-!        for JO1D and N2O5. (bmy, 8/8/03)      
-!  (5 ) Bug fix: Replace with DO_PF since this variable is reset to either T 
-!        or F each day depending on whether there is plane flight data 
-!        available (bmy, 5/20/05)
-!  29 Jul 2011 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!                     PRRATE(JLOOP,R) = RATE
+!                  ENDDO
 !
-! !LOCAL VARIABLES:
+!               !-----------------------
+!               ! JO1D photolysis rxn 
+!               !-----------------------
+!               CASE ( 20000 )
 !
-      INTEGER            :: KLOOP, JLOOP, V, R, I, J, L 
-      REAL(fp)             :: RATE
+!                  ! Store rate in PRATE
+!                  DO KLOOP = 1, KTLOOP
+!                     JLOOP = JLOOPLO + KLOOP
+!                     RATE  = JO1D(KLOOP)
 !
-! !DEFINED PARAMETERS:
+!                     ! Avoid overflow/underflow
+!                     IF ( RATE < SMALLEST ) RATE = 0e0
+!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
 !
-      ! Smallest, largest REAL*4 #'s representable on this machine
-      REAL*4, PARAMETER  :: SMALLEST=TINY(1e0), LARGEST=HUGE(1e0)
-
-      !=================================================================
-      ! ARCHIVE_RXNS_FOR_PF begins here!
-      !=================================================================
-      IF ( DO_PF ) THEN
-
-         ! Loop over SMVGEAR reactions
-         DO R = 1, NPREAC
-
-            ! Test SMVGEAR rxn number
-            SELECT CASE ( PREAC(R) ) 
-
-               !-----------------------
-               ! All except JO1D, N2O5
-               !-----------------------
-               CASE( 10000:19999 )
-                         
-                  ! Store rate in PRRATE
-                  DO KLOOP = 1, KTLOOP
-                     JLOOP = JLOOPLO + KLOOP
-                     RATE  = RRATE(KLOOP,PREAC(R)-10000)
-
-                     ! Avoid overflow/underflow
-                     IF ( RATE < SMALLEST ) RATE = 0e0
-                     IF ( RATE > LARGEST  ) RATE = LARGEST
-
-                     PRRATE(JLOOP,R) = RATE
-                  ENDDO
-
-               !-----------------------
-               ! JO1D photolysis rxn 
-               !-----------------------
-               CASE ( 20000 )
-
-                  ! Store rate in PRATE
-                  DO KLOOP = 1, KTLOOP
-                     JLOOP = JLOOPLO + KLOOP
-                     RATE  = JO1D(KLOOP)
-
-                     ! Avoid overflow/underflow
-                     IF ( RATE < SMALLEST ) RATE = 0e0
-                     IF ( RATE > LARGEST  ) RATE = LARGEST 
-
-                     PRRATE(JLOOP,R) = RATE
-                  ENDDO
-                 
-               !-----------------------
-               ! N2O5 hydrolysis rxn
-               !-----------------------
-               CASE ( 21000 ) 
-
-                  ! Store rate in PRATE
-                  DO KLOOP = 1, KTLOOP
-                     JLOOP = JLOOPLO + KLOOP
-                     RATE  = N2O5(KLOOP)
-
-                     ! Avoid overflow/underflow
-                     IF ( RATE < SMALLEST ) RATE = 0e0
-                     IF ( RATE > LARGEST  ) RATE = LARGEST 
-
-                     PRRATE(JLOOP,R) = RATE
-                  ENDDO
-
-               !-----------------------
-               ! Error: invalid rxn
-               !-----------------------
-               CASE DEFAULT
-                  WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-                  WRITE( 6, '(a)' ) 'ERROR -- Invalid SMVGEAR rxn #!'
-                  WRITE( 6, '(a)' ) 'STOP in ARCHIVE_RXNS_FOR_PF!'
-                  WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-                  CALL GEOS_CHEM_STOP
-
-            END SELECT
-         ENDDO
-      ENDIF
-
-      END SUBROUTINE ARCHIVE_RXNS_FOR_PF
-!EOC
+!                     PRRATE(JLOOP,R) = RATE
+!                  ENDDO
+!                 
+!               !-----------------------
+!               ! N2O5 hydrolysis rxn
+!               !-----------------------
+!               CASE ( 21000 ) 
+!
+!                  ! Store rate in PRATE
+!                  DO KLOOP = 1, KTLOOP
+!                     JLOOP = JLOOPLO + KLOOP
+!                     RATE  = N2O5(KLOOP)
+!
+!                     ! Avoid overflow/underflow
+!                     IF ( RATE < SMALLEST ) RATE = 0e0
+!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
+!
+!                     PRRATE(JLOOP,R) = RATE
+!                  ENDDO
+!
+!               !-----------------------
+!               ! Error: invalid rxn
+!               !-----------------------
+!               CASE DEFAULT
+!                  WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!                  WRITE( 6, '(a)' ) 'ERROR -- Invalid SMVGEAR rxn #!'
+!                  WRITE( 6, '(a)' ) 'STOP in ARCHIVE_RXNS_FOR_PF!'
+!                  WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!                  CALL GEOS_CHEM_STOP
+!
+!            END SELECT
+!         ENDDO
+!      ENDIF
+!
+!      END SUBROUTINE ARCHIVE_RXNS_FOR_PF
+!!EOC
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

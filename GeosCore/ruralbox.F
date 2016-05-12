@@ -18,7 +18,6 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE COMODE_MOD,         ONLY : ABSHUM
       USE COMODE_MOD,         ONLY : IXSAVE, IYSAVE
       USE COMODE_MOD,         ONLY : IZSAVE, JLOP
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -212,8 +211,8 @@
 
             ! Get relative humidity (here is absolute #H2O/cc air)
             ! AVGW is the mixing ratio of water vapor [v/v]
-            ABSHUM(JLOOP)  = State_Met%AVGW(I,J,L) *
-     &                       State_Met%AIRNUMDEN(I,J,L)
+            State_Met%ABSHUM(I,J,L) = State_Met%AVGW(I,J,L) *
+     &                                State_Met%AIRNUMDEN(I,J,L)
 
             ! Go to next I
  40         CONTINUE           

@@ -6803,6 +6803,9 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 !  12 Aug 2015 - E. Lundgren - Now pass am_I_Root and RC for internal tracer 
 !                              unit conversion to [kg] if needed
 !  22 Sep 2015 - E. Lundgren - Use UNITCONV flag to determine 2nd unit conv
+!  12 May 2016 - M. Sulprizio- Remove IJLOOP and changed DIA and DENSITY
+!                              array dimensions from (MAXIJ,IBINS) to
+!                              (IIPAR,JJPAR,IBINS)
 !******************************************************************************
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -6824,12 +6827,12 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       TYPE(OptInput),    INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState),    INTENT(IN)    :: State_Met   ! Meteorology State object
       TYPE(ChmState),    INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      REAL(fp),          INTENT(OUT)   :: DIA(MAXIJ, IBINS)
-      REAL(fp),          INTENT(OUT)   :: DENSITY(MAXIJ, IBINS)
+      REAL(fp),          INTENT(OUT)   :: DIA(IIPAR,JJPAR,IBINS)
+      REAL(fp),          INTENT(OUT)   :: DENSITY(IIPAR,JJPAR,IBINS)
       INTEGER,           INTENT(OUT)   :: RC          ! Success or failure?
 
       ! Local variables
-      INTEGER           :: I,J, BIN, JC, IJLOOP, TRACID, WID
+      INTEGER           :: I,J, BIN, JC, TRACID, WID
 !      REAL(fp), EXTERNAL  :: AERODENS 
       REAL(fp)            :: AMASS(ICOMP)
       REAL(fp)            :: MSO4, MNACL, MH2O
@@ -6899,23 +6902,20 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( MECIL, MECOB, MOCIL, MOCOB, MDUST )
-!$OMP+PRIVATE( BIN, IJLOOP, I, J, TRACID, WID, MH2O, MSO4, MNACL )
+!$OMP+PRIVATE( BIN, I, J, TRACID, WID, MH2O, MSO4, MNACL )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO IJLOOP = 1, MAXIJ
+      DO L = 1, LLPAR
+      DO I = 1, IIPAR
       DO BIN = 1, IBINS
-
-         ! Calculate the I and J-index from IJLOOP index
-         I = MOD( IJLOOP, IIPAR )
-         IF ( I==0 ) I = 72
-         J = ( ( IJLOOP - I ) / IIPAR ) + 1
 
          TRACID = IDTNK1 + BIN - 1
 c         print *,"TRACID=",TRACID,"IDTNK1=",IDTNK1, "BIN=", BIN
          WID    = IDTNK1 + (ICOMP - 1)*IBINS - 1 + BIN  !(fixed WID to 281-310. dmw 10/3/09)
 c         print *, "wid=", WID, "ICOMP=", ICOMP, "IBINS=", IBINS
+
          ! Get the diameter from an external function
-         DIA(IJLOOP,BIN) = GETDP( I,      J,         LEV, 
-     &                            TRACID, State_Met, State_Chm, RC )
+         DIA(I,J,BIN) = GETDP( I,      J,         LEV, 
+     &                         TRACID, State_Met, State_Chm, RC )
          
          ! Prepare the mass mixing ratio to call external function 
          ! for density
@@ -6936,9 +6936,9 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
         IF ( IDTDUST1 > 0 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
         ! Get density from external function
-         DENSITY(IJLOOP,BIN) = AERODENS(MSO4,0.e+0_fp,1.875e-1_fp*MSO4, 
-     &                                   MNACL, MECIL, MECOB, 
-     &                                   MOCIL, MOCOB, MDUST, MH2O  )
+         DENSITY(I,J,BIN) = AERODENS(MSO4,0.e+0_fp,1.875e-1_fp*MSO4, 
+     &                               MNACL, MECIL, MECOB, 
+     &                               MOCIL, MOCOB, MDUST, MH2O  )
 
       ENDDO
       ENDDO

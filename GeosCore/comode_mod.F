@@ -41,14 +41,15 @@
       ! TAREA     : array for surface area of aerosol or dust [cm2/cm3]
       ! VOLUME    : array for grid box volume [cm3]
       !======================================================================
-      REAL(fp), ALLOCATABLE, PUBLIC :: ABSHUM(:)
+!------------------------------------------------------------------------------
+! Prior to 5/12/16:
+!      REAL(fp), ALLOCATABLE, PUBLIC :: ABSHUM(:)
 !------------------------------------------------------------------------------
 ! Prior to 12/22/15:
 !      REAL(fp), ALLOCATABLE, PUBLIC :: CSPEC(:,:)
 !------------------------------------------------------------------------------
       REAL(fp), ALLOCATABLE, PUBLIC :: CSUMA(:)
       REAL(fp), ALLOCATABLE, PUBLIC :: CSUMC(:)
-      REAL(fp), ALLOCATABLE, PUBLIC :: ERADIUS(:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: ERRMX2(:)
       INTEGER,  ALLOCATABLE, PUBLIC :: IXSAVE(:)
       INTEGER,  ALLOCATABLE, PUBLIC :: IYSAVE(:)
@@ -58,9 +59,12 @@
       INTEGER,  ALLOCATABLE, PUBLIC :: JLOP_PREVIOUS(:,:,:)
 #endif
       REAL(fp), ALLOCATABLE, PUBLIC :: REMIS(:,:)
-      REAL(fp), ALLOCATABLE, PUBLIC :: TAREA(:,:)
-      REAL(fp), ALLOCATABLE, PUBLIC :: WTAREA(:,:)
-      REAL(fp), ALLOCATABLE, PUBLIC :: WERADIUS(:,:)
+!------------------------------------------------------------------------------
+! Prior to 5/11/16:
+!      REAL(fp), ALLOCATABLE, PUBLIC :: ERADIUS(:,:)
+!      REAL(fp), ALLOCATABLE, PUBLIC :: TAREA(:,:)
+!      REAL(fp), ALLOCATABLE, PUBLIC :: WTAREA(:,:)
+!      REAL(fp), ALLOCATABLE, PUBLIC :: WERADIUS(:,:)
 !------------------------------------------------------------------------------
 ! Prior to 12/21/15:
 ! Get these fields directly from State_Met and State_Chm instead (mps, 12/21/15)
@@ -107,6 +111,10 @@
 !                              fields directly from State_Met instead.
 !  22 Dec 2015 - M. Sulprizio- Remove CSPEC array. This is now replaced by
 !                              State_Chm%Species.
+!  12 May 2016 - M. Sulprizio- Remove ABSHUM. This field is now stored as 3D
+!                              array State_Met%ABSHUM
+!  12 May 2016 - M. Sulprizio- Remove ERADIUS, TAREA, WERADIUS, WTAREA. These
+!                              fields are now stored as 3D arrays in State_Chm.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -185,10 +193,11 @@
       !----------------------------------
       IF ( IT_IS_A_FULLCHEM_SIM ) THEN
       
-         ALLOCATE( ABSHUM( ITLOOP ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ABSHUM' )
-         ABSHUM = 0e+0_fp
-      
+!------------------------------------------------------------------------------
+! Prior to 5/12/16:
+!         ALLOCATE( ABSHUM( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ABSHUM' )
+!         ABSHUM = 0e+0_fp      
 !------------------------------------------------------------------------------
 ! Prior to 12/21/15:
 !         ALLOCATE( AIRDENS( ITLOOP ), STAT=AS )
@@ -209,9 +218,12 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMC' )
          CSUMC = 0e+0_fp
 
-         ALLOCATE( ERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERADIUS' )
-         ERADIUS = 0e+0_fp      
+!------------------------------------------------------------------------------
+! Prior to 5/12/16:
+!         ALLOCATE( ERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERADIUS' )
+!         ERADIUS = 0e+0_fp      
+!------------------------------------------------------------------------------
 
          ALLOCATE( ERRMX2( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERRMX2' )
@@ -257,25 +269,25 @@
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'T3' )
 !         T3 = 0e+0_fp
 !------------------------------------------------------------------------------
-
-         ALLOCATE( TAREA( ITLOOP, NDUST+NAER ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAREA' )
-         TAREA = 0e+0_fp      
-      
+! Prior to 5/12/16:
+!         ALLOCATE( TAREA( ITLOOP, NDUST+NAER ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAREA' )
+!         TAREA = 0e+0_fp      
 !------------------------------------------------------------------------------
 ! Prior to 12/21/15:
 !         ALLOCATE( VOLUME( ITLOOP ), STAT=AS )
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'VOLUME' )
 !         VOLUME = 0e+0_fp
 !------------------------------------------------------------------------------
-
-         ALLOCATE( WTAREA( ITLOOP, NDUST+NAER ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'WTAREA' )
-         WTAREA = 0e+0_fp      
-
-         ALLOCATE( WERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'WERADIUS' )
-         WERADIUS = 0e+0_fp      
+! Prior to 5/12/16:
+!         ALLOCATE( WTAREA( ITLOOP, NDUST+NAER ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'WTAREA' )
+!         WTAREA = 0e+0_fp      
+!
+!         ALLOCATE( WERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'WERADIUS' )
+!         WERADIUS = 0e+0_fp      
+!------------------------------------------------------------------------------
 
       ENDIF
 
@@ -284,20 +296,22 @@
       !----------------------------------
       IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
-         ALLOCATE( ABSHUM( ITLOOP ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ABSHUM' )
-         ABSHUM = 0e+0_fp
-      
+!------------------------------------------------------------------------------
+! Prior to 5/12/16:
+!         ALLOCATE( ABSHUM( ITLOOP ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ABSHUM' )
+!         ABSHUM = 0e+0_fp
 !------------------------------------------------------------------------------
 ! Prior to 12/21/15:
 !         ALLOCATE( AIRDENS( ITLOOP ), STAT=AS )
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDENS' )
 !         AIRDENS = 0e+0_fp      
 !------------------------------------------------------------------------------
-
-         ALLOCATE( ERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERADIUS' )
-         ERADIUS = 0e+0_fp      
+! Prior to 5/12/16:
+!         ALLOCATE( ERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERADIUS' )
+!         ERADIUS = 0e+0_fp      
+!------------------------------------------------------------------------------
 
          ALLOCATE( IXSAVE( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'IXSAVE' )
@@ -322,17 +336,20 @@
          JLOP_PREVIOUS = 0
 #endif
 
-         ALLOCATE( TAREA( ITLOOP, NDUST+NAER ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAREA' )
-         TAREA = 0e+0_fp      
-
-         ALLOCATE( WTAREA( ITLOOP, NDUST+NAER ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'WTAREA' )
-         WTAREA = 0e+0_fp
-
-         ALLOCATE( WERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'WERADIUS' )
-         WERADIUS = 0e+0_fp      
+!------------------------------------------------------------------------------
+! Prior to 5/12/16:
+!         ALLOCATE( TAREA( ITLOOP, NDUST+NAER ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAREA' )
+!         TAREA = 0e+0_fp      
+!
+!         ALLOCATE( WTAREA( ITLOOP, NDUST+NAER ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'WTAREA' )
+!         WTAREA = 0e+0_fp
+!
+!         ALLOCATE( WERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'WERADIUS' )
+!         WERADIUS = 0e+0_fp      
+!------------------------------------------------------------------------------
          
       ENDIF
 
@@ -365,14 +382,15 @@
       !=================================================================
       ! CLEANUP_COMODE begins here!
       !=================================================================
-      IF ( ALLOCATED( ABSHUM        ) ) DEALLOCATE( ABSHUM        )
+!------------------------------------------------------------------------------
+! Prior to 5/12/16:
+!      IF ( ALLOCATED( ABSHUM        ) ) DEALLOCATE( ABSHUM        )
 !------------------------------------------------------------------------------
 ! Prior to 12/22/15:
 !      IF ( ALLOCATED( CSPEC         ) ) DEALLOCATE( CSPEC         )
 !------------------------------------------------------------------------------
       IF ( ALLOCATED( CSUMA         ) ) DEALLOCATE( CSUMA         )
       IF ( ALLOCATED( CSUMC         ) ) DEALLOCATE( CSUMC         )
-      IF ( ALLOCATED( ERADIUS       ) ) DEALLOCATE( ERADIUS       )
       IF ( ALLOCATED( ERRMX2        ) ) DEALLOCATE( ERRMX2        )
       IF ( ALLOCATED( IXSAVE        ) ) DEALLOCATE( IXSAVE        )
       IF ( ALLOCATED( IYSAVE        ) ) DEALLOCATE( IYSAVE        )
@@ -382,9 +400,12 @@
       IF ( ALLOCATED( JLOP_PREVIOUS ) ) DEALLOCATE( JLOP_PREVIOUS )
 #endif
       IF ( ALLOCATED( REMIS         ) ) DEALLOCATE( REMIS         )
-      IF ( ALLOCATED( TAREA         ) ) DEALLOCATE( TAREA         )
-      IF ( ALLOCATED( WTAREA        ) ) DEALLOCATE( WTAREA        )
-      IF ( ALLOCATED( WERADIUS      ) ) DEALLOCATE( WERADIUS      )
+!------------------------------------------------------------------------------
+! Prior to 5/11/16:
+!      IF ( ALLOCATED( ERADIUS       ) ) DEALLOCATE( ERADIUS       )
+!      IF ( ALLOCATED( TAREA         ) ) DEALLOCATE( TAREA         )
+!      IF ( ALLOCATED( WTAREA        ) ) DEALLOCATE( WTAREA        )
+!      IF ( ALLOCATED( WERADIUS      ) ) DEALLOCATE( WERADIUS      )
 !------------------------------------------------------------------------------
 ! Prior to 12/21/15:
 !      IF ( ALLOCATED( AIRDENS       ) ) DEALLOCATE( AIRDENS       )

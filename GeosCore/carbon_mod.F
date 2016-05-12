@@ -1265,8 +1265,6 @@
       USE CMN_DIAG_MOD
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : WTAREA, WERADIUS 
-      USE COMODE_MOD,         ONLY : JLOP
       USE COMODE_LOOP_MOD
       USE DIAG_MOD,           ONLY : AD07_SOAGM
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -1301,13 +1299,16 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met
+!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOP. WERADIUS,
+!                              WTAREA are now pointers that point to 3D fields
+!                              in State_Chm.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: I, J, L, JLOOP, N
+      INTEGER  :: I, J, L, N
       REAL(fp) :: XTEMP       ! Temperature [K]
       REAL(fp) :: XSQTEMP     ! SQRT of Temperature
       REAL(fp) :: XAD         ! Air density [molec/cm3]
@@ -1336,9 +1337,9 @@
       REAL(fp) :: CRITRH      ! Critical RH [%], above which 
                               !  heteorogeneous chem takes place
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: WERADIUS(:,:,:,:)
+      REAL(fp), POINTER :: WTAREA(:,:,:,:)
 
       !=================================================================
       ! SOAG_LIGGIO_DIFF begins here!
@@ -1347,9 +1348,10 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Initialize pointers
+      STT      => State_Chm%Tracers     ! GEOS-Chem tracer array [kg]
+      WERADIUS => State_Chm%WetAeroRadi ! Wet Aerosol Radius [cm]
+      WTAREA   => State_Chm%WetAeroArea ! Wet Aerosol Area [cm2/cm3]
 
       ! Get chemistry time step
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
@@ -1373,12 +1375,6 @@
       DO L = 1, LLCHEM
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
-            ! Get 1-D index
-            JLOOP   = JLOP( I, J, L )
-
-            ! JLOP equal 0 if we're not in the tropopause. (ccc,10/16/09)
-            IF ( JLOOP == 0 ) CYCLE
 
             ! Get RH  
             XRH     = State_Met%RH( I, J, L )   ![%]
@@ -1426,12 +1422,12 @@
                   !  archived in 'aerosol_mod.f.glyx'
                   !  XWAREA [ cm^2 wet sfc area of aerosol cm^-3 air ]
                   !---------------------------------------
-                  XWAREA  = WTAREA( JLOOP, N) 
+                  XWAREA  = WTAREA( I, J, L, N ) 
 
                   IF ( XWAREA > 0e+0_fp ) THEN 
 
                      ! Get particle radius [cm]
-                     XRADIUS = WERADIUS( JLOOP, N )   
+                     XRADIUS = WERADIUS( I, J, L, N )   
 
                      !---------------------------------------
                      ! First order rate constant
@@ -1481,7 +1477,7 @@
       ENDDO
 
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( STT, WERADIUS, WTAREA )
 
       END SUBROUTINE SOAG_LIGGIO_DIFF
 !EOC
@@ -1507,8 +1503,6 @@
       USE CMN_DIAG_MOD
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
-      USE COMODE_MOD,         ONLY : JLOP
       USE COMODE_LOOP_MOD
       USE DIAG_MOD,           ONLY : AD07_SOAGM
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -1544,13 +1538,16 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met
+!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOP. WERADIUS,
+!                              WTAREA are now pointers that point to 3D fields
+!                              in State_Chm.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: I, J, L, JLOOP, N
+      INTEGER  :: I, J, L, N
       REAL(fp) :: XTEMP       ! Temperature [K]
       REAL(fp) :: XSQTEMP     ! SQRT of Temperature
       REAL(fp) :: XAD         ! Air density [molec/cm3]
@@ -1580,9 +1577,9 @@
                               !  heteorogeneous chem takes place
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)      ! GEOS-Chem tracer array [kg]
+      REAL(fp), POINTER :: WERADIUS(:,:,:,:) ! Wet Aerosol Radius [cm]
+      REAL(fp), POINTER :: WTAREA(:,:,:,:)   ! Wet Aerosol Area [cm2/cm3]
 
       !=================================================================
       ! SOAG_LIGGIO_DIFF begins here!
@@ -1591,9 +1588,10 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Initialize pointers
+      STT      => State_Chm%Tracers     ! GEOS-Chem tracer array [kg]
+      WERADIUS => State_Chm%WetAeroRadi ! Aerosol Radius [cm]
+      WTAREA   => State_Chm%WetAeroArea ! Wet Aerosol Area [cm2/cm3]
 
       ! Get chemistry time step
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
@@ -1617,12 +1615,6 @@
       DO L = 1, LLCHEM
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
-            ! Get 1-D index
-            JLOOP   = JLOP( I, J, L )
-
-            ! JLOP equal 0 if we're not in the tropopause. (ccc,10/16/09)
-            IF ( JLOOP == 0 ) CYCLE
 
             ! Get RH  
             XRH     = State_Met%RH( I, J, L )   ![%]
@@ -1670,12 +1662,12 @@
                   !  archived in 'aerosol_mod.f.glyx'
                   !  XWAREA [ cm^2 wet sfc area of aerosol cm^-3 air ]
                   !---------------------------------------
-                  XWAREA  = WTAREA( JLOOP, N) 
+                  XWAREA  = WTAREA( I, J, L, N) 
 
                   IF ( XWAREA > 0e+0_fp ) THEN 
 
                      ! Get particle radius [cm]
-                     XRADIUS = WERADIUS( JLOOP, N )   
+                     XRADIUS = WERADIUS( I, J, L, N )   
 
                      !---------------------------------------
                      ! First order rate constant
@@ -1725,7 +1717,7 @@
       ENDDO
 
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( STT, WERADIUS, WTAREA )
 
       END SUBROUTINE SOAM_LIGGIO_DIFF
 !EOC

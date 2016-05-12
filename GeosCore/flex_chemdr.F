@@ -17,7 +17,6 @@
 ! !USES:
 !
       USE AEROSOL_MOD,          ONLY : SOILDUST, AEROSOL_CONC, RDAER
-      USE COMODE_MOD,           ONLY : JLOP, TAREA, ERADIUS ! <--!!
       USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_CHEMGRID
       USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_FJX_MOD
@@ -300,8 +299,8 @@
 
       ! Call RDAER to compute AOD for FAST-JX (skim, 02/03/11)
       WAVELENGTH = 0
-      CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
-     &            MONTH,     YEAR,      WAVELENGTH      )
+      CALL RDAER( am_I_Root, Input_Opt, State_Met,  State_Chm,
+     &            RC,        MONTH,     YEAR,       WAVELENGTH )
 
       !### Debug
       IF ( prtDebug ) THEN 
@@ -318,14 +317,14 @@
       ! (rjp, tdf, bmy, 4/1/04)
       !=================================================================
       IF ( LDUST ) THEN
-         CALL RDUST_ONLINE( am_I_Root, Input_Opt,  State_Met,
-     &                      SOILDUST,  WAVELENGTH, RC         )
+         CALL RDUST_ONLINE( am_I_Root, Input_Opt,  State_Met, State_Chm,
+     &                      SOILDUST,  WAVELENGTH, RC )
       ELSE
 #if !defined( TOMAS )
          ! Don't read dust emissions from disk when using TOMAS,
          ! because TOMAS uses a different set of dust tracers than the 
          ! std code (win, bmy, 1/25/10)
-         CALL RDUST_OFFLINE( am_I_Root, Input_Opt, State_Met,
+         CALL RDUST_OFFLINE( am_I_Root, Input_Opt, State_Met, State_Chm,
      &                       MONTH,     YEAR,      WAVELENGTH, RC )
 #endif
       ENDIF
@@ -335,30 +334,34 @@
          CALL DEBUG_MSG( '### FLEX_CHEMDR: after RDUST' )
       ENDIF
 
-      !=================================================================
-      ! Copy aerosol areas into State_Chm
-      !  -- Should be moved to AerosolMod once JLOOP is gone
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, JLOOP )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Get 1-D index
-         JLOOP = JLOP(I,J,L)
-
-         ! If this is a valid grid box
-         IF ( JLOOP > 0 ) THEN
-            State_Chm%AeroArea(I,J,L,:) = TAREA(JLOOP,:)
-            State_Chm%AeroRadi(I,J,L,:) = ERADIUS(JLOOP,:)
-         ENDIF
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+!------------------------------------------------------------------------------
+! Prior to 5/11/16:
+! These are now put directly into State_Chm in aerosol_mod.F (mps, 5/11/16)
+!     !=================================================================
+!     ! Copy aerosol areas into State_Chm
+!     !  -- Should be moved to AerosolMod once JLOOP is gone
+!     !=================================================================
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, JLOOP )
+!     DO L = 1, LLPAR
+!     DO J = 1, JJPAR
+!     DO I = 1, IIPAR
+!
+!        ! Get 1-D index
+!        JLOOP = JLOP(I,J,L)
+!
+!        ! If this is a valid grid box
+!        IF ( JLOOP > 0 ) THEN
+!           State_Chm%AeroArea(I,J,L,:) = TAREA(JLOOP,:)
+!           State_Chm%AeroRadi(I,J,L,:) = ERADIUS(JLOOP,:)
+!        ENDIF
+!
+!     ENDDO
+!     ENDDO
+!     ENDDO
+!!$OMP END PARALLEL DO
+!------------------------------------------------------------------------------
 
       !=================================================================
       ! Loop over tracers and grid boxes
