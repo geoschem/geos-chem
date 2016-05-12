@@ -249,6 +249,7 @@ endif
 
 lib:                                               # Build all G-C libraries
 	@$(MAKE) libnc
+	@$(MAKE) kppfirstpass
 	@$(MAKE) libheaders         		  
 	@$(MAKE) libutil 
 	@$(MAKE) libkpp
@@ -279,6 +280,9 @@ endif
 
 libkpp:                                            # Build code in KPP/
 	@$(MAKE) -C $(KPP)			  
+
+kppfirstpass:                                      # Compile some KPP code 1st
+	@$(MAKE) -C $(KPP) firstpass
 
 libnc:                                             # Build code in NcdfUtil/
 	@$(MAKE) -C $(NCDF) libnc

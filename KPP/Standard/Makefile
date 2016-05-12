@@ -44,41 +44,55 @@
 #  23 Nov 2009 - R. Yantosca - Now don't copy module files; they will be
 #                              automatically written to the mod directory
 #  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
+#  12 May 2016 - R. Yantosca - Added "firstpass" target to compile Precision,
+#                              Parameters, and Monitor modules first
+#  12 May 2016 - R. Yantosca - Updated comments and cosmetic changes
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
+###############################################################################
+###                                                                         ###
+###  Initialization section                                                 ###
+###                                                                         ###
+###############################################################################
+
 # Define variables
-ROOTDIR = ../..
-HDR     = $(ROOTDIR)/Headers
-HELP    = $(ROOTDIR)/help
-LIB     = $(ROOTDIR)/lib
-MOD     = $(ROOTDIR)/mod
+ROOTDIR  :=../..
+HDR      :=$(ROOTDIR)/Headers
+HELP     :=$(ROOTDIR)/help
+LIB      :=$(ROOTDIR)/lib
+MOD      :=$(ROOTDIR)/mod
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOTDIR)/Makefile_header.mk
 
-#=============================================================================
-# List of files to compile.  Here the order is not important,
-# as we will explicity define the dependencies listing below.
-#=============================================================================
-
 # Source code files
-SRC  = $(wildcard gckpp*.F90)
+SRC      :=$(wildcard gckpp*.F90)
 
 # Object files
-OBJ  = $(SRC:.F90=.o)
+OBJ      :=$(SRC:.F90=.o)
 
-#=============================================================================
-# Makefile targets: type "make help" for a complete listing!
-#=============================================================================
+# Object files for first compilation pass.  These only contain parameters 
+# that are needed for species database initialization. (bmy, 5/13/16)
+OBJfirst :=gckpp_Precision.o gckpp_Parameters.o gckpp_Monitor.o
+
+###############################################################################
+###                                                                         ###
+###  Makefile targets: type "make help" for a complete listing!             ###
+###                                                                         ###
+###############################################################################
 
 .PHONY: clean help
+
+all: lib
 
 lib: $(OBJ)
 	$(AR) crs libKpp.a $(OBJ)
 	mv libKpp.a $(LIB)
+
+firstpass: $(OBJfirst)
 
 clean:
 	rm -f *.o *.mod geos
@@ -86,12 +100,23 @@ clean:
 help:
 	@$(MAKE) -C $(HELP)
 
-#=============================================================================
-# Dependencies listing (grep "USE " to get the list of module references!)
-#
-# From this list of dependencies, the "make" utility will figure out the
-# correct order of compilation (so we don't have to do that ourselves!)
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Dependencies listing                                                   ###
+###  (grep "USE " to get the list of module references!)                    ###
+###                                                                         ###
+###  From this list of dependencies, the "make" utility will figure out     ###
+###  correct order of compilation (so we don't have to do that ourselves).  ###
+###  This also allows us to compile on multiple processors with "make -j".  ###
+###                                                                         ###
+###  NOTES:                                                                 ###
+###  (1) Only specify object-file dependencies that are within this         ###
+###       directory.  Object files in other directories will be referenced  ### 
+###       at link-time.                                                     ###
+###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
+###       in this directory must have a listed dependency.                  ###
+###                                                                         ###
+###############################################################################
 
 gckpp_Function.o      : gckpp_Parameters.o
 
@@ -134,26 +159,20 @@ gckpp_Model.o         : gckpp_Precision.o       \
                         gckpp_Monitor.o         \
                         gckpp_Util.o            \
                         gckpp_LinearAlgebra.o   \
-#                        gckpp_Stoichiom.o       
+
+gckpp_Monitor.o       : gckpp_Monitor.F90
 
 gckpp_Parameters.o    : gckpp_Parameters.F90    \
 	                gckpp_Precision.o
 
-#gckpp_Rates.o         : gckpp_Parameters.o      \
-#                        gckpp_Global.o          \
-#                        gckpp_Monitor.o         \
-#                        gckpp_comode_mod.o
+gckpp_Precision.o     : gckpp_Precision.F90
 
 gckpp_Rates.o         : gckpp_Parameters.o      \
                         gckpp_Global.o          \
                         gckpp_Monitor.o         \
 			gckpp_HetRates.o 
 
-#gckpp_Stoichiom.o     : gckpp_Parameters.o      \
-                        gckpp_StoichiomSP.o
-
 gckpp_Util.o          : gckpp_Parameters.o      \
                         gckpp_Global.o          \
                         gckpp_Monitor.o
-
 #EOC
