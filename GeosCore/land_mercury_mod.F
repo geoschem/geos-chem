@@ -533,7 +533,7 @@
 ! !LOCAL VARIABLES:
 !     
       LOGICAL             :: IS_SNOWFREE_LAND 
-      INTEGER             :: I, J, JLOOP
+      INTEGER             :: I, J
       REAL(fp)            :: SOIL_EMIS, DIMLIGHT, TAUZ, LIGHTFRAC
       REAL(fp)            :: AREA_M2, DRYSOIL_HG
       REAL(fp)            :: SUNCOSVALUE
@@ -742,7 +742,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER       :: I, J, NN, JLOOP, MONTH
+      INTEGER       :: I, J, NN, MONTH
       LOGICAL, SAVE :: FIRSTTIME = .TRUE.
       REAL(fp)      :: DTSRCE, SNOW_HG_OC_NEW, K_EMIT, SWRAD
       REAL(fp)      :: SNOW_HG_LN_NEW, FLUX_TMP
@@ -782,7 +782,7 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, NN )
-!$OMP+PRIVATE( SNOW_HG_OC_NEW, JLOOP, K_EMIT, SWRAD, SNOW_HG_LN_NEW )
+!$OMP+PRIVATE( SNOW_HG_OC_NEW, K_EMIT, SWRAD, SNOW_HG_LN_NEW )
 !$OMP+PRIVATE( FLUX_TMP )
       DO J  = 1, JJPAR
       DO I  = 1, IIPAR

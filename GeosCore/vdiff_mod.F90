@@ -1939,7 +1939,7 @@ contains
 !
 ! !LOCAL VARIABLES:
 !
-    integer :: I, J, L, JLOOP, N, NN, D, trc_id
+    integer :: I, J, L, N, NN, D, trc_id
 
 !    REAL(fp)                :: SNOW_HT !cdh - obsolete
     REAL(fp)                :: FRAC_NO_HG0_DEP !jaf 

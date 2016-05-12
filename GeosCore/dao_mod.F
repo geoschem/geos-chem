@@ -1836,7 +1836,7 @@
 !
 ! !LOCAL VARIABLES:
 !      
-      INTEGER              :: I,        IJLOOP,   J
+      INTEGER              :: I,        J
       INTEGER              :: MINUTE,   TS_SUN,   FACTOR
       REAL(fp)             :: TIMLOC,   DEC,      C_DEC
       REAL(fp)             :: S_DEC,    R,        YMID_R

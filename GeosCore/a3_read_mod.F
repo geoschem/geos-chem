@@ -23,9 +23,6 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-#if defined( BPCH_DIAG )
-      PUBLIC  :: ARCHIVE_ND67_1D
-#endif 
       PUBLIC  :: GET_A3_FIELDS
       PUBLIC  :: OPEN_A3_FIELDS
       PUBLIC  :: UNZIP_A3_FIELDS
@@ -66,6 +63,8 @@
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  05 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  12 May 2016 - M. Sulprizio- Remove routine ARCHIVE_ND67_1D. It is obsolete
+!                              and it not called from any other routine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1572,63 +1571,6 @@
 
       END SUBROUTINE READ_A3
 !EOC
-#if defined( BPCH_DIAG )
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: archive_nd67_1d
-!
-! !DESCRIPTION: Subroutine ARCHIVE\_ND67\_1D saves 1-D arrays for the ND67 
-!  diagnostic.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE ARCHIVE_ND67_1D( FIELD, N )
-!
-! !USES:
-!
-      USE DIAG_MOD, ONLY : AD67             ! ND67 diagnostic array
-
-      USE CMN_SIZE_MOD                      ! Size parameters
-!
-! !INPUT PARAMETERS: 
-!
-      REAL*8,  INTENT(IN) :: FIELD(MAXIJ)   ! Array to be archived in ND67
-      INTEGER, INTENT(IN) :: N              ! ND67 index in which to store data
-! 
-! !REVISION HISTORY: 
-!  23 Jun 2003 - R. Yantosca - Initial version
-!  21 Sep 2010 - R. Yantosca - Added ProTeX headers
-!  02 Feb 2016 - E. Lundgren - Wrap this routine in if defined bpch
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I, IJLOOP, J
-
-      !=================================================================
-      ! ARCHIVE_1D begins here
-      !=================================================================
-
-      ! Zero 1-D counter
-      IJLOOP = 0
-
-      ! Archive for diagnostic
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         IJLOOP      = IJLOOP + 1
-         AD67(I,J,N) = AD67(I,J,N) + FIELD(IJLOOP)
-      ENDDO
-      ENDDO
-
-      END SUBROUTINE ARCHIVE_ND67_1D
-!EOC
-#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

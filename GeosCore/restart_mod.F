@@ -2478,7 +2478,7 @@ dvected tracer input  restart file
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, IOS, IU_RST, J, L, N, JLOOP, NN, NTL
+      INTEGER             :: I, IOS, IU_RST, J, L, N, NN, NTL
       INTEGER             :: NCOUNT(NNPAR) 
       REAL*4		  :: TMP(ILONG,ILAT,IPVERT)
 
@@ -2702,7 +2702,7 @@ dvected tracer input  restart file
 ! !LOCAL VARIABLES:
 !
       INTEGER              :: IU_RST
-      INTEGER              :: I,    I0, IOS, J,  J0, L, N, JLOOP
+      INTEGER              :: I,    I0, IOS, J,  J0, L, N
       INTEGER              :: YYYY, MM, DD,  HH, SS, ZIP_HH
       CHARACTER(LEN=255)   :: FILENAME
 

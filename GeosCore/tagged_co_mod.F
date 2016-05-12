@@ -1393,7 +1393,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS, I, J, IJLOOP
+      INTEGER :: AS, I, J
       
       !=================================================================
       ! INIT_TAGGED_CO begins here!
@@ -1407,16 +1407,14 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMACET' )         
       EMACET = 0e+0_fp 
 
-      ! Allocate and initialize IJLOOP_CO -- 1-D array index
+      ! Allocate and initialize CO_PRODS -- Strat P(CO) from CH4
       ALLOCATE( CO_PRODS( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_PRODS' )    
-!      CO_PRODS = 0e+0_fp
       CO_PRODS = 0e0
 
-      ! Allocate and initialize IJLOOP_CO -- 1-D array index
+      ! Allocate and initialize CO_LOSSS -- Strat L(CO) from CO + OH
       ALLOCATE( CO_LOSSS( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_LOSSS' )    
-!      CO_LOSSS = 0e+0_fp
       CO_PRODS = 0e0
 
       ! Allocate only what is needed
