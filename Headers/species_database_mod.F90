@@ -45,6 +45,19 @@ MODULE Species_Database_Mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+
+  ! Work array to hold the list of species names, which combines the tracers
+  ! from input.geos with the KPP species names (and removes duplicates)
+  CHARACTER(LEN=31), ALLOCATABLE :: Species_Names(:)
+
+  ! Work array to hold the list of KPP fixed species indices 
+  ! (Non-KPP species are given missing values)
+  INTEGER,           ALLOCATABLE :: KppFixId(:)
+
+  ! Work array to hold the unique list of KPP variable species indices
+  ! (Non-KPP species are given missing values)
+  INTEGER,           ALLOCATABLE :: KppVarId(:)
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -167,12 +180,17 @@ CONTAINS
     ! Copy values from Input_Opt
     prtDebug      = ( Input_Opt%LPRT .and. am_I_Root )
 
-    ! Number of species
-    nSpecies      = Input_Opt%N_TRACERS
-
     ! Initialize pointers for tagged Hg simulations
     Hg_CAT      => Input_Opt%Hg_CAT
     Hg_CAT_FULL => Input_Opt%Hg_CAT_FULL
+
+    ! Store the list unique GEOS-Chem species names in work arrays for use
+    ! below.  This is the combined list of advected tracers (from input.geos) 
+    ! plus KPP species (from SPC_NAMES in gckpp_Monitor.F90), with all 
+    ! duplicates removed.  Also stores the corresponding indices in the
+    ! KPP VAR and FIX arrays.  For simulations that do not use KPP, the 
+    ! unique species list is the list of advected tracers from input.geos.
+    CALL Unique_Species_Names( am_I_Root, Input_Opt, nSpecies, RC )
 
     ! Initialize the species vector
     CALL SpcData_Init( am_I_Root, nSpecies, SpcData, RC )
@@ -185,7 +203,7 @@ CONTAINS
     DO N = 1, nSpecies
 
        ! Translate species name to uppercase
-       NameAllCaps = TRIM( Input_Opt%TRACER_NAME(N) )
+       NameAllCaps = TRIM( Species_Names(N) )
        CALL TranUc( NameAllCaps )
 
        ! Test for species name
@@ -205,6 +223,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Acetone',                    &
                               MW_g          = 58.08_fp,                     &
@@ -229,6 +249,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Acetaldehyde',               &
                               MW_g          = 44.05_fp,                     &
@@ -251,6 +273,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Lumped >= C4 Alkanes',       &
                               MW_g          = 58.12_fp,                     &
@@ -281,6 +305,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 150.0_fp,                     &
@@ -301,6 +327,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 150.0_fp,                     &
@@ -351,6 +379,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 12.01_fp,                     &
@@ -371,6 +401,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Benzene',                    &
                               MW_g          = 78.11_fp,                     &
@@ -386,6 +418,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'Br',                         &
                               FullName      = 'Atomic bromine',             &
                               MW_g          = 80.0_fp,                      &
@@ -403,6 +437,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'Br2',                        &
                               FullName      = 'Molecular Bromine',          &
                               MW_g          = 160.0_fp,                     &
@@ -426,6 +462,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'BrCl',                       &
                               FullName      = 'Bromine chloride',           &
                               MW_g          = 115.0_fp,                     &
@@ -437,8 +475,10 @@ CONTAINS
 
           CASE( 'BRNO2' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,               &
+                              ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'BrNO2',                      &
                               FullName      = 'Nitryl bromide',             &
                               MW_g          = 126.0_fp,                     &
@@ -452,6 +492,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'BrNO3',                      &
                               FullName      = 'Bromine nitrate',            &
                               MW_g          = 142.0_fp,                     &
@@ -467,6 +509,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'BrO',                        &
                               FullName      = 'Bromine monoxide',           &
                               MW_g          = 96.0_fp,                      &
@@ -480,6 +524,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Ethane',                     &
                               MW_g          = 30.07_fp,                     &
@@ -500,6 +546,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Propane',                    &
                               MW_g          = 44.1_fp,                      &
@@ -519,6 +567,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'CCl4',                       &
                               FullName      = 'Carbon tetrachloride',       &
                               MW_g          = 152.0_fp,                     &
@@ -532,6 +582,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'CFC-11',                     &
                               MW_g          = 137.0_fp,                     &
@@ -545,6 +597,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'CFC-12',                     &
                               MW_g          = 121.0_fp,                     &
@@ -559,6 +613,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 187.0_fp,                     &
@@ -572,6 +628,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'CH2Br2',                     &
                               FullName      = 'Dibromomethane',             &
                               MW_g          = 174.0_fp,                     &
@@ -585,6 +643,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'CH2O',                       &
                               FullName      = 'Formaldehyde',               &
                               MW_g          = 30.0_fp,                      &
@@ -608,6 +668,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'CH3Br',                      &
                               FullName      = 'Methyl bromide',             &
                               MW_g          = 95.0_fp,                      &
@@ -621,6 +683,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'CH3Cl',                      &
                               FullName      = 'Chloromethane',              &
                               MW_g          = 50.0_fp,                      &
@@ -634,6 +698,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'CH3CCl3',                    &
                               FullName      = 'Methyl chloroform',          &
                               MW_g          = 133.0_fp,                     &
@@ -647,6 +713,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methane',                    &
                               MW_g          = 16.0_fp,                      &
@@ -660,6 +728,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'CHBr3',                      &
                               FullName      = 'Bromoform',                  &
                               MW_g          = 253.0_fp,                     &
@@ -673,6 +743,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'Cl',                         &
                               FullName      = 'Atomic chlorine',            &
                               MW_g          = 35.0_fp,                      &
@@ -686,6 +758,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'Cl2',                        &
                               FullName      = 'Molecular chlorine',         &
                               MW_g          = 71.0_fp,                      &
@@ -699,6 +773,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'Cl2O2',                      &
                               FullName      = 'Dichlorine dioxide',         &
                               MW_g          = 103.0_fp,                     &
@@ -712,6 +788,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'ClNO2',                      &
                               FullName      = 'Nitryl chloride',            &
                               MW_g          = 81.0_fp,                      &
@@ -724,6 +802,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'ClNO3',                      &
                               FullName      = 'Chlorine nitrate',           &
                               MW_g          = 97.0_fp,                      &
@@ -737,6 +817,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'ClO',                        &
                               FullName      = 'Chlorine monoxide',          &
                               MW_g          = 51.0_fp,                      &
@@ -759,6 +841,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = Name,                         &
                               FullName      = 'Chlorine dioxide',           &
                               MW_g          = 67.0_fp,                      &
@@ -772,6 +856,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Carbon monoxide',            &
                               MW_g          = 28.0_fp,                      &
@@ -789,6 +875,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Dimethyl sulfide',           &
                               MW_g          = 62.0_fp,                      &
@@ -824,6 +912,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 29.0_fp,                      &
@@ -865,6 +955,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 29.0_fp,                      &
@@ -907,6 +999,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 29.0_fp,                      &
@@ -950,6 +1044,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 29.0_fp,                      &
@@ -972,6 +1068,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Glycoaldehyde',              &
                               MW_g          = 60.0_fp,                      &
@@ -995,6 +1093,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Water vapor',                &
                               MW_g          = 18.0_fp,                      &
@@ -1008,6 +1108,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Hydrogen peroxide',          &
                               MW_g          = 34.0_fp,                      &
@@ -1034,6 +1136,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Hydroxyacetone',             &
                               MW_g          = 74.0_fp,                      &
@@ -1054,6 +1158,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'H-1211',                     &
                               MW_g          = 165.0_fp,                     &
@@ -1067,6 +1173,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'H-1301',                     &
                               MW_g          = 149.0_fp,                     &
@@ -1081,6 +1189,8 @@ CONTAINS
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               FullName      = 'H-2402',                     &
                               MW_g          = 260.0_fp,                     &
                               Is_Advected   = T,                            &
@@ -1093,6 +1203,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'HCFC-22',                    &
                               MW_g          = 86.0_fp,                      &
@@ -1108,6 +1220,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 117.0_fp,                     &
@@ -1121,6 +1235,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'HCl',                        &
                               FullName      = 'Hydrochloric acid',          &
                               MW_g          = 36.0_fp,                      &
@@ -1142,6 +1258,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrous acid',               &
                               MW_g          = 47.0_fp,                      &
@@ -1167,6 +1285,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitric acid',                &
                               MW_g          = 63.0_fp,                      &
@@ -1195,6 +1315,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Pernitric acid',             &
                               MW_g          = 79.0_fp,                      &
@@ -1212,6 +1334,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'HBr',                        &
                               FullName      = 'Hypobromic acid',            &
                               MW_g          = 81.0_fp,                      &
@@ -1235,6 +1359,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'HOBr',                       &
                               FullName      = 'Hypobromous acid',           &
                               MW_g          = 97.0_fp,                      &
@@ -1258,6 +1384,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'HOCl',                       &
                               FullName      = 'Hypochlorous acid',          &
                               MW_g          = 52.0_fp,                      &
@@ -1271,6 +1399,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Isoprene',                   &
                               MW_g          = 68.12_fp,                     &
@@ -1290,6 +1420,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Isoprene epoxide',           &
                               MW_g          = 118.0_fp,                     &
@@ -1340,6 +1472,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 150.0_fp,                     &
@@ -1361,6 +1495,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 150.0_fp,                     &
@@ -1381,6 +1517,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Isoprene nitrate',           &
                               MW_g          = 147.0_fp,                     &
@@ -1419,6 +1557,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Limonene',                   &
                               MW_g          = 136.23_fp,                    &
@@ -1441,6 +1581,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methacrolein',               &
                               MW_g          = 70.0_fp,                      &
@@ -1461,6 +1603,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Peroxyacetic acid',          &
                               MW_g          = 76.0_fp,                      &
@@ -1484,6 +1628,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Peroxyacetyl nitrate',       &
                               MW_g          = 72.11_fp,                     &
@@ -1503,6 +1649,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrate from MACR + MVK',    &
                               MW_g          = 149.0_fp,                     &
@@ -1525,6 +1673,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = '5C acid from isoprene',      &
                               MW_g          = 114.0_fp,                     &
@@ -1554,6 +1704,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Hydrophilic marine OC',      &
                               MW_g          = 12.01_fp,                     &
@@ -1579,6 +1731,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Hydrophobic marine OC',      &
                               MW_g          = 12.01_fp,                     &
@@ -1598,6 +1752,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'MP',                         &
                               FullName      = 'Methyl hydro peroxide',      &
                               MW_g          = 48.0_fp,                      &
@@ -1619,6 +1775,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methyl peroxy nitrate',      &
                               MW_g          = 93.0_fp,                      &
@@ -1646,6 +1804,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methyl sulfonic acid',       &
                               MW_g          = 96.0_fp,                      &
@@ -1667,6 +1827,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 136.23_fp,                    &
@@ -1689,6 +1851,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 136.23_fp,                    &
@@ -1708,6 +1872,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methyl vinyl ketone',        &
                               MW_g          = 70.0_fp,                      &
@@ -1728,6 +1894,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Naphtalene/IVOC surrogate',  &
                               MW_g          = 128.27_fp,                    &
@@ -1743,6 +1911,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrous oxide',              &
                               MW_g          = 44.0_fp,                      &
@@ -1757,6 +1927,8 @@ CONTAINS
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
                               DryDepID      = DryDepID_HNO3,                &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Dinitrogen pentoxide',       &
                               MW_g          = 105.0_fp,                     &
@@ -1784,6 +1956,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Ammonia',                    &
                               MW_g          = 17.0_fp,                      &
@@ -1825,6 +1999,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Ammonium',                   &
                               MW_g          = 18.0_fp,                      &
@@ -1859,6 +2035,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Inorganic nitrates',         &
                               MW_g          = 62.0_fp,                      &
@@ -1906,6 +2084,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'NITs',                       &
                               FullName      = FullName,                     &
 !-----------------------------------------------------------------------------
@@ -1932,6 +2112,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrogen oxide',             &
                               MW_g          = 30.0_fp,                      &
@@ -1949,6 +2131,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrogen dioxide',           &
                               MW_g          = 46.0_fp,                      &
@@ -1969,6 +2153,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrate radical',            &
                               MW_g          = 62.0_fp,                      &
@@ -2034,6 +2220,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = Name,                         &
                               FullName      = FullName,                     &
                               MW_g          = 48.0_fp,                      &
@@ -2080,6 +2268,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 12.01_fp,                     &
@@ -2110,6 +2300,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 12.01_fp,                     &
@@ -2132,6 +2324,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 12.01_fp,                     &
@@ -2152,6 +2346,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Carbonyl sulfide',           &
                               MW_g          = 60.0_fp,                      &
@@ -2165,6 +2361,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Peroxyacetyl nitrate',       &
                               MW_g          = 121.0_fp,                     &
@@ -2188,6 +2386,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Peroxymethacroyl nitrate',   &
                               MW_g          = 147.0_fp,                     &
@@ -2210,6 +2410,8 @@ CONTAINS
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
                               DryDepID      = DryDepID_PAN,                 &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FULLNAME,                     &
                               MW_g          = 135.0_fp,                     &
@@ -2237,6 +2439,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      ='Lumped aerosol primary SVOCs',&
                               MW_g          = 12.01_fp,                     &
@@ -2258,6 +2462,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Lumped gas primary SVOCs',   &
                               MW_g          = 12.01_fp,                     &
@@ -2278,6 +2484,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Lumped >= C3 alkenes',       &
                               MW_g          = 42.08_fp,                     &
@@ -2297,6 +2505,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Propanone nitrate',          &
                               MW_g          = 119.0_fp,                     &
@@ -2321,6 +2531,8 @@ CONTAINS
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
                               DryDepID      = DryDepId_PAN,                 &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Lumped alkyl nitrate',       &
                               MW_g          = 119.0_fp,                     &
@@ -2342,6 +2554,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Lumped aldehyde >= C3',      &
                               MW_g          = 58.0_fp,                      &
@@ -2359,6 +2573,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Peroxide from RIO2',         &
                               MW_g          = 118.0_fp,                     &
@@ -2393,6 +2609,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = Fullname,                     &
                               MW_g          = 31.4_fp,                      &
@@ -2425,6 +2643,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = Fullname,                     &
                               MW_g          = 31.4_fp,                      &
@@ -2465,6 +2685,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Sulfur dioxide',             &
                               MW_g          = 64.0_fp,                      &
@@ -2504,6 +2726,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'SO4',                        &
                               FullName      = 'Sulfate',                    &
                               MW_g          = 96.0_fp,                      &
@@ -2551,6 +2775,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = 'SO4s',                       &
                               FullName      = FullName,                     &
 !------------------------------------------------------------------------------
@@ -2577,6 +2803,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Toluene',                    &
                               MW_g          = 92.14_fp,                     &
@@ -2602,6 +2830,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 150.0_fp,                     &
@@ -2622,6 +2852,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 150.0_fp,                     &
@@ -2640,6 +2872,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Xylene',                     &
                               MW_g          = 106.16_fp,                    &
@@ -3106,6 +3340,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = Name,                         &
                               FullName      = FullName,                     &
                               MW_g          = 44.0_fp,                      &
@@ -3352,6 +3588,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 1.0_fp,                       &
@@ -3544,18 +3782,45 @@ CONTAINS
 #endif
 
           !==================================================================
-          ! Species not found!  Stop with error message
+          ! Special handling for species not found in the list above
           !==================================================================
           CASE DEFAULT
-             WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-             WRITE( 6, 100 ) TRIM( NameAllCaps )
-             WRITE( 6, 110 )
-             WRITE( 6, 120 )
- 100         FORMAT( 'Species ', a, ' not found in the data base!'      )
- 110         FORMAT( 'Please add the information to the CASE statement' )
- 120         FORMAT( 'in module Headers/species_database_mod.F90!'      )
-             RC = -1
-             RETURN
+
+             ! Test if this is a non-advected chemical species
+             IF ( KppVarId(N) > 0 ) THEN 
+                
+                !------------------------------------------------------------
+                ! If this is a non-advected KPP chemical species, then just
+                ! create a basic default entry in the species database
+                !------------------------------------------------------------
+                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
+                                 ThisSpc       = SpcData(N)%Info,           &
+                                 ModelID       = N,                         &
+                                 KppVarId      = KppVarId(N),               &
+                                 KppFixId      = KppFixId(N),               &
+                                 Name          = NameAllCaps,               &
+                                 Is_Advected   = F,                         &
+                                 Is_Gas        = T,                         &
+                                 Is_Drydep     = F,                         &
+                                 Is_Wetdep     = F,                         &
+                                 RC            = RC )
+
+             ELSE
+                   
+                !------------------------------------------------------------
+                ! If this species i not found, the exit with error!
+                ! create a default entry in the species database
+                !------------------------------------------------------------
+                WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                WRITE( 6, 100 ) TRIM( NameAllCaps )
+                WRITE( 6, 110 )
+                WRITE( 6, 120 )
+100             FORMAT( 'Species ', a, ' not found in the data base!'      )
+110             FORMAT( 'Please add the information to the CASE statement' )
+120             FORMAT( 'in module Headers/species_database_mod.F90!'      )
+                RC = -1
+                RETURN
+             ENDIF
 
        END SELECT
 
@@ -3572,6 +3837,9 @@ CONTAINS
 
     ! Free pointers
     NULLIFY( Hg_CAT, Hg_CAT_FULL )
+
+    ! Deallocate temporary work arrays
+    CALL Cleanup_Work_Arrays()
 
   END SUBROUTINE Init_Species_Database
 !EOC
@@ -3671,6 +3939,217 @@ CONTAINS
        ENDIF
     ENDDO
 
-  END SUBROUTINE TRANUC
+  END SUBROUTINE TranUc
+!EOC  
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: unique_species_names
+!
+! !DESCRIPTION: Stores the list of unique species names (i.e. removing 
+!  duplicates from the list of advected tracers and the the list of KPP 
+!  species) for later use.  Also computes the corresponding indices for
+!  the KPP variable and fixed species arrays (VAR and FIX, respectively).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Unique_Species_Names( am_I_Root, Input_Opt, nSpecies, RC )
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GcKpp_Monitor,      ONLY : Spc_Names
+    USE GcKpp_Parameters,   ONLY : NFIX, NSPEC, NVAR
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS: 
+!
+    INTEGER,        INTENT(OUT) :: nSpecies    ! Number of unique species
+    INTEGER,        INTENT(OUT) :: RC          ! Success or failure
+!
+! !REMARKS:
+!  This may not be the fastest search algorithm (because it relies on string 
+!  comparisons).  But it is only executed at startup so we can live with it.
+!  We could make it faster by hashing but that seems like overkill.
+!
+! !REVISION HISTORY:
+!  09 May 2016 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER                        :: nTracers, K, S
+
+    ! Arrays
+    CHARACTER(LEN=15), ALLOCATABLE :: Tmp(:)
+!
+! !DEFINED PARAMETERS:
+!
+    ! Missing value
+    INTEGER,           PARAMETER   :: MISSING_INT = -999  
+
+    !=======================================================================
+    ! UNIQUE_SPECIES_NAMES begins here!
+    !=======================================================================
+
+    ! Assume success
+    RC       = GIGC_SUCCESS
+
+    ! Number of Advected Tracers listed in input.geos
+    nTracers = Input_Opt%N_TRACERS
+
+    ! First set the # of species to the # of advected tracers
+    nSpecies = nTracers
+
+    !=======================================================================
+    ! For full-chemistry simulations with KPP, get the list of all of
+    ! species names in the KPP mechanism, and their indices
+    !=======================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN      
+
+       ! Allocate a temporary array large enough to hold all of the
+       ! advected tracers listed in input.geos as well as all of the
+       ! KPP species names (listed in SPC_NAMES of gckpp_Monitor.F90)
+       ALLOCATE( Tmp( nTracers + NSPEC ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       Tmp = ''
+
+       !--------------------------------------------------------------------
+       ! First determine the unique list of species in the KPP mechanism
+       ! (so that we don't duplicate storage for tracers & species)
+       !--------------------------------------------------------------------
+
+       ! First, store advected tracers (from input.geos) in the TMP array
+       DO S = 1, nSpecies
+          Tmp(S) = Input_Opt%Tracer_Name(S)
+       ENDDO
+       
+       ! Next, add to the TMP array those KPP species that aren't already 
+       ! listed as advected tracers.  nSpecies is the # of unique species.
+       DO K = 1, NSPEC
+          IF ( .not. ANY( Input_Opt%Tracer_Name == Spc_Names(K) ) ) THEN
+             nSpecies      = nSpecies + 1
+             Tmp(nSpecies) = Spc_Names(K)
+          ENDIF
+       ENDDO
+          
+       ! Allocate the species names array precisely of length nSpecies
+       ALLOCATE( Species_Names( nSpecies ) ) 
+       Species_Names = Tmp(1:nSpecies )
+
+       ! Free temporary array
+       IF ( ALLOCATED( Tmp ) ) DEALLOCATE( Tmp )
+
+       !--------------------------------------------------------------------
+       ! Now determine the KPP indices for each unique species name
+       !--------------------------------------------------------------------
+
+       ! Work array to hold the list of KPP fixed species indices
+       ALLOCATE( KppFixId( nSpecies ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       KppFixId = MISSING_INT
+       
+       ! Work array to hold the KPP variable species indices
+       ALLOCATE( KppVarId( nSpecies ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       KppVarId = MISSING_INT
+
+       ! Loop through the list of unique species names
+       DO S = 1, nSpecies
+
+          ! Loop through the list of KPP species (stored in SPC_NAMES)
+          DO K = 1, NSPEC
+
+             ! Test the unique species names (stored in SPECIES_NAMES)
+             ! against the list of KPP species (in SPC_NAMES).  The K 
+             ! index corresponds to the location of the species in the
+             ! KPP chemical mechanism:  1..NSPEC = [ 1..NVAR, 1..NFIX].
+             IF ( Species_Names(S) == Spc_Names(K) ) THEN
+                
+                ! KPP variable species index (1..NSPEC).  These
+                ! are used to index species in the KPP "C" array
+                ! (as well as the "VAR" array).
+                KppVarId(S) = K
+
+                ! KPP fixed species also have entries (1..NFIX).  These
+                ! are used to index species in the KPP "FIX" array.
+                IF ( K > NVAR ) THEN
+                   KppFixId(S) = K - NVAR
+                ENDIF
+ 
+                ! Skip to next species
+                EXIT
+             ENDIF
+          ENDDO
+       ENDDO
+       
+    !=======================================================================
+    ! For specialty simulations, we do not have KPP species.  Thus, the 
+    ! of species is just the list of advected tracers from input.geos
+    !=======================================================================
+    ELSE
+
+       ! Initialize the species names array from Input_Opt
+       ALLOCATE( Species_Names( nSpecies ), STAT=RC ) 
+       Species_Names = Input_Opt%Tracer_Name(1:nSpecies)
+
+       ! Set KppFixId to missing value
+       ALLOCATE( KppFixId( nSpecies ), STAT=RC )
+       KppFixId = MISSING_INT
+       
+       ! Set KppVarId to missing value
+       ALLOCATE( KppVarId( nSpecies ), STAT=RC )
+       KppVarId = MISSING_INT
+
+    ENDIF
+
+  END SUBROUTINE Unique_Species_Names
+!EOC  
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CleanUp_Work_Arrays
+!
+! !DESCRIPTION: Stores the list of unique species names (i.e. removing
+!  duplicates from the list of advected tracers and the the list of KPP
+!  species) for later use.  Also computes the indices for KPP variable
+!  and fixed indices.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Cleanup_Work_Arrays()
+!
+! !REMARKS:
+!  This may not be the fastest search algorithm, but it is only executed
+!  once, at startup.
+!
+! !REVISION HISTORY:
+!  06 May 2016 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Deallocate arrays
+    IF ( ALLOCATED( Species_Names ) ) DEALLOCATE( Species_Names )
+    IF ( ALLOCATED( KppFixId      ) ) DEALLOCATE( KppFixId      )
+    IF ( ALLOCATED( KppVarId      ) ) DEALLOCATE( KppVarId      )
+
+  END SUBROUTINE Cleanup_Work_ArrayS
 !EOC
 END MODULE Species_Database_Mod

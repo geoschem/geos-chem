@@ -63,6 +63,8 @@ MODULE Species_Mod
      INTEGER            :: AdvectID         ! Advection index
      INTEGER            :: DryDepID         ! Dry deposition index
      INTEGER            :: WetDepID         ! Wet deposition index
+     INTEGER            :: KppVarId         ! KPP variable species index
+     INTEGER            :: KppFixId         ! KPP fixed spcecies index
 
      ! Names
      CHARACTER(LEN=31)  :: Name             ! Short name
@@ -73,6 +75,7 @@ MODULE Species_Mod
      LOGICAL            :: Is_Advected      ! Is it advected?
      LOGICAL            :: Is_DryDep        ! Is it dry-deposited?
      LOGICAL            :: Is_WetDep        ! Is it wet-deposited?
+     LOGICAL            :: Is_Kpp           ! Is it in the KPP mechanism?
 
      ! Molecular weights
      REAL(fp)           :: MW_g             ! Species molecular weight [g/mol]
@@ -167,6 +170,7 @@ MODULE Species_Mod
 !  01 Oct 2015 - R. Yantosca - Add field DD_DvzMinVal
 !  16 Oct 2015 - E. Lundgren - Add WD_Is_H2SO4 field to flag special case of
 !                              H2SO4 wet deposition for microphysics
+!  09 May 2016 - R. Yantosca - Add Is_Kpp, KppVarId, KppFixId to type Species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -379,7 +383,8 @@ CONTAINS
                          WD_LiqAndGas,  WD_ConvFacI2G, WD_AerScavEff,  &
                          WD_KcScaleFac, WD_RainoutEff, WD_CoarseAer,   &
                          Is_Advected,   Is_Gas,        Is_Drydep,      &
-                         Is_Wetdep,     RC                            )
+                         Is_Wetdep,     KppVarId,      KppFixId,       &
+                         RC                            )
 !
 ! !USES:
 !
@@ -432,6 +437,8 @@ CONTAINS
     LOGICAL,          OPTIONAL    :: Is_Gas           ! Gas (T) or aerosol (F)?
     LOGICAL,          OPTIONAL    :: Is_Drydep        ! Is it dry deposited?
     LOGICAL,          OPTIONAL    :: Is_Wetdep        ! Is it wet deposited?
+    INTEGER,          OPTIONAL    :: KppVarId         ! KPP variable species ID
+    INTEGER,          OPTIONAL    :: KppFixId         ! KPP fixed species Id
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -787,6 +794,24 @@ CONTAINS
     ENDIF
 
     !---------------------------------------------------------------------
+    ! Is it a variable species in the KPP chemical mechanism?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( KppVarId ) ) THEN 
+       ThisSpc%KppVarId = KppVarId
+    ELSE
+       ThisSpc%KppVarId = MISSING_INT
+    ENDIF
+
+    !---------------------------------------------------------------------
+    ! Is it a fixed species in the KPP chemical mechanism?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( KppFixId ) ) THEN 
+       ThisSpc%KppFixId = KppFixId
+    ELSE
+       ThisSpc%KppFixId = MISSING_INT
+    ENDIF
+
+    !---------------------------------------------------------------------
     ! Is it a coarse aerosol?
     !---------------------------------------------------------------------
     IF ( PRESENT( WD_CoarseAer ) ) THEN
@@ -817,10 +842,13 @@ CONTAINS
     ! Sanity checks
     !---------------------------------------------------------------------
 
+    ! Is the species part of the KPP chemical mechanism?
+    ThisSpc%Is_Kpp = ( ThisSpc%KppVarId > 0 .or. ThisSpc%KppFixId > 0 )
+
     ! Assume the species is not H2SO4, HNO3, or SO2 at first
     ThisSpc%WD_Is_H2SO4 = .FALSE.
-    ThisSpc%WD_Is_HNO3 = .FALSE.
-    ThisSpc%WD_Is_SO2  = .FALSE.
+    ThisSpc%WD_Is_HNO3  = .FALSE.
+    ThisSpc%WD_Is_SO2   = .FALSE.
 
     IF ( ThisSpc%Is_Gas ) THEN
 
@@ -912,86 +940,109 @@ CONTAINS
        WRITE( 6, 120 ) 'Emitted mol. wt [g]  ',  ThisSpc%EmMW_g
        WRITE( 6, 120 ) 'Molecular ratio      ',  ThisSpc%MolecRatio
        WRITE( 6, 130 ) 'Is it a gas?         ',  ThisSpc%Is_Gas
-       WRITE( 6, 130 ) 'Is it advected?      ',  ThisSpc%Is_Advected
 
        !-------------------------
        ! Print density & radius
        !-------------------------
        IF ( ThisSpc%Density > ZERO ) THEN
-          WRITE( 6, 120 ) 'Density [kg/m3]      ',  ThisSpc%Density
+          WRITE( 6, 120 ) 'Density [kg/m3]      ',       ThisSpc%Density
        ENDIF
 
        IF ( ThisSpc%Radius > ZERO ) THEN
-          WRITE( 6, 120 ) 'Radius [m]           ',  ThisSpc%Radius
+          WRITE( 6, 120 ) 'Radius [m]           ',       ThisSpc%Radius
        ENDIF
 
        !-------------------------
        ! Print Henry's Law info
        !-------------------------
        IF ( ThisSpc%Henry_K0 > ZERO_R8 ) THEN
-          WRITE( 6, 120 ) 'Henry''s law K0       ', ThisSpc%Henry_K0
+          WRITE( 6, 120 ) 'Henry''s law K0       ',      ThisSpc%Henry_K0
        ENDIF
 
        IF ( ThisSpc%Henry_CR > ZERO_R8 ) THEN
-          WRITE( 6, 120 ) 'Henry''s law CR       ', ThisSpc%Henry_CR
+          WRITE( 6, 120 ) 'Henry''s law CR       ',      ThisSpc%Henry_CR
        ENDIF
 
        IF ( ThisSpc%Henry_pKa > ZERO_R8 ) THEN
-          WRITE( 6, 120 ) 'Henry''s law pKa      ', ThisSpc%Henry_pKa
+          WRITE( 6, 120 ) 'Henry''s law pKa      ',      ThisSpc%Henry_pKa
+       ENDIF
+
+       !-------------------------
+       ! Print advected ID
+       !-------------------------
+       WRITE( 6, 130 ) 'Is it advected?      ',          ThisSpc%Is_Advected
+
+       IF ( ThisSpc%Is_Advected ) THEN
+          WRITE( 6, 100 )    ' -> Advected index   ',    ThisSpc%AdvectId
+       ENDIF
+
+       !-------------------------
+       ! Print KPP Id's
+       !-------------------------
+       WRITE( 6, 130 ) 'Is it a KPP species? ',          ThisSpc%Is_Kpp
+
+       IF ( ThisSpc%Is_Kpp ) THEN
+          IF ( ThisSpc%KppVarId > 0 ) THEN
+             WRITE( 6, 100 )    ' -> ID in VAR array  ', ThisSpc%KppVarId
+          ENDIF
+          
+          IF ( ThisSpc%KppFixId > 0 ) THEN
+             WRITE( 6, 100 )    ' -> ID in FIX array  ', ThisSpc%KppFixId
+          ENDIF
        ENDIF
 
        !-------------------------
        ! Print drydep info
        !-------------------------
-       WRITE( 6, 130 ) 'Is it dry deposited? ',  ThisSpc%Is_DryDep
+       WRITE( 6, 130 ) 'Is it dry deposited? ',          ThisSpc%Is_DryDep
 
        IF ( ThisSpc%Is_DryDep ) THEN
-          WRITE( 6, 100 ) ' -> Drydep index:    ',  ThisSpc%DryDepID
+          WRITE( 6, 100 ) ' -> Drydep index     ',       ThisSpc%DryDepID
 
           IF ( ThisSpc%DD_F0 > ZERO ) THEN
-             WRITE( 6, 120 ) ' -> F0 parameter     ',  ThisSpc%DD_F0
+             WRITE( 6, 120 ) ' -> F0 parameter     ',    ThisSpc%DD_F0
           ENDIF
 
           IF ( ThisSpc%DD_KOA > ZERO ) THEN
-             WRITE( 6, 120 ) ' -> KOA parameter    ',  ThisSpc%DD_KOA
+             WRITE( 6, 120 ) ' -> KOA parameter    ',    ThisSpc%DD_KOA
           ENDIF
 
           IF ( ThisSpc%DD_Hstar_old > ZERO ) THEN
-             WRITE( 6, 120 ) ' -> Old HSTAR value  ',  ThisSpc%DD_Hstar_Old
+             WRITE( 6, 120 ) ' -> Old HSTAR value  ',    ThisSpc%DD_Hstar_Old
           ENDIF
        ENDIF
 
        !-------------------------
-       ! Print wetdep info
+       ! Print wetdep infof
        !-------------------------
-       WRITE( 6, 130 ) 'Is it wet deposited? ',  ThisSpc%Is_WetDep
+       WRITE( 6, 130 ) 'Is it wet deposited? ',          ThisSpc%Is_WetDep
 
        IF ( ThisSpc%Is_WetDep ) THEN
-          WRITE( 6, 100 ) ' -> Wetdep index:    ',  ThisSpc%WetDepID
+          WRITE( 6, 100 ) ' -> Wetdep index:    ',       ThisSpc%WetDepID
 
           IF ( ThisSpc%WD_LiqAndGas ) THEN
-             WRITE( 6, 130 ) ' -> Liq & gas phases ', ThisSpc%WD_LiqAndGas
-             WRITE( 6, 120 ) ' -> Conv factor I2G  ', ThisSpc%WD_ConvFacI2G
+             WRITE( 6, 130 ) ' -> Liq & gas phases ',    ThisSpc%WD_LiqAndGas
+             WRITE( 6, 120 ) ' -> Conv factor I2G  ',    ThisSpc%WD_ConvFacI2G
           ENDIF
 
           IF ( ThisSpc%WD_RetFactor > ZERO ) THEN
-             WRITE( 6, 120 ) ' -> Ret. Factor      ', ThisSpc%WD_RetFactor
+             WRITE( 6, 120 ) ' -> Ret. Factor      ',    ThisSpc%WD_RetFactor
           ENDIF
 
           IF ( ThisSpc%WD_CoarseAer ) THEN
-             WRITE( 6, 130 ) ' -> Coarse aerosol?', ThisSpc%WD_CoarseAer
+             WRITE( 6, 130 ) ' -> Coarse aerosol?',      ThisSpc%WD_CoarseAer
           ENDIF
 
           IF ( ThisSpc%WD_AerScavEff > ZERO ) THEN
-             WRITE( 6, 120 ) ' -> Scav. Effeciency ', ThisSpc%WD_AerScavEff
+             WRITE( 6, 120 ) ' -> Scav. Effeciency ',    ThisSpc%WD_AerScavEff
           ENDIF
 
           IF ( SUM( ThisSpc%WD_KcScaleFac ) > ZERO ) THEN
-             WRITE( 6, 140 ) ' -> Scav. Effeciency ', ThisSpc%WD_KcScaleFac
+             WRITE( 6, 140 ) ' -> KcScale factor   ',    ThisSpc%WD_KcScaleFac
           ENDIF
 
           IF ( SUM( ThisSpc%WD_RainoutEff ) > ZERO ) THEN
-             WRITE( 6, 140 ) ' -> Scav. Effeciency ', ThisSpc%WD_RainoutEff
+             WRITE( 6, 140 ) ' -> Rainout effic''ncy',   ThisSpc%WD_RainoutEff
           ENDIF
 
        ENDIF
@@ -999,7 +1050,6 @@ CONTAINS
        !-------------------------
        ! Print microphys info
        !-------------------------
-
 
        ! Format statements
  100   FORMAT( a, ' : ', i5          )
