@@ -1657,7 +1657,9 @@
       USE CMN_SIZE_MOD   ! Size parameters
 !
 ! !REVISION HISTORY: 
-!  20 September 2010 - N.E. Selin - Initial Version for POPS_MOD
+!  20 Sep 2010 - N.E. Selin  - Initial Version for POPS_MOD
+!  16 May 2016 - M. Sulprizio- Remove IJLOOP and change SUNTMP array dimensions
+!                              from (MAXIJ) to (IIPAR,JJPAR)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1665,10 +1667,10 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE       :: FIRST = .TRUE.
-      INTEGER             :: I, IJLOOP, J, L, N, NT, NDYSTEP
+      INTEGER             :: I, J, L, N, NT, NDYSTEP
       REAL(fp)            :: A0, A1, A2, A3, B1, B2, B3
       REAL(fp)            :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
-      REAL(fp)            :: SUNTMP(MAXIJ)
+      REAL(fp)            :: SUNTMP(IIPAR,JJPAR)
       
       !=================================================================
       ! OHNO3TIME begins here!
@@ -1708,20 +1710,18 @@
          DO N = 1, NDYSTEP
             
             ! Zero SUNTMP array
-            SUNTMP(:) = 0e+0_fp
+            SUNTMP = 0e+0_fp
 
             ! Loop over surface grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
+!$OMP+PRIVATE( I, J, YMID_R, TIMLOC, AHR )
             DO J = 1, JJPAR
             DO I = 1, IIPAR
 
                ! Grid box latitude center [radians]
                YMID_R = GET_YMID_R( I, J, 1 )
 
-               ! Increment IJLOOP
-               IJLOOP = ( (J-1) * IIPAR ) + I
                TIMLOC = real(LHR0) + real(NT)/3600.0 +
      &                  GET_XMID( I, J, 1 )/15.0
          
@@ -1749,19 +1749,19 @@
                !===========================================================
 
                ! Compute Cos(SZA)
-               SUNTMP(IJLOOP) = sin(YMID_R) * sin(DEC) +
-     &                          cos(YMID_R) * cos(DEC) * cos(AHR)
+               SUNTMP(I,J) = sin(YMID_R) * sin(DEC) +
+     &                       cos(YMID_R) * cos(DEC) * cos(AHR)
 
                ! TCOSZ is the sum of SUNTMP at location (I,J)
                ! Do not include negative values of SUNTMP
-               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(IJLOOP), 0e+0_fp )
+               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(I,J), 0e+0_fp )
 
                ! COSZM is the peak value of SUMTMP during a day at (I,J)
                ! (rjp, bmy, 3/30/04)
-               COSZM(I,J) = MAX( COSZM(I,J), SUNTMP(IJLOOP) )
+               COSZM(I,J) = MAX( COSZM(I,J), SUNTMP(I,J) )
 
                ! TTDAY is the total daylight time at location (I,J)
-               IF ( SUNTMP(IJLOOP) > 0e+0_fp ) THEN
+               IF ( SUNTMP(I,J) > 0e+0_fp ) THEN
                   TTDAY(I,J) = TTDAY(I,J) + DBLE( GET_TS_CHEM() )
                ENDIF
             ENDDO

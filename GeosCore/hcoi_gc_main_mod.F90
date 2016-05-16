@@ -2678,9 +2678,10 @@ CONTAINS
 !  Moved here from the obsolete global_oh_mod.F.
 !
 ! !REVISION HISTORY: 
-! 01 Mar 2013 - C. Keller - Imported from carbon_mod.F, where it's
-! called OHNO3TIME
-!
+!  01 Mar 2013 - C. Keller   - Imported from carbon_mod.F, where it's
+!                              called OHNO3TIME
+!  16 May 2016 - M. Sulprizio- Remove IJLOOP and change SUNTMP array dimensions
+!                              from (MAXIJ) to (IIPAR,JJPAR)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2688,10 +2689,10 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER, SAVE :: SAVEDOY = -1
-    INTEGER       :: I, IJLOOP, J, L, N, NT, NDYSTEP
+    INTEGER       :: I, J, L, N, NT, NDYSTEP
     REAL(fp)      :: A0, A1, A2, A3, B1, B2, B3
     REAL(fp)      :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
-    REAL(fp)      :: SUNTMP(MAXIJ)
+    REAL(fp)      :: SUNTMP(IIPAR,JJPAR)
 
     !=======================================================================
     ! CALC_SUMCOSZA begins here!
@@ -2729,20 +2730,18 @@ CONTAINS
        DO N = 1, NDYSTEP
             
           ! Zero SUNTMP array
-          SUNTMP(:) = 0e+0_fp
+          SUNTMP = 0e+0_fp
 
           ! Loop over surface grid boxes
 !!$OMP PARALLEL DO
 !!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
+!!$OMP+PRIVATE( I, J, YMID_R, TIMLOC, AHR )
           DO J = 1, JJPAR
           DO I = 1, IIPAR
 
              ! Grid box latitude center [radians]
              YMID_R = GET_YMID_R( I, J, 1 )
 
-             ! Increment IJLOOP
-             IJLOOP = ( (J-1) * IIPAR ) + I
              TIMLOC = real(LHR0) + real(NT)/3600.0 + &
                       GET_XMID( I, J, 1 ) / 15.0
          
@@ -2770,13 +2769,13 @@ CONTAINS
              !===========================================================
 
              ! Compute Cos(SZA)
-             SUNTMP(IJLOOP) = sin(YMID_R) * sin(DEC) +          &
-                              cos(YMID_R) * cos(DEC) * cos(AHR)
+             SUNTMP(I,J) = sin(YMID_R) * sin(DEC) +          &
+                           cos(YMID_R) * cos(DEC) * cos(AHR)
 
              ! SUMCOSZA is the sum of SUNTMP at location (I,J)
              ! Do not include negative values of SUNTMP
              SUMCOSZA(I,J) = SUMCOSZA(I,J) +             &
-                             MAX(SUNTMP(IJLOOP),0e+0_fp)
+                             MAX(SUNTMP(I,J),0e+0_fp)
 
          ENDDO
          ENDDO
