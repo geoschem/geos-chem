@@ -223,8 +223,12 @@
          IF ( L == 1 ) NIJLOOP = JLOOP
       ENDDO
 
-      ! NTLOOP is the number of total tropospheric boxes
-      NTLOOP = JLOOP
+!------------------------------------------------------------------------------
+! Prior to 5/16/16:
+! NTLOOP is obsolete and has been replaced with IIPAR,JJPAR loops (mps 5/16/16)
+!      ! NTLOOP is the number of total tropospheric boxes
+!      NTLOOP = JLOOP
+!------------------------------------------------------------------------------
 
       END SUBROUTINE RURALBOX
 !EOC

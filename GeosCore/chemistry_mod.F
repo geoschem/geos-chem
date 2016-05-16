@@ -535,19 +535,6 @@
             CALL AEROSOL_RURALBOX( N_TROP,    am_I_Root, 
      &                             Input_Opt, State_Met  )
 
-            ! Initialize FAST-JX quantities for computing AOD's
-            IF ( FIRST ) THEN
-
-               ! Reset NTLOOP and NTTLOOP after call to READER
-               ! with the actual # of boxes w/in the ann mean trop
-               NTLOOP  = N_TROP
-               NTTLOOP = N_TROP
- 
-               ! Reset first-time flag
-               FIRST = .FALSE.
-
-            ENDIF
- 
             ! Compute aerosol & dust concentrations [kg/m3]
             ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
             CALL AEROSOL_CONC

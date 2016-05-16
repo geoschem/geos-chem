@@ -947,7 +947,7 @@
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE COMODE_MOD,         ONLY : IXSAVE, IYSAVE, IZSAVE
       USE COMODE_LOOP_MOD
       USE DIAG_MOD,           ONLY : AD21
@@ -997,6 +997,8 @@
 !  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. ERADIUS,
 !                              TAREA, WERADIUS, WTAREA are now pointers that
 !                              point to 3D fields in State_Chm.
+!  16 May 2016 - M. Sulprizio- Remove JLOOP entirely and loop over LLPAR, JJPAR,
+!                              IIPAR instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1004,7 +1006,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL            :: LINTERP
-      INTEGER            :: I, J, JLOOP, L, N, NOUT, W
+      INTEGER            :: I, J, L, N, NOUT, W
       INTEGER            :: IWV, IIWV, NWVS, IDST
       REAL(fp)           :: MSDENS(NDUST), XTAU
       ! Added to calculate aqueous dust surface area (WTAREA, WERADIUS)
@@ -1164,14 +1166,14 @@
       !==============================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L, N, XRH )
-      DO N     = 1, NDUST
-      DO JLOOP = 1, NTLOOP
+!$OMP+PRIVATE( I, J, L, N, XRH )
+      DO N = 1, NDUST
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-         ! Compute 3-D grid box indices
-         I = IXSAVE(JLOOP)
-         J = IYSAVE(JLOOP)
-         L = IZSAVE(JLOOP)
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          ERADIUS(I,J,L,N) = RDAA(N,6) * 1.0e-4_fp
          
@@ -1189,6 +1191,8 @@
             WERADIUS(I,J,L, N) = ERADIUS(I,J,L, N)
          ENDIF
 
+      ENDDO
+      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -1332,8 +1336,8 @@
 !
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_FJX_MOD
-      USE COMODE_MOD,         ONLY : IXSAVE, IYSAVE, IZSAVE
       USE COMODE_LOOP_MOD
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD21
@@ -1441,6 +1445,8 @@
 !  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. ERADIUS,
 !                              TAREA, WERADIUS, WTAREA are now pointers that
 !                              point to 3D fields in State_Chm.
+!  16 May 2016 - M. Sulprizio- Remove JLOOP entirely and loop over LLPAR, JJPAR,
+!                              IIPAR instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1448,7 +1454,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL             :: LINTERP
-      INTEGER             :: I, J, JLOOP, L, N, NOUT, W
+      INTEGER             :: I, J, L, N, NOUT, W
       INTEGER             :: IWV, IIWV, NWVS, IDST
       INTEGER, SAVE       :: MONTH_LAST = -999
       LOGICAL, SAVE       :: DO_DIAG = .FALSE.
@@ -1654,14 +1660,14 @@
       !==============================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L, N, XRH )
-      DO N     = 1, NDUST
-      DO JLOOP = 1, NTLOOP
+!$OMP+PRIVATE( I, J, L, N, XRH )
+      DO N = 1, NDUST
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-         ! Compute 3-D grid box indices
-         I = IXSAVE(JLOOP)
-         J = IYSAVE(JLOOP)
-         L = IZSAVE(JLOOP)
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          ERADIUS(I,J,L,N) = RDAA(N,6) * 1.0e-4_fp
 
@@ -1679,6 +1685,8 @@
             WERADIUS(I,J,L,N) = ERADIUS(I,J,L,N)
          ENDIF
 
+      ENDDO
+      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO

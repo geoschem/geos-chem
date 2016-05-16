@@ -243,10 +243,14 @@
 
          N_CHEM_BOXES = JLOOP
 
-         ! Set NTLOOP, NTTLOOP here.  Howeve, we will have to reset these
-         ! after the call to READER, since READER redefines these. 
-         NTLOOP       = JLOOP
-         NTTLOOP      = JLOOP
+!------------------------------------------------------------------------------
+! Prior to 5/16/16:
+! NTLOOP is obsolete and has been replaced with IIPAR,JJPAR loops (mps 5/16/16)
+!         ! Set NTLOOP, NTTLOOP here.  Howeve, we will have to reset these
+!         ! after the call to READER, since READER redefines these. 
+!         NTLOOP       = JLOOP
+!         NTTLOOP      = JLOOP
+!------------------------------------------------------------------------------
 
          ! Reset first-time flag
          FIRST        = .FALSE.
@@ -875,16 +879,12 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE PHYSCONSTANTS,      ONLY : CONSVAP
       USE COMODE_LOOP_MOD,    ONLY : IOUT
-      USE COMODE_LOOP_MOD,    ONLY : IOUT, NTLOOP
-      USE COMODE_MOD,         ONLY : JLOP ! SDE 2013-12-30
-      USE COMODE_MOD,         ONLY : IXSAVE
-      USE COMODE_MOD,         ONLY : IYSAVE
-      USE COMODE_MOD,         ONLY : IZSAVE
       USE DIAG_MOD,           ONLY : AD21
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
@@ -977,6 +977,8 @@
 !                              is now a 3D field in State_Met. ERADIUS, TAREA
 !                              WERADIUS, WTAREA are now pointers that point to
 !                              3D fields in State_Chm.
+!  16 May 2016 - M. Sulprizio- Remove JLOOP entirely and loop over LLPAR, JJPAR,
+!                              IIPAR instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -986,7 +988,7 @@
       LOGICAL             :: FIRST = .TRUE.
       LOGICAL             :: LINTERP
       CHARACTER(LEN=16)   :: STAMP
-      INTEGER             :: I, J, L, N, R, JLOOP, IRH, W, IRHN
+      INTEGER             :: I, J, L, N, R, IRH, W, IRHN
       INTEGER             :: AA, IWV, IIWV, NWVS, IR, NRT
       REAL*4              :: TEMP(IIPAR,JJPAR,LGLOB)
       REAL(fp)            :: TEMP2(IIPAR,JJPAR,LLPAR)
@@ -1371,9 +1373,9 @@
 
          ENDDO
 
-         ! Loop over SMVGEAR grid boxes
+         ! Loop over grid boxes
 !$OMP PARALLEL DO
-!$OMP+PRIVATE( JLOOP,    I,       J,        L,        IRH       )
+!$OMP+PRIVATE( I,        J,       L,        IRH                 )
 !$OMP+PRIVATE( AW0,      QW0,     SSW0,     ASYW0,    REFF      )
 !$OMP+PRIVATE( SCALEA,   SCALEQ,  SCALESSA, SCALEASY, FRAC      )
 !$OMP+PRIVATE( SCALER,   SCALEOD, SCALEVOL, DRYAREA             )
@@ -1385,23 +1387,16 @@
 !$OMP+PRIVATE( RHOSTRAT, RAER,    SADSTRAT, XSASTRAT            )
 #endif
 !$OMP+SCHEDULE( DYNAMIC )
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-         ! 1-D grid box index for SMVGEAR arrays
-         DO JLOOP = 1, NTLOOP
-
-            ! Add error check to prevent out-of-bounds or
-            ! div-by-zero errors (bmy, 4/7/15)
-            IF ( JLOOP <= 0 ) CYCLE
-
-            ! Get 3-D grid box indices
-            I = IXSAVE(JLOOP)
-            J = IYSAVE(JLOOP)
-            L = IZSAVE(JLOOP)
+            ! Skip non-chemistry boxes
+            IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
             ! Calculate RH from AbsHum - scavenged from gasconc.f
             ! in GC-Classic (MSL)
             ! -- THIS SHOULD BE A TEMPORARY FIX!
-            ! JLOOP and COMODE_MOD will be REMOVED
             TK       = State_Met%T(I,J,L)
             CONSEXP  = 17.2693882e+0_fp * (TK - 273.16e+0_fp) /
      &                 (TK - 35.86e+0_fp)
@@ -1624,7 +1619,9 @@
      &                                       DRYAREA )
                ENDIF !Hydrophobic aerosol surface area
             ENDIF    !Surface area calcs
-         ENDDO !JLOOP
+         ENDDO
+         ENDDO
+         ENDDO
 !$OMP END PARALLEL DO
       ENDDO !Loop over NAER
       ENDDO !Loop over NWVSELECT
@@ -1760,7 +1757,7 @@
          ! Loop over aerosol types (dust handled in dust_mod.f)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L, N, W, LINTERP, IOUT )
+!$OMP+PRIVATE( I, J, L, N, W, LINTERP, IOUT )
 !$OMP+SCHEDULE( DYNAMIC )
          DO N = 1, NRHAER 
             !------------------------------------
@@ -1822,13 +1819,12 @@
             !------------------------------------
             ! Aerosol Surface Areas [cm2/cm3]
             !------------------------------------
-            DO JLOOP = 1, NTLOOP
+            DO L = 1, LD21
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
                ! Get 3-D grid box indices
                IOUT = 5 + (3*(N-1)) + 3
-               I = IXSAVE(JLOOP)
-               J = IYSAVE(JLOOP)
-               L = IZSAVE(JLOOP)
 
                ! Add aerosol surface areas
                IF ( L <= LD21 ) THEN
@@ -1836,6 +1832,8 @@
      &                               TAREA(I,J,L,N+NDUST)
                ENDIF
 
+            ENDDO
+            ENDDO
             ENDDO
 
          ENDDO
