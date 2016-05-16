@@ -1510,19 +1510,20 @@
                      
                      ! Only archive where SMVGEAR chem is done
                      ! Code skalooched from "calcrate.f"
-                        IF ( JLOOP /= 0 ) THEN
-                           TK       = State_Met%T(I,J,L)
-                           CONSEXP  = 17.2693882e+0_fp * 
-     &                                (TK - 273.16e+0_fp) / 
-     &                                (TK - 35.86e+0_fp)
+                     IF ( JLOOP /= 0 ) THEN
+                        VARI(V)  = State_Met%AVGW(I,J,L) *
+     &                             State_Met%AIRNUMDEN(I,J,L)
+                        TK       = State_Met%T(I,J,L)
+                        CONSEXP  = 17.2693882e+0_fp * 
+     &                             (TK - 273.16e+0_fp) / 
+     &                             (TK - 35.86e+0_fp)
                            
-                           VPRESH2O = CONSVAP * EXP(CONSEXP) * 1e+0_fp 
-     &                              / TK
+                        VPRESH2O = CONSVAP * EXP(CONSEXP) * 1e+0_fp 
+     &                             / TK
                            
-                           VARI(V)  = State_Met%ABSHUM(I,J,L) * 
-     &                                VPRESH2O      /
-     &                                State_Met%AIRNUMDEN(I,J,L)
-                        ENDIF
+                        VARI(V)  = VARI(V) * VPRESH2O /
+     &                             State_Met%AIRNUMDEN(I,J,L)
+                     ENDIF
 
                   !--------------------------
                   ! GMAO aerosol sfc area
@@ -1530,14 +1531,14 @@
                   CASE ( 1003 )
 
                      ! Only archive where SMVGEAR chem is done
-                        VARI(V) = 0e+0_fp
+                     VARI(V) = 0e+0_fp
 
-                        IF ( JLOOP /= 0 ) THEN
-                           DO N = 1, NDUST + NAER
-                              VARI(V) = VARI(V) +
-     &                                  State_Chm%AeroArea(I,J,L,N)
-                           ENDDO
-                        ENDIF
+                     IF ( JLOOP /= 0 ) THEN
+                        DO N = 1, NDUST + NAER
+                           VARI(V) = VARI(V) +
+     &                               State_Chm%AeroArea(I,J,L,N)
+                        ENDDO
+                     ENDIF
 
                   !--------------------------
                   ! GMAO sfc pressure [hPa]

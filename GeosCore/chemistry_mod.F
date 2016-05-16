@@ -84,7 +84,6 @@
 ! !USES:
 !
       USE AEROSOL_MOD,        ONLY : AEROSOL_CONC
-      USE AEROSOL_MOD,        ONLY : AEROSOL_RURALBOX
       USE AEROSOL_MOD,        ONLY : RDAER
       USE AEROSOL_MOD,        ONLY : SOILDUST
       USE C2H6_MOD,           ONLY : CHEMC2H6
@@ -230,6 +229,8 @@
 !  17 Mar 2016 - M. Sulprizio- Remove call to OPTDEPTH. The optical depth fields
 !                              are now saved into State_Met%OPTD in the routines
 !                              that read the met fields from disk.
+!  16 May 2016 - M. Sulprizio- Remove call to AEROSOL_RURALBOX. The FlexChem
+!                              implementation has rendered the routine obsolete.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -529,11 +530,6 @@
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
 #endif
-
-            ! Define loop index and other SMVGEAR arrays
-            ! N_TROP, the # of trop boxes, is returned
-            CALL AEROSOL_RURALBOX( N_TROP,    am_I_Root, 
-     &                             Input_Opt, State_Met  )
 
             ! Compute aerosol & dust concentrations [kg/m3]
             ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)

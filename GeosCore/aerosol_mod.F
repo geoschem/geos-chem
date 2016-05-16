@@ -25,7 +25,6 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC :: AEROSOL_CONC
-      PUBLIC :: AEROSOL_RURALBOX
       PUBLIC :: CLEANUP_AEROSOL
       PUBLIC :: INIT_AEROSOL
       PUBLIC :: RDAER
@@ -67,6 +66,8 @@
 !  05 Nov 2014 - M. Yannetti - PRECISION_MOD Changed REAL*8 to REAL(fp)
 !  05 Mar 2015 - R. Yantosca - Remove DO_READ_DATA option.  We can no longer
 !                              have binary punch input in HPC environments.
+!  16 May 2016 - M. Sulprizio- Remove AEROSOL_RURALBOX. The implementation of
+!                              FlexChem has rendered the routine obsolete.
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -108,234 +109,6 @@
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
       CONTAINS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: aerosol_ruralbox
-!
-! ! DESCRIPTION: Subroutine AEROSOL\_RURALBOX computes quantities that are
-!   needed by RDAER. This mimics the call to RURALBOX, which is only done for
-!   fullchem runs. (bmy, 9/28/04, 9/14/06)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE AEROSOL_RURALBOX( N_CHEM,    am_I_Root, 
-     &                             Input_Opt, State_Met )
-!
-! !USES:
-!
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE PHYSCONSTANTS,      ONLY : BOLTZ, AVO, AIRMW, CONSVAP
-      USE COMODE_MOD,         ONLY : IXSAVE, IYSAVE, IZSAVE
-      USE COMODE_MOD,         ONLY : JLOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE COMODE_LOOP_MOD          ! AD, AVG, WTAIR, etc.
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root ! Is this the root CPU?
-!
-! !INPUT PARAMETERS: 
-!
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
-      TYPE(MetState), INTENT(INOUT) :: State_Met ! Meteorology State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: N_CHEM    ! # tropospheric boxes
-!
-! !REVISION HISTORY: 
-!  (1 ) Now convert ABSHUM from absolute humidity to relative humidity in
-!        AEROSOL_RURALBOX, using the same algorithm as in "gasconc.f".
-!        (bmy, 1/27/05)
-!  (2 ) Now references ITS_IN_THE_TROP from "tropopause_mod.f" to diagnose
-!        boxes w/in the troposphere. (bmy, 8/22/05)
-!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (4 ) Modified for variable tropopause (phs, bdf, 9/14/06)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  08 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
-!  02 Mar 2015 - E. Lundgren - Remove MAKE_AVGW call since State_Met%AVGW is
-!                              now set in AIRQNT within dao_mod.F
-!  01 Apr 2015 - R. Yantosca - Bug fix: BOXVL needs to be !$OMP PRIVATE
-!  21 Dec 2015 - M. Sulprizio- Remove calculation of BOXVL and AIRDENS. Get
-!                              these fields directly from State_Met instead.
-!  21 Apr 2016 - M. Sulprizio- Get CONSVAP from physconstants.F instead of
-!                              computing locally
-!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. ABSHUM
-!                              is now a 3D field in State_Met.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER, SAVE :: N_CHEM_BOXES
-      INTEGER       :: I, J, L, JLOOP
-      REAL(fp)      :: CONSEXP, TK, VPRESH2O
-      
-      !=================================================================
-      ! AEROSOL_RURALBOX begins here!
-      !=================================================================
-
-      ! Initialize
-      NLONG  = IIPAR
-      NLAT   = JJPAR
-      NVERT  = IVERT
-      NPVERT = NVERT
-
-      !=================================================================
-      ! Pre-save SMVGEAR loop indices on the first call
-      !=================================================================
-
-      ! bdf-phs: must do it everytime with a variable tropopause
-      IF ( FIRST .or. Input_Opt%LVARTROP ) THEN
-
-         ! Initialize 1-D index
-         JLOOP  = 0
-
-         ! Loop over grid boxes
-         DO L = 1, NVERT
-         DO J = 1, NLAT
-         DO I = 1, NLONG
-
-            ! JLOP is the 1-D grid box loop index
-            JLOP(I,J,L) = 0
-
-            !----------------------------------
-            ! Boxes w/in chemistry grid
-            !----------------------------------
-            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-
-               ! Increment JLOOP for trop boxes
-               JLOOP          = JLOOP + 1
-
-               ! Save JLOOP in SMVGEAR array JLOP
-               JLOP(I,J,L)    = JLOOP
-
-               ! These translate JLOOP back to an (I,J,L) triplet
-               IXSAVE(JLOOP)  = I
-               IYSAVE(JLOOP)  = J
-               IZSAVE(JLOOP)  = L                                 
-
-            ENDIF
-         ENDDO
-         ENDDO
-         ENDDO
-
-         ! JLOOP is now the number of boxes w/in GEOS-CHEM's annual mean 
-         ! tropopause.  Copy to SAVEd variable N_CHEM_BOXES.
-         IF ( am_I_Root ) THEN
-            WRITE( 6, 100 ) jloop
- 100        FORMAT( '  in aerosol ruralbox, val of chem boxes: ', I10)
-         ENDIF
-
-         N_CHEM_BOXES = JLOOP
-
-!------------------------------------------------------------------------------
-! Prior to 5/16/16:
-! NTLOOP is obsolete and has been replaced with IIPAR,JJPAR loops (mps 5/16/16)
-!         ! Set NTLOOP, NTTLOOP here.  Howeve, we will have to reset these
-!         ! after the call to READER, since READER redefines these. 
-!         NTLOOP       = JLOOP
-!         NTTLOOP      = JLOOP
-!------------------------------------------------------------------------------
-
-         ! Reset first-time flag
-         FIRST        = .FALSE.
-      ENDIF
-
-      ! Copy N_CHEM_BOXES to NTROP for passing back to calling program
-      N_CHEM = N_CHEM_BOXES
-      
-      !=================================================================
-      ! Compute ABSHUM at every timestep
-      !
-      ! NOTE: In the full-chemistry simulation, SMVGEAR uses the ABSHUM 
-      ! array for both absolute humidity [molec H2O/cm3] and relative 
-      ! humidity [fraction].  This conversion is done within subroutine 
-      ! "gasconc.f", which is called from "chemdr.f".
-      !
-      ! The computation of aerosol optical depths is done in routine
-      ! RDAER of "aerosol_mod.f".  In the full-chemistry simulation,
-      ! RDAER is called after "gasconc.f".  At the time when routine
-      ! RDAER is called, ABSHUM has already been converted to relative 
-      ! humidity.
-      !
-      ! For the offline aerosol simulation, we must also convert ABSHUM
-      ! from absolute humidity to relative humidity using the same
-      ! algorithm from "gasconc.f" (see code below).  This will ensure 
-      ! that aerosol optical depths in the offline aerosol simulation 
-      ! will be  computed in the same way as in the full chemistry 
-      ! simulation. (bmy, 1/27/05)
-      !=================================================================
-
-      ! Initialize 1-D index
-      JLOOP = 0
-
-      ! Loop over grid boxes
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, JLOOP, TK, CONSEXP, VPRESH2O )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, NVERT
-      DO J = 1, NLAT
-      DO I = 1, NLONG
-
-         ! Get 1-D loop index
-         JLOOP = JLOP(I,J,L)
-
-         !----------------------------------
-         ! Only process tropospheric boxes
-         !----------------------------------
-         IF ( JLOOP > 0 ) THEN
-
-!------------------------------------------------------------------------------
-! Prior to 12/21/15:
-! Remove BOXVL and AIRDENS. Get these fields directly from State_Met instead. 
-! (mps, 12/21/15)
-!            ! Grid box volume [cm3]
-!            BOXVL          = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-!
-!            ! Air density in [molec/cm3]
-!            ! Now use physical parameters from PHYSCONSTANTS (ewl, 1/4/16)
-!!            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
-!!     &                       BOXVL               * AVG  / WTAIR
-!            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
-!     &                       BOXVL               * AVO  / AIRMW
-!------------------------------------------------------------------------------
-
-            ! ABSHUM = absolute humidity [molec H2O/cm3 air]
-            State_Met%ABSHUM(I,J,L) = State_Met%AVGW(I,J,L)  *
-     &                                State_Met%AIRNUMDEN(I,J,L)
-
-            ! Convert ABSHUM to relative humidity [fraction]
-            ! using the same algorithm as in "gasconc.f"
-            TK       = State_Met%T(I,J,L)
-
-            CONSEXP  = 17.2693882e0_fp * 
-     &                 ( TK - 273.16e+0_fp ) / ( TK - 35.86e+0_fp )
-            VPRESH2O = CONSVAP * EXP( CONSEXP ) / TK
-            State_Met%ABSHUM(I,J,L) = State_Met%ABSHUM(I,J,L) / VPRESH2O
-
-         ENDIF
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE AEROSOL_RURALBOX
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1394,14 +1167,15 @@
             ! Skip non-chemistry boxes
             IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
-            ! Calculate RH from AbsHum - scavenged from gasconc.f
-            ! in GC-Classic (MSL)
-            ! -- THIS SHOULD BE A TEMPORARY FIX!
+            ! Calculate RH. Not clear why the result of this calc is 
+            ! slightly different than State_Met%RH
+            RELHUM   = State_Met%AVGW(I,J,L) *
+     &                 State_Met%AIRNUMDEN(I,J,L)
             TK       = State_Met%T(I,J,L)
             CONSEXP  = 17.2693882e+0_fp * (TK - 273.16e+0_fp) /
      &                 (TK - 35.86e+0_fp)
             VPRESH2O = CONSVAP * EXP(CONSEXP) / TK 
-            RELHUM   = State_met%ABSHUM(I,J,L) / VPRESH2O 
+            RELHUM   = RELHUM / VPRESH2O 
 
             ! Sort into relative humidity bins
             ! Currently uses the 0, 50, 70, 80, 90% RH bins

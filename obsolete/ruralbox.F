@@ -188,27 +188,6 @@
             IYSAVE(JLOOP)  = J
             IZSAVE(JLOOP)  = L                              
 
-!------------------------------------------------------------------------------
-! Prior to 12/21/15:
-! Remove VOLUME, AIRDENS, T3, and PRESS3. Get these fields directly from
-! State_Met instead. (mps, 12/21/15)
-!           ! get box volume [cm3]
-!           VOLUME(JLOOP)  = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-!
-!           ! get air density in (molecs cm^-3)
-!            ! Now use paramters from PHYSCONSTANTS (ewl, 1/4/16)
-!!            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
-!!     &                       VOLUME(JLOOP) * AVG / WTAIR
-!            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
-!     &                       VOLUME(JLOOP) * AVO / AIRMW
-!
-!           ! get temperature
-!           T3(JLOOP)      = State_Met%T(I,J,L)
-!
-!           ! PRESS3 = pressure in bar, multiply mb * 1000
-!           PRESS3(JLOOP)  = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp
-!------------------------------------------------------------------------------
-
             ! Get relative humidity (here is absolute #H2O/cc air)
             ! AVGW is the mixing ratio of water vapor [v/v]
             State_Met%ABSHUM(I,J,L) = State_Met%AVGW(I,J,L) *
@@ -223,12 +202,8 @@
          IF ( L == 1 ) NIJLOOP = JLOOP
       ENDDO
 
-!------------------------------------------------------------------------------
-! Prior to 5/16/16:
-! NTLOOP is obsolete and has been replaced with IIPAR,JJPAR loops (mps 5/16/16)
-!      ! NTLOOP is the number of total tropospheric boxes
-!      NTLOOP = JLOOP
-!------------------------------------------------------------------------------
+      ! NTLOOP is the number of total tropospheric boxes
+      NTLOOP = JLOOP
 
       END SUBROUTINE RURALBOX
 !EOC

@@ -875,9 +875,6 @@ rpmares_mod.o               : rpmares_mod.F                                  \
                               chemgrid_mod.o                                 \
                               tracer_mod.o            tracerid_mod.o
 
-ruralbox.o                  : ruralbox.F                                     \
-                              chemgrid_mod.o          comode_mod.o  
-
 seasalt_mod.o               : seasalt_mod.F           dao_mod.o              \
                               diag_mod.o              drydep_mod.o           \
                               pbl_mix_mod.o           tomas_mod.o            \
@@ -901,8 +898,6 @@ ucx_mod.o                   : ucx_mod.F                                      \
                               fast_jx_mod.o           hcoi_gc_main_mod.o     \
                               tracer_mod.o                                   \
                               tracerid_mod.o          future_emissions_mod.o
-
-setmodel.o                  : setmodel.F
 
 soil_nox_mod.o              : soil_nox_mod.F
 

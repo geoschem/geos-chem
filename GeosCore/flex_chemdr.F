@@ -84,6 +84,8 @@
 !  28 Mar 2016 - R. Yantosca - Added several fixes for OpenMP parallelization
 !  30 Mar 2016 - R. Yantosca - Bug fix, now make sure to copy C back into
 !                              State_Chm%Species.  Also block out temp diags.
+!  16 May 2016 - M. Sulprizio- Remove call to RURALBOX. The implemementation of
+!                              FlexChem has rendered the routine obsolete.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -190,9 +192,6 @@
 
       ! mje link the STT Pointer to the State_Chm%Tracers stucture
       STT       => State_Chm%Tracers
-
-      ! Locate the tropopsheric boxes
-      CALL RURALBOX( State_Met )
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
