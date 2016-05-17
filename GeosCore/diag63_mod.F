@@ -151,6 +151,7 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  26 Feb 2015 - E. Lundgren - Remove pressure_mod from use list (not used)
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -172,7 +173,7 @@
       INTEGER                       :: AF
       CHARACTER(LEN= 63)            :: DiagnName
       CHARACTER(LEN=255)            :: MSG
-      TYPE(DiagnCont), POINTER      :: DiagnCnt => NULL()
+      TYPE(DiagnCont), POINTER      :: DiagnCnt
       REAL(f8)                      :: FACTOR
 !
 ! !DEFINED PARAMETERS:
@@ -183,6 +184,9 @@
       !=================================================================
       ! DIAG63 begins here!
       !=================================================================
+
+      ! Initialize
+      DiagnCnt => NULL()
 
       !=================================================================
       ! If it's a new day, open a new BPCH file and write file header

@@ -1509,10 +1509,16 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: Cat, ExtNr, HcoID, N
+    INTEGER            :: Cat, ExtNr, HcoID, N, N_CO
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGN_BIOMASS (hcoi_gc_diagn_mod.F90)'
+
+    ! CO tracer names
+    INTEGER, PARAMETER :: N_BIOM_CO             = 7
+    CHARACTER(LEN=7)   :: CO_Tracers(N_BIOM_CO) =          &
+         (/ 'CO     ', 'CObbam ', 'CObbaf ', 'CObbas ' ,   &
+            'CObboc ', 'CObbeu ', 'CObboth'              /) 
 
     !=======================================================================
     ! DIAGN_BIOMASS begins here!
@@ -1931,29 +1937,64 @@ CONTAINS
     IF ( ND28 > 0 .OR. ND29 > 0 ) THEN
 
        ! CO is only defined for full chemistry and tagged CO simulations
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or.             &
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
             Input_Opt%ITS_A_TAGCO_SIM    ) THEN
 
-          ! HEMCO species ID
-          HcoID = GetHemcoId( 'CO', HcoState, LOC, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Loop over tagged CO tracers if necessary
+          IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+             N_CO = N_BIOM_CO
+          ELSE
+             N_CO = 1
+          ENDIF
 
-          ! Create diagnostic container
-          DiagnName = 'BIOMASS_CO'
-          CALL Diagn_Create( am_I_Root,                     & 
-                             HcoState  = HcoState,          &
-                             cName     = TRIM( DiagnName ), &
-                             ExtNr     = ExtNr,             &
-                             Cat       = Cat,               &
-                             Hier      = -1,                &
-                             HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
-                             LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
-                             AutoFill  = 1,                 &
-                             RC        = RC                  ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Loop over all CO tracers
+          DO N = 1, N_CO
+
+             ! Pick the various category names
+             SELECT CASE( TRIM( CO_Tracers(N) ) )
+                CASE( 'CO'      )
+                   HcoId     =  GetHemcoId( 'CO', HcoState, LOC, RC )
+                   DiagnName = 'BIOMASS_CO'
+                CASE( 'CObbam'  ) 
+                   HcoId     =  GetHemcoId( 'CObbam', HcoState, LOC, RC )
+                   DiagnName = 'BIOMASS_TAGCO_USA'
+                CASE( 'CObbaf'  ) 
+                   HcoId     =  GetHemcoId( 'CObbaf', HcoState, LOC, RC )
+                   DiagnName = 'BIOMASS_TAGCO_AFRICA'
+                CASE( 'CObbas'  ) 
+                   HcoId     =  GetHemcoId( 'CObbas', HcoState, LOC, RC )
+                   DiagnName = 'BIOMASS_TAGCO_ASIA'
+                CASE( 'CObboc'  ) 
+                   HcoId     =  GetHemcoId( 'CObboc', HcoState, LOC, RC )
+                   DiagnName = 'BIOMASS_TAGCO_OCEANIA'
+                CASE( 'CObbeu'  ) 
+                   HcoId     =  GetHemcoId( 'CObbeu', HcoState, LOC, RC )
+                   DiagnName = 'BIOMASS_TAGCO_EUROPE'
+                CASE( 'CObboth' ) 
+                   HcoId     =  GetHemcoId( 'CObboth', HcoState, LOC, RC )
+                   DiagnName = 'BIOMASS_TAGCO_OTHER'
+                CASE DEFAULT
+                   HcoId     = -1
+                   DiagnName = ''
+             END SELECT
+             
+             ! Define the diagnostic catetory if the HEMCO id is found
+             IF ( HcoId > 0 ) THEN
+                CALL Diagn_Create( am_I_Root,                       & 
+                                   HcoState  = HcoState,            &
+                                   cName     = TRIM( DiagnName ),   &
+                                   ExtNr     = ExtNr,               &
+                                   Cat       = CATEGORY_BIOMASS,    &
+                                   Hier      = -1,                  &
+                                   HcoID     = HcoID,               &
+                                   SpaceDim  = 2,                   &
+                                   LevIDx    = -1,                  &
+                                   OutUnit   = 'kg/m2/s',           &
+                                   COL       = HcoDiagnIDManual,    &
+                                   AutoFill  = 1,                   &
+                                   RC        = RC                  ) 
+             ENDIF
+          ENDDO
        ENDIF
     ENDIF
 
@@ -2479,11 +2520,20 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: ExtNr, HcoID, I, N
+    INTEGER            :: ExtNr, HcoID, I, N, N_CO
     CHARACTER(LEN=15)  :: SpcName
     CHARACTER(LEN=31)  :: DiagnName
+    CHARACTER(LEN=31)  :: DiagnName_AN
+    CHARACTER(LEN=31)  :: DiagnName_AC
+    CHARACTER(LEN=31)  :: DiagnName_BF
+    CHARACTER(LEN=31)  :: DiagnName_SH
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGN_ANTHRO (hcoi_gc_diagn_mod.F90)'
+
+    ! CO tracer names
+    INTEGER, PARAMETER :: N_ANTH_CO             = 5
+    CHARACTER(LEN=6)   :: CO_Tracers(N_ANTH_CO) =               &
+         (/ 'CO    ', 'COus  ', 'COeur ', 'COasia' , 'COoth ' /) 
 
     !=======================================================================
     ! DIAGN_Anthro begins here!
@@ -2741,34 +2791,132 @@ CONTAINS
     ENDIF
 
     !-------------------------------------------
-    ! %%%%% Anthropogenic CO %%%%%
+    ! %%%%% Anthropogenic CO sectors %%%%%
     !-------------------------------------------
     IF ( ND36 > 0 .OR. ND29 > 0 ) THEN
 
-       ! CO is only defined for the full-chemistry simulation
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM    .or.            &
-            Input_Opt%ITS_A_TAGCO_SIM     ) THEN
+       ! CO is only defined for the full-chemistry and tagged CO simulations
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or.   &
+            Input_Opt%ITS_A_TAGCO_SIM         ) THEN
 
-          ! HEMCO species ID
-          HcoID = GetHemcoId( 'CO', HcoState, LOC, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          
-          ! Create diagnostic container
-          DiagnName = 'ANTHROPOGENIC_CO'
-          CALL Diagn_Create( am_I_Root,                     & 
-                             HcoState  = HcoState,          &
-                             cName     = TRIM( DiagnName ), &
-                             ExtNr     = ExtNr,             &
-                             Cat       = CATEGORY_ANTHRO,   &
-                             Hier      = -1,                &
-                             HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
-                             LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
-                             AutoFill  = 1,                 &
-                             RC        = RC                  ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Loop over tagged CO tracers if necessary
+          IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+             N_CO = N_ANTH_CO
+          ELSE
+             N_CO = 1
+          ENDIF
+
+          ! Loop over all CO tracers
+          DO N = 1, N_CO
+
+             ! Pick the various category names
+             SELECT CASE( TRIM( CO_Tracers(N) ) )
+                CASE( 'CO'   )
+                   HcoId        =  GetHemcoId( 'CO', HcoState, LOC, RC )
+                   DiagnName_AN = 'ANTHROPOGENIC_CO'
+                   DiagnName_AC = 'AIRCRAFT_CO'
+                   DiagnName_BF = 'BIOFUEL_CO'
+                   DiagnName_SH = 'SHIP_CO'
+                CASE( 'COus' )                 
+                   HcoId        =  GetHemcoId( 'COus', HcoState, LOC, RC )
+                   DiagnName_AN = 'ANTHRO_BIOFUEL_TAGCO_US'
+                   DiagnName_AC = 'AIRCRAFT_TAGCO_US'
+                   DiagnName_BF = ''
+                   DiagnName_SH = 'SHIP_TAGCO_US'
+                CASE( 'COeur'  )                 
+                   HcoId        =  GetHemcoId( 'COeur', HcoState, LOC, RC )
+                   DiagnName_AN = 'ANTHRO_BIOFUEL_TAGCO_EUR'
+                   DiagnName_AC = 'AIRCRAFT_TAGCO_EUR'
+                   DiagnName_BF = ''
+                   DiagnName_SH = 'SHIP_TAGCO_EUR'
+                CASE( 'COasia' )
+                   HcoId        =  GetHemcoId( 'COasia', HcoState, LOC, RC )
+                   DiagnName_AN = 'ANTHRO_BIOFUEL_TAGCO_ASIA'
+                   DiagnName_AC = 'AIRCRAFT_TAGCO_ASIA'
+                   DiagnName_BF = ''
+                   DiagnName_SH = 'SHIP_TAGCO_ASIA'
+                CASE( 'COoth'  )
+                   HcoId        =  GetHemcoId( 'COoth', HcoState, LOC, RC )
+                   DiagnName_AN = 'ANTHRO_BIOFUEL_TAGCO_OTHER'
+                   DiagnName_AC = 'AIRCRAFT_TAGCO_OTHER'
+                   DiagnName_BF = ''
+                   DiagnName_SH = 'SHIP_TAGCO_OTHER'
+                CASE DEFAULT
+                   HcoId        = -1
+                   DiagnName_AN = ''
+                   DiagnName_AC = ''
+                   DiagnName_BF = ''
+                   DiagnName_SH = ''
+             END SELECT
+             
+             ! If a valid tracer
+             IF ( HcoId > 0 ) THEN
+      
+                ! Anthropogenic
+                CALL Diagn_Create( am_I_Root,                             & 
+                                   HcoState  = HcoState,                  &
+                                   cName     = TRIM( DiagnName_AN ),      &
+                                   ExtNr     = ExtNr,                     &
+                                   Cat       = CATEGORY_ANTHRO,           &
+                                   Hier      = -1,                        &
+                                   HcoID     = HcoID,                     &
+                                   SpaceDim  = 2,                         &
+                                   LevIDx    = -1,                        &
+                                   OutUnit   = 'kg/m2/s',                 &
+                                   COL       = HcoDiagnIDManual,          &
+                                   AutoFill  = 1,                         &
+                                   RC        = RC                        ) 
+
+                ! Aircraft
+                CALL Diagn_Create( am_I_Root,                             & 
+                                   HcoState  = HcoState,                  &
+                                   cName     = TRIM( DiagnName_AC ),      &
+                                   ExtNr     = ExtNr,                     &
+                                   Cat       = CATEGORY_AIRCRAFT,         &
+                                   Hier      = -1,                        &
+                                   HcoID     = HcoID,                     &
+                                   SpaceDim  = 2,                         &
+                                   LevIDx    = -1,                        &
+                                   OutUnit   = 'kg/m2/s',                 &
+                                   COL       = HcoDiagnIDManual,          &
+                                   AutoFill  = 1,                         &
+                                   RC        = RC                        ) 
+
+                ! Biofuel
+                ! (NOTE: For tagged CO, biofuel is lumped in w/ anthro)
+                IF ( LEN_TRIM( DiagnName_BF ) > 0 ) THEN 
+                   CALL Diagn_Create( am_I_Root,                          & 
+                                      HcoState  = HcoState,               &
+                                      cName     = TRIM( DiagnName_BF ),   &
+                                      ExtNr     = ExtNr,                  &
+                                      Cat       = CATEGORY_BIOFUEL,       &
+                                      Hier      = -1,                     &
+                                      HcoID     = HcoID,                  &
+                                      SpaceDim  = 2,                      &
+                                      LevIDx    = -1,                     &
+                                      OutUnit   = 'kg/m2/s',              &
+                                      COL       = HcoDiagnIDManual,       &
+                                      AutoFill  = 1,                      &
+                                      RC        = RC                     ) 
+                ENDIF
+
+                ! Ship
+                CALL Diagn_Create( am_I_Root,                             & 
+                                   HcoState  = HcoState,                  &
+                                   cName     = TRIM( DiagnName_SH ),      &
+                                   ExtNr     = ExtNr,                     &
+                                   Cat       = CATEGORY_SHIP,             &
+                                   Hier      = -1,                        &
+                                   HcoID     = HcoID,                     &
+                                   SpaceDim  = 2,                         &
+                                   LevIDx    = -1,                        &
+                                   OutUnit   = 'kg/m2/s',                 &
+                                   COL       = HcoDiagnIDManual,          &
+                                   AutoFill  = 1,                         &
+                                   RC        = RC                        ) 
+
+             ENDIF
+          ENDDO
        ENDIF
     ENDIF
 

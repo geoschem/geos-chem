@@ -339,6 +339,7 @@
 !  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
 !                              concentration following advection
 !  13 Aug 2015 - E. lundgren - Remove v/v <-> kg/kg conversion
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -358,10 +359,10 @@
       REAL(fp),  POINTER :: p_VWND   (:,:,:  )
       REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
       REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
-      REAL(fp),  POINTER :: p_MFLEW  (:,:,:,:) => NULL()
-      REAL(fp),  POINTER :: p_MFLNS  (:,:,:,:) => NULL()
-      REAL(fp),  POINTER :: p_MFLUP  (:,:,:,:) => NULL()
+#if defined( BPCH_DIAG ) || defined( NETCDF )
+      REAL(fp),  POINTER :: p_MFLEW  (:,:,:,:)
+      REAL(fp),  POINTER :: p_MFLNS  (:,:,:,:)
+      REAL(fp),  POINTER :: p_MFLUP  (:,:,:,:)
 #endif
       REAL(fp),  POINTER :: p_STT    (:,:,:,:)
 
@@ -391,6 +392,13 @@
       LPRT      = Input_Opt%LPRT
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
+
+#if defined( BPCH_DIAG ) || defined( NETCDF )
+      ! Initialize pointers 
+      p_MFLEW   => NULL()
+      p_MFLNS   => NULL()
+      p_MFLUP   => NULL()
+#endif
 
 #if defined( NC_DIAG )
       ! Initialize netcdf diagnostic arrays
@@ -623,6 +631,7 @@
 !  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
 !                              concentration following advection
 !  13 Aug 2015 - E. lundgren - Remove v/v <-> kg/kg conversion
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -639,16 +648,16 @@
       REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR) 
 
       ! Pointers
-      REAL(fp),  POINTER :: p_UWND   (:,:,:  )
-      REAL(fp),  POINTER :: p_VWND   (:,:,:  )
-      REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
-      REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
-      REAL(fp),  POINTER :: p_MFLEW (:,:,:,:) => NULL()
-      REAL(fp),  POINTER :: p_MFLNS (:,:,:,:) => NULL()
-      REAL(fp),  POINTER :: p_MFLUP (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_UWND  (:,:,:  )
+      REAL(fp),  POINTER :: p_VWND  (:,:,:  )
+      REAL(fp),  POINTER :: p_XMASS (:,:,:  )
+      REAL(fp),  POINTER :: p_YMASS (:,:,:  )
+#if defined( BPCH_DIAG ) || defined( NETCDF )
+      REAL(fp),  POINTER :: p_MFLEW (:,:,:,:)
+      REAL(fp),  POINTER :: p_MFLNS (:,:,:,:)
+      REAL(fp),  POINTER :: p_MFLUP (:,:,:,:)
 #endif
-      REAL(fp),  POINTER :: p_STT    (:,:,:,:) ! v/v
+      REAL(fp),  POINTER :: p_STT   (:,:,:,:) ! v/v
 
       ! For fields from Input_Opt
       LOGICAL            :: LFILL
@@ -676,6 +685,13 @@
       LPRT      = Input_Opt%LPRT
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
+
+#if defined( BPCH_DIAG ) || defined( NETCDF )
+      ! Initialize pointers
+      p_MFLEW   => NULL()
+      p_MFLNS   => NULL()
+      p_MFLUP   => NULL()
+#endif
 
 #if defined( NC_DIAG )
       ! Initialize netcdf diagnostic arrays
@@ -911,6 +927,7 @@
 !  13 Aug 2015 - E. lundgren - Remove v/v <-> kg/kg conversion
 !  04 Nov 2015 - M. Sulprizio- Rename from DO_GEOSFP_WINDOW_TRANSPORT to
 !                              DO_WINDOW_TRANSPORT for use with all nested grids
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -928,20 +945,20 @@
       REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR)
 
       ! Pointers
-      REAL(fp),  POINTER :: p_A_M2  (  :    ) => NULL()
-      REAL(fp),  POINTER :: p_P_TP1 (:,:    ) => NULL()
-      REAL(fp),  POINTER :: p_P_TP2 (:,:    ) => NULL()
-      REAL(fp),  POINTER :: p_P_TEMP(:,:    ) => NULL()
-      REAL(fp),  POINTER :: p_UWND  (:,:,:  ) => NULL()
-      REAL(fp),  POINTER :: p_VWND  (:,:,:  ) => NULL()
-      REAL(fp),  POINTER :: p_XMASS (:,:,:  ) => NULL()
-      REAL(fp),  POINTER :: p_YMASS (:,:,:  ) => NULL()
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
-      REAL(fp),  POINTER :: p_MFLEW (:,:,:,:) => NULL()
-      REAL(fp),  POINTER :: p_MFLNS (:,:,:,:) => NULL()
-      REAL(fp),  POINTER :: p_MFLUP (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_A_M2  (  :    )
+      REAL(fp),  POINTER :: p_P_TP1 (:,:    )
+      REAL(fp),  POINTER :: p_P_TP2 (:,:    )
+      REAL(fp),  POINTER :: p_P_TEMP(:,:    )
+      REAL(fp),  POINTER :: p_UWND  (:,:,:  )
+      REAL(fp),  POINTER :: p_VWND  (:,:,:  )
+      REAL(fp),  POINTER :: p_XMASS (:,:,:  )
+      REAL(fp),  POINTER :: p_YMASS (:,:,:  )
+#if defined( BPCH_DIAG ) || defined( NETCDF )
+      REAL(fp),  POINTER :: p_MFLEW (:,:,:,:)
+      REAL(fp),  POINTER :: p_MFLNS (:,:,:,:)
+      REAL(fp),  POINTER :: p_MFLUP (:,:,:,:)
 #endif
-      REAL(fp),  POINTER :: p_STT   (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_STT   (:,:,:,:)
 
       ! For fields from Input_Opt
       LOGICAL          :: LFILL
@@ -958,7 +975,6 @@
       REAL(fp), TARGET :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,NNPAR) 
 #endif
 
-
       !=================================================================
       ! DO_FVDAS_WINDOW_TRANSPORT begins here!
       !=================================================================
@@ -971,6 +987,22 @@
       LPRT      = Input_Opt%LPRT
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
+
+      ! Initialize pointers
+      p_A_M2   => NULL()
+      p_P_TP1  => NULL()
+      p_P_TP2  => NULL()
+      p_P_TEMP => NULL()
+      p_UWND   => NULL()
+      p_VWND   => NULL()
+      p_XMASS  => NULL()
+      p_YMASS  => NULL()
+#if defined( BPCH_DIAG ) || defined( NETCDF )
+      p_MFLEW  => NULL()
+      p_MFLNS  => NULL()
+      p_MFLUP  => NULL()
+#endif
+      p_STT    => NULL()
 
 #if defined( NC_DIAG )
       ! Initialize netcdf diagnostic arrays

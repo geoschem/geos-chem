@@ -268,7 +268,7 @@
       ENDIF
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       END SUBROUTINE CHEMSEASALT
 !EOC
@@ -352,6 +352,7 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
 !                              Remove dependency on pressure_mod.
 !  25 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostic
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -382,7 +383,7 @@
       INTEGER                  :: drydep_id, trc_id, HCRC
       CHARACTER(LEN=30)        :: DiagnName
       REAL(fp), TARGET         :: DryDepFlux( IIPAR, JJPAR ) 
-      REAL(fp), POINTER        :: Ptr2D(:,:) => NULL()
+      REAL(fp), POINTER        :: Ptr2D(:,:)
 #endif
 !
 ! !DEFINED PARAMETERS:
@@ -422,11 +423,15 @@
       ! WET_SETTLING begins here!
       !=================================================================
       ! Copy fields from INPUT_OPT to local variables for use below
-      LPRT     = Input_Opt%LPRT
+      LPRT          = Input_Opt%LPRT
 
       ! Do we have to print debug output?
-      prtDebug = ( LPRT .and. am_I_Root )
+      prtDebug      = ( LPRT .and. am_I_Root )
 
+#if defined( NC_DIAG )
+      ! Initialize pointer
+      Ptr2D         => NULL()
+#endif
 
       ! Assume success
       RC            = GIGC_SUCCESS
@@ -837,15 +842,15 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER              :: I,      J,   L
-      REAL(fp)             :: DTCHEM, KOC, TC0, CNEW, RKT, FREQ
+      INTEGER             :: I,      J,   L
+      REAL(fp)            :: DTCHEM, KOC, TC0, CNEW, RKT, FREQ
 
       ! Pointers
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: STT(:,:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp),  PARAMETER :: OC_LIFE = 1.15e+0_fp
+      REAL(fp), PARAMETER :: OC_LIFE = 1.15e+0_fp
 
       !=================================================================
       ! CHEM_MOPO begins here!
@@ -1059,6 +1064,7 @@
 !  23 Sep 2015 - R. Yantosca - Now accept State_Chm as an argument so that
 !                              we can use the species database
 !  30 Sep 2015 - R. Yantosca - DD_A_Density is renamed to Density
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1070,7 +1076,7 @@
       INTEGER                :: AS, N
 
       ! Objects
-      TYPE(Species), POINTER :: ThisSpc => NULL()
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! INIT_SEASALT begins here!
@@ -1081,6 +1087,9 @@
 
       ! Return if we have already allocated arrays
       IF ( IS_INIT ) RETURN
+
+      ! Initialize pointer
+      ThisSpc => NULL()
 
       ALLOCATE( SALT_V( NR_MAX ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SALT_V' )

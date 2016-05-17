@@ -203,6 +203,7 @@
 !  13 Apr 2015 - R. Nassar   - Some bug fixes for HEMCO implementation, 
 !                              e.g. unit fixes for aviation and chem source
 !  11 Sep 2015 - E. Lundgren - Tracer units are now kg/kg dry air (prev kg)
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -245,9 +246,9 @@
       CHARACTER(LEN=255)         :: LOC = 'EMISSCO2 (co2_mod.F)'
 
       ! Pointers
-      TYPE(HCO_State), POINTER   :: HcoState            => NULL()
-      REAL(f4),        POINTER   :: CO2_COPROD(:,:,:  ) => NULL()
-      REAL(fp),        POINTER   :: STT       (:,:,:,:) => NULL()
+      TYPE(HCO_State), POINTER   :: HcoState
+      REAL(f4),        POINTER   :: CO2_COPROD(:,:,:  )
+      REAL(fp),        POINTER   :: STT       (:,:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -276,6 +277,11 @@
       LPLANETAG   = Input_Opt%LPLANETAG
       N_TRACERS   = Input_Opt%N_TRACERS
   
+      ! Initialize pointers
+      HcoState    => NULL()
+      CO2_COPROD  => NULL()
+      STT         => NULL()
+
       ! Import emissions from HEMCO (through HEMCO state)
       CALL GetHcoState( HcoState )
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN

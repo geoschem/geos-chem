@@ -29,16 +29,13 @@
 !
       PUBLIC  :: CHEM_TAGGED_CO
       PUBLIC  :: GET_ALPHA_ISOP
-      PUBLIC  :: READ_PCO_LCO_STRAT
-      PUBLIC  :: GET_PCO_LCO_STRAT
       PUBLIC  :: INIT_TAGGED_CO
       PUBLIC  :: CLEANUP_TAGGED_CO
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      INTEGER, PUBLIC, ALLOCATABLE :: BB_REGION(:,:)   ! BB CO regions
-      INTEGER, PUBLIC, ALLOCATABLE :: FF_REGION(:,:)   ! FF CO regions
-      REAL(fp),  PUBLIC, ALLOCATABLE :: EMACET(:,:)      ! Acetone emissions
+      ! Pointers
+      REAL(fp), PUBLIC, ALLOCATABLE :: EMACET  (:,:  )           ! ACET emiss
 !
 ! !REMARKS:
 !  Tagged CO Tracers (you can modify these as needs be!)
@@ -125,33 +122,28 @@
 !  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  11 Mar 2015 - R. Yantosca - Add OH pointer for HEMCO data input
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
+!  21 Mar 2016 - R. Yantosca - Removed CO_PRODS and CO_LOSSS, we now get
+!                              GMI strat P(CO) and L(CO) directly from HEMCO
+!  21 Mar 2016 - R. Yantosca - Removed GET_PCO_LCO_STRAT, it was obsolete
+!  21 Mar 2016 - R. Yantosca - Get rid of READ_PCO_LCO_STRAT, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
-      REAL(f4), ALLOCATABLE :: CO_PRODS  (:,:,:)   ! Strat P(CO) from CH4
-      REAL(f4), ALLOCATABLE :: CO_LOSSS  (:,:,:)   ! Strat L(CO) from CO + OH
-      REAL(fp), ALLOCATABLE :: SUMACETCO (:,:  )   ! P(CO) from Acetone
-      REAL(fp), ALLOCATABLE :: SUMCH3OHCO(:,:  )   ! P(CO) from CH3OH
-      REAL(fp), ALLOCATABLE :: SUMISOPCO (:,:  )   ! P(CO) from Isoprene
-      REAL(fp), ALLOCATABLE :: SUMMONOCO (:,:  )   ! P(CO) from Monoterpenes
-      REAL(fp), ALLOCATABLE :: TCOSZ     (:,:  )   ! Daily sum COS(SZA)
+      ! Arrays
+      REAL(fp), ALLOCATABLE :: SUMACETCO  (:,:  )   ! P(CO) from Acetone
+      REAL(fp), ALLOCATABLE :: SUMCH3OHCO (:,:  )   ! P(CO) from CH3OH
+      REAL(fp), ALLOCATABLE :: SUMISOPCO  (:,:  )   ! P(CO) from Isoprene
+      REAL(fp), ALLOCATABLE :: SUMMONOCO  (:,:  )   ! P(CO) from Monoterpenes
+      REAL(fp), ALLOCATABLE :: TCOSZ      (:,:  )   ! Daily sum COS(SZA)
 
       ! Pointers to fields in the HEMCO data structure.
       ! These need to be declared REAL(f4), aka REAL*4.
-      REAL(f4), POINTER     :: OH(:,:,:) => NULL()
-!
-! !DEFINED PARAMETERS:
-!
-      ! FMOL_CO     - kg CO / mole CO
-      ! XNUMOL_CO   - molecules CO / kg CO
-      REAL(fp),  PARAMETER   :: FMOL_CO     = 28e-3_fp
-      REAL(fp),  PARAMETER   :: XNUMOL_CO   = AVO/FMOL_CO
-
-      ! Molecules C / kg C
-      REAL(fp),  PARAMETER   :: XNUMOL_C    = AVO/12e-3_fp 
+      REAL(f4), POINTER     :: OH         (:,:,:) => NULL() ! Global OH
+      REAL(f4), POINTER     :: GMI_PROD_CO(:,:,:) => NULL() ! Strat P(CO)
+      REAL(f4), POINTER     :: GMI_LOSS_CO(:,:,:) => NULL() ! Strat L(CO)
 
       CONTAINS
 !EOC
@@ -184,7 +176,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
-!      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
       USE GRID_MOD,           ONLY : GET_YMID
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
@@ -272,6 +263,8 @@
 !  11 Mar 2015 - R. Yantosca - Remove references to global_nox_mod.F
 !  11 Mar 2015 - R. Yantosca - Now get OH via the HEMCO data structure
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
+!  21 Mar 2016 - R. Yantosca - Now define FMOL_CO from the species database
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -289,16 +282,13 @@
       REAL(fp)               :: CO_CH3OH,  CO_OH,      CO_ACET
       REAL(fp)               :: CH4RATE,   DENS
       REAL(fp)               :: CORATE,    YMID
-      REAL(fp)               :: BOXVL
+      REAL(fp)               :: BOXVL,     FMOL_CO
 
       ! Variables for new JPL 2006 rate constants (jaf, jmao, 3/4/09)
       REAL(fp)               :: KHI1,      KLO1,       XYRAT1
       REAL(fp)               :: BLOG1,     FEXP1,      KHI2
       REAL(fp)               :: KLO2,      XYRAT2,     BLOG2
       REAL(fp)               :: FEXP2,     KCO1,       KCO2
-
-      ! For saving CH4 latitudinal gradient
-      REAL(fp),  SAVE        :: A3090S, A0030S, A0030N, A3090N
 
       ! For OH diurnal cycle (jaf, 3/12/14)
       REAL(fp)               :: OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS
@@ -309,10 +299,10 @@
       CHARACTER(LEN=255)     :: ERR_MSG
 
       ! Pointers to fields in State_Met and State_Chm
-      REAL(fp),  POINTER     :: AD    (:,:,:  )
-      REAL(fp),  POINTER     :: AIRVOL(:,:,:  )
-      REAL(fp),  POINTER     :: STT   (:,:,:,:)
-      REAL(fp),  POINTER     :: T     (:,:,:  )
+      REAL(fp),      POINTER :: AD    (:,:,:  )
+      REAL(fp),      POINTER :: AIRVOL(:,:,:  )
+      REAL(fp),      POINTER :: STT   (:,:,:,:)
+      REAL(fp),      POINTER :: T     (:,:,:  )
 
       ! To get HEMCO values
       REAL(fp)               :: Emis
@@ -320,28 +310,27 @@
 
       ! Strings
       CHARACTER(LEN=255)     :: LOC='CHEM_TAGGED_CO (tagged_co_mod.F)'
+
+      ! SAVED scalars
+      LOGICAL,   SAVE        :: FIRST = .TRUE.
+      REAL(fp),  SAVE        :: A3090S, A0030S, A0030N, A3090N
 !
 ! !DEFINED PARAMETERS:
 !
       ! Switch to scale yield of isoprene from NOx concentration or not
       LOGICAL,   PARAMETER   :: ALPHA_ISOP_FROM_NOX = .FALSE.
 
-      ! MW of air (g/mol)
-      !REAL(fp),  PARAMETER   :: WTAIR = 28.966e+0_fp ! use global AIRMW
-
       ! Yield of CO from CH4
-      REAL(fp),  PARAMETER   :: ALPHA_CH4  = 1e+0_fp
+      REAL(fp),  PARAMETER   :: ALPHA_CH4  = 1.0_fp
 
       ! Yield of CO from monoterpenes
       REAL(fp),  PARAMETER   :: ALPHA_MONO = 2e-1_fp
 
       ! Yield of CO from acetone
-      REAL(fp),  PARAMETER   :: ALPHA_ACET = 2e+0_fp/3e+0_fp
+      REAL(fp),  PARAMETER   :: ALPHA_ACET = 2.0_fp / 3.0_fp
 
       !=================================================================
       ! CHEM_TAGGED_CO begins here!
-      !
-      ! Do the following on the first call to CHEM_TAGGED_CO...
       !=================================================================
 
       ! Assume success
@@ -360,27 +349,46 @@
       STT       => State_Chm%Tracers
       T         => State_Met%T
 
+      ! Get the molecular weight of CO [kg/mol] from the species database
+      ! (All tagged tracers are CO, so we can use the value for tracer #1)
+      FMOL_CO   =  State_Chm%SpcData(1)%Info%MW_g * 1.0e-3_fp
+
       ! Compute diurnal cycle for OH every day (check for new day inside
       ! subroutine) - jaf 7/10/14
-      CALL CALC_DIURNAL
+      CALL CALC_DIURNAL()
 
       !=================================================================
-      ! Read in OH, NOx, P(CO), and L(CO) fields for the current month
+      ! Get pointers from HEMCO for OH, P(CO), and L(CO) fields
+      ! 
+      ! NOTES: 
+      ! (1) We only need to get the pointers on the very first
+      !      timestep.  HEMCO will update the targets automatically.
+      ! (2) These calls have to be placed here instead of in routine
+      !      INIT_TAGGED_CO.  This is because when INIT_TAGGED_CO is
+      !      called, the HEMCO_Config file has not yet been read in.
       !=================================================================
-      IF ( ITS_A_NEW_MONTH() ) THEN
+      IF ( FIRST ) THEN
          
-         ! Get current month
-         MONTH = GET_MONTH()
-
          ! Get a pointer to the OH field from the HEMCO list (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,   RC )
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
          ENDIF
 
-         ! Read in the loss/production of CO in the stratosphere.
-         CALL READ_PCO_LCO_STRAT( am_I_Root, Input_Opt, MONTH, RC )
+         ! Get pointer to strat P(CO) from GMI
+         CALL HCO_GetPtr ( am_I_Root, 'GMI_PROD_CO', GMI_PROD_CO, RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to GMI_PROD_CO', LOC )
+         ENDIF
+
+         ! Get pointer to strat L(CO) from GMI
+         CALL HCO_GetPtr ( am_I_Root, 'GMI_LOSS_CO', GMI_LOSS_CO, RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to GMI_LOSS_CO', LOC )
+         ENDIF
             
+         ! Reset first-time flag
+         FIRST = .FALSE.
       ENDIF
 
       !=================================================================
@@ -402,54 +410,20 @@
      &                        A0030N, A3090N, am_I_Root, Input_Opt )
       ENDIF
 
-      ! The following is now done in mixing_mod.F90 (ckeller, 3/4/15)
-      !=================================================================
-      ! Add emissions above the PBL to the tracer array. 
-      ! For more information about emissions and PBL mixing, see:
-      ! http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
-      !=================================================================
-!      DO N = 1, N_TRACERS
-!      DO L = 1, LLPAR
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!
-!         ! If we are using the non-local PBL mixing scheme, then
-!         ! only add emissions above the PBL top.  All emissions within
-!         ! the PBL are handled in routine VDIFFDR in vdiff_mod.F90.
-!         ! Skip if we have PBL mixing completely turned off, or if
-!         ! we are using the TURBDAY full-mixing scheme.
-!         IF ( Input_Opt%LNLPBL ) THEN
-!            IF ( L < State_Met%PBL_TOP_L(I,J) + 1 ) CYCLE
-!         ENDIF
-!
-!         ! Add emissions into the tracer array
-!         ! Convert from [kg/m2/s] to [kg]
-!         ! Now use GetHcoVal (ckeller, 10/21/2014)
-!         CALL GetHcoVal( N, I, J, L, FOUND, Emis=Emis )
-!         IF ( .NOT. FOUND ) CYCLE
-!         State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) 
-!     &                              + ( Emis
-!     &                              *   State_Met%AREA_M2(I,J,1)
-!     &                              *   DTCHEM                  )
-!
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!      ENDDO
-
       !=================================================================
       ! Do tagged CO chemistry -- Put everything within a large 
       ! DO-loop over all grid boxes to facilitate parallelization
       !=================================================================
 !$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED                                             ) 
-!$OMP+PRIVATE( I, J, L, N, STTCO, GCO, DENS, CH4RATE, CO_CH4, CH4 )
-!$OMP+PRIVATE( KRATE, CO_ISOP, CO_CH3OH, CO_MONO, CO_ACET, CORATE )
-!$OMP+PRIVATE( CO_OH, YMID, ALPHA_ISOP                            )
-!$OMP+PRIVATE( KHI1, KLO1, XYRAT1, BLOG1, FEXP1, KHI2, KLO2       )
-!$OMP+PRIVATE( XYRAT2, BLOG2, FEXP2, KCO1, KCO2                   )
-!$OMP+PRIVATE( OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS                  )
-!$OMP+PRIVATE( ERR_LOC, ERR_VAR, ERR_MSG, BOXVL )
+!$OMP+DEFAULT( SHARED                                                  ) 
+!$OMP+PRIVATE( I,       J,            L,           N,          STTCO   )
+!$OMP+PRIVATE( GCO,     DENS,         CH4RATE,     CO_CH4,     CH4     )
+!$OMP+PRIVATE( KRATE,   CO_ISOP,      CO_CH3OH,    CO_MONO,    CO_ACET )
+!$OMP+PRIVATE( CORATE,  CO_OH,        YMID,        ALPHA_ISOP, KHI1    )
+!$OMP+PRIVATE( KLO1,    XYRAT1,       BLOG1,       FEXP1,      KHI2    )
+!$OMP+PRIVATE( KLO2,    XYRAT2,       BLOG2,       FEXP2,      KCO1    )
+!$OMP+PRIVATE( KCO2,    OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS,     ERR_LOC ) 
+!$OMP+PRIVATE( ERR_VAR, ERR_MSG,      BOXVL                            )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -510,10 +484,10 @@
             !===========================================================
 
             ! Call GET_PCO_LCO_STRAT to get the P(CO) rate from CH4
-            CH4RATE = GET_PCO_LCO_STRAT( .TRUE., I, J, L )
-            
+            CH4RATE = GMI_PROD_CO(I,J,L)
+
             ! Convert units of CH4RATE from [v/v/s] to [molec CO/cm3]
-            CO_CH4 = CH4RATE * DTCHEM * DENS
+            CO_CH4  = CH4RATE * DTCHEM * DENS
 
          ELSE
             
@@ -750,10 +724,10 @@
             !===========================================================
 
             ! Get the L(CO) rate in the stratosphere in [s-1]
-            CORATE = GET_PCO_LCO_STRAT( .FALSE., I, J, L )
+            CORATE  = GMI_LOSS_CO(I,J,L)
 
             ! CO_OH is the fraction of CO lost to OH [unitless]
-            CO_OH = CORATE * DTCHEM
+            CO_OH   = CORATE * DTCHEM
 
             ! Check CO_OH for NaN or Infinity
             ERR_LOC = (/ I, J, L, 0 /)
@@ -924,7 +898,10 @@
 !$OMP END PARALLEL DO
 
       ! Free pointers
-      NULLIFY( AD, AIRVOL, STT, T )
+      AD     => NULL()
+      AIRVOL => NULL()
+      STT    => NULL()
+      T      => NULL()
 
       END SUBROUTINE CHEM_TAGGED_CO
 !EOC
@@ -1152,199 +1129,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_pco_lco_strat
-!
-! !DESCRIPTION: Subroutine READ\_PCO\_LCO\_STRAT reads production and 
-!  destruction rates for CO in the stratosphere. (bnd, bmy, 9/13/00, 8/13/10) 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_PCO_LCO_STRAT( am_I_Root, Input_Opt, 
-     &                               THISMONTH, RC         ) 
-!
-! !USES:
-!
-      ! GEOS-Chem modules
-      USE CMN_SIZE_MOD   
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-
-      ! netCDF modules
-      USE m_netcdf_io_open
-      USE m_netcdf_io_read
-      USE m_netcdf_io_close
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      INTEGER,        INTENT(IN)  :: THISMONTH   ! Month to read
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?!
-! 
-! !REMARKS:
-!  ##########################################################################
-!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
-!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
-!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
-!  ##########################################################################
-
-! !REVISION HISTORY: 
-!  13 Sep 2000 - B. Duncan   - Initial version
-!  (1 ) Now use IOS /= 0 to trap both I/O errors and EOF. (bmy, 9/13/00)
-!  (2 ) Added to module "tagged_co_mod.f" (bmy, 6/13/01)
-!  (3 ) ARRAY needs to be of size (IIPAR,JJPAR).  Use TRANSFER_ZONAL from
-!        "transfer_mod.f" to cast data from REAL*4 to REAL(fp), and also to
-!        copy data to an array of size (JJPAR,LLPAR).  Use 3 arguments (M/D/Y)
-!        in call to GET_TAU0.  Use JJPAR,LGLOB in call to READ_BPCH2. 
-!        (bmy, 9/28/01)
-!  (4 ) Removed obsolete code from 9/28/01 (bmy, 10/22/01)
-!  (5 ) Updated comments (bmy, 2/15/02)
-!  (6 ) Update FILENAME so that it looks in the "pco_lco_200203" subdirectory
-!        of DATA_DIR. (bnd, bmy, 6/30/03)
-!  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
-!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
-!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER             :: fileID
-      CHARACTER(LEN=255)  :: FILENAME
-      REAL*4              :: ARRAY(IIPAR,JJPAR,LGLOB) 
-
-      !=================================================================
-      ! READ_PCO_LCO_STRAT begins here!
-      !=================================================================
-
-      ! Assume success
-      RC        =  GIGC_SUCCESS
-
-      ! Initialize some variables
-      ARRAY    = 0e0
-      CO_PRODS = 0e+0_fp
-      CO_LOSSS = 0e+0_fp
-
-      ! Construct filename and open file
-      FILENAME = 'strat_chem_201206/gmi.clim.CO.' // 
-     &                GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
-      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 
-     &           TRIM( Input_Opt%RES_DIR  ) // TRIM( FILENAME )
-
-      call NcOp_Rd( fileID, TRIM( FILENAME ) )
-
-      !=================================================================
-      ! Read in CO production rates [v/v/s]
-      !=================================================================
-
-      ! Read P(CO)
-      call NcRd( array, fileID, 'prod',
-     &           (/     1,     1,     1, THISMONTH /),   ! Start
-     &           (/ IIPAR, JJPAR, LGLOB,         1 /)  ) ! Count
-
-      ! Cast from REAL*4 to REAL(fp) and resize to 1:LLPAR
-      CALL TRANSFER_3D( ARRAY, CO_PRODS )
-
-      !=================================================================
-      ! Read in CO loss frequency [s^-1]
-      !=================================================================
-
-      ! Read P(CO)
-      call NcRd( array, fileID, 'loss',
-     &           (/     1,     1,     1, THISMONTH /),   ! Start
-     &           (/ IIPAR, JJPAR, LGLOB,         1 /)  ) ! Count
-
-      ! Cast from REAL*4 to REAL(fp) and resize to 1:LLPAR
-      CALL TRANSFER_3D( ARRAY, CO_LOSSS )
-
-      ! Close file
-      call NcCl( fileID )
-
-      END SUBROUTINE READ_PCO_LCO_STRAT
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_pco_lco_strat
-!
-! !DESCRIPTION: Function GET\_CO\_STRAT\_RATE uses production and loss rates
-!  for CO to calculate net production of CO in the stratosphere.  The 
-!  purpose of this SR is to prevent high CO concentrations from building 
-!  up in the stratosphere; in these layers only transport is simulated 
-!  (i.e., no chemistry).  For a long simulation, a buildup of high 
-!  concentrations could occur causing the stratosphere to become a 
-!  significant source of CO. 
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_PCO_LCO_STRAT( IS_PROD, I, J, L ) RESULT( RATE )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD                  ! Size parameters
-
-!
-! !INPUT PARAMETERS: 
-!
-      LOGICAL, INTENT(IN)  :: IS_PROD   ! If = T, return CO production
-                                        ! If = F, return CO loss
-      INTEGER, INTENT(IN)  :: I, J, L   ! GEOS-Chem grid box indices
-!
-! !RETURN VALUE:
-!
-      REAL(fp)               :: RATE      ! CO prod [v/v/s] or loss [1/s]
-! 
-! !REVISION HISTORY: 
-!  13 Jun 2001 - B. Duncan - Initial version
-!  (1 ) Production (mixing ratio/sec) and loss (1/sec) rates provided by 
-!        Dylan Jones.  Only production by CH4+OH and destruction by CO+OH 
-!        are considered.
-!  (2 ) The annual mean tropopause is stored in the LPAUSE array 
-!       (from header file "CMN").  LPAUSE is defined such that: 
-!       Levels            1 <= L <= LPAUSE(I,J) - 1 are tropospheric
-!               LPAUSE(I,J) <= L <= LLPAR           are stratospheric
-!  (3 ) LPAUSE_MIN = minimun tropopause height.  Start L-loop from the 
-!        lowest stratospheric level!
-!  (4 ) Added to module "tagged_co_mod.f" (bmy, 6/18/01)
-!  (5 ) Updated comments (bmy, 2/19/02)
-!  (6 ) Removed reference to CMN, it's not needed (bmy, 7/20/04)
-!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
-!  23 Oct 2012 - J. Fisher   - Now use (I,J,L) to reference CO_PRODS 
-!                              and CO_LOSSS arrays for GMI strat chem
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-      !=================================================================
-      ! Pick P(CO) or L(CO) depending on IS_PROD
-      !=================================================================
-      IF ( IS_PROD ) THEN
-         RATE = CO_PRODS(I,J,L)   ! P(CO) from CH4 + OH in [v/v/s]
-      ELSE
-         RATE = CO_LOSSS(I,J,L)   ! L(CO) from CO + OH  in [s^-1]
-      ENDIF
-    
-      END FUNCTION GET_PCO_LCO_STRAT
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: init_tagged_co
 !
 ! !DESCRIPTION: Subroutine INIT\_TAGGED\_CO allocates memory to module arrays.
@@ -1357,9 +1141,12 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE ERROR_MOD,          ONLY : Alloc_Err
       USE GIGC_ErrCode_MOd
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE HCO_STATE_MOD,      ONLY : Hco_State
+      USE HCO_EmisList_Mod,   ONLY : Hco_GetPtr
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1387,13 +1174,14 @@
 !  10 Apr 2014 - R. Yantosca - Now call DEFINE* routines to define the
 !                              fossil fuel and biofuel regions
 !  10 Apr 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
+!  21 Mar 2016 - R. Yantosca - Remove CO_PRODS, CO_LOSSS arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS, I, J, IJLOOP
+      INTEGER :: AS, I, J
       
       !=================================================================
       ! INIT_TAGGED_CO begins here!
@@ -1405,61 +1193,32 @@
       ! Allocate SUMACETCO -- array for CO from isoprene
       ALLOCATE( EMACET( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMACET' )         
-      EMACET = 0e+0_fp 
+      EMACET = 0.0_fp 
 
-      ! Allocate and initialize IJLOOP_CO -- 1-D array index
-      ALLOCATE( CO_PRODS( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_PRODS' )    
-!      CO_PRODS = 0e+0_fp
-      CO_PRODS = 0e0
-
-      ! Allocate and initialize IJLOOP_CO -- 1-D array index
-      ALLOCATE( CO_LOSSS( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_LOSSS' )    
-!      CO_LOSSS = 0e+0_fp
-      CO_PRODS = 0e0
-
-      ! Allocate only what is needed
-      IF ( Input_Opt%ITS_A_H2HD_SIM ) RETURN
-
-      ! Allocate BB_REGION -- array for biomass burning regions
-      ALLOCATE( BB_REGION( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BB_REGION' )         
-      BB_REGION = 0
-
-      ! Allocate FF_REGION -- array for fossil fuel regions
-      ALLOCATE( FF_REGION( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FF_REGION' )
-      FF_REGION = 0
-      
       ! Allocate SUMISOPCO -- array for CO from isoprene
       ALLOCATE( SUMISOPCO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMISOPCO' )         
-      SUMISOPCO = 0e+0_fp 
+      SUMISOPCO = 0.0_fp 
 
       ! Allocate SUMISOPCO -- array for CO from isoprene
       ALLOCATE( SUMMONOCO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMMONOCO' )         
-      SUMMONOCO = 0e+0_fp 
+      SUMMONOCO = 0.0_fp 
 
       ! Allocate SUMISOPCO -- array for CO from isoprene
       ALLOCATE( SUMCH3OHCO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMCH3OHCO' )         
-      SUMCH3OHCO = 0e+0_fp 
+      SUMCH3OHCO = 0.0_fp 
 
       ! Allocate SUMACETCO -- array for CO from isoprene
       ALLOCATE( SUMACETCO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMACETCO' )         
-      SUMACETCO = 0e+0_fp 
+      SUMACETCO = 0.0_fp 
 
       ! Allocate TCOSZ -- array for sum of COS(SZA)
       ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )         
       TCOSZ = 0d0 
-
-!      ! Define geographic regions for both fossil fuel & biomass burning
-!      CALL DEFINE_FF_CO_REGIONS( FF_REGION )         
-!      CALL DEFINE_BB_CO_REGIONS( BB_REGION )
 
       END SUBROUTINE INIT_TAGGED_CO
 !EOC
@@ -1486,23 +1245,24 @@
 !  (3 ) Now remove IJLOOP_CO (bmy, 7/20/04)
 !  23 Oct 2012 - R. Yantosca - Added ProTeX headers
 !  11 Mar 2015 - R. Yantosca - Now free the OH pointer
+!  21 Mar 2016 - R. Yantosca - Remove CO_PRODS, CO_LOSSS
+!  21 Mar 2016 - R. Yantosca - Also nullify GMI_PROD_CO and GMI_LOSS_CO ptrs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-      IF ( ALLOCATED( BB_REGION  ) ) DEALLOCATE( BB_REGION  )
-      IF ( ALLOCATED( FF_REGION  ) ) DEALLOCATE( FF_REGION  )
+
+      ! Deallocate arrays
       IF ( ALLOCATED( SUMISOPCO  ) ) DEALLOCATE( SUMISOPCO  )
       IF ( ALLOCATED( SUMMONOCO  ) ) DEALLOCATE( SUMMONOCO  )
       IF ( ALLOCATED( SUMCH3OHCO ) ) DEALLOCATE( SUMCH3OHCO )
       IF ( ALLOCATED( SUMACETCO  ) ) DEALLOCATE( SUMACETCO  )
       IF ( ALLOCATED( EMACET     ) ) DEALLOCATE( EMACET     )
-      IF ( ALLOCATED( CO_PRODS   ) ) DEALLOCATE( CO_PRODS   )
       IF ( ALLOCATED( TCOSZ      ) ) DEALLOCATE( TCOSZ      )
-      IF ( ALLOCATED( CO_LOSSS   ) ) DEALLOCATE( CO_LOSSS   )
 
-      ! Free OH pointer
-      OH => NULL()
+      ! Free pointers
+      GMI_PROD_CO => NULL()
+      GMI_LOSS_CO => NULL()
+      OH          => NULL()
 
       END SUBROUTINE CLEANUP_TAGGED_CO
 !EOC

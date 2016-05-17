@@ -862,8 +862,9 @@ reader.o                    : reader.F
 read_jv_atms_dat.o          : read_jv_atms_dat.F90
 
 restart_mod.o               : restart_mod.F                                  \
-                              comode_mod.o            hcoi_gc_main_mod.o     \
-                              ocean_mercury_mod.o     tracerid_mod.o            
+                              comode_mod.o            depo_mercury_mod.o     \
+                              hcoi_gc_main_mod.o      ocean_mercury_mod.o    \
+                              tracerid_mod.o            
 
 RnPbBe_mod.o                : RnPbBe_mod.F                                   \
                               chemgrid_mod.o          diag_mod.o             \

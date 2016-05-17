@@ -186,6 +186,9 @@
       ! Logical file unit for ND49 diagnostic
       INTEGER            :: IU_ND49
 
+      ! Local tracer ID flags
+      INTEGER            :: IDTPASV
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -223,15 +226,16 @@
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
+      USE SPECIES_MOD,        ONLY : Species
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
       USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
       USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
-      USE TRACERID_MOD,       ONLY : IDTPASV
 
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD	           ! SAVEOH
       USE PHYSCONSTANTS            ! XTRA2, XNUMOLAIR
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -336,8 +340,9 @@
       REAL(fp)                 :: TCVV(Input_Opt%N_TRACERS)
  
       ! Pointers
-      REAL(fp), POINTER          :: STT(:,:,:,:)
-      REAL(fp), POINTER          :: AD(:,:,:)
+      REAL(fp), POINTER        :: STT(:,:,:,:)
+      REAL(fp), POINTER        :: AD(:,:,:)
+      TYPE(Species), POINTER   :: ThisSpc
 
       ! For mass conservation tests
       LOGICAL                  :: DO_MASSCONS
@@ -388,6 +393,29 @@
      &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
      &                   IDTPPN  > 0 .and. IDTR4N2 > 0 .and.
      &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 ) 
+
+         !----------------------------------------------------------
+         ! Now define local tracer ID flags, so that we can remove
+         ! them from tracerid_mod.F, in anticipation of FlexChem
+         !----------------------------------------------------------
+         DO N = 1, State_Chm%nSpecies
+
+            ! Get info about this species from the database
+            ThisSpc => State_Chm%SpcData(N)%Info
+
+           ! Define tracer ID flags locally
+            SELECT CASE ( TRIM( ThisSpc%Name ) )
+               CASE( 'PASV' )
+                  IDTPASV  = ThisSpc%ModelId
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+
+            ! Free pointer
+            ThisSpc => NULL()
+         ENDDO
+
+         ! Reset first-time flag
          FIRST       = .FALSE.
       ENDIF
 
@@ -1808,7 +1836,7 @@
 ! !LOCAL VARIABLES:
 !
       CHARACTER(LEN=255) :: LOCATION
-      
+
       !=================================================================
       ! INIT_DIAG49 begins here!
       !=================================================================

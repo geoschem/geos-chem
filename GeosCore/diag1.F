@@ -35,9 +35,8 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
-      USE TRACERID_MOD,       ONLY : ID_HG2, ID_HGP, ID_Hg_TOT
-      USE TRACERID_MOD,       ONLY : IDTPASV
       USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
 
       ! For ND71
@@ -152,6 +151,8 @@
 !  19 Oct 2015 - C. Keller   - Now use Input_Opt%ND68 instead of ND68;
 !                              Rename AIRDEN diagnostics to AIRDENSITY to
 !                              avoid name conflict with GEOS-5 model.
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  02 May 2016 - R. Yantosca - Now declare IDTPASV locally
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -185,11 +186,20 @@
       REAL(fp), TARGET   :: Landmap(IIPAR, JJPAR)
       INTEGER            :: TPL
       REAL(fp)           :: PRESS
-      REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
-      REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
+      REAL(fp), POINTER  :: Ptr3D(:,:,:)
+      REAL(fp), POINTER  :: Ptr2D(:,:)
       REAL(fp)           :: Arr3D(IIPAR,JJPAR,LLPAR)
       REAL(fp)           :: Arr2D(IIPAR,JJPAR)
       CHARACTER(LEN=255) :: DiagnName
+
+      ! For Hg diagnostics
+      INTEGER            :: Id_Hg2
+      INTEGER            :: Id_HgP
+
+      ! For passive tracer diagnostics
+      TYPE(Species), POINTER :: ThisSpc
+      LOGICAL,       SAVE    :: FIRST = .TRUE.
+      INTEGER,       SAVE    :: IDTPASV
 
       !=================================================================
       ! DIAG1 begins here!
@@ -203,6 +213,10 @@
       N_TRACERS          = Input_Opt%N_TRACERS
       TCVV               = Input_Opt%TCVV(1:N_TRACERS)
 
+      ! Initialize pointers
+      Ptr3D              => NULL()
+      Ptr2D              => NULL()
+
       ! Pick the proper # of tracers for diagnostics
 #if   defined( APM )
       N_TRC = N_TRACERS + N_APMTRA    ! G-C advected tracers + APM tracers
@@ -214,6 +228,33 @@
       IS_FULLCHEM = ITS_A_FULLCHEM_SIM
       IS_CHEM     = ITS_TIME_FOR_CHEM()
       
+      !---------------------------------------------
+      ! Find the IDTPASV tracer flag (bmy, 5/2/16)
+      !---------------------------------------------
+      IF ( FIRST ) THEN 
+
+         ! Initialize
+         IDTPASV = 0
+
+         ! Loop over all species
+         DO N = 1, State_Chm%nSpecies
+
+            ! Get info about this species from the database
+            ThisSpc => State_Chm%SpcData(N)%Info
+
+            ! Define tracer ID flags locally
+            SELECT CASE ( TRIM( ThisSpc%Name ) )
+               CASE( 'PASV' )
+                  IDTPASV  = ThisSpc%ModelId
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+
+            ! Free pointer
+            ThisSpc => NULL()
+         ENDDO
+      ENDIF
+
       ! Compute conc. in mixing ratio for ND35, ND45, ND47 diagnostics 
       IF ( ND35 > 0 .or. ND45 > 0 .or. ND47 > 0 .or. ND71 > 0 ) THEN
 !$OMP PARALLEL DO
@@ -263,6 +304,10 @@
       !-----------------------------------------------!
       IF(ND03 > 0) THEN
 
+         ! Indices for total Hg2 and HgP.  NOTE: Id_Hg_tot is always 1!
+         Id_Hg2 = State_Chm%Id_Hg2(1)
+         Id_HgP = State_Chm%Id_Hg2(1)
+         
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L)
@@ -271,22 +316,14 @@
         DO I = 1, IIPAR
 
           ! Reactive gaseous mercury, RGM
-!          AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
-!     &                      State_Chm%Tracers(I,J,L,ID_Hg2(ID_Hg_tot)) *
-!     &                      TCVV(ID_Hg2(ID_Hg_tot)) /
-!     &                      State_Met%AD(I,J,L) *1e+12_fp
           AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
-     &                      State_Chm%Tracers(I,J,L,ID_Hg2(ID_Hg_tot)) *
-     &                      TCVV(ID_Hg2(ID_Hg_tot)) * 1e+12_fp
+     &                      State_Chm%Tracers(I,J,L,ID_Hg2) *
+     &                      TCVV(ID_Hg2) * 1e+12_fp
 
           ! Reactive particulate mercury, PBM
-!          AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
-!     &                      State_Chm%Tracers(I,J,L,ID_HgP(ID_Hg_tot)) *
-!     &                      TCVV(ID_HgP(ID_Hg_tot)) / 
-!     &                      State_Met%AD(I,J,L) *1e+12_fp
           AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
-     &                      State_Chm%Tracers(I,J,L,ID_HgP(ID_Hg_tot)) *
-     &                      TCVV(ID_HgP(ID_Hg_tot)) * 1e+12_fp
+     &                      State_Chm%Tracers(I,J,L,ID_HgP) *
+     &                      TCVV(ID_HgP) * 1e+12_fp
                                                        
         ENDDO
         ENDDO

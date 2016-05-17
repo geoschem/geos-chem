@@ -132,6 +132,8 @@
 !                              (orig. 8/12/11)
 !  17 Aug 2015 - J. Fisher   - Add Arctic NPP, Chl from Anne Soerensen
 !                              (orig. 3/19/13)
+!  28 Mar 2016 - E. Lundgren - Read/write nc restart file from restart_mod.F
+!  26 Apr 2016 - R. Yantosca - Now store Hg indexing variables locally
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
@@ -152,6 +154,7 @@
 
       ! ... except these routines
       PUBLIC :: INIT_OCEAN_MERCURY
+      PUBLIC :: CHECK_OCEAN_MERCURY   ! Call from restart_mod for nc rst (ewl)
       PUBLIC :: CLEANUP_OCEAN_MERCURY
       PUBLIC :: OCEAN_MERCURY_FLUX
       PUBLIC :: READ_OCEAN_Hg_RESTART
@@ -196,13 +199,15 @@
       REAL(fpp)   :: dFLOW2
       REAL(fpp)   :: FLOWNOW 
 
-      ! Arrays
+      ! Public arrays used for netcdf restart file read/write (ewl, 3/29/16)
+      REAL(fpp), PUBLIC, ALLOCATABLE :: Hg0aq(:,:,:)
+      REAL(fpp), PUBLIC, ALLOCATABLE :: Hg2aq(:,:,:)
+      REAL(fpp), PUBLIC, ALLOCATABLE :: HgPaq(:,:,:)
+      REAL(fpp), PUBLIC, ALLOCATABLE :: Hgaq_tot(:,:,:)
+
+      ! Private arrays
       REAL(fpp),  ALLOCATABLE :: dMLD(:,:)
-      REAL(fpp),  ALLOCATABLE :: Hg0aq(:,:,:)
-      REAL(fpp),  ALLOCATABLE :: Hg2aq(:,:,:)
-      REAL(fpp),  ALLOCATABLE :: HgPaq(:,:,:)
       REAL(fpp),  ALLOCATABLE :: HgPaq_SUNK(:,:,:) !eds 5/15/12 fix
-      REAL(fpp),  ALLOCATABLE :: Hgaq_tot(:,:,:)
 !      REAL(fpp),  ALLOCATABLE :: MLD(:,:)
       REAL(fpp),  ALLOCATABLE :: MLDav(:,:)
       REAL(fpp),  ALLOCATABLE :: newMLD(:,:)
@@ -251,6 +256,8 @@
 
       ! Pointers to fields in the HEMCO data structure.
       ! These need to be declared REAL(f4), aka REAL*4.
+      ! NOTE: We can declare these NULL here because 
+      ! these are SAVED global pointers (bmy, 4/29/16)
       REAL(f4), POINTER :: CHL   (:,:) => NULL()
       REAL(f4), POINTER :: CHL_A (:,:) => NULL()
       REAL(f4), POINTER :: MLD   (:,:) => NULL()
@@ -259,6 +266,25 @@
       REAL(f4), POINTER :: UPVEL (:,:) => NULL()
       REAL(f4), POINTER :: dMLD1 (:,:) => NULL()
       REAL(f4), POINTER :: dMLD2 (:,:) => NULL()
+
+      !-----------------------------------------------------------------
+      ! Now keep local Hg tracer indexing variables instead of getting
+      ! them from tracerid_mod.f.  The tracerid_mod.f module is going
+      ! to be removed for the FlexChem implementation. (bmy, 4/26/16)
+      !-----------------------------------------------------------------
+
+      ! Scalars for Hg indexing
+      INTEGER           :: N_Hg_CATS
+      INTEGER           :: ID_Hg_atl,  ID_Hg_nat,  ID_Hg_sat
+      INTEGER           :: ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
+      INTEGER           :: ID_Hg_ocn,  ID_Hg_tot
+
+      ! Pointers for Hg indexing
+      ! NOTE: We can declare these NULL here because 
+      ! these are SAVED global pointers (bmy, 4/29/16)
+      INTEGER, POINTER  :: Id_Hg0(:) => NULL()
+      INTEGER, POINTER  :: Id_Hg2(:) => NULL()
+      INTEGER, POINTER  :: Id_HgP(:) => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -367,6 +393,7 @@
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
 !  13 Mar 2015 - R. Yantosca - Now remove bpch input
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !*****************************************************************************
 !
 ! !USES:
@@ -397,14 +424,14 @@
 !
       ! Pointers to fields in the HEMCO data structure
       ! These have to be declared REAL(f4), aka REAL*4.
-      REAL(f4), POINTER       :: ARRAYso4 (:,:,:) => NULL() ! so4
-      REAL(f4), POINTER       :: ARRAYnit (:,:,:) => NULL() ! nit
-      REAL(f4), POINTER       :: ARRAYnh4 (:,:,:) => NULL() ! nh4
-      REAL(f4), POINTER       :: ARRAYbcpi(:,:,:) => NULL() ! bcpi
-      REAL(f4), POINTER       :: ARRAYocpi(:,:,:) => NULL() ! ocpi
-      REAL(f4), POINTER       :: ARRAYbcpo(:,:,:) => NULL() ! bcpo
-      REAL(f4), POINTER       :: ARRAYocpo(:,:,:) => NULL() ! ocpo
-      REAL(f4), POINTER       :: ARRAYdst1(:,:,:) => NULL() ! dst1
+      REAL(f4), POINTER       :: ARRAYso4 (:,:,:)
+      REAL(f4), POINTER       :: ARRAYnit (:,:,:)
+      REAL(f4), POINTER       :: ARRAYnh4 (:,:,:)
+      REAL(f4), POINTER       :: ARRAYbcpi(:,:,:)
+      REAL(f4), POINTER       :: ARRAYocpi(:,:,:)
+      REAL(f4), POINTER       :: ARRAYbcpo(:,:,:)
+      REAL(f4), POINTER       :: ARRAYocpo(:,:,:)
+      REAL(f4), POINTER       :: ARRAYdst1(:,:,:)
 
       ! Arrays to hold bulk concentration and surface area
       REAL(f4)                :: ARRAYtemp(IGLOB,JGLOB,LGLOB)
@@ -427,8 +454,16 @@
       ! Assume success
       RC        =  GIGC_SUCCESS
 
-      ! Initialize
-      
+      ! Initialize pointers
+      ARRAYso4  => NULL() ! so4
+      ARRAYnit  => NULL() ! nit
+      ARRAYnh4  => NULL() ! nh4
+      ARRAYbcpi => NULL() ! bcpi
+      ARRAYocpi => NULL() ! ocpi
+      ARRAYbcpo => NULL() ! bcpo
+      ARRAYocpo => NULL() ! ocpo
+      ARRAYdst1 => NULL() ! dst1
+
       !----------------------------------------!
       ! Molecular weights, for unit conversion !
       !----------------------------------------!
@@ -653,9 +688,7 @@
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC,  SNOW_HG_STORED_OC
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_LN,  SNOW_HG_STORED_LN
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : N_Hg_CATS
-
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -950,7 +983,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2, GET_XMID, GET_YMID 
       USE TIME_MOD
-      USE TRACERID_MOD
       USE CMN_SIZE_MOD             ! Size parameters
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr 
 !
@@ -1056,14 +1088,13 @@
       REAL(fpp), POINTER   :: STT(:,:,:,:)
 
       ! Pointers to fields in the HEMCO data structure
-      REAL(f4), POINTER    :: TOMS   (:,:) => NULL() ! O3   
-      REAL(f4), POINTER    :: TOMS_PD(:,:) => NULL() ! present day O3
-      REAL(f4), POINTER    :: TOMS_LT(:,:) => NULL() ! long-term O3
+      REAL(f4), POINTER    :: TOMS   (:,:)   ! O3   
+      REAL(f4), POINTER    :: TOMS_PD(:,:)   ! present day O3
+      REAL(f4), POINTER    :: TOMS_LT(:,:)   ! long-term O3
 
       ! Strings
       CHARACTER(LEN=255) :: 
      & LOC = 'OCEAN_MERCURY_FLUX (GeosCore/ocean_mercury_mod.f)'
-
       
       IF (LOCEANCOEF) THEN
          k_ox_dark = 10d0**(-5.2d0)
@@ -1074,6 +1105,11 @@
       !=================================================================
       ! OCEAN_MERCURY_FLUX begins here!
       !=================================================================
+
+      ! Initialize pointers
+      TOMS    => NULL()
+      TOMS_PD => NULL()
+      TOMS_LT => NULL()
 
       ! Copy values from Input_Opt
       LSPLIT       = Input_Opt%LSPLIT
@@ -1090,7 +1126,7 @@
       ENDIF
 
       ! Molecular weight of Hg (applicable to all tagged tracers)
-      MHg = TRACER_MW_KG(ID_Hg_tot)
+      MHg = TRACER_MW_Kg(1)
 
       ! Get current month
       THISMONTH = GET_MONTH()
@@ -2097,7 +2133,7 @@
                IF ( FRAC_OPEN_OCEAN > 0d0 ) THEN
                  FLUX(I,J,NN)  = FLUX(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
                ELSE
-                 FLUX(I,J,NN)  = 0e+0_fp
+                 FLUX(I,J,NN)  = 0e+0_fpp
                ENDIF
 
 
@@ -2232,10 +2268,10 @@
 !$OMP END PARALLEL DO
 
       ! Free pointers
-      NULLIFY( STT     )
-      NULLIFY( TOMS    )
-      NULLIFY( TOMS_PD )
-      NULLIFY( TOMS_LT )
+       STT     => NULL()
+       TOMS    => NULL()
+       TOMS_PD => NULL()
+       TOMS_LT => NULL()
 
       !=================================================================
       ! Check tagged & total sums (if necessary)
@@ -2462,9 +2498,9 @@
      &                                    X <= 0e+0_fpp ) ) ) THEN
                SELECT CASE ( THISMONTH )
                   CASE( 7, 8, 9 ) ! summer
-                      MLD(I,J) = ArcticMLD_summer
+                     MLD(I,J) = ArcticMLD_summer
                   CASE DEFAULT    ! rest of year
-                      MLD(I,J) = ArcticMLD_other
+                     MLD(I,J) = ArcticMLD_other
                END SELECT
 
                ! Also set up MLD tendency in cm/s for each half month
@@ -2855,11 +2891,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2, GET_XMID, GET_YMID
-      USE TRACERID_MOD,       ONLY : ID_Hg_tot, N_Hg_CATS
-      USE TRACERID_MOD,       ONLY : ID_Hg_atl,  ID_Hg_nat,  ID_Hg_sat
-      USE TRACERID_MOD,       ONLY : ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
-      USE TRACERID_MOD,       ONLY : ID_Hg_ocn
-
       USE CMN_SIZE_MOD             ! Size parameters
       
       ! Arguments
@@ -3158,7 +3189,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE READ_OCEAN_Hg_RESTART( YYYYMMDD, HHMMSS, Input_Opt ) 
+      SUBROUTINE READ_OCEAN_Hg_RESTART( YYYYMMDD,  HHMMSS, 
+     &                                  Input_Opt, State_Chm ) 
 !
 !******************************************************************************
 !  Subroutine READ_OCEAN_Hg_RESTART initializes GEOS-CHEM oceanic mercury 
@@ -3176,6 +3208,7 @@
 !  23 Jun 2014 - R. Yantosca - Now use Input_Opt instead of directory_mod.F
 !  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
 !  06 Aug 2015 - J. Fisher   - Add stored snow Hg reservoirs (orig. 11/29/11)
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3187,16 +3220,15 @@
       USE DEPO_MERCURY_MOD,   ONLY : CHECK_DIMENSIONS
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE FILE_MOD,           ONLY : IOERROR
       USE TIME_MOD,           ONLY : EXPAND_DATE
-      USE TRACERID_MOD,       ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
-      USE TRACERID_MOD,       ONLY : ID_Hg0,      ID_Hg2 
-      USE TRACERID_MOD,       ONLY : ID_HgP
-      USE TRACERID_MOD,       ONLY : GET_HgP_CAT !eds 10/18/10
+      USE SPECIES_MOD,        ONLY : Species
 
       ! Arguments
       INTEGER,        INTENT(IN) :: YYYYMMDD, HHMMSS
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm
 
       ! Local Variables
       INTEGER             :: IU_FILE
@@ -3226,18 +3258,20 @@
       CHARACTER(LEN=14)   :: TRACER_NAME(Input_Opt%N_TRACERS)
       REAL(fpp)           :: TRACER_MW_KG(Input_Opt%N_TRACERS)
 
+      ! For the species database
+      TYPE(Species), POINTER :: ThisSpc
+
       !=================================================================
       ! READ_OCEAN_Hg_RESTART begins here!
       !=================================================================
 
-      ! Copy values from Input_Opt
-      LPRT         = Input_Opt%LPRT
-      LSPLIT       = Input_Opt%LSPLIT
-      N_TRACERS    = Input_Opt%N_TRACERS
-      TRACER_NAME  = Input_Opt%TRACER_NAME(1:N_TRACERS)
-      TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
-
       ! Initialize some variables
+      ThisSpc         => NULL()
+      LPRT            = Input_Opt%LPRT
+      LSPLIT          = Input_Opt%LSPLIT
+      N_TRACERS       = Input_Opt%N_TRACERS
+      TRACER_NAME     = Input_Opt%TRACER_NAME(1:N_TRACERS)
+      TRACER_MW_KG    = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
       NCOUNT(:)       = 0
       Hg_OCEAN(:,:,:) = 0e0
 
@@ -3293,7 +3327,10 @@
          !==============================================================
          ! Assign data from the TRACER array to the STT array.
          !==============================================================
-  
+         
+         ! Point to the Species Database entry for tracer # NTRACER
+         ThisSpc => State_Chm%SpcData(NTRACER)%Info
+
          ! Only process concentration data (i.e. mixing ratio)
          IF ( CATEGORY(1:8) == 'OCEAN-HG' ) THEN 
 
@@ -3302,14 +3339,22 @@
             CALL CHECK_DIMENSIONS( NI, NJ, NL )
 
             ! Save into arrays
-            IF ( ANY( ID_Hg0 == NTRACER ) ) THEN
+!-----------------------------------------------------------------------------
+! Prior to 4/25/16:
+!            IF ( ANY( ID_Hg0 == NTRACER ) ) THEN
+!-----------------------------------------------------------------------------
+            IF ( ThisSpc%Is_Hg0 ) THEN
 
                !----------
                ! Hg(0)
                !----------
                
                ! Get the Hg category #
-               NN              = GET_Hg0_CAT( NTRACER )
+!-----------------------------------------------------------------------------
+! Prior to 4/25/16:
+!               NN              = GET_Hg0_CAT( NTRACER )
+!-----------------------------------------------------------------------------
+               NN              = ThisSpc%Hg_Cat
 
                ! Store ocean Hg(0) in Hg0aq array
                Hg0aq(:,:,NN)   = Hg_OCEAN(:,:,1)
@@ -3324,14 +3369,22 @@
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
 
-            ELSE IF ( ANY( ID_Hg2 == NTRACER ) ) THEN
+!-----------------------------------------------------------------------------
+! Prior to 4/25/16:
+!            ELSE IF ( ANY( ID_Hg2 == NTRACER ) ) THEN
+!-----------------------------------------------------------------------------
+            ELSE IF ( ThisSpc%Is_Hg2 ) THEN
                
                !----------
                ! Hg(II)
                !----------
 
                ! Get the Hg category #
-               NN              = GET_Hg2_CAT( NTRACER )
+!-----------------------------------------------------------------------------
+! Prior to 4/25/16:
+!               NN              = GET_Hg2_CAT( NTRACER )
+!-----------------------------------------------------------------------------
+               NN              = ThisSpc%Hg_Cat
 
                ! Store ocean Hg(II) in Hg2_aq array
                Hg2aq(:,:,NN)   = Hg_OCEAN(:,:,1)
@@ -3346,13 +3399,21 @@
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
 
-            ELSE IF ( ANY( ID_HgP == NTRACER ) ) THEN
+!-----------------------------------------------------------------------------
+! Prior to 4/25/16:
+!            ELSE IF ( ANY( ID_HgP == NTRACER ) ) THEN
+!-----------------------------------------------------------------------------
+            ELSE IF ( ThisSpc%Is_HgP ) THEN
 
                !----------
                ! Hg(P)
                !----------
                ! Get the Hg category #   !eds 10/18/10
-               NN              = GET_HgP_CAT( NTRACER )
+!-----------------------------------------------------------------------------
+! Prior to 4/25/16:
+!               NN              = GET_HgP_CAT( NTRACER )
+!-----------------------------------------------------------------------------
+               NN                   = ThisSpc%Hg_Cat
 
                ! Particulate Hg
                HgPaq(:,:,NN)        = Hg_OCEAN(:,:,1)
@@ -3376,8 +3437,12 @@
                !----------
             
                ! Get the Hg category #
-               NN              = GET_Hg0_CAT( NTRACER )
-               
+!-----------------------------------------------------------------------------
+! Prior to 4/25/16:
+!               NN              = GET_Hg0_CAT( NTRACER )
+!-----------------------------------------------------------------------------
+               NN              = ThisSpc%Hg_Cat
+              
                ! Store ocean Hg(0) in Hg0aq array
                SNOW_HG_STORED_OC(:,:,NN)   = Hg_OCEAN(:,:,1)
             
@@ -3387,7 +3452,11 @@
                !----------
 
                ! Get the Hg category #
-               NN              = GET_Hg0_CAT( NTRACER )
+!-----------------------------------------------------------------------------
+! Prior to 4/25/16:
+!               NN              = GET_Hg0_CAT( NTRACER )
+!-----------------------------------------------------------------------------
+               NN              = ThisSpc%Hg_Cat
 
                ! Store ocean Hg(0) in Hg0aq array
                SNOW_HG_OC(:,:,NN)   = Hg_OCEAN(:,:,1)
@@ -3399,7 +3468,11 @@
                !----------
 
                ! Get the Hg category #
-               NN              = GET_Hg0_CAT( NTRACER )
+!-----------------------------------------------------------------------------
+! Prior to 4/25/16:
+!               NN              = GET_Hg0_CAT( NTRACER )
+!-----------------------------------------------------------------------------
+               NN              = ThisSpc%Hg_Cat
 
                ! Store ocean Hg(0) in Hg0aq array
                SNOW_HG_STORED_LN(:,:,NN)   = Hg_OCEAN(:,:,1)
@@ -3410,12 +3483,19 @@
                !----------
 
                ! Get the Hg category #
-               NN              = GET_Hg0_CAT( NTRACER )
+!-----------------------------------------------------------------------------
+! Prior to 4/25/16:
+!               NN              = GET_Hg0_CAT( NTRACER )
+!-----------------------------------------------------------------------------
+               NN              = ThisSpc%Hg_Cat
 
                ! Store ocean Hg(0) in Hg0aq array
                SNOW_HG_LN(:,:,NN)   = Hg_OCEAN(:,:,1)
 
          ENDIF
+
+         ! Free pointer
+         ThisSpc => NULL()
       ENDDO
 
       ! Close file
@@ -3481,7 +3561,7 @@
 
       ! Format strings
  130  FORMAT( /, 'Total masses for each ocean tracer: ' ) 
- 140  FORMAT( 'Tracer ', i3, ' (', a10, ') ', es12.5, 1x, a4)
+ 140  FORMAT( 'Tracer ', i3, ' (', a10, ') ', es15.9, 1x, a4)
 
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -3587,10 +3667,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,           ONLY : EXPAND_DATE, GET_TAU
-      USE TRACERID_MOD,       ONLY : ID_Hg_tot,   ID_Hg0
-      USE TRACERID_MOD,       ONLY : ID_Hg2,      N_Hg_CATS
-      USE TRACERID_MOD,       ONLY : ID_HgP !eds 9/9/10 
-
       USE CMN_SIZE_MOD           ! Size parameters
 
       ! Arguments           
@@ -3817,9 +3893,6 @@
       ! References to F90 modules
       USE GIGC_State_Chm_Mod,  ONLY : ChmState
       USE ERROR_MOD,           ONLY : ERROR_STOP
-      USE TRACERID_MOD,        ONLY : ID_Hg0,    ID_Hg2,   ID_HgP
-      USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
-
       USE CMN_SIZE_MOD              ! Size parameters
 
       ! Arguments as Input
@@ -3983,7 +4056,7 @@
 ! OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       ! FORMAT strings
  100  FORMAT( 'Hg0 error: ', 3i5, 4es13.6 )
@@ -4015,8 +4088,6 @@
 !
       ! References to F90 modules
       USE ERROR_MOD,           ONLY : ERROR_STOP
-      USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
-
       USE CMN_SIZE_MOD              ! Size parameters
 
       ! Arguments
@@ -4124,7 +4195,6 @@
 !
       USE CMN_SIZE_MOD
       USE ERROR_MOD,           ONLY : ERROR_STOP
-      USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
       USE DEPO_MERCURY_MOD,    ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
 
       ! Arguments
@@ -4238,8 +4308,6 @@
 !
       ! References to F90 modules
       USE ERROR_MOD,           ONLY : ERROR_STOP
-      USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
-
       USE CMN_SIZE_MOD              ! Size parameters
 
       ! Arguments
@@ -4313,7 +4381,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, 
+     &                               State_Chm, RC         )
 !
 !******************************************************************************
 !  Subroutine INIT_OCEAN_MERCURY allocates and zeroes module arrays.  
@@ -4335,6 +4404,8 @@
 !                              (orig. 22/3/13)
 !  27 Aug 2015 - E. Lundgren - Hard-code interannual scaling of riverflow
 !                              and NPP to avoid reading ASCII
+!  25 Apr 2016 - R. Yantosca - Now handle all Hg indexing locally
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !******************************************************************************
 !
 ! !USES:
@@ -4342,29 +4413,32 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE TRACERID_MOD,       ONLY : N_Hg_CATS
-      USE FILE_MOD,      ONLY : IOERROR,   IU_FILE
-      USE TIME_MOD,      ONLY : GET_YEAR,  EXPAND_DATE
+      USE FILE_MOD,           ONLY : IOERROR,   IU_FILE
+      USE SPECIES_MOD,        ONLY : Species
+      USE TIME_MOD,           ONLY : GET_YEAR,  EXPAND_DATE
 
+      ! For Hg indexing (bmy, 4/26/16)
+      INTEGER                  :: N
+      TYPE(Species), POINTER   :: ThisSpc
+      
       ! For riverflow and NPP interannual scaling (jaf, 3/26/12)
-      INTEGER               :: THISYEAR, THISYEARINDEX
+      INTEGER                  :: THISYEAR, THISYEARINDEX
       REAL(fpp), DIMENSION(31) :: RSCF_05, RSCF_06, RSCF_07 
       REAL(fpp), DIMENSION(31) :: RSCF_08, RSCF_09, RSCF_10 
       REAL(fpp), DIMENSION(31) :: NSCF
 !      REAL(fpp), DIMENSION(12) :: RIVERFLOW
 !      REAL(fpp)                :: NPP_SCF
-
-      !=================================================================
-      ! INIT_OCEAN_MERCURY begins here!
-      !=================================================================
-! end
-
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -4373,6 +4447,52 @@
       !=================================================================
       ! INIT_OCEAN_MERCURY begins here!
       !=================================================================
+
+      !-----------------------------------------------------------------
+      ! Initialize local Hg indexing variables.  These used to be 
+      ! contained in tracerid_mod.F, but tracerid_mod.F is going
+      ! to be removed with the FlexChem implementation (bmy, 4/26/16)
+      !-----------------------------------------------------------------
+
+      ! Store the # of tagHg categories in a module variable
+      N_Hg_CATS =  State_Chm%N_Hg_CATS
+      
+      ! Hg species index corresponding to a given Hg category number
+      Id_Hg0    => State_Chm%Id_Hg0
+      Id_Hg2    => State_Chm%Id_Hg2
+      Id_HgP    => State_Chm%Id_HgP
+
+      ! Loop over all Hg species
+      DO N = 1, State_Chm%nSpecies
+
+         ! Point to the Species Database entry for tracer # N
+         ThisSpc => State_Chm%SpcData(N)%Info 
+
+         ! Save ocean Hg categories into module variable indices
+         SELECT CASE( TRIM( ThisSpc%Name ) )
+            CASE( 'Hg0'     ) 
+               ID_Hg_tot = ThisSpc%Hg_Cat
+            CASE( 'Hg0_atl' ) 
+               ID_Hg_atl = ThisSpc%Hg_Cat
+            CASE( 'Hg0_nat' )
+               ID_Hg_nat = ThisSpc%Hg_Cat
+            CASE( 'Hg0_sat' )
+               ID_Hg_sat = ThisSpc%Hg_Cat
+            CASE( 'Hg0_npa' )
+               ID_Hg_npa = ThisSpc%Hg_Cat
+            CASE( 'Hg0_arc' )
+               ID_Hg_arc = ThisSpc%Hg_Cat
+            CASE( 'Hg0_ant' )
+               ID_Hg_ant = ThisSpc%Hg_Cat
+            CASE( 'Hg0_ocn' )
+               ID_Hg_ocn = ThisSpc%Hg_Cat
+            CASE DEFAULT
+               ! Do nothing
+         END SELECT
+
+         ! Free pointer
+         ThisSpc => NULL()
+      ENDDO
 
       !-----------------------------------------------------------------
       ! Allocate these arrays regardless of whether you are using
@@ -4631,14 +4751,16 @@
       IF ( ALLOCATED( SO4_CONC  ) ) DEALLOCATE( SO4_CONC  )
 
       ! Free pointers
-      CHL   => NULL()
-      CHL_A => NULL()
-      MLD   => NULL()
-      NPP   => NULL()
-      NPP_A => NULL()
-      UPVEL => NULL()
-      dMLD1 => NULL()
-      dMLD2 => NULL()
+      CHL    => NULL()
+      CHL_A  => NULL()
+      MLD    => NULL()
+      NPP    => NULL()
+      NPP_A  => NULL()
+      UPVEL  => NULL()
+      dMLD1  => NULL()
+      dMLD2  => NULL()
+      Id_Hg2 => NULL()
+      Id_HgP => NULL()
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_OCEAN_MERCURY

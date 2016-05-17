@@ -1843,6 +1843,7 @@ contains
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
     USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_m, COMPUTE_PBL_HEIGHT, &
                                    GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
+    USE SPECIES_MOD,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
     USE TRACERID_MOD
 !------------------------------------------------------------------------------
@@ -1933,6 +1934,8 @@ contains
 !  10 Apr 2015 - C. Keller   - Now exchange PARANOX loss fluxes via HEMCO 
 !                              diagnostics.
 !  25 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostic
+!  22 Apr 2016 - R. Yantosca - Now get Hg info from species database
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2009,8 +2012,8 @@ contains
     ! For diagnostics
     REAL(fp), TARGET   :: DryDepFlux( IIPAR, JJPAR ) 
 #if defined( NC_DIAG )
-    REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
-    REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
+    REAL(fp), POINTER  :: Ptr3D(:,:,:)
+    REAL(fp), POINTER  :: Ptr2D(:,:)
     REAL(fp)           :: Total
     INTEGER            :: cID
     CHARACTER(LEN=30)  :: DiagnName
@@ -2024,13 +2027,24 @@ contains
     ! First call?
     LOGICAL,           SAVE :: FIRST = .TRUE.
 
+    ! For pointing to the species database
+    TYPE(Species),  POINTER :: ThisSpc
+    INTEGER                 :: Hg_Cat
+
     !=================================================================
     ! vdiffdr begins here!
     !=================================================================
 
     !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR begins' )
-    
+
+    ! Initialize pointers
+    ThisSpc => NULL()
+#if defined( NC_DIAG )
+    Ptr3D   => NULL()
+    Ptr2D   => NULL()
+#endif
+
     ! Initialize local arrays. (ccc, 12/21/10)
     pmid    = 0e+0_fp
     rpdel   = 0e+0_fp
@@ -2157,12 +2171,12 @@ contains
     ! (ccc, bmy, 12/20/10)
     as2_scal = as2(:,:,1,:)
 
-!$OMP PARALLEL DO                                                     &
-!$OMP DEFAULT( SHARED )                                               &
-!$OMP PRIVATE( I,      J,               L,           N,      NN     ) &
-!$OMP PRIVATE( WK1,    WK2,             PBL_TOP,     DEP_KG, TOPMIX ) &
-!$OMP PRIVATE( fnd,    emis,            dep                         ) &
-!$OMP PRIVATE( TMPFLX, FRAC_NO_HG0_DEP, ZERO_HG0_DEP                )
+!$OMP PARALLEL DO                                                         &
+!$OMP DEFAULT( SHARED )                                                   &
+!$OMP PRIVATE( I,      J,               L,            N,       NN       ) &
+!$OMP PRIVATE( WK1,    WK2,             PBL_TOP,      DEP_KG,  TOPMIX   ) &
+!$OMP PRIVATE( fnd,    emis,            dep                             ) &
+!$OMP PRIVATE( TMPFLX, FRAC_NO_HG0_DEP, ZERO_HG0_DEP, ThisSpc, Hg_Cat   )
     do J = 1, JJPAR
     do I = 1, IIPAR
 
@@ -2250,6 +2264,9 @@ contains
           ! gases + aerosols for full chemistry 
           NN   = NTRAIND(N)
           if (NN == 0) CYCLE
+
+          ! Point to the Species Database entry for tracer NN
+          ThisSpc => State_Chm%SpcData(NN)%Info
 
 !          ! Now include sea salt dry deposition (jaegle 5/11/11)
 !          IF ( NN == IDTDST1 .OR. &
@@ -2429,7 +2446,12 @@ contains
                             State_Met%SNOW(I,J)   > 10e+0_fp ))
 #endif
           
-          IF ( IS_Hg .AND. IS_HG0(NN) ) THEN
+!--------------------------------------------------------------------------
+! Prior to 4/22/16:
+! Now use species database to see if this is a Hg0 species (bmy, 4/22/16)
+!          IF ( IS_Hg .AND. IS_HG0(NN) ) THEN
+!--------------------------------------------------------------------------
+          IF ( IS_Hg .AND. ThisSpc%Is_Hg0 ) THEN
              IF ( ZERO_HG0_DEP ) THEN
                 DFLX(I,J,NN) = DFLX(I,J,NN) * &
                                MAX(1e+0_fp - FRAC_NO_HG0_DEP,0e+0_fp)
@@ -2438,6 +2460,8 @@ contains
 
 !--jaf.end
 
+          ! Free species database pointer
+          ThisSpc => NULL()
        enddo
 
        !----------------------------------------------------------------
@@ -2516,23 +2540,36 @@ contains
              
              ! GEOS_Chem tracer number
              N = NTRAIND( D )
-             
+ 
+             ! Point to the Species Database entry for tracer N
+             ThisSpc => State_Chm%SpcData(N)%Info
+
              ! Deposition mass, kg
              DEP_KG = dflx( I, J, N ) * GET_AREA_M2( I, J, 1 ) &
                     * GET_TS_CONV() * 60e+0_fp
 
-             IF ( IS_Hg2( N ) ) THEN 
-                
-                CALL ADD_HG2_DD( I, J, N, DEP_KG )
-                CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_KG, State_Met )
+             IF ( ThisSpc%Is_Hg2 ) THEN
 
-             ELSE IF ( IS_HgP( N ) ) THEN
-                
-                CALL ADD_HGP_DD( I, J, N, DEP_KG )
-                CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_KG, State_Met )
+                ! Get the category number for this Hg2 tracer
+                Hg_Cat = ThisSpc%Hg_Cat
+
+                ! Archive dry-deposited Hg2
+                CALL ADD_Hg2_DD      ( I, J, Hg_Cat, DEP_KG            )
+                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_KG, State_Met )
+
+             ELSE IF ( ThisSpc%Is_HgP ) THEN 
+
+                ! Get the category number for this HgP tracer
+                Hg_Cat = ThisSpc%Hg_Cat
+
+                ! Archive dry-deposited HgP
+                CALL ADD_HgP_DD      ( I, J, Hg_Cat, DEP_KG            )
+                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_KG, State_Met )
 
              ENDIF
 
+             ! Free pointer
+             ThisSpc => NULL()
           ENDDO
        ENDIF
 

@@ -96,13 +96,6 @@
 ! !INTERFACE:
 !
       SUBROUTINE ZERO_DIAG03
-!
-! !USES:
-!
-      ! References to F90 modules
-      USE TRACERID_MOD, ONLY : N_Hg_CATS
-
-      USE CMN_SIZE_MOD  ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  21 Jan 2005 - R. Yantosca - Initial version
@@ -157,35 +150,39 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_DIAG03( am_I_Root, Input_Opt, RC )
+      SUBROUTINE WRITE_DIAG03( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,    ONLY : BPCH2
-      USE BPCH2_MOD,    ONLY : GET_MODELNAME
-      USE BPCH2_MOD,    ONLY : GET_HALFPOLAR
-      USE FILE_MOD,     ONLY : IU_BPCH
+      USE BPCH2_MOD,          ONLY : BPCH2
+      USE BPCH2_MOD,          ONLY : GET_MODELNAME
+      USE BPCH2_MOD,          ONLY : GET_HALFPOLAR
+      USE FILE_MOD,           ONLY : IU_BPCH
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,     ONLY : GET_XOFFSET
-      USE GRID_MOD,     ONLY : GET_YOFFSET
-      USE TIME_MOD,     ONLY : GET_CT_EMIS
-      USE TIME_MOD,     ONLY : GET_DIAGb
-      USE TIME_MOD,     ONLY : GET_DIAGe
-      USE TIME_MOD,     ONLY : GET_CT_CHEM  
-      USE TRACERID_MOD, ONLY : N_Hg_CATS
-      USE TIME_MOD,     ONLY : GET_CT_DIAG, GET_Hg2_DIAG !H Amos, 20100218
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GRID_MOD,           ONLY : GET_XOFFSET
+      USE GRID_MOD,           ONLY : GET_YOFFSET
+      USE TIME_MOD,           ONLY : GET_CT_EMIS
+      USE TIME_MOD,           ONLY : GET_DIAGb
+      USE TIME_MOD,           ONLY : GET_DIAGe
+      USE TIME_MOD,           ONLY : GET_CT_CHEM  
+      USE TIME_MOD,           ONLY : GET_CT_DIAG, GET_Hg2_DIAG !H Amos, 20100218
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !   # : Field    : Description                     : Units    : Scale factor
@@ -243,6 +240,7 @@
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  25 Apr 2016 - R. Yantosca - Now pass State_Chm via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -252,7 +250,7 @@
       INTEGER           :: CENTER180, HALFPOLAR,   IFIRST
       INTEGER           :: JFIRST,    LFIRST,      LMAX
       INTEGER           :: M,         N,           NN
-      INTEGER           :: NT
+      INTEGER           :: NT,        N_Hg_CATS
       REAL(f4)          :: ARRAY(IIPAR,JJPAR,LLPAR)
       REAL(f4)          :: LONRES,    LATRES
       REAL(fp)          :: SCALE
@@ -290,6 +288,8 @@
       NDIAGSTEP = DBLE( GET_CT_DIAG() ) + TINY( 1e+0_fp ) ! for RGM and PBM
       NDIAGSTEP_Hg2 = DBLE ( GET_Hg2_DIAG() )+ TINY( 1e+0_fp ) ! for Fg and Fp
 
+      ! NOTE: we now get the # of Hg categories from State_Chm (bmy, 4/25/16)
+      N_Hg_CATS = State_Chm%N_Hg_Cats
 
       !=================================================================
       ! Different diagnostics for total vs. tagged simulations (eds)
@@ -302,7 +302,7 @@
 
          ! Get ND03 tracer #
          DO N  = 1, 26 !eds 9/9/10 tag6
-         DO NT = 1, N_HG_CATS ! Loop over tag IDs
+         DO NT = 1, N_HG_CATS
 
             ! Pick the proper array & dimensions
             IF ( N == 1 )  THEN
@@ -955,14 +955,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG03
+      SUBROUTINE INIT_DIAG03( State_Chm )
 !
 ! !USES:
 !
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE TRACERID_MOD, ONLY : N_Hg_CATS
-   
       USE CMN_SIZE_MOD 
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY: 
 !  21 Jan 2005 - R. Yantosca - Initial version
@@ -976,6 +979,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: AS
+      INTEGER :: N_HG_CATS
       
       !=================================================================
       ! INIT_DIAG03 begins here!
@@ -986,6 +990,9 @@
          LD03 = 0
          RETURN
       ENDIF
+
+      ! Number of tagged Hg categories
+      N_HG_CATS = State_Chm%N_Hg_CATS
 
       ! Get number of levels for 3-D arrays
       LD03 = MIN( ND03, LLPAR )

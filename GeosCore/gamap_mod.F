@@ -129,6 +129,9 @@
       CHARACTER(LEN=40)              :: NAME0, NAME1
       CHARACTER(LEN=40)              :: FNAME0
 
+      ! Locally-defined tracer ID flags
+      INTEGER                        :: IDTPASV
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -1813,6 +1816,7 @@
 !  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND71 to ND72 to
 !                              avoid conflicts with hourly max ppbv diagnostic.
 !  12 Aug 2015 - J. Fisher   - Add cryosphere Hg diagnostics
+!  25 Apr 2016 - R. Yantosca - Now get N_HG_CATS from State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1824,6 +1828,7 @@
 
       REAL(fp),     SAVE      :: POP_XMW
       REAL(fp)                :: DUM
+      INTEGER                 :: N_Hg_CATS
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
@@ -1838,6 +1843,9 @@
       DO_TIMESERIES = ( DO_SAVE_DIAG48 .or. DO_SAVE_DIAG49 .or.
      &                  DO_SAVE_DIAG50 .or. DO_SAVE_DIAG51 .or.
      &                  DO_SAVE_DIAG51b )
+
+      ! Save the # of tagHg categories in a local variable
+      N_Hg_CATS = State_Chm%N_Hg_CATS
 
       !----------------------------------
       ! General tracer information
@@ -5810,10 +5818,17 @@
       !-------------------------------------
       IF ( ND29 > 0 ) THEN
 
-         ! Number of tracers
-         NTRAC(29) = 5
+         ! Number of tracers for ND29
+         IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+            NTRAC(29) = 24
+         ELSE
+            NTRAC(29) = 6
+         ENDIF
 
-         ! Loop over tracers
+         ! Loop over all slots of ND29 
+         ! 1-6  are for the fullchem simulation
+         ! 7-24 are for the tagged CO simulation
+         ! Also note: Tagged CO lumps biofuels with anthro emissions
          DO T = 1, NTRAC(29)
 
             ! Get name, longname
@@ -5833,6 +5848,74 @@
                CASE( 5 )
                   NAME (T,29) = 'COmono'
                   FNAME(T,29) = 'CO from monoterpenes'
+               CASE( 6 )
+                  NAME (T,29) = 'COship'
+                  FNAME(T,29) = 'CO from ship emissions'
+
+               ! Tagged CO: USA
+               CASE( 7 )
+                  NAME (T,29) = 'COabUs'
+                  FNAME(T,29) = 'Anth+Biof CO emitted over USA'
+               CASE( 8 )
+                  NAME (T,29) = 'COacUs'
+                  FNAME(T,29) = 'Aircraft CO emitted over USA'
+               CASE( 9 )
+                  NAME (T,29) = 'COshUs'
+                  FNAME(T,29) = 'Ship CO emitted over USA'
+
+               ! Tagged CO: Europe
+               CASE( 10 )
+                  NAME (T,29) = 'COabEu'
+                  FNAME(T,29) = 'Anth+Biof CO emitted over EUR'
+               CASE( 11 )
+                  NAME (T,29) = 'COacEu'
+                  FNAME(T,29) = 'Aircraft CO emitted over EUR'
+               CASE( 12 )
+                  NAME (T,29) = 'COshEu'
+                  FNAME(T,29) = 'Ship CO emitted over EUR'
+
+               ! Tagged CO: Asia
+               CASE( 13 )
+                  NAME (T,29) = 'COabAs'
+                  FNAME(T,29) = 'Anth+Biof CO emitted over SEA'
+               CASE( 14 )
+                  NAME (T,29) = 'COacAs'
+                  FNAME(T,29) = 'Aircraft CO emitted over SEA'
+               CASE( 15 )
+                  NAME (T,29) = 'COshAs'
+                  FNAME(T,29) = 'Ship CO emitted over SEA'
+
+               ! Tagged CO: Everywhere else
+               CASE( 16 )
+                  NAME (T,29) = 'COabOth'
+                  FNAME(T,29) = 'Anth+Biof CO emitted elsewhere'
+               CASE( 17 )
+                  NAME (T,29) = 'COacOth'
+                  FNAME(T,29) = 'Aircraft CO emitted elsewhere'
+               CASE( 18 )
+                  NAME (T,29) = 'COshOth'
+                  FNAME(T,29) = 'Ship CO emitted elsewhere'
+
+               ! Tagged CO: Regional biomass tracers
+               CASE( 19 )
+                  NAME (T,29) = 'CObbAm'
+                  FNAME(T,29) = 'Biomass CO emitted over SAM'
+               CASE( 20 )
+                  NAME (T,29) = 'CObbAf'
+                  FNAME(T,29) = 'Biomass CO emitted over AFR'
+               CASE( 21 )
+                  NAME (T,29) = 'CObbAs'
+                  FNAME(T,29) = 'Biomass CO emitted over SEA'
+               CASE( 22 )
+                  NAME (T,29) = 'CObbOc'
+                  FNAME(T,29) = 'Biomass CO emitted over OCE'
+               CASE( 23 )
+                  NAME (T,29) = 'CObbEu'
+                  FNAME(T,29) = 'Biomass CO emitted over EUR'
+               CASE( 24 )
+                  NAME (T,29) = 'CObbOth'
+                  FNAME(T,29) = 'Biomass CO emitted elsewhere'
+
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -7642,6 +7725,7 @@
       USE HDF_MOD,     ONLY : HDFMOLC
       USE HDF_MOD,     ONLY : HDFMWT
       USE HDF_MOD,     ONLY : HDFSCALE
+      USE Species_Mod, ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -7683,8 +7767,9 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS, NYMDb, NHMSb
-      INTEGER :: MAXTRACER_HG
+      INTEGER                :: AS, NYMDb, NHMSb
+      INTEGER                :: MAXTRACER_HG, N
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! INIT_GAMAP begins here!
@@ -7813,6 +7898,27 @@
          HDFSCALE(:,:)  = SCALE(:,:)
          
       ENDIF
+
+      !=================================================================
+      ! Now define local tracer ID flags.  This will let us remove 
+      ! tracerid_mod.F in anticipation of FlexChem (bmy, 5/2/15)
+      !=================================================================
+      DO N = 1, State_Chm%nSpecies
+
+         ! Get info about this species from the database
+         ThisSpc => State_Chm%SpcData(N)%Info
+
+         ! Define tracer ID flags locally
+         SELECT CASE ( TRIM( ThisSpc%Name ) )
+            CASE( 'PASV' )
+               IDTPASV = ThisSpc%ModelId
+            CASE DEFAULT
+               ! Nothing
+         END SELECT
+
+         ! Free pointer
+         ThisSpc => NULL()
+      ENDDO
 
       END SUBROUTINE INIT_GAMAP
 !EOC

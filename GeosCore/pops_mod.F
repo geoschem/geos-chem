@@ -67,6 +67,8 @@
 
       ! Pointers to fields in the HEMCO data structure.
       ! These need to be declared REAL(f4), aka REAL*4.
+      ! NOTE: These are globally SAVEd pointers, so we can
+      ! nullify them in the declaration here (bmy, 4/29/16)
       REAL(f4), POINTER     :: C_OC(:,:,:) => NULL()
       REAL(f4), POINTER     :: C_BC(:,:,:) => NULL()
       REAL(f4), POINTER     :: O3(:,:,:)   => NULL()
@@ -74,6 +76,12 @@
 !
 ! !PRIVATE TYPES:
 !
+      ! Tracer and drydep flags
+      INTEGER,  PRIVATE     :: IDTPOPG
+      INTEGER,  PRIVATE     :: IDTPOPPBCPI
+      INTEGER,  PRIVATE     :: IDTPOPPBCPO 
+      INTEGER,  PRIVATE     :: IDTPOPPOCPI
+      INTEGER,  PRIVATE     :: IDTPOPPOCPO
       INTEGER,  PRIVATE     :: DRYPOPG
       INTEGER,  PRIVATE     :: DRYPOPP_BCPI
       INTEGER,  PRIVATE     :: DRYPOPP_BCPO
@@ -371,9 +379,6 @@
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTPOPG
-      USE TRACERID_MOD,       ONLY : IDTPOPPOCPO, IDTPOPPBCPO
-      USE TRACERID_MOD,       ONLY : IDTPOPPOCPI, IDTPOPPBCPI
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1342,7 +1347,7 @@
       ENDDO
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       END SUBROUTINE CHEM_POPGP 
 !EOC
@@ -1821,6 +1826,8 @@
 !  10 Mar 2015 - R. Yantosca - Now always allocate ZERO_DVEL
 !  21 Sep 2015 - R. Yantosca - Now takes State_Chm as an argument, so that
 !                              we can take advantage of the species database
+!  02 May 2016 - R. Yantosca - Now make IDTPOP* flags as module variables
+!                              instead of getting them from tracerid_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1840,8 +1847,9 @@
 
       ! Assume success
       RC = GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
+      
+      ! Initialize
+      ThisSpc   => NULL()
       LDRYD     = Input_Opt%LDRYD
       LNLPBL    = Input_Opt%LNLPBL
       LPRT      = Input_Opt%LPRT
@@ -1874,6 +1882,11 @@
       !=================================================================
 
       ! Initialize flags
+      IDTPOPG      = 0
+      IDTPOPPOCPO  = 0
+      IDTPOPPOCPI  = 0
+      IDTPOPPBCPO  = 0
+      IDTPOPPBCPI  = 0
       DRYPOPG      = 0
       DRYPOPP_OCPO = 0
       DRYPOPP_BCPO = 0
@@ -1891,14 +1904,19 @@
             
             SELECT CASE ( TRIM( ThisSpc%Name ) )
                CASE( 'POPG' )
+                  IDTPOPG      = ThisSpc%ModelId
                   DRYPOPG      = ThisSpc%DryDepId
                CASE( 'POPPOCPO' )
+                  IDTPOPPOCPO  = ThisSpc%ModelId
                   DRYPOPP_OCPO = ThisSpc%DryDepId
                CASE( 'POPPBCPO' )
+                  IDTPOPPBCPO  = ThisSpc%ModelId
                   DRYPOPP_BCPO = ThisSpc%DryDepId
                CASE( 'POPPOCPI' )
+                  IDTPOPPOCPI  = ThisSpc%ModelId
                   DRYPOPP_OCPI = ThisSpc%DryDepId
                CASE( 'POPPBCPI' )
+                  IDTPOPPBCPI  = ThisSpc%ModelId
                   DRYPOPP_BCPI = ThisSpc%DryDepId
                CASE DEFAULT
                   ! Nothing

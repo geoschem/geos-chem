@@ -113,8 +113,6 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: ITS_A_POPS_SIM
      LOGICAL                     :: ITS_A_SPECIALTY_SIM
      LOGICAL                     :: ITS_NOT_COPARAM_OR_CH4
-     CHARACTER(LEN=4),   POINTER :: Hg_CAT(:)
-     CHARACTER(LEN=40),  POINTER :: Hg_CAT_FULL(:)
 
      !----------------------------------------
      ! AEROSOL MENU fields
@@ -659,6 +657,7 @@ MODULE GIGC_Input_Opt_Mod
 !  26 Jan 2016 - E. Lundgren - Add fields for netcdf diagnostics
 !  04 Feb 2016 - M. Sulprizio- Add Hg_CAT and Hg_CAT_FULL arrays for tagged Hg
 !                              simulations
+!  27 Apr 2016 - R. Yantosca - Remove Hg_Cat, Hg_Cat_Full fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -810,8 +809,6 @@ CONTAINS
     ALLOCATE( Input_Opt%TRACER_CONST  ( MAX_TRCS, MAX_MEMB ), STAT=RC )     
     ALLOCATE( Input_Opt%TRACER_COEFF  ( MAX_TRCS, MAX_MEMB ), STAT=RC )
     ALLOCATE( Input_Opt%ID_EMITTED    ( MAX_TRCS           ), STAT=RC )     
-    ALLOCATE( Input_Opt%Hg_CAT        ( MAX_TRCS           ), STAT=RC )
-    ALLOCATE( Input_Opt%Hg_CAT_FULL   ( MAX_TRCS           ), STAT=RC )
 
     Input_Opt%N_TRACERS              = 0
     Input_Opt%ID_TRACER              = 0
@@ -842,8 +839,6 @@ CONTAINS
     Input_Opt%ITS_A_POPS_SIM         = .FALSE.
     Input_Opt%ITS_A_SPECIALTY_SIM    = .FALSE.
     Input_Opt%ITS_NOT_COPARAM_OR_CH4 = .FALSE.
-    Input_Opt%Hg_CAT                 = ''
-    Input_Opt%Hg_CAT_FULL            = ''
 
     !----------------------------------------
     ! AEROSOL MENU fields
@@ -1526,14 +1521,6 @@ CONTAINS
 
     IF ( ASSOCIATED( Input_Opt%ID_EMITTED ) ) THEN
        DEALLOCATE( Input_Opt%ID_EMITTED )
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%Hg_CAT ) ) THEN
-       DEALLOCATE( Input_Opt%Hg_CAT )
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%Hg_CAT_FULL ) ) THEN
-       DEALLOCATE( Input_Opt%Hg_CAT_FULL )
     ENDIF
 
     IF ( ASSOCIATED( Input_Opt%SALA_REDGE_um ) ) THEN

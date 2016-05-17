@@ -51,6 +51,9 @@
 !
 ! !PRIVATE TYPES:
 !
+      ! Keep a shadow variable of N_HG_CATS for backwards compatibility
+      INTEGER                :: N_HG_CATS
+
       ! Plant transpiration rate [m/s]
       REAL(fp),  ALLOCATABLE :: TRANSP(:,:)
 
@@ -77,8 +80,6 @@
       USE DEPO_MERCURY_MOD,   ONLY : WD_HGP, WD_HG2, DD_HGP, DD_HG2
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
-      USE TRACERID_MOD,       ONLY : ID_Hg0,          N_Hg_CATS
-
       USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
@@ -88,7 +89,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),         INTENT(OUT) :: LFLUX(IIPAR,JJPAR,N_Hg_CATS) ! Hg0 flux
+      REAL(fp),       INTENT(OUT) :: LFLUX(IIPAR,JJPAR,N_Hg_CATS) ! Hg0 flux
                                                                   !  [kg/s]
 !
 ! !REVISION HISTORY:
@@ -274,6 +275,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  15 Aug 2014 - R. Yantosca - Removed reference to IDBCO; now obsolete
 !  23 Sep 2014 - C. Keller   - Now use HEMCO diagnostics
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -301,8 +303,8 @@
 
       ! HEMCO update
       CHARACTER(LEN= 63)       :: DgnName
-      REAL(sp), POINTER        :: Ptr2D(:,:) => NULL()  
-      TYPE(HCO_STATE), POINTER :: HcoState   => NULL()
+      REAL(sp), POINTER        :: Ptr2D(:,:)
+      TYPE(HCO_STATE), POINTER :: HcoState
 
       CHARACTER(LEN=255)       :: MSG
       CHARACTER(LEN=255)       :: LOC ='BIOMASSHG (land_mercury_mod.F)'
@@ -310,6 +312,10 @@
       !=================================================================
       ! BIOMASSHG begins here!
       !=================================================================
+
+      ! Initialize pointers
+      Ptr2d    => NULL()
+      HcoState => NULL()
 
       ! Do biomass Hg emissions if biomass burning is on and it is a 
       ! present-day simulation (i.e. not preindustrial)
@@ -552,11 +558,20 @@
       ! This parameter is tuned in the preindustrial simulation 
       ! so that total deposition to soil equals total emission from soil,
       ! while also requiring global mean soil Hg concentration of 45 ng/g 
-#if defined (GRID4x5)
-      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp ! for sunlight function, yzh
-#elif defined(GRID2x25)
-      REAL(fp), PARAMETER :: SOIL_EMIS_FAC=1.6e-2_fp
-#elif defined(GRID05x0625)
+      ! Update for v11 GEOS-5 & GEOS-FP at 4x5 (J Fisher 3/2016)
+      ! Assume same factor for all resolutions for now and therefore
+      ! comment out resolution dependence. Users of 2x2.5 or nested
+      ! resolutions are encouraged to test and update these as needed (J
+      ! Fisher 4/2016)
+!#if defined (GRID4x5)
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp * 0.9688e+0_fp
+#else
+      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp * 0.7156e+0_fp
+#endif
+!#elif defined(GRID2x25)
+!      REAL(fp), PARAMETER :: SOIL_EMIS_FAC=1.6e-2_fp
+!#elif defined(GRID05x0625)
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! bmy, 8/12/15, add pre-defined SOIL_EMIS_FAC for 05x0667 simulation
       ! This is a non-physical value and would need to be changed for an
@@ -564,25 +579,25 @@
       !
       ! %%% NOTE: Bob Y. used same value as for GRID05x0666  %%%
       ! %%% Team Hg will have to supply a better value later %%%
-      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp  ! yzh
+!      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp  ! yzh
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#elif defined(GRID05x0666)
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! lhu, 1/5/2012, add pre-defined SOIL_EMIS_FAC for 05x0667 simulation
-      ! This is a non-physical value and would need to be changed for an
-      ! actual mercury simulation
-      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp  ! yzh
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#elif defined(GRID025x03125)
+!#elif defined(GRID05x0666)
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! lhu, 1/5/2012, add pre-defined SOIL_EMIS_FAC for 05x0667 simulation
       ! This is a non-physical value and would need to be changed for an
       ! actual mercury simulation
-      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = -9.0e+99_fp
+!      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp  ! yzh
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#else  ! This sets a default value for GCM & ESMF COUPLING
-      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 2.4e-2_fp*.5742e+0_fp ! for sunlight function
-#endif
+!#elif defined(GRID025x03125)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! lhu, 1/5/2012, add pre-defined SOIL_EMIS_FAC for 05x0667 simulation
+      ! This is a non-physical value and would need to be changed for an
+      ! actual mercury simulation
+!      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = -9.0e+99_fp
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!#else  ! This sets a default value for GCM & ESMF COUPLING
+!      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 2.4e-2_fp*.5742e+0_fp ! for sunlight function
+!#endif
 
       !=================================================================
       ! SOILEMIS begins here!
@@ -693,8 +708,6 @@
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC, SNOW_HG_LN
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
-      USE TRACERID_MOD,       ONLY : N_Hg_CATS
-
       USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
@@ -1137,7 +1150,8 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE INIT_LAND_MERCURY( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_LAND_MERCURY( am_I_Root, Input_Opt, 
+     &                              State_Chm, RC         )
 ! 
 ! !USES:
 !
@@ -1145,11 +1159,16 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1164,6 +1183,9 @@
       !=================================================================
       ! INIT_MERCURY begins here!
       !=================================================================
+
+      ! Save State_Chm%N_Hg_CATS in a shadow variable
+      N_Hg_CATS = State_Chm%N_Hg_CATS
 
       END SUBROUTINE INIT_LAND_MERCURY
 !EOC

@@ -68,6 +68,9 @@
       USE HCO_STATE_MOD,     ONLY : HCO_STATE
       USE HCOI_GC_MAIN_MOD,  ONLY : GetHcoState
 
+      ! Species database
+      USE Species_Mod,       ONLY : Species
+
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -265,6 +268,9 @@
 !  22 May 2015 - R. Yantosca - Replace NOXEXTENT with 2 in TOMAS #if blocks
 !  07 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !  05 Jan 2016 - E. Lundgren - Use GC global param AVO instead of from HEMCO
+!  21 Apr 2016 - R. Yantosca - Fixed typo that was preventing ND29 output
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  02 May 2016 - R. Yantosca - Now declare POPs and Rn tracer flags locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -327,8 +333,8 @@
       INTEGER                  :: AFill
       CHARACTER(LEN= 63)       :: DiagnName, SrcName, SpcName, FullName
       CHARACTER(LEN=255)       :: MSG
-      TYPE(DiagnCont), POINTER :: DiagnCnt => NULL() 
-      TYPE(HCO_State), POINTER :: HcoState => NULL()
+      TYPE(DiagnCont), POINTER :: DiagnCnt
+      TYPE(HCO_State), POINTER :: HcoState
       REAL(fp)                 :: FACTOR
       REAL(fp), PARAMETER      :: GPERKG   = 1000e+0_fp
       REAL(fp), PARAMETER      :: MWC      = 12e+0_fp
@@ -341,6 +347,19 @@
 
       ! RRTMG
       LOGICAL                  :: IS_GAS, IS_AD21, IS_DUST
+
+      ! To point to the species database
+      CHARACTER(LEN=31)        :: Name
+      TYPE(Species), POINTER   :: ThisSpc
+
+      ! Now define local tracer flags so that we can remove these from 
+      ! tracerid_mod.F to facilitate FlexChem implementation (bmy, 5/2/16)
+      LOGICAL, SAVE            :: FIRST = .TRUE.
+      INTEGER, SAVE            :: IDTRn,       IDTPb
+      INTEGER, SAVE            :: IDTBe7,      IDTPASV
+      INTEGER, SAVE            :: IDTPOPG
+      INTEGER, SAVE            :: IDTPOPPOCPO, IDTPOPPOCPI
+      INTEGER, SAVE            :: IDTPOPPBCPO, IDTPOPPBCPI
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -352,8 +371,11 @@
       ! Assume success
       RC         = GIGC_SUCCESS
 
-      ! Copy values from Input_Opt
+      ! Initialize
       N_TRACERS  = Input_Opt%N_TRACERS
+      ThisSpc    => NULL()
+      DiagnCnt   => NULL() 
+      HcoState   => NULL()      
 
       ! Pick the proper # of tracers
 #if   defined( APM )
@@ -378,6 +400,62 @@
       SCALE_I3   = DBLE( GET_CT_I3()   ) + 1e-32_fp
       SCALE_I6   = DBLE( GET_CT_I6()   ) + 1e-32_fp
       SCALEDIAG  = DBLE( GET_CT_DIAG() ) + 1e-32_fp
+
+!
+!******************************************************************************
+!  Now define local tracer flags for certain specialty simulations
+!  so that we can remove them from tracerid_mod.F (bmy, 5/2/16)
+!******************************************************************************
+!
+      IF ( FIRST ) THEN
+
+         ! Initialize
+         IDTRn        = 0
+         IDTPb        = 0
+         IDTBe7       = 0
+         IDTPASV      = 0
+         IDTPOPG      = 0
+         IDTPOPPOCPO  = 0
+         IDTPOPPOCPI  = 0
+         IDTPOPPBCPO  = 0
+         IDTPOPPBCPI  = 0
+
+         ! Loop over all species
+         DO N = 1, State_Chm%nSpecies
+
+            ! Get info about this species from the database
+            ThisSpc => State_Chm%SpcData(N)%Info
+            
+            SELECT CASE ( TRIM( ThisSpc%Name ) )
+               CASE( 'Rn'       )
+                  IDTRn        = ThisSpc%ModelId
+               CASE( 'Pb'       )
+                  IDTPb        = ThisSpc%ModelId
+               CASE( 'Be7'      )
+                  IDTBe7       = ThisSpc%ModelId
+               CASE( 'PASV'     )
+                  IDTPASV      = ThisSpc%ModelId
+               CASE( 'POPG'     )
+                  IDTPOPG      = ThisSpc%ModelId
+               CASE( 'POPPOCPO' )
+                  IDTPOPPOCPO  = ThisSpc%ModelId
+               CASE( 'POPPBCPO' )
+                  IDTPOPPBCPO  = ThisSpc%ModelId
+               CASE( 'POPPOCPI' )
+                  IDTPOPPOCPI  = ThisSpc%ModelId
+               CASE( 'POPPBCPI' )
+                  IDTPOPPBCPI  = ThisSpc%ModelId
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+
+            ! Free pointer
+            ThisSpc => NULL()
+         ENDDO
+
+         ! Reset first-time flag
+         FIRST = .FALSE.
+      ENDIF
 !
 !******************************************************************************
 !  Setup for binary punch file:
@@ -511,7 +589,9 @@
 !  ND03: Diagnostics from Hg0/Hg2/HgP offline simulation (eck, bmy, 1/20/05)
 !******************************************************************************
 !
-      IF ( ND03 > 0 ) CALL WRITE_DIAG03( am_I_Root, Input_Opt, RC )
+      IF ( ND03 > 0 ) THEN
+         CALL WRITE_DIAG03( am_I_Root, Input_Opt, State_Chm, RC )
+      ENDIF
 !
 !******************************************************************************
 !  ND04: Diagnostics from CO2 simulation (pns, bmy, 7/26/05)
@@ -2390,6 +2470,7 @@
 !  (3) Now write biofuel burning tracers to the punch file in the same order 
 !       as they are listed in "diag.dat". (bmy, 4/17/01)
 !  (4) Biomass diagnostics are now tracked by HEMCO (bmy, 8/14/14)
+!  (5) NOTE: Tagged CO biomass tracers are now tracked in ND29 (bmy, 3/17/16)
 !******************************************************************************
 !
       IF ( ND28 > 0 ) THEN
@@ -2698,10 +2779,11 @@
 !  (1) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
 !  (2) ND29 now uses allocatable array AD29 instead of AIJ. (bmy, 3/16/00)
 !  (3) Added CO-sources from isoprene and monoterpenes (bnd, bmy, 1/2/01)
+!  (4) Added tagged CO emissions diagnostics from HEMCO (bmy, 3/17/16)
 !******************************************************************************
 !
       IF ( ND29 > 0 ) THEN
-         
+
          ! Diagnostic category and units
          CATEGORY = 'CO--SRCE'
 
@@ -2712,21 +2794,81 @@
          ! Converts from kg/m2/s (in HEMCO) to molec/cm2/s (for bpch)
          FACTOR   = Input_Opt%XNUMOL(IDTCO) / CM2PERM2 
 
-         ! Loop over all slots of ND29
-         DO N = 1, 5
+         ! Loop over tagged tracers if necessary
+         IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+            NN = 24
+         ELSE
+            NN = 6
+         ENDIF
+
+         ! Loop over all slots of ND29 
+         ! 1-6  are for the fullchem simulation
+         ! 7-24 are for the tagged CO simulation
+         ! Also note: Tagged CO lumps biofuels with anthro emissions
+         DO N = 1, NN
 
             ! Find the proper HEMCO diagnostic name 
             SELECT CASE ( N )
-               CASE ( 1 )
+               CASE( 1 )
                   DiagnName = 'ANTHROPOGENIC_CO'
-               CASE ( 2 )
+               CASE( 2 )
                   DiagnName = 'BIOMASS_CO'
-               CASE ( 3 )
+               CASE( 3 )
                   DiagnName = 'BIOFUEL_CO'
                CASE( 4 ) 
                   CYCLE        ! CO from methanol doesn't seem to be defined!?
                CASE ( 5 )
                   DiagnName = 'BIOGENIC_CO'
+               CASE( 6 ) 
+                  DiagnName = 'SHIP_CO'
+
+               ! Tagged CO: Anthro sectors, USA
+               CASE( 7 )
+                  DiagnName = 'ANTHRO_BIOFUEL_TAGCO_US'
+               CASE( 8 ) 
+                  DiagnName = 'AIRCRAFT_TAGCO_US'
+               CASE( 9 )
+                  DiagnName = 'SHIP_TAGCO_US'
+
+               ! Tagged CO: Anthro sectors, Europe
+               CASE( 10 )
+                  DiagnName = 'ANTHRO_BIOFUEL_TAGCO_EUR'
+               CASE( 11 )
+                  DiagnName = 'AIRCRAFT_TAGCO_EUR'
+               CASE( 12 )
+                  DiagnName = 'SHIP_TAGCO_EUR'
+
+               ! Tagged CO: Anthro sectors, Asia
+               CASE( 13 )
+                  DiagnName = 'ANTHRO_BIOFUEL_TAGCO_ASIA'
+               CASE( 14 )
+                  DiagnName = 'AIRCRAFT_TAGCO_ASIA'
+               CASE( 15 ) 
+                  DiagnName = 'SHIP_TAGCO_ASIA'
+
+               ! Tagged CO: Anthro sectors, rest of world
+               CASE( 16 )
+                  DiagnName = 'ANTHRO_BIOFUEL_TAGCO_OTHER'
+               CASE( 17 )
+                  DiagnName = 'AIRCRAFT_TAGCO_OTHER'
+               CASE( 18 )
+                  DiagnName = 'SHIP_TAGCO_OTHER'
+
+               ! Tagged CO: Regional biomass tracers
+               CASE( 19 )
+                  DiagnName = 'BIOMASS_TAGCO_USA'
+               CASE( 20 )
+                  DiagnName = 'BIOMASS_TAGCO_AFRICA'
+               CASE( 21 )
+                  DiagnName = 'BIOMASS_TAGCO_ASIA'
+               CASE( 22 )
+                  DiagnName = 'BIOMASS_TAGCO_OCEANIA'
+               CASE( 23 )
+                  DiagnName = 'BIOMASS_TAGCO_EUROPE'
+               CASE( 24 )
+                  DiagnName = 'BIOMASS_TAGCO_OTHER'
+                  
+               ! Default
                CASE DEFAULT
                   DiagnName = 'NOTHINGTOFIND'
             END SELECT
@@ -3251,74 +3393,89 @@
             ! Init
             N = 0
 
+            ! Point to the species database entry for this species name
+            ThisSpc => State_Chm%SpcData(I)%Info
+
             ! Get variables needed for HEMCO diagnostics
-            IF ( I == IDTNO ) THEN
-               DiagnName = 'ANTHROPOGENIC_NO'
-               UNIT      = 'molec/cm2/s'
-               N         = IDTNO
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-   
-            ELSE IF ( I == IDTCO ) THEN
-               DiagnName = 'ANTHROPOGENIC_CO'
-               UNIT      = 'molec/cm2/s'
-               N         = IDTCO
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-               
-            ELSE IF ( I == IDTALK4 ) THEN
-               DiagnName = 'ANTHROPOGENIC_ALK4'
-               UNIT      = 'atoms C/cm2/s'
-               N         = IDTALK4
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-          
-            ELSE IF ( I == IDTACET ) THEN
-               DiagnName = 'ANTHROPOGENIC_ACET'
-               UNIT      = 'atoms C/cm2/s'
-               N         = IDTACET
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-                      
-            ELSE IF ( I == IDTMEK ) THEN
-               DiagnName = 'ANTHROPOGENIC_MEK'
-               UNIT      = 'atoms C/cm2/s'
-               N         = IDTMEK
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-   
-            ELSE IF ( I == IDTALD2 ) THEN
-               DiagnName = 'ANTHROPOGENIC_ALD2'
-               UNIT      = 'atoms C/cm2/s'
-               N         = IDTALD2
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-   
-            ELSE IF ( I == IDTPRPE ) THEN
-               DiagnName = 'ANTHROPOGENIC_PRPE'
-               UNIT      = 'atoms C/cm2/s'
-               N         = IDTPRPE
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-   
-            ELSE IF ( I == IDTC3H8 ) THEN
-               DiagnName = 'ANTHROPOGENIC_C3H8'
-               UNIT      = 'atoms C/cm2/s'
-               N         = IDTC3H8
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-   
-            ELSE IF ( I == IDTCH2O ) THEN
-               DiagnName = 'ANTHROPOGENIC_CH2O'
-               UNIT      = 'molec/cm2/s'
-               N         = IDTCH2O
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-   
-            ELSE IF ( I == IDTC2H6 ) THEN
-               DiagnName = 'ANTHROPOGENIC_C2H6'
-               UNIT      = 'atoms C/cm2/s'
-               N         = IDTC2H6 
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-
-            ELSE IF ( I == IDTCH4 ) THEN
-               DiagnName = 'ANTHROPOGENIC_CH4'
-               UNIT      = 'molec/cm2/s'
-               N         = IDTCH4
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-
-            ENDIF
+            SELECT CASE( TRIM( ThisSpc%Name ) )
+               CASE( 'NO'     )
+                  DiagnName = 'ANTHROPOGENIC_NO'
+                  UNIT      = 'molec/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE ( 'CO'    ) 
+                  DiagnName = 'ANTHROPOGENIC_CO'
+                  UNIT      = 'molec/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE ( 'COus'  ) 
+                  DiagnName = 'ANTHROPOGENIC_TAGCO_US'
+                  UNIT      = 'molec/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE ( 'COeur'  ) 
+                  DiagnName = 'ANTHROPOGENIC_TAGCO_EUR'
+                  UNIT      = 'molec/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE ( 'COasia' ) 
+                  DiagnName = 'ANTHROPOGENIC_TAGCO_ASIA'
+                  UNIT      = 'molec/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE ( 'COoth'  ) 
+                  DiagnName = 'ANTHROPOGENIC_TAGCO_OTHER'
+                  UNIT      = 'molec/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE( 'ALK4'    )
+                  DiagnName = 'ANTHROPOGENIC_ALK4'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE( 'ACET'    ) 
+                  DiagnName = 'ANTHROPOGENIC_ACET'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE( 'MEK'     )
+                  DiagnName = 'ANTHROPOGENIC_MEK'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE( 'ALD2'    )
+                  DiagnName = 'ANTHROPOGENIC_ALD2'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE( 'PRPE'    )
+                  DiagnName = 'ANTHROPOGENIC_PRPE'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE( 'C3H8'    )
+                  DiagnName = 'ANTHROPOGENIC_C3H8'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE( 'CH2O'    )
+                  DiagnName = 'ANTHROPOGENIC_CH2O'
+                  UNIT      = 'molec/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE( 'C2H6'    )
+                  DiagnName = 'ANTHROPOGENIC_C2H6'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE( 'CH4'     )
+                  DiagnName = 'ANTHROPOGENIC_CH4'
+                  UNIT      = 'molec/cm2/s'
+                  N         = ThisSpc%ModelId
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               CASE DEFAULT
+                  ! Do nothing
+            END SELECT
 
             ! Call only if defined!
             IF ( N > 0 ) THEN
@@ -3327,6 +3484,9 @@
      &                         UNIT, N, 1, -1, .TRUE., FACTOR, RC )
                IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
             ENDIF
+
+            ! Free pointer
+            ThisSpc => NULL()
 
          ENDDO ! I
       ENDIF
@@ -6046,23 +6206,30 @@
          ND69 = 0
       ENDIF
 
-      !==================================================================
-      ! Special case for mercury simulation. We need to store AD38, AD39,
-      ! AD44 to ensure that we have monthly average in GTMM restart file
-      !==================================================================
-      IF ( Input_Opt%LGTMM ) THEN
-         N = 1
-         NN = GET_WETDEP_IDWETD( N )
-         DO WHILE( .NOT.(IS_Hg2( NN )) )
-            
-            N = N + 1
-            ! Tracer number
-            NN = GET_WETDEP_IDWETD( N )
-            
-         ENDDO
-
-         CALL UPDATE_DEP( N )
-      ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: Bob Y. blocked out this section of code which only executes if
+!%%% the GTMM Mercury Model is being used.  The bpch restart files are being 
+!%%% phased out.  It is unclear anyone is still using the GTMM land Hg model 
+!%%% anymore.  If so, then we can investigate a way to add the GTMM diagnostic 
+!%%% quantities into the netCDF restart file. (bmy, 4/22/16)
+!%%%      !==================================================================
+!%%%      ! Special case for mercury simulation. We need to store AD38, AD39,
+!%%%      ! AD44 to ensure that we have monthly average in GTMM restart file
+!%%%      !==================================================================
+!%%%      IF ( Input_Opt%LGTMM ) THEN
+!%%%         N = 1
+!%%%         NN = GET_WETDEP_IDWETD( N )
+!%%%         DO WHILE( .NOT.(IS_Hg2( NN )) )
+!%%%            
+!%%%            N = N + 1
+!%%%            ! Tracer number
+!%%%            NN = GET_WETDEP_IDWETD( N )
+!%%%            
+!%%%         ENDDO
+!%%%
+!%%%         CALL UPDATE_DEP( N )
+!%%%      ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #endif
 #if defined( BPCH_DIAG )
 !
@@ -6271,6 +6438,7 @@
 !  13 Aug 2014 - R. Yantosca - Added ProTeX headers; cosmetic changes
 !  13 Aug 2014 - R. Yantosca - Bug fix, # of vertical levels in call to BPCH2
 !                              was 1 but should have been LEVS.  Now fixed.
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6286,14 +6454,15 @@
       CHARACTER(LEN=255)            :: MG
 
       ! Pointers
-      TYPE(DiagnCont),    POINTER   :: DgnCont  => NULL()
+      TYPE(DiagnCont),    POINTER   :: DgnCont
 
       !=================================================================
       ! DIAG2BPCH begins here!
       !=================================================================
 
-      ! Zero the entire array for safety's sake
-      ARRAY = 0e0
+      ! Initialize
+      ARRAY    = 0e0
+      DgnCont => NULL()
 
       ! Set default for area scaling
       ASCL = 0

@@ -235,7 +235,7 @@
       ENDIF
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       END SUBROUTINE CHEMDUST
 #if   defined( TOMAS )
@@ -321,8 +321,6 @@
       REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
@@ -433,7 +431,7 @@
       ENDDO
 
       ! Free pointer memory
-      NULLIFY( STT )
+      STT => NULL()
 
       END SUBROUTINE SETTLEDUST
 !EOC
@@ -500,6 +498,7 @@
 !  26 Feb 2013 - R. Yantosca - Changed INPUT_OPT to INTENT(IN), since we are
 !                              now no longer calling INIT_DUST from here,
 !                              it is now called in the init stage
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -507,21 +506,19 @@
 ! !LOCAL VARIABLES:
 !
       ! SAVEd scalars
-      LOGICAL, SAVE :: FIRST = .TRUE.
+      LOGICAL,  SAVE    :: FIRST = .TRUE.
       
       ! Non-SAVEd scalars
-      INTEGER       :: N_TRACERS
-      LOGICAL       :: LDEAD
-      LOGICAL       :: LDUST
-      LOGICAL       :: LPRT
-      LOGICAL       :: LINTERP 
-      INTEGER       :: I, J, K                            !(win, 7/17/09)
-      REAL(fp)        :: MEMIS, MINIT(IIPAR,JJPAR,1,IBINS)  !(win, 7/17/09)
+      INTEGER           :: N_TRACERS
+      LOGICAL           :: LDEAD
+      LOGICAL           :: LDUST
+      LOGICAL           :: LPRT
+      LOGICAL           :: LINTERP 
+      INTEGER           :: I, J, K                            !(win, 7/17/09)
+      REAL(fp)          :: MEMIS, MINIT(IIPAR,JJPAR,1,IBINS)  !(win, 7/17/09)
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:) => NULL()
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! EMISSDUST begins here!
@@ -530,11 +527,11 @@
       ! Assume success
       RC        = GIGC_SUCCESS
 
-      ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS = Input_Opt%N_TRACERS
-      LDEAD     = Input_Opt%LDEAD
-      LDUST     = Input_Opt%LDUST
-      LPRT      = Input_Opt%LPRT
+      ! Initialize
+      N_TRACERS =  Input_Opt%N_TRACERS
+      LDEAD     =  Input_Opt%LDEAD
+      LDUST     =  Input_Opt%LDUST
+      LPRT      =  Input_Opt%LPRT
 
       ! Execute on first-call only
       IF ( FIRST ) THEN
@@ -674,6 +671,7 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
 !                              remove dependency on pressure_mod
 !  25 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostic
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -716,7 +714,7 @@
       INTEGER               :: drydep_id, trc_id, HCRC
       CHARACTER(LEN=30)     :: DiagnName
       REAL(fp), TARGET      :: DryDepFlux( IIPAR, JJPAR, NDSTBIN ) 
-      REAL(fp), POINTER     :: Ptr2D(:,:) => NULL()
+      REAL(fp), POINTER     :: Ptr2D(:,:)
 #endif
 !
 ! !DEFINED PARAMETERS:
@@ -733,7 +731,10 @@
       ! Assume success
       RC        = GIGC_SUCCESS
 
-      ! Copy fields from INPUT_OPT to local variables for use below
+      ! Initialize
+#if defined( NC_DIAG )
+      Ptr2D     => NULL()
+#endif
       N_TRACERS = Input_Opt%N_TRACERS
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
@@ -2242,7 +2243,7 @@
       END DO
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       END SUBROUTINE GET_DUST_ALK
 !EOC
@@ -2301,6 +2302,7 @@
 !  30 Sep 2015 - R. Yantosca - DD_A_Density is now renamed to Density
 !  30 Sep 2015 - R. Yantosca - DD_A_Radius is now renamed to Radius
 !  05 Jan 2016 - E. Lundgren - Use global parameter PI
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2316,18 +2318,19 @@
 #endif
 
       ! Objects
-      TYPE(Species), POINTER :: ThisSpc => NULL()
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! INIT_DUST begins here!
       !=================================================================
 
       ! Assume success
-      RC    = GIGC_SUCCESS
+      RC      = GIGC_SUCCESS
 
-      ! Copy fields from INPUT_OPT to local variables for use below
-      LDEAD  = Input_Opt%LDEAD
-      LDSTUP = Input_Opt%LDSTUP
+      ! Initialize
+      ThisSpc => NULL()
+      LDEAD   = Input_Opt%LDEAD
+      LDSTUP  = Input_Opt%LDSTUP
 
 #if defined( TOMAS )
       !=================================================================

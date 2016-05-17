@@ -284,6 +284,8 @@
 !  25 Jan 2016 - R. Yantosca - Call LINE_BUFFER to force PGI compiler to flush
 !                               STDOUT (unit=6) output to disk during a run
 !  03 Feb 2016 - E. Lundgren - Use routine MAKE_RESTART_FILES for all GC rsts
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  02 May 2016 - R. Yantosca - Now pass Input_Opt to cleanup_gigc_state_chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -315,7 +317,7 @@
       INTEGER                  :: DATE(2)
 
       ! Derived type objects
-      TYPE(MapWeight), POINTER :: mapping(:,:) => NULL()
+      TYPE(MapWeight), POINTER :: mapping(:,:)
 
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
@@ -456,6 +458,9 @@
       !=================================================================
       !            ***** I N I T I A L I Z A T I O N *****
       !=================================================================
+
+      ! Initialize pointers
+      mapping => NULL()
 
 #if defined( USE_TIMERS )
       ! Call timer initilization
@@ -799,7 +804,7 @@
 #endif 
 
 #if !defined( BPCH_RST_OUT )
-      CALL INIT_GC_RESTART_NC( am_I_Root, Input_Opt, RC )
+      CALL INIT_GC_RESTART_NC( am_I_Root, Input_Opt, State_Chm, RC )
 #endif
 
 #if defined( USE_TIMERS )
@@ -984,14 +989,16 @@
             IF (.NOT.( ITS_TIME_FOR_BPCH() )) THEN
                N = 1
                NNN = GET_WETDEP_IDWETD( N )
-               DO WHILE( .NOT.(IS_Hg2( NNN )) )
-               
+               DO
+                  ! Exit once we encounter Hg2
+                  If ( State_Chm%SpcData(NNN)%Info%Is_Hg2 ) THEN
+                     EXIT
+                  ENDIF
+
                   N = N + 1
                   ! Tracer number
                   NNN = GET_WETDEP_IDWETD( N )
-
                ENDDO
-
                CALL UPDATE_DEP( N )
             ENDIF
             CALL MAKE_GTMM_RESTART( am_I_Root, Input_Opt, NYMD, 

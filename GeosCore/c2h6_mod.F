@@ -146,7 +146,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !  06 Nov 2014 - M. Yannetti - Converted REAL*8 to REAL(fp)
-
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -167,7 +167,7 @@
       CHARACTER(LEN=255) :: LOC = 'CHEMPOPS (pops_mod.F)'
 
       ! Pointers
-      REAL(fp), POINTER  :: STT(:,:,:,:) => NULL()
+      REAL(fp), POINTER  :: STT(:,:,:,:)
 
       !=================================================================
       ! CHEMC2H6 begins here! 
@@ -251,7 +251,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       END SUBROUTINE CHEMC2H6
 !EOC

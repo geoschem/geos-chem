@@ -22,39 +22,36 @@ MODULE Species_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+  PUBLIC :: Str2Hash
   PUBLIC :: SpcData_Init
-  PUBLIC :: SpcData_GetIndx
   PUBLIC :: SpcData_Cleanup
   PUBLIC :: Spc_Create
-  PUBLIC :: Spc_Print
+  PUBLIC :: Spc_GetIndx
   PUBLIC :: Spc_GetNumSpecies
+  PUBLIC :: Spc_Print
 !
 ! !PUBLIC TYPES: 
 !
   !=========================================================================
   ! Counters for the species indices
   !=========================================================================
-  INTEGER, PRIVATE :: AdvectCount = 0    ! Counter of advected species
-  INTEGER, PRIVATE :: DryDepCount = 0    ! Counter of dry-deposited species
-  INTEGER, PRIVATE :: WetDepCount = 0    ! Counter of wet-deposited species
-
+  INTEGER, PRIVATE :: AdvectCount = 0       ! Counter of advected species
+  INTEGER, PRIVATE :: DryDepCount = 0       ! Counter of dry-deposited species
+  INTEGER, PRIVATE :: WetDepCount = 0       ! Counter of wet-deposited species
+  INTEGER, PRIVATE :: Hg0Count    = 0       ! Number of Hg0 tracers
+  INTEGER, PRIVATE :: Hg2Count    = 0       ! Number of Hg2 tracers
+  INTEGER, PRIVATE :: HgPCount    = 0       ! Number of HgP tracers
+  
   !=========================================================================
-  ! Type for ASCII sums (fast-species lookup algorithm)
-  !=========================================================================
-  TYPE, PUBLIC :: AsciiSum
-     INTEGER,           POINTER :: I(:)  !
-     CHARACTER(len=14), POINTER :: N(:)  !
-  END Type AsciiSum
-
-  !=========================================================================
-  ! Type for the species database object (vector of type Species)
+  ! Type for the Species Database object (vector of type Species)
   !=========================================================================
   TYPE, PUBLIC :: SpcPtr
-     TYPE(Species),     POINTER :: Info  ! Species type
+     TYPE(Species), POINTER :: Info         ! Single entry of Species Database
   END TYPE SpcPtr
 
   !=========================================================================
   ! Type for individual species information
+  ! (i.e. this is a single entry in the Species Database)
   !=========================================================================
   TYPE, PUBLIC :: Species
 
@@ -69,6 +66,7 @@ MODULE Species_Mod
      ! Names
      CHARACTER(LEN=31)  :: Name             ! Short name
      CHARACTER(LEN=80)  :: FullName         ! Long name
+     INTEGER            :: NameHash         ! Integer hash for short name
 
      ! Logical switches
      LOGICAL            :: Is_Gas           ! Is it a gas?  If not, aerosol.
@@ -131,6 +129,12 @@ MODULE Species_Mod
      LOGICAL            :: MP_SizeResAer    ! T=size-resolved aerosol (TOMAS)
      LOGICAL            :: MP_SizeResNum    ! T=size-resolved aerosol number
 
+     ! Tagged mercury parameters
+     LOGICAL            :: Is_Hg0           ! T=total or tagged Hg0 species
+     LOGICAL            :: Is_Hg2           ! T=total or tagged Hg2 species
+     LOGICAL            :: Is_HgP           ! T=total or tagged HgP species
+     INTEGER            :: Hg_Cat           ! Tagged Hg category number
+
   END TYPE Species
 !
 ! !DEFINED PARAMETERS
@@ -170,11 +174,81 @@ MODULE Species_Mod
 !  01 Oct 2015 - R. Yantosca - Add field DD_DvzMinVal
 !  16 Oct 2015 - E. Lundgren - Add WD_Is_H2SO4 field to flag special case of
 !                              H2SO4 wet deposition for microphysics
+!  22 Apr 2016 - R. Yantosca - Added Is_Hg0, Is_Hg2, Is_HgP species
+!  04 May 2016 - R. Yantosca - Added fast name lookup via hashing
+
 !  09 May 2016 - R. Yantosca - Add Is_Kpp, KppVarId, KppFixId to type Species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Str2Hash
+!
+! !DESCRIPTION: Returns a unique integer hash for a given character string.
+!  This allows us to implement a fast name lookup algorithm.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION Str2Hash( Str ) RESULT( Hash )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=14), INTENT(IN) :: Str    ! String (14 chars long)
+!
+! !RETURN VALUE:
+!
+    INTEGER                       :: Hash   ! Hash value from string
+!
+! !REMARKS:
+!  (1) Algorithm taken from this web page:
+!       https://fortrandev.wordpress.com/2013/07/06/fortran-hashing-algorithm/
+!
+!  (2) For now, we only use the first 14 characers of the character string
+!       to compute the hash value.  Most GEOS-Chem species names only use
+!       at most 14 unique characters.  We can change this later if need be.
+!
+! !REVISION HISTORY:
+!  04 May 2016 - R. Yantosca - Initial version
+!  05 May 2016 - R. Yantosca - Now make the input string 14 chars long
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Initialize
+    Hash = 5381
+
+    !-----------------------------------------------------------------------
+    ! Construct the hash from the first 14 characters of the string,
+    ! which is about the longest species name for GEOS-Chem.
+    !
+    ! NOTE: It's MUCH faster to explicitly write these statements
+    ! instead of writing them using a DO loop (bmy, 5/4/16)
+    !-----------------------------------------------------------------------
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 1: 1) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 2: 2) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 3: 3) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 4: 4) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 5: 5) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 6: 6) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 7: 7) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 8: 8) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 9: 9) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(10:10) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(11:11) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(12:12) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(13:13) )
+    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(14:14) )
+
+  END FUNCTION Str2Hash
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -215,7 +289,7 @@ CONTAINS
     INTEGER :: N, AS
 
     !=====================================================================
-    ! SpcPtr_Init begins here!
+    ! SpcData_Init begins here!
     !=====================================================================
 
     ! Check if already allocated
@@ -242,63 +316,70 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: SpcData_GetIndx 
+! !IROUTINE: Spc_GetIndx 
 !
-! !DESCRIPTION: Function SpcData\_GetIndx returns the index of a given 
+! !DESCRIPTION: Function Spc\_GetIndx returns the index of a given 
 !  species in the species data base object.  You can search by the short
 !  name or the full name of the species.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION SpcData_GetIndx( name, SpecDB, fullname ) RESULT( Indx )
+  FUNCTION Spc_GetIndx( Name, SpecDB ) RESULT( Indx )
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*),     INTENT(IN) :: name       ! Species or tracer name
-    TYPE(SpcPtr),         POINTER    :: SpecDB(:)  ! Species database
-    LOGICAL, INTENT(IN),  OPTIONAL   :: fullname   ! Search in fullname?
+    CHARACTER(LEN=*), INTENT(IN) :: Name       ! Species name
+    TYPE(SpcPtr),     POINTER    :: SpecDB(:)  ! Species Database object
 !
 ! !RETURN VALUE:
 !
-    INTEGER                          :: Indx       ! Index of this species 
+    INTEGER                      :: Indx       ! Index of this species
+!
+! !REMARKS:
+!  The input name field has will get copied to an internal string that is
+!  14 characters long, for input into the Str2Hash function.  14 characters
+!  is about the longest species name for GEOS-Chem.  We can modify this
+!  if need be.
 !
 ! !REVISION HISTORY: 
 !  09 Oct 2012 - M. Long     - Initial version, based on gc_esmf_utils_mod.F90
 !  22 Jul 2015 - R. Yantosca - Cosmetic changes
+!  04 May 2016 - R. Yantosca - Now use hash comparison, it's faster
+!  04 May 2016 - R. Yantosca - Renamed to Spc_GetIndx
+!  05 May 2016 - R. Yantosca - The NAME argument is now of variable length 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    INTEGER :: M
-    LOGICAL :: do_fullname
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER           :: N, Hash
+    CHARACTER(LEN=14) :: Name14
 
-    ! Initialize
-    Indx= -1
-    IF ( PRESENT(fullname) ) THEN
-       do_fullname = fullname
-    ELSE
-       do_fullname = .FALSE.
-    ENDIF
+    !=====================================================================
+    ! Spc_GetIndex begins here!
+    !=====================================================================
 
-    ! Loop over all species names
-    DO M = 1, SIZE(SpecDB)
+    ! Initialize the output value
+    Indx   = -1
 
-       ! Return the index of the sought-for species
-       IF ( do_fullname ) THEN
-          IF( TRIM( name ) == TRIM( SpecDB(M)%Info%FullName ) ) THEN
-             Indx = SpecDB(M)%Info%ModelID
-             EXIT
-          ENDIF
+    ! Compute the hash corresponding to the given species name
+    Name14 = Name
+    Hash   = Str2Hash( Name14 )
 
-       ELSE
-          IF( TRIM( name ) == TRIM( SpecDB(M)%Info%Name ) ) THEN
-             Indx = SpecDB(M)%Info%ModelID
-             EXIT
-          ENDIF
+    ! Loop over all entries in the Species Database object
+    DO N = 1, SIZE( SpecDB )
+
+       ! Compare the hash we just created against the list of
+       ! species name hashes stored in the species database
+       IF( Hash == SpecDB(N)%Info%NameHash  ) THEN
+          Indx = SpecDB(N)%Info%ModelID
+          EXIT
        ENDIF
     ENDDO
 
-  END FUNCTION SpcData_GetIndx 
+  END FUNCTION Spc_GetIndx 
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -317,7 +398,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(SpcPtr), POINTER :: SpecDB(:)  ! Species database
+    TYPE(SpcPtr), POINTER :: SpecDB(:)  ! Species database object
 ! 
 ! !REVISION HISTORY: 
 !  20 Aug 2013 - C. Keller   - Adapted from gigc_state_chm_mod.F90
@@ -383,8 +464,9 @@ CONTAINS
                          WD_LiqAndGas,  WD_ConvFacI2G, WD_AerScavEff,  &
                          WD_KcScaleFac, WD_RainoutEff, WD_CoarseAer,   &
                          Is_Advected,   Is_Gas,        Is_Drydep,      &
-                         Is_Wetdep,     KppVarId,      KppFixId,       &
-                         RC                            )
+                         Is_Wetdep,     Is_Hg0,        Is_Hg2,         &
+                         Is_HgP,        KppVarId,      KppFixId,       &
+                         RC                                           )
 !
 ! !USES:
 !
@@ -437,6 +519,9 @@ CONTAINS
     LOGICAL,          OPTIONAL    :: Is_Gas           ! Gas (T) or aerosol (F)?
     LOGICAL,          OPTIONAL    :: Is_Drydep        ! Is it dry deposited?
     LOGICAL,          OPTIONAL    :: Is_Wetdep        ! Is it wet deposited?
+    LOGICAL,          OPTIONAL    :: Is_Hg0           ! Denotes Hg0 species
+    LOGICAL,          OPTIONAL    :: Is_Hg2           ! Denotes Hg2 species
+    LOGICAL,          OPTIONAL    :: Is_HgP           ! Denotes HgP species
     INTEGER,          OPTIONAL    :: KppVarId         ! KPP variable species ID
     INTEGER,          OPTIONAL    :: KppFixId         ! KPP fixed species Id
 !
@@ -469,6 +554,8 @@ CONTAINS
 !  04 Sep 2015 - R. Yantosca - Add arguments WD_RainoutEff, WD_CoarseAer,
 !                              and WD_SizeResAer
 !  24 Sep 2015 - R. Yantosca - Added WD_KcScaleFac argument
+!  22 Apr 2016 - R. Yantosca - Added Is_Hg0, Is_Hg2, Is_HgP
+!  04 May 2016 - R. Yantosca - Now construct hash value from short name
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -489,16 +576,18 @@ CONTAINS
     IF ( PRESENT( ModelID ) ) THEN
        ThisSpc%ModelID = ModelID
     ELSE
-       ThisSpc%ModelID = -1
+       ThisSpc%ModelID = MISSING_INT
     ENDIF
 
     !---------------------------------------------------------------------
-    ! Short name
+    ! Short name.  Also construct a hash value from the short name.
     !---------------------------------------------------------------------
     IF ( PRESENT( Name ) ) THEN
-       ThisSpc%Name = Name
+       ThisSpc%Name     = Name
+       ThisSpc%NameHash = Str2Hash( ThisSpc%Name )
     ELSE
-       ThisSpc%Name = ''
+       ThisSpc%Name     = ''
+       ThisSpc%NameHash = MISSING_INT
     ENDIF
 
     !---------------------------------------------------------------------
@@ -739,6 +828,7 @@ CONTAINS
 
     ELSE
        ThisSpc%Is_Advected = .FALSE.
+       ThisSpc%AdvectID    = MISSING_INT
     ENDIF
 
     !---------------------------------------------------------------------
@@ -838,6 +928,54 @@ CONTAINS
        ThisSpc%MP_SizeResNum = .FALSE.
     ENDIF
 
+    !---------------------------------------------------------------------
+    ! Is it a Hg0 species (total or tagged)?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( Is_Hg0 ) ) THEN
+       ThisSpc%Is_Hg0 = Is_Hg0
+
+       ! Increment count and index of Hg0 categories
+       IF ( Is_Hg0 ) THEN
+          Hg0Count       = Hg0Count + 1
+          ThisSpc%Hg_Cat = Hg0Count
+       ENDIF
+
+    ELSE
+       ThisSpc%Is_Hg0 = .FALSE.
+    ENDIF
+    
+    !---------------------------------------------------------------------
+    ! Is it a Hg2 species (total or tagged)?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( Is_Hg2 ) ) THEN
+       ThisSpc%Is_Hg2 = Is_Hg2
+
+       ! Increment count of Hg2 species
+       IF ( Is_Hg2 ) THEN
+          Hg2Count       = Hg2Count + 1
+          ThisSpc%Hg_Cat = Hg2Count
+       ENDIF
+
+    ELSE
+       ThisSpc%Is_Hg2 = .FALSE.
+    ENDIF
+    
+    !---------------------------------------------------------------------
+    ! Is it a HgP species (total or tagged)?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( Is_HgP ) ) THEN
+       ThisSpc%Is_HgP = Is_HgP
+
+       ! Increment count of HgP species
+       IF ( Is_HgP ) THEN
+          HgPCount       = HgPCount + 1
+          ThisSpc%Hg_Cat = HgPCount
+       ENDIF
+
+    ELSE
+       ThisSpc%Is_HgP = .FALSE.
+    ENDIF
+    
     !---------------------------------------------------------------------
     ! Sanity checks
     !---------------------------------------------------------------------
@@ -1013,7 +1151,7 @@ CONTAINS
        ENDIF
 
        !-------------------------
-       ! Print wetdep infof
+       ! Print wetdep info
        !-------------------------
        WRITE( 6, 130 ) 'Is it wet deposited? ',          ThisSpc%Is_WetDep
 
@@ -1074,24 +1212,32 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_GetNumSpecies( nAdvect, nDryDep, nWetDep )
+  SUBROUTINE Spc_GetNumSpecies( nAdvect,  nDryDep,  nWetDep,  &
+                                nHg0Cats, nHg2Cats, nHgPCats )
 !
 ! !OUTPUT PARAMETERS:
 !
     INTEGER, INTENT(OUT) :: nAdvect   ! # of advected species
     INTEGER, INTENT(OUT) :: nDryDep   ! # of dry-deposited species
     INTEGER, INTENT(OUT) :: nWetDep   ! # of wet-deposited species
+    INTEGER, INTENT(OUT) :: nHg0Cats  ! # of Hg0 categories
+    INTEGER, INTENT(OUT) :: nHg2Cats  ! # of Hg0 categories
+    INTEGER, INTENT(OUT) :: nHgPCats  ! # of Hg0 categories
 ! 
 ! !REVISION HISTORY: 
-!   2 Sep 2015 - R. Yantosca - Initial version
+!  02 Sep 2015 - R. Yantosca - Initial version
+!  25 Apr 2016 - R. Yantosca - Also return the # of Hg0, Hg2, HgP categories
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
     ! Return module variables
-    nAdvect = AdvectCount
-    nDryDep = DryDepCount
-    nWetDep = WetDepCount
+    nAdvect  = AdvectCount
+    nDryDep  = DryDepCount
+    nWetDep  = WetDepCount
+    nHg0Cats = Hg0Count
+    nHg2Cats = Hg2Count
+    nHgPCats = HgPCount
     
   END SUBROUTINE Spc_GetNumSpecies
 !EOC

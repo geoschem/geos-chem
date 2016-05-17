@@ -320,6 +320,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  07 Jul 2015 - E. Lundgren - Initial version, containing legacy Read_Modis_Lai
 !                              code plus modifications to read CHLR
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -351,8 +352,8 @@ CONTAINS
     INTEGER, SAVE        :: mmLastCHLR = -1
 
     ! Pointers
-    REAL*4, POINTER      :: MODIS_PTR_CM(:,:) => NULL()
-    REAL*4, POINTER      :: MODIS_PTR_NM(:,:) => NULL()
+    REAL*4, POINTER      :: MODIS_PTR_CM(:,:)
+    REAL*4, POINTER      :: MODIS_PTR_NM(:,:)
 
     !======================================================================
     ! Test if it is time to read data
@@ -683,6 +684,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  07 Jul 2015 - E. Lundgren - Initial version, contains old Compute_Modis_Lai
 !                              code plus modifications to compute CHLR
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -703,12 +705,12 @@ CONTAINS
     REAL(fp)  :: tempModisNm(0:NVEGTYPE-1)
 
     ! Pointers
-    REAL(fp), POINTER  :: GC_PTR(:,:)       => NULL()
-    REAL*4,   POINTER  :: MODIS_PTR(:,:)    => NULL()
-    REAL*4,   POINTER  :: MODIS_PTR_CM(:,:) => NULL()
-    REAL*4,   POINTER  :: MODIS_PTR_NM(:,:) => NULL()
-    REAL(fp), POINTER  :: XTMP(:,:,:)       => NULL()
-    REAL(fp), POINTER  :: XTMP2(:,:,:)      => NULL()
+    REAL(fp), POINTER  :: GC_PTR(:,:)
+    REAL*4,   POINTER  :: MODIS_PTR(:,:)
+    REAL*4,   POINTER  :: MODIS_PTR_CM(:,:)
+    REAL*4,   POINTER  :: MODIS_PTR_NM(:,:)
+    REAL(fp), POINTER  :: XTMP(:,:,:)
+    REAL(fp), POINTER  :: XTMP2(:,:,:)
 
     !======================================================================
     ! Interpolate the data on the MODIS grid to current day

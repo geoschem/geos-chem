@@ -512,6 +512,7 @@
 !  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
 !  15 Jun 2015 - R. Yantosca - Bug fix: PP doesn't have to be held PRIVATE
 !  15 Jun 2015 - R. Yantosca - Updated comments for removal of drydep
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -530,8 +531,8 @@
       REAL(fp)                 :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
 
       ! Pointers
-      REAL(fp),        POINTER :: STT(:,:,:,:) => NULL()
-      TYPE(HCO_STATE), POINTER :: HcoState     => NULL()
+      REAL(fp),        POINTER :: STT(:,:,:,:)
+      TYPE(HCO_STATE), POINTER :: HcoState
 
       ! Strings
       CHARACTER(LEN=255) :: LOC = 'CHEM_TAGGED_OX (tagged_ox_mod.F)'
@@ -551,6 +552,7 @@
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT       => State_Chm%Tracers
+      HcoState  => NULL()
 
       ! Chemistry timestep [s]
       DTCHEM    = GET_TS_CHEM() * 60e+0_fp
@@ -668,7 +670,8 @@
       ENDDO
 
       ! Free pointer
-      NULLIFY( STT )
+      STT      => NULL()
+      HcoState => NULL()
 
       END SUBROUTINE CHEM_TAGGED_OX
 !EOC

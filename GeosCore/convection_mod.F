@@ -191,6 +191,7 @@
 !                              (previously v/v)
 !  10 Aug 2015 - E. Lundgren - Incoming tracer units are now kg/kg dry air
 !  11 Aug 2015 - R. Yantosca - Added support for MERRA2 data
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -249,14 +250,19 @@
       INTEGER                :: trc_id, D, HCRC
       CHARACTER(LEN=60)      :: DiagnName
       REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
-      REAL(fp), POINTER      :: TMP3D(:,:,:) => NULL()
-      REAL(fp), POINTER      :: TMP2D(:,:  ) => NULL()
+      REAL(fp), POINTER      :: TMP3D(:,:,:)
+      REAL(fp), POINTER      :: TMP2D(:,:  )
       REAL(fp)               :: DTIME
 #endif
 
       !=================================================================
       ! DO_CONVECT begins here!
       !=================================================================
+#if defined ( NETCDF )
+      ! Initialize pointers
+      Tmp2d => NULL()
+      Tmp3d => NULL()
+#endif
 
       !=================================================================
       ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
@@ -378,7 +384,7 @@
      &                   Input_Opt, State_Met, State_Chm, RC ) 
 
          ! Free pointer memory
-         NULLIFY( p_FSOL )
+         p_FSOL => NULL()
 
       ENDDO
       
@@ -626,6 +632,7 @@
 !                              pressure_mod
 !  23 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v)
+!  22 Apr 2016 - R. Yantosca - Now pass State_Chm to FVDAS_CONVECT_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -813,7 +820,8 @@
      &                    p_F,
      &                    INDEXSOL,
      &                    Input_Opt,
-     &                    State_Met )
+     &                    State_Met,
+     &                    State_Chm )
 
       ! Add a check to set negative values in STT to TINY
       ! (ccc, 4/15/09)
@@ -1167,9 +1175,8 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE PRESSURE_MOD,       ONLY : GET_BP
+      USE SPECIES_MOD,        ONLY : Species
       USE TIME_MOD,           ONLY : GET_TS_CONV
-      USE TRACERID_MOD,       ONLY : IS_Hg2
-      USE TRACERID_MOD,       ONLY : IS_HgP 
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
       USE ERROR_MOD,          ONLY : ALLOC_ERR
 
@@ -1352,6 +1359,9 @@
 !                              whether the dynamic ocean is used
 !  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v)
+!  22 Apr 2016 - R. Yantosca - Now get Is_Hg2 and Is_HgP from species database
+!  22 Apr 2016 - R. Yantosca - Now pass ThisSpc to ADD_HG2_SNOWPACK
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1359,10 +1369,9 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE            :: FIRST = .TRUE.
-      LOGICAL, SAVE            :: IS_Hg = .TRUE.
       INTEGER                  :: I, J, K, KTOP, L, N, NDT
       INTEGER                  :: IC, ISTEP, JUMP, JS, JN, NS
-      INTEGER                  :: IMR, JNP, NLAY, AS
+      INTEGER                  :: IMR, JNP, NLAY, AS, Hg_Cat
       REAL(fp)                 :: SDT, CMOUT, ENTRN, DQ, AREA_M2
       REAL(fp)                 :: T0, T1, T2, T3, T4, TSUM, DELQ
       REAL(fp)                 :: DTCSUM( IIPAR, JJPAR, LLPAR,
@@ -1413,11 +1422,12 @@
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object (mpayer, 12/6/12)
       ! and the Meteorology State (State_Met) Object
-      REAL(fp), POINTER        :: Q        (:,:,:,:)
-      REAL(fp), POINTER        :: CLDMAS   (:,:,:  ) 
-      REAL(fp), POINTER        :: DTRN     (:,:,:  ) 
-      REAL(fp), POINTER        :: p_FSOL   (:,:,:  ) 
-      
+      REAL(fp),      POINTER   :: Q        (:,:,:,:)
+      REAL(fp),      POINTER   :: CLDMAS   (:,:,:  )
+      REAL(fp),      POINTER   :: DTRN     (:,:,:  )
+      REAL(fp),      POINTER   :: p_FSOL   (:,:,:  )
+      TYPE(Species), POINTER   :: ThisSpc           
+
       !=================================================================
       ! NFCLDMX begins here!
       !=================================================================
@@ -1443,14 +1453,15 @@
       ! object (ewl, 4/28/15)
       DTRN              => State_Met%DTRAIN
 
+      ! Initialize pointer to species database
+      ThisSpc           => NULL()
+
       ! First-time initialization
       IF ( FIRST ) THEN
 
          ! Echo info
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          WRITE( 6, '(a)' ) 'N F C L D M X  -- by S-J Lin'
-         WRITE( 6, '(a)' ) 'Modified for GEOS-CHEM by Bob Yantosca'
-         WRITE( 6, '(a)' ) 'Last Modification Date: 1/27/04'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
 #if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
@@ -1466,9 +1477,6 @@
             DSIG(L) = GET_BP(L) - GET_BP(L+1)
          ENDDO
 #endif
-
-         ! Flag to denote if this is a mercury simulation (sas, bmy, 1/19/05)
-         IS_Hg = ITS_A_MERCURY_SIM
 
          ! Reset first time flag
          FIRST = .FALSE.
@@ -1616,12 +1624,15 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( CMOUT, DELQ, ENTRN, I, IC, ISTEP, ISOL, J, AREA_M2, K  ) 
 !$OMP+PRIVATE( MB, QB, QC, QC_PRES, QC_SCAV, T0, T1, T2, T3, T4, TSUM )
-!$OMP+PRIVATE( WET_Hg2, WET_HgP                                       )
+!$OMP+PRIVATE( WET_Hg2, WET_HgP, ThisSpc, Hg_Cat                      )
 !$OMP+SCHEDULE( DYNAMIC )
       DO IC = 1, NC
 
+         ! Point to the Species Database entry for this tracer
+         ThisSpc => State_Chm%SpcData(IC)%Info
+
          ! Get previously archived value of ISOL (bmy, 2/4/14)
-         ISOL = ISOL_SAVE(IC)
+         ISOL    = ISOL_SAVE(IC)
 
          !==============================================================
          ! (3)  I n t e r n a l   T i m e   S t e p   L o o p
@@ -1722,6 +1733,10 @@
                ! Grid box surface area [m2]
                AREA_M2 = GET_AREA_M2( I, J, K )
 
+               ! Initialize
+               WET_Hg2 = 0.0_fp
+               WET_HgP = 0.0_fp
+               
 !==============================================================================
 !  (5.1)  M a s s   B a l a n c e   i n   C l o u d  ===>  QC(I,J)
 !
@@ -1749,22 +1764,22 @@
 !  CMOUT > 0 and will prevent floating-point exception.
 !==============================================================================
 
-                  IF ( CLDMAS(I,J,K-1) .gt. TINY ) THEN
-                     CMOUT    = CLDMAS(I,J,K) + DTRN(I,J,K)
-                     ENTRN    = CMOUT         - CLDMAS(I,J,K-1)
-                     QC_PRES  = QC(I,J) * ( 1e+0_fp - F(I,J,K,IC) )
-                     QC_SCAV  = QC(I,J) * F(I,J,K,IC)
+               IF ( CLDMAS(I,J,K-1) .gt. TINY ) THEN
+                  CMOUT    = CLDMAS(I,J,K) + DTRN(I,J,K)
+                  ENTRN    = CMOUT         - CLDMAS(I,J,K-1)
+                  QC_PRES  = QC(I,J) * ( 1e+0_fp - F(I,J,K,IC) )
+                  QC_SCAV  = QC(I,J) * F(I,J,K,IC)
 !#if defined ( DEBUG )
 !       IF ( IC == 129 ) THEN
 !          print *, I, J, K, QC_PRES, QC_SCAV, QC(I,J), F(I,J,K,IC)
 !       ENDIF
 !#endif
-
-                     IF ( ENTRN .ge. 0 ) THEN
-                        QC(I,J) = ( CLDMAS(I,J,K-1) * QC_PRES       + 
-     &                              ENTRN           * Q(I,J,K,IC) ) / 
-     &                              CMOUT
-                     ENDIF   
+                  
+                  IF ( ENTRN .ge. 0 ) THEN
+                     QC(I,J) = ( CLDMAS(I,J,K-1) * QC_PRES       + 
+     &                           ENTRN           * Q(I,J,K,IC) ) / 
+     &                           CMOUT
+                  ENDIF   
 
 !==============================================================================
 !  (5.2)  M a s s   B a l a n c e   i n   L e v e l  ===>  Q(I,J,K,IC)
@@ -1807,93 +1822,140 @@
 !  The term T0 is the amount of tracer that is scavenged out of the box.
 !  Compute that term here for the ND38 diagnostic below. (bmy, 1/27/03)
 !==============================================================================
-                     T0   =  CLDMAS(I,J,K-1) * QC_SCAV   
-                     T1   =  CLDMAS(I,J,K-1) * QC_PRES
-                     T2   = -CLDMAS(I,J,K  ) * QC(I,J       )
-                     T3   =  CLDMAS(I,J,K  ) * Q (I,J,K+1,IC)
-                     T4   = -CLDMAS(I,J,K-1) * Q (I,J,K,  IC)
+                  T0   =  CLDMAS(I,J,K-1) * QC_SCAV   
+                  T1   =  CLDMAS(I,J,K-1) * QC_PRES
+                  T2   = -CLDMAS(I,J,K  ) * QC(I,J       )
+                  T3   =  CLDMAS(I,J,K  ) * Q (I,J,K+1,IC)
+                  T4   = -CLDMAS(I,J,K-1) * Q (I,J,K,  IC)
 
-                     TSUM = T1 + T2 + T3 + T4 
+                  TSUM = T1 + T2 + T3 + T4 
 
-                     DELQ = ( SDT / BMASS(I,J,K) ) * TSUM
+                  DELQ = ( SDT / BMASS(I,J,K) ) * TSUM
 
-                     ! If DELQ > Q then do not make Q negative!!!
-                     IF ( Q(I,J,K,IC) + DELQ < 0 ) THEN
-                        DELQ = -Q(I,J,K,IC)
-                     ENDIF
+                  ! If DELQ > Q then do not make Q negative!!!
+                  IF ( Q(I,J,K,IC) + DELQ < 0 ) THEN
+                     DELQ = -Q(I,J,K,IC)
+                  ENDIF
 
-                     Q(I,J,K,IC) = Q(I,J,K,IC) + DELQ
+                  Q(I,J,K,IC) = Q(I,J,K,IC) + DELQ
                                 
-                     !==================================================
-                     ! ND14 Diagnostic: Upward mass flux due to wet 
-                     ! convection.  The diagnostic ND14 works only for 
-                     ! levels >= than 3.  This is ok for now since I 
-                     ! want to have a closed budget with a box starting 
-                     ! from the ground.
-                     !
-                     ! DTCSUM(I,J,K,IC) is the flux (kg/box/sec) in 
-                     ! the box (I,J), for the tracer IC going out of 
-                     ! the top of the layer K to the layer above (K+1) 
-                     ! (bey, 11/10/99).      
-                     !==================================================
-
-                     IF ( ND14 > 0 ) THEN
-                        DTCSUM(I,J,K,IC) = DTCSUM(I,J,K,IC) + (-T2-T3)  
-     &                                     * AREA_M2 
-                     ENDIF
+                  !=====================================================
+                  ! ND14 Diagnostic: Upward mass flux due to wet 
+                  ! convection.  The diagnostic ND14 works only for 
+                  ! levels >= than 3.  This is ok for now since I 
+                  ! want to have a closed budget with a box starting 
+                  ! from the ground.
+                  !
+                  ! DTCSUM(I,J,K,IC) is the flux (kg/box/sec) in 
+                  ! the box (I,J), for the tracer IC going out of 
+                  ! the top of the layer K to the layer above (K+1) 
+                  ! (bey, 11/10/99).      
+                  !=====================================================
+                  IF ( ND14 > 0 ) THEN
+                     DTCSUM(I,J,K,IC) = DTCSUM(I,J,K,IC) + (-T2-T3)  
+     &                                * AREA_M2 
+                  ENDIF
 
 #if defined( BPCH_DIAG )
-                     !==================================================
-                     ! ND38 Diagnostic: loss of soluble tracer to wet
-                     ! scavenging in cloud updrafts [kg/s].  We must 
-                     ! divide by DNS, the # of internal timesteps.
-                     !==================================================
-                     IF ( ( ND38 > 0 .or. LGTMM )
-     &                    .and. ISOL > 0 .and. K <= LD38 ) THEN
+                  !=====================================================
+                  ! ND38 Diagnostic: loss of soluble tracer to wet
+                  ! scavenging in cloud updrafts [kg/s].  We must 
+                  ! divide by DNS, the # of internal timesteps.
+                  !=====================================================
+                  IF ( ( ND38 > 0 .or. LGTMM )
+     &                 .and. ISOL > 0 .and. K <= LD38 ) THEN
 
-                        AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) 
-     &                              + T0 * AREA_M2 / DNS  
+                     AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) 
+     &                                + T0 * AREA_M2 / DNS  
 
-                     ENDIF
+                  ENDIF
 #endif
-  
-                     !=================================================
-                     ! Pass the amount of Hg2 and HgP lost in wet 
-                     ! scavenging [kg] to "ocean_mercury_mod.f" via 
-                     ! ADD_Hg2_WET and ADD_HgP_WET. We must also divide 
-                     ! by DNS, the # of internal timesteps. 
-                     ! (sas, bmy, eck, eds, 1/19/05, 1/6/06, 7/30/08)
-                     !=================================================
-                     IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
+ 
+                  !=====================================================
+                  ! Pass the amount of Hg2 and HgP lost in wet 
+                  ! scavenging [kg] to "ocean_mercury_mod.f" via 
+                  ! ADD_Hg2_WET and ADD_HgP_WET. We must also divide 
+                  ! by DNS, the # of internal timesteps. 
+                  ! (sas, bmy, eck, eds, 1/19/05, 1/6/06, 7/30/08)
+                  !
+                  ! IMPORTANT NOTE: WET_Hg2 and WET_HgP are defined
+                  ! on each 3-D (I,J,K) iteration.  But in routines
+                  ! ADD_Hg2_WD and ADD_Hg2_SNOWPACK, these are saved to 
+                  ! diagnostic arrays that have only 2-D (I,J) spatial 
+                  ! size.  This can cause slight numerical differences 
+                  ! when OpenMP parallelization is turned on, because 
+                  ! one CPU is trying to write to the diagnostic arrays
+                  ! simultaneously.  To avoid this situation, we call 
+                  ! ADD_Hg2_WD and ADD_Hg2_SNOWPACK from within an 
+                  ! !$OMP CRITICAL block, which ensures that only one 
+                  ! CPU at a time can write to the diagnostic arrays.
+                  ! (bmy, 4/20/16)
+                  !=====================================================
+                  IF ( ITS_A_MERCURY_SIM ) THEN
+!$OMP CRITICAL
+                     ! Is it a Hg2 tracer?
+                     IF ( ThisSpc%Is_Hg2 ) THEN
 
                         ! Wet scavenged Hg(II) in [kg/s], converted
                         ! to [kg] by multiplying by NDT
                         WET_Hg2 = T0 * AREA_M2 / DNS * NDT
                         
+                        ! Category # for this Hg2 tracer
+                        Hg_Cat  = ThisSpc%Hg_Cat
+
                         ! Pass to "ocean_mercury_mod.f"
-                        CALL ADD_Hg2_WD( I, J, IC, WET_Hg2 )
-                        CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2,
-     &                                         State_Met )
+                        CALL ADD_Hg2_WD      ( I, J, Hg_Cat, WET_Hg2   )
+                        CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_Hg2,
+     &                                                       State_Met )
                      ENDIF
 
-                     IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
+                     ! Is it a HgP tracer?
+                     IF ( ThisSpc%Is_HgP ) THEN 
 
                         ! Wet scavenged Hg(P) in [kg/s], converted 
                         ! to [kg] by multiplying by NDT
                         WET_HgP = T0 * AREA_M2 / DNS * NDT
 
-                        ! Pass to "ocean_mercury_mod.f"
-                        CALL ADD_HgP_WD( I, J, IC, WET_HgP )
-                        CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP,
-     &                                         State_Met )
-                     ENDIF
+                        ! Category # for this Hg2 tracer
+                        Hg_Cat  = ThisSpc%Hg_Cat
 
-                  !=====================================================
-                  ! No cloud transport if cloud mass flux < TINY; 
-                  ! Change Qc to q
-                  !=====================================================
-                  ELSE                     
-                     QC(I,J) = Q(I,J,K,IC)
+                        ! Pass to "ocean_mercury_mod.f"
+                        CALL ADD_HgP_WD      ( I, J, Hg_Cat, WET_HgP   ) 
+!------------------------------------------------------------------------------
+! NOTE: This call to ADD_HG2_SNOWPACK is known to cause very small (numerical
+! noise) differences in slot #4 of the PL-HG2-$ diagnostic when comparing
+! a GEOS-5 Hg simulation done on a single processor with one done on multi-
+! processors.  (In other words, the unit test result is "yellow").  The 
+! magnitude of the differences are very small, and on the order of numerical 
+! noise.
+!
+! We hypothesize that this issue may have two causes: (1) updating the AD03 
+! array (which is 2-D) from within a 3-D parallel loop, and (2) possible 
+! numerical roundoff when casting the REAL*8 value to REAL*4.  
+!
+! The results of the simulation in the tracer restart files are identical,
+! so technically, the GEOS-5 Hg simulations pass the unit test. 
+!
+! It is probably not possible to avoid the numerical differences in slot #4
+! of the PL-HG2-$ diagnostic without redesiging the diagnostics.  For the 
+! time being, we will leave the code as-is but just note that differences
+! will occur in this diagnostic.
+! 
+!    -- Bob Yantosca (22 Apr 2016)
+! 
+                        CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_HgP,
+     &                                                       State_Met )
+!------------------------------------------------------------------------------
+                     ENDIF
+!$OMP END CRITICAL
+                  ENDIF
+
+               !========================================================
+               ! No cloud transport if cloud mass flux < TINY; 
+               ! Change Qc to q
+               !========================================================
+               ELSE                     
+                  QC(I,J) = Q(I,J,K,IC)
 
 #if   defined( GEOS_5 ) 
                      !--------------------------------------------------
@@ -1931,11 +1993,14 @@
                      ENDIF
 #endif
                   ENDIF
-               ENDDO  !I
-            ENDDO     !J
-            ENDDO     !K
-         ENDDO        !NSTEP
-      ENDDO           !IC
+               ENDDO        !I
+            ENDDO           !J
+            ENDDO           !K
+         ENDDO              !NSTEP
+
+         ! Free pointer
+         ThisSpc => NULL()
+      ENDDO                 !IC
 !$OMP END PARALLEL DO
 
       !=================================================================
@@ -2024,8 +2089,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IS_Hg2
-      USE TRACERID_MOD,       ONLY : IS_HgP
+      USE Species_Mod,        ONLY : Species
       USE WETSCAV_MOD,        ONLY : H2O2s_3D => H2O2s ! [v/v]
       USE WETSCAV_MOD,        ONLY : SO2s_3D  => SO2s  ! [v/v]
       USE WETSCAV_MOD,        ONLY : WASHOUT
@@ -2134,49 +2198,58 @@
 !                              -- Prevent ALPHA > 1 in washout of aerosols 
 !                              -- Add tracer GAINED to Q before WETLOSS
 !                                 calculation in aerosol washout
+!  22 Apr 2016 - R. Yantosca - Now get Is_Hg2 & Is_HgP from species database
+!  25 Apr 2016 - R. Yantosca - Now pass Hg category # to ADD_Hg2_* functions
+!  28 Apr 2016 - R. Yantosca - Rewrite Is_Hg block to avoid unassociated
+!                              pointer seg faults
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp), PARAMETER :: TINYNUM = 1e-14_fp
-!
-! !LOCAL VARIABLES:
-!
-      ! Scalars
-      LOGICAL             :: AER,         IS_Hg 
-      INTEGER             :: IC,          ISTEP,    K,       KTOP
-      INTEGER             :: NC,          NDT,      NLAY,    NS    
-      INTEGER             :: CLDBASE
-      REAL(fp)            :: CMFMC_BELOW, ALPHA,    ALPHA2
-      REAL(fp)            :: CMOUT,       DELQ,     DQ,      DNS
-      REAL(fp)            :: ENTRN,       QC,       QC_PRES, QC_SCAV 
-      REAL(fp)            :: SDT,         T0,       T0_SUM,  T1    
-      REAL(fp)            :: T2,          T3,       T4 
-      REAL(fp)            :: TSUM
-      REAL(fp)            :: LOST,        GAINED,   WETLOSS, MASS_WASH
-      REAL(fp)            :: MASS_NOWASH, QDOWN,    DT,      F_WASHOUT
-      REAL(fp)            :: K_RAIN,      WASHFRAC, WET_Hg2, WET_HgP 
-      REAL(fp)            :: MB,          QB,       QB_NUM
-
-      ! Arrays
-      REAL(fp)            :: BMASS       (LLPAR    )    
-      REAL(fp)            :: PDOWN       (LLPAR    )
+      REAL(fp), PARAMETER    :: TINYNUM = 1e-14_fp
+!                            
+! !LOCAL VARIABLES:          
+!                            
+      ! Scalars              
+      LOGICAL                :: AER,         IS_Hg 
+      INTEGER                :: IC,          ISTEP,     K        
+      INTEGER                :: KTOP,        NC,        NDT
+      INTEGER                :: NLAY,        NS,        CLDBASE
+      INTEGER                :: Hg_Cat
+      REAL(fp)               :: CMFMC_BELOW, ALPHA,     ALPHA2
+      REAL(fp)               :: CMOUT,       DELQ,      DQ
+      REAL(fp)               :: DNS,         ENTRN,     QC
+      REAL(fp)               :: QC_PRES,     QC_SCAV,   SDT
+      REAL(fp)               :: T0,          T0_SUM,    T1    
+      REAL(fp)               :: T2,          T3,        T4 
+      REAL(fp)               :: TSUM,        LOST,      GAINED  
+      REAL(fp)               :: WETLOSS,     MASS_WASH, MASS_NOWASH
+      REAL(fp)               :: QDOWN,       DT,        F_WASHOUT
+      REAL(fp)               :: K_RAIN,      WASHFRAC,  WET_Hg2
+      REAL(fp)               :: WET_HgP,     MB,        QB
+      REAL(fp)               :: QB_NUM
+                             
+      ! Arrays               
+      REAL(fp)               :: BMASS    (LLPAR    )    
+      REAL(fp)               :: PDOWN    (LLPAR    )
 
       ! Pointers
-      REAL(fp),  POINTER  :: BXHEIGHT (:        )
-      REAL(fp),  POINTER  :: CMFMC    (:        )
-      REAL(fp),  POINTER  :: DQRCU    (:        )
-      REAL(fp),  POINTER  :: DTRAIN   (:        )
-      REAL(fp),  POINTER  :: PFICU    (:        )
-      REAL(fp),  POINTER  :: PFLCU    (:        )
-      REAL(fp),  POINTER  :: REEVAPCN (:        )
-      REAL(fp),  POINTER  :: DELP     (:        )
-      REAL(fp),  POINTER  :: T        (:        )
-      REAL(fp),  POINTER  :: H2O2s    (:        )
-      REAL(fp),  POINTER  :: SO2s     (:        )
-      REAL(fp),  POINTER  :: Q        (:,:      )
+      REAL(fp),      POINTER :: BXHEIGHT (:        )
+      REAL(fp),      POINTER :: CMFMC    (:        )
+      REAL(fp),      POINTER :: DQRCU    (:        )
+      REAL(fp),      POINTER :: DTRAIN   (:        )
+      REAL(fp),      POINTER :: PFICU    (:        )
+      REAL(fp),      POINTER :: PFLCU    (:        )
+      REAL(fp),      POINTER :: REEVAPCN (:        )
+      REAL(fp),      POINTER :: DELP     (:        )
+      REAL(fp),      POINTER :: T        (:        )
+      REAL(fp),      POINTER :: H2O2s    (:        )
+      REAL(fp),      POINTER :: SO2s     (:        )
+      REAL(fp),      POINTER :: Q        (:,:      )
+      TYPE(Species), POINTER :: ThisSpc
 
       !========================================================================
       ! (0)  I n i t i a l i z a t i o n
@@ -2193,7 +2266,7 @@
       H2O2s    => H2O2s_3D          (I,J,:        ) ! H2O2s from sulfate_mod
       SO2s     => SO2s_3D           (I,J,:        ) ! SO2s from sulfate_mod
       Q        => State_Chm%TRACERS (I,J,:,:      ) ! Tracer concentration
-                                                    ! [mol/mol total air] 
+      ThisSpc  => NULL()                            ! Species database entry
                                                 
 #if   defined( GEOS_FP ) || defined( MERRA2 )
 
@@ -2283,9 +2356,12 @@
       !========================================================================
       DO IC = 1, NC
 
+         ! Free pointer
+         ThisSpc => NULL()
+
          ! Initialize
-         DIAG14(:,IC) = 0e+0_fp                    ! ND14 diag array      
-         DIAG38(:,IC) = 0e+0_fp                    ! ND38 diag array
+         DIAG14(:,IC) = 0e+0_fp                      ! ND14 diag array      
+         DIAG38(:,IC) = 0e+0_fp                      ! ND38 diag array
 
          !=====================================================================
          ! (2)  I n t e r n a l   T i m e   S t e p   L o o p
@@ -2909,36 +2985,54 @@
             ! "ocean_mercury_mod.f" via ADD_Hg2_WET and ADD_HgP_WET.   We must 
             ! also divide  by DNS, the # of internal timesteps. 
             ! (sas, bmy, eck, eds, 1/19/05, 1/6/06, 7/30/08)
+            !
+            ! NOTE: Reorder 
             !==================================================================
- 
-            !--------------------------------------
-            ! Hg2 
-            !--------------------------------------
-            IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
+            IF ( Is_Hg ) THEN
 
-               ! Wet scavenged Hg(II) in [kg]
-               WET_Hg2 = ( T0_SUM * AREA_M2 )
+               ! Point to the Species Database entry for tracer IC
+               ThisSpc => State_Chm%SpcData(IC)%Info 
 
-               ! Pass to "ocean_mercury_mod.f"
-               CALL ADD_Hg2_WD      ( I, J, IC, WET_Hg2 )
-               CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2, State_Met )
+               !--------------------------------------
+               ! Hg2 
+               !--------------------------------------
+               IF ( ThisSpc%IS_Hg2 ) THEN
+
+                  ! Wet scavenged Hg(II) in [kg]
+                  WET_Hg2 = ( T0_SUM * AREA_M2 )
+
+                  ! Category # for this Hg2 species
+                  Hg_Cat  = ThisSpc%Hg_Cat
+
+                  ! Pass to "ocean_mercury_mod.f"
+                  CALL ADD_Hg2_WD      ( I, J, Hg_Cat, WET_Hg2   )
+                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_Hg2, 
+     &                                                 State_Met )
+               ENDIF
+
+               !--------------------------------------
+               ! HgP
+               !--------------------------------------
+               IF ( ThisSpc%Is_HgP ) THEN
+
+                  ! Wet scavenged Hg(P) in [kg]
+                  WET_HgP = ( T0_SUM * AREA_M2 )
+
+                  ! Category # for this Hg2 species
+                  Hg_Cat  = ThisSpc%Hg_Cat
+
+                  ! Pass to "ocean_mercury_mod.f"
+                  CALL ADD_HgP_WD      ( I, J, Hg_Cat, WET_HgP   )
+                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_HgP, 
+     &                                                 State_Met )
+               ENDIF
+
+               ! Free pointers
+               ThisSpc => NULL()
+         
             ENDIF
-
-            !--------------------------------------
-            ! HgP
-            !--------------------------------------
-            IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
-
-               ! Wet scavenged Hg(P) in [kg]
-               WET_HgP = ( T0_SUM * AREA_M2 )
-
-               ! Pass to "ocean_mercury_mod.f"
-               CALL ADD_HgP_WD      ( I, J, IC, WET_HgP )
-               CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP, State_Met )
-            ENDIF
-
-         ENDDO      ! End internal timestep loop
-      ENDDO      ! End loop over tracers
+         ENDDO               ! End internal timestep loop
+      ENDDO                  ! End loop over tracers
 
       !================================================================
       ! Succesful return!

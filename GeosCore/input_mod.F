@@ -4419,7 +4419,7 @@
 ! !USES:
 !
       USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE
-      USE DIAG03_MOD,   ONLY : ND03,      PD03,      INIT_DIAG03
+      USE DIAG03_MOD,   ONLY : ND03,      PD03
       USE DIAG03_MOD,   ONLY : PD03_PL    !eds 9/9/10
       USE DIAG04_MOD,   ONLY : ND04,      PD04,      INIT_DIAG04
       USE DIAG41_MOD,   ONLY : ND41,      PD41,      INIT_DIAG41
@@ -4521,6 +4521,14 @@
       ! Get max number of tracers
       N_MAX = MIN( N_TRACERS, NNPAR )
 
+      IF ( .not. Input_Opt%LEMIS ) THEN
+         WRITE( 6, '(a)' ) 'WARNING: Emissions are turned off. The'
+         WRITE( 6, '(a)' ) ' following diagnostics will also be turned'
+         WRITE( 6, '(a)' ) ' off:  ND01, ND04, ND06, ND07, ND08, ND11,'
+         WRITE( 6, '(a)' ) ' ND13, ND28, ND29, ND32, ND34, ND36, ND46,'
+         WRITE( 6, '(a)' ) ' ND53, ND56, ND58'
+      ENDIF
+
       ! Binary punch file name
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:1' )
       READ( SUBSTRS(1:N), '(a)' ) BPCH_FILE
@@ -4533,7 +4541,8 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:3' )
       READ( SUBSTRS(1), * ) ND01
-      IF ( .not. Input_Opt%ITS_A_RnPbBe_SIM ) ND01 = 0 
+      IF ( .not. Input_Opt%ITS_A_RnPbBe_SIM .or.
+     &     .not. Input_Opt%LEMIS ) ND01 = 0 
       CALL SET_TINDEX( am_I_Root, 01, ND01, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
@@ -4557,7 +4566,8 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:6' )
       READ( SUBSTRS(1), * ) ND04
-      IF ( .not. Input_Opt%ITS_A_CO2_SIM ) ND04 = 0
+      IF ( .not. Input_Opt%ITS_A_CO2_SIM .or.
+     &     .not. Input_Opt%LEMIS ) ND04 = 0
       CALL SET_TINDEX( am_I_Root, 04, ND04, SUBSTRS(2:N), N-1, PD04 )
 
       !--------------------------
@@ -4573,7 +4583,8 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:8' )
       READ( SUBSTRS(1), * ) ND06
-      IF ( .not. Input_Opt%LDUST ) ND06 = 0
+      IF ( .not. Input_Opt%LDUST .or.
+     &     .not. Input_Opt%LEMIS ) ND06 = 0
       CALL SET_TINDEX( am_I_Root, 06, ND06, SUBSTRS(2:N), N-1, NDSTBIN )
  
       !--------------------------
@@ -4581,7 +4592,8 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:9' )
       READ( SUBSTRS(1), * ) ND07
-      IF ( .not. Input_Opt%LCARB ) ND07 = 0
+      IF ( .not. Input_Opt%LCARB .or.
+     &     .not. Input_Opt%LEMIS ) ND07 = 0
       CALL SET_TINDEX( am_I_Root, 07, ND07, SUBSTRS(2:N), N-1, PD07 )
 
       !--------------------------
@@ -4589,7 +4601,8 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:10' )
       READ( SUBSTRS(1), * ) ND08
-      IF ( .not. Input_Opt%LSSALT ) ND08 = 0
+      IF ( .not. Input_Opt%LSSALT .or.
+     &     .not. Input_Opt%LEMIS ) ND08 = 0
       CALL SET_TINDEX( am_I_Root, 08, ND08, SUBSTRS(2:N), N-1, PD08 )
 
       ! Included in HEMCO diagnostics for netCDF
@@ -4615,6 +4628,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:13' )
       READ( SUBSTRS(1), * ) ND11
+      IF ( .not. Input_Opt%LEMIS ) ND11 = 0
       CALL SET_TINDEX( am_I_Root, 11, ND11, SUBSTRS(2:N), N-1, PD11 )
 
       !--------------------------
@@ -4629,7 +4643,8 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:15' )
       READ( SUBSTRS(1), * ) ND13
-      IF ( .not. Input_Opt%LSULF ) ND13 = 0
+      IF ( .not. Input_Opt%LSULF .or.
+     &     .not. Input_Opt%LEMIS ) ND13 = 0
       CALL SET_TINDEX( am_I_Root, 13, ND13, SUBSTRS(2:N), N-1, PD13 )
 
       !--------------------------
@@ -4737,12 +4752,14 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:29' )
       READ( SUBSTRS(1), * ) ND28
+      IF ( .not. Input_Opt%LEMIS ) ND28 = 0
  
       !--------------------------
       ! ND29: CO sources
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:30' )
       READ( SUBSTRS(1), * ) ND29
+      IF ( .not. Input_Opt%LEMIS ) ND29 = 0
       CALL SET_TINDEX( am_I_Root, 29, ND29, SUBSTRS(2:N), N-1, PD29 )
 
       !--------------------------
@@ -4764,6 +4781,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:33' )
       READ( SUBSTRS(1), * ) ND32
+      IF ( .not. Input_Opt%LEMIS ) ND32 = 0
       CALL SET_TINDEX( am_I_Root, 32, ND32, SUBSTRS(2:N), N-1, PD32 )
 
       !--------------------------
@@ -4778,6 +4796,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:35' )
       READ( SUBSTRS(1), * ) ND34
+      IF ( .not. Input_Opt%LEMIS ) ND34 = 0
 
       !--------------------------
       ! ND35: 500 hPa tracer
@@ -4791,6 +4810,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:37' )
       READ( SUBSTRS(1), * ) ND36
+      IF ( .not. Input_Opt%LEMIS ) ND36 = 0
       CALL SET_TINDEX( am_I_Root, 
      &                 36, ND36, SUBSTRS(2:N), N-1, N_TRACERS )      
 
@@ -4879,6 +4899,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:49' )
       READ( SUBSTRS(1), * ) ND46
+      IF ( .not. Input_Opt%LEMIS ) ND46 = 0
       CALL SET_TINDEX( am_I_Root, 46, ND46, SUBSTRS(2:N), N-1, PD46 )
 
       !--------------------------
@@ -4901,7 +4922,8 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:52' )
       READ( SUBSTRS(1), * ) ND53
-      IF ( .not. Input_Opt%ITS_A_POPS_SIM ) ND53 = 0
+      IF ( .not. Input_Opt%ITS_A_POPS_SIM .or.
+     &     .not. Input_Opt%LEMIS) ND53 = 0
       CALL SET_TINDEX( am_I_Root, 53, ND53, SUBSTRS(2:N), N-1, PD53 )
 
       !--------------------------
@@ -4923,6 +4945,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:55' )
       READ( SUBSTRS(1), * ) ND56
+      IF ( .not. Input_Opt%LEMIS ) ND56 = 0
       CALL SET_TINDEX( am_I_Root, 56, ND56, SUBSTRS(2:N), N-1, PD56 )
 
       !--------------------------
@@ -4937,6 +4960,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:57' )
       READ( SUBSTRS(1), * ) ND58
+      IF ( .not. Input_Opt%LEMIS ) ND58 = 0
       CALL SET_TINDEX( am_I_Root, 58, ND58, SUBSTRS(2:N), N-1, PD58 )
 
       !--------------------------
@@ -5159,7 +5183,12 @@
       !================================================================
 
       ! Allocate diagnostic arrays
-      CALL INIT_DIAG03
+!-----------------------------------------------------------------------------
+! Prior to 4/25/16:
+! Need to move INIT_DIAG03 to GIGC_Init_Extra so that we can use the
+! species database in the State_Chm object (bmy, 4/25/16)
+!      CALL INIT_DIAG03
+!-----------------------------------------------------------------------------
       CALL INIT_DIAG04
       CALL INIT_DIAG41
       CALL INIT_DIAG42( am_I_Root, Input_Opt, RC )
@@ -6414,6 +6443,11 @@
       ! Turn on ND63 diagnostic
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd63_menu:1' )
       READ( SUBSTRS(1:N), * ) DO_ND63
+      IF ( DO_ND63 .and. .not. Input_Opt%LEMIS ) THEN
+         WRITE( 6, '(a)' ) 'WARNING: Emissions are turned off. ND63'
+         WRITE( 6, '(a)' ) 'will also be turned off.'
+         DO_ND63 = .FALSE.
+      ENDIF
 
       ! Instantaneous 3-D timeseries file
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd63_menu:2' )
@@ -7189,10 +7223,6 @@
 ! !USES:
 !
       ! References to F90 modules
-      USE MERCURY_MOD,       ONLY : INIT_MERCURY
-      USE OCEAN_MERCURY_MOD, ONLY : INIT_OCEAN_MERCURY
-      USE DEPO_MERCURY_MOD,  ONLY : INIT_DEPO_MERCURY
-      USE LAND_MERCURY_MOD,  ONLY : INIT_LAND_MERCURY
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
@@ -7218,6 +7248,7 @@
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  25 Apr 2016 - R. Yantosca - Now init mercury modules from GIGC_INIT_EXTRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7327,6 +7358,7 @@
     
       !=================================================================
       ! Copy to Input Options object
+      ! NOTE: Hg modules will be initialized from GIGC_INIT_EXTRA
       !=================================================================
       Input_Opt%ANTHRO_Hg_YEAR = ANTHRO_Hg_YEAR
       Input_Opt%HG_SCENARIO    = HG_SCENARIO
@@ -7342,17 +7374,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-
-      ! If we are performing a Hg simulation ...
-      IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN 
-
-         ! Initialize Mercury simulation routines
-         CALL INIT_MERCURY      ( am_I_Root, Input_Opt, RC )
-         CALL INIT_LAND_MERCURY ( am_I_Root, Input_Opt, RC )
-         CALL INIT_DEPO_MERCURY ( am_I_Root, Input_Opt, RC )
-         CALL INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, RC )
-
-      ENDIF
 
       END SUBROUTINE READ_MERCURY_MENU
 !EOC
@@ -8377,6 +8398,8 @@
       USE CO2_Mod,            ONLY : Init_CO2
       USE C2H6_Mod,           ONLY : Init_C2H6
       USE Chemgrid_Mod,       ONLY : Init_Chemgrid
+      USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
+      USE Diag03_Mod,         ONLY : Init_Diag03
       USE Drydep_Mod,         ONLY : Init_Drydep
       USE Dust_Mod,           ONLY : Init_Dust
       USE Error_Mod,          ONLY : Debug_Msg
@@ -8386,7 +8409,10 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE Global_CH4_Mod,     ONLY : Init_Global_CH4
       USE Linoz_Mod,          ONLY : Init_Linoz
+      USE Land_Mercury_Mod,   ONLY : Init_Land_Mercury
+      USE Mercury_Mod,        ONLY : Init_Mercury
       USE Modis_Lai_Mod,      ONLY : Init_Modis_Lai
+      USE Ocean_Mercury_Mod,  ONLY : Init_Ocean_Mercury
       USE POPs_Mod,           ONLY : Init_POPs
       USE Seasalt_Mod,        ONLY : Init_SeaSalt
       USE Sulfate_Mod,        ONLY : Init_Sulfate
@@ -8445,6 +8471,8 @@
 !                              replicates the prior behavior,
 !  23 Sep 2015 - R. Yantosca - Now pass State_Chm to INIT_SEASALT
 !  23 Sep 2015 - R. Yantosca - Now pass State_Chm to INIT_SULFATE
+!  25 Apr 2016 - R. Yantosca - Now call INIT_DIAG03 here
+!  25 Apr 2016 - R. Yantosca - Now initialize all mercury modules from here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8609,6 +8637,14 @@
          CALL Init_POPs( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
 
+      ! Initialize Mercury simulation routines
+      IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN 
+         CALL INIT_MERCURY      ( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL INIT_LAND_MERCURY ( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL INIT_DEPO_MERCURY ( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, State_Chm, RC )
+      ENDIF
+
       !=================================================================
       ! Initialize GEOS-Chem bpch diagnostics here.  This allows us to
       ! take advantage of the species database object. (bmy, 8/31/15)
@@ -8616,6 +8652,9 @@
 
       ! Allocate and initialize variables
       CALL NDXX_SETUP( am_I_Root, Input_Opt, State_Chm, RC )
+
+      ! Initialize the Hg diagnostics (bpch)
+      CALL INIT_DIAG03( State_Chm )
 
       ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
       CALL DO_GAMAP( am_I_Root, Input_Opt, State_Chm, RC )

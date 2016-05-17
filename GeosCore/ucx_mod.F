@@ -48,10 +48,6 @@
                           PUBLIC :: T_STS ! Max temperature of STS formation (K)
       REAL(fp),           PUBLIC :: T_NAT_SUPERCOOL ! NAT supercooling (K)
       REAL(fp),           PUBLIC :: P_ICE_SUPERSAT ! Ice supersaturation (-)
-!------------------------------------------------------------------------------
-! Prior to 1/28/16:
-!                          PUBLIC :: KHETI_SLA ! Reaction cofactors for SLA
-!------------------------------------------------------------------------------
                           PUBLIC :: NDENS_AER ! See below
       INTEGER,            PUBLIC :: CFCYEAR ! Year for CFC emissions
 !
@@ -5326,6 +5322,7 @@
 !  14 Jan 2015 - C. Keller     - Now read from HEMCO
 !   4 Mar 2015 - R. Yantosca   - Declare pointer args to HCO_GetPtr w/ REAL(f4)
 !  25 Mar 2015 - C. Keller     - Now use HEMCO restart module
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5339,7 +5336,7 @@
       CHARACTER(LEN=255) :: MSG
      
       ! Pointer to HEMCO state obj.
-      TYPE(HCO_State), POINTER  :: HcoState => NULL()
+      TYPE(HCO_State), POINTER  :: HcoState
 
       !=================================================================
       ! READ_PSC_FILE begins here!
@@ -5348,6 +5345,9 @@
       ! Assume success until otherwise 
       RC = GIGC_SUCCESS 
  
+      ! Initialize
+      HcoState => NULL()
+
       ! Only read on first call or after rewind
       IF ( .NOT. HcoClock_First ( .FALSE. ) .AND. 
      &     .NOT. HcoClock_Rewind( .FALSE. )      ) THEN
@@ -7032,16 +7032,18 @@
 ! !REVISION HISTORY: 
 !  14 Jan 2015 - C. Keller     - Initial version
 !  25 Mar 2015 - C. Keller     - Now use HEMCO restart module
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      TYPE(HCO_State), POINTER :: HcoState => NULL()
+      TYPE(HCO_State), POINTER :: HcoState
       CHARACTER(LEN=255)       :: MSG
       CHARACTER(LEN=255)       :: LOC = 'DIAGINIT_UCX (ucx_mod.F)' 
 
       !=================================================================
       ! DIAGINIT_UCX begins here!
       !=================================================================
+      HcoState => NULL()
 
       ! Define restart quantity    
       CALL GetHcoState( HcoState ) 
@@ -7098,22 +7100,33 @@
       INTEGER,        INTENT(INOUT) :: RC
 !
 ! !REVISION HISTORY: 
-!  08 May 2015 - C. Keller     - Initial version
+!  08 May 2015 - C. Keller   - Initial version
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      TYPE(HCO_STATE), POINTER  :: HcoState => NULL()
+!
+! !LOCAL VARIABLES:
+!
+      TYPE(HCO_STATE), POINTER :: HcoState
 
       !=================================================================
       ! WRITE_STATE_PSC begins here!
       !=================================================================
 
       ! Eventually write STATE_PSC to restart.
+      HcoState => NULL()
+      
+      ! Eventually write PSC_STATE to restart. 
       CALL GetHcoState ( HcoState )
 
       CALL HCO_RestartWrite( am_I_Root,   HcoState, 
      &                       'STATE_PSC', State_Chm%STATE_PSC, RC )
+
+      ! Free HEMCO state pointer
       HcoState => NULL()
+
+      ! Error check
       IF ( RC /= HCO_SUCCESS ) THEN
          RC = GIGC_FAILURE
          RETURN

@@ -189,6 +189,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  28 Aug 2013 - C. Keller   - Initial version
 !  27 Aug 2014 - R. Yantosca - Err msg now displays hcoio_dataread_mod.F90
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -198,9 +199,9 @@ CONTAINS
     INTEGER                    :: II, JJ, LL, TT
     INTEGER                    :: I, J, L, T
     INTEGER                    :: STAT
-    REAL,             POINTER  :: Ptr3D(:,:,:)   => NULL() 
-    REAL,             POINTER  :: Ptr2D(:,:)     => NULL() 
-    TYPE(ESMF_State), POINTER  :: IMPORT         => NULL()
+    REAL,             POINTER  :: Ptr3D(:,:,:)
+    REAL,             POINTER  :: Ptr2D(:,:)
+    TYPE(ESMF_State), POINTER  :: IMPORT
     CHARACTER(LEN=255)         :: MSG
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DATAREAD (hcoi_dataread_mod.F90)'
     CHARACTER(LEN=ESMF_MAXSTR) :: Iam
@@ -208,6 +209,11 @@ CONTAINS
     !=================================================================
     ! HCOIO_DATAREAD begins here
     !=================================================================
+
+    ! Initialize pointers
+    Ptr3D  => NULL() 
+    Ptr2D  => NULL() 
+    IMPORT => NULL()
 
     ! For error handling
     Iam = LOC
@@ -418,6 +424,7 @@ CONTAINS
 !  06 Oct 2015 - C. Keller   - Support additional horizontal coordinates. Added
 !                              MustFind error checks (cycle flags EF and RF).
 !  22 Nov 2015 - C. Keller   - Bug fix: now use Lun2 if reading second file.
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -439,15 +446,15 @@ CONTAINS
     INTEGER                       :: nlatEdge, nlonEdge
     REAL(hp)                      :: MW_g, EmMW_g, MolecRatio
     REAL(sp)                      :: wgt1,   wgt2
-    REAL(sp), POINTER             :: ncArr(:,:,:,:)   => NULL()
-    REAL(sp), POINTER             :: ncArr2(:,:,:,:)  => NULL()
-    REAL(hp), POINTER             :: SigEdge(:,:,:)   => NULL()
-    REAL(hp), POINTER             :: SigLev (:,:,:)   => NULL()
-    REAL(hp), POINTER             :: LonMid   (:)     => NULL()
-    REAL(hp), POINTER             :: LatMid   (:)     => NULL()
-    REAL(hp), POINTER             :: LevMid   (:)     => NULL()
-    REAL(hp), POINTER             :: LonEdge  (:)     => NULL()
-    REAL(hp), POINTER             :: LatEdge  (:)     => NULL()
+    REAL(sp), POINTER             :: ncArr(:,:,:,:)
+    REAL(sp), POINTER             :: ncArr2(:,:,:,:)
+    REAL(hp), POINTER             :: SigEdge(:,:,:)
+    REAL(hp), POINTER             :: SigLev (:,:,:)
+    REAL(hp), POINTER             :: LonMid   (:)
+    REAL(hp), POINTER             :: LatMid   (:)
+    REAL(hp), POINTER             :: LevMid   (:)
+    REAL(hp), POINTER             :: LonEdge  (:)
+    REAL(hp), POINTER             :: LatEdge  (:)
     REAL(hp)                      :: UnitFactor
     LOGICAL                       :: KeepSpec
     LOGICAL                       :: FOUND
@@ -470,6 +477,17 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER ('HCOIO_DATAREAD (hcoio_dataread_mod.F90)' , RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Initialize pointers
+    ncArr   => NULL()
+    ncArr2  => NULL()
+    SigEdge => NULL()
+    SigLev  => NULL()
+    LonMid  => NULL()
+    LatMid  => NULL()
+    LevMid  => NULL()
+    LonEdge => NULL()
+    LatEdge => NULL()
 
     ! Get unit tolerance set in configuration file
     UnitTolerance = HCO_UnitTolerance()
@@ -1559,6 +1577,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  13 Mar 2013 - C. Keller - Initial version
 !  27 Feb 2015 - C. Keller - Added weigths
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1572,7 +1591,7 @@ CONTAINS
     INTEGER               :: prefYr, prefMt, prefDy, prefHr, prefMn
     INTEGER               :: refYear
     INTEGER(8)            :: origYMDh, prefYMDh
-    INTEGER(8), POINTER   :: availYMDh(:) => NULL() 
+    INTEGER(8), POINTER   :: availYMDh(:)
     LOGICAL               :: ExitSearch 
     LOGICAL               :: verb
 
@@ -1591,6 +1610,9 @@ CONTAINS
     oYMDh = 0
     YMDh  = 0
     YMDh1 = 0
+
+    ! Initialize pointers
+    availYMDh => NULL() 
  
     ! ---------------------------------------------------------------- 
     ! Extract netCDF time slices (YYYYMMDDhh) 
@@ -2786,6 +2808,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Dec 2014 - C. Keller: Initial version
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2794,9 +2817,9 @@ CONTAINS
 !
     INTEGER               :: IUFILE, IOS
     INTEGER               :: ID1, ID2, I, NT, CID, NLINE
-    REAL(sp), POINTER     :: CNTR(:,:) => NULL()
+    REAL(sp), POINTER     :: CNTR(:,:)
     INTEGER,  ALLOCATABLE :: CIDS(:,:)
-    REAL(hp), POINTER     :: Vals(:) => NULL()
+    REAL(hp), POINTER     :: Vals(:)
     LOGICAL               :: Verb
     CHARACTER(LEN=2047)   :: LINE
     CHARACTER(LEN=255)    :: MSG, DUM, CNT
@@ -2806,6 +2829,10 @@ CONTAINS
     ! HCOIO_ReadCountryValues begins here
     !======================================================================
    
+    ! Initialize
+    CNTR => NULL()
+    Vals => NULL()
+
     ! verbose mode? 
     Verb = HCO_IsVerb(2) 
    
@@ -3001,6 +3028,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  24 Jul 2014 - C. Keller: Initial version
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3008,14 +3036,17 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: I, NT
-    REAL(hp), POINTER  :: Vals(:) => NULL()
+    REAL(hp), POINTER  :: Vals(:)
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'HCOIO_ReadFromConfig (hcoio_dataread_mod.F90)'
 
     !======================================================================
     ! HCOIO_ReadFromConfig begins here
     !======================================================================
-   
+
+    ! Initialize
+    Vals => NULL()
+
     ! Verbose
     IF ( HCO_IsVerb(2) ) THEN
        WRITE(MSG, *) 'Read from config file: ', TRIM(Lct%Dct%cName)
@@ -3123,6 +3154,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Dec 2014 - C. Keller: Initial version
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3137,7 +3169,7 @@ CONTAINS
     INTEGER            :: prefYr, prefMt, prefDy, prefHr, prefMn
     REAL(hp)           :: UnitFactor 
     REAL(hp)           :: FileVals(100)
-    REAL(hp), POINTER  :: FileArr(:,:,:,:) => NULL()
+    REAL(hp), POINTER  :: FileArr(:,:,:,:)
     LOGICAL            :: IsPerArea
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'GetDataVals (hcoio_dataread_mod.F90)'
@@ -3146,6 +3178,9 @@ CONTAINS
     ! GetDataVals begins here
     !======================================================================
    
+    ! Initialize
+    FileArr => NULL()
+
     ! Shadow molecular weights and molec. ratio (needed for
     ! unit conversion during file read)
     HcoID = Lct%Dct%HcoID

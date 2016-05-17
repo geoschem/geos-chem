@@ -116,6 +116,12 @@ MODULE Diagnostics_Mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES:
+!
+  ! Local tracer ID flags
+  INTEGER :: IDTRn, IDTPb, IDTBe
+
 CONTAINS
 #if defined( NC_DIAG )
 !EOC
@@ -142,6 +148,7 @@ CONTAINS
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GRID_MOD,           ONLY : AREA_M2
     USE HCO_DIAGN_MOD
+    USE Species_Mod,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_TS_CHEM
 #if defined( DEVEL )
     USE TENDENCIES_MOD,     ONLY : TEND_INIT
@@ -165,6 +172,7 @@ CONTAINS
 !  09 Jan 2015 - C. Keller   - Initial version 
 !  25 Mar 2015 - C. Keller   - Moved UCX initialization to UCX_mod.F
 !  06 Nov 2015 - C. Keller   - Added argument OutTimeStamp
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -174,7 +182,7 @@ CONTAINS
     INTEGER            :: CollectionID
     INTEGER            :: DeltaYMD, DeltaHMS 
     REAL(sp)           :: TS
-    REAL(fp), POINTER  :: AM2(:,:) => NULL()
+    REAL(fp), POINTER  :: AM2(:,:)
     CHARACTER(LEN=255) :: LOC = 'Diagnostics_Init (diagnostics_mod.F90)'
 
     !=======================================================================
@@ -187,6 +195,37 @@ CONTAINS
     ! Define collection variables
     AM2    => AREA_M2(:,:,1)
     TS     =  GET_TS_CHEM() * 60.0_sp
+
+    !-----------------------------------------------------------------------
+    ! Store local diagnostic tracer ID flags so that we can remove
+    ! these from tracerid_mod.F for FlexChem (bmy, 5/2/16)
+    !-----------------------------------------------------------------------
+
+    ! Initialize
+    IDTRn  = 0
+    IDTPb  = 0
+    IDTBe7 = 0
+
+    ! Loop over all species
+    DO N = 1, State_Chm%nSpecies
+
+       ! Get info about this species from the database
+       ThisSpc => State_Chm%SpcData(N)%Info
+            
+       SELECT CASE ( TRIM( ThisSpc%Name ) )
+          CASE( 'Rn'  )
+             IDTRn  = ThisSpc%ModelId
+          CASE( 'Pb'  )
+             IDTPb  = ThisSpc%ModelId
+          CASE( 'Be7' )
+             IDTBe7 = ThisSpc%ModelId
+          CASE DEFAULT
+             ! Nothing
+       END SELECT
+
+       ! Free pointer
+       ThisSpc => NULL()
+    ENDDO
 
     !-----------------------------------------------------------------------
     ! Create diagnostics collection for GEOS-Chem.  This will keep the
@@ -2206,6 +2245,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  21 Jan 2015 - E. Lundgren - Initial version
 !  15 Jan 2016 - E. Lundgren - Revise for all MET-related diagnostics
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2218,8 +2258,8 @@ CONTAINS
     CHARACTER(LEN=255) :: LOC = 'DiagnUpdate_Met (diagnostics_mod.F90)'
     REAL(fp), TARGET   :: Temp2D( IIPAR, JJPAR )
     REAL(fp), TARGET   :: Temp3D( IIPAR, JJPAR, LLPAR )
-    REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
-    REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
+    REAL(fp), POINTER  :: Ptr2D(:,:)
+    REAL(fp), POINTER  :: Ptr3D(:,:,:)
 
     !=======================================================================
     ! DIAGNUPDATE_MET begins here!
@@ -2227,6 +2267,10 @@ CONTAINS
       
     ! Assume successful return
     RC = GIGC_SUCCESS
+
+    ! Initialize pointers
+    Ptr2D => NULL()
+    Ptr3D => NULL()
 
     ! Get diagnostic parameters from the Input_Opt object
     ! This is not currently used, but keep for possible later use/editing
@@ -2819,13 +2863,14 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  07 Jul 2015 - C. Keller   - Initial version 
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(DiagnCont), POINTER :: DgnPtr => NULL()
+    TYPE(DiagnCont), POINTER :: DgnPtr
 
     INTEGER                  :: I, J, L
 
@@ -2847,6 +2892,9 @@ CONTAINS
 
     ! Assume successful return
     RC = GIGC_SUCCESS
+
+    ! Initialize
+    DgnPtr => NULL()
 
     ! Nothing to do if O3 is not a tracer
     IF ( IDTO3 <= 0 ) RETURN
@@ -3307,18 +3355,22 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  09 Jan 2015 - C. Keller   - Initial version
 !  15 Jan 2015 - R. Yantosca - Now accept Input_Opt via the arg list
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(HCO_STATE), POINTER :: HcoState => NULL()
+    TYPE(HCO_STATE), POINTER :: HcoState
     CHARACTER(LEN=255)       :: LOC = 'Diagnostics_Write (diagnostics_mod.F90)'
 
     !=======================================================================
     ! Diagnostics_Write begins here 
     !=======================================================================
+
+    ! Initialize
+    HcoState => NULL()
 
     ! Write HEMCO diagnostics
     CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, RESTART, RC )

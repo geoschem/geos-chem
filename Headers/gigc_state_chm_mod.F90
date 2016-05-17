@@ -51,7 +51,7 @@ MODULE GIGC_State_Chm_Mod
      INTEGER                    :: nWetDep              ! # of wetdep species
 
      ! Physical properties about tracers & species
-     TYPE(SpcPtr),      POINTER :: SpcData(:)           ! Species database
+     TYPE(SpcPtr),      POINTER :: SpcData    (:      ) ! Species database
 
      ! Advected tracers
      INTEGER,           POINTER :: Trac_Id    (:      ) ! Tracer ID #'s
@@ -68,7 +68,7 @@ MODULE GIGC_State_Chm_Mod
      ! Aerosol quantities
      REAL(fp),          POINTER :: AeroArea   (:,:,:,:) ! Aerosol Area [cm2/cm3]
      REAL(fp),          POINTER :: AeroRadi   (:,:,:,:) ! Aerosol Radius [cm]
-     INTEGER                    :: nAero                ! Number of Aerosol Types
+     INTEGER                    :: nAero                ! # of Aerosol Types
 
 #if defined( ESMF_ )
      ! Chemical rates & rate parameters
@@ -77,10 +77,16 @@ MODULE GIGC_State_Chm_Mod
 #endif
 
      ! Fields for UCX mechanism
-     REAL(f4),           POINTER :: STATE_PSC (:,:,:)   ! PSC type (see Kirner
+     REAL(f4),          POINTER :: STATE_PSC  (:,:,:  ) ! PSC type (see Kirner
                                                         !  et al. 2011, GMD)
-     REAL(fp),           POINTER :: KHETI_SLA (:,:,:,:) ! Strat. liquid aerosol
+     REAL(fp),          POINTER :: KHETI_SLA  (:,:,:,:) ! Strat. liquid aerosol
                                                         !  reaction cofactors
+     ! For the tagged Hg simulation
+     INTEGER                    :: N_HG_CATS            ! # of Hg categories
+     INTEGER,           POINTER :: ID_Hg0     (:      ) ! Hg0 cat <-> tracer #
+     INTEGER,           POINTER :: ID_Hg2     (:      ) ! Hg2 cat <-> tracer #
+     INTEGER,           POINTER :: ID_HgP     (:      ) ! HgP cat <-> tracer #
+     CHARACTER(LEN=4),  POINTER :: Hg_Cat_Name(:      ) ! Category names
 
   END TYPE ChmState
 !
@@ -134,6 +140,12 @@ CONTAINS
 ! !RETURN VALUE:
 !
     INTEGER                      :: Indx         ! Index of this species 
+!
+! !REMARKS
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%%%  NOTE: THIS WILL SOON BE MADE OBSOLETE BY THE FAST SPECIES  %%%%%
+!  %%%%%  LOOKUP ALGORITHM (bmy, 5/17/16)                            %%%%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY: 
 !  09 Oct 2012 - M. Long     - Initial version, based on gc_esmf_utils_mod.F90
@@ -190,6 +202,10 @@ CONTAINS
     INTEGER,          INTENT(OUT)   :: Status     ! Success or failure
 !
 ! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%%%  NOTE: THIS WILL SOON BE MADE OBSOLETE BY THE FAST SPECIES  %%%%%
+!  %%%%%  LOOKUP ALGORITHM (bmy, 5/17/16)                            %%%%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !   This routine is called from SETTRACE in tracerid_mod.F.
 ! 
 ! !REVISION HISTORY: 
@@ -251,6 +267,12 @@ CONTAINS
 !
     INTEGER,          INTENT(OUT)   :: Status     ! Success or failure
 !
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%%%  NOTE: THIS WILL SOON BE MADE OBSOLETE BY THE FAST SPECIES  %%%%%
+!  %%%%%  LOOKUP ALGORITHM (bmy, 5/17/16)                            %%%%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
 ! !REVISION HISTORY:
 !   7 Mar 2013 - R. Yantosca - Initial version, based on Register_SPecies
 !EOP
@@ -304,6 +326,7 @@ CONTAINS
     USE Comode_Loop_Mod,      ONLY : ILONG, ILAT, IPVERT
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+    USE Species_Mod,          ONLY : Species
     USE Species_Mod,          ONLY : Spc_GetNumSpecies
     USE Species_Database_Mod, ONLY : Init_Species_Database
 !
@@ -316,10 +339,6 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: nTracers    ! # advected tracers
     INTEGER,        INTENT(IN)    :: nAerosol    ! # aerosol species
     INTEGER,        INTENT(IN)    :: nSpecies    ! # chemical species
-!-----------------------------------------------------------------------------
-! Prior to 1/25/15:
-!    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!-----------------------------------------------------------------------------
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -351,14 +370,21 @@ CONTAINS
 !  09 Oct 2015 - R. Yantosca - Bug fix: set State_Chm%SpcData to NULL
 !  16 Dec 2015 - R. Yantosca - Now overwrite the Input_Opt%TRACER_MW_G and
 !                              related fields w/ info from species database
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  02 May 2016 - R. Yantosca - Nullify Hg index fields for safety's sake
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER  :: N, C
-    REAL(fp) :: EmMW_g
+    ! Scalars
+    INTEGER                :: N,          C
+    INTEGER                :: N_Hg0_CATS, N_Hg2_CATS, N_HgP_CATS
+    REAL(fp)               :: EmMW_g
+
+    ! Pointers
+    TYPE(Species), POINTER :: ThisSpc
 
     ! Assume success until otherwise
     RC = GIGC_SUCCESS
@@ -442,16 +468,35 @@ CONTAINS
     !=====================================================================
 
     ! Number of species
-    State_Chm%nSpecies    = 0
-    State_Chm%nAdvect     = 0
-    State_Chm%nDryDep     = 0
-    State_Chm%nWetDep     = 0
+    State_Chm%nSpecies    =  0
+    State_Chm%nAdvect     =  0
+    State_Chm%nDryDep     =  0
+    State_Chm%nWetDep     =  0
 
     ! Species database
     State_Chm%SpcData     => NULL()
+    ThisSpc               => NULL()
 
-    ! Tracer units
-    State_Chm%Trac_Units  = ''
+    ! Advected tracers
+    State_Chm%Trac_Id     =  0
+    State_Chm%Trac_name   =  ''
+    State_Chm%Tracers     =  0e+0_fp
+    State_Chm%Trac_Units  =  ''
+
+    ! Chemical species
+    State_Chm%Spec_Id     =  0
+    State_Chm%Spec_Name   =  ''
+    State_Chm%Species     =  0e+0_fp
+
+    ! Hg species indexing
+    N_Hg0_CATS            =  0
+    N_Hg2_CATS            =  0
+    N_HgP_CATS            =  0
+    State_Chm%N_Hg_CATS   =  0
+    State_Chm%Hg_Cat_Name => NULL()
+    State_Chm%Id_Hg0      => NULL()
+    State_Chm%Id_Hg2      => NULL()
+    State_Chm%Id_HgP      => NULL()
 
     !=====================================================================
     ! Populate the species database object field
@@ -460,7 +505,7 @@ CONTAINS
     CALL Init_Species_Database( am_I_Root = am_I_Root,          &
                                 Input_Opt = Input_Opt,          &
                                 SpcData   = State_Chm%SpcData,  &
-                                RC         = RC                 )
+                                RC        = RC                 )
 
     !=====================================================================
     ! Determine the number of advected, drydep, wetdep, and total species
@@ -470,9 +515,13 @@ CONTAINS
     State_Chm%nSpecies = SIZE( State_Chm%SpcData )
 
     ! Get the number of advected, dry-deposited, and wet-deposited species
+    ! Also return the # of Hg0, Hg2, and HgP species
     CALL Spc_GetNumSpecies( State_Chm%nAdvect,  &
                             State_Chm%nDryDep,  &
-                            State_Chm%nWetDep  )
+                            State_Chm%nWetDep,  &
+                            N_Hg0_CATS,         &
+                            N_Hg2_CATS,         &
+                            N_HgP_CATS         )
 
     !=======================================================================
     ! Now use the molecular weights from the species database and overwrite
@@ -532,10 +581,85 @@ CONTAINS
        ENDIF
     ENDDO
 
+    !=======================================================================
+    ! Special handling for the Hg and tagHg  simulations: get the # of Hg
+    ! categories for total & tagged tracers from the species database
+    !=======================================================================
+    IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+
+       ! Hg0, Hg2, HgP should all have the same number of categories as
+       ! returned from the species database.  If not, there's an error.
+       IF ( N_Hg0_CATS == N_Hg2_CATS .and. N_Hg0_CATS == N_HgP_CATS ) THEN
+          State_Chm%N_Hg_CATS = N_Hg0_CATS
+       ELSE
+          RC = GIGC_FAILURE
+          PRINT*, '### Inconsistent number of Hg categories!'
+          RETURN
+       ENDIF
+
+       ! Index array: Hg0 species # <--> Hg0 category #
+       ALLOCATE( State_Chm%Id_Hg0( State_Chm%N_Hg_CATS ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       State_Chm%Id_Hg0 = 0
+
+       ! Index array: Hg2 species # <--> Hg0 category #
+       ALLOCATE( State_Chm%Id_Hg2( State_Chm%N_Hg_CATS ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       State_Chm%Id_Hg2 = 0
+
+       ! Index array: HgP species # <--> Hg0 category #
+       ALLOCATE( State_Chm%Id_HgP( State_Chm%N_Hg_CATS ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       State_Chm%Id_HgP = 0
+
+       ! Hg category names
+       ALLOCATE( State_Chm%Hg_Cat_Name( State_Chm%N_Hg_CATS ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       State_Chm%Hg_Cat_Name = ''
+
+       ! Loop over all species
+       DO N = 1, State_Chm%nSpecies
+
+          ! Point to Species Database entry for Hg species N
+          ThisSpc => State_Chm%SpcData(N)%Info
+          
+          ! Populate the Hg0 index array
+          IF ( ThisSpc%Is_Hg0 ) THEN
+             State_Chm%Id_Hg0(ThisSpc%Hg_Cat) = ThisSpc%ModelId
+          ENDIF
+
+          ! Populate the Hg2 index array
+          IF ( ThisSpc%Is_Hg2 ) THEN
+             State_Chm%Id_Hg2(ThisSpc%Hg_Cat) = ThisSpc%ModelId
+          ENDIF
+
+          ! Populate the HgP index array
+          IF ( ThisSpc%Is_HgP ) THEN
+             State_Chm%Id_HgP(ThisSpc%Hg_Cat) = ThisSpc%ModelId
+          ENDIF
+
+          ! Free pointer
+          ThisSpc => NULL()
+       ENDDO
+
+       ! Loop over Hg categories (except the first
+       DO C = 2, State_Chm%N_Hg_CATS
+
+          ! Hg0 tracer number corresponding to this category
+          N                        =  State_Chm%Id_Hg0(C)
+
+          ! The category name (e.g. "_can") follows the "Hg0"
+          ThisSpc                  => State_Chm%SpcData(N)%Info
+          State_Chm%Hg_Cat_Name(C) =  ThisSpc%Name(4:7)
+          ThisSpc                  => NULL()
+       ENDDO
+       
+    ENDIF
+
     ! Echo output
     IF ( am_I_Root ) THEN
        WRITE( 6, '(a  )' ) REPEAT( '=', 79 )
-    ENDIF
+    ENDIF 
 
     ! Format statement
 100 FORMAT( I3, 1x, A10, 6x, F7.2 )
@@ -595,19 +719,55 @@ CONTAINS
     ! Assume success
     RC = GIGC_SUCCESS
 
-    ! Advected tracers
-    IF ( ASSOCIATED(State_Chm%Trac_Id    ) ) DEALLOCATE(State_Chm%Trac_Id    )
-    IF ( ASSOCIATED(State_Chm%Trac_Name  ) ) DEALLOCATE(State_Chm%Trac_Name  )
-    IF ( ASSOCIATED(State_Chm%Tracers    ) ) DEALLOCATE(State_Chm%Tracers    )
+    ! Deallocate fields
+    IF ( ASSOCIATED( State_Chm%Trac_Id ) ) THEN
+       DEALLOCATE( State_Chm%Trac_Id )
+    ENDIF
 
-    ! Chemical species
-    IF ( ASSOCIATED(State_Chm%Spec_Id    ) ) DEALLOCATE(State_Chm%Spec_Id    )
-    IF ( ASSOCIATED(State_Chm%Spec_Name  ) ) DEALLOCATE(State_Chm%Spec_Name  )
-    IF ( ASSOCIATED(State_Chm%Species    ) ) DEALLOCATE(State_Chm%Species    )
+    IF ( ASSOCIATED( State_Chm%Trac_Name ) ) THEN
+       DEALLOCATE( State_Chm%Trac_Name  )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Spec_Id  ) ) THEN
+       DEALLOCATE( State_Chm%Spec_Id )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Spec_Name ) ) THEN
+       DEALLOCATE( State_Chm%Spec_Name  )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Tracers ) ) THEN
+       DEALLOCATE( State_Chm%Tracers )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Species ) ) THEN
+       DEALLOCATE( State_Chm%Species )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Hg_Cat_Name ) ) THEN
+       DEALLOCATE( State_Chm%Hg_Cat_Name )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Id_Hg0 ) ) THEN
+       DEALLOCATE( State_Chm%Id_Hg0 ) 
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Id_Hg2 ) ) THEN
+       DEALLOCATE( State_Chm%Id_Hg2 )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Id_HgP ) ) THEN
+       DEALLOCATE( State_Chm%Id_HgP )
+    ENDIF
 
     ! Aerosol quantities
-    IF ( ASSOCIATED(State_Chm%AeroArea   ) ) DEALLOCATE(State_Chm%AeroArea   )
-    IF ( ASSOCIATED(State_Chm%AeroRadi   ) ) DEALLOCATE(State_Chm%AeroRadi   )
+    IF ( ASSOCIATED( State_Chm%AeroArea ) ) THEN
+       DEALLOCATE(State_Chm%AeroArea   )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%AeroRadi ) ) THEN
+       DEALLOCATE( State_Chm%AeroRadi )
+    ENDIF
 
 #if defined( ESMF_ )
     ! Keep these here for now, FLEXCHEM will remove these (bmy, 12/11/14)
@@ -616,8 +776,13 @@ CONTAINS
 #endif    
 
     ! Fields for UCX mechamism
-    IF ( ASSOCIATED(State_Chm%STATE_PSC  ) ) DEALLOCATE(State_Chm%STATE_PSC  )
-    IF ( ASSOCIATED(State_Chm%KHETI_SLA  ) ) DEALLOCATE(State_Chm%KHETI_SLA  )
+    IF ( ASSOCIATED( State_Chm%STATE_PSC ) ) THEN
+       DEALLOCATE(State_Chm%STATE_PSC  )
+    ENDIF
+       
+    IF ( ASSOCIATED( State_Chm%KHETI_SLA ) ) THEN
+       DEALLOCATE(State_Chm%KHETI_SLA  )
+    ENDIF
 
     ! Deallocate the species database object field
     CALL Cleanup_Species_Database( am_I_Root, State_Chm%SpcData, RC )

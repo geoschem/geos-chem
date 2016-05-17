@@ -545,6 +545,7 @@
 !  18 Sep 2014 - M. Sulprizio- Get oxidant fields for offline aerosol
 !                              simulation from HEMCO
 !  30 Sep 2015 - E. Lundgren - Now use UNITCONV_MOD conversion routines
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -577,7 +578,7 @@
       CHARACTER(LEN=255) :: LOC = 'CHEMSULFATE (sulfate_mod.F)'
 
       ! To get emission timestep
-      TYPE(HCO_STATE), POINTER :: HcoState => NULL()
+      TYPE(HCO_STATE), POINTER :: HcoState
 
       !=================================================================
       ! CHEMSULFATE begins here!
@@ -596,9 +597,9 @@
       LDSTUP               = Input_Opt%LDSTUP
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Initialize pointers
+      STT                  => State_Chm%Tracers
+      HcoState             => NULL()
 
       ! Should we print debug output?
       prtDebug             = ( LPRT .and. am_I_Root )
@@ -854,7 +855,7 @@
       ENDIF
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       ! We have already gone thru one chemistry iteration
       FIRSTCHEM = .FALSE. 
@@ -1088,9 +1089,9 @@
       REAL(fp)               :: AREA3D(IIPAR, JJPAR,2)
 
       ! Pointers
-      TYPE(HCO_State), POINTER :: HcoState   => NULL()
-      REAL(f4),        POINTER :: Ptr2D(:,:) => NULL()
-      REAL(f4),        POINTER :: Ptr3D(:,:,:) => NULL()
+      TYPE(HCO_State), POINTER :: HcoState   
+      REAL(f4),        POINTER :: Ptr2D(:,:  )
+      REAL(f4),        POINTER :: Ptr3D(:,:,:)
 
       INTEGER                  :: N_TRACERS
       REAL(fp)                 :: XNUMOL(Input_Opt%N_TRACERS)
@@ -1120,6 +1121,11 @@
       !=================================================================
       ! SRCSF30 begins here!
       !=================================================================
+
+      ! Free pointers
+      HcoState => NULL() 
+      Ptr2D    => NULL()
+      Ptr3D    => NULL()
 
       ! COpy values from Input_Opt
       LPRT    = Input_Opt%LPRT
@@ -1527,6 +1533,7 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
 !                              remove dependency on pressure_mod.
 !  22 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostics
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1574,10 +1581,10 @@
  
 #if defined( NC_DIAG )
       ! for netcdf diagnostics (ND44 drydep flux)
-      INTEGER            :: drydep_id, trc_id, HCRC
-      CHARACTER(LEN=30)  :: DiagnName
-      REAL(fp), TARGET   :: DryDepFlux( IIPAR, JJPAR ) 
-      REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
+      INTEGER                :: drydep_id, trc_id, HCRC
+      CHARACTER(LEN=30)      :: DiagnName
+      REAL(fp), TARGET       :: DryDepFlux( IIPAR, JJPAR ) 
+      REAL(fp), POINTER      :: Ptr2D(:,:)
 #endif
 
       ! Arrays
@@ -1590,6 +1597,9 @@
       !=================================================================
       ! GRAV_SETTLING begins here!
       !=================================================================
+#if defined( NC_DIAG )
+      Ptr2D => NULL()
+#endif
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LDSTUP = Input_Opt%LDSTUP
@@ -2259,7 +2269,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       END SUBROUTINE CHEM_DMS
 !EOC
@@ -2469,7 +2479,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       END SUBROUTINE CHEM_H2O2
 !EOC
@@ -3480,7 +3490,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       END SUBROUTINE CHEM_SO2
 !EOC
@@ -3934,10 +3944,10 @@
       !IF ( ND09 > 0 ) AD09(I,J,L,4) = AD09(I,J,L,4) + END_ALK
       !------------------------------------------------------------------------
 
-      ! Free pointer
-      NULLIFY( STT    )
-      NULLIFY( AD     )
-      NULLIFY( AIRVOL )
+      ! Free pointers
+      STT    => NULL()
+      AD     => NULL()
+      AIRVOL => NULL()
 
       END SUBROUTINE SEASALT_CHEM
 !EOC
@@ -4517,8 +4527,10 @@
       !IF ( ND09 > 0 ) AD09(I,J,L,4) = AD09(I,J,L,4) + END_ALK
       !------------------------------------------------------------------------
 
-      ! Free pointer
-      NULLIFY( STT )
+      ! Free pointers
+      STT    => NULL()
+      AD     => NULL()
+      AIRVOL => NULL()
 
       END SUBROUTINE DUST_CHEM
 !EOC
@@ -5701,11 +5713,11 @@
       SR = MIN( SR, SO2_sr )
 
       ! Free pointers
-      NULLIFY( AD     )
-      NULLIFY( AIRDEN )
-      NULLIFY( AIRVOL )
-      NULLIFY( U      )
-      NULLIFY( V      )
+      AD     => NULL()
+      AIRDEN => NULL()
+      AIRVOL => NULL()
+      U      => NULL()
+      V      => NULL()
 
       END SUBROUTINE HET_DROP_CHEM
 !EOC
@@ -5950,7 +5962,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointers
-      NULLIFY( STT )
+      STT => NULL()
 
       END SUBROUTINE CHEM_SO4
 !EOC
@@ -6259,7 +6271,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       END SUBROUTINE CHEM_MSA
 !EOC
@@ -6487,7 +6499,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       END SUBROUTINE CHEM_NIT
 !EOC
@@ -7445,6 +7457,7 @@
 !                              dust aerosols (T.D. Fairlie)
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7455,7 +7468,7 @@
       INTEGER :: AS, I, J, N
 
       ! Objects
-      TYPE(Species), POINTER :: ThisSpc => NULL()
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! INIT_SULFATE begins here!
@@ -7463,6 +7476,9 @@
 
       ! Assume success
       RC = GIGC_SUCCESS
+
+      ! Initialize pointer
+      ThisSpc => NULL()
 
       ! Allocate arrays
       ALLOCATE( SSTEMP( IIPAR, JJPAR ), STAT=AS )
