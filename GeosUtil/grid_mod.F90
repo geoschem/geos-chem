@@ -430,13 +430,6 @@ CONTAINS
           YDGR(I,J,L)   = ( PI_180  * YDG(I,J,L) )
           
           ! mjc - Compute sine of latitude edges (needed for map_a2a regrid)
-!------------------------------------------------------------------------------
-! Prior to 3/26/15:
-! Fix apparent optimization error.  Now pass a scalar to the SIN function.
-! Also save the result of SIN in a scalar before storing in the YSN array.
-! Don't know why this happens but this seems to fix it. (bmy, 3/26/15)
-!             YSN(I,J,L) = SIN ( YDGR(I,J,L) )
-!------------------------------------------------------------------------------
           YEDGE_VAL     = YDGR(I,J,L)           ! Lat edge in radians
           YSIN_VAL      = SIN( YEDGE_VAL )      ! SIN( lat edge )
           YSN(I,J,L)    = YSIN_VAL              ! Store in YSN array
@@ -472,14 +465,7 @@ CONTAINS
 #endif
           YDGR(I,J2+1,L)   = YDG(I,J2+1,L) * PI_180
 
-             ! Also compute sine of last latitude edge! (ckeller, 02/13/12)
-!------------------------------------------------------------------------------
-! Prior to 3/26/15:
-! Fix apparent optimization error.  Now pass a scalar to the SIN function.
-! Also save the result of SIN in a scalar before storing in the YSN array.
-! Don't know why this happens but this seems to fix it. (bmy, 3/26/15)
-!             YSN(I,J2+1,L) = SIN ( YDGR(I,J2+1,L) )
-!------------------------------------------------------------------------------
+          ! Also compute sine of last latitude edge! (ckeller, 02/13/12)
           YEDGE_VAL        = YDGR(I,J2+1,L)     ! Lat edge in radians
           YSIN_VAL         = SIN( YEDGE_VAL )   ! SIN( lat edge )
           YSN(I,J2+1,L)    = YSIN_VAL           ! Store in YSN array
@@ -498,13 +484,6 @@ CONTAINS
           YDGR(I,J2+1,L)  = YDG(I,J2+1,L) * PI_180
 
           ! Also compute sine of last latitude edge! (ckeller, 02/13/12)
-!------------------------------------------------------------------------------
-! Prior to 3/26/15:
-! Fix apparent optimization error.  Now pass a scalar to the SIN function.
-! Also save the result of SIN in a scalar before storing in the YSN array.
-! Don't know why this happens but this seems to fix it. (bmy, 3/26/15)
-!             YSN(I,J2+1,L) = SIN ( YDGR(I,J2+1,L) )
-!------------------------------------------------------------------------------
           YEDGE_VAL       = YDGR(I,J2+1,L)
           YSIN_VAL        = SIN( YEDGE_VAL )
           YSN(I,J2+1,L)   = YSIN_VAL
@@ -803,13 +782,6 @@ CONTAINS
 
        ! Special quantities directly derived from YEDGE
        YEDGE_R(I,J,L)   = YEDGE(I,J,L) * PI_180
-!------------------------------------------------------------------------------
-! Prior to 3/26/15:
-! Fix apparent optimization error.  Now pass a scalar to the SIN function.
-! Also save the result of SIN in a scalar before storing in the YSN array.
-! Don't know why this happens but this seems to fix it. (bmy, 3/26/15)
-!       YSIN(I,J,L)      = SIN( YEDGE_R(I,J,L) )
-!------------------------------------------------------------------------------
        YEDGE_VAL        = YEDGE_R(I,J,L)           ! Lat edge [radians]
        YSIN_VAL         = SIN( YEDGE_VAL)          ! SIN( lat edge )
        YSIN(I,J,L)      = YSIN_VAL                 ! Store in YSIN array

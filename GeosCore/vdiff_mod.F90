@@ -1846,12 +1846,6 @@ contains
     USE SPECIES_MOD,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
     USE TRACERID_MOD
-!------------------------------------------------------------------------------
-! Prior to 5/22/15:
-! Remove variables made obsolete by HEMCO (bmy, 5/22/15)
-!    USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, IDEMS, NEMIS NCS, ND44, &
-!                                   NDRYDEP, emis_save
-!------------------------------------------------------------------------------
     USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, NCS, ND44, NDRYDEP
     USE MERCURY_MOD,        ONLY : HG_EMIS
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
@@ -2446,11 +2440,6 @@ contains
                             State_Met%SNOW(I,J)   > 10e+0_fp ))
 #endif
           
-!--------------------------------------------------------------------------
-! Prior to 4/22/16:
-! Now use species database to see if this is a Hg0 species (bmy, 4/22/16)
-!          IF ( IS_Hg .AND. IS_HG0(NN) ) THEN
-!--------------------------------------------------------------------------
           IF ( IS_Hg .AND. ThisSpc%Is_Hg0 ) THEN
              IF ( ZERO_HG0_DEP ) THEN
                 DFLX(I,J,NN) = DFLX(I,J,NN) * &

@@ -1387,15 +1387,6 @@
       CR   = ThisSpc%Henry_CR
       pKa  = ThisSpc%Henry_pKa
 
-!-----------------------------------------------------------------------------
-! Prior to 12/8/15:
-! Disable flipping of sign.  CALC_KH assumes CR is positive (bmy, 12/8/15)    
-!      ! NOTE: The routine COMPUTE_L2G assumes that the
-!      ! Henry's CR parameter is negative.  The CR value stored
-!      ! in the species database is positive, so flip the sign.
-!      CR   = -CR
-!-----------------------------------------------------------------------------
-
       IF ( ThisSpc%WD_LiqAndGas ) THEN
 
          ! For species that consider ice and liquid phases
@@ -1417,11 +1408,6 @@
       ! Compute liquid to gas ratio for using 
       ! the appropriate parameters for Henry's law
       ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-!-----------------------------------------------------------------------------
-! Prior to 12/8/15:
-! Now pass the Henry's pKA constant (bmy, 12/8/15)
-!     CALL COMPUTE_L2G( K0, CR, T, CLDLIQ, L2G )
-!-----------------------------------------------------------------------------
       CALL COMPUTE_L2G( K0, CR, pKa, T, CLDLIQ, L2G )
 
       ! Fraction of species in liquid & ice phases
@@ -2232,25 +2218,10 @@
          CR  = ThisSpc%Henry_CR
          pKa = ThisSpc%Henry_pKa
 
-!-----------------------------------------------------------------------------
-! Prior to 12/8/15:
-! Disable flipping of sign; CALC_KH assumes positive CR. (bmy, 12/8/15)
-!         ! NOTE: The routine WASHFRAC_LIQ_GAS assumes that the
-!         ! Henry's CR parameter is negative.  The CR value stored
-!         ! in the species database is positive, so flip the sign.
-!         CR  = -CR
-!-----------------------------------------------------------------------------
-
          ! Washout is an equilibrium process
          KIN = .FALSE.
          
          ! Get the washout fraction for this species
-!-----------------------------------------------------------------------------
-! Prior to 12/8/15:
-! Now pass Henry's pKa constant to WASHFRAC_LIQ_GAS (bmy, 12/18/15)
-!        CALL WASHFRAC_LIQ_GAS( K0, CR, PP,       DT, F, 
-!     &                          DZ, TK, WASHFRAC, KIN    )
-!-----------------------------------------------------------------------------
          CALL WASHFRAC_LIQ_GAS( K0, CR, pKa, PP,       DT,
      &                          F,  DZ, TK,  WASHFRAC, KIN )
 
@@ -2705,26 +2676,11 @@
 !\\
 ! !INTERFACE:
 ! 
-!-----------------------------------------------------------------------------
-! Prior to 12/8/15:
-! Rename    
-!      SUBROUTINE WASHFRAC_LIQ_GAS( Kstar298, H298_R, pKa, PP,
-!     &                             DT,       F,      DZ,  TK,  
-!     &                             WASHFRAC, KIN ) 
-!-----------------------------------------------------------------------------
       SUBROUTINE WASHFRAC_LIQ_GAS( K0, CR, pKa, PP,       DT,
      &                             F,  DZ, TK,  WASHFRAC, KIN ) 
 !     
 ! !INPUT PARAMETERS: 
 !
-!-----------------------------------------------------------------------------
-! Prior to 12/8/15:
-! Now make Henry's law arguments 8-bytes, for compatibility
-! with new functions from henry_mod.F (bmy, 12/8/15)
-!      REAL(fp), INTENT(IN)  :: Kstar298  ! Effective Henry's law constant
-!                                         !  @ 298 K  [moles/atm]
-!      REAL(fp), INTENT(IN)  :: H298_R    ! Henry's law coefficient [K]
-!-----------------------------------------------------------------------------
       REAL(f8), INTENT(IN)  :: K0        ! Henry's solubility constant [M/atm]
       REAL(f8), INTENT(IN)  :: CR        ! Henry's volatility constant [K]
       REAL(f8), INTENT(IN)  :: pKa       ! Henry's pH correction [1]
@@ -2789,11 +2745,6 @@
          ! Compute liquid to gas ratio for H2O2, using the appropriate 
          ! parameters for Henry's law -- also use rainwater content Lp
          ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-!----------------------------------------------------------------------------
-! Prior to 12/8/15:
-! Now pass 8-byte K0, CR, pKA arguments to COMPUTE_L2G (bmy, 12/8/15)
-!         CALL COMPUTE_L2G( Kstar298, H298_R, TK, LP, L2G )
-!----------------------------------------------------------------------------
          CALL COMPUTE_L2G( K0, CR, pKa, TK, LP, L2G )
 
          ! Washout fraction from Henry's law (Eq. 16, Jacob et al, 2000)

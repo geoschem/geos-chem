@@ -2567,288 +2567,6 @@
       ! Return to calling program
       END SUBROUTINE OCEAN_MERCURY_READ
 
-! prior to 8/26/15 (ewl) 
-!------------------------------------------------------------------------------
-!
-!      SUBROUTINE GET_MLD_FOR_NEXT_MONTH( am_I_Root, Input_Opt,
-!     &                                   THISMONTH, THISYEAR, RC )
-!!
-!!******************************************************************************
-!!  Subroutine GET_MLD_FOR_NEXT_MONTH reads the mixed-layer depth (MLD) 
-!!  values for the next month. (sas, cdh, bmy, 3/28/06)
-!!
-!!  Arguments as Input:
-!!  ============================================================================
-!!  (1 ) THISMONTH (INTEGER) : Current month number (1-12)
-!!  (2 ) THISYEAR (INTEGER)  : Current year 
-!!
-!!  NOTES:
-!!  (1 ) Now read files from DATA_DIR_1x1/mercury_200511 (bmy, 3/28/06)
-!!  (2 ) Now use actual number of days in given month (jaf, 7/6/11)
-!!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
-!!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
-!!
-!!  ##########################################################################
-!!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
-!!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
-!!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
-!!  ##########################################################################
-!!  23 Feb 2015 - J. Fisher   - Add Arctic MLD (orig. 28/11/11)
-!!******************************************************************************
-!!
-!      ! References to F90 modules
-!      USE BPCH2_MOD,          ONLY : GET_TAU0, GET_RES_EXT, READ_BPCH2
-!      USE BPCH2_MOD,          ONLY : GET_NAME_EXT
-!      USE CMN_SIZE_MOD
-!      USE GIGC_ErrCode_Mod
-!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!      USE TIME_MOD,           ONLY : ITS_A_LEAPYEAR
-!!
-!! !INPUT PARAMETERS:
-!!
-!      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-!      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!      INTEGER,        INTENT(IN)  :: THISMONTH
-!      INTEGER,        INTENT(IN)  :: THISYEAR
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-!!
-!! !LOCAL VARIABLES:
-!!
-!!
-!      INTEGER                :: I, J, NEXTMONTH
-!      INTEGER                :: Y, X
-!      REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
-!      REAL(f8)               :: TAU
-!      CHARACTER(LEN=255)     :: FILENAME
-!      INTEGER                :: DAYS_IN_MONTH
-!      INTEGER                :: M(12) = (/ 31, 28, 31, 30, 31, 30,
-!     &                                     31, 31, 30, 31, 30, 31 /)
-!
-!      !=================================================================
-!      ! GET_MLD_FOR_NEXT_MONTH begins here!
-!      !=================================================================
-!      
-!      ! Assume success
-!      RC = GIGC_SUCCESS
-!
-!      ! Calculate days in this month (jaf, 7/6/11)
-!      IF ( THISMONTH == 2 .and. ITS_A_LEAPYEAR( THISYEAR ) ) THEN
-!         DAYS_IN_MONTH = M(THISMONTH) + 1
-!      ELSE
-!         DAYS_IN_MONTH = M(THISMONTH)
-!      ENDIF
-!
-!      ! MLD file name
-!#if defined( GRID05x0666 ) && defined( NESTED_NA )
-!      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011 
-!      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
-!     &           TRIM( Input_Opt%RES_DIR  )        //
-!     &           'mercury_201203/MLD_DReqDT.'      // 
-!     &           GET_NAME_EXT()    // '.'          //
-!     &           GET_RES_EXT()   
-!#else
-!      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
-!     &           TRIM( Input_Opt%RES_DIR  )        //
-!     &           'mercury_201007/MLD_DReqDT.geos.' //
-!     &            GET_RES_EXT()
-!#endif
-!
-!      ! Echo info
-!      IF ( am_I_Root ) THEN
-!         WRITE( 6, 100 ) TRIM( FILENAME )
-! 100     FORMAT( '     - GET_MLD_FOR_NEXT_MONTH: Reading ', a )  
-!      ENDIF
-!
-!
-!      ! TAU0 value for next month (uses year 1985)
-!      TAU       = GET_TAU0( NEXTMONTH, 1, 1985 )
-!
-!      ! Read from disk; original units are [m]
-!      CALL READ_BPCH2( FILENAME, 'BXHGHT-$',    5,  
-!     &                 TAU,       IIPAR,        JJPAR,      
-!     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-!
-!      ! Resize and cast to REAL(fpp)
-!      newMLD = ARRAY(:,:,1)
-!
-!      ! Convert [m] to [cm]
-!      newMLD = newMLD * 100e+0_fpp
-!
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, X, Y )
-!      ! get rate of change of MLD; convert [cm/month] -> [cm/s] 
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!
-!         ! Grid-box longitude [degrees] (jaf, 11/28/11)
-!         X = GET_XMID( I, J, 1 )
-!         ! Grid-box latitude [degrees] (jaf, 11/28/11)
-!         Y = GET_YMID( I, J, 1 )
-!
-!         !----------------------------------------------------------------
-!         ! In central Arctic, overwrite MLD values where global MLD
-!         ! dataset is based on very limited information. Instead use
-!         ! values from climatology of Toole et al. (2010). (jaf, 11/28/11)
-!         !----------------------------------------------------------------
-!          IF ( (Y >= 80d0) .OR.
-!     &         ( (Y >= 70d0) .AND. (X >= 50d0 .OR. X <= 0d0) ) ) THEN
-!
-!               SELECT CASE ( NEXTMONTH )
-!                  CASE( 7, 8, 9 ) ! summer
-!                      newMLD(I,J) = 15d2
-!                  CASE DEFAULT    ! rest of year
-!                      newMLD(I,J) = 20d2
-!               END SELECT
-!          ENDIF
-!         !----------------------------------------------------------------
-!
-!         ! This calculation can result in negative values of MLD at the
-!         ! end of the the month when there are more than 30.5 days in
-!         ! the month. Now use actual number of days per month (jaf, 
-!         ! 7/6/11)
-!         !dMLD(I,J) = (newMLD(I,J) - MLD(I,J)) / ( 3.6d3 *24e+0_fpp * 30.5e+0_fpp )
-!         dMLD(I,J) = (newMLD(I,J) - MLD(I,J)) /
-!     &               ( 3.6e+3_fpp *24e+0_fpp * DAYS_IN_MONTH )
-!      ENDDO
-!      ENDDO
-!! OMP END PARALLEL DO
-!
-!      ! Now also get rate of change of river flow, which isn't grid box
-!      ! dependent. Flow is in m3/s, so dFLOW is in m3/s2 (jaf, 12/8/11)
-!      dFLOW = ( RIVERFLOW(NEXTMONTH) - RIVERFLOW(THISMONTH) ) /  
-!     &        ( 3.6d3 * 24d0 * DAYS_IN_MONTH )
-!
-!      ! Return to calling program
-!      END SUBROUTINE GET_MLD_FOR_NEXT_MONTH
-!
-!!------------------------------------------------------------------------------
-!
-!      SUBROUTINE GET_MLD_FOR_LAST_MONTH( am_I_Root, Input_Opt,
-!     &                                   THISMONTH, RC         )
-!!
-!!******************************************************************************
-!!  Subroutine GET_MLD_FOR_LAST_MONTH reads the mixed-layer depth (MLD)
-!!  values for the next month. Modified from GET_MLD_FOR_NEXT_MONTH (eds 10/19/10)
-!!
-!!  Arguments as Input:
-!!  ============================================================================
-!!  (1 ) THISMONTH (INTEGER) : Current month number (1-12)
-!!
-!!  NOTES:
-!!  (1 ) Now read files from DATA_DIR_1x1/mercury_200511 (bmy, 3/28/06)
-!!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
-!!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
-!!
-!!  ##########################################################################
-!!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
-!!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
-!!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
-!!  ##########################################################################
-!!******************************************************************************
-!!
-!      ! References to F90 modules
-!      USE BPCH2_MOD,          ONLY : GET_TAU0, GET_RES_EXT, READ_BPCH2
-!      USE BPCH2_MOD,          ONLY : GET_NAME_EXT   
-!      USE CMN_SIZE_MOD
-!      USE GIGC_ErrCode_Mod
-!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!!
-!! !INPUT PARAMETERS:
-!!
-!      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-!      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!      INTEGER,        INTENT(IN)  :: THISMONTH
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-!!
-!! !LOCAL VARIABLES:
-!!
-!      INTEGER            :: I, J, LASTMONTH
-!      REAL*4             :: ARRAY(IGLOB,JGLOB,1)
-!      REAL(f8)           :: TAU
-!      CHARACTER(LEN=255) :: FILENAME
-!
-!      !=================================================================
-!      ! GET_MLD_FOR_NEXT_MONTH begins here!
-!      !=================================================================
-!
-!      ! Assume success
-!      RC        =  GIGC_SUCCESS
-!
-!      ! MLD file name
-!#if defined( GRID05x0666 ) && defined( NESTED_NA )
-!      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011 
-!      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
-!     &           TRIM( Input_Opt%RES_DIR  )        //
-!     &           'mercury_201203/MLD_DReqDT.'      // 
-!     &           GET_NAME_EXT()    // '.'          //
-!     &           GET_RES_EXT()   
-!#else
-!      FILENAME = TRIM( Input_Opt%DATA_DIR )        //
-!     &           TRIM( Input_Opt%RES_DIR  )        //
-!     &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()
-!#endif
-!
-!      ! Echo info
-!      IF ( am_I_Root ) THEN
-!         WRITE( 6, 100 ) TRIM( FILENAME )
-! 100     FORMAT( '     - GET_MLD_FOR_LAST_MONTH: Reading ', a )
-!      ENDIF
-!
-!      ! Get the next month
-!!      LASTMONTH = MOD( (THISMONTH-2), 12 ) +1
-!      IF (THISMONTH .EQ. 1) THEN
-!         LASTMONTH = 12
-!      ELSE 
-!        LASTMONTH = THISMONTH -1
-!      ENDIF
-!     
-!      IF ( am_I_Root ) THEN
-!         PRINT *, 'LAST MONTH: '
-!         PRINT *, LASTMONTH
-!      ENDIF
-!
-!      ! TAU0 value for next month (uses year 1985)
-!      TAU	= GET_TAU0( LASTMONTH, 1, 1985 )
-!
-!      ! Read from disk; original units are [m]
-!      CALL READ_BPCH2( FILENAME, 'BXHGHT-$',    5,
-!     &                 TAU,	  IGLOB,        JGLOB,
-!     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-!
-!      ! Resize and cast to REAL(fpp)
-!      prevMLD = ARRAY(:,:,1)
-!
-!      ! Convert [m] to [cm]
-!      prevMLD = prevMLD * 100e+0_fpp
-!
-!      ! get rate of change of MLD; convert [cm/month] -> [cm/s]
-!   !   DO J = 1, JJPAR
-!   !   DO I = 1, IIPAR
-!   !      dMLD(I,J) = (MLD(I,J) - prevMLD(I,J)) / (3.6e+3_fpp 
-!   !  &             * 24e+0_fpp * 30.5e+0_fpp)
-!         ! set current MLD to intermediate b/w last month and this month
-!   !      MLDav(I,J) = prevMLD(I,J) + 0.5e+0_fpp * (MLD(I,J) - 
-!   !  &                prevMLD(I,J))
-!   !   ENDDO
-!   !   ENDDO
-!
-!      ! add Shaojie bug-fix for hot spots
-!      MLDav = MLD
-!      dMlD = 0.0e+0_fpp
-!
-!
-!      ! Return to calling program
-!      END SUBROUTINE GET_MLD_FOR_LAST_MONTH
-!
 !------------------------------------------------------------------------------
 
       SUBROUTINE MLD_ADJUSTMENT( I, J, MLDold, MLDnew, 
@@ -3339,10 +3057,6 @@
             CALL CHECK_DIMENSIONS( NI, NJ, NL )
 
             ! Save into arrays
-!-----------------------------------------------------------------------------
-! Prior to 4/25/16:
-!            IF ( ANY( ID_Hg0 == NTRACER ) ) THEN
-!-----------------------------------------------------------------------------
             IF ( ThisSpc%Is_Hg0 ) THEN
 
                !----------
@@ -3350,10 +3064,6 @@
                !----------
                
                ! Get the Hg category #
-!-----------------------------------------------------------------------------
-! Prior to 4/25/16:
-!               NN              = GET_Hg0_CAT( NTRACER )
-!-----------------------------------------------------------------------------
                NN              = ThisSpc%Hg_Cat
 
                ! Store ocean Hg(0) in Hg0aq array
@@ -3369,10 +3079,6 @@
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
 
-!-----------------------------------------------------------------------------
-! Prior to 4/25/16:
-!            ELSE IF ( ANY( ID_Hg2 == NTRACER ) ) THEN
-!-----------------------------------------------------------------------------
             ELSE IF ( ThisSpc%Is_Hg2 ) THEN
                
                !----------
@@ -3380,10 +3086,6 @@
                !----------
 
                ! Get the Hg category #
-!-----------------------------------------------------------------------------
-! Prior to 4/25/16:
-!               NN              = GET_Hg2_CAT( NTRACER )
-!-----------------------------------------------------------------------------
                NN              = ThisSpc%Hg_Cat
 
                ! Store ocean Hg(II) in Hg2_aq array
@@ -3399,20 +3101,13 @@
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
 
-!-----------------------------------------------------------------------------
-! Prior to 4/25/16:
-!            ELSE IF ( ANY( ID_HgP == NTRACER ) ) THEN
-!-----------------------------------------------------------------------------
             ELSE IF ( ThisSpc%Is_HgP ) THEN
 
                !----------
                ! Hg(P)
                !----------
+
                ! Get the Hg category #   !eds 10/18/10
-!-----------------------------------------------------------------------------
-! Prior to 4/25/16:
-!               NN              = GET_HgP_CAT( NTRACER )
-!-----------------------------------------------------------------------------
                NN                   = ThisSpc%Hg_Cat
 
                ! Particulate Hg
@@ -3437,10 +3132,6 @@
                !----------
             
                ! Get the Hg category #
-!-----------------------------------------------------------------------------
-! Prior to 4/25/16:
-!               NN              = GET_Hg0_CAT( NTRACER )
-!-----------------------------------------------------------------------------
                NN              = ThisSpc%Hg_Cat
               
                ! Store ocean Hg(0) in Hg0aq array
@@ -3452,10 +3143,6 @@
                !----------
 
                ! Get the Hg category #
-!-----------------------------------------------------------------------------
-! Prior to 4/25/16:
-!               NN              = GET_Hg0_CAT( NTRACER )
-!-----------------------------------------------------------------------------
                NN              = ThisSpc%Hg_Cat
 
                ! Store ocean Hg(0) in Hg0aq array
@@ -3468,10 +3155,6 @@
                !----------
 
                ! Get the Hg category #
-!-----------------------------------------------------------------------------
-! Prior to 4/25/16:
-!               NN              = GET_Hg0_CAT( NTRACER )
-!-----------------------------------------------------------------------------
                NN              = ThisSpc%Hg_Cat
 
                ! Store ocean Hg(0) in Hg0aq array
@@ -3483,10 +3166,6 @@
                !----------
 
                ! Get the Hg category #
-!-----------------------------------------------------------------------------
-! Prior to 4/25/16:
-!               NN              = GET_Hg0_CAT( NTRACER )
-!-----------------------------------------------------------------------------
                NN              = ThisSpc%Hg_Cat
 
                ! Store ocean Hg(0) in Hg0aq array

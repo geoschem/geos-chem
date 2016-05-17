@@ -446,12 +446,6 @@
       ! Added for interannually-varying Methane (bnd, bmy, 7/1/03)
       INTEGER ::         ICH4
 
-!------------------------------------------------------------------------------
-! Prior to 2/10/16:
-!      ! Added for interannually-varying Methane (bnd, bmy, 7/1/03)
-!      REAL(fp)  ::         C3090S,      C0030S,    C0030N,   C3090N
-!------------------------------------------------------------------------------
-
       ! Added for tracking oxidation of ISOP by OH (dkh, bmy, 6/1/06)
       ! SOAupdate: Added for tracking oxidation of ISOP by NO3 (hotp 6/11/10)
       INTEGER ::         ILISOPOH, ILISOPNO3
