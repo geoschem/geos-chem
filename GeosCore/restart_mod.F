@@ -2434,7 +2434,6 @@ dvected tracer input  restart file
       USE COMODE_LOOP_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE COMODE_MOD,         ONLY : JLOP
       USE FILE_MOD,           ONLY : IOERROR
       USE FILE_MOD,           ONLY : FILE_EXISTS
       USE TIME_MOD,           ONLY : EXPAND_DATE
@@ -2664,7 +2663,6 @@ dvected tracer input  restart file
       USE COMODE_LOOP_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE COMODE_MOD,         ONLY : JLOP
       USE FILE_MOD,           ONLY : IOERROR
       USE GRID_MOD,           ONLY : GET_XOFFSET
       USE GRID_MOD,           ONLY : GET_YOFFSET

@@ -1823,7 +1823,6 @@ contains
 !
 ! !USES:
 ! 
-    USE COMODE_MOD,         ONLY : JLOP,      REMIS
     USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK

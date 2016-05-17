@@ -92,7 +92,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, J, L, N, JLOOP, MONTH, YEAR
+      INTEGER                :: I, J, L, N, MONTH, YEAR
       INTEGER                :: WAVELENGTH
       INTEGER                :: HCRC
       INTEGER                :: N_TRACERS
@@ -332,35 +332,6 @@
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### FLEX_CHEMDR: after RDUST' )
       ENDIF
-
-!------------------------------------------------------------------------------
-! Prior to 5/11/16:
-! These are now put directly into State_Chm in aerosol_mod.F (mps, 5/11/16)
-!     !=================================================================
-!     ! Copy aerosol areas into State_Chm
-!     !  -- Should be moved to AerosolMod once JLOOP is gone
-!     !=================================================================
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, JLOOP )
-!     DO L = 1, LLPAR
-!     DO J = 1, JJPAR
-!     DO I = 1, IIPAR
-!
-!        ! Get 1-D index
-!        JLOOP = JLOP(I,J,L)
-!
-!        ! If this is a valid grid box
-!        IF ( JLOOP > 0 ) THEN
-!           State_Chm%AeroArea(I,J,L,:) = TAREA(JLOOP,:)
-!           State_Chm%AeroRadi(I,J,L,:) = ERADIUS(JLOOP,:)
-!        ENDIF
-!
-!     ENDDO
-!     ENDDO
-!     ENDDO
-!!$OMP END PARALLEL DO
-!------------------------------------------------------------------------------
 
       !=================================================================
       ! Loop over tracers and grid boxes

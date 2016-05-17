@@ -1300,6 +1300,7 @@
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !  21 Apr 2016 - M. Sulprizio- Get CONSVAP from PHYSCONSTANTS instead of
 !                              computing locally
+!  17 May 2016 - M. Sulprizio- Remove PCHEM, IJLOOP and use IS_FULLCHEM instead
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1307,8 +1308,8 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE       :: FIRST = .TRUE.
-      LOGICAL             :: PCHEM, LINTERP
-      INTEGER             :: I, IP, IRHN, J, L, JLOOP, M, N, R, RH, V
+      LOGICAL             :: IS_FULLCHEM, LINTERP
+      INTEGER             :: I, IP, IRHN, J, L, M, N, R, RH, V
       INTEGER             :: LL     !eds
       INTEGER             :: LPLANE, IWV, ISPC, K
       REAL(fp)            :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
@@ -1339,6 +1340,9 @@
 
       ! Assume success
       RC = GIGC_SUCCESS
+
+      ! Get fields from Input_Opt
+      IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
 
       ! Return if there is no flighttrack data for today
       IF ( .not. DO_PF ) RETURN
@@ -1409,9 +1413,7 @@
  100        FORMAT( '     - PLANEFLIGHT: Archived ',a5,1x,i8.8,1x,i4.4 )
 
             ! Return grid box indices for the chemistry region
-            ! NOTE: PCHEM and JLOOP are only defined for SMVGEAR runs!
-            CALL TEST_VALID( M, PCHEM, JLOOP, I, J, L, 
-     &                       Input_Opt, State_Met )
+            CALL TEST_VALID( M, I, J, L, Input_Opt, State_Met )
 
             ! Initialize SMVGEAR reaction counter
             R = 0
@@ -1430,7 +1432,7 @@
 
                      ! Only archive where chemistry is done
                      ! Save as mixing ratio [v/v]
-                     IF ( JLOOP /= 0 ) THEN
+                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
                         VARI(V) = State_Chm%Species(I,J,L,PVAR(V)) / 
      &                            State_Met%AIRNUMDEN(I,J,L)
                      ENDIF
@@ -1445,7 +1447,8 @@
                      ! Sum all AN contributions, save as [v/v]
                      VARI(V) = 0e+0_fp
 
-                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+                     IF ( IS_FULLCHEM .and. 
+     &                    ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
 
                         DO N = 1, NPNOY
                            VARI(V) = VARI(V) +
@@ -1466,7 +1469,8 @@
                      ! Sum all AN contributions, save as [v/v]
                      VARI(V) = 0e+0_fp
 
-                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+                     IF ( IS_FULLCHEM .and. 
+     &                    ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
 
                         DO N = 1, NPAN
                            VARI(V) = VARI(V) +
@@ -1486,7 +1490,8 @@
                      ! Sum all RO2 contributions, save as [v/v]
                      VARI(V) = 0e+0_fp
                            
-                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+                     IF ( IS_FULLCHEM .and. 
+     &                    ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
 
                         DO N = 1, NPRO2
                            VARI(V) = VARI(V) +
@@ -1508,9 +1513,9 @@
                   !--------------------------
                   CASE ( 1002 ) 
                      
-                     ! Only archive where SMVGEAR chem is done
+                     ! Only archive where chemistry is done
                      ! Code skalooched from "calcrate.f"
-                     IF ( JLOOP /= 0 ) THEN
+                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
                         VARI(V)  = State_Met%AVGW(I,J,L) *
      &                             State_Met%AIRNUMDEN(I,J,L)
                         TK       = State_Met%T(I,J,L)
@@ -1530,10 +1535,10 @@
                   !--------------------------
                   CASE ( 1003 )
 
-                     ! Only archive where SMVGEAR chem is done
+                     ! Only archive where chemistry is done
                      VARI(V) = 0e+0_fp
 
-                     IF ( JLOOP /= 0 ) THEN
+                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
                         DO N = 1, NDUST + NAER
                            VARI(V) = VARI(V) +
      &                               State_Chm%AeroArea(I,J,L,N)
@@ -1608,8 +1613,6 @@
                   !--------------------------
                   CASE ( 2001:2005 )
                   
-                   ! Only archive where SMVGEAR chem is done
-                  
                    ! Remove MISSING flag
                    VARI(V) = 0e+0_fp
                   
@@ -1674,8 +1677,6 @@
                   !--------------------------
                   CASE ( 3001:3005 )
                   
-                   IF ( PCHEM ) THEN
-
                    ! Remove MISSING flag
                    VARI(V) = 0e+0_fp
                   
@@ -1741,8 +1742,6 @@
                       ENDDO
                      ENDDO
                     ENDIF
-
-                   ENDIF
 
                   !--------------------------
                   ! Hg(II) partitioning eds 10/27/11
@@ -1844,13 +1843,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TEST_VALID( IND, PCHEM, JLOOP, I, J, L, 
-     &                       Input_Opt, State_Met ) 
+      SUBROUTINE TEST_VALID( IND, I, J, L, Input_Opt, State_Met ) 
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : JLOP
       USE GRID_MOD,           ONLY : GET_XOFFSET
       USE GRID_MOD,           ONLY : GET_YOFFSET
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1864,8 +1861,6 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      LOGICAL, INTENT(OUT) :: PCHEM   ! =T if chemistry is done here
-      INTEGER, INTENT(OUT) :: JLOOP   ! 1-D grid box index for SMVGEAR/KPP
       INTEGER, INTENT(OUT) :: I       ! GEOS-Chem longitude index
       INTEGER, INTENT(OUT) :: J       ! GEOS-Chem latitude index
       INTEGER, INTENT(OUT) :: L       ! GEOS-Chem level index
@@ -1888,6 +1883,7 @@
 !                              based on nested regions
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod.
+!  17 May 2016 - M. Sulprizio- Remove PCHEM and JLOOP arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1934,24 +1930,6 @@
 
       ! Error check: L must be 1 or higher
       IF ( L == 0 ) L = 1
-
-      !=================================================================
-      ! We only do full-chemistry in the troposphere
-      !=================================================================
-      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-  
-         ! JLOOP indicates if a box is in chemgrid (/=0) or not. 
-         JLOOP = JLOP(I,J,L)
-         PCHEM = .TRUE.
-
-      ELSE
-
-         ! For non-SMVGEAR runs, JLOOP has no meaning so we give the
-         ! false value
-         JLOOP = 0
-         PCHEM = .FALSE.
-
-      ENDIF
 
       END SUBROUTINE TEST_VALID
 !EOC

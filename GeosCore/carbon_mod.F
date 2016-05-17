@@ -1299,7 +1299,7 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met
-!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOP. WERADIUS,
+!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. WERADIUS,
 !                              WTAREA are now pointers that point to 3D fields
 !                              in State_Chm.
 !EOP
@@ -1538,7 +1538,7 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met
-!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOP. WERADIUS,
+!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. WERADIUS,
 !                              WTAREA are now pointers that point to 3D fields
 !                              in State_Chm.
 !EOP

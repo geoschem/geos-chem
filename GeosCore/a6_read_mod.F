@@ -987,7 +987,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                        :: I, IJLOOP, J, K, L
+      INTEGER                        :: I, J, K, L
       INTEGER                        :: IOS, NFOUND, N_A6
       REAL*4                         :: D(IIPAR,JJPAR,LGLOB)       
       REAL*4                         :: D1(IIPAR,JJPAR,LGLOB+1)       

@@ -604,7 +604,7 @@
          ENDDO
       ENDIF
 
-      ! Also increment 3-D counter for boxes in the tropopause
+      ! Also increment 3-D counter for boxes in the chemistry grid
       IF ( IS_FULLCHEM .and. IS_CHEM ) THEN
          
          ! Loop over levels
@@ -623,7 +623,7 @@
          DO X = 1, ND51_NI
             I = GET_I( X )
 
-            ! Only increment if we are in the trop
+            ! Only increment if we are in the 
             IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
                COUNT_CHEM3D(X,Y,K) = COUNT_CHEM3D(X,Y,K) + GOOD(I)
             ENDIF

@@ -945,7 +945,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER           :: I, IJLOOP, IOS, J, N_A3, NFOUND 
+      INTEGER           :: I, IOS, J, N_A3, NFOUND 
       REAL*4            :: Q2(IIPAR,JJPAR)
       CHARACTER(LEN=8)  :: NAME
       CHARACTER(LEN=16) :: STAMP

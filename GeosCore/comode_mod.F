@@ -54,10 +54,13 @@
       INTEGER,  ALLOCATABLE, PUBLIC :: IXSAVE(:)
       INTEGER,  ALLOCATABLE, PUBLIC :: IYSAVE(:)
       INTEGER,  ALLOCATABLE, PUBLIC :: IZSAVE(:)
-      INTEGER,  ALLOCATABLE, PUBLIC :: JLOP(:,:,:)
-#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      INTEGER,  ALLOCATABLE, PUBLIC :: JLOP_PREVIOUS(:,:,:)
-#endif
+!------------------------------------------------------------------------------
+! Prior to 5/17/16:
+!      INTEGER,  ALLOCATABLE, PUBLIC :: JLOP(:,:,:)
+!#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!      INTEGER,  ALLOCATABLE, PUBLIC :: JLOP_PREVIOUS(:,:,:)
+!#endif
+!------------------------------------------------------------------------------
       REAL(fp), ALLOCATABLE, PUBLIC :: REMIS(:,:)
 !------------------------------------------------------------------------------
 ! Prior to 5/11/16:
@@ -115,6 +118,7 @@
 !                              array State_Met%ABSHUM
 !  12 May 2016 - M. Sulprizio- Remove ERADIUS, TAREA, WERADIUS, WTAREA. These
 !                              fields are now stored as 3D arrays in State_Chm.
+!  17 May 2016 - M. Sulprizio- Remove JLOP and JLOP_PREVIOUS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -241,17 +245,19 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'IZSAVE' )
          IZSAVE = 0
       
-         ALLOCATE( JLOP( ILONG, ILAT, IPVERT ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'JLOP' )
-         JLOP = 0
-      
-         !vartrop fix (dkh, 05/08/11)
-#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         ALLOCATE( JLOP_PREVIOUS( ILONG, ILAT, IPVERT ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'JLOP_PREVIOUS' )
-         JLOP_PREVIOUS = 0
-#endif
-
+!------------------------------------------------------------------------------
+! Prior to 5/17/16:
+!         ALLOCATE( JLOP( ILONG, ILAT, IPVERT ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'JLOP' )
+!         JLOP = 0
+!      
+!         !vartrop fix (dkh, 05/08/11)
+!#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!         ALLOCATE( JLOP_PREVIOUS( ILONG, ILAT, IPVERT ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'JLOP_PREVIOUS' )
+!         JLOP_PREVIOUS = 0
+!#endif
+!
 !------------------------------------------------------------------------------
 ! Prior to 12/21/15:
 !         ALLOCATE( PRESS3( ITLOOP ), STAT=AS )
@@ -325,17 +331,18 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'IZSAVE' )
          IZSAVE = 0
       
-         ALLOCATE( JLOP( ILONG, ILAT, IPVERT ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'JLOP' )
-         JLOP = 0
-
-         !vartrop fix (dkh, 05/08/11)
-#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         ALLOCATE( JLOP_PREVIOUS(ILONG, ILAT, IPVERT ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'JLOP_PREVIOUS' )
-         JLOP_PREVIOUS = 0
-#endif
-
+!------------------------------------------------------------------------------
+! Prior to 5/17/16:
+!         ALLOCATE( JLOP( ILONG, ILAT, IPVERT ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'JLOP' )
+!         JLOP = 0
+!
+!         !vartrop fix (dkh, 05/08/11)
+!#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!         ALLOCATE( JLOP_PREVIOUS(ILONG, ILAT, IPVERT ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'JLOP_PREVIOUS' )
+!         JLOP_PREVIOUS = 0
+!#endif
 !------------------------------------------------------------------------------
 ! Prior to 5/12/16:
 !         ALLOCATE( TAREA( ITLOOP, NDUST+NAER ), STAT=AS )
@@ -395,10 +402,13 @@
       IF ( ALLOCATED( IXSAVE        ) ) DEALLOCATE( IXSAVE        )
       IF ( ALLOCATED( IYSAVE        ) ) DEALLOCATE( IYSAVE        )
       IF ( ALLOCATED( IZSAVE        ) ) DEALLOCATE( IZSAVE        )
-      IF ( ALLOCATED( JLOP          ) ) DEALLOCATE( JLOP          )
-#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      IF ( ALLOCATED( JLOP_PREVIOUS ) ) DEALLOCATE( JLOP_PREVIOUS )
-#endif
+!------------------------------------------------------------------------------
+! Prior to 5/17/16:
+!      IF ( ALLOCATED( JLOP          ) ) DEALLOCATE( JLOP          )
+!#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!      IF ( ALLOCATED( JLOP_PREVIOUS ) ) DEALLOCATE( JLOP_PREVIOUS )
+!#endif
+!------------------------------------------------------------------------------
       IF ( ALLOCATED( REMIS         ) ) DEALLOCATE( REMIS         )
 !------------------------------------------------------------------------------
 ! Prior to 5/11/16:
