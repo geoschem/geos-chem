@@ -87,12 +87,6 @@
 
       IMPLICIT NONE
 
-      INTEGER, PARAMETER :: MMMEMBER = 15
-      INTEGER            :: NMEMBER(NNNTRID) 
-      INTEGER            :: IDTRMB(NNNTRID,MMMEMBER)
-      INTEGER            :: IDEMIS(NNNTRID)
-      REAL(fp)           :: CTRMB(NNNTRID,MMMEMBER)
-     
       ! ID's for SMVGEAR species
       INTEGER            :: IDO3,    IDNO2,    IDNO3,   IDNO,    IDHNO2
       INTEGER            :: IDN2O5,  IDHNO4,   IDHC1
@@ -1988,12 +1982,6 @@
       INTEGER            :: I, J, T, C, STAT
 
       ! Arrays
-      INTEGER            :: ID_EMITTED    ( Input_Opt%MAX_TRCS )
-      REAL(fp)           :: TRACER_COEFF  ( Input_Opt%MAX_TRCS, 
-     &                                      Input_Opt%MAX_MEMB )
-      CHARACTER(LEN=255) :: TRACER_CONST  ( Input_Opt%MAX_TRCS, 
-     &                                      Input_Opt%MAX_MEMB )
-      INTEGER            :: TRACER_N_CONST( Input_Opt%MAX_TRCS )
       CHARACTER(LEN=255) :: TRACER_NAME   ( Input_Opt%MAX_TRCS )
  
       !=================================================================
@@ -2006,10 +1994,6 @@
       ! Copy values from Input_Opt to local variables
       LPRT           = Input_Opt%LPRT
       N_TRACERS      = Input_Opt%N_TRACERS
-      ID_EMITTED     = Input_Opt%ID_EMITTED
-      TRACER_COEFF   = Input_Opt%TRACER_COEFF
-      TRACER_CONST   = Input_Opt%TRACER_CONST 
-      TRACER_N_CONST = Input_Opt%TRACER_N_CONST
       TRACER_NAME    = Input_Opt%TRACER_NAME
 
       ! Reset NCS = NCSURBAN, since we have defined our GEOS-CHEM
@@ -2118,88 +2102,6 @@
          IF ( NAMEGAS(I) == 'HCl'      ) IDHCl      = I
          IF ( NAMEGAS(I) == 'O1D'      ) IDO1D      = I
          IF ( NAMEGAS(I) == 'O'        ) IDO3P      = I
-      ENDDO
-
-      !=================================================================
-      ! Initialize arrays
-      !=================================================================
-      DO I=1, NNNTRID
-         NMEMBER(I)  = 0
-         IDEMIS(I)   = 0   
-         DO J=1, MMMEMBER
-            IDTRMB(I, J)= 0
-            CTRMB(I, J)= 0.
-         ENDDO
-      ENDDO
-
-      !=================================================================
-      ! Save IDs for tracers (sequence in NAMESPEC.)
-      !
-      ! IDTRMB(T,C)  = species number for J'th component of tracer I
-      ! CTRMB(T,C)+1 = coefficient of tracer constituent (e.g., each NO3
-      !                molec. represents 2 units of Ox, so CTRMB=1)
-      ! TRACER_N(T)   = number of component species in tracer I
-      ! IDEMIS(T)    = which component of tracer I (in IDTRMB sense)
-      !                receives the emissions
-      ! NIDEMIS      = 0,1 -- indicates which species is emitting species.
-      !                If there is only one species in tracer family and
-      !                it's emitted, you still need a "1" in the spot.
-      ! ljm changes: now read input from data file, tracer.dat
-      !=================================================================
-
-      ! Loop over tracers
-      DO T = 1, N_TRACERS
-         
-         ! Number of constituents that tracer T has
-         NMEMBER(T) = TRACER_N_CONST(T)
-
-         ! Index of which tracer constituent
-         ! will receive the emissions
-         IF ( ID_EMITTED(T) > 0 ) THEN 
-            IDEMIS(T) = ID_EMITTED(T)
-         ENDIF
-
-         ! Loop over all the species which make up the tracer
-         DO C = 1, NMEMBER(T)
-            
-            ! Store tracer coefficient in CTRMB
-            CTRMB(T,C) = TRACER_COEFF(T,C) - 1
-
-            ! Loop over all species in "globchem.dat"
-            DO J = 1, NSPEC(NCS)
-
-               ! Special case: hydrocarbon tracers as atoms C 
-               IF ( TRACER_CONST(T,C) == 'C' ) THEN
-
-                  ! Test SMVGEAR species name against TRACER_NAME
-                  IF ( NAMEGAS(J) == TRIM(TRACER_NAME(T)) ) THEN
-                     IDTRMB(T,C) = J 
-                  ENDIF
-
-               ELSE 
-
-                  ! Test SMVGEAR species name TRACER_CONST
-                  IF ( NAMEGAS(J) == TRIM(TRACER_CONST(T,C)) ) THEN
-                     IDTRMB(T,C) = J
-                  ENDIF
-
-               ENDIF
-            ENDDO
-
-#if !defined( ESMF_ )
-            ! Print when Debug output selected (hotp 8/5/09)
-            IF ( LPRT .and. am_I_Root ) THEN
-               PRINT*, '###--------------------'
-               PRINT*, '### T, C       : ', T, C
-               PRINT*, '### NAME       : ', TRIM( TRACER_NAME(T) )
-               PRINT*, '### NMEMBER    : ', NMEMBER(T)
-               PRINT*, '### CONST(T,C) : ', TRIM( TRACER_CONST(T,C) )
-               PRINT*, '### CTRMB(T,C) : ', CTRMB(T,C)
-               PRINT*, '### IDEMIS(T)  : ', IDEMIS(T)
-               PRINT*, '### IDTRMB(T,C): ', IDTRMB(T,C)
-            ENDIF
-#endif
-         ENDDO
       ENDDO
 
       ! Return to calling program

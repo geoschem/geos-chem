@@ -559,25 +559,6 @@ CONTAINS
           WRITE( 6, 100 ) Input_Opt%ID_TRACER(N),              &
                           Input_Opt%TRACER_NAME(N),            &
                           Input_Opt%TRACER_MW_G(N)
-
-          ! If a family tracer (or just a tracer w/ emission)
-          ! then also print info about species
-          IF ( Input_Opt%TRACER_N_CONST(N) > 1   .or.          &
-               Input_Opt%ID_EMITTED(N) > 0     ) THEN
-
-             ! Loop over member species
-             DO C = 1, Input_Opt%TRACER_N_CONST(N)
-
-                ! Also flag which is the emitted tracer
-                IF ( Input_Opt%ID_EMITTED(N) == C ) THEN
-                   WRITE( 6,110 ) Input_Opt%TRACER_COEFF(N,C), &
-                                  Input_Opt%TRACER_CONST(N,C)
-                ELSE
-                   WRITE( 6,120 ) Input_Opt%TRACER_COEFF(N,C), &
-                                  Input_Opt%TRACER_CONST(N,C)
-                ENDIF
-             ENDDO
-          ENDIF
        ENDIF
     ENDDO
 

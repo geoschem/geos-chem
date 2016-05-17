@@ -91,65 +91,67 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, J, L, N, JLOOP, MONTH, YEAR
-      INTEGER                :: WAVELENGTH
-      INTEGER                :: HCRC
-      INTEGER                :: N_TRACERS
-      LOGICAL                :: prtDebug
-      LOGICAL                :: LDUST
-      CHARACTER(LEN=155)     :: DiagnName
+      INTEGER               :: I, J, L, N, JLOOP, MONTH, YEAR
+      INTEGER               :: WAVELENGTH
+      INTEGER               :: HCRC
+      INTEGER               :: N_TRACERS
+      LOGICAL               :: prtDebug
+      LOGICAL               :: LDUST
+      CHARACTER(LEN=155)    :: DiagnName
 
       ! SAVEd variables
-      LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
-      INTEGER, SAVE          :: CH4_YEAR  = -1
+      LOGICAL, SAVE         :: FIRSTCHEM = .TRUE.
+      INTEGER, SAVE         :: CH4_YEAR  = -1
 
       ! For grid-box latitude
-      REAL(fp)               :: YLAT
+      REAL(fp)              :: YLAT
 
       ! For interannually-varying Methane
-      REAL(fp),SAVE          :: C3090S, C0030S, C0030N, C3090N
+      REAL(fp), SAVE        :: C3090S, C0030S, C0030N, C3090N
 
       ! mje Variables for holding rate diagnoastics
       ! mje DERIV: Concentrations derivatives for one box d[X]/dt
       ! mje GLOB_DERIV: Store global values of concentrations devivatives
       ! mje GLOB_RATES: Stores global values of fluxes through each reaction
-      REAL(kind=dp)          :: DERIV(NSPEC)
-      REAL(kind=dp)          :: GLOB_DERIV(IIPAR,JJPAR,LLPAR,NSPEC)
-      REAL(kind=dp)          :: GLOB_RATES(IIPAR,JJPAR,LLPAR,NREACT)
-      REAL(kind=dp)          :: GLOB_RCONST(IIPAR,JJPAR,LLPAR,NREACT)
+      REAL(dp)              :: DERIV(NSPEC)
+      REAL(dp)              :: GLOB_DERIV(IIPAR,JJPAR,LLPAR,NSPEC)
+      REAL(dp)              :: GLOB_RATES(IIPAR,JJPAR,LLPAR,NREACT)
+      REAL(dp)              :: GLOB_RCONST(IIPAR,JJPAR,LLPAR,NREACT)
 
       ! mje KPP variables
-      INTEGER                :: IERR
-      REAL(kind=fp)          :: T, TIN, TOUT
-      REAL(kind=dp)          :: RCNTRL(20)
-      REAL(kind=dp)          :: RSTATE(20)
-      INTEGER                :: ICNTRL(20)
-      INTEGER                :: ISTATUS(20)
+      INTEGER               :: IERR
+      REAL(fp)              :: T, TIN, TOUT
+      REAL(dp)              :: RCNTRL(20)
+      REAL(dp)              :: RSTATE(20)
+      INTEGER               :: ICNTRL(20)
+      INTEGER               :: ISTATUS(20)
 
       ! mje Array to hold the molecular mass of the species
-      REAL(kind=fp)          :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)              :: TCVV(Input_Opt%N_TRACERS)
 
       ! mje STT holds the concentrations of Tracers
-      REAL(kind=fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER     :: STT(:,:,:,:)
 
       ! mje Array for bug checking
-      REAL(kind=fp)          :: AverageVAR(NSPEC)
-      REAL(kind=fp)          :: Mass, Start, Finish, rtim, itim
-      INTEGER                :: TotSteps, TotFuncs, TotJacob
-      INTEGER                :: TotAccep, TotRejec, TotNumLU
-
-      CHARACTER(LEN=255)     :: ERR_MSG
+      REAL(fp)              :: AverageVAR(NSPEC)
+      REAL(fp)              :: Mass, Start, Finish, rtim, itim
+      INTEGER               :: TotSteps, TotFuncs, TotJacob
+      INTEGER               :: TotAccep, TotRejec, TotNumLU
+      CHARACTER(LEN=255)    :: ERR_MSG
 
       ! For passing SO4_PHOTFRAC output to PHOTRATE_ADJ (bmy, 3/28/16)
-      REAL(kind=fp)          :: SO4_FRAC
+      REAL(fp)              :: SO4_FRAC
 
       ! To avoid array temporaries in call to SET_HET (bmy, 3/28/16)
-      REAL(kind=fp)          :: SCOEFF(IIPAR,JJPAR,LLPAR,3)
-      REAL(kind=fp)          :: SCF(3)
+      REAL(fp)              :: SCOEFF(IIPAR,JJPAR,LLPAR,3)
+      REAL(fp)              :: SCF(3)
 
       ! For testing only, may be removed later (mps, 4/26/16)
-      LOGICAL :: DO_HETCHEM
-      LOGICAL :: DO_PHOTCHEM
+      LOGICAL               :: DO_HETCHEM
+      LOGICAL               :: DO_PHOTCHEM
+
+      ! For the species database
+      REAL(fp)              :: MolecRatio
 
       !=================================================================
       ! FLEX_CHEMDR begins here!
@@ -159,12 +161,15 @@
       ! This is for testing only and may be removed later (mps, 4/26/16)
       DO_HETCHEM  = .TRUE.
       DO_PHOTCHEM = .TRUE.
-      WRITE( 6, '(a)' ) REPEAT( '#', 32 )
-      WRITE( 6, '(a,l,a)' ) '# FLEX_CHEMDR: DO_HETCHEM  =',
-     &                         DO_HETCHEM,  ' #'
-      WRITE( 6, '(a,l,a)' ) '# FLEX_CHEMDR: DO_PHOTCHEM =',
-     &                         DO_PHOTCHEM, ' #'
-      WRITE( 6, '(a)' ) REPEAT( '#', 32 )
+
+      IF ( FIRSTCHEM ) THEN
+         WRITE( 6, '(a)' ) REPEAT( '#', 32 )
+         WRITE( 6, '(a,l,a)' ) '# FLEX_CHEMDR: DO_HETCHEM  =',
+     &                          DO_HETCHEM,  ' #'
+         WRITE( 6, '(a,l,a)' ) '# FLEX_CHEMDR: DO_PHOTCHEM =',
+     &                          DO_PHOTCHEM, ' #'
+         WRITE( 6, '(a)' ) REPEAT( '#', 32 )
+      ENDIF
 
       ! Initialize variables
       prtDebug  = Input_Opt%LPRT
@@ -367,25 +372,32 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
+!$OMP+PRIVATE( I, J, L, N, MolecRatio )
       DO N = 1, N_TRACERS
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
 
-         ! Convert STT from kg to molec/cm3
-         STT(I,J,L,N) = STT(I,J,L,N) * Input_Opt%XNUMOL(N) /
-     &                 ( State_Met%AIRVOL(I,J,L) * 1e+6_fp *
-     &                   Input_Opt%TRACER_COEFF(N,1) )
+         ! Moles C per moles species
+         MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
 
-         ! Copy STT to State_Chm%Species [molec/cm3]
-         IF (STTTOCSPEC(N) .NE. 0) THEN 
-            State_Chm%Species(I,J,L,STTTOCSPEC(N)) = STT(I,J,L,N)
-         ENDIF
+         ! Loop over grid boxes
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-      ENDDO
-      ENDDO
-      ENDDO
+            ! Convert STT from kg to molec/cm3
+            STT(I,J,L,N) = STT(I,J,L,N) 
+     &                   * Input_Opt%XNUMOL(N) 
+     &                   / ( State_Met%AIRVOL(I,J,L)  * 
+     &                       1e+6_fp                  *
+     &                       MolecRatio              )
+
+            ! Copy STT to State_Chm%Species [molec/cm3]
+            IF (STTTOCSPEC(N) .NE. 0) THEN 
+               State_Chm%Species(I,J,L,STTTOCSPEC(N)) = STT(I,J,L,N)
+            ENDIF
+
+         ENDDO
+         ENDDO
+         ENDDO
       ENDDO
 !$OMP END PARALLEL DO
       
@@ -401,17 +413,24 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
+!$OMP+PRIVATE( I, J, L, N, MolecRatio )
       DO N = 1, N_TRACERS
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         STT(I,J,L,N) = STT(I,J,L,N) / Input_Opt%XNUMOL(N) *
-     &                  ( State_Met%AIRVOL(I,J,L) * 1e+6_fp *
-     &                  Input_Opt%TRACER_COEFF(N,1) )
-      ENDDO
-      ENDDO
-      ENDDO
+
+         ! Moles C per moles species
+         MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
+         
+         ! Loop over grid boxes
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            STT(I,J,L,N) = STT(I,J,L,N) 
+     &                   / Input_Opt%XNUMOL(N) *
+     &                     ( State_Met%AIRVOL(I,J,L) * 
+     &                       1e+6_fp                 *
+     &                       MolecRatio                )
+         ENDDO
+         ENDDO
+         ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -585,8 +604,10 @@
          ! Get rates for heterogeneous chemistry
          !===========================================================
 
+#if defined( DEVEL )
          ! Get starting time for rate computation
          CALL CPU_TIME( start )
+#endif
 
          IF ( DO_HETCHEM ) THEN
 
@@ -678,6 +699,7 @@
             ENDIF
          ENDIF   ! IDTCH4, IND_CH4
 
+#if defined( DEVEL)
          !### Debug printout, we can remove it later
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
             DO N = 1,NSPEC
@@ -685,6 +707,7 @@
      &              trim(SPC_NAMES(N)), C(N)
             ENDDO
          ENDIF
+#endif
 
          !===========================================================
          ! Update KPP's rates
@@ -702,11 +725,13 @@
          ! Update the array of rate constants
          CALL Update_RCONST( )
 
+#if defined( DEVEL )
          ! Get time when rate computation finished
          CALL CPU_TIME( finish )
 
          ! Compute how long it took for KPP to compute rates
          rtim = rtim + finish - start
+#endif
 
          !===========================================================
          ! Set options for the KPP Integrator (M. J. Evans)
@@ -739,6 +764,7 @@
             WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
          ENDIF
 
+#if defined( DEVEL )
          ! Get time when integrator ends
          call CPU_TIME( finish )
 
@@ -752,6 +778,7 @@
          totaccep = totaccep + ISTATUS(4)
          totrejec = totrejec + ISTATUS(5)
          totnumLU = totnumLU + ISTATUS(6)
+#endif
 
          ! Zero certain species
          C(ind_ACTA)  = 0.e0_dp
@@ -836,13 +863,16 @@
             ! Copy concentrations back into State_Chm%SPECIES
             State_Chm%Species(I,J,L,CSPECTOKPP(N)) = real(C(N),kind=fp)
 
+#if defined( DEVEL )
             !### Debug output, we can remove it later
             IF (I.eq.10.and.J.eq.10.and.L.eq.10.and.N.eq.IND_OH) THEN
                write(*,'(a9,2es13.6)') 'SPC_OH : ',c(N),
      &              State_Chm%Species(I,J,L,CSPECTOKPP(N))
             ENDIF
+#endif
          ENDDO
 
+#if defined( DEVEL )
          !### Debug output, we can remove it later
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
             DO N = 1,NSPEC
@@ -850,12 +880,14 @@
      &              trim(SPC_NAMES(N)), C(N)
             ENDDO
          ENDIF
+#endif
 
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
+#if defined( DEVEL )
       write(*,'(a,F10.3)') 'Flex Rate Time: ', rtim
       write(*,'(a,F10.3)') 'Flex Intg Time: ', itim
       write(*,'(a,I9)') 'Flex Function Calls: ', totfuncs
@@ -863,6 +895,7 @@
       write(*,'(a,I9)') 'Flex Total Steps   : ', totsteps
       write(*,'(a,I9)') 'Flex Rejected Steps: ', totrejec
       write(*,'(a,I9)') 'Flex LU Decompos.  : ', totnumLU
+#endif
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% FOR DIAGNOSTIC PURPOSES ONLY, WE CAN REMOVE THIS LATER
@@ -884,17 +917,24 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
+!$OMP+PRIVATE( I, J, L, N, MolecRatio )
       DO N = 1, N_TRACERS
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         STT(I,J,L,N) = STT(I,J,L,N) * Input_Opt%XNUMOL(N) /
-     &                  ( State_Met%AIRVOL(I,J,L) * 1e+6_fp *
-     &                  Input_Opt%TRACER_COEFF(N,1) )
-      ENDDO
-      ENDDO
-      ENDDO
+
+         ! Moles C per moles species
+         MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
+
+         ! Loop over grid boxes
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            STT(I,J,L,N) = STT(I,J,L,N) 
+     &                   * Input_Opt%XNUMOL(N) 
+     &                   / ( State_Met%AIRVOL(I,J,L)  * 
+     &                       1e+6_fp                  *
+     &                       MolecRatio              )
+         ENDDO
+         ENDDO
+         ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -906,22 +946,29 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
+!$OMP+PRIVATE( I, J, L, N, MolecRatio )
       DO N = 1, N_TRACERS
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
 
-         ! Copy new tracer concentrations from State_Chm%Species to STT
-         ! [molec/cm3]
-         IF (STTTOCSPEC(N) .NE. 0) THEN
-            STT(I,J,L,N) = State_Chm%Species(I,J,L,STTTOCSPEC(N))
-         ENDIF
+         ! Moles C per moles species
+         MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
          
-         ! Convert STT from molec/cm3 back to kg
-         STT(I,J,L,N) = STT(I,J,L,N) / Input_Opt%XNUMOL(N) *
-     &                  ( State_Met%AIRVOL(I,J,L) * 1e+6_fp *
-     &                  Input_Opt%TRACER_COEFF(N,1) )
+         ! Loop over species
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Copy new tracer concentrations from State_Chm%Species to STT
+            ! [molec/cm3]
+            IF (STTTOCSPEC(N) .NE. 0) THEN
+               STT(I,J,L,N) = State_Chm%Species(I,J,L,STTTOCSPEC(N))
+            ENDIF
+         
+            ! Convert STT from molec/cm3 back to kg
+            STT(I,J,L,N) = STT(I,J,L,N) 
+     &                   / Input_Opt%XNUMOL(N) 
+     &                   * ( State_Met%AIRVOL(I,J,L)  * 
+     &                       1e+6_fp                  *
+     &                       MolecRatio              ) 
       ENDDO
       ENDDO
       ENDDO

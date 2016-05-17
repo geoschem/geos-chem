@@ -471,14 +471,19 @@ CONTAINS
       S1 = S_MVKN    ! MVKN  species index
       S2 = S_MACRN   ! MACRN species index
 
-      STT(:,:,:,N) = STT(:,:,:,N)*IO%TRACER_COEFF(N,1) ! A correction...
-      ! ... to account for the division by TRACER_COEFF above.
-      QSUM   = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
-             + (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2))
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%% NOTE: MMN = 1.0 MVKN + 1.0 MACRN
+      !%%%% so TRACER_COEFF is always 1 in this case.
+      !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
+      !%%%% (bmy, 5/17/16)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      ! Sum of constituents
+      QSUM   = SC%Species(:,:,:,S1) + SC%Species(:,:,:,S2)
 
       ! -- -- First, do MVKN
       WHERE( QSUM > 0.0_fp ) 
-         QTEMP = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) / QSUM
+         QTEMP = SC%Species(:,:,:,S1) / QSUM
       ELSEWHERE
          QTEMP = 0.0_fp
       ENDWHERE
@@ -486,7 +491,7 @@ CONTAINS
 
       ! -- -- Then, do MACRN
       WHERE( QSUM > 0.0_fp ) 
-         QTEMP = (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) / QSUM
+         QTEMP = SC%Species(:,:,:,S2) / QSUM
       ELSEWHERE
          QTEMP = 0.0_fp
       ENDWHERE
@@ -498,14 +503,19 @@ CONTAINS
       S1 = S_ISOPND   ! ISOPND species index
       S2 = S_ISOPNB   ! ISOPNB species index
 
-      STT(:,:,:,N) = STT(:,:,:,N)*IO%TRACER_COEFF(N,1) ! A correction...
-      ! ... to account for the division by TRACER_COEFF above.
-      QSUM   = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
-             + (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2))
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%% NOTE: ISOPN = 1.0 ISOPND + 1.0 ISOPNB
+      !%%%% so TRACER_COEFF is always 1 in this case.
+      !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
+      !%%%% (bmy, 5/17/16)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      ! Sum of constitutents
+      QSUM = SC%Species(:,:,:,S1) + SC%Species(:,:,:,S2)
 
       ! -- -- First, do ISOPND
       WHERE( QSUM > 0.0_fp ) 
-         QTEMP = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) / QSUM
+         QTEMP = ( SC%Species(:,:,:,S1) ) / QSUM
       ELSEWHERE
          QTEMP = 0.0_fp
       ENDWHERE
@@ -513,86 +523,96 @@ CONTAINS
 
       ! -- -- Then, do ISOPNB
       WHERE( QSUM > 0.0_fp ) 
-         QTEMP = (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) / QSUM
+         QTEMP = ( SC%Species(:,:,:,S2) ) / QSUM
       ELSEWHERE
          QTEMP = 0.0_fp
       ENDWHERE
       SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
 
 #if defined( UCX )
-      IF ( IO%LUCX ) THEN
-         ! -- Process CFCX family
-         N  = T_CFCX     ! CFCX   tracer  index
-         S1 = S_CFC113   ! CFC113 species index
-         S2 = S_CFC114   ! CFC114 species index
-         S3 = S_CFC115   ! CFC115 species index
+      ! -- Process CFCX family
+      N  = T_CFCX     ! CFCX   tracer  index
+      S1 = S_CFC113   ! CFC113 species index
+      S2 = S_CFC114   ! CFC114 species index
+      S3 = S_CFC115   ! CFC115 species index
 
-         STT(:,:,:,N) = STT(:,:,:,N)*IO%TRACER_COEFF(N,1) ! A correction...
-         ! ... to account for the division by TRACER_COEFF above.
-         QSUM  = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
-               + (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
-               + (SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3))
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%% NOTE: CFCX = 1.0 CFC113 + 1.0 CFC114 + 1.0 CFC115
+      !%%%% so TRACER_COEFF is always 1 in this case.
+      !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
+      !%%%% (bmy, 5/17/16)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-         ! -- -- First, do CFC113
-         WHERE( QSUM > 0.0_fp )
-            QTEMP = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) / QSUM
-         ELSEWHERE
-            QTEMP = 0.0_fp
-         ENDWHERE
-         SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+      ! Sum of constituents
+      QSUM  = SC%Species(:,:,:,S1) &
+            + SC%Species(:,:,:,S2) &
+            + SC%Species(:,:,:,S3) 
 
-         ! -- -- Then, do CFC114
-         WHERE( QSUM > 0.0_fp )
-            QTEMP = (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) / QSUM
-         ELSEWHERE
-            QTEMP = 0.0_fp
-         ENDWHERE
-         SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+      ! -- -- First, do CFC113
+      WHERE( QSUM > 0.0_fp )
+         QTEMP = SC%Species(:,:,:,S1) / QSUM
+      ELSEWHERE
+         QTEMP = 0.0_fp
+      ENDWHERE
+      SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
 
-         ! -- -- Then, do CFC115
-         WHERE( QSUM > 0.0_fp )
-            QTEMP = (SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3)) / QSUM
-         ELSEWHERE
-            QTEMP = 0.0_fp
-         ENDWHERE
-         SC%Species(:,:,:,S3) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+      ! -- -- Then, do CFC114
+      WHERE( QSUM > 0.0_fp )
+         QTEMP = SC%Species(:,:,:,S2) / QSUM
+      ELSEWHERE
+         QTEMP = 0.0_fp
+      ENDWHERE
+      SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
 
-         ! -- Process HCFCX family
-         N  = T_HCFCX      ! HCFCX    tracer  index
-         S1 = S_HCFC123    ! HCFC123  species index
-         S2 = S_HCFC141b   ! HCFC141b species index
-         S3 = S_HCFC142b   ! HCFC142b species index
+      ! -- -- Then, do CFC115
+      WHERE( QSUM > 0.0_fp )
+         QTEMP = SC%Species(:,:,:,S3) / QSUM
+      ELSEWHERE
+         QTEMP = 0.0_fp
+      ENDWHERE
+      SC%Species(:,:,:,S3) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
 
-         STT(:,:,:,N) = STT(:,:,:,N)*IO%TRACER_COEFF(N,1) ! A correction...
-         ! ... to account for the division by TRACER_COEFF above.
-         QSUM  = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
-               + (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
-               + (SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3))
+      ! -- Process HCFCX family
+      N  = T_HCFCX      ! HCFCX    tracer  index
+      S1 = S_HCFC123    ! HCFC123  species index
+      S2 = S_HCFC141b   ! HCFC141b species index
+      S3 = S_HCFC142b   ! HCFC142b species index
 
-         ! -- -- First, do HCFC123
-         WHERE( QSUM > 0.0_fp )
-            QTEMP = (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) / QSUM
-         ELSEWHERE
-            QTEMP = 0.0_fp
-         ENDWHERE
-         SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%% NOTE: HCFCX = 1.0 HCFC123 + 1.0 HCFC141b + 1.0 HFCC142b
+      !%%%% so TRACER_COEFF is always 1 in this case.
+      !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
+      !%%%% (bmy, 5/17/16)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      
+      ! Sum of constituents
+      QSUM  = SC%Species(:,:,:,S1) &
+            + SC%Species(:,:,:,S2) &
+            + SC%Species(:,:,:,S3)
 
-         ! -- -- Then, do HCFC141b
-         WHERE( QSUM > 0.0_fp )
-            QTEMP = (SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) / QSUM
-         ELSEWHERE
-            QTEMP = 0.0_fp
-         ENDWHERE
-         SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+      ! -- -- First, do HCFC123
+      WHERE( QSUM > 0.0_fp )
+         QTEMP = SC%Species(:,:,:,S1) / QSUM
+      ELSEWHERE
+         QTEMP = 0.0_fp
+      ENDWHERE
+      SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
 
-         ! -- -- Then, do HCFC142b
-         WHERE( QSUM > 0.0_fp )
-            QTEMP = (SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3)) / QSUM
-         ELSEWHERE
-            QTEMP = 0.0_fp
-         ENDWHERE
-         SC%Species(:,:,:,S3) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
-      ENDIF !IF UCX
+      ! -- -- Then, do HCFC141b
+      WHERE( QSUM > 0.0_fp )
+         QTEMP = SC%Species(:,:,:,S2) / QSUM
+      ELSEWHERE
+         QTEMP = 0.0_fp
+      ENDWHERE
+      SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+
+      ! -- -- Then, do HCFC142b
+      WHERE( QSUM > 0.0_fp )
+         QTEMP = SC%Species(:,:,:,S3) / QSUM
+      ELSEWHERE
+         QTEMP = 0.0_fp
+      ENDWHERE
+      SC%Species(:,:,:,S3) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
 #endif
 
       ! E -- N -- D -- O -- F -- K -- L -- U -- D -- G -- E -- -- P -- T -- 1
@@ -604,18 +624,27 @@ CONTAINS
          N  = T_MMN     ! MMN   species index
          S1 = S_MVKN    ! MVKN  species index
          S2 = S_MACRN   ! MACRN species index
-         STT(:,:,:,N) = &
-               (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
-              +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2))
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%%% NOTE: MMN = 1.0 MVKN + 1.0 MACRN
+         !%%%% so TRACER_COEFF is always 1 in this case.
+         !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         STT(:,:,:,N) = SC%Species(:,:,:,S1) + SC%Species(:,:,:,S2)
 
          ! -- Process ISOPN family
          ! -- Get the tracer and species indices
          N  = T_ISOPN    ! ISOPN  tracer  index
          S1 = S_ISOPND   ! ISOPND species index
          S2 = S_ISOPNB   ! ISOPNB species index
-         STT(:,:,:,N) = &
-               (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
-              +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2))
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%%% NOTE: ISOPN = 1.0 ISOPND + 1.0 ISOPNB
+         !%%%% so TRACER_COEFF is always 1 in this case.
+         !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
+         !%%%% (bmy, 5/17/16)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         STT(:,:,:,N) = SC%Species(:,:,:,S1) + SC%Species(:,:,:,S2)
          
 #if defined( UCX )
          ! -- Process CFCX family
@@ -624,10 +653,16 @@ CONTAINS
          S2 = S_CFC114   ! CFC114 species index
          S3 = S_CFC115   ! CFC115 species index
 
-         STT(:,:,:,N) = &
-               (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
-              +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
-              +(SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3))
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%%% NOTE: CFCX = 1.0 CFC113 + 1.0 CFC114 + 1.0 CFC115
+         !%%%% so TRACER_COEFF is always 1 in this case.
+         !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
+         !%%%% (bmy, 5/17/16)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+         STT(:,:,:,N) = SC%Species(:,:,:,S1) &
+                      + SC%Species(:,:,:,S2) &
+                      + SC%Species(:,:,:,S3)
 
          ! -- Process HCFCX family
          N  = T_HCFCX      ! HCFCX    tracer  index
@@ -635,10 +670,16 @@ CONTAINS
          S2 = S_HCFC141b   ! HCFC141b species index
          S3 = S_HCFC142b   ! HCFC142b species index
 
-         STT(:,:,:,N) = &
-               (SC%Species(:,:,:,S1)*IO%TRACER_COEFF(N,1)) &
-              +(SC%Species(:,:,:,S2)*IO%TRACER_COEFF(N,2)) &
-              +(SC%Species(:,:,:,S3)*IO%TRACER_COEFF(N,3))
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%%% NOTE: HCFCX = 1.0 HCFC123 + 1.0 HCFC141b + 1.0 HFCC142b
+         !%%%% so TRACER_COEFF is always 1 in this case.
+         !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
+         !%%%% (bmy, 5/17/16)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+         STT(:,:,:,N) = SC%Species(:,:,:,S1) &
+                      + SC%Species(:,:,:,S2) &
+                      + SC%Species(:,:,:,S3)
 #endif
       ! E -- N -- D -- O -- F -- K -- L -- U -- D -- G -- E -- -- P -- T -- 2
 

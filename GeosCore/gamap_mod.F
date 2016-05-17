@@ -1817,6 +1817,7 @@
 !                              avoid conflicts with hourly max ppbv diagnostic.
 !  12 Aug 2015 - J. Fisher   - Add cryosphere Hg diagnostics
 !  25 Apr 2016 - R. Yantosca - Now get N_HG_CATS from State_Chm
+!  17 May 2016 - R. Yantosca - Now get MolecRatio from the species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1827,7 +1828,7 @@
       LOGICAL :: DO_TIMESERIES
 
       REAL(fp),     SAVE      :: POP_XMW
-      REAL(fp)                :: DUM
+      REAL(fp)                :: DUM, MolecRatio
       INTEGER                 :: N_Hg_CATS
 
       !=================================================================
@@ -1855,7 +1856,7 @@
          ! Store quantities for each tracer
          NAME (T,45) = Input_Opt%TRACER_NAME(T)
          FNAME(T,45) = TRIM( NAME(T,45) ) // ' tracer'
-         MOLC (T,45) = INT( Input_Opt%TRACER_COEFF(T,1) )
+         MOLC (T,45) = State_Chm%SpcData(T)%Info%MolecRatio
          SCALE(T,45) = 1.0e+9
          INDEX(T,45) = T   !changed from N (phs, 3/19/03)
          MWT  (T,45) = Input_Opt%TRACER_MW_KG(T) 
@@ -1896,7 +1897,7 @@
             ! Store quantities for each tracer
             NAME (T,  45) = Input_Opt%TRACER_NAME(T)
             FNAME(T,  45) = TRIM( NAME(T,45) ) // ' tracer'
-            MOLC (T,  45) = INT( Input_Opt%TRACER_COEFF(T,1) )
+            MOLC (T,  45) = State_Chm%SpcData(T)%Info%MolecRatio
             SCALE(T,  45) = 1.0e+9
             INDEX(T,  45) = T
             MWT  (T,  45) = Input_Opt%TRACER_MW_KG(T) 
@@ -1905,7 +1906,7 @@
             ! Store quantities for each tracer
             NAME (T+1,45) = Input_Opt%TRACER_NAME(T)
             FNAME(T+1,45) = TRIM( NAME(T,45) ) // ' tracer'
-            MOLC (T+1,45) = INT( Input_Opt%TRACER_COEFF(T,1) )
+            MOLC (T+1,45) = State_Chm%SpcData(T)%Info%MolecRatio
             SCALE(T+1,45) = 1.0e+9
             INDEX(T+1,45) = T
             MWT  (T+1,45) = Input_Opt%TRACER_MW_KG(T) 
@@ -1914,7 +1915,7 @@
             ! Store quantities for each tracer
             NAME (T+2,45) = Input_Opt%TRACER_NAME(T)
             FNAME(T+2,45) = TRIM( NAME(T,45) ) // ' tracer'
-            MOLC (T+2,45) = INT( Input_Opt%TRACER_COEFF(T,1) )
+            MOLC (T+2,45) = State_Chm%SpcData(T)%Info%MolecRatio
             SCALE(T+2,45) = 1.0e+0
             INDEX(T+2,45) = T
             MWT  (T+2,45) = Input_Opt%TRACER_MW_KG(T) 
@@ -5109,7 +5110,7 @@
             UNIT (N,17) = 'unitless'
             INDEX(N,17) = T + ( SPACING * 29 )
             MWT  (N,17) = Input_Opt%TRACER_MW_KG(T)
-            MOLC (N,17) = INT( Input_Opt%TRACER_COEFF(T,1) )
+            MOLC (N,17) = State_Chm%SpcData(T)%Info%MolecRatio
             SCALE(N,17) = 1e0
          ENDDO
       ENDIF
@@ -6213,7 +6214,7 @@
      &                        ' drydep flux'
                UNIT (T,44)  = 'molec/cm2/s'
                MWT  (T,44)  = Input_Opt%TRACER_MW_KG(T) 
-               MOLC (T,44)  = INT( Input_Opt%TRACER_COEFF(T,1) )
+               MOLC (T,44)  = State_Chm%SpcData(T)%Info%MolecRatio
                SCALE(T,44)  = 1.0e0
                INDEX(T,44)  = T + ( SPACING * 36 )
                NTRAC(44)    = NTRAC(44) + 1
@@ -6228,7 +6229,7 @@
      &                        ' drydep velocity'
                UNIT (NN,44) = 'cm/s'
                MWT  (NN,44) = Input_Opt%TRACER_MW_KG(T) 
-               MOLC (NN,44) = INT( Input_Opt%TRACER_COEFF(T,1) )
+               MOLC (NN,44) = State_Chm%SpcData(T)%Info%MolecRatio
                SCALE(NN,44) = 1.0e0
                INDEX(NN,44) = T + ( SPACING * 37 )
                NTRAC(44)    = NTRAC(44) + 1
@@ -6261,7 +6262,8 @@
                         FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                                  ' drydep flux'
                         MWT  (N,44)   = Input_Opt%TRACER_MW_KG(T) 
-                        MOLC (N,44)   = INT(Input_Opt%TRACER_COEFF(T,1))
+                        MOLC (N,44)   = 
+     &                       State_Chm%SpcData(T)%Info%MolecRatio
                         SCALE(N,44)   = 1.0e0
                         UNIT (N,44)   = 'molec/cm2/s'
                         INDEX(N,44)   = ( Input_Opt%N_TRACERS + 1  )
@@ -6279,7 +6281,8 @@
                         FNAME(NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                                  ' drydep velocity'
                         MWT  (NN,44)  = Input_Opt%TRACER_MW_KG(T) 
-                        MOLC (NN,44)  = INT(Input_Opt%TRACER_COEFF(T,1))
+                        MOLC (NN,44)  = 
+     &                       State_Chm%SpcData(T)%Info%MolecRatio
                         SCALE(NN,44)  = 1.0e0
                         UNIT (NN,44)  = 'cm/s'
                         INDEX(NN,44)  = ( Input_Opt%N_TRACERS + 1  )
@@ -6298,7 +6301,8 @@
                         FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                       ' drydep flux'
                         MWT  (N,44)   = Input_Opt%TRACER_MW_KG(T) 
-                        MOLC (N,44)   = INT(Input_Opt%TRACER_COEFF(T,1))
+                        MOLC (N,44)   = 
+     &                       State_Chm%SpcData(T)%Info%MolecRatio
                         SCALE(N,44)   = 1.0e0
                         UNIT (N,44)   = 'molec/cm2/s'
                         INDEX(N,44)   = ( Input_Opt%N_TRACERS + 2  )
@@ -6316,7 +6320,8 @@
                         FNAME(NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                                  ' drydep flux'
                         MWT  (NN,44)  = Input_Opt%TRACER_MW_KG(T) 
-                        MOLC (NN,44)  = INT(Input_Opt%TRACER_COEFF(T,1))
+                        MOLC (NN,44)  = 
+     &                       State_Chm%SpcData(T)%Info%MolecRatio
                         SCALE(NN,44)  = 1.0e0
                         UNIT (NN,44)  = 'cm/s'
                         INDEX(NN,44)  = ( Input_Opt%N_TRACERS + 2  )
@@ -6334,7 +6339,8 @@
                         FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                                 ' drydep flux'
                         MWT  (N,44)   = Input_Opt%TRACER_MW_KG(T) 
-                        MOLC (N,44)   = INT(Input_Opt%TRACER_COEFF(T,1))
+                        MOLC (N,44)   = 
+     &                       State_Chm%SpcData(T)%Info%MolecRatio
                         SCALE(N,44)   = 1.0e0
                         INDEX(N,44)   = T + ( SPACING * 36 )
                         NTRAC(44)     = NTRAC(44) + 1
@@ -6354,7 +6360,8 @@
                         FNAME(NN,44)  = TRIM( DEPNAME(N) ) // 
      &                                  ' drydep velocity'
                         MWT  (NN,44)  = Input_Opt%TRACER_MW_KG(T) 
-                        MOLC (NN,44)  = INT(Input_Opt%TRACER_COEFF(T,1))
+                        MOLC (NN,44)  = 
+     &                       State_Chm%SpcData(T)%Info%MolecRatio
                         UNIT (NN,44)  = 'cm/s'                     
                         SCALE(NN,44)  = 1.0e0
                         INDEX(NN,44)  = T + ( SPACING * 37 )
@@ -6376,7 +6383,8 @@
      &                          ' drydep flux'
                   UNIT (N,44)  = 'molec/cm2/s'
                   MWT  (N,44)  = Input_Opt%TRACER_MW_KG(T) 
-                  MOLC (N,44)  = INT( Input_Opt%TRACER_COEFF(T,1) )
+                  MOLC (N,44)  = 
+     &                       State_Chm%SpcData(T)%Info%MolecRatio
                   SCALE(N,44)  = 1.0e0
                   INDEX(N,44)  = T + ( SPACING * 36 )
                   NTRAC(44)    = NTRAC(44) + 1
@@ -6390,7 +6398,8 @@
                   FNAME(NN,44)  = TRIM( Input_Opt%TRACER_NAME(T) ) //
      &                           ' drydep velocity'
                   MWT  (NN,44)  = Input_Opt%TRACER_MW_KG(T) 
-                  MOLC (NN,44)  = INT(Input_Opt%TRACER_COEFF(T,1))
+                  MOLC (NN,44)  =  
+     &                       State_Chm%SpcData(T)%Info%MolecRatio
                   UNIT (NN,44)  = 'cm/s'                     
                   SCALE(NN,44)  = 1.0e0
                   INDEX(NN,44)  = T + ( SPACING * 37 )
@@ -6421,7 +6430,8 @@
                      FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                               ' drydep flux'
                      MWT  (N,44)   = Input_Opt%TRACER_MW_KG(T) 
-                     MOLC (N,44)   = INT( Input_Opt%TRACER_COEFF(T,1) )
+                     MOLC (N,44)   =  
+     &                       State_Chm%SpcData(T)%Info%MolecRatio
                      SCALE(N,44)   = 1.0e0
                      UNIT (N,44)   = 'molec/cm2/s'
                      INDEX(N,44)   = ( Input_Opt%N_TRACERS + 1  )
@@ -6439,7 +6449,8 @@
                      FNAME(NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                             ' drydep velocity'
                      MWT  (NN,44)  = Input_Opt%TRACER_MW_KG(T) 
-                     MOLC (NN,44)  = INT( Input_Opt%TRACER_COEFF(T,1) )
+                     MOLC (NN,44)  =  
+     &                       State_Chm%SpcData(T)%Info%MolecRatio
                      SCALE(NN,44)  = 1.0e0
                      UNIT (NN,44)  = 'cm/s'
                      INDEX(NN,44)  = ( Input_Opt%N_TRACERS + 1  )
@@ -6458,7 +6469,8 @@
                      FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                              ' drydep flux'
                      MWT  (N,44)   = Input_Opt%TRACER_MW_KG(T) 
-                     MOLC (N,44)   = INT( Input_Opt%TRACER_COEFF(T,1) )
+                     MOLC (N,44)   =   
+     &                       State_Chm%SpcData(T)%Info%MolecRatio
                      SCALE(N,44)   = 1.0e0
                      UNIT (N,44)   = 'molec/cm2/s'
                      INDEX(N,44)   = ( Input_Opt%N_TRACERS + 2  )
@@ -6476,7 +6488,8 @@
                      FNAME(NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                             ' drydep velocity'
                      MWT  (NN,44)  = Input_Opt%TRACER_MW_KG(T) 
-                     MOLC (NN,44)  = INT( Input_Opt%TRACER_COEFF(T,1) )
+                     MOLC (NN,44)  =   
+     &                       State_Chm%SpcData(T)%Info%MolecRatio
                      SCALE(NN,44)  = 1.0e0
                      UNIT (NN,44)  = 'cm/s'
                      INDEX(NN,44)  = ( Input_Opt%N_TRACERS + 2  )
@@ -6494,7 +6507,8 @@
                      FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                              ' drydep flux'
                      MWT  (N,44)   = Input_Opt%TRACER_MW_KG(T) 
-                     MOLC (N,44)   = INT( Input_Opt%TRACER_COEFF(T,1) )
+                     MOLC (N,44)   =   
+     &                       State_Chm%SpcData(T)%Info%MolecRatio
                      SCALE(N,44)   = 1.0e0
                      INDEX(N,44)   = T + ( SPACING * 36 )
                      NTRAC(44)     = NTRAC(44) + 1
@@ -6512,7 +6526,8 @@
                      FNAME(NN,44)  = TRIM( DEPNAME(N) ) // 
      &                               ' drydep velocity'
                      MWT  (NN,44)  = Input_Opt%TRACER_MW_KG(T) 
-                     MOLC (NN,44)  = INT( Input_Opt%TRACER_COEFF(T,1) )
+                     MOLC (NN,44)  =   
+     &                       State_Chm%SpcData(T)%Info%MolecRatio
                      UNIT (NN,44)  = 'cm/s'                     
                      SCALE(NN,44)  = 1.0e0
                      INDEX(NN,44)  = T + ( SPACING * 37 )

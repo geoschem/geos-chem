@@ -1992,8 +1992,6 @@ contains
     LOGICAL            :: IS_TAGCO,  IS_AEROSOL,  IS_RnPbBe, LDYNOCEAN
     LOGICAL            :: LGTMM,     LSOILNOX
     INTEGER            :: N_TRACERS, N_MEMBERS 
-    INTEGER            :: ID_EMITTED  (Input_Opt%N_TRACERS)
-    REAL(fp)           :: TRACER_COEFF(Input_Opt%N_TRACERS, Input_Opt%MAX_MEMB)
     REAL(fp)           :: TRACER_MW_KG(Input_Opt%N_TRACERS)
     CHARACTER(LEN=255) :: TRACER_NAME (Input_Opt%N_TRACERS)
     REAL(fp)           :: TCVV        (Input_Opt%N_TRACERS)
@@ -2073,8 +2071,6 @@ contains
     LSOILNOX     = Input_Opt%LSOILNOX
     N_TRACERS    = Input_Opt%N_TRACERS
     N_MEMBERS    = Input_Opt%MAX_MEMB
-    ID_EMITTED   = Input_Opt%ID_EMITTED  (1:N_TRACERS             )
-    TRACER_COEFF = Input_Opt%TRACER_COEFF(1:N_TRACERS, 1:N_MEMBERS)
     TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS             )
     TRACER_NAME  = Input_Opt%TRACER_NAME (1:N_TRACERS             )
     TCVV         = Input_Opt%TCVV        (1:N_TRACERS             )

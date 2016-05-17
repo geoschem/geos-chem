@@ -1512,170 +1512,10 @@
          ! in routine INIT_GIGC_STATE_CHM. (bmy, 12/16/15)
          READ( SUBSTRS(3), * ) DUMMY
          
-         !----------------------------------------------------
-         ! If this is a family tracer, get member species
-         !---------------------------------------------------- 
-         IF ( N > 3 ) THEN
-  
-            ! Number of species in this family
-            Input_Opt%TRACER_N_CONST(T) = N-3
-              
-            ! Loop over substrings
-            DO C = 1, N-3
-        
-               ! Trim the name
-               NAME = TRIM( SUBSTRS(C+3) )
-         
-               !--------------------------------
-               ! Emitted species denoted by ()
-               !--------------------------------
-               IF ( NAME(1:1) == '(' ) THEN 
-
-                  ! Pull out the text between parentheses
-                  NAME = NAME( 2:LEN_TRIM( NAME )-1 )
-
-                  ! Set coeff of emitted tracer to 1 for now
-                  Input_Opt%TRACER_COEFF(T,C) = 1e+0_fp
-
-                  ! Index of which family member is the emitted species
-                  Input_Opt%ID_EMITTED(T) = C
-
-                  ! 2nd character of name is a number
-                  IF ( ISDIGIT( NAME(1:1) ) ) THEN
-
-                     ! Allow for tracers that contain >= 10C (tmf, 12/09/04) 
-                     ! If 3rd character of name is a number
-                     IF ( ISDIGIT( NAME(2:2) ) ) THEN
-
-                        ! Coefficient of emitted tracer
-                        READ( NAME(1:2), * ) Input_Opt%TRACER_COEFF(T,C)
-
-                        ! Get the rest of the name
-                        NAME = NAME( 3:LEN_TRIM( NAME ) )
-
-                     ELSE
-
-                        ! Coefficient of emitted tracer
-                        READ( NAME(1:1), * ) Input_Opt%TRACER_COEFF(T,C)
-
-                        ! Get the rest of the name
-                        NAME = NAME( 2:LEN_TRIM( NAME ) )
-
-                     ENDIF
-                  ENDIF
-
-                  ! Tracer constituent name
-                  Input_Opt%TRACER_CONST(T,C) = NAME
-
-               !--------------------------------  
-               ! Non-emitted species 
-               !--------------------------------
-               ELSE 
-
-                  ! Set coeff of emitted tracer to 1 for now
-                  Input_Opt%TRACER_COEFF(T,C) = 1e+0_fp
-
-                  ! 2nd character of name is a number
-                  IF ( ISDIGIT( NAME(1:1) ) ) THEN
-
-                     ! Allow for tracers that contain >= 10C (tmf, 12/09/04) 
-                     ! If 3rd character of name is a number
-                     IF ( ISDIGIT( NAME(2:2) ) ) THEN
-
-                        ! Coefficient of emitted tracer
-                        READ( NAME(1:2), * ) Input_Opt%TRACER_COEFF(T,C)
-
-                        ! Get the rest of the name
-                        NAME = NAME( 3:LEN_TRIM( NAME ) )
-
-                     ELSE
-
-                        ! Coefficient of emitted tracer
-                        READ( NAME(1:1), * ) Input_Opt%TRACER_COEFF(T,C)
-
-                        ! Get the rest of the name
-                        NAME = NAME( 2:LEN_TRIM( NAME ) )
-
-                     ENDIF
-
-                  ENDIF
-
-                  ! Tracer constituent name
-                  Input_Opt%TRACER_CONST(T,C) = NAME
-
-               ENDIF
-
-            ENDDO
-
-         !----------------------------------------------------
-         ! If not a family tracer, there is only one member
-         !---------------------------------------------------- 
-         ELSE
-
-            ! Number of species in this family
-            Input_Opt%TRACER_N_CONST(T) = 1
-
-            ! Index of which member is the emitted species
-            Input_Opt%ID_EMITTED(T)     = 0
-
-            ! Coefficient of each tracer constituent
-            Input_Opt%TRACER_COEFF(T,1) = 1e+0_fp
-
-            ! Tracer constituent name
-            Input_Opt%TRACER_CONST(T,1) = Input_Opt%TRACER_NAME(T)
-
-         ENDIF
-
       ENDDO
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:5' )
-
-!-----------------------------------------------------------------------------
-!
-!      !=================================================================
-!      ! Print to screen
-!      !=================================================================
-!      IF ( am_I_Root ) THEN
-!         WRITE( 6, '(/,a)' ) 
-!     &       'TRACER MENU (==> denotes SMVGEAR emitted species)' 
-!         WRITE( 6, '(  a)' ) REPEAT( '-', 48 )
-!         WRITE( 6, '(  a)' ) '  # Tracer          g/mole'
-!
-!         ! Print info about each tracer
-!         DO T = 1, Input_Opt%N_TRACERS
-!
-!            ! Write tracer number, name, & mol wt
-!            WRITE( 6, 100 ) Input_Opt%ID_TRACER(T), 
-!     &                      Input_Opt%TRACER_NAME(T), 
-!     &                      Input_Opt%TRACER_MW_G(T)
-!            
-!            ! If a family tracer (or just a tracer w/ emission)
-!            ! then also print info about species
-!            IF ( Input_Opt%TRACER_N_CONST(T) > 1 .or. 
-!     &           Input_Opt%ID_EMITTED(T) > 0 ) THEN
-!            
-!               ! Loop over member species
-!               DO C = 1, Input_Opt%TRACER_N_CONST(T)
-!
-!                   ! Also flag which is the emitted tracer
-!                  IF ( Input_Opt%ID_EMITTED(T) == C ) THEN
-!                     WRITE( 6,110 ) Input_Opt%TRACER_COEFF(T,C), 
-!     &                              Input_Opt%TRACER_CONST(T,C) 
-!                  ELSE
-!                     WRITE( 6,120 ) Input_Opt%TRACER_COEFF(T,C), 
-!     &                              Input_Opt%TRACER_CONST(T,C)
-!                  ENDIF
-!               ENDDO
-!            ENDIF
-!         ENDDO
-!      ENDIF
-!
-!      ! Format statement
-! 100  FORMAT( I3, 1x, A10, 6x, F6.1 )
-! 110  FORMAT( 5x, '===> ', f4.1, 1x, A6  )
-! 120  FORMAT( 5x, '---> ', f4.1, 1x, A4  )
-!-----------------------------------------------------------------------------
 
       !=================================================================
       ! Call setup routines from other F90 modules
@@ -1698,6 +1538,8 @@
          Input_Opt%LSPLIT = ( Input_Opt%N_TRACERS > 2 )
 
       ELSE
+
+         ! All other simulations: tagged if more than 1 tracer
          Input_Opt%LSPLIT = ( Input_Opt%N_TRACERS > 1 )
 
       ENDIF

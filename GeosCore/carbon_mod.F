@@ -6467,6 +6467,7 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  21 Dec 2015 - M. Sulprizio- Get grid box volume directly from State_Met
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Met%Species
+!  17 May 2016 - R. Yantosca - Now get MolecRatio from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6477,7 +6478,8 @@ ccc
       REAL(fp) :: ARO2CARB
 
       ! For values from Input_Opt
-      REAL(fp) :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp) :: XNUMOL(Input_Opt%N_TRACERS)  ! molecules species / kg species
+      REAL(fp) :: MolecRatio                   ! Moles C / moles species
 
       !=================================================================
       ! GET_DARO2 begins here!
@@ -6612,18 +6614,23 @@ ccc
             ! 
             ! State_Chm%Species : molec ARO2 (lost to HO2 or NO ) / cm3
             ! XNUMOL            : atom C / kg C of ARO2
-            ! TRACER_COEFF      : atom C / molec ARO2
+            ! MolecRatio      : atom C / molec ARO2
             ! State_Met%AIRVOL  : m3 (converted here to cm3)
             ! ARO2CARB          : kg C of ARO2 / kg ARO2
             ! 
-            ! where we use XNUMOL and TRACER_COEFF for the parent aromatic
+            ! where we use XNUMOL and MolecRatio for the parent aromatic
             ! hydrocarbon, Arom, because:
             !   atom  C / molec ARO2  = atom C / molec AROM
             !   kg C of ARO2 / atom C = kg C of AROM / atom C
             !-----------------------------------------------------------
+
+            ! Now get the tracer coefficient from the species database
+            ! instead of from Input_Opt (bmy, 5/17/16)
+            MolecRatio = State_Chm%SpcData(IDTAROM)%Info%MolecRatio
+            
             DARO2 = State_Chm%Species(I,J,L,ILARO2)
      &            * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
-     &            * Input_Opt%TRACER_COEFF(IDTAROM,1)
+     &            * MolecRatio
      &            / ( Input_Opt%XNUMOL(IDTAROM) * ARO2CARB )
 
          ELSE
@@ -6699,12 +6706,15 @@ ccc
 !  04 Mar 2013 - R. Yantosca - Now use fields from Input_Opt object
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  21 Dec 2015 - M. Sulprizio- Get grid box volume directly from State_Met
+!  17 May 2016 - R. Yantosca - Now get MolecRatio from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      REAL(fp) :: MolecRatio
+
       !=================================================================
       ! GET_DOH begins here!
       !=================================================================
@@ -6724,12 +6734,14 @@ ccc
             ! 
             ! State_Chm%Species : molec isop (lost to OH) / cm3
             ! XNUMOL            : atom C / kg C isop
-            ! TRACER_COEFF      : atom C / molec isop
+            ! MolecRatio        : atom C / molec isop
             ! State_Met%AIRVOL  : m3 (converted here to cm3)
             !-----------------------------------------------------------
+            MolecRatio = State_Chm%SpcData(IDTISOP)%Info%MolecRatio
+
             DOH = State_Chm%Species(I,J,L,ILISOPOH)
      &          * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
-     &          * Input_Opt%TRACER_COEFF(IDTISOP,1)
+     &          * MolecRatio
      &          / Input_Opt%XNUMOL(IDTISOP) 
  
          ELSE
@@ -8663,12 +8675,15 @@ ccc
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !  21 Dec 2015 - M. Sulprizio- Get grid box volume directly from State_Met
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Met%Species
+!  17 May 2016 - R. Yantosca - Now get MolecRatio from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      REAL(fp) :: MolecRatio
+      
       !=================================================================
       ! GET_ISOPNO3 begins here!
       !=================================================================
@@ -8688,12 +8703,16 @@ ccc
             ! 
             ! State_Chm%Species : molec isop (lost to NO3) / cm3
             ! XNUMOL            : atom C / kg C isop
-            ! TRACER_COEFF      : atom C / molec isop
+            ! MolecRatio        : atom C / molec isop
             ! State_Met%AIRVOL  : m3 (converted here to cm3)
             !-----------------------------------------------------------
+            
+            ! Moles C per moles species
+            MolecRatio = State_Chm%SpcData(IDTISOP)%Info%MolecRatio
+
             ISOPNO3 = State_Chm%Species(I,J,L,ILISOPNO3)
      &              * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
-     &              * Input_Opt%TRACER_COEFF(IDTISOP,1)
+     &              * MolecRatio
      &              / Input_Opt%XNUMOL(IDTISOP) 
  
          ELSE

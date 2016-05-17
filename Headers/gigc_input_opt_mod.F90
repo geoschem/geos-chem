@@ -91,10 +91,6 @@ MODULE GIGC_Input_Opt_Mod
      REAL(fp),           POINTER :: TRACER_MW_KG(:)    
      REAL(fp),           POINTER :: TCVV(:)            
      REAL(fp),           POINTER :: XNUMOL(:)          
-     INTEGER,            POINTER :: TRACER_N_CONST(:)  
-     CHARACTER(LEN=255), POINTER :: TRACER_CONST(:,:)  
-     REAL(fp),           POINTER :: TRACER_COEFF(:,:)  
-     INTEGER,            POINTER :: ID_EMITTED(:)  
      INTEGER                     :: SIM_TYPE
      CHARACTER(LEN=255)          :: SIM_NAME
      LOGICAL                     :: LSPLIT
@@ -658,6 +654,8 @@ MODULE GIGC_Input_Opt_Mod
 !  04 Feb 2016 - M. Sulprizio- Add Hg_CAT and Hg_CAT_FULL arrays for tagged Hg
 !                              simulations
 !  27 Apr 2016 - R. Yantosca - Remove Hg_Cat, Hg_Cat_Full fields
+!  17 May 2016 - R. Yantosca - Remove TRACER_N_CONST, TRACER_CONST, ID_EMITTED,
+!                              TRACER_COEFF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -737,7 +735,9 @@ CONTAINS
 !  05 Mar 2015 - R. Yantosca - Added RES_DIR, CHEM_INPUTS_DIR fields
 !  06 Mar 2015 - R. Yantosca - Now initialize directory names with './'
 !  01 Apr 2015 - R. Yantosca - Now initialize extra nested-grid fields
-!  10 Jul 2015 - C. Keller   - Now set size of IDEP to NVEGTYPE 
+!  10 Jul 2015 - C. Keller   - Now set size of IDEP to NVEGTYPE
+!  17 May 2016 - R. Yantosca - Remove TRACER_N_CONST, TRACER_CONST, ID_EMITTED,
+!                              TRACER_COEFF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -805,10 +805,6 @@ CONTAINS
     ALLOCATE( Input_Opt%TRACER_MW_KG  ( MAX_TRCS           ), STAT=RC )
     ALLOCATE( Input_Opt%TCVV          ( MAX_TRCS           ), STAT=RC )
     ALLOCATE( Input_Opt%XNUMOL        ( MAX_TRCS           ), STAT=RC )     
-    ALLOCATE( Input_Opt%TRACER_N_CONST( MAX_TRCS           ), STAT=RC )     
-    ALLOCATE( Input_Opt%TRACER_CONST  ( MAX_TRCS, MAX_MEMB ), STAT=RC )     
-    ALLOCATE( Input_Opt%TRACER_COEFF  ( MAX_TRCS, MAX_MEMB ), STAT=RC )
-    ALLOCATE( Input_Opt%ID_EMITTED    ( MAX_TRCS           ), STAT=RC )     
 
     Input_Opt%N_TRACERS              = 0
     Input_Opt%ID_TRACER              = 0
@@ -817,10 +813,6 @@ CONTAINS
     Input_Opt%TRACER_MW_KG           = 0e+0_fp
     Input_Opt%TCVV                   = 0e+0_fp
     Input_Opt%XNUMOL                 = 0e+0_fp
-    Input_Opt%TRACER_N_CONST         = 0
-    Input_Opt%TRACER_CONST           = ''  
-    Input_Opt%TRACER_COEFF           = 0e+0_fp
-    Input_Opt%ID_EMITTED             = 0
     Input_Opt%SIM_TYPE               = 0
     Input_Opt%SIM_NAME               = ''
     Input_Opt%LSPLIT                 = .FALSE.
@@ -1473,6 +1465,8 @@ CONTAINS
 !  07 Nov 2012 - R. Yantosca - Now deallocate fields from prod/loss menu
 !  26 Feb 2013 - M. Long     - Now deallocate extra fields from input.geos
 !  15 Mar 2013 - R. Yantosca - Now deallocate the LINOZ_TPARM field
+!  17 May 2016 - R. Yantosca - Remove TRACER_N_CONST, TRACER_CONST, ID_EMITTED,
+!                              TRACER_COEFF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1505,22 +1499,6 @@ CONTAINS
 
     IF ( ASSOCIATED( Input_Opt%XNUMOL ) ) THEN
        DEALLOCATE( Input_Opt%XNUMOL )
-    ENDIF
-
-    IF ( ASSOCIATED (Input_Opt%TRACER_N_CONST ) ) THEN
-       DEALLOCATE( Input_Opt%TRACER_N_CONST )
-    ENDIF
-
-    IF ( ASSOCIATED (Input_Opt%TRACER_CONST ) ) THEN
-       DEALLOCATE( Input_Opt%TRACER_CONST )
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%TRACER_COEFF ) ) THEN
-       DEALLOCATE( Input_Opt%TRACER_COEFF )
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%ID_EMITTED ) ) THEN
-       DEALLOCATE( Input_Opt%ID_EMITTED )
     ENDIF
 
     IF ( ASSOCIATED( Input_Opt%SALA_REDGE_um ) ) THEN
