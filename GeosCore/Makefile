@@ -891,9 +891,6 @@ seasalt_mod.o               : seasalt_mod.F           dao_mod.o              \
 
 set_prof_o3.o               : set_prof_o3.F                                   
 
-setemdep.o                  : setemdep.F                                     \
-                              tracerid_mod.o
-
 setemis.o                   : setemis.F                                      \
                               chemgrid_mod.o          comode_mod.o           \
                               pbl_mix_mod.o           tracerid_mod.o         \
