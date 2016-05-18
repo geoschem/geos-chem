@@ -552,8 +552,10 @@
       ! MOISTURE FIX (ewl, 5/4/16) - Update dry floating pressure with
       ! pressure-fixer output. Reconstruct wet floating pressure from dry
       ! floating pressure for use with GET_PEDGE in AIRQNT.
-      CALL SET_DRY_FLOATING_PRESSURE( P_TP2 )
-      CALL SET_WET_FLOATING_PRESSURE( State_Met )
+      CALL SET_WET_FLOATING_PRESSURE( State_Met%PSC2 )
+      CALL SET_DRY_FLOATING_PRESSURE( P_TP2 ) ! consider passing 
+                                              ! State_met%PSC2_DRY here
+                                              ! (for clarity)
 
       ! Prior to 04 May 2016: Floating pressure is wet.
       !! Reset the floating surface pressure with P_TP2, the "true"
@@ -858,8 +860,8 @@
       ! pressure-fixer output. Reconstruct wet floating pressure from dry
       ! floating pressure for use with GET_PEDGE in AIRQNT.
       ! (assume negligible moisture at top of atmosphere)
+      CALL SET_WET_FLOATING_PRESSURE( State_Met%PSC2 )
       CALL SET_DRY_FLOATING_PRESSURE( P_TP2 + PTOP )
-      CALL SET_WET_FLOATING_PRESSURE( State_Met )
 
       ! Prior to 04 May 2016: Floating pressure is wet.
       !! Reset the floating surface pressure with P_TP2+PTOP, the "true"
@@ -1226,8 +1228,8 @@
       ! MOISTURE FIX (ewl, 5/4/16) - Update dry floating pressure with
       ! pressure-fixer output. Reconstruct wet floating pressure from dry
       ! floating pressure for use with GET_PEDGE in AIRQNT.
+      CALL SET_WET_FLOATING_PRESSURE( State_Met%PSC2 )
       CALL SET_DRY_FLOATING_PRESSURE( P_TP2 )
-      CALL SET_WET_FLOATING_PRESSURE( State_Met )
 
       !! Prior to 04 May 2016: Floating pressure is wet.
       !! Reset the floating surface pressure with P_TP2, the "true"

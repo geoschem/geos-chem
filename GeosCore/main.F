@@ -661,10 +661,10 @@
       CALL SET_DRY_SURFACE_PRESSURE( State_Met, 1 )
       CALL AVGPOLE( State_Met%PS1 )
       CALL AVGPOLE( State_Met%PS1_DRY )
+      CALL SET_WET_FLOATING_PRESSURE( State_Met%PS1 )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a SET_WET_FLT_PRS' )
       CALL SET_DRY_FLOATING_PRESSURE( State_Met%PS1_DRY )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a SET_DRY_FLT_PRS' )
-      CALL SET_WET_FLOATING_PRESSURE( State_Met )
-      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
 
       ! Prior to 04 May 2016:
       !! Compute avg surface pressure near polar caps
@@ -1171,8 +1171,8 @@
          ! If we are not doing transport, then make sure that
          ! the dry floating pressure is set to PSC2_DRY
          IF ( .not. LTRAN ) THEN
+            CALL SET_WET_FLOATING_PRESSURE( State_Met%PSC2 )
             CALL SET_DRY_FLOATING_PRESSURE( State_Met%PSC2_DRY )
-            CALL SET_WET_FLOATING_PRESSURE( State_Met )
          ENDIF
 
          ! Prior to 04 May 2016:

@@ -433,6 +433,15 @@
          ! Pressure at bottom edge of grid box [hPa]
          State_Met%PEDGE( I,J,L )  = GET_PEDGE( I,J,L )
 
+         ! DEBUGGING (ewl)- Moisture fix
+         IF ( I == 56 .AND. J == 20 .AND. L == 1 ) THEN
+            PRINT *, " "
+            PRINT *, "In DAO_MOD"
+            PRINT *, "   PEDGE(56,20,1): ", State_Met%PEDGE(56,20,1)
+            PRINT *, " "
+         ENDIF
+         ! END DEBUGGING
+
          ! Pressure at top edge of grid box [hPa]
          PEdge_Top                 = GET_PEDGE( I,J,L+1 )
 

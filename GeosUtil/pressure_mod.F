@@ -31,10 +31,9 @@
       PUBLIC  :: GET_PEDGE                ! wet air P at lower grid edge
       PUBLIC  :: GET_PEDGE_FULLGRID       ! wet air P at lower grid edge
       PUBLIC  :: CLEANUP_PRESSURE
-!      PUBLIC  :: SET_FLOATING_PRESSURE        ! Prior to May 04 2016
       PUBLIC  :: GET_PFLT_DRY                 ! MOISTURE FIX (ewl, 5/4/16)
-      PUBLIC  :: SET_DRY_FLOATING_PRESSURE    ! MOISTURE FIX (ewl, 5/4/16)
       PUBLIC  :: SET_WET_FLOATING_PRESSURE    ! MOISTURE FIX (ewl, 5/4/16)
+      PUBLIC  :: SET_DRY_FLOATING_PRESSURE    ! MOISTURE FIX (ewl, 5/4/16)
 
 #if defined( ESMF_ )
       PUBLIC  :: Accept_External_Pedge
@@ -206,80 +205,89 @@
 
       END FUNCTION GET_BP
 !EOC
-! Prior to 04 May 2016: Floating pressure includes moisture
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: set_floating_pressure
-!!
-!! !DESCRIPTION: Subroutine SET\_FLOATING\_PRESSURE initializes the floating 
-!!  pressure field PFLT with a pressure from the main program.  This is needed
-!!  to initialize and reset PFLT after transport.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE SET_FLOATING_PRESSURE( PS )
-!!
-!! !USES:
-!!
-!      USE ERROR_MOD, ONLY : CHECK_VALUE
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-!      USE CMN_SIZE_MOD  ! Size parameters
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      ! Array containing pressure with which to initialize PFLT [hPa]
-!      REAL(fp), INTENT(IN) :: PS(:,:)  
-!!
-!! !REVISION HISTORY:
-!!  27 Aug 2002 - D. Abbot, B. Field,  R. Yantosca - Initial version  
-!!  (1 ) Now check PFLT for NaN or Infinities (bmy, 8/27/02)
-!!  (2 ) Added parallel DO-loop (bmy, 4/14/04)
-!!  20 Nov 2009 - R. Yantosca - Added ProTeX header
-!!  10 Jun 2013 - R. Yantosca - Avoid array temporaries in CHECK_VALUE
-!!  04 Nov 2013 - M. Sulprizio- Eliminate array temporary by accepting assumed-
-!!                              shape dummy argument
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!! 
-!      INTEGER            :: I, J
-!      INTEGER            :: ERR_LOC(4)
-!      CHARACTER(LEN=255) :: ERR_VAR
-!      CHARACTER(LEN=255) :: ERR_MSG
+! !IROUTINE: set_wet_floating_pressure
 !
-!      !=================================================================
-!      ! SET_FLOATING_PRESSURE begins here!
-!      !=================================================================
+! !DESCRIPTION: Subroutine SET\_WET\_FLOATING\_PRESSURE initializes the 
+!  floating pressure field PFLT_WET with a pressure from the main program.  
+!\\
+!\\
+! !INTERFACE:
 !
-!      ! Define quantities for CHECK_VALUE
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, ERR_LOC, ERR_VAR, ERR_MSG )
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
+      SUBROUTINE SET_WET_FLOATING_PRESSURE( PS )
 !
-!         ! Assign into PFLT array
-!         PFLT(I,J) = PS(I,J)
+! !USES:
 !
-!         ! Check for NaN or Infinities
-!         ERR_LOC = (/ I, J, 0, 0 /)
-!         ERR_VAR = 'PFLT'
-!         ERR_MSG = 'set_floating_pressure:1'
-!         CALL CHECK_VALUE( PFLT(I,J), ERR_LOC, ERR_VAR, ERR_MSG )
+      USE ERROR_MOD, ONLY : CHECK_VALUE
+      USE CMN_SIZE_MOD  ! Size parameters
 !
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
+! !INPUT PARAMETERS: 
 !
-!      ! Return to calling program
-!      END SUBROUTINE SET_FLOATING_PRESSURE
-!!EOC
+      ! Array containing pressure with which to initialize PFLT [hPa]
+      REAL(fp), INTENT(IN) :: PS(:,:)  
+!
+! !REVISION HISTORY:
+!  27 Aug 2002 - D. Abbot, B. Field,  R. Yantosca - Initial version  
+!  (1 ) Now check PFLT for NaN or Infinities (bmy, 8/27/02)
+!  (2 ) Added parallel DO-loop (bmy, 4/14/04)
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  10 Jun 2013 - R. Yantosca - Avoid array temporaries in CHECK_VALUE
+!  04 Nov 2013 - M. Sulprizio- Eliminate array temporary by accepting assumed-
+!                              shape dummy argument
+!  18 May 2016 - E. Lundgren - Rename from set_floating_pressure to
+!                              set_wet_floating_pressure
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
+      INTEGER            :: I, J
+      INTEGER            :: ERR_LOC(4)
+      CHARACTER(LEN=255) :: ERR_VAR
+      CHARACTER(LEN=255) :: ERR_MSG
+
+      !=================================================================
+      ! SET_WET_FLOATING_PRESSURE begins here!
+      !=================================================================
+
+      ! DEBUGGING (ewl)
+      PRINT *, " "
+      PRINT *, "In SET_WET_FLOATING_PRESSURE"
+      PRINT *, "   Old PFLT_WET(56,20): ", PFLT_WET(56,20)
+      ! END DEBUGGING
+
+      ! Define quantities for CHECK_VALUE
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, ERR_LOC, ERR_VAR, ERR_MSG )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Assign into PFLT array
+         PFLT_WET(I,J) = PS(I,J)
+
+         ! Check for NaN or Infinities
+         ERR_LOC = (/ I, J, 0, 0 /)
+         ERR_VAR = 'PFLT_WET'
+         ERR_MSG = 'set_wet_floating_pressure:1'
+         CALL CHECK_VALUE( PFLT_WET(I,J), ERR_LOC, ERR_VAR, ERR_MSG )
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! DEBUGGING (ewl)
+      PRINT *, "   New PFLT_WET(56,20): ", PFLT_WET(56,20)
+      ! END DEBUGGING
+
+      ! Return to calling program
+      END SUBROUTINE SET_WET_FLOATING_PRESSURE
+!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -326,7 +334,7 @@
       ! DEBUGGING (ewl)
       PRINT *, " "
       PRINT *, "In SET_DRY_FLOATING_PRESSURE"
-      PRINT *, "   Old PFLT_DRY(50,26): ", PFLT_DRY(50,26)
+      PRINT *, "   Old PFLT_DRY(56,20): ", PFLT_DRY(56,20)
       ! END DEBUGGING
 
       ! Define quantities for CHECK_VALUE
@@ -350,109 +358,11 @@
 !$OMP END PARALLEL DO
 
       ! DEBUGGING (ewl)
-      PRINT *, "   New PFLT_DRY(50,26): ", PFLT_DRY(50,26)
+      PRINT *, "   New PFLT_DRY(56,20): ", PFLT_DRY(56,20)
       ! END DEBUGGING
 
       ! Return to calling program
       END SUBROUTINE SET_DRY_FLOATING_PRESSURE
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: set_wet_floating_pressure
-!
-! !DESCRIPTION: Subroutine SET\_MOIST\_FLOATING\_PRESSURE sets the moist 
-!  floating pressure field PFLT_WET from the floating dry pressure field
-!  PDFT_DRY and the current State_Met specific humidity SPHU.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SET_WET_FLOATING_PRESSURE( State_Met )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD ! Size parameters
-      USE ERROR_MOD,          ONLY : CHECK_VALUE
-      USE GIGC_State_Met_Mod, ONLY : MetState
-
-!
-! !INPUT PARAMETERS: 
-!
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology state object
-!
-! !REVISION HISTORY:
-!  04 May 2016 - E. Lundgren - Initial version
-! 
-! !REMARKS:
-!  This subroutine is an adaptation of the GEOS-Chem moisture fix 
-!  reversibility test implemented by Meemong Lee (JPL) in the adjoint 
-!  model.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-! 
-      INTEGER            :: I, J, L
-      INTEGER            :: ERR_LOC(4)
-      CHARACTER(LEN=255) :: ERR_VAR
-      CHARACTER(LEN=255) :: ERR_MSG
-      REAL(fp)           :: P_EDGE1, P_EDGE2
-
-      !=================================================================
-      ! SET_WET_FLOATING_PRESSURE begins here!
-      !=================================================================
-
-      ! DEBUGGING (ewl)
-      PRINT *, " "
-      PRINT *, "In SET_WET_FLOATING_PRESSURE"
-      PRINT *, "   Old PFLT_WET(50,26): ", PFLT_WET(50,26)
-      ! END DEBUGGING
-
-      ! Reset floating moist surface pressure to zero 
-      PFLT_WET = 0.e+0_fp
-
-      ! Sum moist pressure over all levels for each (lat,lon)
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, P_EDGE1, P_EDGE2)
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-        P_EDGE1 = GET_AP(L) + GET_BP(L) * PFLT_DRY(I,J)
-        P_EDGE2 = GET_AP(L+1) + GET_BP(L+1) * PFLT_DRY(I,J)
-        PFLT_WET(I,J) = PFLT_WET(I,J) + ( P_EDGE1 - P_EDGE2 ) / 
-     &              ( 1.e+0_fp - State_Met%SPHU(I,J,L) * 1.0e-3 )
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Check for NaN or Infinities
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         ERR_LOC = (/ I, J, 0, 0 /)
-         ERR_VAR = 'PFLT_WET'
-         ERR_MSG = 'set_wet_floating_pressure:1'
-         CALL CHECK_VALUE( PFLT_WET(I,J), ERR_LOC, ERR_VAR, ERR_MSG )
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-
-      ! DEBUGGING (ewl)
-      PRINT *, "   New PFLT_WET(50,26): ", PFLT_WET(50,26)
-      PRINT *, " "
-      ! END DEBUGGING
-
-      ! Return to calling program
-      END SUBROUTINE SET_WET_FLOATING_PRESSURE
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -545,7 +455,7 @@
 #endif
 
 #endif     
- 
+
       END FUNCTION GET_PEDGE 
 !EOC
 !------------------------------------------------------------------------------
