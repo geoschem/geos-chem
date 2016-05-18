@@ -696,8 +696,8 @@
 
       ! Loop over grid boxes
       DO L = 1, LD65
-      DO J = 1, NLAT
-      DO I = 1, NLONG
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
          
          ! If this is a valid grid box
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN

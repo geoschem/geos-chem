@@ -223,7 +223,6 @@
       USE TPCORE_BC_MOD
       USE DAO_MOD
       USE CMN_SIZE_MOD          ! Size parameters
-      USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
       USE ERROR_MOD,          ONLY : GIGC_Error
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -274,7 +273,7 @@
 
          CALL EX_CONVERT_UNITS_CSPEC
      & ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
-     &  1, ILONG, ILAT, IPVERT) !mol/cm3 -> mol
+     &   1, IIPAR, JJPAR, LLPAR) !mol/cm3 -> mol
 
 # if  defined ( EXCHANGE_4x5_CH ) || defined ( EXCHANGE_2x25_CH )
          CALL EX_READ_AND_APPLY_FEEDBACK
@@ -302,7 +301,7 @@
 
          CALL EX_CONVERT_UNITS_CSPEC
      & ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
-     &   2, ILONG, ILAT, IPVERT) !mol -> mol/cm3
+     &   2, IIPAR, JJPAR, LLPAR) !mol -> mol/cm3
 
       ENDIF
 
@@ -356,7 +355,6 @@
 !
       USE DAO_MOD
       USE CMN_SIZE_MOD          ! Size parameters
-      USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
       USE ERROR_MOD,          ONLY : GIGC_Error
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -397,7 +395,7 @@
 
       ! Convert tracer units from [kg/kg dry] to [kg] (ewl, 8/13/15)
       CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt,            
-     &                                     State_Met, State_Chm, RC )
+     &                            State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'EXCHANGE_NESTED_POST in exchange_mod.F')
@@ -406,7 +404,7 @@
 
       CALL EX_CONVERT_UNITS_CSPEC
      &  ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
-     &    1,ILONG,ILAT,IPVERT) ! mol/cm3->mol
+     &    1, IIPAR, JJPAR, LLPAR) ! mol/cm3->mol
 
       CALL EX_DUMP_FOR_GLOBAL
      &        (am_I_Root, Input_Opt,State_Met, State_Chm,RC)
@@ -414,7 +412,7 @@
 
       ! Convert tracer units back to kg/kg (ewl, 8/13/15)
       CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt,            
-     &                               State_Met, State_Chm, RC )
+     &                            State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'EXCHANGE_NESTED_POST in exchange_mod.F')
@@ -423,7 +421,7 @@
 
       CALL EX_CONVERT_UNITS_CSPEC
      &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
-     &     2,ILONG,ILAT,IPVERT) !mol -> mol/cm3
+     &     2, IIPAR, JJPAR, LLPAR) !mol -> mol/cm3
 
       CALL DONE_LOCK_ME_UP()
       CALL WAIT_FOR_UNLOCK()
@@ -480,7 +478,6 @@
 !
       USE ERROR_MOD
       USE CMN_SIZE_MOD          ! Size parameters
-      USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
 !
 ! !INPUT PARAMETERS: 
 !
@@ -663,30 +660,30 @@
 
       ! generate regrid map
       ! CHECK: orientation problem...
-      ALLOCATE( REGRID_MAT_L(IM_BC,ILONG), STAT=ALLOCATE_RES )
+      ALLOCATE( REGRID_MAT_L(IM_BC,IIPAR), STAT=ALLOCATE_RES )
       IF ( ALLOCATE_RES /= 0 ) THEN
          CALL GEOS_CHEM_STOP
       ENDIF
 
-      ALLOCATE( REGRID_MAT_L_TRANS(ILONG, IM_BC), STAT=ALLOCATE_RES )
+      ALLOCATE( REGRID_MAT_L_TRANS(IIPAR, IM_BC), STAT=ALLOCATE_RES )
       IF ( ALLOCATE_RES /= 0 ) THEN
          CALL GEOS_CHEM_STOP
       ENDIF
 
-      ALLOCATE( REGRID_MAT_R(ILAT, JM_BC), STAT=ALLOCATE_RES )
+      ALLOCATE( REGRID_MAT_R(JJPAR, JM_BC), STAT=ALLOCATE_RES )
       IF ( ALLOCATE_RES /= 0 ) THEN
          CALL GEOS_CHEM_STOP
       ENDIF
 
-      CALL GEN_REGRID_MAT( ILONG, IM_BC, RATIO_LONG_EX,
-     &            -OFFSET_LONG, REGRID_MAT_L_TRANS)
-      CALL GEN_REGRID_MAT( ILAT, JM_BC, RATIO_LAT_EX,
-     &            -OFFSET_LAT, REGRID_MAT_R )
+      CALL GEN_REGRID_MAT( IIPAR, IM_BC, RATIO_LONG_EX,
+     &                     -OFFSET_LONG, REGRID_MAT_L_TRANS)
+      CALL GEN_REGRID_MAT( JJPAR, JM_BC, RATIO_LAT_EX,
+     &                     -OFFSET_LAT,  REGRID_MAT_R )
 
       REGRID_MAT_L = TRANSPOSE( REGRID_MAT_L_TRANS )
 
       IF(ALLOCATED(REGRID_MAT_L_TRANS)) DEALLOCATE( REGRID_MAT_L_TRANS )
-      ALLOCATE( TMP_WINDOW(IM_BC, JM_BC, IPVERT),
+      ALLOCATE( TMP_WINDOW(IM_BC, JM_BC, LLPAR),
      &          STAT=ALLOCATE_RES )
 
       IF ( ALLOCATE_RES /= 0 ) THEN
@@ -697,7 +694,7 @@
 #if   defined ( GRID4x5 ) || defined ( GRID2x25 )
 
 #if   defined ( EXCHANGE_4x5_CH ) || defined ( EXCHANGE_2x25_CH )
-      ALLOCATE( TMP_WINDOW_CH(IM_BC_CH, JM_BC_CH, IPVERT),
+      ALLOCATE( TMP_WINDOW_CH(IM_BC_CH, JM_BC_CH, LLPAR),
      &          STAT=ALLOCATE_RES )
       IF ( ALLOCATE_RES /= 0 ) THEN
          CALL GEOS_CHEM_STOP
@@ -705,7 +702,7 @@
 #endif
 
 #if   defined ( EXCHANGE_4x5_NA ) || defined ( EXCHANGE_2x25_NA )
-      ALLOCATE( TMP_WINDOW_NA(IM_BC_NA, JM_BC_NA, IPVERT),
+      ALLOCATE( TMP_WINDOW_NA(IM_BC_NA, JM_BC_NA, LLPAR),
      &          STAT=ALLOCATE_RES )
       IF ( ALLOCATE_RES /= 0 ) THEN
          CALL GEOS_CHEM_STOP
@@ -713,7 +710,7 @@
 #endif
 
 #if   defined ( EXCHANGE_4x5_EU ) || defined ( EXCHANGE_2x25_EU )
-      ALLOCATE( TMP_WINDOW_EU(IM_BC_EU, JM_BC_EU, IPVERT),
+      ALLOCATE( TMP_WINDOW_EU(IM_BC_EU, JM_BC_EU, LLPAR),
      &          STAT=ALLOCATE_RES )
       IF ( ALLOCATE_RES /= 0 ) THEN
          CALL GEOS_CHEM_STOP
@@ -755,12 +752,12 @@
          WRITE (*,*) "@@@@@@@@@@@@@@ CLEANUP_EXCHANGE"
       ENDIF
 
-      IF( ALLOCATED( TMP_WINDOW  ) )  DEALLOCATE( TMP_WINDOW )
-      IF( ALLOCATED( REGRID_MAT_L ) ) DEALLOCATE( REGRID_MAT_L )
-      IF( ALLOCATED( REGRID_MAT_R ) ) DEALLOCATE( REGRID_MAT_R )
-      IF( ALLOCATED( TMP_WINDOW_CH  ) )  DEALLOCATE( TMP_WINDOW_CH )
-      IF( ALLOCATED( TMP_WINDOW_NA  ) )  DEALLOCATE( TMP_WINDOW_NA )
-      IF( ALLOCATED( TMP_WINDOW_EU  ) )  DEALLOCATE( TMP_WINDOW_EU )
+      IF( ALLOCATED( TMP_WINDOW     ) ) DEALLOCATE( TMP_WINDOW    )
+      IF( ALLOCATED( REGRID_MAT_L   ) ) DEALLOCATE( REGRID_MAT_L  )
+      IF( ALLOCATED( REGRID_MAT_R   ) ) DEALLOCATE( REGRID_MAT_R  )
+      IF( ALLOCATED( TMP_WINDOW_CH  ) ) DEALLOCATE( TMP_WINDOW_CH )
+      IF( ALLOCATED( TMP_WINDOW_NA  ) ) DEALLOCATE( TMP_WINDOW_NA )
+      IF( ALLOCATED( TMP_WINDOW_EU  ) ) DEALLOCATE( TMP_WINDOW_EU )
 
       CALL NO_MORE_LOCK()
 
@@ -784,8 +781,7 @@
 ! !USES:
 !
       USE ERROR_MOD
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
+      USE CMN_SIZE_MOD             ! Size parameters
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -834,10 +830,10 @@
       ENDIF
 
       DO L = 1,NTSPEC(1)
-         CALL EX_REGRID_UP( ILONG, ILAT,
-     &                      IM_BC, JM_BC, IPVERT,
+         CALL EX_REGRID_UP( IIPAR, JJPAR, 
+     &                      IM_BC, JM_BC, LLPAR,
      &                      CSPEC_FULL(:,:,:,L), TMP_WINDOW )
-         CALL WRITE_3D_REAL8_ARRAY( IM_BC, JM_BC, IPVERT,
+         CALL WRITE_3D_REAL8_ARRAY( IM_BC, JM_BC, LLPAR,
      &                              TMP_WINDOW )
       ENDDO
 
@@ -849,10 +845,10 @@
       ENDIF
 
       DO L = 1,N_TRACERS
-         CALL EX_REGRID_UP( ILONG, ILAT,
-     &                      IM_BC, JM_BC, IPVERT,
+         CALL EX_REGRID_UP( IIPAR, JJPAR,
+     &                      IM_BC, JM_BC, LLPAR,
      &                      STT(:,:,:,L), TMP_WINDOW )
-         CALL WRITE_3D_REAL8_ARRAY( IM_BC, JM_BC, IPVERT,
+         CALL WRITE_3D_REAL8_ARRAY( IM_BC, JM_BC, LLPAR,
      &                              TMP_WINDOW )
       ENDDO
 
@@ -879,8 +875,7 @@
 ! !USES:
 !
       USE ERROR_MOD
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
+      USE CMN_SIZE_MOD             ! Size parameters
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -933,22 +928,22 @@
  100      FORMAT( '     - EXCHANGE: reading ', A )
          CALL OPEN_BIN_FILE_FOR_READ( TRIM(LOAD_CH_TRACER_FNAME) )
          DO L = 1,N_TRACERS
-              CALL READ_3D_REAL8_ARRAY( IM_BC_CH, JM_BC_CH, IPVERT,
+              CALL READ_3D_REAL8_ARRAY( IM_BC_CH, JM_BC_CH, LLPAR,
      &                             TMP_WINDOW_CH )
               STT( I0_BC_CH + 2 : I0_BC_CH + IM_BC_CH-1,
      &             J0_BC_CH + 2 : J0_BC_CH + JM_BC_CH-1,
-     &             IPVERT,L) =
-     &        TMP_WINDOW_CH(2:IM_BC_CH-1,2:JM_BC_CH-1,IPVERT)
+     &             LLPAR,L) =
+     &        TMP_WINDOW_CH(2:IM_BC_CH-1,2:JM_BC_CH-1,LLPAR)
          ENDDO
 
           CALL OPEN_BIN_FILE_FOR_READ( TRIM(LOAD_CH_CSPEC_FNAME) )
           DO L = 1,NTSPEC(1)
-             CALL READ_3D_REAL8_ARRAY( IM_BC_CH, JM_BC_CH, IPVERT,
+             CALL READ_3D_REAL8_ARRAY( IM_BC_CH, JM_BC_CH, LLPAR,
      &                             TMP_WINDOW_CH )
              CSPEC_FULL(I0_BC_CH + 2:I0_BC_CH + IM_BC_CH-1,
      &                  J0_BC_CH + 2:J0_BC_CH + JM_BC_CH-1,
-     &                  IPVERT,L) =
-     &       TMP_WINDOW_CH(2:IM_BC_CH-1,2:JM_BC_CH-1,IPVERT)
+     &                  LLPAR,L) =
+     &       TMP_WINDOW_CH(2:IM_BC_CH-1,2:JM_BC_CH-1,LLPAR)
           ENDDO
 
       !For North America domain
@@ -957,22 +952,22 @@
  101      FORMAT( '     - EXCHANGE: reading ', A )
          CALL OPEN_BIN_FILE_FOR_READ( TRIM(LOAD_NA_TRACER_FNAME) )
          DO L = 1,N_TRACERS
-              CALL READ_3D_REAL8_ARRAY( IM_BC_NA, JM_BC_NA, IPVERT,
+              CALL READ_3D_REAL8_ARRAY( IM_BC_NA, JM_BC_NA, LLPAR,
      &                             TMP_WINDOW_NA )
               STT( I0_BC_NA + 3 : I0_BC_NA + IM_BC_NA-2,
      &             J0_BC_NA + 3 : J0_BC_NA + JM_BC_NA-2,
-     &             IPVERT,L) =
-     &        TMP_WINDOW_NA(3:IM_BC_NA-2,3:JM_BC_NA-2,IPVERT)
+     &             LLPAR,L) =
+     &        TMP_WINDOW_NA(3:IM_BC_NA-2,3:JM_BC_NA-2,LLPAR)
          ENDDO
 
           CALL OPEN_BIN_FILE_FOR_READ( TRIM(LOAD_NA_CSPEC_FNAME) )
           DO L = 1,NTSPEC(1)
-             CALL READ_3D_REAL8_ARRAY( IM_BC_NA, JM_BC_NA, IPVERT,
+             CALL READ_3D_REAL8_ARRAY( IM_BC_NA, JM_BC_NA, LLPAR,
      &                             TMP_WINDOW_NA )
              CSPEC_FULL(I0_BC_NA + 3:I0_BC_NA + IM_BC_NA-2,
      &                  J0_BC_NA + 3:J0_BC_NA + JM_BC_NA-2,
-     &                  IPVERT,L) =
-     &       TMP_WINDOW_NA(3:IM_BC_NA-2,3:JM_BC_NA-2,IPVERT)
+     &                  LLPAR,L) =
+     &       TMP_WINDOW_NA(3:IM_BC_NA-2,3:JM_BC_NA-2,LLPAR)
           ENDDO
 
       !For Europe domain
@@ -981,22 +976,22 @@
   102     FORMAT( '     - EXCHANGE: reading ', A )
          CALL OPEN_BIN_FILE_FOR_READ( TRIM(LOAD_EU_TRACER_FNAME) )
          DO L = 1,N_TRACERS
-              CALL READ_3D_REAL8_ARRAY( IM_BC_EU, JM_BC_EU, IPVERT,
+              CALL READ_3D_REAL8_ARRAY( IM_BC_EU, JM_BC_EU, LLPAR,
      &                             TMP_WINDOW_EU )
               STT( I0_BC_EU + 2 : I0_BC_EU + IM_BC_EU-1,
      &             J0_BC_EU + 2 : J0_BC_EU + JM_BC_EU-1,
-     &             IPVERT,L) =
-     &        TMP_WINDOW_EU(2:IM_BC_EU-1,2:JM_BC_EU-1,IPVERT)
+     &             LLPAR,L) =
+     &        TMP_WINDOW_EU(2:IM_BC_EU-1,2:JM_BC_EU-1,LLPAR)
          ENDDO
 
          CALL OPEN_BIN_FILE_FOR_READ( TRIM(LOAD_EU_CSPEC_FNAME) )
          DO L = 1,NTSPEC(1)
-             CALL READ_3D_REAL8_ARRAY( IM_BC_EU, JM_BC_EU, IPVERT,
+             CALL READ_3D_REAL8_ARRAY( IM_BC_EU, JM_BC_EU, LLPAR,
      &                             TMP_WINDOW_EU )
              CSPEC_FULL(I0_BC_EU + 2:I0_BC_EU + IM_BC_EU-1,
      &                  J0_BC_EU + 2:J0_BC_EU + JM_BC_EU-1,
-     &                  IPVERT,L) =
-     &       TMP_WINDOW_EU(2:IM_BC_EU-1,2:JM_BC_EU-1,IPVERT)
+     &                  LLPAR,L) =
+     &       TMP_WINDOW_EU(2:IM_BC_EU-1,2:JM_BC_EU-1,LLPAR)
          ENDDO
       ENDIF
 
@@ -1063,8 +1058,8 @@
 ! !USES:
 !
       USE DAO_MOD
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! NTSPEC
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
