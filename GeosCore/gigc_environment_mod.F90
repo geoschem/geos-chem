@@ -311,9 +311,11 @@ CONTAINS
                                IM         = IIPAR,      &  ! # of lons
                                JM         = JJPAR,      &  ! # of lats
                                LM         = LLPAR,      &  ! # of levels
-                               nTracers   = N_TRACERS,  &  ! # of tracers
                                nAerosol   = NDUST+NAER, &  ! # of aerosol types
-                               nSpecies   = IGAS,       &  ! # chemical species
+!-------------------------------------------------------------------------------
+!%%% KEEP THIS UNTIL WE CAN REMOVE REFERENCES TO SMVGEAR ARRAYS (bmy, 5/18/16)
+                               nSpecies   = IGAS,       &
+!-------------------------------------------------------------------------------
                                Input_Opt  = Input_Opt,  &  ! Input Options
                                State_Chm  = State_Chm,  &  ! Chemistry State
                                RC         = RC         )   ! Success or failure

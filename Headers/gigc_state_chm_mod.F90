@@ -44,16 +44,26 @@ MODULE GIGC_State_Chm_Mod
   !=========================================================================
   TYPE, PUBLIC :: ChmState
 
-     ! Number of species
+     ! Count of each type of species
      INTEGER                    :: nSpecies             ! # of species
      INTEGER                    :: nAdvect              ! # of advected species
-     INTEGER                    :: nDrydep              ! # of drydep species
+     INTEGER                    :: nDryDep              ! # of drydep species
+     INTEGER                    :: nKppSpc              ! # of KPP chem species
      INTEGER                    :: nWetDep              ! # of wetdep species
 
-     ! Physical properties about tracers & species
-     TYPE(SpcPtr),      POINTER :: SpcData    (:      ) ! Species database
+     ! Mapping vectors to subset types of species
+     INTEGER,           POINTER :: Map_Advect (:      ) ! Advected species ID's
+     INTEGER,           POINTER :: Map_DryDep (:      ) ! Drydep species ID's
+     INTEGER,           POINTER :: Map_KppSpc (:      ) ! KPP chem species ID's
+     INTEGER,           POINTER :: Map_WetDep (:      ) ! Wetdep species IDs'
+
+     ! Physical properties & indices for each species
+     TYPE(SpcPtr),      POINTER :: SpcData    (:      ) ! GC Species database
 
      ! Advected tracers
+     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+     !%%%  NOTE: The TRACER fields will be removed soon (bmy, 5/18/16)  %%%
+     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
      INTEGER,           POINTER :: Trac_Id    (:      ) ! Tracer ID #'s
      CHARACTER(LEN=14), POINTER :: Trac_Name  (:      ) ! Tracer names
      REAL(fp),          POINTER :: Tracers    (:,:,:,:) ! Tracer conc 
@@ -66,9 +76,9 @@ MODULE GIGC_State_Chm_Mod
      REAL(fp),          POINTER :: Species    (:,:,:,:) ! Species [molec/cm3]
 
      ! Aerosol quantities
+     INTEGER                    :: nAero                ! # of Aerosol Types
      REAL(fp),          POINTER :: AeroArea   (:,:,:,:) ! Aerosol Area [cm2/cm3]
      REAL(fp),          POINTER :: AeroRadi   (:,:,:,:) ! Aerosol Radius [cm]
-     INTEGER                    :: nAero                ! # of Aerosol Types
 
 #if defined( ESMF_ )
      ! Chemical rates & rate parameters
@@ -111,6 +121,7 @@ MODULE GIGC_State_Chm_Mod
 !  28 Jan 2016 - M. Sulprizio- Add STATE_PSC, KHETI_SLA. These were previously
 !                              local arrays in ucx_mod.F, but now need to be
 !                              accessed in gckpp_HetRates.F90.
+!  18 May 2016 - R. Yantosca - Add mapping vectors for subsetting species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -316,10 +327,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_GIGC_State_Chm( am_I_Root, IM,        JM,        &   
-                                  LM,        nTracers,  nSpecies,  &
-                                  Input_Opt, State_Chm, nAerosol,  &
-                                  RC                               )
+  SUBROUTINE Init_GIGC_State_Chm( am_I_Root, IM,        JM,         &   
+                                  LM,        Input_Opt, State_Chm,  &
+                                  nSpecies,  nAerosol,  RC         )
 !
 ! !USES:
 !
@@ -336,9 +346,12 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: IM          ! # longitudes on this PET
     INTEGER,        INTENT(IN)    :: JM          ! # longitudes on this PET
     INTEGER,        INTENT(IN)    :: LM          ! # longitudes on this PET
-    INTEGER,        INTENT(IN)    :: nTracers    ! # advected tracers
     INTEGER,        INTENT(IN)    :: nAerosol    ! # aerosol species
-    INTEGER,        INTENT(IN)    :: nSpecies    ! # chemical species
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: KEEP THIS FOR NOW TO AVOID SEG FAULTS, 
+!%%% AT LEAST UNTIL WE REMOVE REFERENCES TO NTSPEC ETC. (bmy, 5/18/16)
+    INTEGER,        INTENT(IN)    :: nSpecies    ! # of species from SMVGEAR
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -372,6 +385,9 @@ CONTAINS
 !                              related fields w/ info from species database
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  02 May 2016 - R. Yantosca - Nullify Hg index fields for safety's sake
+!  18 May 2016 - R. Yantosca - Now determine the # of each species first,
+!                              then allocate fields of State_Chm
+!  18 May 2016 - R. Yantosca - Now populate the species mapping vectors
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -390,88 +406,21 @@ CONTAINS
     RC = GIGC_SUCCESS
 
     !=====================================================================
-    ! Allocate and initialize advected tracer fields
+    ! Initialization
     !=====================================================================
 
-    ALLOCATE( State_Chm%Trac_Id       (             nTracers+1 ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Chm%Trac_Id = 0
-
-    ALLOCATE( State_Chm%Trac_Name     (             nTracers+1 ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Chm%Trac_name = ''
-
-    ALLOCATE( State_Chm%Tracers       ( IM, JM, LM, nTracers+1 ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Chm%Tracers = 0e+0_fp
-
-    !=====================================================================
-    ! Allocate and initialize chemical species fields
-    !=====================================================================
-
-    ALLOCATE( State_Chm%Spec_Id       (             nSpecies   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Chm%Spec_Id = 0
-
-    ALLOCATE( State_Chm%Spec_Name     (             nSpecies   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Chm%Spec_Name = ''
-
-    ALLOCATE( State_Chm%Species       ( IM, JM, LM, nSpecies   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Chm%Species = 0e+0_fp
-
-    !=====================================================================
-    ! Allocate and initialize aerosol fields
-    !=====================================================================
-
-    State_Chm%nAero = nAerosol
-
-    ALLOCATE( State_Chm%AeroArea      ( IM, JM, LM, nAerosol   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Chm%AeroArea = 0e+0_fp
-
-    ALLOCATE( State_Chm%AeroRadi      ( IM, JM, LM, nAerosol   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Chm%AeroRadi = 0e+0_fp
-
-#if defined( ESMF_ )
-    !=====================================================================
-    ! Allocate and initialize chemical rate fields
-    !=====================================================================
-
-    ! Keep this here for now -- FLEXCHEM will remove this (bmy, 12/11/14)
-    ALLOCATE( State_Chm%JLOP( ILONG, ILAT, IPVERT ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Chm%JLOP = 0
-    
-    ! Keep this here for now -- FLEXCHEM will remove this (bmy, 12/11/14)
-    ALLOCATE( State_Chm%JLOP_PREV( ILONG, ILAT, IPVERT ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Chm%JLOP_PREV = 0
-#endif
-
-    !=====================================================================
-    ! Allocate and initialize fields for UCX mechamism
-    !=====================================================================
-
-    ALLOCATE( State_Chm%STATE_PSC     ( IM, JM, LM             ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Chm%STATE_PSC = 0.0_f4
-
-    ALLOCATE( State_Chm%KHETI_SLA     ( IM, JM, LM, 11         ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Chm%KHETI_SLA = 0.0_fp
-
-    !=====================================================================
-    ! Initialize fields
-    !=====================================================================
-
-    ! Number of species
+    ! Number of each type of species
     State_Chm%nSpecies    =  0
     State_Chm%nAdvect     =  0
     State_Chm%nDryDep     =  0
+    State_Chm%nKppSpc     =  0
     State_Chm%nWetDep     =  0
+
+    ! Mapping vectors for subsetting each type of species
+    State_Chm%Map_Advect  => NULL()
+    State_Chm%Map_DryDep  => NULL()
+    State_Chm%Map_KppSpc  => NULL()
+    State_Chm%Map_WetDep  => NULL()
 
     ! Species database
     State_Chm%SpcData     => NULL()
@@ -487,6 +436,11 @@ CONTAINS
     State_Chm%Spec_Id     =  0
     State_Chm%Spec_Name   =  ''
     State_Chm%Species     =  0e+0_fp
+
+    ! Aerosol parameters
+    State_Chm%nAero       = 0
+    State_Chm%AeroArea    => NULL()
+    State_Chm%AeroRadi    => NULL()
 
     ! Hg species indexing
     N_Hg0_CATS            =  0
@@ -514,20 +468,105 @@ CONTAINS
     ! The total number of species is the size of SpcData
     State_Chm%nSpecies = SIZE( State_Chm%SpcData )
 
-    ! Get the number of advected, dry-deposited, and wet-deposited species
-    ! Also return the # of Hg0, Hg2, and HgP species
+    ! Get the number of advected, dry-deposited, KPP chemical species,
+    ! and and wet-deposited species.  Also return the # of Hg0, Hg2, and 
+    ! HgP species (these are zero unless the Hg simulation is used).
     CALL Spc_GetNumSpecies( State_Chm%nAdvect,  &
                             State_Chm%nDryDep,  &
+                            State_Chm%nKppSpc,  &
                             State_Chm%nWetDep,  &
                             N_Hg0_CATS,         &
                             N_Hg2_CATS,         &
                             N_HgP_CATS         )
 
+    !=====================================================================
+    ! Allocate and initialize mapping vectors to subset species
+    !=====================================================================
+
+    ALLOCATE( State_Chm%Map_Advect(             State_Chm%nAdvect  ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Map_Advect = 0
+
+    ALLOCATE( State_Chm%Map_Drydep(             State_Chm%nDryDep  ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Map_DryDep = 0
+
+    ALLOCATE( State_Chm%Map_KppSpc(             State_Chm%nKppSpc  ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Map_KppSpc = 0
+
+    ALLOCATE( State_Chm%Map_WetDep(            State_Chm%nWetDep  ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Map_WetDep = 0
+
+    !=====================================================================
+    ! Allocate and initialize advected tracer fields
+    ! %%%% NOTE: THESE WILL BE REMOVED SOON (bmy, 5/18/16) %%%%
+    !=====================================================================
+
+    ALLOCATE( State_Chm%Trac_Id   (             State_Chm%nAdvect  ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Trac_Id = 0
+
+    ALLOCATE( State_Chm%Trac_Name (             State_Chm%nAdvect  ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Trac_name = ''
+
+    ALLOCATE( State_Chm%Tracers   ( IM, JM, LM, State_Chm%nAdvect  ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Tracers = 0e+0_fp
+
+    !=====================================================================
+    ! Allocate and initialize chemical species fields
+    !=====================================================================
+
+    !%%% NOTE: For now, allocate species arrays with nSpecies, which
+    !%%% passes the value of IGAS from gigc_environment_mod.F90.
+    !%%% Keep this until we remove all SMVGEAR references (bmy, 5/18/16)
+
+    ALLOCATE( State_Chm%Spec_Id   (             nSpecies           ), STAT=RC )
+   !ALLOCATE( State_Chm%Spec_Id   (             State_Chm%nSpecies ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Spec_Id = 0
+
+    ALLOCATE( State_Chm%Spec_Name (             nSpecies           ), STAT=RC )
+   !ALLOCATE( State_Chm%Spec_Name (             State_Chm%nSpecies ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Spec_Name = ''
+
+    ALLOCATE( State_Chm%Species   ( IM, JM, LM, nSpecies           ), STAT=RC )
+   !ALLOCATE( State_Chm%Species   ( IM, JM, LM, State_Chm%nSpecies ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Species = 0e+0_fp
+
+    !=====================================================================
+    ! Allocate and initialize aerosol fields
+    !=====================================================================
+
+    State_Chm%nAero = nAerosol
+
+    ALLOCATE( State_Chm%AeroArea  ( IM, JM, LM, State_Chm%nAero    ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%AeroArea = 0e+0_fp
+
+    ALLOCATE( State_Chm%AeroRadi  ( IM, JM, LM, State_Chm%nAero    ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%AeroRadi = 0e+0_fp
+
+    !=====================================================================
+    ! Allocate and initialize fields for UCX mechamism
+    !=====================================================================
+
+    ALLOCATE( State_Chm%STATE_PSC ( IM, JM, LM                     ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%STATE_PSC = 0.0_f4
+
+    ALLOCATE( State_Chm%KHETI_SLA ( IM, JM, LM, 11                 ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%KHETI_SLA = 0.0_fp
+
     !=======================================================================
-    ! Now use the molecular weights from the species database and overwrite
-    ! the molecular weight-related fields of the Input_Opt object.  Also
-    ! echo to screen the TRACER MENU quantities that used to be printed
-    ! in routine READ_INPUT_FILE (in GeosCore/input_mod.F).
+    ! Set up the species mapping vectors
     !=======================================================================
     IF ( am_I_Root ) THEN
        WRITE( 6,'(/,a)' ) 'TRACER MENU (==> denotes SMVGEAR emitted species)'
@@ -535,31 +574,78 @@ CONTAINS
        WRITE( 6,'(  a)' ) '  # Tracer          g/mole'
     ENDIF
 
-    ! Loop over the number of tracers
-    DO N = 1, Input_Opt%N_TRACERS
+    ! Loop over all species
+    DO N = 1, State_Chm%nSpecies
 
-       ! Get emitted molecular weight from the species database
-       EmMW_g                    = State_Chm%SpcData(N)%Info%EmMW_g
+       ! GEOS-Chem Species Database entry for species # N
+       ThisSpc => State_Chm%SpcData(N)%Info
+ 
+       !--------------------------------------------------------------------
+       ! Set up the mapping for ADVECTED SPECIES
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_Advected ) THEN
 
-       ! Now use MW from the species database instead of from the
-       ! input.geos file.  This eliminates discrepancies. (bmy, 12/16/15)
-       Input_Opt%TRACER_MW_g(N)  = EmMW_g
-       Input_Opt%TRACER_MW_kg(N) = EmMW_g * 1e-3_fp
+          ! Update the mapping vector of advected species
+          C                         = ThisSpc%AdvectId
+          State_Chm%Map_Advect(C)   = ThisSpc%ModelId
+          
+          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+          !%%% For now, store molecular weights in Input_Opt, but this 
+          !%%% is going to be moved into the species database imminently. 
+          !%%% (bmy, 5/18/16)
 
-       ! Ratio of MW dry air / MW tracer
-       Input_Opt%TCVV(N)         = AIRMW / Input_Opt%TRACER_MW_G(N)
+          !%%% THESE WILL BE MOVED OUT OF Input_Opt SOON (bmy, 5/18/16)
 
-       ! Molecules tracer / kg tracer
-       Input_Opt%XNUMOL(N)       = AVO / Input_Opt%TRACER_MW_KG(N)
+          ! Get emitted molecular weight from the species database
+          EmMW_g                    = ThisSpc%EmMW_g
 
-       ! Print to screen
-       IF ( am_I_Root ) THEN
+          ! Now use MW from the species database instead of from the
+          ! input.geos file.  This eliminates discrepancies. (bmy, 12/16/15)
+          Input_Opt%TRACER_MW_g(N)  = EmMW_g
+          Input_Opt%TRACER_MW_kg(N) = EmMW_g * 1e-3_fp
 
-          ! Write tracer number, name, & mol wt
-          WRITE( 6, 100 ) Input_Opt%ID_TRACER(N),              &
-                          Input_Opt%TRACER_NAME(N),            &
-                          Input_Opt%TRACER_MW_G(N)
+          ! Ratio of MW dry air / MW tracer
+          Input_Opt%TCVV(N)         = AIRMW / Input_Opt%TRACER_MW_G(N)
+
+          ! Molecules tracer / kg tracer
+          Input_Opt%XNUMOL(N)       = AVO / Input_Opt%TRACER_MW_KG(N)
+
+          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+          ! Print to screen
+          IF ( am_I_Root ) THEN
+             WRITE( 6, 100 ) ThisSpc%ModelId, ThisSpc%Name, ThisSpc%MW_g
+          ENDIF
+
        ENDIF
+
+       !--------------------------------------------------------------------
+       ! Set up the mapping for DRYDEP SPECIES
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_DryDep ) THEN
+          C                         = ThisSpc%DryDepId
+          State_Chm%Map_Drydep(C)   = ThisSpc%ModelId
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Set up the mapping for SPECIES IN THE KPP MECHANISM
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_Kpp ) THEN
+          C                         = ThisSpc%KppVarId
+          State_Chm%Map_KppSpc(C)   = ThisSpc%ModelId
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Set up the mapping for SPECIES IN THE KPP MECHANISM
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_WetDep ) THEN
+          C                         = ThisSpc%WetDepId
+          State_Chm%Map_WetDep(C)   = ThisSpc%ModelId
+       ENDIF
+
+       ! Free pointer
+       ThisSpc => NULL()
+
     ENDDO
 
     !=======================================================================
@@ -637,9 +723,12 @@ CONTAINS
        
     ENDIF
 
+    ! Free pointer for safety's sake
+    ThisSpc => NULL()
+
     ! Echo output
     IF ( am_I_Root ) THEN
-       WRITE( 6, '(a  )' ) REPEAT( '=', 79 )
+       print*, REPEAT( '#', 79 )
     ENDIF 
 
     ! Format statement
@@ -700,7 +789,25 @@ CONTAINS
     ! Assume success
     RC = GIGC_SUCCESS
 
+    !======================================================================
     ! Deallocate fields
+    !=======================================================================
+    IF ( ASSOCIATED( State_Chm%Map_Advect) ) THEN
+       DEALLOCATE( State_Chm%Map_Advect )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Map_DryDep ) ) THEN
+       DEALLOCATE( State_Chm%Map_DryDep )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Map_KppSpc ) ) THEN
+       DEALLOCATE( State_Chm%Map_KppSpc )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Map_WetDep ) ) THEN
+       DEALLOCATE( State_Chm%Map_WetDep )
+    ENDIF
+
     IF ( ASSOCIATED( State_Chm%Trac_Id ) ) THEN
        DEALLOCATE( State_Chm%Trac_Id )
     ENDIF
@@ -741,28 +848,20 @@ CONTAINS
        DEALLOCATE( State_Chm%Id_HgP )
     ENDIF
 
-    ! Aerosol quantities
     IF ( ASSOCIATED( State_Chm%AeroArea ) ) THEN
-       DEALLOCATE(State_Chm%AeroArea   )
+       DEALLOCATE( State_Chm%AeroArea   )
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%AeroRadi ) ) THEN
        DEALLOCATE( State_Chm%AeroRadi )
     ENDIF
 
-#if defined( ESMF_ )
-    ! Keep these here for now, FLEXCHEM will remove these (bmy, 12/11/14)
-    IF ( ASSOCIATED(State_Chm%JLOP       ) ) DEALLOCATE(State_Chm%JLOP       )
-    IF ( ASSOCIATED(State_Chm%JLOP_PREV  ) ) DEALLOCATE(State_Chm%JLOP_PREV  )
-#endif    
-
-    ! Fields for UCX mechamism
     IF ( ASSOCIATED( State_Chm%STATE_PSC ) ) THEN
        DEALLOCATE(State_Chm%STATE_PSC  )
     ENDIF
        
     IF ( ASSOCIATED( State_Chm%KHETI_SLA ) ) THEN
-       DEALLOCATE(State_Chm%KHETI_SLA  )
+       DEALLOCATE( State_Chm%KHETI_SLA  )
     ENDIF
 
     ! Deallocate the species database object field

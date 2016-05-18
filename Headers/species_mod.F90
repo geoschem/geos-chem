@@ -37,10 +37,11 @@ MODULE Species_Mod
   !=========================================================================
   INTEGER, PRIVATE :: AdvectCount = 0       ! Counter of advected species
   INTEGER, PRIVATE :: DryDepCount = 0       ! Counter of dry-deposited species
+  INTEGER, PRIVATE :: KppSpcCount = 0       ! Counter of species in KPP matrix
   INTEGER, PRIVATE :: WetDepCount = 0       ! Counter of wet-deposited species
-  INTEGER, PRIVATE :: Hg0Count    = 0       ! Number of Hg0 tracers
-  INTEGER, PRIVATE :: Hg2Count    = 0       ! Number of Hg2 tracers
-  INTEGER, PRIVATE :: HgPCount    = 0       ! Number of HgP tracers
+  INTEGER, PRIVATE :: Hg0Count    = 0       ! Number  of Hg0 tracers
+  INTEGER, PRIVATE :: Hg2Count    = 0       ! Number  of Hg2 tracers
+  INTEGER, PRIVATE :: HgPCount    = 0       ! Number  of HgP tracers
   
   !=========================================================================
   ! Type for the Species Database object (vector of type Species)
@@ -885,8 +886,10 @@ CONTAINS
 
     !---------------------------------------------------------------------
     ! Is it a variable species in the KPP chemical mechanism?
+    ! (NOTE: Fixed species are appended at the end of this list)
     !---------------------------------------------------------------------
     IF ( PRESENT( KppVarId ) ) THEN 
+       KppSpcCount      = KppSpcCount + 1
        ThisSpc%KppVarId = KppVarId
     ELSE
        ThisSpc%KppVarId = MISSING_INT
@@ -1212,13 +1215,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_GetNumSpecies( nAdvect,  nDryDep,  nWetDep,  &
-                                nHg0Cats, nHg2Cats, nHgPCats )
+  SUBROUTINE Spc_GetNumSpecies( nAdvect,  nDryDep,  nKppSpc, nWetDep,  &
+                                nHg0Cats, nHg2Cats, nHgPCats          )
 !
 ! !OUTPUT PARAMETERS:
 !
     INTEGER, INTENT(OUT) :: nAdvect   ! # of advected species
     INTEGER, INTENT(OUT) :: nDryDep   ! # of dry-deposited species
+    INTEGER, INTENT(OUT) :: nKppSpc   ! # of species in the KPP mechanism
     INTEGER, INTENT(OUT) :: nWetDep   ! # of wet-deposited species
     INTEGER, INTENT(OUT) :: nHg0Cats  ! # of Hg0 categories
     INTEGER, INTENT(OUT) :: nHg2Cats  ! # of Hg0 categories
@@ -1227,6 +1231,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  02 Sep 2015 - R. Yantosca - Initial version
 !  25 Apr 2016 - R. Yantosca - Also return the # of Hg0, Hg2, HgP categories
+!  18 May 2016 - R. Yantosca - Also return the # of KPP chemical species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1234,6 +1239,7 @@ CONTAINS
     ! Return module variables
     nAdvect  = AdvectCount
     nDryDep  = DryDepCount
+    nKppSpc  = KppSpcCount
     nWetDep  = WetDepCount
     nHg0Cats = Hg0Count
     nHg2Cats = Hg2Count

@@ -164,6 +164,7 @@ CONTAINS
     INTEGER             :: HgP_CAT
 
     ! For values from Input_Opt
+    LOGICAL             :: Is_Advected
     LOGICAL             :: prtDebug
 !
 ! !DEFINED PARAMETERS
@@ -204,6 +205,9 @@ CONTAINS
     ! Loop over all species
     DO N = 1, nSpecies
 
+       ! It's advected if it's in the tracer list in input.geos
+       Is_Advected = ANY( Input_Opt%TRACER_NAME == Species_Names(N) )
+
        ! Translate species name to uppercase
        NameAllCaps = TRIM( Species_Names(N) )
        CALL TranUc( NameAllCaps )
@@ -232,7 +236,7 @@ CONTAINS
                               MW_g          = 58.08_fp,                     &
                               EmMW_g        = 12.00_fp,                     &
                               MolecRatio    = 3.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
@@ -258,7 +262,7 @@ CONTAINS
                               MW_g          = 44.05_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 2.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
@@ -282,7 +286,7 @@ CONTAINS
                               MW_g          = 58.12_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 4.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -312,7 +316,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 150.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -334,7 +338,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 150.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -387,7 +391,7 @@ CONTAINS
                               FullName      = FullName,                     &
                               MW_g          = 12.01_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -410,7 +414,7 @@ CONTAINS
                               MW_g          = 78.11_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 6.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -425,7 +429,7 @@ CONTAINS
                               Name          = 'Br',                         &
                               FullName      = 'Atomic bromine',             &
                               MW_g          = 80.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -444,7 +448,7 @@ CONTAINS
                               Name          = 'Br2',                        &
                               FullName      = 'Molecular Bromine',          &
                               MW_g          = 160.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -469,7 +473,7 @@ CONTAINS
                               Name          = 'BrCl',                       &
                               FullName      = 'Bromine chloride',           &
                               MW_g          = 115.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -484,7 +488,7 @@ CONTAINS
                               Name          = 'BrNO2',                      &
                               FullName      = 'Nitryl bromide',             &
                               MW_g          = 126.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -499,7 +503,7 @@ CONTAINS
                               Name          = 'BrNO3',                      &
                               FullName      = 'Bromine nitrate',            &
                               MW_g          = 142.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
@@ -516,7 +520,7 @@ CONTAINS
                               Name          = 'BrO',                        &
                               FullName      = 'Bromine monoxide',           &
                               MW_g          = 96.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -533,7 +537,7 @@ CONTAINS
                               MW_g          = 30.07_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 2.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -555,7 +559,7 @@ CONTAINS
                               MW_g          = 44.1_fp,                      &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 3.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -574,7 +578,7 @@ CONTAINS
                               Name          = 'CCl4',                       &
                               FullName      = 'Carbon tetrachloride',       &
                               MW_g          = 152.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -589,7 +593,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'CFC-11',                     &
                               MW_g          = 137.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -604,7 +608,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'CFC-12',                     &
                               MW_g          = 121.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -620,7 +624,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 187.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -635,7 +639,7 @@ CONTAINS
                               Name          = 'CH2Br2',                     &
                               FullName      = 'Dibromomethane',             &
                               MW_g          = 174.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -650,7 +654,7 @@ CONTAINS
                               Name          = 'CH2O',                       &
                               FullName      = 'Formaldehyde',               &
                               MW_g          = 30.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -675,7 +679,7 @@ CONTAINS
                               Name          = 'CH3Br',                      &
                               FullName      = 'Methyl bromide',             &
                               MW_g          = 95.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -690,7 +694,7 @@ CONTAINS
                               Name          = 'CH3Cl',                      &
                               FullName      = 'Chloromethane',              &
                               MW_g          = 50.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -705,7 +709,7 @@ CONTAINS
                               Name          = 'CH3CCl3',                    &
                               FullName      = 'Methyl chloroform',          &
                               MW_g          = 133.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -720,7 +724,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methane',                    &
                               MW_g          = 16.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -735,7 +739,7 @@ CONTAINS
                               Name          = 'CHBr3',                      &
                               FullName      = 'Bromoform',                  &
                               MW_g          = 253.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -750,7 +754,7 @@ CONTAINS
                               Name          = 'Cl',                         &
                               FullName      = 'Atomic chlorine',            &
                               MW_g          = 35.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -765,7 +769,7 @@ CONTAINS
                               Name          = 'Cl2',                        &
                               FullName      = 'Molecular chlorine',         &
                               MW_g          = 71.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -780,7 +784,7 @@ CONTAINS
                               Name          = 'Cl2O2',                      &
                               FullName      = 'Dichlorine dioxide',         &
                               MW_g          = 103.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -795,7 +799,7 @@ CONTAINS
                               Name          = 'ClNO2',                      &
                               FullName      = 'Nitryl chloride',            &
                               MW_g          = 81.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -809,7 +813,7 @@ CONTAINS
                               Name          = 'ClNO3',                      &
                               FullName      = 'Chlorine nitrate',           &
                               MW_g          = 97.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -824,7 +828,7 @@ CONTAINS
                               Name          = 'ClO',                        &
                               FullName      = 'Chlorine monoxide',          &
                               MW_g          = 51.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -848,7 +852,7 @@ CONTAINS
                               Name          = Name,                         &
                               FullName      = 'Chlorine dioxide',           &
                               MW_g          = 67.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -922,7 +926,7 @@ CONTAINS
                               Name          = Name,                         &
                               FullName      = FullName,                     &
                               MW_g          = 28.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -941,7 +945,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Dimethyl sulfide',           &
                               MW_g          = 62.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -978,7 +982,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 29.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1021,7 +1025,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 29.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1065,7 +1069,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 29.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1110,7 +1114,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 29.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1134,7 +1138,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Glycoaldehyde',              &
                               MW_g          = 60.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1159,7 +1163,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Water vapor',                &
                               MW_g          = 18.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -1174,7 +1178,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Hydrogen peroxide',          &
                               MW_g          = 34.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1202,7 +1206,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Hydroxyacetone',             &
                               MW_g          = 74.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
@@ -1224,7 +1228,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'H-1211',                     &
                               MW_g          = 165.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -1239,7 +1243,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'H-1301',                     &
                               MW_g          = 149.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -1254,7 +1258,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               FullName      = 'H-2402',                     &
                               MW_g          = 260.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -1269,7 +1273,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'HCFC-22',                    &
                               MW_g          = 86.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -1286,7 +1290,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 117.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -1301,7 +1305,7 @@ CONTAINS
                               Name          = 'HCl',                        &
                               FullName      = 'Hydrochloric acid',          &
                               MW_g          = 36.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1324,7 +1328,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrous acid',               &
                               MW_g          = 47.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -1351,7 +1355,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitric acid',                &
                               MW_g          = 63.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1381,7 +1385,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Pernitric acid',             &
                               MW_g          = 79.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -1400,7 +1404,7 @@ CONTAINS
                               Name          = 'HBr',                        &
                               FullName      = 'Hypobromic acid',            &
                               MW_g          = 81.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1425,7 +1429,7 @@ CONTAINS
                               Name          = 'HOBr',                       &
                               FullName      = 'Hypobromous acid',           &
                               MW_g          = 97.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1450,7 +1454,7 @@ CONTAINS
                               Name          = 'HOCl',                       &
                               FullName      = 'Hypochlorous acid',          &
                               MW_g          = 52.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -1467,7 +1471,7 @@ CONTAINS
                               MW_g          = 68.12_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 5e+0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -1486,7 +1490,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Isoprene epoxide',           &
                               MW_g          = 118.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1511,7 +1515,7 @@ CONTAINS
 !                              FullName      = '',                           &
 !                              MW_g          = __.0_fp,                      &
 !                              MolecRatio    = 1.0_fp,                       &
-!                              Is_Advected   = T,                            &
+!                              Is_Advected   = Is_Advected,                  &
 !                              Is_Gas        = T,                            &
 !                              Is_Drydep     = T,                            &
 !                              Is_Wetdep     = T,                            &
@@ -1538,7 +1542,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 150.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1561,7 +1565,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 150.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1583,7 +1587,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Isoprene nitrate',           &
                               MW_g          = 147.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1624,7 +1628,7 @@ CONTAINS
                               FullName      = 'Limonene',                   &
                               MW_g          = 136.23_fp,                    &
                               MolecRatio    = 1.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1647,7 +1651,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methacrolein',               &
                               MW_g          = 70.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
@@ -1669,7 +1673,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Peroxyacetic acid',          &
                               MW_g          = 76.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1696,7 +1700,7 @@ CONTAINS
                               MW_g          = 72.11_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 4.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -1715,7 +1719,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrate from MACR + MVK',    &
                               MW_g          = 149.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1739,7 +1743,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = '5C acid from isoprene',      &
                               MW_g          = 114.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = T,                            &
@@ -1772,7 +1776,7 @@ CONTAINS
                               MW_g          = 12.01_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 1.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -1799,7 +1803,7 @@ CONTAINS
                               MW_g          = 12.01_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 1.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -1818,7 +1822,7 @@ CONTAINS
                               Name          = 'MP',                         &
                               FullName      = 'Methyl hydro peroxide',      &
                               MW_g          = 48.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = T,                            &
@@ -1841,7 +1845,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methyl peroxy nitrate',      &
                               MW_g          = 93.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -1870,7 +1874,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methyl sulfonic acid',       &
                               MW_g          = 96.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1893,7 +1897,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 136.23_fp,                    &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1918,7 +1922,7 @@ CONTAINS
                               FullName      = FullName,                     &
                               MW_g          = 136.23_fp,                    &
                               MolecRatio    = 1.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -1938,7 +1942,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methyl vinyl ketone',        &
                               MW_g          = 70.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
@@ -1962,7 +1966,7 @@ CONTAINS
                               MW_g          = 128.27_fp,                    &
                               EmMw_g        = 12.0_fp,                      &
                               MolecRatio    = 10.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -1977,7 +1981,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrous oxide',              &
                               MW_g          = 44.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -1993,7 +1997,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Dinitrogen pentoxide',       &
                               MW_g          = 105.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
@@ -2022,7 +2026,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Ammonia',                    &
                               MW_g          = 17.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2065,7 +2069,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Ammonium',                   &
                               MW_g          = 18.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2101,7 +2105,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Inorganic nitrates',         &
                               MW_g          = 62.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2150,7 +2154,7 @@ CONTAINS
                               Name          = 'NITs',                       &
                               FullName      = FullName,                     &
                               MW_g          = 31.4_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2173,7 +2177,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrogen oxide',             &
                               MW_g          = 30.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -2192,7 +2196,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrogen dioxide',           &
                               MW_g          = 46.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
@@ -2215,7 +2219,7 @@ CONTAINS
                               FullName      = 'Nitrate radical',            &
                               MW_g          = 62.0_fp,                      &
                               MolecRatio    = 1.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -2281,7 +2285,7 @@ CONTAINS
                               Name          = Name,                         &
                               FullName      = FullName,                     &
                               MW_g          = 48.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
@@ -2330,7 +2334,7 @@ CONTAINS
                               FullName      = FullName,                     &
                               MW_g          = 12.01_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2363,7 +2367,7 @@ CONTAINS
                               MW_g          = 12.01_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 1.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2387,7 +2391,7 @@ CONTAINS
                               MW_g          = 12.01_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 1.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2407,7 +2411,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Carbonyl sulfide',           &
                               MW_g          = 60.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -2422,7 +2426,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Peroxyacetyl nitrate',       &
                               MW_g          = 121.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
@@ -2447,7 +2451,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Peroxymethacroyl nitrate',   &
                               MW_g          = 147.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
@@ -2471,7 +2475,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FULLNAME,                     &
                               MW_g          = 135.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
@@ -2502,7 +2506,7 @@ CONTAINS
                               MW_g          = 12.01_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 1.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2525,7 +2529,7 @@ CONTAINS
                               MW_g          = 12.01_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 1.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2547,7 +2551,7 @@ CONTAINS
                               MW_g          = 42.08_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 3.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -2566,7 +2570,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Propanone nitrate',          &
                               MW_g          = 119.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2592,7 +2596,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Lumped alkyl nitrate',       &
                               MW_g          = 119.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
@@ -2615,7 +2619,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Lumped aldehyde >= C3',      &
                               MW_g          = 58.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -2634,7 +2638,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Peroxide from RIO2',         &
                               MW_g          = 118.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2670,7 +2674,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = Fullname,                     &
                               MW_g          = 31.4_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2704,7 +2708,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = Fullname,                     &
                               MW_g          = 31.4_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2746,7 +2750,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Sulfur dioxide',             &
                               MW_g          = 64.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2787,7 +2791,7 @@ CONTAINS
                               Name          = 'SO4',                        &
                               FullName      = 'Sulfate',                    &
                               MW_g          = 96.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2836,7 +2840,7 @@ CONTAINS
                               Name          = 'SO4s',                       &
                               FullName      = FullName,                     &
                               MW_g          = 31.4_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2861,7 +2865,7 @@ CONTAINS
                               MW_g          = 92.14_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 7.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -2886,7 +2890,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 150.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2908,7 +2912,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 150.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2930,7 +2934,7 @@ CONTAINS
                               MW_g          = 106.16_fp,                    &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 8.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -2947,7 +2951,7 @@ CONTAINS
                               Name          = 'Rn',                         &
                               FullName      = 'Radon-222 isotope',          &
                               MW_g          = 222.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -2968,7 +2972,7 @@ CONTAINS
                               Name          = 'Pb',                         &
                               FullName      = 'Lead-210 isotope',           &
                               MW_g          = 210.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2995,7 +2999,7 @@ CONTAINS
                               Name          = 'Be7',                        &
                               FullName      = 'Beryllium-7 isotope',        &
                               MW_g          = 7.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -3014,7 +3018,7 @@ CONTAINS
                               Name          = 'PASV',                       &
                               FullName      = 'Passive tracer',             &
                               MW_g          = 1.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -3128,7 +3132,7 @@ CONTAINS
                               Name          = Name,                         &
                               FullName      = FullName,                     &
                               MW_g          = 201.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
@@ -3241,7 +3245,7 @@ CONTAINS
                               Name          = Name,                         &
                               FullName      = FullName,                     &
                               MW_g          = 201.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -3396,7 +3400,7 @@ CONTAINS
                               Name          = Name,                         &
                               FullName      = FullName,                     &
                               MW_g          = 201.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -3497,7 +3501,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = MW_g,                         &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -3555,7 +3559,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = MW_g,                         &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -3603,7 +3607,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = MW_g,                         &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -3669,7 +3673,7 @@ CONTAINS
                               Name          = Name,                         &
                               FullName      = FullName,                     &
                               MW_g          = 44.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -3709,7 +3713,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 18.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -3753,7 +3757,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 100.0_fp,                     &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = T,                            &
@@ -3797,7 +3801,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 12.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = T,                            &
@@ -3841,7 +3845,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 12.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
@@ -3874,7 +3878,7 @@ CONTAINS
                               FullName      = 'Sulfuric acid',              &
                               MW_g          = 98.0_fp,                      &
                               MolecRatio    = 1.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -3917,7 +3921,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 1.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -3962,7 +3966,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 12.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = T,                            &
@@ -4006,7 +4010,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 12.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = T,                            &
@@ -4048,7 +4052,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 96.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = T,                            &
@@ -4090,7 +4094,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 58.5_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = T,                            &
