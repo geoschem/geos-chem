@@ -479,7 +479,6 @@
 ! !USES:
 !
       USE ERROR_MOD
-      USE COMODE_MOD
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
 !
@@ -785,7 +784,6 @@
 ! !USES:
 !
       USE ERROR_MOD
-      USE COMODE_MOD
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1065,7 +1063,6 @@
 ! !USES:
 !
       USE DAO_MOD
-      USE COMODE_MOD
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
       USE GIGC_Input_Opt_Mod, ONLY : OptInput

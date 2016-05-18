@@ -48,12 +48,13 @@
 ! Prior to 12/22/15:
 !      REAL(fp), ALLOCATABLE, PUBLIC :: CSPEC(:,:)
 !------------------------------------------------------------------------------
-      REAL(fp), ALLOCATABLE, PUBLIC :: CSUMA(:)
-      REAL(fp), ALLOCATABLE, PUBLIC :: CSUMC(:)
-      REAL(fp), ALLOCATABLE, PUBLIC :: ERRMX2(:)
-      INTEGER,  ALLOCATABLE, PUBLIC :: IXSAVE(:)
-      INTEGER,  ALLOCATABLE, PUBLIC :: IYSAVE(:)
-      INTEGER,  ALLOCATABLE, PUBLIC :: IZSAVE(:)
+! Prior to 5/18/16:
+!      REAL(fp), ALLOCATABLE, PUBLIC :: CSUMA(:)
+!      REAL(fp), ALLOCATABLE, PUBLIC :: CSUMC(:)
+!      REAL(fp), ALLOCATABLE, PUBLIC :: ERRMX2(:)
+!      INTEGER,  ALLOCATABLE, PUBLIC :: IXSAVE(:)
+!      INTEGER,  ALLOCATABLE, PUBLIC :: IYSAVE(:)
+!      INTEGER,  ALLOCATABLE, PUBLIC :: IZSAVE(:)
 !------------------------------------------------------------------------------
 ! Prior to 5/17/16:
 !      INTEGER,  ALLOCATABLE, PUBLIC :: JLOP(:,:,:)
@@ -61,7 +62,8 @@
 !      INTEGER,  ALLOCATABLE, PUBLIC :: JLOP_PREVIOUS(:,:,:)
 !#endif
 !------------------------------------------------------------------------------
-      REAL(fp), ALLOCATABLE, PUBLIC :: REMIS(:,:)
+! Prior to 5/18/16:
+!      REAL(fp), ALLOCATABLE, PUBLIC :: REMIS(:,:)
 !------------------------------------------------------------------------------
 ! Prior to 5/11/16:
 !      REAL(fp), ALLOCATABLE, PUBLIC :: ERADIUS(:,:)
@@ -119,6 +121,7 @@
 !  12 May 2016 - M. Sulprizio- Remove ERADIUS, TAREA, WERADIUS, WTAREA. These
 !                              fields are now stored as 3D arrays in State_Chm.
 !  17 May 2016 - M. Sulprizio- Remove JLOP and JLOP_PREVIOUS
+!  18 May 2016 - M. Sulprizio- Remove remaining arrays and move file to obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -213,38 +216,36 @@
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC' )
 !         CSPEC = 0e+0_fp
 !------------------------------------------------------------------------------
-
-         ALLOCATE( CSUMA( ITLOOP ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMA' )
-         CSUMA = 0e+0_fp
-      
-         ALLOCATE( CSUMC( ITLOOP ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMC' )
-         CSUMC = 0e+0_fp
-
+! Prior to 5/18/16: 
+!         ALLOCATE( CSUMA( ITLOOP ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMA' )
+!         CSUMA = 0e+0_fp
+!      
+!         ALLOCATE( CSUMC( ITLOOP ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMC' )
+!         CSUMC = 0e+0_fp
 !------------------------------------------------------------------------------
 ! Prior to 5/12/16:
 !         ALLOCATE( ERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERADIUS' )
 !         ERADIUS = 0e+0_fp      
 !------------------------------------------------------------------------------
-
-         ALLOCATE( ERRMX2( ITLOOP ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERRMX2' )
-         ERRMX2 = 0e+0_fp
-           
-         ALLOCATE( IXSAVE( ITLOOP ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'IXSAVE' )
-         IXSAVE = 0
-      
-         ALLOCATE( IYSAVE( ITLOOP ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'IYSAVE' )
-         IYSAVE = 0
-      
-         ALLOCATE( IZSAVE( ITLOOP ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'IZSAVE' )
-         IZSAVE = 0
-      
+! Prior to 5/18/16:           
+!         ALLOCATE( ERRMX2( ITLOOP ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERRMX2' )
+!         ERRMX2 = 0e+0_fp
+!
+!         ALLOCATE( IXSAVE( ITLOOP ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'IXSAVE' )
+!         IXSAVE = 0
+!      
+!         ALLOCATE( IYSAVE( ITLOOP ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'IYSAVE' )
+!         IYSAVE = 0
+!      
+!         ALLOCATE( IZSAVE( ITLOOP ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'IZSAVE' )
+!         IZSAVE = 0
 !------------------------------------------------------------------------------
 ! Prior to 5/17/16:
 !         ALLOCATE( JLOP( ILONG, ILAT, IPVERT ), STAT=AS )
@@ -257,18 +258,16 @@
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'JLOP_PREVIOUS' )
 !         JLOP_PREVIOUS = 0
 !#endif
-!
 !------------------------------------------------------------------------------
 ! Prior to 12/21/15:
 !         ALLOCATE( PRESS3( ITLOOP ), STAT=AS )
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRESS3' )
 !         PRESS3 = 0e+0_fp
 !------------------------------------------------------------------------------
-      
-         ALLOCATE( REMIS( ITLOOP, MAXGL3 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'REMIS' )
-         REMIS = 0e+0_fp
-      
+! Prior to 5/18/16:
+!         ALLOCATE( REMIS( ITLOOP, MAXGL3 ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'REMIS' )
+!         REMIS = 0e+0_fp      
 !------------------------------------------------------------------------------
 ! Prior to 12/21/15:
 !         ALLOCATE( T3( ITLOOP ), STAT=AS )
@@ -318,19 +317,18 @@
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERADIUS' )
 !         ERADIUS = 0e+0_fp      
 !------------------------------------------------------------------------------
-
-         ALLOCATE( IXSAVE( ITLOOP ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'IXSAVE' )
-         IXSAVE = 0
-      
-         ALLOCATE( IYSAVE( ITLOOP ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'IYSAVE' )
-         IYSAVE = 0
-      
-         ALLOCATE( IZSAVE( ITLOOP ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'IZSAVE' )
-         IZSAVE = 0
-      
+! Prior to 5/18/16:
+!         ALLOCATE( IXSAVE( ITLOOP ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'IXSAVE' )
+!         IXSAVE = 0
+!      
+!         ALLOCATE( IYSAVE( ITLOOP ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'IYSAVE' )
+!         IYSAVE = 0
+!      
+!         ALLOCATE( IZSAVE( ITLOOP ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'IZSAVE' )
+!         IZSAVE = 0      
 !------------------------------------------------------------------------------
 ! Prior to 5/17/16:
 !         ALLOCATE( JLOP( ILONG, ILAT, IPVERT ), STAT=AS )
@@ -396,12 +394,13 @@
 ! Prior to 12/22/15:
 !      IF ( ALLOCATED( CSPEC         ) ) DEALLOCATE( CSPEC         )
 !------------------------------------------------------------------------------
-      IF ( ALLOCATED( CSUMA         ) ) DEALLOCATE( CSUMA         )
-      IF ( ALLOCATED( CSUMC         ) ) DEALLOCATE( CSUMC         )
-      IF ( ALLOCATED( ERRMX2        ) ) DEALLOCATE( ERRMX2        )
-      IF ( ALLOCATED( IXSAVE        ) ) DEALLOCATE( IXSAVE        )
-      IF ( ALLOCATED( IYSAVE        ) ) DEALLOCATE( IYSAVE        )
-      IF ( ALLOCATED( IZSAVE        ) ) DEALLOCATE( IZSAVE        )
+! Prior to 5/18/16:
+!      IF ( ALLOCATED( CSUMA         ) ) DEALLOCATE( CSUMA         )
+!      IF ( ALLOCATED( CSUMC         ) ) DEALLOCATE( CSUMC         )
+!      IF ( ALLOCATED( ERRMX2        ) ) DEALLOCATE( ERRMX2        )
+!      IF ( ALLOCATED( IXSAVE        ) ) DEALLOCATE( IXSAVE        )
+!      IF ( ALLOCATED( IYSAVE        ) ) DEALLOCATE( IYSAVE        )
+!      IF ( ALLOCATED( IZSAVE        ) ) DEALLOCATE( IZSAVE        )
 !------------------------------------------------------------------------------
 ! Prior to 5/17/16:
 !      IF ( ALLOCATED( JLOP          ) ) DEALLOCATE( JLOP          )
@@ -409,7 +408,8 @@
 !      IF ( ALLOCATED( JLOP_PREVIOUS ) ) DEALLOCATE( JLOP_PREVIOUS )
 !#endif
 !------------------------------------------------------------------------------
-      IF ( ALLOCATED( REMIS         ) ) DEALLOCATE( REMIS         )
+! Prior to 5/18/16:
+!      IF ( ALLOCATED( REMIS         ) ) DEALLOCATE( REMIS         )
 !------------------------------------------------------------------------------
 ! Prior to 5/11/16:
 !      IF ( ALLOCATED( ERADIUS       ) ) DEALLOCATE( ERADIUS       )

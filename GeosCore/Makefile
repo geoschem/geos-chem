@@ -153,6 +153,7 @@
 #                              and merra2_read_mod.o
 #  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
 #  07 Dec 2015 - R. Yantosca - Add "realclean_except_rrtmg" target
+#  18 May 2016 - M. Sulprizio- Remove comode_mod.F and setemis.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -416,9 +417,9 @@ a6_read_mod.o               : a6_read_mod.F                                  \
                               dao_mod.o               diag_mod.o              
 
 aerosol_mod.o               : aerosol_mod.F                                  \
-                              chemgrid_mod.o          comode_mod.o           \
-                              dao_mod.o               diag_mod.o             \
-                              tracerid_mod.o          ucx_mod.o
+                              chemgrid_mod.o          dao_mod.o              \
+                              diag_mod.o              tracerid_mod.o         \
+                              ucx_mod.o
 
 backsub.o                   : backsub.F
 
@@ -433,8 +434,7 @@ c2h6_mod.o                  : c2h6_mod.F                                     \
                               tracerid_mod.o
 
 carbon_mod.o                : carbon_mod.F                                   \
-                              chemgrid_mod.o                                 \
-                              comode_mod.o            dao_mod.o              \
+                              chemgrid_mod.o          dao_mod.o              \
                               diag_mod.o              drydep_mod.o           \
                               future_emissions_mod.o  pbl_mix_mod.o          \
                               tomas_mod.o             tracer_mod.o           \
@@ -442,15 +442,13 @@ carbon_mod.o                : carbon_mod.F                                   \
                               hcoi_gc_main_mod.o
 
 chemgrid_mod.o              : chemgrid_mod.F                                 \
-                              comode_mod.o            dao_mod.o              \
-                              diag_mod.o              
+                              dao_mod.o               diag_mod.o
 
 chemistry_mod.o             : chemistry_mod.F                                \
                               aerosol_mod.o           isoropiaII_mod.o       \
                               c2h6_mod.o              carbon_mod.o           \
-                              comode_mod.o            dust_mod.o             \
-                              drydep_mod.o            global_ch4_mod.o       \
-                              mercury_mod.o                                  \
+                              dust_mod.o              drydep_mod.o           \
+                              global_ch4_mod.o        mercury_mod.o          \
                               pops_mod.o              rpmares_mod.o          \
                               RnPbBe_mod.o            seasalt_mod.o          \
                               strat_chem_mod.o        sulfate_mod.o          \
@@ -462,7 +460,7 @@ cleanup.o                   : cleanup.F                                      \
                               aerosol_mod.o                                  \
                               bromocarb_mod.o         c2h6_mod.o             \
                               carbon_mod.o            chemgrid_mod.o         \
-                              co2_mod.o               comode_mod.o           \
+                              co2_mod.o                                      \
                               dao_mod.o               depo_mercury_mod.o     \
                               diag_mod.o              diag03_mod.o           \
                               diag04_mod.o            diag41_mod.o           \
@@ -491,8 +489,6 @@ cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 co2_mod.o                   : co2_mod.F                                      \
                               diag04_mod.o            tracerid_mod.o         \
                               hcoi_gc_main_mod.o
-
-comode_mod.o                : comode_mod.F
 
 convection_mod.o            : convection_mod.F                               \
                               diag_mod.o              depo_mercury_mod.o     \
@@ -544,9 +540,8 @@ diag49_mod.o                : diag49_mod.F                                   \
                               tracer_mod.o            tracerid_mod.o
 
 diag50_mod.o                : diag50_mod.F                                   \
-                              chemgrid_mod.o          comode_mod.o           \
-                              pbl_mix_mod.o           tracer_mod.o           \
-                              tracerid_mod.o
+                              chemgrid_mod.o          pbl_mix_mod.o          \
+                              tracer_mod.o            tracerid_mod.o
 
 diag51_mod.o                : diag51_mod.F                                   \
                               chemgrid_mod.o          modis_lai_mod.o        \
@@ -581,15 +576,15 @@ diag_2pm.o                  : diag_2pm.F                                     \
 diag_mod.o                  : diag_mod.F
 
 diag_oh_mod.o               : diag_oh_mod.F                                  \
-                              chemgrid_mod.o          comode_mod.o           \
-                              tracerid_mod.o          tracer_mod.o
+                              chemgrid_mod.o          tracerid_mod.o         \
+                              tracer_mod.o
 
 diag_pl_mod.o               : diag_pl_mod.F                                  \
-                              chemgrid_mod.o          comode_mod.o           \
-                              tracerid_mod.o          tracer_mod.o
+                              chemgrid_mod.o          tracerid_mod.o         \
+                              tracer_mod.o
 
 drydep_mod.o                : drydep_mod.F                                   \
-                              comode_mod.o            dao_mod.o              \
+                              dao_mod.o                                      \
                               diag_mod.o              get_ndep_mod.o         \
                               pbl_mix_mod.o           tomas_mod.o            \
                               tracerid_mod.o
@@ -598,7 +593,7 @@ diagoh.o                    : diagoh.F                                       \
                               diag_mod.o
 
 dust_mod.o                  : dust_mod.F                                     \
-                              comode_mod.o            diag_mod.o             \
+                              diag_mod.o                                     \
                               drydep_mod.o            hcoi_gc_main_mod.o     \
                               tomas_mod.o             tracerid_mod.o
 
@@ -617,14 +612,14 @@ fast_jx_mod.o               : fast_jx_mod.F                                  \
                               chemgrid_mod.o          dao_mod.o              \
                               toms_mod.o              tracerid_mod.o
 
-flex_chemdr.o               : aerosol_mod.o           comode_mod.o           \
-                              dao_mod.o               diag_oh_mod.o          \
-                              diag_pl_mod.o           future_emissions_mod.o \
-                              dust_mod.o              flexchem_setup_mod.o   \
+flex_chemdr.o               : flex_chemdr.F                                  \
+                              aerosol_mod.o           dao_mod.o              \
+                              diag_oh_mod.o           diag_pl_mod.o          \
+                              fast_jx_mod.o           dust_mod.o             \
+                              future_emissions_mod.o  flexchem_setup_mod.o   \
                               planeflight_mod.o       restart_mod.o          \
                               tracer_mod.o            tracerid_mod.o         \
-                              uvalbedo_mod.o                                 \
-                              fast_jx_mod.o
+                              uvalbedo_mod.o
 
 flexchem_setup_mod.o        : flexchem_setup_mod.F90                         \
                               restart_mod.o           chemgrid_mod.o
@@ -725,7 +720,7 @@ input_mod.o                 : input_mod.F                                    \
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               chemgrid_mod.o          tracerid_mod.o
 
-jsparse.o                   : jsparse.F               comode_mod.o
+jsparse.o                   : jsparse.F
 
 ksparse.o                   : ksparse.F
 
@@ -742,8 +737,7 @@ main.o                      : main.F                                         \
                               benchmark_mod.o                                \
                               chemgrid_mod.o          chemistry_mod.o        \
                               carbon_mod.o            convection_mod.o       \
-                              comode_mod.o            diag_mod.o             \
-                              diagnostics_mod.o                              \
+                              diag_mod.o              diagnostics_mod.o      \
                               diag41_mod.o            diag42_mod.o           \
                               diag48_mod.o            diag49_mod.o           \
                               diag50_mod.o            diag51_mod.o           \
@@ -823,8 +817,7 @@ ocean_mercury_mod.o         : ocean_mercury_mod.F                            \
                               toms_mod.o
 
 ohsave.o                    : ohsave.F                                       \
-                              chemgrid_mod.o          comode_mod.o           \
-                              tracerid_mod.o
+                              chemgrid_mod.o          tracerid_mod.o
 
 olson_landmap_mod.o         : olson_landmap_mod.F90                          \
                               mapping_mod.o
@@ -840,15 +833,13 @@ pjc_pfix_window_mod.o       : pjc_pfix_window_mod.F
 pjc_pfix_mod.o              : pjc_pfix_mod.F
 
 planeflight_mod.o           : planeflight_mod.F                              \
-                              chemgrid_mod.o          comode_mod.o           \
-                              diag_mod.o              ocean_mercury_mod.o    \
-                              tracer_mod.o
+                              chemgrid_mod.o          diag_mod.o             \
+                              ocean_mercury_mod.o     tracer_mod.o
 
 pops_mod.o           	    : pops_mod.F    	                             \
 			      diag_mod.o	      diag53_mod.o           \
-                              drydep_mod.o                                   \
-                              pbl_mix_mod.o	      tracerid_mod.o         \
-                              vdiff_pre_mod.o
+                              drydep_mod.o            pbl_mix_mod.o	     \
+                              tracerid_mod.o          vdiff_pre_mod.o
 
 readchem.o                  : readchem.F                                     \
                               diag_pl_mod.o           drydep_mod.o
@@ -858,8 +849,8 @@ reader.o                    : reader.F
 read_jv_atms_dat.o          : read_jv_atms_dat.F90
 
 restart_mod.o               : restart_mod.F                                  \
-                              comode_mod.o            hcoi_gc_main_mod.o     \
-                              ocean_mercury_mod.o     tracerid_mod.o            
+                              hcoi_gc_main_mod.o      ocean_mercury_mod.o    \
+                              tracerid_mod.o
 
 RnPbBe_mod.o                : RnPbBe_mod.F                                   \
                               chemgrid_mod.o          diag_mod.o             \
@@ -867,9 +858,9 @@ RnPbBe_mod.o                : RnPbBe_mod.F                                   \
                               hcoi_gc_main_mod.o
 
 rrtmg_rad_transfer_mod.o    : rrtmg_rad_transfer_mod.F                        \
-                              chemgrid_mod.o          comode_mod.o            \
-                              diag_mod.o              set_prof_o3.o           \
-                              toms_mod.o              tracerid_mod.o
+                              chemgrid_mod.o          diag_mod.o              \
+                              set_prof_o3.o           toms_mod.o              \
+                              tracerid_mod.o
 
 rpmares_mod.o               : rpmares_mod.F                                  \
                               chemgrid_mod.o                                 \
@@ -885,11 +876,6 @@ set_prof_o3.o               : set_prof_o3.F
 
 setemdep.o                  : setemdep.F                                     \
                               tracerid_mod.o
-
-setemis.o                   : setemis.F                                      \
-                              chemgrid_mod.o          comode_mod.o           \
-                              pbl_mix_mod.o           tracerid_mod.o         \
-                              hcoi_gc_main_mod.o
 
 species_database_mod.o      : species_database_mod.F90
 
@@ -909,7 +895,7 @@ strat_chem_mod.o            : strat_chem_mod.F90                             \
 subfun.o                    : subfun.F
 
 sulfate_mod.o               : sulfate_mod.F                                  \
-                              chemgrid_mod.o          comode_mod.o           \
+                              chemgrid_mod.o                                 \
                               dao_mod.o               diag_mod.o             \
                               drydep_mod.o            dust_mod.o             \
                               future_emissions_mod.o  get_ndep_mod.o         \
@@ -969,7 +955,7 @@ ifeq ($(COMPILER),sun)
 endif
 
 vdiff_mod.o                 : vdiff_mod.F90                                  \
-                              comode_mod.o            dao_mod.o              \
+                              dao_mod.o                                      \
                               depo_mercury_mod.o      diag_mod.o             \
                               drydep_mod.o            ocean_mercury_mod.o    \
                               pbl_mix_mod.o           vdiff_pre_mod.o        \

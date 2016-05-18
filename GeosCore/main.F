@@ -50,7 +50,6 @@
       !-----------------------------------------------------------------
       USE CARBON_MOD            ! For SOA simulation
       USE CHEMISTRY_MOD         ! Driver routines for chemistry
-      USE COMODE_MOD            ! Allocatable arrays for SMVGEAR solver
       USE COMODE_LOOP_MOD       ! Formerly common-block arrays for SMVGEAR
       USE GLOBAL_CH4_MOD        ! For offline CH4 simulation
       USE MERCURY_MOD           ! For offline Hg simulation (driver)
@@ -284,6 +283,7 @@
 !  25 Jan 2016 - R. Yantosca - Call LINE_BUFFER to force PGI compiler to flush
 !                               STDOUT (unit=6) output to disk during a run
 !  03 Feb 2016 - E. Lundgren - Use routine MAKE_RESTART_FILES for all GC rsts
+!  18 May 2016 - M. Sulprizio- Remove call to INIT_COMODE; it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -610,14 +610,6 @@
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_TROPOPAUSE' )
       ENDIF
 
-      ! Initialize allocatable KPP arrays
-      IF ( LEMIS .or. LCHEM ) THEN
-         IF ( ITS_A_FULLCHEM_SIM   .or.
-     &        ITS_AN_AEROSOL_SIM ) THEN
-            CALL INIT_COMODE( am_I_Root, Input_Opt, RC )
-         ENDIF
-      ENDIF
-         
       ! Added to read input file for linoz strat (dbj, jliu, bmy, 10/16/09)
       IF ( LLINOZ ) THEN
          CALL LINOZ_READ( am_I_Root, Input_Opt, RC )

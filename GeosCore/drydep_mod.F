@@ -18,7 +18,6 @@
       USE CMN_SIZE_MOD                          ! Size parameters
       USE CMN_DIAG_MOD                          ! Diag counters & flags
       USE PHYSCONSTANTS                         ! Physical constants
-      USE COMODE_MOD                            ! Large arrays for SMVGEAR
       USE DAO_MOD                               ! Met field subroutines
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
