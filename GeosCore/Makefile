@@ -153,7 +153,8 @@
 #                              and merra2_read_mod.o
 #  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
 #  07 Dec 2015 - R. Yantosca - Add "realclean_except_rrtmg" target
-#  18 May 2016 - M. Sulprizio- Remove comode_mod.F and setemis.F
+#  18 May 2016 - M. Sulprizio- Remove comode_mod.F, setemis.F, and several
+#                              leftover routines from SMVGEAR
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -421,8 +422,6 @@ aerosol_mod.o               : aerosol_mod.F                                  \
                               diag_mod.o              tracerid_mod.o         \
                               ucx_mod.o
 
-backsub.o                   : backsub.F
-
 benchmark_mod.o             : benchmark_mod.F                                \
                               tracerid_mod.o
 
@@ -498,8 +497,6 @@ convection_mod.o            : convection_mod.F                               \
                               tracer_mod.o            tracerid_mod.o
 
 dao_mod.o                   : dao_mod.F                              
-
-decomp.o                    : decomp.F
 
 depo_mercury_mod.o          : depo_mercury_mod.F                             \
                               dao_mod.o               diag_mod.o             \
@@ -826,8 +823,6 @@ pbl_mix_mod.o               : pbl_mix_mod.F                                  \
                               tendencies_mod.o                               \
                               diag_mod.o              tracer_mod.o
 
-pderiv.o                    : pderiv.F
-
 pjc_pfix_window_mod.o       : pjc_pfix_window_mod.F
 
 pjc_pfix_mod.o              : pjc_pfix_mod.F
@@ -874,9 +869,6 @@ seasalt_mod.o               : seasalt_mod.F           dao_mod.o              \
 
 set_prof_o3.o               : set_prof_o3.F                                   
 
-setemdep.o                  : setemdep.F                                     \
-                              tracerid_mod.o
-
 species_database_mod.o      : species_database_mod.F90
 
 ucx_mod.o                   : ucx_mod.F                                      \
@@ -891,8 +883,6 @@ strat_chem_mod.o            : strat_chem_mod.F90                             \
                               chemgrid_mod.o          dao_mod.o              \
                               linoz_mod.o             tagged_ox_mod.o        \
                               tracer_mod.o            tracerid_mod.o
-
-subfun.o                    : subfun.F
 
 sulfate_mod.o               : sulfate_mod.F                                  \
                               chemgrid_mod.o                                 \
@@ -944,8 +934,6 @@ transport_mod.o             : transport_mod.F                                \
                               tracer_mod.o            tpcore_window_mod.o    \
                               tendencies_mod.o        pjc_pfix_window_mod.o  \
                               dao_mod.o
-
-update.o                    : update.F
 
 uvalbedo_mod.o              : uvalbedo_mod.F90
 
