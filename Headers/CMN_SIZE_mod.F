@@ -633,9 +633,6 @@
 !      INTEGER,    PARAMETER :: NNSTA = 800
 !-----------------------------------------------------------------------------
 
-      ! MAXIJ - Maximum number of 1st level grid boxes
-      INTEGER               :: MAXIJ
-
       ! LLCONVM - Max number of layers for convection
       INTEGER               :: LLCONVM
 
@@ -787,6 +784,7 @@
 !  22 May 2015 - R. Yantosca - Updated comments, cosmetic changes
 !  22 May 2015 - R. Yantosca - Removed variables made obsolete by HEMCO
 !  28 Jan 2016 - M. Sulprizio- Remove NBIOMAX made obsolete by HEMCO
+!  18 May 2016 - M. Sulprizio- Remove MAXIJ made obsolete by FlexChem
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -989,7 +987,6 @@
 #endif   
 
       ! Set values for former variables declared as parameters
-      MAXIJ   = IIPAR * JJPAR      
       LLCONVM = LLPAR - 1
 
 
