@@ -243,14 +243,14 @@
 !
 ! !USES:
 !
-      USE COMODE_MOD,         ONLY : JLOP
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L, GET_PBL_TOP_m
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
-      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
       USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
       USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
@@ -314,6 +314,7 @@
 !  26 Feb 2014 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod
 !  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
+!  17 May 2016 - M. Sulprizio- Add IS_CHEM logical for incrementing COUNT_CHEM3D
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -323,6 +324,7 @@
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL, SAVE       :: IS_FULLCHEM, IS_SEASALT
       LOGICAL, SAVE       :: IS_CLDTOPS,  IS_NOy,    IS_OPTD, IS_SLP
+      LOGICAL             :: IS_CHEM
       LOGICAL             :: LINTERP
       INTEGER             :: H, I, J, K, L, M, N
       INTEGER             :: PBLINT,  R, X, Y, W
@@ -371,6 +373,10 @@
          FIRST       = .FALSE.
       ENDIF
 
+      ! Is it a chemistry timestep?
+      IS_CHEM = ( MOD( GET_ELAPSED_MIN()-GET_TS_DYN(), 
+     &                 GET_TS_CHEM() ) == 0 )
+
       ! Echo time information to the screen
       STAMP = TIMESTAMP_STRING()
       WRITE( 6, 100 ) STAMP
@@ -393,8 +399,8 @@
          LINTERP=.TRUE.
       ENDIF
 
-      ! Also increment 3-D counter for boxes in the tropopause
-      IF ( IS_FULLCHEM ) THEN
+      ! Also increment 3-D counter for boxes in the chemistry grid
+      IF ( IS_FULLCHEM .and. IS_CHEM ) THEN
          
          ! Loop over levels
 !$OMP PARALLEL DO 
@@ -412,12 +418,8 @@
          DO X = 1, ND50_NI
             I = GET_I( X )
 
-            ! Only increment if we were in the trop at the previous chemistry
-            ! time step. We can't use ITS_IN_THE_TROP because it might not
-            ! be a chemistry time step. Use JLOP instead:
-            ! JLOP  = 0 if outside chemistry grid
-            ! JLOP /= 0 if in chemistry grid
-            IF ( JLOP( I, J, L ) > 0 ) THEN
+            ! Only increment if we were in the chemistry grid
+            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
                COUNT_CHEM3D(X,Y,K) = COUNT_CHEM3D(X,Y,K) + 1
             ENDIF
 

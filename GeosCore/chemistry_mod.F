@@ -84,7 +84,6 @@
 ! !USES:
 !
       USE AEROSOL_MOD,        ONLY : AEROSOL_CONC
-      USE AEROSOL_MOD,        ONLY : AEROSOL_RURALBOX
       USE AEROSOL_MOD,        ONLY : RDAER
       USE AEROSOL_MOD,        ONLY : SOILDUST
       USE C2H6_MOD,           ONLY : CHEMC2H6
@@ -230,6 +229,8 @@
 !  17 Mar 2016 - M. Sulprizio- Remove call to OPTDEPTH. The optical depth fields
 !                              are now saved into State_Met%OPTD in the routines
 !                              that read the met fields from disk.
+!  16 May 2016 - M. Sulprizio- Remove call to AEROSOL_RURALBOX. The FlexChem
+!                              implementation has rendered the routine obsolete.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -530,24 +531,6 @@
             CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
 #endif
 
-            ! Define loop index and other SMVGEAR arrays
-            ! N_TROP, the # of trop boxes, is returned
-            CALL AEROSOL_RURALBOX( N_TROP,    am_I_Root, 
-     &                             Input_Opt, State_Met  )
-
-            ! Initialize FAST-JX quantities for computing AOD's
-            IF ( FIRST ) THEN
-
-               ! Reset NTLOOP and NTTLOOP after call to READER
-               ! with the actual # of boxes w/in the ann mean trop
-               NTLOOP  = N_TROP
-               NTTLOOP = N_TROP
- 
-               ! Reset first-time flag
-               FIRST = .FALSE.
-
-            ENDIF
- 
             ! Compute aerosol & dust concentrations [kg/m3]
             ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
             CALL AEROSOL_CONC
@@ -564,8 +547,8 @@
             MONTH      = 0
             YEAR       = 0
             WAVELENGTH = 0
-            CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
-     &                  MONTH,     YEAR,      WAVELENGTH      )
+            CALL RDAER( am_I_Root, Input_Opt, State_Met, State_Chm,
+     &                  RC,        MONTH,     YEAR,      WAVELENGTH )
 
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
             IF ( LSULF ) THEN
@@ -618,8 +601,8 @@
                ! Compute dust OD's & surface areas
                WAVELENGTH = 0
                CALL RDUST_ONLINE
-     &             ( am_I_Root, Input_Opt,  State_Met, 
-     &               SOILDUST,  WAVELENGTH, RC         )
+     &             ( am_I_Root, Input_Opt,  State_Met, State_Chm,
+     &               SOILDUST,  WAVELENGTH, RC )
             ENDIF
 
 #if defined( USE_TIMERS )
@@ -851,8 +834,8 @@
 
                ! Calculate the AOD at the wavelength specified in jv_spec_aod
                WAVELENGTH = 1
-               CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
-     &                     MONTH,     YEAR,      WAVELENGTH      )
+               CALL RDAER( am_I_Root, Input_Opt, State_Met, State_Chm,
+     &                     RC,        MONTH,     YEAR,      WAVELENGTH )
 
                !### Debug
                IF ( LPRT .and. am_I_Root ) THEN 
@@ -870,12 +853,12 @@
                !===============================================================
                IF ( LDUST ) THEN
                   CALL RDUST_ONLINE
-     &               ( am_I_Root, Input_Opt,  State_Met,
-     &                 SOILDUST,  WAVELENGTH, RC         )
+     &               ( am_I_Root, Input_Opt,  State_Met, State_Chm,
+     &                 SOILDUST,  WAVELENGTH, RC )
 #if  !defined( TOMAS )
                ELSE
                   CALL RDUST_OFFLINE
-     &               ( am_I_Root, Input_Opt, State_Met,
+     &               ( am_I_Root, Input_Opt, State_Met,  State_Chm,
      &                 MONTH,     YEAR,      WAVELENGTH, RC )
 #endif
                ENDIF

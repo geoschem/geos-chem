@@ -79,6 +79,8 @@ MODULE GIGC_State_Chm_Mod
      INTEGER                    :: nAero                ! # of Aerosol Types
      REAL(fp),          POINTER :: AeroArea   (:,:,:,:) ! Aerosol Area [cm2/cm3]
      REAL(fp),          POINTER :: AeroRadi   (:,:,:,:) ! Aerosol Radius [cm]
+     REAL(fp),          POINTER :: WetAeroArea(:,:,:,:) ! Aerosol Area [cm2/cm3]
+     REAL(fp),          POINTER :: WetAeroRadi(:,:,:,:) ! Aerosol Radius [cm]
 
 #if defined( ESMF_ )
      ! Chemical rates & rate parameters
@@ -121,6 +123,8 @@ MODULE GIGC_State_Chm_Mod
 !  28 Jan 2016 - M. Sulprizio- Add STATE_PSC, KHETI_SLA. These were previously
 !                              local arrays in ucx_mod.F, but now need to be
 !                              accessed in gckpp_HetRates.F90.
+!  12 May 2016 - M. Sulprizio- Add WetAeroArea, WetAeroRadi to replace 1D arrays
+!                              WTARE, WERADIUS previously in comode_mod.F
 !  18 May 2016 - R. Yantosca - Add mapping vectors for subsetting species
 !EOP
 !------------------------------------------------------------------------------
@@ -445,6 +449,8 @@ CONTAINS
     State_Chm%nAero       = 0
     State_Chm%AeroArea    => NULL()
     State_Chm%AeroRadi    => NULL()
+    State_Chm%WetAeroArea => NULL()
+    State_Chm%WetAeroRadi => NULL()
 
     ! Hg species indexing
     N_Hg0_CATS            =  0
@@ -551,13 +557,21 @@ CONTAINS
 
     State_Chm%nAero = nAerosol
 
-    ALLOCATE( State_Chm%AeroArea  ( IM, JM, LM, State_Chm%nAero    ), STAT=RC )
+    ALLOCATE( State_Chm%AeroArea   ( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Chm%AeroArea = 0e+0_fp
 
-    ALLOCATE( State_Chm%AeroRadi  ( IM, JM, LM, State_Chm%nAero    ), STAT=RC )
+    ALLOCATE( State_Chm%AeroRadi   ( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Chm%AeroRadi = 0e+0_fp
+
+    ALLOCATE( State_Chm%WetAeroArea( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%WetAeroArea = 0e+0_fp
+
+    ALLOCATE( State_Chm%WetAeroRadi( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%WetAeroRadi = 0e+0_fp
 
     !=====================================================================
     ! Allocate and initialize fields for UCX mechamism
@@ -860,6 +874,14 @@ CONTAINS
 
     IF ( ASSOCIATED( State_Chm%AeroRadi ) ) THEN
        DEALLOCATE( State_Chm%AeroRadi )
+    ENDIF
+
+    IF ( ASSOCIATED(State_Chm%WetAeroArea) ) THEN
+       DEALLOCATE(State_Chm%WetAeroArea)
+    ENDIF
+
+    IF ( ASSOCIATED(State_Chm%WetAeroRadi) ) THEN
+       DEALLOCATE(State_Chm%WetAeroRadi)
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%STATE_PSC ) ) THEN

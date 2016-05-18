@@ -694,7 +694,7 @@ CONTAINS
     LOGICAL, SAVE :: FIRST = .TRUE.
 
     ! Scalars
-    INTEGER   :: I,      J,     IMUL,     ITD,   IJLOOP
+    INTEGER   :: I,      J,     IMUL,     ITD
     INTEGER   :: C,      II,    JJ,       type,  K,      numRound
     REAL(fp)  :: mapWt,  area,  sumArea,  DMON,  DITD,   DIMUL
 
@@ -779,7 +779,7 @@ CONTAINS
     !$OMP PARALLEL DO                                                 &
     !$OMP DEFAULT( SHARED                                           ) &
     !$OMP PRIVATE( I,           J,           tempArea, tempModis    ) &
-    !$OMP PRIVATE( tempModisCm, tempModisNm, sumArea,  IJLOOP       ) &
+    !$OMP PRIVATE( tempModisCm, tempModisNm, sumArea                ) &
     !$OMP PRIVATE( C,           II,          JJ,       type         ) & 
     !$OMP PRIVATE( area,        K                                   )      
     DO J = 1, JJPAR
@@ -791,7 +791,6 @@ CONTAINS
        tempModisCm          = 0e+0_fp
        tempModisNm          = 0e+0_fp
        sumArea              = mapping(I,J)%sumarea
-       IJLOOP               = ( (J-1) * IIPAR ) + I
        GC_PTR(I,J)          = 0e+0_fp
 
        !-------------------------------------------------------------------

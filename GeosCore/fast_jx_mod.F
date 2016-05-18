@@ -93,8 +93,8 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
-      USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR, LLPAR
-      USE CMN_SIZE_MOD,       ONLY : NDUST,   MAXIJ
+      USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
+      USE CMN_SIZE_MOD,       ONLY : NDUST
       USE ERROR_MOD,          ONLY : ERROR_STOP, ALLOC_ERR
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_ErrCode_Mod
@@ -229,7 +229,7 @@
 !
       INTEGER, SAVE :: LASTMONTH = -1
       INTEGER       :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L, N
-      INTEGER       :: IOPT, JLOOP, LCHEM
+      INTEGER       :: IOPT, LCHEM
       REAL(fp)      :: CSZA, PRES, SFCA, YLAT,  O3_TOMS
       REAL(fp)      :: O3_CTM(LLPAR+1)
       REAL(fp)      :: T_CTM(LLPAR+1), OPTD(LLPAR)
@@ -300,7 +300,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( NLAT,    NLON,   YLAT,      CSZA,    L       )
 !$OMP+PRIVATE( P_CTM ,  T_CTM,  SFCA,      O3_TOMS, O3_CTM  )
-!$OMP+PRIVATE( LCHEM,   JLOOP,  OPTAER,    N,       IOPT    )
+!$OMP+PRIVATE( LCHEM,   OPTAER, N,         IOPT             )
 !$OMP+PRIVATE( OPTDUST, OPTD,   CLDF1D                      )
 #if defined( USE_MAXIMUM_RANDOM_OVERLAP )
 !$OMP+PRIVATE( FMAX,    KK,     NUMB,      KBOT             )

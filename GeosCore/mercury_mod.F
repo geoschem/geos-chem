@@ -3541,23 +3541,18 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: JLOOP
- 
       !=================================================================
       ! GET_OH begins here!
       !=================================================================
 
-      ! 1-D grid box index for SUNCOS
-      JLOOP = ( (J-1) * IIPAR ) + I
-
       ! Test for sunlight...
       IF ( State_Met%SUNCOS(I,J) > 0e+0_fp .and. 
-     &    TCOSZ(I,J) > 0e+0_fp ) THEN
+     &     TCOSZ(I,J) > 0e+0_fp ) THEN
 
          ! Impose a diurnal variation on OH during the day
          OH_MOLEC_CM3 = OH(I,J,L)                                 *    
      &                  ( State_Met%SUNCOS(I,J) / TCOSZ(I,J)    ) *
-     &                  ( 1440e+0_fp                / GET_TS_CHEM() )
+     &                  ( 1440e+0_fp            / GET_TS_CHEM() )
 
          ! Make sure OH is not negative
          OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0e+0_fp )
@@ -3641,7 +3636,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: JLOOP
       REAL(fp)              :: BR_PPTV, BR_MBL, BR_FAC
       REAL(fp)              :: LOCALTIME, HOUR, BRO_PPTV, FPBL
       REAL(fp)              :: BOXVL           
@@ -3739,9 +3733,6 @@
       ! At the moment, we only have Br north of 60N, i.e. not Hudson's Bay
       !----------------------------------------------------------------
 !
-!      ! 1-D grid box index for SUNCOS
-!      JLOOP = ( (J-1) * IIPAR ) + I
-!
 !      IF ( ( LPOLARBR ) .AND. ( FPBL >  0e+0_fp   ) .AND.
 !     &     ( State_Met%SUNCOS(I,J)   >  0e+0_fp   ) .AND. 
 !     &     ( State_Met%T(I,J,1)      <= 268e+0_fp ) .AND.
@@ -3772,12 +3763,9 @@
       ! which fit RGM observations for Okinawa and a Pacific cruise
       !----------------------------------------------------------------
             
-      ! 1-D grid box index for SUNCOS
-      JLOOP = ( (J-1) * IIPAR ) + I
-      
       ! Test for sunlight...
       IF ( (State_Met%SUNCOS(I,J) > 0e+0_fp) .and. 
-     &    (TTDAY(I,J) > 0e+0_fp) ) THEN
+     &     (TTDAY(I,J) > 0e+0_fp) ) THEN
       
          ! Use a constant function if daylight is < 2 hours or > 22hours
          IF ( ( TTDAY(I,J) < 120e+0_fp  ) .OR. 
@@ -3955,6 +3943,8 @@
 !  (4 ) Also added parallel loop over grid boxes (eck, bmy, 12/8/04)
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
+!  16 May 2016 - M. Sulprizio- Remove IJLOOP and change SUNTMP array dimensions
+!                              from (MAXIJ) to (IIPAR,JJPAR)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3964,10 +3954,10 @@
       ! References to F90 modules
       ! Local variables
       LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: I, IJLOOP, J, L, N, NT, NDYSTEP
-      REAL(fp)        :: A0, A1, A2, A3, B1, B2, B3
-      REAL(fp)        :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
-      REAL(fp)        :: SUNTMP(MAXIJ)
+      INTEGER       :: I, J, L, N, NT, NDYSTEP
+      REAL(fp)      :: A0, A1, A2, A3, B1, B2, B3
+      REAL(fp)      :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
+      REAL(fp)      :: SUNTMP(IIPAR,JJPAR)
       
       !=================================================================
       ! OHNO3TIME begins here!
@@ -4007,20 +3997,18 @@
          DO N = 1, NDYSTEP
             
             ! Zero SUNTMP array
-            SUNTMP(:) = 0e+0_fp
+            SUNTMP = 0e+0_fp
 
             ! Loop over surface grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
+!$OMP+PRIVATE( I, J, YMID_R, TIMLOC, AHR )
             DO J = 1, JJPAR
             DO I = 1, IIPAR
 
                ! Grid box latitude center [radians]
                YMID_R = GET_YMID_R( I, J, 1 )
 
-               ! Increment IJLOOP
-               IJLOOP = ( (J-1) * IIPAR ) + I
                TIMLOC = real(LHR0) + real(NT)/3600.0 
      &                + GET_XMID(I,J,1)/15.0
          
@@ -4034,33 +4022,33 @@
 
                AHR = abs(TIMLOC - 12.) * 15.0 * PI_180
 
-            !===========================================================
-            ! The cosine of the solar zenith angle (SZA) is given by:
-            !     
-            !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
-            !                   
-            ! where LAT = the latitude angle, 
-            !       DEC = the solar declination angle,  
-            !       AHR = the hour angle, all in radians. 
-            !
-            ! If SUNCOS < 0, then the sun is below the horizon, and 
-            ! therefore does not contribute to any solar heating.  
-            !===========================================================
+               !===========================================================
+               ! The cosine of the solar zenith angle (SZA) is given by:
+               !     
+               !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
+               !                   
+               ! where LAT = the latitude angle, 
+               !       DEC = the solar declination angle,  
+               !       AHR = the hour angle, all in radians. 
+               !
+               ! If SUNCOS < 0, then the sun is below the horizon, and 
+               ! therefore does not contribute to any solar heating.  
+               !===========================================================
 
                ! Compute Cos(SZA)
-               SUNTMP(IJLOOP) = sin(YMID_R) * sin(DEC) +
-     &                          cos(YMID_R) * cos(DEC) * cos(AHR)
+               SUNTMP(I,J) = sin(YMID_R) * sin(DEC) +
+     &                       cos(YMID_R) * cos(DEC) * cos(AHR)
 
                ! TCOSZ is the sum of SUNTMP at location (I,J)
                ! Do not include negative values of SUNTMP
-               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(IJLOOP), 0e+0_fp )
+               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(I,J), 0e+0_fp )
 
                ! COSZM is the peak value of SUMTMP during a day at (I,J)
                ! (rjp, bmy, 3/30/04)
-               COSZM(I,J) = MAX( COSZM(I,J), SUNTMP(IJLOOP) )
+               COSZM(I,J) = MAX( COSZM(I,J), SUNTMP(I,J) )
 
                ! TTDAY is the total daylight time at location (I,J)
-               IF ( SUNTMP(IJLOOP) > 0e+0_fp ) THEN
+               IF ( SUNTMP(I,J) > 0e+0_fp ) THEN
                   TTDAY(I,J) = TTDAY(I,J) + DBLE( GET_TS_CHEM() )
                ENDIF
             ENDDO
@@ -4238,18 +4226,15 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: JLOOP, JDAY
-      REAL(fp)  :: CSZANOON
-      REAL(fp)  :: A0, A1, A2, A3, B1, B2, B3
-      REAL(fp)  :: R, DEC, YMID_R  
+      INTEGER  :: JDAY
+      REAL(fp) :: CSZANOON
+      REAL(fp) :: A0, A1, A2, A3, B1, B2, B3
+      REAL(fp) :: R, DEC, YMID_R  
  
       !=================================================================
       ! GET_JNO2 begins here!
       !=================================================================
       
-      ! 1-D grid box index for SUNCOS
-      JLOOP = ( (J-1) * IIPAR ) + I
-
       ! Test for sunlight...
       IF ( State_Met%SUNCOS(I,J) > TINY(1e+0_fp) ) THEN
 
@@ -4288,8 +4273,8 @@
 
          ! Impose a diurnal variation on JNO2 during the day
          ! Note: We don't need to check for divide-by-zero errors
-         ! because we already checked SUNCOS(JLOOP) and we know
-         ! CSZANOON >= SUNCOS(JLOOP)
+         ! because we already checked SUNCOS(I,J) and we know
+         ! CSZANOON >= SUNCOS(I,J)
          JNO2_NOW = JNO2(I,J,L) * 
      &     EXP( 0.36e+0_fp * 
      &        ( 1e+0_fp/CSZANOON - 1e+0_fp/State_Met%SUNCOS(I,J) ) )

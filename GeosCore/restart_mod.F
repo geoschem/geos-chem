@@ -2881,10 +2881,9 @@ dvected tracer input  restart file
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
-      USE COMODE_LOOP_MOD
+      USE COMODE_LOOP_MOD,    ONLY : NTSPEC, IFAM, NAMEGAS
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE COMODE_MOD,         ONLY : JLOP
       USE FILE_MOD,           ONLY : IOERROR
       USE FILE_MOD,           ONLY : FILE_EXISTS
       USE TIME_MOD,           ONLY : EXPAND_DATE
@@ -2922,15 +2921,16 @@ dvected tracer input  restart file
 !  22 Aug 2013 - R. Yantosca - Now get species restart filename from Input_Opt
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
 !  16 Dec 2014 - M. Yannetti - Changed ZTAU0 and ZTAU1 to REAL*8
+!  18 May 2016 - M. Sulprizio- Change ILONG,ILAT,IPVERT to IIPAR,JJPAR,LLPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, IOS, IU_RST, J, L, N, JLOOP, NN, NTL
+      INTEGER             :: I, IOS, IU_RST, J, L, N, NN, NTL
       INTEGER             :: NCOUNT(NNPAR) 
-      REAL*4		  :: TMP(ILONG,ILAT,IPVERT)
+      REAL*4		  :: TMP(IIPAR,JJPAR,LLPAR)
 
       REAL(fp)              :: SUMTC
       CHARACTER(LEN=255)  :: FILENAME
@@ -3045,9 +3045,9 @@ dvected tracer input  restart file
 
          ! Only process checkpoint data 
          IF ( CATEGORY(1:8) == 'IJ-CHK-$' .and.
-     &        NTL           == ILONG      .and. 
-     &        NN            == ILAT       .and. 
-     &        NL            == IPVERT            ) THEN
+     &        NTL           == IIPAR      .and. 
+     &        NN            == JJPAR      .and. 
+     &        NL            == LLPAR      ) THEN
 
             ! Also make sure we have the proper species
             IF ( TRIM( NAMEGAS(N) ) /= TRIM( RESERVED ) ) THEN
@@ -3111,10 +3111,9 @@ dvected tracer input  restart file
 ! !USES:
 !
       USE BPCH2_MOD
-      USE COMODE_LOOP_MOD
+      USE COMODE_LOOP_MOD,    ONLY : NTSPEC, IFAM, NAMEGAS
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE COMODE_MOD,         ONLY : JLOP
       USE FILE_MOD,           ONLY : IOERROR
       USE GRID_MOD,           ONLY : GET_XOFFSET
       USE GRID_MOD,           ONLY : GET_YOFFSET
@@ -3145,6 +3144,7 @@ dvected tracer input  restart file
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  18 May 2016 - M. Sulprizio- Change ILONG,ILAT,IPVERT to IIPAR,JJPAR,LLPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3152,12 +3152,12 @@ dvected tracer input  restart file
 ! !LOCAL VARIABLES:
 !
       INTEGER              :: IU_RST
-      INTEGER              :: I,    I0, IOS, J,  J0, L, N, JLOOP
+      INTEGER              :: I,    I0, IOS, J,  J0, L, N
       INTEGER              :: YYYY, MM, DD,  HH, SS, ZIP_HH
       CHARACTER(LEN=255)   :: FILENAME
 
       ! Temporary storage arrays for checkpointed variables
-      REAL*4               :: TMP(ILONG, ILAT, IPVERT)
+      REAL*4               :: TMP(IIPAR,JJPAR,LLPAR)
 
       ! For binary punch file, version 2.0
       REAL*4               :: LONRES, LATRES
@@ -3257,9 +3257,9 @@ dvected tracer input  restart file
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-         DO L = 1, IPVERT
-         DO J = 1, ILAT
-         DO I = 1, ILONG
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
         
             ! Fix recommended by pls, save State_Chm%Species (hotp 2/18/09)
             ! Now set conc no smaller than 1d-30
@@ -3281,7 +3281,7 @@ dvected tracer input  restart file
          CALL BPCH2( IU_RST,    MODELNAME, LONRES,    LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY,  N,
      &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,
-     &               ILONG,     ILAT,      IPVERT,    I0+1,
+     &               IIPAR,     JJPAR,     LLPAR,     I0+1,
      &               J0+1,      1,         TMP(:,:,:) )
  
          ! Print the min & max of each tracer written to file

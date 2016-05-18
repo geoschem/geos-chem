@@ -1190,7 +1190,7 @@
       ! Assume success until otherwise known
       RC = GIGC_SUCCESS
 
-      ! Allocate SUMACETCO -- array for CO from isoprene
+      ! Allocate EMACET -- array for CO from isoprene
       ALLOCATE( EMACET( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMACET' )         
       EMACET = 0.0_fp 

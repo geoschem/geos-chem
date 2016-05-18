@@ -2856,7 +2856,7 @@
 
          ! Get alkalinity of accum (ALK1) and coarse (ALK2) [kg]
          CALL GET_ALK( am_I_Root, I, J, L, ALK1, ALK2, Kt1, Kt2,  
-     &                 Kt1N, Kt2N, Input_Opt, State_Met, RC )
+     &                 Kt1N, Kt2N, Input_Opt, State_Met, State_Chm, RC )
 
          ! Total alkalinity [kg]
          ALK = ALK1 + ALK2
@@ -6978,6 +6978,8 @@
 !  (3 ) Now store the peak SUNCOS value for each surface grid box (I,J) in 
 !        the COSZM array. (rjp, bmy, 3/30/04)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  16 May 2016 - M. Sulprizio- Remove IJLOOP and change SUNTMP array dimensions
+!                              from (MAXIJ) to (IIPAR,JJPAR)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6985,10 +6987,10 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE       :: FIRST = .TRUE.
-      INTEGER             :: I, IJLOOP, J, L, N, NT, NDYSTEP
+      INTEGER             :: I, J, L, N, NT, NDYSTEP
       REAL(fp)            :: A0, A1, A2, A3, B1, B2, B3
       REAL(fp)            :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
-      REAL(fp)            :: SUNTMP(MAXIJ)
+      REAL(fp)            :: SUNTMP(IIPAR,JJPAR)
       
       !=================================================================
       ! OHNO3TIME begins here!
@@ -7028,10 +7030,7 @@
          DO N = 1, NDYSTEP
             
             ! Zero SUNTMP array
-            SUNTMP(:) = 0e+0_fp
-
-            ! IJLOOP is the 1-D loop index for SUNCOS
-            IJLOOP = 0
+            SUNTMP = 0e+0_fp
 
             ! Loop over surface grid boxes
             DO J = 1, JJPAR
@@ -7040,8 +7039,6 @@
                ! Grid box latitude center [radians]
                YMID_R = GET_YMID_R( I, J, 1 )
 
-               ! Increment IJLOOP
-               IJLOOP = IJLOOP + 1
                TIMLOC = real(LHR0) + real(NT)/3600.0 + 
      &                  GET_XMID( I, J, 1 )/15.0
          
@@ -7055,33 +7052,33 @@
 
                AHR = abs(TIMLOC - 12.) * 15.0 * PI_180
 
-            !===========================================================
-            ! The cosine of the solar zenith angle (SZA) is given by:
-            !     
-            !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
-            !                   
-            ! where LAT = the latitude angle, 
-            !       DEC = the solar declination angle,  
-            !       AHR = the hour angle, all in radians. 
-            !
-            ! If SUNCOS < 0, then the sun is below the horizon, and 
-            ! therefore does not contribute to any solar heating.  
-            !===========================================================
+               !===========================================================
+               ! The cosine of the solar zenith angle (SZA) is given by:
+               !     
+               !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
+               !                   
+               ! where LAT = the latitude angle, 
+               !       DEC = the solar declination angle,  
+               !       AHR = the hour angle, all in radians. 
+               !
+               ! If SUNCOS < 0, then the sun is below the horizon, and 
+               ! therefore does not contribute to any solar heating.  
+               !===========================================================
 
                ! Compute Cos(SZA)
-               SUNTMP(IJLOOP) = sin(YMID_R) * sin(DEC) +
-     &                          cos(YMID_R) * cos(DEC) * cos(AHR)
+               SUNTMP(I,J) = sin(YMID_R) * sin(DEC) +
+     &                       cos(YMID_R) * cos(DEC) * cos(AHR)
 
                ! TCOSZ is the sum of SUNTMP at location (I,J)
                ! Do not include negative values of SUNTMP
-               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(IJLOOP), 0e+0_fp )
+               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(I,J), 0e+0_fp )
 
                ! COSZM is the peak value of SUMTMP during a day at (I,J)
                ! (rjp, bmy, 3/30/04)
-               COSZM(I,J) = MAX( COSZM(I,J), SUNTMP(IJLOOP) )
+               COSZM(I,J) = MAX( COSZM(I,J), SUNTMP(I,J) )
 
                ! TTDAY is the total daylight time at location (I,J)
-               IF ( SUNTMP(IJLOOP) > 0e+0_fp ) THEN
+               IF ( SUNTMP(I,J) > 0e+0_fp ) THEN
                   TTDAY(I,J) = TTDAY(I,J) + DBLE( GET_TS_CHEM() )
                ENDIF
             ENDDO
@@ -7124,20 +7121,21 @@
 ! !INTERFACE:
 !
       SUBROUTINE GET_ALK( am_I_Root, I,J,L, ALK1, ALK2, Kt1, Kt2, 
-     &                    Kt1N, Kt2N, Input_Opt, State_Met, RC)
+     &                    Kt1N, Kt2N, Input_Opt, State_Met, State_Chm,
+     &                    RC)
 !
 ! !USES:
 !
       USE GIGC_ErrCode_Mod
       USE ERROR_MOD,          ONLY : IT_IS_NAN, ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
       USE TRACERID_MOD,       ONLY : IDTSALA, IDTSALC
 ! (jas, 8/4/15) calculate kt using sea salt surface area concentration
       USE CMN_SIZE_MOD,       ONLY : NDUST
-      USE COMODE_MOD,         ONLY : JLOP, ERADIUS, TAREA
 !
 ! !INPUT PARAMETERS: 
 !
@@ -7154,6 +7152,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(INOUT) :: RC
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY: 
 !  (1 ) Becky Alexander says we can remove AREA1, AREA2 (bec, bmy, 9/5/06)
@@ -7171,6 +7170,9 @@
 !  02 Nov 2014 - C. Keller   - Now get alkalinity and number density from HEMCO
 !  04 Nov 2014 - C. Keller   - Moved from seasalt_mod.F
 !  12 Nov 2014 - C. Keller   - Now weight # dens. and alk. by fraction of PBL
+!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. ERADIUS,
+!                              TAREA, are now pointers that point to 3D fields
+!                              fields in State_Chm.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7194,13 +7196,15 @@
       REAL(fp), PARAMETER :: v = 3.0e+4_fp  !cm/s
       REAL(fp)            :: SA1, SA2 ! SSA surface area [cm2/cm3]
       REAL(fp)            :: R1, R2 ! SSA radius [cm]
-      INTEGER             :: JLOOP
-
 
       ! HEMCO update
       REAL(fp)            :: FEMIS
       INTEGER             :: NTOP
       LOGICAL             :: FOUND
+
+      ! Pointers
+      REAL(fp), POINTER   :: ERADIUS(:,:,:,:)
+      REAL(fp), POINTER   :: TAREA(:,:,:,:)
  
       !=================================================================
       ! GET_ALK begins here!
@@ -7215,6 +7219,10 @@
       N2    = 0.e+0_fp
       ALK1  = 0.e+0_fp
       ALK2  = 0.e+0_fp
+
+      ! Initialize pointers
+      ERADIUS => State_Chm%AeroRadi
+      TAREA   => State_Chm%AeroArea
 
       !-----------------------------------------------------------------------
       ! Get alkalinity from HEMCO. This is just the current emissions,
@@ -7285,13 +7293,11 @@
       ! If there is any alkalinity ...
       IF ( ALK > MINDAT ) THEN
 
-         JLOOP = JLOP(I,J,L)
+         SA1= TAREA(I,J,L,4+NDUST) !in cm2/cm3
+         SA2= TAREA(I,J,L,5+NDUST) !in cm2/cm3
 
-         SA1= TAREA(JLOOP,4+NDUST) !in cm2/cm3
-         SA2= TAREA(JLOOP,5+NDUST) !in cm2/cm3
-
-         R1 = ERADIUS(JLOOP,4+NDUST) !in cm
-         R2 = ERADIUS(JLOOP,5+NDUST) !in cm
+         R1 = ERADIUS(I,J,L,4+NDUST) !in cm
+         R2 = ERADIUS(I,J,L,5+NDUST) !in cm
 
          ! set humidity index IRH as a percent
          !IRH = State_Met%RH(I,J,L)
@@ -7388,6 +7394,9 @@
          KT2N = 0.e+0_fp
 
       ENDIF
+
+      ! Free pointers
+      NULLIFY(  ERADIUS, TAREA )
 
       ! Return w/ success
       RC = GIGC_SUCCESS

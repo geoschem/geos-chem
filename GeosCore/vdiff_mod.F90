@@ -1823,7 +1823,6 @@ contains
 !
 ! !USES:
 ! 
-    USE COMODE_MOD,         ONLY : JLOP,      REMIS
     USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
@@ -1936,7 +1935,7 @@ contains
 !
 ! !LOCAL VARIABLES:
 !
-    integer :: I, J, L, JLOOP, N, NN, D, trc_id
+    integer :: I, J, L, N, NN, D, trc_id
 
 !    REAL(fp)                :: SNOW_HT !cdh - obsolete
     REAL(fp)                :: FRAC_NO_HG0_DEP !jaf 

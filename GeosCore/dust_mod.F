@@ -942,22 +942,21 @@
 ! !INTERFACE:
 !
       SUBROUTINE RDUST_ONLINE( am_I_Root, Input_Opt,  State_Met, 
-     &                         DUST,      ODSWITCH,   RC         )
+     &                         State_Chm, DUST,       ODSWITCH,
+     &                         RC )
 !
 ! !USES:
 !
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE COMODE_MOD,         ONLY : ERADIUS, IXSAVE, IYSAVE 
-      USE COMODE_MOD,         ONLY : IZSAVE,  JLOP,   TAREA
-      USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE COMODE_LOOP_MOD
       USE DIAG_MOD,           ONLY : AD21
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 !
@@ -968,6 +967,10 @@
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
       REAL(fp),       INTENT(IN)  :: DUST(IIPAR,JJPAR,LLPAR,NDUST) !Dust [kg/m3]
       INTEGER,        INTENT(IN)  :: ODSWITCH
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -993,6 +996,11 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. ERADIUS,
+!                              TAREA, WERADIUS, WTAREA are now pointers that
+!                              point to 3D fields in State_Chm.
+!  16 May 2016 - M. Sulprizio- Remove JLOOP entirely and loop over LLPAR, JJPAR,
+!                              IIPAR instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1000,7 +1008,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL            :: LINTERP
-      INTEGER            :: I, J, JLOOP, L, N, NOUT, W
+      INTEGER            :: I, J, L, N, NOUT, W
       INTEGER            :: IWV, IIWV, NWVS, IDST
       REAL(fp)           :: MSDENS(NDUST), XTAU
       ! Added to calculate aqueous dust surface area (WTAREA, WERADIUS)
@@ -1012,12 +1020,24 @@
       INTEGER            :: IWV1,  IWV2
       REAL(fp)           :: ACOEF, BCOEF, LOGTERM
 
+      ! Pointers
+      REAL(fp), POINTER   :: ERADIUS(:,:,:,:)
+      REAL(fp), POINTER   :: TAREA(:,:,:,:)
+      REAL(fp), POINTER   :: WERADIUS(:,:,:,:)
+      REAL(fp), POINTER   :: WTAREA(:,:,:,:)
+
       !=================================================================
       ! RDUST_ONLINE begins here!
       !=================================================================
 
       ! Assume success
       RC        =  GIGC_SUCCESS
+
+      ! Initialize pointers
+      ERADIUS   => State_Chm%AeroRadi     ! Aerosol Radius     [cm]
+      TAREA     => State_Chm%AeroArea     ! Aerosol Area       [cm2/cm3]
+      WERADIUS  => State_Chm%WetAeroRadi  ! Wet Aerosol Radius [cm]
+      WTAREA    => State_Chm%WetAeroArea  ! Wet Aerosol Area   [cm2/cm3]
 
       ! Index for dust in ODAER and LUT arrays
       IDST      = 6 
@@ -1148,31 +1168,33 @@
       !==============================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L, N, XRH )
-      DO N     = 1, NDUST
-      DO JLOOP = 1, NTLOOP
+!$OMP+PRIVATE( I, J, L, N, XRH )
+      DO N = 1, NDUST
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-         ! Compute 3-D grid box indices
-         I = IXSAVE(JLOOP)
-         J = IYSAVE(JLOOP)
-         L = IZSAVE(JLOOP)
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
-         ERADIUS(JLOOP,N) = RDAA(N,6) * 1.0e-4_fp
+         ERADIUS(I,J,L,N) = RDAA(N,6) * 1.0e-4_fp
          
-         TAREA(JLOOP,N)   = 3.e+0_fp / ERADIUS(JLOOP,N) *
+         TAREA(I,J,L,N)   = 3.e+0_fp / ERADIUS(I,J,L,N) *
      &                      DUST(I,J,L,N) / MSDENS(N)  
 
          ! Archive WTAREA and WERADIUS when RH > 35%  (tmf, 6/13/07) 
          ! Get RH  
          XRH                = State_Met%RH( I, J, L )  ! [%]
-         WTAREA(JLOOP, N)   = 0.e+0_fp
-         WERADIUS(JLOOP, N) = 0.e+0_fp
+         WTAREA(I,J,L, N)   = 0.e+0_fp
+         WERADIUS(I,J,L, N) = 0.e+0_fp
 
          IF ( XRH >= CRITRH ) THEN
-            WTAREA(JLOOP, N)   = TAREA(JLOOP, N)
-            WERADIUS(JLOOP, N) = ERADIUS(JLOOP, N)
+            WTAREA(I,J,L, N)   = TAREA(I,J,L, N)
+            WERADIUS(I,J,L, N) = ERADIUS(I,J,L, N)
          ENDIF
 
+      ENDDO
+      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -1201,7 +1223,7 @@
 !###
 !###!$OMP PARALLEL DO
 !###!$OMP+DEFAULT( SHARED )
-!###!$OMP+PRIVATE( I, J, JLOOP, L, N, W, NOUT, LINTERP )
+!###!$OMP+PRIVATE( I, J, L, N, W, NOUT, LINTERP )
 !#############################################################################
          DO N=1, NDUST
          DO W = 1, NWVSELECT !loop over required number of wavelengths
@@ -1266,15 +1288,9 @@
                ! ND21 tracer #5: Dust surface areas
                !--------------------------------------
                IF ( L <= LLCHEM ) THEN
-              
-                  ! Convert 3-D indices to 1-D index
-                  ! JLOP is only defined in the tropopause
-                  JLOOP = JLOP(I,J,L)
-             
+                           
                   ! Add to AD21
-                  IF ( JLOOP > 0 ) THEN
-                     AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(JLOOP,N)
-                  ENDIF
+                  AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(I,J,L,N)
 
                ENDIF
             ENDDO
@@ -1295,6 +1311,12 @@
 
       ENDIF 
 
+      ! Free pointers
+      ERADIUS  => NULL()
+      TAREA    => NULL()
+      WERADIUS => NULL()
+      WTAREA   => NULL()
+
       END SUBROUTINE RDUST_ONLINE
 !EOC
 !------------------------------------------------------------------------------
@@ -1312,22 +1334,22 @@
 ! !INTERFACE:
 !
       SUBROUTINE RDUST_OFFLINE( am_I_Root, Input_Opt, State_Met,
-     &                          THISMONTH, THISYEAR,  ODSWITCH,  RC )
+     &                          State_Chm, THISMONTH, THISYEAR,
+     &                          ODSWITCH,  RC )
 !
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_FJX_MOD
-      USE COMODE_MOD,         ONLY : ERADIUS, IXSAVE, IYSAVE
-      USE COMODE_MOD,         ONLY : IZSAVE,  JLOP,   TAREA
-      USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
       USE COMODE_LOOP_MOD
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD21
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
@@ -1342,6 +1364,10 @@
       INTEGER,        INTENT(IN)  :: THISYEAR   ! Current year  (YYYY format)
       INTEGER,        INTENT(IN)  :: ODSWITCH   ! Determine which wavelength to
                                                 !  use for optical properties
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1421,6 +1447,11 @@
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
 !  23 Oct 2015 - E. Lundgren - Fix index for dust in ODAER/LUT arrays if UCX on
+!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. ERADIUS,
+!                              TAREA, WERADIUS, WTAREA are now pointers that
+!                              point to 3D fields in State_Chm.
+!  16 May 2016 - M. Sulprizio- Remove JLOOP entirely and loop over LLPAR, JJPAR,
+!                              IIPAR instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1428,7 +1459,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL             :: LINTERP
-      INTEGER             :: I, J, JLOOP, L, N, NOUT, W
+      INTEGER             :: I, J, L, N, NOUT, W
       INTEGER             :: IWV, IIWV, NWVS, IDST
       INTEGER, SAVE       :: MONTH_LAST = -999
       LOGICAL, SAVE       :: DO_DIAG = .FALSE.
@@ -1444,9 +1475,24 @@
       REAL(fp)            :: CRITRH      ! Critical RH [%], above which 
                                          !  heteorogeneous chem takes place
 
+      ! Pointers
+      REAL(fp), POINTER   :: ERADIUS(:,:,:,:)
+      REAL(fp), POINTER   :: TAREA(:,:,:,:)
+      REAL(fp), POINTER   :: WERADIUS(:,:,:,:)
+      REAL(fp), POINTER   :: WTAREA(:,:,:,:)
+
       !=================================================================
       ! RDUST begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+ 
+      ! Initialize pointers
+      ERADIUS   => State_Chm%AeroRadi     ! Aerosol Radius     [cm]
+      TAREA     => State_Chm%AeroArea     ! Aerosol Area       [cm2/cm3]
+      WERADIUS  => State_Chm%WetAeroRadi  ! Wet Aerosol Radius [cm]
+      WTAREA    => State_Chm%WetAeroArea  ! Wet Aerosol Area   [cm2/cm3]
 
       ! Index for dust in ODAER and LUT arrays
       IDST      = 6 
@@ -1619,31 +1665,33 @@
       !==============================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L, N, XRH )
-      DO N     = 1, NDUST
-      DO JLOOP = 1, NTLOOP
+!$OMP+PRIVATE( I, J, L, N, XRH )
+      DO N = 1, NDUST
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-         ! Compute 3-D grid box indices
-         I = IXSAVE(JLOOP)
-         J = IYSAVE(JLOOP)
-         L = IZSAVE(JLOOP)
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
-         ERADIUS(JLOOP,N) = RDAA(N,6) * 1.0e-4_fp
+         ERADIUS(I,J,L,N) = RDAA(N,6) * 1.0e-4_fp
 
-         TAREA(JLOOP,N)   = 3.e+0_fp / ERADIUS(JLOOP,N) *
+         TAREA(I,J,L,N)   = 3.e+0_fp / ERADIUS(I,J,L,N) *
      &                      DUST(I,J,L,N) / MSDENS(N)  
 
          ! Archive WTAREA and WERADIUS when RH > 35% (tmf, 6/13/07) 
          ! Get RH  
-         XRH                = State_Met%RH( I, J, L )  ! [%]
-         WTAREA(JLOOP, N)   = 0.e+0_fp
-         WERADIUS(JLOOP, N) = 0.e+0_fp
+         XRH               = State_Met%RH(I,J,L)  ! [%]
+         WTAREA(I,J,L,N)   = 0.e+0_fp
+         WERADIUS(I,J,L,N) = 0.e+0_fp
 
          IF ( XRH >= CRITRH ) THEN
-            WTAREA(JLOOP, N)   = TAREA(JLOOP, N)
-            WERADIUS(JLOOP, N) = ERADIUS(JLOOP, N)
+            WTAREA(I,J,L,N)   = TAREA(I,J,L,N)
+            WERADIUS(I,J,L,N) = ERADIUS(I,J,L,N)
          ENDIF
 
+      ENDDO
+      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -1661,7 +1709,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L, N, W, NOUT, LINTERP )
+!$OMP+PRIVATE( I, J, L, N, W, NOUT, LINTERP )
          DO N=1, NDUST
          DO W = 1, NWVSELECT !different to NWVSELECT if interp
             IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
@@ -1731,14 +1779,8 @@
                !--------------------------------------
                IF ( L <= LLTROP ) THEN
 
-                  ! Convert 3-D indices to 1-D index
-                  ! JLOP is only defined in the tropopause
-                  JLOOP = JLOP(I,J,L)
-
                   ! Add to AD21
-                  IF ( JLOOP > 0 ) THEN
-                     AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(JLOOP,N)
-                  ENDIF
+                  AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(I,J,L,N)
 
                ENDIF
             ENDDO
@@ -1760,6 +1802,12 @@
          
       ENDIF
       
+      ! Free pointers
+      ERADIUS  => NULL()
+      TAREA    => NULL()
+      WERADIUS => NULL()
+      WTAREA   => NULL()
+
       END SUBROUTINE RDUST_OFFLINE
 !EOC
 !-----------------------------------------------------------------------------
@@ -1786,7 +1834,6 @@
 !
       USE PHYSCONSTANTS,      ONLY : PI
       USE CMN_SIZE_MOD             ! Size parameters
-      USE COMODE_MOD,         ONLY : ERADIUS, JLOP,   TAREA
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -1829,6 +1876,9 @@
 !  14 Nov 2013 - M. Sulprizio- Bug fix: Avoid div-by-zero in calculation of
 !                              gas-to-particle rate constants for SO2 and HNO3
 !  05 Jan 2016 - E. Lundgren - Use global PI
+!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. ERADIUS,
+!                              TAREA, are now pointers that point to 3D fields
+!                              fields in State_Chm.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1856,7 +1906,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER             :: JLOOP,       N_TRACERS
+      INTEGER             :: N_TRACERS
       INTEGER             :: IRH
       INTEGER             :: IBIN, ISBIN
       REAL(fp)            :: N1, KT1, KT1N
@@ -1899,6 +1949,8 @@
 
       ! Pointers
       REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: ERADIUS(:,:,:,:)
+      REAL(fp), POINTER   :: TAREA(:,:,:,:)
 
       !=================================================================
       ! GET_DUST_ALK begins here!
@@ -1908,9 +1960,10 @@
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Initialize pointers
+      STT      => State_Chm%Tracers  ! GEOS-Chem tracer array [kg]
+      ERADIUS  => State_Chm%AeroRadi ! Aerosol Radius [cm]
+      TAREA    => State_Chm%AeroArea ! Aerosol Area [cm2/cm3]
 
       ! Zero variables
       DO IBIN = 1, NDSTBIN
@@ -1939,19 +1992,18 @@
       DST_d(4) = STT(I,J,L,IDTDST4) * AIR_DENS/TCVV(IDTDST4)
 
       ! tdf Now get aerosol surface area from TAREA (cm2/cm3)
-      JLOOP = JLOP(I,J,L)
-      SULF_AREA = TAREA(JLOOP,NDUST+1)
-      BC_AREA   = TAREA(JLOOP,NDUST+2)
-      OC_AREA   = TAREA(JLOOP,NDUST+3)
-      SSA_AREA  = TAREA(JLOOP,NDUST+4)
-      SSC_AREA  = TAREA(JLOOP,NDUST+5)
+      SULF_AREA = TAREA(I,J,L,NDUST+1)
+      BC_AREA   = TAREA(I,J,L,NDUST+2)
+      OC_AREA   = TAREA(I,J,L,NDUST+3)
+      SSA_AREA  = TAREA(I,J,L,NDUST+4)
+      SSC_AREA  = TAREA(I,J,L,NDUST+5)
 
       ! tdf Now get aerosol effective radius from ERADIUS (cm)
-      SULF_RAD  = ERADIUS(JLOOP,NDUST+1)
-      BC_RAD    = ERADIUS(JLOOP,NDUST+2)
-      OC_RAD    = ERADIUS(JLOOP,NDUST+3)
-      SSA_RAD   = ERADIUS(JLOOP,NDUST+4)
-      SSC_RAD   = ERADIUS(JLOOP,NDUST+5)
+      SULF_RAD  = ERADIUS(I,J,L,NDUST+1)
+      BC_RAD    = ERADIUS(I,J,L,NDUST+2)
+      OC_RAD    = ERADIUS(I,J,L,NDUST+3)
+      SSA_RAD   = ERADIUS(I,J,L,NDUST+4)
+      SSC_RAD   = ERADIUS(I,J,L,NDUST+5)
 
       ! tdf Quotients [s/cm] used to weight surface area for H2SO4 uptake
       SULF_FAC = (SULF_RAD / DG + 4.e+0_fp/(V*GAMMA_H2SO4) )
@@ -1962,8 +2014,8 @@
 
       !tdf Surface areas and effective radii for sub-bins 1-4 of dust bin 1
       DO ISBIN = 1, 4
-         T1 = TAREA  (JLOOP,ISBIN)
-         R1 = ERADIUS(JLOOP,ISBIN)
+         T1 = TAREA  (I,J,L,ISBIN)
+         R1 = ERADIUS(I,J,L,ISBIN)
          AREA_sd1    (ISBIN) = T1
          RD_sd1      (ISBIN) = R1
          !tdf surface area for sub bins 1-4 in bin 1, weighted by gas-phase
@@ -1979,7 +2031,7 @@
       ! TAREA computed   in RDUST_ONLINE - Units: cm^2(dust) / cm^3(air) 
       ! ERADIUS computed in RDUST_ONLINE - Units: cm
       ! NB: I am now subdividing the submicron dust size bin 
-      !     using TAREA (JLKOOP,1->4), and ERADIUS (JLOOP,1->4).
+      !     using TAREA (I,J,L,1->4), and ERADIUS (I,J,L,1->4).
       !-----------------------------------------------------------------------
 
       !-------------------------------------------------------------------------
@@ -2005,8 +2057,8 @@
             DF_AREA_d(IBIN) = DF_AREA_sd1(1) + DF_AREA_sd1(3)  ! [1/s]
      &                      + DF_AREA_sd1(2) + DF_AREA_sd1(4)
          ELSE
-            T1 = TAREA(JLOOP,3+IBIN)      ! [cm^2/cm^3]
-            R1 = ERADIUS(JLOOP,3+IBIN)    ! [cm]
+            T1 = TAREA(I,J,L,3+IBIN)      ! [cm^2/cm^3]
+            R1 = ERADIUS(I,J,L,3+IBIN)    ! [cm]
 !tdf 11/25/2013
             RD_d     (IBIN) = R1
 !tdf 11/25/2013
@@ -2242,8 +2294,10 @@
       ! tdf End Loop over size bins
       END DO
 
-      ! Free pointer
-      STT => NULL()
+      ! Free pointers
+      STT     => NULL()
+      ERADIUS => NULL()
+      TAREA   => NULL()
 
       END SUBROUTINE GET_DUST_ALK
 !EOC

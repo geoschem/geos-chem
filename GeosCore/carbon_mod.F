@@ -1265,8 +1265,6 @@
       USE CMN_DIAG_MOD
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : WTAREA, WERADIUS 
-      USE COMODE_MOD,         ONLY : JLOP
       USE COMODE_LOOP_MOD
       USE DIAG_MOD,           ONLY : AD07_SOAGM
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -1301,13 +1299,16 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met
+!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. WERADIUS,
+!                              WTAREA are now pointers that point to 3D fields
+!                              in State_Chm.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: I, J, L, JLOOP, N
+      INTEGER  :: I, J, L, N
       REAL(fp) :: XTEMP       ! Temperature [K]
       REAL(fp) :: XSQTEMP     ! SQRT of Temperature
       REAL(fp) :: XAD         ! Air density [molec/cm3]
@@ -1336,9 +1337,9 @@
       REAL(fp) :: CRITRH      ! Critical RH [%], above which 
                               !  heteorogeneous chem takes place
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: WERADIUS(:,:,:,:)
+      REAL(fp), POINTER :: WTAREA(:,:,:,:)
 
       !=================================================================
       ! SOAG_LIGGIO_DIFF begins here!
@@ -1347,9 +1348,10 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Initialize pointers
+      STT      => State_Chm%Tracers     ! GEOS-Chem tracer array [kg]
+      WERADIUS => State_Chm%WetAeroRadi ! Wet Aerosol Radius [cm]
+      WTAREA   => State_Chm%WetAeroArea ! Wet Aerosol Area [cm2/cm3]
 
       ! Get chemistry time step
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
@@ -1373,12 +1375,6 @@
       DO L = 1, LLCHEM
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
-            ! Get 1-D index
-            JLOOP   = JLOP( I, J, L )
-
-            ! JLOP equal 0 if we're not in the tropopause. (ccc,10/16/09)
-            IF ( JLOOP == 0 ) CYCLE
 
             ! Get RH  
             XRH     = State_Met%RH( I, J, L )   ![%]
@@ -1426,12 +1422,12 @@
                   !  archived in 'aerosol_mod.f.glyx'
                   !  XWAREA [ cm^2 wet sfc area of aerosol cm^-3 air ]
                   !---------------------------------------
-                  XWAREA  = WTAREA( JLOOP, N) 
+                  XWAREA  = WTAREA( I, J, L, N ) 
 
                   IF ( XWAREA > 0e+0_fp ) THEN 
 
                      ! Get particle radius [cm]
-                     XRADIUS = WERADIUS( JLOOP, N )   
+                     XRADIUS = WERADIUS( I, J, L, N )   
 
                      !---------------------------------------
                      ! First order rate constant
@@ -1481,7 +1477,7 @@
       ENDDO
 
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( STT, WERADIUS, WTAREA )
 
       END SUBROUTINE SOAG_LIGGIO_DIFF
 !EOC
@@ -1507,8 +1503,6 @@
       USE CMN_DIAG_MOD
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
-      USE COMODE_MOD,         ONLY : JLOP
       USE COMODE_LOOP_MOD
       USE DIAG_MOD,           ONLY : AD07_SOAGM
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -1544,13 +1538,16 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met
+!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. WERADIUS,
+!                              WTAREA are now pointers that point to 3D fields
+!                              in State_Chm.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: I, J, L, JLOOP, N
+      INTEGER  :: I, J, L, N
       REAL(fp) :: XTEMP       ! Temperature [K]
       REAL(fp) :: XSQTEMP     ! SQRT of Temperature
       REAL(fp) :: XAD         ! Air density [molec/cm3]
@@ -1580,9 +1577,9 @@
                               !  heteorogeneous chem takes place
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)      ! GEOS-Chem tracer array [kg]
+      REAL(fp), POINTER :: WERADIUS(:,:,:,:) ! Wet Aerosol Radius [cm]
+      REAL(fp), POINTER :: WTAREA(:,:,:,:)   ! Wet Aerosol Area [cm2/cm3]
 
       !=================================================================
       ! SOAG_LIGGIO_DIFF begins here!
@@ -1591,9 +1588,10 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Initialize pointers
+      STT      => State_Chm%Tracers     ! GEOS-Chem tracer array [kg]
+      WERADIUS => State_Chm%WetAeroRadi ! Aerosol Radius [cm]
+      WTAREA   => State_Chm%WetAeroArea ! Wet Aerosol Area [cm2/cm3]
 
       ! Get chemistry time step
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
@@ -1617,12 +1615,6 @@
       DO L = 1, LLCHEM
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
-            ! Get 1-D index
-            JLOOP   = JLOP( I, J, L )
-
-            ! JLOP equal 0 if we're not in the tropopause. (ccc,10/16/09)
-            IF ( JLOOP == 0 ) CYCLE
 
             ! Get RH  
             XRH     = State_Met%RH( I, J, L )   ![%]
@@ -1670,12 +1662,12 @@
                   !  archived in 'aerosol_mod.f.glyx'
                   !  XWAREA [ cm^2 wet sfc area of aerosol cm^-3 air ]
                   !---------------------------------------
-                  XWAREA  = WTAREA( JLOOP, N) 
+                  XWAREA  = WTAREA( I, J, L, N) 
 
                   IF ( XWAREA > 0e+0_fp ) THEN 
 
                      ! Get particle radius [cm]
-                     XRADIUS = WERADIUS( JLOOP, N )   
+                     XRADIUS = WERADIUS( I, J, L, N )   
 
                      !---------------------------------------
                      ! First order rate constant
@@ -1725,7 +1717,7 @@
       ENDDO
 
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( STT, WERADIUS, WTAREA )
 
       END SUBROUTINE SOAM_LIGGIO_DIFF
 !EOC
@@ -5913,6 +5905,8 @@ ccc
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  16 May 2016 - M. Sulprizio- Remove IJLOOP and change SUNTMP array dimensions
+!                              from (MAXIJ) to (IIPAR,JJPAR)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5920,10 +5914,10 @@ ccc
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE  :: FIRST = .TRUE.
-      INTEGER        :: I, IJLOOP, J, L, N, NT, NDYSTEP
+      INTEGER        :: I, J, L, N, NT, NDYSTEP
       REAL(fp)       :: A0, A1, A2, A3, B1, B2, B3
       REAL(fp)       :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
-      REAL(fp)       :: SUNTMP(MAXIJ)
+      REAL(fp)       :: SUNTMP(IIPAR,JJPAR)
       
       !=================================================================
       ! OHNO3TIME begins here!
@@ -5961,20 +5955,18 @@ ccc
          DO N = 1, NDYSTEP
             
             ! Zero SUNTMP array
-            SUNTMP(:) = 0e+0_fp
+            SUNTMP = 0e+0_fp
 
             ! Loop over surface grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
+!$OMP+PRIVATE( I, J, YMID_R, TIMLOC, AHR )
             DO J = 1, JJPAR
             DO I = 1, IIPAR
 
                ! Grid box latitude center [radians]
                YMID_R = GET_YMID_R( I, J, 1 )
 
-               ! Increment IJLOOP
-               IJLOOP = ( (J-1) * IIPAR ) + I
                TIMLOC = real(LHR0) + real(NT)/3600.0 + 
      &                  GET_XMID( I, J, 1 ) / 15.0
          
@@ -5988,26 +5980,26 @@ ccc
 
                AHR = abs(TIMLOC - 12.) * 15.0 * PI_180
 
-            !===========================================================
-            ! The cosine of the solar zenith angle (SZA) is given by:
-            !     
-            !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
-            !                   
-            ! where LAT = the latitude angle, 
-            !       DEC = the solar declination angle,  
-            !       AHR = the hour angle, all in radians. 
-            !
-            ! If SUNCOS < 0, then the sun is below the horizon, and 
-            ! therefore does not contribute to any solar heating.  
-            !===========================================================
+               !===========================================================
+               ! The cosine of the solar zenith angle (SZA) is given by:
+               !     
+               !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
+               !                   
+               ! where LAT = the latitude angle, 
+               !       DEC = the solar declination angle,  
+               !       AHR = the hour angle, all in radians. 
+               !
+               ! If SUNCOS < 0, then the sun is below the horizon, and 
+               ! therefore does not contribute to any solar heating.  
+               !===========================================================
 
                ! Compute Cos(SZA)
-               SUNTMP(IJLOOP) = sin(YMID_R) * sin(DEC) +
-     &                          cos(YMID_R) * cos(DEC) * cos(AHR)
+               SUNTMP(I,J) = sin(YMID_R) * sin(DEC) +
+     &                       cos(YMID_R) * cos(DEC) * cos(AHR)
 
                ! TCOSZ is the sum of SUNTMP at location (I,J)
                ! Do not include negative values of SUNTMP
-               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(IJLOOP), 0e+0_fp )
+               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(I,J), 0e+0_fp )
 
             ENDDO
             ENDDO

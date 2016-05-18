@@ -2508,7 +2508,6 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND44
       USE CMN_FJX_MOD,        ONLY : RAA, IND999
-      USE COMODE_MOD,         ONLY : JLOP,WERADIUS,ERADIUS
       USE ERROR_MOD,          ONLY : IT_IS_NAN,ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -2538,8 +2537,11 @@
 !                              State_Met%PMID and State_Met%PEDGE
 !  24 Feb 2014 - E. Lundgren - Remove dependency on PRESSURE_MOD
 !  24 Feb 2014 - E. Lundgren - Use State_Met%DELP in place of PEDGE difference
-!  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
-!                                now done from DO_CHEMISTRY (chemistry_mod.F)  
+!  08 Apr 2015 - R. Yantosca - Remove call to READ_PSC_FILE, this is
+!                              now done from DO_CHEMISTRY (chemistry_mod.F) 
+!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on KLOOP. WERADIUS,
+!                              is now a pointer that point to 3D fields in
+!                              in State_Chm.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2554,7 +2556,7 @@
       REAL(fp)               :: FAC2,   FLUX,  AREA_CM2, RHB
       REAL(fp)               :: RCM
       REAL(fp)               :: TOT1,   TOT2
-      INTEGER                :: KLOOP, K
+      INTEGER                :: K
       LOGICAL                :: NATCOL
      
       ! Specific to each class
@@ -2615,6 +2617,7 @@
       ! Pointers
       REAL(fp), POINTER      :: STT(:,:,:,:)
       REAL(f4), POINTER      :: STATE_PSC(:,:,:)
+      REAL(fp), POINTER      :: WERADIUS(:,:,:,:)
 
       !=================================================================
       ! SETTLE_STRAT_AER begins here!
@@ -2630,11 +2633,10 @@
       XNUMOL      = Input_Opt%XNUMOL
       TRACER_MW_G = Input_Opt%TRACER_MW_G(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg]
-      STT => State_Chm%Tracers
-
-      ! Initialize gridbox PSC type (see Kirner et al. 2011, GMD)
-      STATE_PSC => State_Chm%STATE_PSC
+      ! Initialize pointers
+      STT       => State_Chm%Tracers     ! GEOS-Chem tracer array [kg] 
+      STATE_PSC => State_Chm%STATE_PSC   ! PSC type (Kirner et al. 2011, GMD)
+      WERADIUS  => State_Chm%WetAeroRadi ! Aerosol Radius [cm]
 
       ! Return if gravitational settling disabled
       IF (.not. LGRAVSTRAT) RETURN
@@ -2671,7 +2673,7 @@
 !$OMP+PRIVATE( J,            I,            L,          VTS        )
 !$OMP+PRIVATE( VNAT,         NATCOL,       BXMIN,      MINALT     )
 !$OMP+PRIVATE( MAXALT,       VFALLMAX,     TEMP,       P          )
-!$OMP+PRIVATE( RUNCALC,      KLOOP,        RWET,       RHO        )
+!$OMP+PRIVATE( RUNCALC,      RWET,         RHO                    )
 !$OMP+PRIVATE( SP_NUM,       SP_LAMBDA,    VISC,       IAERO      )
 !$OMP+PRIVATE( DP,           PDP,          CONST,      SLIP       )
 !$OMP+PRIVATE( DELZ,         CONST_V,      PHASEMASS,  K          )
@@ -2721,8 +2723,7 @@
             IF (RUNCALC) THEN
                ! Need to translate for BC radii
                IF (ITS_IN_THE_CHEMGRID(I,J,L,State_Met)) THEN
-                  KLOOP = JLOP(I,J,L)  
-                  RWET(IBC) = WERADIUS(KLOOP,2)*1.e-2_fp
+                  RWET(IBC) = WERADIUS(I,J,L,2)*1.e-2_fp
                ELSE
                   ! Use defaults, assume dry (!)
                   RWET(IBC) = RAA(IND999,29) * 1.0e-6_fp
@@ -3201,7 +3202,7 @@
       ENDIF
 
       ! Free pointers
-      NULLIFY( STT, STATE_PSC )
+      NULLIFY( STT, STATE_PSC, WERADIUS )
 
       END SUBROUTINE SETTLE_STRAT_AER
 !

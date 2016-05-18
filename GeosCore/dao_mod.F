@@ -1774,13 +1774,6 @@
       TYPE(MetState), INTENT(INOUT) :: State_Met    ! Meteorology State
 !
 ! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%  NOTE: The SUNCOS arrays of dimension MAXIJ are now deprecated.  We  %%%
-!  %%%  are replacing them with the SUNCOS fields of the State_Met object,  %%%
-!  %%%  which are of dimensions (IIPAR,JJPAR).   During the transition we   %%%
-!  %%%  will keep the old arrays. (bmy, 11/27/12)                           %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!                                                                             .
 !  Hour angle (AHR) is a function of longitude.  AHR is zero at solar noon, 
 !  and increases by 15 deg for every hour before or after solar noon.  Hour 
 !  angle can be thought of as the time in hours since the sun last passed
@@ -1836,7 +1829,7 @@
 !
 ! !LOCAL VARIABLES:
 !      
-      INTEGER              :: I,        IJLOOP,   J
+      INTEGER              :: I,        J
       INTEGER              :: MINUTE,   TS_SUN,   FACTOR
       REAL(fp)             :: TIMLOC,   DEC,      C_DEC
       REAL(fp)             :: S_DEC,    R,        YMID_R
