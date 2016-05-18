@@ -422,20 +422,24 @@ CONTAINS
     State_Chm%Map_KppSpc  => NULL()
     State_Chm%Map_WetDep  => NULL()
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%%  NOTE: These will evenually be removed, since we will consolidate
+!%%%  all species into State_Chm%Species
+!%%%
+    ! Advected tracers
+    State_Chm%Trac_ID     => NULL()
+    State_Chm%Trac_Name   => NULL()
+    State_Chm%Tracers     => NULL()
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    ! Chemical species
+    State_Chm%Spec_ID     => NULL()
+    State_Chm%Spec_Name   => NULL()
+    State_Chm%Species     => NULL()
+
     ! Species database
     State_Chm%SpcData     => NULL()
     ThisSpc               => NULL()
-
-    ! Advected tracers
-    State_Chm%Trac_Id     =  0
-    State_Chm%Trac_name   =  ''
-    State_Chm%Tracers     =  0e+0_fp
-    State_Chm%Trac_Units  =  ''
-
-    ! Chemical species
-    State_Chm%Spec_Id     =  0
-    State_Chm%Spec_Name   =  ''
-    State_Chm%Species     =  0e+0_fp
 
     ! Aerosol parameters
     State_Chm%nAero       = 0
@@ -495,7 +499,7 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Chm%Map_KppSpc = 0
 
-    ALLOCATE( State_Chm%Map_WetDep(            State_Chm%nWetDep  ), STAT=RC )
+    ALLOCATE( State_Chm%Map_WetDep(             State_Chm%nWetDep  ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Chm%Map_WetDep = 0
 
@@ -504,15 +508,15 @@ CONTAINS
     ! %%%% NOTE: THESE WILL BE REMOVED SOON (bmy, 5/18/16) %%%%
     !=====================================================================
 
-    ALLOCATE( State_Chm%Trac_Id   (             State_Chm%nAdvect  ), STAT=RC )
+    ALLOCATE( State_Chm%Trac_Id   (             State_Chm%nAdvect+1), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Chm%Trac_Id = 0
 
-    ALLOCATE( State_Chm%Trac_Name (             State_Chm%nAdvect  ), STAT=RC )
+    ALLOCATE( State_Chm%Trac_Name (             State_Chm%nAdvect+1), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Chm%Trac_name = ''
 
-    ALLOCATE( State_Chm%Tracers   ( IM, JM, LM, State_Chm%nAdvect  ), STAT=RC )
+    ALLOCATE( State_Chm%Tracers   ( IM, JM, LM, State_Chm%nAdvect+1), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Chm%Tracers = 0e+0_fp
 
@@ -520,9 +524,11 @@ CONTAINS
     ! Allocate and initialize chemical species fields
     !=====================================================================
 
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     !%%% NOTE: For now, allocate species arrays with nSpecies, which
     !%%% passes the value of IGAS from gigc_environment_mod.F90.
     !%%% Keep this until we remove all SMVGEAR references (bmy, 5/18/16)
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     ALLOCATE( State_Chm%Spec_Id   (             nSpecies           ), STAT=RC )
    !ALLOCATE( State_Chm%Spec_Id   (             State_Chm%nSpecies ), STAT=RC )
