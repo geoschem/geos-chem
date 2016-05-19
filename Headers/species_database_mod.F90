@@ -133,6 +133,9 @@ CONTAINS
 !  16 Dec 2015 - R. Yantosca - Use MW_g = 31.4 g/mol for SO4s and NITs
 !  15 Mar 2016 - R. Yantosca - Added tagged CO tracer names
 !  22 Apr 2016 - R. Yantosca - Now define Is_Hg0, Is_Hg2, Is_HgP fields
+!  19 May 2016 - R. Yantosca - Remove DryDepId_PAN and DryDepId_HNO3; we shall
+!                              now explicitly compute a drydep velocity for
+!                              all GEOS-Chem species.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -154,10 +157,6 @@ CONTAINS
     CHARACTER(LEN=31)   :: Name
     CHARACTER(LEN=80)   :: FullName
 
-    ! Some species use the same drydep velocities as others, etc.
-    INTEGER             :: DryDepID_PAN
-    INTEGER             :: DryDepID_HNO3
-
     ! For Tagged Hg species
     INTEGER             :: Hg0_CAT
     INTEGER             :: Hg2_CAT
@@ -178,8 +177,6 @@ CONTAINS
     !=======================================================================
 
     ! Initialize
-    DryDepID_PAN  = 0
-    DryDepID_HNO3 = 0
     Hg0_CAT       = 0
     Hg2_CAT       = 0
     HgP_CAT       = 0
@@ -1373,9 +1370,6 @@ CONTAINS
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
-                              ! Save HNO3 drydep index for use further down
-                              DryDepID_HNO3 = SpcData(N)%Info%DryDepID
-            
           CASE( 'HNO4' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -1506,11 +1500,11 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
+! Leave for future expansion (bmy, 5/19/16)
 !          CASE( 'ISN1' )
 !             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
 !                              ThisSpc       = SpcData(N)%Info,              &
 !                              ModelID       = N,                            &
-!                              DryDepID      = DryDepID_HNO3
 !                              Name          = NameAllCaps,                  &
 !                              FullName      = '',                           &
 !                              MW_g          = __.0_fp,                      &
@@ -1520,7 +1514,7 @@ CONTAINS
 !                              Is_Drydep     = T,                            &
 !                              Is_Wetdep     = T,                            &
 !                              DD_F0         = 0.0_fp,                       &
-!                              DD_Hstar_old  = 0.0_fp,                      &
+!                              DD_Hstar_old  = 1.0e+14_fp,                  &
 !                              RC            = RC )
 
           CASE( 'ISOA1', 'ISOA2', 'ISOA3' )
@@ -1988,10 +1982,13 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'N2O5' )
+
+             ! N2O5 uses the same DD_F0 and DD_Hstar_old values as HNO3,
+             ! so that we can compute its drydep velocity explicitly.
+             ! (bmy, 5/19/16)
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
-                              DryDepID      = DryDepID_HNO3,                &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2006,7 +2003,7 @@ CONTAINS
                               Henry_K0      = 2.10e-2_f8 * To_M_atm,        &
                               Henry_CR      = 3400.0_f8,                    &
 #else									    
-                              DD_Hstar_old  = 0.0_fp,                       &
+                              DD_Hstar_old  = 1.0e+14_fp,                   &
 #endif									    
                               RC            = RC )
 
@@ -2439,10 +2436,10 @@ CONTAINS
 #endif                                      
                               RC            = RC )
 
-                              ! Save PAN drydep index for use further down
-                              DryDepID_PAN = SpcData(N)%Info%DryDepID
-
           CASE( 'PMN' )
+             ! PMN uses the same DD_F0 and DD_Hstar_old values as PAN
+             ! so that we can compute its drydep velocity explicitly.
+             ! (bmy, 5/19/16)
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -2455,21 +2452,22 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
-                              DryDepId      = DryDepID_PAN,                 &
-                              DD_F0         = 0.0_fp,                       &
+                              DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 1.70e-2_f8 * To_M_atm,        &
 #else                                                                       
-                              DD_Hstar_old  = 0.0_fp,                       &
+                              DD_Hstar_old  = 3.60_fp,                      &
 #endif
                               RC            = RC )
 
           CASE( 'PPN' )
+             ! PPN uses the same DD_F0 and DD_Hstar_old values as PAN
+             ! so that we can compute its drydep velocity explicitly.
+             ! (bmy, 5/19/16)
              FullName = 'Lumped peroxypropionyl nitrate'
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
-                              DryDepID      = DryDepID_PAN,                 &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2479,12 +2477,12 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 2.9e-2_f8 * To_M_atm,         &
                               Henry_CR      = _f8,                          &
 #else                                                                       
-                              DD_Hstar_old  = 0.0_fp,                       &
+                              DD_Hstar_old  = 3.60_fp,                      &
 #endif                                                                      
                               RC            = RC )
 
@@ -2587,10 +2585,12 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'R4N2' )
+             ! R4N2 uses the same DD_F0 and DD_Hstar_old values as PAN
+             ! so that we can compute its drydep velocity explicitly.
+             ! (bmy, 5/19/16)
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
-                              DryDepID      = DryDepId_PAN,                 &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2600,12 +2600,12 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              DD_F0         = 1.0_fp,                       &   
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 1.0e-2_f8 * To_M_atm,         &
                               Henry_CR      = 5800.0_f8,                    &
 #else                                                                       
-                              DD_Hstar_old  = 0.0_fp,                       &
+                              DD_Hstar_old  = 3.60_fp,                      &
 #endif
                               RC            = RC )
 
