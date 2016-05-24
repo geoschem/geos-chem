@@ -5584,6 +5584,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE UnitConv_Mod 
+      USE Grid_Mod,           ONLY : GET_YMID
 !
 ! !INPUT PARAMETERS:
 !      
@@ -5618,13 +5619,16 @@
 !  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !  18 Jul 2016 - E. Lundgren   - Remove dependency on grid box mass
 !  11 Aug 2016 - R. Yantosca   - Remove temporary tracer-removal code
+!  24 May 2016 - C. Holmes     - Apply H2O from met fields up to the cold point 
+!                                tropopause in the tropics (30S-30N) or the lapse-rate
+!                                tropopause, whichever is higher
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER           :: I,J,L
+      INTEGER           :: I,J,L, LEVCPT
       LOGICAL           :: READ_SPHU
       REAL(fp)          :: SPHU_kgkg, H2OVV_moist, Ev_mid
       REAL(fp)          :: Esat, EsatA, EsatB, EsatC, EsatD
@@ -5682,15 +5686,30 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, READ_SPHU)
+!$OMP+PRIVATE( I, J, L, READ_SPHU, LEVCPT)
 !$OMP+PRIVATE( SPHU_kgkg, H2OVV_moist, Ev_mid )
 !$OMP+PRIVATE( Esat, EsatA, EsatB, EsatC, EsatD )
-      DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
+         ! Between 30S-30N, find the level of cold point tropopause,
+         ! the altitude with the coldest temperature below 10 hPa
+         IF ( ABS(GET_YMID(I,J,1)) <= 30 ) THEN
+            ! Level with minimum temperature, 
+            ! use MASK to screen for >10 hPa
+            LEVCPT = MINLOC( State_Met%T(I,J,:), DIM=1, 
+     &                       MASK=(State_Met%PMID(I,J,:) >= 10) )
+         ELSE
+            LEVCPT = -1
+         ENDIF
+
+         DO L = 1, LLPAR
+
+         ! Logical flag determines if we are in a region where H2O from 
+         ! met files should overwrite the value from the chemical solver 
          READ_SPHU = ( ITS_IN_THE_TROP( I, J, L, State_Met ) .or.
-     &                 SETSTRAT .or. ( .not. LACTIVEH2O )  )
+     &                 SETSTRAT .or. ( .not. LACTIVEH2O ) .or. 
+     &                 (L < LEVCPT)  )
 
 
          IF ( READ_SPHU ) THEN
