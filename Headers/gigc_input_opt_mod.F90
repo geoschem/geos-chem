@@ -88,7 +88,6 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER,            POINTER :: ID_TRACER(:)       
      CHARACTER(LEN=255), POINTER :: TRACER_NAME(:)     
      REAL(fp),           POINTER :: TRACER_MW_G(:)     
-     REAL(fp),           POINTER :: TRACER_MW_KG(:)    
      REAL(fp),           POINTER :: TCVV(:)            
      REAL(fp),           POINTER :: XNUMOL(:)          
      INTEGER                     :: SIM_TYPE
@@ -802,7 +801,6 @@ CONTAINS
     ALLOCATE( Input_Opt%ID_TRACER     ( MAX_TRCS           ), STAT=RC )
     ALLOCATE( Input_Opt%TRACER_NAME   ( MAX_TRCS           ), STAT=RC )
     ALLOCATE( Input_Opt%TRACER_MW_G   ( MAX_TRCS           ), STAT=RC )
-    ALLOCATE( Input_Opt%TRACER_MW_KG  ( MAX_TRCS           ), STAT=RC )
     ALLOCATE( Input_Opt%TCVV          ( MAX_TRCS           ), STAT=RC )
     ALLOCATE( Input_Opt%XNUMOL        ( MAX_TRCS           ), STAT=RC )     
 
@@ -810,7 +808,6 @@ CONTAINS
     Input_Opt%ID_TRACER              = 0
     Input_Opt%TRACER_NAME            = ''
     Input_Opt%TRACER_MW_G            = 0e+0_fp
-    Input_Opt%TRACER_MW_KG           = 0e+0_fp
     Input_Opt%TCVV                   = 0e+0_fp
     Input_Opt%XNUMOL                 = 0e+0_fp
     Input_Opt%SIM_TYPE               = 0
@@ -1487,10 +1484,6 @@ CONTAINS
 
     IF ( ASSOCIATED( Input_Opt%TRACER_MW_G ) ) THEN
        DEALLOCATE( Input_Opt%TRACER_MW_G )
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%TRACER_MW_KG ) ) THEN
-       DEALLOCATE( Input_Opt%TRACER_MW_KG   )
     ENDIF
 
     IF ( ASSOCIATED( Input_Opt%TCVV ) ) THEN

@@ -1343,35 +1343,43 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_FAM_MWT( N, Input_Opt ) RESULT( MWT )
+      FUNCTION GET_FAM_MWT( N, Input_Opt, State_Chm ) RESULT( MWT )
 !
 ! !USES:
 !
       USE CHARPAK_MOD,        ONLY : TRANUC
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS: 
 ! 
       INTEGER,        INTENT(IN)  :: N           ! Family # for desired mol wt
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                      :: MWT         ! Molecular weight
+      REAL(fp)                    :: MWT         ! Molecular weight
 !
 ! !REVISION HISTORY:
 !  02 May 2005 - R. Yantosca - Initial version
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
 !  25 Jun 2014 - R. Yantosca - Now accept Input_Opt; remove refs to tracer_mod
+!  25 May 2016 - E. Lundgren - Replace input_opt*TRACER_MW_KG with species
+!                              database field emMW_g (emitted species g/mol)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: T
-      CHARACTER(LEN=255) :: MSG, PL_NAME, T_NAME 
+      INTEGER                :: T
+      CHARACTER(LEN=255)     :: MSG, PL_NAME, T_NAME 
+
+      ! Objects
+      TYPE(Species), POINTER :: ThisSpc => NULL()
 
       !=================================================================
       ! GET_FAM_NAME begins here!
@@ -1413,10 +1421,19 @@
          
          ! If we have a name match, return the molecular wt
          IF ( TRIM( PL_NAME ) == TRIM( T_NAME ) ) THEN
-            MWT = Input_Opt%TRACER_MW_KG( T )
+            
+            ! Get info about this species from the species database
+            ! NOTE: This assumes a 1:1 tracer index to species index mapping
+            ThisSpc => State_Chm%SpcData(T)%Info
+
+            !MWT = Input_Opt%TRACER_MW_KG( T )
+            MWT = ThisSpc%emMW_g * 1.e-3_fp
             EXIT
          ENDIF
       ENDDO
+
+      ! Nullify pointer
+      ThisSpc  => NULL()
 
       END FUNCTION GET_FAM_MWT
 !EOC

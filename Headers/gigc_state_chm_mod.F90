@@ -622,13 +622,12 @@ CONTAINS
           ! Now use MW from the species database instead of from the
           ! input.geos file.  This eliminates discrepancies. (bmy, 12/16/15)
           Input_Opt%TRACER_MW_g(N)  = EmMW_g
-          Input_Opt%TRACER_MW_kg(N) = EmMW_g * 1e-3_fp
 
           ! Ratio of MW dry air / MW tracer
           Input_Opt%TCVV(N)         = AIRMW / Input_Opt%TRACER_MW_G(N)
 
           ! Molecules tracer / kg tracer
-          Input_Opt%XNUMOL(N)       = AVO / Input_Opt%TRACER_MW_KG(N)
+          Input_Opt%XNUMOL(N)       = AVO / ( EmMW_g * 1e-3_fp)
 
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

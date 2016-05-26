@@ -639,8 +639,9 @@ gamap_mod.o                 : gamap_mod.F                                    \
                               diag51b_mod.o           diag53_mod.o           \
                               diag56_mod.o            diag63_mod.o           \
                               diag_pl_mod.o  	      drydep_mod.o           \
-                              tomas_mod.o             tracerid_mod.o         \
-                              tracer_mod.o            wetscav_mod.o
+                              tomas_mod.o                                    \
+                              tracerid_mod.o          tracer_mod.o           \
+                              wetscav_mod.o
 
 ifeq ($(COMPILER),sun)
 	$(F90) -O0 -c $<
@@ -790,16 +791,11 @@ merra2_read_mod.o           : merra2_read_mod.F90                            \
                               dao_mod.o               diag_mod.o
 
 mixing_mod.o                : mixing_mod.F90                                 \
-                              chemgrid_mod.o                                 \
-                              dao_mod.o                                      \
-                              diag_mod.o                                     \
-                              drydep_mod.o                                   \
-                              hcoi_gc_main_mod.o                             \
-                              get_ndep_mod.o                                 \
-                              pbl_mix_mod.o                                  \
-                              tracerid_mod.o                                 \
-                              tendencies_mod.o                               \
-                              vdiff_mod.o                                    
+                              chemgrid_mod.o          dao_mod.o              \
+                              diag_mod.o              drydep_mod.o           \
+                              hcoi_gc_main_mod.o      get_ndep_mod.o         \
+                              pbl_mix_mod.o           tracerid_mod.o         \
+                              tendencies_mod.o        vdiff_mod.o                                    
 
 modis_lai_mod.o             : modis_lai_mod.F90       mapping_mod.o
 
@@ -952,9 +948,8 @@ vdiff_mod.o                 : vdiff_mod.F90                                  \
                               drydep_mod.o            ocean_mercury_mod.o    \
                               pbl_mix_mod.o           vdiff_pre_mod.o        \
                               tracer_mod.o            tracerid_mod.o         \
-                              tendencies_mod.o                               \
-                              hcoi_gc_main_mod.o      global_ch4_mod.o       \
-                              mercury_mod.o      
+                              tendencies_mod.o        hcoi_gc_main_mod.o     \
+                              global_ch4_mod.o        mercury_mod.o      
 
 wetscav_mod.o               : wetscav_mod.F                                  \
                               dao_mod.o               diag_mod.o             \

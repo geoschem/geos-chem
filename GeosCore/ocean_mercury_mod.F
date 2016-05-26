@@ -970,6 +970,8 @@
 !                              (orig. 3/23/12)
 !  17 Aug 2015 - J. Fisher   - Add scaling of reducible HgII based on UV-B
 !                              (orig. 3/24/12)
+!  26 May 2016 - E. Lundgren - Replace input_opt TRACER_MW_KG with species
+!                              database field emMW_g (emitted species g/mol)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1079,7 +1081,6 @@
       ! For values from Input_Opt
       LOGICAL              :: LSPLIT
       INTEGER              :: N_TRACERS
-      REAL(fpp)            :: TRACER_MW_KG(Input_Opt%N_TRACERS)
       LOGICAL              :: LArcticRiv,  LKRedUV
 
       ! Pointers
@@ -1116,7 +1117,6 @@
       LArcticRiv   = Input_Opt%LArcticRiv
       LKRedUV      = Input_Opt%LKRedUV
       N_TRACERS    = Input_Opt%N_TRACERS
-      TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
 
       ! Loop limit for use below
       IF ( LSPLIT ) THEN
@@ -1126,7 +1126,7 @@
       ENDIF
 
       ! Molecular weight of Hg (applicable to all tagged tracers)
-      MHg = TRACER_MW_Kg(1)
+      MHg = State_Chm%SpcData(1)%Info%emMW_g * 1e-3_fpp
 
       ! Get current month
       THISMONTH = GET_MONTH()
@@ -1396,7 +1396,7 @@
          ! Change ocean mass due to mixed layer depth change
          ! Keep before next IF so that we adjust mass in ice-covered boxes
          CALL MLD_ADJUSTMENT( I, J, OLDMLD*1e-2_fpp, MLDcm*1e-2_fpp, 
-     &                        Input_Opt, State_Met )
+     &                        Input_Opt, State_Chm, State_Met )
 
          !---------------------------------------------------------------
          ! Deliver snowpack Hg to ocean if snow has melted
@@ -2570,7 +2570,7 @@
 !------------------------------------------------------------------------------
 
       SUBROUTINE MLD_ADJUSTMENT( I, J, MLDold, MLDnew, 
-     &                           Input_Opt, State_Met )
+     &                           Input_Opt, State_Chm, State_Met )
 !
 !******************************************************************************
 !  Subroutine MLD_ADJUSTMENT entrains new water when mixed layer depth deepens
@@ -2603,10 +2603,13 @@
 !			       Hg deposition accordingly in partial-ice boxes
 !                              (orig. 28/11/11)
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
+!  26 May 2016 - E. Lundgren - Replace input_opt TRACER_MW_KG with species
+!                              database field emMW_g (emitted species g/mol)
 !******************************************************************************
 !
       ! Reference to fortran90 modules
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2, GET_XMID, GET_YMID
       USE CMN_SIZE_MOD             ! Size parameters
@@ -2615,6 +2618,7 @@
       INTEGER,        INTENT(IN)  :: I, J 
       REAL(fpp),      INTENT(IN)  :: MLDold, MLDnew  
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object 
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
@@ -2626,7 +2630,6 @@
       ! For fields from Input_Opt
       LOGICAL               :: LSPLIT
       INTEGER               :: N_TRACERS
-      REAL(fpp)             :: TRACER_MW_KG(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! MLD_ADJUSTMENT begins here!
@@ -2635,7 +2638,6 @@
       ! Copy values from Input_Opt
       LSPLIT       = Input_Opt%LSPLIT
       N_TRACERS    = Input_Opt%N_TRACERS
-      TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
 
       ! Loop limit for use below
       IF ( LSPLIT ) THEN
@@ -2663,7 +2665,7 @@
 #endif
 
       ! Molecular weight of Hg (valid for all tagged tracers)
-      MHg    = TRACER_MW_KG(ID_Hg_tot)
+      MHg    = State_Chm%SpcData(ID_Hg_tot)%Info%emMW_g * 1e-3_fpp
 
       ! Test if MLD increased
       IF ( MLDnew > MLDold ) THEN
@@ -2974,7 +2976,6 @@
       LOGICAL             :: LFUTURE
       INTEGER             :: N_TRACERS
       CHARACTER(LEN=14)   :: TRACER_NAME(Input_Opt%N_TRACERS)
-      REAL(fpp)           :: TRACER_MW_KG(Input_Opt%N_TRACERS)
 
       ! For the species database
       TYPE(Species), POINTER :: ThisSpc
@@ -2989,7 +2990,6 @@
       LSPLIT          = Input_Opt%LSPLIT
       N_TRACERS       = Input_Opt%N_TRACERS
       TRACER_NAME     = Input_Opt%TRACER_NAME(1:N_TRACERS)
-      TRACER_MW_KG    = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
       NCOUNT(:)       = 0
       Hg_OCEAN(:,:,:) = 0e0
 
