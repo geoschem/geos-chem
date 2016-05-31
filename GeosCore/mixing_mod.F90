@@ -346,7 +346,7 @@ CONTAINS
     LOGICAL,           SAVE :: FIRST = .TRUE.
 
     ! Objects
-    TYPE(Species), POINTER  :: ThisSpc => NULL()
+    TYPE(Species), POINTER  :: ThisSpc
 
 #if defined( NC_DIAG )
     REAL(fp), POINTER  :: Ptr2D => NULL()
@@ -368,6 +368,9 @@ CONTAINS
     LEMIS      = Input_Opt%LEMIS 
     LDRYD      = Input_Opt%LDRYD 
     PBL_DRYDEP = Input_Opt%PBL_DRYDEP
+
+    ! Initialize pointer
+    ThisSpc => NULL()
 
     ! DO_TEND previously operated in units of kg. The tracer arrays are in
     ! v/v for mixing, hence needed to convert before and after.

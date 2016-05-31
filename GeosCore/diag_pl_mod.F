@@ -1367,7 +1367,7 @@
 !  02 May 2005 - R. Yantosca - Initial version
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
 !  25 Jun 2014 - R. Yantosca - Now accept Input_Opt; remove refs to tracer_mod
-!  25 May 2016 - E. Lundgren - Replace input_opt*TRACER_MW_KG with species
+!  25 May 2016 - E. Lundgren - Replace input_opt%TRACER_MW_KG with species
 !                              database field emMW_g (emitted species g/mol)
 !EOP
 !------------------------------------------------------------------------------
@@ -1379,7 +1379,7 @@
       CHARACTER(LEN=255)     :: MSG, PL_NAME, T_NAME 
 
       ! Objects
-      TYPE(Species), POINTER :: ThisSpc => NULL()
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! GET_FAM_NAME begins here!
@@ -1391,8 +1391,9 @@
          CALL ERROR_STOP( MSG, 'GET_FAM_MWT ("diag_pl_mod.f")' ) 
       ENDIF
 
-      ! Initialize the MWT
+      ! Initialize the MWT and pointer
       MWT     = 0e+0_fp
+      ThisSpc => NULL()
 
       ! Get name of this P/L family
       PL_NAME = TRIM( FAM_NAME( N ) )

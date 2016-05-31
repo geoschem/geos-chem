@@ -1835,16 +1835,18 @@
       INTEGER                 :: N_Hg_CATS
 
       ! Objects
-      TYPE(Species), POINTER  :: ThisSpc => NULL()
+      TYPE(Species), POINTER  :: ThisSpc
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
       !=================================================================
 
-      ! Copy fields from INPUT_OPT
+      ! Assume success
       RC = GIGC_SUCCESS
 
+      ! Initialization
       DUM = 1.0
+      ThisSpc => NULL()
 
       ! Set a flag if any timeseries diagnostics are turned on
       DO_TIMESERIES = ( DO_SAVE_DIAG48 .or. DO_SAVE_DIAG49 .or.
