@@ -353,6 +353,7 @@
 !                              Remove dependency on pressure_mod.
 !  25 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostic
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  31 May 2016 - E. Lundgren - Remove usage of Input_Opt%XNUMOL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -414,7 +415,7 @@
       ! Local variables for Input_Opt quantities
       REAL(fp)                 :: SALA_REDGE_um(2)
       REAL(fp)                 :: SALC_REDGE_um(2)
-      REAL(fp)                 :: XNUMOL(Input_Opt%N_TRACERS)
+
       ! Non-SAVEd variables
       LOGICAL        :: prtDebug
       LOGICAL        :: LPRT
@@ -440,7 +441,6 @@
       SALA_REDGE_um = Input_Opt%SALA_REDGE_um 
       SALC_REDGE_um = Input_Opt%SALC_REDGE_um
       N_TRACERS     = Input_Opt%N_TRACERS
-      XNUMOL        = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Chemistry timestep [s]
       DTCHEM        = GET_TS_CHEM() * 60e+0_fp
@@ -735,7 +735,8 @@
 
             ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
-            FLUX     = FLUX * XNUMOL(IDTSALA) / AREA_CM2 
+            FLUX     = FLUX * AVO / ( AIRMW / Input_Opt%TCVV(IDTSALA)
+     &                 * 1.e-3_fp ) / AREA_CM2 
    
 #if defined( BPCH_DIAG )
             ! For bpch diagnostic, store in global AD44 array

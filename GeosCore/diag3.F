@@ -5760,6 +5760,10 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
 
+            ! Get info about this species from the database
+            ! NOTE: Assumes 1:1 mapping of tracer and species indexes
+            ThisSpc => State_Chm%SpcData(N)%Info
+
             DO J = 1, JJPAR
             DO I = 1, IIPAR
 
@@ -5767,13 +5771,13 @@
                AREA_M2 = GET_AREA_M2( I, J, 1 )
 
                ARRAY(I,J,1) = ( SUM( STT(I,J,:,N) ) * AVO )
-     &                        / ( Input_Opt%TRACER_MW_G(N) 
-     &                                 * AREA_M2 * 10.e+0_fp )
+     &                        / ( ThisSpc%emMW_g
+     &                            * AREA_M2 * 10.e+0_fp )
             ENDDO
             ENDDO
 
             ! Write the proper unit string
-            IF ( Input_Opt%TRACER_MW_G(N) > 12e+0_fp ) THEN
+            IF ( ThisSpc%emMW_g > 12e+0_fp ) THEN
                UNIT = 'molec/cm2'
             ELSE
                UNIT = 'atoms C/cm2'
@@ -5784,6 +5788,9 @@
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     1,        IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+            ! Free pointer
+            ThisSpc => NULL()
 
          ENDDO
 

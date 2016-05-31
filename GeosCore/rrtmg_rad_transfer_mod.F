@@ -201,6 +201,8 @@
 !                              rather than comode_loop_mod
 !  17 May 2016 - M. Sulprizio- Remove NCOL, IJLOOP and change dimensions of
 !                              arrays from IIPAR*JJPAR to IIPAR,JJPAR
+!  31 May 2016 - E. Lundgren - Replace Input_Opt%TRACER_MW_G with emMW_g from
+!                              species database (emitted species g/mol)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -333,8 +335,6 @@
       REAL (KIND=RB)         :: Z_CLIM(LLPAR+2)
       REAL (KIND=RB)         :: AIR_CLIM(LLPAR+1)
       INTEGER                :: N_TRACERS
-      REAL*8                 :: XNUMOL(Input_Opt%N_TRACERS)
-      REAL*8                 :: TRACER_MW_G(Input_Opt%N_TRACERS)
 
       !-----------------------------------------------------------------
       ! SW SOLAR VARIABLES
@@ -487,8 +487,6 @@
 
       ! Get fields from Input_Opt
       N_TRACERS   = Input_Opt%N_TRACERS
-      XNUMOL      = Input_Opt%XNUMOL
-      TRACER_MW_G = Input_Opt%TRACER_MW_G(1:N_TRACERS)
 
       ! Convert tracer units to [kg] for RRTMG (ewl, 8/12/15)
       CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
@@ -713,22 +711,39 @@
 #if defined( UCX )
             IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
              O3VMR(I,J,L)  = State_Chm%Tracers(I,J,L,IDTO3)*AIRMW /
-     &                     (TRACER_MW_G(IDTO3)*State_Met%AD(I,J,L))
+     &                       ( State_Chm%SpcData(IDTO3)%Info%emMW_g *
+     &                         State_Met%AD(I,J,L) )
             ENDIF
+
             IF (SPECMASK(NASPECRAD+2).EQ.1) THEN
-             CH4VMR(I,J,L) = State_Chm%Tracers(I,J,L,IDTCH4)*AIRMW /
-     &                     (TRACER_MW_G(IDTCH4)*State_Met%AD(I,J,L))
+             CH4VMR(I,J,L) = State_Chm%Tracers(I,J,L,IDTCH4) * AIRMW /
+     &                       ( State_Chm%SpcData(IDTCH4)%Info%emMW_g *
+     &                         State_Met%AD(I,J,L) )
             ENDIF
-            N2OVMR(I,J,L) = State_Chm%Tracers(I,J,L,IDTN2O)*AIRMW /
-     &                     (TRACER_MW_G(IDTN2O)*State_Met%AD(I,J,L))
-            CFC11VMR(I,J,L) = State_Chm%Tracers(I,J,L,IDTCFC11)*
-     &                 AIRMW/(TRACER_MW_G(IDTCFC11)*State_Met%AD(I,J,L))
-            CFC12VMR(I,J,L) = State_Chm%Tracers(I,J,L,IDTCFC12)*
-     &                 AIRMW/(TRACER_MW_G(IDTCFC12)*State_Met%AD(I,J,L))
-            CCL4VMR(I,J,L)  = State_Chm%Tracers(I,J,L,IDTCCL4)*
-     &                 AIRMW/(TRACER_MW_G(IDTCCL4)*State_Met%AD(I,J,L))
-            CFC22VMR(I,J,L) =State_Chm%Tracers(I,J,L,IDTHCFC22)*
-     &                AIRMW/(TRACER_MW_G(IDTHCFC22)*State_Met%AD(I,J,L))
+
+            N2OVMR(I,J,L) = State_Chm%Tracers(I,J,L,IDTN2O) * AIRMW /
+     &                       ( State_Chm%SpcData(IDTN2O)%Info%emMW_g *
+     &                         State_Met%AD(I,J,L) )
+
+            CFC11VMR(I,J,L) = State_Chm%Tracers(I,J,L,IDTCFC11) *
+     &                        AIRMW / 
+     &                       ( State_Chm%SpcData(IDTCFC11)%Info%emMW_g *
+     &                         State_Met%AD(I,J,L) )
+
+            CFC12VMR(I,J,L) = State_Chm%Tracers(I,J,L,IDTCFC12) *
+     &                        AIRMW /
+     &                       ( State_Chm%SpcData(IDTCFC12)%Info%emMW_g *
+     &                         State_Met%AD(I,J,L) )
+
+            CCL4VMR(I,J,L)  = State_Chm%Tracers(I,J,L,IDTCCL4) *
+     &                        AIRMW / 
+     &                       ( State_Chm%SpcData(IDTCCL4)%Info%emMW_g *
+     &                         State_Met%AD(I,J,L) )
+
+            CFC22VMR(I,J,L) = State_Chm%Tracers(I,J,L,IDTHCFC22) *
+     &                        AIRMW /
+     &                       ( State_Chm%SpcData(IDTHCFC22)%Info%emMW_g *
+     &                         State_Met%AD(I,J,L) )
 
 #else
             IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
@@ -755,20 +770,33 @@
 #if defined( UCX )
             !N.B. STRAT CH4 NOT CURRENTLY INCLUDED IN THE DRE OF CH4
             !N.B. STRAT O3  NOT CURRENTLY INCLUDED IN THE DRE OF O3
-             O3VMR(I,J,L)  = State_Chm%Tracers(I,J,L,IDTO3)*AIRMW /
-     &                     (TRACER_MW_G(IDTO3)*State_Met%AD(I,J,L))
-             CH4VMR(I,J,L) = State_Chm%Tracers(I,J,L,IDTCH4)*AIRMW /
-     &                     (TRACER_MW_G(IDTCH4)*State_Met%AD(I,J,L))
-            N2OVMR(I,J,L) = State_Chm%Tracers(I,J,L,IDTN2O)*AIRMW /
-     &                     (TRACER_MW_G(IDTN2O)*State_Met%AD(I,J,L))
-            CFC11VMR(I,J,L) =State_Chm%Tracers(I,J,L,IDTCFC11)*
-     &       AIRMW/(TRACER_MW_G(IDTCFC11)*State_Met%AD(I,J,L))
-            CFC12VMR(I,J,L) =State_Chm%Tracers(I,J,L,IDTCFC12)*
-     &       AIRMW/(TRACER_MW_G(IDTCFC12)*State_Met%AD(I,J,L))
-            CCL4VMR(I,J,L)  =State_Chm%Tracers(I,J,L,IDTCCL4)*
-     &       AIRMW/(TRACER_MW_G(IDTCCL4)*State_Met%AD(I,J,L))
-            CFC22VMR(I,J,L) =State_Chm%Tracers(I,J,L,IDTHCFC22)*
-     &       AIRMW/(TRACER_MW_G(IDTHCFC22)*State_Met%AD(I,J,L))
+             O3VMR(I,J,L)  = State_Chm%Tracers(I,J,L,IDTO3) * AIRMW /
+     &                       ( State_Chm%SpcData(IDTO3)%Info%emMW_g *
+     &                         State_Met%AD(I,J,L) )  
+ 
+             CH4VMR(I,J,L) = State_Chm%Tracers(I,J,L,IDTCH4) * AIRMW /
+     &                       ( State_Chm%SpcData(IDTCH4)%Info%emMW_g *
+     &                         State_Met%AD(I,J,L) )   
+
+            N2OVMR(I,J,L) = State_Chm%Tracers(I,J,L,IDTN2O) * AIRMW /
+     &                      ( State_Chm%SpcData(IDTN2O)%Info%emMW_g *
+     &                        State_Met%AD(I,J,L) )   
+
+            CFC11VMR(I,J,L) =State_Chm%Tracers(I,J,L,IDTCFC11) * AIRMW /
+     &                      ( State_Chm%SpcData(IDTCFC11)%Info%emMW_g *
+     &                        State_Met%AD(I,J,L) )   
+
+            CFC12VMR(I,J,L) =State_Chm%Tracers(I,J,L,IDTCFC12) * AIRMW /
+     &                      ( State_Chm%SpcData(IDTCFC12)%Info%emMW_g *
+     &                        State_Met%AD(I,J,L) )   
+
+            CCL4VMR(I,J,L)  =State_Chm%Tracers(I,J,L,IDTCCL4) * AIRMW /
+     &                      ( State_Chm%SpcData(IDTCCL4)%Info%emMW_g *
+     &                        State_Met%AD(I,J,L) )   
+
+            CFC22VMR(I,J,L) =State_Chm%Tracers(I,J,L,IDTHCFC22) * AIRMW/
+     &                      ( State_Chm%SpcData(IDTHCFC22)%Info%emMW_g *
+     &                        State_Met%AD(I,J,L) )   
 
 
 ! TEST IMPACT OF STRAT CHEM

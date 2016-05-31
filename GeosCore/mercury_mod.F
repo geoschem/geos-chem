@@ -183,6 +183,8 @@
 !  10 Aug 2015 - J. Fisher   - Updated treatment of polar BrO chemistry
 !                              (orig. 29/11/11)
 !  05 Jan 2016 - E. Lundgren - Now use global dry air gas and Henry's Law consts
+!  31 May 2016 - E. Lundgren - Replace Input_Opt%XNUMOL with AVO / (emMW_g*1e-3)
+!                              where emMW_g is emitted MW from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -518,7 +520,6 @@
       LOGICAL         :: LNLPBL
       LOGICAL         :: LPRT
       INTEGER         :: N_TRACERS
-      REAL(fp)        :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER :: STT(:,:,:,:)
@@ -640,7 +641,6 @@
       LNLPBL    = Input_Opt%LNLPBL
       LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
       N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Initialize pointers
       STT      => State_Chm%Tracers
@@ -1168,28 +1168,31 @@
                AREA_CM2 = GET_AREA_CM2( I, J, L )
 
                ! Amt of Hg(0) lost to drydep [molec/cm2/s]
-               DEP_DRY_FLX  = DEP_HG0 * XNUMOL(ID_Hg0(N)) / 
-     &              ( AREA_CM2 * DTCHEM )
+               DEP_DRY_FLX  = DEP_HG0 * AVO / ( 1.e-3_fp *
+     &                      State_Chm%SpcData(ID_Hg0(N))%Info%emMW_g ) / 
+     &                      ( AREA_CM2 * DTCHEM )
 
                ! Archive Hg(0) drydep flux in AD44 array [molec/cm2/s]
                AD44(I,J,ID_HG0(N),1) = AD44(I,J,ID_HG0(N),1) +
-     &              DEP_DRY_FLX
+     &                                 DEP_DRY_FLX
 
                ! Amt of Hg(II)g lost to drydep [molec/cm2/s]
-               DEP_DRY_FLX  = DEP_HG2G_DRY * XNUMOL(ID_Hg2(N)) / 
-     &              ( AREA_CM2 * DTCHEM )
+               DEP_DRY_FLX  = DEP_HG2G_DRY * AVO / ( 1.e-3_fp *
+     &                      State_Chm%SpcData(ID_Hg2(N))%Info%emMW_g ) / 
+     &                      ( AREA_CM2 * DTCHEM )
 
                ! Archive Hg(II) drydep flux in AD44 array [molec/cm2/s]
                AD44(I,J,ID_HG2(N),1) = AD44(I,J,ID_HG2(N),1) +
-     &              DEP_DRY_FLX
+     &                                 DEP_DRY_FLX
 
                ! Amt of Hg(II)p lost to drydep [molec/cm2/s]
-               DEP_DRY_FLX  = DEP_HG2P_DRY * XNUMOL(ID_HgP(N)) / 
-     &              ( AREA_CM2 * DTCHEM )
+               DEP_DRY_FLX  = DEP_HG2P_DRY * AVO / ( 1.e-3_fp *
+     &                      State_Chm%SpcData(ID_HgP(N))%Info%emMW_g ) / 
+     &                      ( AREA_CM2 * DTCHEM )
 
                ! Archive Hg(II)p drydep flux in AD44 array [molec/cm2/s]
                AD44(I,J,ID_HGP(N),1) = AD44(I,J,ID_HGP(N),1) +
-     &              DEP_DRY_FLX
+     &                                 DEP_DRY_FLX
 
             ENDIF
 #endif

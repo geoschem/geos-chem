@@ -1858,9 +1858,14 @@ CONTAINS
              ! prior behavior.  The MW's of the tagged species in 
              ! the prior code all have MW_g = 0 and EmMW_g = 0.
              ! Ask Christoph about this. (bmy, 9/1/15)
-             HcoState%Spc(N)%MW_g       = Input_Opt%Tracer_MW_G(N) ! [g/mol]
-             HcoState%Spc(N)%EmMW_g     = Input_Opt%Tracer_MW_G(N) ! [g/mol]
-             HcoState%Spc(N)%MolecRatio = ThisSpc%MolecRatio       ! [1    ]
+             !HcoState%Spc(N)%MW_g       = Input_Opt%Tracer_MW_G(N) ! [g/mol]
+             !HcoState%Spc(N)%EmMW_g     = Input_Opt%Tracer_MW_G(N) ! [g/mol]
+
+             ! Now use the species database emMW_g which is equivalent to 
+             ! Input_Opt%Tracer_MW_G (ewl, 5/31/16)
+             HcoState%Spc(N)%MW_g       = ThisSpc%emMW_g            ! [g/mol]
+             HcoState%Spc(N)%EmMW_g     = ThisSpc%emMW_g            ! [g/mol]
+             HcoState%Spc(N)%MolecRatio = ThisSpc%MolecRatio        ! [1    ]
  
              ! Set Henry coefficients
              HcoState%Spc(N)%HenryK0    = ThisSpc%Henry_K0         ! [M/atm]

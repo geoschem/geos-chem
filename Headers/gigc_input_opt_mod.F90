@@ -86,9 +86,8 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: N_TRACERS
      INTEGER                     :: N_SPECIES
      INTEGER,            POINTER :: ID_TRACER(:)       
-     CHARACTER(LEN=255), POINTER :: TRACER_NAME(:)     
-     REAL(fp),           POINTER :: TRACER_MW_G(:)     
-     REAL(fp),           POINTER :: TCVV(:)            
+     CHARACTER(LEN=255), POINTER :: TRACER_NAME(:) 
+     REAL(fp),           POINTER :: TCVV(:)
      REAL(fp),           POINTER :: XNUMOL(:)          
      INTEGER                     :: SIM_TYPE
      CHARACTER(LEN=255)          :: SIM_NAME
@@ -655,6 +654,7 @@ MODULE GIGC_Input_Opt_Mod
 !  27 Apr 2016 - R. Yantosca - Remove Hg_Cat, Hg_Cat_Full fields
 !  17 May 2016 - R. Yantosca - Remove TRACER_N_CONST, TRACER_CONST, ID_EMITTED,
 !                              TRACER_COEFF
+!  31 May 2016 - E. Lundgren - Remove TRACER_MW_KG and TRACER_MW_G
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -800,14 +800,12 @@ CONTAINS
     !----------------------------------------
     ALLOCATE( Input_Opt%ID_TRACER     ( MAX_TRCS           ), STAT=RC )
     ALLOCATE( Input_Opt%TRACER_NAME   ( MAX_TRCS           ), STAT=RC )
-    ALLOCATE( Input_Opt%TRACER_MW_G   ( MAX_TRCS           ), STAT=RC )
     ALLOCATE( Input_Opt%TCVV          ( MAX_TRCS           ), STAT=RC )
     ALLOCATE( Input_Opt%XNUMOL        ( MAX_TRCS           ), STAT=RC )     
 
     Input_Opt%N_TRACERS              = 0
     Input_Opt%ID_TRACER              = 0
     Input_Opt%TRACER_NAME            = ''
-    Input_Opt%TRACER_MW_G            = 0e+0_fp
     Input_Opt%TCVV                   = 0e+0_fp
     Input_Opt%XNUMOL                 = 0e+0_fp
     Input_Opt%SIM_TYPE               = 0
@@ -1464,6 +1462,7 @@ CONTAINS
 !  15 Mar 2013 - R. Yantosca - Now deallocate the LINOZ_TPARM field
 !  17 May 2016 - R. Yantosca - Remove TRACER_N_CONST, TRACER_CONST, ID_EMITTED,
 !                              TRACER_COEFF
+!  31 May 2016 - E. Lundgren - Remove TRACER_MW_G and TRACER_MW_KG
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1480,10 +1479,6 @@ CONTAINS
 
     IF ( ASSOCIATED( Input_Opt%TRACER_NAME ) ) THEN
        DEALLOCATE( Input_Opt%TRACER_NAME )
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%TRACER_MW_G ) ) THEN
-       DEALLOCATE( Input_Opt%TRACER_MW_G )
     ENDIF
 
     IF ( ASSOCIATED( Input_Opt%TCVV ) ) THEN
