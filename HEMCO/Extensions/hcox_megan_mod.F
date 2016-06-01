@@ -365,6 +365,10 @@
 !  30 Sep 2015 - C. Keller   - Now add OCPI flux to BIOGENIC_OCPI diagnostics.
 !  12 Dec 2015 - C. Keller   - Apply e-folding times to past conditions.
 !  07 Jan 2016 - E. Lundgren - Update Avogadro's # to NIST 2014
+!  01 Jun 2016 - R. Yantosca - Bug fix: Now use ExtNrMono in the call to
+!                              Hco_EmisAdd for the MONX (in order to make MONX
+!                              show up as nonzero in HEMCO diagnostics).
+!EOP
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -763,7 +767,6 @@
 
             ! Add to tracer tendency array [kg C/m2/s]
             FLUXMONO(I,J) = EMIS_MONO
-
          ELSE
             EMIS_MONO = 0.0_hp
             EMIS_MBOX = 0.0_hp
@@ -1310,9 +1313,19 @@
       IF ( ExtNrMono > 0 ) THEN
 
          IF ( IDTMONX > 0 ) THEN
+
             ! Add flux to emission array
             CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMONO, IDTMONX, 
-     &                        RC,        ExtNr=ExtNr )
+!----------------------------------------------------------------------------
+! Prior to 6/1/16:
+! MONX belongs to the MEGAN_Mono extension, so we should pass ExtNrMono
+! to HCO_EMISADD.  This will not change the emissions (which get added to
+! HcoState anyway), but it will make  MONX show up properly in diagnostics.
+! (bmy, 6/1/16)
+!     &                        RC,        ExtNr=ExtNr )
+!----------------------------------------------------------------------------
+     &                        RC,        ExtNr=ExtNrMono )
+
             IF ( RC /= HCO_SUCCESS ) THEN
                CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMONO', RC )
                RETURN 
