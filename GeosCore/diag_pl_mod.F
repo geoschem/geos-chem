@@ -785,6 +785,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PhysConstants,      ONLY : AVO
       USE TIME_MOD,           ONLY : EXPAND_DATE,   GET_NYMD
       USE TIME_MOD,           ONLY : GET_TAU,       GET_TAUb 
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY, TIMESTAMP_STRING
@@ -855,6 +856,8 @@
 !                              chemgrid (where JLOOP == 0)
 !  08 Jul 2015 - R. Yantosca - Now save POx as kg/m3/s and LOx as 1/m3/s,
 !                              for compatibility with HEMCO
+!  31 May 2016 - E. Lundgren - Use molec wt from species database rather than
+!                              Input_Opt%XNUMOL 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -866,7 +869,7 @@
       LOGICAL           :: DO_WRITE
       INTEGER           :: I, J, L, N
       REAL(fp)          :: P_Ox, L_Ox
-      REAL(fp)          :: LT
+      REAL(fp)          :: LT, O3_MW_G
 
       ! Strings
       CHARACTER(LEN=16) :: STAMP 
@@ -905,6 +908,9 @@
          FIRST    = .FALSE.
 
       ENDIF
+
+      ! Get ozone molecular weight from species database
+      O3_MW_G = State_Chm%SpcData(IDTO3)%Info%emMW_g ! g/mol
 
       !=================================================================
       ! Archive P(Ox) and L(Ox) over the course of an entire day
@@ -955,7 +961,9 @@
             !-----------------------------------------------------------
 
             ! Convert P(Ox) from [molec/cm3/s] to [kg/cm3/s]
-            P_Ox           = FAM_PL(I,J,L,1) / Input_Opt%XNUMOL(IDTO3)
+!            P_Ox           = FAM_PL(I,J,L,1) / Input_Opt%XNUMOL(IDTO3)
+            P_Ox           = FAM_PL(I,J,L,1) / AVO * 1.e-3_fp *
+     &                       O3_MW_G
 
             ! Convert to [kg/m3/s], for HEMCO (bmy, 7/7/15)
             P_Ox           = P_Ox * 1e+6_fp
@@ -968,7 +976,9 @@
             !-----------------------------------------------------------
 
             ! Convert Ox mass from [kg] to [molec]
-            L_Ox           = STT(I,J,L,IDTO3) * Input_Opt%XNUMOL(IDTO3)
+!            L_Ox           = STT(I,J,L,IDTO3) * Input_Opt%XNUMOL(IDTO3)
+            L_Ox           = STT(I,J,L,IDTO3) * AVO / ( 1.e-3_fp *
+     &                       O3_MW_G )
 
             ! Divide L(Ox) [molec/cm3/s] by Ox mass [molec] 
             ! in order to get L(Ox) in [1/cm3/s]

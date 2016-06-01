@@ -35,6 +35,7 @@
       USE GRID_MOD,             ONLY : GET_YMID
       USE HCO_DIAGN_MOD,        ONLY : Diagn_Update
       USE HCO_ERROR_MOD,        ONLY : HCO_SUCCESS
+      USE PHYSCONSTANTS,        ONLY : AVO
       USE PRECISION_MOD
       USE PRESSURE_MOD        
       USE TIME_MOD,             ONLY : GET_TS_CHEM
@@ -86,6 +87,7 @@
 !                              State_Chm%Species.  Also block out temp diags.
 !  16 May 2016 - M. Sulprizio- Remove call to RURALBOX. The implemementation of
 !                              FlexChem has rendered the routine obsolete.
+!  31 May 2016 - E. Lundgren - Use species database MW instead of XNUMOL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -152,7 +154,7 @@
       LOGICAL               :: DO_PHOTCHEM
 
       ! For the species database
-      REAL(fp)              :: MolecRatio
+      REAL(fp)              :: MolecRatio, MW_kg
 
       !=================================================================
       ! FLEX_CHEMDR begins here!
@@ -345,11 +347,12 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, MolecRatio )
+!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg )
       DO N = 1, N_TRACERS
 
          ! Moles C per moles species
          MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
+         MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
 
          ! Loop over grid boxes
          DO L = 1, LLPAR
@@ -357,11 +360,12 @@
          DO I = 1, IIPAR
 
             ! Convert STT from kg to molec/cm3
-            STT(I,J,L,N) = STT(I,J,L,N) 
-     &                   * Input_Opt%XNUMOL(N) 
+            STT(I,J,L,N) = STT(I,J,L,N)
+!     &                   * Input_Opt%XNUMOL(N)
+     &                   * ( AVO / MW_KG ) 
      &                   / ( State_Met%AIRVOL(I,J,L)  * 
-     &                       1e+6_fp                  *
-     &                       MolecRatio              )
+     &                        1e+6_fp                  *
+     &                        MolecRatio              )
 
             ! Copy STT to State_Chm%Species [molec/cm3]
             IF (STTTOCSPEC(N) .NE. 0) THEN 
@@ -386,18 +390,20 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, MolecRatio )
+!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg )
       DO N = 1, N_TRACERS
 
          ! Moles C per moles species
          MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
-         
+         MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
+
          ! Loop over grid boxes
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            STT(I,J,L,N) = STT(I,J,L,N) 
-     &                   / Input_Opt%XNUMOL(N) *
+            STT(I,J,L,N) = STT(I,J,L,N)
+!     &                   / Input_Opt%XNUMOL(N) *
+     &                   / ( AVO / MW_kg ) * 
      &                     ( State_Met%AIRVOL(I,J,L) * 
      &                       1e+6_fp                 *
      &                       MolecRatio                )
@@ -890,18 +896,20 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, MolecRatio )
+!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg )
       DO N = 1, N_TRACERS
 
          ! Moles C per moles species
          MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
+         MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
 
          ! Loop over grid boxes
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            STT(I,J,L,N) = STT(I,J,L,N) 
-     &                   * Input_Opt%XNUMOL(N) 
+            STT(I,J,L,N) = STT(I,J,L,N)
+!     &                   * Input_Opt%XNUMOL(N)
+     &                   * ( AVO / MW_kg ) 
      &                   / ( State_Met%AIRVOL(I,J,L)  * 
      &                       1e+6_fp                  *
      &                       MolecRatio              )
@@ -919,11 +927,12 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, MolecRatio )
+!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg )
       DO N = 1, N_TRACERS
 
          ! Moles C per moles species
          MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
+         MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
          
          ! Loop over species
          DO L = 1, LLPAR
@@ -937,8 +946,9 @@
             ENDIF
          
             ! Convert STT from molec/cm3 back to kg
-            STT(I,J,L,N) = STT(I,J,L,N) 
-     &                   / Input_Opt%XNUMOL(N) 
+            STT(I,J,L,N) = STT(I,J,L,N)
+!     &                   / Input_Opt%XNUMOL(N)
+     &                   / ( AVO / MW_kg ) 
      &                   * ( State_Met%AIRVOL(I,J,L)  * 
      &                       1e+6_fp                  *
      &                       MolecRatio              ) 

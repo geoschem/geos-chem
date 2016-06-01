@@ -126,7 +126,7 @@
       USE ERROR_MOD,    ONLY : SAFE_DIV, ERROR_STOP
 
       USE CMN_O3_MOD	     ! Pure O3, SAVENO2
-      USE PHYSCONSTANTS      ! XTRA2
+      USE PHYSCONSTANTS
 
       ! Connect to HEMCO diagnostics
       USE GIGC_ErrCode_Mod
@@ -152,6 +152,7 @@
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  26 Feb 2015 - E. Lundgren - Remove pressure_mod from use list (not used)
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  31 May 2016 - E. Lundgren - Use TCVV instead of XNUMOL for molecular wts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -264,17 +265,23 @@
                DiagnName = 'PARANOX_OX_PRODUCTION'
                UNIT      = 'molec/cm2/s'
                AF        = 0
-               FACTOR    = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 
+!               FACTOR    = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 
+               FACTOR    = AVO * Input_Opt%TCVV(IDTNO) / 
+     &                     ( CM2PERM2 * AIRMW * 1.e-3_fp ) 
             CASE ( 4 ) 
                DiagnName = 'PARANOX_NOX_REMAINING'
                UNIT      = 'molec/cm2/s'
                AF        = 0
-               FACTOR    = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 
+!               FACTOR    = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 
+               FACTOR    = AVO * Input_Opt%TCVV(IDTNO) / 
+     &                     ( CM2PERM2 * AIRMW * 1.e-3_fp ) 
             CASE ( 5 ) 
                DiagnName = 'SHIP_NO'
                UNIT      = 'molec/cm2/s'
                AF        = 1
-               FACTOR    = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 
+!               FACTOR    = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 
+               FACTOR    = AVO * Input_Opt%TCVV(IDTNO) /
+     &                     ( CM2PERM2 * AIRMW * 1.e-3_fp )  
             CASE DEFAULT
                MSG = 'Only 5 diagnostics expected!'
                CALL ERROR_STOP ( MSG, LOC )

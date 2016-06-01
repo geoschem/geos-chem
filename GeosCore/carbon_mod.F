@@ -208,7 +208,7 @@
 !
 !
       ! Molecules OH  per kg OH [molec/kg]
-      REAL(fp), PARAMETER   :: XNUMOL_OH  = AVO / 17e-3_fp
+      REAL(fp), PARAMETER   :: XNUMOL_OH  = AVO / 17e-3_fp ! hard-coded MW
       REAL(fp), PARAMETER   :: CM3PERM3   = 1.e+6_fp
 
       ! OM/OC for POA (hotp 7/26/10)
@@ -6190,7 +6190,7 @@ ccc
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp),  PARAMETER :: XNUMOL_NO3 = AVO / 62e-3_fp
+      REAL(fp),  PARAMETER :: XNUMOL_NO3 = AVO / 62e-3_fp ! hard-coded MW
 !
 ! !LOCAL VARIABLES:
 !
@@ -6333,7 +6333,7 @@ ccc
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp),  PARAMETER :: XNUMOL_O3 = AVO / 48e-3_fp
+      REAL(fp),  PARAMETER :: XNUMOL_O3 = AVO / 48e-3_fp ! hard-coded MW
 !
 ! !LOCAL VARIABLES:
 !
@@ -6434,6 +6434,7 @@ ccc
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PhysConstants,      ONLY : AVO
       USE TRACERID_MOD,       ONLY : IDTBENZ, IDTTOLU, IDTXYLE
       ! NAPSOA: add IVOC surrogate (NAP) (hotp 7/22/09)
       USE TRACERID_MOD,       ONLY : IDTNAP
@@ -6460,6 +6461,7 @@ ccc
 !  21 Dec 2015 - M. Sulprizio- Get grid box volume directly from State_Met
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Met%Species
 !  17 May 2016 - R. Yantosca - Now get MolecRatio from species database
+!  31 May 2016 - E. Lundgren - Now get molecular weight from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6467,10 +6469,10 @@ ccc
 ! !LOCAL VARIABLES:
 !
       INTEGER  :: ILARO2, IDTAROM
-      REAL(fp) :: ARO2CARB
+      REAL(fp) :: ARO2CARB, AROM_MW_G
 
       ! For values from Input_Opt
-      REAL(fp) :: XNUMOL(Input_Opt%N_TRACERS)  ! molecules species / kg species
+!      REAL(fp) :: XNUMOL(Input_Opt%N_TRACERS)  ! molecules species / kg species
       REAL(fp) :: MolecRatio                   ! Moles C / moles species
 
       !=================================================================
@@ -6605,8 +6607,8 @@ ccc
             ! convert to [kg ARO2 / box]
             ! 
             ! State_Chm%Species : molec ARO2 (lost to HO2 or NO ) / cm3
-            ! XNUMOL            : atom C / kg C of ARO2
-            ! MolecRatio      : atom C / molec ARO2
+            ! AROM_MW_G         : g C of ARO2 / mol C
+            ! MolecRatio        : atom C / molec ARO2
             ! State_Met%AIRVOL  : m3 (converted here to cm3)
             ! ARO2CARB          : kg C of ARO2 / kg ARO2
             ! 
@@ -6619,11 +6621,14 @@ ccc
             ! Now get the tracer coefficient from the species database
             ! instead of from Input_Opt (bmy, 5/17/16)
             MolecRatio = State_Chm%SpcData(IDTAROM)%Info%MolecRatio
-            
+            AROM_MW_G  = State_Chm%SpcData(IDTAROM)%Info%emMW_g
+
             DARO2 = State_Chm%Species(I,J,L,ILARO2)
      &            * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
-     &            * MolecRatio
-     &            / ( Input_Opt%XNUMOL(IDTAROM) * ARO2CARB )
+!     &            * MolecRatio
+!     &            / ( Input_Opt%XNUMOL(IDTAROM) * ARO2CARB )
+     &            * MolecRatio * AROM_MW_G * 1.e-3_fp / 
+     &            ( AVO * ARO2CARB )
 
          ELSE
 
@@ -6679,6 +6684,7 @@ ccc
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PhysConstants,      ONLY : AVO
       USE TRACERID_MOD,       ONLY : IDTISOP
 !
 ! !INPUT PARAMETERS: 
@@ -6699,13 +6705,14 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  21 Dec 2015 - M. Sulprizio- Get grid box volume directly from State_Met
 !  17 May 2016 - R. Yantosca - Now get MolecRatio from species database
+!  31 May 2016 - E. Lundgren - Now get molecular weight from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp) :: MolecRatio
+      REAL(fp) :: MolecRatio, ISOP_MW_G
 
       !=================================================================
       ! GET_DOH begins here!
@@ -6725,16 +6732,18 @@ ccc
             ! convert to [kg C isop / box]
             ! 
             ! State_Chm%Species : molec isop (lost to OH) / cm3
-            ! XNUMOL            : atom C / kg C isop
+            ! ISOP_MW_G         : g C isop / mol C
             ! MolecRatio        : atom C / molec isop
             ! State_Met%AIRVOL  : m3 (converted here to cm3)
             !-----------------------------------------------------------
             MolecRatio = State_Chm%SpcData(IDTISOP)%Info%MolecRatio
+            ISOP_MW_G  = State_Chm%SpcData(IDTISOP)%Info%emMW_g
 
             DOH = State_Chm%Species(I,J,L,ILISOPOH)
      &          * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
-     &          * MolecRatio
-     &          / Input_Opt%XNUMOL(IDTISOP) 
+!     &          * MolecRatio
+!     &          / Input_Opt%XNUMOL(IDTISOP) 
+     &          * MolecRatio * ISOP_MW_G * 1.e-3_fp / AVO 
  
          ELSE
 
@@ -8642,6 +8651,7 @@ ccc
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE PhysConstants,      ONLY : AVO
       USE TRACERID_MOD,       ONLY : IDTISOP
 !
 ! !INPUT PARAMETERS:
@@ -8668,13 +8678,14 @@ ccc
 !  21 Dec 2015 - M. Sulprizio- Get grid box volume directly from State_Met
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Met%Species
 !  17 May 2016 - R. Yantosca - Now get MolecRatio from species database
+!  31 May 2016 - E. Lundgren - Now get molecular weight from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp) :: MolecRatio
+      REAL(fp) :: MolecRatio, ISOP_MW_G
       
       !=================================================================
       ! GET_ISOPNO3 begins here!
@@ -8694,18 +8705,20 @@ ccc
             ! convert to [kg C isop / box]
             ! 
             ! State_Chm%Species : molec isop (lost to NO3) / cm3
-            ! XNUMOL            : atom C / kg C isop
+            ! ISOP_MW_G         : g C isop / mol C
             ! MolecRatio        : atom C / molec isop
             ! State_Met%AIRVOL  : m3 (converted here to cm3)
             !-----------------------------------------------------------
             
             ! Moles C per moles species
             MolecRatio = State_Chm%SpcData(IDTISOP)%Info%MolecRatio
+            ISOP_MW_G  = State_Chm%SpcData(IDTISOP)%Info%emMW_g
 
             ISOPNO3 = State_Chm%Species(I,J,L,ILISOPNO3)
      &              * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
-     &              * MolecRatio
-     &              / Input_Opt%XNUMOL(IDTISOP) 
+!     &              * MolecRatio
+!     &              / Input_Opt%XNUMOL(IDTISOP) 
+     &              * MolecRatio * ISOP_MW_G * 1.e-3_fp / AVO
  
          ELSE
 

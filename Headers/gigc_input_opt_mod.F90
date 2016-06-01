@@ -1,3 +1,4 @@
+
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -88,7 +89,6 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER,            POINTER :: ID_TRACER(:)       
      CHARACTER(LEN=255), POINTER :: TRACER_NAME(:) 
      REAL(fp),           POINTER :: TCVV(:)
-     REAL(fp),           POINTER :: XNUMOL(:)          
      INTEGER                     :: SIM_TYPE
      CHARACTER(LEN=255)          :: SIM_NAME
      LOGICAL                     :: LSPLIT
@@ -654,7 +654,7 @@ MODULE GIGC_Input_Opt_Mod
 !  27 Apr 2016 - R. Yantosca - Remove Hg_Cat, Hg_Cat_Full fields
 !  17 May 2016 - R. Yantosca - Remove TRACER_N_CONST, TRACER_CONST, ID_EMITTED,
 !                              TRACER_COEFF
-!  31 May 2016 - E. Lundgren - Remove TRACER_MW_KG and TRACER_MW_G
+!  31 May 2016 - E. Lundgren - Remove TRACER_MW_KG, TRACER_MW_G, and XNUMOL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -737,6 +737,7 @@ CONTAINS
 !  10 Jul 2015 - C. Keller   - Now set size of IDEP to NVEGTYPE
 !  17 May 2016 - R. Yantosca - Remove TRACER_N_CONST, TRACER_CONST, ID_EMITTED,
 !                              TRACER_COEFF
+!  31 May 2016 - E. Lundgren - Remove TRACER_MW_G, TRACER_MW_KG, and XNUMOL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -801,13 +802,11 @@ CONTAINS
     ALLOCATE( Input_Opt%ID_TRACER     ( MAX_TRCS           ), STAT=RC )
     ALLOCATE( Input_Opt%TRACER_NAME   ( MAX_TRCS           ), STAT=RC )
     ALLOCATE( Input_Opt%TCVV          ( MAX_TRCS           ), STAT=RC )
-    ALLOCATE( Input_Opt%XNUMOL        ( MAX_TRCS           ), STAT=RC )     
 
     Input_Opt%N_TRACERS              = 0
     Input_Opt%ID_TRACER              = 0
     Input_Opt%TRACER_NAME            = ''
     Input_Opt%TCVV                   = 0e+0_fp
-    Input_Opt%XNUMOL                 = 0e+0_fp
     Input_Opt%SIM_TYPE               = 0
     Input_Opt%SIM_NAME               = ''
     Input_Opt%LSPLIT                 = .FALSE.
@@ -1462,7 +1461,7 @@ CONTAINS
 !  15 Mar 2013 - R. Yantosca - Now deallocate the LINOZ_TPARM field
 !  17 May 2016 - R. Yantosca - Remove TRACER_N_CONST, TRACER_CONST, ID_EMITTED,
 !                              TRACER_COEFF
-!  31 May 2016 - E. Lundgren - Remove TRACER_MW_G and TRACER_MW_KG
+!  31 May 2016 - E. Lundgren - Remove TRACER_MW_G, TRACER_MW_KG, and XNUMOL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1483,10 +1482,6 @@ CONTAINS
 
     IF ( ASSOCIATED( Input_Opt%TCVV ) ) THEN
        DEALLOCATE( Input_Opt%TCVV )
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%XNUMOL ) ) THEN
-       DEALLOCATE( Input_Opt%XNUMOL )
     ENDIF
 
     IF ( ASSOCIATED( Input_Opt%SALA_REDGE_um ) ) THEN
