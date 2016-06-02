@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG3( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE DIAG3( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -24,6 +24,7 @@
       USE COMODE_LOOP_MOD                    ! NFAMILIES
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE PRECISION_MOD                      ! For GEOS-Chem Precision (fp)
 
@@ -77,10 +78,11 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState),  INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -271,6 +273,8 @@
 !  21 Apr 2016 - R. Yantosca - Fixed typo that was preventing ND29 output
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  02 May 2016 - R. Yantosca - Now declare POPs and Rn tracer flags locally
+!  02 Jun 2016 - R. Yantosca - Now pass State_Met as an argument so that
+!                              we can fix the units of ND62 INST-MAP 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -326,7 +330,8 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER  :: STT(:,:,:,:)
+      REAL(fp), POINTER        :: STT(:,:,:,:)
+      REAL(fp), POINTER        :: AD(:,:,:)
 
       ! Interface w/ HEMCO diagnostics
       INTEGER                  :: FLAG
@@ -5738,6 +5743,12 @@
 !
 !  The unit conversion is as follows:
 !
+!  First, convert STT (kg/kg dry) to STT (kg):
+!
+!    STT (kg) = STT (kg/kg dry) * AD (dry air mass in kg)
+!  
+!  Next, do this unit conversion:
+!
 !    STT (kg) | 6.022e23 molec |   mole   | 1000 g |    1        |   m^2
 !    ---------+----------------+----------+--------+-------------+----------
 !             |     mole       |  MOLWT g |  kg    | AREA_M2 m^2 | 10^4 cm^2
@@ -5746,6 +5757,7 @@
 !  which is equivalent to
 !
 !   ( STT * 6.022e22 ) / ( MOLWT * AREA_M2 )
+!
 !*****************************************************************************
 !
       IF ( ND62 > 0 ) THEN
@@ -5754,6 +5766,7 @@
          ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
          ! (mpayer, 12/6/12)
          STT => State_Chm%Tracers
+         AD  => State_Met%AD
 
          DO M = 1, TMAX(62)
             N  = TINDEX(62,M)
@@ -5766,7 +5779,15 @@
                ! Grid box surface area [cm2]
                AREA_M2 = GET_AREA_M2( I, J, 1 )
 
-               ARRAY(I,J,1) = ( SUM( STT(I,J,:,N) ) * AVO )
+!----------------------------------------------------------------------------
+! Prior to 6/2/16:
+! NOTE: STT now in kg/kg dry at this point in the code.  So we have to 
+! multiply STT by AD here and then the column sums will be in the
+! correct units. (bmy, 6/2/16)
+!               ARRAY(I,J,1) = ( SUM( STT(I,J,:,N) ) * AVO )
+!----------------------------------------------------------------------------
+               ARRAY(I,J,1) = ( SUM( STT(I,J,:,N)   *
+     &                               AD (I,J,:  ) ) * AVO    )
      &                        / ( Input_Opt%TRACER_MW_G(N) 
      &                                 * AREA_M2 * 10.e+0_fp )
             ENDDO
@@ -5787,8 +5808,9 @@
 
          ENDDO
 
-         ! Free pointer
-         NULLIFY( STT )
+         ! Free pointers
+         STT => NULL()
+         AD  => NULL()
 
       ENDIF
 !
