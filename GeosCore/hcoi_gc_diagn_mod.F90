@@ -2815,7 +2815,7 @@ CONTAINS
                    HcoId        =  GetHemcoId( 'CO', HcoState, LOC, RC )
                    DiagnName_AN = 'ANTHROPOGENIC_CO'
                    DiagnName_AC = 'AIRCRAFT_CO'
-                   DiagnName_BF = 'BIOFUEL_CO'
+                   DiagnName_BF = 'BIOFUEL_CO'    
                    DiagnName_SH = 'SHIP_CO'
                 CASE( 'COus' )                 
                    HcoId        =  GetHemcoId( 'COus', HcoState, LOC, RC )
@@ -2976,6 +2976,8 @@ CONTAINS
 !  10 Mar 2015 - R. Yantosca - Remove double-definition of BIOGENIC_LIMO
 !  30 Mar 2015 - R. Yantosca - Bug fix: Now test if Br2 is a HEMCO species
 !  22 Apr 2015 - M. Sulprizio- Now save out hydrocarbons in units kgC/m2/s
+!  02 Jun 2016 - R. Yantosca - Bug fix: only save seasalt Br2 diagnostics
+!                              for full-chemistry or aerosol-only simulations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3436,7 +3438,9 @@ CONTAINS
     !=======================================================================
     ! These diagnostics use the SeaSalt extension
     !=======================================================================
-    IF ( ND46 > 0 ) THEN
+    IF ( ( ND46 > 0                     )   .and. &
+         ( Input_Opt%ITS_A_FULLCHEM_SIM     .or.  &
+           Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
 
        ! Extension # of SeaSalt
        ExtNr = GetExtNr('SeaSalt')
