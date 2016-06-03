@@ -217,6 +217,7 @@
       ! Initialize pointers
       Ptr3D              => NULL()
       Ptr2D              => NULL()
+      ThisSpc            => NULL()
 
       ! Pick the proper # of tracers for diagnostics
 #if   defined( APM )
@@ -260,7 +261,7 @@
       IF ( ND35 > 0 .or. ND45 > 0 .or. ND47 > 0 .or. ND71 > 0 ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
+!$OMP+PRIVATE( I, J, L, N, ThisSpc )
          DO N = 1, N_TRC
          DO L = 1, LLPAR
          DO J = 1, JJPAR
