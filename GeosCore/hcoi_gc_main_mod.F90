@@ -1661,7 +1661,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER                :: nSpc
-    INTEGER                :: N,  IDTLIMO
+    INTEGER                :: N,  IDTLIMO, L, M
     REAL(dp)               :: K0, CR,  pKa
 
     ! Strings
@@ -1692,6 +1692,13 @@ CONTAINS
        ! Get number of model species
        nSpc = Input_Opt%N_TRACERS
   
+       !%%%%% FOR THE TAGGED CO SIMULATION %%%%%
+       ! Add 3 extra tracers (ISOP, ACET, MONX) for tagged CO 
+       IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+          nSpc = nSpc + 3 
+       ENDIF
+
+       !%%%%% FOR SOA SIMULATIONS %%%%%
        ! Check for SESQ: SESQ is not transported due to its short lifetime,
        ! but emissions are still calculated (in MEGAN). SESQ is only used
        ! in the SOA simulation, i.e. if LIMO is defined. Thus, add one more
@@ -1763,8 +1770,12 @@ CONTAINS
              ! Free pointer memory
              ThisSpc => NULL()
           ENDDO      
-      
-          ! Eventually add SESQ. This is the last entry
+
+          !------------------------------------------------------------------
+          ! %%%%% FOR SOA SIMULATIONS %%%%%
+          !
+          ! Add the non-advected species SESQ in the last species slot
+          !------------------------------------------------------------------
           IF ( IDTLIMO > 0 ) THEN
              N                           = nSpec
              HcoState%Spc(N)%ModID       = N
@@ -1780,6 +1791,44 @@ CONTAINS
              IF ( am_I_Root ) CALL HCO_SPEC2LOG( am_I_Root, HcoState, N )
           ENDIF
 
+          !------------------------------------------------------------------
+          ! %%%%% FOR THE TAGGED CO SIMULATION %%%%%
+          !
+          ! Add the non-advected species ISOP, ACET, and MONX
+          ! in the last 3 species slots (bmy, ckeller, 6/1/16)
+          !------------------------------------------------------------------
+          IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+       
+             ! Add 3 additional species
+             DO L = 1, 3
+                
+                ! ISOP, ACET, MONX follow the regular tagged CO species
+                M = Input_Opt%N_TRACERS + L
+
+                ! Get the species name
+                SELECT CASE( L )
+                   CASE( 1 ) 
+                      ThisName = 'ISOP'
+                   CASE( 2 )
+                      ThisName = 'ACET'
+                   CASE( 3 )
+                      ThisName = 'MONX'
+                END SELECT
+
+                ! Add physical properties to the HEMCO state
+                HcoState%Spc(M)%ModID      = M
+                HcoState%Spc(M)%SpcName    = TRIM( ThisName )
+                HcoState%Spc(M)%MW_g       = 12.0_hp
+                HcoState%Spc(M)%EmMW_g     = 12.0_hp
+                HcoState%Spc(M)%MolecRatio = 1.0_hp
+                HcoState%Spc(M)%HenryK0    = 0.0_hp
+                HcoState%Spc(M)%HenryCR    = 0.0_hp
+                HcoState%Spc(M)%HenryPKa   = 0.0_hp
+
+                ! Write to log file
+                IF ( am_I_Root ) CALL HCO_SPEC2LOG( am_I_Root, HcoState, M )
+             ENDDO
+          ENDIF
 
           ! Add line to log-file
           IF ( am_I_Root ) CALL HCO_MSG(SEP1='-')

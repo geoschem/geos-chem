@@ -175,8 +175,13 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_YMID      
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
-      USE GRID_MOD,           ONLY : GET_YMID
+      USE HCO_Error_Mod
+      USE HCO_State_Mod,      ONLY : HCO_State
+      USE HCOI_GC_Main_Mod,   ONLY : GetHcoId
+      USE HCOI_GC_Main_Mod,   ONLY : GetHcoState
+      USE HCOI_GC_Main_Mod,   ONLY : GetHcoDiagn 
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
@@ -271,63 +276,58 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL                :: LSPLIT
-      INTEGER                :: N_TRACERS
-      INTEGER                :: I,         J,          L
-      INTEGER                :: N,         MONTH,      YEAR
-      REAL(fp)               :: ALPHA_ISOP
-      REAL(fp)               :: DTCHEM,    GCO
-      REAL(fp)               :: STTCO,     KRATE,      CH4
-      REAL(fp)               :: CO_CH4,    CO_ISOP,    CO_MONO
-      REAL(fp)               :: CO_CH3OH,  CO_OH,      CO_ACET
-      REAL(fp)               :: CH4RATE,   DENS
-      REAL(fp)               :: CORATE,    YMID
-      REAL(fp)               :: BOXVL,     FMOL_CO
-
-      ! Variables for new JPL 2006 rate constants (jaf, jmao, 3/4/09)
-      REAL(fp)               :: KHI1,      KLO1,       XYRAT1
-      REAL(fp)               :: BLOG1,     FEXP1,      KHI2
-      REAL(fp)               :: KLO2,      XYRAT2,     BLOG2
-      REAL(fp)               :: FEXP2,     KCO1,       KCO2
-
-      ! For OH diurnal cycle (jaf, 3/12/14)
-      REAL(fp)               :: OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS
-
-      ! Avoid array temporaries in CHECK_VALUE
-      INTEGER                :: ERR_LOC(4)
-      CHARACTER(LEN=255)     :: ERR_VAR
-      CHARACTER(LEN=255)     :: ERR_MSG
-
-      ! Pointers to fields in State_Met and State_Chm
-      REAL(fp),      POINTER :: AD    (:,:,:  )
-      REAL(fp),      POINTER :: AIRVOL(:,:,:  )
-      REAL(fp),      POINTER :: STT   (:,:,:,:)
-      REAL(fp),      POINTER :: T     (:,:,:  )
-
-      ! To get HEMCO values
-      REAL(fp)               :: Emis
-      LOGICAL                :: FOUND
+      ! Scalars
+      LOGICAL                  :: FOUND,         LSPLIT
+      INTEGER                  :: N_TRACERS,     HcoID
+      INTEGER                  :: I,             J,           L
+      INTEGER                  :: N,             MONTH,       YEAR
+      REAL(fp)                 :: ALPHA_ISOP,    DTCHEM,      GCO
+      REAL(fp)                 :: STTCO,         KRATE,       CH4
+      REAL(fp)                 :: CO_CH4,        CO_ISOP,     CO_MONO
+      REAL(fp)                 :: CO_CH3OH,      CO_OH,       CO_ACET
+      REAL(fp)                 :: CH4RATE,       DENS,        CORATE
+      REAL(fp)                 :: YMID,          BOXVL,       FMOL_CO
+      REAL(fp)                 :: KHI1,          KLO1,        XYRAT1
+      REAL(fp)                 :: BLOG1,         FEXP1,       KHI2
+      REAL(fp)                 :: KLO2,          XYRAT2,      BLOG2
+      REAL(fp)                 :: FEXP2,         KCO1,        KCO2
+      REAL(fp)                 :: OH_MOLEC_CM3,  FAC_DIURNAL, SUNCOS
+      REAL(fp)                 :: kgs_to_atomsC, Emis
 
       ! Strings
-      CHARACTER(LEN=255)     :: LOC='CHEM_TAGGED_CO (tagged_co_mod.F)'
+      CHARACTER(LEN=255)       :: ERR_VAR
+      CHARACTER(LEN=255)       :: ERR_MSG
+      CHARACTER(LEN=63)        :: DgnName
+      CHARACTER(LEN=255)       :: LOC='CHEM_TAGGED_CO (tagged_co_mod.F)'
+
+      ! Arrays
+      INTEGER                  :: ERR_LOC(4)
+
+      ! Pointers
+      REAL(fp),        POINTER :: AD    (:,:,:  )
+      REAL(fp),        POINTER :: AIRVOL(:,:,:  )
+      REAL(fp),        POINTER :: STT   (:,:,:,:)
+      REAL(fp),        POINTER :: T     (:,:,:  )
+      REAL(f4),        POINTER :: Ptr2D (:,:    )
+      TYPE(HCO_State), POINTER :: HcoState
 
       ! SAVED scalars
-      LOGICAL,   SAVE        :: FIRST = .TRUE.
-      REAL(fp),  SAVE        :: A3090S, A0030S, A0030N, A3090N
+      LOGICAL,   SAVE          :: FIRST = .TRUE.
+      REAL(fp),  SAVE          :: A3090S, A0030S, A0030N, A3090N
 !
 ! !DEFINED PARAMETERS:
 !
       ! Switch to scale yield of isoprene from NOx concentration or not
-      LOGICAL,   PARAMETER   :: ALPHA_ISOP_FROM_NOX = .FALSE.
+      LOGICAL,   PARAMETER     :: ALPHA_ISOP_FROM_NOX = .FALSE.
 
       ! Yield of CO from CH4
-      REAL(fp),  PARAMETER   :: ALPHA_CH4  = 1.0_fp
+      REAL(fp),  PARAMETER     :: ALPHA_CH4  = 1.0_fp
 
       ! Yield of CO from monoterpenes
-      REAL(fp),  PARAMETER   :: ALPHA_MONO = 2e-1_fp
+      REAL(fp),  PARAMETER     :: ALPHA_MONO = 2e-1_fp
 
       ! Yield of CO from acetone
-      REAL(fp),  PARAMETER   :: ALPHA_ACET = 2.0_fp / 3.0_fp
+      REAL(fp),  PARAMETER     :: ALPHA_ACET = 2.0_fp / 3.0_fp
 
       !=================================================================
       ! CHEM_TAGGED_CO begins here!
@@ -341,13 +341,15 @@
       N_TRACERS = Input_Opt%N_TRACERS
 
       ! DTCHEM is the number of seconds per chemistry timestep
-      DTCHEM    = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM    = GET_TS_CHEM() * 60.0_fp
 
-      ! Point to fields in the State_Met and State_Chm objects (bmy, 4/10/14)
+      ! Initialize pointers
       AD        => State_Met%AD
       AIRVOL    => State_Met%AIRVOL
       STT       => State_Chm%Tracers
       T         => State_Met%T
+      Ptr2D     => NULL()  
+      HcoState  => NULL()
 
       ! Get the molecular weight of CO [kg/mol] from the species database
       ! (All tagged tracers are CO, so we can use the value for tracer #1)
@@ -376,19 +378,64 @@
          ENDIF
 
          ! Get pointer to strat P(CO) from GMI
-         CALL HCO_GetPtr ( am_I_Root, 'GMI_PROD_CO', GMI_PROD_CO, RC )
+         CALL HCO_GetPtr( am_I_Root, 'GMI_PROD_CO', GMI_PROD_CO, RC )
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GMI_PROD_CO', LOC )
          ENDIF
 
          ! Get pointer to strat L(CO) from GMI
-         CALL HCO_GetPtr ( am_I_Root, 'GMI_LOSS_CO', GMI_LOSS_CO, RC )
+         CALL HCO_GetPtr( am_I_Root, 'GMI_LOSS_CO', GMI_LOSS_CO, RC )
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GMI_LOSS_CO', LOC )
          ENDIF
             
          ! Reset first-time flag
          FIRST = .FALSE.
+      ENDIF
+
+      !=================================================================
+      ! Read emissions from HEMCO into SUMACETCO, SUMISOPCO, SUMMONOCO
+      ! arrays.  These are needed to update the chemically-produced
+      ! tagged CO tracers: COch4, COisop, COacet, etc. (bmy, 6/1/16)
+      !
+      ! NOTE: HEMCO returns 3-D emissions, so we will sum in the
+      ! vertical because the code expects SUMACETCO, SUMISOPCO, and
+      ! SUMMONOCO to be 2-D arrays.  We may change that later.
+      ! (bmy, 6/1/16)
+      !=================================================================
+
+      ! Get HEMCO state object
+      CALL GetHcoState( HcoState )
+      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+         CALL ERROR_STOP( 'HcoState not associated!', LOC )
+      ENDIF 
+
+      ! Conversion factor from [kg/s] --> [atoms C]
+      ! (atoms C /mole C) / (kg C /mole C) * chemistry timestep [s]
+      kgs_to_atomsC = ( AVO / 12e-3_fp ) * DTCHEM
+
+      ! SUMACETCO (convert [kgC/m2/s] to [atoms C])
+      HcoId = GetHcoId( 'ACET' )
+      IF ( HcoId > 0 ) THEN
+         SUMACETCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    ! kgC/m2/s
+         SUMACETCO = SUMACETCO * HcoState%Grid%AREA_M2%Val     ! kgC/s
+         SUMACETCO = SUMACETCO * kgs_to_atomsC                 ! atoms C
+      ENDIF
+
+      ! SUMISOPCO (convert [kgC/m2/s] to [atoms C])
+      HcoId = GetHcoId( 'ISOP' )
+      IF ( HcoId > 0 ) THEN
+         SUMISOPCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    ! kgC/m2/s
+         SUMISOPCO = SUMISOPCO * HcoState%Grid%AREA_M2%Val     ! kgC/s
+         SUMISOPCO = SUMISOPCO * kgs_to_atomsC                 ! atoms C
+      ENDIF
+
+      ! SUMMONOCO (convert [kgC/m2/s] to [atoms C])
+      HcoId = GetHcoId( 'MONX' )
+      IF ( HcoId > 0 ) THEN
+         SUMMONOCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    ! kgC/m2/s
+         SUMMONOCO = SUMMONOCO * HcoState%Grid%AREA_M2%Val     ! kgC/s
+         SUMMONOCO = SUMMONOCO * kgs_to_atomsC                 ! atoms C
       ENDIF
 
       !=================================================================
@@ -440,7 +487,7 @@
 
          ! STTCO [molec CO/cm3/kg CO] converts [kg CO] --> [molec CO/cm3]
          ! kg CO/box * box/cm3 * mole/0.028 kg CO * Avog.#/mole
-         STTCO = 1e+0_fp     / AIRVOL(I,J,L) / 1e+6_fp /
+         STTCO = 1.0_fp  / AIRVOL(I,J,L) / 1e+6_fp /
      &           FMOL_CO * AVO
 
          ! GCO is CO concentration in [molec CO/cm3]
@@ -454,11 +501,11 @@
          SUNCOS = State_Met%SUNCOSmid(I,J)
 
          ! Scaling factor for diurnal cycles - zero at night
-         IF ( SUNCOS > 0e+0_fp .and. TCOSZ(I,J) > 0e+0_fp ) THEN
-            FAC_DIURNAL = ( SUNCOS     / TCOSZ(I,J)    ) *
-     &                    ( 1440e+0_fp / GET_TS_CHEM() )
+         IF ( SUNCOS > 0.0_fp .and. TCOSZ(I,J) > 0.0_fp ) THEN
+            FAC_DIURNAL = ( SUNCOS    / TCOSZ(I,J)    ) *
+     &                    ( 1440.0_fp / GET_TS_CHEM() )
          ELSE
-            FAC_DIURNAL = 0e+0_fp
+            FAC_DIURNAL = 0.0_fp
          ENDIF
 
          ! Now impose a diurnal cycle on OH.
@@ -568,14 +615,14 @@
             !
             ! Units of ALPHA_ISOP are [molec CO/molec ISOP]
             ! Units of CO_ISOP are [molec CO/cm3]
-            CO_ISOP = SUMISOPCO(I,J) / BOXVL      /
-     &                5.e+0_fp           * ALPHA_ISOP
+            CO_ISOP  = SUMISOPCO(I,J)   / BOXVL
+     &               / 5.0_fp           * ALPHA_ISOP
 
             ! P(CO) from CH3OH is scaled to Isoprene Flux (see above)
             ! Units are [molec CO/cm3]
-            CO_CH3OH = ( SUMISOPCO(I,J) / BOXVL ) * 
-     &                 ( 100e+0_fp          / 397e+0_fp ) * 
-     &                 ( 12e+0_fp           / 28e+0_fp  )
+            CO_CH3OH = ( SUMISOPCO(I,J) / BOXVL    )
+     &               * ( 100.0_fp       / 397.0_fp ) 
+     &               * ( 12.0_fp        / 28.0_fp  )
  
             ! Zero SUMISOPCO and SUMCH3OHCO for the next emission step
             SUMISOPCO(I,J)  = 0e+0_fp
@@ -636,8 +683,7 @@
 
             ! P(CO) from Monoterpene Flux =  alpha * Flux(Mono)
             ! Units are [molec CO/cm3]
-            CO_MONO = ( SUMMONOCO(I,J) / BOXVL ) *
-     &                ALPHA_MONO
+            CO_MONO = ( SUMMONOCO(I,J) / BOXVL ) * ALPHA_MONO
 
             ! Zero SUMMONOCO for the next emission step
             SUMMONOCO(I,J) = 0e+0_fp
@@ -898,10 +944,12 @@
 !$OMP END PARALLEL DO
 
       ! Free pointers
-      AD     => NULL()
-      AIRVOL => NULL()
-      STT    => NULL()
-      T      => NULL()
+      AD       => NULL()
+      AIRVOL   => NULL()
+      STT      => NULL()
+      T        => NULL()
+      Ptr2D    => NULL()
+      HcoState => NULL()
 
       END SUBROUTINE CHEM_TAGGED_CO
 !EOC
