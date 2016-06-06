@@ -672,15 +672,15 @@
             ENDIF
          ENDIF   ! IDTCH4, IND_CH4
 
-#if defined( DEVEL)
          !### Debug printout, we can remove it later
-         IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-            DO N = 1,NSPEC
-               write(*,'(a5,a10,es13.6)') '<> b ', 
-     &              trim(SPC_NAMES(N)), C(N)
-            ENDDO
+         IF ( prtDebug ) THEN
+            IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
+               DO N = 1,NSPEC
+                  write(*,'(a5,a10,es13.6)') '<> b ', 
+     &                 trim(SPC_NAMES(N)), C(N)
+               ENDDO
+            ENDIF
          ENDIF
-#endif
 
          !===========================================================
          ! Update KPP's rates
@@ -836,24 +836,25 @@
             ! Copy concentrations back into State_Chm%SPECIES
             State_Chm%Species(I,J,L,CSPECTOKPP(N)) = real(C(N),kind=fp)
 
-#if defined( DEVEL )
             !### Debug output, we can remove it later
-            IF (I.eq.10.and.J.eq.10.and.L.eq.10.and.N.eq.IND_OH) THEN
-               write(*,'(a9,2es13.6)') 'SPC_OH : ',c(N),
-     &              State_Chm%Species(I,J,L,CSPECTOKPP(N))
+            IF ( prtDebug ) THEN
+               IF (I.eq.10.and.J.eq.10.and.L.eq.10.and.N.eq.IND_OH) THEN
+                  write(*,'(a9,2es13.6)') 'SPC_OH : ',c(N),
+     &                 State_Chm%Species(I,J,L,CSPECTOKPP(N))
+               ENDIF
             ENDIF
-#endif
+
          ENDDO
 
-#if defined( DEVEL )
          !### Debug output, we can remove it later
-         IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-            DO N = 1,NSPEC
-               write(*,'(a5,a10,es13.6)') '<> a ', 
-     &              trim(SPC_NAMES(N)), C(N)
-            ENDDO
+         IF ( prtDebug ) THEN
+            IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
+               DO N = 1,NSPEC
+                  write(*,'(a5,a10,es13.6)') '<> a ', 
+     &                 trim(SPC_NAMES(N)), C(N)
+               ENDDO
+            ENDIF
          ENDIF
-#endif
 
       ENDDO
       ENDDO
