@@ -961,7 +961,6 @@
             !-----------------------------------------------------------
 
             ! Convert P(Ox) from [molec/cm3/s] to [kg/cm3/s]
-!            P_Ox           = FAM_PL(I,J,L,1) / Input_Opt%XNUMOL(IDTO3)
             P_Ox           = FAM_PL(I,J,L,1) / AVO * 1.e-3_fp *
      &                       O3_MW_G
 
@@ -976,7 +975,6 @@
             !-----------------------------------------------------------
 
             ! Convert Ox mass from [kg] to [molec]
-!            L_Ox           = STT(I,J,L,IDTO3) * Input_Opt%XNUMOL(IDTO3)
             L_Ox           = STT(I,J,L,IDTO3) * AVO / ( 1.e-3_fp *
      &                       O3_MW_G )
 

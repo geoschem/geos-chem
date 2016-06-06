@@ -2491,7 +2491,6 @@
             UNIT      = 'molec/cm2/s'
             N         = IDTNO
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp * CM2PERM2 )
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -2504,7 +2503,6 @@
             UNIT      = 'molec/cm2/s'
             N         = IDTCO
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -2517,7 +2515,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTALK4
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -2530,7 +2527,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTACET
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -2543,7 +2539,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTMEK
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -2556,7 +2551,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTALD2
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -2569,7 +2563,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTPRPE
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -2582,7 +2575,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTC3H8
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -2595,7 +2587,6 @@
             UNIT      = 'molec/cm2/s'
             N         = IDTCH2O
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -2608,7 +2599,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTC2H6
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -2621,7 +2611,6 @@
             UNIT      = 'molec/cm2/s'
             N         = IDTSO2
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -2634,7 +2623,6 @@
             UNIT      = 'molec/cm2/s'
             N         = IDTNH3
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -2650,7 +2638,6 @@
          UNIT      = 'atoms C/cm2/s'
          N         = IDTBCPI
          ThisSpc => State_Chm%SpcData(N)%Info
-!         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
          FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
 
          ! Get BIOMASS_BCPI 
@@ -2713,7 +2700,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTPOA1
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -2725,7 +2711,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTOCPI
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
    
             ! Get BIOMASS_OCPI 
@@ -2788,7 +2773,6 @@
             UNIT      = 'molec/cm2/s'
             N         = IDTCH4
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -2832,7 +2816,6 @@
          ThisSpc => State_Chm%SpcData(IDTCO)%Info
 
          ! Converts from kg/m2/s (in HEMCO) to molec/cm2/s (for bpch)
-!         FACTOR   = Input_Opt%XNUMOL(IDTCO) / CM2PERM2 
          FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
 
          ! Loop over tagged tracers if necessary
@@ -3025,7 +3008,6 @@
          ThisSpc => State_Chm%SpcData(N)%Info
 
          ! Converts from kg/m2/s (in HEMCO) to molec/cm2/s (for bpch)
-!        FACTOR = Input_Opt%XNUMOL(IDTNO) / CM2PERM2
          FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
 
          !%%%%% Aircraft NO %%%%%
@@ -3225,7 +3207,6 @@
             UNIT     = 'molec/cm2/s'
             N         = IDTNO
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -3238,7 +3219,6 @@
             UNIT      = 'molec/cm2/s'
             N         = IDTCO
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -3251,7 +3231,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTALK4
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -3264,7 +3243,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTACET
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -3277,7 +3255,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTMEK
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -3290,7 +3267,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTALD2
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -3303,7 +3279,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTPRPE
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -3316,7 +3291,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTC3H8
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -3329,7 +3303,6 @@
             UNIT      = 'molec/cm2/s'
             N         = IDTCH2O
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -3342,7 +3315,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTC2H6
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -3355,7 +3327,6 @@
             UNIT      = 'molec/cm2/s'
             N         = IDTSO2
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -3368,7 +3339,6 @@
             UNIT      = 'molec/cm2/s'
             N         = IDTNH3
             ThisSpc => State_Chm%SpcData(N)%Info
-!            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR,RC )
@@ -3478,105 +3448,90 @@
                   DiagnName = 'ANTHROPOGENIC_NO'
                   UNIT      = 'molec/cm2/s'
                   N         = ThisSpc%ModelId
-!                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE ( 'CO'    ) 
                   DiagnName = 'ANTHROPOGENIC_CO'
                   UNIT      = 'molec/cm2/s'
                   N         = ThisSpc%ModelId
-!                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE ( 'COus'  ) 
                   DiagnName = 'ANTHROPOGENIC_TAGCO_US'
                   UNIT      = 'molec/cm2/s'
                   N         = ThisSpc%ModelId
-!                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE ( 'COeur'  ) 
                   DiagnName = 'ANTHROPOGENIC_TAGCO_EUR'
                   UNIT      = 'molec/cm2/s'
                   N         = ThisSpc%ModelId
-!                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE ( 'COasia' ) 
                   DiagnName = 'ANTHROPOGENIC_TAGCO_ASIA'
                   UNIT      = 'molec/cm2/s'
                   N         = ThisSpc%ModelId
-!                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE ( 'COoth'  ) 
                   DiagnName = 'ANTHROPOGENIC_TAGCO_OTHER'
                   UNIT      = 'molec/cm2/s'
                   N         = ThisSpc%ModelId
-!                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE( 'ALK4'    )
                   DiagnName = 'ANTHROPOGENIC_ALK4'
                   UNIT      = 'atoms C/cm2/s'
                   N         = ThisSpc%ModelId
-!                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE( 'ACET'    ) 
                   DiagnName = 'ANTHROPOGENIC_ACET'
                   UNIT      = 'atoms C/cm2/s'
                   N         = ThisSpc%ModelId
-!                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE( 'MEK'     )
                   DiagnName = 'ANTHROPOGENIC_MEK'
                   UNIT      = 'atoms C/cm2/s'
                   N         = ThisSpc%ModelId
-!                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE( 'ALD2'    )
                   DiagnName = 'ANTHROPOGENIC_ALD2'
                   UNIT      = 'atoms C/cm2/s'
                   N         = ThisSpc%ModelId
-!                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE( 'PRPE'    )
                   DiagnName = 'ANTHROPOGENIC_PRPE'
                   UNIT      = 'atoms C/cm2/s'
                   N         = ThisSpc%ModelId
-!                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE( 'C3H8'    )
                   DiagnName = 'ANTHROPOGENIC_C3H8'
                   UNIT      = 'atoms C/cm2/s'
                   N         = ThisSpc%ModelId
-!                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE( 'CH2O'    )
                   DiagnName = 'ANTHROPOGENIC_CH2O'
                   UNIT      = 'molec/cm2/s'
                   N         = ThisSpc%ModelId
-!                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE( 'C2H6'    )
                   DiagnName = 'ANTHROPOGENIC_C2H6'
                   UNIT      = 'atoms C/cm2/s'
                   N         = ThisSpc%ModelId
-!                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE( 'CH4'     )
                   DiagnName = 'ANTHROPOGENIC_CH4'
                   UNIT      = 'molec/cm2/s'
                   N         = ThisSpc%ModelId
-!                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE DEFAULT
@@ -4371,7 +4326,6 @@
             N         = 1         
             ThisSpc => State_Chm%SpcData(IDTISOP)%Info
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-!            FACTOR    = Input_Opt%XNUMOL(IDTISOP) / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -4389,7 +4343,6 @@
             N      = 2
             ThisSpc => State_Chm%SpcData(IDTACET)%Info
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-!            FACTOR = Input_Opt%XNUMOL(IDTACET) / CM2PERM2 
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             ! (1) BIOGENIC ACET 
             DiagnName = 'BIOGENIC_ACET'
@@ -4459,7 +4412,6 @@
             N         = 3
             ThisSpc => State_Chm%SpcData(IDTPRPE)%Info
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-!            FACTOR    = Input_Opt%XNUMOL(IDTPRPE) / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -4504,7 +4456,6 @@
             N         = 6
             ThisSpc => State_Chm%SpcData(IDTC2H4)%Info
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-!            FACTOR    = Input_Opt%XNUMOL(IDTC2H4) / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -4631,7 +4582,6 @@
             N         = 16
             ThisSpc => State_Chm%SpcData(IDTALD2)%Info
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-!            FACTOR    = Input_Opt%XNUMOL(IDTALD2) / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
@@ -4762,7 +4712,6 @@
             N         = 26
             ThisSpc => State_Chm%SpcData(IDTCH4)%Info
             ! Conversion factor from kg/m2/s to molec/cm2/s
-!            FACTOR    = Input_Opt%XNUMOL(IDTCH4) / CM2PERM2
             FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
             ! (1) Wetlands
             DiagnName = 'CH4_WETLANDS'

@@ -361,7 +361,6 @@
 
             ! Convert STT from kg to molec/cm3
             STT(I,J,L,N) = STT(I,J,L,N)
-!     &                   * Input_Opt%XNUMOL(N)
      &                   * ( AVO / MW_KG ) 
      &                   / ( State_Met%AIRVOL(I,J,L)  * 
      &                        1e+6_fp                  *
@@ -402,7 +401,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
             STT(I,J,L,N) = STT(I,J,L,N)
-!     &                   / Input_Opt%XNUMOL(N) *
      &                   / ( AVO / MW_kg ) * 
      &                     ( State_Met%AIRVOL(I,J,L) * 
      &                       1e+6_fp                 *
@@ -908,7 +906,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
             STT(I,J,L,N) = STT(I,J,L,N)
-!     &                   * Input_Opt%XNUMOL(N)
      &                   * ( AVO / MW_kg ) 
      &                   / ( State_Met%AIRVOL(I,J,L)  * 
      &                       1e+6_fp                  *
@@ -947,7 +944,6 @@
          
             ! Convert STT from molec/cm3 back to kg
             STT(I,J,L,N) = STT(I,J,L,N)
-!     &                   / Input_Opt%XNUMOL(N)
      &                   / ( AVO / MW_kg ) 
      &                   * ( State_Met%AIRVOL(I,J,L)  * 
      &                       1e+6_fp                  *

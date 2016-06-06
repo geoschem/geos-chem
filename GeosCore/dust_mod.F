@@ -321,7 +321,6 @@
 
       ! For values from Input_Opt
       INTEGER           :: N_TRACERS
-!      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER :: STT(:,:,:,:)
@@ -342,7 +341,6 @@
 
       ! Copy values from Input_Opt
       N_TRACERS = Input_Opt%N_TRACERS
-!      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -405,13 +403,11 @@
             
                ! Convert flux from [kg/s] to [molec/cm2/s]
                FLUXD = FLUXD + 
-!     &              DIF / DT_SETTL * XNUMOL(IDTDUST1-1+BIN) / AREA_CM2
      &                 DIF / DT_SETTL * AVO / ( 1.e-3_fp *
      &                 State_Chm%SpcData(IDTDUST1-1+BIN)%Info%emMW_g ) / 
      &                 AREA_CM2
 
                FLUXN = FLUXN + DIF/(SQRT( Xk(BIN)*Xk(BIN+1))) /
-!     &                      DT_SETTL * XNUMOL(IDTNK1-1+BIN) / AREA_CM2
      &                 DT_SETTL * AVO / ( 1.e-3_fp *
      &                 State_Chm%SpcData(IDTNK1-1+BIN)%Info%emMW_g ) / 
      &                 AREA_CM2
@@ -717,9 +713,6 @@
       ! Settling velocity of particle (m/s)
       REAL(fp)              :: VTS(LLPAR)  
 
-      ! Molecules tracer / kg tracer, from Input Options
-!      REAL(fp)              :: XNUMOL(Input_Opt%N_TRACERS) 
-
 #if defined( NC_DIAG )
       ! For netcdf diagnostics (ND44 drydep flux)
       INTEGER               :: drydep_id, trc_id, HCRC
@@ -747,7 +740,6 @@
       Ptr2D     => NULL()
 #endif
       N_TRACERS = Input_Opt%N_TRACERS
-!      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Dust settling timestep [s]
       DT_SETTL  = GET_TS_CHEM() * 60e+0_fp
@@ -869,7 +861,6 @@
 
                   ! Convert dust flux from [kg/s] to [molec/cm2/s]
                   FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
-!                  FLUX = FLUX * XNUMOL(INDEX) / AREA_CM2 
                   FLUX = FLUX * AVO * Input_Opt%TCVV(INDEX) / 
      &                   ( AIRMW * 1.e-3_fp ) / AREA_CM2 
 

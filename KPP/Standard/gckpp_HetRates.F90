@@ -249,8 +249,6 @@ MODULE GCKPP_HETRATES
          SPC_NIT    = 0.0e+0_fp
       ELSE
          TRC_NIT    = SC%Tracers(I,J,L,IND)
-
-!         SPC_NIT    = TRC_NIT*1e-6_fp*IO%XNUMOL(IND)/SM%AIRVOL(I,J,L)
          SPC_NIT    = TRC_NIT * 1e-6_fp * AVO /                     &
                       ( SC%SpcData(IND)%Info%emMW_g * 1.e-3_fp ) /  &
                       SM%AIRVOL(I,J,L)

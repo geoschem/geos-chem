@@ -265,21 +265,18 @@
                DiagnName = 'PARANOX_OX_PRODUCTION'
                UNIT      = 'molec/cm2/s'
                AF        = 0
-!               FACTOR    = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 
                FACTOR    = AVO * Input_Opt%TCVV(IDTNO) / 
      &                     ( CM2PERM2 * AIRMW * 1.e-3_fp ) 
             CASE ( 4 ) 
                DiagnName = 'PARANOX_NOX_REMAINING'
                UNIT      = 'molec/cm2/s'
                AF        = 0
-!               FACTOR    = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 
                FACTOR    = AVO * Input_Opt%TCVV(IDTNO) / 
      &                     ( CM2PERM2 * AIRMW * 1.e-3_fp ) 
             CASE ( 5 ) 
                DiagnName = 'SHIP_NO'
                UNIT      = 'molec/cm2/s'
                AF        = 1
-!               FACTOR    = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 
                FACTOR    = AVO * Input_Opt%TCVV(IDTNO) /
      &                     ( CM2PERM2 * AIRMW * 1.e-3_fp )  
             CASE DEFAULT

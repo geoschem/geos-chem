@@ -6472,7 +6472,6 @@ ccc
       REAL(fp) :: ARO2CARB, AROM_MW_G
 
       ! For values from Input_Opt
-!      REAL(fp) :: XNUMOL(Input_Opt%N_TRACERS)  ! molecules species / kg species
       REAL(fp) :: MolecRatio                   ! Moles C / moles species
 
       !=================================================================
@@ -6625,8 +6624,6 @@ ccc
 
             DARO2 = State_Chm%Species(I,J,L,ILARO2)
      &            * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
-!     &            * MolecRatio
-!     &            / ( Input_Opt%XNUMOL(IDTAROM) * ARO2CARB )
      &            * MolecRatio * AROM_MW_G * 1.e-3_fp / 
      &            ( AVO * ARO2CARB )
 
@@ -6741,8 +6738,6 @@ ccc
 
             DOH = State_Chm%Species(I,J,L,ILISOPOH)
      &          * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
-!     &          * MolecRatio
-!     &          / Input_Opt%XNUMOL(IDTISOP) 
      &          * MolecRatio * ISOP_MW_G * 1.e-3_fp / AVO 
  
          ELSE
@@ -8716,8 +8711,6 @@ ccc
 
             ISOPNO3 = State_Chm%Species(I,J,L,ILISOPNO3)
      &              * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
-!     &              * MolecRatio
-!     &              / Input_Opt%XNUMOL(IDTISOP) 
      &              * MolecRatio * ISOP_MW_G * 1.e-3_fp / AVO
  
          ELSE
