@@ -30,7 +30,7 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
-      USE GIGC_State_Chm_Mod,   ONLY : ChmState, Get_Indx
+      USE GIGC_State_Chm_Mod,   ONLY : ChmState
       USE GIGC_State_Met_Mod,   ONLY : MetState
       USE GRID_MOD,             ONLY : GET_YMID
       USE HCO_DIAGN_MOD,        ONLY : Diagn_Update
@@ -284,9 +284,6 @@
       !    - if SOA_SVPOA, LNRO2H and LNRO2N for NAP (hotp 6/25/09
       ! Done in gasconc.F every timestep prior to FlexChem (ewl, 3/30/16)
       !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( N )
       DO N = 1, State_Chm%nSpecies
 
          ! Get info about this species from the species database
@@ -311,7 +308,6 @@
          ThisSpc => NULL()
 
       ENDDO
-!$OMP END PARALLEL DO
       
       !=================================================================
       ! Call RDAER -- computes aerosol optical depths

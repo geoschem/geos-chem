@@ -76,13 +76,13 @@ CONTAINS
     USE GIGC_ErrCode_Mod
     USE GIGC_State_Chm_Mod, ONLY : Register_Tracer
     USE GIGC_State_Chm_Mod, ONLY : Register_Species
-    USE GIGC_State_Chm_Mod, ONLY : Get_Indx
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE gckpp_Global,       ONLY : NSPEC, NREACT
     USE gckpp_Monitor,      ONLY : SPC_NAMES, EQN_NAMES
     USE PRECISION_MOD
     USE RESTART_MOD,        ONLY : SPC_IN_NC_RST
     USE Species_Mod,        ONLY : Species
+    USE Species_Mod,        ONLY : Spc_GetIndx
     USE TIME_MOD,           ONLY : GET_NYMD, GET_NHMS
 !
 ! !INPUT PARAMETERS:
@@ -107,6 +107,8 @@ CONTAINS
 !                              and Species_ID fields in State_Chm
 !  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
 !                              NAMEGAS with ThisSpc%Name from species database
+!  06 Jun 2016 - M. Sulprizio- Replace Get_Indx with Spc_GetIndx to use the
+!                              fast-species lookup from the species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -198,6 +200,9 @@ CONTAINS
        IF (FOUND .NE. 1) THEN
           WRITE (6,'(a8,a17)') TRIM(Input_Opt%TRACER_NAME(N)), &
              ' is not a species'
+       ELSE
+          Print*, 'Found ', TRIM(Input_Opt%TRACER_NAME(N)), &
+                  '. STTTOCSPEC = ', STTTOCSPEC(N)
        ENDIF
 
     ENDDO
@@ -445,26 +450,26 @@ CONTAINS
     !=====================================================================
 
     ! MMN family
-    T_MMN      = Get_Indx( 'MMN',      State_Chm%Trac_ID, State_Chm%Trac_Name )
-    S_MVKN     = Get_Indx( 'MVKN',     State_Chm%Spec_ID, State_Chm%Spec_Name )
-    S_MACRN    = Get_Indx( 'MACRN',    State_Chm%Spec_ID, State_Chm%Spec_Name )
+    T_MMN      = Spc_GetIndx( 'MMN',      State_Chm%SpcData )
+    S_MVKN     = Spc_GetIndx( 'MVKN',     State_Chm%SpcData )
+    S_MACRN    = Spc_GetIndx( 'MACRN',    State_Chm%SpcData )
 
     ! ISOPN family
-    T_ISOPN    = Get_Indx( 'ISOPN',    State_Chm%Trac_ID, State_Chm%Trac_Name )
-    S_ISOPND   = Get_Indx( 'ISOPND',   State_Chm%Spec_ID, State_Chm%Spec_Name )
-    S_ISOPNB   = Get_Indx( 'ISOPNB',   State_Chm%Spec_ID, State_Chm%Spec_Name )
+    T_ISOPN    = Spc_GetIndx( 'ISOPN',    State_Chm%SpcData )
+    S_ISOPND   = Spc_GetIndx( 'ISOPND',   State_Chm%SpcData )
+    S_ISOPNB   = Spc_GetIndx( 'ISOPNB',   State_Chm%SpcData )
 
     ! CFCX family
-    T_CFCX     = Get_Indx( 'CFCX',     State_Chm%Trac_ID, State_Chm%Trac_Name )
-    S_CFC113   = Get_Indx( 'CFC113',   State_Chm%Spec_ID, State_Chm%Spec_Name )
-    S_CFC114   = Get_Indx( 'CFC114',   State_Chm%Spec_ID, State_Chm%Spec_Name )
-    S_CFC115   = Get_Indx( 'CFC115',   State_Chm%Spec_ID, State_Chm%Spec_Name )
+    T_CFCX     = Spc_GetIndx( 'CFCX',     State_Chm%SpcData )
+    S_CFC113   = Spc_GetIndx( 'CFC113',   State_Chm%SpcData )
+    S_CFC114   = Spc_GetIndx( 'CFC114',   State_Chm%SpcData )
+    S_CFC115   = Spc_GetIndx( 'CFC115',   State_Chm%SpcData )
 
     ! HCFCX family
-    T_HCFCX    = Get_Indx( 'HCFCX',    State_Chm%Trac_ID, State_Chm%Trac_Name )
-    S_HCFC123  = Get_Indx( 'HCFC123',  State_Chm%Spec_ID, State_Chm%Spec_Name )
-    S_HCFC141b = Get_Indx( 'HCFC141b', State_Chm%Spec_ID, State_Chm%Spec_Name )
-    S_HCFC142b = Get_Indx( 'HCFC142b', State_Chm%Spec_ID, State_Chm%Spec_Name )
+    T_HCFCX    = Spc_GetIndx( 'HCFCX',    State_Chm%SpcData )
+    S_HCFC123  = Spc_GetIndx( 'HCFC123',  State_Chm%SpcData )
+    S_HCFC141b = Spc_GetIndx( 'HCFC141b', State_Chm%SpcData )
+    S_HCFC142b = Spc_GetIndx( 'HCFC142b', State_Chm%SpcData )
 
     ! Return to calling program
     RETURN
