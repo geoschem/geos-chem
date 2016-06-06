@@ -269,6 +269,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE PhysConstants,      ONLY : AVO
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TOMAS_MOD,          ONLY : IBINS, Xk, SRTDUST
       USE TRACERID_MOD
@@ -296,6 +297,8 @@
 !  13 Dec 2012 - M. Payer    - Add am_I_Root, Input_Opt, RC as arguments
 !  31 May 2013 - R. Yantosca - Now pass State_Chm via the arg list
 !  16 Jul 2015 - R. Yantosca - Now pass INDEX and IDISP to DRY_SETTLING
+!  31 May 2016 - E. Lundgren - Replace Input_Opt%XNUMOL with AVO/(emMW_g*1e-3)
+!                              where emMW_g is from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -318,7 +321,6 @@
 
       ! For values from Input_Opt
       INTEGER           :: N_TRACERS
-      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER :: STT(:,:,:,:)
@@ -339,7 +341,6 @@
 
       ! Copy values from Input_Opt
       N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -402,9 +403,14 @@
             
                ! Convert flux from [kg/s] to [molec/cm2/s]
                FLUXD = FLUXD + 
-     &              DIF / DT_SETTL * XNUMOL(IDTDUST1-1+BIN) / AREA_CM2
+     &                 DIF / DT_SETTL * AVO / ( 1.e-3_fp *
+     &                 State_Chm%SpcData(IDTDUST1-1+BIN)%Info%emMW_g ) / 
+     &                 AREA_CM2
+
                FLUXN = FLUXN + DIF/(SQRT( Xk(BIN)*Xk(BIN+1))) /
-     &                      DT_SETTL * XNUMOL(IDTNK1-1+BIN) / AREA_CM2
+     &                 DT_SETTL * AVO / ( 1.e-3_fp *
+     &                 State_Chm%SpcData(IDTNK1-1+BIN)%Info%emMW_g ) / 
+     &                 AREA_CM2
 
 !debug               if(i==ii .and. j==jj .and. bin==bb) then
 !                  print *,L, DU0(I,J,L,BIN), DIF , FLUXD, AD44(I,J,NN,1)
@@ -622,7 +628,6 @@
 ! !USES:
 !
       USE CMN_DIAG_MOD
-      USE PHYSCONSTANTS,      ONLY : g0          ! Accel due to gravity [m/s2]
       USE CMN_SIZE_MOD
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44
@@ -631,6 +636,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE PhysConstants
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 #if defined( NC_DIAG )
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -643,11 +649,11 @@
       LOGICAL,        INTENT(IN)   :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)   :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)   :: State_Met   ! Meteorology State object
-      INTEGER,        INTENT(IN)   :: INDEX       ! Tracer index for XNUMOL
+      INTEGER,        INTENT(IN)   :: INDEX       ! Tracer index
       INTEGER,        INTENT(IN)   :: IDISP       ! Displacement index for IIDEP
 
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS
 ! 
       REAL(fp),      INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN) ! Dust [kg]
 !
@@ -672,6 +678,7 @@
 !                              remove dependency on pressure_mod
 !  25 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostic
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  31 May 2016 - E. Lundgren - Use TCVV instead of XNUMOL for molecular weights
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -706,9 +713,6 @@
       ! Settling velocity of particle (m/s)
       REAL(fp)              :: VTS(LLPAR)  
 
-      ! Molecules tracer / kg tracer, from Input Options
-      REAL(fp)              :: XNUMOL(Input_Opt%N_TRACERS) 
-
 #if defined( NC_DIAG )
       ! For netcdf diagnostics (ND44 drydep flux)
       INTEGER               :: drydep_id, trc_id, HCRC
@@ -736,7 +740,6 @@
       Ptr2D     => NULL()
 #endif
       N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Dust settling timestep [s]
       DT_SETTL  = GET_TS_CHEM() * 60e+0_fp
@@ -858,7 +861,8 @@
 
                   ! Convert dust flux from [kg/s] to [molec/cm2/s]
                   FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
-                  FLUX = FLUX * XNUMOL(INDEX) / AREA_CM2 
+                  FLUX = FLUX * AVO * Input_Opt%TCVV(INDEX) / 
+     &                   ( AIRMW * 1.e-3_fp ) / AREA_CM2 
 
 #if defined( BPCH_DIAG )
                   ! For bpch diagnostic, save in global array AD44

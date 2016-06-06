@@ -591,6 +591,7 @@ dvected tracer input  restart file
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PHYSCONSTANTS,      ONLY : BOLTZ
+      USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : EXPAND_DATE
 
       ! For Hg simulation restart file
@@ -622,6 +623,8 @@ dvected tracer input  restart file
 !  09 Feb 2016 - E. Lundgren - Initial version
 !  20 Apr 2016 - E. Lundgren - Implement ocean and snow Hg variables
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  31 May 2016 - E. Lundgren - Replace Input_Opt%TRACER_MW_G with species
+!                              database field emMW_g (emitted species g/mol)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -651,10 +654,11 @@ dvected tracer input  restart file
       INTEGER              :: st3d(3), ct3d(3)   ! 3D and 4D variable arrays
                                                  ! (includes time as dim)
       ! Temporary arrays and pointers
-      REAL*4,  TARGET      :: Temp2D(IIPAR,JJPAR) 
-      REAL*4,  TARGET      :: Temp3D(IIPAR,JJPAR,LLPAR)
-      REAL*4,  POINTER     :: Ptr2D(:,:  )
-      REAL*4,  POINTER     :: Ptr3D(:,:,:)
+      REAL*4,  TARGET        :: Temp2D(IIPAR,JJPAR) 
+      REAL*4,  TARGET        :: Temp3D(IIPAR,JJPAR,LLPAR)
+      REAL*4,  POINTER       :: Ptr2D(:,:  )
+      REAL*4,  POINTER       :: Ptr3D(:,:,:)
+      TYPE(Species), POINTER :: ThisSpc
 
       ! Other
       CHARACTER(LEN=255)   :: LOC
@@ -681,6 +685,7 @@ dvected tracer input  restart file
       Id_Hg2      => NULL()
       Id_HgP      => NULL()
       Hg_Cat_Name => NULL()
+      ThisSpc     => NULL()
 
       ! Name of this routine
       LOC       = 'READ_GC_RESTART_NC (restart_mod.F)'
@@ -809,8 +814,12 @@ dvected tracer input  restart file
       
       DO N = 1, Input_Opt%N_TRACERS
       
+         ! Get info about this tracer from the database
+         ! NOTE: Assumes 1:1 mapping of tracer and species indexes
+         ThisSpc => State_Chm%SpcData(N)%Info
+
          ! For carbon, be sure to use correct unit string
-         IF ( INT( Input_Opt%TRACER_MW_G(N) + 0.5 ) == 12 ) THEN
+         IF ( INT( ThisSpc%emMW_g + 0.5 ) == 12 ) THEN
             UNIT = 'kg C/kg'
          ELSE
             UNIT = 'kg/kg  '
@@ -821,6 +830,10 @@ dvected tracer input  restart file
      &                   SUM( State_Chm%TRACERS(:,:,:,N) ) / 
      &                   ( IIPAR * JJPAR * LLPAR), ADJUSTL( UNIT )
  150     FORMAT( 'Tracer ', i3, ', ', a8, ':  ', es15.9, 1x, a7)
+
+         ! Free pointer
+         ThisSpc => NULL()
+
       ENDDO
             
       !=================================================================
@@ -1289,6 +1302,7 @@ dvected tracer input  restart file
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE UNITCONV_MOD
 !
@@ -1352,6 +1366,8 @@ dvected tracer input  restart file
 !                              to set species to default values here. This is
 !                              a temporary fix because we plan to remove the 
 !                              option to use BPCH restarts in the near future.
+!  31 May 2016 - E. Lundgren - Replace Input_Opt%TRACER_MW_G with species
+!                              database field emMW_g (emitted species g/mol)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1383,6 +1399,7 @@ dvected tracer input  restart file
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER   :: STT(:,:,:,:)
+      TYPE(Species), POINTER :: ThisSpc
 
       ! For setting species concentrations
       LOGICAL             :: IT_EXISTS
@@ -1500,8 +1517,12 @@ dvected tracer input  restart file
 
       DO N = 1, Input_Opt%N_TRACERS
 
+         ! Get info about this tracer from the database
+         ! NOTE: Assumes 1:1 mapping of tracer and species indexes
+         ThisSpc => State_Chm%SpcData(N)%Info
+
          ! For carbon, be sure to use correct unit string
-         IF ( INT( Input_Opt%TRACER_MW_G(N) + 0.5 ) == 12 ) THEN
+         IF ( INT( ThisSpc%emMW_g + 0.5 ) == 12 ) THEN
             UNIT = 'kg C/kg'
          ELSE
             UNIT = 'kg/kg  '
@@ -1512,6 +1533,10 @@ dvected tracer input  restart file
      &                   SUM( STT(:,:,:,N) ) / (NI*NJ*NL), 
      &                   ADJUSTL( UNIT )
  150     FORMAT( 'Tracer ', i3, ', ', a8, ':  ', es15.9, 1x, a7)
+
+         ! Free pointer
+         ThisSpc => NULL()
+
       ENDDO
 
       ! Fancy output

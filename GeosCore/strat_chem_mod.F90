@@ -915,14 +915,14 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CMN_SIZE_MOD
     USE ERROR_MOD,          ONLY : GIGC_ERROR
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Species_Mod,        ONLY : Species
     USE TIME_MOD,   ONLY : GET_TAU, GET_NYMD, GET_NHMS, EXPAND_DATE
-
-    USE CMN_SIZE_MOD
     USE UNITCONV_MOD
 
     IMPLICIT NONE
@@ -952,7 +952,9 @@ CONTAINS
 !                              to avoid including code for nested-grid sims
 !  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm, RC arguments
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  10 Aug 2015 - E. Lundgren - Input tracer concentraiton units are now [kg/kg] 
+!  10 Aug 2015 - E. Lundgren - Input tracer concentraiton units are now [kg/kg]
+!  25 May 2016 - E. Lundgren - Replace input_opt%TRACER_MW_KG with species
+!                              database field emMW_g (emitted species g/mol)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -973,7 +975,8 @@ CONTAINS
     ! Pointers
     ! We need to define local arrays to hold corresponding values 
     ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-    REAL(fp), POINTER  :: STT(:,:,:,:)
+    REAL(fp),      POINTER :: STT(:,:,:,:)
+    TYPE(Species), POINTER :: ThisSpc => NULL()
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! By simple mass balance, dStrat/dt = P - L - STE,
@@ -1076,12 +1079,16 @@ CONTAINS
        ! Calculate flux as STE = (P-L) - dStrat/dt
        STE = (Tend-dStrat)/dt ! [kg a-1]
 
+       ! Get info about this species from the species database
+       ! NOTE: This assumes 1:1 tracer index to species index mapping
+       ThisSpc => State_Chm%SpcData(N)%Info
+
        ! Print to standard output
        IF ( am_I_Root ) THEN
-          WRITE(6,120) TRIM(Input_Opt%TRACER_NAME(N)),      &
-               STE/Input_Opt%TRACER_MW_KG(N),               & ! mol/a-1
-               Input_Opt%TRACER_MW_KG(N)*1e+3_fp,           & ! g/mol
-               STE*1e-9_fp                                    ! Tg a-1
+          WRITE(6,120) TRIM( ThisSpc%Name ),                &
+               STE / (ThisSpc%emMW_g * 1.e-3_fp),             & ! mol/a-1
+               ThisSpc%emMW_g,                                & ! g/mol
+               STE * 1e-9_fp                                  ! Tg a-1
        ENDIF
     ENDDO
 
@@ -1114,6 +1121,7 @@ CONTAINS
 
     ! Free pointer
     NULLIFY( STT )
+    NULLIFY( ThisSpc )
 #endif
   END SUBROUTINE Calc_STE
 !EOC

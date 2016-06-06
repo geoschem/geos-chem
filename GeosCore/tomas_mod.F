@@ -7032,7 +7032,6 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ! For values from Input_Opt
       LOGICAL   :: LPRT
       INTEGER   :: N_TRACERS
-      REAL(fp)  :: XNUMOL(Input_Opt%N_TRACERS)
       REAL(fp)  :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
@@ -7050,7 +7049,6 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ! Copy values from Input_Opt
       LPRT      = Input_Opt%LPRT
       N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
       TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object

@@ -401,7 +401,6 @@ CONTAINS
     ! Scalars
     INTEGER                :: N,          C
     INTEGER                :: N_Hg0_CATS, N_Hg2_CATS, N_HgP_CATS
-    REAL(fp)               :: EmMW_g
 
     ! Pointers
     TYPE(Species), POINTER :: ThisSpc
@@ -610,25 +609,12 @@ CONTAINS
           State_Chm%Map_Advect(C)   = ThisSpc%ModelId
           
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-          !%%% For now, store molecular weights in Input_Opt, but this 
-          !%%% is going to be moved into the species database imminently. 
-          !%%% (bmy, 5/18/16)
-
-          !%%% THESE WILL BE MOVED OUT OF Input_Opt SOON (bmy, 5/18/16)
-
-          ! Get emitted molecular weight from the species database
-          EmMW_g                    = ThisSpc%EmMW_g
-
-          ! Now use MW from the species database instead of from the
-          ! input.geos file.  This eliminates discrepancies. (bmy, 12/16/15)
-          Input_Opt%TRACER_MW_g(N)  = EmMW_g
-          Input_Opt%TRACER_MW_kg(N) = EmMW_g * 1e-3_fp
+          !%%% For now, store TCVV in Input_Opt. Note that this is
+          !%%% going to be removed imminently, with AIRMW / ThisSpc%emMW_g
+          !%%% used directly instead (ewl, 5/31/16)
 
           ! Ratio of MW dry air / MW tracer
-          Input_Opt%TCVV(N)         = AIRMW / Input_Opt%TRACER_MW_G(N)
-
-          ! Molecules tracer / kg tracer
-          Input_Opt%XNUMOL(N)       = AVO / Input_Opt%TRACER_MW_KG(N)
+          Input_Opt%TCVV(N)         = AIRMW / ThisSpc%emMW_g
 
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

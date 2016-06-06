@@ -172,11 +172,11 @@
       ! XNUMOL_NO3 : Molecules NO3 per kg NO3         [molec/kg]
       ! TCVV_S     : Ratio: Molwt air / Molwt S       [unitless]
       !=======================================================================
-      REAL(fp),  PARAMETER   :: XNUMOL_OH   = AVO / 17e-3_fp
-      REAL(fp),  PARAMETER   :: XNUMOL_O3   = AVO / 48e-3_fp
-      REAL(fp),  PARAMETER   :: XNUMOL_NO3  = AVO / 62e-3_fp
-      REAL(fp),  PARAMETER   :: XNUMOL_H2O2 = AVO / 34e-3_fp
-      REAL(fp),  PARAMETER   :: TCVV_S      = AIRMW / 32e+0_fp 
+      REAL(fp),  PARAMETER   :: XNUMOL_OH   = AVO / 17e-3_fp ! hard-coded MW
+      REAL(fp),  PARAMETER   :: XNUMOL_O3   = AVO / 48e-3_fp ! hard-coded MW
+      REAL(fp),  PARAMETER   :: XNUMOL_NO3  = AVO / 62e-3_fp ! hard-coded MW
+      REAL(fp),  PARAMETER   :: XNUMOL_H2O2 = AVO / 34e-3_fp ! hard-coded MW
+      REAL(fp),  PARAMETER   :: TCVV_S      = AIRMW / 32e+0_fp ! hard-coded MW
       REAL(fp),  PARAMETER   :: TCVV_N      = AIRMW / 14e+0_fp ! tdf
       REAL(fp),  PARAMETER   :: SMALLNUM    = 1e-20_fp
       REAL(fp),  PARAMETER   :: CM3PERM3    = 1.e6_fp
@@ -1094,7 +1094,6 @@
       REAL(f4),        POINTER :: Ptr3D(:,:,:)
 
       INTEGER                  :: N_TRACERS
-      REAL(fp)                 :: XNUMOL(Input_Opt%N_TRACERS)
 
       LOGICAL                :: ERRORSWITCH, SGCOAG = .TRUE.
       INTEGER                :: FLAG, ERR
@@ -1534,6 +1533,7 @@
 !                              remove dependency on pressure_mod.
 !  22 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostics
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  31 May 2016 - E. Lundgren - Remove usage of Input_Opt%XNUMOL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1592,7 +1592,6 @@
       INTEGER                :: IDTRC(10)	
       REAL(fp)               :: SALA_REDGE_um(2)
       REAL(fp)               :: SALC_REDGE_um(2)
-      REAL(fp)               :: XNUMOL(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! GRAV_SETTLING begins here!
@@ -1619,7 +1618,6 @@
       ! Copy fields from INPUT_OPT to local variables for use below
       SALA_REDGE_um = Input_Opt%SALA_REDGE_um
       SALC_REDGE_um = Input_Opt%SALC_REDGE_um
-      XNUMOL        = Input_Opt%XNUMOL
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
@@ -1890,7 +1888,8 @@
 
             ! Convert sea salt/dust flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
-            FLUX     = FLUX * XNUMOL(IDTRC(N)) / AREA_CM2 
+            FLUX     = FLUX * AVO / ( AIRMW / Input_Opt%TCVV(IDTRC(N))
+     &                 * 1.e-3_fp ) / AREA_CM2 
 
 #if defined( BPCH_DIAG )   
             ! Store in global AD44 array for bpch diagnostic output
@@ -2075,7 +2074,6 @@
                         
       ! For fields from Input_Opt
       LOGICAL           :: IS_FULLCHEM
-      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -2092,7 +2090,6 @@
 
       ! Copy fields from INPUT_OPT to local variables for use below
       IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
-      XNUMOL      = Input_Opt%XNUMOL
 
       ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -2387,7 +2384,6 @@
       ! Arrays
       REAL*4             :: ARRAY(IIPAR,JJPAR,LLCHEM)
       REAL(fp)           :: TCVV  (Input_Opt%N_TRACERS)
-      REAL(fp)           :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -2405,7 +2401,6 @@
       ! Copy fields from INPUT_OPT to local variables for use below
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -2666,7 +2661,6 @@
 
       ! Arrays
       REAL(fp)              :: TCVV  (Input_Opt%N_TRACERS)
-      REAL(fp)              :: XNUMOL(Input_Opt%N_TRACERS)
       REAL(fp)              :: ALK_d   (NDSTBIN)  ! tdf 04/07/08
       REAL(fp)              :: ALKA_d  (NDSTBIN)  ! tdf 04/07/08
       REAL(fp)              :: PSO4_d  (NDSTBIN)  ! tdf 04/07/08
@@ -2704,7 +2698,6 @@
       IS_OFFLINE  = Input_Opt%ITS_AN_AEROSOL_SIM
       N_TRACERS   = Input_Opt%N_TRACERS
       TCVV        = Input_Opt%TCVV  (1:N_TRACERS)
-      XNUMOL      = Input_Opt%XNUMOL(1:N_TRACERS)
       LDSTUP      = Input_Opt%LDSTUP
 
       ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
@@ -6048,18 +6041,12 @@
       INTEGER           :: KMIN
       REAL(fp)          :: SO4OXID
 
-      ! For values from Input_Opt
-      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
-
       !=================================================================
       ! CHEM_SO4_AQ begins here!
       !=================================================================
  
       ! Assume success
       RC  = GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
-      XNUMOL    = Input_Opt%XNUMOL(1:Input_Opt%N_TRACERS)
 
       ! Convert STT from [v/v] -> [kg] 
       CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt,

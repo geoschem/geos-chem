@@ -28,6 +28,7 @@ MODULE GCKPP_HETRATES
   USE GIGC_State_Chm_Mod, ONLY : Get_Indx
   USE GIGC_State_Met_Mod, ONLY : MetState
   USE GIGC_Input_Opt_Mod, ONLY : OptInput
+  USE PhysConstants,      ONLY : AVO
   USE Precision_Mod,      ONLY : fp
 
   IMPLICIT NONE
@@ -165,6 +166,8 @@ MODULE GCKPP_HETRATES
 !  01 Apr 2016 - R. Yantosca - Define many variables locally that don't
 !                              need to be in the THREADPRIVATE statements 
 !  01 Apr 2016 - R. Yantosca - Remove KII_KI; we now declare that locally
+!  31 May 2016 - E. Lundgren - Replace IO%XNUMOL with emMW_g from species
+!                              database (emitted species g/mol)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -246,7 +249,9 @@ MODULE GCKPP_HETRATES
          SPC_NIT    = 0.0e+0_fp
       ELSE
          TRC_NIT    = SC%Tracers(I,J,L,IND)
-         SPC_NIT    = TRC_NIT*1e-6_fp*IO%XNUMOL(IND)/SM%AIRVOL(I,J,L)
+         SPC_NIT    = TRC_NIT * 1e-6_fp * AVO /                     &
+                      ( SC%SpcData(IND)%Info%emMW_g * 1.e-3_fp ) /  &
+                      SM%AIRVOL(I,J,L)
       ENDIF
 
       IND = get_indx('SO4',SC%Spec_ID,SC%Spec_Name)
