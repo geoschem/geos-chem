@@ -37,6 +37,7 @@
       USE HCO_ERROR_MOD,        ONLY : HCO_SUCCESS
       USE PRECISION_MOD
       USE PRESSURE_MOD        
+      USE Species_Mod,          ONLY : Species
       USE TIME_MOD,             ONLY : GET_TS_CHEM
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : GET_YEAR
@@ -86,6 +87,8 @@
 !                              State_Chm%Species.  Also block out temp diags.
 !  16 May 2016 - M. Sulprizio- Remove call to RURALBOX. The implemementation of
 !                              FlexChem has rendered the routine obsolete.
+!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
+!                              NAMEGAS with ThisSpc%Name from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -154,9 +157,15 @@
       ! For the species database
       REAL(fp)              :: MolecRatio
 
+      ! Objects
+      TYPE(Species), POINTER :: ThisSpc
+
       !=================================================================
       ! FLEX_CHEMDR begins here!
       !=================================================================
+
+      ! Initialize pointer
+      ThisSpc => NULL()
 
       ! Turn heterogeneous chemistry and photolysis on/off here
       ! This is for testing only and may be removed later (mps, 4/26/16)
@@ -278,22 +287,29 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( N )
-      DO N = 1, Input_opt%N_SPECIES
+      DO N = 1, State_Chm%nSpecies
+
+         ! Get info about this species from the species database
+         ThisSpc => State_Chm%SpcData(N)%Info
 
          ! isoprene oxidation counter species
-         IF ( State_Chm%Spec_Name(N) == 'LISOPOH' .or.
-     &        State_Chm%Spec_Name(N) == 'LISOPNO3' ) THEN
+         IF ( TRIM( ThisSpc%Name ) == 'LISOPOH' .or.
+     &        TRIM( ThisSpc%Name ) == 'LISOPNO3' ) THEN
                State_Chm%Species(:,:,:,N) = 0e+0_fp
          ENDIF
 
          ! aromatic oxidation counter species
          IF ( Input_Opt%LSOA .or. Input_Opt%LSVPOA ) THEN
-            SELECT CASE ( State_Chm%Spec_Name(N) )
+            SELECT CASE ( TRIM( ThisSpc%Name ) )
                CASE ( 'LBRO2H', 'LBRO2N', 'LTRO2H', 'LTRO2N',
      &                'LXRO2H', 'LXRO2N', 'LNRO2H', 'LNRO2N' )
                   State_Chm%Species(:,:,:,N) = 0e+0_fp
             END SELECT
          ENDIF
+
+         ! Free pointer
+         ThisSpc => NULL()
+
       ENDDO
 !$OMP END PARALLEL DO
       

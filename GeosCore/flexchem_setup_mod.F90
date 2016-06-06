@@ -69,7 +69,6 @@ CONTAINS
 
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE CMN_SIZE_MOD
-    USE COMODE_LOOP_MOD,    ONLY : QBKGAS, NGAS, NAMEGAS, SMAL2
     USE PHYSCONSTANTS,      ONLY : BOLTZ
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Create
@@ -83,6 +82,7 @@ CONTAINS
     USE gckpp_Monitor,      ONLY : SPC_NAMES, EQN_NAMES
     USE PRECISION_MOD
     USE RESTART_MOD,        ONLY : SPC_IN_NC_RST
+    USE Species_Mod,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_NYMD, GET_NHMS
 !
 ! !INPUT PARAMETERS:
@@ -105,6 +105,8 @@ CONTAINS
 !  29 Jan 2016 - M. Sulprizio- Add calls to Register_Tracer and Register_Species
 !                              to populate Tracer_Name, Tracer_Id, Species_Name,
 !                              and Species_ID fields in State_Chm
+!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
+!                              NAMEGAS with ThisSpc%Name from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -119,11 +121,20 @@ CONTAINS
     CHARACTER(LEN=255) :: LOC = 'INIT_FLEXCHEM (flexchem_setup_mod.F90)' 
 
     ! For species unit conversion code
-    CHARACTER(LEN=10)  :: SPC_NAME           ! species name
     REAL(fp)           :: CONV_FACTOR        ! [mol/mol] -> [molec/cm3]
 
+    ! Objects
+    TYPE(Species), POINTER :: ThisSpc
+
+    !=================================================================
+    ! INIT_FLEXCHEM begins here!
+    !=================================================================
+
     ! Assume success
-    RC = 0
+    RC = GIGC_SUCCESS
+
+    ! Initialize pointer
+    ThisSpc => NULL()
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -146,7 +157,7 @@ CONTAINS
     HSAVE_KPP = 0.d0
 
     ! Loop over GEOS-Chem tracers
-    DO N=1,Input_Opt%N_TRACERS
+    DO N = 1, Input_Opt%N_TRACERS
 
        ! Register tracers in the State_Chm object
        ! NOTE: This is here to populate the Trac_Id and Trac_Name fields in
@@ -155,22 +166,35 @@ CONTAINS
        CALL Register_Tracer( Name      = Input_Opt%TRACER_NAME(N),  &
                              ID        = Input_Opt%ID_TRACER(N),    &
                              State_Chm = State_Chm,                 &
-                             Status    = RC                    )
+                             Status    = RC                         )
        IF ( am_I_Root .and. RC > 0 ) THEN
           WRITE( 6, 200 ) Input_Opt%TRACER_NAME(N), RC
  200      FORMAT( 'Registered Tracer : ', a14, i5 )
        ENDIF
 
-       ! mje Find link between tracers and species 
-       ! mje This is easier as we don't advect families any more
+       ! Initialize
        FOUND=0
-       DO N1=1,Input_Opt%N_SPECIES
-          IF ( ADJUSTL(TRIM(NAMEGAS(N1))) == &
-               ADJUSTL(TRIM(Input_Opt%TRACER_NAME(N)))) THEN
+
+       ! Loop over GEOS-Chem species
+       DO N1 = 1, State_Chm%nSpecies
+
+          ! Get info about this species from the species database
+          ThisSpc => State_Chm%SpcData(N1)%Info
+
+          ! Create vector to map GEOS-Chem tracers to State_Chm%Species order
+          IF ( ADJUSTL( TRIM( ThisSpc%Name ) ) == &
+               ADJUSTL( TRIM( Input_Opt%TRACER_NAME(N) ) ) ) THEN
              STTTOCSPEC(N)=N1
              FOUND=1
+             EXIT
           ENDIF
+
+          ! Free pointer
+          ThisSpc => NULL()
+
        ENDDO
+
+       ! Print info to log
        IF (FOUND .NE. 1) THEN
           WRITE (6,'(a8,a17)') TRIM(Input_Opt%TRACER_NAME(N)), &
              ' is not a species'
@@ -179,40 +203,59 @@ CONTAINS
     ENDDO
 
     ! Loop over GEOS-Chem species
-    DO N=1,Input_Opt%N_SPECIES
+    DO N = 1, State_Chm%nSpecies
 
-       ! Register species (active + inactive) in the State_Chm object
-       ! NOTE: This is here to populate the Spec_Id and Spec_Name fields in
-       ! State_Chm. This can be removed when we fully utilize the species
-       ! database (mps, 1/19/16)
-       CALL Register_Species( NAME      = NAMEGAS(N),  &
-                              ID        = N,           &
-                              State_Chm = State_Chm,   &
-                              Status    = RC        )
-       IF ( am_I_Root .and. RC > 0 ) THEN
-          WRITE( 6, 205 ) NAMEGAS(N), RC
-205       FORMAT( 'Registered Species : ', a14, i5 )
-       ENDIF
+       ! Get info about this species from the species database
+       ThisSpc => State_Chm%SpcData(N)%Info
 
-       ! MSL - Create vector to map species in State_Chm%Species order, defined
-       !       in READCHEM, to KPP's order, as seen in gckpp_Parameters.F90
+!------------------------------------------------------------------------------
+! Prior to 6/6/16:
+! This is not needed anymore because we now use the specied database
+!       ! Register species (active + inactive) in the State_Chm object
+!       ! NOTE: This is here to populate the Spec_Id and Spec_Name fields in
+!       ! State_Chm. This can be removed when we fully utilize the species
+!       ! database (mps, 1/19/16)
+!       CALL Register_Species( NAME      = TRIM( ThisSpc%Name ),  &
+!                              ID        = N,                     &
+!                              State_Chm = State_Chm,             &
+!                              Status    = RC                     )
+!       IF ( am_I_Root .and. RC > 0 ) THEN
+!          WRITE( 6, 205 ) TRIM( ThisSpc%Name ), RC
+!205       FORMAT( 'Registered Species : ', a14, i5 )
+!       ENDIF
+!------------------------------------------------------------------------------
+
+       ! Initialize
        FOUND=0
-       DO N1=1,NSPEC
-          IF (ADJUSTL(TRIM(SPC_NAMES(N1))) == &
-              ADJUSTL(TRIM(NAMEGAS(N)))) THEN
+
+       ! Loop over KPP species
+       DO N1 = 1, NSPEC
+
+          ! Create vector to map
+          ! State_Chm%Species order defined in species_database_mod.F90
+          ! to KPP order defined in gckpp_Parameters.F90
+          IF ( ADJUSTL( TRIM( SPC_NAMES(N1) ) ) == &
+               ADJUSTL( TRIM( ThisSpc%Name  ) ) ) THEN
              CSPECTOKPP(N1)=N
              FOUND=1
              EXIT
           ENDIF
+
        ENDDO
+
+       ! Print info to log
        IF (FOUND .NE. 1) THEN
-          WRITE (6,'(a8,a17)') TRIM(NAMEGAS(N)),   &
+          WRITE (6,'(a8,a17)') TRIM( ThisSpc%Name ),   &
              ' NOT found in KPP'
        ENDIF
        IF (FOUND .EQ. 1) THEN
-          WRITE (6,'(a8,a29,I4)') TRIM(NAMEGAS(N)), &
+          WRITE (6,'(a8,a29,I4)') TRIM( ThisSpc%Name ), &
              ' was found in KPP with index ', N1
        ENDIF
+
+       ! Free pointer
+       ThisSpc => NULL()
+
     ENDDO
 
     ! If species data was in the NetCDF restart file then do nothing
@@ -230,23 +273,19 @@ CONTAINS
                  '[molec/cm3]:')
        ENDIF
 
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       !% IMPORTANT:                                                  %
-       !% N_SPECIES = NTSPEC(NCS) = active + inactive species         %
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ! Loop over GEOS-Chem species
-       DO N=1,Input_Opt%N_SPECIES
+       DO N = 1, State_Chm%nSpecies
 
-          ! Define species name
-          SPC_NAME = TRIM( NAMEGAS(N) )
+          ! Get info about this species from the species database
+          ThisSpc => State_Chm%SpcData(N)%Info
 
-          IF ( (ADJUSTL(TRIM(SPC_NAME)) .eq. "" ) ) CYCLE
+          IF ( (ADJUSTL( TRIM( ThisSpc%Name ) ) .eq. "" ) ) CYCLE
 
           ! Loop over KPP species
-          DO N1=1,NSPEC
+          DO N1 = 1, NSPEC
 
-             IF ( ADJUSTL(TRIM(SPC_NAMES(N1))) == &
-                  ADJUSTL(TRIM(SPC_NAME     )) ) THEN
+             IF ( ADJUSTL( TRIM( SPC_NAMES(N1) ) ) == &
+                  ADJUSTL( TRIM( ThisSpc%Name  ) ) ) THEN
 
                 !$OMP PARALLEL DO &
                 !$OMP DEFAULT( SHARED ) &
@@ -261,7 +300,7 @@ CONTAINS
                    CONV_FACTOR = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp / &
                                ( State_Met%T(I,J,L) * ( BOLTZ * 1e+7_fp ) )
 
-                   IF ( TRIM( SPC_NAME ) /= 'MOH' ) THEN
+                   IF ( TRIM( ThisSpc%Name ) /= 'MOH' ) THEN
 
                       ! Convert units from [mol/mol] to [molec/cm3/box]
                       State_Chm%Species(I,J,L,N) = &
@@ -334,18 +373,21 @@ CONTAINS
                 ! after conversion if in debug mode (ewl, 3/1/16)
                 IF ( Input_Opt%LPRT ) THEN
                   WRITE(6,120) N, &
-                               TRIM( SPC_NAME ), &
+                               TRIM( ThisSpc%Name ), &
                                MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ), &
                                MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) ) 
 120               FORMAT( 'Species ', i3, ', ', a9, ': Min = ', &
                            es15.9, ', Max = ', es15.9 )
                ENDIF
 
-             ENDIF  ! SPC_NAMES(N1) = SPC_NAME
+             ENDIF  ! SPC_NAMES(N1) = ThisSpc%Name
 
           ENDDO ! NSPEC
 
-       ENDDO ! N_SPECIES
+          ! Free pointer
+          ThisSpc => NULL()
+
+       ENDDO ! State_Chm%nSpecies
 
        ! Mark end of unit conversion in log
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )

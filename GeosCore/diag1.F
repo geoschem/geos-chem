@@ -51,8 +51,6 @@
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE PHYSCONSTANTS
-    
-      USE COMODE_LOOP_MOD,    ONLY : NAMEGAS, NTSPEC, NCSURBAN
 
       USE PRECISION_MOD
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
@@ -77,6 +75,10 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  For a complete list of GEOS-Chem diagnostics, please see this web page:
+!     http://acmg.seas.harvard.edu/geos/doc/man/appendix_5.html
 !
 ! !REVISION HISTORY:
 !  (1 ) This subroutine was reconstructed from gmg's version of (10/10/97)
@@ -153,10 +155,8 @@
 !                              avoid name conflict with GEOS-5 model.
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  02 May 2016 - R. Yantosca - Now declare IDTPASV locally
-!
-! !REMARKS:
-!  For a complete list of GEOS-Chem diagnostics, please see this web page:
-!     http://acmg.seas.harvard.edu/geos/doc/man/appendix_5.html
+!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
+!                              NAMEGAS with ThisSpc%Name from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -812,11 +812,14 @@
          IF ( DiagnSpec ) THEN
 
             ! Loop over all species
-            DO N = 1, NTSPEC(NCSURBAN)
+            DO N = 1, State_Chm%nSpecies
+
+               ! Get info about this species from the species database
+               ThisSpc => State_Chm%SpcData(N)%Info
    
                ! Construct diagnostic name
-               IF ( TRIM(NAMEGAS(N)) == '' ) CYCLE
-               DiagnName = 'SPECIES_CONC_' // TRIM(NAMEGAS(N)) 
+               IF ( TRIM( ThisSpc%Name ) == '' ) CYCLE
+               DiagnName = 'SPECIES_CONC_' // TRIM( ThisSpc%Name ) 
          
                ! Get value in #/cm3
                Ptr3D => State_Chm%Species(:,:,:,N)
@@ -827,9 +830,10 @@
      &                            Array3D = Ptr3D,
      &                            RC      = RC )
    
-               ! Free the pointer
-               Ptr3D => NULL()
-   
+               ! Free the pointers
+               Ptr3D   => NULL()
+               ThisSpc => NULL()
+
                ! STOP wieth error if the diagnostics were unsuccessful
                IF ( RC /= HCO_SUCCESS ) THEN
                   CALL ERROR_STOP(
