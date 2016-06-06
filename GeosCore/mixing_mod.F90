@@ -430,7 +430,7 @@ CONTAINS
 !$OMP PRIVATE( I, J, L, L1, L2, N, D, PBL_TOP, FND, TMP, DRYDEPID ) &
 !$OMP PRIVATE( FRQ, RKT, FRAC, FLUX, AREA_M2,   MWkg, ChemGridOnly ) & 
 !$OMP PRIVATE( DryDepSpec, EmisSpec, DRYD_TOP,  EMIS_TOP, PNOXLOSS ) &
-!$OMP PRIVATE( DENOM                                               )
+!$OMP PRIVATE( DENOM, ThisSpc                                         )
     DO N = 1, Input_Opt%N_TRACERS
 
        ! Get info about this species from the species database
@@ -702,6 +702,10 @@ CONTAINS
           ENDDO !L
        ENDDO !J
        ENDDO !I
+
+       ! Nullify pointer
+       ThisSpc  => NULL()
+
     ENDDO !N
 !$OMP END PARALLEL DO
 
@@ -802,9 +806,6 @@ CONTAINS
                                   State_Met, State_Chm, RC )
     CALL Convert_KgKgDry_to_VVDry( am_I_Root, Input_Opt,          &
                                    State_Chm, RC )
-
-    ! Nullify pointer
-    ThisSpc  => NULL()
 
   END SUBROUTINE DO_TEND 
 !EOC
