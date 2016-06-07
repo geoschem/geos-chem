@@ -6904,7 +6904,7 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 !$OMP+PRIVATE( MECIL, MECOB, MOCIL, MOCOB, MDUST )
 !$OMP+PRIVATE( BIN, I, J, TRACID, WID, MH2O, MSO4, MNACL )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
+      DO J = 1, JJPAR
       DO I = 1, IIPAR
       DO BIN = 1, IBINS
 
@@ -6940,6 +6940,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
      &                               MNACL, MECIL, MECOB, 
      &                               MOCIL, MOCOB, MDUST, MH2O  )
 
+      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
