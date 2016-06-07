@@ -37,6 +37,10 @@ MODULE GIGC_State_Chm_Mod
   PUBLIC :: Init_GIGC_State_Chm
   PUBLIC :: Cleanup_GIGC_State_Chm
 !
+! !PRIVATE DATA MEMBERS:
+!
+  TYPE(SpcPtr), PRIVATE, POINTER :: SpcDataLocal(:)  ! Local version of StateChm for  
+!
 ! !PUBLIC DATA MEMBERS:
 !
   !=========================================================================
@@ -187,6 +191,68 @@ CONTAINS
     ENDDO
 
   END FUNCTION Get_Indx
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_indx 
+!
+! !DESCRIPTION: Function GET\_INDX returns the index of an advected tracer or 
+!  chemical species contained in the chemistry state object by name.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION ind_( name, flag ) RESULT( Indx )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),           INTENT(IN) :: name         ! Species or tracer name
+    CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: flag
+!
+! !RETURN VALUE:
+!
+    INTEGER                      :: Indx         ! Index of this species 
+!
+! !REMARKS
+!
+! !REVISION HISTORY: 
+!  07 Oct 2016 - M. Long     - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER           :: N, Hash
+    CHARACTER(LEN=14) :: Name14
+
+    !=====================================================================
+    ! Spc_GetIndex begins here!
+    !=====================================================================
+
+    ! Initialize the output value
+    Indx   = -1
+
+    ! Compute the hash corresponding to the given species name
+    Name14 = Name
+    Hash   = Str2Hash( Name14 )
+
+    ! Loop over all entries in the Species Database object
+    DO N = 1, SIZE( SpcDataLocal )
+
+       ! Compare the hash we just created against the list of
+       ! species name hashes stored in the species database
+       IF( Hash == SpcDataLocal(N)%Info%NameHash  ) THEN
+          Indx = SpcDataLocal(N)%Info%ModelID
+          EXIT
+       ENDIF
+    ENDDO
+
+    RETURN
+  END FUNCTION ind_
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -742,6 +808,8 @@ CONTAINS
        ENDDO
        
     ENDIF
+
+    SpcDataLocal => State_Chm%SpcData
 
     ! Free pointer for safety's sake
     ThisSpc => NULL()
