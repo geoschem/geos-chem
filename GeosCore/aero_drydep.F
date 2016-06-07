@@ -75,6 +75,7 @@
 !  12 May 2016 - M. Sulprizio- Remove IJLOOP and changed SIZ_DIA and SIZ_DEN
 !                              array dimensions from (IIPAR*JJPAR,IBINS) to
 !                              (IIPAR,JJPAR,IBINS)
+!  07 Jun 2016 - E. Lundgren - Remove XNUMOL; use species database MW instead
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -109,7 +110,6 @@
       ! For fields from Input_Opt
       LOGICAL         :: LPRT
       INTEGER         :: N_TRACERS
-      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER :: STT(:,:,:,:)
@@ -136,7 +136,6 @@
       ! Get logical values from Input_Opt
       LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
       N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Initialize pointers
       STT      => State_Chm%TRACERS
@@ -330,7 +329,8 @@ cdbg      print *, dryd(:)
 
                ! Convert dust flux from [kg/s] to [#/cm2/s]
                FLUX = ( TOT1 - TOT2 ) / DTCHEM
-               FLUX = FLUX * XNUMOL(ID) / AREA_CM2 
+               FLUX = FLUX * State_Chm%SpcData(ID)%Info%emMW_g * 
+     &                1.e-3_fp / AREA_CM2 
            
                ! Save in AD44
                IF( JC == 1 ) THEN 
@@ -438,7 +438,9 @@ c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
                ! Convert from [kg/timestep] to [molec/cm2/s] 
                ! Store in AD44
                FLUX = X0(BIN,JC) - X
-               FLUX = FLUX * XNUMOL(ID)/ AREA_CM2/ DTCHEM
+               FLUX = FLUX * State_Chm%SpcData(ID)%Info%emMW_g * 
+     &                1.e-3_fp / AREA_CM2 / DTCHEM
+
                IF ( JC == 1 ) THEN 
                   AD44(I,J,DRYD(BIN),1) = AD44(I,J,DRYD(BIN),1)+ FLUX   
                ELSE
@@ -491,7 +493,9 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
             ! Convert from [kg/timestep] to [molec/cm2/s] 
             ! Store in AD44
             FLUX = Y0 - Y
-            FLUX = FLUX * XNUMOL(IDTH2SO4)/ AREA_CM2/ DTCHEM
+            FLUX = FLUX * State_Chm%SpcData(IDTH2SO4)%Info%emMW_g * 
+     &             1.e-3_fp / AREA_CM2 / DTCHEM
+
             AD44(I,J,H2SO4ID,1) = AD44(I,J,H2SO4ID,1) + FLUX   
 
          ENDIF
