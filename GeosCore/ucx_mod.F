@@ -5725,7 +5725,8 @@
                LOCAL_NAME = NAMEGAS(IRM(1,LOCAL_NKSO4PHOT,ICS))
                LOCAL_IPHOT = LOCAL_NKSO4PHOT - NRATES(ICS)
                IFNC = DEFPRAT(LOCAL_NKSO4PHOT,ICS) + 0.01e+0_fp
-               IBRCH = 10.e+0_fp*(DEFPRAT(LOCAL_NKSO4PHOT,ICS)-IFNC) + 0.5e+0_fp
+               IBRCH = 10.e+0_fp*(DEFPRAT(LOCAL_NKSO4PHOT,ICS)-IFNC) + 
+     &                 0.5e+0_fp
                RELWT = TRACER_MW_G(IDTSO2)/TRACER_MW_G(IDTSO4)
             ENDIF
          ENDDO 
