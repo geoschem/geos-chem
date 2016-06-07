@@ -1538,61 +1538,97 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod,    ONLY : MetState
-    USE HCO_GeoTools_MOD,      ONLY : HCO_CalcVertGrid
-    USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
+    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
+    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE HCO_GeoTools_MOD,   ONLY : HCO_CalcVertGrid
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root 
-    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
+    LOGICAL,          INTENT(IN   )  :: am_I_Root   ! Are we on the root CPU?
+    TYPE(MetState),   INTENT(IN   )  :: State_Met   ! Meteorology State obj
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)  :: RC
+    INTEGER,          INTENT(INOUT)  :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  GridEdge_Set defines the HEMCO vertical grid used in GEOS-Chem "classic"
+!  simulations.  (GCHP uses its own interface to HEMCO.)
 !
 ! !REVISION HISTORY:
 !  08 Oct 2014 - C. Keller   - Initial version
 !  28 Sep 2015 - C. Keller   - Now call HCO_CalcVertGrid
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  06 Jun 2016 - R. Yantosca - Now declar PEDGE array for edge pressures [Pa]
+!  06 Jun 2016 - R. Yantosca - PSFC now points to PEDGE(:,:,1)
+!  06 Jun 2016 - R. Yantosca - Now add error traps
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
-    REAL(hp), POINTER   :: PSFC    (:,:  )
-    REAL(hp), POINTER   :: ZSFC    (:,:  )
-    REAL(hp), POINTER   :: TK      (:,:,:)
-    REAL(hp), POINTER   :: BXHEIGHT(:,:,:)
-    REAL(hp), POINTER   :: PEDGE   (:,:,:)
+    ! Strings
+    CHARACTER(LEN=80) :: MSG, LOC
 
-    !=================================================================
+    ! Pointers
+    REAL(hp), POINTER :: BXHEIGHT(:,:,:)    ! Grid box height      [m ]
+    REAL(hp), POINTER :: PEDGE   (:,:,:)    ! Pressure @ lvl edges [Pa]
+    REAL(hp), POINTER :: PSFC    (:,:  )    ! Surface pressure     [Pa]
+    REAL(hp), POINTER :: TK      (:,:,:)    ! Temperature          [K ]
+    REAL(hp), POINTER :: ZSFC    (:,:  )    ! Surface geopotential [m ]
+
+    !=======================================================================
     ! GridEdge_Set begins here
-    !=================================================================
+    !=======================================================================
 
-    ! Pointers to fields 
-    ZSFC     => State_Met%PHIS
-    BXHEIGHT => State_Met%BXHEIGHT
-    TK       => State_Met%T
+    ! Assume success
+    RC       =  HCO_SUCCESS
 
-    ! surface pressure in Pa
-    ALLOCATE(PSFC(IIPAR,JJPAR))
-    PSFC(:,:) = State_Met%PEDGE(:,:,1) * 100.0_hp
+    ! Allocate the PEDGE array, which holds level edge pressures [Pa]
+    ! NOTE: Hco_CalcVertGrid expects pointer-based arguments, so we must
+    ! make PEDGE be a pointer and allocate/deallocate it on each call.
+    ALLOCATE( PEDGE( IIPAR, JJPAR, LLPAR+1 ), STAT=RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'ERROR allocating the PEDGE pointer-based array!'
+       LOC = 'GridEdge_Set (GeosCore/hcoi_gc_main_mod.F90)'
+       CALL ERROR_STOP( MSG, LOC )
+    ENDIF
+
+    ! Edge and surface pressures [Pa]
+    PEDGE    =  State_Met%PEDGE * 100.0_hp  ! Convert hPa -> Pa
+    PSFC     => PEDGE(:,:,1)
+
+    ! Point to other fields of State_Met
+    ZSFC     => State_Met%PHIS               
+    BXHEIGHT => State_Met%BXHEIGHT           
+    TK       => State_Met%T                  
 
     ! Calculate missing quantities
-    CALL HCO_CalcVertGrid( am_I_Root, HcoState, PSFC,    &
-                           ZSFC,  TK, BXHEIGHT, PEDGE, RC )
+    CALL HCO_CalcVertGrid( am_I_Root, HcoState, PSFC,      &
+                           ZSFC,      TK,       BXHEIGHT,  &
+                           PEDGE,     RC                  )
+
+    ! Stop with an error if the vertical grid was not computed properly
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'ERROR returning from HCO_CalcVertGrid!'
+       LOC = 'GridEdge_Set (GeosCore/hcoi_gc_main_mod.F90)'
+       CALL ERROR_STOP( MSG, LOC )
+    ENDIF
 
     ! Nullify local pointers
     ZSFC     => NULL()
     BXHEIGHT => NULL()
     TK       => NULL()
-    IF ( ASSOCIATED(PSFC) ) DEALLOCATE(PSFC) 
     PSFC     => NULL()
 
+    ! Deallocate and nullify PEDGE
+    IF ( ASSOCIATED( PEDGE ) ) DEALLOCATE( PEDGE )
+    PEDGE    => NULL()
+
     ! Return w/ success
-    RC = HCO_SUCCESS
+    RC       = HCO_SUCCESS
 
   END SUBROUTINE GridEdge_Set
 !EOC
