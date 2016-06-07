@@ -79,6 +79,8 @@
 !  18 Nov 2015 - M. Sulprizio- Add passive tracer IDTPASV to RnPbBe simulation
 !  26 Apr 2016 - R. Yantosca - Now remove all Hg indexing variables
 !  02 May 2016 - R. Yantosca - Now remove all POPs tracer flags
+!  06 Jun 2016 - M. Sulprizio- Remove routine FILL_CHEM_STATE_NAME_IDs made
+!                              obsolete by the species database
 !******************************************************************************
 !
       ! for CTM tracers
@@ -2107,59 +2109,6 @@
       ! Return to calling program
       END SUBROUTINE SETTRACE
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: fill_chem_state_name_ids
-!
-! !DESCRIPTION: Subroutine FILL_State_Chm_NAME_IDs populates the trac_name,
-!  trac_id, and smvg_id fields of an object based on the CHEMSTATE derived
-!  type.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE FILL_CHEM_STATE_NAME_IDs( am_I_Root, 
-     &                                     Input_Opt, State_Chm )
-!
-! !USES:
-!
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-!
-! !INPUT PARAMETERS: 
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry state object
-! 
-! !REVISION HISTORY: 
-!  13 Aug 2012 - R. Yantosca - Initial version
-!  16 Oct 2012 - R. Yantosca - Renamed chem state object to State_Chm
-!  19 Oct 2012 - R. Yantosca - Now references gigc_state_chm_mod.F90
-!  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
-!  25 Jun 2014 - R. Yantosca - Now remove references to tracer_mod.F
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: N
-
-      ! Loop over defined tracers
-      DO N = 1, Input_Opt%N_TRACERS
-         State_Chm%TRAC_ID(N)   = N
-         State_Chm%TRAC_NAME(N) = TRIM( Input_Opt%TRACER_NAME(N) )
-      ENDDO
-
-      END SUBROUTINE FILL_CHEM_STATE_NAME_IDs
-!EOC 
 !------------------------------------------------------------------------------
 
       SUBROUTINE INIT_TRACERID( am_I_Root, Input_Opt, RC )

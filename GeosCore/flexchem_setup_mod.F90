@@ -74,8 +74,6 @@ CONTAINS
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Create
     USE HCO_ERROR_MOD
     USE GIGC_ErrCode_Mod
-    USE GIGC_State_Chm_Mod, ONLY : Register_Tracer
-    USE GIGC_State_Chm_Mod, ONLY : Register_Species
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE gckpp_Global,       ONLY : NSPEC, NREACT
     USE gckpp_Monitor,      ONLY : SPC_NAMES, EQN_NAMES
@@ -109,6 +107,9 @@ CONTAINS
 !                              NAMEGAS with ThisSpc%Name from species database
 !  06 Jun 2016 - M. Sulprizio- Replace Get_Indx with Spc_GetIndx to use the
 !                              fast-species lookup from the species database
+!  06 Jun 2016 - M. Sulprizio- Remove calls to Register_Tracer and
+!                              Register_Species; these routines were made
+!                              obsolete by the species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -161,19 +162,6 @@ CONTAINS
     ! Loop over GEOS-Chem tracers
     DO N = 1, Input_Opt%N_TRACERS
 
-       ! Register tracers in the State_Chm object
-       ! NOTE: This is here to populate the Trac_Id and Trac_Name fields in
-       ! State_Chm. This can be removed when we fully utilize the species
-       ! database (mps, 1/19/16)
-       CALL Register_Tracer( Name      = Input_Opt%TRACER_NAME(N),  &
-                             ID        = Input_Opt%ID_TRACER(N),    &
-                             State_Chm = State_Chm,                 &
-                             Status    = RC                         )
-       IF ( am_I_Root .and. RC > 0 ) THEN
-          WRITE( 6, 200 ) Input_Opt%TRACER_NAME(N), RC
- 200      FORMAT( 'Registered Tracer : ', a14, i5 )
-       ENDIF
-
        ! Initialize
        FOUND=0
 
@@ -212,23 +200,6 @@ CONTAINS
 
        ! Get info about this species from the species database
        ThisSpc => State_Chm%SpcData(N)%Info
-
-!------------------------------------------------------------------------------
-! Prior to 6/6/16:
-! This is not needed anymore because we now use the specied database
-!       ! Register species (active + inactive) in the State_Chm object
-!       ! NOTE: This is here to populate the Spec_Id and Spec_Name fields in
-!       ! State_Chm. This can be removed when we fully utilize the species
-!       ! database (mps, 1/19/16)
-!       CALL Register_Species( NAME      = TRIM( ThisSpc%Name ),  &
-!                              ID        = N,                     &
-!                              State_Chm = State_Chm,             &
-!                              Status    = RC                     )
-!       IF ( am_I_Root .and. RC > 0 ) THEN
-!          WRITE( 6, 205 ) TRIM( ThisSpc%Name ), RC
-!205       FORMAT( 'Registered Species : ', a14, i5 )
-!       ENDIF
-!------------------------------------------------------------------------------
 
        ! Initialize
        FOUND=0
