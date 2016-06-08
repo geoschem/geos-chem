@@ -120,7 +120,7 @@ MODULE Diagnostics_Mod
 ! !PRIVATE TYPES:
 !
   ! Local tracer ID flags
-  INTEGER :: IDTRn, IDTPb, IDTBe
+  INTEGER :: IDTRn, IDTPb, IDTBe7
 
 CONTAINS
 #if defined( NC_DIAG )
@@ -179,11 +179,14 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER            :: N
     INTEGER            :: CollectionID
     INTEGER            :: DeltaYMD, DeltaHMS 
     REAL(sp)           :: TS
     REAL(fp), POINTER  :: AM2(:,:)
     CHARACTER(LEN=255) :: LOC = 'Diagnostics_Init (diagnostics_mod.F90)'
+
+    TYPE(Species), POINTER :: ThisSpc
 
     !=======================================================================
     ! Diagnostics_Init begins here 

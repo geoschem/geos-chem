@@ -31,7 +31,7 @@ MODULE GIGC_State_Chm_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: Get_Indx
+  PUBLIC :: Get_Indx, Ind_
   PUBLIC :: Register_Species
   PUBLIC :: Register_Tracer
   PUBLIC :: Init_GIGC_State_Chm
@@ -246,13 +246,36 @@ CONTAINS
        ! Compare the hash we just created against the list of
        ! species name hashes stored in the species database
        IF( Hash == SpcDataLocal(N)%Info%NameHash  ) THEN
-          Indx = SpcDataLocal(N)%Info%ModelID
+          IF (.not. PRESENT(Flag)) THEN ! Default to Species/ModelID
+             Indx = SpcDataLocal(N)%Info%ModelID
+             RETURN
+          ELSE ! Only need first character of the flag for this.
+             IF     (flag(1:1) .eq. 'T' .or. flag(1:1) .eq. 't') THEN ! Tracer flag
+                Indx = SpcDataLocal(N)%Info%AdvectID
+                RETURN
+             ELSEIF (flag(1:1) .eq. 'K' .or. flag(1:1) .eq. 'k') THEN ! KPP main ID
+!                Indx = SpcDataLocal(N)%Info%KppSpcId
+                RETURN
+             ELSEIF (flag(1:1) .eq. 'V' .or. flag(1:1) .eq. 'v') THEN ! KPP VAR ID
+                Indx = SpcDataLocal(N)%Info%KppVarId
+                RETURN
+             ELSEIF (flag(1:1) .eq. 'F' .or. flag(1:1) .eq. 'f') THEN ! KPP FIX ID
+                Indx = SpcDataLocal(N)%Info%KppFixId
+                RETURN
+             ELSEIF (flag(1:1) .eq. 'W' .or. flag(1:1) .eq. 'w') THEN ! WetDep ID
+                Indx = SpcDataLocal(N)%Info%WetDepId
+                RETURN
+             ELSEIF (flag(1:1) .eq. 'D' .or. flag(1:1) .eq. 'd') THEN ! DryDep ID
+                Indx = SpcDataLocal(N)%Info%DryDepId
+                RETURN
+             ENDIF
+          ENDIF
           EXIT
        ENDIF
     ENDDO
 
     RETURN
-  END FUNCTION ind_
+  END FUNCTION Ind_
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -808,7 +831,7 @@ CONTAINS
        ENDDO
        
     ENDIF
-
+   
     SpcDataLocal => State_Chm%SpcData
 
     ! Free pointer for safety's sake

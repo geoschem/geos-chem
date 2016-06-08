@@ -360,8 +360,8 @@
       ! Now define local tracer flags so that we can remove these from 
       ! tracerid_mod.F to facilitate FlexChem implementation (bmy, 5/2/16)
       LOGICAL, SAVE            :: FIRST = .TRUE.
-      INTEGER, SAVE            :: IDTRn,       IDTPb
-      INTEGER, SAVE            :: IDTBe7,      IDTPASV
+!      INTEGER, SAVE            :: IDTBe7,      IDTRn,       IDTPb
+      INTEGER, SAVE            :: IDTPASV
       INTEGER, SAVE            :: IDTPOPG
       INTEGER, SAVE            :: IDTPOPPOCPO, IDTPOPPOCPI
       INTEGER, SAVE            :: IDTPOPPBCPO, IDTPOPPBCPI

@@ -77,7 +77,7 @@ CONTAINS
     USE GIGC_ErrCode_Mod
     USE GIGC_State_Chm_Mod, ONLY : Register_Tracer
     USE GIGC_State_Chm_Mod, ONLY : Register_Species
-    USE GIGC_State_Chm_Mod, ONLY : Get_Indx
+    USE GIGC_State_Chm_Mod, ONLY : IND_
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE gckpp_Global,       ONLY : NSPEC, NREACT
     USE gckpp_Monitor,      ONLY : SPC_NAMES, EQN_NAMES
@@ -402,27 +402,30 @@ CONTAINS
     ! repeated costly string matching operations
     !=====================================================================
 
+    write(*,*) 'TEST O3:', IND_('O3'), IND_('O3','T'), IND_('O3','K'), IND_('O3','W'), IND_('O3','D')
+    read(*,*)
+
     ! MMN family
-    T_MMN      = Get_Indx( 'MMN',      State_Chm%Trac_ID, State_Chm%Trac_Name )
-    S_MVKN     = Get_Indx( 'MVKN',     State_Chm%Spec_ID, State_Chm%Spec_Name )
-    S_MACRN    = Get_Indx( 'MACRN',    State_Chm%Spec_ID, State_Chm%Spec_Name )
+    T_MMN      = IND_( 'MMN',  'T')
+    S_MVKN     = IND_( 'MVKN'     )
+    S_MACRN    = IND_( 'MACRN'    )
 
     ! ISOPN family
-    T_ISOPN    = Get_Indx( 'ISOPN',    State_Chm%Trac_ID, State_Chm%Trac_Name )
-    S_ISOPND   = Get_Indx( 'ISOPND',   State_Chm%Spec_ID, State_Chm%Spec_Name )
-    S_ISOPNB   = Get_Indx( 'ISOPNB',   State_Chm%Spec_ID, State_Chm%Spec_Name )
+    T_ISOPN    = IND_( 'ISOPN','T')
+    S_ISOPND   = IND_( 'ISOPND'   )
+    S_ISOPNB   = IND_( 'ISOPNB'   )
 
     ! CFCX family
-    T_CFCX     = Get_Indx( 'CFCX',     State_Chm%Trac_ID, State_Chm%Trac_Name )
-    S_CFC113   = Get_Indx( 'CFC113',   State_Chm%Spec_ID, State_Chm%Spec_Name )
-    S_CFC114   = Get_Indx( 'CFC114',   State_Chm%Spec_ID, State_Chm%Spec_Name )
-    S_CFC115   = Get_Indx( 'CFC115',   State_Chm%Spec_ID, State_Chm%Spec_Name )
+    T_CFCX     = IND_( 'CFCX', 'T')
+    S_CFC113   = IND_( 'CFC113'   )
+    S_CFC114   = IND_( 'CFC114'   )
+    S_CFC115   = IND_( 'CFC115'   )
 
     ! HCFCX family
-    T_HCFCX    = Get_Indx( 'HCFCX',    State_Chm%Trac_ID, State_Chm%Trac_Name )
-    S_HCFC123  = Get_Indx( 'HCFC123',  State_Chm%Spec_ID, State_Chm%Spec_Name )
-    S_HCFC141b = Get_Indx( 'HCFC141b', State_Chm%Spec_ID, State_Chm%Spec_Name )
-    S_HCFC142b = Get_Indx( 'HCFC142b', State_Chm%Spec_ID, State_Chm%Spec_Name )
+    T_HCFCX    = IND_( 'HCFCX','T')
+    S_HCFC123  = IND_( 'HCFC123'  )
+    S_HCFC141b = IND_( 'HCFC141b' )
+    S_HCFC142b = IND_( 'HCFC142b' )
 
     ! Return to calling program
     RETURN

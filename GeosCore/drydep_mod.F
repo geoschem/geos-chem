@@ -4117,8 +4117,10 @@
       !=================================================================
       DO N = 1, Input_Opt%N_TRACERS
 
+      write(*,*) 'here 3.1'
          ! Point to the Nth species in the species database
          ThisSpc => State_Chm%SpcData(N)%Info
+      write(*,*) 'here 3.2'
 
          ! Only proceed if the species dry deposits
          IF ( ThisSpc%Is_Drydep ) THEN

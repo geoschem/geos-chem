@@ -557,22 +557,34 @@
       ! Initialize Input_Opt, State_Chem, State_Met, objects. 
       ! (bmy, 3/4/13)
       !
+      write(*,*) 'here 1'
+
       CALL GIGC_Init_All
      &   ( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+      write(*,*) 'here 2'
+
       !
       ! Also allocate arrays in GEOS-Chem modules that have not yet
       ! been initialized (i.e. SEASALT_MOD, CARBON_MOD,  DUST_MOD, 
       ! SULFATE_MOD).  This removes the init calls from the run stage,
       ! which is required when connecting to the GEOS-5 GCM w/ ESMF.
       ! (bmy, 3/4/13)
+      write(*,*) 'here 3'
+
       CALL GIGC_Init_Extra( am_I_Root, Input_Opt, State_Chm, RC )
+      write(*,*) 'here 4'
+
       !
       ! Assign values to the TRAC_NAME, TRAC_ID, SMVG_ID fields
       ! of the State_Chm object.  NOTE: This has to be done after
       ! the call to READ_INPUT_FILE, since we need the value of
       ! N_TRACERS, which is obtained by reading the input.geos file.
       !
+      write(*,*) 'here 5'
+
       CALL Fill_Chem_State_Name_IDs( am_I_Root, Input_Opt, State_Chm )
+      write(*,*) 'here 6'
+
       !
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
       ! to the State_Met%AREA_M2 field. (bmy, 8/22/14)

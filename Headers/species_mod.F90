@@ -63,6 +63,7 @@ MODULE Species_Mod
      INTEGER            :: WetDepID         ! Wet deposition index
      INTEGER            :: KppVarId         ! KPP variable species index
      INTEGER            :: KppFixId         ! KPP fixed spcecies index
+!     INTEGER            :: KppSpcId         ! KPP spcecies index per *_Parameters.F90
 
      ! Names
      CHARACTER(LEN=31)  :: Name             ! Short name
@@ -471,7 +472,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE PhysConstants, ONLY : AIRMW, AVO              ! Physical constants
+    USE PhysConstants,      ONLY : AIRMW, AVO         ! Physical constants
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -891,6 +892,7 @@ CONTAINS
     IF ( PRESENT( KppVarId ) ) THEN 
        KppSpcCount      = KppSpcCount + 1
        ThisSpc%KppVarId = KppVarId
+!TBD       ThisSpc%KppSpcId = get_KPPindx(name)
     ELSE
        ThisSpc%KppVarId = MISSING_INT
     ENDIF
@@ -900,6 +902,7 @@ CONTAINS
     !---------------------------------------------------------------------
     IF ( PRESENT( KppFixId ) ) THEN 
        ThisSpc%KppFixId = KppFixId
+!TBD       ThisSpc%KppSpcId = get_KPPindx(name)
     ELSE
        ThisSpc%KppFixId = MISSING_INT
     ENDIF
@@ -1130,6 +1133,10 @@ CONTAINS
           IF ( ThisSpc%KppFixId > 0 ) THEN
              WRITE( 6, 100 )    ' -> ID in FIX array  ', ThisSpc%KppFixId
           ENDIF
+
+!          IF ( ThisSpc%KppFixId > 0 ) THEN
+!             WRITE( 6, 100 )    ' -> ID in C   array  ', ThisSpc%KppSpcId
+!          ENDIF
        ENDIF
 
        !-------------------------
@@ -1246,6 +1253,61 @@ CONTAINS
     nHgPCats = HgPCount
     
   END SUBROUTINE Spc_GetNumSpecies
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_KPPindx 
+!
+! !DESCRIPTION: Function GET\_KPPINDX returns the index of a chemical species
+!               from KPP (e.g. O3 yields the value of ind_O3 from *Parameters.F90   
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION Get_KPPIndx( name ) RESULT( Indx )
+!
+! !USES:
+!
+    USE GCKPP_Monitor, ONLY : SPC_NAMES
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN) :: name         ! Species or tracer name
+!
+! !RETURN VALUE:
+!
+    INTEGER                      :: Indx         ! Index of this species 
+!
+! !REMARKS
+!
+! !REVISION HISTORY: 
+!  09 Jun 2016 - M. Long     - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: M
+
+    ! Initialize
+    Indx= -1
+
+    ! Loop over all species names
+    DO M = 1, SIZE( SPC_NAMES )
+
+       ! Return the index of the sought-for species
+       IF( TRIM( name ) == TRIM( SPC_NAMES(M) ) ) THEN
+          Indx = M
+          EXIT
+       ENDIF
+
+    ENDDO
+
+  END FUNCTION Get_KPPIndx
 !EOC
 END MODULE Species_Mod
 
