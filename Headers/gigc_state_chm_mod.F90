@@ -61,11 +61,15 @@ MODULE GIGC_State_Chm_Mod
      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
      !%%%  NOTE: The TRACER fields will be removed soon (bmy, 5/18/16)  %%%
      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+     INTEGER,           POINTER :: Trac_Id    (:      ) ! Tracer ID #'s
+     CHARACTER(LEN=14), POINTER :: Trac_Name  (:      ) ! Tracer names
      REAL(fp),          POINTER :: Tracers    (:,:,:,:) ! Tracer conc 
                                                         ! [kg trcr/kg dry air]
      CHARACTER(LEN=20)          :: Trac_Units           ! Tracer units
 
      ! Chemical species
+     INTEGER,           POINTER :: Spec_Id    (:      ) ! Species ID # 
+     CHARACTER(LEN=14), POINTER :: Spec_Name  (:      ) ! Species names
      REAL(fp),          POINTER :: Species    (:,:,:,:) ! Species [molec/cm3]
 
      ! Aerosol quantities
@@ -119,10 +123,9 @@ MODULE GIGC_State_Chm_Mod
 !  12 May 2016 - M. Sulprizio- Add WetAeroArea, WetAeroRadi to replace 1D arrays
 !                              WTARE, WERADIUS previously in comode_mod.F
 !  18 May 2016 - R. Yantosca - Add mapping vectors for subsetting species
-!  06 Jun 2016 - M. Sulprizio- Remove routines Get_Indx, Register_Species, and
-!                              Register_Tracer and fields Trac_Id, Trac_Name,
-!                              Spec_Id, and Spec_Name. These were made obsolete
-!                              by the species database.
+!  07 Jun 2016 - M. Sulprizio- Remove routines Get_Indx, Register_Species, and
+!                              Register_Tracer made obsolete by the species
+!                              database.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -237,14 +240,19 @@ CONTAINS
     State_Chm%Map_WetDep  => NULL()
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%%  NOTE: This will evenually be removed, since we will consolidate
+!%%%  NOTE: These will evenually be removed, since we will consolidate
 !%%%  all species into State_Chm%Species
 !%%%
     ! Advected tracers
+    State_Chm%Trac_ID     => NULL()
+    State_Chm%Trac_Name   => NULL()
     State_Chm%Tracers     => NULL()
+    State_Chm%Trac_Units  = ''
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     ! Chemical species
+    State_Chm%Spec_ID     => NULL()
+    State_Chm%Spec_Name   => NULL()
     State_Chm%Species     => NULL()
 
     ! Species database
@@ -320,6 +328,14 @@ CONTAINS
     ! %%%% NOTE: THESE WILL BE REMOVED SOON (bmy, 5/18/16) %%%%
     !=====================================================================
 
+    ALLOCATE( State_Chm%Trac_Id   (             State_Chm%nAdvect+1), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Trac_Id = 0
+
+    ALLOCATE( State_Chm%Trac_Name (             State_Chm%nAdvect+1), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Trac_name = ''
+
     ALLOCATE( State_Chm%Tracers   ( IM, JM, LM, State_Chm%nAdvect+1), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Chm%Tracers = 0e+0_fp
@@ -333,6 +349,16 @@ CONTAINS
     !%%% passes the value of IGAS from gigc_environment_mod.F90.
     !%%% Keep this until we remove all SMVGEAR references (bmy, 5/18/16)
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    ALLOCATE( State_Chm%Spec_Id   (             nSpecies           ), STAT=RC )
+   !ALLOCATE( State_Chm%Spec_Id   (             State_Chm%nSpecies ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Spec_Id = 0
+
+    ALLOCATE( State_Chm%Spec_Name (             nSpecies           ), STAT=RC )
+   !ALLOCATE( State_Chm%Spec_Name (             State_Chm%nSpecies ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%Spec_Name = ''
 
     ALLOCATE( State_Chm%Species   ( IM, JM, LM, nSpecies           ), STAT=RC )
    !ALLOCATE( State_Chm%Species   ( IM, JM, LM, State_Chm%nSpecies ), STAT=RC )
@@ -614,6 +640,22 @@ CONTAINS
 
     IF ( ASSOCIATED( State_Chm%Map_WetDep ) ) THEN
        DEALLOCATE( State_Chm%Map_WetDep )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Trac_Id ) ) THEN
+       DEALLOCATE( State_Chm%Trac_Id )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Trac_Name ) ) THEN
+       DEALLOCATE( State_Chm%Trac_Name  )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Spec_Id  ) ) THEN
+       DEALLOCATE( State_Chm%Spec_Id )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Spec_Name ) ) THEN
+       DEALLOCATE( State_Chm%Spec_Name  )
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Tracers ) ) THEN
