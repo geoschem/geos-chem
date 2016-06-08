@@ -785,6 +785,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PhysConstants,      ONLY : AVO
       USE TIME_MOD,           ONLY : EXPAND_DATE,   GET_NYMD
       USE TIME_MOD,           ONLY : GET_TAU,       GET_TAUb 
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY, TIMESTAMP_STRING
@@ -855,6 +856,8 @@
 !                              chemgrid (where JLOOP == 0)
 !  08 Jul 2015 - R. Yantosca - Now save POx as kg/m3/s and LOx as 1/m3/s,
 !                              for compatibility with HEMCO
+!  31 May 2016 - E. Lundgren - Use molec wt from species database rather than
+!                              Input_Opt%XNUMOL 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -866,7 +869,7 @@
       LOGICAL           :: DO_WRITE
       INTEGER           :: I, J, L, N
       REAL(fp)          :: P_Ox, L_Ox
-      REAL(fp)          :: LT
+      REAL(fp)          :: LT, O3_MW_G
 
       ! Strings
       CHARACTER(LEN=16) :: STAMP 
@@ -905,6 +908,9 @@
          FIRST    = .FALSE.
 
       ENDIF
+
+      ! Get ozone molecular weight from species database
+      O3_MW_G = State_Chm%SpcData(IDTO3)%Info%emMW_g ! g/mol
 
       !=================================================================
       ! Archive P(Ox) and L(Ox) over the course of an entire day
@@ -955,7 +961,8 @@
             !-----------------------------------------------------------
 
             ! Convert P(Ox) from [molec/cm3/s] to [kg/cm3/s]
-            P_Ox           = FAM_PL(I,J,L,1) / Input_Opt%XNUMOL(IDTO3)
+            P_Ox           = FAM_PL(I,J,L,1) / AVO * 1.e-3_fp *
+     &                       O3_MW_G
 
             ! Convert to [kg/m3/s], for HEMCO (bmy, 7/7/15)
             P_Ox           = P_Ox * 1e+6_fp
@@ -968,7 +975,8 @@
             !-----------------------------------------------------------
 
             ! Convert Ox mass from [kg] to [molec]
-            L_Ox           = STT(I,J,L,IDTO3) * Input_Opt%XNUMOL(IDTO3)
+            L_Ox           = STT(I,J,L,IDTO3) * AVO / ( 1.e-3_fp *
+     &                       O3_MW_G )
 
             ! Divide L(Ox) [molec/cm3/s] by Ox mass [molec] 
             ! in order to get L(Ox) in [1/cm3/s]
@@ -1343,35 +1351,43 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_FAM_MWT( N, Input_Opt ) RESULT( MWT )
+      FUNCTION GET_FAM_MWT( N, Input_Opt, State_Chm ) RESULT( MWT )
 !
 ! !USES:
 !
       USE CHARPAK_MOD,        ONLY : TRANUC
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS: 
 ! 
       INTEGER,        INTENT(IN)  :: N           ! Family # for desired mol wt
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                      :: MWT         ! Molecular weight
+      REAL(fp)                    :: MWT         ! Molecular weight
 !
 ! !REVISION HISTORY:
 !  02 May 2005 - R. Yantosca - Initial version
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
 !  25 Jun 2014 - R. Yantosca - Now accept Input_Opt; remove refs to tracer_mod
+!  25 May 2016 - E. Lundgren - Replace input_opt%TRACER_MW_KG with species
+!                              database field emMW_g (emitted species g/mol)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: T
-      CHARACTER(LEN=255) :: MSG, PL_NAME, T_NAME 
+      INTEGER                :: T
+      CHARACTER(LEN=255)     :: MSG, PL_NAME, T_NAME 
+
+      ! Objects
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! GET_FAM_NAME begins here!
@@ -1383,8 +1399,9 @@
          CALL ERROR_STOP( MSG, 'GET_FAM_MWT ("diag_pl_mod.f")' ) 
       ENDIF
 
-      ! Initialize the MWT
+      ! Initialize the MWT and pointer
       MWT     = 0e+0_fp
+      ThisSpc => NULL()
 
       ! Get name of this P/L family
       PL_NAME = TRIM( FAM_NAME( N ) )
@@ -1413,10 +1430,19 @@
          
          ! If we have a name match, return the molecular wt
          IF ( TRIM( PL_NAME ) == TRIM( T_NAME ) ) THEN
-            MWT = Input_Opt%TRACER_MW_KG( T )
+            
+            ! Get info about this species from the species database
+            ! NOTE: This assumes a 1:1 tracer index to species index mapping
+            ThisSpc => State_Chm%SpcData(T)%Info
+
+            !MWT = Input_Opt%TRACER_MW_KG( T )
+            MWT = ThisSpc%emMW_g * 1.e-3_fp
             EXIT
          ENDIF
       ENDDO
+
+      ! Nullify pointer
+      ThisSpc  => NULL()
 
       END FUNCTION GET_FAM_MWT
 !EOC

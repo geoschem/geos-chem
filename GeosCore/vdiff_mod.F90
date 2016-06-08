@@ -1,4 +1,4 @@
-!------------------------------------------------------------------------------
+ !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
@@ -1836,7 +1836,9 @@ contains
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
     USE GRID_MOD,           ONLY : GET_AREA_M2
+    USE MERCURY_MOD,        ONLY : HG_EMIS
     USE OCEAN_MERCURY_MOD,  ONLY : Fg !hma
     USE OCEAN_MERCURY_MOD,  ONLY : OMMFP => Fp
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
@@ -1846,8 +1848,6 @@ contains
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
     USE TRACERID_MOD
     USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, NCS, ND44, NDRYDEP
-    USE MERCURY_MOD,        ONLY : HG_EMIS
-    USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
 #if defined( DEVEL )
     USE TENDENCIES_MOD
 #endif
@@ -1929,6 +1929,8 @@ contains
 !  25 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostic
 !  22 Apr 2016 - R. Yantosca - Now get Hg info from species database
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  26 May 2016 - E. Lundgren - Replace input_opt TRACER_MW_KG with species
+!                              database field emMW_g (emitted species molec wt)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1991,7 +1993,6 @@ contains
     LOGICAL            :: IS_TAGCO,  IS_AEROSOL,  IS_RnPbBe, LDYNOCEAN
     LOGICAL            :: LGTMM,     LSOILNOX
     INTEGER            :: N_TRACERS, N_MEMBERS 
-    REAL(fp)           :: TRACER_MW_KG(Input_Opt%N_TRACERS)
     CHARACTER(LEN=255) :: TRACER_NAME (Input_Opt%N_TRACERS)
     REAL(fp)           :: TCVV        (Input_Opt%N_TRACERS)
 
@@ -2070,7 +2071,6 @@ contains
     LSOILNOX     = Input_Opt%LSOILNOX
     N_TRACERS    = Input_Opt%N_TRACERS
     N_MEMBERS    = Input_Opt%MAX_MEMB
-    TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS             )
     TRACER_NAME  = Input_Opt%TRACER_NAME (1:N_TRACERS             )
     TCVV         = Input_Opt%TCVV        (1:N_TRACERS             )
 
@@ -2642,6 +2642,11 @@ contains
           ! was previously N. This is changed for convention consistency
           ! within subroutine (ewl, 1/25/16)
           trc_id = NTRAIND( D )  
+
+          ! Point to the Species Database entry for this tracer
+          ! NOTE: Assumes a 1:1 tracer index to species index mapping
+          ThisSpc => State_Chm%SpcData(trc_id)%Info
+
           IF ( trc_id == 0 ) CYCLE 
 !          IF (NN == 0 .OR.       &
 !              NN == IDTDST1 .OR. & 
@@ -2660,8 +2665,8 @@ contains
              ! Calculate flux [molec/cm2/s]
              ! For bpch diagnostic output, save flux in global ADD 44 array
 	     AD44(:,:,D,1) = AD44(:,:,D,1) + dflx(:,:,trc_id)        &
-                             / TRACER_MW_KG(trc_id) * AVO * 1.e-4_fp &
-                             * GET_TS_CONV() / GET_TS_EMIS() 
+                             /  (ThisSpc%emMW_g * 1.e-3_fp) * AVO      &
+                             * 1.e-4_fp * GET_TS_CONV() / GET_TS_EMIS() 
           ENDIF
 #endif
 #if defined( NC_DIAG )
@@ -2672,8 +2677,9 @@ contains
 
              ! For netcdf output, save flux in local array before
              ! passing to HEMCO
-             DryDepFlux = dflx(:,:,trc_id) / TRACER_MW_KG(trc_id) *   &
-                          AVO * 1.e-4_fp * GET_TS_CONV() / GET_TS_EMIS()
+             DryDepFlux = dflx(:,:,trc_id)               &
+                          / (ThisSpc%emMW_g * 1.e-3_fp)  &
+                          * AVO * 1.e-4_fp * GET_TS_CONV() / GET_TS_EMIS()
              
              ! If this tracer is scheduled for output in 
              ! input.geos, then update the diagnostic
@@ -2708,7 +2714,8 @@ contains
              DO J = 1, JJPAR
              DO I = 1, IIPAR
                 soilflux = dflx(I,J,trc_id) &
-	          / TRACER_MW_KG(trc_id) * AVO * 1.e-4_fp &
+	          / ( ThisSpc%emMW_g * 1.e-3_fp ) &
+                  * AVO * 1.e-4_fp &
                   * GET_TS_CONV() / GET_TS_EMIS()
           
                 CALL SOIL_DRYDEP ( I, J, 1, trc_id, soilflux)
@@ -2716,17 +2723,24 @@ contains
              ENDDO
 	  ENDIF
 !          END SELECT
+
+          ! Free species database pointer
+          ThisSpc => NULL()
+
        enddo ! D 
 
        ! Add ITS_A_TAGOX_SIM (Lin, 06/21/08)
        IF ( IS_TAGOX ) THEN
           ! The first species, Ox, has been done above
           do N = 2, N_TRACERS 
+
 #if defined( BPCH_DIAG )
+
              ! Convert : kg/m2/s -> molec/cm2/s
              ! Consider timestep difference between convection and emissions
              AD44(:,:,N,1) = AD44(:,:,N,1) + dflx(:,:,N) &
-                       / TRACER_MW_KG(1) * AVO * 1.e-4_fp &
+                       /  (State_Chm%SpcData(1)%Info%emMW_g * 1.e-3_fp) &
+                       * AVO * 1.e-4_fp &
                        * GET_TS_CONV() / GET_TS_EMIS()
              AD44(:,:,N,2) = AD44(:,:,1,2) ! drydep velocity
 #endif

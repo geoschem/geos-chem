@@ -184,8 +184,7 @@
       INTEGER             :: I,        J,         L
       INTEGER             :: LSTART,   N,         N_TRACERS            
       REAL(fp)            :: ADD_Pb,   Be_LOST,   DTCHEM   
-      REAL(fp)            :: Pb_LOST,  XNUMOL_Rn, XNUMOL_Pb
-      REAL(fp)            :: XNUMOL_Be
+      REAL(fp)            :: Pb_LOST
 
       ! Static scalars
       LOGICAL,   SAVE     :: FIRSTCHEM = .TRUE.

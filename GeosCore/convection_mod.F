@@ -202,7 +202,6 @@
       INTEGER           :: N_TOT_TRC             ! # of tracers to convect
       INTEGER           :: N_TRACERS
       REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
-      REAL(fp)          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
       REAL(fp)          :: DT_TEND
 
       ! Pointers

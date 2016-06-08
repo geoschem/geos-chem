@@ -53,7 +53,7 @@
       USE PHYSCONSTANTS
     
       USE COMODE_LOOP_MOD,    ONLY : NAMEGAS, NTSPEC, NCSURBAN
-
+    
       USE PRECISION_MOD
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE HCO_ERROR_MOD
@@ -153,6 +153,9 @@
 !                              avoid name conflict with GEOS-5 model.
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  02 May 2016 - R. Yantosca - Now declare IDTPASV locally
+!  31 May 2016 - E. Lundgren - Replace input_opt%TRACER_MW_G with species
+!                              database field emMW_g (emitted species g/mol)
+!  31 May 2016 - E. Lundgren - Remove usage of TCVV; replace with AIRMW/emMW_g
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -180,7 +183,6 @@
       ! For fields from Input_Opt
       LOGICAL            :: ITS_A_FULLCHEM_SIM
       INTEGER            :: N_TRACERS
-      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! For netCDF diagnostics via HEMCO
       REAL(fp), TARGET   :: Landmap(IIPAR, JJPAR)
@@ -211,11 +213,11 @@
       ! Copy values from Input_Opt
       ITS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
       N_TRACERS          = Input_Opt%N_TRACERS
-      TCVV               = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Initialize pointers
       Ptr3D              => NULL()
       Ptr2D              => NULL()
+      ThisSpc            => NULL()
 
       ! Pick the proper # of tracers for diagnostics
 #if   defined( APM )
@@ -259,15 +261,19 @@
       IF ( ND35 > 0 .or. ND45 > 0 .or. ND47 > 0 .or. ND71 > 0 ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
+!$OMP+PRIVATE( I, J, L, N, ThisSpc )
          DO N = 1, N_TRC
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
+            ! Get info about this tracer from the database
+            ! NOTE: Assumes 1:1 mapping of tracer and species indexes
+            ThisSpc => State_Chm%SpcData(N)%Info
+
             ! Tracer conc. in v/v dry air
             STT_VV(I,J,L,N) = 
-     &         MAX( State_Chm%Tracers(I,J,L,N) * TCVV(N),
+     &         MAX( State_Chm%Tracers(I,J,L,N) * AIRMW / ThisSpc%emMW_g,
      &              0e+0_fp )
 
             IF ( N == IDTPASV ) THEN
@@ -277,7 +283,7 @@
      &            MAX( State_Chm%Tracers(I,J,L,N) *
      &                 ( 1.0e+0_fp - State_Met%SPHU(I,J,L) * 1.e-3_fp ) 
      &                 * State_Met%MOISTMW(I,J,L) 
-     &                 / Input_Opt%TRACER_MW_G(N),
+     &                 / ThisSpc%emMW_g,
      &                 0e+0_fp )
 
 
@@ -289,6 +295,8 @@
 
             ENDIF
 
+            ! Free pointer
+            ThisSpc => NULL()
          ENDDO
          ENDDO
          ENDDO
@@ -316,14 +324,16 @@
         DO I = 1, IIPAR
 
           ! Reactive gaseous mercury, RGM
-          AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
-     &                      State_Chm%Tracers(I,J,L,ID_Hg2) *
-     &                      TCVV(ID_Hg2) * 1e+12_fp
+          AD03_RGM(I,J,L) = AD03_RGM(I,J,L) +
+     &                      State_Chm%Tracers(I,J,L,ID_Hg2) * AIRMW /
+     &                      State_Chm%SpcData(ID_Hg2)%Info%emMW_g * 
+     &                      1e+12_fp
 
           ! Reactive particulate mercury, PBM
           AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
-     &                      State_Chm%Tracers(I,J,L,ID_HgP) *
-     &                      TCVV(ID_HgP) * 1e+12_fp
+     &                      State_Chm%Tracers(I,J,L,ID_HgP) * AIRMW /
+     &                      State_Chm%SpcData(ID_HgP)%Info%emMW_g *
+     &                      1e+12_fp
                                                        
         ENDDO
         ENDDO

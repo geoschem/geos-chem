@@ -46,6 +46,7 @@
 ! !DEFINED PARAMETERS:
 !
       REAL(fp), PARAMETER  :: XNUMOL_OH = AVO / 17e-3_fp  ! molec OH / kg OH
+                                                          ! hard-coded MW
       REAL(fp), PARAMETER  :: CM3PERM3  = 1.e+6_fp
       REAL(fp), PARAMETER  :: SMALLNUM  = 1e-20_fp
 
@@ -413,6 +414,8 @@
 !                              derived type object
 !  14 Apr 2014 - R. Yantosca - Now prevent div-by-zero in computations below
 !  17 Sep 2014 - C. Keller   - Renamed EmisList_GetDataArr to HCO_GetPtr
+!  31 May 2016 - E. Lundgren - Replace Input_Opt%XNUMOL with AVO/(emMW_g*1e-3)
+!                              where emMW_g is emitted MW from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -576,7 +579,6 @@
       INTEGER             :: N_TRACERS
       LOGICAL             :: LNLPBL
       LOGICAL             :: LGTMM
-      REAL(fp)            :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! For SAFE_DIV
       REAL(fp)            :: DENOM
@@ -603,7 +605,6 @@
       N_TRACERS = Input_Opt%N_TRACERS
       LNLPBL    = Input_Opt%LNLPBL
       LGTMM     = Input_Opt%LGTMM
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -1269,40 +1270,45 @@
             AREA_CM2 = GET_AREA_CM2( I, J, L )
 
             ! Amt of POPG lost to drydep [molec/cm2/s]
-            DEP_DRY_FLXG  = DEP_POPG_DRY * XNUMOL(IDTPOPG) / 
-     &                    ( AREA_CM2 * DTCHEM )
+            DEP_DRY_FLXG  = DEP_POPG_DRY * AVO / ( 1.e-3_fp *
+     &                      State_Chm%SpcData(IDTPOPG)%Info%emMW_g ) / 
+     &                      ( AREA_CM2 * DTCHEM )
 
             ! Archive POPG drydep flux in AD44 array [molec/cm2/s]
             AD44(I,J,IDTPOPG,1) = AD44(I,J,IDTPOPG,1) +
      &                            DEP_DRY_FLXG
 
             ! Amt of POPPOC lost to drydep [molec/cm2/s]
-            DEP_DRY_FLXP_OCPO = DEP_POPP_OCPO_DRY * XNUMOL(IDTPOPPOCPO)/
-     &                        ( AREA_CM2 * DTCHEM )        
+            DEP_DRY_FLXP_OCPO = DEP_POPP_OCPO_DRY * AVO / (1.e-3_fp *
+     &                    State_Chm%SpcData(IDTPOPPOCPO)%Info%emMW_g ) /
+     &                    ( AREA_CM2 * DTCHEM )        
 
             ! Archive POPPOC drydep flux in AD44 array [molec/cm2/s]
             AD44(I,J,IDTPOPPOCPO,1) = AD44(I,J,IDTPOPPOCPO,1) +
      &                                DEP_DRY_FLXP_OCPO
 
             ! Amt of POPPBC lost to drydep [molec/cm2/s] 
-            DEP_DRY_FLXP_BCPO = DEP_POPP_BCPO_DRY * XNUMOL(IDTPOPPBCPO)/
-     &                          ( AREA_CM2 * DTCHEM )        
+            DEP_DRY_FLXP_BCPO = DEP_POPP_BCPO_DRY * AVO / (1.e-3_fp * 
+     &                    State_Chm%SpcData(IDTPOPPBCPO)%Info%emMW_g ) /
+     &                    ( AREA_CM2 * DTCHEM )        
 
             ! Archive POPPBC drydep flux in AD44 array [molec/cm2/s]
             AD44(I,J,IDTPOPPBCPO,1) = AD44(I,J,IDTPOPPBCPO,1) +
      &                                DEP_DRY_FLXP_BCPO
 
             ! Amt of POPPOC lost to drydep [molec/cm2/s]
-            DEP_DRY_FLXP_OCPI = DEP_POPP_OCPI_DRY * XNUMOL(IDTPOPPOCPI)/
-     &                        ( AREA_CM2 * DTCHEM )        
+            DEP_DRY_FLXP_OCPI = DEP_POPP_OCPI_DRY * AVO / (1.e-3_fp * 
+     &                    State_Chm%SpcData(IDTPOPPOCPI)%Info%emMW_g ) /
+     &                    ( AREA_CM2 * DTCHEM )        
 
             ! Archive POPPOC drydep flux in AD44 array [molec/cm2/s]
             AD44(I,J,IDTPOPPOCPI,1) = AD44(I,J,IDTPOPPOCPI,1) +
      &                                DEP_DRY_FLXP_OCPI
 
             ! Amt of POPPBC lost to drydep [molec/cm2/s] 
-            DEP_DRY_FLXP_BCPI = DEP_POPP_BCPI_DRY * XNUMOL(IDTPOPPBCPI)/
-     &                        ( AREA_CM2 * DTCHEM )        
+            DEP_DRY_FLXP_BCPI = DEP_POPP_BCPI_DRY * AVO / (1.e-3_fp * 
+     &                    State_Chm%SpcData(IDTPOPPBCPI)%Info%emMW_g ) /
+     &                    ( AREA_CM2 * DTCHEM )        
 
             ! Archive POPPBC drydep flux in AD44 array [molec/cm2/s]
             AD44(I,J,IDTPOPPBCPI,1) = AD44(I,J,IDTPOPPBCPI,1) +

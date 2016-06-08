@@ -40,7 +40,7 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      REAL(fp), PARAMETER,   PUBLIC :: XNUMOL_CH4 = AVO / 16d-3
+      REAL(fp), PARAMETER,   PUBLIC :: XNUMOL_CH4 = AVO / 16d-3 ! hard-coded MW
 
 #if defined( USE_CH4_BUDGET_DIAG )
       REAL(fp), ALLOCATABLE, PUBLIC :: TCH4(:,:,:,:)
@@ -127,6 +127,7 @@
       INTEGER,  PARAMETER    :: N_CH4     = 12
 
       REAL(fp), PARAMETER    :: XNUMOL_OH = AVO / 17e-3_fp  ! molec OH / kg OH
+                                                            ! hard-coded MW
       REAL(fp), PARAMETER    :: CM3PERM3  = 1.e+6_fp
 !
 ! !LOCAL VARIABLES:

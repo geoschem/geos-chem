@@ -79,11 +79,12 @@ MODULE HCOI_GC_Main_Mod
 !                              GET_SZAFACT and CALC_SUMCOSA.
 !  01 Sep 2015 - R. Yantosca - Remove routine SetSpcMw; we now get parameters
 !                              for species from the species database object.
+!  02 May 2016 - R. Yantosca - Now define IDTPOPG as a module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !PRIVATE MODULE VARIABLES:
+! !PRIVATE TYPES:
 !
   !--------------------------
   ! %%% Pointers %%%
@@ -106,7 +107,7 @@ MODULE HCOI_GC_Main_Mod
 
   ! Arrays to store J-values (used by Paranox extension)
   REAL(hp), ALLOCATABLE, TARGET :: JNO2(:,:)
-  REAL(hp), ALLOCATABLE, TARGET :: JO1D(:,:)
+  REAL(hp), ALLOCATABLE, TARGET :: JOH(:,:)
 
   ! Sigma coordinate (temporary)
   REAL(hp), ALLOCATABLE, TARGET :: ZSIGMA(:,:,:)
@@ -114,6 +115,9 @@ MODULE HCOI_GC_Main_Mod
   ! Sum of cosine of the solar zenith angle. Used to impose a
   ! diurnal variability on OH concentrations
   REAL(fp), ALLOCATABLE         :: SUMCOSZA(:,:)
+
+  ! Local tracer flags 
+  INTEGER                       :: IDTPOPG
 !
 ! !DEFINED PARAMETERS:
 !
@@ -708,7 +712,7 @@ CONTAINS
     IF ( ALLOCATED ( HCO_FRAC_OF_PBL ) ) DEALLOCATE( HCO_FRAC_OF_PBL )
     IF ( ALLOCATED ( HCO_SZAFACT     ) ) DEALLOCATE( HCO_SZAFACT     )
     IF ( ALLOCATED ( JNO2            ) ) DEALLOCATE( JNO2            )
-    IF ( ALLOCATED ( JO1D            ) ) DEALLOCATE( JO1D            )
+    IF ( ALLOCATED ( JOH             ) ) DEALLOCATE( JOH             )
     IF ( ALLOCATED ( SUMCOSZA        ) ) DEALLOCATE( SUMCOSZA        ) 
 
   END SUBROUTINE HCOI_GC_Final
@@ -935,10 +939,10 @@ CONTAINS
        JNO2 = 0.0e0_hp
     ENDIF
 
-    IF ( ExtState%JO1D%DoUse ) THEN 
-       ALLOCATE( JO1D(IIPAR,JJPAR),STAT=AS)
-       IF ( AS/=0 ) CALL ERROR_STOP ( 'JO1D', LOC )
-       JO1D = 0.0e0_hp
+    IF ( ExtState%JOH%DoUse ) THEN 
+       ALLOCATE( JOH(IIPAR,JJPAR),STAT=AS)
+       IF ( AS/=0 ) CALL ERROR_STOP ( 'JOH', LOC )
+       JOH = 0.0e0_hp
     ENDIF
 
     ! ----------------------------------------------------------------
@@ -1031,8 +1035,8 @@ CONTAINS
     USE Get_Ndep_Mod,          ONLY : DRY_TOTN
     USE Get_Ndep_Mod,          ONLY : WET_TOTN
 
-    ! For POPs
-    USE TRACERID_MOD,          ONLY : IDTPOPG
+!    ! For POPs
+!    USE TRACERID_MOD,          ONLY : IDTPOPG
 
 #if !defined(ESMF_)
     USE MODIS_LAI_MOD,         ONLY : GC_LAI
@@ -1063,6 +1067,7 @@ CONTAINS
 !  12 Mar 2015 - R. Yantosca  - Allocate SUMCOSZA array for SZAFACT
 !  12 Mar 2015 - R. Yantosca  - Use 0.0e0_hp when zeroing REAL(hp) variables
 !  03 Apr 2015 - C. Keller    - Now call down to ExtDat_Set for all fields
+!  02 May 2016 - R. Yantosca  - Now define IDTPOPG locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1091,8 +1096,8 @@ CONTAINS
             'JNO2',  HCRC,      FIRST,    JNO2            )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%JO1D, &
-            'JO1D',  HCRC,      FIRST,    JO1D            )  
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%JOH, &
+            'JOH',   HCRC,      FIRST,    JOH             )  
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%FRAC_OF_PBL, &
@@ -1395,6 +1400,8 @@ CONTAINS
 !  02 Oct 2014 - C. Keller   - PEDGE is now in HcoState%Grid
 !  11 Mar 2015 - R. Yantosca - Now call GET_SZAFACT in this module
 !  11 Sep 2015 - E. Lundgren - Remove State_Chm from passed args since not used
+!  20 Apr 2016 - M. Sulprizio- Change JO1D to JOH to reflect that the array now
+!                              holds the effective O3 + hv -> 2OH rates
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1471,12 +1478,12 @@ CONTAINS
        ! This code was moved from hcox_paranox_mod.F90 to break
        ! dependencies to GC specific code (ckeller, 07/28/14).
        IF ( L==1 .AND.                                    &
-            (ExtState%JNO2%DoUse .OR. ExtState%JO1D%DoUse) ) THEN
+            (ExtState%JNO2%DoUse .OR. ExtState%JOH%DoUse) ) THEN
 
           ! Check if sun is up
           IF ( State_Met%SUNCOS(I,J) == 0d0 ) THEN
              IF ( ExtState%JNO2%DoUse ) JNO2 = 0.0_hp
-             IF ( ExtState%JO1D%DoUse ) JO1D = 0.0_hp
+             IF ( ExtState%JOH%DoUse  ) JOH  = 0.0_hp
           ELSE
              ! Loop over photolysis reactions to find NO2, O3
              KMAX = JPHOTRAT(NCS)
@@ -1493,13 +1500,13 @@ CONTAINS
                       IF ( ExtState%JNO2%DoUse ) &
                          JNO2(I,J) = FJXFUNC(I,J,1,K,1,SPECNAME)
                    CASE ( 'O3'  )
-                      IF ( ExtState%JO1D%DoUse ) &
+                      IF ( ExtState%JOH%DoUse ) &
 #if defined( UCX )
-                      ! IMPORTANT: Need branck *2* for O1D
-                      ! Branch 1 is O3P!
-                      JO1D(I,J) = FJXFUNC(I,J,1,L,2,SPECNAME)
+                      ! IMPORTANT: Need branch *2* for O1D
+                      !            Branch 1 is O3P!
+                      JOH(I,J) = FJXFUNC(I,J,1,L,2,SPECNAME)
 #else
-                      JO1D(I,J) = FJXFUNC(I,J,1,L,1,SPECNAME)
+                      JOH(I,J) = FJXFUNC(I,J,1,L,1,SPECNAME)
 #endif
                    CASE DEFAULT
                 END SELECT
@@ -1531,60 +1538,97 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod,    ONLY : MetState
-    USE HCO_GeoTools_MOD,      ONLY : HCO_CalcVertGrid
-    USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
+    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
+    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE HCO_GeoTools_MOD,   ONLY : HCO_CalcVertGrid
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root 
-    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
+    LOGICAL,          INTENT(IN   )  :: am_I_Root   ! Are we on the root CPU?
+    TYPE(MetState),   INTENT(IN   )  :: State_Met   ! Meteorology State obj
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)  :: RC
+    INTEGER,          INTENT(INOUT)  :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  GridEdge_Set defines the HEMCO vertical grid used in GEOS-Chem "classic"
+!  simulations.  (GCHP uses its own interface to HEMCO.)
 !
 ! !REVISION HISTORY:
 !  08 Oct 2014 - C. Keller   - Initial version
 !  28 Sep 2015 - C. Keller   - Now call HCO_CalcVertGrid
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  06 Jun 2016 - R. Yantosca - Now declar PEDGE array for edge pressures [Pa]
+!  06 Jun 2016 - R. Yantosca - PSFC now points to PEDGE(:,:,1)
+!  06 Jun 2016 - R. Yantosca - Now add error traps
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
-    REAL(hp), POINTER   :: PSFC    (:,:  ) => NULL()
-    REAL(hp), POINTER   :: ZSFC    (:,:  ) => NULL()    
-    REAL(hp), POINTER   :: TK      (:,:,:) => NULL()    
-    REAL(hp), POINTER   :: BXHEIGHT(:,:,:) => NULL()    
-    REAL(hp), POINTER   :: PEDGE   (:,:,:) => NULL()    
+    ! Strings
+    CHARACTER(LEN=80) :: MSG, LOC
 
-    !=================================================================
+    ! Pointers
+    REAL(hp), POINTER :: BXHEIGHT(:,:,:)    ! Grid box height      [m ]
+    REAL(hp), POINTER :: PEDGE   (:,:,:)    ! Pressure @ lvl edges [Pa]
+    REAL(hp), POINTER :: PSFC    (:,:  )    ! Surface pressure     [Pa]
+    REAL(hp), POINTER :: TK      (:,:,:)    ! Temperature          [K ]
+    REAL(hp), POINTER :: ZSFC    (:,:  )    ! Surface geopotential [m ]
+
+    !=======================================================================
     ! GridEdge_Set begins here
-    !=================================================================
+    !=======================================================================
 
-    ! Pointers to fields 
-    ZSFC     => State_Met%PHIS
-    BXHEIGHT => State_Met%BXHEIGHT
-    TK       => State_Met%T
+    ! Assume success
+    RC       =  HCO_SUCCESS
 
-    ! surface pressure in Pa
-    ALLOCATE(PSFC(IIPAR,JJPAR))
-    PSFC(:,:) = State_Met%PEDGE(:,:,1) * 100.0_hp
+    ! Allocate the PEDGE array, which holds level edge pressures [Pa]
+    ! NOTE: Hco_CalcVertGrid expects pointer-based arguments, so we must
+    ! make PEDGE be a pointer and allocate/deallocate it on each call.
+    ALLOCATE( PEDGE( IIPAR, JJPAR, LLPAR+1 ), STAT=RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'ERROR allocating the PEDGE pointer-based array!'
+       LOC = 'GridEdge_Set (GeosCore/hcoi_gc_main_mod.F90)'
+       CALL ERROR_STOP( MSG, LOC )
+    ENDIF
+
+    ! Edge and surface pressures [Pa]
+    PEDGE    =  State_Met%PEDGE * 100.0_hp  ! Convert hPa -> Pa
+    PSFC     => PEDGE(:,:,1)
+
+    ! Point to other fields of State_Met
+    ZSFC     => State_Met%PHIS               
+    BXHEIGHT => State_Met%BXHEIGHT           
+    TK       => State_Met%T                  
 
     ! Calculate missing quantities
-    CALL HCO_CalcVertGrid( am_I_Root, HcoState, PSFC,    &
-                           ZSFC,  TK, BXHEIGHT, PEDGE, RC )
+    CALL HCO_CalcVertGrid( am_I_Root, HcoState, PSFC,      &
+                           ZSFC,      TK,       BXHEIGHT,  &
+                           PEDGE,     RC                  )
+
+    ! Stop with an error if the vertical grid was not computed properly
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'ERROR returning from HCO_CalcVertGrid!'
+       LOC = 'GridEdge_Set (GeosCore/hcoi_gc_main_mod.F90)'
+       CALL ERROR_STOP( MSG, LOC )
+    ENDIF
 
     ! Nullify local pointers
     ZSFC     => NULL()
     BXHEIGHT => NULL()
     TK       => NULL()
-    IF ( ASSOCIATED(PSFC) ) DEALLOCATE(PSFC) 
     PSFC     => NULL()
 
+    ! Deallocate and nullify PEDGE
+    IF ( ASSOCIATED( PEDGE ) ) DEALLOCATE( PEDGE )
+    PEDGE    => NULL()
+
     ! Return w/ success
-    RC = HCO_SUCCESS
+    RC       = HCO_SUCCESS
 
   END SUBROUTINE GridEdge_Set
 !EOC
@@ -1644,6 +1688,7 @@ CONTAINS
 !  06 Mar 2015 - C. Keller   - Initial Version
 !  01 Sep 2015 - R. Yantosca - Remove reference to GET_HENRY_CONSTANT; we now
 !                              get Henry constants from the species database
+!  02 May 2016 - R. Yantosca - Now initialize IDTPOPG here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1652,7 +1697,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER                :: nSpc
-    INTEGER                :: N,  IDTLIMO
+    INTEGER                :: N,  IDTLIMO, L, M
     REAL(dp)               :: K0, CR,  pKa
 
     ! Strings
@@ -1683,6 +1728,13 @@ CONTAINS
        ! Get number of model species
        nSpc = Input_Opt%N_TRACERS
   
+       !%%%%% FOR THE TAGGED CO SIMULATION %%%%%
+       ! Add 3 extra tracers (ISOP, ACET, MONX) for tagged CO 
+       IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+          nSpc = nSpc + 3 
+       ENDIF
+
+       !%%%%% FOR SOA SIMULATIONS %%%%%
        ! Check for SESQ: SESQ is not transported due to its short lifetime,
        ! but emissions are still calculated (in MEGAN). SESQ is only used
        ! in the SOA simulation, i.e. if LIMO is defined. Thus, add one more
@@ -1693,6 +1745,14 @@ CONTAINS
           nSpc = nSpc + 1
        ENDIF
  
+       ! Now define the IDTPOPG tracer locally (bmy, 5/2/16)
+       IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
+          IDTPOPG = Get_Indx( 'POPG', Input_Opt%ID_TRACER,   &
+                                      Input_Opt%TRACER_NAME )
+       ELSE
+          IDTPOPG = 0
+       ENDIF
+
        ! Assign species variables
        IF ( PHASE == 2 ) THEN
 
@@ -1746,8 +1806,12 @@ CONTAINS
              ! Free pointer memory
              ThisSpc => NULL()
           ENDDO      
-      
-          ! Eventually add SESQ. This is the last entry
+
+          !------------------------------------------------------------------
+          ! %%%%% FOR SOA SIMULATIONS %%%%%
+          !
+          ! Add the non-advected species SESQ in the last species slot
+          !------------------------------------------------------------------
           IF ( IDTLIMO > 0 ) THEN
              N                           = nSpec
              HcoState%Spc(N)%ModID       = N
@@ -1763,6 +1827,44 @@ CONTAINS
              IF ( am_I_Root ) CALL HCO_SPEC2LOG( am_I_Root, HcoState, N )
           ENDIF
 
+          !------------------------------------------------------------------
+          ! %%%%% FOR THE TAGGED CO SIMULATION %%%%%
+          !
+          ! Add the non-advected species ISOP, ACET, and MONX
+          ! in the last 3 species slots (bmy, ckeller, 6/1/16)
+          !------------------------------------------------------------------
+          IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+       
+             ! Add 3 additional species
+             DO L = 1, 3
+                
+                ! ISOP, ACET, MONX follow the regular tagged CO species
+                M = Input_Opt%N_TRACERS + L
+
+                ! Get the species name
+                SELECT CASE( L )
+                   CASE( 1 ) 
+                      ThisName = 'ISOP'
+                   CASE( 2 )
+                      ThisName = 'ACET'
+                   CASE( 3 )
+                      ThisName = 'MONX'
+                END SELECT
+
+                ! Add physical properties to the HEMCO state
+                HcoState%Spc(M)%ModID      = M
+                HcoState%Spc(M)%SpcName    = TRIM( ThisName )
+                HcoState%Spc(M)%MW_g       = 12.0_hp
+                HcoState%Spc(M)%EmMW_g     = 12.0_hp
+                HcoState%Spc(M)%MolecRatio = 1.0_hp
+                HcoState%Spc(M)%HenryK0    = 0.0_hp
+                HcoState%Spc(M)%HenryCR    = 0.0_hp
+                HcoState%Spc(M)%HenryPKa   = 0.0_hp
+
+                ! Write to log file
+                IF ( am_I_Root ) CALL HCO_SPEC2LOG( am_I_Root, HcoState, M )
+             ENDDO
+          ENDIF
 
           ! Add line to log-file
           IF ( am_I_Root ) CALL HCO_MSG(SEP1='-')
@@ -1841,9 +1943,14 @@ CONTAINS
              ! prior behavior.  The MW's of the tagged species in 
              ! the prior code all have MW_g = 0 and EmMW_g = 0.
              ! Ask Christoph about this. (bmy, 9/1/15)
-             HcoState%Spc(N)%MW_g       = Input_Opt%Tracer_MW_G(N) ! [g/mol]
-             HcoState%Spc(N)%EmMW_g     = Input_Opt%Tracer_MW_G(N) ! [g/mol]
-             HcoState%Spc(N)%MolecRatio = ThisSpc%MolecRatio       ! [1    ]
+             !HcoState%Spc(N)%MW_g       = Input_Opt%Tracer_MW_G(N) ! [g/mol]
+             !HcoState%Spc(N)%EmMW_g     = Input_Opt%Tracer_MW_G(N) ! [g/mol]
+
+             ! Now use the species database emMW_g which is equivalent to 
+             ! Input_Opt%Tracer_MW_G (ewl, 5/31/16)
+             HcoState%Spc(N)%MW_g       = ThisSpc%emMW_g            ! [g/mol]
+             HcoState%Spc(N)%EmMW_g     = ThisSpc%emMW_g            ! [g/mol]
+             HcoState%Spc(N)%MolecRatio = ThisSpc%MolecRatio        ! [1    ]
  
              ! Set Henry coefficients
              HcoState%Spc(N)%HenryK0    = ThisSpc%Henry_K0         ! [M/atm]
@@ -2176,6 +2283,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  24 Sep 2014 - C. Keller   - Initial version
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2183,7 +2291,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                   :: FLAG, ERR, LevIDx, PS
-    TYPE(DiagnCont), POINTER  :: DgnCont  => NULL()
+    TYPE(DiagnCont), POINTER  :: DgnCont
 
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'GetHcoDiagn (hcoi_gc_diagn_mod.F90)'
@@ -2191,6 +2299,9 @@ CONTAINS
     !=======================================================================
     ! GetHcoDiagn begins here 
     !=======================================================================
+
+    ! Initialize
+    DgnCont => NULL()
 
     ! Set collection number
     PS = HcoDiagnIDManual
@@ -2676,9 +2787,10 @@ CONTAINS
 !  Moved here from the obsolete global_oh_mod.F.
 !
 ! !REVISION HISTORY: 
-! 01 Mar 2013 - C. Keller - Imported from carbon_mod.F, where it's
-! called OHNO3TIME
-!
+!  01 Mar 2013 - C. Keller   - Imported from carbon_mod.F, where it's
+!                              called OHNO3TIME
+!  16 May 2016 - M. Sulprizio- Remove IJLOOP and change SUNTMP array dimensions
+!                              from (MAXIJ) to (IIPAR,JJPAR)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2686,10 +2798,10 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER, SAVE :: SAVEDOY = -1
-    INTEGER       :: I, IJLOOP, J, L, N, NT, NDYSTEP
+    INTEGER       :: I, J, L, N, NT, NDYSTEP
     REAL(fp)      :: A0, A1, A2, A3, B1, B2, B3
     REAL(fp)      :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
-    REAL(fp)      :: SUNTMP(MAXIJ)
+    REAL(fp)      :: SUNTMP(IIPAR,JJPAR)
 
     !=======================================================================
     ! CALC_SUMCOSZA begins here!
@@ -2727,20 +2839,18 @@ CONTAINS
        DO N = 1, NDYSTEP
             
           ! Zero SUNTMP array
-          SUNTMP(:) = 0e+0_fp
+          SUNTMP = 0e+0_fp
 
           ! Loop over surface grid boxes
 !!$OMP PARALLEL DO
 !!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
+!!$OMP+PRIVATE( I, J, YMID_R, TIMLOC, AHR )
           DO J = 1, JJPAR
           DO I = 1, IIPAR
 
              ! Grid box latitude center [radians]
              YMID_R = GET_YMID_R( I, J, 1 )
 
-             ! Increment IJLOOP
-             IJLOOP = ( (J-1) * IIPAR ) + I
              TIMLOC = real(LHR0) + real(NT)/3600.0 + &
                       GET_XMID( I, J, 1 ) / 15.0
          
@@ -2768,13 +2878,13 @@ CONTAINS
              !===========================================================
 
              ! Compute Cos(SZA)
-             SUNTMP(IJLOOP) = sin(YMID_R) * sin(DEC) +          &
-                              cos(YMID_R) * cos(DEC) * cos(AHR)
+             SUNTMP(I,J) = sin(YMID_R) * sin(DEC) +          &
+                           cos(YMID_R) * cos(DEC) * cos(AHR)
 
              ! SUMCOSZA is the sum of SUNTMP at location (I,J)
              ! Do not include negative values of SUNTMP
              SUMCOSZA(I,J) = SUMCOSZA(I,J) +             &
-                             MAX(SUNTMP(IJLOOP),0e+0_fp)
+                             MAX(SUNTMP(I,J),0e+0_fp)
 
          ENDDO
          ENDDO

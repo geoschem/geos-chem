@@ -815,6 +815,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  08 Sep 2015 - E. Lundgren - Initial version
+!  31 May 2016 - E. Lundgren - Use species database emitted molecular weight
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -855,7 +856,7 @@ CONTAINS
     !
     ! Therefore, with:
     !
-    !  Tracer_MW_G(N)   = tracer molecular wt 
+    !  Tracer_MW(N)   = tracer molecular wt 
     !  MoistMW(I,J,L) = total air molecular wt for grid box (I,J,L)  
     !
     ! the conversion is:
@@ -875,7 +876,8 @@ CONTAINS
     DO I = 1, IIPAR
        State_Chm%Tracers(I,J,L,N) = State_Chm%Tracers(I,J,L,N)  &
                                     * State_Met%MoistMW(I,J,L)  &
-                                    / Input_Opt%Tracer_MW_G(N)
+                                    / State_Chm%SpcData(N)%Info%emMW_g
+
     ENDDO
     ENDDO
     ENDDO
@@ -929,6 +931,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
+!  31 May 2016 - E. Lundgren - Use species database emitted molecular weight
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -969,7 +972,7 @@ CONTAINS
          !
          ! Therefore, with:
          !
-         !  Tracer_MW_G(N) = tracer molecular wt 
+         !  Tracer_MW(N) = tracer molecular wt 
          !  MoistMW(I,J,L) = total air molecular wt for grid box (I,J,L)  
          !
          ! the conversion is:
@@ -987,8 +990,8 @@ CONTAINS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-        State_Chm%Tracers(I,J,L,N) = State_Chm%Tracers(I,J,L,N)   &
-                                    * Input_Opt%Tracer_MW_G(N)    &
+        State_Chm%Tracers(I,J,L,N) = State_Chm%Tracers(I,J,L,N)         &
+                                    * State_Chm%SpcData(N)%Info%emMW_g  &
                                     / State_Met%MoistMW(I,J,L)  
 
       ENDDO

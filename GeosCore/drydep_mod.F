@@ -1162,7 +1162,7 @@
 #if   defined( TOMAS )
       ! For TOMAS aerosol (win, 7/15/09)
       INTEGER  BIN
-      REAL(f8)   SIZ_DIA(IIPAR,JJPAR, IBINS), SIZ_DEN(IIPAR,JJPAR, IBINS)
+      REAL(f8)   SIZ_DIA(IIPAR,JJPAR, IBINS), SIZ_DEN(IIPAR,JJPAR,IBINS)
 #endif
 
       ! Logical for snow and sea ice

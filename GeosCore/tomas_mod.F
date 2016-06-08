@@ -6904,7 +6904,7 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 !$OMP+PRIVATE( MECIL, MECOB, MOCIL, MOCOB, MDUST )
 !$OMP+PRIVATE( BIN, I, J, TRACID, WID, MH2O, MSO4, MNACL )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
+      DO J = 1, JJPAR
       DO I = 1, IIPAR
       DO BIN = 1, IBINS
 
@@ -6940,6 +6940,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
      &                               MNACL, MECIL, MECOB, 
      &                               MOCIL, MOCOB, MDUST, MH2O  )
 
+      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -7032,7 +7033,6 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ! For values from Input_Opt
       LOGICAL   :: LPRT
       INTEGER   :: N_TRACERS
-      REAL(fp)  :: XNUMOL(Input_Opt%N_TRACERS)
       REAL(fp)  :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
@@ -7050,7 +7050,6 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ! Copy values from Input_Opt
       LPRT      = Input_Opt%LPRT
       N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
       TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object

@@ -241,29 +241,27 @@ CONTAINS
 !
 ! !USES:
 !
+    USE ERROR_MOD,          ONLY : ERROR_STOP, SAFE_DIV
+    USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
+    USE CMN_DIAG_MOD,       ONLY : ND44
+    USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR,   LLPAR
+    USE DRYDEP_MOD,         ONLY : DEPSAV
+    USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
     USE GIGC_ErrCode_Mod
-#if defined( DEVEL )
-    USE TENDENCIES_MOD
-#endif
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE ERROR_MOD,          ONLY : ERROR_STOP, SAFE_DIV
-    USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR,   LLPAR
+    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal, GetHcoDiagn
+    USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+    USE PHYSCONSTANTS,      ONLY : AVO
+    USE Species_Mod,        ONLY : Species
+    USE TIME_MOD,           ONLY : GET_TS_DYN
     USE TRACERID_MOD,       ONLY : IDTMACR, IDTRCHO, IDTACET, IDTALD2
     USE TRACERID_MOD,       ONLY : IDTALK4, IDTC2H6, IDTC3H8, IDTCH2O
     USE TRACERID_MOD,       ONLY : IDTPRPE, IDTO3,   IDTHNO3
     USE TRACERID_MOD,       ONLY : IDTBrO,  IDTBr2,  IDTBr,   IDTHOBr
     USE TRACERID_MOD,       ONLY : IDTHBr,  IDTBrNO3 
     USE UNITCONV_MOD
-    USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal, GetHcoDiagn
-    USE TIME_MOD,           ONLY : GET_TS_DYN
-    USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
-    USE DRYDEP_MOD,         ONLY : DEPSAV
-    USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
-    USE PHYSCONSTANTS,      ONLY : AVO
-    USE CMN_DIAG_MOD,       ONLY : ND44
 #if defined( BPCH_DIAG )
     USE DIAG_MOD,           ONLY : AD44
 #endif
@@ -272,6 +270,9 @@ CONTAINS
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
     USE TRACERID_MOD,       ONLY : IDTISOPN, IDTMMN
+#endif
+#if defined( DEVEL )
+    USE TENDENCIES_MOD
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -304,6 +305,8 @@ CONTAINS
 !  16 Mar 2016 - E. Lundgren - Exclude specialty simulations in restriction of
 !                              all emissions to chemistry grid if UCX=false
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  25 May 2016 - E. Lundgren - Replace input_opt%TRACER_MW_KG with species
+!                              database field emMW_g (emitted species g/mol)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -342,6 +345,14 @@ CONTAINS
     ! First call?
     LOGICAL,           SAVE :: FIRST = .TRUE.
 
+    ! Objects
+    TYPE(Species), POINTER  :: ThisSpc
+
+#if defined( NC_DIAG )
+    REAL(fp), POINTER  :: Ptr2D => NULL()
+    REAL(fp), POINTER  :: Ptr3D => NULL()
+#endif
+
     !=================================================================
     ! DO_TEND begins here!
     !=================================================================
@@ -352,16 +363,14 @@ CONTAINS
     ! Special case that there is no dry deposition and emissions
     IF ( .NOT. Input_Opt%LDRYD .AND. .NOT. Input_Opt%LEMIS ) RETURN
 
-#if defined( NC_DIAG )
-    REAL(fp), POINTER  :: Ptr2D => NULL()
-    REAL(fp), POINTER  :: Ptr3D => NULL()
-#endif
-
     ! Shadow variables
     LSCHEM     = Input_Opt%LSCHEM
     LEMIS      = Input_Opt%LEMIS 
     LDRYD      = Input_Opt%LDRYD 
     PBL_DRYDEP = Input_Opt%PBL_DRYDEP
+
+    ! Initialize pointer
+    ThisSpc => NULL()
 
     ! DO_TEND previously operated in units of kg. The tracer arrays are in
     ! v/v for mixing, hence needed to convert before and after.
@@ -421,8 +430,12 @@ CONTAINS
 !$OMP PRIVATE( I, J, L, L1, L2, N, D, PBL_TOP, FND, TMP, DRYDEPID ) &
 !$OMP PRIVATE( FRQ, RKT, FRAC, FLUX, AREA_M2,   MWkg, ChemGridOnly ) & 
 !$OMP PRIVATE( DryDepSpec, EmisSpec, DRYD_TOP,  EMIS_TOP, PNOXLOSS ) &
-!$OMP PRIVATE( DENOM                                               )
+!$OMP PRIVATE( DENOM, ThisSpc                                         )
     DO N = 1, Input_Opt%N_TRACERS
+
+       ! Get info about this species from the species database
+       ! NOTE: This assumes a 1:1 tracer index to species index mapping
+       ThisSpc => State_Chm%SpcData(N)%Info
 
        !----------------------------------------------------------------
        ! Check if we need to do dry deposition for this species 
@@ -452,8 +465,10 @@ CONTAINS
           ENDIF
 
           ! Special case for O3 or HNO3: include PARANOX loss
-          IF ( N == IDTO3   .AND. ASSOCIATED(PNOXLOSS_O3  ) ) DryDepSpec = .TRUE. 
-          IF ( N == IDTHNO3 .AND. ASSOCIATED(PNOXLOSS_HNO3) ) DryDepSpec = .TRUE. 
+          IF ( N == IDTO3   .AND. ASSOCIATED(PNOXLOSS_O3  ) )    &
+               DryDepSpec = .TRUE. 
+          IF ( N == IDTHNO3 .AND. ASSOCIATED(PNOXLOSS_HNO3) )    &
+               DryDepSpec = .TRUE. 
        ENDIF
 
        !----------------------------------------------------------------
@@ -483,7 +498,7 @@ CONTAINS
           PBL_TOP = State_Met%PBL_TOP_L(I,J)
 
           ! Molecular weight in kg
-          MWkg = Input_Opt%TRACER_MW_KG(N)
+          MWkg = ThisSpc%emMW_g * 1.e-3_fp
 
           ! Determine lower level L1 to be used: 
           ! If specified so, apply emissions only above the PBL_TOP.
@@ -687,6 +702,10 @@ CONTAINS
           ENDDO !L
        ENDDO !J
        ENDDO !I
+
+       ! Nullify pointer
+       ThisSpc  => NULL()
+
     ENDDO !N
 !$OMP END PARALLEL DO
 
