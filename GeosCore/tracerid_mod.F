@@ -1952,6 +1952,10 @@
 !  06 Mar 2013 - R. Yantosca - Now move call to REGISTER_SPECIES to routine
 !                              GIGC_INIT_SIMULATION 
 !  13 Aug 2013 - M. Sulprizio- Add modifications for IVOC chemistry (H. Pye)
+!  08 Jun 2016 - M. Sulprizio- Set species ID using Spc_GetIndx. This is a 
+!                              workaround to get the species ID in the correct
+!                              order. The species IDs will eventually be
+!                              removed completely.
 !******************************************************************************
 !
 ! !USES:
@@ -1962,29 +1966,17 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput          
       USE GIGC_State_Chm_Mod, ONLY : ChmState          
+      USE Species_Mod,        ONLY : Spc_GetIndx
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!     
-! !INPUT/OUTPUT PARAMETERS
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State obj
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State obj
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!
-! !LOCAL VARIABLES:
-!
-      ! Scalars
-      LOGICAL            :: LPRT
-      INTEGER            :: N_TRACERS
-      INTEGER            :: I, J, T, C, STAT
-
-      ! Arrays
-      CHARACTER(LEN=255) :: TRACER_NAME   ( Input_Opt%MAX_TRCS )
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
  
       !=================================================================
       ! SETTRACE begins here!
@@ -1993,118 +1985,100 @@
       ! Assume success
       RC             = GIGC_SUCCESS
 
-      ! Copy values from Input_Opt to local variables
-      LPRT           = Input_Opt%LPRT
-      N_TRACERS      = Input_Opt%N_TRACERS
-      TRACER_NAME    = Input_Opt%TRACER_NAME
-
-      ! Reset NCS = NCSURBAN, since we have defined our GEOS-CHEM
-      ! mechanism in the urban slot of SMVGEAR II (bmy, 4/21/03)
-      NCS = NCSURBAN
-
-      DO I = 1, NSPEC(NCS)
-         IF ( NAMEGAS(I) == 'O3'     ) IDO3     = I
-         IF ( NAMEGAS(I) == 'NO2'    ) IDNO2    = I
-         IF ( NAMEGAS(I) == 'NO3'    ) IDNO3    = I
-         IF ( NAMEGAS(I) == 'N2O5'   ) IDN2O5   = I
-         IF ( NAMEGAS(I) == 'HNO4'   ) IDHNO4   = I
-         IF ( NAMEGAS(I) == 'HNO2'   ) IDHNO2   = I
-         IF ( NAMEGAS(I) == 'NO'     ) IDNO     = I
-         IF ( NAMEGAS(I) == 'CO'     ) IDCO     = I
-         IF ( NAMEGAS(I) == 'PRPE'   ) IDPRPE   = I
-         IF ( NAMEGAS(I) == 'C3H8'   ) IDC3H8   = I
-         IF ( NAMEGAS(I) == 'ISOP'   ) IDISOP   = I
-         IF ( NAMEGAS(I) == 'ALK4'   ) IDALK4   = I
-         IF ( NAMEGAS(I) == 'PAN'    ) IDPAN    = I
-         IF ( NAMEGAS(I) == 'GLPAN'  ) IDGLPAN  = I
-         IF ( NAMEGAS(I) == 'GPAN'   ) IDGPAN   = I
-         IF ( NAMEGAS(I) == 'PMN'    ) IDPMN    = I
-         IF ( NAMEGAS(I) == 'PPN'    ) IDPPN    = I
-         IF ( NAMEGAS(I) == 'HNO3'   ) IDHNO3   = I
-         IF ( NAMEGAS(I) == 'OH'     ) IDOH     = I
-         IF ( NAMEGAS(I) == 'HO2'    ) IDHO2    = I !(rvm, bmy, 2/27/02)
-         IF ( NAMEGAS(I) == 'H2O2'   ) IDH2O2   = I
-         IF ( NAMEGAS(I) == 'ACET'   ) IDACET   = I
-         IF ( NAMEGAS(I) == 'MEK'    ) IDMEK    = I
-         IF ( NAMEGAS(I) == 'ALD2'   ) IDALD2   = I
-         IF ( NAMEGAS(I) == 'RCHO'   ) IDRCHO   = I
-         IF ( NAMEGAS(I) == 'MVK'    ) IDMVK    = I
-         IF ( NAMEGAS(I) == 'MACR'   ) IDMACR   = I
-         IF ( NAMEGAS(I) == 'ISN1'   ) IDISN1   = I
-         IF ( NAMEGAS(I) == 'R4N2'   ) IDR4N2   = I
-         IF ( NAMEGAS(I) == 'CH2O'   ) IDCH2O   = I
-         IF ( NAMEGAS(I) == 'C2H6'   ) IDC2H6   = I
-         IF ( NAMEGAS(I) == 'DMS'    ) IDDMS    = I !(rjp, bmy, 3/23/03)
-         IF ( NAMEGAS(I) == 'SO2'    ) IDSO2    = I !(rjp, bmy, 3/23/03)
-         IF ( NAMEGAS(I) == 'SO4'    ) IDSO4    = I !(rjp, bmy, 3/23/03)
-         IF ( NAMEGAS(I) == 'MSA'    ) IDMSA    = I !(rjp, bmy, 3/23/03)
-         IF ( NAMEGAS(I) == 'DRYNO2' ) IDDRYNO2 = I
-         IF ( NAMEGAS(I) == 'DRYPAN' ) IDDRYPAN = I
-         IF ( NAMEGAS(I) == 'DRYO3 ' ) IDDRYO3  = I
-!-Not used. (ccc, 01/27/10)
-!         IF ( NAMEGAS(I) == 'BENZ'   ) IDBENZ   = I 
-!         IF ( NAMEGAS(I) == 'TOLU'   ) IDTOLU   = I 
-!         IF ( NAMEGAS(I) == 'XYLE'   ) IDXYLE   = I 
-!         IF ( NAMEGAS(I) == 'MONX'   ) IDMONX   = I 
-!         IF ( NAMEGAS(I) == 'GLYX'   ) IDGLYX   = I
-!         IF ( NAMEGAS(I) == 'MGLY'   ) IDMGLY   = I
-         IF ( NAMEGAS(I) == 'DRYGLYX') IDDRYGLYX = I
-         IF ( NAMEGAS(I) == 'DRYMGLY') IDDRYMGLY = I
-         IF ( NAMEGAS(I) == 'C2H4'   ) IDC2H4    = I
-         IF ( NAMEGAS(I) == 'C2H2'   ) IDC2H2    = I
-         IF ( NAMEGAS(I) == 'MBO'    ) IDMBO     = I
-         IF ( NAMEGAS(I) == 'GLYC'   ) IDGLYC    = I
-         IF ( NAMEGAS(I) == 'HAC'    ) IDHAC     = I
-         IF ( NAMEGAS(I) == 'APAN'   ) IDAPAN    = I
-         IF ( NAMEGAS(I) == 'ENPAN'  ) IDENPAN   = I
-         IF ( NAMEGAS(I) == 'MPAN'   ) IDMPAN    = I
-         IF ( NAMEGAS(I) == 'NIPAN'  ) IDNIPAN   = I
-         IF ( NAMEGAS(I) == 'MPN'    ) IDMPN     = I
-         ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++
-         !jpp: for bromine
-         IF ( NAMEGAS(I) == 'Br2'     ) IDBr2     = I
-         IF ( NAMEGAS(I) == 'Br'      ) IDBr      = I
-         IF ( NAMEGAS(I) == 'BrO'     ) IDBrO     = I
-         IF ( NAMEGAS(I) == 'HOBr'    ) IDHOBr    = I
-         IF ( NAMEGAS(I) == 'HBr'     ) IDHBr     = I
-         IF ( NAMEGAS(I) == 'BrNO3'   ) IDBrNO3   = I
-         IF ( NAMEGAS(I) == 'BrNO2'   ) IDBrNO2   = I
-         IF ( NAMEGAS(I) == 'CH3Br'   ) IDCH3Br   = I
-         IF ( NAMEGAS(I) == 'CH2Br2'  ) IDCH2Br2  = I
-         IF ( NAMEGAS(I) == 'CHBr3'   ) IDCHBr3   = I
-         IF ( NAMEGAS(I) == 'DRYHOBr' ) IDDRYHOBr = I
-         IF ( NAMEGAS(I) == 'DRYHBr'  ) IDDRYHBr  = I
-         IF ( NAMEGAS(I) == 'DRYBrNO3') IDDRYBrNO3= I
-         ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-         IF ( NAMEGAS(I) == 'DRYAPAN' )  IDDRYAPAN  = I
-         IF ( NAMEGAS(I) == 'DRYENPAN')  IDDRYENPAN = I
-         IF ( NAMEGAS(I) == 'DRYGLPAN')  IDDRYGLPAN = I
-         IF ( NAMEGAS(I) == 'DRYGPAN' )  IDDRYGPAN  = I
-         IF ( NAMEGAS(I) == 'DRYMPAN' )  IDDRYMPAN  = I
-         IF ( NAMEGAS(I) == 'DRYNIPAN')  IDDRYNIPAN = I
-         ! added for aromatics (dkh, 10/06/06)  
-         IF ( NAMEGAS(I) == 'LBRO2H'   ) IDLBRO2H   = I
-         IF ( NAMEGAS(I) == 'LBRO2N'   ) IDLBRO2N   = I
-         IF ( NAMEGAS(I) == 'LTRO2H'   ) IDLTRO2H   = I
-         IF ( NAMEGAS(I) == 'LTRO2N'   ) IDLTRO2N   = I
-         IF ( NAMEGAS(I) == 'LXRO2H'   ) IDLXRO2H   = I
-         IF ( NAMEGAS(I) == 'LXRO2N'   ) IDLXRO2N   = I         
-         ! SOAupdate: for gas phase NAP chemistry (hotp 6/24/09)
-         ! semivolpoa5: add IVOC chemistry (hotp 3/30/09)
-         IF ( NAMEGAS(I) == 'NAP'      ) IDNAP      = I 
-         IF ( NAMEGAS(I) == 'NRO2'     ) IDNRO2     = I
-         IF ( NAMEGAS(I) == 'LNRO2H'   ) IDLNRO2H   = I
-         IF ( NAMEGAS(I) == 'LNRO2N'   ) IDLNRO2N   = I
-         ! Online CH4 chemistry (mpayer, 1/24/12)
-         IF ( NAMEGAS(I) == 'CH4'      ) IDCH4      = I
-         ! Stratospheric chemistry (SDE 04/11/13)
-         IF ( NAMEGAS(I) == 'ClNO3'    ) IDClNO3    = I
-         IF ( NAMEGAS(I) == 'HOCl'     ) IDHOCl     = I
-         IF ( NAMEGAS(I) == 'HCl'      ) IDHCl      = I
-         IF ( NAMEGAS(I) == 'O1D'      ) IDO1D      = I
-         IF ( NAMEGAS(I) == 'O'        ) IDO3P      = I
-      ENDDO
+      ! As a temporary workaround, get species ID from Spc_GetIndx
+      ! The ID variables will be removed in the near future (mps, 6/8/16)
+      IDO3       = Spc_GetIndx( 'O3',       State_Chm%SpcData )
+      IDNO2      = Spc_GetIndx( 'NO2',      State_Chm%SpcData )
+      IDNO3      = Spc_GetIndx( 'NO3',      State_Chm%SpcData )
+      IDN2O5     = Spc_GetIndx( 'N2O5',     State_Chm%SpcData )
+      IDHNO4     = Spc_GetIndx( 'HNO4',     State_Chm%SpcData )
+      IDHNO2     = Spc_GetIndx( 'HNO2',     State_Chm%SpcData )
+      IDNO       = Spc_GetIndx( 'NO',       State_Chm%SpcData )
+      IDCO       = Spc_GetIndx( 'CO',       State_Chm%SpcData )
+      IDPRPE     = Spc_GetIndx( 'PRPE',     State_Chm%SpcData )
+      IDC3H8     = Spc_GetIndx( 'C3H8',     State_Chm%SpcData )
+      IDISOP     = Spc_GetIndx( 'ISOP',     State_Chm%SpcData )
+      IDALK4     = Spc_GetIndx( 'ALK4',     State_Chm%SpcData )
+      IDPAN      = Spc_GetIndx( 'PAN',      State_Chm%SpcData )
+      IDGLPAN    = Spc_GetIndx( 'GLPAN',    State_Chm%SpcData )
+      IDGPAN     = Spc_GetIndx( 'GPAN',     State_Chm%SpcData )
+      IDPMN      = Spc_GetIndx( 'PMN',      State_Chm%SpcData )
+      IDPPN      = Spc_GetIndx( 'PPN',      State_Chm%SpcData )
+      IDHNO3     = Spc_GetIndx( 'HNO3',     State_Chm%SpcData )
+      IDOH       = Spc_GetIndx( 'OH',       State_Chm%SpcData )
+      IDHO2      = Spc_GetIndx( 'HO2',      State_Chm%SpcData )
+      IDH2O2     = Spc_GetIndx( 'H2O2',     State_Chm%SpcData )
+      IDACET     = Spc_GetIndx( 'ACET',     State_Chm%SpcData )
+      IDMEK      = Spc_GetIndx( 'MEK',      State_Chm%SpcData )
+      IDALD2     = Spc_GetIndx( 'ALD2',     State_Chm%SpcData )
+      IDRCHO     = Spc_GetIndx( 'RCHO',     State_Chm%SpcData )
+      IDMVK      = Spc_GetIndx( 'MVK',      State_Chm%SpcData )
+      IDMACR     = Spc_GetIndx( 'MACR',     State_Chm%SpcData )
+      IDISN1     = Spc_GetIndx( 'ISN1',     State_Chm%SpcData )
+      IDR4N2     = Spc_GetIndx( 'R4N2',     State_Chm%SpcData )
+      IDCH2O     = Spc_GetIndx( 'CH2O',     State_Chm%SpcData )
+      IDC2H6     = Spc_GetIndx( 'C2H6',     State_Chm%SpcData )
+      IDDMS      = Spc_GetIndx( 'DMS',      State_Chm%SpcData )
+      IDSO2      = Spc_GetIndx( 'SO2',      State_Chm%SpcData )
+      IDSO4      = Spc_GetIndx( 'SO4',      State_Chm%SpcData )
+      IDMSA      = Spc_GetIndx( 'MSA',      State_Chm%SpcData )
+      IDDRYNO2   = Spc_GetIndx( 'DRYNO2',   State_Chm%SpcData )
+      IDDRYPAN   = Spc_GetIndx( 'DRYPAN',   State_Chm%SpcData )
+      IDDRYO3    = Spc_GetIndx( 'DRYO3 ',   State_Chm%SpcData )
+      !-Not used. (ccc, 01/27/10)
+      !IDBENZ    = Spc_GetIndx( 'BENZ',     State_Chm%SpcData )
+      !IDTOLU    = Spc_GetIndx( 'TOLU',     State_Chm%SpcData ) 
+      !IDXYLE    = Spc_GetIndx( 'XYLE',     State_Chm%SpcData ) 
+      !IDMONX    = Spc_GetIndx( 'MONX',     State_Chm%SpcData ) 
+      !IDGLYX    = Spc_GetIndx( 'GLYX',     State_Chm%SpcData )
+      !IDMGLY    = Spc_GetIndx( 'MGLY',     State_Chm%SpcData )
+      IDDRYGLYX  = Spc_GetIndx( 'DRYGLYX',  State_Chm%SpcData )
+      IDDRYMGLY  = Spc_GetIndx( 'DRYMGLY',  State_Chm%SpcData )
+      IDC2H4     = Spc_GetIndx( 'C2H4',     State_Chm%SpcData )
+      IDC2H2     = Spc_GetIndx( 'C2H2',     State_Chm%SpcData )
+      IDMBO      = Spc_GetIndx( 'MBO',      State_Chm%SpcData )
+      IDGLYC     = Spc_GetIndx( 'GLYC',     State_Chm%SpcData )
+      IDHAC      = Spc_GetIndx( 'HAC',      State_Chm%SpcData )
+      IDAPAN     = Spc_GetIndx( 'APAN',     State_Chm%SpcData )
+      IDENPAN    = Spc_GetIndx( 'ENPAN',    State_Chm%SpcData )
+      IDMPAN     = Spc_GetIndx( 'MPAN',     State_Chm%SpcData )
+      IDNIPAN    = Spc_GetIndx( 'NIPAN',    State_Chm%SpcData )
+      IDMPN      = Spc_GetIndx( 'MPN',      State_Chm%SpcData )
+      IDBr2      = Spc_GetIndx( 'Br2',      State_Chm%SpcData )
+      IDBr       = Spc_GetIndx( 'Br',       State_Chm%SpcData )
+      IDBrO      = Spc_GetIndx( 'BrO',      State_Chm%SpcData )
+      IDHOBr     = Spc_GetIndx( 'HOBr',     State_Chm%SpcData )
+      IDHBr      = Spc_GetIndx( 'HBr',      State_Chm%SpcData )
+      IDBrNO3    = Spc_GetIndx( 'BrNO3',    State_Chm%SpcData )
+      IDBrNO2    = Spc_GetIndx( 'BrNO2',    State_Chm%SpcData )
+      IDCH3Br    = Spc_GetIndx( 'CH3Br',    State_Chm%SpcData )
+      IDCH2Br2   = Spc_GetIndx( 'CH2Br2',   State_Chm%SpcData )
+      IDCHBr3    = Spc_GetIndx( 'CHBr3',    State_Chm%SpcData )
+      IDDRYHOBr  = Spc_GetIndx( 'DRYHOBr',  State_Chm%SpcData )
+      IDDRYHBr   = Spc_GetIndx( 'DRYHBr',   State_Chm%SpcData )
+      IDDRYBrNO3 = Spc_GetIndx( 'DRYBrNO3', State_Chm%SpcData )
+      IDDRYAPAN  = Spc_GetIndx( 'DRYAPAN',  State_Chm%SpcData )
+      IDDRYENPAN = Spc_GetIndx( 'DRYENPAN', State_Chm%SpcData )
+      IDDRYGLPAN = Spc_GetIndx( 'DRYGLPAN', State_Chm%SpcData )
+      IDDRYGPAN  = Spc_GetIndx( 'DRYGPAN',  State_Chm%SpcData )
+      IDDRYMPAN  = Spc_GetIndx( 'DRYMPAN',  State_Chm%SpcData )
+      IDDRYNIPAN = Spc_GetIndx( 'DRYNIPAN', State_Chm%SpcData )
+      IDLBRO2H   = Spc_GetIndx( 'LBRO2H',   State_Chm%SpcData )
+      IDLBRO2N   = Spc_GetIndx( 'LBRO2N',   State_Chm%SpcData )
+      IDLTRO2H   = Spc_GetIndx( 'LTRO2H',   State_Chm%SpcData )
+      IDLTRO2N   = Spc_GetIndx( 'LTRO2N',   State_Chm%SpcData )
+      IDLXRO2H   = Spc_GetIndx( 'LXRO2H',   State_Chm%SpcData )
+      IDLXRO2N   = Spc_GetIndx( 'LXRO2N',   State_Chm%SpcData )
+      IDNAP      = Spc_GetIndx( 'NAP',      State_Chm%SpcData )
+      IDNRO2     = Spc_GetIndx( 'NRO2',     State_Chm%SpcData )
+      IDLNRO2H   = Spc_GetIndx( 'LNRO2H',   State_Chm%SpcData )
+      IDLNRO2N   = Spc_GetIndx( 'LNRO2N',   State_Chm%SpcData )
+      IDCH4      = Spc_GetIndx( 'CH4',      State_Chm%SpcData )
+      IDClNO3    = Spc_GetIndx( 'ClNO3',    State_Chm%SpcData )
+      IDHOCl     = Spc_GetIndx( 'HOCl',     State_Chm%SpcData )
+      IDHCl      = Spc_GetIndx( 'HCl',      State_Chm%SpcData )
+      IDO1D      = Spc_GetIndx( 'O1D',      State_Chm%SpcData )
+      IDO3P      = Spc_GetIndx( 'O',        State_Chm%SpcData )
 
       ! Return to calling program
       END SUBROUTINE SETTRACE
