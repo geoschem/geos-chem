@@ -186,11 +186,11 @@ CONTAINS
 
        ! Print info to log
        IF (FOUND .NE. 1) THEN
-          WRITE (6,'(a8,a17)') TRIM(Input_Opt%TRACER_NAME(N)), &
-             ' is not a species'
+          WRITE (6,'(a13,i3,a8,a17)')    'Tracer       ', N, &
+             TRIM(Input_Opt%TRACER_NAME(N)), ' is not a species'
        ELSE
-          Print*, 'Found ', TRIM(Input_Opt%TRACER_NAME(N)), &
-                  '. STTTOCSPEC = ', STTTOCSPEC(N)
+          WRITE (6,'(a13,i3,a8,a17,i3)') 'Found tracer ', N, &
+             TRIM(Input_Opt%TRACER_NAME(N)), '. STTTOCSPEC =   ', STTTOCSPEC(N)
        ENDIF
 
     ENDDO

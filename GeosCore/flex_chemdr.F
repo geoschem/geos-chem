@@ -945,7 +945,11 @@
 
             ! Copy new tracer concentrations from State_Chm%Species to STT
             ! [molec/cm3]
-            IF (STTTOCSPEC(N) .NE. 0) THEN
+            ! Family tracers are handled in FAMILIES_KLUDGE
+            IF ( .not. Input_Opt%TRACER_NAME(N) == 'ISOPN' .and.
+     &           .not. Input_Opt%Tracer_Name(N) == 'MMN'   .and.
+     &           .not. Input_Opt%Tracer_Name(N) == 'CFCX'  .and.
+     &           .not. Input_Opt%Tracer_Name(N) == 'HCFCX' ) THEN
                STT(I,J,L,N) = State_Chm%Species(I,J,L,STTTOCSPEC(N))
             ENDIF
          
