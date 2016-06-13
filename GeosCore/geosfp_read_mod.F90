@@ -511,6 +511,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_A1 (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 10000 ) + 1
 
@@ -525,9 +528,6 @@ CONTAINS
     ! Open the netCDF file only when necessary
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN 
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_A1 (geosfp_read_mod.F90)"
 
        ! replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -1021,6 +1021,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_A3cld (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1035,9 +1038,6 @@ CONTAINS
     ! Open the netCDF file only when necessary
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_A3cld (geosfp_read_mod.F90)"
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -1213,6 +1213,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_A3dyn (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1220,16 +1223,13 @@ CONTAINS
     IF ( time_index < 1 .or. time_index > 8 ) THEN
        WRITE( 6, 100 ) time_index
  100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
-       CALL ERROR_STOP( errMsg, 'GEOS57_READ_A1 (geos57_read_mod.F90)' )
+       CALL ERROR_STOP( errMsg, caller )
     ENDIF
 
     !======================================================================
     ! Open the netCDF file only when necessary
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_A3dyn (geosfp_read_mod.F90)"
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -1406,6 +1406,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_A3mstC (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1420,9 +1423,6 @@ CONTAINS
     ! Open the netCDF file only when necessary
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_A3mstC (geosfp_read_mod.F90)"
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -1579,6 +1579,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_A3mstE (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1593,9 +1596,6 @@ CONTAINS
     ! Open the netCDF file only when necessary
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_A3mstE (geosfp_read_mod.F90)"
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -1784,6 +1784,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_I3_1 (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1798,9 +1801,6 @@ CONTAINS
     ! Open the netCDF file only when necessary
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_I3_1 (geosfp_read_mod.F90)"
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -2011,6 +2011,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_I3_2 (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -2025,9 +2028,6 @@ CONTAINS
     ! Open the netCDF file
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_I3_2 (geosfp_read_mod.F90)"
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
