@@ -941,11 +941,6 @@
          ! Reset NCS with NCSURBAN=1
          NCS                 = NCSURBAN
 
-         ! Number of species
-         ! NTSPEC is the actual number of active + inactive species
-         ! Set in readchem.F, NTSPEC(NCS) = NGAS + NINAC
-         Input_Opt%N_SPECIES = NTSPEC(NCS)
-
          ! Adjust first flag
          FIRST = .FALSE.
       ENDIF

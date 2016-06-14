@@ -66,23 +66,23 @@ CONTAINS
 ! !INTERFACE:
 !  
   SUBROUTINE INIT_FLEXCHEM( Input_Opt, State_Met, State_Chm, am_I_Root, RC)  
-
+!
+! !USES:
+!
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE CMN_SIZE_MOD
-    USE COMODE_LOOP_MOD,    ONLY : QBKGAS, NGAS, NAMEGAS, SMAL2
     USE PHYSCONSTANTS,      ONLY : BOLTZ
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Create
     USE HCO_ERROR_MOD
     USE GIGC_ErrCode_Mod
-    USE GIGC_State_Chm_Mod, ONLY : Register_Tracer
-    USE GIGC_State_Chm_Mod, ONLY : Register_Species
     USE GIGC_State_Chm_Mod, ONLY : IND_
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE gckpp_Global,       ONLY : NSPEC, NREACT
     USE gckpp_Monitor,      ONLY : SPC_NAMES, EQN_NAMES
     USE PRECISION_MOD
     USE RESTART_MOD,        ONLY : SPC_IN_NC_RST
+    USE Species_Mod,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_NYMD, GET_NHMS
 !
 ! !INPUT PARAMETERS:
@@ -105,6 +105,14 @@ CONTAINS
 !  29 Jan 2016 - M. Sulprizio- Add calls to Register_Tracer and Register_Species
 !                              to populate Tracer_Name, Tracer_Id, Species_Name,
 !                              and Species_ID fields in State_Chm
+!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
+!                              NAMEGAS with ThisSpc%Name from species database
+!  06 Jun 2016 - M. Sulprizio- Replace Get_Indx with Spc_GetIndx to use the
+!                              fast-species lookup from the species database
+!  06 Jun 2016 - M. Sulprizio- Remove calls to Register_Tracer and
+!                              Register_Species; these routines were made
+!                              obsolete by the species database
+!  14 Jun 2016 - M. Sulprizio- Replace Spc_GetIndx with Ind_ (M. Long)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -119,11 +127,20 @@ CONTAINS
     CHARACTER(LEN=255) :: LOC = 'INIT_FLEXCHEM (flexchem_setup_mod.F90)' 
 
     ! For species unit conversion code
-    CHARACTER(LEN=10)  :: SPC_NAME           ! species name
     REAL(fp)           :: CONV_FACTOR        ! [mol/mol] -> [molec/cm3]
 
+    ! Objects
+    TYPE(Species), POINTER :: ThisSpc
+
+    !=================================================================
+    ! INIT_FLEXCHEM begins here!
+    !=================================================================
+
     ! Assume success
-    RC = 0
+    RC = GIGC_SUCCESS
+
+    ! Initialize pointer
+    ThisSpc => NULL()
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -146,73 +163,78 @@ CONTAINS
     HSAVE_KPP = 0.d0
 
     ! Loop over GEOS-Chem tracers
-    DO N=1,Input_Opt%N_TRACERS
+    DO N = 1, Input_Opt%N_TRACERS
 
-       ! Register tracers in the State_Chm object
-       ! NOTE: This is here to populate the Trac_Id and Trac_Name fields in
-       ! State_Chm. This can be removed when we fully utilize the species
-       ! database (mps, 1/19/16)
-       CALL Register_Tracer( Name      = Input_Opt%TRACER_NAME(N),  &
-                             ID        = Input_Opt%ID_TRACER(N),    &
-                             State_Chm = State_Chm,                 &
-                             Status    = RC                    )
-       IF ( am_I_Root .and. RC > 0 ) THEN
-          WRITE( 6, 200 ) Input_Opt%TRACER_NAME(N), RC
- 200      FORMAT( 'Registered Tracer : ', a14, i5 )
-       ENDIF
-
-       ! mje Find link between tracers and species 
-       ! mje This is easier as we don't advect families any more
+       ! Initialize
        FOUND=0
-       DO N1=1,Input_Opt%N_SPECIES
-          IF ( ADJUSTL(TRIM(NAMEGAS(N1))) == &
-               ADJUSTL(TRIM(Input_Opt%TRACER_NAME(N)))) THEN
+
+       ! Loop over GEOS-Chem species
+       DO N1 = 1, State_Chm%nSpecies
+
+          ! Get info about this species from the species database
+          ThisSpc => State_Chm%SpcData(N1)%Info
+
+          ! Create vector to map GEOS-Chem tracers to State_Chm%Species order
+          IF ( ADJUSTL( TRIM( ThisSpc%Name ) ) == &
+               ADJUSTL( TRIM( Input_Opt%TRACER_NAME(N) ) ) ) THEN
              STTTOCSPEC(N)=N1
              FOUND=1
+             EXIT
           ENDIF
+
+          ! Free pointer
+          ThisSpc => NULL()
+
        ENDDO
+
+       ! Print info to log
        IF (FOUND .NE. 1) THEN
-          WRITE (6,'(a8,a17)') TRIM(Input_Opt%TRACER_NAME(N)), &
-             ' is not a species'
+          WRITE (6,'(a13,i3,a8,a17)')    'Tracer       ', N, &
+             TRIM(Input_Opt%TRACER_NAME(N)), ' is not a species'
+       ELSE
+          WRITE (6,'(a13,i3,a8,a17,i3)') 'Found tracer ', N, &
+             TRIM(Input_Opt%TRACER_NAME(N)), '. STTTOCSPEC =   ', STTTOCSPEC(N)
        ENDIF
 
     ENDDO
 
     ! Loop over GEOS-Chem species
-    DO N=1,Input_Opt%N_SPECIES
+    DO N = 1, State_Chm%nSpecies
 
-       ! Register species (active + inactive) in the State_Chm object
-       ! NOTE: This is here to populate the Spec_Id and Spec_Name fields in
-       ! State_Chm. This can be removed when we fully utilize the species
-       ! database (mps, 1/19/16)
-       CALL Register_Species( NAME      = NAMEGAS(N),  &
-                              ID        = N,           &
-                              State_Chm = State_Chm,   &
-                              Status    = RC        )
-       IF ( am_I_Root .and. RC > 0 ) THEN
-          WRITE( 6, 205 ) NAMEGAS(N), RC
-205       FORMAT( 'Registered Species : ', a14, i5 )
-       ENDIF
-
-       ! MSL - Create vector to map species in State_Chm%Species order, defined
-       !       in READCHEM, to KPP's order, as seen in gckpp_Parameters.F90
+       ! Initialize
        FOUND=0
-       DO N1=1,NSPEC
-          IF (ADJUSTL(TRIM(SPC_NAMES(N1))) == &
-              ADJUSTL(TRIM(NAMEGAS(N)))) THEN
+
+       ! Get info about this species from the species database
+       ThisSpc => State_Chm%SpcData(N)%Info
+
+       ! Loop over KPP species
+       DO N1 = 1, NSPEC
+
+          ! Create vector to map
+          ! State_Chm%Species order defined in species_database_mod.F90
+          ! to KPP order defined in gckpp_Parameters.F90
+          IF ( ADJUSTL( TRIM( SPC_NAMES(N1) ) ) == &
+               ADJUSTL( TRIM( ThisSpc%Name  ) ) ) THEN
              CSPECTOKPP(N1)=N
              FOUND=1
              EXIT
           ENDIF
+
        ENDDO
+
+       ! Print info to log
        IF (FOUND .NE. 1) THEN
-          WRITE (6,'(a8,a17)') TRIM(NAMEGAS(N)),   &
+          WRITE (6,'(a8,a17)') TRIM( ThisSpc%Name ),   &
              ' NOT found in KPP'
        ENDIF
        IF (FOUND .EQ. 1) THEN
-          WRITE (6,'(a8,a29,I4)') TRIM(NAMEGAS(N)), &
+          WRITE (6,'(a8,a29,I4)') TRIM( ThisSpc%Name ), &
              ' was found in KPP with index ', N1
        ENDIF
+
+       ! Free pointer
+       ThisSpc => NULL()
+
     ENDDO
 
     ! If species data was in the NetCDF restart file then do nothing
@@ -230,122 +252,109 @@ CONTAINS
                  '[molec/cm3]:')
        ENDIF
 
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       !% IMPORTANT:                                                  %
-       !% N_SPECIES = NTSPEC(NCS) = active + inactive species         %
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ! Loop over GEOS-Chem species
-       DO N=1,Input_Opt%N_SPECIES
+       DO N = 1, State_Chm%nSpecies
 
-          ! Define species name
-          SPC_NAME = TRIM( NAMEGAS(N) )
+          ! Get info about this species from the species database
+          ThisSpc => State_Chm%SpcData(N)%Info
 
-          IF ( (ADJUSTL(TRIM(SPC_NAME)) .eq. "" ) ) CYCLE
+          ! Skip non-KPP species
+          IF ( .not. ThisSpc%Is_Kpp ) CYCLE
 
-          ! Loop over KPP species
-          DO N1=1,NSPEC
+          !$OMP PARALLEL DO &
+          !$OMP DEFAULT( SHARED ) &
+          !$OMP PRIVATE( I, J, L, CONV_FACTOR )
+          ! Loop over all chemistry grid boxes
+          DO L = 1, LLCHEM 
+          DO J = 1, JJPAR
+          DO I = 1, IIPAR
 
-             IF ( ADJUSTL(TRIM(SPC_NAMES(N1))) == &
-                  ADJUSTL(TRIM(SPC_NAME     )) ) THEN
+             ! Set box-dependent unit conversion factor 
+             !CONV_FACTOR = State_Met%AIRNUMDEN(I,J,L)
+             CONV_FACTOR = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp / &
+                         ( State_Met%T(I,J,L) * ( BOLTZ * 1e+7_fp ) )
 
-                !$OMP PARALLEL DO &
-                !$OMP DEFAULT( SHARED ) &
-                !$OMP PRIVATE( I, J, L, CONV_FACTOR )
-                ! Loop over all chemistry grid boxes
-                DO L = 1, LLCHEM 
-                DO J = 1, JJPAR
-                DO I = 1, IIPAR
+             IF ( TRIM( ThisSpc%Name ) /= 'MOH' ) THEN
 
-                   ! Set box-dependent unit conversion factor 
-                   !CONV_FACTOR = State_Met%AIRNUMDEN(I,J,L)
-                   CONV_FACTOR = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp / &
-                               ( State_Met%T(I,J,L) * ( BOLTZ * 1e+7_fp ) )
+                ! Convert units from [mol/mol] to [molec/cm3/box]
+                State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) * &
+                                             CONV_FACTOR
 
-                   IF ( TRIM( SPC_NAME ) /= 'MOH' ) THEN
+             ELSE
 
-                      ! Convert units from [mol/mol] to [molec/cm3/box]
-                      State_Chm%Species(I,J,L,N) = &
-                           State_Chm%Species(I,J,L,N) * CONV_FACTOR
+                !----------------------------------------------------
+                ! For methanol (MOH), now use different initial
+                ! background concentrations for different regions of
+                ! the atmosphere:
+                !
+                ! (a) 2.0 ppbv MOH -- continental boundary layer
+                ! (b) 0.9 ppbv MOH -- marine boundary layer
+                ! (c) 0.6 ppbv MOH -- free troposphere
+                !
+                ! The concentrations listed above are from Heikes et
+                ! al, "Atmospheric methanol budget and ocean
+                ! implication", _Global Biogeochem. Cycles_, 2002.
+                ! These represent the best estimates for the methanol
+                ! conc.'s in the troposphere based on various
+                ! measurements.
+                !
+                ! MOH is an inactive chemical species in GEOS-CHEM,
+                ! so these initial concentrations will never change.
+                ! However, MOH acts as a sink for OH, and therefore
+                ! will affect both the OH concentration and the
+                ! methylchloroform lifetime.
+                !
+                ! We specify the MOH concentration as ppbv, but then
+                ! we need to multiply by CONV_FACTOR in order to
+                ! convert to [molec/cm3].  (bdf, bmy, 2/22/02)
+                !----------------------------------------------------
 
+                ! Test for altitude (L < 9 is always in the trop)
+                IF ( L <= 9 ) THEN
+                   ! Test for ocean/land boxes
+                   IF ( State_Met%FRCLND(I,J) >= 0.5 ) THEN
+                      ! Continental boundary layer: 2 ppbv MOH
+                      State_Chm%Species(I,J,L,N) = 2.000e-9_fp * CONV_FACTOR
                    ELSE
-
-                      !----------------------------------------------------
-                      ! For methanol (MOH), now use different initial
-                      ! background concentrations for different regions of
-                      ! the atmosphere:
-                      !
-                      ! (a) 2.0 ppbv MOH -- continental boundary layer
-                      ! (b) 0.9 ppbv MOH -- marine boundary layer
-                      ! (c) 0.6 ppbv MOH -- free troposphere
-                      !
-                      ! The concentrations listed above are from Heikes et
-                      ! al, "Atmospheric methanol budget and ocean
-                      ! implication", _Global Biogeochem. Cycles_, 2002.
-                      ! These represent the best estimates for the methanol
-                      ! conc.'s in the troposphere based on various
-                      ! measurements.
-                      !
-                      ! MOH is an inactive chemical species in GEOS-CHEM,
-                      ! so these initial concentrations will never change.
-                      ! However, MOH acts as a sink for OH, and therefore
-                      ! will affect both the OH concentration and the
-                      ! methylchloroform lifetime.
-                      !
-                      ! We specify the MOH concentration as ppbv, but then
-                      ! we need to multiply by CONV_FACTOR in order to
-                      ! convert to [molec/cm3].  (bdf, bmy, 2/22/02)
-                      !----------------------------------------------------
-
-                      ! Test for altitude (L < 9 is always in the trop)
-                      IF ( L <= 9 ) THEN
-                         ! Test for ocean/land boxes
-                         IF ( State_Met%FRCLND(I,J) >= 0.5 ) THEN
-                            ! Continental boundary layer: 2 ppbv MOH
-                            State_Chm%Species(I,J,L,N) = 2.000e-9_fp * &
-                                                         CONV_FACTOR
-                         ELSE
-                            ! Marine boundary layer: 0.9 ppbv MOH
-                            State_Chm%Species(I,J,L,N) = 0.900e-9_fp * &
-                                                         CONV_FACTOR
-                         ENDIF
-                      ELSE
-                         ! Test for troposphere
-                         IF ( ITS_IN_THE_TROP(I,J,L,State_Met) ) THEN
-                            ! Free troposphere: 0.6 ppbv MOH
-                            State_Chm%Species(I,J,L,N) = 0.600e-9_fp * &
-                                                         CONV_FACTOR
-                         ELSE
-                            ! Strat/mesosphere:
-                            State_Chm%Species(I,J,L,N) = 0.0e+0_fp
-                         ENDIF
-                      ENDIF
+                      ! Marine boundary layer: 0.9 ppbv MOH
+                      State_Chm%Species(I,J,L,N) = 0.900e-9_fp * CONV_FACTOR
                    ENDIF
+                ELSE
+                   ! Test for troposphere
+                   IF ( ITS_IN_THE_TROP(I,J,L,State_Met) ) THEN
+                      ! Free troposphere: 0.6 ppbv MOH
+                      State_Chm%Species(I,J,L,N) = 0.600e-9_fp * CONV_FACTOR
+                   ELSE
+                      ! Strat/mesosphere:
+                      State_Chm%Species(I,J,L,N) = 0.0e+0_fp
+                   ENDIF
+                ENDIF
+             ENDIF
 
-                   ! Make a small number if concentration is neg or zero
-                   State_Chm%SPECIES(I,J,L,N) = &
+             ! Make a small number if concentration is neg or zero
+             State_Chm%SPECIES(I,J,L,N) = &
                         MAX( State_Chm%Species(I,J,L,N), 1d-99 )
 
-                ENDDO
-                ENDDO
-                ENDDO
-                !$OMP END PARALLEL DO
+          ENDDO
+          ENDDO
+          ENDDO
+          !$OMP END PARALLEL DO
 
-                ! Print the min and max of each species in [molec/cm3/box]
-                ! after conversion if in debug mode (ewl, 3/1/16)
-                IF ( Input_Opt%LPRT ) THEN
-                  WRITE(6,120) N, &
-                               TRIM( SPC_NAME ), &
-                               MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ), &
-                               MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) ) 
-120               FORMAT( 'Species ', i3, ', ', a9, ': Min = ', &
-                           es15.9, ', Max = ', es15.9 )
-               ENDIF
+          ! Print the min and max of each species in [molec/cm3/box]
+          ! after conversion if in debug mode (ewl, 3/1/16)
+          IF ( Input_Opt%LPRT ) THEN
+             WRITE(6,120) N, &
+                          TRIM( ThisSpc%Name ), &
+                          MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ), &
+                          MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) ) 
+120          FORMAT( 'Species ', i3, ', ', a9, ': Min = ', &
+                      es15.9, ', Max = ', es15.9 )
+          ENDIF
 
-             ENDIF  ! SPC_NAMES(N1) = SPC_NAME
+          ! Free pointer
+          ThisSpc => NULL()
 
-          ENDDO ! NSPEC
-
-       ENDDO ! N_SPECIES
+       ENDDO ! State_Chm%nSpecies
 
        ! Mark end of unit conversion in log
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -402,9 +411,6 @@ CONTAINS
     ! repeated costly string matching operations
     !=====================================================================
 
-    write(*,*) 'TEST O3:', IND_('O3'), IND_('O3','T'), IND_('O3','K'), IND_('O3','W'), IND_('O3','D')
-    read(*,*)
-
     ! MMN family
     T_MMN      = IND_( 'MMN',  'T')
     S_MVKN     = IND_( 'MVKN'     )
@@ -431,264 +437,387 @@ CONTAINS
     RETURN
 
   END SUBROUTINE INIT_FLEXCHEM
-
-  SUBROUTINE FAMILIES_KLUDGE(am_I_Root,STT,IO,SC,OPT,RC)
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FAMILIES_KLUDGE
+!
+! !DESCRIPTION: Subroutine FAMILIES\_KLUDGE is a temporary fix to account for
+!  family tracers in FlexChem
+!\\
+!\\
+! !INTERFACE: 
+!
+  SUBROUTINE FAMILIES_KLUDGE(am_I_Root,STT,IO,SC,SM,OPT,RC)
+!
+! !USES:
+!
     USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
-    REAL(kind=fp)  :: STT(:,:,:,:)
-    TYPE(OptInput) :: IO ! Short-hand for Input_Opt
-    TYPE(ChmState) :: SC ! Short-hand for State_Chem
-    INTEGER        :: RC,OPT
-    LOGICAL        :: am_I_Root
-
-    INTEGER N,S1,S2,S3
-    REAL(kind=fp)  ::  QSUM(IIPAR,JJPAR,LLPAR)
+    USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)    :: IO           ! Short-hand for Input_Opt
+    TYPE(MetState), INTENT(IN)    :: SM           ! Short-hand for State_Met
+    INTEGER,        INTENT(IN)    :: OPT          ! 1=Trc->Spc, 2=Spc->trc
+    LOGICAL,        INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: SC           ! Short-hand for State_Chem
+    REAL(kind=fp),  INTENT(INOUT) :: STT(:,:,:,:) ! GC tracer array
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
+!
+! !REMARKS:
+!  K -- L -- U -- D -- G -- E -- C -- O -- D -- E -- ! -- ! -- ! -- !
+!  THIS IS A TEMPORARY FIX AND NEEDS TO BE RESOLVED THROUGHOUT
+!  THE MODEL AS SOON AS IT APPEARS POSSIBLE TO DO SO!
+!  -- The following code ensures that the two remaining tracer
+!     families are dealt with appropriately.
+!     The Tracer MMN is a sum of the species MVKN and MACRN
+!     The Tracer ISOPN is a sum of ISOPND and ISOPNB
+!        The tracer restart file for the pre-flex GEOS-Chem, includes
+!     these families, but the removal of the routines
+!     "lump" and "partition" killed the code resposible for them.
+!        Here, we want to install a hard-code fix with the complete
+!     expectation that we will no longer use species families. Thus,
+!     when possible, the two remaining families need to be removed, 
+!     and this kludge disabled.
+!    M.S.L. - Jan., 5 2016
+!   
+! !REVISION HISTORY:
+!  05 Jan 2016 - M. Long     - Initial version
+!  28 Mar 2016 - R. Yantosca - Prevent div-by-zero statements. Renamed SUM to
+!                              QSUM to avoid conflicts with the Fortran
+!                              intrinsic function SUM.
+!  14 Jun 2016 - M. Sulprizio- Add ProTeX headers
+!  14 Jun 2016 - M. Sulprizio- Handle unit conversions between kg and molec/cm3
+!                              for family tracers in this routine instead of in
+!                              flex_chemdr.F
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER        :: N,S1,S2,S3,I,J,L
+    REAL(kind=fp)  :: QSUM(IIPAR,JJPAR,LLPAR)
     REAL(kind=fp)  :: QTEMP(IIPAR,JJPAR,LLPAR)
-    
-    
-      ! K -- L -- U -- D -- G -- E -- C -- O -- D -- E -- ! -- ! -- ! -- !
-      ! THIS IS A TEMPORARY FIX AND NEEDS TO BE RESOLVED THROUGHOUT
-      ! THE MODEL AS SOON AS IT APPEARS POSSIBLE TO DO SO!
-      ! -- The following code ensures that the two remaining tracer
-      !    families are dealt with appropriately.
-      !    The Tracer MMN is a sum of the species MVKN and MACRN
-      !    The Tracer ISOPN is a sum of ISOPND and ISOPNB
-      !       The tracer restart file for the pre-flex GEOS-Chem, includes
-      !    these families, but the removal of the routines
-      !    "lump" and "partition" killed the code resposible for them.
-      !       Here, we want to install a hard-code fix with the complete
-      !    expectation that we will no longer use species families. Thus,
-      !    when possible, the two remaining families need to be removed, 
-      !    and this kludge disabled.
-      !   M.S.L. - Jan., 5 2016
-      !
-      ! Prevent div-by-zero statements.  Renamed SUM to QSUM to avoid
-      ! conflicts with the Fortran intrinsic function SUM.
-      !  (bmy, 3/28/16)
-      !
+    REAL(kind=fp)  :: STTTEMP(IIPAR,JJPAR,LLPAR)
 
+    ! Assume success
+    RC = GIGC_SUCCESS
+
+    !-------------------------------------------------------------------------
+    ! Part 1: From Tracers to Species
+    !-------------------------------------------------------------------------
     IF (OPT .eq. 1) THEN
-      ! Part 1: From Tracers to Species
 
-      ! -- Process MMN family
-      N  = T_MMN     ! MMN   species index
-      S1 = S_MVKN    ! MVKN  species index
-      S2 = S_MACRN   ! MACRN species index
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%% Process MMN family
+       !%%%%
+       !%%%% NOTE: MMN = 1.0 MVKN + 1.0 MACRN
+       !%%%% so TRACER_COEFF is always 1 in this case.
+       !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
+       !%%%% (bmy, 5/17/16)
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       N  = T_MMN     ! MMN   tracer  index
+       S1 = S_MVKN    ! MVKN  species index
+       S2 = S_MACRN   ! MACRN species index
 
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%%% NOTE: MMN = 1.0 MVKN + 1.0 MACRN
-      !%%%% so TRACER_COEFF is always 1 in this case.
-      !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
-      !%%%% (bmy, 5/17/16)
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       ! Convert concentrations from kg to molec/cm3 for SC%Species
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          STTTEMP(I,J,L) = STT(I,J,L,N) * &
+                           IO%XNUMOL(N) / ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+       ENDDO
+       ENDDO
+       ENDDO
 
-      ! Sum of constituents
-      QSUM   = SC%Species(:,:,:,S1) + SC%Species(:,:,:,S2)
+       ! Sum of constituents
+       QSUM   = SC%Species(:,:,:,S1) + SC%Species(:,:,:,S2)
 
-      ! -- -- First, do MVKN
-      WHERE( QSUM > 0.0_fp ) 
-         QTEMP = SC%Species(:,:,:,S1) / QSUM
-      ELSEWHERE
-         QTEMP = 0.0_fp
-      ENDWHERE
-      SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+       ! -- -- First, do MVKN
+       WHERE( QSUM > 0.0_fp ) 
+          QTEMP = SC%Species(:,:,:,S1) / QSUM
+       ELSEWHERE
+          QTEMP = 0.0_fp
+       ENDWHERE
+       SC%Species(:,:,:,S1) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 
-      ! -- -- Then, do MACRN
-      WHERE( QSUM > 0.0_fp ) 
-         QTEMP = SC%Species(:,:,:,S2) / QSUM
-      ELSEWHERE
-         QTEMP = 0.0_fp
-      ENDWHERE
-      SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+       ! -- -- Then, do MACRN
+       WHERE( QSUM > 0.0_fp ) 
+          QTEMP = SC%Species(:,:,:,S2) / QSUM
+       ELSEWHERE
+          QTEMP = 0.0_fp
+       ENDWHERE
+       SC%Species(:,:,:,S2) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 
-      ! -- Process ISOPN family
-      ! -- Get the tracer and species indices
-      N  = T_ISOPN    ! ISOPN  tracer  index
-      S1 = S_ISOPND   ! ISOPND species index
-      S2 = S_ISOPNB   ! ISOPNB species index
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%% Process ISOPN family
+       !%%%%
+       !%%%% NOTE: ISOPN = 1.0 ISOPND + 1.0 ISOPNB
+       !%%%% so TRACER_COEFF is always 1 in this case.
+       !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
+       !%%%% (bmy, 5/17/16)
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       N  = T_ISOPN    ! ISOPN  tracer  index
+       S1 = S_ISOPND   ! ISOPND species index
+       S2 = S_ISOPNB   ! ISOPNB species index
 
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%%% NOTE: ISOPN = 1.0 ISOPND + 1.0 ISOPNB
-      !%%%% so TRACER_COEFF is always 1 in this case.
-      !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
-      !%%%% (bmy, 5/17/16)
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       ! Convert concentrations from kg to molec/cm3 for SC%Species
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          STTTEMP(I,J,L) = STT(I,J,L,N) * &
+                           IO%XNUMOL(N) / ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+       ENDDO
+       ENDDO
+       ENDDO
 
-      ! Sum of constitutents
-      QSUM = SC%Species(:,:,:,S1) + SC%Species(:,:,:,S2)
+       ! Sum of constitutents
+       QSUM = SC%Species(:,:,:,S1) + SC%Species(:,:,:,S2)
 
-      ! -- -- First, do ISOPND
-      WHERE( QSUM > 0.0_fp ) 
-         QTEMP = ( SC%Species(:,:,:,S1) ) / QSUM
-      ELSEWHERE
-         QTEMP = 0.0_fp
-      ENDWHERE
-      SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+       ! -- -- First, do ISOPND
+       WHERE( QSUM > 0.0_fp ) 
+          QTEMP = ( SC%Species(:,:,:,S1) ) / QSUM
+       ELSEWHERE
+          QTEMP = 0.0_fp
+       ENDWHERE
+       SC%Species(:,:,:,S1) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 
-      ! -- -- Then, do ISOPNB
-      WHERE( QSUM > 0.0_fp ) 
-         QTEMP = ( SC%Species(:,:,:,S2) ) / QSUM
-      ELSEWHERE
-         QTEMP = 0.0_fp
-      ENDWHERE
-      SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+       ! -- -- Then, do ISOPNB
+       WHERE( QSUM > 0.0_fp ) 
+          QTEMP = ( SC%Species(:,:,:,S2) ) / QSUM
+       ELSEWHERE
+          QTEMP = 0.0_fp
+       ENDWHERE
+       SC%Species(:,:,:,S2) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 
 #if defined( UCX )
-      ! -- Process CFCX family
-      N  = T_CFCX     ! CFCX   tracer  index
-      S1 = S_CFC113   ! CFC113 species index
-      S2 = S_CFC114   ! CFC114 species index
-      S3 = S_CFC115   ! CFC115 species index
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%% Process CFCX family
+       !%%%%
+       !%%%% NOTE: CFCX = 1.0 CFC113 + 1.0 CFC114 + 1.0 CFC115
+       !%%%% so TRACER_COEFF is always 1 in this case.
+       !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
+       !%%%% (bmy, 5/17/16)
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       N  = T_CFCX     ! CFCX   tracer  index
+       S1 = S_CFC113   ! CFC113 species index
+       S2 = S_CFC114   ! CFC114 species index
+       S3 = S_CFC115   ! CFC115 species index
 
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%%% NOTE: CFCX = 1.0 CFC113 + 1.0 CFC114 + 1.0 CFC115
-      !%%%% so TRACER_COEFF is always 1 in this case.
-      !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
-      !%%%% (bmy, 5/17/16)
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       ! Convert concentrations from kg to molec/cm3 for SC%Species
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          STTTEMP(I,J,L) = STT(I,J,L,N) * &
+                           IO%XNUMOL(N) / ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+       ENDDO
+       ENDDO
+       ENDDO
 
-      ! Sum of constituents
-      QSUM  = SC%Species(:,:,:,S1) &
-            + SC%Species(:,:,:,S2) &
-            + SC%Species(:,:,:,S3) 
+       ! Sum of constituents
+       QSUM  = SC%Species(:,:,:,S1) &
+             + SC%Species(:,:,:,S2) &
+             + SC%Species(:,:,:,S3) 
 
-      ! -- -- First, do CFC113
-      WHERE( QSUM > 0.0_fp )
-         QTEMP = SC%Species(:,:,:,S1) / QSUM
-      ELSEWHERE
-         QTEMP = 0.0_fp
-      ENDWHERE
-      SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+       ! -- -- First, do CFC113
+       WHERE( QSUM > 0.0_fp )
+          QTEMP = SC%Species(:,:,:,S1) / QSUM
+       ELSEWHERE
+          QTEMP = 0.0_fp
+       ENDWHERE
+       SC%Species(:,:,:,S1) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 
-      ! -- -- Then, do CFC114
-      WHERE( QSUM > 0.0_fp )
-         QTEMP = SC%Species(:,:,:,S2) / QSUM
-      ELSEWHERE
-         QTEMP = 0.0_fp
-      ENDWHERE
-      SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+       ! -- -- Then, do CFC114
+       WHERE( QSUM > 0.0_fp )
+          QTEMP = SC%Species(:,:,:,S2) / QSUM
+       ELSEWHERE
+          QTEMP = 0.0_fp
+       ENDWHERE
+       SC%Species(:,:,:,S2) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 
-      ! -- -- Then, do CFC115
-      WHERE( QSUM > 0.0_fp )
-         QTEMP = SC%Species(:,:,:,S3) / QSUM
-      ELSEWHERE
-         QTEMP = 0.0_fp
-      ENDWHERE
-      SC%Species(:,:,:,S3) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+       ! -- -- Then, do CFC115
+       WHERE( QSUM > 0.0_fp )
+          QTEMP = SC%Species(:,:,:,S3) / QSUM
+       ELSEWHERE
+          QTEMP = 0.0_fp
+       ENDWHERE
+       SC%Species(:,:,:,S3) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 
-      ! -- Process HCFCX family
-      N  = T_HCFCX      ! HCFCX    tracer  index
-      S1 = S_HCFC123    ! HCFC123  species index
-      S2 = S_HCFC141b   ! HCFC141b species index
-      S3 = S_HCFC142b   ! HCFC142b species index
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%% Process HCFCX family
+       !%%%%
+       !%%%% NOTE: HCFCX = 1.0 HCFC123 + 1.0 HCFC141b + 1.0 HFCC142b
+       !%%%% so TRACER_COEFF is always 1 in this case.
+       !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
+       !%%%% (bmy, 5/17/16)
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       N  = T_HCFCX      ! HCFCX    tracer  index
+       S1 = S_HCFC123    ! HCFC123  species index
+       S2 = S_HCFC141b   ! HCFC141b species index
+       S3 = S_HCFC142b   ! HCFC142b species index
 
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%%% NOTE: HCFCX = 1.0 HCFC123 + 1.0 HCFC141b + 1.0 HFCC142b
-      !%%%% so TRACER_COEFF is always 1 in this case.
-      !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
-      !%%%% (bmy, 5/17/16)
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       ! Convert concentrations from kg to molec/cm3 for SC%Species
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          STTTEMP(I,J,L) = STT(I,J,L,N) * &
+                           IO%XNUMOL(N) / ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+       ENDDO
+       ENDDO
+       ENDDO
       
-      ! Sum of constituents
-      QSUM  = SC%Species(:,:,:,S1) &
-            + SC%Species(:,:,:,S2) &
-            + SC%Species(:,:,:,S3)
+       ! Sum of constituents
+       QSUM  = SC%Species(:,:,:,S1) &
+             + SC%Species(:,:,:,S2) &
+             + SC%Species(:,:,:,S3)
 
-      ! -- -- First, do HCFC123
-      WHERE( QSUM > 0.0_fp )
-         QTEMP = SC%Species(:,:,:,S1) / QSUM
-      ELSEWHERE
-         QTEMP = 0.0_fp
-      ENDWHERE
-      SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+       ! -- -- First, do HCFC123
+       WHERE( QSUM > 0.0_fp )
+          QTEMP = SC%Species(:,:,:,S1) / QSUM
+       ELSEWHERE
+          QTEMP = 0.0_fp
+       ENDWHERE
+       SC%Species(:,:,:,S1) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 
-      ! -- -- Then, do HCFC141b
-      WHERE( QSUM > 0.0_fp )
-         QTEMP = SC%Species(:,:,:,S2) / QSUM
-      ELSEWHERE
-         QTEMP = 0.0_fp
-      ENDWHERE
-      SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+       ! -- -- Then, do HCFC141b
+       WHERE( QSUM > 0.0_fp )
+          QTEMP = SC%Species(:,:,:,S2) / QSUM
+       ELSEWHERE
+          QTEMP = 0.0_fp
+       ENDWHERE
+       SC%Species(:,:,:,S2) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 
-      ! -- -- Then, do HCFC142b
-      WHERE( QSUM > 0.0_fp )
-         QTEMP = SC%Species(:,:,:,S3) / QSUM
-      ELSEWHERE
-         QTEMP = 0.0_fp
-      ENDWHERE
-      SC%Species(:,:,:,S3) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+       ! -- -- Then, do HCFC142b
+       WHERE( QSUM > 0.0_fp )
+          QTEMP = SC%Species(:,:,:,S3) / QSUM
+       ELSEWHERE
+          QTEMP = 0.0_fp
+       ENDWHERE
+       SC%Species(:,:,:,S3) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 #endif
 
-      ! E -- N -- D -- O -- F -- K -- L -- U -- D -- G -- E -- -- P -- T -- 1
-      ELSEIF (OPT .eq. 2) THEN
-         ! K -- L -- U -- D -- G -- E -- -- P -- T -- 2
-         ! Part 2: From Species to Tracers
+    !------------------------------------------------------------------------
+    ! Part 2: From Species to Tracers
+    !------------------------------------------------------------------------
+    ELSEIF (OPT .eq. 2) THEN
 
-         ! -- Process MMN family
-         N  = T_MMN     ! MMN   species index
-         S1 = S_MVKN    ! MVKN  species index
-         S2 = S_MACRN   ! MACRN species index
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%% Process MMN family
+       !%%%%
+       !%%%% NOTE: MMN = 1.0 MVKN + 1.0 MACRN
+       !%%%% so TRACER_COEFF is always 1 in this case.
+       !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       N  = T_MMN     ! MMN   species index
+       S1 = S_MVKN    ! MVKN  species index
+       S2 = S_MACRN   ! MACRN species index
 
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         !%%%% NOTE: MMN = 1.0 MVKN + 1.0 MACRN
-         !%%%% so TRACER_COEFF is always 1 in this case.
-         !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         STT(:,:,:,N) = SC%Species(:,:,:,S1) + SC%Species(:,:,:,S2)
+       STT(:,:,:,N) = SC%Species(:,:,:,S1) + SC%Species(:,:,:,S2)
 
-         ! -- Process ISOPN family
-         ! -- Get the tracer and species indices
-         N  = T_ISOPN    ! ISOPN  tracer  index
-         S1 = S_ISOPND   ! ISOPND species index
-         S2 = S_ISOPNB   ! ISOPNB species index
+       ! Convert concentrations from molec/cm3 to kg for STT
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          STT(I,J,L,N) = STT(I,J,L,N) / &
+                         IO%XNUMOL(N) * ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+       ENDDO
+       ENDDO
+       ENDDO
 
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         !%%%% NOTE: ISOPN = 1.0 ISOPND + 1.0 ISOPNB
-         !%%%% so TRACER_COEFF is always 1 in this case.
-         !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
-         !%%%% (bmy, 5/17/16)
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         STT(:,:,:,N) = SC%Species(:,:,:,S1) + SC%Species(:,:,:,S2)
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%% Process ISOPN family
+       !%%%%
+       !%%%% NOTE: ISOPN = 1.0 ISOPND + 1.0 ISOPNB
+       !%%%% so TRACER_COEFF is always 1 in this case.
+       !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
+       !%%%% (bmy, 5/17/16)
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       N  = T_ISOPN    ! ISOPN  tracer  index
+       S1 = S_ISOPND   ! ISOPND species index
+       S2 = S_ISOPNB   ! ISOPNB species index
+
+       STT(:,:,:,N) = SC%Species(:,:,:,S1) + SC%Species(:,:,:,S2)
          
+       ! Convert concentrations from molec/cm3 to kg for STT
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          STT(I,J,L,N) = STT(I,J,L,N) / &
+                         IO%XNUMOL(N) * ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+       ENDDO
+       ENDDO
+       ENDDO
+
 #if defined( UCX )
-         ! -- Process CFCX family
-         N  = T_CFCX     ! CFCX   tracer  index
-         S1 = S_CFC113   ! CFC113 species index
-         S2 = S_CFC114   ! CFC114 species index
-         S3 = S_CFC115   ! CFC115 species index
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%% Process CFCX family
+       !%%%%
+       !%%%% NOTE: CFCX = 1.0 CFC113 + 1.0 CFC114 + 1.0 CFC115
+       !%%%% so TRACER_COEFF is always 1 in this case.
+       !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
+       !%%%% (bmy, 5/17/16)
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       N  = T_CFCX     ! CFCX   tracer  index
+       S1 = S_CFC113   ! CFC113 species index
+       S2 = S_CFC114   ! CFC114 species index
+       S3 = S_CFC115   ! CFC115 species index
 
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         !%%%% NOTE: CFCX = 1.0 CFC113 + 1.0 CFC114 + 1.0 CFC115
-         !%%%% so TRACER_COEFF is always 1 in this case.
-         !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
-         !%%%% (bmy, 5/17/16)
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       STT(:,:,:,N) = SC%Species(:,:,:,S1) &
+                    + SC%Species(:,:,:,S2) &
+                    + SC%Species(:,:,:,S3)
 
-         STT(:,:,:,N) = SC%Species(:,:,:,S1) &
-                      + SC%Species(:,:,:,S2) &
-                      + SC%Species(:,:,:,S3)
+       ! Convert concentrations from molec/cm3 to kg for STT
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          STT(I,J,L,N) = STT(I,J,L,N) / &
+                         IO%XNUMOL(N) * ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+       ENDDO
+       ENDDO
+       ENDDO
 
-         ! -- Process HCFCX family
-         N  = T_HCFCX      ! HCFCX    tracer  index
-         S1 = S_HCFC123    ! HCFC123  species index
-         S2 = S_HCFC141b   ! HCFC141b species index
-         S3 = S_HCFC142b   ! HCFC142b species index
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%% Process HCFCX family
+       !%%%%
+       !%%%% NOTE: HCFCX = 1.0 HCFC123 + 1.0 HCFC141b + 1.0 HFCC142b
+       !%%%% so TRACER_COEFF is always 1 in this case.
+       !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
+       !%%%% (bmy, 5/17/16)
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       N  = T_HCFCX      ! HCFCX    tracer  index
+       S1 = S_HCFC123    ! HCFC123  species index
+       S2 = S_HCFC141b   ! HCFC141b species index
+       S3 = S_HCFC142b   ! HCFC142b species index
 
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         !%%%% NOTE: HCFCX = 1.0 HCFC123 + 1.0 HCFC141b + 1.0 HFCC142b
-         !%%%% so TRACER_COEFF is always 1 in this case.
-         !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
-         !%%%% (bmy, 5/17/16)
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       STT(:,:,:,N) = SC%Species(:,:,:,S1) &
+                    + SC%Species(:,:,:,S2) &
+                    + SC%Species(:,:,:,S3)
 
-         STT(:,:,:,N) = SC%Species(:,:,:,S1) &
-                      + SC%Species(:,:,:,S2) &
-                      + SC%Species(:,:,:,S3)
+       ! Convert concentrations from molec/cm3 to kg for STT
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          STT(I,J,L,N) = STT(I,J,L,N) / &
+                         IO%XNUMOL(N) * ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+       ENDDO
+       ENDDO
+       ENDDO
 #endif
-      ! E -- N -- D -- O -- F -- K -- L -- U -- D -- G -- E -- -- P -- T -- 2
 
-      ELSE
-         write(*,*) 'OPT NOT SET TO 1 OR 2 IN FlexChem_Setup_Mod::FAMILIES_KLUDGE'
-      ENDIF
+    ELSE
+       write(*,*) 'OPT NOT SET TO 1 OR 2 IN FlexChem_Setup_Mod::FAMILIES_KLUDGE'
+    ENDIF
     
     RETURN
 

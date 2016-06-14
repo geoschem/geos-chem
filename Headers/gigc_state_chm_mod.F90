@@ -31,9 +31,7 @@ MODULE GIGC_State_Chm_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: Get_Indx, Ind_
-  PUBLIC :: Register_Species
-  PUBLIC :: Register_Tracer
+  PUBLIC :: Ind_
   PUBLIC :: Init_GIGC_State_Chm
   PUBLIC :: Cleanup_GIGC_State_Chm
 !
@@ -130,6 +128,9 @@ MODULE GIGC_State_Chm_Mod
 !  12 May 2016 - M. Sulprizio- Add WetAeroArea, WetAeroRadi to replace 1D arrays
 !                              WTARE, WERADIUS previously in comode_mod.F
 !  18 May 2016 - R. Yantosca - Add mapping vectors for subsetting species
+!  07 Jun 2016 - M. Sulprizio- Remove routines Get_Indx, Register_Species, and
+!                              Register_Tracer made obsolete by the species
+!                              database.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -140,66 +141,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_indx 
+! !IROUTINE: ind_
 !
-! !DESCRIPTION: Function GET\_INDX returns the index of an advected tracer or 
-!  chemical species contained in the chemistry state object by name.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION Get_Indx( name, allIds, allNames ) RESULT( Indx )
-!
-! !INPUT PARAMETERS:
-!
-    CHARACTER(LEN=*), INTENT(IN) :: name         ! Species or tracer name
-    CHARACTER(LEN=*), INTENT(IN) :: allNames(:)  ! List of species/tracer names
-    INTEGER,          INTENT(IN) :: allIDs(:)    ! List of species/tracer IDs 
-!
-! !RETURN VALUE:
-!
-    INTEGER                      :: Indx         ! Index of this species 
-!
-! !REMARKS
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%%%  NOTE: THIS WILL SOON BE MADE OBSOLETE BY THE FAST SPECIES  %%%%%
-!  %%%%%  LOOKUP ALGORITHM (bmy, 5/17/16)                            %%%%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
-! !REVISION HISTORY: 
-!  09 Oct 2012 - M. Long     - Initial version, based on gc_esmf_utils_mod.F90
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER :: M
-
-    ! Initialize
-    Indx= -1
-
-    ! Loop over all species names
-    DO M = 1, SIZE( allNames )
-
-       ! Return the index of the sought-for species
-       IF( TRIM( name ) == TRIM( allNames(M) ) ) THEN
-          Indx = allIDs(M)
-          EXIT
-       ENDIF
-
-    ENDDO
-
-  END FUNCTION Get_Indx
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_indx 
-!
-! !DESCRIPTION: Function GET\_INDX returns the index of an advected tracer or 
+! !DESCRIPTION: Function IND\_ returns the index of an advected tracer or 
 !  chemical species contained in the chemistry state object by name.
 !\\
 !\\
@@ -209,12 +153,12 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*),           INTENT(IN) :: name         ! Species or tracer name
+    CHARACTER(LEN=*),           INTENT(IN) :: name  ! Species or tracer name
     CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: flag
 !
 ! !RETURN VALUE:
 !
-    INTEGER                      :: Indx         ! Index of this species 
+    INTEGER                                :: Indx  ! Index of this species 
 !
 ! !REMARKS
 !
@@ -276,136 +220,6 @@ CONTAINS
 
     RETURN
   END FUNCTION Ind_
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: register_species
-!
-! !DESCRIPTION: Routine REGISTER\_SPECIES stores the names of GEOS-Chem 
-!  chemical species in fields of the Chemistry State (aka State\_Chm) object.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Register_Species( Name, Id, State_Chm, Status )
-!
-! !INPUT PARAMETERS: 
-!
-    CHARACTER(LEN=*), INTENT(IN)    :: Name       ! Name of desired species
-    INTEGER,          INTENT(IN)    :: Id         ! ID flag of desired species
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-    TYPE(ChmState),   INTENT(INOUT) :: State_Chm  ! Chemistry State object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,          INTENT(OUT)   :: Status     ! Success or failure
-!
-! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%%%  NOTE: THIS WILL SOON BE MADE OBSOLETE BY THE FAST SPECIES  %%%%%
-!  %%%%%  LOOKUP ALGORITHM (bmy, 5/17/16)                            %%%%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!   This routine is called from SETTRACE in tracerid_mod.F.
-! 
-! !REVISION HISTORY: 
-!  15 Oct 2012 - M. Long     - Initial version, based on gc_esmf_type_mod.F90
-!  07 Mar 2013 - R. Yantosca - Now make POSITION a locally saved variable
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Position index
-    INTEGER,  SAVE :: POSITION = 1
-    
-    !======================================================================
-    ! REGISTER_SPECIES begins here!
-    !======================================================================
-
-    ! We have not found the desired species yet
-    Status                          = -1
-    
-    ! Locate the species name and ID
-    State_Chm%Spec_Name( POSITION ) = TRIM( Name )
-    State_Chm%Spec_Id  ( POSITION ) = Id
-    
-    ! Return status
-    Status                          = POSITION
-
-    ! Increment for next species
-    POSITION                        = POSITION + 1
-   
-  END SUBROUTINE Register_Species
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Register_Tracer
-!
-! !DESCRIPTION: Routine REGISTER\_TRACER stores the names of GEOS-Chem
-!  advected tracers in fields of the Chemistry State (aka State\_Chm) object.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Register_Tracer( Name, Id, State_Chm, Status )
-!
-! !INPUT PARAMETERS:
-!
-    CHARACTER(LEN=*), INTENT(IN)    :: Name       ! Name of desired tracer
-    INTEGER,          INTENT(IN)    :: Id         ! ID flag of desired tracer
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ChmState),   INTENT(INOUT) :: State_Chm  ! Chemistry State object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,          INTENT(OUT)   :: Status     ! Success or failure
-!
-! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%%%  NOTE: THIS WILL SOON BE MADE OBSOLETE BY THE FAST SPECIES  %%%%%
-!  %%%%%  LOOKUP ALGORITHM (bmy, 5/17/16)                            %%%%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
-! !REVISION HISTORY:
-!   7 Mar 2013 - R. Yantosca - Initial version, based on Register_SPecies
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Position index
-    INTEGER, SAVE :: POSITION = 1
-
-    !======================================================================
-    ! REGISTER_TRACER begins here!
-    !======================================================================
-
-    ! We have not found the desired species yet
-    Status                          = -1
-
-    ! Locate the tracer name and ID
-    State_Chm%Trac_Name( POSITION ) = TRIM( Name )
-    State_Chm%Trac_Id  ( POSITION ) = ID
-
-    ! Return status
-    Status                          = POSITION
-
-    ! Increment for next species
-    POSITION                        = POSITION + 1
-
-  END SUBROUTINE Register_Tracer
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -522,6 +336,7 @@ CONTAINS
     State_Chm%Trac_ID     => NULL()
     State_Chm%Trac_Name   => NULL()
     State_Chm%Tracers     => NULL()
+    State_Chm%Trac_Units  = ''
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     ! Chemical species

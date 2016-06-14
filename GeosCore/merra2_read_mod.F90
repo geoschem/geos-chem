@@ -483,6 +483,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
     
+    ! Name of this routine (for error printout)
+    caller  = "MERRA2_READ_A1 (merra2_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 10000 ) + 1
 
@@ -498,9 +501,6 @@ CONTAINS
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN     
     
-       ! Name of this routine (for error printout)
-       caller  = "MERRA2_READ_A1 (merra2_read_mod.F90)"
-
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%MERRA2_DIR )
        CALL Expand_Date( dir, YYYYMMDD, HHMMSS )
@@ -983,6 +983,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
     
+    ! Name of this routine (for error printout)
+    caller  = "MERRA2_READ_A3cld (Merra2_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -998,9 +1001,6 @@ CONTAINS
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
        
-       ! Name of this routine (for error printout)
-       caller  = "MERRA2_READ_A3cld (Merra2_read_mod.F90)"
-
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%MERRA2_DIR )
        CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
@@ -1163,6 +1163,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
     
+    ! Name of this routine (for error printout)
+    caller  = "MERRA2_READ_A3dyn (merra2_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1178,9 +1181,6 @@ CONTAINS
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
        
-       ! Name of this routine (for error printout)
-       caller  = "MERRA2_READ_A3dyn (merra2_read_mod.F90)"
-
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%MERRA2_DIR )
        CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
@@ -1345,6 +1345,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
     
+    ! Name of this routine (for error printout)
+    caller  = "MERRA2_READ_A3mstC (merra2_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1360,9 +1363,6 @@ CONTAINS
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
        
-       ! Name of this routine (for error printout)
-       caller  = "MERRA2_READ_A3mstC (merra2_read_mod.F90)"
-
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%MERRA2_DIR )
        CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
@@ -1509,6 +1509,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
     
+    ! Name of this routine (for error printout)
+    caller  = "MERRA2_READ_A3mstE (merra2_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1524,9 +1527,6 @@ CONTAINS
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
        
-       ! Name of this routine (for error printout)
-       caller  = "MERRA2_READ_A3mstE (merra2_read_mod.F90)"
-
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%MERRA2_DIR )
        CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
@@ -1701,6 +1701,9 @@ CONTAINS
     ! Read data from the netCDF file
     !======================================================================
     
+    ! Name of this routine (for error printout)
+    caller  = "MERRA2_READ_I3_1 (merra2_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1716,9 +1719,6 @@ CONTAINS
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
        
-       ! Name of this routine (for error printout)
-       caller  = "MERRA2_READ_I3_1 (merra2_read_mod.F90)"
-
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%MERRA2_DIR )
        CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
@@ -1922,6 +1922,9 @@ CONTAINS
     ! Read data from the netCDF file
     !======================================================================
     
+    ! Name of this routine (for error printout)
+    caller  = "MERRA2_READ_I3_2 (merra2_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1937,9 +1940,6 @@ CONTAINS
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
        
-       ! Name of this routine (for error printout)
-       caller  = "MERRA2_READ_I3_2 (merra2_read_mod.F90)"
-
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%MERRA2_DIR )
        CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )

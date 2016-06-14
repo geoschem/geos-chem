@@ -1659,10 +1659,10 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_State_Chm_Mod,    ONLY : ChmState
-    USE GIGC_State_Chm_Mod,    ONLY : Get_Indx
     USE GIGC_Input_Opt_Mod,    ONLY : OptInput
     USE HCO_LogFile_Mod,       ONLY : HCO_SPEC2LOG
     USE Species_Mod,           ONLY : Species
+    USE Species_Mod,           ONLY : Spc_GetIndx
 !
 ! !INPUT PARAMETERS:
 !
@@ -1689,6 +1689,8 @@ CONTAINS
 !  01 Sep 2015 - R. Yantosca - Remove reference to GET_HENRY_CONSTANT; we now
 !                              get Henry constants from the species database
 !  02 May 2016 - R. Yantosca - Now initialize IDTPOPG here
+!  06 Jun 2016 - M. Sulprizio- Replace Get_Indx with Spc_GetIndx to use the
+!                              fast-species lookup from the species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1740,15 +1742,14 @@ CONTAINS
        ! in the SOA simulation, i.e. if LIMO is defined. Thus, add one more
        ! species here if LIMO is a model species and calculate SESQ emissions
        ! along with LIMO!
-       IDTLIMO = Get_Indx('LIMO', Input_Opt%ID_TRACER, Input_Opt%TRACER_NAME )
+       IDTLIMO = Spc_GetIndx( 'LIMO', State_Chm%SpcData )
        IF ( IDTLIMO > 0 ) THEN
           nSpc = nSpc + 1
        ENDIF
  
        ! Now define the IDTPOPG tracer locally (bmy, 5/2/16)
        IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
-          IDTPOPG = Get_Indx( 'POPG', Input_Opt%ID_TRACER,   &
-                                      Input_Opt%TRACER_NAME )
+          IDTPOPG = Spc_GetIndx( 'POPG', State_Chm%SpcData )
        ELSE
           IDTPOPG = 0
        ENDIF

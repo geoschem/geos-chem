@@ -30,7 +30,7 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
-      USE GIGC_State_Chm_Mod,   ONLY : ChmState, Get_Indx
+      USE GIGC_State_Chm_Mod,   ONLY : ChmState
       USE GIGC_State_Met_Mod,   ONLY : MetState
       USE GRID_MOD,             ONLY : GET_YMID
       USE HCO_DIAGN_MOD,        ONLY : Diagn_Update
@@ -38,6 +38,7 @@
       USE PHYSCONSTANTS,        ONLY : AVO
       USE PRECISION_MOD
       USE PRESSURE_MOD        
+      USE Species_Mod,          ONLY : Species
       USE TIME_MOD,             ONLY : GET_TS_CHEM
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : GET_YEAR
@@ -88,6 +89,12 @@
 !  16 May 2016 - M. Sulprizio- Remove call to RURALBOX. The implemementation of
 !                              FlexChem has rendered the routine obsolete.
 !  31 May 2016 - E. Lundgren - Use species database MW instead of XNUMOL
+!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
+!                              NAMEGAS with ThisSpc%Name from species database
+!  14 Jun 2016 - M. Sulprizio- Replace loops over N_TRACERS with loops over
+!                              State_Chm%nSpecies and add checks for Is_Advected
+!                              and Is_Kpp to avoid introducing numerical noise
+!                              by applying unit conversions to non-KPP species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -156,9 +163,15 @@
       ! For the species database
       REAL(fp)              :: MolecRatio, MW_kg
 
+      ! Objects
+      TYPE(Species), POINTER :: ThisSpc
+
       !=================================================================
       ! FLEX_CHEMDR begins here!
       !=================================================================
+
+      ! Initialize pointer
+      ThisSpc => NULL()
 
       ! Turn heterogeneous chemistry and photolysis on/off here
       ! This is for testing only and may be removed later (mps, 4/26/16)
@@ -277,27 +290,37 @@
       !    - if SOA_SVPOA, LNRO2H and LNRO2N for NAP (hotp 6/25/09
       ! Done in gasconc.F every timestep prior to FlexChem (ewl, 3/30/16)
       !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( N )
-      DO N = 1, Input_opt%N_SPECIES
+      DO N = 1, State_Chm%nSpecies
+
+         ! Get info about this species from the species database
+         ThisSpc => State_Chm%SpcData(N)%Info
 
          ! isoprene oxidation counter species
-         IF ( State_Chm%Spec_Name(N) == 'LISOPOH' .or.
-     &        State_Chm%Spec_Name(N) == 'LISOPNO3' ) THEN
+         IF ( TRIM( ThisSpc%Name ) == 'LISOPOH' .or.
+     &        TRIM( ThisSpc%Name ) == 'LISOPNO3' ) THEN
                State_Chm%Species(:,:,:,N) = 0e+0_fp
          ENDIF
 
          ! aromatic oxidation counter species
          IF ( Input_Opt%LSOA .or. Input_Opt%LSVPOA ) THEN
-            SELECT CASE ( State_Chm%Spec_Name(N) )
+            SELECT CASE ( TRIM( ThisSpc%Name ) )
                CASE ( 'LBRO2H', 'LBRO2N', 'LTRO2H', 'LTRO2N',
      &                'LXRO2H', 'LXRO2N', 'LNRO2H', 'LNRO2N' )
                   State_Chm%Species(:,:,:,N) = 0e+0_fp
             END SELECT
          ENDIF
+
+         ! Temporary fix for CO2
+         ! CO2 is a dead species and needs to be set to zero to 
+         ! match the old SMVGEAR code (mps, 6/14/16)
+         IF ( TRIM( ThisSpc%Name ) == 'CO2' ) THEN
+            State_Chm%Species(:,:,:,N) = 0e+0_fp
+         ENDIF
+
+         ! Free pointer
+         ThisSpc => NULL()
+
       ENDDO
-!$OMP END PARALLEL DO
       
       !=================================================================
       ! Call RDAER -- computes aerosol optical depths
@@ -347,8 +370,15 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg )
-      DO N = 1, N_TRACERS
+!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg, ThisSpc )
+      DO N = 1, State_Chm%nSpecies
+
+         ! Get info about this species from the species database
+         ThisSpc => State_Chm%SpcData(N)%Info
+
+         ! Skip non-advected and non-KPP species
+         IF ( .not. This Spc%Is_Advected ) CYCLE
+         IF ( .not. ThisSpc%Is_Kpp       ) CYCLE
 
          ! Moles C per moles species
          MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
@@ -374,10 +404,16 @@
          ENDDO
          ENDDO
          ENDDO
+
+         ! Free pointer
+         ThisSpc => NULL()
+
       ENDDO
 !$OMP END PARALLEL DO
       
-      CALL FAMILIES_KLUDGE(am_I_Root,STT,Input_Opt,State_Chm,1,RC)
+      ! Kludge for families: tracers to species
+      CALL FAMILIES_KLUDGE(am_I_Root,STT,Input_Opt,State_Chm,State_Met,
+     &                     1,RC)
  
       !=================================================================
       ! Convert STT from molec/cm3 back to kg (required for 
@@ -389,8 +425,15 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg )
-      DO N = 1, N_TRACERS
+!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg, ThisSpc )
+      DO N = 1, State_Chm%nSpecies
+
+         ! Get info about this species from the species database
+         ThisSpc => State_Chm%SpcData(N)%Info
+
+         ! Skip non-advected and non-KPP species
+         IF ( .not. This Spc%Is_Advected ) CYCLE
+         IF ( .not. ThisSpc%Is_Kpp       ) CYCLE
 
          ! Moles C per moles species
          MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
@@ -408,6 +451,10 @@
          ENDDO
          ENDDO
          ENDDO
+
+         ! Free pointer
+         ThisSpc => NULL()
+
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -597,6 +644,10 @@
 
             ! Copy SCF back into SCOEFF
             SCOEFF(I,J,L,:) = SCF
+
+            IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
+               Print*, 'HET =', HET
+            ENDIF
          
          ENDIF
 
@@ -631,6 +682,10 @@
 
                ! Copy ZPJ from fast_jx_mod.F to PHOTOL array
                PHOTOL(1:JVN_) = ZPJ(L,1:JVN_,I,J)
+
+               IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
+                  Print*, 'PHOTOL =', PHOTOL
+               ENDIF
 
             ENDIF
 
@@ -676,15 +731,15 @@
             ENDIF
          ENDIF   ! IDTCH4, IND_CH4
 
-#if defined( DEVEL)
          !### Debug printout, we can remove it later
-         IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-            DO N = 1,NSPEC
-               write(*,'(a5,a10,es13.6)') '<> b ', 
-     &              trim(SPC_NAMES(N)), C(N)
-            ENDDO
+         IF ( prtDebug ) THEN
+            IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
+               DO N = 1,NSPEC
+                  write(*,'(a5,a10,es13.6)') '<> b ', 
+     &                 trim(SPC_NAMES(N)), C(N)
+               ENDDO
+            ENDIF
          ENDIF
-#endif
 
          !===========================================================
          ! Update KPP's rates
@@ -840,24 +895,25 @@
             ! Copy concentrations back into State_Chm%SPECIES
             State_Chm%Species(I,J,L,CSPECTOKPP(N)) = real(C(N),kind=fp)
 
-#if defined( DEVEL )
             !### Debug output, we can remove it later
-            IF (I.eq.10.and.J.eq.10.and.L.eq.10.and.N.eq.IND_OH) THEN
-               write(*,'(a9,2es13.6)') 'SPC_OH : ',c(N),
-     &              State_Chm%Species(I,J,L,CSPECTOKPP(N))
+            IF ( prtDebug ) THEN
+               IF (I.eq.10.and.J.eq.10.and.L.eq.10.and.N.eq.IND_OH) THEN
+                  write(*,'(a9,2es13.6)') 'SPC_OH : ',c(N),
+     &                 State_Chm%Species(I,J,L,CSPECTOKPP(N))
+               ENDIF
             ENDIF
-#endif
+
          ENDDO
 
-#if defined( DEVEL )
          !### Debug output, we can remove it later
-         IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-            DO N = 1,NSPEC
-               write(*,'(a5,a10,es13.6)') '<> a ', 
-     &              trim(SPC_NAMES(N)), C(N)
-            ENDDO
+         IF ( prtDebug ) THEN
+            IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
+               DO N = 1,NSPEC
+                  write(*,'(a5,a10,es13.6)') '<> a ', 
+     &                 trim(SPC_NAMES(N)), C(N)
+               ENDDO
+            ENDIF
          ENDIF
-#endif
 
       ENDDO
       ENDDO
@@ -894,8 +950,15 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg )
-      DO N = 1, N_TRACERS
+!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg, ThisSpc )
+      DO N = 1, State_Chm%nSpecies
+
+         ! Get info about this species from the species database
+         ThisSpc => State_Chm%SpcData(N)%Info
+
+         ! Skip non-advected and non-KPP species
+         IF ( .not. This Spc%Is_Advected ) CYCLE
+         IF ( .not. ThisSpc%Is_Kpp       ) CYCLE
 
          ! Moles C per moles species
          MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
@@ -913,11 +976,16 @@
          ENDDO
          ENDDO
          ENDDO
+
+         ! Free pointer
+         ThisSpc => NULL()
+
       ENDDO
 !$OMP END PARALLEL DO
 
       ! Kludge for families: species to tracers
-      CALL FAMILIES_KLUDGE(am_I_Root,STT,Input_Opt,State_Chm,2,RC)
+      CALL FAMILIES_KLUDGE(am_I_Root,STT,Input_Opt,State_Chm,State_Met,
+     &                     2,RC)
 
       !=================================================================
       ! Copy updated tracer concentrations back into STT
@@ -925,7 +993,14 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg )
-      DO N = 1, N_TRACERS
+      DO N = 1, State_Chm%nSpecies
+
+         ! Get info about this species from the species database
+         ThisSpc => State_Chm%SpcData(N)%Info
+
+         ! Skip non-advected and non-KPP species
+         IF ( .not. This Spc%Is_Advected ) CYCLE
+         IF ( .not. ThisSpc%Is_Kpp       ) CYCLE
 
          ! Moles C per moles species
          MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
@@ -938,9 +1013,7 @@
 
             ! Copy new tracer concentrations from State_Chm%Species to STT
             ! [molec/cm3]
-            IF (STTTOCSPEC(N) .NE. 0) THEN
-               STT(I,J,L,N) = State_Chm%Species(I,J,L,STTTOCSPEC(N))
-            ENDIF
+            STT(I,J,L,N) = State_Chm%Species(I,J,L,STTTOCSPEC(N))
          
             ! Convert STT from molec/cm3 back to kg
             STT(I,J,L,N) = STT(I,J,L,N)
@@ -948,9 +1021,13 @@
      &                   * ( State_Met%AIRVOL(I,J,L)  * 
      &                       1e+6_fp                  *
      &                       MolecRatio              ) 
-      ENDDO
-      ENDDO
-      ENDDO
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! Free pointer
+         ThisSpc => NULL()
+
       ENDDO
 !$OMP END PARALLEL DO
 

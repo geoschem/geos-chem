@@ -917,11 +917,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE COMODE_LOOP_MOD,    ONLY : NAMEGAS, NTSPEC, NCSURBAN
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-
+    USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -936,6 +935,8 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Jan 2015 - R. Yantosca - Initial version
 !  13 Jan 2016 - E. Lundgren - Define diagnostic ID
+!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
+!                              NAMEGAS with ThisSpc%Name from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -948,12 +949,18 @@ CONTAINS
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGNINIT_TRACER_CONC (diagnostics_mod.F90)' 
 
+    ! Objects
+    TYPE(Species), POINTER :: ThisSpc
+
     !=======================================================================
     ! DIAGNINIT_TRACER_CONC begins here!
     !=======================================================================
       
     ! Assume successful return
     RC = GIGC_SUCCESS
+
+    ! Initialize pointer
+    ThisSpc => NULL()
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -995,15 +1002,18 @@ CONTAINS
     IF ( DiagnSpec ) THEN
 
        ! Loop over species
-       DO N = 1, NTSPEC(NCSURBAN)
+       DO N = 1, State_Chm%nSpecies
    
           !----------------------------------------------------------------
           ! Create containers for species concentrations in molec/cm3
           !----------------------------------------------------------------
+
+          ! Get info about this species from the species database
+          ThisSpc => State_Chm%SpcData(N)%Info
    
           ! Diagnostic container name and id
           IF ( TRIM(NAMEGAS(N)) == '' ) CYCLE
-          DiagnName = 'SPECIES_CONC_' // TRIM(NAMEGAS(N)) 
+          DiagnName = 'SPECIES_CONC_' // TRIM( ThisSpc%Name ) 
           cId = cId + 1
   
           ! Create container
@@ -1021,6 +1031,9 @@ CONTAINS
              CALL ERROR_STOP( MSG, LOC )
           ENDIF
    
+          ! Free pointer
+          ThisSpc => NULL()
+
        ENDDO
    
     ENDIF ! DiagnSpec

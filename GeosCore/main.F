@@ -286,6 +286,8 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  02 May 2016 - R. Yantosca - Now pass Input_Opt to cleanup_gigc_state_chm
 !  18 May 2016 - M. Sulprizio- Remove call to INIT_COMODE; it's obsolete
+!  06 Jun 2016 - M. Sulprizio- Remove call to FILL_CHEM_STATE_IDs; this routine
+!                              was made obsolete by the species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -566,13 +568,6 @@
       ! which is required when connecting to the GEOS-5 GCM w/ ESMF.
       ! (bmy, 3/4/13)
       CALL GIGC_Init_Extra( am_I_Root, Input_Opt, State_Chm, RC )
-      !
-      ! Assign values to the TRAC_NAME, TRAC_ID, SMVG_ID fields
-      ! of the State_Chm object.  NOTE: This has to be done after
-      ! the call to READ_INPUT_FILE, since we need the value of
-      ! N_TRACERS, which is obtained by reading the input.geos file.
-      !
-      CALL Fill_Chem_State_Name_IDs( am_I_Root, Input_Opt, State_Chm )
       !
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
       ! to the State_Met%AREA_M2 field. (bmy, 8/22/14)

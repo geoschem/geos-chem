@@ -802,6 +802,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
+!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -829,7 +830,7 @@
          WRITE (*,*) "@@@@@@@@@@@@@@@@@@ EX_REGRID_UP_SPECIES --Editing"
       ENDIF
 
-      DO L = 1,NTSPEC(1)
+      DO L = 1,State_Chm%nSpecies
          CALL EX_REGRID_UP( IIPAR, JJPAR, 
      &                      IM_BC, JM_BC, LLPAR,
      &                      CSPEC_FULL(:,:,:,L), TMP_WINDOW )
@@ -900,6 +901,7 @@
 !  06 Jan 2015 - R. Yantosca - Now get LPRT from Input_Opt
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
 !  24 Mar 2015 - E. Lundgren - Remove tracer_mod dependency since not used
+!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -937,7 +939,7 @@
          ENDDO
 
           CALL OPEN_BIN_FILE_FOR_READ( TRIM(LOAD_CH_CSPEC_FNAME) )
-          DO L = 1,NTSPEC(1)
+          DO L = 1,State_Chm%nSpecies
              CALL READ_3D_REAL8_ARRAY( IM_BC_CH, JM_BC_CH, LLPAR,
      &                             TMP_WINDOW_CH )
              CSPEC_FULL(I0_BC_CH + 2:I0_BC_CH + IM_BC_CH-1,
@@ -961,7 +963,7 @@
          ENDDO
 
           CALL OPEN_BIN_FILE_FOR_READ( TRIM(LOAD_NA_CSPEC_FNAME) )
-          DO L = 1,NTSPEC(1)
+          DO L = 1,State_Chm%nSpecies
              CALL READ_3D_REAL8_ARRAY( IM_BC_NA, JM_BC_NA, LLPAR,
      &                             TMP_WINDOW_NA )
              CSPEC_FULL(I0_BC_NA + 3:I0_BC_NA + IM_BC_NA-2,
@@ -985,7 +987,7 @@
          ENDDO
 
          CALL OPEN_BIN_FILE_FOR_READ( TRIM(LOAD_EU_CSPEC_FNAME) )
-         DO L = 1,NTSPEC(1)
+         DO L = 1,State_Chm%nSpecies
              CALL READ_3D_REAL8_ARRAY( IM_BC_EU, JM_BC_EU, LLPAR,
      &                             TMP_WINDOW_EU )
              CSPEC_FULL(I0_BC_EU + 2:I0_BC_EU + IM_BC_EU-1,
@@ -1059,7 +1061,6 @@
 !
       USE DAO_MOD
       USE CMN_SIZE_MOD             ! Size parameters
-      USE COMODE_LOOP_MOD          ! NTSPEC
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -1085,6 +1086,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
+!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1099,12 +1101,12 @@
       CSPEC_FULL => State_Chm%Species
 
       IF ( FLAG == 1 ) THEN
-         DO L = 1, NTSPEC(1)
+         DO L = 1, State_Chm%nSpecies
             SRC( :, :, : ) = CSPEC_FULL( :, :, :, L) * State_Met%AIRVOL
             CSPEC_FULL( :, :, :, L) = SRC(:, :, : )
          ENDDO
       ELSE IF (FLAG == 2 ) THEN
-         DO L = 1, NTSPEC(1)
+         DO L = 1, State_Chm%nSpecies
             SRC( :, :, : ) = CSPEC_FULL( :, :, :, L) / State_Met%AIRVOL
             CSPEC_FULL( :, :, :, L) = SRC(:, :, : )
          ENDDO

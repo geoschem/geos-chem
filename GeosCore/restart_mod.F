@@ -116,10 +116,10 @@
 !
 ! !USES:
 !
-      USE COMODE_LOOP_MOD,    ONLY : NTSPEC, IFAM, NAMEGAS
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : AREA_M2
+      USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 
       USE HCO_Error_Mod
@@ -142,6 +142,8 @@
 !  09 Feb 2016 - E. Lundgren - Initial version
 !  20 Apr 2016 - E. Lundgren - Implement ocean and snow Hg variables
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
+!                              NAMEGAS with ThisSpc%Name from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -161,6 +163,9 @@
       INTEGER                   :: N_Hg_CATS
       CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:) => NULL()
 
+      ! Objects
+      TYPE(Species), POINTER :: ThisSpc
+
       !=================================================================
       ! INIT_GC_RESTART_NC begins here!
       !=================================================================
@@ -168,9 +173,12 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
+      ! Initialize pointer
+      ThisSpc => NULL()
+
       ! Define collection variables
-      GridAreas_ptr    => AREA_M2(:,:,1)
-      TS     =  GET_TS_CHEM() * 60.0_sp
+      GridAreas_ptr => AREA_M2(:,:,1)
+      TS            =  GET_TS_CHEM() * 60.0_sp
 
       ! Create restart collection for GEOS-Chem.  This will keep the
       ! GEOS-Chem restart separate from other output.
@@ -260,9 +268,10 @@
 
          ! Loop over the total # of species.  This also includes the "fake"
          ! prod/loss family species for the ND65 diagnostic.
-         DO N = 1 , NTSPEC(1)
+         DO N = 1 , State_Chm%nSpecies
          
-            ! Ignore ND65 handling pending further netcdf diagnostics work.
+            ! Remove check for ND65 prod/loss families pending work on ND65 
+            ! diagnostics and incorporation of FlexChem (ewl, 2/4/16)
             ! If the species is included in the IFAM array, which denotes 
             ! the index # of species in the CSPEC array that are "fake" ND65 
             ! prod/loss families, then skip. 
@@ -270,8 +279,11 @@
             !   CYCLE
             !ENDIF
          
+            ! Get info about this species from the species database
+            ThisSpc => State_Chm%SpcData(N)%Info
+
             ! Define container name and ID
-            ContainerName = 'SPC_' // TRIM( NAMEGAS(N) )
+            ContainerName = 'SPC_' // TRIM( ThisSpc%Name )
             cID = cID + 1
          
             ! Create container
@@ -283,6 +295,9 @@
      &                         OutUnit   = 'mol/mol',           
      &                         OutOper   = 'Instantaneous', 
      &                         RC        = RC )
+
+            ! Free pointer
+            ThisSpc => NULL()
             
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot create restart species container: ' 
@@ -581,7 +596,6 @@ dvected tracer input  restart file
 !
 ! !USES:
 !     
-      USE COMODE_LOOP_MOD,    ONLY : NTSPEC, NAMEGAS
       USE m_netcdf_io_open                         ! netCDF file open
       USE m_netcdf_io_read                         ! netCDF read
       USE m_netcdf_io_readattr                     ! netCDF attribute reads
@@ -625,6 +639,8 @@ dvected tracer input  restart file
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  31 May 2016 - E. Lundgren - Replace Input_Opt%TRACER_MW_G with species
 !                              database field emMW_g (emitted species g/mol)
+!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
+!                              NAMEGAS with ThisSpc%Name from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -633,7 +649,7 @@ dvected tracer input  restart file
 !
       INTEGER              :: I, J, L, M, N      ! lon, lat, lev, indexes
       INTEGER              :: Tracer_id          ! ocean Hg tracer ids
-      CHARACTER(LEN=10)    :: SPC_NAME, UNIT
+      CHARACTER(LEN=10)    :: UNIT
       CHARACTER(LEN=60)    :: Prefix, Tracer
       REAL(fp)             :: Background_VV      ! background species conc
       REAL(fp)             :: CONV_FACTOR        ! convert mol/mol -> molec/cm3
@@ -654,11 +670,10 @@ dvected tracer input  restart file
       INTEGER              :: st3d(3), ct3d(3)   ! 3D and 4D variable arrays
                                                  ! (includes time as dim)
       ! Temporary arrays and pointers
-      REAL*4,  TARGET        :: Temp2D(IIPAR,JJPAR) 
-      REAL*4,  TARGET        :: Temp3D(IIPAR,JJPAR,LLPAR)
-      REAL*4,  POINTER       :: Ptr2D(:,:  )
-      REAL*4,  POINTER       :: Ptr3D(:,:,:)
-      TYPE(Species), POINTER :: ThisSpc
+      REAL*4,  TARGET      :: Temp2D(IIPAR,JJPAR) 
+      REAL*4,  TARGET      :: Temp3D(IIPAR,JJPAR,LLPAR)
+      REAL*4,  POINTER     :: Ptr2D(:,:  )
+      REAL*4,  POINTER     :: Ptr3D(:,:,:)
 
       ! Other
       CHARACTER(LEN=255)   :: LOC
@@ -670,6 +685,9 @@ dvected tracer input  restart file
       INTEGER,          POINTER :: Id_Hg2     (:)
       INTEGER,          POINTER :: Id_HgP     (:)
       CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:)
+
+      ! Objects
+      TYPE(Species),    POINTER :: ThisSpc
 
       !=================================================================
       ! READ_GC_RESTART_NC begins here!
@@ -843,8 +861,11 @@ dvected tracer input  restart file
       ! Only read species if chemistry simulation
       IF ( Input_Opt%LCHEM .AND. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
          
+         ! Get info about first species from the species database
+         ThisSpc => State_Chm%SpcData(1)%Info
+
          ! Check if species data is in file by looking for first species
-         v_name = 'SPC_' // TRIM( NAMEGAS(1) )
+         v_name = 'SPC_' // TRIM( ThisSpc%Name )
          ierr = Nf_Inq_Varid (fId, v_name, v_id)
 
          ! Set species in restart file logical flag and write to log
@@ -866,21 +887,26 @@ dvected tracer input  restart file
             ENDIF
          ENDIF
 
+         ! Free pointer
+         ThisSpc => NULL()
+
          ! Initialize species to all zeroes
          State_Chm%Species = 0.e+0_fp
 
          ! Loop over species
-         DO N = 1, NTSPEC(1)
+         DO N = 1, State_Chm%nSpecies
          
+            ! Remove check for ND65 prod/loss families pending work on ND65 
+            ! diagnostics and incorporation of FlexChem (ewl, 2/4/16)
             ! If the species is included in the IFAM array, which denotes 
             ! the index # of species in the CSPEC array that are "fake" ND65 
             ! prod/loss families, then skip. 
             !IF ( ANY( IFAM == N ) ) THEN
             !   CYCLE
             !ENDIF
-              
-            ! Define species name
-            SPC_NAME = TRIM( NAMEGAS(N) )
+
+            ! Get info about this species from the species database
+            ThisSpc => State_Chm%SpcData(N)%Info
 
             ! Read species data from file if it is there, otherwise set
             ! default values 
@@ -893,7 +919,7 @@ dvected tracer input  restart file
                Ptr3D => Temp3D
 
                ! Define variable name
-               v_name = 'SPC_' // TRIM( SPC_NAME )
+               v_name = 'SPC_' // TRIM( ThisSpc%Name )
                
                ! Read variable from file and store in local array
                CALL NcRd( Ptr3D, fId, TRIM(v_name), st4d, ct4d )
@@ -927,7 +953,7 @@ dvected tracer input  restart file
 
                ! Print the min and max of this species in [molec/cm3]
                IF ( Input_Opt%LPRT ) THEN
-                  WRITE( 6, 180 ) N, TRIM( SPC_NAME ),
+                  WRITE( 6, 180 ) N, TRIM( ThisSpc%Name ),
      &                      MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ),
      &                      MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) )
  180              FORMAT('Species ', i3, ', ', a9, ': MIN = ', 
@@ -946,7 +972,7 @@ dvected tracer input  restart file
                ! in gasconc called from chemdr. Now init_flexchem converts
                ! these initial [mol/mol] values to [molec/cm3]. 
                ! Eventually store these values in the species database.
-               SELECT CASE ( TRIM( SPC_NAME ) )
+               SELECT CASE ( TRIM( ThisSpc%Name ) )
                   CASE ('CH2O', 'H2O2', 'HNO2', 'HNO3', 'HNO4') 
                      Background_VV = 4.0e-15_fp
                   CASE ('HO2', 'MO2', 'MP', 'N2O5', 'NO3', 'OH')
@@ -990,7 +1016,7 @@ dvected tracer input  restart file
                END SELECT
                
                ! Set 'DRY' species to all zeroes
-               IF ( SPC_NAME(1:3) == 'DRY') THEN
+               IF ( ThisSpc%Name(1:3) == 'DRY') THEN
                   Background_VV = 0.0e+0_fp
                ENDIF
 
@@ -1000,7 +1026,7 @@ dvected tracer input  restart file
                
                ! Print the background value of this species if debugging
                IF ( Input_Opt%LPRT ) THEN
-                  WRITE( 6, 190 ) N, TRIM( SPC_NAME ),
+                  WRITE( 6, 190 ) N, TRIM( ThisSpc%Name ),
      &                            Background_VV
  190              FORMAT('Species ', i3, ', ', a9, ': Background = ', 
      &                    es15.9)
@@ -1010,6 +1036,9 @@ dvected tracer input  restart file
                ! mol/mol here to preserve location of unit conversion
                ! in pre-FlexChem code. This is temporary to minimize
                ! differences with FlexChem.
+
+               ! Free pointer
+               ThisSpc => NULL()
 
             ENDIF
          ENDDO
@@ -1297,7 +1326,6 @@ dvected tracer input  restart file
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
-      USE COMODE_LOOP_MOD,    ONLY : NTSPEC, NAMEGAS
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -1368,6 +1396,8 @@ dvected tracer input  restart file
 !                              option to use BPCH restarts in the near future.
 !  31 May 2016 - E. Lundgren - Replace Input_Opt%TRACER_MW_G with species
 !                              database field emMW_g (emitted species g/mol)
+!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
+!                              NAMEGAS with ThisSpc%Name from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1396,15 +1426,14 @@ dvected tracer input  restart file
      &                             // ' (restart_mod.F)'
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER   :: STT(:,:,:,:)
-      TYPE(Species), POINTER :: ThisSpc
 
       ! For setting species concentrations
       LOGICAL             :: IT_EXISTS
-      CHARACTER(LEN=10)   :: SPC_NAME           ! species name 
       REAL(fp)            :: Background_VV      ! background species conc
+
+      ! Objects
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! READ_GC_RESTART_BPCH begins here!
@@ -1419,6 +1448,9 @@ dvected tracer input  restart file
 
       ! Initialize pointer for Chemistry State object [kg/kg] (ewl, 2/17/15)
       STT => State_Chm%Tracers
+
+      ! Initialize pointer
+      ThisSpc => NULL()
 
       !=================================================================
       ! Open restart file and read top-of-file header
@@ -1576,8 +1608,10 @@ dvected tracer input  restart file
      &        ( .not. Input_Opt%LSVCSPEC ) ) THEN
 
             ! Loop over KPP species
-            DO N = 1, NTSPEC(1)
+            DO N = 1, State_Chm%nSpecies
 
+               ! Remove check for ND65 prod/loss families pending work on ND65 
+               ! diagnostics and incorporation of FlexChem (ewl, 2/4/16)
                ! If the species is included in the IFAM array, which denotes 
                ! the index # of species in the CSPEC array that are "fake" ND65 
                ! prod/loss families, then skip. 
@@ -1585,8 +1619,8 @@ dvected tracer input  restart file
                !   CYCLE
                !ENDIF
 
-               ! Define species name
-               SPC_NAME = TRIM( NAMEGAS(N) )
+               ! Get info about this species from the species database
+               ThisSpc => State_Chm%SpcData(N)%Info
 
                ! If species data is not in the restart file, then assign
                ! default background values in units of [mol/mol].
@@ -1595,7 +1629,7 @@ dvected tracer input  restart file
                ! in gasconc called from chemdr. Now chemdr converts these
                ! initial [mol/mol] values to [molec/cm3]. 
                ! Eventually store these values in the species database.
-               SELECT CASE ( TRIM( SPC_NAME ) )
+               SELECT CASE ( TRIM( ThisSpc%Name ) )
                   CASE ('CH2O', 'H2O2', 'HNO2', 'HNO3', 'HNO4') 
                      Background_VV = 4.0e-15_fp
                   CASE ('HO2', 'MO2', 'MP', 'N2O5', 'NO3', 'OH')
@@ -1639,7 +1673,7 @@ dvected tracer input  restart file
                END SELECT
 
                ! Set 'DRY' species to all zeroes
-               IF ( SPC_NAME(1:3) == 'DRY') THEN
+               IF ( ThisSpc%Name(1:3) == 'DRY') THEN
                   Background_VV = 0.0e+0_fp
                ENDIF
 
@@ -1649,11 +1683,14 @@ dvected tracer input  restart file
 
                ! Print the background value of this species if debugging
                IF ( Input_Opt%LPRT ) THEN
-                  WRITE( 6, 190 ) N, TRIM( SPC_NAME ),
+                  WRITE( 6, 190 ) N, TRIM( ThisSpc%Name ),
      &                            Background_VV
  190              FORMAT('Species ', i3, ', ', a9, ': Background = ', 
      &                    es15.9)
                ENDIF
+
+               ! Free pointer
+               ThisSpc => NULL()
 
                ! NOTE: Keep State_Chm%Species background values as
                ! mol/mol here to preserve location of unit conversion
@@ -1808,11 +1845,11 @@ dvected tracer input  restart file
 !
 ! !USES:
 !
-      USE COMODE_LOOP_MOD,    ONLY : NTSPEC, NAMEGAS
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PHYSCONSTANTS,      ONLY : BOLTZ
+      USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : EXPAND_DATE
 
       ! HEMCO
@@ -1847,6 +1884,8 @@ dvected tracer input  restart file
 !  09 Feb 2016 - E. Lundgren - Initial version
 !  20 Apr 2016 - E. Lundgren - Implement ocean and snow Hg variables
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
+!                              NAMEGAS with ThisSpc%Name from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1880,6 +1919,9 @@ dvected tracer input  restart file
       ! Pointer to HEMCO state (is this needed?)
       TYPE(HCO_STATE),  POINTER :: HcoState
 
+      ! Objects
+      TYPE(Species),    POINTER :: ThisSpc
+
       !=================================================================
       ! WRITE_GC_RESTART_NC begins here!
       !=================================================================
@@ -1895,6 +1937,7 @@ dvected tracer input  restart file
       Id_HgP      => NULL()
       Hg_Cat_Name => NULL()
       HcoState    => NULL()
+      ThisSpc     => NULL()
 
       ! Set the GEOS-Chem restart collection ID
       GC_RST_Collection = Input_Opt%GC_RST_COLLECTION
@@ -2002,7 +2045,11 @@ dvected tracer input  restart file
          Temp3D = 0.e+0_sp
 
          ! Populate Temp3D for all levels up to LLCHEM
-         DO N = 1 , NTSPEC(1)
+         DO N = 1, State_Chm%nSpecies
+
+            ! Get info about this species from the species database
+            ThisSpc => State_Chm%SpcData(N)%Info
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -2022,12 +2069,15 @@ dvected tracer input  restart file
             ! If debugging, print out species values up to LLCHEM.
             ! Above this level, all values are zero.
             IF ( Input_Opt%LPRT ) THEN
-               WRITE( 6, 140 ) N, TRIM( NAMEGAS(N) ),
+               WRITE( 6, 140 ) N, TRIM( ThisSpc%Name ),
      &                         MINVAL( Temp3D(:,:,1:LLCHEM) ), 
      &                         MAXVAL( Temp3D(:,:,1:LLCHEM) )
  140           FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
      &                 '  Max = ', es15.9 )
             ENDIF
+
+            ! Free pointer
+            ThisSpc => NULL()
 
          ENDDO
 
@@ -2040,7 +2090,7 @@ dvected tracer input  restart file
 
          ! Convert species values locally to [mol/mol] for output
          ! in NetCDF. Print min and max values to log.
-         DO N = 1 , NTSPEC(1)
+         DO N = 1, State_Chm%nSpecies
          
             ! Remove check for ND65 prod/loss families pending work on ND65 
             ! diagnostics and incorporation of FlexChem (ewl, 2/4/16)
@@ -2051,6 +2101,9 @@ dvected tracer input  restart file
             !   CYCLE
             !ENDIF
          
+            ! Get info about this species from the species database
+            ThisSpc => State_Chm%SpcData(N)%Info
+
             ! Clear the species concentration array to all zeroes before
             ! populating array up to LLCHEM
             Temp3D(:,:,:) = 0.e+0_sp
@@ -2106,7 +2159,7 @@ dvected tracer input  restart file
             Ptr3D => Temp3D
             
             ! Define container name
-            ContainerName = 'SPC_' // TRIM( NAMEGAS(N) )
+            ContainerName = 'SPC_' // TRIM( ThisSpc%Name )
             
             ! Populate container
             CALL Diagn_Update( am_I_Root,                   
@@ -2120,7 +2173,7 @@ dvected tracer input  restart file
 
             ! Print the min & max of each species written to file
             IF ( Input_Opt%LPRT ) THEN
-               WRITE( 6, 160 ) N, TRIM( NAMEGAS(N) ),
+               WRITE( 6, 160 ) N, TRIM( ThisSpc%Name ),
      &                         MINVAL( Temp3D(:,:,1:LLCHEM) ), 
      &                         MAXVAL( Temp3D(:,:,1:LLCHEM) )
  160           FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
@@ -2132,6 +2185,10 @@ dvected tracer input  restart file
      &               // TRIM(ContainerName)
                CALL ERROR_STOP( MSG, LOC ) 
             ENDIF  
+
+            ! Free pointer
+            ThisSpc => NULL()
+
          ENDDO
       ENDIF
 
@@ -2906,11 +2963,11 @@ dvected tracer input  restart file
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
-      USE COMODE_LOOP_MOD,    ONLY : NTSPEC, IFAM, NAMEGAS
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE FILE_MOD,           ONLY : IOERROR
       USE FILE_MOD,           ONLY : FILE_EXISTS
+      USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -2947,6 +3004,8 @@ dvected tracer input  restart file
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
 !  16 Dec 2014 - M. Yannetti - Changed ZTAU0 and ZTAU1 to REAL*8
 !  18 May 2016 - M. Sulprizio- Change ILONG,ILAT,IPVERT to IIPAR,JJPAR,LLPAR
+!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
+!                              NAMEGAS with ThisSpc%Name from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2973,12 +3032,18 @@ dvected tracer input  restart file
       CHARACTER(LEN=40)   :: UNIT     
       CHARACTER(LEN=40)   :: RESERVED
 
+      ! Objects
+      TYPE(Species), POINTER :: ThisSpc
+
       !=================================================================
       ! READ_CSPEC_FILE begins here!
       !=================================================================
 
       ! Assume success
       RC         = GIGC_SUCCESS
+
+      ! Initialize pointer
+      ThisSpc => NULL()
 
       ! Initialize some variables
       !TMP(:,:,:) = 0e0
@@ -3026,14 +3091,19 @@ dvected tracer input  restart file
      &           ' [molec/cm3/box]:' )
 
       ! Loop over all species in the chemical mechanism
-      DO N = 1, NTSPEC(1)
+      DO N = 1, State_Chm%nSpecies
 
+         ! Remove check for ND65 prod/loss families pending work on ND65 
+         ! diagnostics and incorporation of FlexChem (mps, 6/6/16)
          ! The IFAM array denotes the index # of species in State_Chm%Species
          ! that are "fake" ND65 prod/loss families.  If we 
          ! encounter one of these, then we can skip it.
-         IF ( ANY( IFAM == N ) ) THEN
-            CYCLE
-         ENDIF
+         !IF ( ANY( IFAM == N ) ) THEN
+         !   CYCLE
+         !ENDIF
+
+         ! Get info about this species from the species database
+         ThisSpc => State_Chm%SpcData(N)%Info
 
          ! Read the model info
          READ( IU_RST, IOSTAT=IOS )
@@ -3075,9 +3145,9 @@ dvected tracer input  restart file
      &        NL            == LLPAR      ) THEN
 
             ! Also make sure we have the proper species
-            IF ( TRIM( NAMEGAS(N) ) /= TRIM( RESERVED ) ) THEN
+            IF ( TRIM( ThisSpc%Name ) /= TRIM( RESERVED ) ) THEN
                IF ( am_I_Root ) THEN
-                  WRITE( 6, 200 ) TRIM( NAMEGAS(N) )
+                  WRITE( 6, 200 ) TRIM( ThisSpc%Name )
                ENDIF
  200           FORMAT( 'Species mismatch for ', a )
                CALL ERROR_STOP( 'Species mismatch!', 
@@ -3090,7 +3160,7 @@ dvected tracer input  restart file
             State_Chm%Species(:,:,:,N) = TMP(:,:,:)
 
             ! Print the min & max of each species
-            WRITE( 6, 300 ) N, TRIM( NAMEGAS(N) ), 
+            WRITE( 6, 300 ) N, TRIM( ThisSpc%Name ), 
      &                      MINVAL(TMP), MAXVAL(TMP)
  300        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
      &              '  Max = ',  es15.9 )
@@ -3101,6 +3171,9 @@ dvected tracer input  restart file
 
          ENDIF
  
+         ! Free pointer
+         ThisSpc => NULL()
+
       ENDDO ! N 
 
  555  CONTINUE
@@ -3136,12 +3209,12 @@ dvected tracer input  restart file
 ! !USES:
 !
       USE BPCH2_MOD
-      USE COMODE_LOOP_MOD,    ONLY : NTSPEC, IFAM, NAMEGAS
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE FILE_MOD,           ONLY : IOERROR
       USE GRID_MOD,           ONLY : GET_XOFFSET
       USE GRID_MOD,           ONLY : GET_YOFFSET
+      USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_TAU
 !
@@ -3170,6 +3243,8 @@ dvected tracer input  restart file
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  18 May 2016 - M. Sulprizio- Change ILONG,ILAT,IPVERT to IIPAR,JJPAR,LLPAR
+!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
+!                              NAMEGAS with ThisSpc%Name from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3200,12 +3275,18 @@ dvected tracer input  restart file
       CHARACTER(LEN=40)    :: RESERVED = ''
       CHARACTER(LEN=80)    :: TITLE 
 
+      ! Objects
+      TYPE(Species), POINTER :: ThisSpc
+
       !=================================================================
       ! MAKE_CSPEC_FILE begins here!
       !=================================================================
 
       ! Assume success
       RC       =  GIGC_SUCCESS
+
+      ! Initialize pointer
+      ThisSpc  => NULL()
 
       ! Clear some arrays 
       ! use minimum value instead of zero hotp 2/25/09
@@ -3270,14 +3351,19 @@ dvected tracer input  restart file
           
       ! Loop over the total # of species.  This also includes the "fake"
       ! prod/loss family species for the ND65 diagnostic (bmy, 7/11/11)
-      DO N = 1 , NTSPEC(1)
+      DO N = 1, State_Chm%nSpecies
          
+         ! Remove check for ND65 prod/loss families pending work on ND65 
+         ! diagnostics and incorporation of FlexChem (mps, 6/6/16)
          ! The IFAM array denotes the index # of species in State_Chm%Species
          ! that are "fake" ND65 prod/loss families.  If we 
          ! encounter one of these, then we can skip it (bmy, 7/11/11)
-         IF ( ANY( IFAM == N ) ) THEN
-            CYCLE
-         ENDIF
+         !IF ( ANY( IFAM == N ) ) THEN
+         !   CYCLE
+         !ENDIF
+
+         ! Get info about this species from the species database
+         ThisSpc => State_Chm%SpcData(N)%Info
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -3300,7 +3386,7 @@ dvected tracer input  restart file
 !$OMP END PARALLEL DO
  
          ! Save the species name to the RESERVED slot of the bpch file
-         RESERVED = TRIM( NAMEGAS(N) )
+         RESERVED = TRIM( ThisSpc%Name )
 
          ! Write the data block to the species restart file
          CALL BPCH2( IU_RST,    MODELNAME, LONRES,    LATRES,
@@ -3310,11 +3396,14 @@ dvected tracer input  restart file
      &               J0+1,      1,         TMP(:,:,:) )
  
          ! Print the min & max of each tracer written to file
-         WRITE( 6, 130 ) N, TRIM( NAMEGAS(N) ), 
+         WRITE( 6, 130 ) N, TRIM( ThisSpc%Name ), 
      &                   MINVAL( TMP ), MAXVAL( TMP )
  130     FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
      &           '  Max = ', 
      &           es15.9 )
+
+         ! Free pointer
+         ThisSpc => NULL()
 
       ENDDO
 
