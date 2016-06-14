@@ -25,7 +25,7 @@ MODULE GCKPP_HETRATES
   USE gckpp_Parameters
   USE gckpp_Global,       ONLY : HET
   USE GIGC_State_Chm_Mod, ONLY : ChmState
-  USE GIGC_State_Chm_Mod, ONLY : Get_Indx
+  USE GIGC_State_Chm_Mod, ONLY : IND_
   USE GIGC_State_Met_Mod, ONLY : MetState
   USE GIGC_Input_Opt_Mod, ONLY : OptInput
   USE PhysConstants,      ONLY : AVO
@@ -127,6 +127,9 @@ MODULE GCKPP_HETRATES
 !                              end of the module, for clarity
 !  01 Apr 2016 - R. Yantosca - Remove many global variables that can be
 !                              declared locally from the THREADPRIVATEs
+!  06 Jun 2016 - M. Sulprizio- Replace Get_Indx with Spc_GetIndx to use the
+!                              fast-species lookup from the species database
+!  14 Jun 2016 - M. Sulprizio- Replace Spc_GetIndx with Ind_
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -243,7 +246,7 @@ MODULE GCKPP_HETRATES
       RELHUM        = RELHUM / VPRESH2O 
 
       ! Get tracer concentrations [kg]
-      IND = get_indx('NIT',IO%ID_TRACER,IO%TRACER_NAME)
+      IND = IND_( 'NIT', 'T' )
       IF (IND .le. 0) THEN
          TRC_NIT    = 0.0e+0_fp
          SPC_NIT    = 0.0e+0_fp
@@ -254,21 +257,22 @@ MODULE GCKPP_HETRATES
                       SM%AIRVOL(I,J,L)
       ENDIF
 
-      IND = get_indx('SO4',SC%Spec_ID,SC%Spec_Name)
+      ! Get species concentrations [molec/cm3]
+      IND = IND_( 'SO4' )
       IF (IND .le. 0) THEN
          SPC_SO4    = 0.0e+0_fp
       ELSE
          SPC_SO4    = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND = get_indx('HBr',SC%Spec_ID,SC%Spec_Name)
+      IND = IND_( 'HBr' )
       IF (IND .le. 0) THEN
          SPC_HBr    = 0.0e+0_fp
       ELSE
          SPC_HBr    = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND = get_indx('HOBr',SC%Spec_ID,SC%Spec_Name)
+      IND = IND_( 'HOBr' )
       IF (IND .le. 0) THEN
          SPC_HOBr   = 0.0e+0_fp
       ELSE
@@ -277,42 +281,42 @@ MODULE GCKPP_HETRATES
 
 #if defined( UCX )
       ! Get species concentrations [molec/cm3]
-      IND = get_indx('N2O5',SC%Spec_ID,SC%Spec_Name)
+      IND = IND_( 'N2O5' )
       IF (IND .le. 0) THEN
          SPC_N2O5   = 0.0e+0_fp
       ELSE
          SPC_N2O5   = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND = get_indx('H2O',SC%Spec_ID,SC%Spec_Name)
+      IND = IND_( 'H2O' )
       IF (IND .le. 0) THEN
          SPC_H2O    = 0.0e+0_fp
       ELSE
          SPC_H2O    = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND = get_indx('HCl',SC%Spec_ID,SC%Spec_Name)
+      IND = IND_( 'HCl' )
       IF (IND .le. 0) THEN
          SPC_HCl    = 0.0e+0_fp
       ELSE
          SPC_HCl    = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND = get_indx('ClNO3',SC%Spec_ID,SC%Spec_Name)
+      IND = IND_( 'ClNO3' )
       IF (IND .le. 0) THEN
          SPC_ClNO3  = 0.0e+0_fp
       ELSE
          SPC_ClNO3  = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND = get_indx('BrNO3',SC%Spec_ID,SC%Spec_Name)
+      IND = IND_( 'BrNO3' )
       IF (IND .le. 0) THEN
          SPC_BrNO3  = 0.0e+0_fp
       ELSE
          SPC_BrNO3  = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND = get_indx('HOCl',SC%Spec_ID,SC%Spec_Name)
+      IND = IND_( 'HOCl' )
       IF (IND .le. 0) THEN
          SPC_HOCl   = 0.0e+0_fp
       ELSE
