@@ -89,6 +89,10 @@
 !                              FlexChem has rendered the routine obsolete.
 !  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
 !                              NAMEGAS with ThisSpc%Name from species database
+!  14 Jun 2016 - M. Sulprizio- Replace loops over N_TRACERS with loops over
+!                              State_Chm%nSpecies and add checks for Is_Advected
+!                              and Is_Kpp to avoid introducing numerical noise
+!                              by applying unit conversions to non-KPP species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -357,8 +361,15 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, MolecRatio )
-      DO N = 1, N_TRACERS
+!$OMP+PRIVATE( I, J, L, N, MolecRatio, ThisSpc )
+      DO N = 1, State_Chm%nSpecies
+
+         ! Get info about this species from the species database
+         ThisSpc => State_Chm%SpcData(N)%Info
+
+         ! Skip non-advected and non-KPP species
+         IF ( .not. This Spc%Is_Advected ) CYCLE
+         IF ( .not. ThisSpc%Is_Kpp       ) CYCLE
 
          ! Moles C per moles species
          MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
@@ -383,10 +394,16 @@
          ENDDO
          ENDDO
          ENDDO
+
+         ! Free pointer
+         ThisSpc => NULL()
+
       ENDDO
 !$OMP END PARALLEL DO
       
-      CALL FAMILIES_KLUDGE(am_I_Root,STT,Input_Opt,State_Chm,1,RC)
+      ! Kludge for families: tracers to species
+      CALL FAMILIES_KLUDGE(am_I_Root,STT,Input_Opt,State_Chm,State_Met,
+     &                     1,RC)
  
       !=================================================================
       ! Convert STT from molec/cm3 back to kg (required for 
@@ -398,8 +415,15 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, MolecRatio )
-      DO N = 1, N_TRACERS
+!$OMP+PRIVATE( I, J, L, N, MolecRatio, ThisSpc )
+      DO N = 1, State_Chm%nSpecies
+
+         ! Get info about this species from the species database
+         ThisSpc => State_Chm%SpcData(N)%Info
+
+         ! Skip non-advected and non-KPP species
+         IF ( .not. This Spc%Is_Advected ) CYCLE
+         IF ( .not. ThisSpc%Is_Kpp       ) CYCLE
 
          ! Moles C per moles species
          MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
@@ -416,6 +440,10 @@
          ENDDO
          ENDDO
          ENDDO
+
+         ! Free pointer
+         ThisSpc => NULL()
+
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -605,6 +633,10 @@
 
             ! Copy SCF back into SCOEFF
             SCOEFF(I,J,L,:) = SCF
+
+            IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
+               Print*, 'HET =', HET
+            ENDIF
          
          ENDIF
 
@@ -639,6 +671,10 @@
 
                ! Copy ZPJ from fast_jx_mod.F to PHOTOL array
                PHOTOL(1:JVN_) = ZPJ(L,1:JVN_,I,J)
+
+               IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
+                  Print*, 'PHOTOL =', PHOTOL
+               ENDIF
 
             ENDIF
 
@@ -903,8 +939,15 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, MolecRatio )
-      DO N = 1, N_TRACERS
+!$OMP+PRIVATE( I, J, L, N, MolecRatio, ThisSpc )
+      DO N = 1, State_Chm%nSpecies
+
+         ! Get info about this species from the species database
+         ThisSpc => State_Chm%SpcData(N)%Info
+
+         ! Skip non-advected and non-KPP species
+         IF ( .not. This Spc%Is_Advected ) CYCLE
+         IF ( .not. ThisSpc%Is_Kpp       ) CYCLE
 
          ! Moles C per moles species
          MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
@@ -921,11 +964,16 @@
          ENDDO
          ENDDO
          ENDDO
+
+         ! Free pointer
+         ThisSpc => NULL()
+
       ENDDO
 !$OMP END PARALLEL DO
 
       ! Kludge for families: species to tracers
-      CALL FAMILIES_KLUDGE(am_I_Root,STT,Input_Opt,State_Chm,2,RC)
+      CALL FAMILIES_KLUDGE(am_I_Root,STT,Input_Opt,State_Chm,State_Met,
+     &                     2,RC)
 
       !=================================================================
       ! Copy updated tracer concentrations back into STT
@@ -933,7 +981,14 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, MolecRatio )
-      DO N = 1, N_TRACERS
+      DO N = 1, State_Chm%nSpecies
+
+         ! Get info about this species from the species database
+         ThisSpc => State_Chm%SpcData(N)%Info
+
+         ! Skip non-advected and non-KPP species
+         IF ( .not. This Spc%Is_Advected ) CYCLE
+         IF ( .not. ThisSpc%Is_Kpp       ) CYCLE
 
          ! Moles C per moles species
          MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
@@ -945,13 +1000,7 @@
 
             ! Copy new tracer concentrations from State_Chm%Species to STT
             ! [molec/cm3]
-            ! Family tracers are handled in FAMILIES_KLUDGE
-            IF ( .not. Input_Opt%TRACER_NAME(N) == 'ISOPN' .and.
-     &           .not. Input_Opt%Tracer_Name(N) == 'MMN'   .and.
-     &           .not. Input_Opt%Tracer_Name(N) == 'CFCX'  .and.
-     &           .not. Input_Opt%Tracer_Name(N) == 'HCFCX' ) THEN
-               STT(I,J,L,N) = State_Chm%Species(I,J,L,STTTOCSPEC(N))
-            ENDIF
+            STT(I,J,L,N) = State_Chm%Species(I,J,L,STTTOCSPEC(N))
          
             ! Convert STT from molec/cm3 back to kg
             STT(I,J,L,N) = STT(I,J,L,N) 
@@ -959,9 +1008,13 @@
      &                   * ( State_Met%AIRVOL(I,J,L)  * 
      &                       1e+6_fp                  *
      &                       MolecRatio              ) 
-      ENDDO
-      ENDDO
-      ENDDO
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! Free pointer
+         ThisSpc => NULL()
+
       ENDDO
 !$OMP END PARALLEL DO
 

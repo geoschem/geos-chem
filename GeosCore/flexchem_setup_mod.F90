@@ -450,20 +450,28 @@ CONTAINS
 !\\
 ! !INTERFACE: 
 !
-  SUBROUTINE FAMILIES_KLUDGE(am_I_Root,STT,IO,SC,OPT,RC)
+  SUBROUTINE FAMILIES_KLUDGE(am_I_Root,STT,IO,SC,SM,OPT,RC)
 !
 ! !USES:
 !
     USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
+    USE GIGC_ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN)    :: IO ! Short-hand for Input_Opt
-    TYPE(ChmState), INTENT(INOUT) :: SC ! Short-hand for State_Chem
-    REAL(kind=fp),  INTENT(INOUT) :: STT(:,:,:,:) ! GC tracer array
+    TYPE(OptInput), INTENT(IN)    :: IO           ! Short-hand for Input_Opt
+    TYPE(MetState), INTENT(IN)    :: SM           ! Short-hand for State_Met
     INTEGER,        INTENT(IN)    :: OPT          ! 1=Trc->Spc, 2=Spc->trc
-    INTEGER,        INTENT(OUT)   :: RC        ! Success or failure?
-    LOGICAL,        INTENT(IN)    :: am_I_Root ! Is this the root CPU?
+    LOGICAL,        INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: SC           ! Short-hand for State_Chem
+    REAL(kind=fp),  INTENT(INOUT) :: STT(:,:,:,:) ! GC tracer array
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
 !
 ! !REMARKS:
 !  K -- L -- U -- D -- G -- E -- C -- O -- D -- E -- ! -- ! -- ! -- !
@@ -488,15 +496,19 @@ CONTAINS
 !                              QSUM to avoid conflicts with the Fortran
 !                              intrinsic function SUM.
 !  14 Jun 2016 - M. Sulprizio- Add ProTeX headers
+!  14 Jun 2016 - M. Sulprizio- Handle unit conversions between kg and molec/cm3
+!                              for family tracers in this routine instead of in
+!                              flex_chemdr.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER        :: N,S1,S2,S3
+    INTEGER        :: N,S1,S2,S3,I,J,L
     REAL(kind=fp)  :: QSUM(IIPAR,JJPAR,LLPAR)
     REAL(kind=fp)  :: QTEMP(IIPAR,JJPAR,LLPAR)
+    REAL(kind=fp)  :: STTTEMP(IIPAR,JJPAR,LLPAR)
 
     ! Assume success
     RC = GIGC_SUCCESS
@@ -506,17 +518,27 @@ CONTAINS
     !-------------------------------------------------------------------------
     IF (OPT .eq. 1) THEN
 
-       ! -- Process MMN family
-       N  = T_MMN     ! MMN   species index
-       S1 = S_MVKN    ! MVKN  species index
-       S2 = S_MACRN   ! MACRN species index
-
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%% Process MMN family
+       !%%%%
        !%%%% NOTE: MMN = 1.0 MVKN + 1.0 MACRN
        !%%%% so TRACER_COEFF is always 1 in this case.
        !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
        !%%%% (bmy, 5/17/16)
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       N  = T_MMN     ! MMN   tracer  index
+       S1 = S_MVKN    ! MVKN  species index
+       S2 = S_MACRN   ! MACRN species index
+
+       ! Convert concentrations from kg to molec/cm3 for SC%Species
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          STTTEMP(I,J,L) = STT(I,J,L,N) * &
+                           IO%XNUMOL(N) / ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+       ENDDO
+       ENDDO
+       ENDDO
 
        ! Sum of constituents
        QSUM   = SC%Species(:,:,:,S1) + SC%Species(:,:,:,S2)
@@ -527,7 +549,7 @@ CONTAINS
        ELSEWHERE
           QTEMP = 0.0_fp
        ENDWHERE
-       SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+       SC%Species(:,:,:,S1) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 
        ! -- -- Then, do MACRN
        WHERE( QSUM > 0.0_fp ) 
@@ -535,20 +557,29 @@ CONTAINS
        ELSEWHERE
           QTEMP = 0.0_fp
        ENDWHERE
-       SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
-
-       ! -- Process ISOPN family
-       ! -- Get the tracer and species indices
-       N  = T_ISOPN    ! ISOPN  tracer  index
-       S1 = S_ISOPND   ! ISOPND species index
-       S2 = S_ISOPNB   ! ISOPNB species index
+       SC%Species(:,:,:,S2) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%% Process ISOPN family
+       !%%%%
        !%%%% NOTE: ISOPN = 1.0 ISOPND + 1.0 ISOPNB
        !%%%% so TRACER_COEFF is always 1 in this case.
        !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
        !%%%% (bmy, 5/17/16)
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       N  = T_ISOPN    ! ISOPN  tracer  index
+       S1 = S_ISOPND   ! ISOPND species index
+       S2 = S_ISOPNB   ! ISOPNB species index
+
+       ! Convert concentrations from kg to molec/cm3 for SC%Species
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          STTTEMP(I,J,L) = STT(I,J,L,N) * &
+                           IO%XNUMOL(N) / ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+       ENDDO
+       ENDDO
+       ENDDO
 
        ! Sum of constitutents
        QSUM = SC%Species(:,:,:,S1) + SC%Species(:,:,:,S2)
@@ -559,7 +590,7 @@ CONTAINS
        ELSEWHERE
           QTEMP = 0.0_fp
        ENDWHERE
-       SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+       SC%Species(:,:,:,S1) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 
        ! -- -- Then, do ISOPNB
        WHERE( QSUM > 0.0_fp ) 
@@ -567,21 +598,31 @@ CONTAINS
        ELSEWHERE
           QTEMP = 0.0_fp
        ENDWHERE
-       SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+       SC%Species(:,:,:,S2) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 
 #if defined( UCX )
-       ! -- Process CFCX family
-       N  = T_CFCX     ! CFCX   tracer  index
-       S1 = S_CFC113   ! CFC113 species index
-       S2 = S_CFC114   ! CFC114 species index
-       S3 = S_CFC115   ! CFC115 species index
-
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%% Process CFCX family
+       !%%%%
        !%%%% NOTE: CFCX = 1.0 CFC113 + 1.0 CFC114 + 1.0 CFC115
        !%%%% so TRACER_COEFF is always 1 in this case.
        !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
        !%%%% (bmy, 5/17/16)
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       N  = T_CFCX     ! CFCX   tracer  index
+       S1 = S_CFC113   ! CFC113 species index
+       S2 = S_CFC114   ! CFC114 species index
+       S3 = S_CFC115   ! CFC115 species index
+
+       ! Convert concentrations from kg to molec/cm3 for SC%Species
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          STTTEMP(I,J,L) = STT(I,J,L,N) * &
+                           IO%XNUMOL(N) / ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+       ENDDO
+       ENDDO
+       ENDDO
 
        ! Sum of constituents
        QSUM  = SC%Species(:,:,:,S1) &
@@ -594,7 +635,7 @@ CONTAINS
        ELSEWHERE
           QTEMP = 0.0_fp
        ENDWHERE
-       SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+       SC%Species(:,:,:,S1) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 
        ! -- -- Then, do CFC114
        WHERE( QSUM > 0.0_fp )
@@ -602,7 +643,7 @@ CONTAINS
        ELSEWHERE
           QTEMP = 0.0_fp
        ENDWHERE
-       SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+       SC%Species(:,:,:,S2) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 
        ! -- -- Then, do CFC115
        WHERE( QSUM > 0.0_fp )
@@ -610,20 +651,30 @@ CONTAINS
        ELSEWHERE
           QTEMP = 0.0_fp
        ENDWHERE
-       SC%Species(:,:,:,S3) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
-
-       ! -- Process HCFCX family
-       N  = T_HCFCX      ! HCFCX    tracer  index
-       S1 = S_HCFC123    ! HCFC123  species index
-       S2 = S_HCFC141b   ! HCFC141b species index
-       S3 = S_HCFC142b   ! HCFC142b species index
+       SC%Species(:,:,:,S3) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%% Process HCFCX family
+       !%%%%
        !%%%% NOTE: HCFCX = 1.0 HCFC123 + 1.0 HCFC141b + 1.0 HFCC142b
        !%%%% so TRACER_COEFF is always 1 in this case.
        !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
        !%%%% (bmy, 5/17/16)
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       N  = T_HCFCX      ! HCFCX    tracer  index
+       S1 = S_HCFC123    ! HCFC123  species index
+       S2 = S_HCFC141b   ! HCFC141b species index
+       S3 = S_HCFC142b   ! HCFC142b species index
+
+       ! Convert concentrations from kg to molec/cm3 for SC%Species
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          STTTEMP(I,J,L) = STT(I,J,L,N) * &
+                           IO%XNUMOL(N) / ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+       ENDDO
+       ENDDO
+       ENDDO
       
        ! Sum of constituents
        QSUM  = SC%Species(:,:,:,S1) &
@@ -636,7 +687,7 @@ CONTAINS
        ELSEWHERE
           QTEMP = 0.0_fp
        ENDWHERE
-       SC%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+       SC%Species(:,:,:,S1) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 
        ! -- -- Then, do HCFC141b
        WHERE( QSUM > 0.0_fp )
@@ -644,7 +695,7 @@ CONTAINS
        ELSEWHERE
           QTEMP = 0.0_fp
        ENDWHERE
-       SC%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+       SC%Species(:,:,:,S2) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 
        ! -- -- Then, do HCFC142b
        WHERE( QSUM > 0.0_fp )
@@ -652,7 +703,7 @@ CONTAINS
        ELSEWHERE
           QTEMP = 0.0_fp
        ENDWHERE
-       SC%Species(:,:,:,S3) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+       SC%Species(:,:,:,S3) = MAX( QTEMP*STTTEMP(:,:,:), 1.E-99_fp )
 #endif
 
     !------------------------------------------------------------------------
@@ -660,66 +711,107 @@ CONTAINS
     !------------------------------------------------------------------------
     ELSEIF (OPT .eq. 2) THEN
 
-       ! -- Process MMN family
-       N  = T_MMN     ! MMN   species index
-       S1 = S_MVKN    ! MVKN  species index
-       S2 = S_MACRN   ! MACRN species index
-
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%% Process MMN family
+       !%%%%
        !%%%% NOTE: MMN = 1.0 MVKN + 1.0 MACRN
        !%%%% so TRACER_COEFF is always 1 in this case.
        !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       N  = T_MMN     ! MMN   species index
+       S1 = S_MVKN    ! MVKN  species index
+       S2 = S_MACRN   ! MACRN species index
+
        STT(:,:,:,N) = SC%Species(:,:,:,S1) + SC%Species(:,:,:,S2)
 
-       ! -- Process ISOPN family
-       ! -- Get the tracer and species indices
-       N  = T_ISOPN    ! ISOPN  tracer  index
-       S1 = S_ISOPND   ! ISOPND species index
-       S2 = S_ISOPNB   ! ISOPNB species index
+       ! Convert concentrations from molec/cm3 to kg for STT
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          STT(I,J,L,N) = STT(I,J,L,N) / &
+                         IO%XNUMOL(N) * ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+       ENDDO
+       ENDDO
+       ENDDO
 
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%% Process ISOPN family
+       !%%%%
        !%%%% NOTE: ISOPN = 1.0 ISOPND + 1.0 ISOPNB
        !%%%% so TRACER_COEFF is always 1 in this case.
        !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
        !%%%% (bmy, 5/17/16)
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       N  = T_ISOPN    ! ISOPN  tracer  index
+       S1 = S_ISOPND   ! ISOPND species index
+       S2 = S_ISOPNB   ! ISOPNB species index
+
        STT(:,:,:,N) = SC%Species(:,:,:,S1) + SC%Species(:,:,:,S2)
          
-#if defined( UCX )
-       ! -- Process CFCX family
-       N  = T_CFCX     ! CFCX   tracer  index
-       S1 = S_CFC113   ! CFC113 species index
-       S2 = S_CFC114   ! CFC114 species index
-       S3 = S_CFC115   ! CFC115 species index
+       ! Convert concentrations from molec/cm3 to kg for STT
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          STT(I,J,L,N) = STT(I,J,L,N) / &
+                         IO%XNUMOL(N) * ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+       ENDDO
+       ENDDO
+       ENDDO
 
+#if defined( UCX )
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%% Process CFCX family
+       !%%%%
        !%%%% NOTE: CFCX = 1.0 CFC113 + 1.0 CFC114 + 1.0 CFC115
        !%%%% so TRACER_COEFF is always 1 in this case.
        !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
        !%%%% (bmy, 5/17/16)
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       N  = T_CFCX     ! CFCX   tracer  index
+       S1 = S_CFC113   ! CFC113 species index
+       S2 = S_CFC114   ! CFC114 species index
+       S3 = S_CFC115   ! CFC115 species index
 
        STT(:,:,:,N) = SC%Species(:,:,:,S1) &
                     + SC%Species(:,:,:,S2) &
                     + SC%Species(:,:,:,S3)
 
-       ! -- Process HCFCX family
-       N  = T_HCFCX      ! HCFCX    tracer  index
-       S1 = S_HCFC123    ! HCFC123  species index
-       S2 = S_HCFC141b   ! HCFC141b species index
-       S3 = S_HCFC142b   ! HCFC142b species index
+       ! Convert concentrations from molec/cm3 to kg for STT
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          STT(I,J,L,N) = STT(I,J,L,N) / &
+                         IO%XNUMOL(N) * ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+       ENDDO
+       ENDDO
+       ENDDO
 
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%% Process HCFCX family
+       !%%%%
        !%%%% NOTE: HCFCX = 1.0 HCFC123 + 1.0 HCFC141b + 1.0 HFCC142b
        !%%%% so TRACER_COEFF is always 1 in this case.
        !%%%% This will let us get rid of IO%TRACER_COEFF in the code.
        !%%%% (bmy, 5/17/16)
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       N  = T_HCFCX      ! HCFCX    tracer  index
+       S1 = S_HCFC123    ! HCFC123  species index
+       S2 = S_HCFC141b   ! HCFC141b species index
+       S3 = S_HCFC142b   ! HCFC142b species index
 
        STT(:,:,:,N) = SC%Species(:,:,:,S1) &
                     + SC%Species(:,:,:,S2) &
                     + SC%Species(:,:,:,S3)
+
+       ! Convert concentrations from molec/cm3 to kg for STT
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          STT(I,J,L,N) = STT(I,J,L,N) / &
+                         IO%XNUMOL(N) * ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+       ENDDO
+       ENDDO
+       ENDDO
 #endif
 
     ELSE
