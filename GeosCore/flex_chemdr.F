@@ -308,6 +308,13 @@
             END SELECT
          ENDIF
 
+         ! Temporary fix for CO2
+         ! CO2 is a dead species and needs to be set to zero to 
+         ! match the old SMVGEAR code (mps, 6/14/16)
+         IF ( TRIM( ThisSpc%Name ) == 'CO2' ) THEN
+            State_Chm%Species(:,:,:,N) = 0e+0_fp
+         ENDIF
+
          ! Free pointer
          ThisSpc => NULL()
 
