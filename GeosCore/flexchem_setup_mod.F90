@@ -457,6 +457,7 @@ CONTAINS
 !
     USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
     USE GIGC_ErrCode_Mod
+    USE PHYSCONSTANTS,        ONLY : AVO
 !
 ! !INPUT PARAMETERS:
 !
@@ -510,6 +511,8 @@ CONTAINS
     REAL(kind=fp)  :: QSUM(IIPAR,JJPAR,LLPAR)
     REAL(kind=fp)  :: QTEMP(IIPAR,JJPAR,LLPAR)
     REAL(kind=fp)  :: STTTEMP(IIPAR,JJPAR,LLPAR)
+    REAL(fp)       :: MW_kg
+
 
     ! Assume success
     RC = GIGC_SUCCESS
@@ -531,12 +534,15 @@ CONTAINS
        S1 = S_MVKN    ! MVKN  species index
        S2 = S_MACRN   ! MACRN species index
 
+       ! Moles C per moles species
+       MW_kg      = SC%SpcData(N)%Info%emMW_g * 1.e-3_fp
+
        ! Convert concentrations from kg to molec/cm3 for SC%Species
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
           STTTEMP(I,J,L) = STT(I,J,L,N) * &
-                           IO%XNUMOL(N) / ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+                           ( AVO / MW_KG ) / ( SM%AIRVOL(I,J,L) * 1e+6_fp )
        ENDDO
        ENDDO
        ENDDO
@@ -572,12 +578,15 @@ CONTAINS
        S1 = S_ISOPND   ! ISOPND species index
        S2 = S_ISOPNB   ! ISOPNB species index
 
+       ! Moles C per moles species
+       MW_kg      = SC%SpcData(N)%Info%emMW_g * 1.e-3_fp
+
        ! Convert concentrations from kg to molec/cm3 for SC%Species
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
           STTTEMP(I,J,L) = STT(I,J,L,N) * &
-                           IO%XNUMOL(N) / ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+                           ( AVO / MW_KG ) / ( SM%AIRVOL(I,J,L) * 1e+6_fp )
        ENDDO
        ENDDO
        ENDDO
@@ -615,12 +624,15 @@ CONTAINS
        S2 = S_CFC114   ! CFC114 species index
        S3 = S_CFC115   ! CFC115 species index
 
+       ! Moles C per moles species
+       MW_kg      = SC%SpcData(N)%Info%emMW_g * 1.e-3_fp
+
        ! Convert concentrations from kg to molec/cm3 for SC%Species
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
           STTTEMP(I,J,L) = STT(I,J,L,N) * &
-                           IO%XNUMOL(N) / ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+                           ( AVO / MW_KG ) / ( SM%AIRVOL(I,J,L) * 1e+6_fp )
        ENDDO
        ENDDO
        ENDDO
@@ -667,12 +679,15 @@ CONTAINS
        S2 = S_HCFC141b   ! HCFC141b species index
        S3 = S_HCFC142b   ! HCFC142b species index
 
+       ! Moles C per moles species
+       MW_kg      = SC%SpcData(N)%Info%emMW_g * 1.e-3_fp
+
        ! Convert concentrations from kg to molec/cm3 for SC%Species
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
           STTTEMP(I,J,L) = STT(I,J,L,N) * &
-                           IO%XNUMOL(N) / ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+                           ( AVO / MW_KG ) / ( SM%AIRVOL(I,J,L) * 1e+6_fp )
        ENDDO
        ENDDO
        ENDDO
@@ -725,12 +740,15 @@ CONTAINS
 
        STT(:,:,:,N) = SC%Species(:,:,:,S1) + SC%Species(:,:,:,S2)
 
+       ! Moles C per moles species
+       MW_kg      = SC%SpcData(N)%Info%emMW_g * 1.e-3_fp
+
        ! Convert concentrations from molec/cm3 to kg for STT
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
           STT(I,J,L,N) = STT(I,J,L,N) / &
-                         IO%XNUMOL(N) * ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+                         ( AVO / MW_KG ) * ( SM%AIRVOL(I,J,L) * 1e+6_fp )
        ENDDO
        ENDDO
        ENDDO
@@ -749,12 +767,15 @@ CONTAINS
 
        STT(:,:,:,N) = SC%Species(:,:,:,S1) + SC%Species(:,:,:,S2)
          
+       ! Moles C per moles species
+       MW_kg      = SC%SpcData(N)%Info%emMW_g * 1.e-3_fp
+
        ! Convert concentrations from molec/cm3 to kg for STT
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
           STT(I,J,L,N) = STT(I,J,L,N) / &
-                         IO%XNUMOL(N) * ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+                         ( AVO / MW_KG ) * ( SM%AIRVOL(I,J,L) * 1e+6_fp )
        ENDDO
        ENDDO
        ENDDO
@@ -777,12 +798,15 @@ CONTAINS
                     + SC%Species(:,:,:,S2) &
                     + SC%Species(:,:,:,S3)
 
+       ! Moles C per moles species
+       MW_kg      = SC%SpcData(N)%Info%emMW_g * 1.e-3_fp
+
        ! Convert concentrations from molec/cm3 to kg for STT
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
           STT(I,J,L,N) = STT(I,J,L,N) / &
-                         IO%XNUMOL(N) * ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+                         ( AVO / MW_KG ) * ( SM%AIRVOL(I,J,L) * 1e+6_fp )
        ENDDO
        ENDDO
        ENDDO
@@ -804,12 +828,15 @@ CONTAINS
                     + SC%Species(:,:,:,S2) &
                     + SC%Species(:,:,:,S3)
 
+       ! Moles C per moles species
+       MW_kg      = SC%SpcData(N)%Info%emMW_g * 1.e-3_fp
+
        ! Convert concentrations from molec/cm3 to kg for STT
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
           STT(I,J,L,N) = STT(I,J,L,N) / &
-                         IO%XNUMOL(N) * ( SM%AIRVOL(I,J,L) * 1e+6_fp )
+                         ( AVO / MW_KG ) * ( SM%AIRVOL(I,J,L) * 1e+6_fp )
        ENDDO
        ENDDO
        ENDDO
