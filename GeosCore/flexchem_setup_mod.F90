@@ -198,11 +198,11 @@ CONTAINS
     ! Loop over GEOS-Chem species
     DO N = 1, State_Chm%nSpecies
 
-       ! Get info about this species from the species database
-       ThisSpc => State_Chm%SpcData(N)%Info
-
        ! Initialize
        FOUND=0
+
+       ! Get info about this species from the species database
+       ThisSpc => State_Chm%SpcData(N)%Info
 
        ! Loop over KPP species
        DO N1 = 1, NSPEC
@@ -255,110 +255,98 @@ CONTAINS
           ! Get info about this species from the species database
           ThisSpc => State_Chm%SpcData(N)%Info
 
-          IF ( (ADJUSTL( TRIM( ThisSpc%Name ) ) .eq. "" ) ) CYCLE
+          ! Skip non-KPP species
+          IF ( .not. ThisSpc%Is_Kpp ) CYCLE
 
-          ! Loop over KPP species
-          DO N1 = 1, NSPEC
+          !$OMP PARALLEL DO &
+          !$OMP DEFAULT( SHARED ) &
+          !$OMP PRIVATE( I, J, L, CONV_FACTOR )
+          ! Loop over all chemistry grid boxes
+          DO L = 1, LLCHEM 
+          DO J = 1, JJPAR
+          DO I = 1, IIPAR
 
-             IF ( ADJUSTL( TRIM( SPC_NAMES(N1) ) ) == &
-                  ADJUSTL( TRIM( ThisSpc%Name  ) ) ) THEN
+             ! Set box-dependent unit conversion factor 
+             !CONV_FACTOR = State_Met%AIRNUMDEN(I,J,L)
+             CONV_FACTOR = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp / &
+                         ( State_Met%T(I,J,L) * ( BOLTZ * 1e+7_fp ) )
 
-                !$OMP PARALLEL DO &
-                !$OMP DEFAULT( SHARED ) &
-                !$OMP PRIVATE( I, J, L, CONV_FACTOR )
-                ! Loop over all chemistry grid boxes
-                DO L = 1, LLCHEM 
-                DO J = 1, JJPAR
-                DO I = 1, IIPAR
+             IF ( TRIM( ThisSpc%Name ) /= 'MOH' ) THEN
 
-                   ! Set box-dependent unit conversion factor 
-                   !CONV_FACTOR = State_Met%AIRNUMDEN(I,J,L)
-                   CONV_FACTOR = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp / &
-                               ( State_Met%T(I,J,L) * ( BOLTZ * 1e+7_fp ) )
+                ! Convert units from [mol/mol] to [molec/cm3/box]
+                State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) * &
+                                             CONV_FACTOR
 
-                   IF ( TRIM( ThisSpc%Name ) /= 'MOH' ) THEN
+             ELSE
 
-                      ! Convert units from [mol/mol] to [molec/cm3/box]
-                      State_Chm%Species(I,J,L,N) = &
-                           State_Chm%Species(I,J,L,N) * CONV_FACTOR
+                !----------------------------------------------------
+                ! For methanol (MOH), now use different initial
+                ! background concentrations for different regions of
+                ! the atmosphere:
+                !
+                ! (a) 2.0 ppbv MOH -- continental boundary layer
+                ! (b) 0.9 ppbv MOH -- marine boundary layer
+                ! (c) 0.6 ppbv MOH -- free troposphere
+                !
+                ! The concentrations listed above are from Heikes et
+                ! al, "Atmospheric methanol budget and ocean
+                ! implication", _Global Biogeochem. Cycles_, 2002.
+                ! These represent the best estimates for the methanol
+                ! conc.'s in the troposphere based on various
+                ! measurements.
+                !
+                ! MOH is an inactive chemical species in GEOS-CHEM,
+                ! so these initial concentrations will never change.
+                ! However, MOH acts as a sink for OH, and therefore
+                ! will affect both the OH concentration and the
+                ! methylchloroform lifetime.
+                !
+                ! We specify the MOH concentration as ppbv, but then
+                ! we need to multiply by CONV_FACTOR in order to
+                ! convert to [molec/cm3].  (bdf, bmy, 2/22/02)
+                !----------------------------------------------------
 
+                ! Test for altitude (L < 9 is always in the trop)
+                IF ( L <= 9 ) THEN
+                   ! Test for ocean/land boxes
+                   IF ( State_Met%FRCLND(I,J) >= 0.5 ) THEN
+                      ! Continental boundary layer: 2 ppbv MOH
+                      State_Chm%Species(I,J,L,N) = 2.000e-9_fp * CONV_FACTOR
                    ELSE
-
-                      !----------------------------------------------------
-                      ! For methanol (MOH), now use different initial
-                      ! background concentrations for different regions of
-                      ! the atmosphere:
-                      !
-                      ! (a) 2.0 ppbv MOH -- continental boundary layer
-                      ! (b) 0.9 ppbv MOH -- marine boundary layer
-                      ! (c) 0.6 ppbv MOH -- free troposphere
-                      !
-                      ! The concentrations listed above are from Heikes et
-                      ! al, "Atmospheric methanol budget and ocean
-                      ! implication", _Global Biogeochem. Cycles_, 2002.
-                      ! These represent the best estimates for the methanol
-                      ! conc.'s in the troposphere based on various
-                      ! measurements.
-                      !
-                      ! MOH is an inactive chemical species in GEOS-CHEM,
-                      ! so these initial concentrations will never change.
-                      ! However, MOH acts as a sink for OH, and therefore
-                      ! will affect both the OH concentration and the
-                      ! methylchloroform lifetime.
-                      !
-                      ! We specify the MOH concentration as ppbv, but then
-                      ! we need to multiply by CONV_FACTOR in order to
-                      ! convert to [molec/cm3].  (bdf, bmy, 2/22/02)
-                      !----------------------------------------------------
-
-                      ! Test for altitude (L < 9 is always in the trop)
-                      IF ( L <= 9 ) THEN
-                         ! Test for ocean/land boxes
-                         IF ( State_Met%FRCLND(I,J) >= 0.5 ) THEN
-                            ! Continental boundary layer: 2 ppbv MOH
-                            State_Chm%Species(I,J,L,N) = 2.000e-9_fp * &
-                                                         CONV_FACTOR
-                         ELSE
-                            ! Marine boundary layer: 0.9 ppbv MOH
-                            State_Chm%Species(I,J,L,N) = 0.900e-9_fp * &
-                                                         CONV_FACTOR
-                         ENDIF
-                      ELSE
-                         ! Test for troposphere
-                         IF ( ITS_IN_THE_TROP(I,J,L,State_Met) ) THEN
-                            ! Free troposphere: 0.6 ppbv MOH
-                            State_Chm%Species(I,J,L,N) = 0.600e-9_fp * &
-                                                         CONV_FACTOR
-                         ELSE
-                            ! Strat/mesosphere:
-                            State_Chm%Species(I,J,L,N) = 0.0e+0_fp
-                         ENDIF
-                      ENDIF
+                      ! Marine boundary layer: 0.9 ppbv MOH
+                      State_Chm%Species(I,J,L,N) = 0.900e-9_fp * CONV_FACTOR
                    ENDIF
+                ELSE
+                   ! Test for troposphere
+                   IF ( ITS_IN_THE_TROP(I,J,L,State_Met) ) THEN
+                      ! Free troposphere: 0.6 ppbv MOH
+                      State_Chm%Species(I,J,L,N) = 0.600e-9_fp * CONV_FACTOR
+                   ELSE
+                      ! Strat/mesosphere:
+                      State_Chm%Species(I,J,L,N) = 0.0e+0_fp
+                   ENDIF
+                ENDIF
+             ENDIF
 
-                   ! Make a small number if concentration is neg or zero
-                   State_Chm%SPECIES(I,J,L,N) = &
+             ! Make a small number if concentration is neg or zero
+             State_Chm%SPECIES(I,J,L,N) = &
                         MAX( State_Chm%Species(I,J,L,N), 1d-99 )
 
-                ENDDO
-                ENDDO
-                ENDDO
-                !$OMP END PARALLEL DO
+          ENDDO
+          ENDDO
+          ENDDO
+          !$OMP END PARALLEL DO
 
-                ! Print the min and max of each species in [molec/cm3/box]
-                ! after conversion if in debug mode (ewl, 3/1/16)
-                IF ( Input_Opt%LPRT ) THEN
-                  WRITE(6,120) N, &
-                               TRIM( ThisSpc%Name ), &
-                               MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ), &
-                               MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) ) 
-120               FORMAT( 'Species ', i3, ', ', a9, ': Min = ', &
-                           es15.9, ', Max = ', es15.9 )
-               ENDIF
-
-             ENDIF  ! SPC_NAMES(N1) = ThisSpc%Name
-
-          ENDDO ! NSPEC
+          ! Print the min and max of each species in [molec/cm3/box]
+          ! after conversion if in debug mode (ewl, 3/1/16)
+          IF ( Input_Opt%LPRT ) THEN
+             WRITE(6,120) N, &
+                          TRIM( ThisSpc%Name ), &
+                          MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ), &
+                          MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) ) 
+120          FORMAT( 'Species ', i3, ', ', a9, ': Min = ', &
+                      es15.9, ', Max = ', es15.9 )
+          ENDIF
 
           ! Free pointer
           ThisSpc => NULL()
