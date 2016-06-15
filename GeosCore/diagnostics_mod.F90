@@ -1397,7 +1397,6 @@ CONTAINS
 !
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE TRACERID_MOD,       ONLY : IDTPb, IDTRn, IDTBe7   
 !
 ! !INPUT PARAMETERS:
 !
