@@ -982,7 +982,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg )
+!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg, ThisSpc )
       DO N = 1, State_Chm%nSpecies
 
          ! Get info about this species from the species database
