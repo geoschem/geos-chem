@@ -151,6 +151,10 @@ CONTAINS
 !
   FUNCTION ind_( name, flag ) RESULT( Indx )
 !
+! !USES:
+!
+    USE CHARPAK_MOD, ONLY : TRANUC
+!
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*),           INTENT(IN) :: name  ! Species or tracer name
@@ -164,6 +168,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  07 Oct 2016 - M. Long     - Initial version
+!  15 Jun 2016 - M. Sulprizio- Make species name uppercase before computing hash
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -174,14 +179,17 @@ CONTAINS
     CHARACTER(LEN=14) :: Name14
 
     !=====================================================================
-    ! Spc_GetIndex begins here!
+    ! Ind_ begins here!
     !=====================================================================
 
     ! Initialize the output value
     Indx   = -1
 
-    ! Compute the hash corresponding to the given species name
+    ! Make species name uppercase for hash algorithm
     Name14 = Name
+    CALL TRANUC( Name14 )
+
+    ! Compute the hash corresponding to the given species name
     Hash   = Str2Hash( Name14 )
 
     ! Loop over all entries in the Species Database object
@@ -190,35 +198,63 @@ CONTAINS
        ! Compare the hash we just created against the list of
        ! species name hashes stored in the species database
        IF( Hash == SpcDataLocal(N)%Info%NameHash  ) THEN
-          IF (.not. PRESENT(Flag)) THEN ! Default to Species/ModelID
+
+          IF (.not. PRESENT(Flag)) THEN
+
+             ! Default to Species/ModelID
              Indx = SpcDataLocal(N)%Info%ModelID
              RETURN
-          ELSE ! Only need first character of the flag for this.
-             IF     (flag(1:1) .eq. 'T' .or. flag(1:1) .eq. 't') THEN ! Tracer flag
+
+          ELSE
+
+             ! Only need first character of the flag for this.
+             IF     (flag(1:1) .eq. 'T' .or. flag(1:1) .eq. 't') THEN
+
+                ! Tracer flag
                 Indx = SpcDataLocal(N)%Info%AdvectID
                 RETURN
-             ELSEIF (flag(1:1) .eq. 'K' .or. flag(1:1) .eq. 'k') THEN ! KPP main ID
-!                Indx = SpcDataLocal(N)%Info%KppSpcId
+
+             ELSEIF (flag(1:1) .eq. 'K' .or. flag(1:1) .eq. 'k') THEN
+
+                ! KPP main ID
+                !Indx = SpcDataLocal(N)%Info%KppSpcId
                 RETURN
-             ELSEIF (flag(1:1) .eq. 'V' .or. flag(1:1) .eq. 'v') THEN ! KPP VAR ID
+
+             ELSEIF (flag(1:1) .eq. 'V' .or. flag(1:1) .eq. 'v') THEN
+
+                ! KPP VAR ID
                 Indx = SpcDataLocal(N)%Info%KppVarId
                 RETURN
-             ELSEIF (flag(1:1) .eq. 'F' .or. flag(1:1) .eq. 'f') THEN ! KPP FIX ID
+
+             ELSEIF (flag(1:1) .eq. 'F' .or. flag(1:1) .eq. 'f') THEN
+
+                ! KPP FIX ID
                 Indx = SpcDataLocal(N)%Info%KppFixId
                 RETURN
-             ELSEIF (flag(1:1) .eq. 'W' .or. flag(1:1) .eq. 'w') THEN ! WetDep ID
+
+             ELSEIF (flag(1:1) .eq. 'W' .or. flag(1:1) .eq. 'w') THEN
+
+                ! WetDep ID
                 Indx = SpcDataLocal(N)%Info%WetDepId
                 RETURN
-             ELSEIF (flag(1:1) .eq. 'D' .or. flag(1:1) .eq. 'd') THEN ! DryDep ID
+
+             ELSEIF (flag(1:1) .eq. 'D' .or. flag(1:1) .eq. 'd') THEN
+
+                ! DryDep ID
                 Indx = SpcDataLocal(N)%Info%DryDepId
                 RETURN
+
              ENDIF
+
           ENDIF
           EXIT
+
        ENDIF
+
     ENDDO
 
     RETURN
+
   END FUNCTION Ind_
 !EOC
 !------------------------------------------------------------------------------

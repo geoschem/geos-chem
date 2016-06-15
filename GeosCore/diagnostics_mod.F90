@@ -1012,7 +1012,6 @@ CONTAINS
           ThisSpc => State_Chm%SpcData(N)%Info
    
           ! Diagnostic container name and id
-          IF ( TRIM(NAMEGAS(N)) == '' ) CYCLE
           DiagnName = 'SPECIES_CONC_' // TRIM( ThisSpc%Name ) 
           cId = cId + 1
   

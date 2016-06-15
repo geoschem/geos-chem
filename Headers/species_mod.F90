@@ -329,6 +329,10 @@ CONTAINS
 !
   FUNCTION Spc_GetIndx( Name, SpecDB ) RESULT( Indx )
 !
+! !USES:
+!
+    USE CHARPAK_MOD, ONLY : TRANUC
+!
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN) :: Name       ! Species name
@@ -350,6 +354,7 @@ CONTAINS
 !  04 May 2016 - R. Yantosca - Now use hash comparison, it's faster
 !  04 May 2016 - R. Yantosca - Renamed to Spc_GetIndx
 !  05 May 2016 - R. Yantosca - The NAME argument is now of variable length 
+!  15 Jun 2016 - M. Sulprizio- Make species name uppercase before computing hash
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -366,8 +371,11 @@ CONTAINS
     ! Initialize the output value
     Indx   = -1
 
-    ! Compute the hash corresponding to the given species name
+    ! Make species name uppercase for hash algorithm
     Name14 = Name
+    CALL TRANUC( Name14 )
+
+    ! Compute the hash corresponding to the given species name
     Hash   = Str2Hash( Name14 )
 
     ! Loop over all entries in the Species Database object
@@ -472,6 +480,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CHARPAK_MOD,        ONLY : TRANUC             ! String manipulation
     USE PhysConstants,      ONLY : AIRMW, AVO         ! Physical constants
 !
 ! !INPUT PARAMETERS:
@@ -558,9 +567,14 @@ CONTAINS
 !  24 Sep 2015 - R. Yantosca - Added WD_KcScaleFac argument
 !  22 Apr 2016 - R. Yantosca - Added Is_Hg0, Is_Hg2, Is_HgP
 !  04 May 2016 - R. Yantosca - Now construct hash value from short name
+!  15 Jun 2016 - M. Sulprizio- Make species name uppercase before computing hash
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=14) :: Name14
 
     !=====================================================================
     ! Spc_Create begins here!
@@ -586,7 +600,11 @@ CONTAINS
     !---------------------------------------------------------------------
     IF ( PRESENT( Name ) ) THEN
        ThisSpc%Name     = Name
-       ThisSpc%NameHash = Str2Hash( ThisSpc%Name )
+
+       ! Make species name uppercase for hash algorithm
+       Name14 = Name
+       CALL TRANUC( Name14 )
+       ThisSpc%NameHash = Str2Hash( Name14 )
     ELSE
        ThisSpc%Name     = ''
        ThisSpc%NameHash = MISSING_INT

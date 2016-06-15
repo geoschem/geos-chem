@@ -645,10 +645,6 @@
             ! Copy SCF back into SCOEFF
             SCOEFF(I,J,L,:) = SCF
 
-            IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-               Print*, 'HET =', HET
-            ENDIF
-         
          ENDIF
 
          !===========================================================
@@ -682,10 +678,6 @@
 
                ! Copy ZPJ from fast_jx_mod.F to PHOTOL array
                PHOTOL(1:JVN_) = ZPJ(L,1:JVN_,I,J)
-
-               IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-                  Print*, 'PHOTOL =', PHOTOL
-               ENDIF
 
             ENDIF
 
