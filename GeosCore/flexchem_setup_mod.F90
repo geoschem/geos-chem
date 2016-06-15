@@ -24,13 +24,16 @@ MODULE FLEXCHEM_SETUP_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: STTTOCSPEC, CSPECTOKPP
+  PUBLIC :: CSPECTOKPP
   PUBLIC :: INIT_FLEXCHEM
   PUBLIC :: HSAVE_KPP
   PUBLIC :: FAMILIES_KLUDGE
 !    
 ! !REVISION HISTORY:
 !  14 Dec 2015 - M.S. Long   - Initial version
+!  15 Jun 2016 - M. Sulprizio- Remove STTTOCSPEC mapping array. Species and
+!                              tracers have a 1:1 mapping currently so mapping
+!                              is not required
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -38,7 +41,6 @@ MODULE FLEXCHEM_SETUP_MOD
 ! !PRIVATE TYPES:
 !
   ! Index arrays
-  INTEGER,   ALLOCATABLE :: STTTOCSPEC(:)
   INTEGER,   ALLOCATABLE :: CSPECTOKPP(:)
 
   ! Save the H value for the Rosenbrock solver
@@ -150,10 +152,6 @@ CONTAINS
     IF ( am_I_Root ) WRITE( 6, 100 )
 100 FORMAT( '     - INIT_FLEXCHEM: Allocating arrays for FLEX_CHEMISTRY' )
 
-    ALLOCATE( STTTOCSPEC(Input_Opt%N_TRACERS), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    STTTOCSPEC = 0
-
     ALLOCATE( CSPECTOKPP(NSPEC), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     CSPECTOKPP = 0
@@ -161,42 +159,6 @@ CONTAINS
     ALLOCATE( HSAVE_KPP( IIPAR, JJPAR, LLCHEM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     HSAVE_KPP = 0.d0
-
-    ! Loop over GEOS-Chem tracers
-    DO N = 1, Input_Opt%N_TRACERS
-
-       ! Initialize
-       FOUND=0
-
-       ! Loop over GEOS-Chem species
-       DO N1 = 1, State_Chm%nSpecies
-
-          ! Get info about this species from the species database
-          ThisSpc => State_Chm%SpcData(N1)%Info
-
-          ! Create vector to map GEOS-Chem tracers to State_Chm%Species order
-          IF ( ADJUSTL( TRIM( ThisSpc%Name ) ) == &
-               ADJUSTL( TRIM( Input_Opt%TRACER_NAME(N) ) ) ) THEN
-             STTTOCSPEC(N)=N1
-             FOUND=1
-             EXIT
-          ENDIF
-
-          ! Free pointer
-          ThisSpc => NULL()
-
-       ENDDO
-
-       ! Print info to log
-       IF (FOUND .NE. 1) THEN
-          WRITE (6,'(a13,i3,a8,a17)')    'Tracer       ', N, &
-             TRIM(Input_Opt%TRACER_NAME(N)), ' is not a species'
-       ELSE
-          WRITE (6,'(a13,i3,a8,a17,i3)') 'Found tracer ', N, &
-             TRIM(Input_Opt%TRACER_NAME(N)), '. STTTOCSPEC =   ', STTTOCSPEC(N)
-       ENDIF
-
-    ENDDO
 
     ! Loop over GEOS-Chem species
     DO N = 1, State_Chm%nSpecies

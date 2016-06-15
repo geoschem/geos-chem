@@ -397,9 +397,7 @@
      &                        MolecRatio              )
 
             ! Copy STT to State_Chm%Species [molec/cm3]
-            IF (STTTOCSPEC(N) .NE. 0) THEN 
-               State_Chm%Species(I,J,L,STTTOCSPEC(N)) = STT(I,J,L,N)
-            ENDIF
+            State_Chm%Species(I,J,L,N) = STT(I,J,L,N)
 
          ENDDO
          ENDDO
@@ -1005,7 +1003,7 @@
 
             ! Copy new tracer concentrations from State_Chm%Species to STT
             ! [molec/cm3]
-            STT(I,J,L,N) = State_Chm%Species(I,J,L,STTTOCSPEC(N))
+            STT(I,J,L,N) = State_Chm%Species(I,J,L,N)
          
             ! Convert STT from molec/cm3 back to kg
             STT(I,J,L,N) = STT(I,J,L,N)
