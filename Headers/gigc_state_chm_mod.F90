@@ -208,7 +208,13 @@ CONTAINS
           ELSE
 
              ! Only need first character of the flag for this.
-             IF     (flag(1:1) .eq. 'T' .or. flag(1:1) .eq. 't') THEN
+             IF     ( flag(1:1) .eq. 'S' .or. flag(1:1) .eq. 's') THEN
+
+                ! Species/ModelID
+                Indx = SpcDataLocal(N)%Info%ModelID
+                RETURN
+
+             ELSEIF (flag(1:1) .eq. 'T' .or. flag(1:1) .eq. 't') THEN
 
                 ! Tracer flag
                 Indx = SpcDataLocal(N)%Info%AdvectID
