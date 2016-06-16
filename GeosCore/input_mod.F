@@ -1308,13 +1308,10 @@
       USE CHARPAK_MOD,        ONLY : ISDIGIT
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
-#if defined( APM )
-      USE TRACER_MOD,         ONLY : INIT_TRACER
-#endif
-      USE TRACERID_MOD,       ONLY : TRACERID
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -1580,7 +1577,7 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD
+      USE GIGC_STATE_CHM_MOD, ONLY : IND_
       USE UCX_MOD,            ONLY : T_NAT_SUPERCOOL, P_ICE_SUPERSAT
 !
 ! !INPUT PARAMETERS:
@@ -1778,7 +1775,7 @@
       !---------------------------------
       ! Error check SEASALT AEROSOLS
       !---------------------------------
-      I = IDTSALA + IDTSALC
+      I = IND_('SALA','T')  + IND_('SALC','T')
 
       IF ( LSSALT ) THEN
          IF ( I == 0 ) THEN
@@ -1795,7 +1792,7 @@
       !------------------------------------
       ! Error check MARINE ORGANIC AEROSOLS
       !------------------------------------
-      I = IDTMOPO + IDTMOPI
+      I = IND_('MOPO','T') + IND_('MOPI','T')
 
       IF ( LMPOA ) THEN
          IF ( .not. LSSALT ) THEN
@@ -1816,8 +1813,9 @@
       !---------------------------------
       ! Error check SULFUR AEROSOLS
       !---------------------------------
-      I = IDTDMS + IDTSO2 + IDTSO4 + IDTSO4s + 
-     &    IDTMSA + IDTNH3 + IDTNH4 + IDTNITs
+      I = IND_('DMS','T')  + IND_('SO2','T') + IND_('SO4','T') 
+     &  + IND_('SO4s','T') + IND_('MSA','T') + IND_('NH3','T')
+     &  + IND_('NH4','T')  + IND_('NITs','T')  
 
       IF ( LSULF ) THEN
 
@@ -1847,7 +1845,9 @@
       !---------------------------------
       ! Error check CRYST /AQ AEROSOLS
       !---------------------------------
-      I = IDTAS + IDTAHS + IDTLET + IDTNH4aq + IDTSO4aq
+      I = IND_('AS','T')  + IND_('AHS','T') + 
+     &     IND_('LET','T') + IND_('NH4aq','T') +
+     &     IND_('SO4aq','T')
 
       IF ( LCRYST ) THEN
          IF ( I == 0 ) THEN
@@ -1865,7 +1865,9 @@
       ! Error check CARBON AEROSOLS
       !---------------------------------
       ! SOAupdate: Add POA (hotp 10/11/09)
-      I = IDTBCPO + IDTBCPI + IDTOCPO + IDTOCPI + IDTPOA1
+      I = IND_('BCPO','T')  + IND_('BCPI','T') +
+     &     IND_('OCPO','T') + IND_('OCPI','T') +
+     &     IND_('POA1','T')
 
       IF ( LCARB ) THEN
          IF ( I == 0 ) THEN
@@ -1888,8 +1890,9 @@
       ! OCPI and OCPO are the non-volatile POA tracers
       ! POA (along w/ POG, OPOA, and OPOG) are the semivol POA tracers
       ! You can't have both!
-      I = IDTOCPI + IDTOCPO
-      IF ( IDTPOA1 > 0 ) THEN
+      I = IND_('OCPI','T') + IND_('OCPO','T')
+
+      IF ( IND_('POA1','T') > 0 ) THEN
          IF ( I > 0 ) THEN
             MSG = 'Semivolatile POA tracer is defined in addition to
      &             Nonvolatile POA'
@@ -1909,14 +1912,16 @@
       !   POA POG OPOA OPOG SOA BTX NAP (semivol + orig trad + IVOC )
       ! NAP emissions are set in input.geos
       ! LSVPOA is just a check (doesn't do anything hotp 7/21/10)
-      I = IDTPOA1  + IDTPOA2  + IDTPOG1  + IDTPOG2  + 
-     &    IDTOPOA1 + IDTOPOA2 + IDTOPOG1 + IDTOPOG2
+      I = IND_('POA1','T') + IND_('POA2','T') + IND_('POG1','T')
+     &     + IND_('POG2','T') + IND_('OPOA1','T') + IND_('OPOA2','T')
+     &     + IND_('OPOG1','T') + IND_('OPOG2')
+
       IF ( LSVPOA ) THEN
          IF ( I < 8 ) THEN
             MSG = 'Not enough semivolatile POA tracers!'
                      CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
-         IF ( IDTNAP == 0 ) THEN
+         IF ( IND_('NAP','T') == 0 ) THEN
             MSG = 'Semivolatile POA requires IVOCs/NAP!'
                      CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
@@ -1926,12 +1931,12 @@
       ! Error check 2dy ORG AEROSOLS
       !---------------------------------
       ! SOAupdate: update for new mtp (hotp 5/24/10)
-      I = IDTMTPA  + IDTLIMO  + IDTMTPO  + 
-     &    IDTBENZ  + IDTTOLU  + IDTXYLE  +
-     &    IDTTSOA1 + IDTTSOA2 + IDTTSOA3 +
-     &    IDTISOA1 + IDTISOA2 + IDTISOA3 +
-     &    IDTASOA1 + IDTASOA2 + IDTASOA3 + IDTASOAN +
-     &    IDTSOAG  + IDTSOAM
+      I = IND_('MTPA','T') + IND_('LIMO','T') + IND_('MTPO','T') + 
+     &    IND_('BENZ','T') + IND_('TOLU','T') + IND_('XYLE','T') +
+     &    IND_('TSOA1','T') + IND_('TSOA2','T') + IND_('TSOA3','T') +
+     &    IND_('ISOA1','T') + IND_('ISOA2','T') + IND_('ISOA3','T') +
+     &    IND_('ASOA1','T') + IND_('ASOA2','T') + IND_('ASOA3','T') +
+     &    IND_('ASOAN','T') + IND_('SOAG','T')  + IND_('SOAM','T')
 
       IF ( LSOA ) THEN
          IF ( I == 0 ) THEN
@@ -1951,10 +1956,11 @@
 ! JKODROS - Uncomment this if the dust fixes are back working. 
 #if defined( TOMAS )
       ! For TOMAS only: If DUST1 is present, the other dust tracers are too
-      I = IDTDUST1
+      I = IND_('DUST1','T')
 #else
       ! Non-TOMAS simulations: Need all DST1-DST4 tracers
-      I = IDTDST1 + IDTDST2 + IDTDST3 + IDTDST4
+      I = IND_('DST1','T') + IND_('DST2','T') +
+     &     IND_('DST3','T') + IND_('DST4','T')
 #endif
 
       IF ( LDUST ) THEN
@@ -1974,9 +1980,10 @@
       !             DUST SULFATE    AEROSOLS
       !             DUST ALKALINITY AEROSOLS
       !--------------------------------------
-      I = IDTNITd1 + IDTNITd2 + IDTNITd3 + IDTNITd4 +
-     &    IDTSO4d1 + IDTSO4d2 + IDTSO4d3 + IDTSO4d4 +
-     &    IDTDAL1  + IDTDAL2  + IDTDAL3  + IDTDAL4
+      I = IND_('NITd1','T') + IND_('NITd2','T') + IND_('NITd3','T')
+     &     + IND_('NITd4','T') + IND_('SO4d1','T') + IND_('SO4d2','T')
+     &     + IND_('SO4d3','T') + IND_('SO4d4','T') + IND_('DAL1','T')
+     &     + IND_('DAL2','T')  + IND_('DAL3','T')  + IND_('DAL4','T')
 
       IF ( LDSTUP ) THEN
          IF ( I == 0 ) THEN
@@ -1993,7 +2000,7 @@
       !---------------------------------
       ! Error check SEASALT AEROSOLS
       !---------------------------------
-      I = IDTSALA + IDTSALC
+      I = IND_('SALA','T') + IND_('SALC','T')
 
       IF ( LSSALT ) THEN
          IF ( I == 0 ) THEN
@@ -2096,11 +2103,7 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TOMAS_MOD,          ONLY : INIT_TOMAS
-      USE TRACERID_MOD,       ONLY : IDTNK1
-      USE TRACERID_MOD,       ONLY : IDTSF1
-      USE TRACERID_MOD,       ONLY : IDTSS1
-      USE TRACERID_MOD,       ONLY : IDTECOB1, IDTECIL1, IDTOCOB1
-      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTH2SO4, IDTDUST1
+      USE GIGC_STATE_CHM_MOD, ONLY : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -2194,21 +2197,26 @@
       ENDIF
 
       ! Halt with error if none of the TOMAS aerosol species are defined
-      I =  IDTNK1 + IDTSF1 + IDTSS1 + IDTECOB1 + IDTECIL1 + 
-     &     IDTOCOB1 + IDTOCIL1  + IDTDUST1
+      I =  IND_('NK1','T') + IND_('SF1','T') + IND_('SS1','T')
+     &     + IND_('ECOB1','T') + IND_('ECIL1','T')  
+     &     + IND_('OCOB1','T') + IND_('OCIL1','T')
+     &     + IND_('DUST1','T')
+
       IF ( I == 0 ) THEN 
          MSG = 'None of the TOMAS aerosols are defined!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
       
       ! Halt with error if sulfate aerosols are not defined
-      IF( IDTSF1 > 0 .and. ( .not. Input_Opt%LSULF ) ) THEN
+      IF( IND_('SF1','T') > 0 .and. ( .not. Input_Opt%LSULF ) ) THEN
          MSG = 'Need LSULF on for TOMAS-Sulfate to work (for now)'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
       ! Halt with error if carbonaceous aerosols are not defined
-      I = IDTECOB1 + IDTECIL1 + IDTOCOB1 + IDTOCIL1
+      I = IND_('ECOB1','T') + IND_('ECIL1','T') +
+     &     IND_('OCOB1','T') + IND_('OCIL1','T')
+
       IF ( I > 0 .and. (.not. Input_Opt%LCARB ) ) THEN
          MSG = 'Need LCARB on for TOMAS-carb to work (for now)'
          CALL ERROR_STOP( MSG, LOCATION )
@@ -2216,7 +2224,7 @@
 
       ! Halt with error if dust aerosols are turned on.
       ! TOMAS defines its own dust aerosol tracers.
-!      IF ( IDTDUST1 > 0 .AND. Input_Opt%LDUST ) THEN
+!      IF ( IND_('DUST1 > 0 .AND. Input_Opt%LDUST ) THEN
 !         MSG = 'Need to turn off LDUST for TOMAS Dust to work'
 !         CALL ERROR_STOP( MSG, LOCATION )
 !      ENDIF
@@ -2252,8 +2260,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE TIME_MOD,           ONLY : SET_HISTYR
-      USE TRACERID_MOD,       ONLY : IDTCH4, IDTOCS, IDTCFCX
-      USE TRACERID_MOD,       ONLY : IDTCl,  IDTN2O, IDTBr2, IDTH2O
+      USE GIGC_STATE_CHM_MOD, ONLY : IND_
       USE UCX_MOD,            ONLY : CFCYEAR
 !
 ! !INPUT PARAMETERS:
@@ -2516,7 +2523,7 @@
       ! Error check CFC emissions
       !=================================================================
       IF ( LCFCEMIS .or. LSETCFC ) THEN
-         IF ( IDTCFCX == 0 ) THEN
+         IF ( IND_('CFCX','T') == 0 ) THEN
             LCFCEMIS = .FALSE.
             LSETCFC  = .FALSE.
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
@@ -2529,7 +2536,7 @@
       ! Error check N2O emissions
       !=================================================================
       IF ( LN2OEMIS .or. LSETN2O ) THEN
-         IF ( IDTN2O == 0 ) THEN
+         IF ( IND_('N2O','T') == 0 ) THEN
             LN2OEMIS = .FALSE.
             LSETN2O  = .FALSE.
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
@@ -2543,7 +2550,7 @@
       !=================================================================
 #if defined( UCX )
       IF ( LSETH2O ) THEN
-         IF (IDTH2O==0) THEN
+         IF (IND_('H2O','T')==0) THEN
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
      &            // 'H2O is set but H2O tracer is undefined.'
             LSETH2O = .FALSE.
@@ -2557,7 +2564,7 @@
       ! Error check halogen emissions
       !=================================================================
       IF ( LCLEMIS .or. LSETCL) THEN
-         IF ( IDTCl == 0 ) THEN
+         IF ( IND_('Cl','T') == 0 ) THEN
             LCLEMIS = .FALSE.
             LSETCL  = .FALSE.
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
@@ -2567,7 +2574,7 @@
       ENDIF
 
       IF ( LBREMIS .or. LSETBR .or. LSETBRSTRAT .or. LBRGCCM ) THEN
-         IF ( IDTBR2 == 0 ) THEN
+         IF ( IND_('BR2','T') == 0 ) THEN
             LBREMIS = .FALSE.
             LSETBR  = .FALSE.
             LSETBRSTRAT = .FALSE.
@@ -2582,7 +2589,7 @@
       ! Error check OCS emissions
       !=================================================================
       IF ( LOCSEMIS .or. LSETOCS ) THEN
-         IF ( IDTOCS == 0 ) THEN
+         IF ( IND_('OCS','T') == 0 ) THEN
             LOCSEMIS = .FALSE.
             LSETOCS  = .FALSE.
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
@@ -2601,7 +2608,7 @@
       ENDIF
 
       IF ( LCH4EMIS .or. LSETCH4 .or. LCH4SBC ) THEN
-         IF ( IDTCH4 == 0 ) THEN
+         IF ( IND_('CH4','T') == 0 ) THEN
             LCH4EMIS = .FALSE.
             LSETCH4  = .FALSE.
             LCH4SBC  = .FALSE.
@@ -3065,7 +3072,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_CHEM
-      USE TRACERID_MOD,       ONLY : IDTCH4
+      USE GIGC_STATE_CHM_MOD, ONLY : IND_
 !
 ! !INPUT PARAMETERS:
 !

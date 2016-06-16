@@ -128,24 +128,13 @@
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACERID_MOD,       ONLY : IDTHNO3
-      USE TRACERID_MOD,       ONLY : IDTNIT
-      USE TRACERID_MOD,       ONLY : IDTNH4
-      USE TRACERID_MOD,       ONLY : IDTNH3
-      USE TRACERID_MOD,       ONLY : IDTSALA
-      USE TRACERID_MOD,       ONLY : IDTSO4
 #if   defined( APM )          
       USE APM_INIT_MOD,       ONLY : NSO4
-      USE APM_INIT_MOD,       ONLY : IDTSO4BIN1
-      USE APM_INIT_MOD,       ONLY : IDTCTSEA
-      USE APM_INIT_MOD,       ONLY : IDTCTBCOC
-      USE APM_INIT_MOD,       ONLY : IDTCTDST
-      USE APM_INIT_MOD,       ONLY : IDTCTSO4
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -263,17 +252,22 @@
       IF ( FIRST ) THEN
 
          ! Make sure certain tracers are defined
-         IF ( IDTSO4  == 0 ) CALL ERROR_STOP( 'IDTSO4 is undefined!', X)
-         IF ( IDTNH3  == 0 ) CALL ERROR_STOP( 'IDTNH3 is undefined!', X)
-         IF ( IDTNH4  == 0 ) CALL ERROR_STOP( 'IDTNH4 is undefined!', X)
-         IF ( IDTNIT  == 0 ) CALL ERROR_STOP( 'IDTNIT is undefined!', X)
-         IF ( IDTSALA == 0 ) CALL ERROR_STOP( 'IDTSALA is undefined!',X)
+         IF ( IND_('SO4') == 0 )
+     &        CALL ERROR_STOP( 'IND_(SO4) is undefined !', X)
+         IF ( IND_('NH3') == 0 )
+     &        CALL ERROR_STOP( 'IND_(NH3) is undefined !', X)
+         IF ( IND_('NH4')  == 0 )
+     &        CALL ERROR_STOP( 'IND_(NH4) is undefined !', X)
+         IF ( IND_('NIT')  == 0 )
+     &        CALL ERROR_STOP( 'IND_(NIT) is undefined !', X)
+         IF ( IND_('SALA') == 0 )
+     &        CALL ERROR_STOP( 'IND_(SALA) is undefined !',X)
 
          ! Initialize arrays
          CALL INIT_ISOROPIAII
 
          ! Check to see if we need to get HNO3 from HEMCO
-         IF ( IDTHNO3 == 0 ) THEN
+         IF ( IND_('HNO3') == 0 ) THEN
 
             IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
@@ -376,26 +370,26 @@
 
          !GanLuo+ Deduce SULFLO form TSO4, 
          ! Add those sulfate coated on primary particles
-         TSO4     = (SUM(STT(I,J,L,IDTSO4BIN1:(IDTSO4BIN1+NSO4-1)))
-     &            ) * 1.e+3_fp / ( 96.e+0_fp * VOL )
+         TSO4     = (SUM(STT(I,J,L,IND_('SO4BIN1'):(IND_('SO4BIN1')
+     &        +NSO4-1)))) * 1.e+3_fp / ( 96.e+0_fp * VOL )
 
-         TSO4COAT = (STT(I,J,L,(IDTCTBCOC-1+1)) +
-     &               STT(I,J,L,(IDTCTBCOC-1+2)) +
-     &               STT(I,J,L,IDTCTDST)+STT(I,J,L,IDTCTSEA)) *
-     &               1.e+3_fp / ( 96.e+0_fp * VOL )
+         TSO4COAT = (STT(I,J,L,(IND_('CTBCOC')-1+1)) +
+     &        STT(I,J,L,(IND_('CTBCOC')-1+2)) +
+     &        STT(I,J,L,IND_('CTDST'))+STT(I,J,L,IND_('CTSEA'))) *
+     &        1.e+3_fp / ( 96.e+0_fp * VOL )
          TSO4 = TSO4 + TSO4COAT
 #else
 
          !%%% WITHOUT APM %%%
 
          ! Total SO4 [mole/m3]
-         TSO4     = STT(I,J,L,IDTSO4) * 1.e+3_fp / ( 96.e+0_fp * VOL )
+         TSO4 = STT(I,J,L,IND_('SO4')) * 1.e+3_fp / ( 96.e+0_fp * VOL )
 
 #endif
 
          ! Total NH3 [mole/m3] 
-         TNH3     = STT(I,J,L,IDTNH4) * 1.e+3_fp / ( 18.e+0_fp * VOL ) +
-     &              STT(I,J,L,IDTNH3) * 1.e+3_fp / ( 17.e+0_fp * VOL )
+         TNH3 = STT(I,J,L,IND_('NH4')) * 1.e+3_fp / (18.e+0_fp * VOL ) +
+     &        STT(I,J,L,IND_('NH3')) * 1.e+3_fp / (17.e+0_fp * VOL )
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% NOTE: The error-trap statement above will halt execution if IDTSALA is
@@ -405,12 +399,12 @@
 !%%%         IF ( IDTSALA > 0 ) THEN
             
             ! Total Na+ (30.61% by weight of seasalt) [mole/m3]
-            TNA      = STT(I,J,L,IDTSALA) * 0.3061e+0_fp * 1.e+3_fp /
-     &                                    ( 22.99e+0_fp  * VOL  )
+            TNA = STT(I,J,L,IND_('SALA')) * 0.3061e+0_fp * 1.e+3_fp /
+     &        ( 22.99e+0_fp  * VOL  )
 
             ! Total Cl- (55.04% by weight of seasalt) [mole/m3]
-            TCL      = STT(I,J,L,IDTSALA) * 0.5504e+0_fp * 1.e+3_fp /
-     &                                    ( 35.45e+0_fp  * VOL  )
+            TCL = STT(I,J,L,IND_('SALA')) * 0.5504e+0_fp * 1.e+3_fp /
+     &           ( 35.45e+0_fp  * VOL  )
 
 !==============================================================================
 !=== NOTE: As of 11/2007, ISORROPIAII does not conserve mass when Ca,K,Mg are 
@@ -447,18 +441,19 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ! Compute gas-phase NO3
-         IF ( IDTHNO3 > 0 ) THEN
+         IF ( IND_('HNO3') > 0 ) THEN
             
             !---------------------
             ! COUPLED SIMULATION
             !---------------------
 
             ! Compute gas-phase HNO3 [mole/m3] from HNO3 tracer
-            GNO3  = STT(I,J,L,IDTHNO3)
-            GNO3  = MAX( GNO3 * 1.e+3_fp / ( 63.e+0_fp * VOL ), CONMIN )
+            GNO3 = STT(I,J,L,IND_('HNO3'))
+            GNO3 = MAX( GNO3 * 1.e+3_fp / ( 63.e+0_fp * VOL ), CONMIN )
 
             ! Aerosol-phase NO3 [mole/m3]
-            ANO3  = STT(I,J,L,IDTNIT) * 1.e+3_fp / ( 62.e+0_fp * VOL )
+            ANO3 = STT(I,J,L,IND_('NIT')) * 1.e+3_fp /
+     &           (62.e+0_fp * VOL )
 
             ! Total NO3 [mole/m3]
             TNO3    = GNO3 + ANO3
@@ -524,22 +519,23 @@
          ! no longer save TSO4 back into STT. SO4 is all aerosol phase
          ! (hotp 11/7/07)
          ! STT(I,J,L,IDTSO4) = TSO4
-         STT(I,J,L,IDTNH3) = TNH3
-         STT(I,J,L,IDTNH4) = TNH4
-         STT(I,J,L,IDTNIT) = TNIT
+         STT(I,J,L,IND_('NH3')) = TNH3
+         STT(I,J,L,IND_('NH4')) = TNH4
+         STT(I,J,L,IND_('NIT')) = TNIT
 
          ! Special handling for HNO3 [kg]
-         IF ( IDTHNO3 > 0 ) THEN
+         IF ( IND_('HNO3') > 0 ) THEN
             
             !---------------------
             ! COUPLED SIMULATION
             !---------------------
 
             ! HNO3 [mole/m3] is in GAS(2); convert & store in STT [kg]
-            STT(I,J,L,IDTHNO3) = MAX( 63.e-3_fp * VOL * GAS(2), CONMIN )
+            STT(I,J,L,IND_('HNO3'))
+     &           = MAX( 63.e-3_fp * VOL * GAS(2), CONMIN )
 
             ! Save for use in DEN_SAV expression below (sofen, 4/21/10)
-            HNO3_DEN           = STT(I,J,L,IDTHNO3)
+            HNO3_DEN           = STT(I,J,L,IND_('HNO3'))
 
          ELSE
 
@@ -587,14 +583,14 @@
          SULRAT_SAV(I,J,L)  = OTHER(2)
          NARAT_SAV(I,J,L)   = OTHER(4)
 
-         NUM_SAV    = ( STT(I,J,L,IDTNH3) /17e+0_fp         +
-     &                STT(I,J,L,IDTNH4) /18e+0_fp         +
-     &                STT(I,J,L,IDTSALA)*0.3061e+0_fp/23.0e+0_fp )
+         NUM_SAV    = ( STT(I,J,L,IND_('NH3')) /17e+0_fp         +
+     &        STT(I,J,L,IND_('NH4')) /18e+0_fp         +
+     &        STT(I,J,L,IND_('SALA'))*0.3061e+0_fp/23.0e+0_fp )
 
-         DEN_SAV    = ( STT(I,J,L,IDTSO4)  / 96e+0_fp   * 2e+0_fp     +
-     &                STT(I,J,L,IDTNIT)  / 62e+0_fp             + 
+         DEN_SAV    = ( STT(I,J,L,IND_('SO4'))  / 96e+0_fp * 2e+0_fp +
+     &                STT(I,J,L,IND_('NIT'))  / 62e+0_fp             + 
      &                HNO3_DEN           / 63e+0_fp             +
-     &                STT(I,J,L,IDTSALA) * 0.55e+0_fp / 35.45e+0_fp )
+     &                STT(I,J,L,IND_('SALA')) *0.55e+0_fp / 35.45e+0_fp)
 
          ! Value if DEN_SAV and NUM_SAV too small.
          ACIDPUR_SAV(I,J,L) = SAFE_DIV(NUM_SAV, DEN_SAV,

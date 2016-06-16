@@ -808,8 +808,8 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : IND_
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE TRACERID_Mod,       ONLY : IDTISOPN, IDTMMN
 !
 ! !INPUT PARAMETERS:
 !
@@ -1309,9 +1309,9 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : IND_
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
 
-    USE TRACERID_MOD,       ONLY : IDTPB   
 !
 ! !INPUT PARAMETERS:
 !
@@ -1349,14 +1349,14 @@ CONTAINS
     
     ! If the tracer number for lead is scheduled for output in input.geos, 
     ! then define the diagnostic container for 210Pb emissions.
-    IF ( ANY ( Input_Opt%TINDEX(1,:) == IDTPB ) ) THEN
+    IF ( ANY ( Input_Opt%TINDEX(1,:) == IND_('PB') )) THEN
 
        !----------------------------------------------------------------
        ! Create containers for Pb emissions [kg/s]
        !----------------------------------------------------------------
 
        ! Diagnostic container name and id
-       DiagnName = 'EMISS_' // TRIM( Input_Opt%TRACER_NAME( IDTPB ) )
+       DiagnName = 'EMISS_' // TRIM( Input_Opt%TRACER_NAME( IND_('PB') ) )
        cId = cId + 1
 
        ! Create container
@@ -2654,7 +2654,7 @@ CONTAINS
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
-    USE TRACERID_MOD
+    USE GIGC_State_Chm_Mod, ONLY : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -2702,21 +2702,21 @@ CONTAINS
        ID = GetHcoID( TrcId = N )
  
        ! Restrict diagnostics to these species
-       IF ( N /= IDTNO    .AND. N /= IDTCO     .AND. &
-            N /= IDTALK4  .AND. N /= IDTISOP   .AND. &
-            N /= IDTHNO3  .AND. N /= IDTACET   .AND. &
-            N /= IDTMEK   .AND. N /= IDTALD2   .AND. &
-            N /= IDTPRPE  .AND. N /= IDTC3H8   .AND. &
-            N /= IDTC2H6  .AND. N /= IDTDMS    .AND. &
-            N /= IDTSO2   .AND. N /= IDTSO4    .AND. &
-            N /= IDTNH3   .AND. N /= IDTBCPI   .AND. &
-            N /= IDTOCPI  .AND. N /= IDTBCPO   .AND. &
-            N /= IDTOCPO  .AND. N /= IDTDST1   .AND. &
-            N /= IDTDST2  .AND. N /= IDTDST3   .AND. &
-            N /= IDTDST4  .AND. N /= IDTSALA   .AND. &
-            N /= IDTSALC  .AND. N /= IDTBr2    .AND. &
-            N /= IDTBrO   .AND. N /= IDTCH2Br2 .AND. &
-            N /= IDTCH3Br .AND. N /= IDTO3             ) THEN
+       IF ( N /= IND_('NO') .AND. N /= IND_('CO')  .AND. &
+            N /= IND_('ALK4') .AND. N /= IND_('ISOP')  .AND. &
+            N /= IND_('HNO3') .AND. N /= IND_('ACET')  .AND. &
+            N /= IND_('MEK')  .AND. N /= IND_('ALD2')  .AND. &
+            N /= IND_('PRPE') .AND. N /= IND_('C3H8')  .AND. &
+            N /= IND_('C2H6') .AND. N /= IND_('DMS')   .AND. &
+            N /= IND_('SO2')  .AND. N /= IND_('SO4')   .AND. &
+            N /= IND_('NH3')  .AND. N /= IND_('BCPI')  .AND. &
+            N /= IND_('OCPI') .AND. N /= IND_('BCPO')  .AND. &
+            N /= IND_('OCPO') .AND. N /= IND_('DST1')  .AND. &
+            N /= IND_('DST2') .AND. N /= IND_('DST3')  .AND. &
+            N /= IND_('DST4') .AND. N /= IND_('SALA')  .AND. &
+            N /= IND_('SALC') .AND. N /= IND_('Br2')   .AND. &
+            N /= IND_('BrO')  .AND. N /= IND_('CH2Br2') .AND. &
+            N /= IND_('CH3Br') .AND. N /= IND_('O3')        ) THEN
           ID = -1
        ENDIF
  
@@ -2769,8 +2769,8 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : IND_
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE TRACERID_MOD, ONLY : IDTO3
 !
 ! !INPUT PARAMETERS:
 !
@@ -2803,7 +2803,7 @@ CONTAINS
     RC = GIGC_SUCCESS
 
     ! Nothing to do if O3 is not a tracer
-    IF ( IDTO3 <= 0 ) RETURN
+    IF ( IND_('O3') <= 0 ) RETURN
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -2858,9 +2858,8 @@ CONTAINS
     USE PHYSCONSTANTS,      ONLY : AIRMW, AVO,   g0
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
     USE HCO_Diagn_Mod,      ONLY : Diagn_Update, DiagnCont, DiagnCont_Find
-    USE TRACERID_MOD,       ONLY : IDTO3
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE PRESSURE_MOD,       ONLY : GET_PEDGE
 !
@@ -2911,7 +2910,7 @@ CONTAINS
     DgnPtr => NULL()
 
     ! Nothing to do if O3 is not a tracer
-    IF ( IDTO3 <= 0 ) RETURN
+    IF ( IND_('O3') <= 0 ) RETURN
 
     ! On first call, check if any of the two diagnostics is defined
     IF ( FIRST ) THEN
@@ -2948,7 +2947,8 @@ CONTAINS
        DP = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
 
        ! Ozone in v/v
-       O3vv = State_Chm%Tracers(I,J,L,IDTO3) * Input_Opt%TCVV(IDTO3) / State_Met%AD(I,J,L)
+       O3vv = State_Chm%Tracers(I,J,L,IND_('O3')) * Input_Opt%TCVV(IND('O3')) &
+            / State_Met%AD(I,J,L)
 
        ! Calculate O3 in DU for this grid box 
        DU = O3vv * DP * constant / 2.69e16_fp
