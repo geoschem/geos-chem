@@ -105,6 +105,17 @@
       ! Mass of hydrophilic aerosol from Mian Chin
       REAL(fp), ALLOCATABLE, SAVE   :: WAERSL(:,:,:,:)
 
+!CODEATHON bmy
+      ! Add tracer ID flags as module variables (bmy, 6/16/16)
+      INTEGER :: IDTBCPI,  IDTBCPO,  IDTDST1,  IDTDST2
+      INTEGER :: IDTDST3,  IDTDST4,  IDTNH4,   IDTNIT  
+      INTEGER :: IDTOCPO,  IDTOCPI,  IDTSALA,  IDTSALC 
+      INTEGER :: IDTSO4,   IDTSOAG,  IDTSOAM,  IDTSO4s
+      INTEGER :: IDTNITs,  IDTPOA1,  IDTPOA2,  IDTOPOA1
+      INTEGER :: IDTOPOA2, IDTTSOA1, IDTTSOA2, IDTTSOA3 
+      INTEGER :: IDTTSOA0, IDTISOA1, IDTISOA2, IDTISOA3
+      INTEGER :: IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -137,21 +148,22 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTDST1, IDTDST2
-      USE TRACERID_MOD,       ONLY : IDTDST3, IDTDST4, IDTNH4,  IDTNIT  
-      USE TRACERID_MOD,       ONLY : IDTOCPO, IDTOCPI, IDTSALA, IDTSALC 
-      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTSOAG, IDTSOAM
-      USE TRACERID_MOD,       ONLY : IDTSO4s, IDTNITs 
-      ! SOAupdate: update SOA tracers (hotp 7/25/10)
-      USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOA2
-      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOA2
-      ! SOAupdate: new mtp replaces SOA1-4 (hotp 5/20/10
-      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2 
-      USE TRACERID_MOD,       ONLY : IDTTSOA3, IDTTSOA0
-      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      ! SOAupdate: replace SOA5 with lumped aromatic (hotp 5/12/10)
-      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
-      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
+!CODEATHON bmy
+!      USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTDST1, IDTDST2
+!      USE TRACERID_MOD,       ONLY : IDTDST3, IDTDST4, IDTNH4,  IDTNIT  
+!      USE TRACERID_MOD,       ONLY : IDTOCPO, IDTOCPI, IDTSALA, IDTSALC 
+!      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTSOAG, IDTSOAM
+!      USE TRACERID_MOD,       ONLY : IDTSO4s, IDTNITs 
+!     ! SOAupdate: update SOA tracers (hotp 7/25/10)
+!      USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOA2
+!      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOA2
+!      ! SOAupdate: new mtp replaces SOA1-4 (hotp 5/20/10
+!      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2 
+!      USE TRACERID_MOD,       ONLY : IDTTSOA3, IDTTSOA0
+!      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+!      ! SOAupdate: replace SOA5 with lumped aromatic (hotp 5/12/10)
+!      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
+!      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
       USE UCX_MOD,            ONLY : KG_STRAT_AER
       USE UNITCONV_MOD
 #if   defined( TOMAS ) 
@@ -1675,6 +1687,7 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -1703,6 +1716,39 @@
 
       ! Assume success
       RC = GIGC_SUCCESS
+
+      ! Add tracer ID flags as module variables (bmy, 6/16/16)
+      IDTBCPI  = Ind_('BCPI' )
+      IDTBCPO  = Ind_('BCPO' )
+      IDTDST1  = Ind_('DST1' )
+      IDTDST2  = Ind_('DST2' )
+      IDTDST3  = Ind_('DST3' ) 
+      IDTDST4  = Ind_('DST4' ) 
+      IDTNH4   = Ind_('NH4'  )
+      IDTNIT   = Ind_('NIT'  ) 
+      IDTOCPO  = Ind_('OCPO' ) 
+      IDTOCPI  = Ind_('OCPI' )  
+      IDTSALA  = Ind_('SALA' )  
+      IDTSALC  = Ind_('SALC' )   
+      IDTSO4   = Ind_('SO4'  )         
+      IDTSOAM  = Ind_('SOAM' ) 
+      IDTSO4s  = Ind_('SO4s' )  
+      IDTNITs  = Ind_('NITs' ) 
+      IDTPOA1  = Ind_('POA1' )   
+      IDTPOA2  = Ind_('POA2' )    
+      IDTOPOA1 = Ind_('OPOA1')   
+      IDTOPOA2 = Ind_('OPOA2')    
+      IDTTSOA1 = Ind_('TSOA1') 
+      IDTTSOA2 = Ind_('TSOA2') 
+      IDTTSOA3 = Ind_('TSOA3')
+      IDTTSOA0 = Ind_('TSOA0') 
+      IDTISOA1 = Ind_('ISOA1')  
+      IDTISOA2 = Ind_('ISOA2')  
+      IDTISOA3 = Ind_('ISOA3')
+      IDTASOAN = Ind_('ASOAN') 
+      IDTASOA1 = Ind_('ASOA1')  
+      IDTASOA2 = Ind_('ASOA2') 
+      IDTASOA3 = Ind_('ASOA3')
 
       ! Allocate arrays
       ALLOCATE( BCPI( IIPAR, JJPAR, LLPAR ), STAT=AS )
