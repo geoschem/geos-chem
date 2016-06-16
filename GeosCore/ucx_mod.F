@@ -2146,7 +2146,6 @@
 ! !USES:
 !
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTHCFCX
       USE GRID_MOD,           ONLY : GET_YMID
 !
 ! !INPUT PARAMETERS:
@@ -2204,11 +2203,6 @@
                   LOCAL_NAME = TRIM('HCFC142b')
                   CALL SET_MONTREAL_NCDF(LOCAL_NAME,
      &                    TARG_YR_NC,TARG_MO_NC,N)
-                  ! Also need HCFC123 - no Montreal data
-                  ! Use surface-level MR from 2D data instead
-                  !TRAC_IDX = IDTHCFCX
-                  !TRAC_SET  = 'C2HF3CL2'
-                  !CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.TRUE.)
                   ! Ignore HCFC123 for the moment
                CASE ('H2402')
                   ! Limited data available for H2402
@@ -2271,11 +2265,6 @@
                   CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
                   LOCAL_NAME = TRIM('HCFC142b')
                   CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
-                  ! Also need HCFC123 - no Montreal data
-                  ! Use surface-level MR from 2D data instead
-                  !TRAC_IDX = IDTHCFCX
-                  !TRAC_SET  = 'C2HF3CL2'
-                  !CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.TRUE.)
                   ! Ignore HCFC123 for the moment
                CASE ('H2402')
                   ! Limited data available for H2402
@@ -2533,7 +2522,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_ErrCode_Mod
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTNIT,IDTBCPI,IDTH2O,IDTHNO3
+      Use GIGC_State_Chm_Mod, Only : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -2563,6 +2552,7 @@
 !                              in State_Chm.
 !  31 May 2016 - E. Lundgren - Replace Input_Opt%TRACER_MW_G with species
 !                              database emMW_g (emitted species g/mol)
+!  16 Jun 2016 - S.D.Eastham - Remove references to tracerid_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2638,6 +2628,9 @@
       REAL(f4), POINTER      :: STATE_PSC(:,:,:)
       REAL(fp), POINTER      :: WERADIUS(:,:,:,:)
 
+      ! Species indices
+      Integer                :: IDNIT, IDBCPI, IDH2O, IDHNO3
+
       !=================================================================
       ! SETTLE_STRAT_AER begins here!
       !=================================================================
@@ -2650,9 +2643,15 @@
       LGRAVSTRAT  = Input_Opt%LGRAVSTRAT
       N_TRACERS   = Input_Opt%N_TRACERS
 
+      ! Retrieve species indices
+      IDNIT = IND_('NIT')
+      IDBCPI = IND_('BCPI')
+      IDH2O = IND_('H2O')
+      IDHNO3 = IND_('HNO3')
+
       ! Copy fields from species database
-      NIT_MW_G    = State_Chm%SpcData(IDTNIT)%Info%emMW_g  ! g/mol
-      HNO3_MW_G   = State_Chm%SpcData(IDTHNO3)%Info%emMW_g ! g/mol
+      NIT_MW_G    = State_Chm%SpcData(IDNIT)%Info%emMW_g  ! g/mol
+      HNO3_MW_G   = State_Chm%SpcData(IDHNO3)%Info%emMW_g ! g/mol
 
       ! Initialize pointers
       STT       => State_Chm%Tracers     ! GEOS-Chem tracer array [kg] 
@@ -2882,7 +2881,7 @@
                STT(I,J,L,IDTCURRENT) = PHASEMASS(3,2)
             ENDIF
          ENDDO
-         STT(I,J,L,IDTBCPI)= STT(I,J,L,IDTBCPI)* CONST_V(IBC) 
+         STT(I,J,L,IDBCPI)= STT(I,J,L,IDBCPI)* CONST_V(IBC) 
 
          DO L = LLPAR-1,1,-1
             IF (ITS_IN_THE_TROP(I,J,L+1,State_Met)) CYCLE
@@ -2926,10 +2925,10 @@
                   STT(I,J,L,IDTCURRENT) = PHASEMASS(3,1)
                ENDIF
             ENDDO
-            STT(I,J,L,IDTBCPI) = 1.e+0_fp/(1.e+0_fp+DTCHEM
+            STT(I,J,L,IDBCPI) = 1.e+0_fp/(1.e+0_fp+DTCHEM
      &              * VTS(L,IBC) / DELZ)
-     &              * (STT(I,J,L,IDTBCPI)+DTCHEM*VTS(L+1,IBC)/DELZ1
-     &              * STT(I,J,L+1,IDTBCPI)) 
+     &              * (STT(I,J,L,IDBCPI)+DTCHEM*VTS(L+1,IBC)/DELZ1
+     &              * STT(I,J,L+1,IDBCPI)) 
          ENDDO
 
          ! Now perform trapezoidal scheme for particulates
@@ -2960,12 +2959,12 @@
                   XNAT_0 = 0e+0_fp
                   XICE_0 = 0e+0_fp
                ELSE
-                  XNO3_0 = STT(I,J,L,IDTNIT) * AIRMW / 
+                  XNO3_0 = STT(I,J,L,IDNIT) * AIRMW / 
      &                     ( NIT_MW_G * State_Met%AD(I,J,L) )
                   XNAT_0 = XNO3_0! * 4.e+0_fp
                   XICE_0 = (KG_AER(I,J,L,I_SPA)-
      &                     ( ( NATMW / NIT_MW_G ) *
-     &                     STT(I,J,L,IDTNIT)))*AIRMW/(ICEMW*
+     &                     STT(I,J,L,IDNIT)))*AIRMW/(ICEMW*
      &                     State_Met%AD(I,J,L))
                ENDIF
                XPSC_0   = XNAT_0 + XICE_0
@@ -2978,15 +2977,15 @@
                      XNAT_ABOVE = 0e+0_fp
                      XICE_ABOVE = 0e+0_fp
                   ELSE
-                     XNO3_ABOVE = STT(I,J,L+1,IDTNIT) * INVAIR_ABOVE / 
+                     XNO3_ABOVE = STT(I,J,L+1,IDNIT) * INVAIR_ABOVE / 
      &                            NIT_MW_G
                      ! NAT = HNO3.3H2O = 4 molecules
                      XNAT_ABOVE = XNO3_ABOVE! * 4.e+0_fp
-!                     XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)-STT(I,J,L+1,IDTNIT))
+!                     XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)-STT(I,J,L+1,IDNIT))
 !     &                                          *INVAIR_ABOVE/ICEMW
                      XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)-
      &                   ( ( NATMW / NIT_MW_G ) *
-     &                   STT(I,J,L+1,IDTNIT)))*INVAIR_ABOVE/ICEMW
+     &                   STT(I,J,L+1,IDNIT)))*INVAIR_ABOVE/ICEMW
                   ENDIF
                   XPSC_ABOVE = XNAT_ABOVE + XICE_ABOVE
                   P_ABOVE    = 100.0e+0_fp * State_Met%PMID(I,J,L+1)
@@ -3031,12 +3030,12 @@
                   IF (L.lt.(LLPAR-1)) THEN
                      INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+2)
                      IF (STATE_PSC(I,J,L+2) >= 2.0e+0_f4 ) THEN
-                        XNO3_ABOVE = STT(I,J,L+2,IDTNIT)*INVAIR_ABOVE/ 
+                        XNO3_ABOVE = STT(I,J,L+2,IDNIT)*INVAIR_ABOVE/ 
      &                               NIT_MW_G
                         XNAT_ABOVE = XNO3_ABOVE! * 4.e+0_fp
                         XICE_ABOVE = (KG_AER(I,J,L+2,I_SPA)-
      &                      ( ( NATMW / NIT_MW_G )*
-     &                      STT(I,J,L+2,IDTNIT)))*INVAIR_ABOVE/ICEMW
+     &                      STT(I,J,L+2,IDNIT)))*INVAIR_ABOVE/ICEMW
                      ELSE
                         XNO3_ABOVE = 0e+0_fp
                         XNAT_ABOVE = 0e+0_fp
@@ -3152,14 +3151,14 @@
                   SEDNO3 = SEDNO3 * NIT_MW_G / INVAIR_0
                   SEDICE = SEDICE*ICEMW/INVAIR_0
                   
-                  SEDNO3 = MIN(SEDNO3,STT(I,J,L+1,IDTNIT))
-                  STT(I,J,L,IDTNIT) = STT(I,J,L,IDTNIT) + SEDNO3
-                  STT(I,J,L+1,IDTNIT)=STT(I,J,L+1,IDTNIT)-SEDNO3
+                  SEDNO3 = MIN(SEDNO3,STT(I,J,L+1,IDNIT))
+                  STT(I,J,L,IDNIT) = STT(I,J,L,IDNIT) + SEDNO3
+                  STT(I,J,L+1,IDNIT)=STT(I,J,L+1,IDNIT)-SEDNO3
 
                   ! Settle the ice out too
-                  SEDH2O = MIN(SEDICE,STT(I,J,L+1,IDTH2O))
-                  STT(I,J,L,IDTH2O) = STT(I,J,L,IDTH2O) + SEDH2O
-                  STT(I,J,L+1,IDTH2O)=STT(I,J,L+1,IDTH2O)-SEDH2O
+                  SEDH2O = MIN(SEDICE,STT(I,J,L+1,IDH2O))
+                  STT(I,J,L,IDH2O) = STT(I,J,L,IDH2O) + SEDH2O
+                  STT(I,J,L+1,IDH2O)=STT(I,J,L+1,IDH2O)-SEDH2O
 
                   ! Now correct aerosol totals
                   SEDNAT = SEDNO3 * NATMW / NIT_MW_G
@@ -3170,16 +3169,16 @@
                   
                   ! Store for debug
                   IF (LPRT) THEN
-                     FRACLOSS = SEDH2O/STT(I,J,L+1,IDTH2O)
+                     FRACLOSS = SEDH2O/STT(I,J,L+1,IDH2O)
                      IF (FRACLOSS .gt. MAXLOSS) THEN
                         MAXLOSS = FRACLOSS
                         D_ICE0 = XICE_0*ICEMW/INVAIR_0
                         D_ICE1 = D_ICE0 - SEDICE
-                        D_H2O1 = STT(I,J,L+1,IDTH2O)
+                        D_H2O1 = STT(I,J,L+1,IDH2O)
                         D_H2O0 = D_H2O1 + SEDH2O
-                        D_NAT1 = STT(I,J,L+1,IDTNIT) * NATMW / NIT_MW_G
+                        D_NAT1 = STT(I,J,L+1,IDNIT) * NATMW / NIT_MW_G
                         D_NAT0 = D_NAT1 + SEDNAT
-                        D_HNO3 = STT(I,J,L+1,IDTHNO3)
+                        D_HNO3 = STT(I,J,L+1,IDHNO3)
                         D_RMAX = RAD_AER(I,J,L+1,I_SPA)
                         D_VMAX = VNAT(L+1)
                         D_SEDQ = SEDQUANT
@@ -3248,7 +3247,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTSO4
+      USE GIGC_State_Chm_Mod, ONLY : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -3300,6 +3299,8 @@
       ! Pointers
       REAL(fp), POINTER  :: STT(:,:,:,:)
 
+      Integer            :: IDSO4
+
       !=================================================================
       ! CALC_H2SO4_GAS begins here!
       !=================================================================
@@ -3309,7 +3310,8 @@
       N_TRACERS   = Input_Opt%N_TRACERS
 
       ! Copy fields from species database
-      SO4_MW_G    = State_Chm%SpcData(IDTSO4)%Info%emMW_g ! g/mol
+      IDSO4 = IND_('SO4')
+      SO4_MW_G    = State_Chm%SpcData(IDSO4)%Info%emMW_g ! g/mol
 
       ! Initialize GEOS-Chem tracer array [kg]
       STT => State_Chm%Tracers
@@ -3350,7 +3352,7 @@
             ! Don't want to interfere with tropospheric aerosols
             AERFRAC(I,J,L,1) = 1e+0_fp
          ELSE
-            H2SO4SUM = STT(I,J,L,IDTSO4) * INVAIR / SO4_MW_G
+            H2SO4SUM = STT(I,J,L,IDSO4) * INVAIR / SO4_MW_G
             ! Use approximation from Kumala (1990)
             ! Use dry air partial pressure (ewl, 3/26/15)
             GF_PP = H2SO4SUM*PCENTER_P
@@ -3452,9 +3454,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       !USE GRID_MOD,           ONLY : GET_YEDGE
       USE GRID_MOD,           ONLY : GET_YMID
-      USE TRACERID_MOD,       ONLY : IDTSO4, IDTH2O
-      USE TRACERID_MOD,       ONLY : IDTHNO3, IDTNIT, IDTBrNO3, IDTHBr
-      USE TRACERID_MOD,       ONLY : IDTHOBr, IDTHCl, IDTClNO3, IDTHOCl
+      USE GIGC_State_Chm_Mod, Only : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -3484,6 +3484,7 @@
 !                                now done from DO_CHEMISTRY (chemistry_mod.F) 
 !  31 May 2016 - E. Lundgren   - Replace Input_Opt%TRACER_MW_G with emMW_g
 !                                from species database (emitted species g/mol) 
+!  16 Jun 2016 - S. D. Eastham - Remove references to tracerid_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3568,6 +3569,10 @@
       ! Loop variables
       INTEGER                 :: I, J, L, K
 
+      ! Species IDs
+      Integer                 :: IDSO4,  IDH2O
+      Integer                 :: IDHNO3, IDNIT, IDBrNO3, IDHBr
+      Integer                 :: IDHOBr, IDHCl, IDClNO3, IDHOCl
       ! SDE 2013-07-07: Debug variables
       REAL(fp)                :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
       REAL(fp)                :: D_MAXN, D_FRACN,D_PP,   D_PS
@@ -3602,10 +3607,22 @@
       LACTIVEH2O  = Input_Opt%LACTIVEH2O
       N_TRACERS   = Input_Opt%N_TRACERS
 
+      ! Retrieve species IDs
+      IDSO4 = IND_('SO4')
+      IDH2O = IND_('H2O')
+      IDHNO3 = IND_('HNO3')
+      IDNIT = IND_('NIT')
+      IDBrNO3 = IND_('BrNO3')
+      IDHBr = IND_('HBr')
+      IDHOBr = IND_('HOBr')
+      IDHCl = IND_('HCl')
+      IDHOCl = IND_('HOCl')
+      IDClNO3 = IND_('ClNO3')
+
       ! Copy fields from species database
-      NIT_MW_G  = State_Chm%SpcData(IDTNIT)%Info%emMW_g   ! g/mol
-      HNO3_MW_G = State_Chm%SpcData(IDTHNO3)%Info%emMW_g  ! g/mol
-      H2O_MW_G  = State_Chm%SpcData(IDTH2O)%Info%emMW_g   ! g/mol
+      NIT_MW_G  = State_Chm%SpcData(IDNIT)%Info%emMW_g   ! g/mol
+      HNO3_MW_G = State_Chm%SpcData(IDHNO3)%Info%emMW_g  ! g/mol
+      H2O_MW_G  = State_Chm%SpcData(IDH2O)%Info%emMW_g   ! g/mol
 
       ! Initialize GEOS-Chem tracer array [kg]
       STT => State_Chm%Tracers
@@ -3728,14 +3745,14 @@
                INVAIR = AIRMW / State_Met%AD(I,J,L)
 
                ! Get available NO3 mass
-               KG_NO3 = ( STT(I,J,L,IDTHNO3) * NIT_MW_G / HNO3_MW_g ) +
-     &                    STT(I,J,L,IDTNIT)
+               KG_NO3 = ( STT(I,J,L,IDHNO3) * NIT_MW_G / HNO3_MW_g ) +
+     &                    STT(I,J,L,IDNIT)
 
                ! Calculate HNO3 mixing ratio
-               HNO3SUM = STT(I,J,L,IDTHNO3) * INVAIR / HNO3_MW_G
-               HNO3SUM = HNO3SUM + STT(I,J,L,IDTNIT) * INVAIR / NIT_MW_G
+               HNO3SUM = STT(I,J,L,IDHNO3) * INVAIR / HNO3_MW_G
+               HNO3SUM = HNO3SUM + STT(I,J,L,IDNIT) * INVAIR / NIT_MW_G
 
-               H2OSUM = STT(I,J,L,IDTH2O) * INVAIR / H2O_MW_G
+               H2OSUM = STT(I,J,L,IDH2O) * INVAIR / H2O_MW_G
 
                ! Calculate partial pressures (Pa)
                HNO3PP = PCENTER_PA * HNO3SUM
@@ -3935,11 +3952,11 @@
                IF (LSOLIDPSC.and.IS_STRAT) THEN
 
                   ! Convert NAT from kg NAT to kg NO3
-                  STT(I,J,L,IDTNIT) = KG_NAT * NIT_MW_G / NATMW
+                  STT(I,J,L,IDNIT) = KG_NAT * NIT_MW_G / NATMW
 
                   ! Remove (kg NO3 as NAT) from total kg NO3
                   ! then convert to kg HNO3
-                  STT(I,J,L,IDTHNO3) = (KG_NO3-STT(I,J,L,IDTNIT))
+                  STT(I,J,L,IDHNO3) = (KG_NO3-STT(I,J,L,IDNIT))
      &                  * HNO3_MW_G / NIT_MW_G 
                ENDIF
 
@@ -3951,20 +3968,20 @@
                H2O_BOX_L = 0e+0_fp
 
                ! Calculate mixing ratios of other relevant species
-               H2SO4SUM = STT(I,J,L,IDTSO4) * INVAIR /
-     &                    State_Chm%SpcData(IDTSO4)%Info%emMW_g
-               BrNO3SUM = STT(I,J,L,IDTBrNO3) * INVAIR /
-     &                    State_Chm%SpcData(IDTBrNO3)%Info%emMW_g
-               ClNO3SUM = STT(I,J,L,IDTClNO3) * INVAIR /
-     &                    State_Chm%SpcData(IDTClNO3)%Info%emMW_g
-               HOClSUM  = STT(I,J,L,IDTHOCl) * INVAIR /
-     &                    State_Chm%SpcData(IDTHOCl)%Info%emMW_g
-               HClSUM   = STT(I,J,L,IDTHCl) * INVAIR /
-     &                    State_Chm%SpcData(IDTHCl)%Info%emMW_g
-               HOBrSUM  = STT(I,J,L,IDTHOBr) * INVAIR /
-     &                    State_Chm%SpcData(IDTHOBr)%Info%emMW_g
-               HBrSUM   = STT(I,J,L,IDTHBr) * INVAIR /
-     &                    State_Chm%SpcData(IDTHBr)%Info%emMW_g
+               H2SO4SUM = STT(I,J,L,IDSO4) * INVAIR /
+     &                    State_Chm%SpcData(IDSO4)%Info%emMW_g
+               BrNO3SUM = STT(I,J,L,IDBrNO3) * INVAIR /
+     &                    State_Chm%SpcData(IDBrNO3)%Info%emMW_g
+               ClNO3SUM = STT(I,J,L,IDClNO3) * INVAIR /
+     &                    State_Chm%SpcData(IDClNO3)%Info%emMW_g
+               HOClSUM  = STT(I,J,L,IDHOCl) * INVAIR /
+     &                    State_Chm%SpcData(IDHOCl)%Info%emMW_g
+               HClSUM   = STT(I,J,L,IDHCl) * INVAIR /
+     &                    State_Chm%SpcData(IDHCl)%Info%emMW_g
+               HOBrSUM  = STT(I,J,L,IDHOBr) * INVAIR /
+     &                    State_Chm%SpcData(IDHOBr)%Info%emMW_g
+               HBrSUM   = STT(I,J,L,IDHBr) * INVAIR /
+     &                    State_Chm%SpcData(IDHBr)%Info%emMW_g
 
                ! H2SO4 gas fraction calculated earlier throughout grid
                ! Consider gaseoues H2SO4 to be unavailable for SLA
