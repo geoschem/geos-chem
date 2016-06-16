@@ -100,12 +100,14 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : Ind_
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID
       USE TIME_MOD,           ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
       USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
       USE TOMS_MOD,           ONLY : GET_OVERHEAD_O3
-      USE TRACERID_MOD,       ONLY : IDO3
+!CODEATHON bmy
+!      USE TRACERID_MOD,       ONLY : IDO3
 
       IMPLICIT NONE
 
@@ -221,6 +223,7 @@
 !                              clause and error check for JLOOP > 0
 !  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as for GEOS-FP
 !  21 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
+!  16 Jun 2016 - R. Yantosca - Now define IDO3 with the Ind_ function
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -257,6 +260,9 @@
       ! Local variables for quantities from Input_Opt
       LOGICAL       :: LPRT
 
+      ! Species ID flags (formerly from tracerid_mod.F)
+      INTEGER       :: IDO3
+
       !=================================================================
       ! FAST_JX begins here!
       !=================================================================
@@ -267,16 +273,39 @@
       ! Copy fields from INPUT_OPT
       LPRT = ( am_I_Root .and. Input_Opt%LPRT )
 
-#if defined( USE_MAXIMUM_RANDOM_OVERLAP )
+!CODEATHON bmy
+!#if defined( USE_MAXIMUM_RANDOM_OVERLAP )
+!      IF ( FIRST ) THEN
+!
+!         DO i = 1,LLPAR+1
+!            INDGEN(i) = i       !(/(i,i=1,LLPAR+1)/)
+!         ENDDO
+!         FIRST = .FALSE.
+!
+!      ENDIF
+!#endif
+
+      ! Special handling for first-time setup
       IF ( FIRST ) THEN
 
+         ! Get the species ID for O3
+         IDO3 = Ind_('O3')
+         IF ( IDO3 < 0 ) THEN
+            CALL ERROR_STOP( 'O3 is not a defined species!', 
+     &                       'GeosCore/fast_jx_mod.F' )
+         ENDIF
+
+#if defined( USE_MAXIMUM_RANDOM_OVERLAP )
+         ! Special setup only for max random overlap
          DO i = 1,LLPAR+1
             INDGEN(i) = i       !(/(i,i=1,LLPAR+1)/)
          ENDDO
+#endif
+         
+         ! Reset first-time flag
          FIRST = .FALSE.
 
       ENDIF
-#endif
 
       ! Get day of year (0-365 or 0-366)
       DAY_OF_YR = GET_DAY_OF_YEAR()
