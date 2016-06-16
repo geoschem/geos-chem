@@ -341,7 +341,7 @@
       USE GRID_MOD,           ONLY : GET_YMID
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR
-      USE TRACERID_MOD
+      USE GIGC_State_Chm_Mod, Only : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -404,6 +404,7 @@
 !  24 Nov 2014 - C. Keller     - Update for stratospheric NOy (as suggested by 
 !                                Seb Eastham)
 !  16 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg
+!  16 Jun 2016 - S. D. Eastham - Remove references to tracerid_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -435,6 +436,7 @@
 !      LOGICAL            :: LBASICEMIS
       INTEGER            :: N_TRACERS
       REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
+      Real(fp)           :: MWTemp
 
       ! Pointers
       REAL(fp), POINTER    :: STT(:,:,:,:)
@@ -519,52 +521,52 @@
             ! Scaling data only available for CH3Br
             SCALEFAC = 1.e+0_fp
 
-            TRAC_IDX = IDTBr2
+            TRAC_IDX = IND_('Br2')
             TRAC_SET = 'BR2'
             CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
          
-            TRAC_IDX = IDTBr
+            TRAC_IDX = IND_('Br')
             TRAC_SET = 'BR'
             CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
          
-            TRAC_IDX = IDTBrO
+            TRAC_IDX = IND_('BrO')
             TRAC_SET = 'BRO'
             CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
          
-            TRAC_IDX = IDTHOBr
+            TRAC_IDX = IND_('HOBr')
             TRAC_SET = 'HOBR'
             CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
          
-            TRAC_IDX = IDTHBr
+            TRAC_IDX = IND_('HBr')
             TRAC_SET = 'HBR'
             CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
      
-            TRAC_IDX = IDTBrNO2
+            TRAC_IDX = IND_('BrNO2')
             TRAC_SET = 'BRNO2'
             CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
      
-            TRAC_IDX = IDTBrNO3
+            TRAC_IDX = IND_('BrNO3')
             TRAC_SET = 'BRNO3'
             CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
      
-            TRAC_IDX = IDTCHBr3 
+            TRAC_IDX = IND_('CHBr3 ')
             TRAC_SET = 'CHBR3'
             CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
      
-            TRAC_IDX = IDTCH2Br2
+            TRAC_IDX = IND_('CH2Br2')
             TRAC_SET = 'CH2BR2'
             CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
      
-            TRAC_IDX = IDTCH3Br
+            TRAC_IDX = IND_('CH3Br')
             TRAC_SET  = 'CH3BR'
             SCALEFAC = MONTREAL_SCALEFAC('CH3Br',
      &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
@@ -586,12 +588,12 @@
             ! No Montreal scaling
             SCALEFAC = 1.e+0_fp
 
-            TRAC_IDX = IDTNO
+            TRAC_IDX = IND_('NO')
             TRAC_SET = 'NO'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
 
-            TRAC_IDX = IDTNO2
+            TRAC_IDX = IND_('NO2')
             TRAC_SET = 'NO2'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
@@ -601,32 +603,32 @@
             CALL APPLY_2DTRAC( .TRUE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
 
-            TRAC_IDX = IDTNO3
+            TRAC_IDX = IND_('NO3')
             TRAC_SET = 'NO3'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
 
-            TRAC_IDX = IDTN2O5
+            TRAC_IDX = IND_('N2O5')
             TRAC_SET = 'N2O5'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
 
-            TRAC_IDX = IDTHNO2
+            TRAC_IDX = IND_('HNO2')
             TRAC_SET = 'HONO'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
 
-            TRAC_IDX = IDTHNO3
+            TRAC_IDX = IND_('HNO3')
             TRAC_SET = 'HNO3'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
 
-            TRAC_IDX = IDTHNO4
+            TRAC_IDX = IND_('HNO4')
             TRAC_SET = 'HO2NO2'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
 
-            TRAC_IDX = IDTPAN
+            TRAC_IDX = IND_('PAN')
             TRAC_SET = 'PAN'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
@@ -642,7 +644,7 @@
             ! No Montreal scaling
             SCALEFAC = 1.e+0_fp
 
-            TRAC_IDX = IDTBrCl
+            TRAC_IDX = IND_('BrCl')
             TRAC_SET  = 'BRCL'
             CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
@@ -663,65 +665,65 @@
             ! No Montreal scaling for non-long-lived-species
             SCALEFAC = 1e+0_fp
 
-            TRAC_IDX = IDTCl
+            TRAC_IDX = IND_('Cl')
             TRAC_SET = 'CL'
             CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
-            TRAC_IDX = IDTClO
+            TRAC_IDX = IND_('ClO')
             TRAC_SET = 'CLO'
             CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
-            TRAC_IDX = IDTClNO2
+            TRAC_IDX = IND_('ClNO2')
             TRAC_SET = 'CLNO2'
             CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
-            TRAC_IDX = IDTClNO3
+            TRAC_IDX = IND_('ClNO3')
             TRAC_SET = 'CLNO3'
             CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
-            TRAC_IDX = IDTHOCl
+            TRAC_IDX = IND_('HOCl')
             TRAC_SET = 'HOCL'
             CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
-            TRAC_IDX = IDTOClO
+            TRAC_IDX = IND_('OClO')
             TRAC_SET = 'OCLO'
             CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
-            TRAC_IDX = IDTClOO
+            TRAC_IDX = IND_('ClOO')
             TRAC_SET = 'CLOO'
             CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
      
-            TRAC_IDX = IDTCl2
+            TRAC_IDX = IND_('Cl2')
             TRAC_SET = 'CL2'
             CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
-            TRAC_IDX = IDTCl2O2
+            TRAC_IDX = IND_('Cl2O2')
             TRAC_SET = 'CL2O2'
             CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
      
-            TRAC_IDX = IDTHCl
+            TRAC_IDX = IND_('HCl')
             TRAC_SET = 'HCL'
             CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
      
             ! Handle chloroalkanes      
-            TRAC_IDX = IDTCH3Cl
+            TRAC_IDX = IND_('CH3Cl')
             TRAC_SET = 'CH3CL'
             SCALEFAC = MONTREAL_SCALEFAC('CH3Cl',
      &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
      
-            TRAC_IDX = IDTCH3CCl3
+            TRAC_IDX = IND_('CH3CCl3')
             TRAC_SET = 'CH3CCL3'
             SCALEFAC = MONTREAL_SCALEFAC('CH3CCl3',
      &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
      
-            TRAC_IDX = IDTCCl4
+            TRAC_IDX = IND_('CCl4')
             TRAC_SET = 'CCL4'
             SCALEFAC = MONTREAL_SCALEFAC('CCl4',
      &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
@@ -739,19 +741,19 @@
                WRITE(6,*) '|---------|---------|---------|'
             ENDIF
             ! H-1211, 1301 and 2402
-            TRAC_IDX = IDTH1211
+            TRAC_IDX = IND_('H1211')
             TRAC_SET = 'CBRCLF2'
             SCALEFAC = MONTREAL_SCALEFAC('H1211',
      &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
-            TRAC_IDX = IDTH1301
+            TRAC_IDX = IND_('H1301')
             TRAC_SET = 'CBRF3'
             SCALEFAC = MONTREAL_SCALEFAC('H1301',
      &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
-            TRAC_IDX = IDTH2402
+            TRAC_IDX = IND_('H2402')
             TRAC_SET = 'C2BR2F4'
 
             IF (UCXNETCDF) THEN
@@ -768,21 +770,21 @@
      &                         Input_Opt, State_Met, State_Chm )
      
             ! CFC  11, 12, and [113/114/115]
-            TRAC_IDX = IDTCFC11
+            TRAC_IDX = IND_('CFC11')
             TRAC_SET = 'CFCL3'
             SCALEFAC = MONTREAL_SCALEFAC('CFC11',
      &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
 
-            TRAC_IDX = IDTCFC12
+            TRAC_IDX = IND_('CFC12')
             TRAC_SET = 'CF2CL2'
             SCALEFAC = MONTREAL_SCALEFAC('CFC12',
      &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
 
-            TRAC_IDX = IDTCFCX
+            TRAC_IDX = IND_('CFCX')
             TRAC_SET = 'C2CL3F3'
             SCALEFAC = MONTREAL_SCALEFAC('CFC113',
      &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
@@ -801,14 +803,14 @@
      &                         Input_Opt, State_Met, State_Chm )
      
             ! HCFC 22, 123, 141b and 142b
-            TRAC_IDX = IDTHCFC22
+            TRAC_IDX = IND_('HCFC22')
             TRAC_SET = 'CHCLF2'
             SCALEFAC = MONTREAL_SCALEFAC('HCFC22',
      &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
 
-            TRAC_IDX = IDTHCFCX
+            TRAC_IDX = IND_('HCFCX')
             TRAC_SET = 'C2HF3CL2'
             ! Take scaling factor for HCFC22 (no data for 123)
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
@@ -831,7 +833,7 @@
                WRITE(6,*) '|OCS      |         |         |'
                WRITE(6,*) '|---------|---------|---------|'
             ENDIF
-            TRAC_IDX = IDTOCS
+            TRAC_IDX = IND_('OCS')
             TRAC_SET = 'OCS'
 
             ! No Montreal scaling
@@ -849,7 +851,7 @@
             ! No Montreal scaling
             SCALEFAC = 1.e+0_fp
 
-            TRAC_IDX = IDTSO4
+            TRAC_IDX = IND_('SO4')
             ! Actually H2SO4 aerosol
             TRAC_SET = 'SO4'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
@@ -864,7 +866,7 @@
             IF ( LPRT ) CALL DEBUG_MSG( '### UCX: Forcing 2D N2O' )
          ENDIF
 
-         TRAC_IDX = IDTN2O
+         TRAC_IDX = IND_('N2O')
          TRAC_SET = 'N2O'
          SCALEFAC = MONTREAL_SCALEFAC('N2O',
      &              CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
@@ -888,10 +890,12 @@
 
          ! Convert from [vv] to [kg CH4/kg air]
          ! (ewl, 3/16/15) 
-         C3090S = C3090S / TCVV(IDTCH4)
-         C0030S = C0030S / TCVV(IDTCH4)
-         C0030N = C0030N / TCVV(IDTCH4)
-         C3090N = C3090N / TCVV(IDTCH4)
+         TRAC_IDX = IND_('CH4')
+         MWTemp = TCVV(TRAC_IDX)
+         C3090S = C3090S / MWTemp 
+         C0030S = C0030S / MWTemp 
+         C0030N = C0030N / MWTemp 
+         C3090N = C3090N / MWTemp 
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -906,13 +910,13 @@
             ! Set CH4 according to latitude
             ! STT now in [kg/kg] (ewl, 3/16/15)
             IF ( YLAT < -30e+0_fp ) THEN
-               STT(I,J,L,IDTCH4) = C3090S
+               STT(I,J,L,TRAC_IDX) = C3090S
             ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  ) THEN
-               STT(I,J,L,IDTCH4) = C0030S
+               STT(I,J,L,TRAC_IDX) = C0030S
             ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp ) THEN
-               STT(I,J,L,IDTCH4) = C0030N
+               STT(I,J,L,TRAC_IDX) = C0030N
             ELSE
-               STT(I,J,L,IDTCH4) = C3090N
+               STT(I,J,L,TRAC_IDX) = C3090N
             ENDIF
          ENDDO
          ENDDO
@@ -928,7 +932,6 @@
             SCALEFAC = 1.e+0_fp
 
             ! Code to set strat using AER 2D data
-            TRAC_IDX = IDTCH4
             TRAC_SET = 'CH4'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
