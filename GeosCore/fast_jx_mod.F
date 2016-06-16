@@ -106,8 +106,6 @@
       USE TIME_MOD,           ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
       USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
       USE TOMS_MOD,           ONLY : GET_OVERHEAD_O3
-!CODEATHON bmy
-!      USE TRACERID_MOD,       ONLY : IDO3
 
       IMPLICIT NONE
 
@@ -261,7 +259,7 @@
       LOGICAL       :: LPRT
 
       ! Species ID flags (formerly from tracerid_mod.F)
-      INTEGER       :: IDO3
+      INTEGER, SAVE :: IDO3
 
       !=================================================================
       ! FAST_JX begins here!
@@ -272,18 +270,6 @@
 
       ! Copy fields from INPUT_OPT
       LPRT = ( am_I_Root .and. Input_Opt%LPRT )
-
-!CODEATHON bmy
-!#if defined( USE_MAXIMUM_RANDOM_OVERLAP )
-!      IF ( FIRST ) THEN
-!
-!         DO i = 1,LLPAR+1
-!            INDGEN(i) = i       !(/(i,i=1,LLPAR+1)/)
-!         ENDDO
-!         FIRST = .FALSE.
-!
-!      ENDIF
-!#endif
 
       ! Special handling for first-time setup
       IF ( FIRST ) THEN
