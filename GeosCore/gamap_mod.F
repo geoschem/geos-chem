@@ -129,9 +129,6 @@
       CHARACTER(LEN=40)              :: NAME0, NAME1
       CHARACTER(LEN=40)              :: FNAME0
 
-      ! Locally-defined tracer ID flags
-      INTEGER                        :: IDTPASV
-
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -1741,14 +1738,14 @@
       USE DRYDEP_MOD,         ONLY : DEPNAME,     NUMDEP,    NTRAIND
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
       USE Species_Mod,        ONLY : Species
-      USE TRACERID_MOD
       USE WETSCAV_MOD,        ONLY : GET_WETDEP_NSOL
       USE WETSCAV_MOD,        ONLY : GET_WETDEP_IDWETD
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
 #endif
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -1821,6 +1818,7 @@
 !  17 May 2016 - R. Yantosca - Now get MolecRatio from the species database
 !  25 May 2016 - E. Lundgren - Replace Input_Opt%TRACER_MW_KG with converted
 !                              species database emMW_g (emitted species g/mol)
+!  16 Jun 2016 - E. Lundgren - Remove dependency on tracerid_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1833,6 +1831,7 @@
       REAL(fp),      SAVE     :: POP_XMW
       REAL(fp)                :: DUM, MolecRatio
       INTEGER                 :: N_Hg_CATS
+      INTEGER                 :: SPC_INDEX
 
       ! Objects
       TYPE(Species), POINTER  :: ThisSpc
@@ -1932,7 +1931,7 @@
       ENDDO
 
       ! Number of ND45 tracers 
-      IF ( IDTPASV > 0 ) THEN
+      IF ( IND_('PASV') > 0 ) THEN
          NTRAC(45) = Input_Opt%N_TRACERS+2
       ELSE
          NTRAC(45) = Input_Opt%N_TRACERS
@@ -4727,54 +4726,54 @@
                CASE( 1 )
                   NAME (T,07) = 'BLKC'
                   FNAME(T,07) = 'Black (Elemental) Carbon'
-                  INDEX(T,07) = IDTBCPI + ( SPACING * 33 )
+                  INDEX(T,07) = IND_('BCPI') + ( SPACING * 33 )
                   UNIT (T,07) = 'kgC' ! SOAupdate (hotp 7/29/10)
                CASE( 2 )
                   NAME (T,07) = 'ORGC'
                   FNAME(T,07) = 'Organic Carbon'
                   UNIT (T,07) = 'kgC' ! SOAupdate (hotp 7/29/10)
                   ! SOAupdate: semivolpoa: replace OCPI with POA (hotp 2/17/09)
-                  IF ( IDTOCPI > 0 )
-     &               INDEX(T,07) = IDTOCPI + ( SPACING * 33 )
-                  IF ( IDTPOA1  > 0 )
-     &               INDEX(T,07) = IDTPOA1 + ( SPACING * 33 )
+                  IF ( IND_('OCPI') > 0 )
+     &               INDEX(T,07) = IND_('OCPI') + ( SPACING * 33 )
+                  IF ( IND_('POA1')  > 0 )
+     &               INDEX(T,07) = IND_('POA1') + ( SPACING * 33 )
                CASE( 3 ) ! SOAupdate (hotp 7/29/10)
                   NAME (T,07) = 'MTPA'
                   FNAME(T,07) = 'lumped ALPH'
-                  INDEX(T,07) = IDTMTPA + ( SPACING * 33 )
+                  INDEX(T,07) = IND_('MTPA') + ( SPACING * 33 )
                   MWT  (T,07) = 136e-3  ! hard-coded MW
                CASE( 4 )
                   NAME (T,07) = 'LIMO'
                   FNAME(T,07) = 'Limonene'
                   MWT  (T,07) = 136e-3  ! hard-coded MW
-                  INDEX(T,07) = IDTLIMO + ( SPACING * 33 )
+                  INDEX(T,07) = IND_('LIMO') + ( SPACING * 33 )
                CASE( 5 ) ! SOAupdate (hotp 7/29/10)
                   NAME (T,07) = 'MTPO'
                   FNAME(T,07) = 'lumped other mtp'
-                  INDEX(T,07) = IDTMTPO + ( SPACING * 33 )
+                  INDEX(T,07) = IND_('MTPO') + ( SPACING * 33 )
                   MWT  (T,07) = 136e-3  ! hard-coded MW
                CASE( 6 ) ! SOAupdate hotp
                   NAME (T,07) = 'SESQ'
                   FNAME(T,07) = 'Sesqterpene'
                   MWT  (T,07) = 204e-3  ! hard-coded MW
-                  INDEX(T,07) = IDTLIMO + 3 + ( SPACING * 33 )
+                  INDEX(T,07) = IND_('LIMO') + 3 + ( SPACING * 33 )
                CASE( 7 ) ! SOAupdate hotp
                   NAME (T,07) = 'TSOA'
                   FNAME(T,07) = 'mono+sesq aerosol'
-                  INDEX(T,07) = IDTTSOA1 + ( SPACING * 33 )
+                  INDEX(T,07) = IND_('TSOA1') + ( SPACING * 33 )
                CASE( 8 ) ! SOAupdate hotp
                   NAME (T,07) = 'ISOA'
                   FNAME(T,07) = 'isoprene aerosol'
-                  INDEX(T,07) = IDTISOA1 + ( SPACING * 33 )
+                  INDEX(T,07) = IND_('ISOA1') + ( SPACING * 33 )
                CASE( 9 ) ! SOAupdate hotp
                   NAME (T,07) = 'ASOA'
                   FNAME(T,07) = 'BTX + IVOC aerosol'
-                  INDEX(T,07) = IDTASOA1 + ( SPACING * 33 )
+                  INDEX(T,07) = IND_('ASOA1') + ( SPACING * 33 )
                CASE( 10 ) ! SOAupdate update 5/27/10 hotp
                   NAME (T,07) = 'OPOA'
                   FNAME(T,07) = 'OPOA production'
-                  IF ( IDTOPOA1 > 0 ) THEN ! hotp 6/8/10
-                     INDEX(T,07) = IDTOPOA1 + ( SPACING * 33 )
+                  IF ( IND_('OPOA1') > 0 ) THEN ! hotp 6/8/10
+                     INDEX(T,07) = IND_('OPOA1') + ( SPACING * 33 )
                   ELSE
                      INDEX(T,07) = 80 + (SPACING * 33 )
                   ENDIF
@@ -4783,8 +4782,8 @@
                   NAME (T,07) = 'OPOG'
                   FNAME(T,07) = 'POG + OH reaction'
                   UNIT (T,07) = 'kgC'
-                  IF ( IDTOPOA1 > 0 ) THEN ! hotp 6/8/10
-                     INDEX(T,07) = IDTOPOG1 + ( SPACING * 33 )
+                  IF ( IND_('OPOA1') > 0 ) THEN ! hotp 6/8/10
+                     INDEX(T,07) = IND_('OPOG1') + ( SPACING * 33 )
                   ELSE
                      INDEX(T,07) = 81 + (SPACING * 33 )
                   ENDIF
@@ -4792,12 +4791,12 @@
                   NAME (T,07) = 'SOAG'
                   FNAME(T,07) = 'SOAG production in aq. aerosol'
                   MWT  (T,07) = 58e-3  ! hard-coded MW
-                  INDEX(T,07) = IDTSOAG + ( SPACING * 33 )
+                  INDEX(T,07) = IND_('SOAG') + ( SPACING * 33 )
                CASE( 13 )
                   NAME (T,07) = 'SOAM'
                   FNAME(T,07) = 'SOAM production in aq. aerosol'
                   MWT  (T,07) = 72e-3  ! hard-coded MW
-                  INDEX(T,07) = IDTSOAM + ( SPACING * 33 )
+                  INDEX(T,07) = IND_('SOAM') + ( SPACING * 33 )
                CASE( 14 )
                   NAME (T,07) = 'SOAG'
                   FNAME(T,07) = 'SOAG production in clouds'
@@ -5543,281 +5542,281 @@
          !-----------------------------------------------
          ! Biomass species for fullchem/SOA simulations
          !-----------------------------------------------
-         IF ( IDTNO > 0 ) THEN
+         IF ( IND_('NO') > 0 ) THEN
             T           = T + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'NO'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTNO + ( SPACING * 45 )
+            INDEX(T,28) = IND_('NO') + ( SPACING * 45 )
             MWT  (T,28) = 14e-3
             MOLC (T,28) = 1
             UNIT (T,28) = 'molec/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTCO > 0 ) THEN
+         IF ( IND_('CO') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'CO'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTCO + ( SPACING * 45 )
+            INDEX(T,28) = IND_('CO') + ( SPACING * 45 )
             MWT  (T,28) = 28e-3
             MOLC (T,28) = 1
             UNIT (T,28) = 'molec/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTALK4 > 0 ) THEN
+         IF ( IND_('ALK4') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'ALK4'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTALK4 + ( SPACING * 45 )
+            INDEX(T,28) = IND_('ALK4') + ( SPACING * 45 )
             MWT  (T,28) = 12e-3
             MOLC (T,28) = 4
             UNIT (T,28) = 'atoms C/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTACET > 0  ) THEN
+         IF ( IND_('ACET') > 0  ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'ACET'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTACET + ( SPACING * 45 )
+            INDEX(T,28) = IND_('ACET') + ( SPACING * 45 )
             MWT  (T,28) = 12e-3
             MOLC (T,28) = 3
             UNIT (T,28) = 'atoms C/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTMEK > 0 ) THEN
+         IF ( IND_('MEK') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'MEK'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTMEK + ( SPACING * 45 )
+            INDEX(T,28) = IND_('MEK') + ( SPACING * 45 )
             MWT  (T,28) = 12e-3
             MOLC (T,28) = 4
             UNIT (T,28) = 'atoms C/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTALD2 > 0 ) THEN
+         IF ( IND_('ALD2') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'ALD2'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTALD2 + ( SPACING * 45 )
+            INDEX(T,28) = IND_('ALD2') + ( SPACING * 45 )
             MWT  (T,28) = 12e-3
             MOLC (T,28) = 3
             UNIT (T,28) = 'atoms C/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTPRPE > 0 ) THEN
+         IF ( IND_('PRPE') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'PRPE'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTPRPE + ( SPACING * 45 )
+            INDEX(T,28) = IND_('PRPE') + ( SPACING * 45 )
             MWT  (T,28) = 12e-3
             MOLC (T,28) = 3
             UNIT (T,28) = 'atoms C/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTC3H8 > 0 ) THEN
+         IF ( IND_('C3H8') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'C3H8'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTC3H8 + ( SPACING * 45 )
+            INDEX(T,28) = IND_('C3H8') + ( SPACING * 45 )
             MWT  (T,28) = 12e-3
             MOLC (T,28) = 3
             UNIT (T,28) = 'atoms C/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTCH2O > 0 ) THEN
+         IF ( IND_('CH2O') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'CH2O'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTCH2O + ( SPACING * 45 )
+            INDEX(T,28) = IND_('CH2O') + ( SPACING * 45 )
             MWT  (T,28) = 30e-3
             MOLC (T,28) = 1
             UNIT (T,28) = 'molec/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTC2H6 > 0 ) THEN
+         IF ( IND_('C2H6') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'C2H6'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTC2H6 + ( SPACING * 45 )
+            INDEX(T,28) = IND_('C2H6') + ( SPACING * 45 )
             MWT  (T,28) = 12e-3
             MOLC (T,28) = 2
             UNIT (T,28) = 'atoms C/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTSO2 > 0 ) THEN
+         IF ( IND_('SO2') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'SO2'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTSO2 + ( SPACING * 45 )
+            INDEX(T,28) = IND_('SO2') + ( SPACING * 45 )
             MWT  (T,28) = 32e-3
             MOLC (T,28) = 1
             UNIT (T,28) = 'atoms S/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTNH3 > 0 ) THEN
+         IF ( IND_('NH3') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'NH3'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTNH3 + ( SPACING * 45 )
+            INDEX(T,28) = IND_('NH3') + ( SPACING * 45 )
             MWT  (T,28) = 17e-3
             MOLC (T,28) = 1
             UNIT (T,28) = 'molec/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTBCPI > 0 ) THEN
+         IF ( IND_('BCPI') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'BC'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTBCPI + ( SPACING * 45 )
+            INDEX(T,28) = IND_('BCPI') + ( SPACING * 45 )
             MWT  (T,28) = 12e-3
             MOLC (T,28) = 1
             UNIT (T,28) = 'atoms C/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTOCPI > 0 .or. IDTPOA1 > 0 ) THEN
+         IF ( IND_('OCPI') > 0 .or. IND_('POA1') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'OC'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
             ! SOAupdate: allow non-vol or semi-vol POA (hotp 8/24/09)
-            IF ( IDTOCPI > 0 ) THEN
-               INDEX(T,28) = IDTOCPI + ( SPACING * 45 )
-            ELSE IF ( IDTPOA1  > 0 ) THEN
-               INDEX(T,28) = IDTPOA1 + ( SPACING * 45 )
+            IF ( IND_('OCPI') > 0 ) THEN
+               INDEX(T,28) = IND_('OCPI') + ( SPACING * 45 )
+            ELSE IF ( IND_('POA1')  > 0 ) THEN
+               INDEX(T,28) = IND_('POA1') + ( SPACING * 45 )
             ENDIF
             MWT  (T,28) = 12e-3
             MOLC (T,28) = 1
             UNIT (T,28) = 'atoms C/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTCH4 > 0 ) THEN
+         IF ( IND_('CH4') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'CH4'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTCH4 + ( SPACING * 45 )
+            INDEX(T,28) = IND_('CH4') + ( SPACING * 45 )
             MWT  (T,28) = 16e-3
             MOLC (T,28) = 1
             UNIT (T,28) = 'molec/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTGLYX > 0 ) THEN
+         IF ( IND_('GLYX') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'GLYX'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTGLYX + ( SPACING * 45 )
+            INDEX(T,28) = IND_('GLYX') + ( SPACING * 45 )
             MWT  (T,28) = 58e-3
             MOLC (T,28) = 1
             UNIT (T,28) = 'molec/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTMGLY > 0 ) THEN
+         IF ( IND_('MGLY') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'MGLY'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTMGLY + ( SPACING * 45 )
+            INDEX(T,28) = IND_('MGLY') + ( SPACING * 45 )
             MWT  (T,28) = 72e-3
             MOLC (T,28) = 1
             UNIT (T,28) = 'molec/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTBENZ > 0 ) THEN
+         IF ( IND_('BENZ') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'BENZ'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTBENZ + ( SPACING * 45 )
+            INDEX(T,28) = IND_('BENZ') + ( SPACING * 45 )
             MWT  (T,28) = 12e-3
             MOLC (T,28) = 6
             UNIT (T,28) = 'atoms C/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTTOLU > 0 ) THEN
+         IF ( IND_('TOLU') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'TOLU'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTTOLU + ( SPACING * 45 )
+            INDEX(T,28) = IND_('TOLU') + ( SPACING * 45 )
             MWT  (T,28) = 12e-3
             MOLC (T,28) = 7
             UNIT (T,28) = 'atoms C/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTXYLE > 0 ) THEN
+         IF ( IND_('XYLE') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'XYLE'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTXYLE + ( SPACING * 45 )
+            INDEX(T,28) = IND_('XYLE') + ( SPACING * 45 )
             MWT  (T,28) = 12e-3
             MOLC (T,28) = 8
             UNIT (T,28) = 'atoms C/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTC2H4 > 0 ) THEN
+         IF ( IND_('C2H4') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'C2H4'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTC2H4 + ( SPACING * 45 )
+            INDEX(T,28) = IND_('C2H4') + ( SPACING * 45 )
             MWT  (T,28) = 12e-3
             MOLC (T,28) = 2
             UNIT (T,28) = 'atoms C/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTC2H2 > 0 ) THEN
+         IF ( IND_('C2H2') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'C2H2'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTC2H2 + ( SPACING * 45 )
+            INDEX(T,28) = IND_('C2H2') + ( SPACING * 45 )
             MWT  (T,28) = 12e-3
             MOLC (T,28) = 2
             UNIT (T,28) = 'atoms C/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTGLYC > 0 ) THEN
+         IF ( IND_('GLYC') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'GLYC'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTGLYC + ( SPACING * 45 )
+            INDEX(T,28) = IND_('GLYC') + ( SPACING * 45 )
             MWT  (T,28) = 60e-3
             MOLC (T,28) = 1
             UNIT (T,28) = 'molec/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( IDTHAC > 0 ) THEN
+         IF ( IND_('HAC') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'HAC'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTHAC + ( SPACING * 45 )
+            INDEX(T,28) = IND_('HAC') + ( SPACING * 45 )
             MWT  (T,28) = 74e-3
             MOLC (T,28) = 1
             UNIT (T,28) = 'molec/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF( IDTNAP > 0 ) THEN
+         IF( IND_('NAP') > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'NAP'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = IDTNAP + ( SPACING * 45 )
+            INDEX(T,28) = IND_('NAP') + ( SPACING * 45 )
             MWT  (T,28) = 12e-3
             MOLC (T,28) = 1
             UNIT (T,28) = 'atoms C/cm2/s' 
@@ -6268,7 +6267,7 @@
                         ! Drydep flux: ISOPNB.  Use the same info as
                         ! for ISOPND but save as w/ index N_TRACERS+1.
                         !-----------------------------------------------
-                        T             = IDTISOPN
+                        T             = IND_('ISOPN')
                         ThisSpc       => State_Chm%SpcData(T)%Info
                         NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                                  'df'
@@ -6286,7 +6285,7 @@
                         ! Drydep velocity: ISOPNB.  Use the same info as
                         ! for ISOPND but save as w/ index N_TRACERS+1.
                         !-----------------------------------------------
-                        T             = IDTISOPN
+                        T             = IND_('ISOPN')
                         ThisSpc       => State_Chm%SpcData(T)%Info
                         NN            = N + Input_Opt%NUMDEP
                         NAME (NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
@@ -6307,7 +6306,7 @@
                         ! Drydep flux: MVKN.  Use the same info as
                         ! for MMN but save as w/ index N_TRACERS+2.
                         !-----------------------------------------------
-                        T             = IDTMMN
+                        T             = IND_('MMN')
                         ThisSpc       => State_Chm%SpcData(T)%Info
                         NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                       'df'
@@ -6325,7 +6324,7 @@
                         ! Drydep velocity: MVKN.  Use the same info as
                         ! for MMN but save as w/ index N_TRACERS+2.
                         !--------------------------------------------------
-                        T             = IDTMMN
+                        T             = IND_('MMN')
                         ThisSpc       => State_Chm%SpcData(T)%Info
                         NN            = N + Input_Opt%NUMDEP
                         NAME (NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
@@ -6385,7 +6384,7 @@
                   !-----------------------------------------------
                   ! Drydep flux: TOMAS aerosol tracers
                   !-----------------------------------------------
-                  T = IDTNK1 + IBINS - 1 + ( N - NUMDEP )
+                  T = IND_('NK1') + IBINS - 1 + ( N - NUMDEP )
                   ThisSpc       => State_Chm%SpcData(T)%Info
 
                   ! Drydep flux (extended deposited species)
@@ -6431,7 +6430,7 @@
                      ! Drydep flux: ISOPNB.  Use the same info as
                      ! for ISOPND but save as w/ index N_TRACERS+1.
                      !--------------------------------------------------
-                     T             = IDTISOPN
+                     T             = IND_('ISOPN')
                      ThisSpc       => State_Chm%SpcData(T)%Info
                      NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                               'df'
@@ -6449,7 +6448,7 @@
                      ! Drydep velocity: ISOPNB.  Use the same info as
                      ! for ISOPND but save as w/ index N_TRACERS+1.
                      !--------------------------------------------------
-                     T             = IDTISOPN
+                     T             = IND_('ISOPN')
                      ThisSpc       => State_Chm%SpcData(T)%Info
                      NN            = N + Input_Opt%NUMDEP
                      NAME (NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
@@ -6470,7 +6469,7 @@
                      ! Drydep flux: MVKN.  Use the same info as
                      ! for MMN but save as w/ index N_TRACERS+2.
                      !--------------------------------------------------
-                     T             = IDTMMN
+                     T             = IND_('MMN')
                      ThisSpc       => State_Chm%SpcData(T)%Info
                      NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                               'df'
@@ -6488,7 +6487,7 @@
                      ! Drydep velocity: MVKN.  Use the same info as
                      ! for MMN but save as w/ index N_TRACERS+2.
                      !--------------------------------------------------
-                     T             = IDTMMN
+                     T             = IND_('MMN')
                      ThisSpc       => State_Chm%SpcData(T)%Info
                      NN            = N + Input_Opt%NUMDEP
                      NAME (NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
@@ -7121,8 +7120,8 @@
             ! NOTE: requires 1:1 tracer index to species index mapping
             ThisSpc => State_Chm%SpcData(T)%Info
 
-            IF ( ( T .ge. IDTNK1 )       .and. 
-     &           ( T .lt. IDTNK1+IBINS )      ) THEN
+            IF ( ( T .ge. IND_('NK1') )       .and. 
+     &           ( T .lt. IND_('NK1')+IBINS )      ) THEN
                UNIT(T,60) = 'no.'
             ELSE
                UNIT(T,60) = 'kg'
@@ -7926,27 +7925,6 @@
          HDFSCALE(:,:)  = SCALE(:,:)
          
       ENDIF
-
-      !=================================================================
-      ! Now define local tracer ID flags.  This will let us remove 
-      ! tracerid_mod.F in anticipation of FlexChem (bmy, 5/2/15)
-      !=================================================================
-      DO N = 1, State_Chm%nSpecies
-
-         ! Get info about this species from the database
-         ThisSpc => State_Chm%SpcData(N)%Info
-
-         ! Define tracer ID flags locally
-         SELECT CASE ( TRIM( ThisSpc%Name ) )
-            CASE( 'PASV' )
-               IDTPASV = ThisSpc%ModelId
-            CASE DEFAULT
-               ! Nothing
-         END SELECT
-
-         ! Free pointer
-         ThisSpc => NULL()
-      ENDDO
 
       END SUBROUTINE INIT_GAMAP
 !EOC
