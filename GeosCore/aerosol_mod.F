@@ -105,7 +105,6 @@
       ! Mass of hydrophilic aerosol from Mian Chin
       REAL(fp), ALLOCATABLE, SAVE   :: WAERSL(:,:,:,:)
 
-!CODEATHON bmy
       ! Add tracer ID flags as module variables (bmy, 6/16/16)
       INTEGER :: IDTBCPI,  IDTBCPO,  IDTDST1,  IDTDST2
       INTEGER :: IDTDST3,  IDTDST4,  IDTNH4,   IDTNIT  
@@ -148,22 +147,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-!CODEATHON bmy
-!      USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTDST1, IDTDST2
-!      USE TRACERID_MOD,       ONLY : IDTDST3, IDTDST4, IDTNH4,  IDTNIT  
-!      USE TRACERID_MOD,       ONLY : IDTOCPO, IDTOCPI, IDTSALA, IDTSALC 
-!      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTSOAG, IDTSOAM
-!      USE TRACERID_MOD,       ONLY : IDTSO4s, IDTNITs 
-!     ! SOAupdate: update SOA tracers (hotp 7/25/10)
-!      USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOA2
-!      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOA2
-!      ! SOAupdate: new mtp replaces SOA1-4 (hotp 5/20/10
-!      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2 
-!      USE TRACERID_MOD,       ONLY : IDTTSOA3, IDTTSOA0
-!      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-!      ! SOAupdate: replace SOA5 with lumped aromatic (hotp 5/12/10)
-!      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
-!      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
       USE UCX_MOD,            ONLY : KG_STRAT_AER
       USE UNITCONV_MOD
 #if   defined( TOMAS ) 
