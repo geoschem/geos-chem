@@ -430,7 +430,7 @@
 
          ! MOISTURE FIX (ewl, 5/4/16) - use dry floating pressure.
          ! True dry surface pressure at midpoint of dynamic timestep [hPa]
-         P_TP1(I,J) = GET_PFLT_DRY(I,J)
+         P_TP1(I,J) = GET_PEDGE_DRY(I,J,1)
 
          ! MOISTURE FIX (ewl, 5/4/16) - use dry interpolated met pressure. 
          ! True dry surface pressure at end of dynamic timestep [hPa]
@@ -447,12 +447,12 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! DEBUGGING (ewl)
-      PRINT *, " "
-      PRINT *, "In TRANSPORT_MOD"
-      PRINT *, "   P_TP1(56,20):        ", P_TP1(56,20)
-      PRINT *, "   P_TP2(56,20):        ", P_TP2(56,20)
-      ! END DEBUGGING
+      !! DEBUGGING (ewl)
+      !PRINT *, " "
+      !PRINT *, "In TRANSPORT_MOD"
+      !PRINT *, "   P_TP1(56,20):        ", P_TP1(56,20)
+      !PRINT *, "   P_TP2(56,20):        ", P_TP2(56,20)
+      !! END DEBUGGING
       
       !=================================================================
       ! Call the PJC/LLNL pressure fixer to get the adjusted air 
@@ -549,13 +549,11 @@
       ! Reset surface pressure and ensure mass conservation
       !=================================================================
 
-      ! MOISTURE FIX (ewl, 5/4/16) - Update dry floating pressure with
-      ! pressure-fixer output. Reconstruct wet floating pressure from dry
-      ! floating pressure for use with GET_PEDGE in AIRQNT.
+      ! MOISTURE FIX (ewl, 6/16/16) -  Update dry and wet floating 
+      ! pressures to the most recently interpolated MET pressure.
+      ! NOTE: GET_PEDGE used in AIRQNT gets PEDGE from wet floating pressure
       CALL SET_WET_FLOATING_PRESSURE( State_Met%PSC2 )
-      CALL SET_DRY_FLOATING_PRESSURE( P_TP2 ) ! consider passing 
-                                              ! State_met%PSC2_DRY here
-                                              ! (for clarity)
+      CALL SET_DRY_FLOATING_PRESSURE( State_Met%PSC2_DRY )
 
       ! Prior to 04 May 2016: Floating pressure is wet.
       !! Reset the floating surface pressure with P_TP2, the "true"
@@ -746,11 +744,11 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! MOISTURE FIX (ewl, 5/4/16) - use dry floating pressure
+         ! MOISTURE FIX (ewl, 5/4/16) - use dry not wet
          ! True dry surface pressure at midpoint of dynamic timestep [hPa]
-         P_TP1(I,J) = GET_PFLT_DRY(I,J) - PTOP
+         P_TP1(I,J) = GET_PEDGE_DRY(I,J,1) - PTOP
 
-         ! MOISTURE FIX (ewl, 5/4/16) - use dry interpolated met pressure 
+         ! MOISTURE FIX (ewl, 5/4/16) - use dry not wet
          ! Dry Psurface - PTOP at end of dynamic timestep [hPa]
          ! (assume negligible moisture at top of atmosphere)
          P_TP2(I,J) = State_Met%PSC2_DRY(I,J) - PTOP
@@ -856,10 +854,10 @@
       ! Reset surface pressure and ensure mass conservation
       !=================================================================
 
-      ! MOISTURE FIX (ewl, 5/4/16) - Update dry floating pressure with
-      ! pressure-fixer output. Reconstruct wet floating pressure from dry
-      ! floating pressure for use with GET_PEDGE in AIRQNT.
-      ! (assume negligible moisture at top of atmosphere)
+      ! MOISTURE FIX (ewl, 6/16/16) - Update dry and wet floating 
+      ! pressures to the most recently interpolated MET pressure.
+      ! NOTE 1: assume negligible moisture at top of atmosphere
+      ! NOTE 2: GET_PEDGE used in AIRQNT gets PEDGE from wet floating pressure
       CALL SET_WET_FLOATING_PRESSURE( State_Met%PSC2 )
       CALL SET_DRY_FLOATING_PRESSURE( P_TP2 + PTOP )
 
@@ -1066,11 +1064,11 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! MOISTURE FIX (ewl, 5/4/16) - use dry floating pressure
+         ! MOISTURE FIX (ewl, 5/4/16) - use dry not wet
          ! True dry surface pressure at midpoint of dynamic timestep [hPa]
-         P_TP1(I,J) = GET_PFLT_DRY(I,J)
+         P_TP1(I,J) = GET_PEDGE_DRY(I,J,1)
 
-         ! MOISTURE FIX (ewl, 5/4/16) - use dry interpolated met pressure 
+         ! MOISTURE FIX (ewl, 5/4/16) - use dry not wet
          ! True dry surface pressure at end of dynamic timestep [hPa]
          P_TP2(I,J) = State_Met%PSC2_DRY(I,J)
 
@@ -1225,11 +1223,11 @@
       ! Reset surface pressure and ensure mass conservation
       !=================================================================
 
-      ! MOISTURE FIX (ewl, 5/4/16) - Update dry floating pressure with
-      ! pressure-fixer output. Reconstruct wet floating pressure from dry
-      ! floating pressure for use with GET_PEDGE in AIRQNT.
+      ! MOISTURE FIX (ewl, 6/16/16) - Update dry and wet floating 
+      ! pressures to the most recently interpolated MET pressure.
+      ! NOTE: GET_PEDGE used in AIRQNT gets PEDGE from wet floating pressure
       CALL SET_WET_FLOATING_PRESSURE( State_Met%PSC2 )
-      CALL SET_DRY_FLOATING_PRESSURE( P_TP2 )
+      CALL SET_DRY_FLOATING_PRESSURE( State_Met%PSC2_DRY )
 
       !! Prior to 04 May 2016: Floating pressure is wet.
       !! Reset the floating surface pressure with P_TP2, the "true"

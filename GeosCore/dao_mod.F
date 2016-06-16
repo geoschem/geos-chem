@@ -433,14 +433,14 @@
          ! Pressure at bottom edge of grid box [hPa]
          State_Met%PEDGE( I,J,L )  = GET_PEDGE( I,J,L )
 
-         ! DEBUGGING (ewl)- Moisture fix
-         IF ( I == 56 .AND. J == 20 .AND. L == 1 ) THEN
-            PRINT *, " "
-            PRINT *, "In DAO_MOD"
-            PRINT *, "   PEDGE(56,20,1): ", State_Met%PEDGE(56,20,1)
-            PRINT *, " "
-         ENDIF
-         ! END DEBUGGING
+         !! DEBUGGING (ewl)- Moisture fix
+         !IF ( I == 56 .AND. J == 20 .AND. L == 1 ) THEN
+         !   PRINT *, " "
+         !   PRINT *, "In DAO_MOD"
+         !   PRINT *, "   PEDGE(56,20,1): ", State_Met%PEDGE(56,20,1)
+         !   PRINT *, " "
+         !ENDIF
+         !! END DEBUGGING
 
          ! Pressure at top edge of grid box [hPa]
          PEdge_Top                 = GET_PEDGE( I,J,L+1 )
@@ -743,7 +743,7 @@
      &                              * AREA_M2 
 
          State_Met%AD(I,J,L) = State_Met%ADMOIST(I,J,L)
-     &                         * ( 1.0e+0_fp - SPHU_kgkg ) 
+     &                         * ( 1.0e+0_fp - SPHU_kgkg )
 
       ENDDO
       ENDDO
@@ -938,12 +938,12 @@
       ENDIF
 #endif
 
-      ! DEBUGGING
-      PRINT *, " "
-      PRINT *, "In INTERP"
-      PRINT *, "   Old PSC2(56,20):     ", State_Met%PSC2(56,20)
-      PRINT *, "   Old PSC2_DRY(56,20): ", State_Met%PSC2_DRY(56,20)
-      ! END DEBUGGING
+      !! DEBUGGING
+      !PRINT *, " "
+      !PRINT *, "In INTERP"
+      !PRINT *, "   Old PSC2(56,20):     ", State_Met%PSC2(56,20)
+      !PRINT *, "   Old PSC2_DRY(56,20): ", State_Met%PSC2_DRY(56,20)
+      !! END DEBUGGING
 
 #if   defined( GEOS_4 ) || defined( GCAP )
 
@@ -1165,11 +1165,11 @@
 !$OMP END PARALLEL DO
 #endif
 
-      ! DEBUGGING
-      PRINT *, " "
-      PRINT *, "   New PSC2(56,20):     ", State_Met%PSC2(56,20)
-      PRINT *, "   New PSC2_DRY(56,20): ", State_Met%PSC2_DRY(56,20)
-      ! END DEBUGGING
+      !! DEBUGGING
+      !PRINT *, " "
+      !PRINT *, "   New PSC2(56,20):     ", State_Met%PSC2(56,20)
+      !PRINT *, "   New PSC2_DRY(56,20): ", State_Met%PSC2_DRY(56,20)
+      !! END DEBUGGING
 
       END SUBROUTINE INTERP
 !EOC
@@ -1232,22 +1232,22 @@
       ! SET_DRY_SURFACE_PRESSURE begins here!
       !=================================================================
 
-      ! DEBUGGING
-      PRINT *, " "
-      PRINT *, "In SET_DRY_SURFACE_PRESSURE"
-      IF ( PS_ID == 1 ) THEN
-         PRINT *, "   MET PS1(56,20):      ", State_Met%PS1(56,20)
-      ELSE
-         PRINT *, "   MET PS2(56,20):      ", State_Met%PS2(56,20)
-      ENDIF
-      IF ( PS_ID == 1 ) THEN
-         PRINT *, "   Old PS1_DRY(56,20):  ", 
-     &            State_Met%PS1_DRY(56,20)
-      ELSE
-         PRINT *, "   Old PS2_DRY(56,20):  ", 
-     &            State_Met%PS2_DRY(56,20)
-      ENDIF
-      ! END DEBUGGING
+      !! DEBUGGING
+      !PRINT *, " "
+      !PRINT *, "In SET_DRY_SURFACE_PRESSURE"
+      !IF ( PS_ID == 1 ) THEN
+      !   PRINT *, "   MET PS1(56,20):      ", State_Met%PS1(56,20)
+      !ELSE
+      !   PRINT *, "   MET PS2(56,20):      ", State_Met%PS2(56,20)
+      !ENDIF
+      !IF ( PS_ID == 1 ) THEN
+      !   PRINT *, "   Old PS1_DRY(56,20):  ", 
+     &!            State_Met%PS1_DRY(56,20)
+      !ELSE
+      !   PRINT *, "   Old PS2_DRY(56,20):  ", 
+     &!            State_Met%PS2_DRY(56,20)
+      !ENDIF
+      !! END DEBUGGING
 
       ! Set pointers to State_Met fields. Use instantaneous specific
       ! humidities if using GEOS-FP or MERRA-2.
@@ -1324,16 +1324,16 @@
       !ENDDO
       !ENDDO
 
-      ! DEBUGGING
-      IF ( PS_ID == 1 ) THEN
-         PRINT *, "   New PS1_DRY(56,20):  ", 
-     &            State_Met%PS1_DRY(56,20)
-      ELSE
-         PRINT *, "   New PS2_DRY(56,20):  ", 
-     &            State_Met%PS2_DRY(56,20)
-      ENDIF
-      PRINT *, " "
-      ! END DEBUGGING
+      !! DEBUGGING
+      !IF ( PS_ID == 1 ) THEN
+      !   PRINT *, "   New PS1_DRY(56,20):  ", 
+     &!            State_Met%PS1_DRY(56,20)
+      !ELSE
+      !   PRINT *, "   New PS2_DRY(56,20):  ", 
+     &!            State_Met%PS2_DRY(56,20)
+      !ENDIF
+      !PRINT *, " "
+      !! END DEBUGGING
 
 ! reversibility test (MML)
 !      TMP2 = 0

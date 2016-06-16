@@ -31,7 +31,8 @@
       PUBLIC  :: GET_PEDGE                ! wet air P at lower grid edge
       PUBLIC  :: GET_PEDGE_FULLGRID       ! wet air P at lower grid edge
       PUBLIC  :: CLEANUP_PRESSURE
-      PUBLIC  :: GET_PFLT_DRY                 ! MOISTURE FIX (ewl, 5/4/16)
+      PUBLIC  :: GET_PEDGE_DRY                ! MOISTURE FIX (ewl, 6/16/16)
+!      PUBLIC  :: GET_PFLT_DRY                 ! MOISTURE FIX (ewl, 5/4/16)
       PUBLIC  :: SET_WET_FLOATING_PRESSURE    ! MOISTURE FIX (ewl, 5/4/16)
       PUBLIC  :: SET_DRY_FLOATING_PRESSURE    ! MOISTURE FIX (ewl, 5/4/16)
 
@@ -212,7 +213,7 @@
 !
 ! !IROUTINE: set_wet_floating_pressure
 !
-! !DESCRIPTION: Subroutine SET\_WET\_FLOATING\_PRESSURE initializes the 
+! !DESCRIPTION: Subroutine SET\_WET\_FLOATING\_PRESSURE assigns the 
 !  floating pressure field PFLT_WET with a pressure from the main program.  
 !\\
 !\\
@@ -255,11 +256,11 @@
       ! SET_WET_FLOATING_PRESSURE begins here!
       !=================================================================
 
-      ! DEBUGGING (ewl)
-      PRINT *, " "
-      PRINT *, "In SET_WET_FLOATING_PRESSURE"
-      PRINT *, "   Old PFLT_WET(56,20): ", PFLT_WET(56,20)
-      ! END DEBUGGING
+      !! DEBUGGING (ewl)
+      !PRINT *, " "
+      !PRINT *, "In SET_WET_FLOATING_PRESSURE"
+      !PRINT *, "   Old PFLT_WET(56,20): ", PFLT_WET(56,20)
+      !! END DEBUGGING
 
       ! Define quantities for CHECK_VALUE
 !$OMP PARALLEL DO
@@ -281,9 +282,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! DEBUGGING (ewl)
-      PRINT *, "   New PFLT_WET(56,20): ", PFLT_WET(56,20)
-      ! END DEBUGGING
+      !! DEBUGGING (ewl)
+      !PRINT *, "   New PFLT_WET(56,20): ", PFLT_WET(56,20)
+      !! END DEBUGGING
 
       ! Return to calling program
       END SUBROUTINE SET_WET_FLOATING_PRESSURE
@@ -331,11 +332,11 @@
       ! SET_DRY_FLOATING_PRESSURE begins here!
       !=================================================================
 
-      ! DEBUGGING (ewl)
-      PRINT *, " "
-      PRINT *, "In SET_DRY_FLOATING_PRESSURE"
-      PRINT *, "   Old PFLT_DRY(56,20): ", PFLT_DRY(56,20)
-      ! END DEBUGGING
+      !! DEBUGGING (ewl)
+      !PRINT *, " "
+      !PRINT *, "In SET_DRY_FLOATING_PRESSURE"
+      !PRINT *, "   Old PFLT_DRY(56,20): ", PFLT_DRY(56,20)
+      !! END DEBUGGING
 
       ! Define quantities for CHECK_VALUE
 !$OMP PARALLEL DO
@@ -357,9 +358,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! DEBUGGING (ewl)
-      PRINT *, "   New PFLT_DRY(56,20): ", PFLT_DRY(56,20)
-      ! END DEBUGGING
+      !! DEBUGGING (ewl)
+      !PRINT *, "   New PFLT_DRY(56,20): ", PFLT_DRY(56,20)
+      !! END DEBUGGING
 
       ! Return to calling program
       END SUBROUTINE SET_DRY_FLOATING_PRESSURE
@@ -463,6 +464,64 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: get_pedge_dry
+!
+! !DESCRIPTION: Function GET\_PEDGE\_DRY returns the pressure at the 
+!  bottom edge of level L, reconstructed using the dry surface pressure. 
+!  L=1 is the surface, L=LLPAR+1 is the atm top.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_PEDGE_DRY( I, J, L ) RESULT( PEDGE_DRY )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD   ! PTOP
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: I      ! GEOS-Chem lon   index
+      INTEGER, INTENT(IN) :: J      ! GEOS-Chem lat   index
+      INTEGER, INTENT(IN) :: L      ! GEOS-Chem level index
+!
+! !RETURN VALUE:
+!
+      REAL(f8)              :: PEDGE_DRY  ! Prssr @ bottom edge of (I,J,L) [hPa]
+!
+! !REVISION HISTORY:
+!  16 Jun 2016 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+! MOISTURE FIX NOTE: Will this break GCHP? Took out external grid...
+! Should be okay as long as this is used only in transport.
+! But... it is in AIRQNT and interp, etc... Might need to bracket
+! those with if transport is on. 
+
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+
+      !-------------------------------------------------------
+      ! GEOS-4, GEOS-5, GEOS-FP, MERRA, and MERRA-2 met fields
+      !-------------------------------------------------------
+      PEDGE_DRY = AP(L) + ( BP(L) * PFLT_DRY(I,J) )
+
+#else 
+
+      !-----------------------------
+      ! GEOS-3 & GCAP met fields
+      !-----------------------------
+      PEDGE_DRY = AP(L) + ( BP(L) * ( PFLT_DRY(I,J) - PTOP ) ) 
+#endif    
+
+      END FUNCTION GET_PEDGE_DRY 
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: get_pedge_fullgrid
 !
 ! !DESCRIPTION: Function GET\_PEDGE\_FULLGRID returns the pressure at the
@@ -532,39 +591,39 @@
       ! Return to calling program
       END FUNCTION GET_PEDGE_FULLGRID
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: get_pflt_dry
+!!
+!! !DESCRIPTION: Function GET\_PFLT\_DRY returns the dry surface pressure at 
+!!   (lat,lon) grid point (I,J).
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      FUNCTION GET_PFLT_DRY( I, J ) RESULT( PS )
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      INTEGER, INTENT(IN) :: I        ! GEOS-Chem lon   index
+!      INTEGER, INTENT(IN) :: J        ! GEOS-Chem lat   index
+!!
+!! !RETURN VALUE:
+!!
+!      REAL(fp)            :: PS  ! Floating dry pressure @ (I,J,1) [hPa]
+!!
+!! !REVISION HISTORY:
+!!  04 May 2016 - E. Lundgren - Initial version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!      PS = PFLT_DRY(I,J)
 !
-! !IROUTINE: get_pflt_dry
-!
-! !DESCRIPTION: Function GET\_PFLT\_DRY returns the dry surface pressure at 
-!   (lat,lon) grid point (I,J).
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_PFLT_DRY( I, J ) RESULT( PS )
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: I        ! GEOS-Chem lon   index
-      INTEGER, INTENT(IN) :: J        ! GEOS-Chem lat   index
-!
-! !RETURN VALUE:
-!
-      REAL(fp)            :: PS  ! Floating dry pressure @ (I,J,1) [hPa]
-!
-! !REVISION HISTORY:
-!  04 May 2016 - E. Lundgren - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      PS = PFLT_DRY(I,J)
-
-      END FUNCTION GET_PFLT_DRY
-!EOC
+!      END FUNCTION GET_PFLT_DRY
+!!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
