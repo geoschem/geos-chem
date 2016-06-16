@@ -166,15 +166,14 @@
 !
       USE CMN_SIZE_MOD
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,       ONLY : IDTO3Strt
-
+      USE GIGC_State_Chm_Mod, ONLY : IND_
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I     ! GEOS-Chem grid box lon index
-      INTEGER, INTENT(IN) :: J     ! GEOS-Chem grid box lat index
-      INTEGER, INTENT(IN) :: L     ! GEOS-Chem grid box level index
-      REAL(fp),  INTENT(IN) :: POx   ! P(Ox) in the stratosphere [v/v]
+      INTEGER,  INTENT(IN) :: I     ! GEOS-Chem grid box lon index
+      INTEGER,  INTENT(IN) :: J     ! GEOS-Chem grid box lat index
+      INTEGER,  INTENT(IN) :: L     ! GEOS-Chem grid box level index
+      REAL(fp), INTENT(IN) :: POx   ! P(Ox) in the stratosphere [v/v]
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -191,6 +190,7 @@
 !  10 Jun 2012 - L. Murray - Enable tagged Ox for Synoz.
 !  05 Nov 2013 - R. Yantosca - Rename IDTOxStrt to IDTO3Strt
 !  05 Nov 2013 - R. Yantosca - Remove STT pointer for simplicity
+!  16 Jun 2016 - M. Sulprizio- Replace IDTO3Strt with index obtained from IND_
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -201,8 +201,8 @@
       ! GET_STRAT_POX begins here!
       !=================================================================
 
-      State_Chm%Tracers(I,J,L,IDTO3Strt) = 
-     &State_Chm%Tracers(I,J,L,IDTO3Strt) + POx
+      State_Chm%Tracers(I,J,L,IND_('O3Strt')) = 
+     &State_Chm%Tracers(I,J,L,IND_('O3Strt')) + POx
 
       END SUBROUTINE ADD_STRAT_POX
 !EOC
@@ -451,7 +451,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTO3
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
