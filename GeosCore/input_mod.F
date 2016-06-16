@@ -233,6 +233,7 @@
 !                              so that we can pass it to INITIALIZE_GEOS_GRID
 !  04 Aug 2015 - M. Long     - Removed ".rc" file specifier. Not necessary.
 !  16 Dec 2015 - R. Yantosca - Now pass State_Chm to READ_TRACER_MENU
+!  16 Jun 2016 - E. Lundgren - Move TOMAS init to GIGC_INIT_EXTRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -309,11 +310,6 @@
 
          ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
             CALL READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )              
-
-#if defined( TOMAS )
-         ! Initialize the TOMAS microphysics package, if necessary
-         CALL INIT_TOMAS_MICROPHYSICS( am_I_Root, Input_Opt, RC )    
-#endif
 
 #if defined( APM )
          ! Initialize APM microphysics package, if necessary
@@ -2089,12 +2085,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TOMAS_MICROPHYSICS( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_TOMAS_MICROPHYSICS( am_I_Root, Input_Opt, 
+     &                                    State_Chm, RC )
 !
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TOMAS_MOD,          ONLY : INIT_TOMAS
       USE TRACERID_MOD,       ONLY : IDTNK1
       USE TRACERID_MOD,       ONLY : IDTSF1
@@ -2105,6 +2103,7 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2167,6 +2166,7 @@
 !                              running with the traditional driver main.F
 !  23 Apr 2013 - R. Yantosca - Renamed to INIT_TOMAS_MICROPHYS
 !  30 Jan 2014 - R. Yantosca - INIT_TOMAS accepts am_I_Root, Input_Opt, RC
+!  16 Jun 2016 - E. Lundgren - INIT_TOMAS now accepts State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2224,7 +2224,7 @@
       !=================================================================
       ! All error checks are satisfied, so initialize TOMAS
       !=================================================================
-      CALL INIT_TOMAS( am_I_Root, Input_Opt, RC )
+      CALL INIT_TOMAS( am_I_Root, Input_Opt, State_Chm, RC )
  
       END SUBROUTINE INIT_TOMAS_MICROPHYSICS
 !EOC
@@ -8486,6 +8486,12 @@
          CALL INIT_DEPO_MERCURY ( am_I_Root, Input_Opt, State_Chm, RC )
          CALL INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
+
+#if defined( TOMAS )
+      ! Initialize the TOMAS microphysics package, if necessary
+      CALL INIT_TOMAS_MICROPHYSICS( am_I_Root, Input_Opt, 
+     &                              State_Chm, RC )    
+#endif
 
       !=================================================================
       ! Initialize GEOS-Chem bpch diagnostics here.  This allows us to

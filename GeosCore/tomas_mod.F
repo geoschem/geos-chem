@@ -310,16 +310,12 @@
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTNK1, IDTH2SO4
-      USE TRACERID_MOD,       ONLY : IDTAW1, IDTSF1,  IDTSO4
-      USE TRACERID_MOD,       ONLY : IDTNH3, IDTNH4
-     
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND60, ND61,  LD61
       USE COMODE_LOOP_MOD          ! NFAMILIES
-
+     
       ! Arguments
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
@@ -340,6 +336,9 @@
       CHARACTER(LEN=255) :: ERR_VAR
       CHARACTER(LEN=255) :: ERR_MSG
       INTEGER            :: ERR_IND(4)
+      INTEGER, SAVE      :: IDTNK1, IDTH2SO4
+      INTEGER, SAVE      :: IDTAW1, IDTSF1,  IDTSO4
+      INTEGER, SAVE      :: IDTNH3, IDTNH4
 
 !---------
 !sfarina - move definitions of these from module common
@@ -418,6 +417,15 @@
 
       ! Assume success
       RC = GIGC_SUCCESS
+
+      ! Locally define species indexes
+      IDTNK1   = IND_('NK1')
+      IDTH2SO4 = IND_('H2SO4')
+      IDTAW1   = IND_('AW1')
+      IDTSF1   = IND_('SF1')
+      IDTSO4   = IND_('SO4')
+      IDTNH3   = IND_('NH3')
+      IDTNH4   = IND_('NH4')
       
       ! Check that tracer units are in [kg]. While tracer units
       ! are now generally [kg/kg] in GEOS-Chem, they are converted to 
@@ -3361,11 +3369,9 @@ Cjrp      endif
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput          
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTNK1, IDTAW1, IDTNH4
       USE UNITCONV_MOD
-
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND60
 
@@ -3398,6 +3404,7 @@ Cjrp      endif
       REAL*4                   :: thresh
       CHARACTER(LEN=255)       :: MSG, LOC ! (ewl)
       LOGICAL                  :: UNITCHANGE_KGM2
+      INTEGER, SAVE            :: IDTNK1, IDTAW1, IDTNH4
       
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -3410,6 +3417,11 @@ Cjrp      endif
 
       ! Assume success
       RC                =  GIGC_SUCCESS
+
+      ! Locally define species indexes
+      IDTNK1 = IND_('NK1')
+      IDTAW1 = IND_('AW1')
+      IDTNH4 = IND_('NH4')
 
       ! Check that tracer units are in [kg] (ewl, 8/13/15)
       ! Convert tracer concentration units to [kg] if not necessary.
@@ -3694,8 +3706,7 @@ Cjrp      endif
       USE CMN_DIAG_MOD
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,       ONLY : IDTNK1, IDTAW1, IDTNH4
+      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
 
       ! Arguments
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
@@ -3721,6 +3732,7 @@ Cjrp      endif
       LOGICAL                  :: PDBG, negvalue ! negvalue added for xSOA
                                                  ! (JKodros, 6/2/15)
       PARAMETER   (PI = 3.141592654e+0_fp)
+      INTEGER, SAVE            :: IDTNK1, IDTAW1, IDTNH4
 
 !sfarina
       REAL(fp)                 :: Nk(IBINS), Nkd(IBINS)
@@ -3743,6 +3755,11 @@ Cjrp      endif
 
       ! Assume success
       RC                =  GIGC_SUCCESS
+
+      ! Locally define species indexes
+      IDTNK1 = IND_('NK1')
+      IDTAW1 = IND_('AW1')
+      IDTNH4 = IND_('NH4')
 
       ! Check that tracer units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
@@ -5984,7 +6001,7 @@ c
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_TOMAS( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_TOMAS( am_I_Root, Input_Opt, State_Chm, RC )
 
 !
 !******************************************************************************
@@ -6004,14 +6021,14 @@ c
       USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
       USE inquireMod,         ONLY : findFreeLUN
-      USE TRACERID_MOD,       ONLY : IDTSF1, IDTSS1, IDTECIL1, IDTECOB1
-      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTDUST1
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -6024,6 +6041,8 @@ c
       CHARACTER(LEN=255)   :: filename
       CHARACTER(LEN=255)   :: fname(4)     
       CHARACTER(LEN=255)   :: DATA_DIR
+      INTEGER, SAVE        :: IDTSF1, IDTSS1, IDTECIL1, IDTECOB1
+      INTEGER, SAVE        :: IDTOCIL1, IDTOCOB1, IDTDUST1
 
       !=================================================================
       ! INIT_TOMAS begins here!
@@ -6031,6 +6050,15 @@ c
 
       ! Assume success
       RC = GIGC_SUCCESS
+
+      ! Locally define species indexes
+      IDTSF1   = IND_('SF1')
+      IDTSS1   = IND_('SS1')
+      IDTECIL1 = IND_('ECIL1')
+      IDTECOB1 = IND_('ECOB1')
+      IDTOCIL1 = IND_('OCIL1')
+      IDTOCOB1 = IND_('OCOB1')
+      IDTDUST1 = IND_('DUST1')
 
       ! Now read large TOMAS input files from a common disk directory
       ! (bmy, 1/30/14)
@@ -6281,11 +6309,9 @@ c         SRTH2O = ICOMP
       ! Reference to F90 modules
 c      USE LOGICAL_MOD, ONLY  : LSULF30, LSALT30
 c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
-      USE TRACERID_MOD, ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1, IDTECOB1
-      USE TRACERID_MOD, ONLY : IDTNK1,   IDTSF1,   IDTSS1,   IDTDUST1
       USE CMN_SIZE_MOD      ! Size parameters
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE GIGC_State_Chm_Mod, ONLY : ChmState          ! Chemistry State object
+      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
       USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State object
 
       ! Arguments
@@ -6305,6 +6331,8 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       INTEGER                ::  OFFSET
       CHARACTER(LEN=255)     ::  MSG, LOC
       REAL(fp)               ::  UNITFACTOR
+      INTEGER, SAVE          :: IDTECIL1, IDTOCIL1, IDTOCOB1, IDTECOB1
+      INTEGER, SAVE          :: IDTNK1,   IDTSF1,   IDTSS1,   IDTDUST1
 
       ! Pointers
       ! We need to define local array to hold tracer concentraiton values 
@@ -6314,6 +6342,16 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       !=================================================================
       ! GETFRACTION begins here
       !=================================================================
+
+      ! Locally define species indexes
+      IDTECIL1 = IND_('ECIL1')
+      IDTOCIL1 = IND_('OCIL1')
+      IDTOCOB1 = IND_('OCOB1')
+      IDTECOB1 = IND_('ECOB1')
+      IDTNK1   = IND_('TNK1')
+      IDTSF1   = IND_('TSF1')
+      IDTSS1   = IND_('TSS1')
+      IDTDUST1 = IND_('DUST1')
 
       ! Determine factor used to convert STT to units of [kg] locally
       ! (ewl, 9/29/15)
@@ -6435,9 +6473,7 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       USE CMN_SIZE_MOD
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD, ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1, IDTECOB1
-      USE TRACERID_MOD, ONLY : IDTNK1,   IDTSF1,   IDTSS1 ,  IDTDUST1
+      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
 
       ! Arguments
       INTEGER,        INTENT(IN)    :: I, J, L, N
@@ -6454,7 +6490,8 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       INTEGER                ::  BIN
       INTEGER                ::  OFFSET
       CHARACTER(LEN=255)       :: MSG, LOC ! For tracer conc unit check (ewl)
-
+      INTEGER, SAVE          ::  IDTECIL1, IDTOCIL1, IDTOCOB1, IDTECOB1
+      INTEGER, SAVE          ::  IDTNK1,   IDTSF1,   IDTSS1 ,  IDTDUST1
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -6467,6 +6504,16 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
 
       ! Assume success
       RC                =  GIGC_SUCCESS
+
+      ! Locally define species indexes
+      IDTECIL1 = IND_('ECIL1')
+      IDTOCIL1 = IND_('OCIL1')
+      IDTOCOB1 = IND_('OCOB1')
+      IDTECOB1 = IND_('ECOB1')
+      IDTNK1   = IND_('NK1')
+      IDTSF1   = IND_('SF1')
+      IDTSS1   = IND_('SS1')
+      IDTDUST1 = IND_('DUST1')
 
       ! Check that tracer units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
@@ -6644,10 +6691,8 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       USE CMN_SIZE_MOD          ! Size parameters
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
-      USE GIGC_State_Chm_Mod, ONLY : ChmState    
+      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_    
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTNK1, IDTSF1, IDTSS1
-      USE TRACERID_MOD,       ONLY : IDTAW1, IDTOCIL1
 
 ! Arguments
       INTEGER,        INTENT(IN)    :: I, J, L, BIN
@@ -6660,7 +6705,8 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       REAL(fp)               :: SO4MASS, NACLMASS, OCILMASS
       REAL(fp)               :: WRSO4, WRNACL, WROCIL
       CHARACTER(LEN=255)     :: MSG, LOC ! For tracer conc unit check (ewl)
-
+      INTEGER, SAVE          :: IDTNK1, IDTSF1, IDTSS1
+      INTEGER, SAVE          :: IDTAW1, IDTOCIL1
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -6674,6 +6720,13 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       ! Assume success
       RC                =  GIGC_SUCCESS
 
+      ! Locally define species indexes
+      IDTNK1   = IND_('NK1')
+      IDTSF1   = IND_('SF1')
+      IDTSS1   = IND_('SS1')
+      IDTAW1   = IND_('AW1')
+      IDTOCIL1 = IND_('OCIL1')
+      
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
@@ -6811,12 +6864,9 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       USE CMN_SIZE_MOD             ! Size parameters
       USE ERROR_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_ErrCode_Mod
-      USE TRACERID_MOD,       ONLY : IDTNK1,   IDTSF1,   IDTSS1
-      USE TRACERID_MOD,       ONLY : IDTDUST1, IDTECIL1, IDTECOB1
-      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1
       USE UNITCONV_MOD
 
       IMPLICIT NONE
@@ -6839,6 +6889,9 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       REAL(fp)            :: MECIL, MECOB, MOCIL, MOCOB, MDUST
       LOGICAL             :: UNITCONV = .FALSE.
       CHARACTER(LEN=255)  :: MSG, LOC
+      INTEGER, SAVE       :: IDTNK1,   IDTSF1,   IDTSS1
+      INTEGER, SAVE       :: IDTDUST1, IDTECIL1, IDTECOB1
+      INTEGER, SAVE       :: IDTOCIL1, IDTOCOB1
 
       ! Pointers
       ! Define a local array to hold tracer concentration values from the 
@@ -6851,6 +6904,16 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 
       ! Assume success
       RC                =  GIGC_SUCCESS
+
+      ! Locally define species indexes
+      IDTNK1   = IND_('NK1')
+      IDTSF1   = IND_('SF1')
+      IDTSS1   = IND_('SS1')
+      IDTDUST1 = IND_('DUST1')
+      IDTECIL1 = IND_('ECIL1')
+      IDTECOB1 = IND_('ECOB1')
+      IDTOCIL1 = IND_('OCIL1')
+      IDTOCOB1 = IND_('OCOB1')
 
       ! If tracer units are [kg/kg dry], convert to [kg] for this routine.
       ! Otherwise, if tracer units are not [kg] then throw an error to the 
@@ -6999,9 +7062,8 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTNK1,  IDTAW1, IDTNH4, IDTNH3
       USE UNITCONV_MOD
 
       ! Arguments
@@ -7020,6 +7082,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       LOGICAL                :: ERRORSWITCH
                                ! Make ERRORSWITCH = .TRUE. to get full print 
                                ! for debugging
+      INTEGER, SAVE          :: IDTNK1,  IDTAW1, IDTNH4, IDTNH3
 
 !sfarina
       REAL(fp)                         :: Nk(IBINS), Nkd(IBINS)
@@ -7046,6 +7109,12 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       ! Assume success
       RC        =  GIGC_SUCCESS
+
+      ! Locally define species indexes
+      IDTNK1 = IND_('NK1')
+      IDTAW1 = IND_('AW1')
+      IDTNH4 = IND_('NH4')
+      IDTNH3 = IND_('NH3')
 
       ! Copy values from Input_Opt
       LPRT      = Input_Opt%LPRT
@@ -8536,10 +8605,8 @@ Cpja Perform some numerical checks on dmdt_int
 
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTNK1,  IDTAW1
-
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND60
 
@@ -8567,6 +8634,7 @@ Cpja Perform some numerical checks on dmdt_int
 
       REAL(fp)                ::  pi
       parameter (pi=3.141592654e+0_fp)
+      INTEGER, SAVE           :: IDTNK1,  IDTAW1
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -8579,6 +8647,10 @@ Cpja Perform some numerical checks on dmdt_int
 
       ! Assume success
       RC                =  GIGC_SUCCESS
+
+      ! Locally define species indexes
+      IDTNK1 = IND_('NK1')
+      IDTAW1 = IND_('AW1')
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
