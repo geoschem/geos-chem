@@ -1038,7 +1038,7 @@
       USE TIME_MOD,           ONLY : GET_HOUR
       USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE TIME_MOD,           ONLY : GET_MINUTE
-      USE TRACERID_MOD,       ONLY : IDTNO, IDTN2O, IDTO3
+      Use GIGC_State_Chm_Mod, Only : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -1058,6 +1058,7 @@
 !  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
 !                                air pressure, with State_Met%PMID_DRY.
 !                                Remove dependency on PRESSURE_MOD.
+!  16 Jun 2016 - S. D. Eastham - Remove references to tracerid_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1131,6 +1132,8 @@
       ! Pointers
       REAL(fp), POINTER    :: STT(:,:,:,:)
 
+      Integer              :: IDNO, IDNO2, IDN2O, IDO3
+
       !=================================================================
       ! UCX_NOX begins here!
       !=================================================================
@@ -1178,6 +1181,12 @@
       ! Reset NOx/N2O mass counters
       MESONOX_DELTA = 0e+0_fp
       MESON2O_DELTA = 0e+0_fp
+
+      ! Get the species ID numbers
+      IDNO  = IND_('NO')
+      IDNO2 = IND_('NO2')
+      IDN2O = IND_('N2O')
+      IDO3  = IND_('O3')
 
       ! First compute ZMID outside of main parallel loop
 !$OMP PARALLEL DO
@@ -1280,11 +1289,13 @@
          XAIR  = NDAIR / State_Met%AD(I,J,L)
 
          ! Calculate local NOx, N2O and O3 number density
-         KGNOX = STT(I,J,L,IDTNO)
-         KGN2O = STT(I,J,L,IDTN2O)
-         LOCALNOX = KGNOX*TCVV(IDTNO)*XAIR
-         LOCALN2O = KGN2O*TCVV(IDTN2O)*XAIR
-         LOCALO3  = STT(I,J,L,IDTO3)*TCVV(IDTO3)*XAIR
+         KGNOX = STT(I,J,L,IDNO)
+         ! Add local NO2
+         ! KGNOX = KGNOX + (STT(I,J,L,IDNO2)*TCVV(IDNO)/TCVV(IDNO2))
+         KGN2O = STT(I,J,L,IDN2O)
+         LOCALNOX = KGNOX*TCVV(IDNO)*XAIR
+         LOCALN2O = KGN2O*TCVV(IDN2O)*XAIR
+         LOCALO3  = STT(I,J,L,IDO3)*TCVV(IDO3)*XAIR
 
          ! Retrieve local O3P/O1D mixing ratios and relevant
          ! j-rates from interpolated 2D arrays
@@ -1342,25 +1353,30 @@
         
          ! Calculate fractional loss and apply to tracer
          ! Explicit Euler method (fast)
-         DNOX = NOXRATE * DTCHEM / (TCVV(IDTNO)*XAIR)
+         DNOX = NOXRATE * DTCHEM / (TCVV(IDNO)*XAIR)
          IF ((DNOX*-1e+0_fp).gt.KGNOX) THEN
             DNOX = -1e+0_fp*KGNOX
             KGNOX = 0e+0_fp
+            LOCALNOX = 0e+0_fp
          ELSE
             KGNOX = KGNOX + DNOX
+            LOCALNOX = LOCALNOX + (NOXRATE*DTCHEM)
          ENDIF
-         STT(I,J,L,IDTNO) = KGNOX
+         ! Separate into NO and NO2...
+         !STT(I,J,L,IDNO)  = (LOCALNOX*(FRACN  +FRACNO ))/(TCVV(IDNO)*XAIR)
+         !STT(I,J,L,IDNO2) = (LOCALNOX*(FRACNO3+FRACNO2))/(TCVV(IDNO)*XAIR)
+         STT(I,J,L,IDNO) = KGNOX
 
          MESONOX_DELTA = MESONOX_DELTA + DNOX
 
-         DN2O = N2ORATE * DTCHEM / (TCVV(IDTN2O)*XAIR)
+         DN2O = N2ORATE * DTCHEM / (TCVV(IDN2O)*XAIR)
          IF ((DN2O*-1e+0_fp).gt.KGN2O) THEN
             DN2O = -1e+0_fp*KGN2O
             KGN2O = 0e+0_fp
          ELSE
             KGN2O = KGN2O + DN2O
          ENDIF
-         STT(I,J,L,IDTN2O) = KGN2O
+         STT(I,J,L,IDN2O) = KGN2O
 
          MESON2O_DELTA = MESON2O_DELTA + DN2O
          
