@@ -281,6 +281,7 @@
       INTEGER                :: IDTDMS
       INTEGER                :: IDTH2O2
       INTEGER                :: IDTNH3
+      INTEGER                :: IDNO3
       INTEGER                :: IDOH
       INTEGER                :: IDTSO4s
       INTEGER                :: IDTNITs   
@@ -704,7 +705,7 @@
       ! SO4s [kg] gravitational settling
       IF ( IDTSO4s > 0 ) THEN
          CALL GRAV_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                       STT(:,:,:,IDTSO4s)), 1,        RC )
+     &                       STT(:,:,:,IDTSO4s), 1,        RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4S' )
          ENDIF
@@ -7475,6 +7476,7 @@ d
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : Ind_
       USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
@@ -7687,7 +7689,8 @@ d
       IDTH2O2  = Ind_('H2O2' )
       IDTNH3   = Ind_('NH3'  )
       IDTNITs  = Ind_('NITs' )
-      IDTOH    = Ind_('OH'   )
+      IDNO3    = Ind_('NO3'  )
+      IDOH     = Ind_('OH'   )
       IDTSO4s  = Ind_('SO4s' )
       IDTSO4d1 = Ind_('SO4D1')
       IDTSO4d2 = Ind_('SO4D2')
@@ -7699,17 +7702,16 @@ d
       IDTNITd4 = Ind_('NITD4')
       
       ! Define flags for species drydep indices
-      DRYSO4s  = Ind_('NITD4','D')
-      DRYNITs  = Ind_('NITD4','D')
-      DRYSO4d1 = Ind_('NITD4','D')
-      DRYSO4d2 = Ind_('NITD4','D')
-      DRYSO4d3 = Ind_('NITD4','D')
-      DRYSO4d4 = Ind_('NITD4','D')
-      DRYNITd1 = Ind_('NITD4','D')
-      DRYNITd2 = Ind_('NITD4','D')
-      DRYNITd3 = Ind_('NITD4','D')
+      DRYSO4s  = Ind_('SO4s','D')
+      DRYNITs  = Ind_('NITs','D')
+      DRYSO4d1 = Ind_('SO4d1','D')
+      DRYSO4d2 = Ind_('SO4d2','D')
+      DRYSO4d3 = Ind_('SO4d3','D')
+      DRYSO4d4 = Ind_('SO4d4','D')
+      DRYNITd1 = Ind_('NITD1','D')
+      DRYNITd2 = Ind_('NITD2','D')
+      DRYNITd3 = Ind_('NITD3','D')
       DRYNITd4 = Ind_('NITD4','D')
-
 
       END SUBROUTINE INIT_SULFATE
 !EOC
