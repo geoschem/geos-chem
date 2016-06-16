@@ -271,10 +271,39 @@
       ! Emission timestep (imported from HEMCO)
       REAL(fp)               :: TS_EMIS
       
-      ! Flags to drydep indices for certain species
-      INTEGER                :: DRYSO4s,  DRYNITs
-      INTEGER                :: DRYNITd1, DRYNITd2, DRYNITd3, DRYNITd4
-      INTEGER                :: DRYSO4d1, DRYSO4d2, DRYSO4d3, DRYSO4d4
+!CODEATHON bmy
+!      ! Flags to drydep indices for certain species
+!     INTEGER                :: DRYSO4s,  DRYNITs
+!      INTEGER                :: DRYNITd1, DRYNITd2, DRYNITd3, DRYNITd4
+!      INTEGER                :: DRYSO4d1, DRYSO4d2, DRYSO4d3, DRYSO4d4
+
+      ! ID flags for species
+      INTEGER                :: IDTDMS
+      INTEGER                :: IDTH2O2
+      INTEGER                :: IDTNH3
+      INTEGER                :: IDOH
+      INTEGER                :: IDTSO4s
+      INTEGER                :: IDTNITs   
+      INTEGER                :: IDTSO4d1 
+      INTEGER                :: IDTSO4d2 
+      INTEGER                :: IDTSO4d3 
+      INTEGER                :: IDTSO4d4 
+      INTEGER                :: IDTNITd1 
+      INTEGER                :: IDTNITd2 
+      INTEGER                :: IDTNITd3 
+      INTEGER                :: IDTNITd4 
+
+      ! Drydep ID flags for species
+      INTEGER                :: DRYSO4s  
+      INTEGER                :: DRYNITs  
+      INTEGER                :: DRYSO4d1 
+      INTEGER                :: DRYSO4d2 
+      INTEGER                :: DRYSO4d3 
+      INTEGER                :: DRYSO4d4 
+      INTEGER                :: DRYNITd1 
+      INTEGER                :: DRYNITd2 
+      INTEGER                :: DRYNITd3 
+      INTEGER                :: DRYNITd4
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -673,82 +702,110 @@
       !=================================================================
 
       ! SO4s [kg] gravitational settling
-      CALL GRAV_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                    STT(:,:,:,IND_('SO4s')), 1,         RC )
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4S' )
+      IF ( IDTSO4s > 0 ) THEN
+         CALL GRAV_SETTLING( am_I_Root,          Input_Opt, State_Met,
+     &                       STT(:,:,:,IDTSO4s)), 1,        RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4S' )
+         ENDIF
       ENDIF
 
       ! NITs [kg] gravitational settling
-      CALL GRAV_SETTLING( am_I_Root,          Input_Opt, State_Met, 
-     &                    STT(:,:,:,IND_('NITs')), 2,         RC )
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
+      IF ( IDTNITs > 0 ) THEN 
+         CALL GRAV_SETTLING( am_I_Root,          Input_Opt, State_Met, 
+     &                       STT(:,:,:,IDTNITs), 2,         RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
+         ENDIF
       ENDIF
 
       IF ( LDSTUP ) THEN
          !tdf
          ! DUST_SO4 [kg] gravitational settling
-         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                       STT(:,:,:,IND_('SO4D1')), 3,         RC )
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_SO4')
+         IF ( IDTSO4d1 > 0 ) THEN
+            CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
+     &                          State_Met, STT(:,:,:,IDTSO4d1), 
+     &                          3,         RC )
+            IF ( prtDebug ) THEN
+               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_SO4')
+            ENDIF
          ENDIF
    
          !tdf
          ! DUST_SO4 [kg] gravitational settling
-         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                       STT(:,:,:,IND_('SO4D2')), 4,         RC )
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_SO4')
+         IF ( IDTSO4d2 > 0 ) THEN
+            CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
+     &                          State_Met, STT(:,:,:,IDTSO4d2), 
+     &                          4,         RC )
+            IF ( prtDebug ) THEN
+               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_SO4')
+            ENDIF
          ENDIF
    
          !tdf
          ! DUST_SO4 [kg] gravitational settling
-         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                       STT(:,:,:,IND_('SO4D3')), 5,         RC )
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_SO4')
+         IF ( IDTSO4d3 > 0 ) THEN
+            CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
+     &                          State_Met, STT(:,:,:,IDTSO4d3), 
+     &                          5,         RC )
+            IF ( prtDebug ) THEN
+               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_SO4')
+            ENDIF
          ENDIF
    
          !tdf
          ! DUST_SO4 [kg] gravitational settling
-         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                       STT(:,:,:,IND_('SO4D4')), 6,         RC )
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_SO4')
+         IF ( IDTSO4d4 > 0 ) THEN
+            CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
+     &                          State_Met, STT(:,:,:,IDTSO4d4), 
+     &                          6,         RC )
+            IF ( prtDebug ) THEN
+               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_SO4')
+            ENDIF
          ENDIF
    
          !tdf
          ! DUST_NIT [kg] gravitational settling
-         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                       STT(:,:,:,IND_('NITD1')), 7,         RC )
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_NIT')
+         IF ( IDTNITd1 > 0 ) THEN
+            CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
+     &                          State_Met, STT(:,:,:,IDTNITd1), 
+     &                          7,         RC )
+            IF ( prtDebug ) THEN
+               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_NIT')
+            ENDIF
          ENDIF
    
          !tdf
          ! DUST_NIT [kg] gravitational settling
-         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                       STT(:,:,:,IND_('NITd2')), 8,         RC )
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_NIT')
+         IF ( IDTNITd2 > 0 ) THEN
+            CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
+     &                          State_Met, STT(:,:,:,IDTNITd2), 
+     &                          8,         RC )
+            IF ( prtDebug ) THEN
+               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_NIT')
+            ENDIF
          ENDIF
    
          !tdf
          ! DUST_NIT [kg] gravitational settling
-         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                       STT(:,:,:,IND_('NITD3')), 9,         RC )
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_NIT')
+         IF ( IDTNITd3 > 0 ) THEN
+            CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
+     &                          State_Met, STT(:,:,:,IDTNITd3), 
+     &                          9,         RC )
+            IF ( prtDebug ) THEN
+               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_NIT')
+            ENDIF
          ENDIF
    
          !tdf
          ! DUST_NIT [kg] gravitational settling
-         CALL GRAV_SETTLING( am_I_Root,           Input_Opt,  State_Met,
-     &                       STT(:,:,:,IND_('NITD4')), 10,         RC )
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_NIT')
+         IF ( IDTNITd4 > 0 ) THEN
+            CALL GRAV_SETTLING( am_I_Root, Input_Opt,  
+     &                          State_Met, STT(:,:,:,IDTNITd4), 
+     &                          10,        RC )
+            IF ( prtDebug ) THEN
+               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_NIT')
+            ENDIF
          ENDIF
       ENDIF
 
@@ -811,7 +868,7 @@
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4' )
       ENDIF
-
+d
 #if   defined( TOMAS )
       !-----------------------------------------------------------------
       ! For TOMAS microphysics:
@@ -847,7 +904,7 @@
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'CHEM_SULFATE in sulfate_mod.F')
-         RETURN
+ 3       RETURN
       ENDIF
 
       ! Free pointer
@@ -911,7 +968,10 @@
       INTEGER       :: TID, I, J, L
       REAL*8        :: MK_TEMP(IBINS)
       INTEGER       :: ii=53, jj=29, ll=1
-      INTEGER       :: IDTSF1, IDTAW1, IDTNH4, IDTNK1
+
+      ! SAVEd scalars
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER, SAVE :: IDTSF1, IDTAW1, IDTNH4, IDTNK1
       
       ! Pointers
       ! We need to define local arrays to hold corresponding values
@@ -922,11 +982,18 @@
       ! EMISSSULFATETOMAS begins here!
       !=================================================================
 
-      ! Get species indices
-      IDTSF1 = IND_('SF1')
-      IDTAW1 = IND_('AW1')
-      IDTNH4 = IND_('NH4')
-      IDTNK1 = IND_('NK1')
+      ! First-time setup
+      IF ( FIRST ) THEN
+
+         ! Get species indices
+         IDTSF1 = IND_('SF1')
+         IDTAW1 = IND_('AW1')
+         IDTNH4 = IND_('NH4')
+         IDTNK1 = IND_('NK1')
+         
+         ! Reset first-time flag
+         FIRST  = .FALSE.
+      ENDIF
 
       ! Convert State_Chm%Tracers from [kg/kg dry air] to [kg] for TOMAS.
       ! This will be removed once TOMAS uses mixing ratio instead of mass 
@@ -1468,18 +1535,11 @@
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44
 #endif
-!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : IND_
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-!      USE TRACERID_MOD,       ONLY : IDTSO4s
-!      USE TRACERID_MOD,       ONLY : IDTNITs
-!      USE TRACERID_MOD,       ONLY : IDTSO4d1, IDTNITd1
-!      USE TRACERID_MOD,       ONLY : IDTSO4d2, IDTNITd2
-!      USE TRACERID_MOD,       ONLY : IDTSO4d3, IDTNITd3
-!      USE TRACERID_MOD,       ONLY : IDTSO4d4, IDTNITd4
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 #if defined( NC_DIAG )
@@ -1645,19 +1705,19 @@
       ENDIF
 
       ! Tracer array
-      IDTRC(1)  = IND_('SO4S')
-      IDTRC(2)  = IND_('NITS')
+      IDTRC(1)  = IDTSO4s
+      IDTRC(2)  = IDTNITs
       IF ( LDSTUP ) THEN
          !tdf
-         IDTRC(3)  = IND_('SO4D1')
-         IDTRC(4)  = IND_('SO4D2')
-         IDTRC(5)  = IND_('SO4D3')
-         IDTRC(6)  = IND_('SO4D4')
+         IDTRC(3)  = IDTSO4d1
+         IDTRC(4)  = IDTSO4d2
+         IDTRC(5)  = IDTSO4d3
+         IDTRC(6)  = IDTSO4d4
          !tdf
-         IDTRC(7)  = IND_('NITD1')
-         IDTRC(8)  = IND_('NITD2')
-         IDTRC(9)  = IND_('NITD3')
-         IDTRC(10) = IND_('NITD4')
+         IDTRC(7)  = IDTNITd1
+         IDTRC(8)  = IDTNITd2
+         IDTRC(9)  = IDTNITd3
+         IDTRC(10) = IDTNITd4
       ENDIF
 
       ! Coarse mode
@@ -1982,7 +2042,8 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTDMS, IDOH, IDNO3
+!CODEATHON bmy
+!      USE TRACERID_MOD,       ONLY : IDTDMS, IDOH, IDNO3
 !
 ! !INPUT PARAMETERS:
 !
@@ -2304,7 +2365,8 @@
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACERID_MOD,       ONLY : IDTH2O2
+!CODEATHON bmy
+!     USE TRACERID_MOD,       ONLY : IDTH2O2
 !
 ! !INPUT PARAMETERS:
 !
@@ -7567,57 +7629,87 @@
       ! Find drydep species in the DEPSAV array
       !=================================================================
 
-      ! Initialize flags
-      DRYSO4s  = 0
-      DRYNITs  = 0
-      DRYSO4d1 = 0
-      DRYSO4d2 = 0
-      DRYSO4d3 = 0
-      DRYSO4d4 = 0
-      DRYNITd1 = 0
-      DRYNITd2 = 0
-      DRYNITd3 = 0
-      DRYNITd4 = 0
+!CODEATHON bmy
+!      ! Initialize flags
+!      DRYSO4s  = 0
+!      DRYNITs  = 0
+!      DRYSO4d1 = 0
+!      DRYSO4d2 = 0
+!      DRYSO4d3 = 0
+!      DRYSO4d4 = 0
+!      DRYNITd1 = 0
+!      DRYNITd2 = 0
+!      DRYNITd3 = 0
+!      DRYNITd4 = 0
+!
+!      ! Locate position of each tracer in DEPSAV
+!      IF ( Input_Opt%LDRYD ) THEN
+!
+!         ! Loop over all species
+!         DO N = 1, State_Chm%nSpecies
+!
+!            ! Get info for each species from the species database
+!            ThisSpc => State_Chm%SpcData(N)%Info
+!
+!            ! Save dry deposition indices for selected species
+!            SELECT CASE ( TRIM( ThisSpc%Name ) )
+!               CASE ( 'SO4s'   )
+!                  DRYSO4s  = ThisSpc%DryDepId
+!               CASE ( 'NITs'   )
+!                  DRYNITs  = ThisSpc%DryDepId
+!               CASE ( 'SO4D1' )
+!                  DRYSO4d1 = ThisSpc%DryDepId
+!               CASE ( 'SO4D2' )
+!                  DRYSO4d2 = ThisSpc%DryDepId
+!               CASE ( 'SO4D3' )
+!                  DRYSO4d3 = ThisSpc%DryDepId
+!               CASE ( 'SO4D4' )
+!                  DRYSO4d4 = ThisSpc%DryDepId
+!               CASE ( 'NITD1' )
+!                  DRYNITd1 = ThisSpc%DryDepId
+!               CASE ( 'NITD2' )
+!                  DRYNITd2 = ThisSpc%DryDepId
+!               CASE ( 'NITD3' )
+!                  DRYNITd3 = ThisSpc%DryDepId
+!               CASE ( 'NITD4' )
+!                  DRYNITd4 = ThisSpc%DryDepId
+!               CASE DEFAULT
+!                  ! Nothing
+!            END SELECT  
+!
+!            ! Free pointer
+!            ThisSpc => NULL()
+!         ENDDO
+!      ENDIF
 
-      ! Locate position of each tracer in DEPSAV
-      IF ( Input_Opt%LDRYD ) THEN
+      ! Define flags for species ID's
+      IDTDMS   = Ind_('DMS'  )
+      IDTH2O2  = Ind_('H2O2' )
+      IDTNH3   = Ind_('NH3'  )
+      IDTNITs  = Ind_('NITs' )
+      IDTOH    = Ind_('OH'   )
+      IDTSO4s  = Ind_('SO4s' )
+      IDTSO4d1 = Ind_('SO4D1')
+      IDTSO4d2 = Ind_('SO4D2')
+      IDTSO4d3 = Ind_('SO4D3')
+      IDTSO4d4 = Ind_('SO4D4')
+      IDTNITd1 = Ind_('NITD1')
+      IDTNITd2 = Ind_('NITD2')
+      IDTNITd3 = Ind_('NITD3')
+      IDTNITd4 = Ind_('NITD4')
+      
+      ! Define flags for species drydep indices
+      DRYSO4s  = Ind_('NITD4','D')
+      DRYNITs  = Ind_('NITD4','D')
+      DRYSO4d1 = Ind_('NITD4','D')
+      DRYSO4d2 = Ind_('NITD4','D')
+      DRYSO4d3 = Ind_('NITD4','D')
+      DRYSO4d4 = Ind_('NITD4','D')
+      DRYNITd1 = Ind_('NITD4','D')
+      DRYNITd2 = Ind_('NITD4','D')
+      DRYNITd3 = Ind_('NITD4','D')
+      DRYNITd4 = Ind_('NITD4','D')
 
-         ! Loop over all species
-         DO N = 1, State_Chm%nSpecies
-
-            ! Get info for each species from the species database
-            ThisSpc => State_Chm%SpcData(N)%Info
-
-            ! Save dry deposition indices for selected species
-            SELECT CASE ( TRIM( ThisSpc%Name ) )
-               CASE ( 'SO4s'   )
-                  DRYSO4s  = ThisSpc%DryDepId
-               CASE ( 'NITs'   )
-                  DRYNITs  = ThisSpc%DryDepId
-               CASE ( 'SO4D1' )
-                  DRYSO4d1 = ThisSpc%DryDepId
-               CASE ( 'SO4D2' )
-                  DRYSO4d2 = ThisSpc%DryDepId
-               CASE ( 'SO4D3' )
-                  DRYSO4d3 = ThisSpc%DryDepId
-               CASE ( 'SO4D4' )
-                  DRYSO4d4 = ThisSpc%DryDepId
-               CASE ( 'NITD1' )
-                  DRYNITd1 = ThisSpc%DryDepId
-               CASE ( 'NITD2' )
-                  DRYNITd2 = ThisSpc%DryDepId
-               CASE ( 'NITD3' )
-                  DRYNITd3 = ThisSpc%DryDepId
-               CASE ( 'NITD4' )
-                  DRYNITd4 = ThisSpc%DryDepId
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT  
-
-            ! Free pointer
-            ThisSpc => NULL()
-         ENDDO
-      ENDIF
 
       END SUBROUTINE INIT_SULFATE
 !EOC
