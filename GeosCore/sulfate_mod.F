@@ -467,7 +467,7 @@
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
@@ -476,12 +476,6 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACERID_MOD,       ONLY : IDTNITs
-      USE TRACERID_MOD,       ONLY : IDTSO4s
-      USE TRACERID_MOD,       ONLY : IDTSO4d1, IDTSO4d2
-      USE TRACERID_MOD,       ONLY : IDTSO4d3, IDTSO4d4
-      USE TRACERID_MOD,       ONLY : IDTNITd1, IDTNITd2
-      USE TRACERID_MOD,       ONLY : IDTNITd3, IDTNITd4
       USE UCX_MOD,            ONLY : SETTLE_STRAT_AER
       USE UNITCONV_MOD
 !
@@ -546,6 +540,8 @@
 !                              simulation from HEMCO
 !  30 Sep 2015 - E. Lundgren - Now use UNITCONV_MOD conversion routines
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  16 Jun 2016 - M. Long     - Remove references to TRACERID_MOD and replace
+!                              with GIGC_STATE_CHM_MOD::IND_()
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -678,14 +674,14 @@
 
       ! SO4s [kg] gravitational settling
       CALL GRAV_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                    STT(:,:,:,IDTSO4s), 1,         RC         )
+     &                    STT(:,:,:,IND_('SO4s')), 1,         RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4S' )
       ENDIF
 
       ! NITs [kg] gravitational settling
       CALL GRAV_SETTLING( am_I_Root,          Input_Opt, State_Met, 
-     &                    STT(:,:,:,IDTNITs), 2,         RC )
+     &                    STT(:,:,:,IND_('NITs')), 2,         RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
       ENDIF
@@ -694,7 +690,7 @@
          !tdf
          ! DUST_SO4 [kg] gravitational settling
          CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                       STT(:,:,:,IDTSO4d1), 3,         RC )
+     &                       STT(:,:,:,IND_('SO4D1')), 3,         RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_SO4')
          ENDIF
@@ -702,7 +698,7 @@
          !tdf
          ! DUST_SO4 [kg] gravitational settling
          CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                       STT(:,:,:,IDTSO4d2), 4,         RC )
+     &                       STT(:,:,:,IND_('SO4D2')), 4,         RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_SO4')
          ENDIF
@@ -710,7 +706,7 @@
          !tdf
          ! DUST_SO4 [kg] gravitational settling
          CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                       STT(:,:,:,IDTSO4d3), 5,         RC )
+     &                       STT(:,:,:,IND_('SO4D3')), 5,         RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_SO4')
          ENDIF
@@ -718,7 +714,7 @@
          !tdf
          ! DUST_SO4 [kg] gravitational settling
          CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                       STT(:,:,:,IDTSO4d4), 6,         RC )
+     &                       STT(:,:,:,IND_('SO4D4')), 6,         RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_SO4')
          ENDIF
@@ -726,7 +722,7 @@
          !tdf
          ! DUST_NIT [kg] gravitational settling
          CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                       STT(:,:,:,IDTNITd1), 7,         RC )
+     &                       STT(:,:,:,IND_('NITD1')), 7,         RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_NIT')
          ENDIF
@@ -734,7 +730,7 @@
          !tdf
          ! DUST_NIT [kg] gravitational settling
          CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                       STT(:,:,:,IDTNITd2), 8,         RC )
+     &                       STT(:,:,:,IND_('NITd2')), 8,         RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_NIT')
          ENDIF
@@ -742,7 +738,7 @@
          !tdf
          ! DUST_NIT [kg] gravitational settling
          CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                       STT(:,:,:,IDTNITd3), 9,         RC )
+     &                       STT(:,:,:,IND_('NITD3')), 9,         RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_NIT')
          ENDIF
@@ -750,7 +746,7 @@
          !tdf
          ! DUST_NIT [kg] gravitational settling
          CALL GRAV_SETTLING( am_I_Root,           Input_Opt,  State_Met,
-     &                       STT(:,:,:,IDTNITd4), 10,         RC )
+     &                       STT(:,:,:,IND_('NITD4')), 10,         RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_NIT')
          ENDIF
@@ -888,8 +884,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTSF1,     IDTAW1,  IDTNH4
-      USE TRACERID_MOD,       ONLY : IDTNK1
       USE TOMAS_MOD,          ONLY : IBINS,      ICOMP,   IDIAG
       USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
       USE TOMAS_MOD,          ONLY : SRTNH4
@@ -917,6 +911,7 @@
       INTEGER       :: TID, I, J, L
       REAL*8        :: MK_TEMP(IBINS)
       INTEGER       :: ii=53, jj=29, ll=1
+      INTEGER       :: IDTSF1, IDTAW1, IDTNH4, IDTNK1
       
       ! Pointers
       ! We need to define local arrays to hold corresponding values
@@ -926,6 +921,12 @@
       !=================================================================
       ! EMISSSULFATETOMAS begins here!
       !=================================================================
+
+      ! Get species indices
+      IDTSF1 = IND_('SF1')
+      IDTAW1 = IND_('AW1')
+      IDTNH4 = IND_('NH4')
+      IDTNK1 = IND_('NK1')
 
       ! Convert State_Chm%Tracers from [kg/kg dry air] to [kg] for TOMAS.
       ! This will be removed once TOMAS uses mixing ratio instead of mass 
@@ -1018,7 +1019,6 @@
       USE TOMAS_MOD,          ONLY : IBINS, AVGMASS, ICOMP
       USE TOMAS_MOD,          ONLY : Xk,  SUBGRIDCOAG, MNFIX
       USE TOMAS_MOD,          ONLY : SRTSO4, SRTNH4,  DEBUGPRINT
-      USE TRACERID_MOD
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND13 (for now)
@@ -1472,13 +1472,14 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : IND_
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE TRACERID_MOD,       ONLY : IDTSO4s
-      USE TRACERID_MOD,       ONLY : IDTNITs
-      USE TRACERID_MOD,       ONLY : IDTSO4d1, IDTNITd1
-      USE TRACERID_MOD,       ONLY : IDTSO4d2, IDTNITd2
-      USE TRACERID_MOD,       ONLY : IDTSO4d3, IDTNITd3
-      USE TRACERID_MOD,       ONLY : IDTSO4d4, IDTNITd4
+!      USE TRACERID_MOD,       ONLY : IDTSO4s
+!      USE TRACERID_MOD,       ONLY : IDTNITs
+!      USE TRACERID_MOD,       ONLY : IDTSO4d1, IDTNITd1
+!      USE TRACERID_MOD,       ONLY : IDTSO4d2, IDTNITd2
+!      USE TRACERID_MOD,       ONLY : IDTSO4d3, IDTNITd3
+!      USE TRACERID_MOD,       ONLY : IDTSO4d4, IDTNITd4
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 #if defined( NC_DIAG )
@@ -1604,9 +1605,9 @@
       LDSTUP = Input_Opt%LDSTUP
 
       ! Return if tracers are undefined
-      IF ( IDTSO4s  == 0 .and. IDTNITs  == 0 ) RETURN
+      IF ( IND_('SO4S') .le. 0 .and. IND_('NITS') .le. 0 ) RETURN
       IF ( LDSTUP ) THEN
-         IF ( IDTSO4d1 == 0 .and. IDTNITd1 == 0 ) RETURN ! tdf
+         IF ( IND_('SO4D1') .le. 0 .and. IND_('NITD1') .le. 0 ) RETURN ! tdf
       ENDIF
 
       ! Return if it's the start of the run
@@ -1644,19 +1645,19 @@
       ENDIF
 
       ! Tracer array
-      IDTRC(1)  = IDTSO4s
-      IDTRC(2)  = IDTNITs
+      IDTRC(1)  = IND_('SO4S')
+      IDTRC(2)  = IND_('NITS')
       IF ( LDSTUP ) THEN
          !tdf
-         IDTRC(3)  = IDTSO4d1
-         IDTRC(4)  = IDTSO4d2
-         IDTRC(5)  = IDTSO4d3
-         IDTRC(6)  = IDTSO4d4
+         IDTRC(3)  = IND_('SO4D1')
+         IDTRC(4)  = IND_('SO4D2')
+         IDTRC(5)  = IND_('SO4D3')
+         IDTRC(6)  = IND_('SO4D4')
          !tdf
-         IDTRC(7)  = IDTNITd1
-         IDTRC(8)  = IDTNITd2
-         IDTRC(9)  = IDTNITd3
-         IDTRC(10) = IDTNITd4
+         IDTRC(7)  = IND_('NITD1')
+         IDTRC(8)  = IND_('NITD2')
+         IDTRC(9)  = IND_('NITD3')
+         IDTRC(10) = IND_('NITD4')
       ENDIF
 
       ! Coarse mode
