@@ -190,19 +190,25 @@
 !  10 Jun 2012 - L. Murray - Enable tagged Ox for Synoz.
 !  05 Nov 2013 - R. Yantosca - Rename IDTOxStrt to IDTO3Strt
 !  05 Nov 2013 - R. Yantosca - Remove STT pointer for simplicity
-!  16 Jun 2016 - M. Sulprizio- Replace IDTO3Strt with index obtained from IND_
+!  16 Jun 2016 - M. Sulprizio- Now define IDTO3Strt locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Tracer ID flag (CODEATHON, mps, 6/16/16)
+      INTEGER :: IDTO3Strt
+
       !=================================================================
       ! GET_STRAT_POX begins here!
       !=================================================================
 
-      State_Chm%Tracers(I,J,L,IND_('O3Strt')) = 
-     &State_Chm%Tracers(I,J,L,IND_('O3Strt')) + POx
+      ! Initialize tracer index (CODEATHON, mps, 6/16/16)
+      IDTO3Strt = IND_('O3Strt')
+
+      State_Chm%Tracers(I,J,L,IDTO3Strt) = 
+     &State_Chm%Tracers(I,J,L,IDTO3Strt) + POx
 
       END SUBROUTINE ADD_STRAT_POX
 !EOC
