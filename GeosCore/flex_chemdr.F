@@ -31,6 +31,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GIGC_State_Chm_Mod,   ONLY : ChmState
+      USE GIGC_State_Chm_Mod,   ONLY : IND_
       USE GIGC_State_Met_Mod,   ONLY : MetState
       USE GRID_MOD,             ONLY : GET_YMID
       USE HCO_DIAGN_MOD,        ONLY : Diagn_Update
@@ -42,7 +43,6 @@
       USE TIME_MOD,             ONLY : GET_TS_CHEM
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : GET_YEAR
-      USE TRACERID_MOD,         ONLY : IDTCH4
       USE UNITCONV_MOD
 #if defined( UCX )
       USE UCX_MOD,              ONLY : CALC_STRAT_AER
@@ -95,6 +95,7 @@
 !                              State_Chm%nSpecies and add checks for Is_Advected
 !                              and Is_Kpp to avoid introducing numerical noise
 !                              by applying unit conversions to non-KPP species
+!  16 Jun 2016 - M. Sulprizio- Now define IDTCH4 locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -112,6 +113,7 @@
       ! SAVEd variables
       LOGICAL, SAVE         :: FIRSTCHEM = .TRUE.
       INTEGER, SAVE         :: CH4_YEAR  = -1
+      INTEGER, SAVE         :: IDTCH4    = 0   ! (CODEATHON, mps, 6/16/16)
 
       ! For grid-box latitude
       REAL(fp)              :: YLAT
@@ -233,6 +235,13 @@
          !---------------------------------
          ! Set global concentration of CH4
          !---------------------------------
+         ! Set tracer index (CODEATHON, mps, 6/16/16)
+         ! Need to pass 'T' for now because CH4 can be an active or
+         ! inactive species. In the future, we should define whether
+         ! a species is active or inactive the species database and check
+         ! for that here.
+         IDTCH4 = IND_('CH4', 'T')
+
          ! Check that CH4 is not a defined tracer
          IF ( IDTCH4 == 0 .and. IND_CH4 > 0 .and. 
      &      ( CH4_YEAR /= YEAR ) ) THEN
