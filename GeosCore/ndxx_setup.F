@@ -31,10 +31,10 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : IND_  ! kyu codeathon
       USE PLANEFLIGHT_MOD,    ONLY : SETUP_PLANEFLIGHT
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, IDIAG   !(win, 7/9/09)
-      USE TRACERID_MOD,       ONLY : IDTNK1    !(win, 7/14/09)
 #endif
 
 #if   defined( APM )
@@ -849,7 +849,7 @@
          ! add space in diag array for TOMAS aerosol mass (win, 7/14/09)
          ! Now use State_Chm%nDryDep for # dry depositing species
          ! (ewl, 10/14/15)
-         IF ( IDTNK1 > 1 ) THEN
+         IF ( IND_('NK1') > 1 ) THEN
             NMAX = State_Chm%nDryDep + ( ICOMP - IDIAG )* IBINS
          ELSE
             NMAX = State_Chm%nDryDep

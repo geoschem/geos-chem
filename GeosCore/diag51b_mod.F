@@ -425,15 +425,13 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : IND_   !kyu codeathon
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,    GET_PBL_TOP_m
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN,  GET_TS_CHEM 
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
       USE TIME_MOD,           ONLY : GET_TS_DIAG,      GET_TS_EMIS
-      USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
-      USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
-      USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
 
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
@@ -518,6 +516,11 @@
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER           :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
 
+      ! tracer id indices kyu codeathon
+      INTEGER,SAVE      :: IND_HNO3, IND_HNO4, IND_N2O5, IND_NO
+      INTEGER,SAVE      :: IND_PAN,  IND_PMN,  IND_PPN,  IND_O3
+      INTEGER,SAVE      :: IND_R4N2, IND_SALA, IND_SALC, IND_NO2
+
       ! For fields from Input_Opt
       INTEGER           :: N_TRACERS
       REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
@@ -537,18 +540,26 @@
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
+      ! tracer id indices
+      IND_HNO3 = IND_('HNO3'); IND_HNO4 = IND_('HNO4')
+      IND_N2O5 = IND_('N2O5'); IND_NO   = IND_('NO')
+      IND_PAN  = IND_('PAN');  IND_PMN  = IND_('PMN')
+      IND_PPN  = IND_('PPN');  IND_O3   = IND_('O3')
+      IND_R4N2 = IND_('R4N2'); IND_SALA = IND_('SALA')
+      IND_SALC = IND_('SALC'); IND_NO2  = IND_('NO2')
+
       ! Set logical flags on first call
       IF ( FIRST ) THEN
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
          IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
          IS_SLP      = ASSOCIATED( State_Met%SLP     )
          IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
-         IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
-         IS_NOy      = ( IS_FULLCHEM .and. IDTNO   > 0 .and.
-     &                   IDTNO2  > 0 .and. IDTPAN  > 0 .and.
-     &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
-     &                   IDTPPN  > 0 .and. IDTR4N2 > 0 .and.
-     &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 ) 
+         IS_SEASALT  = ( IND_SALA > 0 .and. IND_SALC > 0 )
+         IS_NOy      = ( IS_FULLCHEM .and. IND_NO   > 0 .and.
+     &                   IND_NO2  > 0 .and. IND_PAN  > 0 .and.
+     &                   IND_HNO3 > 0 .and. IND_PMN  > 0 .and.
+     &                   IND_PPN  > 0 .and. IND_R4N2 > 0 .and.
+     &                   IND_N2O5 > 0 .and. IND_HNO4 > 0 ) 
          FIRST       = .FALSE.
       ENDIF
 
@@ -708,74 +719,74 @@
                TMP = 0e+0_fp
             
 !               ! NO
-!               TMP = TMP + ( TCVV(IDTNO)         * GOOD(I) *
-!     &                       STT(I,J,L,IDTNO)    / AD(I,J,L) )
+!               TMP = TMP + ( TCVV(IND_NO)         * GOOD(I) *
+!     &                       STT(I,J,L,IND_NO)    / AD(I,J,L) )
 !
 !               ! NO2
-!               TMP = TMP + ( TCVV(IDTNO2)        * GOOD(I) *
-!     &                       STT(I,J,L,IDTNO2)   / AD(I,J,L) )
+!               TMP = TMP + ( TCVV(IND_NO2)        * GOOD(I) *
+!     &                       STT(I,J,L,IND_NO2)   / AD(I,J,L) )
 !               ! PAN
-!               TMP = TMP + ( TCVV(IDTPAN)        * GOOD(I) *
-!     &                       STT(I,J,L,IDTPAN)   / AD(I,J,L) )
+!               TMP = TMP + ( TCVV(IND_PAN)        * GOOD(I) *
+!     &                       STT(I,J,L,IND_PAN)   / AD(I,J,L) )
 !
 !               ! HNO3
-!               TMP = TMP + ( TCVV(IDTHNO3)       * GOOD(I) *
-!     &                       STT(I,J,L,IDTHNO3)  / AD(I,J,L) )
+!               TMP = TMP + ( TCVV(IND_HNO3)       * GOOD(I) *
+!     &                       STT(I,J,L,IND_HNO3)  / AD(I,J,L) )
 !            
 !               ! PMN
-!               TMP = TMP + ( TCVV(IDTPMN)        * GOOD(I) *
-!     &                       STT(I,J,L,IDTPMN)   / AD(I,J,L) )
+!               TMP = TMP + ( TCVV(IND_PMN)        * GOOD(I) *
+!     &                       STT(I,J,L,IND_PMN)   / AD(I,J,L) )
 !
 !               ! PPN
-!               TMP = TMP + ( TCVV(IDTPPN)        * GOOD(I) *
-!     &                       STT(I,J,L,IDTPPN)   / AD(I,J,L) )
+!               TMP = TMP + ( TCVV(IND_PPN)        * GOOD(I) *
+!     &                       STT(I,J,L,IND_PPN)   / AD(I,J,L) )
 ! 
 !               ! R4N2
-!               TMP = TMP + ( TCVV(IDTR4N2)       * GOOD(I) *
-!     &                       STT(I,J,L,IDTR4N2)  / AD(I,J,L) )
+!               TMP = TMP + ( TCVV(IND_R4N2)       * GOOD(I) *
+!     &                       STT(I,J,L,IND_R4N2)  / AD(I,J,L) )
 !            
 !               ! N2O5
-!               TMP = TMP + ( 2e+0_fp * TCVV(IDTN2O5) * GOOD(I) *
-!     &                       STT(I,J,L,IDTN2O5)  / AD(I,J,L) )
+!               TMP = TMP + ( 2e+0_fp * TCVV(IND_N2O5) * GOOD(I) *
+!     &                       STT(I,J,L,IND_N2O5)  / AD(I,J,L) )
 !                        
 !               ! HNO4
-!               TMP = TMP + ( TCVV(IDTHNO4)       * GOOD(I) *
-!     &                       STT(I,J,L,IDTHNO4)  / AD(I,J,L) )
+!               TMP = TMP + ( TCVV(IND_HNO4)       * GOOD(I) *
+!     &                       STT(I,J,L,IND_HNO4)  / AD(I,J,L) )
 
                ! NO
-               TMP = TMP + ( TCVV(IDTNO)         * GOOD(I) *
-     &                       STT(I,J,L,IDTNO)    )
+               TMP = TMP + ( TCVV(IND_NO)         * GOOD(I) *
+     &                       STT(I,J,L,IND_NO)    )
 
                ! NO2
-               TMP = TMP + ( TCVV(IDTNO2)        * GOOD(I) *
-     &                       STT(I,J,L,IDTNO2)   )
+               TMP = TMP + ( TCVV(IND_NO2)        * GOOD(I) *
+     &                       STT(I,J,L,IND_NO2)   )
                ! PAN
-               TMP = TMP + ( TCVV(IDTPAN)        * GOOD(I) *
-     &                       STT(I,J,L,IDTPAN)   )
+               TMP = TMP + ( TCVV(IND_PAN)        * GOOD(I) *
+     &                       STT(I,J,L,IND_PAN)   )
 
                ! HNO3
-               TMP = TMP + ( TCVV(IDTHNO3)       * GOOD(I) *
-     &                       STT(I,J,L,IDTHNO3)  )
+               TMP = TMP + ( TCVV(IND_HNO3)       * GOOD(I) *
+     &                       STT(I,J,L,IND_HNO3)  )
             
                ! PMN
-               TMP = TMP + ( TCVV(IDTPMN)        * GOOD(I) *
-     &                       STT(I,J,L,IDTPMN)   )
+               TMP = TMP + ( TCVV(IND_PMN)        * GOOD(I) *
+     &                       STT(I,J,L,IND_PMN)   )
 
                ! PPN
-               TMP = TMP + ( TCVV(IDTPPN)        * GOOD(I) *
-     &                       STT(I,J,L,IDTPPN)   )
+               TMP = TMP + ( TCVV(IND_PPN)        * GOOD(I) *
+     &                       STT(I,J,L,IND_PPN)   )
  
                ! R4N2
-               TMP = TMP + ( TCVV(IDTR4N2)       * GOOD(I) *
-     &                       STT(I,J,L,IDTR4N2)  )
+               TMP = TMP + ( TCVV(IND_R4N2)       * GOOD(I) *
+     &                       STT(I,J,L,IND_R4N2)  )
             
                ! N2O5
-               TMP = TMP + ( 2e+0_fp * TCVV(IDTN2O5) * GOOD(I) *
-     &                       STT(I,J,L,IDTN2O5)  )
+               TMP = TMP + ( 2e+0_fp * TCVV(IND_N2O5) * GOOD(I) *
+     &                       STT(I,J,L,IND_N2O5)  )
                         
                ! HNO4
-               TMP = TMP + ( TCVV(IDTHNO4)       * GOOD(I) *
-     &                       STT(I,J,L,IDTHNO4)  )
+               TMP = TMP + ( TCVV(IND_HNO4)       * GOOD(I) *
+     &                       STT(I,J,L,IND_HNO4)  )
 
                ! Save afternoon points
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
@@ -828,14 +839,14 @@
                ! TOTAL SEASALT TRACER [v/v]
                !--------------------------------------
 !               Q(X,Y,K,W) = Q(X,Y,K,W) +
-!     &                      ( STT(I,J,L,IDTSALA)   + 
-!     &                        STT(I,J,L,IDTSALC) ) *
-!     &                        TCVV(IDTSALA)        /
+!     &                      ( STT(I,J,L,IND_SALA)   + 
+!     &                        STT(I,J,L,IND_SALC) ) *
+!     &                        TCVV(IND_SALA)        /
 !     &                        AD(I,J,L) * GOOD(I)
                Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &                      ( STT(I,J,L,IDTSALA)   + 
-     &                        STT(I,J,L,IDTSALC) ) *
-     &                        TCVV(IDTSALA) * GOOD(I)
+     &                      ( STT(I,J,L,IND_SALA)   + 
+     &                        STT(I,J,L,IND_SALC) ) *
+     &                        TCVV(IND_SALA) * GOOD(I)
 
             ELSE IF ( N == 159 ) THEN
 

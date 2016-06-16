@@ -1836,6 +1836,7 @@ contains
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Chm_Mod, ONLY : IND_   ! kyu codeathon
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
     USE GRID_MOD,           ONLY : GET_AREA_M2
     USE MERCURY_MOD,        ONLY : HG_EMIS
@@ -1846,7 +1847,6 @@ contains
                                    GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
     USE SPECIES_MOD,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
-    USE TRACERID_MOD
     USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, NCS, ND44, NDRYDEP
 #if defined( DEVEL )
     USE TENDENCIES_MOD
@@ -2023,6 +2023,8 @@ contains
     TYPE(Species),  POINTER :: ThisSpc
     INTEGER                 :: Hg_Cat
 
+    ! kyu codeathon
+    INTEGER,SAVE            :: IND_O3, IND_HNO3
     !=================================================================
     ! vdiffdr begins here!
     !=================================================================
@@ -2159,6 +2161,9 @@ contains
     ! Define slice of AS2, so as not to blow up the parallelization
     ! (ccc, bmy, 12/20/10)
     as2_scal = as2(:,:,1,:)
+
+    ! kyu codeathon
+    IND_O3 = IND_('O3'); IND_HNO3 = IND_('HNO3')
 
 !$OMP PARALLEL DO                                                         &
 !$OMP DEFAULT( SHARED )                                                   &
@@ -2504,11 +2509,11 @@ contains
        ! HEMCO diagnostics. The data pointers PNOXLOSS_O3 and PNOXLOSS_HNO3 have
        ! been linked to these diagnostics at the beginning of this routine
        ! (ckeller, 4/10/15).
-       IF ( ASSOCIATED( PNOXLOSS_O3 ) .AND. IDTO3 > 0 ) THEN
-          dflx(I,J,IDTO3) = dflx(I,J,IDTO3) + PNOXLOSS_O3(I,J)
+       IF ( ASSOCIATED( PNOXLOSS_O3 ) .AND. IND_O3 > 0 ) THEN
+          dflx(I,J,IND_O3) = dflx(I,J,IND_O3) + PNOXLOSS_O3(I,J)
        ENDIF
-       IF ( ASSOCIATED( PNOXLOSS_HNO3 ) .AND. IDTHNO3 > 0 ) THEN
-          dflx(I,J,IDTHNO3) = dflx(I,J,IDTHNO3) + PNOXLOSS_HNO3(I,J)
+       IF ( ASSOCIATED( PNOXLOSS_HNO3 ) .AND. IND_HNO3 > 0 ) THEN
+          dflx(I,J,IND_HNO3) = dflx(I,J,IND_HNO3) + PNOXLOSS_HNO3(I,J)
        ENDIF
 
        ! surface flux = emissions - dry deposition
