@@ -103,6 +103,7 @@
 !  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  04 Mar 2015 - R. Yantosca - Now use REAL(f4) for HCO_GetPtr pointer args
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
+!  16 Jun 2016 - M. Sulprizio- Now define IDTCH4 locally
 !------------------------------------------------------------------------------
 !BOC
 !     
@@ -132,6 +133,9 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Tracer ID flag (CODEATHON, mps, 6/16/16)
+      INTEGER :: IDTCH4
+
       ! Various arrays      
       REAL(fp), ALLOCATABLE :: BAIRDENS(:,:,:)
       REAL(fp), ALLOCATABLE :: PAVG(:,:,:)
@@ -1538,8 +1542,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
       USE TRACER_MOD,         ONLY : CHECK_STT
-      USE TRACERID_MOD,       ONLY : IDTCH4
-!
+
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
@@ -2505,7 +2508,6 @@
 ! !USES:
 !
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTCH4
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2564,7 +2566,6 @@
 ! !USES:
 !
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTCH4
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2626,6 +2627,7 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -2645,6 +2647,7 @@
 !  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the 
 !                              code out with #ifdef blocks so it can be used
 !  11 Apr 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
+!  16 Jun 2016 - M. Sulprizio- Now define IDTCH4 locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2659,6 +2662,9 @@
 
       ! Assume Success
       RC = GIGC_SUCCESS
+
+      ! Initialize tracer index (CODEATHON, mps, 6/16/16)
+      IDTCH4 = IND_('CH4')
 
 !      ALLOCATE( AVGOH( NSEAS, NCMSLATS, NCMSALTS ), STAT=AS )
 !      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGOH' )
