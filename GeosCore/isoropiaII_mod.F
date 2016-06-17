@@ -194,7 +194,7 @@
       ! SAVEd scalars
       LOGICAL, SAVE            :: FIRST = .TRUE.
       INTEGER, SAVE            :: id_HNO3, id_NH3,  id_NH4
-      INTEGER, SAVE,           :: id_SALA, id_SALC, id_SO4
+      INTEGER, SAVE,           :: id_NIT,  id_SALA, id_SO4
 
       ! Scalars
       INTEGER                  :: I,    J,    L,    N
