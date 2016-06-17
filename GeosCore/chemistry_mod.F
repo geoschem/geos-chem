@@ -111,11 +111,7 @@
       USE TAGGED_OX_MOD,      ONLY : CHEM_TAGGED_OX
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      !CODEATHON
-      !USE TRACERID_MOD,       ONLY : IDTISOP ! Not used
-      !USE TRACERID_MOD,       ONLY : IDTDST1
-      USE gigc_state_chm_mod, only : IND_
-      !CODEATHON
+      USE GIGC_State_Chm_Mod, only : IND_
 
 #if defined( DEVEL )
       USE TENDENCIES_MOD
@@ -128,9 +124,6 @@
 #endif
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : DO_TOMAS  !(win, 7/14/09)
-      ! CODEATHON
-      !USE TRACERID_MOD,       ONLY : IDTNK1    !(win, 7/14/09)
-      ! CODEATHON
 #endif
 
       USE FLEXCHEM_SETUP_MOD    ! For initializing KPP/KPPA chem. routines
@@ -237,45 +230,50 @@
 !                              that read the met fields from disk.
 !  16 May 2016 - M. Sulprizio- Remove call to AEROSOL_RURALBOX. The FlexChem
 !                              implementation has rendered the routine obsolete.
+!  16 Jun 2016 - C. Miller   - Now use Ind_ function to define species ID's
+!  17 Jun 2016 - R. Yantosca - Now define species ID's only on first call
+!  17 Jun 2016 - R. Yantosca - Now reset first-time flag at end of routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER       :: N_TROP
-      INTEGER       :: MONTH
-      INTEGER       :: YEAR
-      INTEGER       :: WAVELENGTH
-      LOGICAL       :: IT_IS_A_C2H6_SIM
-      LOGICAL       :: IT_IS_A_CH3I_SIM
-      LOGICAL       :: IT_IS_A_CH4_SIM
-      LOGICAL       :: IT_IS_A_FULLCHEM_SIM
-      LOGICAL       :: IT_IS_A_H2HD_SIM
-      LOGICAL       :: IT_IS_A_HCN_SIM
-      LOGICAL       :: IT_IS_A_MERCURY_SIM
-      LOGICAL       :: IT_IS_A_RnPbBe_SIM
-      LOGICAL       :: IT_IS_A_TAGCO_SIM
-      LOGICAL       :: IT_IS_A_TAGOX_SIM
-      LOGICAL       :: IT_IS_AN_AEROSOL_SIM
-      LOGICAL       :: IT_IS_NOT_COPARAM_OR_CH4
-      LOGICAL       :: IT_IS_A_POPS_SIM
-      LOGICAL       :: LCARB
-      LOGICAL       :: LCHEM
-      LOGICAL       :: LCRYST
-      LOGICAL       :: LDUST
-      LOGICAL       :: LSCHEM
-      LOGICAL       :: LPRT
-      LOGICAL       :: LSSALT
-      LOGICAL       :: LSULF
-      LOGICAL       :: LSOA
-      LOGICAL       :: LNLPBL
+      INTEGER           :: N_TROP
+      INTEGER           :: MONTH
+      INTEGER           :: YEAR
+      INTEGER           :: WAVELENGTH
+      LOGICAL           :: IT_IS_A_C2H6_SIM
+      LOGICAL           :: IT_IS_A_CH3I_SIM
+      LOGICAL           :: IT_IS_A_CH4_SIM
+      LOGICAL           :: IT_IS_A_FULLCHEM_SIM
+      LOGICAL           :: IT_IS_A_H2HD_SIM
+      LOGICAL           :: IT_IS_A_HCN_SIM
+      LOGICAL           :: IT_IS_A_MERCURY_SIM
+      LOGICAL           :: IT_IS_A_RnPbBe_SIM
+      LOGICAL           :: IT_IS_A_TAGCO_SIM
+      LOGICAL           :: IT_IS_A_TAGOX_SIM
+      LOGICAL           :: IT_IS_AN_AEROSOL_SIM
+      LOGICAL           :: IT_IS_NOT_COPARAM_OR_CH4
+      LOGICAL           :: IT_IS_A_POPS_SIM
+      LOGICAL           :: LCARB
+      LOGICAL           :: LCHEM
+      LOGICAL           :: LCRYST
+      LOGICAL           :: LDUST
+      LOGICAL           :: LSCHEM
+      LOGICAL           :: LPRT
+      LOGICAL           :: LSSALT
+      LOGICAL           :: LSULF
+      LOGICAL           :: LSOA
+      LOGICAL           :: LNLPBL
 
       ! SAVEd variables
-      LOGICAL, SAVE :: FIRST = .TRUE.
+      LOGICAL, SAVE     :: FIRST = .TRUE.
+      INTEGER, SAVE     :: id_DST1
+      INTEGER, SAVE     :: id_NK1
 
       ! Chemistry time step in seconds
-      REAL(fp)      :: DT_TEND
+      REAL(fp)          :: DT_TEND
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -313,6 +311,12 @@
       IT_IS_A_POPS_SIM         = Input_Opt%ITS_A_POPS_SIM
       IT_IS_AN_AEROSOL_SIM     = Input_Opt%ITS_AN_AEROSOL_SIM
       IT_IS_NOT_COPARAM_OR_CH4 = Input_Opt%ITS_NOT_COPARAM_OR_CH4
+
+      ! Save species ID"s on first call
+      IF ( FIRST ) THEN
+         id_DST1 = Ind_('DST1')
+         id_NK1  = Ind_('NK1' )
+      ENDIF
 
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
@@ -375,7 +379,6 @@
      &              am_I_Root, RC )
                IF ( LPRT .and. am_I_Root ) 
      &              CALL DEBUG_MSG( '### MAIN: a INIT_FLEXCHEM' )
-               FIRST = .FALSE.
             ENDIF
             ! MSL ----------
 
@@ -490,16 +493,14 @@
             ENDIF
 
             ! Do dust aerosol chemistry
-            IF ( LDUST .AND. IND_('DST1','T') > 0 ) THEN
+            IF ( LDUST .AND. id_DST1 > 0 ) THEN
                CALL CHEMDUST
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
  
 #if   defined( TOMAS )
             ! Do TOMAS aerosol microphysics and dry dep
-            !CODEATHON
-            IF ( IND_('NK1','T') > 0 ) THEN 
-            !CODEATHON
+            IF ( id_NK1 > 0 ) THEN 
                CALL DO_TOMAS
      &             ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
                IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -731,6 +732,9 @@
       ! Free pointer
       NULLIFY( STT )
        
+      ! Reset first-time flag
+      FIRST = .FALSE.
+
       END SUBROUTINE DO_CHEMISTRY
 !EOC
 !------------------------------------------------------------------------------
@@ -903,7 +907,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE CMN_SIZE_MOD,       ONLY : LLTROP
-      !CODEATHON (REMOVE AFTER UT)
       USE TRACERID_MOD,       ONLY : SETTRACE
       !CODEATHON
       USE GIGC_State_Chm_Mod, ONLY : ChmState

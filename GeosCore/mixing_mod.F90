@@ -256,15 +256,7 @@ CONTAINS
     USE PHYSCONSTANTS,      ONLY : AVO
     USE Species_Mod,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_TS_DYN
-    !CODEATHON
-    !USE TRACERID_MOD,       ONLY : IDTMACR, IDTRCHO, IDTACET, IDTALD2
-    !USE TRACERID_MOD,       ONLY : IDTALK4, IDTC2H6, IDTC3H8, IDTCH2O
-    !USE TRACERID_MOD,       ONLY : IDTPRPE, IDTO3,   IDTHNO3
-    !USE TRACERID_MOD,       ONLY : IDTBrO,  IDTBr2,  IDTBr,   IDTHOBr
-    !USE TRACERID_MOD,       ONLY : IDTHBr,  IDTBrNO3 
-    USE gigc_state_chm_mod, ONLY : IND_
-    
-    !CODEATHON
+    USE GIGC_State_Chm_Mod, ONLY : IND_
     USE UNITCONV_MOD
 #if defined( BPCH_DIAG )
     USE DIAG_MOD,           ONLY : AD44
@@ -273,9 +265,6 @@ CONTAINS
     USE HCO_ERROR_MOD
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-    !CODEATHON
-    !USE TRACERID_MOD,       ONLY : IDTISOPN, IDTMMN
-    !CODEATHON
 #endif
 #if defined( DEVEL )
     USE TENDENCIES_MOD
@@ -313,41 +302,35 @@ CONTAINS
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  25 May 2016 - E. Lundgren - Replace input_opt%TRACER_MW_KG with species
 !                              database field emMW_g (emitted species g/mol)
+!  16 Jun 2016 - C. Miller   - Now define species ID's with the Ind_ function
+!  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, J, L, L1, L2, N, D, NN
-    INTEGER            :: DRYDEPID
-    INTEGER            :: PBL_TOP, DRYD_TOP, EMIS_TOP
-    REAL(fp)           :: TS, TMP, FRQ, RKT, FRAC, FLUX, AREA_M2
-    REAL(fp)           :: MWkg, DENOM
-    LOGICAL            :: FND
-    LOGICAL            :: PBL_DRYDEP, LSCHEM, ChemGridOnly
-    LOGICAL            :: LEMIS,      LDRYD
-    LOGICAL            :: DryDepSpec, EmisSpec
-    
-    !CODEATHON
-    INTEGER            :: IDTMACR, IDTRCHO, IDTACET, IDTALD2
-    INTEGER            :: IDTALK4, IDTC2H6, IDTC3H8, IDTCH2O 
-    INTEGER            :: IDTPRPE, IDTO3,   IDTHNO3, IDTBrO 
-    INTEGER            :: IDTBr2,  IDTBr,   IDTHOBr, IDTHBr
-    INTEGER            :: IDTBrNO3,IDTISOPN,IDTMMN
-    !CODEATHON
+    INTEGER                 :: I, J, L, L1, L2, N, D, NN
+    INTEGER                 :: DRYDEPID
+    INTEGER                 :: PBL_TOP, DRYD_TOP, EMIS_TOP
+    REAL(fp)                :: TS, TMP, FRQ, RKT, FRAC, FLUX, AREA_M2
+    REAL(fp)                :: MWkg, DENOM
+    LOGICAL                 :: FND
+    LOGICAL                 :: PBL_DRYDEP, LSCHEM, ChemGridOnly
+    LOGICAL                 :: LEMIS,      LDRYD
+    LOGICAL                 :: DryDepSpec, EmisSpec
 
     ! For diagnostics
 #if defined( NC_DIAG )
     INTEGER            :: cID, trc_id, HCRC
-    CHARACTER(LEN=30)  :: DiagnName
-    REAL(fp), TARGET   :: DryDepFlux( IIPAR, JJPAR, Input_Opt%NUMDEP ) 
-    REAL(fp), POINTER  :: Ptr2D(:,:)
+    CHARACTER(LEN=30)       :: DiagnName
+    REAL(fp), TARGET        :: DryDepFlux( IIPAR, JJPAR, Input_Opt%NUMDEP ) 
+    REAL(fp), POINTER       :: Ptr2D(:,:)
 
     ! tracer emissions diagnostic (does not correspond to any bpch diags)
-    REAL(fp), TARGET   :: EMIS( IIPAR, JJPAR, LLPAR, Input_Opt%N_TRACERS ) 
-    REAL(fp), POINTER  :: Ptr3D(:,:,:)
-    REAL(fp)           :: TOTFLUX( Input_Opt%N_TRACERS )
+    REAL(fp), TARGET        :: EMIS( IIPAR, JJPAR, LLPAR, Input_Opt%N_TRACERS ) 
+    REAL(fp), POINTER       :: Ptr3D(:,:,:)
+    REAL(fp)                :: TOTFLUX( Input_Opt%N_TRACERS )
 #endif
 
     ! PARANOX loss fluxes (kg/m2/s). These are obtained from the 
@@ -356,15 +339,19 @@ CONTAINS
     REAL(f4), POINTER, SAVE :: PNOXLOSS_O3  (:,:) => NULL()
     REAL(f4), POINTER, SAVE :: PNOXLOSS_HNO3(:,:) => NULL()
 
-    ! First call?
+    ! SAVEd scalars (defined on first call only)
     LOGICAL,           SAVE :: FIRST = .TRUE.
+    INTEGER,           SAVE :: id_MACR,  id_RCHO,  id_ACET, id_ALD2
+    INTEGER,           SAVE :: id_ALK4,  id_C2H6,  id_C3H8, id_CH2O 
+    INTEGER,           SAVE :: id_PRPE,  id_O3,    id_HNO3, id_BrO 
+    INTEGER,           SAVE :: id_Br2,   id_Br,    id_HOBr, id_HBr
+    INTEGER,           SAVE :: id_BrNO3, id_ISOPN, id_MMN
 
-    ! Objects
+    ! Pointers and objects
     TYPE(Species), POINTER  :: ThisSpc
-
 #if defined( NC_DIAG )
-    REAL(fp), POINTER  :: Ptr2D => NULL()
-    REAL(fp), POINTER  :: Ptr3D => NULL()
+    REAL(fp),      POINTER  :: Ptr2D => NULL()
+    REAL(fp),      POINTER  :: Ptr3D => NULL()
 #endif
 
     !=================================================================
@@ -382,29 +369,6 @@ CONTAINS
     LEMIS      = Input_Opt%LEMIS 
     LDRYD      = Input_Opt%LDRYD 
     PBL_DRYDEP = Input_Opt%PBL_DRYDEP
-    
-
-    !CODEATHON - Species Indices
-    IDTMACR = IND_('MACR')
-    IDTRCHO = IND_('RCHO')
-    IDTACET = IND_('ACET')
-    IDTALD2 = IND_('ALD2')
-    IDTALK4 = IND_('ALK4') 
-    IDTC2H6 = IND_('C2H6')
-    IDTC3H8 = IND_('C3H8')
-    IDTCH2O = IND_('CH2O')
-    IDTPRPE = IND_('PRPE')
-    IDTO3   = IND_('O3')
-    IDTHNO3 = IND_('HNO3')
-    IDTBrO  = IND_('BrO')
-    IDTBr2  = IND_('Br2')
-    IDTBr   = IND_('Br')
-    IDTHOBr = IND_('HOBr')
-    IDTHBr  = IND_('HBr')
-    IDTBrNO3= IND_('BrNO3')
-    IDTISOPN= IND_('ISOPN')
-    IDTMMN  = IND_('MMN')
-    !CODEATHON
 
     ! Initialize pointer
     ThisSpc => NULL()
@@ -429,16 +393,39 @@ CONTAINS
        TS = GET_TS_DYN() * 60.0_fp
     ENDIF
 
-    ! On first call, get pointers to the PARANOX loss fluxes. These are
-    ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and 
-    ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers 
-    ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
-    ! respective diagnostics. The pointers will remain unassociated if
-    ! the diagnostics do not exist.
-    ! This is only needed if non-local PBL scheme is not being used. 
-    ! Otherwise, PARANOX fluxes are applied in vdiff_mod.F.
-    !  (ckeller, 4/10/2015) 
+    ! First-time setup
     IF ( FIRST ) THEN
+
+       ! Define species indices on the first call
+       id_MACR = IND_('MACR' )
+       id_RCHO = IND_('RCHO' )
+       id_ACET = IND_('ACET' )
+       id_ALD2 = IND_('ALD2' )
+       id_ALK4 = IND_('ALK4' ) 
+       id_C2H6 = IND_('C2H6' )
+       id_C3H8 = IND_('C3H8' )
+       id_CH2O = IND_('CH2O' )
+       id_PRPE = IND_('PRPE' )
+       id_O3   = IND_('O3'   )
+       id_HNO3 = IND_('HNO3' )
+       id_BrO  = IND_('BrO'  )
+       id_Br2  = IND_('Br2'  )
+       id_Br   = IND_('Br'   )
+       id_HOBr = IND_('HOBr' )
+       id_HBr  = IND_('HBr'  )
+       id_BrNO3= IND_('BrNO3')
+       id_ISOPN= IND_('ISOPN')
+       id_MMN  = IND_('MMN'  )
+
+       ! On first call, get pointers to the PARANOX loss fluxes. These are
+       ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and 
+       ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers 
+       ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
+       ! respective diagnostics. The pointers will remain unassociated if
+       ! the diagnostics do not exist.
+       ! This is only needed if non-local PBL scheme is not being used. 
+       ! Otherwise, PARANOX fluxes are applied in vdiff_mod.F.
+       !  (ckeller, 4/10/2015) 
        IF ( .NOT. Input_Opt%LNLPBL ) THEN
           CALL GetHcoDiagn( am_I_Root, 'PARANOX_O3_DEPOSITION_FLUX'  , &
                             .FALSE.,   RC, Ptr2D = PNOXLOSS_O3          ) 
@@ -502,9 +489,9 @@ CONTAINS
           ENDIF
 
           ! Special case for O3 or HNO3: include PARANOX loss
-          IF ( N == IDTO3   .AND. ASSOCIATED(PNOXLOSS_O3  ) )    &
+          IF ( N == id_O3   .AND. ASSOCIATED(PNOXLOSS_O3  ) )    &
                DryDepSpec = .TRUE. 
-          IF ( N == IDTHNO3 .AND. ASSOCIATED(PNOXLOSS_HNO3) )    &
+          IF ( N == id_HNO3 .AND. ASSOCIATED(PNOXLOSS_HNO3) )    &
                DryDepSpec = .TRUE. 
        ENDIF
 
@@ -561,11 +548,11 @@ CONTAINS
 
           ! Set emissions to zero above chemistry grid for the following 
           ! VOCs (adopted from aeic_mod.F).
-          IF ( N == IDTMACR .OR. N == IDTRCHO .OR. &
-               N == IDTACET .OR. N == IDTALD2 .OR. & 
-               N == IDTALK4 .OR. N == IDTC2H6 .OR. & 
-               N == IDTC3H8 .OR. N == IDTCH2O .OR. & 
-               N == IDTPRPE                         ) THEN 
+          IF ( N == id_MACR .OR. N == id_RCHO .OR. &
+               N == id_ACET .OR. N == id_ALD2 .OR. & 
+               N == id_ALK4 .OR. N == id_C2H6 .OR. & 
+               N == id_C3H8 .OR. N == id_CH2O .OR. & 
+               N == id_PRPE                         ) THEN 
              ChemGridOnly = .TRUE. 
           ENDIF
 
@@ -574,9 +561,9 @@ CONTAINS
           ! chemistry grid (lin. strat. chem. applies above chemistry grid
           ! only).
           IF ( LSCHEM ) THEN
-             IF ( N == IDTBrO  .OR. N == IDTBr2   .OR. &
-                  N == IDTBr   .OR. N == IDTHOBr  .OR. & 
-                  N == IDTHBr  .OR. N == IDTBrNO3       ) THEN
+             IF ( N == id_BrO  .OR. N == id_Br2   .OR. &
+                  N == id_Br   .OR. N == id_HOBr  .OR. & 
+                  N == id_HBr  .OR. N == id_BrNO3       ) THEN
                 ChemGridOnly = .TRUE.
              ENDIF
           ENDIF
@@ -634,10 +621,10 @@ CONTAINS
                 ! PNOXLOSS is in kg/m2/s. (ckeller, 4/10/15)
                 PNOXLOSS = 0.0_fp
                 IF ( L == 1 ) THEN
-                   IF ( N == IDTO3 .AND. ASSOCIATED(PNOXLOSS_O3) ) THEN
+                   IF ( N == id_O3 .AND. ASSOCIATED(PNOXLOSS_O3) ) THEN
                       PNOXLOSS = PNOXLOSS_O3(I,J)
                    ENDIF
-                   IF ( N == IDTHNO3 .AND. ASSOCIATED(PNOXLOSS_HNO3) ) THEN
+                   IF ( N == id_HNO3 .AND. ASSOCIATED(PNOXLOSS_HNO3) ) THEN
                       PNOXLOSS = PNOXLOSS_HNO3(I,J)
                    ENDIF
                 ENDIF
