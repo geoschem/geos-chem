@@ -259,7 +259,7 @@
       LOGICAL       :: LPRT
 
       ! Species ID flags (formerly from tracerid_mod.F)
-      INTEGER, SAVE :: IDO3
+      INTEGER, SAVE :: id_O3
 
       !=================================================================
       ! FAST_JX begins here!
