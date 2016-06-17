@@ -216,10 +216,10 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2   
-      USE TRACERID_MOD                          
+      !USE TRACERID_MOD        ! CODEATHON                  
 !
 ! !INPUT PARAMETERS:
 !
@@ -375,7 +375,7 @@
       DO ITRC = 1, NUM_TRACER
 
          IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-            NTRACER = IDTO3
+            NTRACER = IND_('O3')
          ELSE
             NTRACER = ITRC
          ENDIF

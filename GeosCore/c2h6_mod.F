@@ -273,8 +273,9 @@
 !
 ! !USES:
 !
-      USE TRACERID_MOD, ONLY : IDTC2H6
+      !USE TRACERID_MOD, ONLY : IDTC2H6     ! CODEATHON
       USE CMN_SIZE_MOD       ! Size parameters
+      USE GIGC_State_Chm_Mod, ONLY :  IND_ ! CODEATHON
 !
 ! !INPUT PARAMETERS: 
 !
@@ -295,7 +296,8 @@
       !  GET_C2H6_ANTHRO begins here
       !=================================================================
 
-      IF ( N == IDTC2H6 ) THEN
+      IF ( N == IND_('C2H6') ) THEN
+      !IF ( N == IDTC2H6 ) THEN ! CODEATHON
          C2H6_ANTHRO = NGASC2H6(I,J)
       ENDIF
 

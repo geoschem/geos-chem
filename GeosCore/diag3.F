@@ -25,7 +25,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_ ! CODEATHON
       USE PRECISION_MOD                      ! For GEOS-Chem Precision (fp)
 
       ! Modules from GeosUtil directory
@@ -47,7 +47,7 @@
       USE DIAG_PL_MOD                        ! For prod/loss diagnostic
       USE DEPO_MERCURY_MOD                   ! For offline Hg simulation
       USE DRYDEP_MOD                         ! For dry deposition
-      USE TRACERID_MOD                       ! For tracer flags
+      !USE TRACERID_MOD                       ! For tracer flags
       USE WETSCAV_MOD                        ! For wet deposition
       
 #if   defined( TOMAS )
@@ -366,6 +366,18 @@
       INTEGER, SAVE            :: IDTPOPG
       INTEGER, SAVE            :: IDTPOPPOCPO, IDTPOPPOCPI
       INTEGER, SAVE            :: IDTPOPPBCPO, IDTPOPPBCPI
+      INTEGER, SAVE            :: IDTDST1, IDTDST2, IDTDST3, IDTDST4
+      INTEGER, SAVE            :: IDTDAL1, IDTDAL2, IDTDAL3, IDTDAL4
+      INTEGER, SAVE            :: IDTBCPI, IDTOCPI, IDTPOA1, IDTMTPA
+      INTEGER, SAVE            :: IDTLIMO, IDTMTPO, IDTTSOA1, IDTISOA1
+      INTEGER, SAVE            :: IDTASOA1, IDTOPOA1, IDTOPOG1, IDTSOAG
+      INTEGER, SAVE            :: IDTSOAM, IDTSALA, IDTSALC, IDTMOPO    
+      INTEGER, SAVE            :: IDTMOPI, IDTDMS, IDTSO2, IDTSO4
+      INTEGER, SAVE            :: IDTNH3, IDTNO, IDTCO, IDTALK4
+      INTEGER, SAVE            :: IDTACET, IDTMEK, IDTALD2, IDTPRPE
+      INTEGER, SAVE            :: IDTC3H8, IDTCH2O, IDTC2H6, IDTCH4
+      INTEGER, SAVE            :: IDTISOP, IDTC2H4, IDTCHBR3, IDTCH2BR2
+      INTEGER, SAVE            :: IDTBR2
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -416,48 +428,93 @@
       IF ( FIRST ) THEN
 
          ! Initialize
-         IDTRn        = 0
-         IDTPb        = 0
-         IDTBe7       = 0
-         IDTPASV      = 0
-         IDTPOPG      = 0
-         IDTPOPPOCPO  = 0
-         IDTPOPPOCPI  = 0
-         IDTPOPPBCPO  = 0
-         IDTPOPPBCPI  = 0
+         IDTRn        = IND_('Rn')
+         IDTPb        = IND_('Pb')
+         IDTBe7       = IND_('Be7')
+         IDTPASV      = IND_('PASV')
+         IDTPOPG      = IND_('POPG')
+         IDTPOPPOCPO  = IND_('POPPOCPO')
+         IDTPOPPOCPI  = IND_('POPPOCPI')
+         IDTPOPPBCPO  = IND_('POPPBCPO')
+         IDTPOPPBCPI  = IND_('POPPBCPI')
+         IDTDST1      = IND_('DST1')
+         IDTDST2      = IND_('DST2')
+         IDTDST3      = IND_('DST3')
+         IDTDST4      = IND_('DST4')
+         IDTDAL1      = IND_('DAL1')
+         IDTDAL2      = IND_('DAL2')
+         IDTDAL3      = IND_('DAL3')
+         IDTDAL4      = IND_('DAL4')
+         IDTBCPI      = IND_('BCPI')
+         IDTOCPI      = IND_('OCPI')
+         IDTPOA1      = IND_('POA1')
+         IDTMTPA      = IND_('MTPA')
+         IDTLIMO      = IND_('LIMO')
+         IDTMTPO      = IND_('MTPO')
+         IDTTSOA1     = IND_('TSOA1')
+         IDTISOA1     = IND_('ISOA1')
+         IDTASOA1     = IND_('ASOA1')
+         IDTOPOA1     = IND_('OPOA1')
+         IDTOPOG1     = IND_('OPOG1')
+         IDTSOAG     = IND_('SOAG')
+         IDTSOAM     = IND_('SOAM')
+         IDTSALA     = IND_('SALA')
+         IDTSALC     = IND_('SALC')
+         IDTMOPO     = IND_('MOPO') 
+         IDTMOPI     = IND_('MOPI')
+         IDTDMS     = IND_('DMS')
+         IDTSO2     = IND_('SO2')
+         IDTSO4     = IND_('SO4')
+         IDTNH3     = IND_('NH3')
+         IDTNO     = IND_('NO')
+         IDTCO     = IND_('CO')
+         IDTALK4     = IND_('ALK4')
+         IDTACET     = IND_('ACET')
+         IDTMEK     = IND_('MEK')
+         IDTALD2     = IND_('ALD2')
+         IDTPRPE     = IND_('PRPE')
+         IDTC3H8     = IND_('C3H8')
+         IDTCH2O     = IND_('CH2O')
+         IDTC2H6     = IND_('C2H6')
+         IDTCH4     = IND_('CH4')
+         IDTISOP     = IND_('ISOP')
+         IDTC2H4     = IND_('C2H4')
+         IDTCHBR3     = IND_('CHBR3')
+         IDTCH2BR2     = IND_('CH2BR2')
+         IDTBR2     = IND_('BR2')
 
          ! Loop over all species
-         DO N = 1, State_Chm%nSpecies
+         !DO N = 1, State_Chm%nSpecies
 
             ! Get info about this species from the database
-            ThisSpc => State_Chm%SpcData(N)%Info
+          !  ThisSpc => State_Chm%SpcData(N)%Info
             
-            SELECT CASE ( TRIM( ThisSpc%Name ) )
-               CASE( 'Rn'       )
-                  IDTRn        = ThisSpc%ModelId
-               CASE( 'Pb'       )
-                  IDTPb        = ThisSpc%ModelId
-               CASE( 'Be7'      )
-                  IDTBe7       = ThisSpc%ModelId
-               CASE( 'PASV'     )
-                  IDTPASV      = ThisSpc%ModelId
-               CASE( 'POPG'     )
-                  IDTPOPG      = ThisSpc%ModelId
-               CASE( 'POPPOCPO' )
-                  IDTPOPPOCPO  = ThisSpc%ModelId
-               CASE( 'POPPBCPO' )
-                  IDTPOPPBCPO  = ThisSpc%ModelId
-               CASE( 'POPPOCPI' )
-                  IDTPOPPOCPI  = ThisSpc%ModelId
-               CASE( 'POPPBCPI' )
-                  IDTPOPPBCPI  = ThisSpc%ModelId
-               CASE DEFAULT
+           ! SELECT CASE ( TRIM( ThisSpc%Name ) )
+            !   CASE( 'Rn'       )
+            !      IDTRn        = ThisSpc%ModelId
+            !   CASE( 'Pb'       )
+            !      IDTPb        = ThisSpc%ModelId
+            !   CASE( 'Be7'      )
+            !      IDTBe7       = ThisSpc%ModelId
+            !   CASE( 'PASV'     )
+            !      IDTPASV      = ThisSpc%ModelId
+            !   CASE( 'POPG'     )
+            !      IDTPOPG      = ThisSpc%ModelId
+               !CASE( 'POPPOCPO' )
+               !   IDTPOPPOCPO  = ThisSpc%ModelId
+              ! CASE( 'POPPBCPO' )
+              !    IDTPOPPBCPO  = ThisSpc%ModelId
+             !  CASE( 'POPPOCPI' )
+               !   IDTPOPPOCPI  = ThisSpc%ModelId
+              ! CASE( 'POPPBCPI' )
+             !     IDTPOPPBCPI  = ThisSpc%ModelId
+            !   CASE DEFAULT
                   ! Nothing
-            END SELECT
+           ! END SELECT
 
             ! Free pointer
-            ThisSpc => NULL()
-         ENDDO
+  !          ThisSpc => NULL()
+ !       ENDDO
 
          ! Reset first-time flag
          FIRST = .FALSE.
