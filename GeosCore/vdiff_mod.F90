@@ -1836,6 +1836,7 @@ contains
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Chm_Mod, ONLY : IND_   ! kyu codeathon
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
     USE GRID_MOD,           ONLY : GET_AREA_M2
     USE MERCURY_MOD,        ONLY : HG_EMIS
@@ -1846,7 +1847,6 @@ contains
                                    GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
     USE SPECIES_MOD,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
-    USE TRACERID_MOD
     USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, NCS, ND44, NDRYDEP
 #if defined( DEVEL )
     USE TENDENCIES_MOD
@@ -1931,6 +1931,8 @@ contains
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  26 May 2016 - E. Lundgren - Replace input_opt TRACER_MW_KG with species
 !                              database field emMW_g (emitted species molec wt)
+!  16 Jun 2016 - K. Yu       - Now define species ID's with the IND_ function
+!  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2016,13 +2018,16 @@ contains
     REAL(f4), POINTER, SAVE :: PNOXLOSS_O3  (:,:) => NULL()
     REAL(f4), POINTER, SAVE :: PNOXLOSS_HNO3(:,:) => NULL()
 
-    ! First call?
+    ! SAVEd scalars
     LOGICAL,           SAVE :: FIRST = .TRUE.
+    INTEGER,           SAVE :: id_O3
+    INTEGER,           SAVE :: id_HNO3
 
     ! For pointing to the species database
     TYPE(Species),  POINTER :: ThisSpc
     INTEGER                 :: Hg_Cat
 
+    ! kyu codeathon
     !=================================================================
     ! vdiffdr begins here!
     !=================================================================
@@ -2078,17 +2083,25 @@ contains
     
     shflx = State_Met%EFLUX / latvap ! latent heat -> water vapor flux
 
-    ! On first call, get pointers to the PARANOX loss fluxes. These are
-    ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and 
-    ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers 
-    ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
-    ! respective diagnostics. The pointers will remain unassociated if
-    ! the diagnostics do not exist (ckeller, 4/10/2015). 
+    ! First-time setup
     IF ( FIRST ) THEN
+
+       ! Get species indices (kyu)
+       id_O3   = IND_('O3'  ) 
+       id_HNO3 = IND_('HNO3')
+
+       ! On first call, get pointers to the PARANOX loss fluxes. These are
+       ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and 
+       ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers 
+       ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
+       ! respective diagnostics. The pointers will remain unassociated if
+       ! the diagnostics do not exist (ckeller, 4/10/2015). 
        CALL GetHcoDiagn( am_I_Root, 'PARANOX_O3_DEPOSITION_FLUX'  , &
                          .FALSE.,   HCRC, Ptr2D = PNOXLOSS_O3         ) 
        CALL GetHcoDiagn( am_I_Root, 'PARANOX_HNO3_DEPOSITION_FLUX', &
                          .FALSE.,   HCRC, Ptr2D = PNOXLOSS_HNO3       ) 
+
+       ! Reset first-time flag
        FIRST = .FALSE.
     ENDIF
 
@@ -2504,11 +2517,11 @@ contains
        ! HEMCO diagnostics. The data pointers PNOXLOSS_O3 and PNOXLOSS_HNO3 have
        ! been linked to these diagnostics at the beginning of this routine
        ! (ckeller, 4/10/15).
-       IF ( ASSOCIATED( PNOXLOSS_O3 ) .AND. IDTO3 > 0 ) THEN
-          dflx(I,J,IDTO3) = dflx(I,J,IDTO3) + PNOXLOSS_O3(I,J)
+       IF ( ASSOCIATED( PNOXLOSS_O3 ) .AND. id_O3 > 0 ) THEN
+          dflx(I,J,id_O3) = dflx(I,J,id_O3) + PNOXLOSS_O3(I,J)
        ENDIF
-       IF ( ASSOCIATED( PNOXLOSS_HNO3 ) .AND. IDTHNO3 > 0 ) THEN
-          dflx(I,J,IDTHNO3) = dflx(I,J,IDTHNO3) + PNOXLOSS_HNO3(I,J)
+       IF ( ASSOCIATED( PNOXLOSS_HNO3 ) .AND. id_HNO3 > 0 ) THEN
+          dflx(I,J,id_HNO3) = dflx(I,J,id_HNO3) + PNOXLOSS_HNO3(I,J)
        ENDIF
 
        ! surface flux = emissions - dry deposition
