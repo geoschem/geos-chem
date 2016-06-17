@@ -265,6 +265,8 @@
 !                              dependency on pressure_mod.
 !  19 Oct 2015 - C. Keller   - TLSTT is now 4D to work on curvilinear grids
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
+!  16 Jun 2016 - R. Silvern  - Now define species ID of O3 with Ind_ function
+!  17 Jun 2016 - R. Yantosca - Only look up species ID of O3 on first call
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -291,6 +293,10 @@
 
       ! From Input_Opt
       LOGICAL      :: LPRT
+
+      ! SAVED scalars
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER, SAVE :: id_O3
       
       !=================================================================
       ! LINOZ_CHEM3 begins here!
@@ -298,7 +304,6 @@
 
       ! From Input_Opt
       LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
-
 
       ! Assume success
       RC         = GIGC_SUCCESS
@@ -313,6 +318,12 @@
       ! Initialize GEOS-Chem tracer array [v/v dry air] from State_Chm object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
+
+      ! Look up the species ID of O3 only on the first call
+      IF ( FIRST ) THEN
+         id_O3   = Ind_('O3')
+         FIRST   = .FALSE.
+      ENDIF
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) 
       !-----------------------------------------------------------------
@@ -375,7 +386,7 @@
       DO ITRC = 1, NUM_TRACER
 
          IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-            NTRACER = IND_('O3')
+            NTRACER = id_O3
          ELSE
             NTRACER = ITRC
          ENDIF

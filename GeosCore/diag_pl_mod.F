@@ -790,7 +790,6 @@
       USE TIME_MOD,           ONLY : GET_TAU,       GET_TAUb 
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY, TIMESTAMP_STRING
       USE TIME_MOD,           ONLY : GET_LOCALTIME
-      ! USE TRACERID_MOD,       ONLY : IDTO3 ! CODEATHON
 !
 ! !INPUT PARAMETERS:
 !
@@ -864,8 +863,11 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Scalars
+      ! SAVEd scalars
       LOGICAL, SAVE     :: FIRST = .TRUE.
+      INTEGER, SAVE     :: id_O3
+
+      ! Scalars
       LOGICAL           :: DO_WRITE
       INTEGER           :: I, J, L, N
       REAL(fp)          :: P_Ox, L_Ox
@@ -890,14 +892,17 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
-      ! Error check
-      IF ( IND_('O3') == 0 ) THEN
-      !IF ( IDTO3 == 0 ) THEN ! CODEATHON
-         CALL ERROR_STOP( 'IND_("O3") = 0!', 'DIAG20 ("diag20_mod.f")' )
-      ENDIF
-
       ! First-time initialization
       IF ( FIRST ) THEN
+
+         ! Get the species ID of O3
+         id_O3 = IND_('O3')
+
+         ! Error check
+         IF ( id_O3 <= 0 ) THEN
+            CALL ERROR_STOP( 'IND_("O3") <= 0 !', 
+     &                       'DIAG20 ("diag20_mod.f")' )
+         ENDIF
 
          ! Starting time of run
          TAUb     = GET_TAUb()
@@ -911,7 +916,7 @@
       ENDIF
 
       ! Get ozone molecular weight from species database
-      O3_MW_G = State_Chm%SpcData(IND_('O3'))%Info%emMW_g ! g/mol
+      O3_MW_G = State_Chm%SpcData(id_O3)%Info%emMW_g ! g/mol
 
       !=================================================================
       ! Archive P(Ox) and L(Ox) over the course of an entire day
@@ -976,7 +981,7 @@
             !-----------------------------------------------------------
 
             ! Convert Ox mass from [kg] to [molec]
-            L_Ox           = STT(I,J,L,IND_('O3')) * AVO / ( 1.e-3_fp *
+            L_Ox           = STT(I,J,L,id_O3) * AVO / ( 1.e-3_fp *
      &                       O3_MW_G )
 
             ! Divide L(Ox) [molec/cm3/s] by Ox mass [molec] 
