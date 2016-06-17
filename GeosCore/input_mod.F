@@ -1622,7 +1622,7 @@
 !                              restart file. These options are now handled
 !                              by HEMCO.
 !  08 Jul 2015 - E. Lundgren - Added LMPOA option for marine organic aerosols
-!EOP
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function 
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -1813,9 +1813,9 @@
       !---------------------------------
       ! Error check SULFUR AEROSOLS
       !---------------------------------
-      I = IND_('DMS','T')  + IND_('SO2','T') + IND_('SO4','T') 
-     &  + IND_('SO4s','T') + IND_('MSA','T') + IND_('NH3','T')
-     &  + IND_('NH4','T')  + IND_('NITs','T')  
+      I = IND_('DMS', 'T') + IND_('SO2', 'T') + IND_('SO4','T') 
+     &  + IND_('SO4s','T') + IND_('MSA' ,'T') + IND_('NH3','T')
+     &  + IND_('NH4', 'T') + IND_('NITs','T')  
 
       IF ( LSULF ) THEN
 
@@ -1845,9 +1845,9 @@
       !---------------------------------
       ! Error check CRYST /AQ AEROSOLS
       !---------------------------------
-      I = IND_('AS','T')  + IND_('AHS','T') + 
-     &     IND_('LET','T') + IND_('NH4aq','T') +
-     &     IND_('SO4aq','T')
+      I = IND_('AS',   'T') + IND_('AHS',  'T') + 
+     &    IND_('LET',  'T') + IND_('NH4aq','T') +
+     &    IND_('SO4aq','T')
 
       IF ( LCRYST ) THEN
          IF ( I == 0 ) THEN
@@ -1865,9 +1865,9 @@
       ! Error check CARBON AEROSOLS
       !---------------------------------
       ! SOAupdate: Add POA (hotp 10/11/09)
-      I = IND_('BCPO','T')  + IND_('BCPI','T') +
-     &     IND_('OCPO','T') + IND_('OCPI','T') +
-     &     IND_('POA1','T')
+      I = IND_('BCPO','T') + IND_('BCPI','T') +
+     &    IND_('OCPO','T') + IND_('OCPI','T') +
+     &    IND_('POA1','T')
 
       IF ( LCARB ) THEN
          IF ( I == 0 ) THEN
@@ -1912,9 +1912,9 @@
       !   POA POG OPOA OPOG SOA BTX NAP (semivol + orig trad + IVOC )
       ! NAP emissions are set in input.geos
       ! LSVPOA is just a check (doesn't do anything hotp 7/21/10)
-      I = IND_('POA1','T') + IND_('POA2','T') + IND_('POG1','T')
-     &     + IND_('POG2','T') + IND_('OPOA1','T') + IND_('OPOA2','T')
-     &     + IND_('OPOG1','T') + IND_('OPOG2')
+      I = IND_('POA1', 'T') + IND_('POA2', 'T') + IND_('POG1', 'T')
+     &  + IND_('POG2', 'T') + IND_('OPOA1','T') + IND_('OPOA2','T')
+     &  + IND_('OPOG1','T') + IND_('OPOG2')
 
       IF ( LSVPOA ) THEN
          IF ( I < 8 ) THEN
@@ -1931,12 +1931,12 @@
       ! Error check 2dy ORG AEROSOLS
       !---------------------------------
       ! SOAupdate: update for new mtp (hotp 5/24/10)
-      I = IND_('MTPA','T') + IND_('LIMO','T') + IND_('MTPO','T') + 
-     &    IND_('BENZ','T') + IND_('TOLU','T') + IND_('XYLE','T') +
+      I = IND_('MTPA', 'T') + IND_('LIMO', 'T') + IND_('MTPO', 'T') + 
+     &    IND_('BENZ', 'T') + IND_('TOLU', 'T') + IND_('XYLE', 'T') +
      &    IND_('TSOA1','T') + IND_('TSOA2','T') + IND_('TSOA3','T') +
      &    IND_('ISOA1','T') + IND_('ISOA2','T') + IND_('ISOA3','T') +
      &    IND_('ASOA1','T') + IND_('ASOA2','T') + IND_('ASOA3','T') +
-     &    IND_('ASOAN','T') + IND_('SOAG','T')  + IND_('SOAM','T')
+     &    IND_('ASOAN','T') + IND_('SOAG', 'T') + IND_('SOAM', 'T')
 
       IF ( LSOA ) THEN
          IF ( I == 0 ) THEN
@@ -1960,7 +1960,7 @@
 #else
       ! Non-TOMAS simulations: Need all DST1-DST4 tracers
       I = IND_('DST1','T') + IND_('DST2','T') +
-     &     IND_('DST3','T') + IND_('DST4','T')
+     &    IND_('DST3','T') + IND_('DST4','T')
 #endif
 
       IF ( LDUST ) THEN
@@ -1981,9 +1981,9 @@
       !             DUST ALKALINITY AEROSOLS
       !--------------------------------------
       I = IND_('NITd1','T') + IND_('NITd2','T') + IND_('NITd3','T')
-     &     + IND_('NITd4','T') + IND_('SO4d1','T') + IND_('SO4d2','T')
-     &     + IND_('SO4d3','T') + IND_('SO4d4','T') + IND_('DAL1','T')
-     &     + IND_('DAL2','T')  + IND_('DAL3','T')  + IND_('DAL4','T')
+     &  + IND_('NITd4','T') + IND_('SO4d1','T') + IND_('SO4d2','T')
+     &  + IND_('SO4d3','T') + IND_('SO4d4','T') + IND_('DAL1', 'T')
+     &  + IND_('DAL2', 'T') + IND_('DAL3', 'T') + IND_('DAL4', 'T')
 
       IF ( LDSTUP ) THEN
          IF ( I == 0 ) THEN
@@ -2170,6 +2170,7 @@
 !                              running with the traditional driver main.F
 !  23 Apr 2013 - R. Yantosca - Renamed to INIT_TOMAS_MICROPHYS
 !  30 Jan 2014 - R. Yantosca - INIT_TOMAS accepts am_I_Root, Input_Opt, RC
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2197,10 +2198,10 @@
       ENDIF
 
       ! Halt with error if none of the TOMAS aerosol species are defined
-      I =  IND_('NK1','T') + IND_('SF1','T') + IND_('SS1','T')
-     &     + IND_('ECOB1','T') + IND_('ECIL1','T')  
-     &     + IND_('OCOB1','T') + IND_('OCIL1','T')
-     &     + IND_('DUST1','T')
+      I = IND_('NK1',  'T') + IND_('SF1',  'T') + IND_('SS1','T')
+     &  + IND_('ECOB1','T') + IND_('ECIL1','T')  
+     &  + IND_('OCOB1','T') + IND_('OCIL1','T')
+     &  + IND_('DUST1','T')
 
       IF ( I == 0 ) THEN 
          MSG = 'None of the TOMAS aerosols are defined!'
@@ -2215,7 +2216,7 @@
 
       ! Halt with error if carbonaceous aerosols are not defined
       I = IND_('ECOB1','T') + IND_('ECIL1','T') +
-     &     IND_('OCOB1','T') + IND_('OCIL1','T')
+     &    IND_('OCOB1','T') + IND_('OCIL1','T')
 
       IF ( I > 0 .and. (.not. Input_Opt%LCARB ) ) THEN
          MSG = 'Need LCARB on for TOMAS-carb to work (for now)'
@@ -2348,6 +2349,7 @@
 !  04 Sep 2014 - R. Yantosca - Bug fix: Now use Input_Opt%OTDLOC since we have
 !                              now removed logical_mod.F
 !  24 Jun 2015 - R. Yantosca - Now always turn off emissions for mass cons test
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3072,7 +3074,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_CHEM
-      USE GIGC_STATE_CHM_MOD, ONLY : IND_
 !
 ! !INPUT PARAMETERS:
 !

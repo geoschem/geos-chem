@@ -169,6 +169,9 @@
 !                               derived type object
 !  25 Mar 2013 - M. Payer     - Now pass State_Chm object via the arg list
 !  23 Sep 2014 - M. Sulprizio - Now get HNO3 for offline aerosol sim from HEMCO
+!  16 Jun 2016 - K. Travis    - Now define species ID's with the IND_ function 
+!  17 Jun 2016 - R. Yantosca  - Now only define species ID's on the first call;
+!                               we don't want to do it on each loop iteration
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -188,31 +191,36 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! SAVEd scalars
       LOGICAL, SAVE            :: FIRST = .TRUE.
+      INTEGER, SAVE            :: id_HNO3, id_NH3,  id_NH4
+      INTEGER, SAVE,           :: id_SALA, id_SALC, id_SO4
+
+      ! Scalars
       INTEGER                  :: I,    J,    L,    N
-      REAL(fp)                   :: ANO3, GNO3
-      REAL(f8)                   :: RHI, TEMPI
-      REAL(fp)                   :: TCA,  TMG,  TK,   HNO3_DEN
-      REAL(fp)                   :: TNA,  TCL,  TNH3, TNH4
-      REAL(fp)                   :: TNIT, TNO3, TSO4, VOL
-      REAL(f8)                   :: AERLIQ(NIONSA+NGASAQA+2)
-      REAL(f8)                   :: AERSLD(NSLDSA) 
-      REAL(f8)                   :: GAS(NGASAQA) 
-      REAL(f8)                   :: OTHER(NOTHERA)
-      REAL(f8)                   :: WI(NCOMPA)    
-      REAL(f8)                   :: WT(NCOMPA)
-      REAL(f8)                   :: CNTRL(NCTRLA)
+      REAL(fp)                 :: ANO3, GNO3
+      REAL(f8)                 :: RHI, TEMPI
+      REAL(fp)                 :: TCA,  TMG,  TK,   HNO3_DEN
+      REAL(fp)                 :: TNA,  TCL,  TNH3, TNH4
+      REAL(fp)                 :: TNIT, TNO3, TSO4, VOL
+      REAL(f8)                 :: AERLIQ(NIONSA+NGASAQA+2)
+      REAL(f8)                 :: AERSLD(NSLDSA) 
+      REAL(f8)                 :: GAS(NGASAQA) 
+      REAL(f8)                 :: OTHER(NOTHERA)
+      REAL(f8)                 :: WI(NCOMPA)    
+      REAL(f8)                 :: WT(NCOMPA)
+      REAL(f8)                 :: CNTRL(NCTRLA)
       CHARACTER(LEN=255)       :: X 
       CHARACTER(LEN=15)        :: SCASI  
 #if   defined( APM )
-      REAL(fp)                   :: TSO4COAT
+      REAL(fp)                 :: TSO4COAT
 #endif
 
       !Temporary variables to check if division is safe
-      REAL(fp)                   :: NUM_SAV, DEN_SAV
+      REAL(fp)                 :: NUM_SAV, DEN_SAV
               
       ! AEROPH: Temporary variable for pH (hotp 8/11/09)
-      REAL(fp)                   :: HPLUSTEMP
+      REAL(fp)                 :: HPLUSTEMP
 
       ! debug variables
       INTEGER                  :: Itemp, Jtemp, Ltemp
@@ -252,22 +260,35 @@
       IF ( FIRST ) THEN
 
          ! Make sure certain tracers are defined
-         IF ( IND_('SO4') == 0 )
-     &        CALL ERROR_STOP( 'IND_(SO4) is undefined !', X)
-         IF ( IND_('NH3') == 0 )
-     &        CALL ERROR_STOP( 'IND_(NH3) is undefined !', X)
-         IF ( IND_('NH4')  == 0 )
-     &        CALL ERROR_STOP( 'IND_(NH4) is undefined !', X)
-         IF ( IND_('NIT')  == 0 )
-     &        CALL ERROR_STOP( 'IND_(NIT) is undefined !', X)
-         IF ( IND_('SALA') == 0 )
-     &        CALL ERROR_STOP( 'IND_(SALA) is undefined !',X)
+         id_HNO3 = IND_('HNO3') 
+         id_NH3  = IND_('NH3' )
+         id_NH4  = IND_('NH4' )
+         id_NIT  = IND_('NIT' )
+         id_SALA = IND_('SALA')
+         id_SO4  = IND_('SO4' )
+
+         ! Make sure certain tracers are defined
+         IF ( id_SO4 <= 0 ) THEN
+            CALL ERROR_STOP( 'SO4 is an undefined species!',  X )
+         ENDIF
+         IF ( id_NH3 <= 0 ) THEN
+            CALL ERROR_STOP( 'NH3 is an undefined species!',  X )
+         ENDIF
+         IF ( id_NH4 <= 0 ) THEN
+            CALL ERROR_STOP( 'NH4 is an undefined species!',  X )
+         ENDIF
+         IF ( id_NIT <= 0 ) THEN
+            CALL ERROR_STOP( 'NIT is an undefined species!',  X )
+         ENDIF
+         IF ( id_SALA <= 0 ) THEN
+            CALL ERROR_STOP( 'SALA is an undefined species!', X )
+         ENDIF
 
          ! Initialize arrays
-         CALL INIT_ISOROPIAII
+         CALL INIT_ISOROPIAII()
 
          ! Check to see if we need to get HNO3 from HEMCO
-         IF ( IND_('HNO3') == 0 ) THEN
+         IF ( id_HNO3 <= 0 ) THEN
 
             IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
@@ -367,6 +388,8 @@
 #if   defined( APM )
          
          ! %%% WITH APM %%%
+         ! %%% NOTE: APM is currently broken in GC, so leave
+         ! %%% this IF block as is.  (bmy, 6/17/16)
 
          !GanLuo+ Deduce SULFLO form TSO4, 
          ! Add those sulfate coated on primary particles
@@ -383,13 +406,13 @@
          !%%% WITHOUT APM %%%
 
          ! Total SO4 [mole/m3]
-         TSO4 = STT(I,J,L,IND_('SO4')) * 1.e+3_fp / ( 96.e+0_fp * VOL )
+         TSO4 = STT(I,J,L,id_SO4) * 1.e+3_fp / ( 96.e+0_fp * VOL )
 
 #endif
 
          ! Total NH3 [mole/m3] 
-         TNH3 = STT(I,J,L,IND_('NH4')) * 1.e+3_fp / (18.e+0_fp * VOL ) +
-     &        STT(I,J,L,IND_('NH3')) * 1.e+3_fp / (17.e+0_fp * VOL )
+         TNH3 = STT(I,J,L,id_NH4) * 1.e+3_fp / (18.e+0_fp * VOL ) +
+     &          STT(I,J,L,id_NH3) * 1.e+3_fp / (17.e+0_fp * VOL )
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% NOTE: The error-trap statement above will halt execution if IDTSALA is
@@ -399,11 +422,11 @@
 !%%%         IF ( IDTSALA > 0 ) THEN
             
             ! Total Na+ (30.61% by weight of seasalt) [mole/m3]
-            TNA = STT(I,J,L,IND_('SALA')) * 0.3061e+0_fp * 1.e+3_fp /
+            TNA = STT(I,J,L,id_SALA) * 0.3061e+0_fp * 1.e+3_fp /
      &        ( 22.99e+0_fp  * VOL  )
 
             ! Total Cl- (55.04% by weight of seasalt) [mole/m3]
-            TCL = STT(I,J,L,IND_('SALA')) * 0.5504e+0_fp * 1.e+3_fp /
+            TCL = STT(I,J,L,id_SALA) * 0.5504e+0_fp * 1.e+3_fp /
      &           ( 35.45e+0_fp  * VOL  )
 
 !==============================================================================
@@ -441,18 +464,18 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ! Compute gas-phase NO3
-         IF ( IND_('HNO3') > 0 ) THEN
+         IF ( id_HNO3 > 0 ) THEN
             
             !---------------------
             ! COUPLED SIMULATION
             !---------------------
 
             ! Compute gas-phase HNO3 [mole/m3] from HNO3 tracer
-            GNO3 = STT(I,J,L,IND_('HNO3'))
+            GNO3 = STT(I,J,L,id_HNO3)
             GNO3 = MAX( GNO3 * 1.e+3_fp / ( 63.e+0_fp * VOL ), CONMIN )
 
             ! Aerosol-phase NO3 [mole/m3]
-            ANO3 = STT(I,J,L,IND_('NIT')) * 1.e+3_fp /
+            ANO3 = STT(I,J,L,id_NIT) * 1.e+3_fp /
      &           (62.e+0_fp * VOL )
 
             ! Total NO3 [mole/m3]
@@ -519,23 +542,23 @@
          ! no longer save TSO4 back into STT. SO4 is all aerosol phase
          ! (hotp 11/7/07)
          ! STT(I,J,L,IDTSO4) = TSO4
-         STT(I,J,L,IND_('NH3')) = TNH3
-         STT(I,J,L,IND_('NH4')) = TNH4
-         STT(I,J,L,IND_('NIT')) = TNIT
+         STT(I,J,L,id_NH3) = TNH3
+         STT(I,J,L,id_NH4) = TNH4
+         STT(I,J,L,id_NIT) = TNIT
 
          ! Special handling for HNO3 [kg]
-         IF ( IND_('HNO3') > 0 ) THEN
+         IF ( id_HNO3 > 0 ) THEN
             
             !---------------------
             ! COUPLED SIMULATION
             !---------------------
 
             ! HNO3 [mole/m3] is in GAS(2); convert & store in STT [kg]
-            STT(I,J,L,IND_('HNO3'))
+            STT(I,J,L,id_HNO3)
      &           = MAX( 63.e-3_fp * VOL * GAS(2), CONMIN )
 
             ! Save for use in DEN_SAV expression below (sofen, 4/21/10)
-            HNO3_DEN           = STT(I,J,L,IND_('HNO3'))
+            HNO3_DEN           = STT(I,J,L,id_HNO3)
 
          ELSE
 
@@ -583,14 +606,14 @@
          SULRAT_SAV(I,J,L)  = OTHER(2)
          NARAT_SAV(I,J,L)   = OTHER(4)
 
-         NUM_SAV    = ( STT(I,J,L,IND_('NH3')) /17e+0_fp         +
-     &        STT(I,J,L,IND_('NH4')) /18e+0_fp         +
-     &        STT(I,J,L,IND_('SALA'))*0.3061e+0_fp/23.0e+0_fp )
+         NUM_SAV    = ( STT(I,J,L,id_NH3) /17e+0_fp         +
+     &                  STT(I,J,L,id_NH4) /18e+0_fp         +
+     &                  STT(I,J,L,id_SALA)*0.3061e+0_fp/23.0e+0_fp )
 
-         DEN_SAV    = ( STT(I,J,L,IND_('SO4'))  / 96e+0_fp * 2e+0_fp +
-     &                STT(I,J,L,IND_('NIT'))  / 62e+0_fp             + 
-     &                HNO3_DEN           / 63e+0_fp             +
-     &                STT(I,J,L,IND_('SALA')) *0.55e+0_fp / 35.45e+0_fp)
+         DEN_SAV    = ( STT(I,J,L,id_SO4)  / 96e+0_fp  * 2e+0_fp  +
+     &                  STT(I,J,L,id_NIT)  / 62e+0_fp             + 
+     &                  HNO3_DEN           / 63e+0_fp             +
+     &                  STT(I,J,L,id_SALA) *0.55e+0_fp / 35.45e+0_fp)
 
          ! Value if DEN_SAV and NUM_SAV too small.
          ACIDPUR_SAV(I,J,L) = SAFE_DIV(NUM_SAV, DEN_SAV,
