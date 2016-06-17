@@ -140,7 +140,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE TRACERID_MOD,  ONLY : IDTO3, IDTCO
+!    USE TRACERID_MOD,       ONLY : IDTO3, IDTCO  CODEATHON
+     USE GIGC_State_Chm_Mod, ONLY : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -155,6 +156,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  26 Oct 2015 - C. Keller   - Initial version 
+!  16 Jun 2016 - J. Kaiser   - Move tracer IDS to variable names CODEATHON
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -166,6 +168,10 @@ CONTAINS
    
     ! Set this to .TRUE. to enable some test diagnostics
     LOGICAL, PARAMETER       :: DoTend = .TRUE.
+
+      INTEGER       :: IDTO3
+      INTEGER       :: IDTCO
+      
  
     !=======================================================================
     ! Tend_Init begins here!
@@ -173,6 +179,11 @@ CONTAINS
 
     ! Assume successful return
     RC = GIGC_SUCCESS
+
+    !Grab Tracer IDs
+    IDTCO=IND_('CO')
+    IDTO3=IND_('O3') 
+      
 
     ! Execute only if DoTend is enabled
     IF ( DoTend ) THEN

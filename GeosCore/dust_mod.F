@@ -70,6 +70,7 @@
 !  20 Jun 2014 - R. Yantosca - Remove obsolete emissions code; we now use HEMCO
 !  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  01 Apr 2015 - R. Yantosca - Remove obsolete DUSTMIX, DRY_DEPOSITION routines
+!  16 Jun 2016 - J. Kaiser   - Move tracerIDs into variable names CODEATHON
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -110,13 +111,14 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,       ONLY : IDTDST1
-      USE TRACERID_MOD,       ONLY : IDTDST2
-      USE TRACERID_MOD,       ONLY : IDTDST3
-      USE TRACERID_MOD,       ONLY : IDTDST4
+      USE GIGC_State_Chm_Mod, ONLY : IND_
+      !USE TRACERID_MOD,       ONLY : IDTDST1  
+      !USE TRACERID_MOD,       ONLY : IDTDST2  
+      !USE TRACERID_MOD,       ONLY : IDTDST3  
+      !USE TRACERID_MOD,       ONLY : IDTDST4  
       ! Include dust alkalinity tracer IDs               tdf 04/10/08
-      USE TRACERID_MOD,       ONLY : IDTDAL1,  IDTDAL2
-      USE TRACERID_MOD,       ONLY : IDTDAL3,  IDTDAL4
+      !USE TRACERID_MOD,       ONLY : IDTDAL1,  IDTDAL2  
+      !USE TRACERID_MOD,       ONLY : IDTDAL3,  IDTDAL4  
 !
 ! !INPUT PARAMETERS:
 !
@@ -164,6 +166,12 @@
       LOGICAL       :: LDSTUP
       LOGICAL       :: prtDebug
       INTEGER       :: N
+      INTEGER       :: IDTDST1
+      INTEGER       :: IDTDST2
+      INTEGER       :: IDTDST3
+      INTEGER       :: IDTDST4
+      INTEGER       :: IDTDAL1
+      INTEGER       :: IDTDAL4
       INTEGER       :: IDISP
 
       ! Pointers
@@ -183,6 +191,14 @@
       LDUST  = Input_Opt%LDUST
       LDSTUP = Input_Opt%LDSTUP
 
+      ! Add tracer ID flags as module variables
+      IDTDST1=IND_('DST1') 
+      IDTDST2=IND_('DST2') 
+      IDTDST3=IND_('DST3') 
+      IDTDST4=IND_('DST4') 
+      IDTDAL1=IND_('DAL1')
+      IDTDAL4=IND_('DAL4') 
+
       ! Set a flag for debug output
       prtDebug = ( Input_Opt%LPrt .and. am_I_Root )
 
@@ -190,7 +206,7 @@
       IF ( FIRST ) THEN
  
          ! Stop w/ error if dust tracer flags are undefined
-         IF ( IDTDST1 + IDTDST2 + IDTDST3 + IDTDST4 == 0 ) THEN
+        IF ( IDTDST1 + IDTDST2 + IDTDST3 + IDTDST4 == 0 ) THEN 
             IF ( LDUST ) THEN 
                CALL ERROR_STOP( 
      &              'LDUST=T but dust tracers are undefined!',
@@ -214,17 +230,16 @@
       ! Dust settling
       !----------------------
       IDISP = 0
-      CALL DRY_SETTLING(  am_I_Root, Input_Opt,  
-     &                    State_Met, STT(:,:,:,IDTDST1:IDTDST4), RC,
-     &                    IDTDST1,   IDISP )
-
+      CALL DRY_SETTLING(  am_I_Root, Input_Opt,                           
+     &                    State_Met, STT(:,:,:,IDTDST1:IDTDST4), RC,      
+     &                    IDTDST1,   IDISP )                              
+   
       IF ( LDSTUP ) THEN
          ! Include dust alkalinity settling                 tdf 04/10/08
          IDISP = 4
-         CALL DRY_SETTLING(  am_I_Root, Input_Opt,  
+       CALL DRY_SETTLING(  am_I_Root, Input_Opt,  
      &                       State_Met, STT(:,:,:,IDTDAL1:IDTDAL4), RC,
      &                       IDTDAL1,   IDISP )
-
          ! Note: DRY SETTLING of DSTNIT, DSTSO4 occurs in GRAV_SETTLING
          !       called from CHEMSULFATE in SULFATE_MOD.    tdf 04/10/08
       ENDIF
@@ -272,7 +287,9 @@
       USE PhysConstants,      ONLY : AVO
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TOMAS_MOD,          ONLY : IBINS, Xk, SRTDUST
-      USE TRACERID_MOD
+      USE GIGC_State_Chm_Mod, ONLY : IND_
+
+!     USE TRACERID_MOD                CODEATHON
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND44
@@ -321,13 +338,21 @@
 
       ! For values from Input_Opt
       INTEGER           :: N_TRACERS
-
+      
+      ! Tracer IDs
+      INTEGER       :: IDTDUST1
+      INTEGER       :: IDTNK1
+      
       ! Pointers
       REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! SETTLEDUST begins here!
       !=================================================================
+ 
+     ! Add tracer IDs as variables 
+      IDTDUST1=IND_('DUST1') 
+      IDTNK1=IND_('NK1')
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -402,11 +427,12 @@
      &                                DIF/(SQRT( Xk(BIN)*Xk(BIN+1)))
             
                ! Convert flux from [kg/s] to [molec/cm2/s]
-               FLUXD = FLUXD + 
-     &                 DIF / DT_SETTL * AVO / ( 1.e-3_fp *
-     &                 State_Chm%SpcData(IDTDUST1-1+BIN)%Info%emMW_g ) / 
-     &                 AREA_CM2
-
+               FLUXD = FLUXD +                                                 
+     &                 DIF / DT_SETTL * AVO / ( 1.e-3_fp *                     
+     &                 State_Chm%SpcData(IDTDUST1-1+BIN)%Info%emMW_g ) /        
+     &                 AREA_CM2                                                
+           
+               
                FLUXN = FLUXN + DIF/(SQRT( Xk(BIN)*Xk(BIN+1))) /
      &                 DT_SETTL * AVO / ( 1.e-3_fp *
      &                 State_Chm%SpcData(IDTNK1-1+BIN)%Info%emMW_g ) / 
@@ -468,12 +494,14 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTDST1
-      USE TRACERID_MOD,       ONLY : IDTDST2
-      USE TRACERID_MOD,       ONLY : IDTDST3
-      USE TRACERID_MOD,       ONLY : IDTDST4
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : IND_
+!      USE TRACERID_MOD,       ONLY : IDTDST1   CODEATHON
+!      USE TRACERID_MOD,       ONLY : IDTDST2   CODEATHON
+!      USE TRACERID_MOD,       ONLY : IDTDST3   CODEATHON
+!      USE TRACERID_MOD,       ONLY : IDTDST4   CODEATHON
       USE TIME_MOD,           ONLY : GET_TS_EMIS
-      USE TRACERID_MOD,       ONLY : IDTDUST1, IDTNK1      !(win, 7/17/09)
+!      USE TRACERID_MOD,       ONLY : IDTDUST1, IDTNK1      !(win, 7/17/09)   CODEATHON
       USE TOMAS_MOD,          ONLY : IBINS, XK             !(win, 7/17/09)
       USE DIAG_MOD,           ONLY : AD59_DUST, AD59_NUMB  !(win, 7/17/09)
 !
@@ -522,13 +550,23 @@
       LOGICAL           :: LINTERP 
       INTEGER           :: I, J, K                            !(win, 7/17/09)
       REAL(fp)          :: MEMIS, MINIT(IIPAR,JJPAR,1,IBINS)  !(win, 7/17/09)
-
+      INTEGER           :: IDTDUST1, IDTNK1
+      INTEGER           :: IDTDST1, IDTDST2, IDTDST3, IDTDST4
+      INTEGER           :: IDTNK1
       ! Pointers
       REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! EMISSDUST begins here!
       !=================================================================
+     
+      ! Make tracer ID variables 
+      IDTDUST1=IND_('DUST1')
+      IDTNK1=IND_('NK1') 
+      IDTDST1=IND_('DST1')
+      IDTDST2=IND_('DST2')
+      IDTDST3=IND_('DST3')
+      IDTDST4=IND_('DST4')
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -888,11 +926,12 @@
       !========================================================
       IF ( ND44 > 0 ) THEN
 
+
          ! Loop over dust bins
          DO N = 1, NDSTBIN
 
             ! Get drydep id
-            drydep_id = Input_Opt%IDDEP(N+IDISP)
+            drydep_id = Input_Opt%IDISP+N
 
             ! Get tracer id
             trc_id = Input_Opt%NTRAIND( drydep_id )
@@ -1842,12 +1881,14 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : IND_
+
       ! Include dust tracers                            tdf 04/10/08
-      USE TRACERID_MOD,       ONLY : IDTDST1, IDTDST2
-      USE TRACERID_MOD,       ONLY : IDTDST3, IDTDST4
+      ! USE TRACERID_MOD,       ONLY : IDTDST1, IDTDST2
+      ! USE TRACERID_MOD,       ONLY : IDTDST3, IDTDST4
       ! Include dust alkalinity tracers                 tdf 04/10/08
-      USE TRACERID_MOD,       ONLY : IDTDAL1, IDTDAL2
-      USE TRACERID_MOD,       ONLY : IDTDAL3, IDTDAL4
+      ! USE TRACERID_MOD,       ONLY : IDTDAL1, IDTDAL2
+      ! USE TRACERID_MOD,       ONLY : IDTDAL3, IDTDAL4
 
 
 !
@@ -1956,9 +1997,30 @@
       REAL(fp), POINTER   :: ERADIUS(:,:,:,:)
       REAL(fp), POINTER   :: TAREA(:,:,:,:)
 
+      ! Tracer IDs
+      INTEGER       :: IDTDST1
+      INTEGER       :: IDTDST2
+      INTEGER       :: IDTDST3
+      INTEGER       :: IDTDST4
+
+      INTEGER       :: IDTDAL1
+      INTEGER       :: IDTDAL2
+      INTEGER       :: IDTDAL3
+      INTEGER       :: IDTDAL4
+
       !=================================================================
       ! GET_DUST_ALK begins here!
       !=================================================================
+ 
+      ! Define Tracer IDs
+      IDTDST1=IND_('DST1') !CODEATHON
+      IDTDST2=IND_('DST2') !CODEATHON
+      IDTDST3=IND_('DST3') !CODEATHON
+      IDTDST4=IND_('DST4') !CODEATHON
+      IDTDAL1=IND_('DAL1') !CODEATHON
+      IDTDAL2=IND_('DAL2') !CODEATHON
+      IDTDAL3=IND_('DAL3') !CODEATHON
+      IDTDAL4=IND_('DAL4') !CODEATHON
 
       ! Copy fields from INPUT_OPT to local variables for use below
       N_TRACERS = Input_Opt%N_TRACERS
@@ -2328,11 +2390,12 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : IND_
       USE Species_Mod,        ONLY : Species
 #if   defined( TOMAS )
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE TOMAS_MOD,          ONLY : IBINS, Xk
-      USE TRACERID_MOD,       ONLY : IDTNK1
+     ! USE TRACERID_MOD,       ONLY : IDTNK1
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -2370,6 +2433,7 @@
       ! Non-SAVEd scalars
       LOGICAL            :: LDEAD, LDSTUP
       INTEGER            :: AS, N
+      INTEGER            :: IDTNK1
 #if   defined( TOMAS )
       INTEGER            :: I
       INTEGER            :: BIN
@@ -2389,6 +2453,7 @@
       ThisSpc => NULL()
       LDEAD   = Input_Opt%LDEAD
       LDSTUP  = Input_Opt%LDSTUP
+      IDTNK1  = IND_('NK1')
 
 #if defined( TOMAS )
       !=================================================================
