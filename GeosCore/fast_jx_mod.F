@@ -221,7 +221,7 @@
 !                              clause and error check for JLOOP > 0
 !  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as for GEOS-FP
 !  21 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
-!  16 Jun 2016 - R. Yantosca - Now define IDO3 with the Ind_ function
+!  17 Jun 2016 - R. Yantosca - Now define id_O3 with the Ind_ function
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -275,8 +275,8 @@
       IF ( FIRST ) THEN
 
          ! Get the species ID for O3
-         IDO3 = Ind_('O3')
-         IF ( IDO3 < 0 ) THEN
+         id_O3 = Ind_('O3')
+         IF ( id_O3 < 0 ) THEN
             CALL ERROR_STOP( 'O3 is not a defined species!', 
      &                       'GeosCore/fast_jx_mod.F' )
          ENDIF
@@ -359,7 +359,7 @@
             O3_CTM          = 0e+0_fp
             LCHEM           = GET_CHEMGRID_LEVEL(NLON,NLAT,State_Met)
             DO L = 1, LCHEM
-               O3_CTM(L) = State_Chm%Species(NLON,NLAT,L,IDO3)
+               O3_CTM(L) = State_Chm%Species(NLON,NLAT,L,id_O3)
             ENDDO
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
