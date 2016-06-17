@@ -8246,6 +8246,7 @@
       USE Dust_Mod,           ONLY : Init_Dust
       USE Error_Mod,          ONLY : Debug_Msg
       USE Gamap_Mod,          ONLY : Do_Gamap
+      USE Get_Ndep_Mod,       ONLY : Init_Get_Ndep
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -8390,6 +8391,10 @@
       ! of logical_mod.F and tracer_mod.F..  This has to be called
       ! after the input.geos file has been read from disk.
       CALL Set_Vdiff_Values( am_I_Root, Input_Opt, RC )
+
+      ! Initialize the GET_NDEP_MOD for soil NOx deposition (bmy, 6/17/16)
+      CALL Init_Get_Ndep( am_I_Root, RC )
+      IF ( RC /= GIGC_SUCCESS ) RETURN
 
       ! Initialize "carbon_mod.F"
       IF ( Input_Opt%LCARB ) THEN

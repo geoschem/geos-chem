@@ -663,8 +663,7 @@ get_ndep_mod.o              : get_ndep_mod.F                                 \
                               tracerid_mod.o
 
 gigc_environment_mod.o      : gigc_environment_mod.F90                       \
-			      tracer_mod.o            vdiff_pre_mod.o        \
-                              get_ndep_mod.o
+			      tracer_mod.o            vdiff_pre_mod.o
 
 global_br_mod.o             : global_br_mod.F                                \
                               chemgrid_mod.o          ocean_mercury_mod.o
@@ -717,7 +716,8 @@ input_mod.o                 : input_mod.F                                    \
                               tracer_mod.o            transport_mod.o        \
                               wetscav_mod.o           tagged_co_mod.o        \
                               tagged_ox_mod.o         global_ch4_mod.o       \
-                              c2h6_mod.o              gamap_mod.o
+                              c2h6_mod.o              gamap_mod.o            \
+                              get_ndep_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               chemgrid_mod.o          tracerid_mod.o
