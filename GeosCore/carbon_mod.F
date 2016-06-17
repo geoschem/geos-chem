@@ -377,7 +377,8 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACERID_MOD
+      !JDMCT USE TRACERID_MOD
+      USE gigc_state_chm_mod, only : IND_
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS                       !(win, 1/25/10)
 #endif
@@ -485,25 +486,25 @@
          IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
             ! update for isoprene SOA (hotp 5/20/10)
-            IF ( IDTISOA1 > 0 ) THEN
-               STT(:,:,:,IDTISOA1) = 0e+0_fp
-               STT(:,:,:,IDTISOA2) = 0e+0_fp
-               STT(:,:,:,IDTISOA3) = 0e+0_fp
-               STT(:,:,:,IDTISOG1) = 0e+0_fp
-               STT(:,:,:,IDTISOG2) = 0e+0_fp
-               STT(:,:,:,IDTISOG3) = 0e+0_fp
+            IF (  IND_('ISOA1') > 0 ) THEN
+               STT(:,:,:,IND_('ISOA1')) = 0e+0_fp
+               STT(:,:,:,IND_('ISOA2')) = 0e+0_fp
+               STT(:,:,:,IND_('ISOA3')) = 0e+0_fp
+               STT(:,:,:,IND_('ISOG1')) = 0e+0_fp
+               STT(:,:,:,IND_('ISOG2')) = 0e+0_fp
+               STT(:,:,:,IND_('ISOG3')) = 0e+0_fp
             ENDIF
 
             ! lumped arom/IVOC (hotp 5/17/10)
             ! LUMPAROMIVOC: lump arom/IVOC not supported for offline sims
-            IF ( IDTASOAN > 0 ) THEN
-               STT(:,:,:,IDTASOAN) = 0e+0_fp
-               STT(:,:,:,IDTASOA1) = 0e+0_fp
-               STT(:,:,:,IDTASOA2) = 0e+0_fp
-               STT(:,:,:,IDTASOA3) = 0e+0_fp
-               STT(:,:,:,IDTASOG1) = 0e+0_fp
-               STT(:,:,:,IDTASOG2) = 0e+0_fp
-               STT(:,:,:,IDTASOG3) = 0e+0_fp
+            IF ( IND_('ASOAN') > 0 ) THEN
+               STT(:,:,:,IND_('ASOAN')) = 0e+0_fp
+               STT(:,:,:,IND_('ASOA1')) = 0e+0_fp
+               STT(:,:,:,IND_('ASOA2')) = 0e+0_fp
+               STT(:,:,:,IND_('ASOA3')) = 0e+0_fp
+               STT(:,:,:,IND_('ASOG1')) = 0e+0_fp
+               STT(:,:,:,IND_('ASOG2')) = 0e+0_fp
+               STT(:,:,:,IND_('ASOG3')) = 0e+0_fp
             ENDIF
 
             IF ( LSOA ) THEN
@@ -530,8 +531,8 @@
          IF ( LSOA ) THEN
             ! updated (hotp 5/20/10) new mtp
             MAXSIMSV = 3  ! mono+sesq (1) + isop (2) + aromatics (3)
-            IF ( IDTPOA1  > 0 ) MAXSIMSV = MAXSIMSV + 1
-            IF ( IDTOPOA1 > 0 ) MAXSIMSV = MAXSIMSV + 1
+            IF ( IND_('POA1')  > 0 ) MAXSIMSV = MAXSIMSV + 1
+            IF ( IND_('OPOA1') > 0 ) MAXSIMSV = MAXSIMSV + 1
             IF ( MAXSIMSV > MSV ) THEN
                CALL ERROR_STOP('YOUVE GOT A PROBLEM W/ SEMIVOLATILES',
      &              'carbon_mod.f')
@@ -551,32 +552,36 @@
       !=================================================================
 
       ! Chemistry for hydrophobic BC
-      IF ( IDTBCPO > 0 ) THEN
-         CALL CHEM_BCPO( am_I_Root, Input_Opt, STT(:,:,:,IDTBCPO), RC )
+      IF ( IND_('BCPO') > 0 ) THEN
+         CALL CHEM_BCPO( am_I_Root, Input_Opt,
+     & 						STT(:,:,:,IND_('BCPO')), RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
          ENDIF
       ENDIF
 
       ! Chemistry for hydrophilic BC
-      IF ( IDTBCPI > 0 ) THEN
-         CALL CHEM_BCPI( am_I_Root, Input_Opt, STT(:,:,:,IDTBCPI), RC )
+      IF ( IND_('BCPI') > 0 ) THEN
+         CALL CHEM_BCPI( am_I_Root, Input_Opt,
+     & 						STT(:,:,:,IND_('BCPI')), RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
          ENDIF
       ENDIF
 
       ! Chemistry for hydrophobic OC (traditional POA only) 
-      IF ( IDTOCPO > 0 ) THEN
-         CALL CHEM_OCPO( am_I_Root, Input_Opt, STT(:,:,:,IDTOCPO), RC )
+      IF ( IND_('OCPO') > 0 ) THEN
+         CALL CHEM_OCPO( am_I_Root, Input_Opt,
+     & 						STT(:,:,:,IND_('OCPO')), RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
          ENDIF
       ENDIF
 
       ! Chemistry for hydrophilic OC (traditional POA only)
-      IF ( IDTOCPI > 0 ) THEN 
-         CALL CHEM_OCPI( am_I_Root, Input_Opt, STT(:,:,:,IDTOCPI), RC )
+      IF ( IND_('OCPI') > 0 ) THEN 
+         CALL CHEM_OCPI( am_I_Root, Input_Opt,
+     & 						STT(:,:,:,IND_('OCPI')), RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
          ENDIF
@@ -584,16 +589,16 @@
 
 #if   defined( TOMAS )
       ! Chemistry (aging) for size-resolved EC and OC (win, 1/25/10)
-      IF ( IDTECOB1 > 0 ) THEN
-         CALL AGING_CARB( STT(:,:,:,IDTECIL1:IDTECIL1+IBINS-1), 
-     &                     STT(:,:,:,IDTECOB1:IDTECOB1+IBINS-1) )
+      IF ( IND_('ECOB1') > 0 ) THEN
+         CALL AGING_CARB( STT(:,:,:,IND_('ECIL1'):IND_('ECIL1')+IBINS-1), 
+     &                     STT(:,:,:,IND_('ECOB1'):IND_('ECOB1')+IBINS-1) )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB EC' )
          ENDIF
       ENDIF
-      IF ( IDTOCOB1 > 0 ) THEN
-         CALL AGING_CARB( STT(:,:,:,IDTOCIL1:IDTOCIL1+IBINS-1), 
-     &                     STT(:,:,:,IDTOCOB1:IDTOCOB1+IBINS-1) )
+      IF ( IND_('OCOB1') > 0 ) THEN
+         CALL AGING_CARB( STT(:,:,:,IND_('OCIL1'):IND_('OCIL1')+IBINS-1), 
+     &                     STT(:,:,:,IND_('OCOB1'):IND_('OCOB1')+IBINS-1) )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB OC' )
          ENDIF
@@ -636,7 +641,7 @@
 
          ! If SOAG and SOAM are declared, switch on 
          !    SOA production from dicarbonyls (tmf, 12/07/07) 
-         IF ( IDTSOAG > 0 ) THEN
+         IF ( IND_('SOAG') > 0 ) THEN
 
             ! Get grid box cloud fraction (tmf, 2/26/07)
             ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
@@ -657,7 +662,7 @@
 
          ENDIF
 
-         IF ( IDTSOAM > 0 ) THEN
+         IF ( IND_('SOAM') > 0 ) THEN
          
             ! Get grid box cloud fraction (tmf, 2/26/07)
             ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
@@ -705,7 +710,8 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTBCPO
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTBCPO
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -759,7 +765,7 @@
       !=================================================================
 
       ! Return if BCPO isn't defined
-      IF ( IDTBCPO == 0 ) RETURN
+      IF ( IND_('BCPO') == 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -845,7 +851,8 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTBCPI
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTBCPI
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -894,7 +901,7 @@
       !=================================================================
 
       ! Return if BCPI isn't defined
-      IF ( IDTBCPI == 0 ) RETURN
+      IF ( IND_('BCPI') == 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -956,7 +963,8 @@
       USE DIAG_MOD,           ONLY : AD07_OC 
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTOCPO
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTOCPO
+      USE gigc_state_chm_mod, only : IND_
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -1007,7 +1015,7 @@
       !=================================================================
 
       ! Return if OCPO isn't defined
-      IF ( IDTOCPO == 0 ) RETURN
+      IF ( IND_('OCPO') == 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -1093,7 +1101,8 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTOCPI
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTOCPI
+      USE gigc_state_chm_mod, only : IND_
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -1140,7 +1149,7 @@
       !=================================================================
       ! CHEM_OCPI begins here!
       !=================================================================
-      IF ( IDTOCPI == 0 ) RETURN
+      IF ( IND_('OCPI') == 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -1273,7 +1282,8 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
-      USE TRACERID_MOD,       ONLY : IDTGLYX, IDTSOAG
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTGLYX, IDTSOAG
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -1309,6 +1319,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER  :: I, J, L, N
+      INTEGER  :: IDTGLYX, IDTSOAG
       REAL(fp) :: XTEMP       ! Temperature [K]
       REAL(fp) :: XSQTEMP     ! SQRT of Temperature
       REAL(fp) :: XAD         ! Air density [molec/cm3]
@@ -1372,6 +1383,10 @@
       !%%% NOTE: NEED TO REPLACE LLCHEM WITH LLPAR FOR GIGC
       !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
       !=================================================================
+      
+      IDTGLYX = IND_('GLYX')
+      IDTSOAG = IND_('SOAG')
+      
       DO L = 1, LLCHEM
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1511,7 +1526,8 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
-      USE TRACERID_MOD,       ONLY : IDTMGLY, IDTSOAM
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTMGLY, IDTSOAM
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -1548,6 +1564,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER  :: I, J, L, N
+      INTEGER  :: IDTMGLY, IDTSOAM
       REAL(fp) :: XTEMP       ! Temperature [K]
       REAL(fp) :: XSQTEMP     ! SQRT of Temperature
       REAL(fp) :: XAD         ! Air density [molec/cm3]
@@ -1612,6 +1629,10 @@
       !%%% NOTE: NEED TO REPLACE LLCHEM WITH LLPAR FOR GIGC
       !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
       !=================================================================
+      
+      IDTMGLY = IND_('SOAG')
+      IDTSOAM = IND_('SOAM')
+      
       DO L = 1, LLCHEM
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1752,7 +1773,9 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM,      GET_MONTH
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_BPCH
-      USE TRACERID_MOD
+      !JDMCT USE TRACERID_MOD
+      USE gigc_state_chm_mod, only : IND_
+      !JDMCT 
 !
 ! !INPUT PARAMETERS:
 !
@@ -1922,6 +1945,7 @@
       LOGICAL         :: prtDebug
       LOGICAL         :: LPRT
       INTEGER         :: I,        J,        L,        N    
+      INTEGER         :: IDTPOA1,  IDTOPOA1, IDTOCPI,  IDTOCPO
       ! no more NOx (hotp 5/22/10)
       INTEGER         :: JHC,      IPR!,      NOX ! (dkh, 10/30/06)  
       INTEGER         :: JSV ! (hotp 5/13/10)
@@ -2035,14 +2059,14 @@
      &              'box 20,33,2   ', 'box 20,33,10    '
 
          IF ( Input_Opt%LSVPOA ) THEN
-            print*,'POA1', SUM(STT(:,:,:,IDTPOA1))
-            print*,'POA2', SUM(STT(:,:,:,IDTPOA2))
-            print*,'POG1', SUM(STT(:,:,:,IDTPOG1))
-            print*,'POG2', SUM(STT(:,:,:,IDTPOG2))
-            print*,'OPOA1',SUM(STT(:,:,:,IDTOPOA1))
-            print*,'OPOA2',SUM(STT(:,:,:,IDTOPOA2))
-            print*,'OPOG1',SUM(STT(:,:,:,IDTOPOG1))
-            print*,'OPOG2',SUM(STT(:,:,:,IDTOPOG2))
+            print*,'POA1', SUM(STT(:,:,:,IND_('POA1')))
+            print*,'POA2', SUM(STT(:,:,:,IND_('POA2')))
+            print*,'POG1', SUM(STT(:,:,:,IND_('POG1')))
+            print*,'POG2', SUM(STT(:,:,:,IND_('POG2')))
+            print*,'OPOA1',SUM(STT(:,:,:,IND_('OPOA1')))
+            print*,'OPOA2',SUM(STT(:,:,:,IND_('OPOA2')))
+            print*,'OPOG1',SUM(STT(:,:,:,IND_('OPOG1')))
+            print*,'OPOG2',SUM(STT(:,:,:,IND_('OPOG2')))
          ENDIF
 
          ! semivolpoa3: debug POAEMISS
@@ -2055,10 +2079,10 @@
 
          ! 10/12/09 debug
          IF ( Input_Opt%LSVPOA ) THEN
-            print*,'POAG tot', SUM(STT(:,:,:,IDTPOA1))+
-     &                         SUM(STT(:,:,:,IDTPOA2))+
-     &                         SUM(STT(:,:,:,IDTPOG1))+
-     &                         SUM(STT(:,:,:,IDTPOG2))
+            print*,'POAG tot', SUM(STT(:,:,:,IND_('POA1')))+
+     &                         SUM(STT(:,:,:,IND_('POA2')))+
+     &                         SUM(STT(:,:,:,IND_('POG1')))+
+     &                         SUM(STT(:,:,:,IND_('POG2')))
          ENDIF
       ENDIF
  
@@ -2073,6 +2097,12 @@
       ! add KRO2XXX to private (hotp 5/7/10)
       ! add JSV to private (hotp 5/13/10)
       ! remove NOX (hotp 5/22/10)
+      
+      IDTPOA1 =  IND_('POA1')
+      IDTOPOA1 = IND_('OPOA1')
+      IDTOCPI =  IND_('OCPI')
+      IDTOCPO =  IND_('OCPO')
+      
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,        J,        L,     JHC,   IPR,   GM0,  AM0  )
@@ -2353,10 +2383,10 @@
 
          IF ( Input_Opt%LSVPOA ) THEN
             ! 10/12/09 debug            
-            print*,'POAG tot', SUM(STT(:,:,:,IDTPOA1))+
-     &                         SUM(STT(:,:,:,IDTPOA2))+
-     &                         SUM(STT(:,:,:,IDTPOG1))+
-     &                         SUM(STT(:,:,:,IDTPOG2))
+            print*,'POAG tot', SUM(STT(:,:,:,IND_('POA1')))+
+     &                         SUM(STT(:,:,:,IND_('POA2')))+
+     &                         SUM(STT(:,:,:,IND_('POG1')))+
+     &                         SUM(STT(:,:,:,IND_('POG2')))
          ENDIF
 
          ! dkh print some diagnostics 
@@ -2405,14 +2435,14 @@
      &           'box 20,33,2   ', 'box 20,33,10    '
 
          IF ( Input_Opt%LSVPOA ) THEN
-            print*,'POA1 ', SUM(STT(:,:,:,IDTPOA1))
-            print*,'POA2 ', SUM(STT(:,:,:,IDTPOA2))
-            print*,'POG1 ', SUM(STT(:,:,:,IDTPOG1))
-            print*,'POG2 ', SUM(STT(:,:,:,IDTPOG2))
-            print*,'OPOA1', SUM(STT(:,:,:,IDTOPOA1))
-            print*,'OPOA2', SUM(STT(:,:,:,IDTOPOA2))
-            print*,'OPOG1', SUM(STT(:,:,:,IDTOPOG1))
-            print*,'OPOG2', SUM(STT(:,:,:,IDTOPOG2))
+            print*,'POA1 ', SUM(STT(:,:,:,IND_('POA1')))
+            print*,'POA2 ', SUM(STT(:,:,:,IND_('POA2')))
+            print*,'POG1 ', SUM(STT(:,:,:,IND_('POG1')))
+            print*,'POG2 ', SUM(STT(:,:,:,IND_('POG2')))
+            print*,'OPOA1', SUM(STT(:,:,:,IND_('OPOA1')))
+            print*,'OPOA2', SUM(STT(:,:,:,IND_('OPOA2')))
+            print*,'OPOG1', SUM(STT(:,:,:,IND_('OPOG1')))
+            print*,'OPOG2', SUM(STT(:,:,:,IND_('OPOG2')))
          ENDIF
 
          ! semivolpoa4: diag for POG reacted (hotp 3/27/09)
@@ -2430,7 +2460,7 @@
      &              POAEMISS(20,33,10,1)+POAEMISS(20,33,10,2)
 
          ! semivolpoa4opoa: add OPOA (hotp 3/27/09)
-         IF ( IDTOPOA1 > 0 ) THEN ! hotp 8/24/09 ! hotp 10/11/09
+         IF ( IND_('OPOA1') > 0 ) THEN ! hotp 8/24/09 ! hotp 10/11/09
             GLOB_POA_PROD  = GLOB_POA_PROD +
      &                       SUM(GLOB_AM0_POA(:,:,:,:,:,1)) -
      &                       SUM(GLOB_AM0_POA_0(:,:,:,:,:,1))
@@ -2465,8 +2495,8 @@
      &                           GLOB_AM0_POA(20,33,2,1,2,2),
      &                           GLOB_AM0_POA(20,33,10,1,2,2)
      
-            print*, 'POA to trop', SUM(STT(:,:,1:LLCHEM,IDTPOA1)) + 
-     &                             SUM(STT(:,:,1:LLCHEM,IDTPOA2))
+            print*, 'POA to trop', SUM(STT(:,:,1:LLCHEM,IND_('POA1'))) + 
+     &                             SUM(STT(:,:,1:LLCHEM,IND_('POA2')))
          ENDIF ! OPOA (hotp 8/24/09)
 
       ENDIF
@@ -3594,7 +3624,8 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
-      USE TRACERID_MOD
+      !JDMCT USE TRACERID_MOD
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3707,9 +3738,9 @@
       BETANOSAVE(I,J,L) = BETANO
 
       ! update for new mtp lumping (hotp 5/22/10)
-      NMVOC(1) = STT(I,J,L,IDTMTPA)
-      NMVOC(2) = STT(I,J,L,IDTLIMO)
-      NMVOC(3) = STT(I,J,L,IDTMTPO)
+      NMVOC(1) = STT(I,J,L,IND_('MTPA'))
+      NMVOC(2) = STT(I,J,L,IND_('LIMO'))
+      NMVOC(3) = STT(I,J,L,IND_('MTPO'))
       NMVOC(4) = ORVC_SESQ(I,J,L)
 
       ! Initialize DELHC so that the values from the previous
@@ -3726,7 +3757,7 @@
       ! Only loop over parent hydrocarbons defined for a given simulation
       ! Max should be 11 for semivolatile POA/IVOC (PARENTNAP =11)
       ! Max should be 8  for nonvolatile POA/ traditional simulation
-      IF ( IDTPOA1 > 0 ) THEN
+      IF ( IND_('POA1') > 0 ) THEN
          MAXLOOP = PARENTNAP   !11
       ELSE
          MAXLOOP = PARENTXYLE  ! 8
@@ -3978,7 +4009,7 @@
 
       ! semivolpoa4opoa: emit POA last (after OPOA formation) (hotp 3/18/09)
       ! SVOC emissions are added to gas-phase GM0
-      IF ( IDTPOA1 > 0 ) THEN
+      IF ( IND_('POA1') > 0 ) THEN
          JHC = PARENTPOA
    
          ! Use IDSV (hotp 5/14/10)
@@ -4004,9 +4035,9 @@
       ! Store Hydrocarbon remaining after oxidation rxn back into STT
       !=================================================================
       ! update for new mtp lumping (hotp 5/22/10)
-      STT(I,J,L,IDTMTPA) = MAX( NMVOC(1), 1.e-32_fp )
-      STT(I,J,L,IDTLIMO) = MAX( NMVOC(2), 1.e-32_fp )
-      STT(I,J,L,IDTMTPO) = MAX( NMVOC(3), 1.e-32_fp )
+      STT(I,J,L,IND_('MTPA')) = MAX( NMVOC(1), 1.e-32_fp )
+      STT(I,J,L,IND_('LIMO')) = MAX( NMVOC(2), 1.e-32_fp )
+      STT(I,J,L,IND_('MTPO')) = MAX( NMVOC(3), 1.e-32_fp )
       ORVC_SESQ(I,J,L)   = MAX( NMVOC(4), 1.e-32_fp )
       ! Nothing to do for isoprene or aromatics here, 
       ! as their oxidation is treated online. 
@@ -4040,7 +4071,8 @@
 !
       USE CMN_SIZE_MOD
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD
+      !JDMCT USE TRACERID_MOD
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4102,15 +4134,15 @@
       JHC = PARENTMTPA
       JSV = IDSV(JHC)
       ! gas phase
-      GM0(1,JSV)=STT(I,J,L,IDTTSOG1) ! C* =   1
-      GM0(2,JSV)=STT(I,J,L,IDTTSOG2) ! C* =  10
-      GM0(3,JSV)=STT(I,J,L,IDTTSOG3) ! C* = 100
-      GM0(4,JSV)=STT(I,J,L,IDTTSOG0) ! C* =   0.1
+      GM0(1,JSV)=STT(I,J,L,IND_('TSOG1')) ! C* =   1
+      GM0(2,JSV)=STT(I,J,L,IND_('TSOG2')) ! C* =  10
+      GM0(3,JSV)=STT(I,J,L,IND_('TSOG3')) ! C* = 100
+      GM0(4,JSV)=STT(I,J,L,IND_('TSOG0')) ! C* =   0.1
       ! aerosol phase
-      AM0(1,JSV)=STT(I,J,L,IDTTSOA1)
-      AM0(2,JSV)=STT(I,J,L,IDTTSOA2)
-      AM0(3,JSV)=STT(I,J,L,IDTTSOA3)
-      AM0(4,JSV)=STT(I,J,L,IDTTSOA0)
+      AM0(1,JSV)=STT(I,J,L,IND_('TSOA1'))
+      AM0(2,JSV)=STT(I,J,L,IND_('TSOA2'))
+      AM0(3,JSV)=STT(I,J,L,IND_('TSOA3'))
+      AM0(4,JSV)=STT(I,J,L,IND_('TSOA0'))
 
       !---------------------------------------
       ! SEMIVOLATILE 2: ISOP
@@ -4118,13 +4150,13 @@
       JHC = PARENTISOP
       JSV = IDSV(JHC)
       ! gas phase
-      GM0(1,JSV)=STT(I,J,L,IDTISOG1)
-      GM0(2,JSV)=STT(I,J,L,IDTISOG2)
-      GM0(3,JSV)=STT(I,J,L,IDTISOG3)
+      GM0(1,JSV)=STT(I,J,L,IND_('ISOG1'))
+      GM0(2,JSV)=STT(I,J,L,IND_('ISOG2'))
+      GM0(3,JSV)=STT(I,J,L,IND_('ISOG3'))
       ! aerosol phase
-      AM0(1,JSV)=STT(I,J,L,IDTISOA1)
-      AM0(2,JSV)=STT(I,J,L,IDTISOA2)
-      AM0(3,JSV)=STT(I,J,L,IDTISOA3)
+      AM0(1,JSV)=STT(I,J,L,IND_('ISOA1'))
+      AM0(2,JSV)=STT(I,J,L,IND_('ISOA2'))
+      AM0(3,JSV)=STT(I,J,L,IND_('ISOA3'))
 
       !---------------------------------------
       ! SEMIVOLATILE 3: BENZ, TOLU, XYLE, NAP
@@ -4133,14 +4165,14 @@
       JHC = PARENTBENZ ! IDSV(B)=IDSV(T)=IDSV(X)=IDSV(N)
       JSV = IDSV(JHC)
       ! gas phase
-      GM0(1,JSV)=STT(I,J,L,IDTASOG1)
-      GM0(2,JSV)=STT(I,J,L,IDTASOG2)
-      GM0(3,JSV)=STT(I,J,L,IDTASOG3)
+      GM0(1,JSV)=STT(I,J,L,IND_('ASOG1'))
+      GM0(2,JSV)=STT(I,J,L,IND_('ASOG2'))
+      GM0(3,JSV)=STT(I,J,L,IND_('ASOG3'))
       ! aerosol phase
-      AM0(1,JSV)=STT(I,J,L,IDTASOA1)
-      AM0(2,JSV)=STT(I,J,L,IDTASOA2)
-      AM0(3,JSV)=STT(I,J,L,IDTASOA3)
-      AM0(4,JSV)=STT(I,J,L,IDTASOAN)
+      AM0(1,JSV)=STT(I,J,L,IND_('ASOA1'))
+      AM0(2,JSV)=STT(I,J,L,IND_('ASOA2'))
+      AM0(3,JSV)=STT(I,J,L,IND_('ASOA3'))
+      AM0(4,JSV)=STT(I,J,L,IND_('ASOAN'))
 
       !---------------------------------------
       ! SEMIVOLATILE 4: POA/SVOCs
@@ -4148,14 +4180,14 @@
       ! POA-Primary SVOCs (hotp 5/13/10)
       JHC = PARENTPOA
       JSV = IDSV(JHC)
-      IF ( IDTPOA1 > 0 .and. IDTPOA2 > 0 .and.
-     &     IDTPOG1 > 0 .and. IDTPOG2 > 0 ) THEN
+      IF ( IND_('POA1') > 0 .and. IND_('POA2') > 0 .and.
+     &     IND_('POG1') > 0 .and. IND_('POG2') > 0 ) THEN
          ! gas phase
-         GM0(1,JSV) = STT(I,J,L,IDTPOG1)
-         GM0(2,JSV) = STT(I,J,L,IDTPOG2)
+         GM0(1,JSV) = STT(I,J,L,IND_('POG1'))
+         GM0(2,JSV) = STT(I,J,L,IND_('POG2'))
          ! aerosol phase
-         AM0(1,JSV) = STT(I,J,L,IDTPOA1)
-         AM0(2,JSV) = STT(I,J,L,IDTPOA2)
+         AM0(1,JSV) = STT(I,J,L,IND_('POA1'))
+         AM0(2,JSV) = STT(I,J,L,IND_('POA2'))
       ENDIF
 
       !---------------------------------------
@@ -4164,14 +4196,14 @@
       ! OPOA-Oxidized SVOCs (hotp 5/13/10)
       JHC = PARENTOPOA
       JSV = IDSV(JHC)
-      IF ( IDTOPOA1 > 0 .and. IDTOPOA2 > 0 .and.
-     &     IDTOPOG1 > 0 .and. IDTOPOG2 > 0 ) THEN
+      IF ( IND_('OPOA1') > 0 .and. IND_('OPOA2') > 0 .and.
+     &     IND_('OPOG1') > 0 .and. IND_('OPOG2') > 0 ) THEN
          ! gas phase
-         GM0(1,JSV) = STT(I,J,L,IDTOPOG1)
-         GM0(2,JSV) = STT(I,J,L,IDTOPOG2)
+         GM0(1,JSV) = STT(I,J,L,IND_('OPOG1'))
+         GM0(2,JSV) = STT(I,J,L,IND_('OPOG2'))
          ! aerosol phase
-         AM0(1,JSV) = STT(I,J,L,IDTOPOA1)
-         AM0(2,JSV) = STT(I,J,L,IDTOPOA2)
+         AM0(1,JSV) = STT(I,J,L,IND_('OPOA1'))
+         AM0(2,JSV) = STT(I,J,L,IND_('OPOA2'))
       ENDIF
 
       ! Free pointer
@@ -4200,7 +4232,8 @@
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07_HC 
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD
+      !JDMCT USE TRACERID_MOD
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4274,17 +4307,17 @@
       IF ( ND07 > 0 .and. L <= LD07 ) THEN
          AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
      &                    + ( AERMASS - 
-     &                        STT(I,J,L,IDTTSOA1) -
-     &                        STT(I,J,L,IDTTSOA2) -
-     &                        STT(I,J,L,IDTTSOA3) -
-     &                        STT(I,J,L,IDTTSOA0)  )
+     &                        STT(I,J,L,IND_('TSOA1')) -
+     &                        STT(I,J,L,IND_('TSOA2')) -
+     &                        STT(I,J,L,IND_('TSOA3')) -
+     &                        STT(I,J,L,IND_('TSOA0'))  )
       ENDIF
 
       !-----------------------------
       ! Transient mass bal prod/evap
       ! (hotp 6/5/10)
       !-----------------------------
-      IDTSPECIES = IDTTSOA1
+      IDTSPECIES = IND_('TSOA1')
       IPR = 1
       AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
@@ -4295,7 +4328,7 @@
      &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
-      IDTSPECIES = IDTTSOA2
+      IDTSPECIES = IND_('TSOA2')
       IPR = 2
       AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
@@ -4306,7 +4339,7 @@
      &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
-      IDTSPECIES = IDTTSOA3
+      IDTSPECIES = IND_('TSOA3')
       IPR = 3
       AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
@@ -4318,7 +4351,7 @@
       ENDIF
 
       ! Add C*=0.1 product (hotp 6/12/10)
-      IDTSPECIES = IDTTSOA0
+      IDTSPECIES = IND_('TSOA0')
       IPR = 4
       AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
@@ -4333,15 +4366,15 @@
       ! Update tracers [kg]
       !-----------------------------
       ! gas phase
-      STT(I,J,L,IDTTSOG1) = MAX( GM0(1,JSV), 1e-32_fp )
-      STT(I,J,L,IDTTSOG2) = MAX( GM0(2,JSV), 1e-32_fp )
-      STT(I,J,L,IDTTSOG3) = MAX( GM0(3,JSV), 1e-32_fp )
-      STT(I,J,L,IDTTSOG0) = MAX( GM0(4,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('TSOG1')) = MAX( GM0(1,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('TSOG2')) = MAX( GM0(2,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('TSOG3')) = MAX( GM0(3,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('TSOG0')) = MAX( GM0(4,JSV), 1e-32_fp )
       ! aerosol phase
-      STT(I,J,L,IDTTSOA1) = MAX( AM0(1,JSV), 1e-32_fp )
-      STT(I,J,L,IDTTSOA2) = MAX( AM0(2,JSV), 1e-32_fp )
-      STT(I,J,L,IDTTSOA3) = MAX( AM0(3,JSV), 1e-32_fp )
-      STT(I,J,L,IDTTSOA0) = MAX( AM0(4,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('TSOA1')) = MAX( AM0(1,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('TSOA2')) = MAX( AM0(2,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('TSOA3')) = MAX( AM0(3,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('TSOA0')) = MAX( AM0(4,JSV), 1e-32_fp )
 
       !=================================================================
       ! Semivolatile Group 2: isoprene (hotp 5/22/10)
@@ -4365,16 +4398,16 @@
       IF ( ND07 > 0 .and. L <= LD07 ) THEN
          AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
      &                    + ( AERMASS - 
-     &                        STT(I,J,L,IDTISOA1) -
-     &                        STT(I,J,L,IDTISOA2) -
-     &                        STT(I,J,L,IDTISOA3)   )
+     &                        STT(I,J,L,IND_('ISOA1')) -
+     &                        STT(I,J,L,IND_('ISOA2')) -
+     &                        STT(I,J,L,IND_('ISOA3'))   )
       ENDIF
 
       !-----------------------------
       ! Transient mass bal prod/evap
       ! (hotp 6/5/10)
       !-----------------------------
-      IDTSPECIES = IDTISOA1
+      IDTSPECIES = IND_('ISOA1')
       IPR = 1
       AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
@@ -4385,7 +4418,7 @@
      &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
-      IDTSPECIES = IDTISOA2
+      IDTSPECIES = IND_('ISOA2')
       IPR = 2
       AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
@@ -4396,7 +4429,7 @@
      &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
-      IDTSPECIES = IDTISOA3
+      IDTSPECIES = IND_('ISOA3')
       IPR = 3
       AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
@@ -4411,13 +4444,13 @@
       ! Update tracers [kg]
       !-----------------------------
       ! gas phase
-      STT(I,J,L,IDTISOG1) = MAX( GM0(1,JSV), 1e-32_fp )
-      STT(I,J,L,IDTISOG2) = MAX( GM0(2,JSV), 1e-32_fp )
-      STT(I,J,L,IDTISOG3) = MAX( GM0(3,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('ISOG1')) = MAX( GM0(1,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('ISOG2')) = MAX( GM0(2,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('ISOG3')) = MAX( GM0(3,JSV), 1e-32_fp )
       ! aerosol phase
-      STT(I,J,L,IDTISOA1) = MAX( AM0(1,JSV), 1e-32_fp )
-      STT(I,J,L,IDTISOA2) = MAX( AM0(2,JSV), 1e-32_fp )
-      STT(I,J,L,IDTISOA3) = MAX( AM0(3,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('ISOA1')) = MAX( AM0(1,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('ISOA2')) = MAX( AM0(2,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('ISOA3')) = MAX( AM0(3,JSV), 1e-32_fp )
 
       !=================================================================
       ! Semivolatile Group 3: benzene, toluene, xylene, naphthalene/IVOC
@@ -4444,17 +4477,17 @@
       IF ( ND07 > 0 .and. L <= LD07 ) THEN
          AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
      &                    + ( AERMASS - 
-     &                        STT(I,J,L,IDTASOAN) -
-     &                        STT(I,J,L,IDTASOA1) -
-     &                        STT(I,J,L,IDTASOA2) -
-     &                        STT(I,J,L,IDTASOA3)   )
+     &                        STT(I,J,L,IND_('ASOAN')) -
+     &                        STT(I,J,L,IND_('ASOA1')) -
+     &                        STT(I,J,L,IND_('ASOA2')) -
+     &                        STT(I,J,L,IND_('ASOA3'))   )
       ENDIF
 
       !-----------------------------
       ! Transient mass bal prod/evap
       ! (hotp 6/5/10)
       !-----------------------------
-      IDTSPECIES = IDTASOA1
+      IDTSPECIES = IND_('ASOA1')
       IPR = 1
       AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
@@ -4465,7 +4498,7 @@
      &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
-      IDTSPECIES = IDTASOA2
+      IDTSPECIES = IND_('ASOA2')
       IPR = 2
       AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
@@ -4476,7 +4509,7 @@
      &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
-      IDTSPECIES = IDTASOA3
+      IDTSPECIES = IND_('ASOA3')
       IPR = 3
       AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
@@ -4487,7 +4520,7 @@
      &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
-      IDTSPECIES = IDTASOAN
+      IDTSPECIES = IND_('ASOAN')
       IPR = 4
       AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
@@ -4506,24 +4539,24 @@
       ! HIGH NOX  ! update dims (hotp 5/22/10)
       !NOX = NHIGHNOX
       ! gas phase
-      STT(I,J,L,IDTASOG1) = MAX( GM0(1,JSV), 1e-32_fp )
-      STT(I,J,L,IDTASOG2) = MAX( GM0(2,JSV), 1e-32_fp )
-      STT(I,J,L,IDTASOG3) = MAX( GM0(3,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('ASOG1')) = MAX( GM0(1,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('ASOG2')) = MAX( GM0(2,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('ASOG3')) = MAX( GM0(3,JSV), 1e-32_fp )
       ! aerosol phase
-      STT(I,J,L,IDTASOA1) = MAX( AM0(1,JSV), 1e-32_fp )
-      STT(I,J,L,IDTASOA2) = MAX( AM0(2,JSV), 1e-32_fp )
-      STT(I,J,L,IDTASOA3) = MAX( AM0(3,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('ASOA1')) = MAX( AM0(1,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('ASOA2')) = MAX( AM0(2,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('ASOA3')) = MAX( AM0(3,JSV), 1e-32_fp )
       ! LOW NOX (only 1 aerosol phase)
       !NOX = NLOWNOX ! store in spot 4 (hotp 5/22/10)
-      STT(I,J,L,IDTASOAN) = MAX( AM0(4,JSV), 1e-32_fp )
+      STT(I,J,L,IND_('ASOAN')) = MAX( AM0(4,JSV), 1e-32_fp )
 
       !=================================================================
       ! Semivolatile 4: POA/primary SVOCs
       ! Lump of products of 10th Hydrocarbon class (POA) 
       ! semivolpoa2: lump POA (hotp 2/27/09)
       !=================================================================
-      IF ( IDTPOA1 > 0 .and. IDTPOA2 > 0 .and.
-     &     IDTPOG1 > 0 .and. IDTPOG2 > 0 ) THEN
+      IF ( IND_('POA1') > 0 .and. IND_('POA2') > 0 .and.
+     &     IND_('POG1') > 0 .and. IND_('POG2') > 0 ) THEN
  
          ! Initialize
          !JHC     = 10
@@ -4543,15 +4576,15 @@
          !---------------------------
          IF ( ND07 > 0 .and. L <= LD07 ) THEN
             AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
-     &                         + ( AERMASS - STT(I,J,L,IDTPOA1) -
-     &                                       STT(I,J,L,IDTPOA2) )
+     &                         + ( AERMASS - STT(I,J,L,IND_('POA1')) -
+     &                                       STT(I,J,L,IND_('POA2')) )
          ENDIF
 
          !---------------------------
          ! Transient SOA PROD/EVAP
          ! (hotp 6/5/10)
          !---------------------------
-         IDTSPECIES = IDTPOA1
+         IDTSPECIES = IND_('POA1')
          IPR = 1
          AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
          IF ( AERCHANGE .GT. 0e+0_fp ) THEN
@@ -4562,7 +4595,7 @@
      &                    SPECSOAEVAP(I,J,L,IPR,JSV)
          ENDIF
 
-         IDTSPECIES = IDTPOA2
+         IDTSPECIES = IND_('POA2')
          IPR = 2
          AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
          IF ( AERCHANGE .GT. 0e+0_fp ) THEN
@@ -4577,11 +4610,11 @@
          ! Update tracers [kg]
          !---------------------------
          ! gas phase
-         STT(I,J,L,IDTPOG1) = MAX( GM0(1,JSV), 1.e-32_fp )
-         STT(I,J,L,IDTPOG2) = MAX( GM0(2,JSV), 1.e-32_fp )
+         STT(I,J,L,IND_('POG1')) = MAX( GM0(1,JSV), 1.e-32_fp )
+         STT(I,J,L,IND_('POG2')) = MAX( GM0(2,JSV), 1.e-32_fp )
          ! aerosol phase
-         STT(I,J,L,IDTPOA1) = MAX( AM0(1,JSV), 1.e-32_fp )
-         STT(I,J,L,IDTPOA2) = MAX( AM0(2,JSV), 1.e-32_fp )
+         STT(I,J,L,IND_('POA1')) = MAX( AM0(1,JSV), 1.e-32_fp )
+         STT(I,J,L,IND_('POA2')) = MAX( AM0(2,JSV), 1.e-32_fp )
 
       ENDIF ! POA
 
@@ -4590,8 +4623,8 @@
       ! Lump of products of 11th Hydrocarbon class (OPOA) 
       ! semivolpoa4opoa: lump OPOA (hotp 2/27/09)
       !=================================================================
-      IF ( IDTOPOA1 > 0 .and. IDTOPOA2 > 0 .and.
-     &     IDTOPOG1 > 0 .and. IDTOPOG2 > 0 ) THEN
+      IF ( IND_('OPOA1') > 0 .and. IND_('OPOA2') > 0 .and.
+     &     IND_('OPOG1') > 0 .and. IND_('OPOG2') > 0 ) THEN
  
          ! Initialize
          GASMASS = 0e+0_fp
@@ -4610,15 +4643,15 @@
          !---------------------------
          IF ( ND07 > 0 .and. L <= LD07 ) THEN
             AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
-     &                         + ( AERMASS - STT(I,J,L,IDTOPOA1) -
-     &                                       STT(I,J,L,IDTOPOA2) )
+     &                         + ( AERMASS - STT(I,J,L,IND_('OPOA1')) -
+     &                                       STT(I,J,L,IND_('OPOA2')) )
          ENDIF
 
          !---------------------------
          ! Transient SOA PROD/EVAP
          ! (hotp 6/5/10)
          !---------------------------
-         IDTSPECIES = IDTOPOA1
+         IDTSPECIES = IND_('OPOA1')
          IPR = 1
          AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
          IF ( AERCHANGE .GT. 0e+0_fp ) THEN
@@ -4629,7 +4662,7 @@
      &                    SPECSOAEVAP(I,J,L,IPR,JSV)
          ENDIF
 
-         IDTSPECIES = IDTOPOA2
+         IDTSPECIES = IND_('OPOA2')
          IPR = 2
          AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
          IF ( AERCHANGE .GT. 0e+0_fp ) THEN
@@ -4644,11 +4677,11 @@
          ! Update tracers [kg]
          !---------------------------
          ! gas phase
-         STT(I,J,L,IDTOPOG1) = MAX( GM0(1,JSV), 1.e-32_fp )
-         STT(I,J,L,IDTOPOG2) = MAX( GM0(2,JSV), 1.e-32_fp )
+         STT(I,J,L,IND_('OPOG1')) = MAX( GM0(1,JSV), 1.e-32_fp )
+         STT(I,J,L,IND_('OPOG2')) = MAX( GM0(2,JSV), 1.e-32_fp )
          ! aerosol phase
-         STT(I,J,L,IDTOPOA1) = MAX( AM0(1,JSV), 1.e-32_fp )
-         STT(I,J,L,IDTOPOA2) = MAX( AM0(2,JSV), 1.e-32_fp )
+         STT(I,J,L,IND_('OPOA1')) = MAX( AM0(1,JSV), 1.e-32_fp )
+         STT(I,J,L,IND_('OPOA2')) = MAX( AM0(2,JSV), 1.e-32_fp )
 
       ENDIF ! OPOA
 
@@ -4686,9 +4719,10 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
-      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1
-      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1
-      USE TRACERID_MOD,       ONLY : IDTNH4,   IDTAW1
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTNH4,   IDTAW1
+      USE gigc_state_chm_mod, only : IND_
       USE TOMAS_MOD,          ONLY : IBINS,    AVGMASS,  ICOMP,   IDIAG
       USE TOMAS_MOD,          ONLY : SRTECIL,  SRTECOB,  SRTOCIL
       USE TOMAS_MOD,          ONLY : SRTOCOB,  SRTSO4,   SRTNH4
@@ -4728,6 +4762,7 @@
       REAL(fp)  :: MDIST2(IBINS,ICOMP)
       REAL*4    :: TSCALE, BOXVOL, TEMP, PRES
       INTEGER   :: I, J, L, K, C, PBL_MAX
+      INTEGER   :: IDTNK1, IDTAW1, IDTNH4
       REAL(fp)  :: F_OF_PBL
       LOGICAL   :: ERRORSWITCH, PDBUG
       REAL*4    :: N0(LLPAR,IBINS)
@@ -4748,6 +4783,10 @@
       !=================================================================
       ! EMITSGC begins here!
       !=================================================================
+      
+      IDTNK1 = IND_('NK1')
+	  IDTAW1 = IND_('AW1')
+	  IDTNH4 = IND_('NH4')
 
       IF ( Input_Opt%LNLPBL ) THEN 
          print *,'Currently subroutine EMITHIGH2 does not support ',
@@ -5170,7 +5209,8 @@ ccc
       USE PBL_MIX_MOD,           ONLY : GET_PBL_MAX_L
       USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL
       USE TIME_MOD,              ONLY : GET_TS_EMIS
-      USE TRACERID_MOD
+      !JDMCT USE TRACERID_MOD
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS:
 !      
@@ -5254,13 +5294,13 @@ ccc
       ENDIF
  
       ! Get HEMCO ID of species POG1 and POG2
-      HCOPOG1 = GetHcoID( TrcID=IDTPOG1 )
+      HCOPOG1 = GetHcoID( TrcID=IND_('POG1') )
       IF ( HCOPOG1 > 0 ) THEN
          IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG1)%Emis%Val) ) THEN
             HCOPOG1 = -1
          ENDIF
       ENDIF
-      HCOPOG2 = GetHcoID( TrcID=IDTPOG2 )
+      HCOPOG2 = GetHcoID( TrcID=IND_('POG2') )
       IF ( HCOPOG2 > 0 ) THEN
          IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG2)%Emis%Val) ) THEN
             HCOPOG2 = -1
@@ -5364,8 +5404,9 @@ ccc
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TOMAS_MOD,          ONLY : IBINS,     AVGMASS, SOACOND
       USE TOMAS_MOD,          ONLY : ICOMP,     IDIAG, xSOA
-      USE TRACERID_MOD,       ONLY : IDTECIL1,  IDTECOB1, IDTNK1
-      USE TRACERID_MOD,       ONLY : IDTOCIL1,  IDTOCOB1
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTECIL1,  IDTECOB1, IDTNK1
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTOCIL1,  IDTOCOB1
+      USE gigc_state_chm_mod, only : IND_
 
       ! HEMCO update
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState, GetHcoDiagn
@@ -5617,8 +5658,9 @@ ccc
       OCPO_BIOB_BULK = OCPO_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
 
       ! ---- SCALE INTO TOMAS BINS ---------------------------
-      IF ( IDTNK1 > 0 .AND. IDTECIL1 > 0 .AND.
-     &     IDTECOB1 > 0 .AND. IDTOCIL1 > 0 .AND. IDTOCOB1 > 1 ) THEN
+      IF ( IND_('NK1') > 0 .AND. IND_('ECIL1') > 0 .AND.
+     &     IND_('ECOB1') > 0 .AND. IND_('OCIL1') > 0 .AND.
+     &     IND_('OCOB1') > 1 ) THEN
 
          BCFF(:,:,:,1) = SCALECARB( BCPI_ANTH_BULK(:,:), 1, 1 )
          BCBF(:,:,:,1) = SCALECARB( BCPI_BIOF_BULK(:,:), 2, 1 ) 
@@ -5764,8 +5806,9 @@ ccc
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
-      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1
-      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1
+      USE gigc_state_chm_mod, only : IND_
       USE TOMAS_MOD,          ONLY : IBINS
 !
 ! !INPUT PARAMETERS: 
@@ -5793,6 +5836,8 @@ ccc
 ! !LOCAL VARIABLES:
 !
       INTEGER                       :: I, J, L, PBL_MAX, K
+      INTEGER                       :: IDTECIL1, IDTECOB1
+      INTEGER                       :: IDTOCIL1, IDTOCOB1, IDTNK1
       REAL(fp)                        :: F_OF_PBL
 
       ! Pointers
@@ -5823,6 +5868,12 @@ ccc
      &        'the new non-local PBL scheme!'
          stop
       ENDIF
+
+IDTECIL1 = IND_('ECIL1')
+IDTECOB1 = IND_('ECOB1')
+IDTOCIL1 = IND_('OCIL1')
+IDTOCOB1 = IND_('OCOB1')
+IDTNK1   = IND_('TNK1')
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -6041,7 +6092,8 @@ ccc
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDOH
+      !JDMCT USE TRACERID_MOD,       ONLY : IDOH
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6084,7 +6136,7 @@ ccc
          ! Take OH from State_Chm%Species [molec/cm3]
          ! OH is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-            OH_MOLEC_CM3 = State_Chm%Species(I,J,L,IDOH)
+            OH_MOLEC_CM3 = State_Chm%Species(I,J,L,IND_('OH'))
          ELSE
             OH_MOLEC_CM3 = 0e+0_fp
          ENDIF
@@ -6155,7 +6207,8 @@ ccc
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDNO3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDNO3
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6208,7 +6261,7 @@ ccc
          ! Take NO3 from the State_Chm%Species [molec/cm3]
          ! NO3 is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-            NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,IDNO3)
+            NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,IND_('NO3'))
          ELSE
             NO3_MOLEC_CM3 = 0e+0_fp
          ENDIF
@@ -6297,7 +6350,8 @@ ccc
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDO3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDO3
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6351,7 +6405,7 @@ ccc
          ! Get O3 from State_Chm%Species [molec/cm3]
          ! O3 is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-            O3_MOLEC_CM3 = State_Chm%Species(I,J,L,IDO3)
+            O3_MOLEC_CM3 = State_Chm%Species(I,J,L,IND_('O3'))
          ELSE
             O3_MOLEC_CM3 = 0e+0_fp
          ENDIF
@@ -6435,9 +6489,10 @@ ccc
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PhysConstants,      ONLY : AVO
-      USE TRACERID_MOD,       ONLY : IDTBENZ, IDTTOLU, IDTXYLE
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTBENZ, IDTTOLU, IDTXYLE
       ! NAPSOA: add IVOC surrogate (NAP) (hotp 7/22/09)
-      USE TRACERID_MOD,       ONLY : IDTNAP
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTNAP
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6518,7 +6573,7 @@ ccc
      &                    ( 6e+0_fp * 12e+0_fp + 6e+0_fp )
 
                ! Tracer index of the parent aromatic
-               IDTAROM = IDTBENZ
+               IDTAROM = IND_('BENZ')
 
             ! Toluene
             !ELSEIF ( JHC == 8 ) THEN ! hotp 5/13/10
@@ -6544,7 +6599,7 @@ ccc
      &                    ( 7e+0_fp * 12e+0_fp + 8e+0_fp )
 
                ! Tracer index of the parent aromatic
-               IDTAROM = IDTTOLU
+               IDTAROM = IND_('TOLU')
 
             ! XYLENE
             !ELSEIF ( JHC == 9 ) THEN ! hotp 5/13/10
@@ -6571,7 +6626,7 @@ ccc
      &                    ( 8e+0_fp * 12e+0_fp + 10e+0_fp ) 
 
                ! Tracer index of the parent aromatic
-               IDTAROM = IDTXYLE
+               IDTAROM = IND_('XYLE')
 
             ! NAPHTHALENE (IVOC surrogate) (hotp 7/22/09)
             !ELSEIF ( JHC == 12 ) THEN ! hotp 5/13/10
@@ -6593,7 +6648,7 @@ ccc
      &                    ( 12e+0_fp * 10e+0_fp + 8e+0_fp )
 
                ! Tracer index of the parent aromatic
-               IDTAROM = IDTNAP
+               IDTAROM = IND_('NAP')
 
             ELSE
 
@@ -6682,7 +6737,8 @@ ccc
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PhysConstants,      ONLY : AVO
-      USE TRACERID_MOD,       ONLY : IDTISOP
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTISOP
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6733,8 +6789,8 @@ ccc
             ! MolecRatio        : atom C / molec isop
             ! State_Met%AIRVOL  : m3 (converted here to cm3)
             !-----------------------------------------------------------
-            MolecRatio = State_Chm%SpcData(IDTISOP)%Info%MolecRatio
-            ISOP_MW_G  = State_Chm%SpcData(IDTISOP)%Info%emMW_g
+            MolecRatio = State_Chm%SpcData(IND_('ISOP'))%Info%MolecRatio
+            ISOP_MW_G  = State_Chm%SpcData(IND_('ISOP'))%Info%emMW_g
 
             DOH = State_Chm%Species(I,J,L,ILISOPOH)
      &          * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
@@ -6944,7 +7000,8 @@ ccc
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTGLYX, IDTSOAG
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTGLYX, IDTSOAG
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -6988,6 +7045,7 @@ ccc
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: I, J, L
+      INTEGER			  :: IDTGLYX, IDTSOAG
       REAL(fp)            :: DTCHEM    ! Chemistry time step [s]
       REAL(fp)            :: XAIRM     ! Air mass [kg/box]
       REAL(fp)            :: XAIRM3    ! Air volume [m3]
@@ -7015,6 +7073,9 @@ ccc
       !=================================================================
       ! SOAG_CLOUD begins here!
       !=================================================================
+      
+      IDTGLYX = IND_('GLYX')
+      IDTSOAG = IND_('SOAG')
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -7187,7 +7248,8 @@ ccc
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTMGLY, IDTSOAM
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTMGLY, IDTSOAM
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -7228,6 +7290,7 @@ ccc
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: I, J, L
+      INTEGER			  :: IDTMGLY, IDTSOAM
       REAL(fp)            :: DTCHEM    ! Chemistry time step [s]
       REAL(fp)            :: XAIRM     ! Air mass [kg/box]
       REAL(fp)            :: XAIRM3    ! Air volume [m3]
@@ -7255,6 +7318,9 @@ ccc
       !=================================================================
       ! SOAM_CLOUD begins here!
       !=================================================================
+      
+      IDTMGLY = IND_('MGLY')
+      IDTSOAM = IND_('SOAM')
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -7421,19 +7487,20 @@ ccc
 ! !USES:
 !
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,       ONLY : IDTASOAN
-      USE TRACERID_MOD,       ONLY : IDTASOA1, IDTASOA2, IDTASOA3
-      USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
-      USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOG1
-      USE TRACERID_MOD,       ONLY : IDTPOA2,  IDTPOG2
-      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOG1
-      USE TRACERID_MOD,       ONLY : IDTOPOA2, IDTOPOG2
-      USE TRACERID_MOD,       ONLY : IDTOCPI,  IDTOCPO
-      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
-      USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTASOAN
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTASOA1, IDTASOA2, IDTASOA3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOG1
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTPOA2,  IDTPOG2
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOG1
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTOPOA2, IDTOPOG2
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTOCPI,  IDTOCPO
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -7497,28 +7564,29 @@ ccc
       STT => State_Chm%Tracers
 
       ! Calculate mass of absorbing organic medium 
-      MOTEMP = STT(I,J,L,IDTASOAN) +
-     &         STT(I,J,L,IDTASOA1) +
-     &         STT(I,J,L,IDTASOA2) +
-     &         STT(I,J,L,IDTASOA3) +
-     &         STT(I,J,L,IDTTSOA1) +
-     &         STT(I,J,L,IDTTSOA2) +
-     &         STT(I,J,L,IDTTSOA3) +
-     &         STT(I,J,L,IDTTSOA0) +
-     &         STT(I,J,L,IDTISOA1) +
-     &         STT(I,J,L,IDTISOA2) +
-     &         STT(I,J,L,IDTISOA3)
+      MOTEMP = STT(I,J,L,IND_('ASOAN')) +
+     &         STT(I,J,L,IND_('ASOA1')) +
+     &         STT(I,J,L,IND_('ASOA2')) +
+     &         STT(I,J,L,IND_('ASOA3')) +
+     &         STT(I,J,L,IND_('TSOA1')) +
+     &         STT(I,J,L,IND_('TSOA2')) +
+     &         STT(I,J,L,IND_('TSOA3')) +
+     &         STT(I,J,L,IND_('TSOA0')) +
+     &         STT(I,J,L,IND_('ISOA1')) +
+     &         STT(I,J,L,IND_('ISOA2')) +
+     &         STT(I,J,L,IND_('ISOA3'))
 
       ! Add primary material as appropriate
-      IF ( IDTPOA1 > 0 ) THEN
+      IF ( IND_('POA1') > 0 ) THEN
          MOTEMP = MOTEMP              +
-     &            STT(I,J,L,IDTPOA1 ) * OCFPOA  +
-     &            STT(I,J,L,IDTPOA2 ) * OCFPOA  +
-     &            STT(I,J,L,IDTOPOA1) * OCFOPOA +
-     &            STT(I,J,L,IDTOPOA2) * OCFOPOA
-      ELSEIF ( IDTOCPI > 0 ) THEN
+     &            STT(I,J,L,IND_('POA1') ) * OCFPOA  +
+     &            STT(I,J,L,IND_('POA2') ) * OCFPOA  +
+     &            STT(I,J,L,IND_('OPOA1')) * OCFOPOA +
+     &            STT(I,J,L,IND_('OPOA2')) * OCFOPOA
+      ELSEIF ( IND_('OCPI') > 0 ) THEN
          MOTEMP = MOTEMP +
-     &           ( STT(I,J,L,IDTOCPI) + STT(I,J,L,IDTOCPO) ) * 2.1e+0_fp
+     &           ( STT(I,J,L,IND_('OCPI')) + 
+     &			 STT(I,J,L,IND_('OCPO')) ) * 2.1e+0_fp
       ENDIF
 
       ! Convert Mo from [kg] to [ug/m3]
@@ -7547,9 +7615,9 @@ ccc
       ! Product 1
       IPR = 1
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTTSOG1) * KOMIJL(IPR,JSV) * MOTEMP 
+      OATEMP = STT(I,J,L,IND_('TSOG1')) * KOMIJL(IPR,JSV) * MOTEMP 
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTTSOA1) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IND_('TSOA1')) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV',  IPR, JSV, 
@@ -7559,25 +7627,25 @@ ccc
       ! Product 2
       IPR = 2
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTTSOG2) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = STT(I,J,L,IND_('TSOG2')) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTTSOA2) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IND_('TSOA2')) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
      &              ' in box ', I, J, L,
      &              MSOACHEM,MOTEMP,LOW,TOL,
      &              ASOANGAS, ASOANAER, OCPIOCPO,
-     &              STT(I,J,L,IDTTSOA2),STT(I,J,L,IDTTSOG2)
+     &              STT(I,J,L,IND_('TSOA2')),STT(I,J,L,IND_('TSOG2'))
          WRITE(*,*) 'KOM',KOMIJL(IPR,JSV),OATEMP,CONVFAC
       ENDIF
 
       ! Product 3
       IPR = 3
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTTSOG3) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = STT(I,J,L,IND_('TSOG3')) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTTSOA3) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IND_('TSOA3')) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
@@ -7587,16 +7655,16 @@ ccc
       ! Product 4, C*=0.1
       IPR = 4
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTTSOG0) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = STT(I,J,L,IND_('TSOG0')) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTTSOA0) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IND_('TSOA0')) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
      &              ' in box ', I, J, L,
      &              MSOACHEM,MOTEMP,LOW,TOL,
      &              ASOANGAS, ASOANAER, OCPIOCPO,
-     &              STT(I,J,L,IDTTSOA0),STT(I,J,L,IDTTSOG0)
+     &              STT(I,J,L,IND_('TSOA0')),STT(I,J,L,IND_('TSOG0'))
          WRITE(*,*) 'KOM',KOMIJL(IPR,JSV),OATEMP,CONVFAC
       ENDIF
 
@@ -7609,9 +7677,9 @@ ccc
       ! Product 1
       IPR = 1
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTISOG1) * KOMIJL(IPR,JSV) * MOTEMP 
+      OATEMP = STT(I,J,L,IND_('ISOG1')) * KOMIJL(IPR,JSV) * MOTEMP 
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTISOA1) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IND_('ISOA1')) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
@@ -7621,9 +7689,9 @@ ccc
       ! Product 2
       IPR = 2
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTISOG2) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = STT(I,J,L,IND_('ISOG2')) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTISOA2) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IND_('ISOA2')) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
@@ -7633,9 +7701,9 @@ ccc
       ! Product 3
       IPR = 3
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTISOG3) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = STT(I,J,L,IND_('ISOG3')) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTISOA3) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IND_('ISOA3')) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
@@ -7652,9 +7720,9 @@ ccc
       !NOX = NHIGHNOX
       IPR = 1
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTASOG1) * KOMIJL(IPR,JSV) * MOTEMP 
+      OATEMP = STT(I,J,L,IND_('ASOG1')) * KOMIJL(IPR,JSV) * MOTEMP 
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTASOA1) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IND_('ASOA1')) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
@@ -7665,9 +7733,9 @@ ccc
       !NOX = NHIGHNOX
       IPR = 2
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTASOG2) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = STT(I,J,L,IND_('ASOG2')) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTASOA2) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IND_('ASOA2')) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
@@ -7678,9 +7746,9 @@ ccc
       !NOX = NHIGHNOX
       IPR = 3
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTASOG3) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = STT(I,J,L,IND_('ASOG3')) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTASOA3) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IND_('ASOA3')) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
@@ -7693,7 +7761,7 @@ ccc
       !----------------------------------------------------
       ! POA: total POA+POG in kgC
       !----------------------------------------------------
-      IF ( IDTPOA1 > 0 ) THEN
+      IF ( IND_('POA1') > 0 ) THEN
       JHC = PARENTPOA
       JSV = IDSV(JHC)
       NOX = NONLYNOX
@@ -7702,9 +7770,9 @@ ccc
       NOX = NONLYNOX
       IPR = 1
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTPOG1) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = STT(I,J,L,IND_('POG1')) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTPOA1) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IND_('POA1')) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem NOX, PR, JSV', NOX, IPR, JSV, 
@@ -7715,9 +7783,9 @@ ccc
       NOX = NONLYNOX
       IPR = 2
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTPOG2) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = STT(I,J,L,IND_('POG2')) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTPOA2) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IND_('POA2')) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem NOX, PR, JSV', NOX, IPR, JSV, 
@@ -7729,7 +7797,7 @@ ccc
       !----------------------------------------------------
       ! OPOA: total SOA+SOG in kgC
       !----------------------------------------------------
-      IF ( IDTOPOA1 > 0 ) THEN
+      IF ( IND_('OPOA1') > 0 ) THEN
       JHC = PARENTOPOA
       JSV = IDSV(JHC)
       NOX = NONLYNOX
@@ -7738,9 +7806,9 @@ ccc
       NOX = NONLYNOX
       IPR = 1
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTOPOG1) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = STT(I,J,L,IND_('OPOG1')) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTOPOA1) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IND_('OPOA1')) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem NOX, PR, JSV', NOX, IPR, JSV, 
@@ -7751,9 +7819,9 @@ ccc
       NOX = NONLYNOX
       IPR = 2
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTOPOG2) * KOMIJL(IPR,JSV) * MOTEMP 
+      OATEMP = STT(I,J,L,IND_('OPOG2')) * KOMIJL(IPR,JSV) * MOTEMP 
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTOPOA2) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IND_('OPOA2')) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem NOX, PR, JSV', NOX, IPR, JSV, 
@@ -7788,18 +7856,19 @@ ccc
 !
       USE CMN_SIZE_MOD
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,       ONLY : IDTASOAN
-      USE TRACERID_MOD,       ONLY : IDTASOA1, IDTASOA2, IDTASOA3
-      USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
-      USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOG1
-      USE TRACERID_MOD,       ONLY : IDTPOA2,  IDTPOG2
-      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOG1
-      USE TRACERID_MOD,       ONLY : IDTOPOA2, IDTOPOG2
-      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
-      USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTASOAN
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTASOA1, IDTASOA2, IDTASOA3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOG1
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTPOA2,  IDTPOG2
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOG1
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTOPOA2, IDTOPOG2
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -7818,13 +7887,55 @@ ccc
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I, J, L, NOX, JHC, JSV
-
+      INTEGER :: IDTASOAN
+      INTEGER :: IDTASOA1, IDTASOA2, IDTASOA3
+      INTEGER :: IDTASOG1, IDTASOG2, IDTASOG3
+      INTEGER :: IDTPOA1,  IDTPOG1
+      INTEGER :: IDTPOA2,  IDTPOG2
+      INTEGER :: IDTOPOA1, IDTOPOG1
+      INTEGER :: IDTOPOA2, IDTOPOG2
+      INTEGER :: IDTTSOA1, IDTTSOA2, IDTTSOA3
+      INTEGER :: IDTTSOG1, IDTTSOG2, IDTTSOG3
+      INTEGER :: IDTTSOA0, IDTTSOG0
+      INTEGER :: IDTISOA1, IDTISOA2, IDTISOA3
+      INTEGER :: IDTISOG1, IDTISOG2, IDTISOG3
+      
       ! Pointers
       REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! SAVE_OAGINIT starts here
       !=================================================================
+
+	  IDTASOAN = IND_('ASOAN')
+      IDTASOA1 = IND_('ASOA1')
+      IDTASOA2 = IND_('ASOA2')
+      IDTASOA3 = IND_('ASOA3')
+      IDTASOG1 = IND_('ASOG1')
+      IDTASOG2 = IND_('ASOG2')
+      IDTASOG3 = IND_('ASOG3')
+      IDTPOA1 = IND_('POA1') 
+      IDTPOG1 = IND_('POG1')
+      IDTPOA2 = IND_('POA2') 
+      IDTPOG2 = IND_('POG2')
+      IDTOPOA1 = IND_('OPOA1')
+      IDTOPOG1 = IND_('OPOG1')
+      IDTOPOA2 = IND_('OPOA2')
+      IDTOPOG2 = IND_('OPOG2')
+      IDTTSOA1 = IND_('TSOA1')
+      IDTTSOA2 = IND_('TSOA2')
+      IDTTSOA3 = IND_('TSOA3')
+      IDTTSOG1 = IND_('TSOG1')
+      IDTTSOG2 = IND_('TSOG2')
+      IDTTSOG3 = IND_('TSOG3')
+      IDTTSOA0 = IND_('TSOA0')
+      IDTTSOG0 = IND_('TSOG0')
+      IDTISOA1 = IND_('ISOA1')
+      IDTISOA2 = IND_('ISOA2')
+      IDTISOA3 = IND_('ISOA3')
+      IDTISOG1 = IND_('ISOG1')
+      IDTISOG2 = IND_('ISOG2')
+      IDTISOG3 = IND_('ISOG3')
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       STT => State_Chm%Tracers
@@ -7934,18 +8045,19 @@ ccc
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,       ONLY : IDTASOAN
-      USE TRACERID_MOD,       ONLY : IDTASOA1, IDTASOA2, IDTASOA3
-      USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
-      USE TRACERID_MOD,       ONLY : IDTPOA1, IDTPOG1
-      USE TRACERID_MOD,       ONLY : IDTPOA2, IDTPOG2
-      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOG1
-      USE TRACERID_MOD,       ONLY : IDTOPOA2, IDTOPOG2
-      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
-      USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTASOAN
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTASOA1, IDTASOA2, IDTASOA3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTPOA1, IDTPOG1
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTPOA2, IDTPOG2
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOG1
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTOPOA2, IDTOPOG2
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -7977,6 +8089,18 @@ ccc
       ! Scalars
       LOGICAL :: prtDebug
       INTEGER :: I, J, L, NOX, JHC, JSV, IPR
+      INTEGER :: IDTASOAN
+      INTEGER :: IDTASOA1, IDTASOA2, IDTASOA3
+      INTEGER :: IDTASOG1, IDTASOG2, IDTASOG3
+      INTEGER :: IDTPOA1, IDTPOG1
+      INTEGER :: IDTPOA2, IDTPOG2
+      INTEGER :: IDTOPOA1, IDTOPOG1
+      INTEGER :: IDTOPOA2, IDTOPOG2
+      INTEGER :: IDTTSOA1, IDTTSOA2, IDTTSOA3
+      INTEGER :: IDTTSOG1, IDTTSOG2, IDTTSOG3
+      INTEGER :: IDTTSOA0, IDTTSOG0
+      INTEGER :: IDTISOA1, IDTISOA2, IDTISOA3
+      INTEGER :: IDTISOG1, IDTISOG2, IDTISOG3
       REAL(fp)  :: TEMPDELTA(MNOX,MPROD)
       REAL(fp)  :: TEMPSOAG
       REAL(fp)  :: MBDIFF
@@ -7990,6 +8114,36 @@ ccc
       !=================================================================
       ! CHECK_MB starts here
       !=================================================================
+      
+      IDTASOAN = IND_('ASOAN')
+      IDTASOA1 = IND_('ASOA1')
+      IDTASOA2 = IND_('ASOA2')
+      IDTASOA3 = IND_('ASOA3')
+      IDTASOG1 = IND_('ASOG1')
+      IDTASOG2 = IND_('ASOG2')
+      IDTASOG3 = IND_('ASOG3')
+      IDTPOA1 = IND_('POA1')
+      IDTPOG1 = IND_('POG1')
+      IDTPOA2 = IND_('POA2')
+      IDTPOG2 = IND_('POG2')
+      IDTOPOA1 = IND_('OPOA1')
+      IDTOPOG1 = IND_('OPOG1')
+      IDTOPOA2 = IND_('OPOA2')
+      IDTOPOG2 = IND_('OPOG2')
+      IDTTSOA1 = IND_('TSOA1')
+      IDTTSOA2 = IND_('TSOA2')
+      IDTTSOA3 = IND_('TSOA3')
+      IDTTSOG1 = IND_('TSOG1')
+      IDTTSOG2 = IND_('TSOG2')
+      IDTTSOG3 = IND_('TSOG3')
+      IDTTSOA0 = IND_('TSOA0')
+      IDTTSOG0 = IND_('TSOG0')
+      IDTISOA1 = IND_('ISOA1')
+      IDTISOA2 = IND_('ISOA2')
+      IDTISOA3 = IND_('ISOA3')
+      IDTISOG1 = IND_('ISOG1')
+      IDTISOG2 = IND_('ISOG2')
+      IDTISOG3 = IND_('ISOG3')
 
       ! Copy logical fields from INPUT_OPT to local variables
       LPRT = Input_Opt%LPRT
@@ -8480,7 +8634,8 @@ ccc
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDNO
+      !JDMCT USE TRACERID_MOD,       ONLY : IDNO
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -8521,7 +8676,7 @@ ccc
          ! Take NO from State_Chm%Species [molec/cm3]
          ! NO is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-            NO_MOLEC_CM3 = State_Chm%Species(I,J,L,IDNO)
+            NO_MOLEC_CM3 = State_Chm%Species(I,J,L,IND_('NO'))
          ELSE
             NO_MOLEC_CM3 = 0e+0_fp
          ENDIF
@@ -8562,7 +8717,8 @@ ccc
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDHO2
+      !JDMCT USE TRACERID_MOD,       ONLY : IDHO2
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -8603,7 +8759,7 @@ ccc
          ! Take HO2 from the State_Chm%Species [molec/cm3]
          ! HO2 is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-            HO2_MOLEC_CM3 = State_Chm%Species(I,J,L,IDHO2)
+            HO2_MOLEC_CM3 = State_Chm%Species(I,J,L,IND_('HO2'))
          ELSE
             HO2_MOLEC_CM3 = 0e+0_fp
          ENDIF
@@ -8647,7 +8803,8 @@ ccc
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE PhysConstants,      ONLY : AVO
-      USE TRACERID_MOD,       ONLY : IDTISOP
+      !JDMCT USE TRACERID_MOD,       ONLY : IDTISOP
+      USE gigc_state_chm_mod, only : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -8706,8 +8863,8 @@ ccc
             !-----------------------------------------------------------
             
             ! Moles C per moles species
-            MolecRatio = State_Chm%SpcData(IDTISOP)%Info%MolecRatio
-            ISOP_MW_G  = State_Chm%SpcData(IDTISOP)%Info%emMW_g
+            MolecRatio = State_Chm%SpcData(IND_('ISOP'))%Info%MolecRatio
+            ISOP_MW_G  = State_Chm%SpcData(IND_('ISOP'))%Info%emMW_g
 
             ISOPNO3 = State_Chm%Species(I,J,L,ILISOPNO3)
      &              * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
