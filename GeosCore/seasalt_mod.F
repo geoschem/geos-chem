@@ -158,7 +158,10 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD
+      !CODEATHON
+      !USE TRACERID_MOD
+      USE gigc_state_chm_mod, only : IND_
+      !CODEATHON
 !
 ! !INPUT PARAMETERS:
 !
@@ -231,7 +234,7 @@
       ! Accumulation mode wet settling
       !=================================================================
       CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                   STT(:,:,:,IDTSALA), 1,         RC         )
+     &                   STT(:,:,:,IND_('SALA','T')), 1,    RC   )
 
 
       IF ( prtDebug ) THEN
@@ -242,7 +245,7 @@
       ! Coarse mode wet settling
       !=================================================================
       CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                   STT(:,:,:,IDTSALC), 2,         RC         )
+     &                   STT(:,:,:,IND_('SALC','T')), 2,    RC   )
 
       IF ( prtDebug ) THEN 
          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
@@ -301,8 +304,11 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTSALA
-      USE TRACERID_MOD,       ONLY : IDTSALC
+      !CODEATHON
+      !USE TRACERID_MOD,       ONLY : IDTSALA
+      !USE TRACERID_MOD,       ONLY : IDTSALC
+      USE gigc_state_chm_mod, only : IND_
+      !CODEATHON
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE GRID_MOD,           ONLY : GET_AREA_CM2
 #if defined( NC_DIAG )
@@ -378,7 +384,9 @@
       INTEGER                  :: ID
       LOGICAL, SAVE            :: FIRST = .TRUE.
       REAL(f8)                 :: RHO, RHO1
-
+      !CODEATHON
+      INTEGER                  :: IDTSALA, IDTSALC
+      !CODEATHON
 #if defined( NC_DIAG )
       ! For netcdf diagnostics (ND44 drydep flux)
       INTEGER                  :: drydep_id, trc_id, HCRC
@@ -452,6 +460,11 @@
       ! Init diagnostics
       DryDepFlux  = 0.0_fp
 #endif
+      
+      !CODEATHON
+      IDTSALA = IND_('SALA')
+      IDTSALC = IND_('SALC')
+      !CODEATHON
 
       ! Seasalt effective radius (i.e. midpt of radius bin) [m]
       SELECT CASE ( N )
@@ -816,7 +829,10 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,           ONLY : IDTMOPO
+      !CODEATHON
+      !USE TRACERID_MOD,           ONLY : IDTMOPO
+      USE gigc_state_chm_mod, only : IND_
+      !CODEATHON
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -843,7 +859,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER             :: I,      J,   L
+      INTEGER             :: I,      J,   L, IDTMOPO ! CODEATHON
       REAL(fp)            :: DTCHEM, KOC, TC0, CNEW, RKT, FREQ
 
       ! Pointers
@@ -867,6 +883,9 @@
 
       ! Set pointer to GEOS-Chem tracer array [kg]
       STT      => State_Chm%Tracers
+      
+      ! CODEATHON GET IDTMOPO
+      IDTMOPO = IND_('MOPO')
 
       !=================================================================
       ! For tracers with dry deposition, the loss rate of dry dep is 
@@ -940,7 +959,10 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,       ONLY : IDTMOPI
+      !CODEATHON
+      !USE TRACERID_MOD,       ONLY : IDTMOPI
+      USE gigc_state_chm_mod, only : IND_
+      !CODEATHON
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -967,7 +989,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER  :: I,   J,     L
+      INTEGER  :: I,   J,     L, IDTMOPI !CODEATHON
       REAL(fp) :: TC0, CNEW, CCV
 
       ! Pointers
@@ -982,6 +1004,9 @@
 
       ! Set pointer to GEOS-Chem tracer array [kg]
       STT      => State_Chm%Tracers
+      
+      !CODEATHON Get IDTMOPI
+      IDTMOPI = IND_('MOPI')
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

@@ -111,8 +111,12 @@
       USE TAGGED_OX_MOD,      ONLY : CHEM_TAGGED_OX
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTISOP
-      USE TRACERID_MOD,       ONLY : IDTDST1
+      !CODEATHON
+      !USE TRACERID_MOD,       ONLY : IDTISOP ! Not used
+      !USE TRACERID_MOD,       ONLY : IDTDST1
+      USE gigc_state_chm_mod, only : IND_
+      !CODEATHON
+
 #if defined( DEVEL )
       USE TENDENCIES_MOD
 #endif
@@ -124,7 +128,9 @@
 #endif
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : DO_TOMAS  !(win, 7/14/09)
-      USE TRACERID_MOD,       ONLY : IDTNK1    !(win, 7/14/09)
+      ! CODEATHON
+      !USE TRACERID_MOD,       ONLY : IDTNK1    !(win, 7/14/09)
+      ! CODEATHON
 #endif
 
       USE FLEXCHEM_SETUP_MOD    ! For initializing KPP/KPPA chem. routines
@@ -484,14 +490,16 @@
             ENDIF
 
             ! Do dust aerosol chemistry
-            IF ( LDUST .AND. IDTDST1 > 0 ) THEN
+            IF ( LDUST .AND. IND_('DST1','T') > 0 ) THEN
                CALL CHEMDUST
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
  
 #if   defined( TOMAS )
             ! Do TOMAS aerosol microphysics and dry dep
-            IF ( IDTNK1 > 0 ) THEN 
+            !CODEATHON
+            IF ( IND_('NK1','T') > 0 ) THEN 
+            !CODEATHON
                CALL DO_TOMAS
      &             ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
                IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -722,7 +730,7 @@
 
       ! Free pointer
       NULLIFY( STT )
-    
+       
       END SUBROUTINE DO_CHEMISTRY
 !EOC
 !------------------------------------------------------------------------------
@@ -895,7 +903,9 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE CMN_SIZE_MOD,       ONLY : LLTROP
+      !CODEATHON (REMOVE AFTER UT)
       USE TRACERID_MOD,       ONLY : SETTRACE
+      !CODEATHON
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE FAST_JX_MOD,        ONLY : INIT_FJX
       USE COMODE_LOOP_MOD
@@ -936,7 +946,10 @@
          CALL READER  ( FIRST, am_I_Root                           )
          CALL READCHEM(        am_I_Root, Input_Opt,            RC )
          CALL INIT_FJX(        am_I_Root, Input_Opt,  RC           )
+         
+         ! CODEATHON
          CALL SETTRACE(        am_I_Root, Input_Opt, State_Chm, RC )
+         ! CODEATHON
 
          ! Reset NCS with NCSURBAN=1
          NCS                 = NCSURBAN

@@ -84,9 +84,14 @@
 !
 ! !USES:
 !
-      USE TRACERID_MOD, ONLY : IDTNH4,  IDTNIT, IDTNH4aq 
-      USE TRACERID_MOD, ONLY : IDTHNO3, IDTNH3, IDTNITs
-      USE TRACERID_MOD, ONLY : IDTNO2,  IDTPAN
+      !CODEATHON
+      !USE TRACERID_MOD, ONLY : IDTNH4,  IDTNIT, IDTNH4aq 
+      !USE TRACERID_MOD, ONLY : IDTHNO3, IDTNH3, IDTNITs
+      !USE TRACERID_MOD, ONLY : IDTNO2,  IDTPAN
+      USE gigc_state_chm_mod, only : IND_
+      !CODEATHON
+      
+
 !
 ! !INPUT PARAMETERS: 
 !
@@ -94,7 +99,7 @@
       INTEGER, INTENT(IN)   :: J          ! J
       INTEGER, INTENT(IN)   :: L          ! Level
       INTEGER, INTENT(IN)   :: NN         ! Dry Dep Tracer # 
-      REAL(fp), INTENT(IN)   :: TDRYFX     ! Dry dep flux [molec/cm2/s] 
+      REAL(fp), INTENT(IN)  :: TDRYFX     ! Dry dep flux [molec/cm2/s] 
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
@@ -106,11 +111,14 @@
 !
 
       ! ckeller (14/04/02)
-      IF ( NN == IDTNO2 .OR. NN == IDTPAN .OR. NN == IDTHNO3  .OR.
-     &     NN == IDTNH3 .OR. NN == IDTNH4 .OR. NN == IDTNH4aq .OR. 
-     &     NN == IDTNIT .OR. NN == IDTNITs                        ) THEN
+      ! CODEATHON
+      IF ( NN == IND_('NO2')  .OR. NN == IND_('PAN')   .OR. 
+     &     NN == IND_('HNO3') .OR. NN == IND_('NH3')   .OR.
+     &     NN == IND_('NH4')  .OR. NN == IND_('NH4aq') .OR.
+     &     NN == IND_('NIT')  .OR. NN == IND_('NITs') ) THEN
          DRY_TOTN(I,J) = DRY_TOTN(I,J) + TDRYFX
       ENDIF
+      ! CODEATHON
 
       END SUBROUTINE SOIL_DRYDEP
 !EOC
@@ -131,8 +139,11 @@
 !
 ! !USES:
 !
-      USE TRACERID_MOD, ONLY : IDTNH4,    IDTNIT, IDTNH4aq 
-      USE TRACERID_MOD, ONLY : IDTHNO3,   IDTNH3, IDTNITs
+      !CODEATHON
+      !USE TRACERID_MOD, ONLY : IDTNH4,    IDTNIT, IDTNH4aq 
+      !USE TRACERID_MOD, ONLY : IDTHNO3,   IDTNH3, IDTNITs
+      USE gigc_state_chm_mod, only : IND_
+      !CODEATHON
 !
 ! !INPUT PARAMETERS: 
 !
@@ -153,12 +164,12 @@
 
       ! ckeller (14/04/02)
       SCAL = 0e+0_fp
-      IF ( NN == IDTHNO3  ) SCAL = CONVHNO3 
-      IF ( NN == IDTNH3   ) SCAL = CONVNH3
-      IF ( NN == IDTNH4   ) SCAL = CONVNH4
-      IF ( NN == IDTNH4aq ) SCAL = CONVNH4
-      IF ( NN == IDTNIT   ) SCAL = CONVNIT
-      IF ( NN == IDTNITs  ) SCAL = CONVNIT
+      IF ( NN == IND_('HNO3', 'T') ) SCAL = CONVHNO3 
+      IF ( NN == IND_('NH3',  'T') ) SCAL = CONVNH3
+      IF ( NN == IND_('NH4',  'T') ) SCAL = CONVNH4
+      IF ( NN == IND_('NH4aq','T') ) SCAL = CONVNH4
+      IF ( NN == IND_('NIT',  'T') ) SCAL = CONVNIT
+      IF ( NN == IND_('NITs', 'T') ) SCAL = CONVNIT
 
       IF ( SCAL > 0e+0_fp ) THEN
          WET_TOTN(I,J) = WET_TOTN(I,J) + ( TWETFX * SCAL )

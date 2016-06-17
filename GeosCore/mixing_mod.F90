@@ -256,11 +256,15 @@ CONTAINS
     USE PHYSCONSTANTS,      ONLY : AVO
     USE Species_Mod,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_TS_DYN
-    USE TRACERID_MOD,       ONLY : IDTMACR, IDTRCHO, IDTACET, IDTALD2
-    USE TRACERID_MOD,       ONLY : IDTALK4, IDTC2H6, IDTC3H8, IDTCH2O
-    USE TRACERID_MOD,       ONLY : IDTPRPE, IDTO3,   IDTHNO3
-    USE TRACERID_MOD,       ONLY : IDTBrO,  IDTBr2,  IDTBr,   IDTHOBr
-    USE TRACERID_MOD,       ONLY : IDTHBr,  IDTBrNO3 
+    !CODEATHON
+    !USE TRACERID_MOD,       ONLY : IDTMACR, IDTRCHO, IDTACET, IDTALD2
+    !USE TRACERID_MOD,       ONLY : IDTALK4, IDTC2H6, IDTC3H8, IDTCH2O
+    !USE TRACERID_MOD,       ONLY : IDTPRPE, IDTO3,   IDTHNO3
+    !USE TRACERID_MOD,       ONLY : IDTBrO,  IDTBr2,  IDTBr,   IDTHOBr
+    !USE TRACERID_MOD,       ONLY : IDTHBr,  IDTBrNO3 
+    USE gigc_state_chm_mod, ONLY : IND_
+    
+    !CODEATHON
     USE UNITCONV_MOD
 #if defined( BPCH_DIAG )
     USE DIAG_MOD,           ONLY : AD44
@@ -269,7 +273,9 @@ CONTAINS
     USE HCO_ERROR_MOD
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-    USE TRACERID_MOD,       ONLY : IDTISOPN, IDTMMN
+    !CODEATHON
+    !USE TRACERID_MOD,       ONLY : IDTISOPN, IDTMMN
+    !CODEATHON
 #endif
 #if defined( DEVEL )
     USE TENDENCIES_MOD
@@ -322,6 +328,14 @@ CONTAINS
     LOGICAL            :: PBL_DRYDEP, LSCHEM, ChemGridOnly
     LOGICAL            :: LEMIS,      LDRYD
     LOGICAL            :: DryDepSpec, EmisSpec
+    
+    !CODEATHON
+    INTEGER            :: IDTMACR, IDTRCHO, IDTACET, IDTALD2
+    INTEGER            :: IDTALK4, IDTC2H6, IDTC3H8, IDTCH2O 
+    INTEGER            :: IDTPRPE, IDTO3,   IDTHNO3, IDTBrO 
+    INTEGER            :: IDTBr2,  IDTBr,   IDTHOBr, IDTHBr
+    INTEGER            :: IDTBrNO3,IDTISOPN,IDTMMN
+    !CODEATHON
 
     ! For diagnostics
 #if defined( NC_DIAG )
@@ -368,6 +382,29 @@ CONTAINS
     LEMIS      = Input_Opt%LEMIS 
     LDRYD      = Input_Opt%LDRYD 
     PBL_DRYDEP = Input_Opt%PBL_DRYDEP
+    
+
+    !CODEATHON - Species Indices
+    IDTMACR = IND_('MACR')
+    IDTRCHO = IND_('RCHO')
+    IDTACET = IND_('ACET')
+    IDTALD2 = IND_('ALD2')
+    IDTALK4 = IND_('ALK4') 
+    IDTC2H6 = IND_('C2H6')
+    IDTC3H8 = IND_('C3H8')
+    IDTCH2O = IND_('CH2O')
+    IDTPRPE = IND_('PRPE')
+    IDTO3   = IND_('O3')
+    IDTHNO3 = IND_('HNO3')
+    IDTBrO  = IND_('BrO')
+    IDTBr2  = IND_('Br2')
+    IDTBr   = IND_('Br')
+    IDTHOBr = IND_('HOBr')
+    IDTHBr  = IND_('HBr')
+    IDTBrNO3= IND_('BrNO3')
+    IDTISOPN= IND_('ISOPN')
+    IDTMMN  = IND_('MMN')
+    !CODEATHON
 
     ! Initialize pointer
     ThisSpc => NULL()

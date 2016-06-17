@@ -772,7 +772,12 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE HCO_ExtList_Mod,    ONLY : GetExtNr
-    USE TRACERID_MOD,       ONLY : IDTPOA1, IDTPOG1
+
+    ! CODEATHON
+    !USE TRACERID_MOD,       ONLY : IDTPOA1, IDTPOG1
+    USE gigc_state_chm_mod, only : IND_
+    ! CODEATHON
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -801,6 +806,9 @@ CONTAINS
     CHARACTER(LEN=31)  :: SpcName, SrcName, DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGN_CARBON (hcoi_gc_diagn_mod.F90)'
+    ! CODEATHON
+    INTEGER            :: IDTPOA1, IDTPOG1
+    ! CODEATHON
 
     !=======================================================================
     ! DIAGN_CARBON begins here!
@@ -814,7 +822,12 @@ CONTAINS
          ( .not. Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
        RETURN
     ENDIF
-   
+    
+    ! CODEATHON
+    IDTPOA1 = IND_('POA1','T')
+    IDTPOG1 = IND_('POG1','T')
+    ! CODEATHON
+
     ! Define diagnostics
     IF ( ND07 > 0 .AND. Input_Opt%LCARB ) THEN
 
@@ -1478,7 +1491,10 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HCO_GetHcoID
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE HCO_ExtList_Mod,    ONLY : GetExtNr
-    USE TRACERID_MOD,       ONLY : IDTPOA1
+    ! CODEATHON
+    !USE TRACERID_MOD,       ONLY : IDTPOA1
+    USE gigc_state_chm_mod, ONLY : IND_
+    ! CODEATHON
 !
 ! !INPUT PARAMETERS:
 !
@@ -1813,7 +1829,9 @@ CONTAINS
           !----------------------------------------
           ! %%%%% FOR POA SIMULATION %%%%%
           !----------------------------------------
-          IF ( IDTPOA1 > 0 ) THEN
+          !CODEATHON
+          IF ( IND_('POA1','T') > 0 ) THEN
+          !CODEATHON
              ! HEMCO species ID
              HcoID = GetHemcoId( 'POA1', HcoState, LOC, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2945,7 +2963,10 @@ CONTAINS
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_ExtList_Mod,    ONLY : GetExtOpt
-    USE TRACERID_MOD,       ONLY : IDTPOA1
+    
+    ! CODEATHON - This isn't needed
+    !USE TRACERID_MOD,       ONLY : IDTPOA1
+    ! CODEATHON
 !
 ! !INPUT PARAMETERS:
 !
@@ -4056,7 +4077,10 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HCO_GetHcoID
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE HCO_ExtList_Mod,    ONLY : GetExtNr
-    USE TRACERID_MOD,       ONLY : IDTCH4
+    ! CODEATHON
+    !USE TRACERID_MOD,       ONLY : IDTCH4
+    USE gigc_state_chm_mod, only : IND_
+    ! CODEATHON
 !
 ! !INPUT PARAMETERS:
 !
@@ -4101,7 +4125,7 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! Exit if the CH4 simulation is not selected
-    IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. IDTCH4 > 0 ) ) RETURN
+    IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. IND_('CH4','T') > 0 ) ) RETURN
 
     ! Get default HEMCO species ID for CH4 
     IDCH4 = HCO_GetHcoID( 'CH4', HcoState )
