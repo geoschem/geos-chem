@@ -775,7 +775,7 @@
       !=================================================================
 
       ! Return if BCPO isn't defined
-      IF ( id_BCPO == 0 ) RETURN
+      IF ( id_BCPO <= 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -909,7 +909,7 @@
       !=================================================================
 
       ! Return if BCPI isn't defined
-      IF ( id_BCPI == 0 ) RETURN
+      IF ( id_BCPI <= 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -1021,7 +1021,7 @@
       !=================================================================
 
       ! Return if OCPO isn't defined
-      IF ( id_OCPO == 0 ) RETURN
+      IF ( id_OCPO <= 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -1153,7 +1153,7 @@
       !=================================================================
       ! CHEM_OCPI begins here!
       !=================================================================
-      IF ( id_OCPI == 0 ) RETURN
+      IF ( id_OCPI <= 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
