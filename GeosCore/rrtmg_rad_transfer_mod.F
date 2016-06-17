@@ -203,6 +203,8 @@
 !                              arrays from IIPAR*JJPAR to IIPAR,JJPAR
 !  31 May 2016 - E. Lundgren - Replace Input_Opt%TRACER_MW_G with emMW_g from
 !                              species database (emitted species g/mol)
+!  16 Jun 2016 - K. Yu       - Now define species ID's with the IND_ function
+!  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -221,9 +223,10 @@
       INTEGER                :: IDIAGOUT     ! INDEX OF SPECIES OPTICS FOR OUTPUT     
       REAL*8                 :: OLDSECS, NEWSECS
 
-      ! kyu codeathon
-      INTEGER,SAVE           :: IND_O3, IND_CH4, IND_N2O, IND_CFC11
-      INTEGER,SAVE           :: IND_CFC12, IND_CCL4, HCFC22
+      ! SAVEd scalars
+      LOGICAL, SAVE          :: FIRST = .TRUE.
+      INTEGER, SAVE          :: id_O3,    id_CH4,  id_N2O, id_CFC11
+      INTEGER, SAVE          :: id_CFC12, id_CCL4, id_HCFC22
 
       !-----------------------------------------------------------------
       ! TEMPORARY AEROSOL VARIABLES
@@ -567,10 +570,19 @@
       CH4VMR(:,:,:)       = 0.0
       NBNDS               = NBNDLW+NBNDSW
 
-      ! Get tracer ids kyu codeathon
-      IND_O3 = IND_('O3'); IND_CH4 = IND_('CH4'); IND_N2O = IND_('N2O')
-      IND_CFC11 = IND_('CFC11'); IND_CFC12 = IND_('CFC12')
-      IND_CCL4 = IND_('CCL4'); IND_HCFC22 = IND_('HCFC22')
+      ! First-time setup
+      IF ( FIRST ) THEN
+
+         ! Get tracer ids kyu codeathon
+         id_O3     = IND_('O3');    id_CH4   = IND_('CH4'); 
+         id_N2O    = IND_('N2O');   id_CFC11 = IND_('CFC11'); 
+         id_CFC12  = IND_('CFC12'); id_CCL4  = IND_('CCL4')
+         id_HCFC22 = IND_('HCFC22')
+
+         ! Reset first-time flag
+         FIRST = .FALSE
+
+      ENDIF
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%%  This parallel loop gives identical results w/r/t to a RRTMG           %%%
@@ -719,39 +731,39 @@
             !REQUESTED SO THAT WE CAN DIFFERENCE WITH THE BASELINE RUN
 #if defined( UCX )
             IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
-             O3VMR(I,J,L)  = State_Chm%Tracers(I,J,L,IND_O3)*AIRMW /
-     &                       ( State_Chm%SpcData(IND_O3)%Info%emMW_g *
+             O3VMR(I,J,L)  = State_Chm%Tracers(I,J,L,id_O3)*AIRMW /
+     &                       ( State_Chm%SpcData(id_O3)%Info%emMW_g *
      &                         State_Met%AD(I,J,L) )
             ENDIF
 
             IF (SPECMASK(NASPECRAD+2).EQ.1) THEN
-             CH4VMR(I,J,L) = State_Chm%Tracers(I,J,L,IND_CH4) * AIRMW /
-     &                       ( State_Chm%SpcData(IND_CH4)%Info%emMW_g *
+             CH4VMR(I,J,L) = State_Chm%Tracers(I,J,L,id_CH4) * AIRMW /
+     &                       ( State_Chm%SpcData(id_CH4)%Info%emMW_g *
      &                         State_Met%AD(I,J,L) )
             ENDIF
 
-            N2OVMR(I,J,L) = State_Chm%Tracers(I,J,L,IND_N2O) * AIRMW /
-     &                       ( State_Chm%SpcData(IND_N2O)%Info%emMW_g *
+            N2OVMR(I,J,L) = State_Chm%Tracers(I,J,L,id_N2O) * AIRMW /
+     &                       ( State_Chm%SpcData(id_N2O)%Info%emMW_g *
      &                         State_Met%AD(I,J,L) )
 
-            CFC11VMR(I,J,L) = State_Chm%Tracers(I,J,L,IND_CFC11) *
+            CFC11VMR(I,J,L) = State_Chm%Tracers(I,J,L,id_CFC11) *
      &                        AIRMW / 
-     &                       ( State_Chm%SpcData(IND_CFC11)%Info%emMW_g *
+     &                       ( State_Chm%SpcData(id_CFC11)%Info%emMW_g *
      &                         State_Met%AD(I,J,L) )
 
-            CFC12VMR(I,J,L) = State_Chm%Tracers(I,J,L,IND_CFC12) *
+            CFC12VMR(I,J,L) = State_Chm%Tracers(I,J,L,id_CFC12) *
      &                        AIRMW /
-     &                       ( State_Chm%SpcData(IND_CFC12)%Info%emMW_g *
+     &                       ( State_Chm%SpcData(id_CFC12)%Info%emMW_g *
      &                         State_Met%AD(I,J,L) )
 
-            CCL4VMR(I,J,L)  = State_Chm%Tracers(I,J,L,IND_CCL4) *
+            CCL4VMR(I,J,L)  = State_Chm%Tracers(I,J,L,id_CCL4) *
      &                        AIRMW / 
-     &                       ( State_Chm%SpcData(IND_CCL4)%Info%emMW_g *
+     &                       ( State_Chm%SpcData(id_CCL4)%Info%emMW_g *
      &                         State_Met%AD(I,J,L) )
 
-            CFC22VMR(I,J,L) = State_Chm%Tracers(I,J,L,IND_HCFC22) *
+            CFC22VMR(I,J,L) = State_Chm%Tracers(I,J,L,id_HCFC22) *
      &                        AIRMW /
-     &                       ( State_Chm%SpcData(IND_HCFC22)%Info%emMW_g *
+     &                       ( State_Chm%SpcData(id_HCFC22)%Info%emMW_g *
      &                         State_Met%AD(I,J,L) )
 
 #else
@@ -779,32 +791,32 @@
 #if defined( UCX )
             !N.B. STRAT CH4 NOT CURRENTLY INCLUDED IN THE DRE OF CH4
             !N.B. STRAT O3  NOT CURRENTLY INCLUDED IN THE DRE OF O3
-             O3VMR(I,J,L)  = State_Chm%Tracers(I,J,L,IND_O3) * AIRMW /
-     &                       ( State_Chm%SpcData(IND_O3)%Info%emMW_g *
+             O3VMR(I,J,L)  = State_Chm%Tracers(I,J,L,id_O3) * AIRMW /
+     &                       ( State_Chm%SpcData(id_O3)%Info%emMW_g *
      &                         State_Met%AD(I,J,L) )  
  
-             CH4VMR(I,J,L) = State_Chm%Tracers(I,J,L,IND_CH4) * AIRMW /
-     &                       ( State_Chm%SpcData(IND_CH4)%Info%emMW_g *
+             CH4VMR(I,J,L) = State_Chm%Tracers(I,J,L,id_CH4) * AIRMW /
+     &                       ( State_Chm%SpcData(id_CH4)%Info%emMW_g *
      &                         State_Met%AD(I,J,L) )   
 
-            N2OVMR(I,J,L) = State_Chm%Tracers(I,J,L,IND_N2O) * AIRMW /
-     &                      ( State_Chm%SpcData(IND_N2O)%Info%emMW_g *
+            N2OVMR(I,J,L) = State_Chm%Tracers(I,J,L,id_N2O) * AIRMW /
+     &                      ( State_Chm%SpcData(id_N2O)%Info%emMW_g *
      &                        State_Met%AD(I,J,L) )   
 
-            CFC11VMR(I,J,L) =State_Chm%Tracers(I,J,L,IND_CFC11) * AIRMW /
-     &                      ( State_Chm%SpcData(IND_CFC11)%Info%emMW_g *
+            CFC11VMR(I,J,L) =State_Chm%Tracers(I,J,L,id_CFC11) * AIRMW /
+     &                      ( State_Chm%SpcData(id_CFC11)%Info%emMW_g *
      &                        State_Met%AD(I,J,L) )   
 
-            CFC12VMR(I,J,L) =State_Chm%Tracers(I,J,L,IND_CFC12) * AIRMW /
-     &                      ( State_Chm%SpcData(IND_CFC12)%Info%emMW_g *
+            CFC12VMR(I,J,L) =State_Chm%Tracers(I,J,L,id_CFC12) * AIRMW /
+     &                      ( State_Chm%SpcData(id_CFC12)%Info%emMW_g *
      &                        State_Met%AD(I,J,L) )   
 
-            CCL4VMR(I,J,L)  =State_Chm%Tracers(I,J,L,IND_CCL4) * AIRMW /
-     &                      ( State_Chm%SpcData(IND_CCL4)%Info%emMW_g *
+            CCL4VMR(I,J,L)  =State_Chm%Tracers(I,J,L,id_CCL4) * AIRMW /
+     &                      ( State_Chm%SpcData(id_CCL4)%Info%emMW_g *
      &                        State_Met%AD(I,J,L) )   
 
-            CFC22VMR(I,J,L) =State_Chm%Tracers(I,J,L,IND_HCFC22) * AIRMW/
-     &                      ( State_Chm%SpcData(IND_HCFC22)%Info%emMW_g *
+            CFC22VMR(I,J,L) =State_Chm%Tracers(I,J,L,id_HCFC22) * AIRMW/
+     &                      ( State_Chm%SpcData(id_HCFC22)%Info%emMW_g *
      &                        State_Met%AD(I,J,L) )   
 
 

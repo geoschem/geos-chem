@@ -216,7 +216,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : IND_  !kyu codeathon
+      USE GIGC_State_Chm_Mod, ONLY : IND_
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET,        GET_YOFFSET
       USE inquireMod,         ONLY : findFreeLun
@@ -298,16 +298,24 @@
 !  24 Jun 2015 - E. Lundgren - Add code to print out mass conservation output,
 !                              blocked off by #if defined( MASSCONS )
 !  17 Nov 2015 - E. Lundgren - Bug fix in masscons kg calculation: use AD
+!  16 Jun 2016 - K. Yu       - Now define species ID's with the IND_ function
+!  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! SAVEd scalars
       LOGICAL, SAVE            :: FIRST  = .TRUE.
       LOGICAL, SAVE            :: IS_FULLCHEM
       LOGICAL, SAVE            :: IS_NOy,      IS_CLDTOPS, IS_OPTD
       LOGICAL, SAVE            :: IS_SEASALT,  IS_SLP
+      INTEGER, SAVE            :: id_HNO3, id_HNO4, id_N2O5, id_NO
+      INTEGER, SAVE            :: id_PAN,  id_PMN,  id_PPN,  id_O3
+      INTEGER, SAVE            :: id_R4N2, id_SALA, id_SALC, id_NO2
+
+      ! Scalars
       LOGICAL                  :: LINTERP
       INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
       INTEGER                  :: N,    R,     H,    W, X, Y
@@ -344,12 +352,7 @@
 
       ! For mass conservation tests
       LOGICAL                  :: DO_MASSCONS
-     
-      ! indices for tracer ids
-      INTEGER,SAVE             :: IND_HNO3, IND_HNO4, IND_N2O5, IND_NO
-      INTEGER,SAVE             :: IND_PAN,  IND_PMN,  IND_PPN,  IND_O3
-      INTEGER,SAVE             :: IND_R4N2, IND_SALA, IND_SALC, IND_NO2
- 
+      
       !=================================================================
       ! DIAG49 begins here!
       !=================================================================
@@ -384,26 +387,28 @@
       STT          => State_Chm%Tracers
       AD           => State_Met%AD
 
-      ! tracer id indices kyu codeathon
-      IND_HNO3 = IND_('HNO3'); IND_HNO4 = IND_('HNO4')
-      IND_N2O5 = IND_('N2O5'); IND_NO   = IND_('NO')
-      IND_PAN  = IND_('PAN');  IND_PMN  = IND_('PMN')
-      IND_PPN  = IND_('PPN');  IND_O3   = IND_('O3')
-      IND_R4N2 = IND_('R4N2'); IND_SALA = IND_('SALA')
-      IND_SALC = IND_('SALC'); IND_NO2  = IND_('NO2')
 
       ! Set logical flags on first timestep
       IF ( FIRST ) THEN
+
+         ! tracer id indices kyu codeathon
+         id_HNO3 = IND_('HNO3'); id_HNO4 = IND_('HNO4')
+         id_N2O5 = IND_('N2O5'); id_NO   = IND_('NO')
+         id_PAN  = IND_('PAN');  id_PMN  = IND_('PMN')
+         id_PPN  = IND_('PPN');  id_O3   = IND_('O3')
+         id_R4N2 = IND_('R4N2'); id_SALA = IND_('SALA')
+         id_SALC = IND_('SALC'); id_NO2  = IND_('NO2')
+         
          IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
          IS_SLP      = ASSOCIATED( State_Met%SLP     )
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
          IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
-         IS_SEASALT  = ( IND_SALA > 0 .and. IND_SALC > 0 )
-         IS_NOy      = ( IS_FULLCHEM .and. IND_NO   > 0 .and.
-     &                   IND_NO2  > 0 .and. IND_PAN  > 0 .and.
-     &                   IND_HNO3 > 0 .and. IND_PMN  > 0 .and.
-     &                   IND_PPN  > 0 .and. IND_R4N2 > 0 .and.
-     &                   IND_N2O5 > 0 .and. IND_HNO4 > 0 ) 
+         IS_SEASALT  = ( id_SALA > 0 .and. id_SALC > 0 )
+         IS_NOy      = ( IS_FULLCHEM .and. id_NO   > 0 .and.
+     &                   id_NO2  > 0 .and. id_PAN  > 0 .and.
+     &                   id_HNO3 > 0 .and. id_PMN  > 0 .and.
+     &                   id_PPN  > 0 .and. id_R4N2 > 0 .and.
+     &                   id_N2O5 > 0 .and. id_HNO4 > 0 ) 
 
          !----------------------------------------------------------
          ! Now define local tracer ID flags, so that we can remove
@@ -633,85 +638,85 @@
                TMP = 0e0_fp
             
 !               ! NO
-!               TMP = TMP + ( TCVV(IND_NO)         *
-!     &                       STT(I,J,L,IND_NO)    /
+!               TMP = TMP + ( TCVV(id_NO)         *
+!     &                       STT(I,J,L,id_NO)    /
 !     &                       AD(I,J,L) )
 !
 !               ! NO2
-!               TMP = TMP + ( TCVV(IND_NO2)        *
-!     &                       STT(I,J,L,IND_NO2)   /
+!               TMP = TMP + ( TCVV(id_NO2)        *
+!     &                       STT(I,J,L,id_NO2)   /
 !     &                       AD(I,J,L) )
 !
 !               ! PAN
-!               TMP = TMP + ( TCVV(IND_PAN)        * 
-!     &                       STT(I,J,L,IND_PAN)   / 
+!               TMP = TMP + ( TCVV(id_PAN)        * 
+!     &                       STT(I,J,L,id_PAN)   / 
 !     &                       AD(I,J,L) )
 !
 !               ! HNO3
-!               TMP = TMP + ( TCVV(IND_HNO3)       *
-!     &                       STT(I,J,L,IND_HNO3)  / 
+!               TMP = TMP + ( TCVV(id_HNO3)       *
+!     &                       STT(I,J,L,id_HNO3)  / 
 !     &                       AD(I,J,L) )
 !            
 !               ! PMN
-!               TMP = TMP + ( TCVV(IND_PMN)        *
-!     &                       STT(I,J,L,IND_PMN)   / 
+!               TMP = TMP + ( TCVV(id_PMN)        *
+!     &                       STT(I,J,L,id_PMN)   / 
 !     &                       AD(I,J,L) )
 !
 !               ! PPN
-!               TMP = TMP + ( TCVV(IND_PPN)        * 
-!     &                       STT(I,J,L,IND_PPN)   / 
+!               TMP = TMP + ( TCVV(id_PPN)        * 
+!     &                       STT(I,J,L,id_PPN)   / 
 !     &                       AD(I,J,L) )
 ! 
 !               ! R4N2
-!               TMP = TMP + ( TCVV(IND_R4N2)       *
-!     &                       STT(I,J,L,IND_R4N2)  / 
+!               TMP = TMP + ( TCVV(id_R4N2)       *
+!     &                       STT(I,J,L,id_R4N2)  / 
 !     &                       AD(I,J,L) )
 !            
 !               ! N2O5
-!               TMP = TMP + ( 2e+0_fp * TCVV(IND_N2O5) *
-!     &                       STT(I,J,L,IND_N2O5)  / 
+!               TMP = TMP + ( 2e+0_fp * TCVV(id_N2O5) *
+!     &                       STT(I,J,L,id_N2O5)  / 
 !     &                       AD(I,J,L) )
 !                        
 !               ! HNO4
-!               TMP = TMP + ( TCVV(IND_HNO4)       *
-!     &                       STT(I,J,L,IND_HNO4)  / 
+!               TMP = TMP + ( TCVV(id_HNO4)       *
+!     &                       STT(I,J,L,id_HNO4)  / 
 !     &                       AD(I,J,L) )
 
                ! NO
-               TMP = TMP + ( TCVV(IND_NO)         *
-     &                       STT(I,J,L,IND_NO) )
+               TMP = TMP + ( TCVV(id_NO)         *
+     &                       STT(I,J,L,id_NO) )
 
                ! NO2
-               TMP = TMP + ( TCVV(IND_NO2)        *
-     &                       STT(I,J,L,IND_NO2) )  
+               TMP = TMP + ( TCVV(id_NO2)        *
+     &                       STT(I,J,L,id_NO2) )  
 
                ! PAN
-               TMP = TMP + ( TCVV(IND_PAN)        * 
-     &                       STT(I,J,L,IND_PAN) )
+               TMP = TMP + ( TCVV(id_PAN)        * 
+     &                       STT(I,J,L,id_PAN) )
 
                ! HNO3
-               TMP = TMP + ( TCVV(IND_HNO3)       *
-     &                       STT(I,J,L,IND_HNO3) )
+               TMP = TMP + ( TCVV(id_HNO3)       *
+     &                       STT(I,J,L,id_HNO3) )
             
                ! PMN
-               TMP = TMP + ( TCVV(IND_PMN)        *
-     &                       STT(I,J,L,IND_PMN) )
+               TMP = TMP + ( TCVV(id_PMN)        *
+     &                       STT(I,J,L,id_PMN) )
 
                ! PPN
-               TMP = TMP + ( TCVV(IND_PPN)        * 
-     &                       STT(I,J,L,IND_PPN) )
+               TMP = TMP + ( TCVV(id_PPN)        * 
+     &                       STT(I,J,L,id_PPN) )
  
                ! R4N2
-               TMP = TMP + ( TCVV(IND_R4N2)       *
-     &                       STT(I,J,L,IND_R4N2) )
+               TMP = TMP + ( TCVV(id_R4N2)       *
+     &                       STT(I,J,L,id_R4N2) )
             
                ! N2O5
-               TMP = TMP + ( 2e+0_fp * TCVV(IND_N2O5) *
-     &                       STT(I,J,L,IND_N2O5) )
+               TMP = TMP + ( 2e+0_fp * TCVV(id_N2O5) *
+     &                       STT(I,J,L,id_N2O5) )
                         
                ! HNO4
-               TMP = TMP + ( TCVV(IND_HNO4)       *
-     &                       STT(I,J,L,IND_HNO4) )
+               TMP = TMP + ( TCVV(id_HNO4)       *
+     &                       STT(I,J,L,id_HNO4) )
 
                ! Save afternoon points
                Q(X,Y,K) = Q(X,Y,K) + TMP
@@ -862,10 +867,10 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-!               Q(X,Y,K) = ( STT(I,J,L,IND_SALA) + STT(I,J,L,IND_SALC) ) *
-!     &                      TCVV(IND_SALA)      / AD(I,J,L) 
-              Q(X,Y,K) = ( STT(I,J,L,IND_SALA) + STT(I,J,L,IND_SALC) ) *
-     &                      TCVV(IND_SALA)     
+!               Q(X,Y,K) = ( STT(I,J,L,id_SALA) + STT(I,J,L,id_SALC) ) *
+!     &                      TCVV(id_SALA)      / AD(I,J,L) 
+              Q(X,Y,K) = ( STT(I,J,L,id_SALA) + STT(I,J,L,id_SALC) ) *
+     &                      TCVV(id_SALA)     
             ENDDO
             ENDDO
             ENDDO
