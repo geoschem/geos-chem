@@ -162,6 +162,12 @@ MODULE STRAT_CHEM_MOD
   REAL(f4), ALLOCATABLE :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
                                                !   (total P - L) [kg period-1]
 
+  ! Species ID flags (formerly in tracerid_mod.F)
+  INTEGER               :: id_Br2,   id_Br,     id_BrNO3
+  INTEGER               :: id_BrO,   id_CHBr3,  id_CH2Br2
+  INTEGER               :: id_CH3Br, id_HOBr,   id_HBr
+  INTEGER               :: id_O3,    id_O3Strt 
+
   !=================================================================
   ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
   !=================================================================
@@ -198,7 +204,6 @@ CONTAINS
     USE LINOZ_MOD,          ONLY : DO_LINOZ
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-    USE GIGC_State_Chm_Mod, ONLY : IND_
     USE UNITCONV_MOD
 
     IMPLICIT NONE
@@ -243,7 +248,8 @@ CONTAINS
 !  24 Mar 2015 - E. Lundgren - Replace dependency on tracer_mod with
 !                              CMN_GTCM_MOD for XNUMOLAIR
 !  30 Sep 2015 - E. Lundgren - Now use UNITCONV_MOD for unit conversion
-!  16 Jun 2016 - M. Yannetti - Replaced TRACERID_MOD.
+!  16 Jun 2016 - M. Yannetti - Replaced TRACERID_MOD.\
+!  20 Jun 2016 - R. Yantosca - Now make species ID flags module variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -272,10 +278,6 @@ CONTAINS
     LOGICAL           :: LRESET, LCYCLE
     LOGICAL           :: ISBR2 
     INTEGER           :: N_TRACERS
-    INTEGER           :: id_O3
-    INTEGER           :: id_CHBr3
-    INTEGER           :: id_CH2Br2
-    INTEGER           :: id_CH3Br
 
     ! Arrays
     REAL(fp)          :: STT0  (IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
@@ -305,10 +307,6 @@ CONTAINS
     TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
 
     ! Replace TracerId Mod
-    id_O3        = IND_('O3')
-    id_CHBr3     = IND_('CHBr3')
-    id_CH2Br2    = IND_('CH2Br2')
-    id_CH3Br     = IND_('CH3Br')
 
     ! Initialize pointers
     STT                => State_Chm%Tracers
@@ -1160,7 +1158,7 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_NYMD
     USE TIME_MOD,           ONLY : GET_NHMS
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE GIGC_State_Chm_Mod, ONLY: IND_
+    USE GIGC_State_Chm_Mod, ONLY : IND_
     USE UNITCONV_MOD
 
     IMPLICIT NONE
@@ -1169,7 +1167,7 @@ CONTAINS
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(MetState), INTENT(IN)  :: State_Met     ! Meteorology State object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1191,6 +1189,8 @@ CONTAINS
 !  11 Aug 2015 - E. Lundgren - Tracer units are now kg/kg and are converted 
 !                              kg for assignment of MInit
 !  16 Jun 2016 - M. Yannetti - Replaced TRACERID_MOD.
+!  20 Jun 2016 - R. Yantosca - Now save species ID flags as module variables
+!                              and only define them in the INIT phase.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1205,10 +1205,6 @@ CONTAINS
     LOGICAL           :: LLINOZ
     LOGICAL           :: LUCX
     INTEGER           :: N_TRACERS
-    INTEGER           :: id_CHBr3, id_CH2Br2, id_CH3Br
-    INTEGER           :: id_Br2, id_Br, id_BrO
-    INTEGER           :: id_HOBr, id_HBr, id_BrNO3
-
 
     ! Arrays
     CHARACTER(LEN=14) :: TRACER_NAME(Input_Opt%N_TRACERS)
@@ -1226,15 +1222,18 @@ CONTAINS
     RC                       = GIGC_SUCCESS
 
     ! TRACERID_MOD Replacement
-    id_CHBr3                 = IND_('CHBr3')
+    id_Br                    = IND_('Br'    )
+    id_Br2                   = IND_('Br2'   )
+    id_BrNO3                 = IND_('BrNO3' ) 
+    id_BrO                   = IND_('BrO'   )
+    id_CHBr3                 = IND_('CHBr3' )
     id_CH2Br2                = IND_('CH2Br2')
-    id_CH3Br                 = IND_('CH3Br')
-    id_Br2                   = IND_('Br2')
-    id_Br                    = IND_('Br')
-    id_BrO                   = IND_('BrO')
-    id_HOBr                  = IND_('HOBr')
-    id_HBr                   = IND_('HBr')
-    id_BrNO3                 = IND_('BrNO3') 
+    id_CH3Br                 = IND_('CH3Br' )
+    id_HOBr                  = IND_('HOBr'  )
+    id_HBr                   = IND_('HBr'   )
+    id_O3                    = IND_('O3'    )
+    id_O3Strt                = IND_('O3Strt')   
+
 
     ! Save fields from the Input_Opt object to local variables
     LLINOZ                   = Input_Opt%LLINOZ
@@ -1245,7 +1244,7 @@ CONTAINS
     TRACER_NAME(1:N_TRACERS) = Input_Opt%TRACER_NAME(1:N_TRACERS)
 
     ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
-    STT => State_Chm%Tracers
+    STT                      => State_Chm%Tracers
 
     ! Initialize counters, initial times, mapping arrays
     TpauseL_Cnt              = 0.e+0_fp
@@ -1547,7 +1546,6 @@ CONTAINS
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE TAGGED_Ox_MOD,      ONLY : ADD_STRAT_POX
     USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_YEAR
-    USE GIGC_State_Chm_Mod, ONLY : IND_
     USE CMN_SIZE_MOD             ! Size parameters
     USE PHYSCONSTANTS            ! Rdg0
 
@@ -1661,6 +1659,7 @@ CONTAINS
 !  03 Mar 2015 - E. Lundgren - Use virtual temperature in hypsometric eqn
 !  12 Aug 2015 - R. Yantosca - Add placeholder values for 0.5 x 0.625 grids
 !  16 Jun 2016 - M. Yannetti - Replaced TRACERID_MOD.
+!  20 Jun 2016 - R. Yantosca - Now make species ID flags module variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1669,11 +1668,9 @@ CONTAINS
 !
     LOGICAL, SAVE        :: FIRST = .TRUE.
     INTEGER              :: I, J, L, L70mb
-    REAL(fp)               :: P1, P2, P3, T1, T2, DZ, ZUP
-    REAL(fp)               :: DTCHEM, H70mb, PO3, PO3_vmr
-    REAL(fp)               :: STFLUX(IIPAR,JJPAR,LLPAR)
-
-    INTEGER                :: id_O3, id_O3Strt
+    REAL(fp)             :: P1, P2, P3, T1, T2, DZ, ZUP
+    REAL(fp)             :: DTCHEM, H70mb, PO3, PO3_vmr
+    REAL(fp)             :: STFLUX(IIPAR,JJPAR,LLPAR)
 
     ! Select the grid boxes at the edges of the O3 release region, 
     ! for the proper model resolution (qli, bmy, 12/1/04)
@@ -1694,11 +1691,11 @@ CONTAINS
 
     !%%% ADD PLACEHOLDER VALUES, THESE AREN'T REALLY USED ANYMORE %%%
 #if   defined( NESTED_CH )
-      INTEGER, PARAMETER   :: J30S = 1,  J30N = 83
+      INTEGER, PARAMETER :: J30S = 1,  J30N = 83
 #elif   defined( NESTED_NA )
-      INTEGER, PARAMETER   :: J30S = 1,  J30N = 41
+      INTEGER, PARAMETER :: J30S = 1,  J30N = 41
 #elif   defined( NESTED_EU )
-      INTEGER, PARAMETER   :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
+      INTEGER, PARAMETER :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
 #endif
 
 
@@ -1706,11 +1703,11 @@ CONTAINS
 
 ! jtl, 10/26/11 
 #if   defined( NESTED_CH )
-      INTEGER, PARAMETER   :: J30S = 1,  J30N = 83
+      INTEGER, PARAMETER :: J30S = 1,  J30N = 83
 #elif   defined( NESTED_NA )
-      INTEGER, PARAMETER   :: J30S = 1,  J30N = 41
+      INTEGER, PARAMETER :: J30S = 1,  J30N = 41
 #elif   defined( NESTED_EU )
-      INTEGER, PARAMETER   :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
+      INTEGER, PARAMETER :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
 #endif
 
 #elif defined( GRID025x03125 )
@@ -1740,12 +1737,12 @@ CONTAINS
 
     ! Lower pressure bound for O3 release (unit: mb)
     ! REAL(fp),  PARAMETER   :: P70mb = 70e+0_fp !PHS
-    REAL(fp)  :: P70mb, PTP
+    REAL(fp)             :: P70mb, PTP
 
     ! Pointers
     ! We need to define local arrays to hold corresponding values 
     ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-    REAL(fp), POINTER :: STT(:,:,:,:)
+    REAL(fp), POINTER    :: STT(:,:,:,:)
 
     !=================================================================
     ! Do_Synoz begins here!
@@ -1753,10 +1750,6 @@ CONTAINS
 
     ! Assume success
     RC = GIGC_SUCCESS
-
-    ! TRACERID_MOD Replacement.
-    id_O3           = IND_('O3')
-    id_O3Strt       = IND_('O3Strt')   
 
     ! Chemical timestep [s]
     ! Originally, Synoz was in transport code, and used dynamic dT.
