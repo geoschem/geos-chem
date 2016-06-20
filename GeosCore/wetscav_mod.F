@@ -165,6 +165,10 @@
 !  22 Sep 2015 - R. Yantosca - Re-introduce GET_WETDEP_NSOL routine
 !  25 Sep 2015 - R. Yantosca - Use species database to collapse down routines
 !                              COMPUTE_F, RAINOUT, WASHOUT
+!  16 Jun 2016 - L. Hu       - First-ever GEOS-Chem Code-A-Thon:
+!                              replaced IDTXXX with IND_('XXX')
+!  20 Jun 2016 - R. Yantosca - Now define species ID's only in the INIT phase
+!  20 Jun 2016 - R. Yantosca - Renamed species ID's IDTxxxx to id_XXXX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -205,6 +209,14 @@
       LOGICAL                       :: LDYNOCEAN
       LOGICAL                       :: ITS_A_MERCURY_SIM
       LOGICAL                       :: ITS_A_POPS_SIM
+
+      ! Species ID flags (formerly in tracerid_mod.F)
+      INTEGER                       :: id_DUST1
+      INTEGER                       :: id_H2O2
+      INTEGER                       :: id_NK1
+      INTEGER                       :: id_SF1
+      INTEGER                       :: id_SO2
+      INTEGER                       :: id_SO4
 
       CONTAINS
 !EOC
@@ -2548,14 +2560,14 @@
 !!          It could be possible to calculated the lookup table and save
 !!          in an I,J,L,BIN array but for now we will calculate redundantly.
 !         ! For aerosol number, get Dp and calculate scavr 
-!         IF ( N < IDTNK1 + IBINS ) THEN
+!         IF ( N < id_NK1 + IBINS ) THEN
 !            DPAERO = GETDP( I, J, L, N, State_Met, State_Chm )
 !            ! External function stratscav returns the scavenging rate (mm^-1)
 !            ! Let scavr has a unit of cm^-1
 !            SCAVR = 10.e+0_fp* STRATSCAV( DPAERO )
-!            SCAVRSAVE(N-IDTNK1+1) = scavr
+!            SCAVRSAVE(N-id_NK1+1) = scavr
 !         ELSE
-!            BIN = MOD( N - IDTNK1 + 1, IBINS )
+!            BIN = MOD( N - id_NK1 + 1, IBINS )
 !            IF( BIN == 0 ) BIN = IBINS
 !            SCAVR = SCAVRSAVE(BIN)
 !         ENDIF
@@ -2804,8 +2816,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE SPECIES_MOD,        ONLY : Species
       USE TIME_MOD,           ONLY : GET_TS_DYN
-      USE TRACERID_MOD,       ONLY : IDTSO2
-      USE TRACERID_MOD,       ONLY : IDTSO4
       USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS: 
@@ -3482,8 +3492,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE SPECIES_MOD,        ONLY : Species
-      USE TRACERID_MOD,       ONLY : IDTSO2
-      USE TRACERID_MOD,       ONLY : IDTSO4
       USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS: 
@@ -4227,9 +4235,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State type
       USE GIGC_State_Chm_Mod, ONLY : ChmState          ! Chemistry State type
 #if defined( TOMAS )
-      USE TRACERID_MOD,       ONLY : IDTNK1, IDTSF1, IDTSS1
-      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1
-      USE TRACERID_MOD,       ONLY : IDTDUST1
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID
       USE TOMAS_MOD,          ONLY : GETFRACTION
       USE DIAG_MOD,           ONLY : AD05
@@ -4340,14 +4345,15 @@
 
 
 #if defined( TOMAS )
-         IF ( IDTNK1 > 0 ) THEN
-            IF ( N >= IDTNK1 .and. N < IDTNK1 + IBINS ) THEN  
+         IF ( id_NK1 > 0 ) THEN
+            IF ( N >= id_NK1 .and. N < id_NK1 + IBINS ) THEN  
 
                CALL GETFRACTION( I, J, L, N, LS, State_Met, XFRAC, 
      &                           SOLFRAC, State_Chm )
  
                RAINFRAC = RAINFRAC * XFRAC * SOLFRAC
-             ELSE IF ( N >= IDTSF1 .and. N < IDTDUST1 + IBINS ) THEN
+             ELSE IF ( N >= id_SF1             .and. 
+     &                 N <  id_DUST1 + IBINS ) THEN
 
                CALL GETFRACTION( I, J, L, N, LS, State_Met, XFRAC,  
      &                           SOLFRAC, State_Chm ) 
@@ -4483,12 +4489,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput          ! Input options
       USE GIGC_State_Chm_Mod, ONLY : ChmState          ! Chemistry State object
       USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State object
-      USE TRACERID_MOD,       ONLY : IDTSO2            ! ID flag for SO2
-      USE TRACERID_MOD,       ONLY : IDTSO4            ! ID flag for SO4
 #if defined( TOMAS )
-      USE TRACERID_MOD,       ONLY : IDTNK1, IDTSF1, IDTSS1
-      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1
-      USE TRACERID_MOD,       ONLY : IDTDUST1
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID
       USE DIAG_MOD,           ONLY : AD05
 #endif
@@ -4758,8 +4759,8 @@
             ! raindrop and converted to SO4 by aqeuous chem.
             ! If evaporation occurs then SO2 comes back as SO4
             ! (rjp, bmy, 3/23/03)
-            IF ( N == IDTSO2 ) THEN
-               STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) 
+            IF ( N == id_SO2 ) THEN
+               STT(I,J,L,id_SO4) = STT(I,J,L,id_SO4) 
      &                           + GAINED * 96e+0_fp / 64e+0_fp
 
                STT(I,J,L,N)      = STT(I,J,L,N) *
@@ -4974,12 +4975,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTSO2            ! ID flag for SO2
-      USE TRACERID_MOD,       ONLY : IDTSO4            ! ID flag for SO4
 #if defined( TOMAS )
-      USE TRACERID_MOD,       ONLY : IDTNK1, IDTSF1, IDTSS1
-      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1
-      USE TRACERID_MOD,       ONLY : IDTDUST1
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID
       USE DIAG_MOD,           ONLY : AD05
 #endif
@@ -5058,8 +5054,8 @@
          ! All of the rained-out tracer coming from grid box
          ! (I,J,L+1) goes back into the gas phase at (I,J,L)
          ! In evap, SO2 comes back as SO4 (rjp, bmy, 3/23/03)
-         IF ( N == IDTSO2 ) THEN
-            STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) 
+         IF ( N == id_SO2 ) THEN
+            STT(I,J,L,id_SO4) = STT(I,J,L,id_SO4) 
      &                        - ( WETLOSS * 96e+0_fp / 64e+0_fp )
 
 
@@ -5228,8 +5224,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput          ! Input options
       USE GIGC_State_Chm_Mod, ONLY : ChmState          ! Chm State object
       USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State object
-      USE TRACERID_MOD,       ONLY : IDTSO2            ! ID flag for SO2
-      USE TRACERID_MOD,       ONLY : IDTSO4            ! ID flag for SO4
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -5775,6 +5769,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : Ind_
       USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
@@ -5797,6 +5792,7 @@
 !                              wetdep or drydep is turned on.  Also only
 !                              print info if wetdep is turned on.
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  20 Jun 2016 - R. Yantosca - Now define species IDs in the init phase
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5826,6 +5822,15 @@
       
       ! Actual number of wet-depositing species
       NSOL = 0
+
+      ! Define species ID flags, regardless of whether or not wet scavenging 
+      ! is turned on.  These were formerly defined in tracerid_mod.F.
+      id_NK1   = IND_('NK1'  )
+      id_SF1   = IND_('SF1'  )
+      id_DUST1 = IND_('DUST1')
+      id_SO2   = IND_('SO2'  )
+      id_SO4   = IND_('SO4'  )
+      id_H2O2  = IND_('H2O2' )
 
       !-----------------------------------------------------------------
       ! Allocate H2O2s and SO2s for wet deposition 
@@ -6159,9 +6164,9 @@
          ! While State_Chm%TRACERS are now in units of [kg/kg dry air] for
          ! call to SETUP_WETSCAV, store H2O2s in legacy units [v/v dry air] 
          ! for now for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
-         IF ( IDTH2O2 > 0 ) THEN
-            H2O2s = State_Chm%Tracers(:,:,:,IDTH2O2)
-     &               * Input_Opt%TCVV(IDTH2O2)
+         IF ( id_H2O2 > 0 ) THEN
+            H2O2s = State_Chm%Tracers(:,:,:,id_H2O2)
+     &            * Input_Opt%TCVV(id_H2O2)
          ENDIF
 
          ! Set SO2s to the initial SO2 from STT, so that we will have
@@ -6169,9 +6174,9 @@
          ! While State_Chm%TRACERS are now in units of [kg/kg dry air] for 
          ! call to SETUP_WETSCAV, store SO2s in units [v/v dry air] for now 
          ! for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
-         IF ( IDTSO2 > 0 ) THEN
-            SO2s = State_Chm%Tracers(:,:,:,IDTSO2)
-     &              * Input_Opt%TCVV(IDTSO2)
+         IF ( id_SO2 > 0 ) THEN
+            SO2s = State_Chm%Tracers(:,:,:,id_SO2)
+     &           * Input_Opt%TCVV(id_SO2)
          ENDIF
 
          ! Reset first-time flag
