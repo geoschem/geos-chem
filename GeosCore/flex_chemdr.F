@@ -96,6 +96,7 @@
 !                              and Is_Kpp to avoid introducing numerical noise
 !                              by applying unit conversions to non-KPP species
 !  16 Jun 2016 - M. Sulprizio- Now define IDTCH4 locally
+!  20 Jun 2016 - R. Yantosca - Renamed IDTCH4 to id_CH4 for consistency
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -113,7 +114,7 @@
       ! SAVEd variables
       LOGICAL, SAVE         :: FIRSTCHEM = .TRUE.
       INTEGER, SAVE         :: CH4_YEAR  = -1
-      INTEGER, SAVE         :: IDTCH4    = 0   ! (CODEATHON, mps, 6/16/16)
+      INTEGER, SAVE         :: id_CH4    = -1  ! (CODEATHON, mps, 6/16/16)
 
       ! For grid-box latitude
       REAL(fp)              :: YLAT
@@ -240,10 +241,11 @@
          ! inactive species. In the future, we should define whether
          ! a species is active or inactive the species database and check
          ! for that here.
-         IDTCH4 = IND_('CH4', 'T')
+         id_CH4 = IND_('CH4', 'T')
 
          ! Check that CH4 is not a defined tracer
-         IF ( IDTCH4 == 0 .and. IND_CH4 > 0 .and. 
+         ! NOTE: ind_CH4 is from gckpp_Monitor.F90
+         IF ( id_CH4 <= 0 .and. ind_CH4 > 0 .and. 
      &      ( CH4_YEAR /= YEAR ) ) THEN
 
             ! If CH4 is a species, then call GET_GLOBAL_CH4
@@ -716,7 +718,12 @@
          C(ind_H2O) = H2O
 #endif
 
-         IF ( IDTCH4 == 0 .and. IND_CH4 > 0 ) THEN
+         ! id_CH4 is the GEOS-Chem advected species index for CH4
+         ! ind_CH4 is the KPP species index for CH4
+         ! If both are nonzero, then CH4 is an advected species.
+         ! If id_CH4 <= 0 but ind_CH4 > 0, then CH4 is a non-advected species.
+         ! (bmy, 6/20/16_)
+         IF ( id_CH4 <= 0 .and. ind_CH4 > 0 ) THEN
             ! Set CH4 according to latitude
             ! Convert from [ppbv CH4] to [molec CH4/cm3]
             IF ( YLAT < -30.0_fp ) THEN
@@ -728,7 +735,7 @@
             ELSE
                C(ind_CH4) = C3090N * 1e-9_dp * NUMDEN
             ENDIF
-         ENDIF   ! IDTCH4, IND_CH4
+         ENDIF   ! id_CH4, IND_CH4
 
          !### Debug printout, we can remove it later
          IF ( prtDebug ) THEN

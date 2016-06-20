@@ -104,7 +104,9 @@
 !                              subroutine READ_POX_LOX obsolete.
 !  06 Nov 2014 - R. Yantosca - Removed code orphaned by HEMCO
 !  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!   4 Mar 2015 - R. Yantosca - Declare pointer args to HCO_GetPtr with REAL(f4)
+!  04 Mar 2015 - R. Yantosca - Declare pointer args to HCO_GetPtr with REAL(f4)
+!  16 Jun 2016 - M. Sulprizio- Replace IDTO3Strt from tracerid_mod.F with
+!                              a local definition (module variable id_O3Strt)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -113,24 +115,27 @@
 !
       ! These are pointers to fields in the HEMCO data structure.
       ! Declare these with REAL(f4), aka REAL*4. (bmy, 3/4/15)
-      REAL(f4), POINTER   :: P24H(:,:,:) => NULL() ! O3 production rate
-      REAL(f4), POINTER   :: L24H(:,:,:) => NULL() ! O3 loss rate
+      REAL(f4), POINTER            :: P24H(:,:,:) => NULL() ! O3 production rate
+      REAL(f4), POINTER            :: L24H(:,:,:) => NULL() ! O3 loss rate
 
       ! Emission timestep (will be imported from HEMCO)
-      REAL(fp)            :: TS_EMIS
+      REAL(fp)                     :: TS_EMIS
 
-      ! To convert m3 to cm3
-      REAL(fp), PARAMETER :: CM3PERM3 = 1.0e+6_fp
+      ! Species ID flags (formerly in tracerid_mod.F)
+      INTEGER                      :: id_O3Strt
 !
 ! !DEFINED PARAMETERS:
 ! 
+      ! To convert m3 to cm3
+      REAL(fp), PARAMETER          :: CM3PERM3 = 1.0e+6_fp
+
 #if defined( USE_ALL_TAGO3_TRACERS )
 
       !-----------------------------------------------------------------
       ! EXTENDED SIMULATION : Total, strat, and regional O3 tracers
       !-----------------------------------------------------------------
-      INTEGER, PARAMETER,   PRIVATE :: N_TAGGED = 13   ! # of tracers
-      INTEGER, PARAMETER,   PRIVATE :: N_STRAT  = 2    ! Stratospheric O3
+      INTEGER,  PARAMETER, PRIVATE :: N_TAGGED = 13   ! # of tracers
+      INTEGER,  PARAMETER, PRIVATE :: N_STRAT  = 2    ! Stratospheric O3
 
 #else
 
@@ -139,8 +144,8 @@
       !
       ! %%% THIS IS THE DEFAULT %%%
       !-----------------------------------------------------------------
-      INTEGER, PARAMETER,   PRIVATE :: N_TAGGED = 2    ! # of tracers
-      INTEGER, PARAMETER,   PRIVATE :: N_STRAT  = 2    ! Stratospheric O3
+      INTEGER,  PARAMETER, PRIVATE :: N_TAGGED = 2    ! # of tracers
+      INTEGER,  PARAMETER, PRIVATE :: N_STRAT  = 2    ! Stratospheric O3
 
 #endif
 
@@ -190,25 +195,20 @@
 !  10 Jun 2012 - L. Murray - Enable tagged Ox for Synoz.
 !  05 Nov 2013 - R. Yantosca - Rename IDTOxStrt to IDTO3Strt
 !  05 Nov 2013 - R. Yantosca - Remove STT pointer for simplicity
-!  16 Jun 2016 - M. Sulprizio- Now define IDTO3Strt locally
+!  20 Jun 2016 - R. Yantosca - Rename IDTO3Strt to id_O3Strt.  This is now
+!                              a module variable which is only defined at init.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! Tracer ID flag (CODEATHON, mps, 6/16/16)
-      INTEGER :: IDTO3Strt
-
       !=================================================================
       ! GET_STRAT_POX begins here!
       !=================================================================
 
-      ! Initialize tracer index (CODEATHON, mps, 6/16/16)
-      IDTO3Strt = IND_('O3Strt')
-
-      State_Chm%Tracers(I,J,L,IDTO3Strt) = 
-     &State_Chm%Tracers(I,J,L,IDTO3Strt) + POx
+      State_Chm%Tracers(I,J,L,id_O3Strt) = 
+     &State_Chm%Tracers(I,J,L,id_O3Strt) + POx
 
       END SUBROUTINE ADD_STRAT_POX
 !EOC
@@ -701,6 +701,7 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : Ind_
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
 !
@@ -724,6 +725,8 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC args
 !  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 to dimension P24H,
 !                              L24H (hyl, bmy, 11/3/11)
+!  20 Jun 2016 - R. Yantosca - Now define species ID's in the init phase
+!  20 Jun 2016 - R. Yantosca - Add check to prevent array OOB errors
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -738,6 +741,16 @@
 
       ! Assume success
       RC = GIGC_SUCCESS
+
+      ! Initialize tracer index (CODEATHON, mps, 6/16/16)
+      id_O3Strt = IND_('O3Strt')
+
+      ! Add error check to make sure O3Strt is defined (bmy, 6/20/16)
+      IF ( id_O3Strt <= 0 ) THEN
+         CALL ERROR_STOP( 'O3Strt is an undefined species!', 
+     &                    'INIT_TAGGED_OX (tagged_ox_mod.f)' )
+      ENDIF
+
 
       ! Safety valve
       IF ( Input_Opt%N_TRACERS > N_TAGGED ) THEN
