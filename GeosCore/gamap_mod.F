@@ -1736,8 +1736,11 @@
       USE DIAG53_MOD,         ONLY : ND53, PD53
       USE DIAG56_MOD,         ONLY : ND56
       USE DIAG63_MOD,         ONLY:  DO_SAVE_DIAG63
-      USE DIAG_PL_MOD,        ONLY : DO_SAVE_PL,  GET_NFAM
-      USE DIAG_PL_MOD,        ONLY : GET_FAM_MWT, GET_FAM_NAME
+!==============================================================================
+! Prior to 6/20/16:
+!      USE DIAG_PL_MOD,        ONLY : DO_SAVE_PL,  GET_NFAM
+!      USE DIAG_PL_MOD,        ONLY : GET_FAM_MWT, GET_FAM_NAME
+!==============================================================================
       USE DRYDEP_MOD,         ONLY : DEPNAME,     NUMDEP,    NTRAIND
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -7275,53 +7278,58 @@
          ENDDO
       ENDIF
 
-      !-------------------------------------      
-      ! Family prod & loss (ND65)
-      !-------------------------------------      
-      IF ( DO_SAVE_PL ) THEN
-
-         ! Number of P/L families
-         NTRAC(65) = GET_NFAM()
-
-         ! Loop over each P/L family
-         DO T = 1, NTRAC(65)
-            NAME (T,65) = GET_FAM_NAME( T ) 
-            FNAME(T,65) = TRIM( NAME(T,65) ) // ' P/L family'
-            INDEX(T,65) = T + ( SPACING * 17 )
-            MOLC (T,65) = 1 
-            MWT  (T,65) = GET_FAM_MWT( T, Input_Opt, State_Chm )
-            SCALE(T,65) = 1e0
-            
-            ! Unit for Tag Ox is kg/s, otherwise molec/cm3/s 
-            IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
-               UNIT(T,65) = 'kg/s'
-            ELSE
-               UNIT(T,65) = 'molec/cm3/s'
-            ENDIF
-
-
-#if   defined( TOMAS )
-            ! For sulfur tracking species, use 'kg S' unit and
-            ! give a descriptive FNAME. (win, 8/9/09)
-            IF ( NAME(T,65) == 'PSO21' ) THEN
-               FNAME(T,65) = 'P(SO2) from DMS+OH (Online)'
-               UNIT(T,65)  = 'kg S'
-               MWT(T,65)   = 64e-3
-            ELSE IF ( NAME(T,65) == 'PSO22' ) THEN
-               FNAME(T,65) = 'P(SO2) from DMS+NO3 (Online)'
-               UNIT(T,65)  = 'kg S'
-               MWT(T,65)   = 64e-3
-            ELSE IF ( NAME(T,65) == 'PSO4' ) THEN
-               FNAME(T,65) = 'P(H2SO4) from SO2+OH (Online)'
-               UNIT(T,65)  = 'kg S'
-            ELSE IF ( NAME(T,65) == 'PMSA' ) THEN
-               FNAME(T,65) = 'P(MSA) from DMS (Online)'
-               UNIT(T,65) = 'kg S'
-            ENDIF
-#endif
-
-         ENDDO
-      ENDIF
+!==============================================================================
+! Prior to 6/20/16:
+! This diagnostic is broken. The code in diag_pl_mod.F needs to be modified
+! to connect the prod/loss rates from KPP with GEOS-Chem. (mps, 6/20/16)
+!      !-------------------------------------      
+!      ! Family prod & loss (ND65)
+!      !-------------------------------------      
+!      IF ( DO_SAVE_PL ) THEN
+!
+!         ! Number of P/L families
+!         NTRAC(65) = GET_NFAM()
+!
+!         ! Loop over each P/L family
+!         DO T = 1, NTRAC(65)
+!            NAME (T,65) = GET_FAM_NAME( T ) 
+!            FNAME(T,65) = TRIM( NAME(T,65) ) // ' P/L family'
+!            INDEX(T,65) = T + ( SPACING * 17 )
+!            MOLC (T,65) = 1 
+!            MWT  (T,65) = GET_FAM_MWT( T, Input_Opt, State_Chm )
+!            SCALE(T,65) = 1e0
+!            
+!            ! Unit for Tag Ox is kg/s, otherwise molec/cm3/s 
+!            IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
+!               UNIT(T,65) = 'kg/s'
+!            ELSE
+!               UNIT(T,65) = 'molec/cm3/s'
+!            ENDIF
+!
+!
+!#if   defined( TOMAS )
+!            ! For sulfur tracking species, use 'kg S' unit and
+!            ! give a descriptive FNAME. (win, 8/9/09)
+!            IF ( NAME(T,65) == 'PSO21' ) THEN
+!               FNAME(T,65) = 'P(SO2) from DMS+OH (Online)'
+!               UNIT(T,65)  = 'kg S'
+!               MWT(T,65)   = 64e-3
+!            ELSE IF ( NAME(T,65) == 'PSO22' ) THEN
+!               FNAME(T,65) = 'P(SO2) from DMS+NO3 (Online)'
+!               UNIT(T,65)  = 'kg S'
+!               MWT(T,65)   = 64e-3
+!            ELSE IF ( NAME(T,65) == 'PSO4' ) THEN
+!               FNAME(T,65) = 'P(H2SO4) from SO2+OH (Online)'
+!               UNIT(T,65)  = 'kg S'
+!            ELSE IF ( NAME(T,65) == 'PMSA' ) THEN
+!               FNAME(T,65) = 'P(MSA) from DMS (Online)'
+!               UNIT(T,65) = 'kg S'
+!            ENDIF
+!#endif
+!
+!         ENDDO
+!      ENDIF
+!==============================================================================
 
       !-------------------------------------      
       ! 3-D GMAO met fields (ND66)
