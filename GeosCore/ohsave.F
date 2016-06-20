@@ -20,11 +20,9 @@
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, only : IND_
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDOH, IDHO2
-      USE TRACERID_MOD,       ONLY : IDO1D, IDO3P
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE PRECISION_MOD                        ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 !
@@ -61,13 +59,22 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met object
+!  16 Jun 2016 - J. Sheng    - Add index retriever
+!  20 Jun 2016 - R. Yantosca - Now only define species ID's on the first call
+!  20 Jun 2016 - R. Yantosca - Add checks to prevent array-OOB errors
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       INTEGER :: I, J, L
+
+      ! SAVEd scalars
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER, SAVE :: id_OH, id_HO2, id_O1D, id_O3P
+      LOGICAL, SAVE :: ok_OH, ok_HO2, ok_O1D, ok_O3P
 
       !=================================================================
       ! OHSAVE begins here!
@@ -81,6 +88,25 @@
       SAVEO1D = 0e+0_fp
       SAVEO3P = 0e+0_fp
 
+      ! First-time setup
+      IF ( FIRST ) THEN 
+
+         ! Only define species Id's on the first call (bmy, 6/20/16)
+         id_OH  = IND_('OH' )
+         id_HO2 = IND_('HO2')
+         id_O1D = IND_('O1D')
+         id_O3P = IND_('O'  )
+
+         ! Set logicals to denote if each species is defined
+         ok_OH  = ( id_OH  > 0 )
+         ok_HO2 = ( id_HO2 > 0 )
+         ok_O1D = ( id_O1D > 0 )
+         ok_O3P = ( id_O3P > 0 )
+
+         ! Reset first-time flag
+         FIRST  = .FALSE.
+      ENDIF
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -93,18 +119,26 @@
          IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          ! OH concentration [molec/cm3]
-         SAVEOH(I,J,L)  = State_Chm%Species(I,J,L,IDOH)
+         IF ( ok_OH ) THEN
+            SAVEOH(I,J,L)  = State_Chm%Species(I,J,L,id_OH)
+         ENDIF
 
          ! HO2 concentration [v/v] 
-         SAVEHO2(I,J,L) = State_Chm%Species(I,J,L,IDHO2) /
-     &                    State_Met%AIRNUMDEN(I,J,L)
+         IF ( ok_HO2 ) THEN
+            SAVEHO2(I,J,L) = State_Chm%Species(I,J,L,id_HO2) /
+     &                       State_Met%AIRNUMDEN(I,J,L)
+         ENDIF
 
 #if defined( UCX )
          ! O1D concentration [molec/cm3]
-         SAVEO1D(I,J,L) = State_Chm%Species(I,J,L,IDO1D)
+         IF ( ok_O1D ) THEN
+            SAVEO1D(I,J,L) = State_Chm%Species(I,J,L,id_O1D)
+         ENDIF
 
          ! O3P concentration [molec/cm3]
-         SAVEO3P(I,J,L) = State_Chm%Species(I,J,L,IDO3P)
+         IF ( ok_O3P ) THEN
+            SAVEO3P(I,J,L) = State_Chm%Species(I,J,L,id_O3P)
+         ENDIF
 #endif
 
       ENDDO
