@@ -193,6 +193,15 @@
                              ! (JKodros 6/3/15)               
       INTEGER :: lowRH = 1 !This is to match AW more with AERONET (JKODROS 6/15)
 
+
+      ! Species ID flags, formerly in tracerid_mod.F
+      ! NOTE: Later on change these to id_XXXXX for consistency
+      INTEGER :: IDTNK1,   IDTH2SO4
+      INTEGER :: IDTAW1,   IDTSF1,   IDTSO4
+      INTEGER :: IDTNH3,   IDTNH4
+      INTEGER :: IDTSS1,   IDTECIL1, IDTECOB1
+      INTEGER :: IDTOCIL1, IDTOCOB1, IDTDUST1
+
       CONTAINS
 
 !------------------------------------------------------------------------------
@@ -301,6 +310,7 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
 !                              remove dependency on pressure_mod.
 !  24 Sep 2015 - E. Lundgren - Add tracer concentration unit check      
+!  20 Jun 2016 - R. Yantosca - Now define species ID's only on first call
 !******************************************************************************
 !
       ! References to F90 modules
@@ -310,7 +320,7 @@
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND60, ND61,  LD61
@@ -336,9 +346,6 @@
       CHARACTER(LEN=255) :: ERR_VAR
       CHARACTER(LEN=255) :: ERR_MSG
       INTEGER            :: ERR_IND(4)
-      INTEGER, SAVE      :: IDTNK1, IDTH2SO4
-      INTEGER, SAVE      :: IDTAW1, IDTSF1,  IDTSO4
-      INTEGER, SAVE      :: IDTNH3, IDTNH4
 
 !---------
 !sfarina - move definitions of these from module common
@@ -418,14 +425,7 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
-      ! Locally define species indexes
-      IDTNK1   = IND_('NK1')
-      IDTH2SO4 = IND_('H2SO4')
-      IDTAW1   = IND_('AW1')
-      IDTSF1   = IND_('SF1')
-      IDTSO4   = IND_('SO4')
-      IDTNH3   = IND_('NH3')
-      IDTNH4   = IND_('NH4')
+
       
       ! Check that tracer units are in [kg]. While tracer units
       ! are now generally [kg/kg] in GEOS-Chem, they are converted to 
@@ -458,12 +458,15 @@
       nucrate(:,:)  = 0.e+0_fp
       nucrate1(:,:) = 0.e+0_fp
 
-      ! Make sure there is access to the H2SO4 production rate array
-      ! H2SO4RATE, which saves the H2SO4 production rate for EACH chemistry
-      ! timestep from the ND65 fake-family tracer.  The family has to be set
-      ! with at leaste one family with the family name PSO4 with SO4 as its 
-      ! one member. (win, 9/30/08)     
+      ! First-time setup
       if (firsttime) then
+
+         ! Make sure there is access to the H2SO4 production rate array
+         ! H2SO4RATE, which saves the H2SO4 production rate for EACH chemistry
+         ! timestep from the ND65 fake-family tracer.  The family has to be set
+         ! with at leaste one family with the family name PSO4 with SO4 as its 
+         ! one member. (win, 9/30/08)     
+
          DO N = 1, NFAMILIES
             ! If family name 'PSO4' is found, then skip error-stop
             IF ( FAM_NAME(N) == 'PSO4') GOTO 1            
@@ -3404,7 +3407,6 @@ Cjrp      endif
       REAL*4                   :: thresh
       CHARACTER(LEN=255)       :: MSG, LOC ! (ewl)
       LOGICAL                  :: UNITCHANGE_KGM2
-      INTEGER, SAVE            :: IDTNK1, IDTAW1, IDTNH4
       
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -3417,11 +3419,6 @@ Cjrp      endif
 
       ! Assume success
       RC                =  GIGC_SUCCESS
-
-      ! Locally define species indexes
-      IDTNK1 = IND_('NK1')
-      IDTAW1 = IND_('AW1')
-      IDTNH4 = IND_('NH4')
 
       ! Check that tracer units are in [kg] (ewl, 8/13/15)
       ! Convert tracer concentration units to [kg] if not necessary.
@@ -3732,7 +3729,6 @@ Cjrp      endif
       LOGICAL                  :: PDBG, negvalue ! negvalue added for xSOA
                                                  ! (JKodros, 6/2/15)
       PARAMETER   (PI = 3.141592654e+0_fp)
-      INTEGER, SAVE            :: IDTNK1, IDTAW1, IDTNH4
 
 !sfarina
       REAL(fp)                 :: Nk(IBINS), Nkd(IBINS)
@@ -3755,11 +3751,6 @@ Cjrp      endif
 
       ! Assume success
       RC                =  GIGC_SUCCESS
-
-      ! Locally define species indexes
-      IDTNK1 = IND_('NK1')
-      IDTAW1 = IND_('AW1')
-      IDTNH4 = IND_('NH4')
 
       ! Check that tracer units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
@@ -6041,8 +6032,6 @@ c
       CHARACTER(LEN=255)   :: filename
       CHARACTER(LEN=255)   :: fname(4)     
       CHARACTER(LEN=255)   :: DATA_DIR
-      INTEGER, SAVE        :: IDTSF1, IDTSS1, IDTECIL1, IDTECOB1
-      INTEGER, SAVE        :: IDTOCIL1, IDTOCOB1, IDTDUST1
 
       !=================================================================
       ! INIT_TOMAS begins here!
@@ -6051,9 +6040,17 @@ c
       ! Assume success
       RC = GIGC_SUCCESS
 
-      ! Locally define species indexes
-      IDTSF1   = IND_('SF1')
-      IDTSS1   = IND_('SS1')
+      ! Define species indices here, these are now saved as
+      ! module variables (bmy, 6/20/16)
+      IDTNK1   = IND_('NK1'  )
+      IDTH2SO4 = IND_('H2SO4')
+      IDTAW1   = IND_('AW1'  )
+      IDTSF1   = IND_('SF1'  )
+      IDTSO4   = IND_('SO4'  )
+      IDTNH3   = IND_('NH3'  )
+      IDTNH4   = IND_('NH4'  )
+      IDTSF1   = IND_('SF1'  )
+      IDTSS1   = IND_('SS1'  )
       IDTECIL1 = IND_('ECIL1')
       IDTECOB1 = IND_('ECOB1')
       IDTOCIL1 = IND_('OCIL1')
