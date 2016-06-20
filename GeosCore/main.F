@@ -1753,10 +1753,12 @@
                ! or if it's an offline simulation, call setup routine 
                IF ( ITS_A_FULLCHEM_SIM ) THEN
                   IF ( .not. LCHEM ) THEN
-                     CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, RC )
+                     CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt,
+     &                                       State_Chm, RC )
                   ENDIF
                ELSE
-                  CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, RC )
+                  CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, 
+     &                                    State_Chm, RC )
                ENDIF
             ENDIF
          ENDIF
