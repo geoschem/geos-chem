@@ -26,14 +26,18 @@ MODULE EMISSIONS_MOD
   PUBLIC :: EMISSIONS_RUN
   PUBLIC :: EMISSIONS_FINAL
 !
-! !PRIVATE MEMBER FUNCTIONS:
-!
-!
 ! !REVISION HISTORY:
 !  27 Aug 2014 - C. Keller   - Initial version. 
+!  20 Jun 2016 - R. Yantosca - Declare species ID flags as module variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES: 
+!
+  ! Species ID flags
+  INTEGER :: id_BrO, id_CH4, id_CH3Br
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -57,6 +61,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Chm_Mod, ONLY : Ind_
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_INIT
 !
@@ -72,7 +77,9 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
-!  27 Aug 2014 - C. Keller    - Initial version 
+!  27 Aug 2014 - C. Keller   - Initial version 
+!  16 Jun 2016 - J. Sheng    - Added tracer index retriever
+!  20 Jun 2016 - R. Yantosca - Now define species IDs only in the INIT phase
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -82,7 +89,12 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC       = GIGC_SUCCESS
+
+    ! Define species ID flags for use in routines below
+    id_BrO   = IND_('BrO'  )
+    id_CH4   = IND_('CH4'  )
+    id_CH3Br = IND_('CH3Br')    
 
     ! Initialize the HEMCO environment for this GEOS-Chem run.
     CALL HCOI_GC_Init( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
@@ -121,8 +133,6 @@ CONTAINS
 #endif
     USE CO2_MOD,            ONLY : EMISSCO2
     USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
-    USE TRACERID_MOD,       ONLY : IDTCH4
-    USE TRACERID_MOD,       ONLY : IDTCH3Br, IDTBrO
     USE BROMOCARB_MOD,      ONLY : SET_BRO
     USE BROMOCARB_MOD,      ONLY : SET_CH3BR
 
@@ -159,7 +169,6 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
- 
     !=================================================================
     ! EMISSIONS_RUN begins here!
     !=================================================================
@@ -205,7 +214,7 @@ CONTAINS
        ! call to EMISSCH4 is for backwards consistency, in particular for the
        ! ND58 diagnostics.
        IF ( Input_Opt%ITS_A_CH4_SIM .OR.            &
-          ( IDTCH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
+          ( id_CH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
           CALL EMISSCH4( am_I_Root, Input_Opt, State_Met, RC )
           IF ( RC /= GIGC_SUCCESS ) RETURN 
        ENDIF
@@ -232,7 +241,7 @@ CONTAINS
           ! Kludge: eventually I want to keep the concentration
           !         entirely fixed! Ask around on how to...
           !========================================================
-          IF ( Input_Opt%LEMIS .AND. ( IDTCH3Br > 0 ) ) THEN
+          IF ( Input_Opt%LEMIS .AND. ( id_CH3Br > 0 ) ) THEN
              CALL SET_CH3BR( am_I_Root, Input_Opt, State_Met, &
                              State_Chm, RC )
           ENDIF
@@ -241,7 +250,7 @@ CONTAINS
           ! If selected in input.geos, then set the MBL
           ! concentration of BrO equal to 1 pptv during daytime.
           ! ----------------------------------------------------
-          IF ( Input_Opt%LEMIS .AND. ( IDTBrO > 0 ) ) THEN
+          IF ( Input_Opt%LEMIS .AND. ( id_BrO > 0 ) ) THEN
              CALL SET_BRO( am_I_Root, Input_Opt, State_Met, & 
                            State_Chm, RC          )
           ENDIF

@@ -80,12 +80,25 @@ MODULE HCOI_GC_Main_Mod
 !  01 Sep 2015 - R. Yantosca - Remove routine SetSpcMw; we now get parameters
 !                              for species from the species database object.
 !  02 May 2016 - R. Yantosca - Now define IDTPOPG as a module variable
+!  16 Jun 2016 - J. Sheng    - Add species index retriever
+!  20 Jun 2016 - R. Yantosca - Now define species ID's as module variables
+!                              so that we can define them in HCOI_GC_INIT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
+  !--------------------------
+  ! %%% Species ID's %%%
+  !--------------------------
+  INTEGER                       :: id_HNO3
+  INTEGER                       :: id_LIMO
+  INTEGER                       :: id_NO
+  INTEGER                       :: id_NO2
+  INTEGER                       :: id_O3
+  INTEGER                       :: id_POPG
+
   !--------------------------
   ! %%% Pointers %%%
   !--------------------------
@@ -115,9 +128,6 @@ MODULE HCOI_GC_Main_Mod
   ! Sum of cosine of the solar zenith angle. Used to impose a
   ! diurnal variability on OH concentrations
   REAL(fp), ALLOCATABLE         :: SUMCOSZA(:,:)
-
-  ! Local tracer flags 
-  INTEGER                       :: IDTPOPG
 !
 ! !DEFINED PARAMETERS:
 !
@@ -147,6 +157,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Chm_Mod, ONLY : Ind_
     USE TIME_MOD,           ONLY : GET_TS_EMIS, GET_TS_DYN
     USE TIME_MOD,           ONLY : GET_TS_CHEM
     USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -175,12 +186,14 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
-!  12 Sep 2013 - C. Keller    - Initial version 
-!  07 Jul 2014 - C. Keller    - Now match species and set species properties
-!                               via module variables.
-!  30 Sep 2014 - R. Yantosca  - Now pass fields for aerosol and microphysics
-!                               options to extensions via HcoState
-!  13 Feb 2015 - C. Keller    - Now read configuration file in two steps.
+!  12 Sep 2013 - C. Keller   - Initial version 
+!  07 Jul 2014 - C. Keller   - Now match species and set species properties
+!                              via module variables.
+!  30 Sep 2014 - R. Yantosca - Now pass fields for aerosol and microphysics
+!                              options to extensions via HcoState
+!  13 Feb 2015 - C. Keller   - Now read configuration file in two steps.
+!  16 Jun 2016 - J. Sheng    - Add species index retriever
+!  20 Jun 2016 - R. Yantosca - Now initialize all species ID's here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -202,6 +215,16 @@ CONTAINS
     ! preserved throughout all HCO calls, otherwise an error
     ! will be returned!
     HMRC = HCO_SUCCESS
+
+    !=================================================================
+    ! Define all species ID's here, for use in module routines below
+    !=================================================================
+    id_HNO3 = Ind_('HNO3')
+    id_LIMO = Ind_('LIMO')
+    id_NO   = Ind_('NO'  )
+    id_NO2  = Ind_('NO2' )
+    id_O3   = Ind_('O3'  )
+    id_POPG = Ind_('POPG')
 
     !=================================================================
     ! Read HEMCO configuration file and save into buffer. This also
@@ -1027,16 +1050,10 @@ CONTAINS
     USE GIGC_State_Met_Mod,    ONLY : MetState
     USE GIGC_State_Chm_Mod,    ONLY : ChmState
 
-    ! For ParaNOx
-    USE TRACERID_MOD,          ONLY : IDTO3, IDTNO, IDTNO2, IDTHNO3
-
     ! For SoilNox
     USE Drydep_Mod,            ONLY : DRYCOEFF
     USE Get_Ndep_Mod,          ONLY : DRY_TOTN
     USE Get_Ndep_Mod,          ONLY : WET_TOTN
-
-!    ! For POPs
-!    USE TRACERID_MOD,          ONLY : IDTPOPG
 
 #if !defined(ESMF_)
     USE MODIS_LAI_MOD,         ONLY : GC_LAI
@@ -1283,29 +1300,29 @@ CONTAINS
     ! ----------------------------------------------------------------
     ! Tracer fields
     ! ----------------------------------------------------------------
-    IF ( IDTO3 > 0 ) THEN
+    IF ( id_O3 > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%O3, &
-            'HEMCO_O3', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,IDTO3))
+            'HEMCO_O3', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_O3))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
-    IF ( IDTNO2 > 0 ) THEN
+    IF ( id_NO2 > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%NO2, &
-           'HEMCO_NO2', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,IDTNO2))
+           'HEMCO_NO2', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_NO2))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
-    IF ( IDTNO > 0 ) THEN
+    IF ( id_NO > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%NO, &
-            'HEMCO_NO', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,IDTNO))
+            'HEMCO_NO', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_NO))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
-    IF ( IDTHNO3 > 0 ) THEN
+    IF ( id_HNO3 > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%HNO3, &
-          'HEMCO_HNO3', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,IDTHNO3))
+          'HEMCO_HNO3', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_HNO3))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
-    IF ( IDTPOPG > 0 ) THEN
+    IF ( id_POPG > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%POPG, &
-          'HEMCO_POPG', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,IDTPOPG))
+          'HEMCO_POPG', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_POPG))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
 
@@ -1691,6 +1708,7 @@ CONTAINS
 !  02 May 2016 - R. Yantosca - Now initialize IDTPOPG here
 !  06 Jun 2016 - M. Sulprizio- Replace Get_Indx with Spc_GetIndx to use the
 !                              fast-species lookup from the species database
+!  20 Jun 2016 - R. Yantosca - All species IDs are now set in the init phase
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1699,8 +1717,8 @@ CONTAINS
 !
     ! Scalars
     INTEGER                :: nSpc
-    INTEGER                :: N,  IDTLIMO, L, M
-    REAL(dp)               :: K0, CR,  pKa
+    INTEGER                :: N,  L,  M
+    REAL(dp)               :: K0, CR, pKa
 
     ! Strings
     CHARACTER(LEN= 31)     :: ThisName
@@ -1730,28 +1748,20 @@ CONTAINS
        ! Get number of model species
        nSpc = Input_Opt%N_TRACERS
   
-       !%%%%% FOR THE TAGGED CO SIMULATION %%%%%
-       ! Add 3 extra tracers (ISOP, ACET, MONX) for tagged CO 
-       IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
-          nSpc = nSpc + 3 
-       ENDIF
-
        !%%%%% FOR SOA SIMULATIONS %%%%%
        ! Check for SESQ: SESQ is not transported due to its short lifetime,
        ! but emissions are still calculated (in MEGAN). SESQ is only used
        ! in the SOA simulation, i.e. if LIMO is defined. Thus, add one more
        ! species here if LIMO is a model species and calculate SESQ emissions
        ! along with LIMO!
-       IDTLIMO = Spc_GetIndx( 'LIMO', State_Chm%SpcData )
-       IF ( IDTLIMO > 0 ) THEN
+       IF ( id_LIMO > 0 ) THEN
           nSpc = nSpc + 1
        ENDIF
- 
-       ! Now define the IDTPOPG tracer locally (bmy, 5/2/16)
-       IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
-          IDTPOPG = Spc_GetIndx( 'POPG', State_Chm%SpcData )
-       ELSE
-          IDTPOPG = 0
+
+       !%%%%% FOR THE TAGGED CO SIMULATION %%%%%
+       ! Add 3 extra tracers (ISOP, ACET, MONX) for tagged CO 
+       IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+          nSpc = nSpc + 3 
        ENDIF
 
        ! Assign species variables
@@ -1813,7 +1823,7 @@ CONTAINS
           !
           ! Add the non-advected species SESQ in the last species slot
           !------------------------------------------------------------------
-          IF ( IDTLIMO > 0 ) THEN
+          IF ( id_LIMO > 0 ) THEN
              N                           = nSpec
              HcoState%Spc(N)%ModID       = N
              HcoState%Spc(N)%SpcName     = 'SESQ'

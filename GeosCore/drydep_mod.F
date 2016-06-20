@@ -28,7 +28,8 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
 #if   defined( TOMAS )
       USE TOMAS_MOD                             ! For TOMAS microphysics
-      USE TRACERID_MOD
+      !USE TRACERID_MOD
+      USE gigc_state_chm_mod, only : IND_       !CODEATHON
 #endif
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
@@ -242,8 +243,9 @@
 
       ! Scalars
       INTEGER                        :: NUMDEP,   NWATER
-      INTEGER                        :: DRYHg0,   DRYHg2,  DryHgP
-      INTEGER                        :: ID_ACET
+      INTEGER                        :: DRYHg0,   DRYHg2,   DryHgP
+      INTEGER                        :: id_ACET,  id_ISOPN, id_MMN
+      INTEGER                        :: id_NK1
 
       ! Arrays for Baldocchi drydep polynomial coefficients
       REAL(fp), TARGET               :: DRYCOEFF(NPOLY    )
@@ -315,9 +317,6 @@
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE UNITCONV_MOD
       USE Species_Mod,        ONLY : Species
-#if defined( NC_DIAG )
-      USE TRACERID_MOD,       ONLY : IDTISOPN, IDTMMN
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -640,15 +639,15 @@
             IF ( ANY( Input_Opt%TINDEX(44,:) == N ) ) THEN
 
                ! Construct diagnostic name
-               IF ( N == IDTISOPN .AND. First_ISOPN ) THEN
+               IF ( N == id_ISOPN .AND. First_ISOPN ) THEN
                   DryDepName = 'ISOPND'
                   First_ISOPN = .FALSE.
-               ELSE IF ( N == IDTISOPN .AND. .NOT. First_ISOPN ) THEN
+               ELSE IF ( N == id_ISOPN .AND. .NOT. First_ISOPN ) THEN
                   DryDepName = 'ISOPNB'
-               ELSE IF ( N == IDTMMN .AND. First_MMN ) THEN
+               ELSE IF ( N == id_MMN .AND. First_MMN ) THEN
                   DryDepName = 'MACRN'
                   First_MMN = .FALSE.
-               ELSE IF ( N == IDTMMN .AND. .NOT. First_MMN ) THEN
+               ELSE IF ( N == id_MMN .AND. .NOT. First_MMN ) THEN
                   DryDepName = 'MAVKN'
                ELSE
                   DryDepName =  Input_Opt%TRACER_NAME(N)
@@ -1265,7 +1264,8 @@
       ! Now pass am_I_Root and RC to enable tracer unit conversion to 
       ! [kg] in TOMAS code (ewl, 8/12/15)
       !=================================================================
-      IF ( IDTNK1 > 0 ) THEN
+
+      IF ( id_NK1 > 0 ) THEN
          CALL AERO_DIADEN( am_I_Root, 1,       Input_Opt, State_Met,
      &                     State_Chm, SIZ_DIA, SIZ_DEN,   RC        )
          IF ( RC /= GIGC_SUCCESS ) THEN
@@ -1578,7 +1578,7 @@
                   ! evolves with time.  We have to save these in the 
                   ! DIAM and DEN variables so that we can hold these
                   ! PRIVATE for the parallel loop.
-                  BIN  = NTRAIND(K) - IDTNK1 + 1
+                  BIN  = NTRAIND(K) - id_NK1 + 1
                   DIAM = SIZ_DIA( I, J, BIN )     ! Diameter [m]
                   DEN  = SIZ_DEN( I, J, BIN )     ! Density  [kg/m3]
 
@@ -3910,6 +3910,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : Ind_
       USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
@@ -3990,6 +3991,8 @@
 !  30 Sep 2015 - R. Yantosca - DD_A_Radius is renamed to Radius
 !  14 Dec 2015 - R. Yantosca - Now use actual MW (MW_g) instead of emitted MW
 !                              (EmMW_g) to define the XMW array
+!  20 Jun 2016 - R. Yantosca - Now define a couple of species ID flags here
+!                              as module variables on the first call
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4254,7 +4257,14 @@
          ! Free pointer
          ThisSpc => NULL()
       ENDDO
- 
+
+      ! For netCDF diagnostics
+      id_ISOPN = Ind_('ISOPN')
+      id_MMN   = Ind_('MMN'  )
+
+      ! For TOMAS 
+      id_NK1   = Ind_('NK1'  )
+
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%%% NOTE: This can eventually be made local to mercury_mod.F (bmy, 9/21/15)   
       !=================================================================
