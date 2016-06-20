@@ -162,6 +162,12 @@ MODULE STRAT_CHEM_MOD
   REAL(f4), ALLOCATABLE :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
                                                !   (total P - L) [kg period-1]
 
+  ! Species ID flags (formerly in tracerid_mod.F)
+  INTEGER               :: id_Br2,   id_Br,     id_BrNO3
+  INTEGER               :: id_BrO,   id_CHBr3,  id_CH2Br2
+  INTEGER               :: id_CH3Br, id_HOBr,   id_HBr
+  INTEGER               :: id_O3,    id_O3Strt 
+
   !=================================================================
   ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
   !=================================================================
@@ -198,10 +204,6 @@ CONTAINS
     USE LINOZ_MOD,          ONLY : DO_LINOZ
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-    USE TRACERID_MOD,       ONLY : IDTO3
-    USE TRACERID_MOD,       ONLY : IDTCHBr3
-    USE TRACERID_MOD,       ONLY : IDTCH2Br2
-    USE TRACERID_MOD,       ONLY : IDTCH3Br
     USE UNITCONV_MOD
 
     IMPLICIT NONE
@@ -246,6 +248,8 @@ CONTAINS
 !  24 Mar 2015 - E. Lundgren - Replace dependency on tracer_mod with
 !                              CMN_GTCM_MOD for XNUMOLAIR
 !  30 Sep 2015 - E. Lundgren - Now use UNITCONV_MOD for unit conversion
+!  16 Jun 2016 - M. Yannetti - Replaced TRACERID_MOD.\
+!  20 Jun 2016 - R. Yantosca - Now make species ID flags module variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -301,6 +305,8 @@ CONTAINS
     IT_IS_A_TAGOX_SIM    = Input_Opt%ITS_A_TAGOX_SIM  
     IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
     TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
+
+    ! Replace TracerId Mod
 
     ! Initialize pointers
     STT                => State_Chm%Tracers
@@ -368,7 +374,7 @@ CONTAINS
                    NN = Strat_TrID_GC(N) ! Tracer index in STT
 
                    ! Skip O3; we'll always use either Linoz or Synoz
-                   IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. IDTO3 ) CYCLE
+                   IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. id_O3 ) CYCLE
 
                    dt = DTCHEM                              ! timestep [s]
 
@@ -417,10 +423,10 @@ CONTAINS
        !===================================
 
        ! Make note of inital state for determining tendency later
-       BEFORE = STT(:,:,:,IDTO3 )
+       BEFORE = STT(:,:,:,id_O3 )
 
        ! Put ozone in v/v
-       STT(:,:,:,IDTO3) = STT(:,:,:,IDTO3) * TCVV( IDTO3 ) / AD
+       STT(:,:,:,id_O3) = STT(:,:,:,id_O3) * TCVV( id_O3 ) / AD
 
        ! Do Linoz or Synoz
        IF ( LLINOZ ) THEN
@@ -432,11 +438,11 @@ CONTAINS
        ENDIF
  
        ! Put ozone back to kg
-       STT(:,:,:,IDTO3) = STT(:,:,:,IDTO3) * AD / TCVV( IDTO3 )
+       STT(:,:,:,id_O3) = STT(:,:,:,id_O3) * AD / TCVV( id_O3 )
 
        ! Put tendency into diagnostic array [kg box-1]
-       SCHEM_TEND(:,:,:,IDTO3) = SCHEM_TEND(:,:,:,IDTO3) + &
-                                                  ( STT(:,:,:,IDTO3) - BEFORE )
+       SCHEM_TEND(:,:,:,id_O3) = SCHEM_TEND(:,:,:,id_O3) + &
+                                                  ( STT(:,:,:,id_O3) - BEFORE )
 
        !========================================
        ! Reactions with OH
@@ -474,37 +480,37 @@ CONTAINS
                 !============!
                 ! CH3Br + OH !
                 !============!
-                IF ( IDTCH3Br .gt. 0 ) THEN
+                IF ( id_CH3Br .gt. 0 ) THEN
                    RC = 2.35e-12_fp * EXP ( - 1300.e+0_fp / TK ) 
                    RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
-                   T1L    = STT(I,J,L,IDTCH3Br) * RDLOSS
-                   STT(I,J,L,IDTCH3Br) = STT(I,J,L,IDTCH3Br) - T1L
-                   SCHEM_TEND(I,J,L,IDTCH3Br) = &
-                     SCHEM_TEND(I,J,L,IDTCH3Br) - T1L
+                   T1L    = STT(I,J,L,id_CH3Br) * RDLOSS
+                   STT(I,J,L,id_CH3Br) = STT(I,J,L,id_CH3Br) - T1L
+                   SCHEM_TEND(I,J,L,id_CH3Br) = &
+                     SCHEM_TEND(I,J,L,id_CH3Br) - T1L
                 ENDIF
 
                 !============!
                 ! CHBr3 + OH !
                 !============!
-                IF ( IDTCHBr3 .gt. 0 ) THEN
+                IF ( id_CHBr3 .gt. 0 ) THEN
                    RC = 1.35e-12_fp * EXP ( - 600.e+0_fp / TK ) 
                    RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
-                   T1L    = STT(I,J,L,IDTCHBr3) * RDLOSS
-                   STT(I,J,L,IDTCHBr3) = STT(I,J,L,IDTCHBr3) - T1L
-                   SCHEM_TEND(I,J,L,IDTCHBr3) = &
-                     SCHEM_TEND(I,J,L,IDTCHBr3) - T1L
+                   T1L    = STT(I,J,L,id_CHBr3) * RDLOSS
+                   STT(I,J,L,id_CHBr3) = STT(I,J,L,id_CHBr3) - T1L
+                   SCHEM_TEND(I,J,L,id_CHBr3) = &
+                     SCHEM_TEND(I,J,L,id_CHBr3) - T1L
                 ENDIF
 
                 !=============!
                 ! CH2Br2 + OH !
                 !=============!
-                IF ( IDTCH2Br2 .gt. 0 ) THEN
+                IF ( id_CH2Br2 .gt. 0 ) THEN
                    RC = 2.00e-12_fp * EXP ( -  840.e+0_fp / TK )
                    RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
-                   T1L    = STT(I,J,L,IDTCH2Br2) * RDLOSS
-                   STT(I,J,L,IDTCH2Br2) = STT(I,J,L,IDTCH2Br2) - T1L
-                   SCHEM_TEND(I,J,L,IDTCH2Br2) = &
-                     SCHEM_TEND(I,J,L,IDTCH2Br2) - T1L
+                   T1L    = STT(I,J,L,id_CH2Br2) * RDLOSS
+                   STT(I,J,L,id_CH2Br2) = STT(I,J,L,id_CH2Br2) - T1L
+                   SCHEM_TEND(I,J,L,id_CH2Br2) = &
+                     SCHEM_TEND(I,J,L,id_CH2Br2) - T1L
                 ENDIF
 
              ENDDO ! J
@@ -1148,13 +1154,11 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GIGC_State_Met_Mod, ONLY : MetState
-    USE TRACERID_MOD,       ONLY : IDTCHBr3, IDTCH2Br2, IDTCH3Br
-    USE TRACERID_MOD,       ONLY : IDTBr2,   IDTBr,     IDTBrO
-    USE TRACERID_MOD,       ONLY : IDTHOBr,  IDTHBr,    IDTBrNO3
     USE TIME_MOD,           ONLY : GET_TAU
     USE TIME_MOD,           ONLY : GET_NYMD
     USE TIME_MOD,           ONLY : GET_NHMS
     USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE GIGC_State_Chm_Mod, ONLY : IND_
     USE UNITCONV_MOD
 
     IMPLICIT NONE
@@ -1163,7 +1167,7 @@ CONTAINS
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(MetState), INTENT(IN)  :: State_Met     ! Meteorology State object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1184,6 +1188,9 @@ CONTAINS
 !                              now REAL*4, so use 0e0 to initialize
 !  11 Aug 2015 - E. Lundgren - Tracer units are now kg/kg and are converted 
 !                              kg for assignment of MInit
+!  16 Jun 2016 - M. Yannetti - Replaced TRACERID_MOD.
+!  20 Jun 2016 - R. Yantosca - Now save species ID flags as module variables
+!                              and only define them in the INIT phase.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1214,6 +1221,20 @@ CONTAINS
     ! Assume success
     RC                       = GIGC_SUCCESS
 
+    ! TRACERID_MOD Replacement
+    id_Br                    = IND_('Br'    )
+    id_Br2                   = IND_('Br2'   )
+    id_BrNO3                 = IND_('BrNO3' ) 
+    id_BrO                   = IND_('BrO'   )
+    id_CHBr3                 = IND_('CHBr3' )
+    id_CH2Br2                = IND_('CH2Br2')
+    id_CH3Br                 = IND_('CH3Br' )
+    id_HOBr                  = IND_('HOBr'  )
+    id_HBr                   = IND_('HBr'   )
+    id_O3                    = IND_('O3'    )
+    id_O3Strt                = IND_('O3Strt')   
+
+
     ! Save fields from the Input_Opt object to local variables
     LLINOZ                   = Input_Opt%LLINOZ
     LUCX                     = Input_Opt%LUCX
@@ -1223,7 +1244,7 @@ CONTAINS
     TRACER_NAME(1:N_TRACERS) = Input_Opt%TRACER_NAME(1:N_TRACERS)
 
     ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
-    STT => State_Chm%Tracers
+    STT                      => State_Chm%Tracers
 
     ! Initialize counters, initial times, mapping arrays
     TpauseL_Cnt              = 0.e+0_fp
@@ -1345,9 +1366,9 @@ CONTAINS
        ! These are the reactions with which we will use OH fields
        ! to determine stratospheric loss.
        IF( am_I_Root ) THEN
-          IF ( IDTCHBr3  .gt. 0 ) WRITE(6,*) 'CHBr3 (from GMI OH)'
-          IF ( IDTCH2Br2 .gt. 0 ) WRITE(6,*) 'CH2Br2 (from GMI OH)'
-          IF ( IDTCH3Br  .gt. 0 ) WRITE(6,*) 'CH3Br (from GMI OH)'
+          IF ( id_CHBr3  .gt. 0 ) WRITE(6,*) 'CHBr3 (from GMI OH)'
+          IF ( id_CH2Br2 .gt. 0 ) WRITE(6,*) 'CH2Br2 (from GMI OH)'
+          IF ( id_CH3Br  .gt. 0 ) WRITE(6,*) 'CH3Br (from GMI OH)'
        ENDIF
 
 !       ! Allocate array to hold monthly mean OH mixing ratio
@@ -1445,7 +1466,7 @@ CONTAINS
     SCHEM_TEND = 0e0
 
     ! Allocate and initialize bromine arrays
-    GC_Bry_TrID(1:6) = (/IDTBr2,IDTBr,IDTBrO,IDTHOBr,IDTHBr,IDTBrNO3/)
+    GC_Bry_TrID(1:6) = (/id_Br2,id_Br,id_BrO,id_HOBr,id_HBr,id_BrNO3/)
 
     ! Free pointer
     NULLIFY( STT )
@@ -1525,8 +1546,6 @@ CONTAINS
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE TAGGED_Ox_MOD,      ONLY : ADD_STRAT_POX
     USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_YEAR
-    USE TRACERID_MOD,       ONLY : IDTO3,       IDTO3Strt
-
     USE CMN_SIZE_MOD             ! Size parameters
     USE PHYSCONSTANTS            ! Rdg0
 
@@ -1631,7 +1650,7 @@ CONTAINS
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  05 Nov 2013 - R. Yantosca - Rename IDTOxStrt to IDTO3Strt
+!  05 Nov 2013 - R. Yantosca - Rename IDTOxStrt to id_O3Strt
 !  23 Jan 2014 - M. Sulprizio- Linoz does not call UPBDFLX_O3. Synoz does. 
 !                              Now uncomment ADD_STRAT_POx (jtl,hyl,dbj,11/3/11)
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE and GET_PCENTER with
@@ -1639,6 +1658,8 @@ CONTAINS
 !                              dependency on pressure_mod.
 !  03 Mar 2015 - E. Lundgren - Use virtual temperature in hypsometric eqn
 !  12 Aug 2015 - R. Yantosca - Add placeholder values for 0.5 x 0.625 grids
+!  16 Jun 2016 - M. Yannetti - Replaced TRACERID_MOD.
+!  20 Jun 2016 - R. Yantosca - Now make species ID flags module variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1647,9 +1668,9 @@ CONTAINS
 !
     LOGICAL, SAVE        :: FIRST = .TRUE.
     INTEGER              :: I, J, L, L70mb
-    REAL(fp)               :: P1, P2, P3, T1, T2, DZ, ZUP
-    REAL(fp)               :: DTCHEM, H70mb, PO3, PO3_vmr
-    REAL(fp)               :: STFLUX(IIPAR,JJPAR,LLPAR)
+    REAL(fp)             :: P1, P2, P3, T1, T2, DZ, ZUP
+    REAL(fp)             :: DTCHEM, H70mb, PO3, PO3_vmr
+    REAL(fp)             :: STFLUX(IIPAR,JJPAR,LLPAR)
 
     ! Select the grid boxes at the edges of the O3 release region, 
     ! for the proper model resolution (qli, bmy, 12/1/04)
@@ -1670,11 +1691,11 @@ CONTAINS
 
     !%%% ADD PLACEHOLDER VALUES, THESE AREN'T REALLY USED ANYMORE %%%
 #if   defined( NESTED_CH )
-      INTEGER, PARAMETER   :: J30S = 1,  J30N = 83
+      INTEGER, PARAMETER :: J30S = 1,  J30N = 83
 #elif   defined( NESTED_NA )
-      INTEGER, PARAMETER   :: J30S = 1,  J30N = 41
+      INTEGER, PARAMETER :: J30S = 1,  J30N = 41
 #elif   defined( NESTED_EU )
-      INTEGER, PARAMETER   :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
+      INTEGER, PARAMETER :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
 #endif
 
 
@@ -1682,11 +1703,11 @@ CONTAINS
 
 ! jtl, 10/26/11 
 #if   defined( NESTED_CH )
-      INTEGER, PARAMETER   :: J30S = 1,  J30N = 83
+      INTEGER, PARAMETER :: J30S = 1,  J30N = 83
 #elif   defined( NESTED_NA )
-      INTEGER, PARAMETER   :: J30S = 1,  J30N = 41
+      INTEGER, PARAMETER :: J30S = 1,  J30N = 41
 #elif   defined( NESTED_EU )
-      INTEGER, PARAMETER   :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
+      INTEGER, PARAMETER :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
 #endif
 
 #elif defined( GRID025x03125 )
@@ -1716,12 +1737,12 @@ CONTAINS
 
     ! Lower pressure bound for O3 release (unit: mb)
     ! REAL(fp),  PARAMETER   :: P70mb = 70e+0_fp !PHS
-    REAL(fp)  :: P70mb, PTP
+    REAL(fp)             :: P70mb, PTP
 
     ! Pointers
     ! We need to define local arrays to hold corresponding values 
     ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-    REAL(fp), POINTER :: STT(:,:,:,:)
+    REAL(fp), POINTER    :: STT(:,:,:,:)
 
     !=================================================================
     ! Do_Synoz begins here!
@@ -1902,7 +1923,7 @@ CONTAINS
              ENDIF
 
              ! Store O3 flux in the proper tracer number
-             STT(I,J,L,IDTO3) = STT(I,J,L,IDTO3) + PO3 
+             STT(I,J,L,id_O3) = STT(I,J,L,id_O3) + PO3 
 
              ! Store O3 flux for strat Ox tracer (Tagged Ox only)
              ! UPBDFLX_O3 and thus ADD_STRAT_POX is called only 
