@@ -1357,7 +1357,7 @@
       ENDDO
       PRINT *, "In SET_DRY_SURFACE_PRESSURE - reversibility test"
       PRINT *, "GMAO surface pressure:        ", PS(I2,J2)
-      PRINT,*, "Re-derived wet surf pressure: ", PWET_REVERSE
+      PRINT *, "Re-derived wet surf pressure: ", PWET_REVERSE
 
       ! Nullify pointers
       PS      => NULL()
