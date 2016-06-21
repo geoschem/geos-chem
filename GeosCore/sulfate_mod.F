@@ -293,6 +293,32 @@
       INTEGER                :: IDTNITd2 
       INTEGER                :: IDTNITd3 
       INTEGER                :: IDTNITd4 
+      INTEGER                :: IDTSO2
+      INTEGER                :: IDTSO4
+      INTEGER                :: IDTNH4
+      INTEGER                :: IDTHNO3
+      INTEGER                :: IDTNIT
+      INTEGER                :: IDTDST1
+      INTEGER                :: IDTDST2
+      INTEGER                :: IDTDST3
+      INTEGER                :: IDTDST4
+      INTEGER                :: IDTSALA
+      INTEGER                :: IDTSALC
+      INTEGER                :: IDTAS
+      INTEGER                :: IDTAHS
+      INTEGER                :: IDTLET
+      INTEGER                :: IDTSO4aq
+      INTEGER                :: IDTNH4aq
+      INTEGER                :: IDTNK5
+      INTEGER                :: IDTNK8
+      INTEGER                :: IDTNK10
+      INTEGER                :: IDTNK20
+      INTEGER                :: IDTMSA
+      INTEGER                :: IDO3
+      INTEGER                :: IDTDAL1
+      INTEGER                :: IDTDAL2
+      INTEGER                :: IDTDAL3
+      INTEGER                :: IDTDAL4
 
       ! Drydep ID flags for species
       INTEGER                :: DRYSO4s  
@@ -2576,11 +2602,11 @@ d
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACERID_MOD,       ONLY : IDTH2O2
-      USE TRACERID_MOD,       ONLY : IDTSO2
-      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTNH3,  IDTNH4,  IDTHNO3
-      USE TRACERID_MOD,       ONLY : IDTNIT,  IDTDST1, IDTDST2, IDTDST3
-      USE TRACERID_MOD,       ONLY : IDTDST4, IDTSALA, IDTSALC
+      !USE TRACERID_MOD,       ONLY : IDTH2O2
+      !USE TRACERID_MOD,       ONLY : IDTSO2
+      !USE TRACERID_MOD,       ONLY : IDTSO4,  IDTNH3,  IDTNH4,  IDTHNO3
+      !USE TRACERID_MOD,       ONLY : IDTNIT,  IDTDST1, IDTDST2, IDTDST3
+      !USE TRACERID_MOD,       ONLY : IDTDST4, IDTSALA, IDTSALC
       USE WETSCAV_MOD,        ONLY : H2O2s
       USE WETSCAV_MOD,        ONLY : SO2s
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoDiagn
@@ -3592,11 +3618,11 @@ d
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_MONTH 
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACERID_MOD,       ONLY : IDTHNO3
-      USE TRACERID_MOD,       ONLY : IDTNITs
-      USE TRACERID_MOD,       ONLY : IDTSO2
-      USE TRACERID_MOD,       ONLY : IDTSO4
-      USE TRACERID_MOD,       ONLY : IDTSO4s
+      !USE TRACERID_MOD,       ONLY : IDTHNO3
+      !USE TRACERID_MOD,       ONLY : IDTNITs
+      !USE TRACERID_MOD,       ONLY : IDTSO2
+      !USE TRACERID_MOD,       ONLY : IDTSO4
+      !USE TRACERID_MOD,       ONLY : IDTSO4s
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4040,7 +4066,7 @@ d
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM,        GET_ELAPSED_SEC
-      USE TRACERID_MOD
+      !USE TRACERID_MOD
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,    GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
 !
@@ -5600,8 +5626,8 @@ d
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTSO4, IDTSALC
-      USE TRACERID_MOD,       ONLY : IDTDST2, IDTDST3, IDTDST4
+      !USE TRACERID_MOD,       ONLY : IDTSO4, IDTSALC
+      !USE TRACERID_MOD,       ONLY : IDTDST2, IDTDST3, IDTDST4
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5806,15 +5832,15 @@ d
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTSO4
-      USE TRACERID_MOD,       ONLY : IDTSO4s
-      USE TRACERID_MOD,       ONLY : IDTAS
-      USE TRACERID_MOD,       ONLY : IDTAHS 
-      USE TRACERID_MOD,       ONLY : IDTLET
-      USE TRACERID_MOD,       ONLY : IDTSO4aq
-      USE TRACERID_MOD,       ONLY : IDTNH4aq
-      USE TRACERID_MOD,       ONLY : IDTSO4d1, IDTSO4d2
-      USE TRACERID_MOD,       ONLY : IDTSO4d3, IDTSO4d4
+      !USE TRACERID_MOD,       ONLY : IDTSO4
+      !USE TRACERID_MOD,       ONLY : IDTSO4s
+      !USE TRACERID_MOD,       ONLY : IDTAS
+      !USE TRACERID_MOD,       ONLY : IDTAHS 
+      !USE TRACERID_MOD,       ONLY : IDTLET
+      !USE TRACERID_MOD,       ONLY : IDTSO4aq
+      !USE TRACERID_MOD,       ONLY : IDTNH4aq
+      !USE TRACERID_MOD,       ONLY : IDTSO4d1, IDTSO4d2
+      !USE TRACERID_MOD,       ONLY : IDTSO4d3, IDTSO4d4
 !
 ! !INPUT PARAMETERS:
 !
@@ -6055,13 +6081,13 @@ d
       USE UNITCONV_MOD
 ! JKodros (6/2/15 - Allow for different TOMAS bin lengths)
 # if   defined( TOMAS12 )
-      USE TRACERID_MOD,       ONLY : IDTSO4, IDTNK5
+!      USE TRACERID_MOD,       ONLY : IDTSO4, IDTNK5
 # elif defined( TOMAS15 )
-      USE TRACERID_MOD,       ONLY : IDTSO4, IDTNK8
+!      USE TRACERID_MOD,       ONLY : IDTSO4, IDTNK8
 # elif defined( TOMAS30 )
-      USE TRACERID_MOD,       ONLY : IDTSO4, IDTNK10
+!      USE TRACERID_MOD,       ONLY : IDTSO4, IDTNK10
 # else
-      USE TRACERID_MOD,       ONLY : IDTSO4, IDTNK20
+!      USE TRACERID_MOD,       ONLY : IDTSO4, IDTNK20
 # endif
 !
 ! !INPUT PARAMETERS:
@@ -6213,7 +6239,7 @@ d
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTMSA
+      !USE TRACERID_MOD,       ONLY : IDTMSA
 !
 ! !INPUT PARAMETERS:
 !
@@ -6352,10 +6378,10 @@ d
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TRACERID_MOD,       ONLY : IDTNIT
-      USE TRACERID_MOD,       ONLY : IDTNITs
-      USE TRACERID_MOD,       ONLY : IDTNITd1, IDTNITd2
-      USE TRACERID_MOD,       ONLY : IDTNITd3, IDTNITd4
+      !USE TRACERID_MOD,       ONLY : IDTNIT
+      !USE TRACERID_MOD,       ONLY : IDTNITs
+      !USE TRACERID_MOD,       ONLY : IDTNITd1, IDTNITd2
+      !USE TRACERID_MOD,       ONLY : IDTNITd3, IDTNITd4
 !
 ! !INPUT PARAMETERS:
 !
@@ -6668,7 +6694,7 @@ d
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDOH
+      !USE TRACERID_MOD,       ONLY : IDOH
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6781,7 +6807,7 @@ d
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDNO3
+      !USE TRACERID_MOD,       ONLY : IDNO3
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6918,7 +6944,7 @@ d
       USE GIGC_Input_Opt_MOd, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDO3
+      !USE TRACERID_MOD,       ONLY : IDO3
 !
 ! !INPUT PARAMETERS: 
 !
@@ -7184,7 +7210,7 @@ d
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
-      USE TRACERID_MOD,       ONLY : IDTSALA, IDTSALC
+      !USE TRACERID_MOD,       ONLY : IDTSALA, IDTSALC
 ! (jas, 8/4/15) calculate kt using sea salt surface area concentration
       USE CMN_SIZE_MOD,       ONLY : NDUST
 !
@@ -7700,6 +7726,32 @@ d
       IDTNITd2 = Ind_('NITD2')
       IDTNITd3 = Ind_('NITD3')
       IDTNITd4 = Ind_('NITD4')
+      IDTSO2   = Ind_('SO2'  )
+      IDTSO4   = Ind_('SO4'  )
+      IDTNH4   = Ind_('NH4'  )
+      IDTHNO3  = Ind_('HNO3' )
+      IDTNIT   = Ind_('NIT'  )
+      IDTDST1  = Ind_('DST1' )
+      IDTDST2  = Ind_('DST2' )
+      IDTDST3  = Ind_('DST3' )
+      IDTDST4  = Ind_('DST4' )
+      IDTSALA  = Ind_('SALA' )
+      IDTSALC  = Ind_('SALC' )
+      IDTAS    = Ind_('AS'   )
+      IDTAHS   = Ind_('AHS'  )
+      IDTLET   = Ind_('LET'  )
+      IDTSO4aq = Ind_('SO4aq')
+      IDTNH4aq = Ind_('NH4aq')
+      IDTNK5   = Ind_('NK5'  )
+      IDTNK8   = Ind_('NK8'  )
+      IDTNK10  = Ind_('NK10' )
+      IDTNK20  = Ind_('NK20' )
+      IDTMSA   = Ind_('MSA'  )
+      IDO3     = Ind_('O3'   )
+      IDTDAL1  = Ind_('DAL1' )
+      IDTDAL2  = Ind_('DAL2' )
+      IDTDAL3  = Ind_('DAL3' )
+      IDTDAL4  = Ind_('DAL4' )
       
       ! Define flags for species drydep indices
       DRYSO4s  = Ind_('SO4s','D')
