@@ -403,6 +403,10 @@
       REAL(fp), PARAMETER   :: ESATP8  = -3.03998e-2_fp
       REAL(fp), PARAMETER   :: ESATP9  = -2.949076e+3_fp
 
+      ! DEBUGGING (ewl)
+      REAL(fp)              :: DELP_DRY
+      ! END DEBUGGING
+
       !=================================================================
       ! AIRQNT begins here! 
       !=================================================================
@@ -742,8 +746,14 @@
          State_Met%ADMOIST(I,J,L) = ( State_Met%DELP(I,J,L) * G0_100 ) 
      &                              * AREA_M2 
 
-         State_Met%AD(I,J,L) = State_Met%ADMOIST(I,J,L)
-     &                         * ( 1.0e+0_fp - SPHU_kgkg )
+!         State_Met%AD(I,J,L) = State_Met%ADMOIST(I,J,L)
+!     &                         * ( 1.0e+0_fp - SPHU_kgkg )
+
+         ! DEBUGGING (ewl)
+         ! Comment out above definition of AD and define from pflt_dry
+         DELP_DRY = GET_PEDGE_DRY(I,J,L) - GET_PEDGE_DRY(I,J,L+1)
+         State_Met%AD(I,J,L) = ( DELP_DRY * G0_100 ) * AREA_M2
+         ! END DEBUGGING
 
       ENDDO
       ENDDO
@@ -1217,16 +1227,17 @@
 ! !LOCAL VARIABLES:
 ! 
       INTEGER            :: I, J, L
-      REAL(fp)           :: P_EDGE1, P_EDGE2
+      REAL(fp)           :: PEDGE1, PEDGE2
 
       ! Pointers
-      REAL(fp), POINTER  :: PS_PTR(:,:)     => NULL()
-      REAL(fp), POINTER  :: PS_DRY_PTR(:,:) => NULL()
-      REAL(fp), POINTER  :: SPHU_PTR(:,:,:) => NULL()
+      REAL(fp), POINTER  :: PS(:,:)     => NULL()
+      REAL(fp), POINTER  :: PS_DRY(:,:) => NULL()
+      REAL(fp), POINTER  :: SPHU(:,:,:) => NULL()
 
-      !! Other variables that may or may not be used / kept around
-      !REAL(fp)           :: TMP1, TMP2 ! used?
-      !INTEGER            :: I2, J2     ! used?
+      ! Variables used for reversibility test
+      REAL(fp)           :: PWET_REVERSE
+      REAL(fp)           :: P1, P2
+      INTEGER            :: I2, J2
 
       !=================================================================
       ! SET_DRY_SURFACE_PRESSURE begins here!
@@ -1252,44 +1263,43 @@
       ! Set pointers to State_Met fields. Use instantaneous specific
       ! humidities if using GEOS-FP or MERRA-2.
       IF ( PS_ID == 1 ) THEN
-         PS_PTR => State_Met%PS1
-         PS_DRY_PTR => State_Met%PS1_DRY
+         PS     => State_Met%PS1
+         PS_DRY => State_Met%PS1_DRY
 #if defined( GEOS_FP ) || defined( MERRA2 )
-         SPHU_PTR => State_Met%SPHU1
+         SPHU   => State_Met%SPHU1
 #else
-         SPHU_PTR => State_Met%SPHU
+         SPHU   => State_Met%SPHU
 #endif
       ELSE IF ( PS_ID == 2 ) THEN
-         PS_PTR => State_Met%PS2
-         PS_DRY_PTR => State_Met%PS2_DRY
+         PS     => State_Met%PS2
+         PS_DRY => State_Met%PS2_DRY
 #if defined( GEOS_FP ) || defined( MERRA2 )
-         SPHU_PTR => State_Met%SPHU2
+         SPHU   => State_Met%SPHU2
 #else
-         SPHU_PTR => State_Met%SPHU
+         SPHU   => State_Met%SPHU
 #endif
       ELSE 
          ! Throw an error (to be added)
       ENDIF
 
       ! Reset dry surface pressure to zero
-      PS_DRY_PTR = 0.0e+0_fp
+      PS_DRY = 0.0e+0_fp
 
       ! Sum dry pressure over all levels for each (lat,lon)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, P_EDGE1, P_EDGE2 )
+!$OMP+PRIVATE( I, J, L, PEDGE1, PEDGE2 )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
       DO L = 1, LLPAR
-         P_EDGE1 = GET_AP(L) + GET_BP(L) * PS_PTR(I,J) 
-         P_EDGE2 = GET_AP(L+1) + GET_BP(L+1) * PS_PTR(I,J)
-         PS_DRY_PTR(I,J) = PS_DRY_PTR(I,J) + ( P_EDGE1 - P_EDGE2 ) 
-     &                     * ( 1.e+0_fp - SPHU_PTR(I,J,L) * 1.0e-3_fp )
+         PEDGE1     = GET_AP(L) + GET_BP(L) * PS(I,J) 
+         PEDGE2     = GET_AP(L+1) + GET_BP(L+1) * PS(I,J)
+         PS_DRY(I,J) = PS_DRY(I,J) + ( PEDGE1 - PEDGE2 ) 
+     &                     * ( 1.e+0_fp - SPHU(I,J,L) * 1.0e-3_fp )
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
 
       ! Set dry pressure to the moist pressure if negative
 !$OMP PARALLEL DO
@@ -1297,8 +1307,8 @@
 !$OMP+PRIVATE( I, J )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         IF ( PS_DRY_PTR(I,J) < 0) THEN
-            PS_DRY_PTR(I,J) = PS_PTR(I,J)
+         IF ( PS_DRY(I,J) < 0.e+0_fp) THEN
+            PS_DRY(I,J) = PS(I,J)
             ! Write to log that dry surface pressure was negative
             ! (to be added)
          ENDIF
@@ -1324,30 +1334,35 @@
       !ENDDO
       !ENDDO
 
-      !! DEBUGGING
-      !IF ( PS_ID == 1 ) THEN
-      !   PRINT *, "   New PS1_DRY(56,20):  ", 
-     &!            State_Met%PS1_DRY(56,20)
-      !ELSE
-      !   PRINT *, "   New PS2_DRY(56,20):  ", 
-     &!            State_Met%PS2_DRY(56,20)
-      !ENDIF
-      !PRINT *, " "
-      !! END DEBUGGING
+      ! DEBUGGING
+      IF ( PS_ID == 1 ) THEN
+         PRINT *, "   New PS1_DRY(56,20):  ", 
+     &            State_Met%PS1_DRY(56,20)
+      ELSE
+         PRINT *, "   New PS2_DRY(56,20):  ", 
+     &            State_Met%PS2_DRY(56,20)
+      ENDIF
+      PRINT *, " "
+      ! END DEBUGGING
 
-! reversibility test (MML)
-!      TMP2 = 0
-!      DO L = 1, LLPAR
-!        P1 = GET_AP(L) + GET_BP(L) * PS(I2,J2)
-!        P2 = GET_AP(L+1) + GET_BP(L+1) * PS(I2,J2)
-!        TMP2 = TMP2+(P1-P2)/(1-SPHU(I2,J2,L)*1.0e-3)
-!      ENDDO
-!      print *, TMP1, PS(I2,J2), TMP2
+      ! reversibility test (MML) - adapted by ewl
+      I2   = 56
+      J2   = 20
+      PWET_REVERSE = 0.e+0_fp
+      DO L = 1, LLPAR
+        P1 = GET_AP(L) + GET_BP(L) * PS_DRY(I2,J2)
+        P2 = GET_AP(L+1) + GET_BP(L+1) * PS_DRY(I2,J2)
+        PWET_REVERSE = PWET_REVERSE + ( P1 - P2 ) / 
+     &                ( 1.e+0_fp - SPHU(I2,J2,L) * 1.0e-3_fp )
+      ENDDO
+      PRINT *, "In SET_DRY_SURFACE_PRESSURE - reversibility test"
+      PRINT *, "GMAO surface pressure:        ", PS(I2,J2)
+      PRINT,*, "Re-derived wet surf pressure: ", PWET_REVERSE
 
       ! Nullify pointers
-      PS_PTR     => NULL()
-      PS_DRY_PTR => NULL()
-      SPHU_PTR   => NULL()
+      PS      => NULL()
+      PS_DRY  => NULL()
+      SPHU    => NULL()
 
       END SUBROUTINE SET_DRY_SURFACE_PRESSURE
 !EOC
