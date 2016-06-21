@@ -106,7 +106,7 @@
 !  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  04 Mar 2015 - R. Yantosca - Declare pointer args to HCO_GetPtr with REAL(f4)
 !  16 Jun 2016 - M. Sulprizio- Replace IDTO3Strt from tracerid_mod.F with
-!                              a local definition (module variable id_O3Strt)
+!                              a local definition (module variable id_O3Strat)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -122,7 +122,7 @@
       REAL(fp)                     :: TS_EMIS
 
       ! Species ID flags (formerly in tracerid_mod.F)
-      INTEGER                      :: id_O3Strt
+      INTEGER                      :: id_O3Strat
 !
 ! !DEFINED PARAMETERS:
 ! 
@@ -195,7 +195,7 @@
 !  10 Jun 2012 - L. Murray - Enable tagged Ox for Synoz.
 !  05 Nov 2013 - R. Yantosca - Rename IDTOxStrt to IDTO3Strt
 !  05 Nov 2013 - R. Yantosca - Remove STT pointer for simplicity
-!  20 Jun 2016 - R. Yantosca - Rename IDTO3Strt to id_O3Strt.  This is now
+!  20 Jun 2016 - R. Yantosca - Rename IDTO3Strt to id_O3Strat.  This is now
 !                              a module variable which is only defined at init.
 !EOP
 !------------------------------------------------------------------------------
@@ -207,8 +207,8 @@
       ! GET_STRAT_POX begins here!
       !=================================================================
 
-      State_Chm%Tracers(I,J,L,id_O3Strt) = 
-     &State_Chm%Tracers(I,J,L,id_O3Strt) + POx
+      State_Chm%Tracers(I,J,L,id_O3Strat) = 
+     &State_Chm%Tracers(I,J,L,id_O3Strat) + POx
 
       END SUBROUTINE ADD_STRAT_POX
 !EOC
@@ -727,6 +727,7 @@
 !                              L24H (hyl, bmy, 11/3/11)
 !  20 Jun 2016 - R. Yantosca - Now define species ID's in the init phase
 !  20 Jun 2016 - R. Yantosca - Add check to prevent array OOB errors
+!  21 Jun 2016 - R. Yantosca - Rename IDTO3Strt to id_O3Strat
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -743,11 +744,11 @@
       RC = GIGC_SUCCESS
 
       ! Initialize tracer index (CODEATHON, mps, 6/16/16)
-      id_O3Strt = IND_('O3Strt')
+      id_O3Strat = IND_('O3Strat')
 
       ! Add error check to make sure O3Strt is defined (bmy, 6/20/16)
-      IF ( id_O3Strt <= 0 ) THEN
-         CALL ERROR_STOP( 'O3Strt is an undefined species!', 
+      IF ( id_O3Strat <= 0 ) THEN
+         CALL ERROR_STOP( 'O3Strat is an undefined species!', 
      &                    'INIT_TAGGED_OX (tagged_ox_mod.f)' )
       ENDIF
 
