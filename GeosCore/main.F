@@ -315,6 +315,10 @@
       ! Arrays
       INTEGER                  :: DATE(2)
 
+      ! DEBUGGING (ewl)
+      REAL(f8)                 :: TOTAL
+      ! END DEBUGGING
+
       ! Derived type objects
       TYPE(MapWeight), POINTER :: mapping(:,:) => NULL()
 
@@ -1312,6 +1316,12 @@
 #endif
 !-----------------------------------------------------------------------------
 
+
+            ! DEBUGGING (ewl)
+            PRINT *, " "
+            PRINT *, "Before Transport - in main"
+            ! END DEBUGGING
+
             ! Call the appropriate version of TPCORE
             ! NOTE: Tracer concentration units are converted locally
             ! within transport to [kg/kg total air] for advection 
@@ -1328,6 +1338,10 @@
                   CALL DEBUG_MSG( '### MAIN: a DO_TRANSPORT' )
                ENDIF
             ENDIF
+
+            ! DEBUGGING (ewl)
+            PRINT *, "Transport done - back in main"
+            ! END DEBUGGING
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport

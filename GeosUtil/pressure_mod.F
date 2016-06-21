@@ -256,11 +256,11 @@
       ! SET_WET_FLOATING_PRESSURE begins here!
       !=================================================================
 
-      !! DEBUGGING (ewl)
-      !PRINT *, " "
-      !PRINT *, "In SET_WET_FLOATING_PRESSURE"
-      !PRINT *, "   Old PFLT_WET(56,20): ", PFLT_WET(56,20)
-      !! END DEBUGGING
+      ! DEBUGGING (ewl)
+      PRINT *, " "
+      PRINT *, "In SET_WET_FLOATING_PRESSURE"
+      PRINT *, "   Old PFLT_WET(56,20): ", PFLT_WET(56,20)
+      ! END DEBUGGING
 
       ! Define quantities for CHECK_VALUE
 !$OMP PARALLEL DO
@@ -282,9 +282,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      !! DEBUGGING (ewl)
-      !PRINT *, "   New PFLT_WET(56,20): ", PFLT_WET(56,20)
-      !! END DEBUGGING
+      ! DEBUGGING (ewl)
+      PRINT *, "   New PFLT_WET(56,20): ", PFLT_WET(56,20)
+      ! END DEBUGGING
 
       ! Return to calling program
       END SUBROUTINE SET_WET_FLOATING_PRESSURE
@@ -332,11 +332,11 @@
       ! SET_DRY_FLOATING_PRESSURE begins here!
       !=================================================================
 
-      !! DEBUGGING (ewl)
-      !PRINT *, " "
-      !PRINT *, "In SET_DRY_FLOATING_PRESSURE"
-      !PRINT *, "   Old PFLT_DRY(56,20): ", PFLT_DRY(56,20)
-      !! END DEBUGGING
+      ! DEBUGGING (ewl)
+      PRINT *, " "
+      PRINT *, "In SET_DRY_FLOATING_PRESSURE"
+      PRINT *, "   Old PFLT_DRY(56,20): ", PFLT_DRY(56,20)
+      ! END DEBUGGING
 
       ! Define quantities for CHECK_VALUE
 !$OMP PARALLEL DO
@@ -358,9 +358,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      !! DEBUGGING (ewl)
-      !PRINT *, "   New PFLT_DRY(56,20): ", PFLT_DRY(56,20)
-      !! END DEBUGGING
+      ! DEBUGGING (ewl)
+      PRINT *, "   New PFLT_DRY(56,20): ", PFLT_DRY(56,20)
+      ! END DEBUGGING
 
       ! Return to calling program
       END SUBROUTINE SET_DRY_FLOATING_PRESSURE

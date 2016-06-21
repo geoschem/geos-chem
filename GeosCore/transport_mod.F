@@ -365,6 +365,13 @@
 #endif
       REAL(fp),  POINTER :: p_STT    (:,:,:,:)
 
+      ! DEBUGGING (ewl)
+      REAL(fp)           :: SUM_DRYAIRMASS
+      REAL(fp)           :: SUM_WETAIRMASS
+      REAL(fp)           :: SUM_TRACERMASS
+      REAL(fp)           :: TRACERMASS(IIPAR,JJPAR,LLPAR)
+      ! END DEBUGGING
+
       ! For fields from Input_Opt
       LOGICAL            :: LFILL
       LOGICAL            :: LPRT
@@ -422,6 +429,30 @@
       ! and Ap(L), Bp(L) define the vertical grid (see pressure_mod.f)
       !=================================================================
 
+      ! DEBUGGING (ewl)
+      PRINT *, " "
+      PRINT *, "Before advection"
+      ! Get total tracer mass, dry air mass, and wet air mass
+      SUM_DRYAIRMASS = SUM( State_Met%AD(:,:,:) )
+      SUM_WETAIRMASS = SUM( State_Met%ADMOIST(:,:,:) )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         TRACERMASS(I,J,L) =
+     &            State_Chm%TRACERS(I,J,L,1) * State_Met%AD(I,J,L)
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+      SUM_TRACERMASS = SUM( TRACERMASS(:,:,:) )
+      PRINT *, "Total dry air mass:   ", SUM_DRYAIRMASS
+      PRINT *, "Total wet air mass:   ", SUM_WETAIRMASS
+      PRINT *, "Total tracer mass:    ", SUM_TRACERMASS      
+      ! END DEBUGGING
+    
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J )
@@ -447,12 +478,12 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      !! DEBUGGING (ewl)
-      !PRINT *, " "
-      !PRINT *, "In TRANSPORT_MOD"
-      !PRINT *, "   P_TP1(56,20):        ", P_TP1(56,20)
-      !PRINT *, "   P_TP2(56,20):        ", P_TP2(56,20)
-      !! END DEBUGGING
+      ! DEBUGGING (ewl)
+      PRINT *, " "
+      PRINT *, "In TRANSPORT_MOD"
+      PRINT *, "   P_TP1(56,20):        ", P_TP1(56,20)
+      PRINT *, "   P_TP2(56,20):        ", P_TP2(56,20)
+      ! END DEBUGGING
       
       !=================================================================
       ! Call the PJC/LLNL pressure fixer to get the adjusted air 
@@ -473,7 +504,7 @@
       ! Flip array indices in the vertical using pointer storage
       p_UWND    => State_Met%U      (:,:,LLPAR:1:-1  )
       p_VWND    => State_Met%V      (:,:,LLPAR:1:-1  )
-      p_STT     => State_Chm%Tracers(:,:,LLPAR:1:-1,:) ! v/v
+      p_STT     => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
       p_XMASS   => XMASS            (:,:,LLPAR:1:-1  )
       p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
 
@@ -538,6 +569,31 @@
       !   RETURN
       !ENDIF 
 
+      ! DEBUGGING (ewl)
+      PRINT *, " "
+      PRINT *, "After advection"
+      ! Get total tracer mass, dry air mass, and wet air mass
+      SUM_DRYAIRMASS = SUM( State_Met%AD(:,:,:) )
+      SUM_WETAIRMASS = SUM( State_Met%ADMOIST(:,:,:) )
+      SUM_TRACERMASS = 0.e+0_fp
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         TRACERMASS(I,J,L) = 
+     &            State_Chm%TRACERS(I,J,L,1) * State_Met%AD(I,J,L)
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+      SUM_TRACERMASS = SUM( TRACERMASS(:,:,:) )
+      PRINT *, "Total dry air mass:   ", SUM_DRYAIRMASS
+      PRINT *, "Total wet air mass:   ", SUM_WETAIRMASS
+      PRINT *, "Total tracer mass:    ", SUM_TRACERMASS      
+      ! END DEBUGGING
+
       ! Free pointer memory
       NULLIFY( p_UWND,  p_VWND,  p_STT   )
       NULLIFY( p_XMASS, p_YMASS          )
@@ -555,6 +611,32 @@
       CALL SET_WET_FLOATING_PRESSURE( State_Met%PSC2 )
       CALL SET_DRY_FLOATING_PRESSURE( State_Met%PSC2_DRY )
 
+
+      ! DEBUGGING (ewl)
+      PRINT *, " "
+      PRINT *, "After setting floating pressures"
+      ! Get total tracer mass, dry air mass, and wet air mass
+      SUM_DRYAIRMASS = SUM( State_Met%AD(:,:,:) )
+      SUM_WETAIRMASS = SUM( State_Met%ADMOIST(:,:,:) )
+      SUM_TRACERMASS = 0.e+0_fp
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         TRACERMASS(I,J,L) =
+     &          State_Chm%TRACERS(I,J,L,1) * State_Met%AD(I,J,L)
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+      SUM_TRACERMASS = SUM( TRACERMASS(:,:,:) )
+      PRINT *, "Total dry air mass:   ", SUM_DRYAIRMASS
+      PRINT *, "Total wet air mass:   ", SUM_WETAIRMASS
+      PRINT *, "Total tracer mass:    ", SUM_TRACERMASS      
+      ! END DEBUGGING
+
       ! Prior to 04 May 2016: Floating pressure is wet.
       !! Reset the floating surface pressure with P_TP2, the "true"
       !! surface pressure at the end of the dynamic timestep.
@@ -564,6 +646,32 @@
       ! Do not update tracer mixing ratio
       CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
      &             update_mixing_ratio=.FALSE. )
+
+
+      ! DEBUGGING (ewl)
+      PRINT *, " "
+      PRINT *, "After AIRQNT call"
+      ! Get total tracer mass, dry air mass, and wet air mass
+      SUM_DRYAIRMASS = SUM( State_Met%AD(:,:,:) )
+      SUM_WETAIRMASS = SUM( State_Met%ADMOIST(:,:,:) )
+      SUM_TRACERMASS = 0.e+0_fp
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         TRACERMASS(I,J,L) =
+     &            State_Chm%TRACERS(I,J,L,1) * State_Met%AD(I,J,L)
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+      SUM_TRACERMASS = SUM( TRACERMASS(:,:,:) )
+      PRINT *, "Total dry air mass:   ", SUM_DRYAIRMASS
+      PRINT *, "Total wet air mass:   ", SUM_WETAIRMASS
+      PRINT *, "Total tracer mass:    ", SUM_TRACERMASS      
+      ! END DEBUGGING
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G4_G5_GLOB_ADV: a TPCORE' ) 
