@@ -1335,7 +1335,7 @@
 	    ! Test if SOAG and SOAM tracers are valid before 
             ! saving them. (ccc, 1/7/09)
             !-----------------------------------------------
-	    IF ( id_SOAG /= 0 .AND. id_SOAM /= 0 ) THEN
+	    IF ( id_SOAG > 0 .AND. id_SOAM > 0 ) THEN
                CATEGORY     = 'SOAGM=$'
 
                DO N = 1, 4

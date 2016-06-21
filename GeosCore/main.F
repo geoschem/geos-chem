@@ -306,13 +306,13 @@
       INTEGER                  :: NYMD,          NYMDb,       NHMS
       INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
       INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
-      INTEGER                  :: laiYYYY,       laiMM
+      INTEGER                  :: laiYYYY,       laiMM,       id_CLOCK
       REAL(f8)                 :: TAU,           TAUb         
       CHARACTER(LEN=255)       :: ZTYPE
 
       ! Set cloud flag for RRTMG
-      INTEGER                   :: ICLD=0,ISEED=10
-      INTEGER                   :: RR
+      INTEGER                  :: ICLD=0,ISEED=10
+      INTEGER                  :: RR
 
       ! Arrays
       INTEGER                  :: DATE(2)
@@ -575,6 +575,8 @@
       ! completely removed for grid-independence (ewl, 9/10/15)
       State_Met%AREA_M2 =  AREA_M2
 
+      ! Define species ID flags for use below
+      id_CLOCK = Ind_('CLOCK')
       !-----------------------------------------------------------------
 
 #if   defined( RRTMG )
@@ -1329,7 +1331,12 @@
          ENDIF
 
          ! SDE 10/16/13: Set clock tracer if relevant
-         IF ( IND_('CLOCK') .ne. 0 ) THEN
+!---------------------------------------------------------------------------
+! Prior to 6/21/16:
+! Use pre-saved "id_CLOCK" species ID flag (bmy, 6/21/16)
+!         IF ( IND_('CLOCK') > 0 ) THEN
+!---------------------------------------------------------------------------
+         IF ( id_CLOCK > 0 ) THEN
             CALL SET_CLOCK_TRAC( GET_TS_DYN(), State_Chm )
          ENDIF
 
