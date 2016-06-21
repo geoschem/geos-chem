@@ -39,12 +39,11 @@
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
       USE RESTART_MOD           ! For restart file I/O
       USE TIME_MOD              ! For computing date & time 
-      USE TRACERID_MOD          ! Flags for G-C tracers & chemical species
       USE TRACER_MOD            ! For error-checking the tracer array
       USE REGRID_A2A_MOD        ! For horizontal regridding
       USE UNITCONV_MOD          ! For gas concentration unit conversion
       USE GEOS_TIMERS_MOD       ! For GEOS-Chem timers (optional)
-      
+      USE GIGC_State_Chm_Mod, ONLY : IND_
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules
       !-----------------------------------------------------------------
@@ -307,13 +306,13 @@
       INTEGER                  :: NYMD,          NYMDb,       NHMS
       INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
       INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
-      INTEGER                  :: laiYYYY,       laiMM
+      INTEGER                  :: laiYYYY,       laiMM,       id_CLOCK
       REAL(f8)                 :: TAU,           TAUb         
       CHARACTER(LEN=255)       :: ZTYPE
 
       ! Set cloud flag for RRTMG
-      INTEGER                   :: ICLD=0,ISEED=10
-      INTEGER                   :: RR
+      INTEGER                  :: ICLD=0,ISEED=10
+      INTEGER                  :: RR
 
       ! Arrays
       INTEGER                  :: DATE(2)
@@ -576,6 +575,8 @@
       ! completely removed for grid-independence (ewl, 9/10/15)
       State_Met%AREA_M2 =  AREA_M2
 
+      ! Define species ID flags for use below
+      id_CLOCK = Ind_('CLOCK')
       !-----------------------------------------------------------------
 
 #if   defined( RRTMG )
@@ -1164,7 +1165,7 @@
          ! NOTE: Specific humidity may change in SET_H2O_TRAC and
          ! therefore this routine may call AIRQNT again to update
          ! air quantities and tracer concentrations (ewl, 10/28/15)
-         IF (IDTH2O.ne.0) THEN
+         IF (IND_('H2O').ne.0) THEN
             CALL SET_H2O_TRAC( am_I_Root, 
      &                         ( ( .not. LUCX ) .or. LSETH2O ),
      &                         Input_Opt, State_Met, State_Chm, RC )
@@ -1330,7 +1331,12 @@
          ENDIF
 
          ! SDE 10/16/13: Set clock tracer if relevant
-         IF ( IDTCLOCK .ne. 0 ) THEN
+!---------------------------------------------------------------------------
+! Prior to 6/21/16:
+! Use pre-saved "id_CLOCK" species ID flag (bmy, 6/21/16)
+!         IF ( IND_('CLOCK') > 0 ) THEN
+!---------------------------------------------------------------------------
+         IF ( id_CLOCK > 0 ) THEN
             CALL SET_CLOCK_TRAC( GET_TS_DYN(), State_Chm )
          ENDIF
 
@@ -1580,7 +1586,7 @@
             CALL SET_CT_CHEM( INCREMENT=.TRUE. )
 
             ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant
-            IF (IDTH2O.ne.0) THEN
+            IF (IND_('H2O').ne.0) THEN
 
                CALL SET_H2O_TRAC( am_I_Root, (.not. LUCX), Input_Opt ,
      &                            State_Met, State_Chm, RC )

@@ -29,11 +29,11 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : IND_
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTNK1, IDTH2SO4
       USE TOMAS_MOD
 
       USE CMN_SIZE_MOD
@@ -76,6 +76,8 @@
 !                              array dimensions from (IIPAR*JJPAR,IBINS) to
 !                              (IIPAR,JJPAR,IBINS)
 !  07 Jun 2016 - E. Lundgren - Remove XNUMOL; use species database MW instead
+!  16 Jun 2016 - R. Silvern  - Now use Ind_ function to define species IDs
+!  17 Jun 2016 - R. Yantosca - Now define species ID's on the first call
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -108,13 +110,18 @@
       CHARACTER(LEN=255) :: LOC, MSG
 
       ! For fields from Input_Opt
-      LOGICAL         :: LPRT
-      INTEGER         :: N_TRACERS
+      LOGICAL           :: LPRT
+      INTEGER           :: N_TRACERS
 
       ! Pointers
       REAL(fp), POINTER :: STT(:,:,:,:)
       REAL(fp), POINTER :: BXHEIGHT(:,:,:)
       REAL(fp), POINTER :: T(:,:,:)
+
+      ! SAVEd scalars 
+      LOGICAL, SAVE     :: FIRST = .TRUE.
+      INTEGER, SAVE     :: id_H2SO4
+      INTEGER, SAVE     :: id_NK1
 
       !=================================================================
       ! AERO_DRYDEP begins here!
@@ -128,6 +135,30 @@
          MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
          LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
          CALL GIGC_Error( MSG, RC, LOC )
+      ENDIF
+
+      ! First-time setup
+      IF ( FIRST ) THEN
+
+         ! Look up species ID's
+         id_H2SO4 = IND_('H2SO4')
+         id_NK1   = IND_('NK1'  )
+
+         ! Make sure species are defined
+         IF ( id_H2SO4 < 0 ) THEN
+            MSG = 'H2SO4 is not a defined species!'
+            LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
+            CALL ERROR_STOP( MSG, LOC )
+         ENDIF
+   
+         IF ( id_NK1 < 0 ) THEN
+            MSG = 'NK1 is not a defined species!'
+            LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
+            CALL ERROR_STOP( MSG, LOC )
+         ENDIF
+
+         ! Reset first-time falg
+         FIRST    = .FALSE.
       ENDIF
 
       ! DTCHEM is the chemistry timestep in seconds
@@ -152,9 +183,9 @@
       DO BIN = 1, IBINS
          DO N = 1, NUMDEP
             !just want to match only once (win, 5/24/06)
-            IF ( BIN == 1 .and. NTRAIND(N)==IDTH2SO4) H2SO4ID = N
+            IF ( BIN == 1 .and. NTRAIND(N)==id_H2SO4 ) H2SO4ID = N
 cdbg            print *, 'DRYDEP Species:',N
-            IF ( NTRAIND(N) == ( IDTNK1-1+BIN ) )THEN
+            IF ( NTRAIND(N) == ( id_NK1-1+BIN ) )THEN
 cdbg               print *,'Match tracer:',IDTNK1-1+bin,'Bin',bin
                DRYD( BIN ) = N
                GOTO 100
@@ -272,7 +303,7 @@ cdbg      print *, dryd(:)
 
 
          DO JC = 1, ICOMP-IDIAG+1
-            ID = IDTNK1 - 1 + BIN + ( IBINS * (JC-1) )
+            ID = id_NK1 - 1 + BIN + ( IBINS * (JC-1) )
 
 !debug            if(i==ix .and. j==jx .and. l==ll) then
 !               write(200,*)'BIN , TC0,  TC, , VTS(L), JC=',JC
@@ -390,7 +421,7 @@ cdbg      print *, dryd(:)
          ! Save the initial 30-bin number and icomp-1 mass component
          DO JC = 1, ICOMP-IDIAG+1
             DO BIN = 1, IBINS
-               ID = IDTNK1 - 1 + BIN + ( IBINS * (JC-1) )
+               ID = id_NK1 - 1 + BIN + ( IBINS * (JC-1) )
                X0(BIN,JC) = STT(I,J,L,ID)
             ENDDO
          ENDDO
@@ -407,7 +438,8 @@ c     &           'FLUX  AD44'
          DO JC = 1, ICOMP-IDIAG+1
          DO BIN = 1, IBINS
             X = 0d0
-            ID = IDTNK1 - 1 + BIN + (( JC-1 )* IBINS)
+            ! ID = IDTNK1 - 1 + BIN + (( JC-1 )* IBINS) CODEATHON
+            ID = id_NK1 - 1 + BIN + (( JC-1 )* IBINS)
 
 ! ******************************************************************************
 ! NOTE: I'm not sure if this is now covered by dry-deposition in mixing_mod.F90
@@ -477,7 +509,8 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
 ! NOTE: I'm not sure if this is now covered by dry-deposition in mixing_mod.F90
 ! (ckeller, 3/5/15)
          !Dry deposit H2SO4 gas (win, 5/24/06)
-         Y0 = STT(I,J,L,IDTH2SO4)
+         Y0 = STT(I,J,L,id_H2SO4)
+         !Y0 = STT(I,J,L,IDTH2SO4) CODEATHON
          RKT = DEPSAV(I,J,H2SO4ID)* GET_FRAC_UNDER_PBLTOP( I, J, L)
          Y = Y0 * EXP(-RKT)
 ! ******************************************************************************
@@ -493,7 +526,7 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
             ! Convert from [kg/timestep] to [molec/cm2/s] 
             ! Store in AD44
             FLUX = Y0 - Y
-            FLUX = FLUX * State_Chm%SpcData(IDTH2SO4)%Info%emMW_g * 
+            FLUX = FLUX * State_Chm%SpcData(id_H2SO4)%Info%emMW_g * !CODEATHON
      &             1.e-3_fp / AREA_CM2 / DTCHEM
 
             AD44(I,J,H2SO4ID,1) = AD44(I,J,H2SO4ID,1) + FLUX   
@@ -502,7 +535,7 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
 #endif
 
          !Swap final H2SO4 back into STT array
-         STT(I,J,L,IDTH2SO4) = Y         
+         STT(I,J,L,id_H2SO4) = Y   !CODEATHON      
 
       ENDDO
       ENDDO
