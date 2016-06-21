@@ -39,6 +39,9 @@ MODULE Species_Mod
   INTEGER, PRIVATE :: DryDepCount = 0       ! Counter of dry-deposited species
   INTEGER, PRIVATE :: KppSpcCount = 0       ! Counter of species in KPP matrix
   INTEGER, PRIVATE :: WetDepCount = 0       ! Counter of wet-deposited species
+  INTEGER, PRIVATE :: ActiveCount = 0       ! Counter of active chem species
+  INTEGER, PRIVATE :: FixedCount  = 0       ! Counter of fixed chem species
+  INTEGER, PRIVATE :: PhotolCount = 0       ! Counter of photolysis species
   INTEGER, PRIVATE :: Hg0Count    = 0       ! Number  of Hg0 tracers
   INTEGER, PRIVATE :: Hg2Count    = 0       ! Number  of Hg2 tracers
   INTEGER, PRIVATE :: HgPCount    = 0       ! Number  of HgP tracers
@@ -63,7 +66,8 @@ MODULE Species_Mod
      INTEGER            :: WetDepID         ! Wet deposition index
      INTEGER            :: KppVarId         ! KPP variable species index
      INTEGER            :: KppFixId         ! KPP fixed spcecies index
-!     INTEGER            :: KppSpcId         ! KPP spcecies index per *_Parameters.F90
+!    INTEGER            :: KppSpcID         ! KPP spcecies index per *_Parameters.F90
+     INTEGER            :: PhotolID         ! Photolysis index
 
      ! Names
      CHARACTER(LEN=31)  :: Name             ! Short name
@@ -76,6 +80,9 @@ MODULE Species_Mod
      LOGICAL            :: Is_DryDep        ! Is it dry-deposited?
      LOGICAL            :: Is_WetDep        ! Is it wet-deposited?
      LOGICAL            :: Is_Kpp           ! Is it in the KPP mechanism?
+     LOGICAL            :: Is_ActiveChem    ! Is it an active chemical species?
+     LOGICAL            :: Is_FixedChem     ! Is it a fixed chemical species?
+     LOGICAL            :: Is_Photolysis    ! Is it an photolysis species?
 
      ! Molecular weights
      REAL(fp)           :: MW_g             ! Species molecular weight [g/mol]
@@ -178,8 +185,9 @@ MODULE Species_Mod
 !                              H2SO4 wet deposition for microphysics
 !  22 Apr 2016 - R. Yantosca - Added Is_Hg0, Is_Hg2, Is_HgP species
 !  04 May 2016 - R. Yantosca - Added fast name lookup via hashing
-
 !  09 May 2016 - R. Yantosca - Add Is_Kpp, KppVarId, KppFixId to type Species
+!  21 Jun 2016 - M. Sulprizio- Add Is_Photolysis, Is_ActiveChem, and
+!                              Is_FixedChem to type Species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -474,9 +482,9 @@ CONTAINS
                          WD_LiqAndGas,  WD_ConvFacI2G, WD_AerScavEff,  &
                          WD_KcScaleFac, WD_RainoutEff, WD_CoarseAer,   &
                          Is_Advected,   Is_Gas,        Is_Drydep,      &
-                         Is_Wetdep,     Is_Hg0,        Is_Hg2,         &
-                         Is_HgP,        KppVarId,      KppFixId,       &
-                         RC                                           )
+                         Is_Wetdep,     Is_Photolysis, Is_Hg0,         &
+                         Is_Hg2,        Is_HgP,        KppVarId,       &
+                         KppFixId,      RC                             )
 !
 ! !USES:
 !
@@ -530,6 +538,7 @@ CONTAINS
     LOGICAL,          OPTIONAL    :: Is_Gas           ! Gas (T) or aerosol (F)?
     LOGICAL,          OPTIONAL    :: Is_Drydep        ! Is it dry deposited?
     LOGICAL,          OPTIONAL    :: Is_Wetdep        ! Is it wet deposited?
+    LOGICAL,          OPTIONAL    :: Is_Photolysis    ! Is it photolysis spc?
     LOGICAL,          OPTIONAL    :: Is_Hg0           ! Denotes Hg0 species
     LOGICAL,          OPTIONAL    :: Is_Hg2           ! Denotes Hg2 species
     LOGICAL,          OPTIONAL    :: Is_HgP           ! Denotes HgP species
@@ -568,6 +577,9 @@ CONTAINS
 !  22 Apr 2016 - R. Yantosca - Added Is_Hg0, Is_Hg2, Is_HgP
 !  04 May 2016 - R. Yantosca - Now construct hash value from short name
 !  15 Jun 2016 - M. Sulprizio- Make species name uppercase before computing hash
+!  21 Jun 2016 - M. Sulprizio- Add optional argument Is_Photolysis. Also set
+!                              Is_ActiveChem and Is_Fixed Chem according to
+!                              KppVarId and KPPFixId.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -926,6 +938,23 @@ CONTAINS
     ENDIF
 
     !---------------------------------------------------------------------
+    ! Is it a photolysis species in the KPP chemical mechanism?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( Is_Photolysis ) ) THEN
+       ThisSpc%Is_Photolysis = Is_Photolysis
+
+       ! Increment count & index of wet deposited species
+       IF ( Is_Photolysis ) THEN
+          PhotolCount        = PhotolCount + 1
+          ThisSpc%PhotolID   = PhotolCount
+       ENDIF
+
+    ELSE
+       ThisSpc%Is_Photolysis = .FALSE.
+       ThisSpc%PhotolID      = MISSING_INT
+    ENDIF
+
+    !---------------------------------------------------------------------
     ! Is it a coarse aerosol?
     !---------------------------------------------------------------------
     IF ( PRESENT( WD_CoarseAer ) ) THEN
@@ -1006,6 +1035,11 @@ CONTAINS
 
     ! Is the species part of the KPP chemical mechanism?
     ThisSpc%Is_Kpp = ( ThisSpc%KppVarId > 0 .or. ThisSpc%KppFixId > 0 )
+
+    ! Is the species an active or fixed species in the chemical mechanism?
+    ThisSpc%Is_ActiveChem = ( ThisSpc%KppVarId >  0 .and. &
+                              ThisSpc%KppFixId <= 0 )
+    ThisSpc%Is_FixedChem  = ( ThisSpc%KppFixId >  0 )
 
     ! Assume the species is not H2SO4, HNO3, or SO2 at first
     ThisSpc%WD_Is_H2SO4 = .FALSE.
@@ -1144,10 +1178,12 @@ CONTAINS
        WRITE( 6, 130 ) 'Is it a KPP species? ',          ThisSpc%Is_Kpp
 
        IF ( ThisSpc%Is_Kpp ) THEN
+          WRITE( 6, 130 ) 'Is it a active spc?  ',       ThisSpc%Is_ActiveChem
           IF ( ThisSpc%KppVarId > 0 ) THEN
              WRITE( 6, 100 )    ' -> ID in VAR array  ', ThisSpc%KppVarId
           ENDIF
           
+          WRITE( 6, 130 ) 'Is it a fixed spc?   ',       ThisSpc%Is_FixedChem
           IF ( ThisSpc%KppFixId > 0 ) THEN
              WRITE( 6, 100 )    ' -> ID in FIX array  ', ThisSpc%KppFixId
           ENDIF
@@ -1156,6 +1192,11 @@ CONTAINS
 !             WRITE( 6, 100 )    ' -> ID in C   array  ', ThisSpc%KppSpcId
 !          ENDIF
        ENDIF
+
+       !-------------------------
+       ! Print photolysis info
+       !-------------------------
+       WRITE( 6, 130 ) 'Is it a photol. spc? ',          ThisSpc%Is_Photolysis
 
        !-------------------------
        ! Print drydep info

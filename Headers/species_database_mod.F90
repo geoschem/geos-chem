@@ -136,6 +136,10 @@ CONTAINS
 !  19 May 2016 - R. Yantosca - Remove DryDepId_PAN and DryDepId_HNO3; we shall
 !                              now explicitly compute a drydep velocity for
 !                              all GEOS-Chem species.
+!  21 Jun 2016 - M. Sulprizio- Set Is_Photolysis to T for all species included
+!                              in FAST-JX photolysis. Also added new species
+!                              that are in FAST-JX photolysis but not already
+!                              defined here.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -237,6 +241,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 2.7e-1_f8 * To_M_atm,         &
@@ -263,6 +268,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 1.30e-01_f8 * To_M_atm,       &
@@ -449,6 +455,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 0.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 7.20e-3_f8 * To_M_atm,        &
@@ -489,6 +496,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'BRNO3' )
@@ -504,6 +512,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 1.00e+20_fp,                  &
                               RC            = RC )
@@ -521,6 +530,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'C2H6' )
@@ -655,6 +665,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 3.2e+1_f8 * To_M_atm,         &
@@ -740,6 +751,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'CL' )
@@ -1139,6 +1151,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 4.10e+2_f8 * To_M_atm,        &
@@ -1179,6 +1192,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 4.93e+5_f8 * To_M_atm,        &
@@ -1207,6 +1221,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 7.70e+1_f8 * To_M_atm,        &
@@ -1329,6 +1344,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'HNO3' )
@@ -1356,6 +1372,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 0.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 2.10e+3_f8 * To_M_atm,        &
@@ -1383,6 +1400,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 3.90e1X_f8 * To_M_atm,        &
                               Henry_CR      = 8400.0_f8,                    &
@@ -1427,6 +1445,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 0.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 1.30e+0_f8 * To_M_atm,        &
@@ -1608,6 +1627,7 @@ CONTAINS
 !                              Is_Gas        = T,                            &
 !                              Is_Drydep     = T,                            &
 !                              Is_Wetdep     = F,                            &
+!                              Is_Photolysis = T,                            &
 !                              DD_F0         = 1.0_fp,                       &
 !                              DD_Hstar_old  = 1.70e+4_fp,                   &
 !                              RC            = RC )
@@ -1649,6 +1669,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 4.8e-2_f8 * To_M_atm,         &
@@ -1671,6 +1692,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 8.30e+0_f8 * To_M_atm,        &
@@ -1698,6 +1720,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 2.90e+02_f8 * To_M_atm,       &
                               Henry_CR      = 5700.0_f8,                    &
@@ -1820,6 +1843,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 2,90e+0_f8 * To_M_atm,        &
                               Henry_CR      = 5200.0_f8,                    &
@@ -1843,6 +1867,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'MSA' )
@@ -1940,6 +1965,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 2.6e-1_f8 * To_M_atm,         &
@@ -1998,6 +2024,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 0.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 2.10e-2_f8 * To_M_atm,        &
@@ -2197,6 +2224,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 0.1_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 1.20e-4_f8 * To_M_atm,        &
@@ -2220,6 +2248,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 3.80e-4_f8 * To_M_atm,        &
                               Henry_CR      = 1900.0_f8,                    &
@@ -2286,6 +2315,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 1.90e-05_f8 * To_M_atm,       &
@@ -2427,6 +2457,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0e+0_fp,                    &
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 2.90e+02_f8 * To_M_atm,       &
@@ -2572,6 +2603,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 4.93e+3_f8 * To_M_atm,        &
@@ -2600,6 +2632,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &   
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 1.0e-2_f8 * To_M_atm,         &
@@ -2623,6 +2656,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 9.5e-2_f8 * To_M_atm,         &
                               Henry_CR      = 6200.0_f8,                    &
@@ -2642,6 +2676,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 7.90e+5_f8 * To_M_atm,        &
@@ -4108,6 +4143,304 @@ CONTAINS
                               RC            = RC )
 
 #endif
+
+          !==================================================================
+          ! Additional species for FAST-JX photolysis
+          !==================================================================
+
+          CASE( 'O2' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'GLYX' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'MGLY' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'INPN' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'PRPN' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'ETP' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'RA3P' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'RB3P' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'R4P' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'PP' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'RP' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'IAP' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'ISNP' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'VRP' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'MRP' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'MAOP' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'MACRN' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'MVKN' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'ISOPNB' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'ISOPND' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'ATOOH' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
 
           !==================================================================
           ! Special handling for species not found in the list above
