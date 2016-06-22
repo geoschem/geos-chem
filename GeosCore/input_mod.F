@@ -3746,7 +3746,7 @@
       LOCATION = 'READ_TRANSPORT_MENU ("input_mod.f")'
 
       ! Error check
-      IF ( CT1 /= 2 ) THEN 
+      IF ( CT1 /= 2 ) THEN
          MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
@@ -3850,15 +3850,15 @@
       !-----------------------------------------------------------------
       Input_Opt%TS_DYN      = TS_DYN
 
-#endif
-
       ! If TS_DYN is greater than MAX_DYN, then stop w/ error
       IF ( .not. Input_Opt%HPC ) THEN
       IF ( Input_Opt%TS_DYN > MAX_DYN .and. LTRAN ) THEN
-         write(*,*) '<>', Input_Opt%TS_DYN, Input_Opt%HPC
+         write(MSG,'(I,a,L)') '<>', Input_Opt%TS_DYN, Input_Opt%HPC
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
       ENDIF
+
+#endif
 
       ! Return success
       RC = GIGC_SUCCESS

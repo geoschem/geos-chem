@@ -4296,22 +4296,29 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
       DMID = 0e+0_f8
 
-      ! If we are not on the root CPU, don't pass variables to
-      ! Input_Opt but check if local NUMDEP matches the value
-      ! set in Input_Opt (ckeller, 1/14/2015).
-      IF ( am_I_Root ) THEN
-         Input_Opt%NUMDEP            = NUMDEP
-         Input_Opt%NDVZIND(1:NUMDEP) = NDVZIND(1:NUMDEP)
-         Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
-         Input_Opt%NTRAIND(1:NUMDEP) = NTRAIND(1:NUMDEP)
+      ! SDE 2016-03-27: This is now called after Input_Opt has already
+      ! been broadcast, so each CPU will do this independently anyway
+      Input_Opt%NUMDEP            = NUMDEP
+      Input_Opt%NDVZIND(1:NUMDEP) = NDVZIND(1:NUMDEP)
+      Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
+      Input_Opt%NTRAIND(1:NUMDEP) = NTRAIND(1:NUMDEP)
 
-      ELSE
-         IF ( Input_Opt%NUMDEP /= NUMDEP ) THEN
-            WRITE(MSG,*) 'NUMDEP /= Input_Opt%NUMDEP: ', NUMDEP,
-     &                   Input_Opt%NUMDEP
-            CALL ERROR_STOP( MSG, 'INIT_DRYDEP (drydep_mod.F)' )
-         ENDIF
-      ENDIF
+!      ! If we are not on the root CPU, don't pass variables to
+!      ! Input_Opt but check if local NUMDEP matches the value
+!      ! set in Input_Opt (ckeller, 1/14/2015).
+!      IF ( am_I_Root ) THEN
+!         Input_Opt%NUMDEP            = NUMDEP
+!         Input_Opt%NDVZIND(1:NUMDEP) = NDVZIND(1:NUMDEP)
+!         Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
+!         Input_Opt%NTRAIND(1:NUMDEP) = NTRAIND(1:NUMDEP)
+!
+!      ELSE
+!         IF ( Input_Opt%NUMDEP /= NUMDEP ) THEN
+!            WRITE(MSG,*) 'NUMDEP /= Input_Opt%NUMDEP: ', NUMDEP,
+!     &                   Input_Opt%NUMDEP
+!            CALL ERROR_STOP( MSG, 'INIT_DRYDEP (drydep_mod.F)' )
+!         ENDIF
+!      ENDIF
 
       !=================================================================
       ! Echo information to stdout

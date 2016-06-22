@@ -359,10 +359,10 @@
       REAL(fp),  POINTER :: p_VWND   (:,:,:  )
       REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
       REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
-#if defined( BPCH_DIAG ) || defined( NETCDF )
-      REAL(fp),  POINTER :: p_MFLEW  (:,:,:,:)
-      REAL(fp),  POINTER :: p_MFLNS  (:,:,:,:)
-      REAL(fp),  POINTER :: p_MFLUP  (:,:,:,:)
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+      REAL(fp),  POINTER :: p_MFLEW  (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLNS  (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLUP  (:,:,:,:) => NULL()
 #endif
       REAL(fp),  POINTER :: p_STT    (:,:,:,:)
 
@@ -500,7 +500,7 @@
      &                   p_UWND, p_VWND,    P_TP1,    P_TP2,
      &                   P_TEMP, p_STT,     IORD,     JORD,      
      &                   KORD,   N_ADJ,     p_XMASS,  p_YMASS, LFILL,  
-#if defined( BPCH_DIAG ) || defined( NETCDF )
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
@@ -529,7 +529,7 @@
       ! Free pointer memory
       NULLIFY( p_UWND,  p_VWND,  p_STT   )
       NULLIFY( p_XMASS, p_YMASS          )
-#if defined( BPCH_DIAG ) || defined( NETCDF )
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
       NULLIFY( p_MFLEW, p_MFLNS, p_MFLUP )
 #endif
 
@@ -648,14 +648,14 @@
       REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR) 
 
       ! Pointers
-      REAL(fp),  POINTER :: p_UWND  (:,:,:  )
-      REAL(fp),  POINTER :: p_VWND  (:,:,:  )
-      REAL(fp),  POINTER :: p_XMASS (:,:,:  )
-      REAL(fp),  POINTER :: p_YMASS (:,:,:  )
-#if defined( BPCH_DIAG ) || defined( NETCDF )
-      REAL(fp),  POINTER :: p_MFLEW (:,:,:,:)
-      REAL(fp),  POINTER :: p_MFLNS (:,:,:,:)
-      REAL(fp),  POINTER :: p_MFLUP (:,:,:,:)
+      REAL(fp),  POINTER :: p_UWND   (:,:,:  )
+      REAL(fp),  POINTER :: p_VWND   (:,:,:  )
+      REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
+      REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+      REAL(fp),  POINTER :: p_MFLEW (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLNS (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLUP (:,:,:,:) => NULL()
 #endif
       REAL(fp),  POINTER :: p_STT   (:,:,:,:) ! v/v
 
@@ -795,7 +795,7 @@
      &                   p_UWND,  p_VWND,    P_TP1,    P_TP2,
      &                   P_TEMP,  p_STT,     IORD,     JORD,      
      &                   KORD,    N_ADJ,     p_XMASS,  p_YMASS, LFILL,
-#if defined( BPCH_DIAG ) || defined( NETCDF )
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
@@ -824,7 +824,7 @@
       ! Free pointer memory
       NULLIFY( p_UWND,  p_VWND,  p_STT   )
       NULLIFY( p_XMASS, p_YMASS          )
-#if defined( BPCH_DIAG ) || defined( NETCDF )
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
       NULLIFY( p_MFLEW, p_MFLNS, p_MFLUP )
 #endif
 
@@ -1158,7 +1158,7 @@
      &      Ap,      Bp,       p_UWND,  p_VWND,  p_P_TP1, 
      &      p_P_TP2, p_P_TEMP, p_STT,   IORD,    JORD, 
      &      KORD,    N_ADJ,    p_XMASS, p_YMASS, 
-#if defined( BPCH_DIAG ) || defined( NETCDF )
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
@@ -1189,7 +1189,7 @@
       ! Free pointer memory
       NULLIFY( p_UWND,  p_VWND,  p_STT,   p_XMASS  ) 
       NULLIFY( p_YMASS, p_P_TP1, p_P_TP2, p_P_TEMP, p_A_M2 )
-#if defined( BPCH_DIAG ) || defined( NETCDF )
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
       NULLIFY( p_MFLEW, p_MFLNS, p_MFLUP )
 #endif
 

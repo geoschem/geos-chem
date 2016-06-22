@@ -1069,6 +1069,7 @@
 ! !USES:
 !
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE CMN_SIZE_MOD,       Only : LLCHEM
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1092,11 +1093,15 @@
       ! ITS_IN_THE_CHEMGRID begins here
       !=================================================================
 
+      If (L.gt.LLCHEM) Then
+         IS_CHEM = .False.
+      Else
 #if defined( UCX )
-      IS_CHEM = ( .not. ITS_IN_THE_MESO( I, J, L ) )
+         IS_CHEM = ( .not. ITS_IN_THE_MESO( I, J, L ) )
 #else
-      IS_CHEM = ITS_IN_THE_TROP( I, J, L, State_Met )
+         IS_CHEM = ITS_IN_THE_TROP( I, J, L, State_Met )
 #endif
+      End If
 
       END FUNCTION ITS_IN_THE_CHEMGRID
 !EOC

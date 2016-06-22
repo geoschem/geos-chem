@@ -245,7 +245,7 @@
       REAL(fp), POINTER :: p_FSOL (:,:,:)
 #endif
 
-#if defined ( NETCDF )
+#if defined ( NC_DIAG )
       ! For netCDF diagnostics\
       INTEGER                :: trc_id, D, HCRC
       CHARACTER(LEN=60)      :: DiagnName

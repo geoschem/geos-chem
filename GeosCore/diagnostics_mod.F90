@@ -2826,7 +2826,8 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE HCO_Diagn_Mod,      ONLY : Diagn_Update
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Update, DiagnCont
+    USE HCO_Diagn_Mod,      ONLY : DiagnCont_Find
     USE TRACERID_MOD,       ONLY : IDTO3
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE PRESSURE_MOD,       ONLY : GET_PEDGE
