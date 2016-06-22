@@ -186,8 +186,12 @@
       ! Logical file unit for ND49 diagnostic
       INTEGER            :: IU_ND49
 
+      ! Species ID flags
       ! Local tracer ID flags
-      INTEGER            :: IDTPASV
+      INTEGER            :: id_HNO3, id_HNO4, id_N2O5, id_NO
+      INTEGER            :: id_PAN,  id_PMN,  id_PPN,  id_O3
+      INTEGER            :: id_R4N2, id_SALA, id_SALC, id_NO2
+      INTEGER            :: id_PASV
 
       CONTAINS
 !EOC
@@ -300,6 +304,8 @@
 !  17 Nov 2015 - E. Lundgren - Bug fix in masscons kg calculation: use AD
 !  16 Jun 2016 - K. Yu       - Now define species ID's with the IND_ function
 !  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
+!  22 Jun 2016 - R. Yantosca - Now make species ID's module variables
+!  22 Jun 2016 - R. Yantosca - Rename IDTPASV to id_PASV
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -311,9 +317,6 @@
       LOGICAL, SAVE            :: IS_FULLCHEM
       LOGICAL, SAVE            :: IS_NOy,      IS_CLDTOPS, IS_OPTD
       LOGICAL, SAVE            :: IS_SEASALT,  IS_SLP
-      INTEGER, SAVE            :: id_HNO3, id_HNO4, id_N2O5, id_NO
-      INTEGER, SAVE            :: id_PAN,  id_PMN,  id_PPN,  id_O3
-      INTEGER, SAVE            :: id_R4N2, id_SALA, id_SALC, id_NO2
 
       ! Scalars
       LOGICAL                  :: LINTERP
@@ -348,7 +351,6 @@
       ! Pointers
       REAL(fp), POINTER        :: STT(:,:,:,:)
       REAL(fp), POINTER        :: AD(:,:,:)
-      TYPE(Species), POINTER   :: ThisSpc
 
       ! For mass conservation tests
       LOGICAL                  :: DO_MASSCONS
@@ -379,7 +381,7 @@
       !%%%  only interested in printing out the sum of tracers.      %%%
       !%%%  (ewl, 6/24/15)                                           %%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      IF ( DO_MASSCONS .or. IDTPASV > 0 ) THEN
+      IF ( DO_MASSCONS .or. id_PASV > 0 ) THEN
          DO_DIAG_WRITE = .FALSE.
       ENDIF
 
@@ -398,6 +400,7 @@
          id_PPN  = IND_('PPN');  id_O3   = IND_('O3')
          id_R4N2 = IND_('R4N2'); id_SALA = IND_('SALA')
          id_SALC = IND_('SALC'); id_NO2  = IND_('NO2')
+         id_PASV = IND_('PASV') 
          
          IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
          IS_SLP      = ASSOCIATED( State_Met%SLP     )
@@ -409,31 +412,6 @@
      &                   id_HNO3 > 0 .and. id_PMN  > 0 .and.
      &                   id_PPN  > 0 .and. id_R4N2 > 0 .and.
      &                   id_N2O5 > 0 .and. id_HNO4 > 0 ) 
-
-         !----------------------------------------------------------
-         ! Now define local tracer ID flags, so that we can remove
-         ! them from tracerid_mod.F, in anticipation of FlexChem
-         !----------------------------------------------------------
-         DO N = 1, State_Chm%nSpecies
-
-            ! Get info about this species from the database
-            ThisSpc => State_Chm%SpcData(N)%Info
-
-           ! Define tracer ID flags locally
-            SELECT CASE ( TRIM( ThisSpc%Name ) )
-               CASE( 'PASV' )
-                  IDTPASV  = ThisSpc%ModelId
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT
-
-            ! Free pointer
-            ThisSpc => NULL()
-         ENDDO
-
-         ! Reset first-time flag
-         FIRST       = .FALSE.
-      ENDIF
 
       !=================================================================
       ! If it's a new day, open a new BPCH file and write file header
@@ -515,7 +493,7 @@
             !%%%  MASS CONSERVATION TEST (ewl, 6/24/15)              %%%
             !%%%  Declare a variable for total mass of tracer.       %%%
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            IF ( DO_MASSCONS .or. IDTPASV > 0 ) THEN
+            IF ( DO_MASSCONS .or. id_PASV > 0 ) THEN
                TOTALMASS = 0.0e+0_fp
             ENDIF
 
@@ -533,7 +511,7 @@
                !%%%  MASS CONSERVATION TEST (ewl, 6/24/15)           %%%
                !%%%  Archive output in kg (not v/v) for printout     %%%
                !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-               IF ( DO_MASSCONS .or. IDTPASV > 0 ) THEN
+               IF ( DO_MASSCONS .or. id_PASV > 0 ) THEN
                   Q(X,Y,K) = STT(I,J,L,N) * State_Met%AD(I,J,L)
                ELSE
                   ! Normal ND49 output, archive in v/v
@@ -550,7 +528,7 @@
             !%%%  Sum the mass and write out to an ASCII file        %%%
             !%%%  Use the filename from Input_Opt%ND49_FILE          %%%
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            IF ( DO_MASSCONS .or. IDTPASV > 0 ) THEN
+            IF ( DO_MASSCONS .or. id_PASV > 0 ) THEN
 
                ! Sum the mass of tracer in kg
                TOTALMASS = SUM( Q )

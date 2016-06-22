@@ -293,7 +293,7 @@
             IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
                ! Coupled simulation: stop w/ error since we need HNO3
-               CALL ERROR_STOP( 'IDTHNO3 is not defined !', X )
+               CALL ERROR_STOP( 'id_HNO3 is not defined !', X )
  
             ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
@@ -415,11 +415,11 @@
      &          STT(I,J,L,id_NH3) * 1.e+3_fp / (17.e+0_fp * VOL )
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: The error-trap statement above will halt execution if IDTSALA is
+!%%% NOTE: The error-trap statement above will halt execution if id_SALA is
 !%%% undefined.  Therefore this IF statement is superfluous.  Comment out 
 !%%% for clarity.  (hotp, bmy, 2/1/10)
 !%%%
-!%%%         IF ( IDTSALA > 0 ) THEN
+!%%%         IF ( id_SALA > 0 ) THEN
             
             ! Total Na+ (30.61% by weight of seasalt) [mole/m3]
             TNA = STT(I,J,L,id_SALA) * 0.3061e+0_fp * 1.e+3_fp /
@@ -435,15 +435,15 @@
 !=== isoropiaIIcode.f ISRP4F routines must be debugged.  (hotp, bmy, 2/1/10)
 !===
 !===            ! Total Ca2+ (1.16% by weight of seasalt) [mole/m3]
-!===            TCA      = STT(I,J,L,IDTSALA) * 0.0116e+0_fp * 1.d3 /
+!===            TCA      = STT(I,J,L,id_SALA) * 0.0116e+0_fp * 1.d3 /
 !===     &                                 ( 40.08e+0_fp  * VOL  )
 !===
 !===            ! Total K+   (1.1% by weight of seasalt)  [mole/m3]
-!===            TK       = STT(I,J,L,IDTSALA) * 0.0110e+0_fp * 1.d3 /
+!===            TK       = STT(I,J,L,id_SALA) * 0.0110e+0_fp * 1.d3 /
 !===     &                                 ( 39.102e+0_fp * VOL  )
 !===
 !===            ! Total Mg+  (3.69% by weight of seasalt) [mole/m3]
-!===            TMG      = STT(I,J,L,IDTSALA) * 0.0369e+0_fp * 1.d3 /
+!===            TMG      = STT(I,J,L,id_SALA) * 0.0369e+0_fp * 1.d3 /
 !===     &                                 ( 24.312e+0_fp * VOL  )
 
             ! Set Ca, K, Mg to zero for time being (hotp, bmy, 2/1/10)
@@ -541,7 +541,7 @@
          ! Save tracers back into STT array [kg]
          ! no longer save TSO4 back into STT. SO4 is all aerosol phase
          ! (hotp 11/7/07)
-         ! STT(I,J,L,IDTSO4) = TSO4
+         ! STT(I,J,L,id_SO4) = TSO4
          STT(I,J,L,id_NH3) = TNH3
          STT(I,J,L,id_NH4) = TNH4
          STT(I,J,L,id_NIT) = TNIT

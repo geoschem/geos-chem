@@ -120,7 +120,7 @@ MODULE Diagnostics_Mod
 ! !PRIVATE TYPES:
 !
   ! Local tracer ID flags
-  INTEGER :: IDTRn, IDTPb, IDTBe7
+  INTEGER :: id_Rn, id_Pb, id_Be7
 
 CONTAINS
 #if defined( NC_DIAG )
@@ -146,9 +146,9 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Chm_Mod, ONLY : Ind_
     USE GRID_MOD,           ONLY : AREA_M2
     USE HCO_DIAGN_MOD
-    USE Species_Mod,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_TS_CHEM
 #if defined( DEVEL )
     USE TENDENCIES_MOD,     ONLY : TEND_INIT
@@ -173,6 +173,8 @@ CONTAINS
 !  25 Mar 2015 - C. Keller   - Moved UCX initialization to UCX_mod.F
 !  06 Nov 2015 - C. Keller   - Added argument OutTimeStamp
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  22 Jun 2016 - R. Yantosca - Now use IND_() to define id_Rn, id_Pb, id_Be7
+!  22 Jun 2016 - R. Yantosca - Remove reference to Species type
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -185,8 +187,6 @@ CONTAINS
     REAL(sp)           :: TS
     REAL(fp), POINTER  :: AM2(:,:)
     CHARACTER(LEN=255) :: LOC = 'Diagnostics_Init (diagnostics_mod.F90)'
-
-    TYPE(Species), POINTER :: ThisSpc
 
     !=======================================================================
     ! Diagnostics_Init begins here 
@@ -204,31 +204,10 @@ CONTAINS
     ! these from tracerid_mod.F for FlexChem (bmy, 5/2/16)
     !-----------------------------------------------------------------------
 
-    ! Initialize
-    IDTRn  = 0
-    IDTPb  = 0
-    IDTBe7 = 0
-
-    ! Loop over all species
-    DO N = 1, State_Chm%nSpecies
-
-       ! Get info about this species from the database
-       ThisSpc => State_Chm%SpcData(N)%Info
-            
-       SELECT CASE ( TRIM( ThisSpc%Name ) )
-          CASE( 'Rn'  )
-             IDTRn  = ThisSpc%ModelId
-          CASE( 'Pb'  )
-             IDTPb  = ThisSpc%ModelId
-          CASE( 'Be7' )
-             IDTBe7 = ThisSpc%ModelId
-          CASE DEFAULT
-             ! Nothing
-       END SELECT
-
-       ! Free pointer
-       ThisSpc => NULL()
-    ENDDO
+    ! Get species ID flags
+    id_Rn  = Ind_('Rn' )
+    id_Pb  = Ind_('Pb' )
+    id_Be7 = Ind_('Be7')
 
     !-----------------------------------------------------------------------
     ! Create diagnostics collection for GEOS-Chem.  This will keep the
@@ -1438,7 +1417,7 @@ CONTAINS
     OutOper    = Input_Opt%ND02_OUTPUT_TYPE
     
     ! Assign array of tracer numbers corresponding to decaying species
-    TracersN = (/ IDTPb, IDTRN, IDTBe7 /)
+    TracersN = (/ id_Pb, id_RN, id_Be7 /)
 
     ! Loop over # of radon decay diagnostics
     DO M = 1, NumTracers

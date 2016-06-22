@@ -159,6 +159,7 @@
 !  31 May 2016 - E. Lundgren - Remove usage of TCVV; replace with AIRMW/emMW_g
 !  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
 !                              NAMEGAS with ThisSpc%Name from species database
+!  22 Jun 2016 - R. Yantosca - Now use IND_() to define id_PASV species ID
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -200,7 +201,7 @@
       ! For passive tracer diagnostics
       TYPE(Species), POINTER :: ThisSpc
       LOGICAL,       SAVE    :: FIRST = .TRUE.
-      INTEGER,       SAVE    :: IDTPASV
+      INTEGER,       SAVE    :: id_PASV
 
       !=================================================================
       ! DIAG1 begins here!
@@ -230,30 +231,15 @@
       IS_CHEM     = ITS_TIME_FOR_CHEM()
       
       !---------------------------------------------
-      ! Find the IDTPASV tracer flag (bmy, 5/2/16)
+      ! First-time setup
       !---------------------------------------------
       IF ( FIRST ) THEN 
 
-         ! Initialize
-         IDTPASV = 0
+         ! Find the id_PASV tracer flag (bmy, 5/2/16)
+         id_PASV = Ind_('PASV')
 
-         ! Loop over all species
-         DO N = 1, State_Chm%nSpecies
-
-            ! Get info about this species from the database
-            ThisSpc => State_Chm%SpcData(N)%Info
-
-            ! Define tracer ID flags locally
-            SELECT CASE ( TRIM( ThisSpc%Name ) )
-               CASE( 'PASV' )
-                  IDTPASV  = ThisSpc%ModelId
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT
-
-            ! Free pointer
-            ThisSpc => NULL()
-         ENDDO
+         ! Reset first-time flag
+         FIRST = .FALSE.
       ENDIF
 
       ! Compute conc. in mixing ratio for ND35, ND45, ND47 diagnostics 
@@ -275,7 +261,7 @@
      &         MAX( State_Chm%Tracers(I,J,L,N) * AIRMW / ThisSpc%emMW_g,
      &              0e+0_fp )
 
-            IF ( N == IDTPASV ) THEN
+            IF ( N == id_PASV ) THEN
 
                ! Also express tracer conc. in v/v total air (mps, 11/18/15)
                STT_VV(I,J,L,N+1) =
@@ -444,7 +430,7 @@
                AD45(I,J,L,N) = AD45(I,J,L,N) + 
      &                         STT_VV(I,J,L,N) * LTOTH(I,J)
 
-               IF ( N == IDTPASV ) THEN
+               IF ( N == id_PASV ) THEN
 
                   ! Also save passive tracer in v/v total air (mps, 11/18/15)
                   AD45(I,J,L,N+1) = AD45(I,J,L,N+1) + 
@@ -482,7 +468,7 @@
             DO I = 1, IIPAR
                AD47(I,J,L,N) = AD47(I,J,L,N) + STT_VV(I,J,L,N) 
 
-               IF ( N == IDTPASV ) THEN
+               IF ( N == id_PASV ) THEN
 
                   ! Also save passive tracer in v/v total air (mps, 11/18/15)
                   AD47(I,J,L,N+1) = AD47(I,J,L,N+1) + STT_VV(I,J,L,N+1)
@@ -733,7 +719,7 @@
             ! then archive the latest concentration into the diagnostic structure
             IF ( ANY( Input_Opt%TINDEX(45,:) == N ) ) THEN
 
-               IF ( N == IDTPASV ) THEN
+               IF ( N == id_PASV ) THEN
 
                   !-------------------------------------
                   ! Passive tracer in v/v dry air
