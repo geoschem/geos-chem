@@ -33,6 +33,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : Ind_
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE Species_Mod,        ONLY : Species
@@ -194,14 +195,12 @@
       REAL(fp)           :: Arr2D(IIPAR,JJPAR)
       CHARACTER(LEN=255) :: DiagnName
 
-      ! For Hg diagnostics
-      INTEGER            :: Id_Hg2
-      INTEGER            :: Id_HgP
-
-      ! For passive tracer diagnostics
+      ! For species ID's
       TYPE(Species), POINTER :: ThisSpc
       LOGICAL,       SAVE    :: FIRST = .TRUE.
       INTEGER,       SAVE    :: id_PASV
+      INTEGER,       SAVE    :: id_Hg2
+      INTEGER,       SAVE    :: id_HgP
 
       !=================================================================
       ! DIAG1 begins here!
@@ -235,7 +234,9 @@
       !---------------------------------------------
       IF ( FIRST ) THEN 
 
-         ! Find the id_PASV tracer flag (bmy, 5/2/16)
+         ! Define species ID's  on the first call
+         id_Hg2  = Ind_('Hg2' )
+         id_HgP  = Ind_('HgP' )
          id_PASV = Ind_('PASV')
 
          ! Reset first-time flag
@@ -297,32 +298,32 @@
       !-----------------------------------------------!
       IF(ND03 > 0) THEN
 
-         ! Indices for total Hg2 and HgP.  NOTE: Id_Hg_tot is always 1!
-         Id_Hg2 = State_Chm%Id_Hg2(1)
-         Id_HgP = State_Chm%Id_Hg2(1)
-         
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L)
-        DO L = 1, LLPAR
-        DO J = 1, JJPAR
-        DO I = 1, IIPAR
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-          ! Reactive gaseous mercury, RGM
-          AD03_RGM(I,J,L) = AD03_RGM(I,J,L) +
-     &                      State_Chm%Tracers(I,J,L,ID_Hg2) * AIRMW /
-     &                      State_Chm%SpcData(ID_Hg2)%Info%emMW_g * 
-     &                      1e+12_fp
+            ! Reactive gaseous mercury, RGM
+            IF ( id_Hg2 > 0 ) THEN
+               AD03_RGM(I,J,L) = AD03_RGM(I,J,L) +
+     &              State_Chm%Tracers(I,J,L,id_Hg2) * AIRMW /
+     &              State_Chm%SpcData(id_Hg2)%Info%emMW_g * 
+     &              1e+12_fp
+            ENDIF
 
-          ! Reactive particulate mercury, PBM
-          AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
-     &                      State_Chm%Tracers(I,J,L,ID_HgP) * AIRMW /
-     &                      State_Chm%SpcData(ID_HgP)%Info%emMW_g *
-     &                      1e+12_fp
+            ! Reactive particulate mercury, PBM
+            IF ( id_HgP > 0 ) THEN
+               AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
+     &              State_Chm%Tracers(I,J,L,id_HgP) * AIRMW /
+     &              State_Chm%SpcData(id_HgP)%Info%emMW_g *
+     &              1e+12_fp
+            ENDIF
                                                        
-        ENDDO
-        ENDDO
-        ENDDO
+         ENDDO
+         ENDDO
+         ENDDO
 !$OMP END PARALLEL DO 
       ENDIF
 

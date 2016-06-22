@@ -305,7 +305,9 @@
 !  16 Jun 2016 - K. Yu       - Now define species ID's with the IND_ function
 !  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
 !  22 Jun 2016 - R. Yantosca - Now make species ID's module variables
-!  22 Jun 2016 - R. Yantosca - Rename IDTPASV to id_PASV
+!  22 Jun 2016 - R. Yantosca - Rename IDTPASV to id_PASV.  Also move the 
+!                              initializations of the id_ flags before the
+!                              first mass conservation test.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -374,6 +376,36 @@
       DO_MASSCONS   = .FALSE.
 #endif
       
+      !----------------------------------------
+      ! First-time handling (bmy, 6/22/16)
+      !----------------------------------------
+      IF ( FIRST ) THEN
+
+         ! tracer id indices kyu codeathon
+         id_HNO3 = IND_('HNO3'); id_HNO4 = IND_('HNO4')
+         id_N2O5 = IND_('N2O5'); id_NO   = IND_('NO')
+         id_PAN  = IND_('PAN');  id_PMN  = IND_('PMN')
+         id_PPN  = IND_('PPN');  id_O3   = IND_('O3')
+         id_R4N2 = IND_('R4N2'); id_SALA = IND_('SALA')
+         id_SALC = IND_('SALC'); id_NO2  = IND_('NO2')
+         id_PASV = IND_('PASV') 
+
+         ! Set logical flags on the first timestep
+         IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
+         IS_SLP      = ASSOCIATED( State_Met%SLP     )
+         IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
+         IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
+         IS_SEASALT  = ( id_SALA > 0 .and. id_SALC > 0 )
+         IS_NOy      = ( IS_FULLCHEM .and. id_NO   > 0 .and.
+     &                   id_NO2  > 0 .and. id_PAN  > 0 .and.
+     &                   id_HNO3 > 0 .and. id_PMN  > 0 .and.
+     &                   id_PPN  > 0 .and. id_R4N2 > 0 .and.
+     &                   id_N2O5 > 0 .and. id_HNO4 > 0 ) 
+
+         ! Reset first-time flag
+         FIRST = .FALSE.
+      ENDIF
+
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%%  MASS CONSERVATION TEST:                                  %%%
       !%%%  If we are just printing out mass conservation, we can    %%%
@@ -389,29 +421,6 @@
       STT          => State_Chm%Tracers
       AD           => State_Met%AD
 
-
-      ! Set logical flags on first timestep
-      IF ( FIRST ) THEN
-
-         ! tracer id indices kyu codeathon
-         id_HNO3 = IND_('HNO3'); id_HNO4 = IND_('HNO4')
-         id_N2O5 = IND_('N2O5'); id_NO   = IND_('NO')
-         id_PAN  = IND_('PAN');  id_PMN  = IND_('PMN')
-         id_PPN  = IND_('PPN');  id_O3   = IND_('O3')
-         id_R4N2 = IND_('R4N2'); id_SALA = IND_('SALA')
-         id_SALC = IND_('SALC'); id_NO2  = IND_('NO2')
-         id_PASV = IND_('PASV') 
-         
-         IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
-         IS_SLP      = ASSOCIATED( State_Met%SLP     )
-         IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
-         IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
-         IS_SEASALT  = ( id_SALA > 0 .and. id_SALC > 0 )
-         IS_NOy      = ( IS_FULLCHEM .and. id_NO   > 0 .and.
-     &                   id_NO2  > 0 .and. id_PAN  > 0 .and.
-     &                   id_HNO3 > 0 .and. id_PMN  > 0 .and.
-     &                   id_PPN  > 0 .and. id_R4N2 > 0 .and.
-     &                   id_N2O5 > 0 .and. id_HNO4 > 0 ) 
 
       !=================================================================
       ! If it's a new day, open a new BPCH file and write file header
