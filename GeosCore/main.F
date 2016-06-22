@@ -287,6 +287,8 @@
 !  18 May 2016 - M. Sulprizio- Remove call to INIT_COMODE; it's obsolete
 !  06 Jun 2016 - M. Sulprizio- Remove call to FILL_CHEM_STATE_IDs; this routine
 !                              was made obsolete by the species database
+!  22 Jun 2016 - R. Yantosca - Add error checks to prevent calling UCX routines
+!                              when we are running specialty simulations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -307,6 +309,7 @@
       INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
       INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
       INTEGER                  :: laiYYYY,       laiMM,       id_CLOCK
+      INTEGER                  :: id_H2O
       REAL(f8)                 :: TAU,           TAUb         
       CHARACTER(LEN=255)       :: ZTYPE
 
@@ -577,6 +580,7 @@
 
       ! Define species ID flags for use below
       id_CLOCK = Ind_('CLOCK')
+      id_H2O   = Ind_('H2O'  )
       !-----------------------------------------------------------------
 
 #if   defined( RRTMG )
@@ -730,7 +734,6 @@
       ! Initialize stratospheric routines
       IF ( LUCX ) THEN
 
-         !CALL INIT_UCX( am_I_Root, Input_Opt, NYMDb, NHMSb )
          CALL INIT_UCX( am_I_Root, Input_Opt, State_Chm )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
 
@@ -1165,7 +1168,7 @@
          ! NOTE: Specific humidity may change in SET_H2O_TRAC and
          ! therefore this routine may call AIRQNT again to update
          ! air quantities and tracer concentrations (ewl, 10/28/15)
-         IF (IND_('H2O').ne.0) THEN
+         IF ( ITS_A_FULLCHEM_SIM .and. id_H2O > 0 ) THEN
             CALL SET_H2O_TRAC( am_I_Root, 
      &                         ( ( .not. LUCX ) .or. LSETH2O ),
      &                         Input_Opt, State_Met, State_Chm, RC )
@@ -1331,12 +1334,7 @@
          ENDIF
 
          ! SDE 10/16/13: Set clock tracer if relevant
-!---------------------------------------------------------------------------
-! Prior to 6/21/16:
-! Use pre-saved "id_CLOCK" species ID flag (bmy, 6/21/16)
-!         IF ( IND_('CLOCK') > 0 ) THEN
-!---------------------------------------------------------------------------
-         IF ( id_CLOCK > 0 ) THEN
+         IF ( ITS_A_FULLCHEM_SIM .and. id_CLOCK > 0 ) THEN
             CALL SET_CLOCK_TRAC( GET_TS_DYN(), State_Chm )
          ENDIF
 
@@ -1586,11 +1584,9 @@
             CALL SET_CT_CHEM( INCREMENT=.TRUE. )
 
             ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant
-            IF (IND_('H2O').ne.0) THEN
-
+            IF ( ITS_A_FULLCHEM_SIM .and. id_H2O > 0 ) THEN
                CALL SET_H2O_TRAC( am_I_Root, (.not. LUCX), Input_Opt ,
      &                            State_Met, State_Chm, RC )
-
             ENDIF
 
             ! Do GEOS-Chem chemistry
