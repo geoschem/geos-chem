@@ -53,6 +53,9 @@
       REAL(fp), ALLOCATABLE :: CH4_TROPMASS(:,:,:)
       REAL(fp), ALLOCATABLE :: CH4_EMIS(:,:,:)
       
+      ! Species ID flags (formerly in tracerid_mod.F)
+      INTEGER               :: id_OH
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -77,7 +80,6 @@
       USE COMODE_LOOP_MOD
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDOH
 !
 ! !INPUT PARAMETERS: 
 !
@@ -93,6 +95,8 @@
 !                              from State_Chm%Species
 !  21 Dec 2015 - M. Sulprizio- Get air density and box volume directly from
 !                              State_Met object
+!  23 Jun 2016 - R. Yantosca - Remove references to tracerid_mod.F, now
+!                              store species ID in module variable id_OH
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -135,7 +139,7 @@
          AIR_MASS(I,J,L) = AIR_MASS(I,J,L)   + XAIRMASS
 
          ! Sum OH mass term into OH_MASS array
-         XOHMASS         = State_Chm%Species(I,J,L,IDOH) * XAIRMASS
+         XOHMASS         = State_Chm%Species(I,J,L,id_OH) * XAIRMASS
          OH_MASS(I,J,L)  = OH_MASS(I,J,L)    + XOHMASS
 
       ENDDO
@@ -368,7 +372,7 @@
       END SUBROUTINE PRINT_DIAG_OH
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  GEOS-Chem Global Chemicial Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -386,7 +390,9 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : Ind_
       USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
 !
 ! !INPUT VARIABLES:
 !
@@ -403,6 +409,8 @@
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  23 Jun 2014 - R. Yantosca - Removed reference to logical_mod.F
 !  23 Jun 2014 - R. Yantosca - Removed reference to tracer_mod.F
+!  23 Jun 2016 - R. Yantosca - Now use IND_() function for species ID's
+!  23 Jun 2016 - R. Yantosca - Now define species ID for OH in the INIT phase
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -420,6 +428,13 @@
 
       ! Return if we are not doing chemistry
       IF ( .not. Input_Opt%LCHEM ) RETURN
+
+      ! Find the OH species ID (formerly in tracerid_mod.F)
+      id_OH = Ind_('OH')
+      IF ( id_OH < 0 ) THEN
+         CALL ERROR_STOP( 'OH is an undefined species!',
+     &                    'INIT_DIAG_OH (GeosCore/diag_oh_mod.F)' )
+      ENDIF
 
       ! Set vertical levels and decide whether to print CH3CCl3
       ! lifetime or just mean mass-weighted OH concentration

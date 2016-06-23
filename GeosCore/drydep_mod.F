@@ -28,8 +28,6 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
 #if   defined( TOMAS )
       USE TOMAS_MOD                             ! For TOMAS microphysics
-      !USE TRACERID_MOD
-      USE gigc_state_chm_mod, only : IND_       !CODEATHON
 #endif
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 

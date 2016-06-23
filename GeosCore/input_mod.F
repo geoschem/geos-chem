@@ -1307,7 +1307,6 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -1341,6 +1340,7 @@
 !  21 Aug 2014 - R. Yantosca - Bug fix: add ITS_A_RnPbBe_SIM to the test
 !                              that defines the ITS_A_SPECIALTY_SIM flag
 !  24 Mar 2015 - E. Lundgren - Move init_tracer to within APM ifdef block 
+!  23 Jun 2016 - R. Yantosca - Remove call to TRACERID, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1536,9 +1536,6 @@
          Input_Opt%LSPLIT = ( Input_Opt%N_TRACERS > 1 )
 
       ENDIF
-
-      ! Set up tracer flags
-      CALL TRACERID( am_I_Root, Input_Opt, RC )
 
 #if defined( APM ) 
       ! Store the # of APM tracers in tracer_mod.F
@@ -3959,7 +3956,6 @@
       USE DIAG42_MOD,   ONLY : ND42,      PD42,      INIT_DIAG42
       USE DIAG53_MOD,   ONLY : ND53,      PD53,      INIT_DIAG53
       USE DIAG56_MOD,   ONLY : ND56,      PD56,      INIT_DIAG56
-      USE DIAG_OH_MOD,  ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,   ONLY : NUMDEP
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE FILE_MOD,     ONLY : IU_BPCH
@@ -4026,6 +4022,7 @@
 !                              avoid conflicts with hourly max ppbv diagnostic.
 !  15 Jan 2015 - R. Yantosca - Now define Input_Opt%DIAG_COLLECTION 
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
+!  23 Jun 2016 - R. Yantosca - Now call INIT_DIAG_OH from GIGC_Init_Extra
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4721,9 +4718,6 @@
       CALL INIT_DIAG42( am_I_Root, Input_Opt, RC )
       CALL INIT_DIAG53
       CALL INIT_DIAG56
-
-      ! Enable Mean OH (or CH3CCl3) diag for runs which need it
-      CALL INIT_DIAG_OH( am_I_Root, Input_Opt, RC )
 
       ! Expand YYYYMMDD tokens in the bpch file name
       CALL EXPAND_DATE( BPCH_FILE, GET_NYMDb(), GET_NHMSb() )
@@ -7927,6 +7921,7 @@
       USE Chemgrid_Mod,       ONLY : Init_Chemgrid
       USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
       USE Diag03_Mod,         ONLY : Init_Diag03
+      USE Diag_OH_Mod,        ONLY : Init_Diag_OH
       USE Drydep_Mod,         ONLY : Init_Drydep
       USE Dust_Mod,           ONLY : Init_Dust
       USE Error_Mod,          ONLY : Debug_Msg
@@ -7949,9 +7944,6 @@
       USE Toms_Mod,           ONLY : Init_Toms
       USE Vdiff_Pre_Mod,      ONLY : Set_Vdiff_Values
       USE WetScav_Mod,        ONLY : Init_WetScav
-!#if   defined( APM )
-!      USE APM_WETS_MOD, ONLY : WETDEPBINID
-!#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -8001,6 +7993,7 @@
 !  23 Sep 2015 - R. Yantosca - Now pass State_Chm to INIT_SULFATE
 !  25 Apr 2016 - R. Yantosca - Now call INIT_DIAG03 here
 !  25 Apr 2016 - R. Yantosca - Now initialize all mercury modules from here
+!  23 Jun 2016 - R. Yantosca - Now call INIT_DIAG_OH from here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8062,14 +8055,6 @@
          CALL Init_WetScav( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
          
-! This might be obsolete now
-!#if   defined( APM )
-!     ! Initialize wet deposition tracers for APM
-!      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
-!         CALL WETDEPBINID
-!      ENDIF
-!#endif
-
       !=================================================================
       ! Call setup routines from other F90 modules
       !=================================================================
@@ -8178,31 +8163,34 @@
 
       ! Initialize Mercury simulation routines
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN 
-         CALL INIT_MERCURY      ( am_I_Root, Input_Opt, State_Chm, RC )
-         CALL INIT_LAND_MERCURY ( am_I_Root, Input_Opt, State_Chm, RC )
-         CALL INIT_DEPO_MERCURY ( am_I_Root, Input_Opt, State_Chm, RC )
-         CALL INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL Init_Mercury      ( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL Init_Land_Mercury ( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL Init_Depo_Mercury ( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL Init_Ocean_Mercury( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
 
 #if defined( TOMAS )
       ! Initialize the TOMAS microphysics package, if necessary
-      CALL INIT_TOMAS_MICROPHYSICS( am_I_Root, Input_Opt, 
+      CALL Init_Tomas_Microphysics( am_I_Root, Input_Opt, 
      &                              State_Chm, RC )    
 #endif
 
       !=================================================================
-      ! Initialize GEOS-Chem bpch diagnostics here.  This allows us to
-      ! take advantage of the species database object. (bmy, 8/31/15)
+      ! Call setup routines for certain GEOS-Chem diangostics
+      ! This allows us to use the species database object.
       !=================================================================
 
       ! Allocate and initialize variables
-      CALL NDXX_SETUP( am_I_Root, Input_Opt, State_Chm, RC )
+      CALL Ndxx_Setup( am_I_Root, Input_Opt, State_Chm, RC )
 
       ! Initialize the Hg diagnostics (bpch)
-      CALL INIT_DIAG03( State_Chm )
+      CALL Init_Diag03( State_Chm )
+
+      ! Enable Mean OH (or CH3CCl3) diag for runs which need it
+      CALL Init_Diag_OH( am_I_Root, Input_Opt, RC )
 
       ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
-      CALL DO_GAMAP( am_I_Root, Input_Opt, State_Chm, RC )
+      CALL Do_Gamap( am_I_Root, Input_Opt, State_Chm, RC )
 
       END SUBROUTINE GIGC_Init_Extra
 !EOC

@@ -1219,7 +1219,6 @@
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TOMAS_MOD,          ONLY : IBINS, Xk
-      USE TRACERID_MOD             ! id_NK1, id_ S1
 !
 ! !INPUT PARAMETERS: 
 !

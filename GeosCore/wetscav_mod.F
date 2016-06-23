@@ -5991,7 +5991,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TracerId_Mod
       USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
@@ -6051,6 +6050,7 @@
 !                              is read from disk.
 !  23 Sep 2015 - R. Yantosca - Now accept State_Chm as an argument
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  23 Jun 2016 - R. Yantosca - Remove reference to tracerid_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC

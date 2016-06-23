@@ -907,8 +907,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE CMN_SIZE_MOD,       ONLY : LLTROP
-      USE TRACERID_MOD,       ONLY : SETTRACE
-      !CODEATHON
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE FAST_JX_MOD,        ONLY : INIT_FJX
       USE COMODE_LOOP_MOD
@@ -925,9 +923,10 @@
      
 !
 ! !REVISION HISTORY: 
-!  19 May 2014 - C. Keller - Initial version (stripped from do_chemistry
-!                            and chemdr.F)
+!  19 May 2014 - C. Keller   - Initial version (stripped from do_chemistry
+!                              and chemdr.F)
 !  20 Jun 2014 - R. Yantosca - Now pass Input_Opt to INIT_FJX
+!  23 Jun 2016 - R. Yantosca - Remove call to SETTRACE, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -950,10 +949,6 @@
          CALL READCHEM(        am_I_Root, Input_Opt,            RC )
          CALL INIT_FJX(        am_I_Root, Input_Opt,  RC           )
          
-         ! CODEATHON
-         CALL SETTRACE(        am_I_Root, Input_Opt, State_Chm, RC )
-         ! CODEATHON
-
          ! Reset NCS with NCSURBAN=1
          NCS                 = NCSURBAN
 

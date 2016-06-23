@@ -2146,10 +2146,6 @@ CONTAINS
 !
   SUBROUTINE GetHcoVal ( TrcID, I, J, L, Found, Emis, Dep ) 
 !
-! !USES
-!
-    USE TRACERID_MOD
-!
 ! !INPUT ARGUMENTS:
 !
     INTEGER,            INTENT(IN   )  :: TrcID   ! GEOS-Chem tracer ID
