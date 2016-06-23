@@ -443,6 +443,8 @@
 !  23 Sep 2014 - M. Sulprizio- Get OH, NO3, and O3 fields for offline aerosol
 !                              simulation from HEMCO
 !  16 Jun 2016 - J.D.Maasakkers- Now define species ID's with IND_ function
+!  23 Jun 2016 - R. Yantosca - Add more error checks to make sure each id_*
+!                              species flag is defined before using it
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -502,26 +504,22 @@
          IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
             ! update for isoprene SOA (hotp 5/20/10)
-            IF (  id_ISOA1 > 0 ) THEN
-               STT(:,:,:,id_ISOA1) = 0e+0_fp
-               STT(:,:,:,id_ISOA2) = 0e+0_fp
-               STT(:,:,:,id_ISOA3) = 0e+0_fp
-               STT(:,:,:,id_ISOG1) = 0e+0_fp
-               STT(:,:,:,id_ISOG2) = 0e+0_fp
-               STT(:,:,:,id_ISOG3) = 0e+0_fp
-            ENDIF
+            IF ( id_ISOA1 > 0 ) STT(:,:,:,id_ISOA1) = 0.0_fp
+            IF ( id_ISOA2 > 0 ) STT(:,:,:,id_ISOA2) = 0.0_fp
+            IF ( id_ISOA3 > 0 ) STT(:,:,:,id_ISOA3) = 0.0_fp
+            IF ( id_ISOG1 > 0 ) STT(:,:,:,id_ISOG1) = 0.0_fp
+            IF ( id_ISOG2 > 0 ) STT(:,:,:,id_ISOG2) = 0.0_fp
+            IF ( id_ISOG3 > 0 ) STT(:,:,:,id_ISOG3) = 0.0_fp
 
             ! lumped arom/IVOC (hotp 5/17/10)
             ! LUMPAROMIVOC: lump arom/IVOC not supported for offline sims
-            IF ( id_ASOAN > 0 ) THEN
-               STT(:,:,:,id_ASOAN) = 0e+0_fp
-               STT(:,:,:,id_ASOA1) = 0e+0_fp
-               STT(:,:,:,id_ASOA2) = 0e+0_fp
-               STT(:,:,:,id_ASOA3) = 0e+0_fp
-               STT(:,:,:,id_ASOG1) = 0e+0_fp
-               STT(:,:,:,id_ASOG2) = 0e+0_fp
-               STT(:,:,:,id_ASOG3) = 0e+0_fp
-            ENDIF
+            IF ( id_ASOAN > 0 ) STT(:,:,:,id_ASOAN) = 0.0_fp
+            IF ( id_ASOA1 > 0 ) STT(:,:,:,id_ASOA1) = 0.0_fp
+            IF ( id_ASOA2 > 0 ) STT(:,:,:,id_ASOA2) = 0.0_fp
+            IF ( id_ASOA3 > 0 ) STT(:,:,:,id_ASOA3) = 0.0_fp
+            IF ( id_ASOG1 > 0 ) STT(:,:,:,id_ASOG1) = 0.0_fp
+            IF ( id_ASOG2 > 0 ) STT(:,:,:,id_ASOG2) = 0.0_fp
+            IF ( id_ASOG3 > 0 ) STT(:,:,:,id_ASOG3) = 0.0_fp
 
             IF ( LSOA ) THEN
                ! Get offline oxidant fields from HEMCO (mps, 9/23/14)
@@ -601,14 +599,14 @@
 
 #if   defined( TOMAS )
       ! Chemistry (aging) for size-resolved EC and OC (win, 1/25/10)
-      IF ( id_ECOB1 > 0 ) THEN
+      IF ( id_ECIL1 > 0 .and. id_ECOB1 > 0 ) THEN
          CALL AGING_CARB( STT(:,:,:,id_ECIL1:id_ECIL1+IBINS-1), 
      &                    STT(:,:,:,id_ECOB1:id_ECOB1+IBINS-1) )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB EC' )
          ENDIF
       ENDIF
-      IF ( id_OCOB1 > 0 ) THEN
+      IF ( id_OCIL1 > 0 .and. id_OCOB1 > 0 ) THEN
          CALL AGING_CARB( STT(:,:,:,id_OCIL1:id_OCIL1+IBINS-1), 
      &                    STT(:,:,:,id_OCOB1:id_OCOB1+IBINS-1) )
          IF ( prtDebug ) THEN
@@ -618,7 +616,7 @@
 #endif
 
       ! Free pointer
-      NULLIFY( STT )
+      STT => NULL()
 
       !=================================================================
       ! Do chemistry for secondary organic aerosols 
@@ -651,9 +649,14 @@
             CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
          ENDIF
 
+         !==============================================================
+         ! NOTE: The following routines are for dicarbonyl chemistry.
+         ! These will be skipped if certain species are not found.
+         !==============================================================
+
          ! If SOAG and SOAM are declared, switch on 
          !    SOA production from dicarbonyls (tmf, 12/07/07) 
-         IF ( id_SOAG > 0 ) THEN
+         IF ( id_SOAG > 0 .and. id_GLYX > 0 ) THEN
 
             ! Get grid box cloud fraction (tmf, 2/26/07)
             ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
@@ -674,7 +677,7 @@
 
          ENDIF
 
-         IF ( id_SOAM > 0 ) THEN
+         IF ( id_SOAM > 0 .and. id_MGLY > 0 ) THEN
          
             ! Get grid box cloud fraction (tmf, 2/26/07)
             ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
@@ -773,9 +776,6 @@
       !=================================================================
       ! CHEM_BCPO begins here!
       !=================================================================
-
-      ! Return if BCPO isn't defined
-      IF ( id_BCPO <= 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -908,9 +908,6 @@
       ! CHEM_BCPI begins here!
       !=================================================================
 
-      ! Return if BCPI isn't defined
-      IF ( id_BCPI <= 0 ) RETURN
-
       ! Assume success
       RC        = GIGC_SUCCESS
 
@@ -1019,9 +1016,6 @@
       !=================================================================
       ! CHEM_OCPO begins here!
       !=================================================================
-
-      ! Return if OCPO isn't defined
-      IF ( id_OCPO <= 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -1153,7 +1147,6 @@
       !=================================================================
       ! CHEM_OCPI begins here!
       !=================================================================
-      IF ( id_OCPI <= 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -2192,7 +2185,7 @@
          ! (Colette Heald, 12/3/09)
          !-----------------------------------------------------------
          ! Now treat either traditional POA or semivolatile POA (hotp 7/25/10)
-         IF ( id_OCPI > 0 ) THEN
+         IF ( id_OCPI > 0 .and. id_OCPO > 0 ) THEN
             MPOC = ( STT(I,J,L,id_OCPI) + STT(I,J,L,id_OCPO) ) * FAC
             MPOC = MPOC * 2.1e+0_fp
          ELSE
@@ -6980,7 +6973,6 @@ ccc
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: I, J, L
-      INTEGER			  :: id_GLYX, id_SOAG
       REAL(fp)            :: DTCHEM    ! Chemistry time step [s]
       REAL(fp)            :: XAIRM     ! Air mass [kg/box]
       REAL(fp)            :: XAIRM3    ! Air volume [m3]
@@ -7220,7 +7212,6 @@ ccc
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: I, J, L
-      INTEGER			  :: id_MGLY, id_SOAM
       REAL(fp)            :: DTCHEM    ! Chemistry time step [s]
       REAL(fp)            :: XAIRM     ! Air mass [kg/box]
       REAL(fp)            :: XAIRM3    ! Air volume [m3]
@@ -7787,18 +7778,6 @@ ccc
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I, J, L, NOX, JHC, JSV
-      INTEGER :: id_ASOAN
-      INTEGER :: id_ASOA1, id_ASOA2, id_ASOA3
-      INTEGER :: id_ASOG1, id_ASOG2, id_ASOG3
-      INTEGER :: id_POA1,  id_POG1
-      INTEGER :: id_POA2,  id_POG2
-      INTEGER :: id_OPOA1, id_OPOG1
-      INTEGER :: id_OPOA2, id_OPOG2
-      INTEGER :: id_TSOA1, id_TSOA2, id_TSOA3
-      INTEGER :: id_TSOG1, id_TSOG2, id_TSOG3
-      INTEGER :: id_TSOA0, id_TSOG0
-      INTEGER :: id_ISOA1, id_ISOA2, id_ISOA3
-      INTEGER :: id_ISOG1, id_ISOG2, id_ISOG3
       
       ! Pointers
       REAL(fp), POINTER :: STT(:,:,:,:)
@@ -7939,34 +7918,22 @@ ccc
       ! [kg/kg] of acceptable error, 1e-12_fp = 1e-10_fp %
       !REAL(fp), PARAMETER  :: ACCEPTERROR = 1e-12_fp 
       ! more strict (hotp 5/26/10): 1e-12_fp %
-      REAL(fp), PARAMETER  :: ACCEPTERROR = 1e-14_fp
+      REAL(fp), PARAMETER :: ACCEPTERROR = 1e-14_fp
 !
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL :: prtDebug
-      INTEGER :: I, J, L, NOX, JHC, JSV, IPR
-      INTEGER :: id_ASOAN
-      INTEGER :: id_ASOA1, id_ASOA2, id_ASOA3
-      INTEGER :: id_ASOG1, id_ASOG2, id_ASOG3
-      INTEGER :: id_POA1, id_POG1
-      INTEGER :: id_POA2, id_POG2
-      INTEGER :: id_OPOA1, id_OPOG1
-      INTEGER :: id_OPOA2, id_OPOG2
-      INTEGER :: id_TSOA1, id_TSOA2, id_TSOA3
-      INTEGER :: id_TSOG1, id_TSOG2, id_TSOG3
-      INTEGER :: id_TSOA0, id_TSOG0
-      INTEGER :: id_ISOA1, id_ISOA2, id_ISOA3
-      INTEGER :: id_ISOG1, id_ISOG2, id_ISOG3
-      REAL(fp)  :: TEMPDELTA(MNOX,MPROD)
-      REAL(fp)  :: TEMPSOAG
-      REAL(fp)  :: MBDIFF
+      LOGICAL              :: prtDebug
+      INTEGER              :: I, J, L, NOX, JHC, JSV, IPR
+      REAL(fp)             :: TEMPDELTA(MNOX,MPROD)
+      REAL(fp)             :: TEMPSOAG
+      REAL(fp)             :: MBDIFF
 
       ! For fields from Input_Opt
-      LOGICAL         :: LPRT
+      LOGICAL              :: LPRT
 
       ! Pointers
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER    :: STT(:,:,:,:)
 
       !=================================================================
       ! CHECK_MB starts here

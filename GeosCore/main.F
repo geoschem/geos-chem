@@ -579,8 +579,8 @@
       State_Met%AREA_M2 =  AREA_M2
 
       ! Define species ID flags for use below
-      id_CLOCK = Ind_('CLOCK')
-      id_H2O   = Ind_('H2O'  )
+      id_CLOCK = Ind_('CLOCK','T')
+      id_H2O   = Ind_('H2O'  ,'T')
       !-----------------------------------------------------------------
 
 #if   defined( RRTMG )
@@ -1334,7 +1334,7 @@
          ENDIF
 
          ! SDE 10/16/13: Set clock tracer if relevant
-         IF ( ITS_A_FULLCHEM_SIM .and. id_CLOCK > 0 ) THEN
+         IF ( id_CLOCK > 0 ) THEN
             CALL SET_CLOCK_TRAC( GET_TS_DYN(), State_Chm )
          ENDIF
 
