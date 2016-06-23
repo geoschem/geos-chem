@@ -411,6 +411,7 @@
 !  23 Jun 2014 - R. Yantosca - Removed reference to tracer_mod.F
 !  23 Jun 2016 - R. Yantosca - Now use IND_() function for species ID's
 !  23 Jun 2016 - R. Yantosca - Now define species ID for OH in the INIT phase
+!  23 Jun 2016 - R. Yantosca - Bug fix: exit unless it's a fullchem or CH4 sim
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -425,16 +426,9 @@
 
       ! Initialize
       DO_SAVE_OH = .FALSE.
-
+         
       ! Return if we are not doing chemistry
       IF ( .not. Input_Opt%LCHEM ) RETURN
-
-      ! Find the OH species ID (formerly in tracerid_mod.F)
-      id_OH = Ind_('OH')
-      IF ( id_OH < 0 ) THEN
-         CALL ERROR_STOP( 'OH is an undefined species!',
-     &                    'INIT_DIAG_OH (GeosCore/diag_oh_mod.F)' )
-      ENDIF
 
       ! Set vertical levels and decide whether to print CH3CCl3
       ! lifetime or just mean mass-weighted OH concentration
@@ -450,6 +444,19 @@
          LMAX       = LLPAR
          DO_SAVE_OH = .TRUE.
 
+      ELSE
+
+         ! Exit for other simulations that don't use OH
+         RETURN
+
+      ENDIF
+
+      ! Find the OH species ID (formerly in tracerid_mod.F)
+      id_OH = Ind_('OH')
+
+      IF ( id_OH < 0 ) THEN
+         CALL ERROR_STOP( 'OH is an undefined species!',
+     &                    'INIT_DIAG_OH (GeosCore/diag_oh_mod.F)' )
       ENDIF
 
       ! Echo info
