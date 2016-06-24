@@ -57,6 +57,8 @@
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -123,9 +125,6 @@
 #if defined( DEVEL )
       USE TENDENCIES_MOD
 #endif
-#if   defined( APM ) 
-      USE TRACER_MOD,         ONLY : N_APMTRA
-#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -178,11 +177,7 @@
       TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Pick the proper # of tracers
-#if   defined( APM )  
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
-#else                                    !  the G-C advected tracers +
       N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
-#endif
 
       ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)

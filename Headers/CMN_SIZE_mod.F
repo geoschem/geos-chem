@@ -570,8 +570,6 @@
 # else
       INTEGER,    PARAMETER :: NNPAR   = 340   ! For TOMAS (win, bmy, sfarina 6/11/13)f
 # endif
-#elif defined( APM )
-      INTEGER,    PARAMETER :: NNPAR   = 154   ! For APM (G. Luo, 3/8/11)
 #else
       INTEGER,    PARAMETER :: NNPAR   = 150   ! For non-TOMAS simulations
 #endif
@@ -756,6 +754,8 @@
 !  22 May 2015 - R. Yantosca - Removed variables made obsolete by HEMCO
 !  28 Jan 2016 - M. Sulprizio- Remove NBIOMAX made obsolete by HEMCO
 !  18 May 2016 - M. Sulprizio- Remove MAXIJ made obsolete by FlexChem
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC

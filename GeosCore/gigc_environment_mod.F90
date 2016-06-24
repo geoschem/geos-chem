@@ -201,14 +201,6 @@ CONTAINS
     CALL Init_CMN_O3( am_I_Root, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-!-----------------------------------------------------------------------
-! Prior to 6/17/16:
-! Move call to INIT_GET_NDEP to GIGC_INIT_EXTRA, which is called
-! after species database init (bmy, 6/17/16)
-!    CALL Init_Get_Ndep( am_I_Root, RC )
-!    IF ( RC /= GIGC_SUCCESS ) RETURN
-!-----------------------------------------------------------------------
-
     CALL Init_COMODE_LOOP( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 

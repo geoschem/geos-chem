@@ -54,15 +54,6 @@
       USE TOMAS_MOD, ONLY : ICOMP, IDIAG, IBINS  !(win, 1/25/10)
 #endif
 
-#if   defined( APM )
-      USE TRACER_MOD,   ONLY : N_APMTRA
-      ! Modules from GeosApm directory
-      USE APM_DRIV_MOD, ONLY : IFTEMPOUT
-      USE APM_DRIV_MOD, ONLY : TEMPOUT
-      USE APM_DRIV_MOD, ONLY : NTEMPOUT
-      USE APM_DRIV_MOD, ONLY : NPOUTSTEPS
-#endif
-
       ! Interface w/ HEMCO
       USE HCO_DIAGN_MOD
       USE HCO_ERROR_MOD
@@ -400,11 +391,7 @@
       HcoState   => NULL()      
 
       ! Pick the proper # of tracers
-#if   defined( APM )
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
-#else
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers 
-#endif
 
       ! Now use counter variables from "time_mod.f" (bmy, 3/27/03)
       DIAGb      = GET_DIAGb()
@@ -4269,34 +4256,6 @@
 
       ENDIF
 
-#if   defined( APM )
-      !-----------------------------------
-      ! Output TEMPOUT for APM (G. Luo)
-      !-----------------------------------
-      IF ( IFTEMPOUT ) THEN
-
-         CATEGORY  = 'IJ-TMP-$'
-         SCALE_TMP = FLOAT( NPOUTSTEPS ) + 1e-20_fp
-         UNIT      = ''
-
-         DO NN = 1, NTEMPOUT
-
-            DO L = 1, LD45
-               ARRAY(:,:,L) = TEMPOUT(:,:,L,NN) / SCALE_TMP(:,:)
-            ENDDO
-
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD45,     IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD45) )
-
-         ENDDO
-
-         TEMPOUT    = 0.e+0_fp
-         NPOUTSTEPS = 0
-      ENDIF
-#endif
 #endif
 #if defined( BPCH_DIAG )
 !
@@ -5897,14 +5856,6 @@
 
                ! Grid box surface area [cm2]
                AREA_M2 = GET_AREA_M2( I, J, 1 )
-
-!----------------------------------------------------------------------------
-! Prior to 6/2/16:
-! NOTE: STT now in kg/kg dry at this point in the code.  So we have to 
-! multiply STT by AD here and then the column sums will be in the
-! correct units. (bmy, 6/2/16)
-!               ARRAY(I,J,1) = ( SUM( STT(I,J,:,N) ) * AVO )
-!----------------------------------------------------------------------------
                ARRAY(I,J,1) = ( SUM( STT(I,J,:,N)   *
      &                               AD (I,J,:  ) ) * AVO    )
      &                        / ( ThisSpc%emMW_g

@@ -80,6 +80,8 @@
 !  23 Sep 2014 - M. Sulprizio - Get global HNO3 for offline aerosol simulation
 !                               from HEMCO 
 !  14 Nov 2014 - M. Yannetti  - Added PRECISION_MOD
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -133,9 +135,6 @@
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-#if   defined( APM )          
-      USE APM_INIT_MOD,       ONLY : NSO4
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -212,9 +211,6 @@
       REAL(f8)                 :: CNTRL(NCTRLA)
       CHARACTER(LEN=255)       :: X 
       CHARACTER(LEN=15)        :: SCASI  
-#if   defined( APM )
-      REAL(fp)                 :: TSO4COAT
-#endif
 
       !Temporary variables to check if division is safe
       REAL(fp)                 :: NUM_SAV, DEN_SAV
@@ -346,9 +342,6 @@
 !$OMP+PRIVATE( TCA,  TMG,    TK,      CNTRL,  SCASI                  )
 !$OMP+PRIVATE( TNO3, AERLIQ, AERSLD,  OTHER,  TNH4, TNIT             )
 !$OMP+PRIVATE( HPLUSTEMP,    NUM_SAV, DEN_SAV, HNO3_DEN              )
-#if   defined( APM )
-!$OMP+PRIVATE( TSO4COAT             )
-#endif
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -385,30 +378,8 @@
          ! Compute quantities for ISOROPIA
          !---------------------------------
 
-#if   defined( APM )
-         
-         ! %%% WITH APM %%%
-         ! %%% NOTE: APM is currently broken in GC, so leave
-         ! %%% this IF block as is.  (bmy, 6/17/16)
-
-         !GanLuo+ Deduce SULFLO form TSO4, 
-         ! Add those sulfate coated on primary particles
-         TSO4     = (SUM(STT(I,J,L,IND_('SO4BIN1'):(IND_('SO4BIN1')
-     &        +NSO4-1)))) * 1.e+3_fp / ( 96.e+0_fp * VOL )
-
-         TSO4COAT = (STT(I,J,L,(IND_('CTBCOC')-1+1)) +
-     &        STT(I,J,L,(IND_('CTBCOC')-1+2)) +
-     &        STT(I,J,L,IND_('CTDST'))+STT(I,J,L,IND_('CTSEA'))) *
-     &        1.e+3_fp / ( 96.e+0_fp * VOL )
-         TSO4 = TSO4 + TSO4COAT
-#else
-
-         !%%% WITHOUT APM %%%
-
          ! Total SO4 [mole/m3]
          TSO4 = STT(I,J,L,id_SO4) * 1.e+3_fp / ( 96.e+0_fp * VOL )
-
-#endif
 
          ! Total NH3 [mole/m3] 
          TNH3 = STT(I,J,L,id_NH4) * 1.e+3_fp / (18.e+0_fp * VOL ) +
@@ -528,12 +499,8 @@
          !---------------------------------
          ! Save back into tracer array
          !---------------------------------
-#if   defined( APM )
-         ! Nothing
-#else
          ! Convert ISOROPIA output from [mole/m3] to [kg]
          TSO4 = MAX( 96.e-3_fp * VOL *   WT(2),            CONMIN )
-#endif
          TNH3 = MAX( 17.e-3_fp * VOL *   GAS(1),           CONMIN )
          TNH4 = MAX( 18.e-3_fp * VOL * ( WT(3) - GAS(1) ), CONMIN )
          TNIT = MAX( 62.e-3_fp * VOL * ( WT(4) - GAS(2) ), CONMIN )

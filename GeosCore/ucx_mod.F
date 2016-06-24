@@ -110,6 +110,8 @@
 !                                accessed in gckpp_HetRates.F90.
 !  28 Jan 2016 - M. Sulprizio  - Move routine CHECK_NAT to gckpp_HetRates.F90
 !  21 Jun 2016 - R. Yantosca   - Now store species ID flags as module variables
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2709,11 +2711,7 @@
       REAL(fp)               :: sp_Lambda, sp_Num
 
       ! Parameters
-#if defined( APM )
-      REAL(fp), PARAMETER    :: BCDEN = 1800.e+0_fp
-#else
       REAL(fp), PARAMETER    :: BCDEN = 1000.e+0_fp ! density (kg/m3)
-#endif
 
       ! Indexing
       INTEGER, PARAMETER     :: IBC  = 1

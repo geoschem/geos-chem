@@ -155,6 +155,8 @@
 !  01 Apr 2015 - R. Yantosca - Now add I0_E and J0_E
 !  03 Aug 2015 - M. Sulprizio- Now make BC and BC_CU separate arrays to avoid
 !                              confusion and error
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -484,9 +486,6 @@
       USE TIME_MOD,           ONLY : GET_NYMD,  GET_NHMS
       USE TIME_MOD,           ONLY : GET_TAU,   TIMESTAMP_STRING
       USE UNITCONV_MOD
-#if   defined( APM )
-      USE TRACER_MOD,         ONLY : N_APMTRA
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -567,11 +566,7 @@
       N_TRACERS = Input_Opt%N_TRACERS
 
       ! Pick the proper # of tracers
-#if   defined( APM )
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
-#else
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
-#endif
 
       ! Return if it's not time to write data to disk
       IF ( .not. ITS_TIME_FOR_BC() ) RETURN
@@ -777,9 +772,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#if   defined( APM )
-      USE TRACER_MOD,         ONLY : N_APMTRA
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -832,11 +824,7 @@
       N_TRACERS  = Input_Opt%N_TRACERS
       
       ! Pick the proper # of tracers
-#if   defined( APM )
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
-#else
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
-#endif
 
       ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
       ! (mpayer, 12/6/12)

@@ -37,11 +37,6 @@
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, IDIAG   !(win, 7/9/09)
 #endif
 
-#if   defined( APM )
-      USE DIAG_MOD,           ONLY : AD07_OM 
-      USE TRACER_MOD,         ONLY : N_APMTRA
-#endif
-
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -213,6 +208,8 @@
 !                              we can take advantage of the species database
 !  20 Jan 2016 - M. Sulprizio- Remove code to allocate the AD06, AD07, and AD08
 !                              arrays. These diagnostics are tracked by HEMCO.
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -288,11 +285,7 @@
       LD68 = 1
 
       ! Pick the proper # of tracers
-#if   defined( APM )
-      N_TRC_TOT = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
-#else 
       N_TRC_TOT = N_TRACERS              ! G-C advected tracers only
-#endif
 
       !=================================================================
       ! ND01: Rn, Pb, Be emissions
@@ -351,11 +344,6 @@
 
          ALLOCATE( AD07_SOAGM( IIPAR, JJPAR, LD07, 4 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_SOAGM' )
-
-#if   defined( APM )
-         ALLOCATE( AD07_OM( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_OM' )
-#endif
 
       ENDIF  
 

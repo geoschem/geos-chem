@@ -156,6 +156,7 @@
 #  18 May 2016 - M. Sulprizio- Remove comode_mod.F, setemis.F, and several
 #                              leftover routines from SMVGEAR
 #  23 Jun 2016 - R. Yantosca - Remove references to tracerid_mod
+#  23 Jun 2016 - R. Yantosca - Remove references to GeosApm
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -168,7 +169,6 @@
 
 # Directories
 ROOT    :=..
-APM     :=$(ROOT)/GeosApm
 BIN     :=$(ROOT)/bin
 BPCH    :=$(ROOT)/GeosBpch
 DOC     :=$(ROOT)/doc
@@ -323,7 +323,6 @@ distclean:                                         # Synonym for "realclean"
 
 realclean:                                         # Remove files everywhere
 	@$(MAKE) clean
-	@$(MAKE) -C $(APM)   clean
 	@$(MAKE) -C $(GTMM)  clean
 	@$(MAKE) -C $(HEMCO) clean
 	@$(MAKE) -C $(HDR)   clean
@@ -345,7 +344,6 @@ wipeout:
 
 realclean_except_rrtmg:                            # Don't realclean RRTMG
 	@$(MAKE) slowclean
-	@$(MAKE) -C $(APM)   clean
 	@$(MAKE) -C $(GTMM)  slowclean
 	@$(MAKE) -C $(HEMCO) slowclean
 	@$(MAKE) -C $(HDR)   slowclean

@@ -1504,8 +1504,8 @@
 !
 !#if   defined( TOMAS )
 !               ! (win, 7/15/09)
-!               ELSE IF ( ( NTRAIND(K) >= IDTNK1  )   .AND.
-!     &                   ( NTRAIND(K) <  IDTNK1+IBINS ) ) THEN
+!               ELSE IF ( ( NTRAIND(K) >= id_NK1  )   .AND.
+!     &                   ( NTRAIND(K) <  id_NK1+IBINS ) ) THEN
 !
 !                  !=====================================================
 !                  ! Use size-resolved dry deposition calculations for 
@@ -1521,7 +1521,7 @@
 !                  ! evolves with time.  We have to save these in the 
 !                  ! DIAM and DEN variables so that we can hold these
 !                  ! PRIVATE for the parallel loop.
-!                  BIN  = NTRAIND(K) - IDTNK1 + 1
+!                  BIN  = NTRAIND(K) - id_NK1 + 1
 !                  DIAM = SIZ_DIA( I, J, BIN )     ! Diameter [m]
 !                  DEN  = SIZ_DEN( I, J, BIN )     ! Density  [kg/m3]
 !

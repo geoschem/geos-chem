@@ -148,6 +148,8 @@
 !  23 Jun 2014 - R. Yantosca - Removed INIT_INPUT routine
 !  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  24 Nov 2014 - C. Keller   - Updates on timestep handling in ESMF environment
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -311,12 +313,6 @@
          ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
             CALL READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )              
 
-#if defined( APM )
-         ! Initialize APM microphysics package, if necessary
-         ELSE IF ( INDEX( LINE, 'APM MENU'         ) > 0 ) THEN
-            CALL READ_APM_MENU( am_I_Root, Input_Opt, RC )
-#endif
-
          ELSE IF ( INDEX( LINE, 'EMISSIONS MENU'   ) > 0 ) THEN
             CALL READ_EMISSIONS_MENU( am_I_Root, Input_Opt, RC )             
 
@@ -428,14 +424,6 @@
 
       ! Check GEOS-CHEM timesteps
       CALL CHECK_TIME_STEPS( am_I_Root, Input_Opt, RC )
-
-      !---------------------------------------------
-      ! Prior to 12/16/15:
-      !! Echo output
-      !IF ( am_I_Root ) THEN
-      !   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      !ENDIF
-      !---------------------------------------------
 
       END SUBROUTINE READ_INPUT_FILE
 !EOC
@@ -1536,11 +1524,6 @@
          Input_Opt%LSPLIT = ( Input_Opt%N_TRACERS > 1 )
 
       ENDIF
-
-#if defined( APM ) 
-      ! Store the # of APM tracers in tracer_mod.F
-      CALL INIT_TRACER( am_I_Root, Input_Opt, RC )
-#endif
 
       ! Set counter
       CT1 = CT1 + 1
@@ -7224,136 +7207,6 @@
       RC = GIGC_SUCCESS
 
       END SUBROUTINE READ_POPS_MENU
-!EOC
-#if   defined( APM ) 
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_apm_menu
-!
-! !DESCRIPTION: Subroutine READ\_APM\_MENU reads the APM MENU 
-!  section of the GEOS-Chem input file.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_APM_MENU( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-      USE APM_INIT_MOD,       ONLY : APMTRACER_MW_G
-      USE APM_INIT_MOD,       ONLY : APMTRACER_MW_Kg
-      USE APM_INIT_MOD,       ONLY : IFNUCL
-      USE APM_INIT_MOD,       ONLY : FE0
-      USE APM_INIT_MOD,       ONLY : LAPM
-      USE CHARPAK_MOD,        ONLY : STRREPL
-      USE PHYSCONSTANTS,      ONLY : AIRMW, AVO
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE FILE_MOD,           ONLY : IOERROR
-      USE GAMAP_MOD,          ONLY : DO_GAMAP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACER_MOD,         ONLY : N_APMTRA
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!
-! !REMARKS:
-!  This subroutine is only compiled when you build GEOS-Chem with the
-!  APM=yes makefile option.
-!
-! !REVISION HISTORY: 
-!  30 Sep 2008 - G. Luo, F. Yu - Initial version
-!  16 Feb 2011 - R. Yantosca - Added ProTeX headers
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
-!  06 Jan 2015 - E. Lundgren - Use global physical parameters
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER            :: N,               N_APMTRAC1, T, N_TRACERS
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
-
-      !=================================================================
-      ! READ_APM_MENU begins here!
-      !=================================================================
-      
-      ! Get fields from Input_Opt
-      N_TRACERS = Input_Opt%N_TRACERS
-
-      ! Error check
-      IF ( CT1 /= 2 ) THEN
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
-         CALL ERROR_STOP( MSG, 'READ_APM_MENU ("input_mod.f")' )
-      ENDIF
-
-      ! Nucleation scheme
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_apm_menu:1' )
-      READ( SUBSTRS(1:N), * ) IFNUCL
-
-      ! Primary sulfate fraction
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_apm_menu:2' )
-      READ( SUBSTRS(1:N), * ) FE0
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_apm_menu:3' )
-
-      ! Increment the TCVV and XNUMOL arrays for APM tracers
-      DO T = 1, N_APMTRA
-         Input_Opt%TCVV(N_TRACERS+T) = AIRMW / APMTRACER_MW_G(T)
-         Input_Opt%XNUMOL(N_TRACERS+T) = AVO / 
-     &                                   APMTRACER_MW_KG(T) 
-      ENDDO
-
-      !=================================================================
-      ! Set fields of the Input Options object
-      !=================================================================
-      Input_Opt%IFNUCL = IFNUCL
-      Input_Opt%FE0    = FE0
-
-      DO T = 1, N_APMTRA
-         Input_Opt%TCVV  (N_TRACERS+T) = TCVV(T)
-         Input_Opt%XNUMOL(N_TRACERS+T) = XNUMOL(T)
-      ENDDO
-
-      ! Return success
-      RC = GIGC_SUCCESS
-
-      !=================================================================
-      ! Print to screen
-      !=================================================================
-      IF ( am_I_Root ) THEN
-         WRITE( 6, '(/,a)' ) 'APM MENU'
-         WRITE( 6, '(  a)' ) '----------------'
-         WRITE( 6, 100     ) 'Turn on APM and add tracers?: ', LAPM
-         WRITE( 6, 110     ) '# of additional APM tracers : ', N_APMTRA
-         WRITE( 6, 110     ) 'Nucleation Scheme           : ', IFNUCL
-         WRITE( 6, 120     ) 'Primary Sulfate Fraction    : ', FE0
-      ENDIF
-
-      ! FORMATs
- 100  FORMAT( A, L5 )
- 110  FORMAT( A, I5 )
- 120  FORMAT( A, F7.3 )
-
-      END SUBROUTINE READ_APM_MENU
-!EOC
-#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

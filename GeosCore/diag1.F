@@ -44,11 +44,6 @@
       USE TIME_MOD,           ONLY : GET_DAY
       USE TIME_MOD,           ONLY : GET_HOUR
       USE ERROR_MOD,          ONLY : SAFE_DIV
-
-#if defined( APM )
-      USE TRACER_MOD,         ONLY : N_APMTRA
-#endif
-
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE PHYSCONSTANTS
@@ -170,13 +165,8 @@
       LOGICAL            :: AVGW_ALLOCATED, IS_FULLCHEM, IS_CHEM
       INTEGER            :: I, J, K, L, N, NN, IREF, JREF, LN45, N_TRC
       REAL(fp)           :: FDTT, XLOCTM, AREA_M2
-#if   defined( APM ) 
-      REAL(fp), TARGET   :: STT_VV(IIPAR,JJPAR,LLPAR,
-     &                             Input_Opt%N_TRACERS+N_APMTRA)
-#else 
       REAL(fp), TARGET   :: STT_VV(IIPAR,JJPAR,LLPAR,
      &                             Input_Opt%N_TRACERS+2)
-#endif 
 
       ! For FP potential temperature (hotp 7/31/09)
       REAL(fp)          :: P0
@@ -219,11 +209,7 @@
       ThisSpc            => NULL()
 
       ! Pick the proper # of tracers for diagnostics
-#if   defined( APM )
-      N_TRC = N_TRACERS + N_APMTRA    ! G-C advected tracers + APM tracers
-#else 
-      N_TRC = N_TRACERS               ! G-C advected tracers
-#endif
+      N_TRC       = N_TRACERS               ! G-C advected tracers
 
       ! Is it a fullchem run?
       IS_FULLCHEM = ITS_A_FULLCHEM_SIM
