@@ -8362,21 +8362,21 @@
       !             DUST SULFATE    AEROSOLS
       !             DUST ALKALINITY AEROSOLS
       !=================================================================
-      I = MAX( IND_('NITd1'), 0 ) 
-     &  + MAX( IND_('NITd2'), 0 ) 
-     &  + MAX( IND_('NITd3'), 0 )
-     &  + MAX( IND_('NITd4'), 0 ) 
-     &  + MAX( IND_('SO4d1'), 0 ) 
-     &  + MAX( IND_('SO4d2'), 0 )
-     &  + MAX( IND_('SO4d3'), 0 ) 
-     &  + MAX( IND_('SO4d4'), 0 ) 
-     &  + MAX( IND_('DAL1' ), 0 )
-     &  + MAX( IND_('DAL2' ), 0 ) 
-     &  + MAX( IND_('DAL3' ), 0 ) 
-     &  + MAX( IND_('DAL4' ), 0 )
+      I = MAX( IND_('NITd1'  ), 0 ) 
+     &  + MAX( IND_('NITd2'  ), 0 ) 
+     &  + MAX( IND_('NITd3'  ), 0 )
+     &  + MAX( IND_('NITd4'  ), 0 ) 
+     &  + MAX( IND_('SO4d1'  ), 0 ) 
+     &  + MAX( IND_('SO4d2'  ), 0 )
+     &  + MAX( IND_('SO4d3'  ), 0 ) 
+     &  + MAX( IND_('SO4d4'  ), 0 ) 
+     &  + MAX( IND_('DSTAL1' ), 0 )
+     &  + MAX( IND_('DSTAL2' ), 0 ) 
+     &  + MAX( IND_('DSTAL3' ), 0 ) 
+     &  + MAX( IND_('DSTAL4' ), 0 )
 
       IF ( Input_Opt%LDSTUP ) THEN
-         IF ( I == 0 ) THEN
+         IF ( I < 12 ) THEN
             MSG = 'LDSTUP=T but COATED DUST AEROSOLS are undefined!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
