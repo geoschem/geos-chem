@@ -88,12 +88,12 @@
 !  22 Aug 2014 - R. Yantosca - Remove XNUMOL_* parameters; these are obsolete
 !  04 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  30 Jan 2015 - E. Lundgren - Add new diagnostics stuctures for netCDF output.
-!   2 May 2016 - R. Yantosca - Now define IDTRn, IDTPb, IDTBe locally
+!  02 May 2016 - R. Yantosca - Now define IDTRn, IDTPb, IDTBe locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! Tracer ID flags
-      INTEGER :: IDTRn, IDTPb, IDTBe7
+      ! Species ID flags (formerly in tracerid_mod.F)
+      INTEGER :: id_Rn, id_Pb, id_Be7
 
       CONTAINS
 !EOC   
@@ -125,6 +125,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : Ind_
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -174,6 +175,8 @@
 !  04 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp) 
 !  12 Dec 2014 - M. Yannetti - Changed Hemco REAL*8 to REAL(hp)
 !   2 May 2016 - R. Yantosca - Now define IDTRn, IDTPb, IDTBe locally
+!  22 Jun 2016 - R. Yantosca - Now use IND_() to define species ID's
+!  22 Jun 2016 - R. Yantosca - Rename species ID's to id_Rn, id_Pb, id_Be7
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -245,27 +248,10 @@
          EXP_Pb    = EXP( -DTCHEM * 9.725E-10_fp ) 
          EXP_Be    = EXP( -DTCHEM * 1.506E-7_fp  )
 
-         ! Loop over all species
-         DO N = 1, State_Chm%nSpecies
-
-            ! Get info about this species from the database
-            ThisSpc => State_Chm%SpcData(N)%Info
-
-            ! Define tracer ID flags locally
-            SELECT CASE ( TRIM( ThisSpc%Name ) )
-               CASE( 'Rn' )
-                  IDTRn  = ThisSpc%ModelId
-               CASE( 'Pb' )
-                  IDTPb  = ThisSpc%ModelId
-               CASE( 'Be7' )
-                  IDTBe7 = ThisSpc%ModelId
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT
-
-            ! Free pointer
-            ThisSpc => NULL()
-         ENDDO
+         ! Species ID flags
+         id_Rn     = Ind_('Rn'  )
+         id_Pb     = Ind_('Pb'  )
+         id_Be7    = Ind_('Be7' )
 
          ! Reset FIRSTCHEM flag
          FIRSTCHEM = .FALSE.
@@ -286,7 +272,7 @@
       !=================================================================
       
       ! Tracer index
-      N = IDTRn
+      N = id_Rn
 
       ! Make sure Rn222 is a defined tracer
       IF ( N > 0 ) THEN
@@ -327,7 +313,7 @@
             ! Update ND02 diagnostic: Rn lost to decay [kg/s]
             CALL Diagn_RnPbBe_Update( am_I_Root,
      &                                'ND02', 
-     &                                Input_Opt%TRACER_NAME( IDTRn ), 
+     &                                Input_Opt%TRACER_NAME( id_Rn ), 
      &                                RN_DECAY, 
      &                                INput_Opt%DIAG_COLLECTION )
          ENDIF
@@ -340,7 +326,7 @@
       !=================================================================
       
       ! Tracer index
-      N = IDTPb
+      N = id_Pb
 
       ! Make sure Pb210 is a defined tracer
       IF ( N > 0 ) THEN
@@ -411,7 +397,7 @@
          ! Update ND02 diagnostic: Pb lost to decay [kg/s]
             CALL Diagn_RnPbBe_Update( am_I_Root,
      &                                'ND02', 
-     &                                Input_Opt%TRACER_NAME( IDTPb ), 
+     &                                Input_Opt%TRACER_NAME( id_Pb ), 
      &                                PB_DECAY, 
      &                                Input_Opt%DIAG_COLLECTION )
          ENDIF
@@ -422,7 +408,7 @@
             ! Update ND01 diagnostic: Pb emission [kg/s]
             CALL Diagn_RnPbBe_Update( am_I_Root,
      &                                'ND01', 
-     &                                Input_Opt%TRACER_NAME( IDTPb ), 
+     &                                Input_Opt%TRACER_NAME( id_Pb ), 
      &                                PB_EMISS, 
      &                                Input_Opt%DIAG_COLLECTION )
          ENDIF
@@ -436,7 +422,7 @@
       !=================================================================
 
       ! Tracer index
-      N = IDTBe7
+      N = id_Be7
 
       ! Make sure Be7 is a defined tracer
       IF ( N > 0 ) THEN 
@@ -477,7 +463,7 @@
             ! Update ND02 diagnostic: Be lost to decay [kg/s]
             CALL Diagn_RnPbBe_Update( am_I_Root,
      &                                'ND02', 
-     &                                Input_Opt%TRACER_NAME( IDTBe7 ), 
+     &                                Input_Opt%TRACER_NAME( id_Be7 ), 
      &                                BE_DECAY, 
      &                                Input_Opt%DIAG_COLLECTION )
          ENDIF

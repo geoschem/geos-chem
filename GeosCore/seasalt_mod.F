@@ -28,9 +28,9 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: CHEMSEASALT
-      PUBLIC :: CLEANUP_SEASALT
-      PUBLIC :: INIT_SEASALT
+      PUBLIC  :: CHEMSEASALT
+      PUBLIC  :: CLEANUP_SEASALT
+      PUBLIC  :: INIT_SEASALT
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -40,8 +40,8 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      PUBLIC :: SALT_V
-      PUBLIC :: DMID
+      PUBLIC  :: SALT_V
+      PUBLIC  :: DMID
 !
 ! !REMARKS:
 !  Seasalt aerosol species: (1) Accumulation mode (usually 0.1 -  0.5 um)
@@ -89,6 +89,8 @@
 !  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  12 Jun 2015 - R. Yantosca - Removed DRY_DEPOSITION routine, because we
 !                              now apply drydep in mixing_mod.F90
+!  16 Jun 2016 - C. Miller   - Now define species ID's with Ind_ function
+!  17 Jun 2016 - R. Yantosca - Add species ID's as module variables
 !  22 Jun 2016 - M. Yannetti - Replaced references to TCVV.
 !EOP
 !------------------------------------------------------------------------------
@@ -132,6 +134,14 @@
       REAL(fp), ALLOCATABLE :: DMID  (:    )
       REAL(fp), ALLOCATABLE :: OCCONV(:,:,:)
 
+      ! Species ID flags (formerly in tracerid_mod.F)
+      INTEGER               :: id_MOPO
+      INTEGER               :: id_MOPI
+      INTEGER               :: id_NK1
+      INTEGER               :: id_SALA
+      INTEGER               :: id_SALC
+      INTEGER               :: id_SS1
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
@@ -162,7 +172,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -194,6 +203,7 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
 !                              so we can greatly collapse this code
+!  17 Jun 2016 - R. Yantosca - Add error checks before calling routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -234,24 +244,27 @@
       !=================================================================
       ! Accumulation mode wet settling
       !=================================================================
+     IF ( id_SALA > 0 ) THEN
       CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                   State_Chm, STT(:,:,:,IDTSALA), 1,         
+     &                   State_Chm, STT(:,:,:,id_SALA), 1,         
      &                   RC         )
 
-
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
+         ENDIF
       ENDIF
 
       !=================================================================
       ! Coarse mode wet settling
       !=================================================================
-      CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                   State_Chm, STT(:,:,:,IDTSALC), 2,         
+      IF ( id_SALC > 0 ) THEN
+        CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
+     &                   State_Chm, STT(:,:,:,id_SALC), 2,         
      &                   RC         )
 
-      IF ( prtDebug ) THEN 
-         CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
+         IF ( prtDebug ) THEN 
+            CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
+         ENDIF
       ENDIF
 
       !=================================================================
@@ -260,15 +273,19 @@
       IF ( LMPOA > 0 ) THEN
 
          ! Chemistry for hydrophobic MOA
-         CALL CHEM_MOPO( am_I_Root, Input_Opt, State_Chm, RC )
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPO' )
+         IF ( id_MOPO > 0 ) THEN
+            CALL CHEM_MOPO( am_I_Root, Input_Opt, State_Chm, RC )
+            IF ( prtDebug ) THEN
+               CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPO' )
+            ENDIF
          ENDIF
 
          ! Chemistry for hydrophilic MOA
-         CALL CHEM_MOPI( am_I_Root, Input_Opt, State_Chm, RC )
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPI' )
+         IF ( id_MOPI > 0 ) THEN
+            CALL CHEM_MOPI( am_I_Root, Input_Opt, State_Chm, RC )
+            IF ( prtDebug ) THEN
+               CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPI' )
+            ENDIF
          ENDIF
 
       ENDIF
@@ -309,8 +326,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTSALA
-      USE TRACERID_MOD,       ONLY : IDTSALC
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE GRID_MOD,           ONLY : GET_AREA_CM2
 #if defined( NC_DIAG )
@@ -466,7 +481,7 @@
       ! Init diagnostics
       DryDepFlux  = 0.0_fp
 #endif
-
+      
       ! Seasalt effective radius (i.e. midpt of radius bin) [m]
       SELECT CASE ( N )
 
@@ -747,7 +762,7 @@
             ! Surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
-            ThisSpc => State_Chm%SpcData(IDTSALA)%Info
+            ThisSpc => State_Chm%SpcData(id_SALA)%Info
 
             ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
@@ -836,7 +851,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,           ONLY : IDTMOPO
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -887,7 +901,7 @@
 
       ! Set pointer to GEOS-Chem tracer array [kg]
       STT      => State_Chm%Tracers
-
+      
       !=================================================================
       ! For tracers with dry deposition, the loss rate of dry dep is 
       ! combined in chem loss term.
@@ -908,7 +922,7 @@
       DO I = 1, IIPAR
 
          ! Initial OC [kg]
-         TC0  = STT(I,J,L,IDTMOPO)
+         TC0  = STT(I,J,L,id_MOPO)
 
          ! Zero drydep freq
          ! ### NOTE: Remove this later, but need to make
@@ -926,7 +940,7 @@
          OCCONV(I,J,L) = ( TC0 - CNEW ) * KOC / ( KOC + FREQ )
 
          ! Store modified OC concentration back in tracer array
-         STT(I,J,L,IDTMOPO) = CNEW
+         STT(I,J,L,id_MOPO) = CNEW
 
       ENDDO
       ENDDO
@@ -960,7 +974,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,       ONLY : IDTMOPI
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -1002,7 +1015,7 @@
 
       ! Set pointer to GEOS-Chem tracer array [kg]
       STT      => State_Chm%Tracers
-
+      
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, TC0, CCV, CNEW )
@@ -1012,7 +1025,7 @@
       DO I = 1, IIPAR
 
          ! Initial H-philic OC [kg]
-         TC0 = STT(I,J,L,IDTMOPI)
+         TC0 = STT(I,J,L,id_MOPI)
 
          ! H-philic OC that used to be H-phobic OC [kg]
          CCV = OCCONV(I,J,L)
@@ -1024,7 +1037,7 @@
          IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
 
          ! Store modified concentration back in tracer array [kg]
-         STT(I,J,L,IDTMOPI) = CNEW
+         STT(I,J,L,id_MOPI) = CNEW
 
       ENDDO
       ENDDO
@@ -1062,6 +1075,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : Ind_
       USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
@@ -1086,6 +1100,7 @@
 !                              we can use the species database
 !  30 Sep 2015 - R. Yantosca - DD_A_Density is renamed to Density
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  17 Jun 2016 - R. Yantosca - Now define species ID's on the first call
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1108,6 +1123,14 @@
 
       ! Return if we have already allocated arrays
       IF ( IS_INIT ) RETURN
+
+      ! Define species indices
+      id_MOPI = Ind_('MOPI')
+      id_MOPO = Ind_('MOPO')
+      id_SALA = Ind_('SALA')
+      id_SALC = Ind_('SALC')
+      id_NK1  = Ind_('NK1' )
+      id_SS1  = Ind_('SS1' )
 
       ! Initialize pointer
       ThisSpc => NULL()
@@ -1217,7 +1240,6 @@
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TOMAS_MOD,          ONLY : IBINS, Xk
-      USE TRACERID_MOD             ! IDTNK1, IDTSS1
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1258,9 +1280,9 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I,      J,      L,     K
-      INTEGER                :: NTOP
-      REAL*4                 :: FOCEAN, W10M,   DTEMIS
+      INTEGER                  :: I,      J,      L,     K
+      INTEGER                  :: NTOP
+      REAL*4                   :: FOCEAN, W10M,   DTEMIS
       REAL(fp)                 :: F100,   W,      NUM
       REAL(fp)                 :: DBIN(IBINS),    A(IBINS)
       REAL(fp)                 :: A_M2,           FEMIS

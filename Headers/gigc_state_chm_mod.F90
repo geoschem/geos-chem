@@ -97,9 +97,9 @@ MODULE GIGC_State_Chm_Mod
                                                         !  reaction cofactors
      ! For the tagged Hg simulation
      INTEGER                    :: N_HG_CATS            ! # of Hg categories
-     INTEGER,           POINTER :: ID_Hg0     (:      ) ! Hg0 cat <-> tracer #
-     INTEGER,           POINTER :: ID_Hg2     (:      ) ! Hg2 cat <-> tracer #
-     INTEGER,           POINTER :: ID_HgP     (:      ) ! HgP cat <-> tracer #
+     INTEGER,           POINTER :: Hg0_Id_List(:      ) ! Hg0 cat <-> tracer #
+     INTEGER,           POINTER :: Hg2_Id_List(:      ) ! Hg2 cat <-> tracer #
+     INTEGER,           POINTER :: HgP_Id_List(:      ) ! HgP cat <-> tracer #
      CHARACTER(LEN=4),  POINTER :: Hg_Cat_Name(:      ) ! Category names
 
   END TYPE ChmState
@@ -131,6 +131,8 @@ MODULE GIGC_State_Chm_Mod
 !  07 Jun 2016 - M. Sulprizio- Remove routines Get_Indx, Register_Species, and
 !                              Register_Tracer made obsolete by the species
 !                              database.
+!  22 Jun 2016 - R. Yantosca - Rename Id_Hg0 to Hg0_Id_List, Id_Hg2 to
+!                              Hg2_Id_List, and Id_HgP to HgP_Id_List
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -403,9 +405,9 @@ CONTAINS
     N_HgP_CATS            =  0
     State_Chm%N_Hg_CATS   =  0
     State_Chm%Hg_Cat_Name => NULL()
-    State_Chm%Id_Hg0      => NULL()
-    State_Chm%Id_Hg2      => NULL()
-    State_Chm%Id_HgP      => NULL()
+    State_Chm%Hg0_Id_List      => NULL()
+    State_Chm%Hg2_Id_List      => NULL()
+    State_Chm%HgP_Id_List      => NULL()
 
     !=====================================================================
     ! Populate the species database object field
@@ -617,19 +619,19 @@ CONTAINS
        ENDIF
 
        ! Index array: Hg0 species # <--> Hg0 category #
-       ALLOCATE( State_Chm%Id_Hg0( State_Chm%N_Hg_CATS ), STAT=RC )
+       ALLOCATE( State_Chm%Hg0_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
-       State_Chm%Id_Hg0 = 0
+       State_Chm%Hg0_Id_List = 0
 
        ! Index array: Hg2 species # <--> Hg0 category #
-       ALLOCATE( State_Chm%Id_Hg2( State_Chm%N_Hg_CATS ), STAT=RC )
+       ALLOCATE( State_Chm%Hg2_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
-       State_Chm%Id_Hg2 = 0
+       State_Chm%Hg2_Id_List = 0
 
        ! Index array: HgP species # <--> Hg0 category #
-       ALLOCATE( State_Chm%Id_HgP( State_Chm%N_Hg_CATS ), STAT=RC )
+       ALLOCATE( State_Chm%HgP_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
-       State_Chm%Id_HgP = 0
+       State_Chm%HgP_Id_List = 0
 
        ! Hg category names
        ALLOCATE( State_Chm%Hg_Cat_Name( State_Chm%N_Hg_CATS ), STAT=RC )
@@ -644,17 +646,17 @@ CONTAINS
           
           ! Populate the Hg0 index array
           IF ( ThisSpc%Is_Hg0 ) THEN
-             State_Chm%Id_Hg0(ThisSpc%Hg_Cat) = ThisSpc%ModelId
+             State_Chm%Hg0_Id_List(ThisSpc%Hg_Cat) = ThisSpc%ModelId
           ENDIF
 
           ! Populate the Hg2 index array
           IF ( ThisSpc%Is_Hg2 ) THEN
-             State_Chm%Id_Hg2(ThisSpc%Hg_Cat) = ThisSpc%ModelId
+             State_Chm%Hg2_Id_List(ThisSpc%Hg_Cat) = ThisSpc%ModelId
           ENDIF
 
           ! Populate the HgP index array
           IF ( ThisSpc%Is_HgP ) THEN
-             State_Chm%Id_HgP(ThisSpc%Hg_Cat) = ThisSpc%ModelId
+             State_Chm%HgP_Id_List(ThisSpc%Hg_Cat) = ThisSpc%ModelId
           ENDIF
 
           ! Free pointer
@@ -665,7 +667,7 @@ CONTAINS
        DO C = 2, State_Chm%N_Hg_CATS
 
           ! Hg0 tracer number corresponding to this category
-          N                        =  State_Chm%Id_Hg0(C)
+          N                        =  State_Chm%Hg0_Id_List(C)
 
           ! The category name (e.g. "_can") follows the "Hg0"
           ThisSpc                  => State_Chm%SpcData(N)%Info
@@ -790,16 +792,16 @@ CONTAINS
        DEALLOCATE( State_Chm%Hg_Cat_Name )
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%Id_Hg0 ) ) THEN
-       DEALLOCATE( State_Chm%Id_Hg0 ) 
+    IF ( ASSOCIATED( State_Chm%Hg0_Id_List ) ) THEN
+       DEALLOCATE( State_Chm%Hg0_Id_List ) 
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%Id_Hg2 ) ) THEN
-       DEALLOCATE( State_Chm%Id_Hg2 )
+    IF ( ASSOCIATED( State_Chm%Hg2_Id_List ) ) THEN
+       DEALLOCATE( State_Chm%Hg2_Id_List )
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%Id_HgP ) ) THEN
-       DEALLOCATE( State_Chm%Id_HgP )
+    IF ( ASSOCIATED( State_Chm%HgP_Id_List ) ) THEN
+       DEALLOCATE( State_Chm%HgP_Id_List )
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%AeroArea ) ) THEN

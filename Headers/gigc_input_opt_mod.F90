@@ -542,12 +542,6 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LOTNAT
 
      !----------------------------------------
-     ! APM MENU fields
-     !----------------------------------------  
-     LOGICAL                     :: IFNUCL
-     REAL(fp)                    :: FE0
-
-     !----------------------------------------
      ! POPS MENU fields
      !----------------------------------------
      CHARACTER(LEN=3)            :: POP_TYPE
@@ -654,6 +648,8 @@ MODULE GIGC_Input_Opt_Mod
 !  17 May 2016 - R. Yantosca - Remove TRACER_N_CONST, TRACER_CONST, ID_EMITTED,
 !                              TRACER_COEFF
 !  31 May 2016 - E. Lundgren - Remove TRACER_MW_KG, TRACER_MW_G, and XNUMOL
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1337,12 +1333,6 @@ CONTAINS
     Input_Opt%LWETL                  = .FALSE.
     Input_Opt%LSOABS                 = .FALSE.
     Input_Opt%LOTNAT                 = .FALSE.
-
-    !----------------------------------------
-    ! APM MENU fields
-    !----------------------------------------  
-    Input_Opt%IFNUCL                 = .FALSE.
-    Input_Opt%FE0                    = 0e+0_fp
 
     !----------------------------------------
     ! POPS MENU fields

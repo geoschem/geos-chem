@@ -43,10 +43,6 @@
       REAL*4,  ALLOCATABLE :: AD07_HC(:,:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_SOAGM(:,:,:,:)
 
-#if   defined( APM )
-      REAL*4,  ALLOCATABLE :: AD07_OM(:,:)
-#endif 
-
       ! For ND09 -- HCN / CH3CN simulation
       REAL*4,  ALLOCATABLE :: AD09(:,:,:,:)
       REAL*4,  ALLOCATABLE :: AD09_em(:,:,:)
@@ -306,6 +302,8 @@
 !  15 Apr 2015 - R. Yantosca - Add TARGET spec to MASSFLEW, MASSFLNS, MASSFLUP
 !  20 Jan 2016 - M. Sulprizio- Remove AD06, AD07, and AD08 arrays since these
 !                              diagnostics are tracked by HEMCO
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -468,13 +466,6 @@
 #endif
       IF ( ALLOCATED( TURBFLUP    ) ) DEALLOCATE( TURBFLUP    )
       IF ( ALLOCATED( STT_TEMPO2  ) ) DEALLOCATE( STT_TEMPO2  )
-
-#if   defined( APM )
-      !-----------------------------------------
-      ! Deallocate arrays for APM microphysics
-      !-----------------------------------------
-      IF ( ALLOCATED( AD07_OM     ) ) DEALLOCATE( AD07_OM     )
-#endif
 
       END SUBROUTINE CLEANUP_DIAG
 !EOC

@@ -111,8 +111,8 @@
       USE TAGGED_OX_MOD,      ONLY : CHEM_TAGGED_OX
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTISOP
-      USE TRACERID_MOD,       ONLY : IDTDST1
+      USE GIGC_State_Chm_Mod, only : IND_
+
 #if defined( DEVEL )
       USE TENDENCIES_MOD
 #endif
@@ -124,7 +124,6 @@
 #endif
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : DO_TOMAS  !(win, 7/14/09)
-      USE TRACERID_MOD,       ONLY : IDTNK1    !(win, 7/14/09)
 #endif
 
       USE FLEXCHEM_SETUP_MOD    ! For initializing KPP/KPPA chem. routines
@@ -231,45 +230,50 @@
 !                              that read the met fields from disk.
 !  16 May 2016 - M. Sulprizio- Remove call to AEROSOL_RURALBOX. The FlexChem
 !                              implementation has rendered the routine obsolete.
+!  16 Jun 2016 - C. Miller   - Now use Ind_ function to define species ID's
+!  17 Jun 2016 - R. Yantosca - Now define species ID's only on first call
+!  17 Jun 2016 - R. Yantosca - Now reset first-time flag at end of routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER       :: N_TROP
-      INTEGER       :: MONTH
-      INTEGER       :: YEAR
-      INTEGER       :: WAVELENGTH
-      LOGICAL       :: IT_IS_A_C2H6_SIM
-      LOGICAL       :: IT_IS_A_CH3I_SIM
-      LOGICAL       :: IT_IS_A_CH4_SIM
-      LOGICAL       :: IT_IS_A_FULLCHEM_SIM
-      LOGICAL       :: IT_IS_A_H2HD_SIM
-      LOGICAL       :: IT_IS_A_HCN_SIM
-      LOGICAL       :: IT_IS_A_MERCURY_SIM
-      LOGICAL       :: IT_IS_A_RnPbBe_SIM
-      LOGICAL       :: IT_IS_A_TAGCO_SIM
-      LOGICAL       :: IT_IS_A_TAGOX_SIM
-      LOGICAL       :: IT_IS_AN_AEROSOL_SIM
-      LOGICAL       :: IT_IS_NOT_COPARAM_OR_CH4
-      LOGICAL       :: IT_IS_A_POPS_SIM
-      LOGICAL       :: LCARB
-      LOGICAL       :: LCHEM
-      LOGICAL       :: LCRYST
-      LOGICAL       :: LDUST
-      LOGICAL       :: LSCHEM
-      LOGICAL       :: LPRT
-      LOGICAL       :: LSSALT
-      LOGICAL       :: LSULF
-      LOGICAL       :: LSOA
-      LOGICAL       :: LNLPBL
+      INTEGER           :: N_TROP
+      INTEGER           :: MONTH
+      INTEGER           :: YEAR
+      INTEGER           :: WAVELENGTH
+      LOGICAL           :: IT_IS_A_C2H6_SIM
+      LOGICAL           :: IT_IS_A_CH3I_SIM
+      LOGICAL           :: IT_IS_A_CH4_SIM
+      LOGICAL           :: IT_IS_A_FULLCHEM_SIM
+      LOGICAL           :: IT_IS_A_H2HD_SIM
+      LOGICAL           :: IT_IS_A_HCN_SIM
+      LOGICAL           :: IT_IS_A_MERCURY_SIM
+      LOGICAL           :: IT_IS_A_RnPbBe_SIM
+      LOGICAL           :: IT_IS_A_TAGCO_SIM
+      LOGICAL           :: IT_IS_A_TAGOX_SIM
+      LOGICAL           :: IT_IS_AN_AEROSOL_SIM
+      LOGICAL           :: IT_IS_NOT_COPARAM_OR_CH4
+      LOGICAL           :: IT_IS_A_POPS_SIM
+      LOGICAL           :: LCARB
+      LOGICAL           :: LCHEM
+      LOGICAL           :: LCRYST
+      LOGICAL           :: LDUST
+      LOGICAL           :: LSCHEM
+      LOGICAL           :: LPRT
+      LOGICAL           :: LSSALT
+      LOGICAL           :: LSULF
+      LOGICAL           :: LSOA
+      LOGICAL           :: LNLPBL
 
       ! SAVEd variables
-      LOGICAL, SAVE :: FIRST = .TRUE.
+      LOGICAL, SAVE     :: FIRST = .TRUE.
+      INTEGER, SAVE     :: id_DST1
+      INTEGER, SAVE     :: id_NK1
 
       ! Chemistry time step in seconds
-      REAL(fp)      :: DT_TEND
+      REAL(fp)          :: DT_TEND
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -307,6 +311,12 @@
       IT_IS_A_POPS_SIM         = Input_Opt%ITS_A_POPS_SIM
       IT_IS_AN_AEROSOL_SIM     = Input_Opt%ITS_AN_AEROSOL_SIM
       IT_IS_NOT_COPARAM_OR_CH4 = Input_Opt%ITS_NOT_COPARAM_OR_CH4
+
+      ! Save species ID"s on first call
+      IF ( FIRST ) THEN
+         id_DST1 = Ind_('DST1')
+         id_NK1  = Ind_('NK1' )
+      ENDIF
 
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
@@ -369,7 +379,6 @@
      &              am_I_Root, RC )
                IF ( LPRT .and. am_I_Root ) 
      &              CALL DEBUG_MSG( '### MAIN: a INIT_FLEXCHEM' )
-               FIRST = .FALSE.
             ENDIF
             ! MSL ----------
 
@@ -484,14 +493,14 @@
             ENDIF
 
             ! Do dust aerosol chemistry
-            IF ( LDUST .AND. IDTDST1 > 0 ) THEN
+            IF ( LDUST .AND. id_DST1 > 0 ) THEN
                CALL CHEMDUST
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
  
 #if   defined( TOMAS )
             ! Do TOMAS aerosol microphysics and dry dep
-            IF ( IDTNK1 > 0 ) THEN 
+            IF ( id_NK1 > 0 ) THEN 
                CALL DO_TOMAS
      &             ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
                IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -722,7 +731,10 @@
 
       ! Free pointer
       NULLIFY( STT )
-    
+       
+      ! Reset first-time flag
+      FIRST = .FALSE.
+
       END SUBROUTINE DO_CHEMISTRY
 !EOC
 !------------------------------------------------------------------------------
@@ -895,7 +907,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE CMN_SIZE_MOD,       ONLY : LLTROP
-      USE TRACERID_MOD,       ONLY : SETTRACE
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE FAST_JX_MOD,        ONLY : INIT_FJX
       USE COMODE_LOOP_MOD
@@ -912,9 +923,10 @@
      
 !
 ! !REVISION HISTORY: 
-!  19 May 2014 - C. Keller - Initial version (stripped from do_chemistry
-!                            and chemdr.F)
+!  19 May 2014 - C. Keller   - Initial version (stripped from do_chemistry
+!                              and chemdr.F)
 !  20 Jun 2014 - R. Yantosca - Now pass Input_Opt to INIT_FJX
+!  23 Jun 2016 - R. Yantosca - Remove call to SETTRACE, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -936,8 +948,7 @@
          CALL READER  ( FIRST, am_I_Root                           )
          CALL READCHEM(        am_I_Root, Input_Opt,            RC )
          CALL INIT_FJX(        am_I_Root, Input_Opt,  RC           )
-         CALL SETTRACE(        am_I_Root, Input_Opt, State_Chm, RC )
-
+         
          ! Reset NCS with NCSURBAN=1
          NCS                 = NCSURBAN
 

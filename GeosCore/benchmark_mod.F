@@ -69,12 +69,12 @@
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : Ind_
       USE inquireMod,         ONLY : findFreeLUN
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD
       USE TIME_MOD,           ONLY : GET_NHMS
       USE TIME_MOD,           ONLY : GET_TAU
-      USE TRACERID_MOD,       ONLY : IDTO3
 !
 ! !INPUT PARAMETERS: 
 !
@@ -104,6 +104,7 @@
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  17 Dec 2014 - R. Yantosca - Now use State_Chm%TRACERS instead of STT
 !  19 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
+!  16 Jun 2016 - R. Yantosca - Now use Ind_ to get species ID for O3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -111,6 +112,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: IU_FILE
+      INTEGER             :: id_O3
       INTEGER             :: N,        NYMD,     NHMS
       INTEGER, PARAMETER  :: IFIRST=1, JFIRST=1, LFIRST=1
       INTEGER, PARAMETER  :: CENTER180=1
@@ -145,6 +147,9 @@
       NYMD      = GET_NYMD()
       NHMS      = GET_NHMS()
       TAU       = GET_TAU()
+
+      ! Get species ID for O3
+      id_O3     = Ind_('O3')
 
       ! Define filename for beginning or end of benchmark run
       IF ( LBEGIN ) THEN
@@ -186,17 +191,17 @@
       !=================================================================
       ! Save the mass of O3 to a file
       !=================================================================
-      ELSE IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. IDTO3 > 0 ) THEN
+      ELSE IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. id_O3 > 0 ) THEN
 
          ! Open binary punch file for writing
          CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )
         
          ! Save O3 as REAL*4
-         ARRAY(:,:,:) = State_Chm%TRACERS(:,:,:,IDTO3)
+         ARRAY(:,:,:) = State_Chm%TRACERS(:,:,:,id_O3)
 
          ! Write O3 to binary punch file
          CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY,  IDTO3,
+     &               HALFPOLAR, CENTER180, CATEGORY,  id_O3,
      &               UNIT,      TAU,       TAU,       RESERVED,
      &               IIPAR,     JJPAR,     LLPAR,     IFIRST,
      &               JFIRST,    LFIRST,    ARRAY(:,:,:) )

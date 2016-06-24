@@ -47,6 +47,8 @@
 !  23 Sep 2014 - M. Sulprizio- Get global HNO3 for offline aerosol simulation
 !                              from HEMCO
 !  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
 !******************************************************************************
 !
 !
@@ -117,6 +119,9 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  23 Sep 2014 - M. Sulprizio- Now get HNO3 for offline aerosol sim from HEMCO
 !  24 Mar 2014 - E. Lundgren - Remove tracer_mod dependency (not used)
+!  16 Jun 2016 - J. Sheng    - Add tracer index retriever
+!  20 Jun 2016 - R. Yantosca - Now only get species ID's on the first call
+!  20 Jun 2016 - R. Yantosca - Rename species ID's from IDT* to id_*
 !******************************************************************************
 !
 ! !USES:
@@ -131,27 +136,21 @@
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,    GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACERID_MOD,       ONLY : IDTSO4,             IDTNH3, IDTNH4 
-      USE TRACERID_MOD,       ONLY : IDTNIT,             IDTHNO3 
-#if   defined( APM )          
-      USE TRACERID_MOD        
-      USE APM_INIT_MOD,       ONLY : NSO4
-      USE APM_INIT_MOD,       ONLY : IDTCTSO4,IDTSO4BIN1,IDTCTSEA
-      USE APM_INIT_MOD,       ONLY : IDTCTBCOC, IDTCTDST
-#endif
+      USE GIGC_State_Chm_Mod, ONLY : IND_ 
 !
 ! !LOCAL VARIABLES:
 !
+      ! SAVEd scalars
       LOGICAL, SAVE          :: FIRST     = .TRUE.
+      INTEGER, SAVE          :: id_SO4, id_NH3, id_NH4, id_NIT, id_HNO3
       INTEGER, SAVE          :: LASTMONTH = -99
+
+      ! scalars
       INTEGER                :: I,    J,     L
+      !CODEATHON
       REAL(fp)               :: ARH,  ATEMP, AVOL, SO4,  ASO4, ANO3    
       REAL(fp)               :: AH2O, ANH4,  GNH3, GNO3, AHSO4   
       CHARACTER(LEN=255)     :: X 
-#if   defined( APM )
-      REAL(fp)               :: TSO4, TSO4COAT
-#endif
-
 !
 ! !INPUT PARAMETERS:
 !
@@ -184,6 +183,8 @@
       ! DO_RPMARES begins here!
       !=================================================================
 
+      !CODEATHON
+
       ! Assume success
       RC = GIGC_SUCCESS
 
@@ -196,21 +197,28 @@
       ! Initialize on first call
       IF ( FIRST ) THEN
 
-         IF ( IDTSO4 == 0 ) CALL ERROR_STOP( 'IDTSO4 is undefined!', X )
-         IF ( IDTNH3 == 0 ) CALL ERROR_STOP( 'IDTNH3 is undefined!', X )
-         IF ( IDTNH4 == 0 ) CALL ERROR_STOP( 'IDTNH4 is undefined!', X )
-         IF ( IDTNIT == 0 ) CALL ERROR_STOP( 'IDTNIT is undefined!', X )
+         ! Get species ID's
+         id_SO4  = IND_('SO4','T')
+         id_NH3  = IND_('NH3','T')
+         id_NH4  = IND_('NH4','T')
+         id_NIT  = IND_('NIT','T')
+         id_HNO3 = IND_('HNO3','T')
+      
+         IF ( id_SO4 == 0 ) CALL ERROR_STOP( 'id_SO4 is undefined!', X )
+         IF ( id_NH3 == 0 ) CALL ERROR_STOP( 'id_NH3 is undefined!', X )
+         IF ( id_NH4 == 0 ) CALL ERROR_STOP( 'id_NH4 is undefined!', X )
+         IF ( id_NIT == 0 ) CALL ERROR_STOP( 'id_NIT is undefined!', X )
     
          ! Initialize arrays
          CALL INIT_RPMARES
 
          ! Check to see if we need to get HNO3 from HEMCO
-         IF ( IDTHNO3 == 0 ) THEN
+         IF ( id_HNO3 == 0 ) THEN
 
             IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
                ! Coupled simulation: stop w/ error since we need HNO3
-               CALL ERROR_STOP( 'IDTHNO3 is not defined!', X )
+               CALL ERROR_STOP( 'id_HNO3 is not defined!', X )
 
             ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
@@ -242,9 +250,6 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,    J,    L,    ATEMP, ARH,  AVOL,  SO4  )
 !$OMP+PRIVATE( ANH4, ANO3, GNH3, GNO3,  ASO4, AHSO4, AH2O )
-#if   defined( APM )
-!$OMP+PRIVATE( TSO4, TSO4COAT )
-#endif
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -257,34 +262,18 @@
          ARH   = State_Met%RH(I,J,L) * 1.e-2_fp
          AVOL  = State_Met%AIRVOL(I,J,L)
 
-#if   defined( APM )
-
-         ! GanLuo+ Deduce SULFLO form TSO4, 
-         ! Add those sulfate coated on primary particles
-         TSO4     = SUM(STT(I,J,L,IDTSO4BIN1:(IDTSO4BIN1+NSO4-1)))
-         TSO4COAT = (STT(I,J,L,(IDTCTBCOC-1+1)) +
-     &               STT(I,J,L,(IDTCTBCOC-1+2)) +
-     &               STT(I,J,L,IDTCTDST)+STT(I,J,L,IDTCTSEA))
-         TSO4     = TSO4 + TSO4COAT
-
-         SO4       = MAX( TSO4 * 1.e+9_fp / AVOL, CONMIN )
-
-#else
-
          ! Convert sulfate, ammonimum, gaseous NH3, gaseous HNO3, 
          ! and aerosol NO3  from [kg] to [ug/m3].
-         SO4   = MAX( STT(I,J,L,IDTSO4) * 1.e+9_fp / AVOL, CONMIN )
-
-#endif
-         GNH3  = MAX( STT(I,J,L,IDTNH3) * 1.e+9_fp / AVOL, CONMIN ) 
-         ANH4  = MAX( STT(I,J,L,IDTNH4) * 1.e+9_fp / AVOL, CONMIN ) 
-         ANO3  = MAX( STT(I,J,L,IDTNIT) * 1.e+9_fp / AVOL, CONMIN )
+         SO4   = MAX( STT(I,J,L,id_SO4) * 1.e+9_fp / AVOL, CONMIN )
+         GNH3  = MAX( STT(I,J,L,id_NH3) * 1.e+9_fp / AVOL, CONMIN ) 
+         ANH4  = MAX( STT(I,J,L,id_NH4) * 1.e+9_fp / AVOL, CONMIN ) 
+         ANO3  = MAX( STT(I,J,L,id_NIT) * 1.e+9_fp / AVOL, CONMIN )
 
          ! For coupled simulations, use HNO3 tracer from STT array.
          ! For offline simulations, call GET_HNO3, which lets HNO3
          ! conc's evolve, but relaxes to monthly mean values every 3h.
-         IF ( IDTHNO3 > 0 ) THEN
-            GNO3 = MAX( STT(I,J,L,IDTHNO3) * 1.e+9_fp / AVOL, CONMIN )
+         IF ( id_HNO3 > 0 ) THEN
+            GNO3 = MAX( STT(I,J,L,id_HNO3) * 1.e+9_fp / AVOL, CONMIN )
          ELSE
             GNO3 = MAX( GET_HNO3( I, J, L, State_Met ), CONMIN )
          ENDIF
@@ -309,14 +298,14 @@
          ! Convert modified concentrations from [ug/m3] to [kg] 
          ! for ammonium, ammonia, nitric acid (g), and Nitrate         
          ! NOTE: We don't modify the total sulfate mass.
-         STT(I,J,L,IDTNH3) = MAX( GNH3 * AVOL * 1.e-9_fp, CONMIN )  
-         STT(I,J,L,IDTNH4) = MAX( ANH4 * AVOL * 1.e-9_fp, CONMIN )  
-         STT(I,J,L,IDTNIT) = MAX( ANO3 * AVOL * 1.e-9_fp, CONMIN )  
+         STT(I,J,L,id_NH3) = MAX( GNH3 * AVOL * 1.e-9_fp, CONMIN )  
+         STT(I,J,L,id_NH4) = MAX( ANH4 * AVOL * 1.e-9_fp, CONMIN )  
+         STT(I,J,L,id_NIT) = MAX( ANO3 * AVOL * 1.e-9_fp, CONMIN )  
 
          ! For coupled runs, convert HNO3 [kg] and store in STT.
          ! For offline runs, save evolving HNO3 [ug/m3] for next timestep.
-         IF ( IDTHNO3 > 0 ) THEN
-            STT(I,J,L,IDTHNO3) = MAX( GNO3 * AVOL * 1.e-9_fp, CONMIN )  
+         IF ( id_HNO3 > 0 ) THEN
+            STT(I,J,L,id_HNO3) = MAX( GNO3 * AVOL * 1.e-9_fp, CONMIN )  
          ELSE
             CALL SET_HNO3( I, J, L, GNO3 )
          ENDIF   

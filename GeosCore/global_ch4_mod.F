@@ -103,6 +103,8 @@
 !  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  04 Mar 2015 - R. Yantosca - Now use REAL(f4) for HCO_GetPtr pointer args
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
+!  16 Jun 2016 - M. Sulprizio- Now define IDTCH4 locally
+!  20 Jun 2016 - R. Yantosca - Rename IDTCH4 to id_CH4 for consistency
 !------------------------------------------------------------------------------
 !BOC
 !     
@@ -124,14 +126,17 @@
       !========================================================================
 
       ! Number of CH4 budget types 
-      INTEGER,  PARAMETER    :: N_CH4     = 12
+      INTEGER,  PARAMETER   :: N_CH4     = 12
 
-      REAL(fp), PARAMETER    :: XNUMOL_OH = AVO / 17e-3_fp  ! molec OH / kg OH
-                                                            ! hard-coded MW
-      REAL(fp), PARAMETER    :: CM3PERM3  = 1.e+6_fp
+      REAL(fp), PARAMETER   :: XNUMOL_OH = AVO / 17e-3_fp  ! molec OH / kg OH
+                                                           ! hard-coded MW
+      REAL(fp), PARAMETER   :: CM3PERM3  = 1.e+6_fp
 !
 ! !LOCAL VARIABLES:
 !
+      ! Tracer ID flag (CODEATHON, mps, 6/16/16)
+      INTEGER               :: id_CH4
+
       ! Various arrays      
       REAL(fp), ALLOCATABLE :: BAIRDENS(:,:,:)
       REAL(fp), ALLOCATABLE :: PAVG(:,:,:)
@@ -1538,8 +1543,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
       USE TRACER_MOD,         ONLY : CHECK_STT
-      USE TRACERID_MOD,       ONLY : IDTCH4
-!
+
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
@@ -2505,7 +2509,6 @@
 ! !USES:
 !
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTCH4
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2537,7 +2540,7 @@
       ! Copy fields from INPUT_OPT
       LCH4EMIS = Input_Opt%LCH4EMIS
 
-      IF (( LCH4EMIS ).and.( N == IDTCH4 )) THEN
+      IF (( LCH4EMIS ).and.( N == id_CH4 )) THEN
          CH4_ANTHRO = SUMANTHRO(I,J)
       ELSE
          CH4_ANTHRO = -1e+0_fp
@@ -2564,7 +2567,6 @@
 ! !USES:
 !
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTCH4
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2596,7 +2598,7 @@
       ! Copy fields from INPUT_OPT
       LCH4EMIS = Input_Opt%LCH4EMIS
 
-      IF (( LCH4EMIS ).and.( N == IDTCH4 )) THEN
+      IF (( LCH4EMIS ).and.( N == id_CH4 )) THEN
          CH4_BIOG = SUMBIOG(I,J)
       ELSE
          CH4_BIOG = -1e+0_fp
@@ -2624,8 +2626,10 @@
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -2645,6 +2649,9 @@
 !  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the 
 !                              code out with #ifdef blocks so it can be used
 !  11 Apr 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
+!  16 Jun 2016 - M. Sulprizio- Now define IDT_CH4 locally
+!  20 Jun 2016 - R. Yantosca - Rename IDTCH4 to id_CH4 for consistency
+!  20 Jun 2016 - R. Yantosca - Now stop run if id_CH4 is undefined
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2659,6 +2666,15 @@
 
       ! Assume Success
       RC = GIGC_SUCCESS
+
+      ! Initialize tracer index (CODEATHON, mps, 6/16/16)
+      id_CH4 = IND_('CH4')
+
+      ! Make sure CH4 is a defined species (bmy, 6/20/16)
+      IF ( id_CH4 <= 0 ) THEN
+         CALL ERROR_STOP( 'CH4 is an undefined species!',
+     &                    'INIT_CH4 (GeosCore/global_ch4_mod.F)' )
+      ENDIF
 
 !      ALLOCATE( AVGOH( NSEAS, NCMSLATS, NCMSALTS ), STAT=AS )
 !      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGOH' )

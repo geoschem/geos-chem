@@ -35,9 +35,9 @@
 ! The second step is to assign the tracers of interest to this tendency class:
 !
 !    ! Add species to classes
-!    CALL Tend_Add ( am_I_Root, Input_Opt, 'PROCESS', IDTO3, RC )
+!    CALL Tend_Add ( am_I_Root, Input_Opt, 'PROCESS', id_O3, RC )
 !    IF ( RC /= GIGC_SUCCESS ) RETURN
-!    CALL Tend_Add ( am_I_Root, Input_Opt, 'PROCESS', IDTCO, RC )
+!    CALL Tend_Add ( am_I_Root, Input_Opt, 'PROCESS', id_CO, RC )
 !    IF ( RC /= GIGC_SUCCESS ) RETURN
 !
 ! The last step then involves the definition of the entry and exit points of
@@ -89,7 +89,7 @@ MODULE Tendencies_Mod
 !
   PRIVATE :: Tend_FindClass
 !
-! !MODULE VARIABLES
+! !PUBLIC DATA MEMBERS:
 !
   ! maximum string length of tendency name
   INTEGER, PARAMETER   :: MAXSTR = 31 
@@ -121,6 +121,10 @@ MODULE Tendencies_Mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES:
+!
+
 CONTAINS
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -140,7 +144,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE TRACERID_MOD,  ONLY : IDTO3, IDTCO
+     USE GIGC_State_Chm_Mod, ONLY : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -153,19 +157,32 @@ CONTAINS
 !
     INTEGER,          INTENT(OUT)   :: RC         ! Failure or success
 !
+! !REMARKS:
+!  This subroutine gets called from Diagnostics_Init (in diagnostics_mod.F90).
+!  It is only executed once.
+!
 ! !REVISION HISTORY: 
 !  26 Oct 2015 - C. Keller   - Initial version 
+!  16 Jun 2016 - J. Kaiser   - Move tracer IDS to variable names CODEATHON
+!  20 Jun 2016 - R. Yantosca - Renamed IDTCO, IDTO3 to id_CO and id_O3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255)       :: MSG
-    CHARACTER(LEN=255)       :: LOC = 'Tend_Init (tendencies_mod.F)' 
-   
+    ! Species Id flags
+    INTEGER            :: id_CO
+    INTEGER            :: id_O3
+
+    ! Strings
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'Tend_Init (tendencies_mod.F)' 
+!
+! !DEFINED PARAMETERS:
+!
     ! Set this to .TRUE. to enable some test diagnostics
-    LOGICAL, PARAMETER       :: DoTend = .TRUE.
+    LOGICAL, PARAMETER :: DoTend = .TRUE.
  
     !=======================================================================
     ! Tend_Init begins here!
@@ -174,34 +191,38 @@ CONTAINS
     ! Assume successful return
     RC = GIGC_SUCCESS
 
+    ! Define species ID"s
+    id_CO = Ind_('CO')
+    id_O3 = Ind_('O3') 
+       
     ! Execute only if DoTend is enabled
     IF ( DoTend ) THEN
 
-    ! Define classes
-    CALL Tend_CreateClass( am_I_Root, Input_Opt, 'CHEM', RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    CALL Tend_CreateClass( am_I_Root, Input_Opt, 'ADV' , RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    CALL Tend_CreateClass( am_I_Root, Input_Opt, 'CONV', RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    CALL Tend_CreateClass( am_I_Root, Input_Opt, 'WETD', RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    CALL Tend_CreateClass( am_I_Root, Input_Opt, 'FLUX', RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    CALL Tend_CreateClass( am_I_Root, Input_Opt, 'PBLMIX', RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+       ! Define classes
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'CHEM', RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'ADV' , RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'CONV', RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'WETD', RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'FLUX', RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'PBLMIX', RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ! Add species to classes
-    CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM', IDTO3, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM', IDTCO, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    CALL Tend_Add ( am_I_Root, Input_Opt, 'CONV', IDTCO, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    CALL Tend_Add ( am_I_Root, Input_Opt, 'DRYD', IDTO3, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    CALL Tend_Add ( am_I_Root, Input_Opt, 'ADV', IDTO3, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+       ! Add species to classes
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM', id_O3, RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM', id_CO, RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'CONV', id_CO, RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'DRYD', id_O3, RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'ADV',  id_O3, RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
 
     ENDIF ! test toggle
 

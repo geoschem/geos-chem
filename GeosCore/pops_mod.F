@@ -39,6 +39,8 @@
 !  21 Aug 2014 - M. Sulprizio  - Removed emissions routines now handled by HEMCO
 !  04 Mar 2015 - R. Yantosca   - Use REAL(f4) for pointer args to HCO_GetPtr 
 !  23 Dec 2015 - E. Lundgren   - Use global physical constants
+!  22 Jun 2016 - R. Yantosca   - Rename species ID flags from IDT* to id_*
+!  22 Jun 2016 - R. Yantosca   - Rename species drydep flags from DRY* to dd_*
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -77,17 +79,19 @@
 !
 ! !PRIVATE TYPES:
 !
-      ! Tracer and drydep flags
-      INTEGER,  PRIVATE     :: IDTPOPG
-      INTEGER,  PRIVATE     :: IDTPOPPBCPI
-      INTEGER,  PRIVATE     :: IDTPOPPBCPO 
-      INTEGER,  PRIVATE     :: IDTPOPPOCPI
-      INTEGER,  PRIVATE     :: IDTPOPPOCPO
-      INTEGER,  PRIVATE     :: DRYPOPG
-      INTEGER,  PRIVATE     :: DRYPOPP_BCPI
-      INTEGER,  PRIVATE     :: DRYPOPP_BCPO
-      INTEGER,  PRIVATE     :: DRYPOPP_OCPI
-      INTEGER,  PRIVATE     :: DRYPOPP_OCPO
+      ! Species ID flags
+      INTEGER,  PRIVATE     :: id_POPG
+      INTEGER,  PRIVATE     :: id_POPPBCPI
+      INTEGER,  PRIVATE     :: id_POPPBCPO 
+      INTEGER,  PRIVATE     :: id_POPPOCPI
+      INTEGER,  PRIVATE     :: id_POPPOCPO
+
+      ! Species drydep ID flags
+      INTEGER,  PRIVATE     :: dd_POPG
+      INTEGER,  PRIVATE     :: dd_POPP_BCPI
+      INTEGER,  PRIVATE     :: dd_POPP_BCPO
+      INTEGER,  PRIVATE     :: dd_POPP_OCPI
+      INTEGER,  PRIVATE     :: dd_POPP_OCPO
       
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -232,52 +236,52 @@
          ! if dry deposition of hydrophoblic tracers is active, then dry
          ! deposition of hydrophilic tracers is also active
          ! (ie., they're coupled). clf, 2/12/2012
-         IF ( DRYPOPG      > 0 .and.
-     &        DRYPOPP_OCPO > 0 .and.
-     &        DRYPOPP_BCPO > 0 ) THEN
+         IF ( dd_POPG      > 0 .and.
+     &        dd_POPP_OCPO > 0 .and.
+     &        dd_POPP_BCPO > 0 ) THEN
          
             ! Dry deposition active for both POP-Gas and POP-Particle; 
             ! pass drydep frequency to CHEM_POPGP (NOTE: DEPSAV has units 1/s)
-            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG), 
-     &                       DEPSAV(:,:,DRYPOPP_OCPO),
-     &                       DEPSAV(:,:,DRYPOPP_OCPI), 
-     &                       DEPSAV(:,:,DRYPOPP_BCPO),
-     &                       DEPSAV(:,:,DRYPOPP_BCPI),
+            CALL CHEM_POPGP( DEPSAV(:,:,dd_POPG), 
+     &                       DEPSAV(:,:,dd_POPP_OCPO),
+     &                       DEPSAV(:,:,dd_POPP_OCPI), 
+     &                       DEPSAV(:,:,dd_POPP_BCPO),
+     &                       DEPSAV(:,:,dd_POPP_BCPI),
      &                       am_I_Root, Input_Opt, State_Met,
      &                       State_Chm, RC )
 
-         ELSEIF ( DRYPOPG      >  0 .and.
-     &            DRYPOPP_OCPO >  0 .and. 
-     &            DRYPOPP_BCPO <= 0 ) THEN
+         ELSEIF ( dd_POPG      >  0 .and.
+     &            dd_POPP_OCPO >  0 .and. 
+     &            dd_POPP_BCPO <= 0 ) THEN
 
             ! Only POPG and POPP_OC dry deposition are active
-            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG), 
-     &                       DEPSAV(:,:,DRYPOPP_OCPO),
-     &                       DEPSAV(:,:,DRYPOPP_OCPI),
+            CALL CHEM_POPGP( DEPSAV(:,:,dd_POPG), 
+     &                       DEPSAV(:,:,dd_POPP_OCPO),
+     &                       DEPSAV(:,:,dd_POPP_OCPI),
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
      &                       am_I_Root, Input_Opt, State_Met,
      &                       State_Chm, RC )
 
-         ELSEIF ( DRYPOPG      >  0 .and.
-     &            DRYPOPP_OCPO <= 0 .and. 
-     &            DRYPOPP_BCPO >  0 ) THEN
+         ELSEIF ( dd_POPG      >  0 .and.
+     &            dd_POPP_OCPO <= 0 .and. 
+     &            dd_POPP_BCPO >  0 ) THEN
 
             ! Only POPG and POPP_BC dry deposition are active
-            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),
+            CALL CHEM_POPGP( DEPSAV(:,:,dd_POPG),
      &                       ZERO_DVEL,
      &                       ZERO_DVEL, 
-     &                       DEPSAV(:,:,DRYPOPP_BCPO),
-     &                       DEPSAV(:,:,DRYPOPP_BCPI),
+     &                       DEPSAV(:,:,dd_POPP_BCPO),
+     &                       DEPSAV(:,:,dd_POPP_BCPI),
      &                       am_I_Root, Input_Opt, State_Met,
      &                       State_Chm, RC )
          
-         ELSEIF ( DRYPOPG      >  0 .and.
-     &            DRYPOPP_OCPO <= 0 .and. 
-     &            DRYPOPP_BCPO <= 0 ) THEN
+         ELSEIF ( dd_POPG      >  0 .and.
+     &            dd_POPP_OCPO <= 0 .and. 
+     &            dd_POPP_BCPO <= 0 ) THEN
 
             ! Only POPG dry deposition is active
-            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),
+            CALL CHEM_POPGP( DEPSAV(:,:,dd_POPG),
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
@@ -285,42 +289,42 @@
      &                       am_I_Root, Input_Opt, State_Met,
      &                       State_Chm, RC )
             
-         ELSEIF ( DRYPOPG      <= 0 .and.
-     &              DRYPOPP_OCPO >  0 .and. 
-     &              DRYPOPP_BCPO >  0 ) THEN
+         ELSEIF ( dd_POPG      <= 0 .and.
+     &              dd_POPP_OCPO >  0 .and. 
+     &              dd_POPP_BCPO >  0 ) THEN
 
             ! Only POPP dry deposition is active
             CALL CHEM_POPGP( ZERO_DVEL,
-     &                       DEPSAV(:,:,DRYPOPP_OCPO), 
-     &                       DEPSAV(:,:,DRYPOPP_OCPI),
-     &                       DEPSAV(:,:,DRYPOPP_BCPO),
-     &                       DEPSAV(:,:,DRYPOPP_BCPI),
+     &                       DEPSAV(:,:,dd_POPP_OCPO), 
+     &                       DEPSAV(:,:,dd_POPP_OCPI),
+     &                       DEPSAV(:,:,dd_POPP_BCPO),
+     &                       DEPSAV(:,:,dd_POPP_BCPI),
      &                       am_I_Root, Input_Opt, State_Met,
      &                       State_Chm, RC )
 
-         ELSEIF ( DRYPOPG      <= 0 .and.
-     &            DRYPOPP_OCPO >  0 .and. 
-     &            DRYPOPP_BCPO <= 0 ) THEN
+         ELSEIF ( dd_POPG      <= 0 .and.
+     &            dd_POPP_OCPO >  0 .and. 
+     &            dd_POPP_BCPO <= 0 ) THEN
 
             ! Only POPP_OC dry deposition is active
             CALL CHEM_POPGP( ZERO_DVEL,
-     &                       DEPSAV(:,:,DRYPOPP_OCPO),
-     &                       DEPSAV(:,:,DRYPOPP_OCPI),
+     &                       DEPSAV(:,:,dd_POPP_OCPO),
+     &                       DEPSAV(:,:,dd_POPP_OCPI),
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
      &                       am_I_Root, Input_Opt, State_Met,
      &                       State_Chm, RC )
 
-         ELSEIF ( DRYPOPG      <= 0 .and.
-     &            DRYPOPP_OCPO <= 0 .and. 
-     &            DRYPOPP_BCPO >  0 ) THEN
+         ELSEIF ( dd_POPG      <= 0 .and.
+     &            dd_POPP_OCPO <= 0 .and. 
+     &            dd_POPP_BCPO >  0 ) THEN
 
             ! Only POPP_OC dry deposition is active
             CALL CHEM_POPGP( ZERO_DVEL,
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
-     &                       DEPSAV(:,:,DRYPOPP_BCPO),
-     &                       DEPSAV(:,:,DRYPOPP_BCPI),
+     &                       DEPSAV(:,:,dd_POPP_BCPO),
+     &                       DEPSAV(:,:,dd_POPP_BCPI),
      &                       am_I_Root, Input_Opt, State_Met,
      &                       State_Chm, RC )
 
@@ -752,11 +756,11 @@
          ! GAS-PARTICLE PARTITIONING
          !==============================================================
 
-         OLD_POPG      = MAX( STT(I,J,L,IDTPOPG),     SMALLNUM ) ![kg]
-         OLD_POPP_OCPO = MAX( STT(I,J,L,IDTPOPPOCPO), SMALLNUM ) ![kg]
-         OLD_POPP_BCPO = MAX( STT(I,J,L,IDTPOPPBCPO), SMALLNUM ) ![kg]
-         OLD_POPP_OCPI = MAX( STT(I,J,L,IDTPOPPOCPI), SMALLNUM ) ![kg]
-         OLD_POPP_BCPI = MAX( STT(I,J,L,IDTPOPPBCPI), SMALLNUM ) ![kg]
+         OLD_POPG      = MAX( STT(I,J,L,id_POPG),     SMALLNUM ) ![kg]
+         OLD_POPP_OCPO = MAX( STT(I,J,L,id_POPPOCPO), SMALLNUM ) ![kg]
+         OLD_POPP_BCPO = MAX( STT(I,J,L,id_POPPBCPO), SMALLNUM ) ![kg]
+         OLD_POPP_OCPI = MAX( STT(I,J,L,id_POPPOCPI), SMALLNUM ) ![kg]
+         OLD_POPP_BCPI = MAX( STT(I,J,L,id_POPPBCPI), SMALLNUM ) ![kg]
 
          ! Total POPs in box I,J,L 
          OLD_POP_T = OLD_POPG      +
@@ -917,8 +921,8 @@
          MPOP_BCPO = MPOP_BC * EXP( -FOLD )
 
          ! Hydrophilic particulate POP already existing
-         MPOP_OCPI = MAX( STT(I,J,L,IDTPOPPOCPI), SMALLNUM )  ![kg]
-         MPOP_BCPI = MAX( STT(I,J,L,IDTPOPPBCPI), SMALLNUM )  ![kg]
+         MPOP_OCPI = MAX( STT(I,J,L,id_POPPOCPI), SMALLNUM )  ![kg]
+         MPOP_BCPI = MAX( STT(I,J,L,id_POPPBCPI), SMALLNUM )  ![kg]
 
          ! Hydrophilic POP that used to be hydrophobic
          NEW_OCPI = MPOP_OC - MPOP_OCPO
@@ -1145,11 +1149,11 @@
          NEW_POPP_BCPI = MAX( NEW_POPP_BCPI, SMALLNUM )
 
          ! Archive new POPG and POPP values [kg]
-         STT(I,J,L,IDTPOPG)     = NEW_POPG
-         STT(I,J,L,IDTPOPPOCPO) = NEW_POPP_OCPO
-         STT(I,J,L,IDTPOPPBCPO) = NEW_POPP_BCPO
-         STT(I,J,L,IDTPOPPOCPI) = NEW_POPP_OCPI
-         STT(I,J,L,IDTPOPPBCPI) = NEW_POPP_BCPI
+         STT(I,J,L,id_POPG)     = NEW_POPG
+         STT(I,J,L,id_POPPOCPO) = NEW_POPP_OCPO
+         STT(I,J,L,id_POPPBCPO) = NEW_POPP_BCPO
+         STT(I,J,L,id_POPPOCPI) = NEW_POPP_OCPI
+         STT(I,J,L,id_POPPBCPI) = NEW_POPP_BCPI
 
          ! Net oxidation [kg] (equal to gross ox for now)
          NET_OX      = MPOP_G    - NEW_POPG      - DEP_POPG   
@@ -1271,47 +1275,47 @@
 
             ! Amt of POPG lost to drydep [molec/cm2/s]
             DEP_DRY_FLXG  = DEP_POPG_DRY * AVO / ( 1.e-3_fp *
-     &                      State_Chm%SpcData(IDTPOPG)%Info%emMW_g ) / 
+     &                      State_Chm%SpcData(id_POPG)%Info%emMW_g ) / 
      &                      ( AREA_CM2 * DTCHEM )
 
             ! Archive POPG drydep flux in AD44 array [molec/cm2/s]
-            AD44(I,J,IDTPOPG,1) = AD44(I,J,IDTPOPG,1) +
+            AD44(I,J,id_POPG,1) = AD44(I,J,id_POPG,1) +
      &                            DEP_DRY_FLXG
 
             ! Amt of POPPOC lost to drydep [molec/cm2/s]
             DEP_DRY_FLXP_OCPO = DEP_POPP_OCPO_DRY * AVO / (1.e-3_fp *
-     &                    State_Chm%SpcData(IDTPOPPOCPO)%Info%emMW_g ) /
+     &                    State_Chm%SpcData(id_POPPOCPO)%Info%emMW_g ) /
      &                    ( AREA_CM2 * DTCHEM )        
 
             ! Archive POPPOC drydep flux in AD44 array [molec/cm2/s]
-            AD44(I,J,IDTPOPPOCPO,1) = AD44(I,J,IDTPOPPOCPO,1) +
+            AD44(I,J,id_POPPOCPO,1) = AD44(I,J,id_POPPOCPO,1) +
      &                                DEP_DRY_FLXP_OCPO
 
             ! Amt of POPPBC lost to drydep [molec/cm2/s] 
             DEP_DRY_FLXP_BCPO = DEP_POPP_BCPO_DRY * AVO / (1.e-3_fp * 
-     &                    State_Chm%SpcData(IDTPOPPBCPO)%Info%emMW_g ) /
+     &                    State_Chm%SpcData(id_POPPBCPO)%Info%emMW_g ) /
      &                    ( AREA_CM2 * DTCHEM )        
 
             ! Archive POPPBC drydep flux in AD44 array [molec/cm2/s]
-            AD44(I,J,IDTPOPPBCPO,1) = AD44(I,J,IDTPOPPBCPO,1) +
+            AD44(I,J,id_POPPBCPO,1) = AD44(I,J,id_POPPBCPO,1) +
      &                                DEP_DRY_FLXP_BCPO
 
             ! Amt of POPPOC lost to drydep [molec/cm2/s]
             DEP_DRY_FLXP_OCPI = DEP_POPP_OCPI_DRY * AVO / (1.e-3_fp * 
-     &                    State_Chm%SpcData(IDTPOPPOCPI)%Info%emMW_g ) /
+     &                    State_Chm%SpcData(id_POPPOCPI)%Info%emMW_g ) /
      &                    ( AREA_CM2 * DTCHEM )        
 
             ! Archive POPPOC drydep flux in AD44 array [molec/cm2/s]
-            AD44(I,J,IDTPOPPOCPI,1) = AD44(I,J,IDTPOPPOCPI,1) +
+            AD44(I,J,id_POPPOCPI,1) = AD44(I,J,id_POPPOCPI,1) +
      &                                DEP_DRY_FLXP_OCPI
 
             ! Amt of POPPBC lost to drydep [molec/cm2/s] 
             DEP_DRY_FLXP_BCPI = DEP_POPP_BCPI_DRY * AVO / (1.e-3_fp * 
-     &                    State_Chm%SpcData(IDTPOPPBCPI)%Info%emMW_g ) /
+     &                    State_Chm%SpcData(id_POPPBCPI)%Info%emMW_g ) /
      &                    ( AREA_CM2 * DTCHEM )        
 
             ! Archive POPPBC drydep flux in AD44 array [molec/cm2/s]
-            AD44(I,J,IDTPOPPBCPI,1) = AD44(I,J,IDTPOPPBCPI,1) +
+            AD44(I,J,id_POPPBCPI,1) = AD44(I,J,id_POPPBCPI,1) +
      &                                DEP_DRY_FLXP_BCPI
 
          ENDIF
@@ -1811,6 +1815,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : Ind_
       USE Species_Mod,        Only : Species
 !
 ! !INPUT PARAMETERS:
@@ -1832,8 +1837,10 @@
 !  10 Mar 2015 - R. Yantosca - Now always allocate ZERO_DVEL
 !  21 Sep 2015 - R. Yantosca - Now takes State_Chm as an argument, so that
 !                              we can take advantage of the species database
-!  02 May 2016 - R. Yantosca - Now make IDTPOP* flags as module variables
+!  02 May 2016 - R. Yantosca - Now make id_POP* flags as module variables
 !                              instead of getting them from tracerid_mod.F
+!  22 Jun 2016 - R. Yantosca - Now use IND_() to define species & drydep ID's
+!  22 Jun 2016 - R. Yantosca - Rename IDT* flags to id* and DRY* to dd_*
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1841,25 +1848,15 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER                :: AS,    N
-      LOGICAL                :: LDRYD, LNLPBL, LPRT
-
-      ! Objects
-      TYPE(Species), POINTER :: ThisSpc
+      INTEGER :: AS 
       
       !=================================================================
       ! INIT_POPS begins here!
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC    = GIGC_SUCCESS
       
-      ! Initialize
-      ThisSpc   => NULL()
-      LDRYD     = Input_Opt%LDRYD
-      LNLPBL    = Input_Opt%LNLPBL
-      LPRT      = Input_Opt%LPRT
-
       !=================================================================
       ! Allocate and initialize arrays
       !=================================================================
@@ -1883,56 +1880,23 @@
       ZERO_DVEL = 0e+0_fp
 
       !=================================================================
-      ! Additional variables required for pops simultion (following hg)
-      ! Locate the drydep species w/in the DEPSAV array
+      ! Initialize species ID and drydep ID flags
       !=================================================================
+      id_POPG      = Ind_('POPG'        )
+      dd_POPG      = Ind_('POPG',    'D')
 
-      ! Initialize flags
-      IDTPOPG      = 0
-      IDTPOPPOCPO  = 0
-      IDTPOPPOCPI  = 0
-      IDTPOPPBCPO  = 0
-      IDTPOPPBCPI  = 0
-      DRYPOPG      = 0
-      DRYPOPP_OCPO = 0
-      DRYPOPP_BCPO = 0
-      DRYPOPP_OCPI = 0
-      DRYPOPP_BCPI = 0
+      id_POPPOCPO  = Ind_('POPPOCPO'    )
+      dd_POPP_OCPO = Ind_('POPPOCPO','D')
 
-      ! If drydep is turned on ...
-      IF ( LDRYD ) THEN
-         
-         ! Loop over all species
-         DO N = 1, State_Chm%nSpecies
+      id_POPPBCPO  = Ind_('POPPBCPO'    )
+      dd_POPP_BCPO = Ind_('POPPBCPO','D')
 
-            ! Get info about this species from the database
-            ThisSpc => State_Chm%SpcData(N)%Info
-            
-            SELECT CASE ( TRIM( ThisSpc%Name ) )
-               CASE( 'POPG' )
-                  IDTPOPG      = ThisSpc%ModelId
-                  DRYPOPG      = ThisSpc%DryDepId
-               CASE( 'POPPOCPO' )
-                  IDTPOPPOCPO  = ThisSpc%ModelId
-                  DRYPOPP_OCPO = ThisSpc%DryDepId
-               CASE( 'POPPBCPO' )
-                  IDTPOPPBCPO  = ThisSpc%ModelId
-                  DRYPOPP_BCPO = ThisSpc%DryDepId
-               CASE( 'POPPOCPI' )
-                  IDTPOPPOCPI  = ThisSpc%ModelId
-                  DRYPOPP_OCPI = ThisSpc%DryDepId
-               CASE( 'POPPBCPI' )
-                  IDTPOPPBCPI  = ThisSpc%ModelId
-                  DRYPOPP_BCPI = ThisSpc%DryDepId
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT
+      id_POPPOCPI  = Ind_('POPPOCPI'    )
+      dd_POPP_OCPI = Ind_('POPPOCPI','D')
 
-            ! Free pointer
-            ThisSpc => NULL()
-         ENDDO
-      ENDIF
-       
+      id_POPPBCPI  = Ind_('POPPBCPI'    )
+      dd_POPP_BCPI = Ind_('POPPBCPI','D')
+
       END SUBROUTINE INIT_POPS
 !EOC
 !------------------------------------------------------------------------------
