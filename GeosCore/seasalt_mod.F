@@ -19,6 +19,9 @@
 !
       USE HCO_ERROR_MOD
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE PHYSCONSTANTS
+      USE Species_Mod,        ONLY : Species
+
 
       IMPLICIT NONE
       PRIVATE
@@ -86,6 +89,7 @@
 !  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  12 Jun 2015 - R. Yantosca - Removed DRY_DEPOSITION routine, because we
 !                              now apply drydep in mixing_mod.F90
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -231,7 +235,8 @@
       ! Accumulation mode wet settling
       !=================================================================
       CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                   STT(:,:,:,IDTSALA), 1,         RC         )
+     &                   State_Chm, STT(:,:,:,IDTSALA), 1,         
+     &                   RC         )
 
 
       IF ( prtDebug ) THEN
@@ -242,7 +247,8 @@
       ! Coarse mode wet settling
       !=================================================================
       CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                   STT(:,:,:,IDTSALC), 2,         RC         )
+     &                   State_Chm, STT(:,:,:,IDTSALC), 2,         
+     &                   RC         )
 
       IF ( prtDebug ) THEN 
          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
@@ -286,13 +292,15 @@
 ! !INTERFACE:
 !
       SUBROUTINE WET_SETTLING( am_I_Root, Input_Opt, State_Met, 
-     &                         TC,        N,         RC         )
+     &                         State_Chm, TC,        N,                 
+     &                         RC         )
 !
 ! !USES:
 !
       USE PHYSCONSTANTS
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44
 #endif
@@ -318,6 +326,7 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root             ! Root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
       TYPE(MetState), INTENT(IN)    :: State_Met             ! MeteorologyState
+      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -378,6 +387,8 @@
       INTEGER                  :: ID
       LOGICAL, SAVE            :: FIRST = .TRUE.
       REAL(f8)                 :: RHO, RHO1
+      ! Pointers
+      TYPE(Species), POINTER :: ThisSpc
 
 #if defined( NC_DIAG )
       ! For netcdf diagnostics (ND44 drydep flux)
@@ -436,6 +447,9 @@
 
       ! Assume success
       RC            = GIGC_SUCCESS
+
+      ! Initialize Pointers
+      ThisSpc => NULL()
 
       ! Copy fields from INPUT_OPT to local variables for use below
       SALA_REDGE_um = Input_Opt%SALA_REDGE_um 
@@ -542,7 +556,7 @@
 !$OMP+PRIVATE( DP,       PDP,   CONST, SLIP,            VISC       )
 !$OMP+PRIVATE( TC0,      DELZ,  DELZ1, TOT1,            TOT2       )
 !$OMP+PRIVATE( AREA_CM2, FLUX,  ID,    SALT_MASS_TOTAL, VTS_WEIGHT )
-!$OMP+PRIVATE( DMIDW,    RHO1,  WTP,   SALT_MASS                   )
+!$OMP+PRIVATE( DMIDW,    RHO1,  WTP,   SALT_MASS,       ThisSpc    )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR       
@@ -733,11 +747,17 @@
             ! Surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
+            ThisSpc => State_Chm%SpcData(IDTSALA)%Info
+
             ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
-            FLUX     = FLUX * AVO / ( AIRMW / Input_Opt%TCVV(IDTSALA)
+            FLUX     = FLUX * AVO / ( AIRMW / ( AIRMW / ThisSpc%emMW_g )
      &                 * 1.e-3_fp ) / AREA_CM2 
    
+            ! Free Pointer
+            ThisSpc => NULL()
+
+
 #if defined( BPCH_DIAG )
             ! For bpch diagnostic, store in global AD44 array
             AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX

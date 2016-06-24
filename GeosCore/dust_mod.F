@@ -17,6 +17,7 @@
 !
       USE inquireMod, ONLY : findFreeLUN
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE Species_Mod,        ONLY : Species
 
       IMPLICIT NONE
       PRIVATE
@@ -214,15 +215,15 @@
       ! Dust settling
       !----------------------
       IDISP = 0
-      CALL DRY_SETTLING(  am_I_Root, Input_Opt,  
-     &                    State_Met, STT(:,:,:,IDTDST1:IDTDST4), RC,
+      CALL DRY_SETTLING(  am_I_Root, Input_Opt, State_Met, 
+     &                    State_Chm, STT(:,:,:,IDTDST1:IDTDST4), RC,
      &                    IDTDST1,   IDISP )
 
       IF ( LDSTUP ) THEN
          ! Include dust alkalinity settling                 tdf 04/10/08
          IDISP = 4
-         CALL DRY_SETTLING(  am_I_Root, Input_Opt,  
-     &                       State_Met, STT(:,:,:,IDTDAL1:IDTDAL4), RC,
+         CALL DRY_SETTLING(  am_I_Root, Input_Opt, State_Met, 
+     &                       State_Chm, STT(:,:,:,IDTDAL1:IDTDAL4), RC,
      &                       IDTDAL1,   IDISP )
 
          ! Note: DRY SETTLING of DSTNIT, DSTSO4 occurs in GRAV_SETTLING
@@ -369,6 +370,7 @@
       CALL DRY_SETTLING( am_I_Root,
      &                   Input_Opt,  
      &                   State_Met,
+     &                   State_Chm,
      &                   STT(:,:,:,IDTDUST1:IDTDUST1-1+IBINS),
      &                   RC,
      &                   IDTDUST1,
@@ -622,8 +624,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DRY_SETTLING( am_I_Root, Input_Opt, State_Met, TC, RC,
-     &                         INDEX,     IDISP )
+      SUBROUTINE DRY_SETTLING( am_I_Root, Input_Opt, State_Met,
+     &          State_Chm, TC, RC, INDEX,     IDISP )
 !
 ! !USES:
 !
@@ -635,9 +637,11 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PhysConstants
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE Species_Mod,        ONLY : Species
 #if defined( NC_DIAG )
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
@@ -655,7 +659,8 @@
 !
 ! !INPUT/OUTPUT PARAMETERS
 ! 
-      REAL(fp),      INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN) ! Dust [kg]
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN) ! Dust [kg]
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -679,6 +684,7 @@
 !  25 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostic
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  31 May 2016 - E. Lundgren - Use TCVV instead of XNUMOL for molecular weights
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -713,6 +719,9 @@
       ! Settling velocity of particle (m/s)
       REAL(fp)              :: VTS(LLPAR)  
 
+      ! Pointers
+      TYPE(Species),    POINTER :: ThisSpc
+
 #if defined( NC_DIAG )
       ! For netcdf diagnostics (ND44 drydep flux)
       INTEGER               :: drydep_id, trc_id, HCRC
@@ -735,6 +744,9 @@
       ! Assume success
       RC        = GIGC_SUCCESS
 
+      ! Initialize pointers
+      ThisSpc     => NULL()
+
       ! Initialize
 #if defined( NC_DIAG )
       Ptr2D     => NULL()
@@ -749,11 +761,15 @@
       DryDepFlux = 0e+0_fp
 #endif
 
+      ! Get info about this tracer from the Database
+      ThisSpc => State_Chm%SpcData(INDEX)%Info
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,     J,        L,    N,     DEN,  REFF, DP    )
 !$OMP+PRIVATE( CONST, AREA_CM2, VTS,  TEMP,  P,    PDP,  SLIP  )
 !$OMP+PRIVATE( VISC,  TC0,      DELZ, DELZ1, TOT1, TOT2, FLUX  )
+!$OMP+PRIVATE( ThisSpc )
 
       ! Loop over dust bins
       DO N = 1, NDSTBIN
@@ -861,7 +877,7 @@
 
                   ! Convert dust flux from [kg/s] to [molec/cm2/s]
                   FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
-                  FLUX = FLUX * AVO * Input_Opt%TCVV(INDEX) / 
+                  FLUX = FLUX * AVO * ( AIRMW / ThisSpc%emMW_g ) / 
      &                   ( AIRMW * 1.e-3_fp ) / AREA_CM2 
 
 #if defined( BPCH_DIAG )
@@ -881,6 +897,10 @@
          ENDDO    
       ENDDO       
 !$OMP END PARALLEL DO
+
+      ! Nullify pointer
+      ThisSpc => NULL()
+
 
 #if defined( NC_DIAG )
       !========================================================      
@@ -1836,7 +1856,7 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS,      ONLY : PI
+      USE PHYSCONSTANTS,      ONLY : PI, AIRMW
       USE CMN_SIZE_MOD             ! Size parameters
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1949,12 +1969,13 @@
       REAL(fp)            :: DF_AREA_sd1(4)               ! [1/s]
 
       ! For fields from Input_Opt
-      REAL(fp)            :: TCVV(Input_Opt%N_TRACERS)
+!      REAL(fp)            :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER   :: STT(:,:,:,:)
       REAL(fp), POINTER   :: ERADIUS(:,:,:,:)
       REAL(fp), POINTER   :: TAREA(:,:,:,:)
+      TYPE(Species),    POINTER :: ThisSpc
 
       !=================================================================
       ! GET_DUST_ALK begins here!
@@ -1962,12 +1983,13 @@
 
       ! Copy fields from INPUT_OPT to local variables for use below
       N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+!      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Initialize pointers
       STT      => State_Chm%Tracers  ! GEOS-Chem tracer array [kg]
       ERADIUS  => State_Chm%AeroRadi ! Aerosol Radius [cm]
       TAREA    => State_Chm%AeroArea ! Aerosol Area [cm2/cm3]
+      ThisSpc     => NULL()
 
       ! Zero variables
       DO IBIN = 1, NDSTBIN
@@ -1990,10 +2012,18 @@
 
       ! Dust [kg/m3] from STT, used to compute dust surface area
       ! Units: (moles/mole).(kg(air)/m3).(kg(dust)/mole)/(kg(air)/mole)
-      DST_d(1) = STT(I,J,L,IDTDST1) * AIR_DENS/TCVV(IDTDST1)
-      DST_d(2) = STT(I,J,L,IDTDST2) * AIR_DENS/TCVV(IDTDST2)
-      DST_d(3) = STT(I,J,L,IDTDST3) * AIR_DENS/TCVV(IDTDST3)
-      DST_d(4) = STT(I,J,L,IDTDST4) * AIR_DENS/TCVV(IDTDST4)
+      ThisSpc => State_Chm%SpcData(IDTDST1)%Info
+      DST_d(1) = STT(I,J,L,IDTDST1) * AIR_DENS/(AIRMW / ThisSpc%emMW_g)
+      ThisSpc => NULL()
+      ThisSpc => State_Chm%SpcData(IDTDST2)%Info
+      DST_d(2) = STT(I,J,L,IDTDST2) * AIR_DENS/(AIRMW / ThisSpc%emMW_g)
+      ThisSpc => NULL()
+      ThisSpc => State_Chm%SpcData(IDTDST3)%Info
+      DST_d(3) = STT(I,J,L,IDTDST3) * AIR_DENS/(AIRMW / ThisSpc%emMW_g)
+      ThisSpc => NULL()
+      ThisSpc => State_Chm%SpcData(IDTDST4)%Info
+      DST_d(4) = STT(I,J,L,IDTDST4) * AIR_DENS/(AIRMW / ThisSpc%emMW_g)
+      ThisSpc => NULL()
 
       ! tdf Now get aerosol surface area from TAREA (cm2/cm3)
       SULF_AREA = TAREA(I,J,L,NDUST+1)
@@ -2321,7 +2351,7 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS,      ONLY : PI
+      USE PHYSCONSTANTS,      ONLY : PI, AIRMW
       USE CMN_SIZE_MOD
 !      USE DRYDEP_MOD,         ONLY : NTRAIND
       USE ERROR_MOD,          ONLY : ALLOC_ERR

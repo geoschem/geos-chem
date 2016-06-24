@@ -219,7 +219,8 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2   
-      USE TRACERID_MOD                          
+      USE TRACERID_MOD                         
+      USE Species_Mod,        ONLY : Species 
 !
 ! !INPUT PARAMETERS:
 !
@@ -265,6 +266,7 @@
 !                              dependency on pressure_mod.
 !  19 Oct 2015 - C. Keller   - TLSTT is now 4D to work on curvilinear grids
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -283,7 +285,7 @@
       REAL(fp) :: DCOLO3  (IIPAR,JJPAR,LLPAR                    )
       REAL(fp) :: COLO3   (IIPAR,JJPAR,LLPAR                    )
       REAL(fp) :: OUT_DATA(IIPAR,JJPAR,LLPAR                    )
-      REAL(fp) :: TCVV    (                  Input_Opt%N_TRACERS)
+!      REAL(fp) :: TCVV    (                  Input_Opt%N_TRACERS)
 
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
@@ -291,6 +293,9 @@
 
       ! From Input_Opt
       LOGICAL      :: LPRT
+
+      ! Pointers
+      TYPE(Species), POINTER :: ThisSpc
       
       !=================================================================
       ! LINOZ_CHEM3 begins here!
@@ -303,12 +308,15 @@
       ! Assume success
       RC         = GIGC_SUCCESS
 
+      ! Initialize Pointers
+      ThisSpc => NULL()
+
       ! Dimensions
       IM         = IIPAR
       JM         = JJPAR
       LM         = LLPAR
       N_TRACERS  = Input_Opt%N_TRACERS
-      TCVV       = Input_Opt%TCVV(1:N_TRACERS)
+!      TCVV       = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Initialize GEOS-Chem tracer array [v/v dry air] from State_Chm object
       ! (mpayer, 12/6/12)
@@ -380,6 +388,9 @@
             NTRACER = ITRC
          ENDIF
 
+         ! Get info about this tracer from the Database
+         ThisSpc => State_Chm%SpcData(NTRACER)%Info
+
          ! Start at top layer and continue to lowest layer for strat. chem
          OUT_DATA = 0e+0_fp
          !IF ( LPRT ) THEN
@@ -389,9 +400,9 @@
          !END IF
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,       J,     LBOT,   LPOS,   L    )
-!$OMP+PRIVATE( CLIMPML, DERO3, CLIMO3, DERCO3, DCO3 )
-!$OMP+PRIVATE( DERTMP,  DTMP,  SSO3,   DMASS        )
+!$OMP+PRIVATE( I,       J,     LBOT,   LPOS,   L      )
+!$OMP+PRIVATE( CLIMPML, DERO3, CLIMO3, DERCO3, DCO3   )
+!$OMP+PRIVATE( DERTMP,  DTMP,  SSO3,   DMASS,  ThisSpc)
          DO J = 1, JM
          DO I = 1, IM
 
@@ -459,15 +470,15 @@
                if (l.eq.lm) then !top model layer
                   dcolo3(i,j,l) = (stt(i,j,l,NTRACER) *
      &                 State_Met%AD(I,J,L) /
-     &                 TCVV(NTRACER))      / GET_AREA_CM2(I,J,L) *
-     &                 AVO / (AIRMW/TCVV(NTRACER)*1e-3_fp) / 
+     &                 (AIRMW / ThisSpc%emMW_g)) / GET_AREA_CM2(I,J,L) *
+     &                 AVO / (ThisSpc%emMW_g*1e-3_fp) / 
      &                 2.687e+16_fp
                   colo3(i,j,l) = dcolo3(i,j,l)*0.5
                else
                   dcolo3(i,j,l) = (stt(i,j,l,NTRACER) * 
      &                 State_Met%AD(I,J,L) / 
-     &                 TCVV(NTRACER))      / GET_AREA_CM2(I,J,L) *
-     &                 AVO / (AIRMW/TCVV(NTRACER)*1e-3_fp) / 
+     &                 (AIRMW / ThisSpc%emMW_g)) / GET_AREA_CM2(I,J,L) *
+     &                 AVO / (ThisSpc%emMW_g*1e-3_fp) / 
      &                 2.687e+16_fp
                   colo3(i,j,l) = colo3(i,j,l+1) +
      &                 (dcolo3(i,j,l)+dcolo3(i,j,l+1))*0.5
@@ -518,6 +529,9 @@
 
       !write our calculated column o3 maximum
       !write(6,*) 'max of columns= ',maxval(out_data)
+
+      ! Free Pointer
+      ThisSpc => NULL()
 
       ENDDO
       IF (LPRT) CALL DEBUG_MSG('DONE LINOZ_CHEM3')

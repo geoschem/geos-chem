@@ -16,7 +16,8 @@
 ! !USES:
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-
+      USE PHYSCONSTANTS
+      USE Species_Mod,        ONLY : Species
       USE inquireMod, ONLY : findFreeLUN ! (ewl, 6/16/15)
 
       IMPLICIT NONE
@@ -133,6 +134,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -182,6 +184,7 @@
       CHARACTER(LEN=40)  :: RESERVED = ''
       CHARACTER(LEN=80)  :: TITLE
       CHARACTER(LEN=255) :: ND49_OUTPUT_FILE
+      TYPE(Species), POINTER :: ThisSpc
 
       ! Logical file unit for ND49 diagnostic
       INTEGER            :: IU_ND49
@@ -337,7 +340,7 @@
       LOGICAL                  :: LSOILNOX
       LOGICAL                  :: DO_DIAG_WRITE
       INTEGER                  :: N_TRACERS
-      REAL(fp)                 :: TCVV(Input_Opt%N_TRACERS)
+!      REAL(fp)                 :: TCVV(Input_Opt%N_TRACERS)
  
       ! Pointers
       REAL(fp), POINTER        :: STT(:,:,:,:)
@@ -354,11 +357,14 @@
       ! Assume success
       RC            =  GIGC_SUCCESS
 
+      ! Initialize Pointers
+      ThisSpc => NULL()
+
       ! Copy values from Input_Opt
       LSOILNOX      = Input_Opt%LSOILNOX
       DO_DIAG_WRITE = Input_Opt%DO_DIAG_WRITE
       N_TRACERS     = Input_Opt%N_TRACERS
-      TCVV          = Input_Opt%TCVV(1:N_TRACERS)
+!      TCVV          = Input_Opt%TCVV(1:N_TRACERS)
 
 #if defined( MASSCONS )
       DO_MASSCONS   = .TRUE.
@@ -503,9 +509,12 @@
                TOTALMASS = 0.0e+0_fp
             ENDIF
 
+            ! Get info about this tracer from the Database
+            ThisSpc => State_Chm%SpcData(N)%Info
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, X, Y, K )
+!$OMP+PRIVATE( I, J, L, X, Y, K, ThisSpc )
             DO K = 1, ND49_NL
                L = LOFF + K
             DO Y = 1, ND49_NJ
@@ -521,13 +530,16 @@
                   Q(X,Y,K) = STT(I,J,L,N) * State_Met%AD(I,J,L)
                ELSE
                   ! Normal ND49 output, archive in v/v
-                  Q(X,Y,K) = STT(I,J,L,N) * TCVV(N)
+                  Q(X,Y,K) = STT(I,J,L,N) * ( AIRMW / ThisSpc%emMW_g )
                ENDIF
                
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
+
+            ! Free Pointer
+            ThisSpc => NULL()
 
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%%  MASS CONSERVATION TEST (ewl, 6/16/15)              %%%
@@ -667,40 +679,76 @@
 !     &                       AD(I,J,L) )
 
                ! NO
-               TMP = TMP + ( TCVV(IDTNO)         *
+               ! Get info about this tracer from the Database
+               ThisSpc => State_Chm%SpcData(IDTNO)%Info
+               TMP = TMP + ( ( AIRMW / ThisSpc%emMW_g )  *
      &                       STT(I,J,L,IDTNO) )
+               ! Free Pointer
+               ThisSpc => NULL()
 
                ! NO2
-               TMP = TMP + ( TCVV(IDTNO2)        *
+               ! Get info about this tracer from the Database
+               ThisSpc => State_Chm%SpcData(IDTNO2)%Info
+               TMP = TMP + ( ( AIRMW / ThisSpc%emMW_g )  *
      &                       STT(I,J,L,IDTNO2) )  
+               ! Free Pointer
+               ThisSpc => NULL()
 
                ! PAN
-               TMP = TMP + ( TCVV(IDTPAN)        * 
+               ! Get info about this tracer from the Database
+               ThisSpc => State_Chm%SpcData(IDTPAN)%Info
+               TMP = TMP + ( ( AIRMW / ThisSpc%emMW_g ) * 
      &                       STT(I,J,L,IDTPAN) )
+               ! Free Pointer
+               ThisSpc => NULL()
 
                ! HNO3
-               TMP = TMP + ( TCVV(IDTHNO3)       *
+               ! Get info about this tracer from the Database
+               ThisSpc => State_Chm%SpcData(IDTHNO3)%Info
+               TMP = TMP + ( ( AIRMW / ThisSpc%emMW_g ) *
      &                       STT(I,J,L,IDTHNO3) )
+               ! Free Pointer
+               ThisSpc => NULL()
             
                ! PMN
-               TMP = TMP + ( TCVV(IDTPMN)        *
+               ! Get info about this tracer from the Database
+               ThisSpc => State_Chm%SpcData(IDTPMN)%Info
+               TMP = TMP + ( ( AIRMW / ThisSpc%emMW_g ) *
      &                       STT(I,J,L,IDTPMN) )
+               ! Free Pointer
+               ThisSpc => NULL()
 
                ! PPN
-               TMP = TMP + ( TCVV(IDTPPN)        * 
+               ! Get info about this tracer from the Database
+               ThisSpc => State_Chm%SpcData(IDTPPN)%Info
+               TMP = TMP + ( ( AIRMW / ThisSpc%emMW_g ) * 
      &                       STT(I,J,L,IDTPPN) )
+               ! Free Pointer
+               ThisSpc => NULL()
  
                ! R4N2
-               TMP = TMP + ( TCVV(IDTR4N2)       *
+               ! Get info about this tracer from the Database
+               ThisSpc => State_Chm%SpcData(IDTR4N2)%Info
+               TMP = TMP + ( ( AIRMW / ThisSpc%emMW_g ) *
      &                       STT(I,J,L,IDTR4N2) )
+               ! Free Pointer
+               ThisSpc => NULL()
             
                ! N2O5
-               TMP = TMP + ( 2e+0_fp * TCVV(IDTN2O5) *
+               ! Get info about this tracer from the Database
+               ThisSpc => State_Chm%SpcData(IDTN2O5)%Info
+               TMP = TMP + ( 2e+0_fp * ( AIRMW / ThisSpc%emMW_g ) *
      &                       STT(I,J,L,IDTN2O5) )
+               ! Free Pointer
+               ThisSpc => NULL()
                         
                ! HNO4
-               TMP = TMP + ( TCVV(IDTHNO4)       *
+               ! Get info about this tracer from the Database
+               ThisSpc => State_Chm%SpcData(IDTHNO4)%Info
+               TMP = TMP + ( ( AIRMW / ThisSpc%emMW_g ) *
      &                       STT(I,J,L,IDTHNO4) )
+               ! Free Pointer
+               ThisSpc => NULL()
 
                ! Save afternoon points
                Q(X,Y,K) = Q(X,Y,K) + TMP
@@ -842,9 +890,12 @@
             GMNL     = ND49_NL
             GMTRC    = 8
 
+            ! Get info about this tracer from the Database
+            ThisSpc => State_Chm%SpcData(IDTSALA)%Info
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, X, Y, K )
+!$OMP+PRIVATE( I, J, L, X, Y, K, ThisSpc )
             DO K = 1, ND49_NL
                L = LOFF + K
             DO Y = 1, ND49_NJ
@@ -854,11 +905,14 @@
 !               Q(X,Y,K) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
 !     &                      TCVV(IDTSALA)      / AD(I,J,L) 
                Q(X,Y,K) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
-     &                      TCVV(IDTSALA)     
+     &                      ( AIRMW / ThisSpc%emMW_g )
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
+
+            ! Free Pointer
+            ThisSpc => NULL()
 
          ELSE IF ( N == 159 ) THEN
 

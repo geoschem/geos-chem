@@ -965,7 +965,7 @@
       LOGICAL          :: LPRT
       LOGICAL          :: LWINDO
       INTEGER          :: N_TRACERS
-      REAL(fp)         :: TCVV(Input_Opt%N_TRACERS)
+!      REAL(fp)         :: TCVV(Input_Opt%N_TRACERS)
 
 #if defined( NC_DIAG )
       ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
