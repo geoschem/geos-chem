@@ -438,6 +438,14 @@
          LMAX       = LLCHEM
          DO_SAVE_OH = .TRUE.
 
+         ! Find the OH species ID (formerly in tracerid_mod.F)
+         id_OH      = Ind_('OH')
+
+         IF ( id_OH < 0 ) THEN
+            CALL ERROR_STOP( 'OH is an undefined species !',
+     &                       'INIT_DIAG_OH (GeosCore/diag_oh_mod.F)' )
+         ENDIF
+
       ELSE IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
 
          ! CH4: all levels
@@ -449,14 +457,6 @@
          ! Exit for other simulations that don't use OH
          RETURN
 
-      ENDIF
-
-      ! Find the OH species ID (formerly in tracerid_mod.F)
-      id_OH = Ind_('OH')
-
-      IF ( id_OH < 0 ) THEN
-         CALL ERROR_STOP( 'OH is an undefined species!',
-     &                    'INIT_DIAG_OH (GeosCore/diag_oh_mod.F)' )
       ENDIF
 
       ! Echo info
