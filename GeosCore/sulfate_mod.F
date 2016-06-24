@@ -1577,6 +1577,7 @@ d
 !  22 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostics
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  31 May 2016 - E. Lundgren - Remove usage of Input_Opt%XNUMOL
+!  24 Jun 2016 - R. Yantosca - Now return if id_SO4d1<0 or id_NITd1<0 (not ==0)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1649,7 +1650,7 @@ d
       ! Return if tracers are undefined
 !      IF ( id_SO4S .le. 0 .and. id_NITS .le. 0 ) RETURN
       IF ( LDSTUP ) THEN
-         IF ( id_SO4D1 .le. 0 .and. id_NITD1 .le. 0 ) RETURN ! tdf
+         IF ( id_SO4d1 < 0 .and. id_NITD1 < 0 ) RETURN ! tdf
       ENDIF
 
       ! Return if it's the start of the run
@@ -2090,6 +2091,7 @@ d
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  24 Jun 2016 - R. Yantosca - Now Return if id_DMS < 0 (not == 0)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2125,7 +2127,7 @@ d
       !=================================================================
       ! CHEM_DMS begins here!
       !=================================================================
-      IF ( id_DMS == 0 ) RETURN
+      IF ( id_DMS < 0 ) RETURN
 
       ! Assume success
       RC          = GIGC_SUCCESS
@@ -2404,6 +2406,7 @@ d
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
 !  23 Sep 2015 - R. Yantosca - Remove reference to obsolete DRYH2O2 flag
+!  24 Jun 2016 - R. Yantosca - Now return if id_H2O2 < 0 (not == 0)
 !EOC
 !------------------------------------------------------------------------------
 !BOC
@@ -2434,7 +2437,7 @@ d
       !=================================================================
       ! CHEM_H2O2 begins here!
       !=================================================================
-      IF ( id_H2O2 == 0 ) RETURN 
+      IF ( id_H2O2 < 0 ) RETURN 
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -2655,6 +2658,7 @@ d
 !                              Remove dependency on pressure_mod.
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !  23 Sep 2015 - R. Yantosca - Remove reference to obsolete DRYSO2 flag
+!  24 Jun 2016 - R. Yantosca - Now return id_H2O2 < 0 or id_SO2 < 0 (not == 0)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2723,8 +2727,7 @@ d
       !=================================================================
       ! CHEM_SO2 begins here!
       !=================================================================
-
-      IF ( id_H2O2 == 0 .or. id_SO2 == 0 ) RETURN
+      IF ( id_H2O2 < 0 .or. id_SO2 < 0  ) RETURN
 
       ! Assume success
       RC          = GIGC_SUCCESS
@@ -5831,6 +5834,7 @@ d
 !  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
 !                              so we can greatly collapse this code
 !  23 Sep 2015 - R. Yantosca - Remove references to DRYSO4 and DRYSO4s
+!  24 Jun 2016 - R. Yantosca - Now return if id_SO4<0 or id_SO4s<0 (not == 0)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5859,7 +5863,7 @@ d
       !=================================================================
 
       ! Return if tracers are not defined
-      IF ( id_SO4 == 0 .or. id_SO4s == 0 ) RETURN
+      IF ( id_SO4 < 0 .or. id_SO4s < 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -6214,6 +6218,7 @@ d
 !  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
 !                              so we can greatly collapse this code
 !  23 Sep 2015 - R. Yantosca - Remove references to obsolete DRYMSA flag
+!  24 Jun 2016 - R. Yantosca - Now return if id_MSA < 0 (not == 0)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6230,7 +6235,7 @@ d
       !=================================================================
       ! CHEM_MSA begins here!
       !=================================================================
-      IF ( id_MSA == 0 ) RETURN
+      IF ( id_MSA < 0 ) RETURN
 
       ! Assume success
       RC  = GIGC_SUCCESS
@@ -6361,6 +6366,7 @@ d
 !  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
 !                              so we can greatly collapse this code
 !  23 Sep 2015 - R. Yantosca - Remove reference to DRYNIT, DRYNITs
+!  24 Jun 2016 - R. Yantosca - Now return if id_NIT<0 or id_NITs<0 (not == 0)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6390,7 +6396,7 @@ d
       !=================================================================
 
       ! Return if tracers are not defined
-      IF ( id_NIT == 0 .or. id_NITs == 0 ) RETURN
+      IF ( id_NIT < 0 .or. id_NITs < 0 ) RETURN
 
       ! Assume success
       RC  = GIGC_SUCCESS
@@ -7409,7 +7415,8 @@ d
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE ERROR_MOD,          ONLY : Alloc_Err
+      USE ERROR_MOD,          ONLY : Error_Stop
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -7457,6 +7464,7 @@ d
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  21 Jun 2016 - R. Yantosca - Reorder the IND_ declaration statements a bit
+!  24 Jun 2016 - R. Yantosca - Add error checks for dust uptake species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7573,10 +7581,10 @@ d
       id_AS    = Ind_('AS'       )
       id_AHS   = Ind_('AHS'      )
       id_AW1   = Ind_('AW1'      )
-      id_DAL1  = Ind_('DAL1'     )
-      id_DAL2  = Ind_('DAL2'     )
-      id_DAL3  = Ind_('DAL3'     )
-      id_DAL4  = Ind_('DAL4'     )
+      id_DAL1  = Ind_('DSTAL1'   )
+      id_DAL2  = Ind_('DSTAL2'   )
+      id_DAL3  = Ind_('DSTAL3'   )
+      id_DAL4  = Ind_('DSTAL4'   )
       id_DMS   = Ind_('DMS'      )
       id_DST1  = Ind_('DST1'     )
       id_DST2  = Ind_('DST2'     )
@@ -7626,6 +7634,17 @@ d
       DRYSO4d2 = Ind_('SO4d2','D')
       DRYSO4d3 = Ind_('SO4d3','D')
       DRYSO4d4 = Ind_('SO4d4','D')
+
+      ! Error check the dust uptake species
+      IF ( Input_Opt%LDSTUP ) THEN
+         IF ( id_DAL1  < 0 .or. id_DAL2  < 0 .or. id_DAL3  < 0   .or. 
+     &        id_DAL4  < 0 .or. id_NITd1 < 0 .or. id_NITd2 < 0   .or.
+     &        id_NITd3 < 0 .or. id_NITd4 < 0 .or. id_SO4d1 < 0   .or.
+     &        id_SO4d2 < 0 .or. id_SO4d3 < 0 .or. id_SO4d4 < 0 ) THEN
+            CALL ERROR_STOP( 'Dust uptake tracers are undefined!', 
+     &                       'INIT_DUST (GeosCore/dust_mod.F'      )
+         ENDIF
+      ENDIF
 
       END SUBROUTINE INIT_SULFATE
 !EOC

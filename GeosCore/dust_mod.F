@@ -2318,13 +2318,13 @@
       USE PHYSCONSTANTS,      ONLY : PI
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Chm_Mod, ONLY : Ind_
       USE Species_Mod,        ONLY : Species
 #if   defined( TOMAS )
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE TOMAS_MOD,          ONLY : IBINS, Xk
 #endif
 !
@@ -2356,6 +2356,7 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  16 Jun 2016 - J. Kaiser   - Now define species ID's with Ind_() function
 !  20 Jun 2016 - R. Yantosca - Only define species ID's in the INIT phase
+!  24 Jun 2016 - R. Yantosca - Add error checks for dust uptake species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2438,17 +2439,26 @@
       ! DAL1 - DAL4 and SO4d1 - SO4d4 species (acid uptake sims only)
       !-----------------------------------------------------------------
 
-      id_DAL1                  =  Ind_('DAL1'    )
-      dd_DAL1                  =  Ind_('DAL1','D')
+      id_DAL1                  =  Ind_('DSTAL1'    )
+      dd_DAL1                  =  Ind_('DSTAL1','D')
 
-      id_DAL2                  =  Ind_('DAL2'    )
-      dd_DAL2                  =  Ind_('DAL2','D')
+      id_DAL2                  =  Ind_('DSTAL2'    )
+      dd_DAL2                  =  Ind_('DSTAL2','D')
 
-      id_DAL3                  =  Ind_('DAL3'    )
-      dd_DAL3                  =  Ind_('DAL3','D')
+      id_DAL3                  =  Ind_('DSTAL3'    )
+      dd_DAL3                  =  Ind_('DSTAL3','D')
 
-      id_DAL4                  =  Ind_('DAL4'    )
-      dd_DAL4                  =  Ind_('DAL4','D')
+      id_DAL4                  =  Ind_('DSTAL4'    )
+      dd_DAL4                  =  Ind_('DSTAL4','D')
+
+      ! Error check the dust uptake species
+      IF ( Input_Opt%LDSTUP ) THEN
+         IF ( id_DAL1 < 0 .or. id_DAL2 < 0   .or.  
+     &        id_DAL3 < 0 .or. id_DAL4 < 0 ) THEN
+            CALL ERROR_STOP( 'Dust uptake tracers are undefined!', 
+     &                       'INIT_DUST (GeosCore/dust_mod.F'      )
+         ENDIF
+      ENDIF
 
       !%%%% NOTE: Input_Opt%IDDEP is obsolete and is only used in the
       !%%%% bpch_diag section for ND44 in this module.  We can consider
@@ -2584,3 +2594,4 @@
       END SUBROUTINE CLEANUP_DUST
 !EOC
       END MODULE DUST_MOD
+
