@@ -1078,9 +1078,14 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%V10M       )) DEALLOCATE( State_Met%V10M       )
     IF ( ASSOCIATED( State_Met%Z0         )) DEALLOCATE( State_Met%Z0         )
 
+#if defined( ESMF ) 
+
+    !=========================================================================
     ! SDE 2016-03-28: GCHP requires that these are nullified rather than being
     ! deallocated. Not yet sure why, but deallocating causes it to hang during
     ! cleanup
+    !=========================================================================
+
     ! 3-D fields
     IF ( ASSOCIATED( State_Met%AD         )) NULLIFY( State_Met%AD         )
     IF ( ASSOCIATED( State_Met%ADMOIST    )) NULLIFY( State_Met%ADMOIST    )
@@ -1122,6 +1127,59 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%U          )) NULLIFY( State_Met%U          )
     IF ( ASSOCIATED( State_Met%UPDVVEL    )) NULLIFY( State_Met%UPDVVEL    )
     IF ( ASSOCIATED( State_Met%V          )) NULLIFY( State_Met%V          )
+
+#else
+
+    !=========================================================================
+    ! For GEOS-Chem "Classic" simulations, we should use DEALLOCATE instead
+    ! of NULLIFY.  Typically if you allocate memory to a pointer-based
+    ! variable, you also need to DEALLOCATE.  If a pointer points to a
+    ! target variable, then you should use NULLIFY. (bmy, 6/27/16)
+    !=========================================================================
+
+    ! 3-D fields
+    IF ( ASSOCIATED( State_Met%AD         )) DEALLOCATE( State_Met%AD         )
+    IF ( ASSOCIATED( State_Met%ADMOIST    )) DEALLOCATE( State_Met%ADMOIST    )
+    IF ( ASSOCIATED( State_Met%AIRDEN     )) DEALLOCATE( State_Met%AIRDEN     )
+    IF ( ASSOCIATED( State_Met%MAIRDEN    )) DEALLOCATE( State_Met%MAIRDEN    )
+    IF ( ASSOCIATED( State_Met%AIRVOL     )) DEALLOCATE( State_Met%AIRVOL     )
+    IF ( ASSOCIATED( State_Met%AREA_M2    )) DEALLOCATE( State_Met%AREA_M2    )
+    IF ( ASSOCIATED( State_Met%AVGW       )) DEALLOCATE( State_Met%AVGW       )
+    IF ( ASSOCIATED( State_Met%BXHEIGHT   )) DEALLOCATE( State_Met%BXHEIGHT   )
+    IF ( ASSOCIATED( State_Met%CLDF       )) DEALLOCATE( State_Met%CLDF       )
+    IF ( ASSOCIATED( State_Met%CMFMC      )) DEALLOCATE( State_Met%CMFMC      )
+    IF ( ASSOCIATED( State_Met%DELP       )) DEALLOCATE( State_Met%DELP       )
+    IF ( ASSOCIATED( State_Met%DELP_PREV  )) DEALLOCATE( State_Met%DELP_PREV  )
+    IF ( ASSOCIATED( State_Met%DQRCU      )) DEALLOCATE( State_Met%DQRCU      )
+    IF ( ASSOCIATED( State_Met%DQRLSAN    )) DEALLOCATE( State_Met%DQRLSAN    )
+    IF ( ASSOCIATED( State_Met%DQIDTMST   )) DEALLOCATE( State_Met%DQIDTMST   )
+    IF ( ASSOCIATED( State_Met%DQLDTMST   )) DEALLOCATE( State_Met%DQLDTMST   )
+    IF ( ASSOCIATED( State_Met%DQVDTMST   )) DEALLOCATE( State_Met%DQVDTMST   )
+    IF ( ASSOCIATED( State_Met%MOISTMW    )) DEALLOCATE( State_Met%MOISTMW    )
+    IF ( ASSOCIATED( State_Met%DTRAIN     )) DEALLOCATE( State_Met%DTRAIN     )
+    IF ( ASSOCIATED( State_Met%MOISTQ     )) DEALLOCATE( State_Met%MOISTQ     )
+    IF ( ASSOCIATED( State_Met%OPTD       )) DEALLOCATE( State_Met%OPTD       )
+    IF ( ASSOCIATED( State_Met%PEDGE      )) DEALLOCATE( State_Met%PEDGE      )
+    IF ( ASSOCIATED( State_Met%PEDGE_DRY  )) DEALLOCATE( State_Met%PEDGE_DRY  )
+    IF ( ASSOCIATED( State_Met%PMID       )) DEALLOCATE( State_Met%PMID       )
+    IF ( ASSOCIATED( State_Met%PMID_DRY   )) DEALLOCATE( State_Met%PMID_DRY   )
+    IF ( ASSOCIATED( State_Met%PMEAN      )) DEALLOCATE( State_Met%PMEAN      )
+    IF ( ASSOCIATED( State_Met%PMEAN_DRY  )) DEALLOCATE( State_Met%PMEAN_DRY  )
+    IF ( ASSOCIATED( State_Met%PV         )) DEALLOCATE( State_Met%PV         )
+    IF ( ASSOCIATED( State_Met%QI         )) DEALLOCATE( State_Met%QI         )
+    IF ( ASSOCIATED( State_Met%QL         )) DEALLOCATE( State_Met%QL         )
+    IF ( ASSOCIATED( State_Met%RH         )) DEALLOCATE( State_Met%RH         )
+    IF ( ASSOCIATED( State_Met%SPHU       )) DEALLOCATE( State_Met%SPHU       )
+    IF ( ASSOCIATED( State_Met%SPHU_PREV  )) DEALLOCATE( State_Met%SPHU_PREV  )
+    IF ( ASSOCIATED( State_Met%T          )) DEALLOCATE( State_Met%T          )
+    IF ( ASSOCIATED( State_Met%TV         )) DEALLOCATE( State_Met%TV         )
+    IF ( ASSOCIATED( State_Met%TAUCLI     )) DEALLOCATE( State_Met%TAUCLI     )
+    IF ( ASSOCIATED( State_Met%TAUCLW     )) DEALLOCATE( State_Met%TAUCLW     ) 
+    IF ( ASSOCIATED( State_Met%U          )) DEALLOCATE( State_Met%U          )
+    IF ( ASSOCIATED( State_Met%UPDVVEL    )) DEALLOCATE( State_Met%UPDVVEL    )
+    IF ( ASSOCIATED( State_Met%V          )) DEALLOCATE( State_Met%V          )
+
+#endif
 
 #if defined( GCAP )
     !========================================================================
