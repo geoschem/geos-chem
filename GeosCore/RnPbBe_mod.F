@@ -358,7 +358,7 @@
      &                                   ( ADD_Pb / DTCHEM )
 #endif
 #if defined ( NC_DIAG )
-               PB_EMISS(I,J,L) = ADD_Pb / DTCHEM
+               PB_EMISS(I,J,L)         = ADD_Pb / DTCHEM
 #endif
             ENDIF
 

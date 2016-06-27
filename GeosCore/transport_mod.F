@@ -357,10 +357,10 @@
       REAL(fp),  POINTER :: p_VWND   (:,:,:  )
       REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
       REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
-#if defined( BPCH_DIAG ) || defined( NETCDF )
-      REAL(fp),  POINTER :: p_MFLEW  (:,:,:,:)
-      REAL(fp),  POINTER :: p_MFLNS  (:,:,:,:)
-      REAL(fp),  POINTER :: p_MFLUP  (:,:,:,:)
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+      REAL(fp),  POINTER :: p_MFLEW  (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLNS  (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLUP  (:,:,:,:) => NULL()
 #endif
       REAL(fp),  POINTER :: p_STT    (:,:,:,:)
 
@@ -638,14 +638,14 @@
       REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR) 
 
       ! Pointers
-      REAL(fp),  POINTER :: p_UWND  (:,:,:  )
-      REAL(fp),  POINTER :: p_VWND  (:,:,:  )
-      REAL(fp),  POINTER :: p_XMASS (:,:,:  )
-      REAL(fp),  POINTER :: p_YMASS (:,:,:  )
-#if defined( BPCH_DIAG ) || defined( NETCDF )
-      REAL(fp),  POINTER :: p_MFLEW (:,:,:,:)
-      REAL(fp),  POINTER :: p_MFLNS (:,:,:,:)
-      REAL(fp),  POINTER :: p_MFLUP (:,:,:,:)
+      REAL(fp),  POINTER :: p_UWND   (:,:,:  )
+      REAL(fp),  POINTER :: p_VWND   (:,:,:  )
+      REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
+      REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+      REAL(fp),  POINTER :: p_MFLEW (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLNS (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLUP (:,:,:,:) => NULL()
 #endif
       REAL(fp),  POINTER :: p_STT   (:,:,:,:) ! v/v
 

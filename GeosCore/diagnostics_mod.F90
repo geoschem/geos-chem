@@ -2843,8 +2843,11 @@ CONTAINS
     USE PHYSCONSTANTS,      ONLY : AIRMW, AVO,   g0
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
-    USE HCO_Diagn_Mod,      ONLY : Diagn_Update, DiagnCont, DiagnCont_Find
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Chm_Mod, ONLY : IND_
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Update
+    USE HCO_Diagn_Mod,      ONLY : DiagnCont
+    USE HCO_Diagn_Mod,      ONLY : DiagnCont_Find
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE PRESSURE_MOD,       ONLY : GET_PEDGE
 !
