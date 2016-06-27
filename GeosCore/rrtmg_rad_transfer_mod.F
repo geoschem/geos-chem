@@ -69,6 +69,7 @@
 !  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
 !  17 May 2016 - M. Sulprizio- Add extra dimension to MCICA cloud arrays to
 !                              allow for change from IIPAR*JJPAR to IIPAR,JJPAR
+!  27 Jun 2016 - R. Yantosca - Now save species ID's in module variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -205,6 +206,8 @@
 !                              species database (emitted species g/mol)
 !  16 Jun 2016 - K. Yu       - Now define species ID's with the IND_ function
 !  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
+!  27 Jun 2016 - R. Yantosca - Bug fix: replace a couple of leftover IDO3
+!                              variables with the new id_O3 species ID
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -691,7 +694,7 @@
        O3_CTM          = 0d0
        LCHEM           = GET_CHEMGRID_LEVEL(I,J,State_Met)
        DO L = 1, LCHEM
-          O3_CTM(L)    = State_Chm%Species(I,J,L,IDO3)
+          O3_CTM(L)    = State_Chm%Species(I,J,L,id_O3)
        ENDDO
        
       DO L = 1, LLPAR
@@ -768,7 +771,7 @@
 
 #else
             IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
-             O3VMR(I,J,L)  = State_Chm%Species(I,J,L,IDO3)/
+             O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3)/
      &                          State_Met%AIRNUMDEN(I,J,L)
             ENDIF
             IF (SPECMASK(NASPECRAD+2).EQ.1) THEN
