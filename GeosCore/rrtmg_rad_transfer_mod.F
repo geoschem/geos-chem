@@ -580,7 +580,7 @@
          id_HCFC22 = IND_('HCFC22')
 
          ! Reset first-time flag
-         FIRST = .FALSE
+         FIRST = .FALSE.
 
       ENDIF
 
