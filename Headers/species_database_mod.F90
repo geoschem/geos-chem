@@ -481,6 +481,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'BRNO2' )
@@ -589,6 +590,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
              
           CASE( 'CFC11' )
@@ -604,6 +606,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'CFC12' )
@@ -619,6 +622,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'CFCX' )
@@ -637,6 +641,23 @@ CONTAINS
                               Is_Wetdep     = F,                            &
                               RC            = RC )
 
+! Leave for future expansion when family tracers are removed
+!          CASE( 'CFC113', 'CFC114', 'CFC115' )
+!             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+!                              ThisSpc       = SpcData(N)%Info,              &
+!                              ModelID       = N,                            &
+!                              KppVarId      = KppVarId(N),                  &
+!                              KppFixId      = KppFixId(N),                  &
+!                              Name          = NameAllCaps,                  &
+!                              MW_g          = 187.0_fp,                     &
+!                              Is_Advected   = Is_Advected,                  &
+!                              Is_Gas        = T,                            &
+!                              Is_Drydep     = F,                            &
+!                              Is_Wetdep     = F,                            &
+!                              Is_Photolysis = T,                            &
+!                              RC            = RC )
+
+
           CASE( 'CH2BR2' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -650,6 +671,9 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+#if defined( UCX )
+                              Is_Photolysis = T,                            &
+#endif
                               RC            = RC )
 
           CASE( 'CH2O', 'HCHO' )
@@ -691,6 +715,9 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+#if defined( UCX )
+                              Is_Photolysis = T,                            &
+#endif
                               RC            = RC )
 
           CASE( 'CH3CL' )
@@ -706,6 +733,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'CH3CCL3' )
@@ -721,6 +749,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'CH4' )
@@ -782,6 +811,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'CL2O2' )
@@ -797,6 +827,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'CLNO2' )
@@ -812,6 +843,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
           CASE( 'CLNO3' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -826,6 +858,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'CLO' )
@@ -841,6 +874,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'CLOO', 'OCLO' )
@@ -865,6 +899,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'CO',     'COUS',    'COEUR',  'COASIA', 'COOTH',           &
@@ -1244,6 +1279,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'H1301' )
@@ -1259,6 +1295,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'H2402' )
@@ -1274,6 +1311,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'HCFC22' )
@@ -1289,6 +1327,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'HCFCX' )
@@ -1307,6 +1346,23 @@ CONTAINS
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
                               RC            = RC )
+
+! Leave for future expansion when family tracers are removed
+!          CASE( 'HCFC123', 'HCFC141B', 'HCFC142B' )
+!
+!             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+!                              ThisSpc       = SpcData(N)%Info,              &
+!                              ModelID       = N,                            &
+!                              KppVarId      = KppVarId(N),                  &
+!                              KppFixId      = KppFixId(N),                  &
+!                              Name          = NameAllCaps,                  &
+!                              MW_g          = 117.0_fp,                     &
+!                              Is_Advected   = Is_Advected,                  &
+!                              Is_Gas        = T,                            &
+!                              Is_Drydep     = F,                            &
+!                              Is_Wetdep     = F,                            &
+!                              Is_Photolysis = T,                            &
+!                              RC            = RC )
 
           CASE( 'HCL' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -1471,6 +1527,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'ISOP' )
@@ -1590,8 +1647,6 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'ISOPN' )
-
-             ! First create isoprene nitrate species name
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -1615,7 +1670,7 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
         
-! Leave for future expansion 
+! Leave for future expansion when family tracers are removed
 !          CASE( 'ISOPNB', 'ISOPND'  )
 !             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
 !                              ThisSpc       = SpcData(N)%Info,              &
@@ -1629,7 +1684,14 @@ CONTAINS
 !                              Is_Wetdep     = F,                            &
 !                              Is_Photolysis = T,                            &
 !                              DD_F0         = 1.0_fp,                       &
+!#if defined( NEW_HENRY_CONSTANTS )					    
+!                              Henry_K0      = 1.97e+4_f8 * To_M_atm,        &
+!#else									    
 !                              DD_Hstar_old  = 1.70e+4_fp,                   &
+!                              Henry_K0      = 1.70e+4_f8,                   &
+!                              Henry_CR      = 9200.0_f8,                    &
+!#endif									    
+!                              WD_RetFactor  = 2.0e-2_fp,                    &
 !                              RC            = RC )
 
           CASE( 'LIMO' )
@@ -1750,6 +1812,32 @@ CONTAINS
 #endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
+
+! Leave for future expansion when family tracers are removed
+!          CASE( 'MVKN', 'MACRN' )
+!             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+!                              ThisSpc       = SpcData(N)%Info,              &
+!                              ModelID       = N,                            &
+!                              KppVarId      = KppVarId(N),                  &
+!                              KppFixId      = KppFixId(N),                  &
+!                              Name          = NameAllCaps,                  &
+!                              FullName      = 'Nitrate from MACR + MVK',    &
+!                              MW_g          = 149.0_fp,                     &
+!                              Is_Advected   = Is_Advected,                  &
+!                              Is_Gas        = T,                            &
+!                              Is_Drydep     = T,                            &
+!                              Is_Wetdep     = T,                            &
+!                              Is_Photolysis = T,                            &
+!                              DD_F0         = 1.0_fp,                       &
+!#if defined( NEW_HENRY_CONSTANTS )					    
+!                              Henry_K0      = 1.97e+4_f8 * To_M_atm,        &
+!#else									    
+!                              DD_Hstar_old  = 1.70e+4_fp,                   &
+!                              Henry_K0      = 1.70e+4_f8,                   &
+!                              Henry_CR      = 9200.0_f8,                    &
+!#endif									    
+!                              WD_RetFactor  = 2.0e-2_fp,                    &
+!                              RC            = RC )
 
           CASE( 'MOBA' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2005,6 +2093,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'N2O5' )
@@ -2205,6 +2294,9 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+#if defined( UCX )
+                              Is_Photolysis = T,                            &
+#endif
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 1.90e-5_f8 * To_M_atm,        &
                               Henry_CR      = 1600.0_f8,                    &
@@ -2442,6 +2534,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'PAN' )
@@ -2830,6 +2923,9 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+#if defined( UCX )
+                              Is_Photolysis = T,                            &
+#endif
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_DvzMinVal  = DvzMinVal,                    &
                               DD_F0         = 0.0_fp,                       &
@@ -4372,6 +4468,23 @@ CONTAINS
                               Is_Photolysis = T,                            &
                               RC            = RC )
 
+          CASE( 'ATOOH' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+!------------------------------------------------------------------------------
+! These species can be removed here and activated above when family tracers
+! are eliminated (mps, 6/27/16)
           CASE( 'MACRN' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -4428,7 +4541,7 @@ CONTAINS
                               Is_Photolysis = T,                            &
                               RC            = RC )
 
-          CASE( 'ATOOH' )
+          CASE( 'CFC113', 'CFC114', 'CFC115' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -4441,6 +4554,22 @@ CONTAINS
                               Is_Wetdep     = F,                            &
                               Is_Photolysis = T,                            &
                               RC            = RC )
+
+          CASE( 'HCFC123', 'HCFC141B', 'HCFC142B' )
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+!------------------------------------------------------------------------------
 
           !==================================================================
           ! Special handling for species not found in the list above
