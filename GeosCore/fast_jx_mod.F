@@ -30,7 +30,10 @@
       PUBLIC  :: PHOTO_JX
       PUBLIC  :: INIT_FJX
       PUBLIC  :: FAST_JX
-      PUBLIC  :: FJXFUNC
+!------------------------------------------------------------------------------
+! Prior to 6/27/16:
+!      PUBLIC  :: FJXFUNC
+!------------------------------------------------------------------------------
       PUBLIC  :: PHOTRATE_ADJ
 
 !
@@ -60,16 +63,20 @@
 !  20 Feb 2014 - M. Sulprizio  - Removed "define.h", this is now obsolete
 !  13 Nov 2014 - M. Yannetti   - Added PRECISION_MOD
 !  29 Mar 2016 - R. Yantosca   - Add flags for rxns adjusted by PHOTRATE_ADJ
+!  27 Jun 2016 - M. Sulprizio  - Remove FJXFUNC and JV_INDEX routines. We now
+!                                obtain the photolysis rates directly from the
+!                                ZPJ array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       ! Flags for certain photo-reactions that will be adjusted by 
       ! subroutine PHOTRATE_ADJ, which is called by FlexChem (bmy 3/29/16)
-      INTEGER :: RXN_O2    = -1   ! O2  + jv --> O   + O
-      INTEGER :: RXN_O3_1  = -1   ! O3  + hv --> O2  + O
-      INTEGER :: RXN_O3_2a = -1   ! O3  + hv --> O2  + O(1D) #1
-      INTEGER :: RXN_O3_2b = -1   ! O3  + hv --> O2  + O(1D) #2
-      INTEGER :: RXN_H2SO4 = -1   ! SO4 + hv --> SO2 + 2OH
+      INTEGER, PUBLIC :: RXN_O2    = -1   ! O2  + jv --> O   + O
+      INTEGER, PUBLIC :: RXN_O3_1  = -1   ! O3  + hv --> O2  + O
+      INTEGER, PUBLIC :: RXN_O3_2a = -1   ! O3  + hv --> O2  + O(1D) #1
+      INTEGER, PUBLIC :: RXN_O3_2b = -1   ! O3  + hv --> O2  + O(1D) #2
+      INTEGER, PUBLIC :: RXN_H2SO4 = -1   ! SO4 + hv --> SO2 + 2OH
+      INTEGER, PUBLIC :: RXN_NO2   = -1   ! NO2 + hv --> NO  + O
 
       CONTAINS      
 !EOC
@@ -1754,8 +1761,12 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
       call RD_JS_JX(JXUNIT,TRIM( FILENAME ), TITLEJXX,NJXX,am_I_Root)
 
-      ! Build cross-referencing indices
-      call JV_INDEX(am_I_Root)
+!------------------------------------------------------------------------------
+! Prior to 6/27/16:
+! FlexChem had made this routine obsolete (mps, 6/27/16)
+!      ! Build cross-referencing indices
+!      call JV_INDEX(am_I_Root)
+!------------------------------------------------------------------------------
 
       END SUBROUTINE INIT_FJX
 !EOC
@@ -2615,6 +2626,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
 !  31 Mar 2013 - S. D. Eastham - Modified to track number of branches
 !  29 Mar 2016 - R. Yantosca   - Now flag rxn numbers for use in PHOTRATE_ADJ
+!  27 Jun 2016 - M. Sulprizio  - Add RXN_NO2 flag for PARANOX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2698,10 +2710,10 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
             J = JIND(K)
             IF ( am_I_Root ) THEN 
                if (J.eq.0) then
-         write(6,'(i5,a50,f6.3,a,1x,a6)') K,JLABEL(K),JFACTA(K),
+         write(6,'(i5,1x,a50,f6.3,a,1x,a6)') K,JLABEL(K),JFACTA(K),
      &         ' no mapping onto fast-JX',JMAP(K)
                else
-         write(6,'(i5,a50,f6.3,a,i4,1x,a6)') K,JLABEL(K),JFACTA(K),
+         write(6,'(i5,1x,a50,f6.3,a,i4,1x,a6)') K,JLABEL(K),JFACTA(K),
      &         ' mapped to FJX:',J,TITLEJX(J)
                endif
             ENDIF
@@ -2747,6 +2759,10 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
             CASE( 'SO4PHOTONSO2OHOH' )
                RXN_H2SO4 = K
 
+            ! NO2 + hv -> NO + O
+            CASE( 'NO2PHOTONNOO' )
+               RXN_NO2 = K
+
             CASE DEFAULT
                ! Nothing
          END SELECT
@@ -2782,6 +2798,11 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       ENDIF
 #endif
 
+      IF ( RXN_NO2 < 0 ) THEN
+         MSG = 'Could not find rxn NO2 + hv -> NO + O'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
       !------------------------------------
       ! Print out saved rxn flags
       !------------------------------------
@@ -2794,6 +2815,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 #if defined( UCX )
       WRITE( 6, 160 ) RXN_H2SO4
 #endif
+      WRITE( 6, 170 ) RXN_NO2
       WRITE( 6, 100 ) REPEAT( '=', 79 )
 
       ! FORMAT statements
@@ -2804,6 +2826,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
  140  FORMAT( 'RXN_O3_2a [ O3  + hv -> O2 + O(1D) #1 ]  =  ', i5 )
  150  FORMAT( 'RXN_O3_2b [ O3  + hv -> O2 + O(1D) #2 ]  =  ', i5 )
  160  FORMAT( 'RXN_H2SO4 [ SO4 + hv -> SO2 + OH + OH ]  =  ', i5 )
+ 170  FORMAT( 'RXN_NO2   [ NO2 + hv -> NO + O        ]  =  ', i5 )
 
       END SUBROUTINE RD_JS_JX
 !EOC
@@ -4495,207 +4518,211 @@ c  Ensure all 'AN_' types are valid selections
 
       END SUBROUTINE SET_AER
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!==============================================================================
+! Prior to 6/27/16:
+! FlexChem has rendered this code obsolete (mps, 6/27/16)
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: fjxfunc
+!!
+!! !DESCRIPTION: Function FJXFUNC supplies J-values to the chemistry solver.  
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      FUNCTION FJXFUNC( I, J, L, NREAC, BRCH, NAME ) RESULT( JVAL )
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      INTEGER,           INTENT(IN) :: I       ! Longitude index
+!      INTEGER,           INTENT(IN) :: J       ! Latitude index
+!      INTEGER,           INTENT(IN) :: L       ! Level index
+!      INTEGER,           INTENT(IN) :: NREAC   ! Photolysis reaction #
+!      INTEGER,           INTENT(IN) :: BRCH    ! Branch # of photolysis rxn
+!      CHARACTER (LEN=4), INTENT(IN) :: NAME    ! Photolysis species name
+!!
+!! !RETURN VALUE:
+!!
+!      REAL(fp)                        :: JVAL    ! Desired J-value [s-1]
+!!
+!! !REVISION HISTORY: 
+!!  (1  ) "cmn_fj.h" also includes "CMN_SIZE" and "define.h".
+!!  (2  ) J-values are stored in array "ZPJ" from "cmn_fjx_mod.F".
+!!  (3  ) Now references ERROR_STOP from "error_mod.F".  Updated comments,
+!!         and made some cosmetic changes. (bmy, 10/15/02)
+!!  27 Mar 2013 - S. D. Eastham - Rolled into FAST_JX_MOD
+!!  29 Mar 2013 - S. D. Eastham - Converted from fjfunc into fjxfunc
+!!  22 Jul 2014 - R. Yantosca   - Cosmetic changes
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER  :: N
+!      
+!      !=================================================================
+!      ! FJXFUNC begins here!
+!      !
+!      ! If your compiler has subscript-range checking (-C or 
+!      ! -check_bounds) then it is recommended to use this option to 
+!      ! test for the validity of (I,J,L), since repeated IF statements 
+!      ! are computationally expensive.
+!      !
+!      ! If your compiler does not have subscript-range checking, then 
+!      ! uncomment the following lines to do a manual test for the 
+!      ! validity of (I,J,L).  
+!      !=================================================================
 !
-! !IROUTINE: fjxfunc
+!!      IF ( I > IIPAR .OR. J > JJPAR .OR. L > JVL_ ) THEN 
+!!         CALL EXITC('Invalid grid-box # in call to FJXFUNC')
+!!      ENDIF
 !
-! !DESCRIPTION: Function FJXFUNC supplies J-values to the chemistry solver.  
-!\\
-!\\
-! !INTERFACE:
+!      !=================================================================
+!      ! RINDEX converts the J-value index as read from "globchem.dat" to 
+!      ! the J-value index as read from "fjx_j2j.dat". 
+!      ! (bmy, 10/5/98, SDE 03/29/13)
+!      !
+!      ! Make sure that we have taken the proper reaction! 
+!      !=================================================================
 !
-      FUNCTION FJXFUNC( I, J, L, NREAC, BRCH, NAME ) RESULT( JVAL )
+!      N = RINDEX(NREAC)
 !
-! !INPUT PARAMETERS: 
-!
-      INTEGER,           INTENT(IN) :: I       ! Longitude index
-      INTEGER,           INTENT(IN) :: J       ! Latitude index
-      INTEGER,           INTENT(IN) :: L       ! Level index
-      INTEGER,           INTENT(IN) :: NREAC   ! Photolysis reaction #
-      INTEGER,           INTENT(IN) :: BRCH    ! Branch # of photolysis rxn
-      CHARACTER (LEN=4), INTENT(IN) :: NAME    ! Photolysis species name
-!
-! !RETURN VALUE:
-!
-      REAL(fp)                        :: JVAL    ! Desired J-value [s-1]
-!
-! !REVISION HISTORY: 
-!  (1  ) "cmn_fj.h" also includes "CMN_SIZE" and "define.h".
-!  (2  ) J-values are stored in array "ZPJ" from "cmn_fjx_mod.F".
-!  (3  ) Now references ERROR_STOP from "error_mod.F".  Updated comments,
-!         and made some cosmetic changes. (bmy, 10/15/02)
-!  27 Mar 2013 - S. D. Eastham - Rolled into FAST_JX_MOD
-!  29 Mar 2013 - S. D. Eastham - Converted from fjfunc into fjxfunc
-!  22 Jul 2014 - R. Yantosca   - Cosmetic changes
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER  :: N
-      
-      !=================================================================
-      ! FJXFUNC begins here!
-      !
-      ! If your compiler has subscript-range checking (-C or 
-      ! -check_bounds) then it is recommended to use this option to 
-      ! test for the validity of (I,J,L), since repeated IF statements 
-      ! are computationally expensive.
-      !
-      ! If your compiler does not have subscript-range checking, then 
-      ! uncomment the following lines to do a manual test for the 
-      ! validity of (I,J,L).  
-      !=================================================================
-
-!      IF ( I > IIPAR .OR. J > JJPAR .OR. L > JVL_ ) THEN 
-!         CALL EXITC('Invalid grid-box # in call to FJXFUNC')
+!      IF ( (N > NRATJ ) .or. (N .eq. 0) ) THEN
+!         WRITE(6,*) 'RXN for ',name,', branch ',brch,' not found!'
+!         CALL EXITC( 'Check FJXFUNC' )
 !      ENDIF
-
-      !=================================================================
-      ! RINDEX converts the J-value index as read from "globchem.dat" to 
-      ! the J-value index as read from "fjx_j2j.dat". 
-      ! (bmy, 10/5/98, SDE 03/29/13)
-      !
-      ! Make sure that we have taken the proper reaction! 
-      !=================================================================
-
-      N = RINDEX(NREAC)
-
-      IF ( (N > NRATJ ) .or. (N .eq. 0) ) THEN
-         WRITE(6,*) 'RXN for ',name,', branch ',brch,' not found!'
-         CALL EXITC( 'Check FJXFUNC' )
-      ENDIF
-
-      !=================================================================
-      ! Return the appropriate J-value as the value of the function 
-      !=================================================================
-      JVAL = ZPJ(L,N,I,J)
-
-!      ! Uncomment following lines for more rigorous checking
-!      IF (ISNAN(FJXFUNC)) THEN
-!         WRITE(6,*) 'Photolysis error for branch ', brch, ' of ', name
-!         WRITE(6,*) 'NaN photorate in grid I J L: ',I, J, L
-!         CALL EXITC('Bad photorate')
-!      ENDIF
-
-      END FUNCTION FJXFUNC
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
 !
-! !ROUTINE: jv_index
+!      !=================================================================
+!      ! Return the appropriate J-value as the value of the function 
+!      !=================================================================
+!      JVAL = ZPJ(L,N,I,J)
 !
-! !DESCRIPTION: Subroutine JV\_INDEX computes the mapping between the CTM 
-!  indices (from "globchem.dat") for J-values to the FAST-JX indices 
-!  (from "FJX\_j2j.dat") for J-values.  (bmy, 10/5/98, 4/27/10)
-!\\
-!\\
-! !INTERFACE:
+!!      ! Uncomment following lines for more rigorous checking
+!!      IF (ISNAN(FJXFUNC)) THEN
+!!         WRITE(6,*) 'Photolysis error for branch ', brch, ' of ', name
+!!         WRITE(6,*) 'NaN photorate in grid I J L: ',I, J, L
+!!         CALL EXITC('Bad photorate')
+!!      ENDIF
 !
-      SUBROUTINE JV_INDEX( am_I_Root )
+!      END FUNCTION FJXFUNC
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !ROUTINE: jv_index
+!!
+!! !DESCRIPTION: Subroutine JV\_INDEX computes the mapping between the CTM 
+!!  indices (from "globchem.dat") for J-values to the FAST-JX indices 
+!!  (from "FJX\_j2j.dat") for J-values.  (bmy, 10/5/98, 4/27/10)
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE JV_INDEX( am_I_Root )
+!!
+!! !USES:
+!!
+!      USE CMN_SIZE_MOD
+!      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
 !
-! !USES:
+!! !INPUT PARAMETERS: 
+!!
+!      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!! 
+!! !REVISION HISTORY:
+!!  05 Oct 1998 - R. Yantosca - Initial version
+!!  (1 ) Assumes the ordering of a species with several branches in 
+!!        "ratj.d" is the same as in "chem.dat".
+!!  (2 ) Updated comments, cosmetic changes (bmy, 11/15/01)
+!!  (3 ) NAMESPEC is now NAMEGAS for SMVGEAR II.   We don't need to reference 
+!!        CMN anymore. Now loop from NCS = 1..NCSGAS (bdf, bmy, 4/8/03)
+!!  (4 ) Now reset NCS to NCSURBAN after loop (dbm, bmy, 10/16/06)
+!!  (5 ) Increase species name length (fp, 6/09)
+!!  (6 ) Change "Harvard #" to "GEOS-Chem #" in output (bmy, 4/27/10)
+!!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!!                              running with the traditional driver main.F
+!!  30 Jul 2012 - R. Yantosca - Added ProTeX headers
+!!  31 Mar 2013 - S. D. Eastham - Adapted for Fast-JX v7.0
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      ! Local variables
+!      INTEGER            :: I, IFNC, IBRCH, N, NK
 !
-      USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
-
-! !INPUT PARAMETERS: 
+!      ! Needed longer name limits (SDE 03/31/13)
+!      CHARACTER (LEN=14)  :: FULLNAME
+!      CHARACTER (LEN=10)  :: SPECNAME
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-! 
-! !REVISION HISTORY:
-!  05 Oct 1998 - R. Yantosca - Initial version
-!  (1 ) Assumes the ordering of a species with several branches in 
-!        "ratj.d" is the same as in "chem.dat".
-!  (2 ) Updated comments, cosmetic changes (bmy, 11/15/01)
-!  (3 ) NAMESPEC is now NAMEGAS for SMVGEAR II.   We don't need to reference 
-!        CMN anymore. Now loop from NCS = 1..NCSGAS (bdf, bmy, 4/8/03)
-!  (4 ) Now reset NCS to NCSURBAN after loop (dbm, bmy, 10/16/06)
-!  (5 ) Increase species name length (fp, 6/09)
-!  (6 ) Change "Harvard #" to "GEOS-Chem #" in output (bmy, 4/27/10)
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  30 Jul 2012 - R. Yantosca - Added ProTeX headers
-!  31 Mar 2013 - S. D. Eastham - Adapted for Fast-JX v7.0
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      !=================================================================
+!      ! JV_INDEX begins here!
+!      !=================================================================
 !
-! !LOCAL VARIABLES:
+!      ! Zero the RINDEX array
+!      RINDEX(:) = 0
 !
-      ! Local variables
-      INTEGER            :: I, IFNC, IBRCH, N, NK
-
-      ! Needed longer name limits (SDE 03/31/13)
-      CHARACTER (LEN=14)  :: FULLNAME
-      CHARACTER (LEN=10)  :: SPECNAME
-
-      !=================================================================
-      ! JV_INDEX begins here!
-      !=================================================================
-
-      ! Zero the RINDEX array
-      RINDEX(:) = 0
-
-      ! Loop over photolysis rxns (urban chemistry only)
-      DO NCS = 1, NCSGAS
-      DO I   = 1, NPHOT
-
-         !==============================================================
-         ! I        = Index of photo rxns    from "globchem.dat"
-         ! NK       = Absolute rxn number (adds offset to I)
-         ! SPECNAME = Name of species I,     from "globchem.dat"
-         ! IBRCH    = Branch # of species I, from "globchem.dat"
-         !==============================================================
-         NK       = NRATES(NCS) + I
-         FULLNAME = TRIM(NAMEGAS(IRM(1,NK,NCS)))
-         ! Get first 10 characters only
-         READ (FULLNAME(1:10),"(a10)") SPECNAME
-         IFNC     = DEFPRAT(NK,NCS) + 0.01e+0_fp
-         IBRCH    = 10e+0_fp*( DEFPRAT(NK,NCS) - IFNC ) + 0.5e+0_fp
-
-         !==============================================================
-         ! N      = Index of photolysis reaction in "FJX_j2j.dat"
-         ! RNAMES = Name of species N as listed in "FJX_j2j.dat" 
-         ! BRANCH = Relative count of reaction in "FJX_j2j.dat"
-         !  
-         ! If the species names and branch numbers from both "globchem" 
-         ! and "FJX_j2j" match, then store N (the FJX index) in the 
-         ! Ith element of RINDEX.
-         !  
-         ! Thus, when looping over I (the "globchem" indices), as is 
-         ! done in FJXFUNC, RINDEX(I) will access the correct J-value 
-         ! according to the ordering in "FJX_j2j.dat".
-         !==============================================================
-         DO N = 1, NRATJ
-            IF ( SPECNAME == RNAMES(N) .and. IBRCH == BRANCH(N) ) THEN
-               RINDEX(I) = N
-
-               ! change formatting for longer name (FP 6/2009)
-               IF ( am_I_Root ) THEN
-                  WRITE ( 6, 100 ) I,         FULLNAME,  IBRCH, 
-     &                             RINDEX(I), RNAMES(N), BRANCH(N)
-               ENDIF
- 100           FORMAT('GEOS-Chem #: ', i3, 1x, a14, ' Branch: ', i2, 
-     &               ' --->  Fast-JX #: ', i3, 1x, a10, ' Branch: ',i2 )
-               EXIT
-            ENDIF
-         ENDDO
-      ENDDO  
-      ENDDO
-
-      ! Reset NCS to NCSURBAN for safety's sake (bmy, 10/16/06)
-      NCS = NCSURBAN
-
-      ! Return to calling program      
-      END SUBROUTINE JV_INDEX
-!EOC
+!      ! Loop over photolysis rxns (urban chemistry only)
+!      DO NCS = 1, NCSGAS
+!      DO I   = 1, NPHOT
+!
+!         !==============================================================
+!         ! I        = Index of photo rxns    from "globchem.dat"
+!         ! NK       = Absolute rxn number (adds offset to I)
+!         ! SPECNAME = Name of species I,     from "globchem.dat"
+!         ! IBRCH    = Branch # of species I, from "globchem.dat"
+!         !==============================================================
+!         NK       = NRATES(NCS) + I
+!         FULLNAME = TRIM(NAMEGAS(IRM(1,NK,NCS)))
+!         ! Get first 10 characters only
+!         READ (FULLNAME(1:10),"(a10)") SPECNAME
+!         IFNC     = DEFPRAT(NK,NCS) + 0.01e+0_fp
+!         IBRCH    = 10e+0_fp*( DEFPRAT(NK,NCS) - IFNC ) + 0.5e+0_fp
+!
+!         !==============================================================
+!         ! N      = Index of photolysis reaction in "FJX_j2j.dat"
+!         ! RNAMES = Name of species N as listed in "FJX_j2j.dat" 
+!         ! BRANCH = Relative count of reaction in "FJX_j2j.dat"
+!         !  
+!         ! If the species names and branch numbers from both "globchem" 
+!         ! and "FJX_j2j" match, then store N (the FJX index) in the 
+!         ! Ith element of RINDEX.
+!         !  
+!         ! Thus, when looping over I (the "globchem" indices), as is 
+!         ! done in FJXFUNC, RINDEX(I) will access the correct J-value 
+!         ! according to the ordering in "FJX_j2j.dat".
+!         !==============================================================
+!         DO N = 1, NRATJ
+!            IF ( SPECNAME == RNAMES(N) .and. IBRCH == BRANCH(N) ) THEN
+!               RINDEX(I) = N
+!
+!               ! change formatting for longer name (FP 6/2009)
+!               IF ( am_I_Root ) THEN
+!                  WRITE ( 6, 100 ) I,         FULLNAME,  IBRCH, 
+!     &                             RINDEX(I), RNAMES(N), BRANCH(N)
+!               ENDIF
+! 100           FORMAT('GEOS-Chem #: ', i3, 1x, a14, ' Branch: ', i2, 
+!     &               ' --->  Fast-JX #: ', i3, 1x, a10, ' Branch: ',i2 )
+!               EXIT
+!            ENDIF
+!         ENDDO
+!      ENDDO  
+!      ENDDO
+!
+!      ! Reset NCS to NCSURBAN for safety's sake (bmy, 10/16/06)
+!      NCS = NCSURBAN
+!
+!      ! Return to calling program      
+!      END SUBROUTINE JV_INDEX
+!!EOC
+!==============================================================================
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
