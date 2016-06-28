@@ -1078,7 +1078,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%V10M       )) DEALLOCATE( State_Met%V10M       )
     IF ( ASSOCIATED( State_Met%Z0         )) DEALLOCATE( State_Met%Z0         )
 
-#if defined( ESMF ) 
+#if defined( ESMF_ ) 
 
     !=========================================================================
     ! SDE 2016-03-28: GCHP requires that these are nullified rather than being

@@ -34,8 +34,8 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      ! Pointers
-      REAL(fp), PUBLIC, ALLOCATABLE :: EMACET  (:,:  )           ! ACET emiss
+!      ! Pointers
+!      REAL(fp), PUBLIC, ALLOCATABLE :: EMACET  (:,:  )           ! ACET emiss
 !
 ! !REMARKS:
 !  Tagged CO Tracers (you can modify these as needs be!)
@@ -126,6 +126,7 @@
 !                              GMI strat P(CO) and L(CO) directly from HEMCO
 !  21 Mar 2016 - R. Yantosca - Removed GET_PCO_LCO_STRAT, it was obsolete
 !  21 Mar 2016 - R. Yantosca - Get rid of READ_PCO_LCO_STRAT, it's obsolete
+!  28 Jun 2016 - R. Yantosca - Add extra error checks; remove EMACET array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -142,8 +143,8 @@
       ! Pointers to fields in the HEMCO data structure.
       ! These need to be declared REAL(f4), aka REAL*4.
       REAL(f4), POINTER     :: OH         (:,:,:) => NULL() ! Global OH
-      REAL(f4), POINTER     :: GMI_PROD_CO(:,:,:) => NULL() ! Strat P(CO)
-      REAL(f4), POINTER     :: GMI_LOSS_CO(:,:,:) => NULL() ! Strat L(CO)
+      REAL(f4), POINTER     :: GMI_PROD_CO(:,:,:) => NULL() ! Global P(CO)
+      REAL(f4), POINTER     :: GMI_LOSS_CO(:,:,:) => NULL() ! Global L(CO)
 
       CONTAINS
 !EOC
@@ -270,6 +271,8 @@
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !  21 Mar 2016 - R. Yantosca - Now define FMOL_CO from the species database
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  28 Jun 2016 - R. Yantosca - Add error traps to make sure that the ISOP,
+!                              ACET, MONX non-advected species are all found
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -420,6 +423,8 @@
          SUMACETCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    ! kgC/m2/s
          SUMACETCO = SUMACETCO * HcoState%Grid%AREA_M2%Val     ! kgC/s
          SUMACETCO = SUMACETCO * kgs_to_atomsC                 ! atoms C
+      ELSE
+         CALL ERROR_STOP( 'ACET not turned on in MEGAN!', LOC )
       ENDIF
 
       ! SUMISOPCO (convert [kgC/m2/s] to [atoms C])
@@ -428,6 +433,8 @@
          SUMISOPCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    ! kgC/m2/s
          SUMISOPCO = SUMISOPCO * HcoState%Grid%AREA_M2%Val     ! kgC/s
          SUMISOPCO = SUMISOPCO * kgs_to_atomsC                 ! atoms C
+      ELSE
+         CALL ERROR_STOP( 'ISOP not turned on in MEGAN!', LOC )
       ENDIF
 
       ! SUMMONOCO (convert [kgC/m2/s] to [atoms C])
@@ -436,6 +443,8 @@
          SUMMONOCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    ! kgC/m2/s
          SUMMONOCO = SUMMONOCO * HcoState%Grid%AREA_M2%Val     ! kgC/s
          SUMMONOCO = SUMMONOCO * kgs_to_atomsC                 ! atoms C
+      ELSE
+         CALL ERROR_STOP( 'MONX not turned on in Megan_MONO!', LOC )
       ENDIF
 
       !=================================================================
@@ -638,7 +647,6 @@
             ERR_VAR = 'CO_CH3OH'
             ERR_MSG = 'STOP at tagged_co_mod:3'
             CALL CHECK_VALUE( CO_CH3OH, ERR_LOC, ERR_VAR, ERR_MSG )
-
          ENDIF
 
          !==============================================================
@@ -693,7 +701,6 @@
             ERR_VAR = 'CO_MONO'
             ERR_MSG = 'STOP at tagged_co_mod:4'
             CALL CHECK_VALUE( CO_MONO, ERR_LOC, ERR_VAR, ERR_MSG )
-
          ENDIF
 
          !==============================================================
@@ -733,7 +740,6 @@
             ERR_VAR = 'CO_ACET'
             ERR_MSG = 'STOP at tagged_co_mod:5'
             CALL CHECK_VALUE( CO_ACET, ERR_LOC, ERR_VAR, ERR_MSG )
-
          ENDIF
 
          !==============================================================
@@ -1223,6 +1229,7 @@
 !                              fossil fuel and biofuel regions
 !  10 Apr 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !  21 Mar 2016 - R. Yantosca - Remove CO_PRODS, CO_LOSSS arrays
+!  28 Jun 2016 - R. Yantosca - Remove EMACET array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1237,11 +1244,6 @@
 
       ! Assume success until otherwise known
       RC = GIGC_SUCCESS
-
-      ! Allocate EMACET -- array for CO from isoprene
-      ALLOCATE( EMACET( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMACET' )         
-      EMACET = 0.0_fp 
 
       ! Allocate SUMISOPCO -- array for CO from isoprene
       ALLOCATE( SUMISOPCO( IIPAR, JJPAR ), STAT=AS )
@@ -1295,6 +1297,7 @@
 !  11 Mar 2015 - R. Yantosca - Now free the OH pointer
 !  21 Mar 2016 - R. Yantosca - Remove CO_PRODS, CO_LOSSS
 !  21 Mar 2016 - R. Yantosca - Also nullify GMI_PROD_CO and GMI_LOSS_CO ptrs
+!  28 Jun 2016 - R. Yantosca - Remove EMACET array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1304,7 +1307,6 @@
       IF ( ALLOCATED( SUMMONOCO  ) ) DEALLOCATE( SUMMONOCO  )
       IF ( ALLOCATED( SUMCH3OHCO ) ) DEALLOCATE( SUMCH3OHCO )
       IF ( ALLOCATED( SUMACETCO  ) ) DEALLOCATE( SUMACETCO  )
-      IF ( ALLOCATED( EMACET     ) ) DEALLOCATE( EMACET     )
       IF ( ALLOCATED( TCOSZ      ) ) DEALLOCATE( TCOSZ      )
 
       ! Free pointers
