@@ -1378,7 +1378,7 @@ CONTAINS
     USE GIGC_State_Met_Mod,    ONLY : MetState
     USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
     USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
-    USE FAST_JX_MOD,           ONLY : RXN_NO2, RXN_O3_2a
+    USE FAST_JX_MOD,           ONLY : RXN_NO2, RXN_O3_1, RXN_O3_2a
     USE HCO_GeoTools_Mod,      ONLY : HCO_GetSUNCOS
 #if defined(ESMF_) 
     USE HCOI_ESMF_MOD,         ONLY : HCO_SetExtState_ESMF
@@ -1484,14 +1484,15 @@ CONTAINS
              IF ( ExtState%JOH%DoUse  ) JOH  = 0.0_hp
           ELSE
              IF ( ExtState%JNO2%DoUse ) THEN
+                ! RXN_NO2: NO2 + hv --> NO  + O
                 JNO2(I,J) = ZPJ(L,RXN_NO2,I,J)
              ENDIF
              IF ( ExtState%JOH%DoUse ) THEN
 #if defined( UCX )
-                ! IMPORTANT: Need branch *2* for O1D
-                !            Branch 1 is O3P!
-                JOH(I,J) = ZPJ(L,RXN_O3_2a,I,J)
+                ! RXN_O3_1: O3  + hv --> O2  + O
+                JOH(I,J) = ZPJ(L,RXN_O3_1,I,J)
 #else
+                ! RXN_O3_2a: O3 + hv --> 2OH
                 JOH(I,J) = ZPJ(L,RXN_O3_2a,I,J)
 #endif
              ENDIF

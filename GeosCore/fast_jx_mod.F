@@ -73,8 +73,9 @@
       ! subroutine PHOTRATE_ADJ, which is called by FlexChem (bmy 3/29/16)
       INTEGER, PUBLIC :: RXN_O2    = -1   ! O2  + jv --> O   + O
       INTEGER, PUBLIC :: RXN_O3_1  = -1   ! O3  + hv --> O2  + O
-      INTEGER, PUBLIC :: RXN_O3_2a = -1   ! O3  + hv --> O2  + O(1D) #1
-      INTEGER, PUBLIC :: RXN_O3_2b = -1   ! O3  + hv --> O2  + O(1D) #2
+      INTEGER, PUBLIC :: RXN_O3_2a = -1   ! O3  + hv --> 2OH         (Tropchem)
+                                          ! O3  + hv --> O2  + O(1D) (UCX #1)
+      INTEGER, PUBLIC :: RXN_O3_2b = -1   ! O3  + hv --> O2  + O(1D) (UCX #2)
       INTEGER, PUBLIC :: RXN_H2SO4 = -1   ! SO4 + hv --> SO2 + 2OH
       INTEGER, PUBLIC :: RXN_NO2   = -1   ! NO2 + hv --> NO  + O
 
