@@ -258,12 +258,12 @@
       ! SET_FLOATING_PRESSURES begins here!
       !=================================================================
 
-      !! DEBUGGING (ewl)
-      !PRINT *, " "
-      !PRINT *, "In SET_FLOATING_PRESSURES"
-      !PRINT *, "   Old PFLT_DRY(56,20): ", PFLT_DRY(56,20)
-      !PRINT *, "   Old PFLT_WET(56,20): ", PFLT_WET(56,20)
-      !! END DEBUGGING
+      ! DEBUGGING (ewl)
+      PRINT *, " "
+      PRINT *, "In SET_FLOATING_PRESSURES"
+      PRINT *, "   Old PFLT_DRY(56,20): ", PFLT_DRY(56,20)
+      PRINT *, "   Old PFLT_WET(56,20): ", PFLT_WET(56,20)
+      ! END DEBUGGING
 
       ! Set PFLT_DRY equal to input value PS
 !$OMP PARALLEL DO
@@ -290,41 +290,62 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Calculate PFLT_WET using PFLT_DRY and specific humidity
-      PFLT_WET = 0.e+0_fp
+      ! for the wet pressure, use the old way and set PFLT_WET to PSC2 
+      ! (the interpolated GMAO pressure). The new way is under 
+      ! construction
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, PEDGE1, PEDGE2, SPHU_KgKg )
-!$OMP+PRIVATE( ERR_LOC, ERR_VAR, ERR_MSG )
-      DO L = 1, LLPAR
+!$OMP+PRIVATE( I, J, ERR_LOC, ERR_VAR, ERR_MSG )
       DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO I = 1, IIPAR    
+         PFLT_WET(I,J) = State_Met%PSC2(I,J)
 
-         ! Convert specific humidity from g/kg to kg/kg locally
-         SPHU_KgKg = State_Met%SPHU(I,J,L) * 1.0e-3_fp
+         ! Check for NaN or Infinities
+         ERR_LOC = (/ I, J, 0, 0 /)
+         ERR_VAR = 'PFLT_WET'
+         ERR_MSG = 'set_floating_pressures:1'
+         CALL CHECK_VALUE( PFLT_WET(I,J), ERR_LOC, ERR_VAR, ERR_MSG )
 
-         ! Calculate top and bottom dry edge pressures for this 
-         ! level by applying AP and BP params to dry surface pressure
-         PEDGE1    = GET_AP(L)   + GET_BP(L)   * PFLT_DRY(I,J)
-         PEDGE2    = GET_AP(L+1) + GET_BP(L+1) * PFLT_DRY(I,J)
-
-         ! Add the wet delta pressure for this level to the
-         ! cumulative wet pressure in this column
-         PFLT_WET(I,J) = PFLT_WET(I,J) + ( PEDGE2 - PEDGE1 ) / 
-     &                   ( 1.e+0_fp - SPHU_KgKg) )
-      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+!      ! New way: calculate PFLT_WET using PFLT_DRY and specific humidity
+!      PFLT_WET = 0.e+0_fp
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, PEDGE1, PEDGE2, SPHU_KgKg )
+!!$OMP+PRIVATE( ERR_LOC, ERR_VAR, ERR_MSG )
+!      DO L = 1, LLPAR
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!         ! Convert specific humidity from g/kg to kg/kg locally
+!         SPHU_KgKg = State_Met%SPHU(I,J,L) * 1.0e-3_fp
+!
+!         ! Calculate top and bottom dry edge pressures for this 
+!         ! level by applying AP and BP params to dry surface pressure
+!         PEDGE1    = GET_AP(L)   + GET_BP(L)   * PFLT_DRY(I,J)
+!         PEDGE2    = GET_AP(L+1) + GET_BP(L+1) * PFLT_DRY(I,J)
+!
+!         ! Add the wet delta pressure for this level to the
+!         ! cumulative wet pressure in this column
+!         PFLT_WET(I,J) = PFLT_WET(I,J) + ( PEDGE2 - PEDGE1 ) / 
+!     &                   ( 1.e+0_fp - SPHU_KgKg )
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
 
       ! NOTE: To accurately get the wet pressure back from the dry
       !       pressure using this method, must also add in a PTOP
       !       bias factor...this is under construction
 
-      !! DEBUGGING (ewl)
-      !PRINT *, "   New PFLT_DRY(56,20): ", PFLT_DRY(56,20)
-      !PRINT *, "   New PFLT_WET(56,20): ", PFLT_WET(56,20)
-      !! END DEBUGGING
+      ! DEBUGGING (ewl)
+      PRINT *, "   New PFLT_DRY(56,20): ", PFLT_DRY(56,20)
+      PRINT *, "   New PFLT_WET(56,20): ", PFLT_WET(56,20)
+      ! END DEBUGGING
 
       ! Return to calling program
       END SUBROUTINE SET_FLOATING_PRESSURES

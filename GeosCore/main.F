@@ -681,7 +681,9 @@
       !CALL SET_DRY_FLOATING_PRESSURE( State_Met%PS1_DRY )
 
       ! DEBUGGING (ewl) - replace above with this
-      State_Met%PSC2_DRY = State_Met%PS1 ! initialize before interp
+      ! This first line is temporary to keep old GMAO wet pressure
+      State_Met%PSC2 = State_Met%PS1 ! initialize before interp
+      State_Met%PSC2_DRY = State_Met%PS1_DRY ! initialize before interp
       CALL SET_FLOATING_PRESSURES( am_I_Root, State_Met, RC )
       ! END DEBUGGING
 

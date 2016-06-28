@@ -552,7 +552,7 @@
       ! DEBUGGING (ewl)
       IF ( LPRT ) THEN
          CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
-     &                                "post-advection")
+     &                                "post-advection, pre-airqnt")
       ENDIF
       ! END DEBUGGING
 
@@ -574,13 +574,6 @@
 !      CALL SET_DRY_FLOATING_PRESSURE( State_Met%PSC2_DRY )
       ! DEBUGGING (ewl) - replace above with this
       CALL SET_FLOATING_PRESSURES( am_I_Root, State_Met, RC )
-      ! END DEBUGGING
-
-      ! DEBUGGING (ewl)
-      IF ( LPRT ) THEN
-         CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met,
-     &                                "post-set pflt")
-      ENDIF
       ! END DEBUGGING
 
       ! Prior to 04 May 2016: Floating pressure is wet.
