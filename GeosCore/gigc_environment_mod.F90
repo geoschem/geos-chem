@@ -80,7 +80,11 @@ CONTAINS
     USE CMN_O3_Mod,         ONLY : Init_CMN_O3
     USE CMN_SIZE_Mod,       ONLY : Init_CMN_SIZE
     USE COMODE_LOOP_Mod,    ONLY : Init_COMODE_LOOP
-    USE Get_Ndep_Mod,       ONLY : Init_Get_Ndep
+!------------------------------------------------------------------------------
+! Move call to INIT_GET_NDEP to GIGC_INIT_EXTRA, which is called
+! after species database init (bmy, 6/17/16)
+!    USE Get_Ndep_Mod,       ONLY : Init_Get_Ndep
+!------------------------------------------------------------------------------
     USE GIGC_ErrCode_Mod  
     USE GIGC_Input_Opt_Mod
     USE VDIFF_PRE_Mod,      ONLY : Init_Vdiff_Pre
@@ -131,6 +135,8 @@ CONTAINS
 !  25 Jul 2014 - R. Yantosca - Remove reference to obsolete commsoil_mod.F90
 !  25 Jul 2014 - R. Yantosca - Now call INIT_GET_NDEP (GeosCore/get_ndep_mod.F)
 !  04 Aug 2015 - C. Keller   - Now pass LLTROP and LLSTRAT to INIT_CMN_SIZE.
+!  17 Jun 2016 - R. Yantosca - Move call to INIT_GET_NDEP to GIGC_INIT_EXTRA
+!                              which is called after species database init
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -193,9 +199,6 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     CALL Init_CMN_O3( am_I_Root, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-
-    CALL Init_Get_Ndep( am_I_Root, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     CALL Init_COMODE_LOOP( am_I_Root, Input_Opt, RC )

@@ -68,6 +68,8 @@
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  23 Jun 2015 - E. Lundgren - Convert tracer units from v/v dry air to
 !                              kg/kg total air for convection
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -105,16 +107,11 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE TRACERID_MOD
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TIME_MOD,           ONLY : GET_TS_CONV
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
       USE WETSCAV_MOD,        ONLY : H2O2s
       USE WETSCAV_MOD,        ONLY : SO2s
-#if defined( APM )
-      USE TRACER_MOD,         ONLY : N_APMTRA
-#endif
-
 #if defined( NC_DIAG )
       USE HCO_ERROR_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -224,21 +221,12 @@
       
       ! Arrays        
       REAL(fp)          :: PEDGE  (LLPAR+1)
-#if defined( APM )
-      INTEGER           :: ISOL   (      Input_Opt%N_TRACERS+N_APMTRA)
-      REAL(fp)          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
-      REAL(fp)          :: DIAG38 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
-      REAL(fp)          :: F      (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
-      REAL(fp), TARGET  :: FSOL   ( IIPAR, JJPAR, LLPAR,   
-     &                                 Input_Opt%N_TRACERS+N_APMTRA)
-#else
       INTEGER           :: ISOL   (      Input_Opt%N_TRACERS )
       REAL(fp)          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS )
       REAL(fp)          :: DIAG38 (LLPAR,Input_Opt%N_TRACERS )
       REAL(fp)          :: F      (LLPAR,Input_Opt%N_TRACERS )
       REAL(fp), TARGET  :: FSOL   (IIPAR,JJPAR,LLPAR,
      &                                 Input_Opt%N_TRACERS )
-#endif
 
       ! Pointers
       REAL(fp), POINTER :: p_FSOL (:,:,:)
@@ -340,12 +328,7 @@
       RC                =  GIGC_SUCCESS
 
       ! Pick the proper # of tracers
-#if   defined( APM )  
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
-                                         !  the G-C advected tracers +
-#else                                    
       N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
-#endif
 
       ! Call the S-J Lin convection routine for GEOS-5
       CALL NFCLDMX( am_I_Root, Input_Opt, State_Met, 
@@ -366,11 +349,7 @@
       FSOL      = 0e+0_fp                         ! Zero the FSOL array
 
       ! Pick the proper # of tracers
-#if   defined( APM )  
-      N_TOT_TRC = Input_Opt%N_TRACERS + N_APMTRA  ! With APM microphysics
-#else
       N_TOT_TRC = Input_Opt%N_TRACERS             ! Without APM microphysics
-#endif
 
       ! Loop over advected tracers
       DO N = 1, N_TOT_TRC
@@ -591,10 +570,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CONV
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
-#if   defined( APM ) 
-      USE TRACER_MOD,         ONLY : N_APMTRA
-#endif
-
 !
 ! !INPUT PARAMETERS:
 !
@@ -645,15 +620,9 @@
       REAL(fp)          :: DP( IIPAR, JJPAR, LLPAR )
       REAL(fp)          :: P1, P2, TDT
       INTEGER           :: N_TOT_TRC
-#if   defined( APM )  
-      INTEGER           :: INDEXSOL( Input_Opt%N_TRACERS + N_APMTRA )
-      REAL(fp), TARGET  :: F( IIPAR, JJPAR, LLPAR,
-     &                            Input_Opt%N_TRACERS + N_APMTRA )
-#else                 
       INTEGER           :: INDEXSOL( Input_Opt%N_TRACERS )
       REAL(fp), TARGET  :: F( IIPAR, JJPAR, LLPAR,
      &                            Input_Opt%N_TRACERS )
-#endif
 
       ! For fields from Input_Opt
       LOGICAL           :: LPRT
@@ -682,11 +651,7 @@
       N_TRACERS = Input_Opt%N_TRACERS
 
       ! Pick the proper # of tracers for convection
-#if   defined( APM )
-      N_TOT_TRC = N_TRACERS + N_APMTRA  
-#else
       N_TOT_TRC = N_TRACERS
-#endif
 
       ! Convection timestep [s]
       CONVDT = GET_TS_CONV() * 60e+0_fp 
@@ -877,9 +842,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CONV
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
-#if   defined( APM )
-      USE TRACER_MOD,         ONLY : N_APMTRA
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -931,15 +893,9 @@
       REAL(fp)           :: P1, P2, TDT   
       REAL(fp)           :: GAINMASS
       INTEGER            :: N_TOT_TRC      
-#if   defined( APM )
-      INTEGER            :: INDEXSOL( Input_Opt%N_TRACERS + N_APMTRA ) 
-      REAL(fp),  TARGET  :: F( IIPAR, JJPAR, LLPAR,
-     &                            Input_Opt%N_TRACERS + N_APMTRA )
-#else
       INTEGER            :: INDEXSOL( Input_Opt%N_TRACERS ) 
       REAL(fp),  TARGET  :: F( IIPAR, JJPAR, LLPAR,
      &                            Input_Opt%N_TRACERS )
-#endif
 
       ! For fields from Input_Opt
       LOGICAL            :: LPRT
@@ -970,11 +926,7 @@
       N_TRACERS = Input_Opt%N_TRACERS
 
       ! Pick the proper # of tracers for convection
-#if   defined( APM )
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C tracers + APM tracers
-#else
       N_TOT_TRC = N_TRACERS              ! G-C tracers only
-#endif
 
       ! Test??
       GAINMASS = 0e+0_fp
@@ -2826,18 +2778,6 @@
                      !   Factor of 10 in denom for unit conversion
                      !     1000 kg/m3 * 0.01 m/cm = 10 kg/m2/cm
                       
-!                    ! Prior to 9/14/15 - the value of ALPHA, which should be 
-!                    ! less than or equal to 1, is sometimes much higher than 
-!                    ! 1. Since ALPHA is used to calculate resuspension of 
-!                    ! precipitating mass from above, these high values of      
-!                    ! ALPHA lead to a gain in tracer mass at the lower levels 
-!                    ! in excess of what is coming from above (V. Shah, 9/14/15)
-!                    ALPHA   = REEVAPCN(K) * BMASS(K)
-!     &                          / ( PDOWN(K+1) * 10e+0_fp )
-!                    ! ALPHA2 is the fraction of the rained-out aerosols
-!                    ! that gets resuspended in grid box (I,J,L)
-!                    ALPHA2  = 0.5e+0_fp * ALPHA
-
                      ! %%%% CASE 1 %%%%
                      ! Partial re-evaporation. Less precip is leaving
                      ! the grid box then entered from above (V. Shah, 9/14/15)
@@ -2875,9 +2815,6 @@
 
                      ! Amount of aerosol lost to washout in grid box [kg/m2]
                      ! (V. Shah, 9/14/15)
-!                    ! Prior to 9/14/15 - the amount of tracer GAINED is 
-!                    ! (mistakenly) not added to Q before WETLOSS is calculated
-!                    !   WETLOSS = Q(K,IC) * BMASS(K) * WASHFRAC - GAINED
                      WETLOSS = ( Q(K,IC) * BMASS(K) + GAINED ) *
      &                         WASHFRAC - GAINED
 

@@ -28,7 +28,6 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
 #if   defined( TOMAS )
       USE TOMAS_MOD                             ! For TOMAS microphysics
-      USE TRACERID_MOD
 #endif
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
@@ -242,8 +241,9 @@
 
       ! Scalars
       INTEGER                        :: NUMDEP,   NWATER
-      INTEGER                        :: DRYHg0,   DRYHg2,  DryHgP
-      INTEGER                        :: ID_ACET
+      INTEGER                        :: DRYHg0,   DRYHg2,   DryHgP
+      INTEGER                        :: id_ACET,  id_ISOPN, id_MMN
+      INTEGER                        :: id_NK1
 
       ! Arrays for Baldocchi drydep polynomial coefficients
       REAL(fp), TARGET               :: DRYCOEFF(NPOLY    )
@@ -315,9 +315,6 @@
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE UNITCONV_MOD
       USE Species_Mod,        ONLY : Species
-#if defined( NC_DIAG )
-      USE TRACERID_MOD,       ONLY : IDTISOPN, IDTMMN
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -640,15 +637,15 @@
             IF ( ANY( Input_Opt%TINDEX(44,:) == N ) ) THEN
 
                ! Construct diagnostic name
-               IF ( N == IDTISOPN .AND. First_ISOPN ) THEN
+               IF ( N == id_ISOPN .AND. First_ISOPN ) THEN
                   DryDepName = 'ISOPND'
                   First_ISOPN = .FALSE.
-               ELSE IF ( N == IDTISOPN .AND. .NOT. First_ISOPN ) THEN
+               ELSE IF ( N == id_ISOPN .AND. .NOT. First_ISOPN ) THEN
                   DryDepName = 'ISOPNB'
-               ELSE IF ( N == IDTMMN .AND. First_MMN ) THEN
+               ELSE IF ( N == id_MMN .AND. First_MMN ) THEN
                   DryDepName = 'MACRN'
                   First_MMN = .FALSE.
-               ELSE IF ( N == IDTMMN .AND. .NOT. First_MMN ) THEN
+               ELSE IF ( N == id_MMN .AND. .NOT. First_MMN ) THEN
                   DryDepName = 'MAVKN'
                ELSE
                   DryDepName =  Input_Opt%TRACER_NAME(N)
@@ -1265,7 +1262,8 @@
       ! Now pass am_I_Root and RC to enable tracer unit conversion to 
       ! [kg] in TOMAS code (ewl, 8/12/15)
       !=================================================================
-      IF ( IDTNK1 > 0 ) THEN
+
+      IF ( id_NK1 > 0 ) THEN
          CALL AERO_DIADEN( am_I_Root, 1,       Input_Opt, State_Met,
      &                     State_Chm, SIZ_DIA, SIZ_DEN,   RC        )
          IF ( RC /= GIGC_SUCCESS ) THEN
@@ -1506,8 +1504,8 @@
 !
 !#if   defined( TOMAS )
 !               ! (win, 7/15/09)
-!               ELSE IF ( ( NTRAIND(K) >= IDTNK1  )   .AND.
-!     &                   ( NTRAIND(K) <  IDTNK1+IBINS ) ) THEN
+!               ELSE IF ( ( NTRAIND(K) >= id_NK1  )   .AND.
+!     &                   ( NTRAIND(K) <  id_NK1+IBINS ) ) THEN
 !
 !                  !=====================================================
 !                  ! Use size-resolved dry deposition calculations for 
@@ -1523,7 +1521,7 @@
 !                  ! evolves with time.  We have to save these in the 
 !                  ! DIAM and DEN variables so that we can hold these
 !                  ! PRIVATE for the parallel loop.
-!                  BIN  = NTRAIND(K) - IDTNK1 + 1
+!                  BIN  = NTRAIND(K) - id_NK1 + 1
 !                  DIAM = SIZ_DIA( I, J, BIN )     ! Diameter [m]
 !                  DEN  = SIZ_DEN( I, J, BIN )     ! Density  [kg/m3]
 !
@@ -1578,7 +1576,7 @@
                   ! evolves with time.  We have to save these in the 
                   ! DIAM and DEN variables so that we can hold these
                   ! PRIVATE for the parallel loop.
-                  BIN  = NTRAIND(K) - IDTNK1 + 1
+                  BIN  = NTRAIND(K) - id_NK1 + 1
                   DIAM = SIZ_DIA( I, J, BIN )     ! Diameter [m]
                   DEN  = SIZ_DEN( I, J, BIN )     ! Density  [kg/m3]
 
@@ -3910,6 +3908,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : Ind_
       USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
@@ -3990,6 +3989,8 @@
 !  30 Sep 2015 - R. Yantosca - DD_A_Radius is renamed to Radius
 !  14 Dec 2015 - R. Yantosca - Now use actual MW (MW_g) instead of emitted MW
 !                              (EmMW_g) to define the XMW array
+!  20 Jun 2016 - R. Yantosca - Now define a couple of species ID flags here
+!                              as module variables on the first call
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4254,7 +4255,14 @@
          ! Free pointer
          ThisSpc => NULL()
       ENDDO
- 
+
+      ! For netCDF diagnostics
+      id_ISOPN = Ind_('ISOPN')
+      id_MMN   = Ind_('MMN'  )
+
+      ! For TOMAS 
+      id_NK1   = Ind_('NK1'  )
+
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%%% NOTE: This can eventually be made local to mercury_mod.F (bmy, 9/21/15)   
       !=================================================================
@@ -4310,22 +4318,29 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
       DMID = 0e+0_f8
 
-      ! If we are not on the root CPU, don't pass variables to
-      ! Input_Opt but check if local NUMDEP matches the value
-      ! set in Input_Opt (ckeller, 1/14/2015).
-      IF ( am_I_Root ) THEN
-         Input_Opt%NUMDEP            = NUMDEP
-         Input_Opt%NDVZIND(1:NUMDEP) = NDVZIND(1:NUMDEP)
-         Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
-         Input_Opt%NTRAIND(1:NUMDEP) = NTRAIND(1:NUMDEP)
+      ! SDE 2016-03-27: This is now called after Input_Opt has already
+      ! been broadcast, so each CPU will do this independently anyway
+      Input_Opt%NUMDEP            = NUMDEP
+      Input_Opt%NDVZIND(1:NUMDEP) = NDVZIND(1:NUMDEP)
+      Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
+      Input_Opt%NTRAIND(1:NUMDEP) = NTRAIND(1:NUMDEP)
 
-      ELSE
-         IF ( Input_Opt%NUMDEP /= NUMDEP ) THEN
-            WRITE(MSG,*) 'NUMDEP /= Input_Opt%NUMDEP: ', NUMDEP,
-     &                   Input_Opt%NUMDEP
-            CALL ERROR_STOP( MSG, 'INIT_DRYDEP (drydep_mod.F)' )
-         ENDIF
-      ENDIF
+!      ! If we are not on the root CPU, don't pass variables to
+!      ! Input_Opt but check if local NUMDEP matches the value
+!      ! set in Input_Opt (ckeller, 1/14/2015).
+!      IF ( am_I_Root ) THEN
+!         Input_Opt%NUMDEP            = NUMDEP
+!         Input_Opt%NDVZIND(1:NUMDEP) = NDVZIND(1:NUMDEP)
+!         Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
+!         Input_Opt%NTRAIND(1:NUMDEP) = NTRAIND(1:NUMDEP)
+!
+!      ELSE
+!         IF ( Input_Opt%NUMDEP /= NUMDEP ) THEN
+!            WRITE(MSG,*) 'NUMDEP /= Input_Opt%NUMDEP: ', NUMDEP,
+!     &                   Input_Opt%NUMDEP
+!            CALL ERROR_STOP( MSG, 'INIT_DRYDEP (drydep_mod.F)' )
+!         ENDIF
+!      ENDIF
 
       !=================================================================
       ! Echo information to stdout

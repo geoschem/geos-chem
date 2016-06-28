@@ -772,7 +772,7 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE HCO_ExtList_Mod,    ONLY : GetExtNr
-    USE TRACERID_MOD,       ONLY : IDTPOA1, IDTPOG1
+    USE GIGC_State_Chm_Mod, only : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -791,6 +791,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use carbon
+!  16 Jun 2016 - C. Miller   - Now define species ID's with Ind_ function 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -801,6 +802,7 @@ CONTAINS
     CHARACTER(LEN=31)  :: SpcName, SrcName, DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGN_CARBON (hcoi_gc_diagn_mod.F90)'
+    INTEGER            :: id_POA1, id_POG1
 
     !=======================================================================
     ! DIAGN_CARBON begins here!
@@ -814,7 +816,11 @@ CONTAINS
          ( .not. Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
        RETURN
     ENDIF
-   
+    
+    ! Define species ID's
+    id_POA1 = IND_('POA1','T')
+    id_POG1 = IND_('POG1','T')
+
     ! Define diagnostics
     IF ( ND07 > 0 .AND. Input_Opt%LCARB ) THEN
 
@@ -829,10 +835,10 @@ CONTAINS
                 SpcName = 'BCPO'
              CASE ( 3 )
                 SpcName = 'OCPI'
-                IF ( IDTPOA1 > 0 ) SpcName = 'POA1'
+                IF ( id_POA1 > 0 ) SpcName = 'POA1'
              CASE ( 4 ) 
                 SpcName = 'OCPO'
-                IF ( IDTPOG1 > 0 ) SpcName = 'POG1'
+                IF ( id_POG1 > 0 ) SpcName = 'POG1'
           END SELECT
 
           ! HEMCO species ID
@@ -1478,7 +1484,7 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HCO_GetHcoID
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE HCO_ExtList_Mod,    ONLY : GetExtNr
-    USE TRACERID_MOD,       ONLY : IDTPOA1
+    USE GIGC_State_Chm_Mod, ONLY : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -1503,6 +1509,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use biomass
+!  17 Jun 2016 - R. Yantosca - Now define species ID's with Ind_ function
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1813,7 +1820,8 @@ CONTAINS
           !----------------------------------------
           ! %%%%% FOR POA SIMULATION %%%%%
           !----------------------------------------
-          IF ( IDTPOA1 > 0 ) THEN
+          IF ( IND_('POA1','T') > 0 ) THEN
+
              ! HEMCO species ID
              HcoID = GetHemcoId( 'POA1', HcoState, LOC, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2945,7 +2953,10 @@ CONTAINS
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_ExtList_Mod,    ONLY : GetExtOpt
-    USE TRACERID_MOD,       ONLY : IDTPOA1
+    
+    ! CODEATHON - This isn't needed
+    !USE TRACERID_MOD,       ONLY : IDTPOA1
+    ! CODEATHON
 !
 ! !INPUT PARAMETERS:
 !
@@ -4056,7 +4067,7 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HCO_GetHcoID
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE HCO_ExtList_Mod,    ONLY : GetExtNr
-    USE TRACERID_MOD,       ONLY : IDTCH4
+    USE GIGC_State_Chm_Mod, ONLY : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -4082,13 +4093,14 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  13 Sep 2014 - C. Keller   - Initial version
+!  16 Jun 2016 - C. Miller   - Now define species ID's with Ind_ funciton
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: ExtNr, IDCH4, Cat, HcoID, N
+    INTEGER            :: ExtNr, id_CH4, Cat, HcoID, N
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGN_CH4 (hcoi_gc_diagn_mod.F90)'
@@ -4101,10 +4113,10 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! Exit if the CH4 simulation is not selected
-    IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. IDTCH4 > 0 ) ) RETURN
+    IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. IND_('CH4','T') > 0 ) ) RETURN
 
     ! Get default HEMCO species ID for CH4 
-    IDCH4 = HCO_GetHcoID( 'CH4', HcoState )
+    id_CH4 = HCO_GetHcoID( 'CH4', HcoState )
 
     ! Extension number is zero (HEMCO core) until defined otherwise
     ExtNr = 0
@@ -4120,7 +4132,7 @@ CONTAINS
     IF ( HcoID > 0 ) THEN
        Cat   = -1
     ELSE
-       HcoID = IDCH4
+       HcoID = id_CH4
        Cat   = 1
     ENDIF
 
@@ -4152,7 +4164,7 @@ CONTAINS
     IF ( HcoID > 0 ) THEN
        Cat   = -1
     ELSE
-       HcoID = IDCH4
+       HcoID = id_CH4
        Cat   = 2
     ENDIF
     IF ( HcoID > 0 ) THEN 
@@ -4183,7 +4195,7 @@ CONTAINS
     IF ( HcoID > 0 ) THEN
        Cat   = -1
     ELSE
-       HcoID = IDCH4
+       HcoID = id_CH4
        Cat   = 3
     ENDIF
     IF ( HcoID > 0 ) THEN 
@@ -4214,7 +4226,7 @@ CONTAINS
     IF ( HcoID > 0 ) THEN
        Cat   = -1
     ELSE
-       HcoID = IDCH4
+       HcoID = id_CH4
        Cat   = 4
     ENDIF
     IF ( HcoID > 0 ) THEN 
@@ -4245,7 +4257,7 @@ CONTAINS
     IF ( HcoID > 0 ) THEN
        Cat   = -1
     ELSE
-       HcoID = IDCH4
+       HcoID = id_CH4
        Cat   = 5
     ENDIF
     IF ( HcoID > 0 ) THEN 
@@ -4276,7 +4288,7 @@ CONTAINS
     IF ( HcoID > 0 ) THEN
        Cat   = -1
     ELSE
-       HcoID = IDCH4
+       HcoID = id_CH4
        Cat   = 6
     ENDIF
     IF ( HcoID > 0 ) THEN 
@@ -4307,7 +4319,7 @@ CONTAINS
     IF ( HcoID > 0 ) THEN
        Cat   = -1
     ELSE
-       HcoID = IDCH4
+       HcoID = id_CH4
        Cat   = 7
     ENDIF
     IF ( HcoID > 0 ) THEN 
@@ -4338,7 +4350,7 @@ CONTAINS
     IF ( HcoID > 0 ) THEN
        Cat   = -1
     ELSE
-       HcoID = IDCH4
+       HcoID = id_CH4
        Cat   = 8
     ENDIF
     IF ( HcoID > 0 ) THEN 
@@ -4376,10 +4388,10 @@ CONTAINS
        ENDIF
     ENDIF
     IF ( ExtNr > 0 ) THEN
-       IF ( IDCH4 < 0 ) THEN
+       IF ( id_CH4 < 0 ) THEN
           HcoID = HCO_GetHcoID( 'CH4_tot', HcoState )
        ELSE
-          HcoID = IDCH4
+          HcoID = id_CH4
        ENDIF
        IF ( HcoID > 0 ) THEN 
    
@@ -4416,10 +4428,10 @@ CONTAINS
        ENDIF
     ENDIF
     IF ( ExtNr > 0 ) THEN
-       IF ( IDCH4 < 0 ) THEN
+       IF ( id_CH4 < 0 ) THEN
           HcoID = HCO_GetHcoID( 'CH4_tot', HcoState )
        ELSE
-          HcoID = IDCH4
+          HcoID = id_CH4
        ENDIF
        IF ( HcoID > 0 ) THEN 
    
@@ -4692,7 +4704,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: ExtNr, Cat, HcoID, N
-    INTEGER            :: IDBCPI, IDBCPO, IDOCPI, IDOCPO
+    INTEGER            :: id_BCPI, id_BCPO, id_OCPI, id_OCPO
     INTEGER            :: IDSO4
     INTEGER            :: IDCO
     CHARACTER(LEN=31)  :: DiagnName
@@ -4706,14 +4718,14 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! Exit if the CH4 simulation is not selected
-    !IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. IDTCH4 > 0 ) ) RETURN
+    !IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. id_CH4 > 0 ) ) RETURN
     ! SOME SORT OF IF DEFINED TOMAS HERE
 
     ! Get default HEMCO species ID for BC/OC
-    IDBCPI = HCO_GetHcoID( 'BCPI', HcoState )
-    IDBCPO = HCO_GetHcoID( 'BCPO', HcoState )
-    IDOCPI = HCO_GetHcoID( 'OCPI', HcoState )
-    IDOCPO = HCO_GetHcoID( 'OCPO', HcoState )
+    id_BCPI = HCO_GetHcoID( 'BCPI', HcoState )
+    id_BCPO = HCO_GetHcoID( 'BCPO', HcoState )
+    id_OCPI = HCO_GetHcoID( 'OCPI', HcoState )
+    id_OCPO = HCO_GetHcoID( 'OCPO', HcoState )
 
     ! Extension number is zero (HEMCO core) until defined otherwise
     ExtNr = 0
@@ -4722,7 +4734,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
        Cat = CATEGORY_ANTHRO
-       HcoID = IDBCPI
+       HcoID = id_BCPI
        ! Create diagnostic container
        DiagnName = 'BCPI_ANTH'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4745,7 +4757,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
        Cat = CATEGORY_ANTHRO
-       HcoID = IDBCPO
+       HcoID = id_BCPO
        ! Create diagnostic container
        DiagnName = 'BCPO_ANTH'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4768,7 +4780,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
        Cat = CATEGORY_ANTHRO
-       HcoID = IDOCPI
+       HcoID = id_OCPI
        ! Create diagnostic container
        DiagnName = 'OCPI_ANTH'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4791,7 +4803,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
        Cat = CATEGORY_ANTHRO
-       HcoID = IDOCPO
+       HcoID = id_OCPO
        ! Create diagnostic container
        DiagnName = 'OCPO_ANTH'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4814,7 +4826,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
        Cat = CATEGORY_BIOFUEL
-       HcoID = IDBCPI
+       HcoID = id_BCPI
        ! Create diagnostic container
        DiagnName = 'BCPI_BF'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4837,7 +4849,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
        Cat = CATEGORY_BIOFUEL
-       HcoID = IDBCPO
+       HcoID = id_BCPO
        ! Create diagnostic container
        DiagnName = 'BCPO_BF'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4860,7 +4872,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
        Cat = CATEGORY_BIOFUEL
-       HcoID = IDOCPI
+       HcoID = id_OCPI
        ! Create diagnostic container
        DiagnName = 'OCPI_BF'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4883,7 +4895,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
        Cat = CATEGORY_BIOFUEL
-       HcoID = IDOCPO
+       HcoID = id_OCPO
        ! Create diagnostic container
        DiagnName = 'OCPO_BF'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4916,7 +4928,7 @@ CONTAINS
     ! %%%%% BPCI from BIOB (Category ? or species BCPI_bb)  %%%%%
     !-----------------------------------------------------------------
 
-       HcoID = IDBCPI
+       HcoID = id_BCPI
        ! Create diagnostic container
        DiagnName = 'BCPI_BB'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4938,7 +4950,7 @@ CONTAINS
     ! %%%%% BPCO from BIOB (Category ? or species BCPO_bb)  %%%%%
     !-----------------------------------------------------------------
 
-       HcoID = IDBCPO
+       HcoID = id_BCPO
        ! Create diagnostic container
        DiagnName = 'BCPO_BB'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4960,7 +4972,7 @@ CONTAINS
     ! %%%%% OCPI from BIOB (Category ? or species OCPI_bb)  %%%%%
     !-----------------------------------------------------------------
 
-       HcoID = IDOCPI
+       HcoID = id_OCPI
        ! Create diagnostic container
        DiagnName = 'OCPI_BB'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4983,7 +4995,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
 
-       HcoID = IDOCPO
+       HcoID = id_OCPO
        ! Create diagnostic container
        DiagnName = 'OCPO_BB'
        CALL Diagn_Create( am_I_Root,                     &

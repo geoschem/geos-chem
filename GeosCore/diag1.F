@@ -33,6 +33,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : Ind_
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE Species_Mod,        ONLY : Species
@@ -43,11 +44,6 @@
       USE TIME_MOD,           ONLY : GET_DAY
       USE TIME_MOD,           ONLY : GET_HOUR
       USE ERROR_MOD,          ONLY : SAFE_DIV
-
-#if defined( APM )
-      USE TRACER_MOD,         ONLY : N_APMTRA
-#endif
-
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE PHYSCONSTANTS
@@ -159,6 +155,7 @@
 !  31 May 2016 - E. Lundgren - Remove usage of TCVV; replace with AIRMW/emMW_g
 !  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
 !                              NAMEGAS with ThisSpc%Name from species database
+!  22 Jun 2016 - R. Yantosca - Now use IND_() to define id_PASV species ID
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -168,13 +165,8 @@
       LOGICAL            :: AVGW_ALLOCATED, IS_FULLCHEM, IS_CHEM
       INTEGER            :: I, J, K, L, N, NN, IREF, JREF, LN45, N_TRC
       REAL(fp)           :: FDTT, XLOCTM, AREA_M2
-#if   defined( APM ) 
-      REAL(fp), TARGET   :: STT_VV(IIPAR,JJPAR,LLPAR,
-     &                             Input_Opt%N_TRACERS+N_APMTRA)
-#else 
       REAL(fp), TARGET   :: STT_VV(IIPAR,JJPAR,LLPAR,
      &                             Input_Opt%N_TRACERS+2)
-#endif 
 
       ! For FP potential temperature (hotp 7/31/09)
       REAL(fp)          :: P0
@@ -193,14 +185,12 @@
       REAL(fp)           :: Arr2D(IIPAR,JJPAR)
       CHARACTER(LEN=255) :: DiagnName
 
-      ! For Hg diagnostics
-      INTEGER            :: Id_Hg2
-      INTEGER            :: Id_HgP
-
-      ! For passive tracer diagnostics
+      ! For species ID's
       TYPE(Species), POINTER :: ThisSpc
       LOGICAL,       SAVE    :: FIRST = .TRUE.
-      INTEGER,       SAVE    :: IDTPASV
+      INTEGER,       SAVE    :: id_PASV
+      INTEGER,       SAVE    :: id_Hg2
+      INTEGER,       SAVE    :: id_HgP
 
       !=================================================================
       ! DIAG1 begins here!
@@ -219,41 +209,24 @@
       ThisSpc            => NULL()
 
       ! Pick the proper # of tracers for diagnostics
-#if   defined( APM )
-      N_TRC = N_TRACERS + N_APMTRA    ! G-C advected tracers + APM tracers
-#else 
-      N_TRC = N_TRACERS               ! G-C advected tracers
-#endif
+      N_TRC       = N_TRACERS               ! G-C advected tracers
 
       ! Is it a fullchem run?
       IS_FULLCHEM = ITS_A_FULLCHEM_SIM
       IS_CHEM     = ITS_TIME_FOR_CHEM()
       
       !---------------------------------------------
-      ! Find the IDTPASV tracer flag (bmy, 5/2/16)
+      ! First-time setup
       !---------------------------------------------
       IF ( FIRST ) THEN 
 
-         ! Initialize
-         IDTPASV = 0
+         ! Define species ID's  on the first call
+         id_Hg2  = Ind_('Hg2' )
+         id_HgP  = Ind_('HgP' )
+         id_PASV = Ind_('PASV')
 
-         ! Loop over all species
-         DO N = 1, State_Chm%nSpecies
-
-            ! Get info about this species from the database
-            ThisSpc => State_Chm%SpcData(N)%Info
-
-            ! Define tracer ID flags locally
-            SELECT CASE ( TRIM( ThisSpc%Name ) )
-               CASE( 'PASV' )
-                  IDTPASV  = ThisSpc%ModelId
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT
-
-            ! Free pointer
-            ThisSpc => NULL()
-         ENDDO
+         ! Reset first-time flag
+         FIRST = .FALSE.
       ENDIF
 
       ! Compute conc. in mixing ratio for ND35, ND45, ND47 diagnostics 
@@ -275,7 +248,7 @@
      &         MAX( State_Chm%Tracers(I,J,L,N) * AIRMW / ThisSpc%emMW_g,
      &              0e+0_fp )
 
-            IF ( N == IDTPASV ) THEN
+            IF ( N == id_PASV ) THEN
 
                ! Also express tracer conc. in v/v total air (mps, 11/18/15)
                STT_VV(I,J,L,N+1) =
@@ -311,32 +284,32 @@
       !-----------------------------------------------!
       IF(ND03 > 0) THEN
 
-         ! Indices for total Hg2 and HgP.  NOTE: Id_Hg_tot is always 1!
-         Id_Hg2 = State_Chm%Id_Hg2(1)
-         Id_HgP = State_Chm%Id_Hg2(1)
-         
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L)
-        DO L = 1, LLPAR
-        DO J = 1, JJPAR
-        DO I = 1, IIPAR
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-          ! Reactive gaseous mercury, RGM
-          AD03_RGM(I,J,L) = AD03_RGM(I,J,L) +
-     &                      State_Chm%Tracers(I,J,L,ID_Hg2) * AIRMW /
-     &                      State_Chm%SpcData(ID_Hg2)%Info%emMW_g * 
-     &                      1e+12_fp
+            ! Reactive gaseous mercury, RGM
+            IF ( id_Hg2 > 0 ) THEN
+               AD03_RGM(I,J,L) = AD03_RGM(I,J,L) +
+     &              State_Chm%Tracers(I,J,L,id_Hg2) * AIRMW /
+     &              State_Chm%SpcData(id_Hg2)%Info%emMW_g * 
+     &              1e+12_fp
+            ENDIF
 
-          ! Reactive particulate mercury, PBM
-          AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
-     &                      State_Chm%Tracers(I,J,L,ID_HgP) * AIRMW /
-     &                      State_Chm%SpcData(ID_HgP)%Info%emMW_g *
-     &                      1e+12_fp
+            ! Reactive particulate mercury, PBM
+            IF ( id_HgP > 0 ) THEN
+               AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
+     &              State_Chm%Tracers(I,J,L,id_HgP) * AIRMW /
+     &              State_Chm%SpcData(id_HgP)%Info%emMW_g *
+     &              1e+12_fp
+            ENDIF
                                                        
-        ENDDO
-        ENDDO
-        ENDDO
+         ENDDO
+         ENDDO
+         ENDDO
 !$OMP END PARALLEL DO 
       ENDIF
 
@@ -444,7 +417,7 @@
                AD45(I,J,L,N) = AD45(I,J,L,N) + 
      &                         STT_VV(I,J,L,N) * LTOTH(I,J)
 
-               IF ( N == IDTPASV ) THEN
+               IF ( N == id_PASV ) THEN
 
                   ! Also save passive tracer in v/v total air (mps, 11/18/15)
                   AD45(I,J,L,N+1) = AD45(I,J,L,N+1) + 
@@ -482,7 +455,7 @@
             DO I = 1, IIPAR
                AD47(I,J,L,N) = AD47(I,J,L,N) + STT_VV(I,J,L,N) 
 
-               IF ( N == IDTPASV ) THEN
+               IF ( N == id_PASV ) THEN
 
                   ! Also save passive tracer in v/v total air (mps, 11/18/15)
                   AD47(I,J,L,N+1) = AD47(I,J,L,N+1) + STT_VV(I,J,L,N+1)
@@ -733,7 +706,7 @@
             ! then archive the latest concentration into the diagnostic structure
             IF ( ANY( Input_Opt%TINDEX(45,:) == N ) ) THEN
 
-               IF ( N == IDTPASV ) THEN
+               IF ( N == id_PASV ) THEN
 
                   !-------------------------------------
                   ! Passive tracer in v/v dry air

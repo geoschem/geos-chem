@@ -134,6 +134,11 @@
       INTEGER, ALLOCATABLE :: ND48_L(:)
       INTEGER, ALLOCATABLE :: ND48_N(:)
 
+      INTEGER              :: id_HNO3, id_N2O5, id_HNO4, id_NO
+      INTEGER              :: id_PAN,  id_PMN,  id_PPN,  id_O3
+      INTEGER              :: id_R4N2, id_SALA, id_SALC, id_NO2
+
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -190,9 +195,6 @@
       USE TIME_MOD,           ONLY : GET_LOCALTIME,      GET_NYMD
       USE TIME_MOD,           ONLY : GET_NHMS,           GET_TAU
       USE TIME_MOD,           ONLY : EXPAND_DATE,        ITS_A_NEW_DAY
-      USE TRACERID_MOD,       ONLY : IDTHNO3, IDTN2O5, IDTHNO4, IDTNO
-      USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
-      USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
 
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
@@ -266,12 +268,12 @@
          IS_SLP      = ASSOCIATED( State_Met%SLP     )
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
          IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
-         IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
-         IS_NOy      = ( IS_FULLCHEM .and. IDTNO   > 0 .and.
-     &                   IDTNO2  > 0 .and. IDTPAN  > 0 .and.
-     &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
-     &                   IDTPPN  > 0 .and. IDTR4N2 > 0 .and.
-     &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 ) 
+         IS_SEASALT  = ( id_SALA > 0 .and. id_SALC > 0 )
+         IS_NOy      = ( IS_FULLCHEM .and. id_NO   > 0 .and.
+     &                   id_NO2  > 0 .and. id_PAN  > 0 .and.
+     &                   id_HNO3 > 0 .and. id_PMN  > 0 .and.
+     &                   id_PPN  > 0 .and. id_R4N2 > 0 .and.
+     &                   id_N2O5 > 0 .and. id_HNO4 > 0 ) 
 
          ! Replace YYYYMMDD tokens in filename
          FILENAME = TRIM( ND48_OUTPUT_FILE )
@@ -362,85 +364,85 @@
                Q(L) = 0e+0_fp
 
 !               ! NO
-!               Q(L) = Q(L) + ( TCVV(IDTNO)         * 
-!     &                         STT(I,J,L,IDTNO)    / 
+!               Q(L) = Q(L) + ( TCVV(id_NO)         * 
+!     &                         STT(I,J,L,id_NO)    / 
 !     &                         AD(I,J,L) )
 !
 !               ! NO2
-!               Q(L) = Q(L) + ( TCVV(IDTNO2)        * 
-!     &                         STT(I,J,L,IDTNO2)   / 
+!               Q(L) = Q(L) + ( TCVV(id_NO2)        * 
+!     &                         STT(I,J,L,id_NO2)   / 
 !     &                         AD(I,J,L) )
 !
 !               ! PAN
-!               Q(L) = Q(L) + ( TCVV(IDTPAN)        * 
-!     &                         STT(I,J,L,IDTPAN)   / 
+!               Q(L) = Q(L) + ( TCVV(id_PAN)        * 
+!     &                         STT(I,J,L,id_PAN)   / 
 !     &                         AD(I,J,L) )
 !
 !               ! HNO3
-!               Q(L) = Q(L) + ( TCVV(IDTHNO3)       *
-!     &                         STT(I,J,L,IDTHNO3)  / 
+!               Q(L) = Q(L) + ( TCVV(id_HNO3)       *
+!     &                         STT(I,J,L,id_HNO3)  / 
 !     &                         AD(I,J,L) )
 !            
 !               ! PMN
-!               Q(L) = Q(L) + ( TCVV(IDTPMN)        *
-!     &                         STT(I,J,L,IDTPMN)   / 
+!               Q(L) = Q(L) + ( TCVV(id_PMN)        *
+!     &                         STT(I,J,L,id_PMN)   / 
 !     &                         AD(I,J,L) )
 !
 !               ! PPN
-!               Q(L) = Q(L) + ( TCVV(IDTPPN)        * 
-!     &                         STT(I,J,L,IDTPPN)   / 
+!               Q(L) = Q(L) + ( TCVV(id_PPN)        * 
+!     &                         STT(I,J,L,id_PPN)   / 
 !     &                         AD(I,J,L) )
 ! 
 !               ! R4N2
-!               Q(L) = Q(L) + ( TCVV(IDTR4N2)       *
-!     &                         STT(I,J,L,IDTR4N2)  / 
+!               Q(L) = Q(L) + ( TCVV(id_R4N2)       *
+!     &                         STT(I,J,L,id_R4N2)  / 
 !     &                         AD(I,J,L) )
 !            
 !               ! N2O5
-!               Q(L) = Q(L) + ( 2d0 * TCVV(IDTN2O5) *
-!     &                         STT(I,J,L,IDTN2O5)  / 
+!               Q(L) = Q(L) + ( 2d0 * TCVV(id_N2O5) *
+!     &                         STT(I,J,L,id_N2O5)  / 
 !     &                         AD(I,J,L) )
 !                        
 !               ! HNO4
-!               Q(L) = Q(L) + ( TCVV(IDTHNO4)       *
-!     &                         STT(I,J,L,IDTHNO4)  / 
+!               Q(L) = Q(L) + ( TCVV(id_HNO4)       *
+!     &                         STT(I,J,L,id_HNO4)  / 
 !     &                         AD(I,J,L) )
 
                ! NO
-               Q(L) = Q(L) + ( TCVV(IDTNO)         * 
-     &                         STT(I,J,L,IDTNO) )
+               Q(L) = Q(L) + ( TCVV(id_NO)         * 
+     &                         STT(I,J,L,id_NO) )
 
                ! NO2
-               Q(L) = Q(L) + ( TCVV(IDTNO2)        * 
-     &                         STT(I,J,L,IDTNO2) )
+               Q(L) = Q(L) + ( TCVV(id_NO2)        * 
+     &                         STT(I,J,L,id_NO2) )
 
                ! PAN
-               Q(L) = Q(L) + ( TCVV(IDTPAN)        * 
-     &                         STT(I,J,L,IDTPAN) )
+               Q(L) = Q(L) + ( TCVV(id_PAN)        * 
+     &                         STT(I,J,L,id_PAN) )
 
                ! HNO3
-               Q(L) = Q(L) + ( TCVV(IDTHNO3)       *
-     &                         STT(I,J,L,IDTHNO3) )
+               Q(L) = Q(L) + ( TCVV(id_HNO3)       *
+     &                         STT(I,J,L,id_HNO3) )
             
                ! PMN
-               Q(L) = Q(L) + ( TCVV(IDTPMN)        *
-     &                         STT(I,J,L,IDTPMN) )
+               Q(L) = Q(L) + ( TCVV(id_PMN)        *
+     &                         STT(I,J,L,id_PMN) )
 
                ! PPN
-               Q(L) = Q(L) + ( TCVV(IDTPPN)        * 
-     &                         STT(I,J,L,IDTPPN) )
+               Q(L) = Q(L) + ( TCVV(id_PPN)        * 
+     &                         STT(I,J,L,id_PPN) )
  
                ! R4N2
-               Q(L) = Q(L) + ( TCVV(IDTR4N2)       *
-     &                         STT(I,J,L,IDTR4N2) )
+               Q(L) = Q(L) + ( TCVV(id_R4N2)       *
+     &                         STT(I,J,L,id_R4N2) )
             
                ! N2O5
-               Q(L) = Q(L) + ( 2d0 * TCVV(IDTN2O5) *
-     &                         STT(I,J,L,IDTN2O5) )
+               Q(L) = Q(L) + ( 2d0 * TCVV(id_N2O5) *
+     &                         STT(I,J,L,id_N2O5) )
                         
                ! HNO4
-               Q(L) = Q(L) + ( TCVV(IDTHNO4)       *
-     &                         STT(I,J,L,IDTHNO4) )
+               Q(L) = Q(L) + ( TCVV(id_HNO4)       *
+     &                         STT(I,J,L,id_HNO4) )
             ENDDO
 
          ELSE IF ( N == 153 ) THEN 
@@ -516,10 +518,10 @@
             GMTRC    = 8
 
             DO L = 1, K
-!               Q(L) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
-!     &                  TCVV(IDTSALA)      / AD(I,J,L) 
-               Q(L) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
-     &                  TCVV(IDTSALA)
+!               Q(L) = ( STT(I,J,L,id_SALA) + STT(I,J,L,id_SALC) ) *
+!     &                  TCVV(id_SALA)      / AD(I,J,L) 
+               Q(L) = ( STT(I,J,L,id_SALA) + STT(I,J,L,id_SALC) ) *
+     &                  TCVV(id_SALA)
             ENDDO
 
          ELSE IF ( N == 159 ) THEN
@@ -1042,11 +1044,14 @@
 !  NOTES:
 !  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
+!  22 Jun 2016 - R. Yantosca -  Now define species ID's with IND()
+
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD, ONLY : GET_MODELNAME, GET_HALFPOLAR
       USE ERROR_MOD, ONLY : ALLOC_ERR, ERROR_STOP
+      USE GIGC_State_Chm_Mod, ONLY : Ind_
 
       USE CMN_SIZE_MOD  ! Size parameters
 
@@ -1071,6 +1076,20 @@
       ! Location string
       LOCATION         = 'INIT_DIAG48 ("diag48_mod.f")'
      
+      ! Define species ID's
+      id_HNO3 = Ind_('HNO3')
+      id_N2O5 = Ind_('N2O5')
+      id_HNO4 = Ind_('HNO4')
+      id_NO   = Ind_('NO'  )
+      id_PAN  = Ind_('PAN' )
+      id_PMN  = Ind_('PMN' )
+      id_PPN  = Ind_('PPN' )
+      id_O3   = Ind_('O3'  )
+      id_R4N2 = Ind_('R4N2')
+      id_SALA = Ind_('SALA')
+      id_SALC = Ind_('SALC')
+      id_NO2  = Ind_('NO2' )
+
       !-----------------------------
       ! Get values from input_mod.f
       !-----------------------------

@@ -3087,6 +3087,27 @@ CONTAINS
 
        CALL FileData_ArrCheck( Lct%Dct%Dta, 1, 1, NT, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR INTEL FORTRAN COMPIILER v12 AND HIGHER (sde, bmy, 6/27/16)
+!%%%
+!%%% Intel Fortran Compiler 12 and higher seems to exhibit an optimization
+!%%% bug that causes the DO loop below to generate a seg fault.  This only
+!%%% happens when optimization is turned on (i.e. compiling with DEBUG=n,
+!%%% which picks the -O2 optimization level).
+!%%%
+!%%% This behavior is not seen in earlier Intel Fortran Compiler versions,
+!%%% such as IFORT 11.
+!%%%
+!%%% Seb Eastham discovered the following workaround: To assign the pointer
+!%%% fuekd Lct%Dct%Dta%V2(1) manually right before the DO loop statement.
+!%%% This seems to be sufficient to avoid the seg fault error.  We aren't
+!%%% sure why though.  It does seem to be related to optimization.
+!%%%
+!%%% Please see this wiki page for more information:
+!%%%   wiki.geos-chem.org/HEMCO#IFORT_13.2FIFORT_14_segmentation_fault_error
+!%%%
+       Lct%Dct%Dta%V2(1)%Val(1,1) = Vals(1)
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        DO I = 1, NT
           Lct%Dct%Dta%V2(I)%Val(1,1) = Vals(I)
        ENDDO

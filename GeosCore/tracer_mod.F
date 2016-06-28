@@ -25,16 +25,6 @@
 !
       PUBLIC :: CHECK_STT
       PUBLIC :: CHECK_STT_NESTED
-#if   defined( APM )
-      PUBLIC :: INIT_TRACER
-#endif
-!
-! !PUBLIC DATA MEMBERS:
-!
-#if   defined( APM )
-      ! # of APM tracers
-      INTEGER, PUBLIC           :: N_APMTRA   ! # of APM tracers
-#endif
 !
 ! !REMARKS:
 !  Most of the functionality of this module has been superseded by
@@ -57,6 +47,8 @@
 !  24 Mar 2015 - E. Lundgren - Remove shadow copy of Input_Opt%N_TRACERS
 !  24 Mar 2015 - E. Lundgren - Put init_tracer within APM ifdef block
 !  24 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -125,13 +117,8 @@
       !=================================================================
 
       ! Pick the proper # of tracers
-#if   defined( APM )
-      ! G-C advected tracers + APM tracers
-      N_TOT_TRC = Input_Opt%N_TRACERS + N_APMTRA   
-#else
       ! G-C advected tracers only
       N_TOT_TRC = Input_Opt%N_TRACERS       
-#endif
 
       ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -323,80 +310,4 @@
 
       END SUBROUTINE CHECK_STT_NESTED
 !EOC
-#if   defined( APM )
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_tracer
-!
-! !DESCRIPTION: Subroutine INIT\_TRACER initializes all module variables.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INIT_TRACER( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-      USE APM_INIT_MOD,       ONLY : APM_NTRACERS
-      USE APM_INIT_MOD,       ONLY : LAPM
-      USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure
-! 
-! !REVISION HISTORY:
-!  15 Jul 2004 - R. Yantosca - Initial version
-!  25 Oct 2005 - R. Yantosca - Now allocate XNUMOL
-!  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
-!  05 Mar 2012 - M. Payer    - Added ProTeX headers
-!  26 Feb 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC as arguments
-!  07 Mar 2013 - R. Yantosca - Now assign RC=GIGC_SUCCESS outside of APM block
-!  04 Apr 2013 - R. Yantosca - Removed STT (now in State_Chm)
-!  25 Jun 2014 - R. Yantosca - Now is just used to set N_TRACERS & N_APMTRA
-!  24 Mar 2015 - E. Lundgren - Remove module copy of Input_Opt%N_TRACERS
-!  24 Mar 2015 - E. Lundgren - Move #if defined(APM) to input_mod.F so that
-!                              init_tracer only called if APM defined
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: AS, N_TOT_TRC
-      INTEGER :: N_APMTRAC1
-      INTEGER :: N_TRACERS
-
-      !=================================================================
-      ! We are using APM microphysics!
-      !=================================================================
-
-      ! Force LAPM=T if we compile with APM=yes makefile option
-      ! NOTE: LAPM is somewhat superfluous, since we now can use the
-      ! C-preprocessor switch to activate the code for APM simulations
-      ! (bmy, 2/17/11)
-      LAPM      = .TRUE.
-
-      N_TRACERS = Input_Opt%N_TRACERS
-
-      ! Add additional tracers for APM
-      CALL APM_NTRACERS( N_TRACERS, N_APMTRAC1 )
-      N_APMTRA  = N_APMTRAC1  
- 
-      ! Assume success
-      RC        = GIGC_SUCCESS
-
-      END SUBROUTINE INIT_TRACER
-!EOC
-#endif
       END MODULE TRACER_MOD

@@ -87,15 +87,15 @@
       
       ! Scalars for Hg indexing 
       INTEGER          :: N_Hg_CATS
-      INTEGER          :: IDTHg0
-      INTEGER          :: IDTHg2
+      INTEGER          :: id_Hg0
+      INTEGER          :: id_Hg2
 
       ! Pointers for Hg Indexing
       ! NOTE: Because these are SAVEd pointers (by virtue of being 
       ! module variables) we can set these to NULL here. (bmy, 4/29/16)
-      INTEGER, POINTER :: Id_Hg0 (:) => NULL()
-      INTEGER, POINTER :: Id_Hg2 (:) => NULL()
-      INTEGER, POINTER :: Id_HgP (:) => NULL()
+      INTEGER, POINTER :: Hg0_Id_List (:) => NULL()
+      INTEGER, POINTER :: Hg2_Id_List (:) => NULL()
+      INTEGER, POINTER :: HgP_Id_List (:) => NULL()
       INTEGER, POINTER :: Hg0_CAT(:) => NULL()
       INTEGER, POINTER :: Hg2_CAT(:) => NULL()
 
@@ -742,7 +742,7 @@
             CALL CHECK_DIMENSIONS( NI, NJ, NL )
           
             ! Save into arrays
-            IF ( ANY( ID_Hg0 == NTRACER ) ) THEN
+            IF ( ANY( Hg0_Id_List == NTRACER ) ) THEN
              
                !----------
                ! Hg(0)
@@ -757,7 +757,7 @@
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
              
-            ELSE IF ( ANY( ID_Hg2 == NTRACER ) ) THEN
+            ELSE IF ( ANY( Hg2_Id_List == NTRACER ) ) THEN
              
                !----------
                ! Hg(II)
@@ -787,7 +787,7 @@
             ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             CALL CHECK_DIMENSIONS( NI, NJ, NL )
           
-            IF ( ANY( ID_Hg2 == NTRACER ) ) THEN
+            IF ( ANY( Hg2_Id_List == NTRACER ) ) THEN
              
                !----------
                ! Hg(II)
@@ -864,11 +864,11 @@
      &                      / SCALEDYN
 
       ! Hg0 total dry deposition at the surface
-      N = IDTHg0
+      N         = id_Hg0
       HG0mth_dd = HG0mth_dd + AD44(:,:,N,1) / SCALECHEM
 
       ! Hg2 total dry deposition at the surface
-      N = IDTHg2
+      N         = id_Hg2
       HG2mth_dd = HG2mth_dd + AD44(:,:,N,1) / SCALECHEM
 #endif
 
@@ -1013,12 +1013,12 @@
       !================================================================
 
       ! Now get # of tagHg categories from State_Chm
-      N_Hg_CATS = State_Chm%N_Hg_CATS
+      N_Hg_CATS     = State_Chm%N_Hg_CATS
 
       ! Hg species index corresponding to a given Hg category number
-      Id_Hg0    => State_Chm%Id_Hg0
-      Id_Hg2    => State_Chm%Id_Hg2
-      Id_HgP    => State_Chm%Id_HgP
+      Hg0_Id_List   => State_Chm%Hg0_Id_List
+      Hg2_Id_List   => State_Chm%Hg2_Id_List
+      HgP_Id_List   => State_Chm%HgP_Id_List
 
       ! Category numbers for each Hg0 tracer
       ALLOCATE( Hg0_Cat( State_Chm%nSpecies ), STAT=RC )
@@ -1036,12 +1036,12 @@
          ! Point to the Species Database entry for tracer # N
          ThisSpc => State_Chm%SpcData(N)%Info
 
-         ! Define local IDTHg0 and IDTHg2 flags
+         ! Define local id_Hg0 and id_Hg2 flags
          SELECT CASE( TRIM( ThisSpc%Name ) )
             CASE( 'Hg0' ) 
-               IDTHg0  = ThisSpc%ModelId
+               id_Hg0 = ThisSpc%ModelId
             CASE( 'Hg2' ) 
-               IDTHg2 = ThisSpc%ModelId
+               id_Hg2 = ThisSpc%ModelId
             CASE DEFAULT
                ! Do nothing
          END SELECT
@@ -1147,9 +1147,9 @@
       IF ( ALLOCATED( HG2mth_wd   ) ) DEALLOCATE( HG2mth_wd   )
       
       ! Free pointers
-      Id_Hg0 => NULL()
-      Id_Hg2 => NULL()
-      Id_HgP => NULL()
+      Hg0_Id_List => NULL()
+      Hg2_Id_List => NULL()
+      HgP_Id_List => NULL()
 
       IF ( ASSOCIATED( Hg0_Cat ) ) DEALLOCATE( Hg0_CAT )
       IF ( ASSOCIATED( Hg2_Cat ) ) DEALLOCATE( Hg2_CAT )

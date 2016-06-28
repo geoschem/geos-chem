@@ -68,6 +68,7 @@
 !                              have binary punch input in HPC environments.
 !  16 May 2016 - M. Sulprizio- Remove AEROSOL_RURALBOX. The implementation of
 !                              FlexChem has rendered the routine obsolete.
+!  17 Jun 2016 - R. Yantosca - Now use locally-defined species ID flags
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -105,6 +106,17 @@
       ! Mass of hydrophilic aerosol from Mian Chin
       REAL(fp), ALLOCATABLE, SAVE   :: WAERSL(:,:,:,:)
 
+      ! Add tracer ID flags as module variables (bmy, 6/16/16)
+      INTEGER :: id_BCPI,  id_BCPO,  id_DST1,  id_DST2
+      INTEGER :: id_DST3,  id_DST4,  id_NH4,   id_NIT  
+      INTEGER :: id_OCPO,  id_OCPI,  id_SALA,  id_SALC 
+      INTEGER :: id_SO4,   id_SOAG,  id_SOAM,  id_SO4s
+      INTEGER :: id_NITs,  id_POA1,  id_POA2,  id_OPOA1
+      INTEGER :: id_OPOA2, id_TSOA1, id_TSOA2, id_TSOA3 
+      INTEGER :: id_TSOA0, id_ISOA1, id_ISOA2, id_ISOA3
+      INTEGER :: id_ASOAN, id_ASOA1, id_ASOA2, id_ASOA3
+      INTEGER :: id_DUST1
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -137,25 +149,9 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTDST1, IDTDST2
-      USE TRACERID_MOD,       ONLY : IDTDST3, IDTDST4, IDTNH4,  IDTNIT  
-      USE TRACERID_MOD,       ONLY : IDTOCPO, IDTOCPI, IDTSALA, IDTSALC 
-      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTSOAG, IDTSOAM
-      USE TRACERID_MOD,       ONLY : IDTSO4s, IDTNITs 
-      ! SOAupdate: update SOA tracers (hotp 7/25/10)
-      USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOA2
-      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOA2
-      ! SOAupdate: new mtp replaces SOA1-4 (hotp 5/20/10
-      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2 
-      USE TRACERID_MOD,       ONLY : IDTTSOA3, IDTTSOA0
-      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      ! SOAupdate: replace SOA5 with lumped aromatic (hotp 5/12/10)
-      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
-      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
       USE UCX_MOD,            ONLY : KG_STRAT_AER
       USE UNITCONV_MOD
 #if   defined( TOMAS ) 
-      USE TRACERID_MOD,       ONLY : IDTDUST1
       USE TOMAS_MOD,          ONLY : IBINS
 #endif
 !
@@ -320,11 +316,11 @@
                ! distribution but are currently simply treated in the same
                ! way (size and optics) as all other sulfate aerosol (DAR
                ! 2013)
-               SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4)    + 
-     &                                STT(I,J,L,IDTNH4)    +
-     &                                STT(I,J,L,IDTNIT)    +
-     &                                STT(I,J,L,IDTSO4s)   +
-     &                                STT(I,J,L,IDTNITs) ) /
+               SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,id_SO4)    + 
+     &                                STT(I,J,L,id_NH4)    +
+     &                                STT(I,J,L,id_NIT)    +
+     &                                STT(I,J,L,id_SO4s)   +
+     &                                STT(I,J,L,id_NITs) ) /
      &                                AIRVOL(I,J,L)
                SLA(I,J,L) = 0e+0_fp
                SPA(I,J,L) = 0e+0_fp
@@ -341,11 +337,11 @@
             ! distribution but are currently simply treated in the same
             ! way (size and optics) as all other sulfate aerosol (DAR
             ! 2013)
-            SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4)    + 
-     &                             STT(I,J,L,IDTNH4)    +
-     &                             STT(I,J,L,IDTNIT)    +
-     &                             STT(I,J,L,IDTSO4s)   +
-     &                             STT(I,J,L,IDTNITs) ) /
+            SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,id_SO4)    + 
+     &                             STT(I,J,L,id_NH4)    +
+     &                             STT(I,J,L,id_NIT)    +
+     &                             STT(I,J,L,id_SO4s)   +
+     &                             STT(I,J,L,id_NITs) ) /
      &                             AIRVOL(I,J,L)
 #endif
             
@@ -354,17 +350,17 @@
 
                ! Save these fractions for partitioning of optics
                ! until later when these may be treated independently
-               FRAC_SNA(I,J,L,1) = ( ( STT(I,J,L,IDTSO4 ) 
-     &                           +     STT(I,J,L,IDTSO4s) )
+               FRAC_SNA(I,J,L,1) = ( ( STT(I,J,L,id_SO4 ) 
+     &                           +     STT(I,J,L,id_SO4s) )
      &                           /   AIRVOL(I,J,L)          )
      &                           / SO4_NH4_NIT(I,J,L)
 
-               FRAC_SNA(I,J,L,2) = ( ( STT(I,J,L,IDTNIT )
-     &                           +     STT(I,J,L,IDTNITs) )
+               FRAC_SNA(I,J,L,2) = ( ( STT(I,J,L,id_NIT )
+     &                           +     STT(I,J,L,id_NITs) )
      &                           /   AIRVOL(I,J,L)          )
      &                           / SO4_NH4_NIT(I,J,L)
 
-               FRAC_SNA(I,J,L,3) = ( STT(I,J,L,IDTNH4)
+               FRAC_SNA(I,J,L,3) = ( STT(I,J,L,id_NH4)
      &                           /   AIRVOL(I,J,L)        ) 
      &                           / SO4_NH4_NIT(I,J,L)
                
@@ -390,19 +386,19 @@
          IF ( LCARB ) THEN
 
             ! Hydrophilic BC [kg/m3]
-            BCPI(I,J,L) = STT(I,J,L,IDTBCPI) / AIRVOL(I,J,L)
+            BCPI(I,J,L) = STT(I,J,L,id_BCPI) / AIRVOL(I,J,L)
 
             ! Hydrophobic BC [kg/m3]
-            BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / AIRVOL(I,J,L)
+            BCPO(I,J,L) = STT(I,J,L,id_BCPO) / AIRVOL(I,J,L)
 
             ! Hydrophobic OC [kg/m3]
             ! SOAupdate: Treat either OCPO (x2.1) or POA (x1.4) 
             ! POA now 1 and 2 (hotp 10/11/09)
-            IF ( IDTPOA1 > 0 .and. IDTPOA2 > 0 ) THEN
-               OCPO(I,J,L) = STT(I,J,L,IDTPOA1) * OCF / AIRVOL(I,J,L) +
-     &                       STT(I,J,L,IDTPOA2) * OCF / AIRVOL(I,J,L)
+            IF ( id_POA1 > 0 .and. id_POA2 > 0 ) THEN
+               OCPO(I,J,L) = STT(I,J,L,id_POA1) * OCF / AIRVOL(I,J,L) +
+     &                       STT(I,J,L,id_POA2) * OCF / AIRVOL(I,J,L)
             ELSE
-               OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCFOPOA / 
+               OCPO(I,J,L) = STT(I,J,L,id_OCPO) * OCFOPOA / 
      &                       AIRVOL(I,J,L)
             ENDIF
 
@@ -414,47 +410,47 @@
                ! (rjp, bmy, 7/15/04)
                ! SOAupdate: Update traditional SOA (hotp 7/21/10)
                ! for new mtp and isop (hotp 5/20/10)
-               OCPI(I,J,L) = ( STT(I,J,L,IDTTSOA1)
-     &                      +  STT(I,J,L,IDTTSOA2)
-     &                      +  STT(I,J,L,IDTTSOA3)
-     &                      +  STT(I,J,L,IDTTSOA0)
-     &                      +  STT(I,J,L,IDTISOA1)
-     &                      +  STT(I,J,L,IDTISOA2)
-     &                      +  STT(I,J,L,IDTISOA3) )
+               OCPI(I,J,L) = ( STT(I,J,L,id_TSOA1)
+     &                      +  STT(I,J,L,id_TSOA2)
+     &                      +  STT(I,J,L,id_TSOA3)
+     &                      +  STT(I,J,L,id_TSOA0)
+     &                      +  STT(I,J,L,id_ISOA1)
+     &                      +  STT(I,J,L,id_ISOA2)
+     &                      +  STT(I,J,L,id_ISOA3) )
      &                      /  AIRVOL(I,J,L) 
 
-               IF ( IDTOPOA1 > 0 .and. IDTOPOA2 > 0 ) THEN  ! hotp 7/28/10
+               IF ( id_OPOA1 > 0 .and. id_OPOA2 > 0 ) THEN  ! hotp 7/28/10
                   OCPI(I,J,L) = OCPI(I,J,L) 
-     &                        + ( STT(I,J,L,IDTOPOA1) * OCFOPOA
+     &                        + ( STT(I,J,L,id_OPOA1) * OCFOPOA
      &                        / AIRVOL(I,J,L) )
-     &                        + ( STT(I,J,L,IDTOPOA2) * OCFOPOA
+     &                        + ( STT(I,J,L,id_OPOA2) * OCFOPOA
      &                        / AIRVOL(I,J,L) )
                ENDIF
 
-               IF ( IDTOCPI > 0 ) THEN  ! hotp 7/28/10
+               IF ( id_OCPI > 0 ) THEN  ! hotp 7/28/10
                   OCPI(I,J,L) = OCPI(I,J,L)                                  
-     &                        + ( STT(I,J,L,IDTOCPI) * OCFOPOA
+     &                        + ( STT(I,J,L,id_OCPI) * OCFOPOA
      &                        / AIRVOL(I,J,L) )
                ENDIF
 
                ! LUMPAROMIVOC (always present) hotp 7/28/10
                OCPI(I,J,L) = OCPI(I,J,L) +
-     &                  ( (  STT(I,J,L,IDTASOAN) 
-     &                     + STT(I,J,L,IDTASOA1)
-     &                     + STT(I,J,L,IDTASOA2)
-     &                     + STT(I,J,L,IDTASOA3) )
+     &                  ( (  STT(I,J,L,id_ASOAN) 
+     &                     + STT(I,J,L,id_ASOA1)
+     &                     + STT(I,J,L,id_ASOA2)
+     &                     + STT(I,J,L,id_ASOA3) )
      &                     / AIRVOL(I,J,L) )
 
                ! Check to see if we are simulating SOAG and SOAM (tmf, 1/7/09)
-               IF ( IDTSOAG > 0 ) THEN
+               IF ( id_SOAG > 0 ) THEN
                  OCPI(I,J,L) = OCPI(I,J,L) + 
-     &                         STT(I,J,L,IDTSOAG) * OCFG /
+     &                         STT(I,J,L,id_SOAG) * OCFG /
      &                         AIRVOL(I,J,L)
                ENDIF
 
-               IF ( IDTSOAM > 0 ) THEN
+               IF ( id_SOAM > 0 ) THEN
                  OCPI(I,J,L) = OCPI(I,J,L) + 
-     &                         STT(I,J,L,IDTSOAM) * OCFM /
+     &                         STT(I,J,L,id_SOAM) * OCFM /
      &                         AIRVOL(I,J,L)
                ENDIF
 
@@ -465,7 +461,7 @@
                ! components which are attached to the OC aerosol.
                ! (rjp, bmy, 7/15/04)
                ! SOAupdate: use 2.1 (OCFOPOA) (hotp 7/21/10)
-               OCPI(I,J,L) = STT(I,J,L,IDTOCPI) * OCFOPOA /
+               OCPI(I,J,L) = STT(I,J,L,id_OCPI) * OCFOPOA /
      &                       AIRVOL(I,J,L)
                   
             ENDIF ! LSOA
@@ -516,44 +512,44 @@
                ! Bin #1
                IF ( Input_Opt%DUSTREFF(K) < 0.2e-6_fp ) THEN
                   SOILDUST(I,J,L,1) = SOILDUST(I,J,L,1)
-     &                              + STT(I,J,L,IDTDUST1+K-1)  
+     &                              + STT(I,J,L,id_DUST1+K-1)  
      &                              / AIRVOL(I,J,L)
 
 
                ! Bin #2
                ELSE IF ( Input_Opt%DUSTREFF(K) < 0.325e-6_fp ) THEN
                   SOILDUST(I,J,L,2) = SOILDUST(I,J,L,2)
-     &                              + STT(I,J,L,IDTDUST1+K-1) 
+     &                              + STT(I,J,L,id_DUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #3
                ELSE IF ( Input_Opt%DUSTREFF(K) < 0.6e-6_fp ) THEN
                   SOILDUST(I,J,L,3) = SOILDUST(I,J,L,3)
-     &                              + STT(I,J,L,IDTDUST1+K-1) 
+     &                              + STT(I,J,L,id_DUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #4
                ELSE IF ( Input_Opt%DUSTREFF(K) < 1.15e-6_fp ) THEN
                   SOILDUST(I,J,L,4) = SOILDUST(I,J,L,4)
-     &                              + STT(I,J,L,IDTDUST1+K-1) 
+     &                              + STT(I,J,L,id_DUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #5
                ELSE IF ( Input_Opt%DUSTREFF(K) < 2.0e-6_fp ) THEN
                   SOILDUST(I,J,L,5) = SOILDUST(I,J,L,5)
-     &                              + STT(I,J,L,IDTDUST1+K-1) 
+     &                              + STT(I,J,L,id_DUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #6
                ELSE IF ( Input_Opt%DUSTREFF(K) < 3.25e-6_fp ) THEN
                   SOILDUST(I,J,L,6) = SOILDUST(I,J,L,6)
-     &                              + STT(I,J,L,IDTDUST1+K-1) 
+     &                              + STT(I,J,L,id_DUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #7
                ELSE 
                   SOILDUST(I,J,L,7) = SOILDUST(I,J,L,7)
-     &                              + STT(I,J,L,IDTDUST1+K-1) 
+     &                              + STT(I,J,L,id_DUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ENDIF
@@ -571,18 +567,18 @@
             ! Now use dust size distribution scheme to improve PM2.5
             ! surface dust conc over western U.S. (L. Zhang, 6/25/15)
             SOILDUST(I,J,L,1) = 
-     &            0.007e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.007e+0_fp * STT(I,J,L,id_DST1) / AIRVOL(I,J,L)
             SOILDUST(I,J,L,2) =
-     &            0.0332e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.0332e+0_fp * STT(I,J,L,id_DST1) / AIRVOL(I,J,L)
             SOILDUST(I,J,L,3) =
-     &            0.2487e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.2487e+0_fp * STT(I,J,L,id_DST1) / AIRVOL(I,J,L)
             SOILDUST(I,J,L,4) =
-     &            0.7111e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.7111e+0_fp * STT(I,J,L,id_DST1) / AIRVOL(I,J,L)
 
             ! Other hetchem bins
-            SOILDUST(I,J,L,5) = STT(I,J,L,IDTDST2) / AIRVOL(I,J,L)
-            SOILDUST(I,J,L,6) = STT(I,J,L,IDTDST3) / AIRVOL(I,J,L)
-            SOILDUST(I,J,L,7) = STT(I,J,L,IDTDST4) / AIRVOL(I,J,L)
+            SOILDUST(I,J,L,5) = STT(I,J,L,id_DST2) / AIRVOL(I,J,L)
+            SOILDUST(I,J,L,6) = STT(I,J,L,id_DST3) / AIRVOL(I,J,L)
+            SOILDUST(I,J,L,7) = STT(I,J,L,id_DST4) / AIRVOL(I,J,L)
             
          ENDIF
 
@@ -596,10 +592,10 @@
          IF ( LSSALT ) THEN
 
             ! Accumulation mode seasalt aerosol [kg/m3]
-            SALA(I,J,L) = STT(I,J,L,IDTSALA) / AIRVOL(I,J,L)
+            SALA(I,J,L) = STT(I,J,L,id_SALA) / AIRVOL(I,J,L)
             
             ! Coarse mode seasalt aerosol [kg/m3]
-            SALC(I,J,L) = STT(I,J,L,IDTSALC) / AIRVOL(I,J,L)
+            SALC(I,J,L) = STT(I,J,L,id_SALC) / AIRVOL(I,J,L)
 
             ! Avoid division by zero
             SALA(I,J,L) = MAX( SALA(I,J,L), 1e-35_fp )
@@ -1675,6 +1671,7 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -1689,6 +1686,7 @@
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  05 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
+!  17 Jun 2016 - R. Yantosca - Now use locally-defined species ID flags,
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1703,6 +1701,40 @@
 
       ! Assume success
       RC = GIGC_SUCCESS
+
+      ! Add tracer ID flags as module variables (bmy, 6/16/16)
+      id_BCPI  = Ind_('BCPI' )
+      id_BCPO  = Ind_('BCPO' )
+      id_DST1  = Ind_('DST1' )
+      id_DST2  = Ind_('DST2' )
+      id_DST3  = Ind_('DST3' ) 
+      id_DST4  = Ind_('DST4' )
+      id_DUST1 = Ind_('DUST1')
+      id_NH4   = Ind_('NH4'  )
+      id_NIT   = Ind_('NIT'  ) 
+      id_OCPO  = Ind_('OCPO' ) 
+      id_OCPI  = Ind_('OCPI' )  
+      id_SALA  = Ind_('SALA' )  
+      id_SALC  = Ind_('SALC' )   
+      id_SO4   = Ind_('SO4'  )         
+      id_SOAM  = Ind_('SOAM' ) 
+      id_SO4s  = Ind_('SO4s' )  
+      id_NITs  = Ind_('NITs' ) 
+      id_POA1  = Ind_('POA1' )   
+      id_POA2  = Ind_('POA2' )    
+      id_OPOA1 = Ind_('OPOA1')   
+      id_OPOA2 = Ind_('OPOA2')    
+      id_TSOA1 = Ind_('TSOA1') 
+      id_TSOA2 = Ind_('TSOA2') 
+      id_TSOA3 = Ind_('TSOA3')
+      id_TSOA0 = Ind_('TSOA0') 
+      id_ISOA1 = Ind_('ISOA1')  
+      id_ISOA2 = Ind_('ISOA2')  
+      id_ISOA3 = Ind_('ISOA3')
+      id_ASOAN = Ind_('ASOAN') 
+      id_ASOA1 = Ind_('ASOA1')  
+      id_ASOA2 = Ind_('ASOA2') 
+      id_ASOA3 = Ind_('ASOA3')
 
       ! Allocate arrays
       ALLOCATE( BCPI( IIPAR, JJPAR, LLPAR ), STAT=AS )

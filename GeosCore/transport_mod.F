@@ -81,6 +81,8 @@
 !                              (previously v/v)
 !  19 Jan 2016 - E. Lundgren - Move DiagnUpdate_Transport to diagnostics_mod
 !                              and consolidate netcdf and bpch diagnostic code
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -294,10 +296,6 @@
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
       USE UNITCONV_MOD
-#if   defined( APM )
-      USE TRACER_MOD,         ONLY : N_APMTRA
-#endif
-
       USE CMN_SIZE_MOD             ! Size parameters        
       USE CMN_DIAG_MOD             ! NDxx flags
       USE PHYSCONSTANTS            ! Physical constants
@@ -359,10 +357,10 @@
       REAL(fp),  POINTER :: p_VWND   (:,:,:  )
       REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
       REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
-#if defined( BPCH_DIAG ) || defined( NETCDF )
-      REAL(fp),  POINTER :: p_MFLEW  (:,:,:,:)
-      REAL(fp),  POINTER :: p_MFLNS  (:,:,:,:)
-      REAL(fp),  POINTER :: p_MFLUP  (:,:,:,:)
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+      REAL(fp),  POINTER :: p_MFLEW  (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLNS  (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLUP  (:,:,:,:) => NULL()
 #endif
       REAL(fp),  POINTER :: p_STT    (:,:,:,:)
 
@@ -408,11 +406,7 @@
 #endif
 
       ! Pick the proper # of tracers
-#if   defined( APM )
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
-#else
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
-#endif
 
       ! Dynamic timestep [s]
       N_DYN = GET_TS_DYN() * 60
@@ -586,10 +580,6 @@
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
       USE UNITCONV_MOD
-#if   defined( APM )
-      USE TRACER_MOD,         ONLY : N_APMTRA
-#endif
-
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! NDxx flags
       USE PHYSCONSTANTS            ! Physical constants
@@ -648,14 +638,14 @@
       REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR) 
 
       ! Pointers
-      REAL(fp),  POINTER :: p_UWND  (:,:,:  )
-      REAL(fp),  POINTER :: p_VWND  (:,:,:  )
-      REAL(fp),  POINTER :: p_XMASS (:,:,:  )
-      REAL(fp),  POINTER :: p_YMASS (:,:,:  )
-#if defined( BPCH_DIAG ) || defined( NETCDF )
-      REAL(fp),  POINTER :: p_MFLEW (:,:,:,:)
-      REAL(fp),  POINTER :: p_MFLNS (:,:,:,:)
-      REAL(fp),  POINTER :: p_MFLUP (:,:,:,:)
+      REAL(fp),  POINTER :: p_UWND   (:,:,:  )
+      REAL(fp),  POINTER :: p_VWND   (:,:,:  )
+      REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
+      REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+      REAL(fp),  POINTER :: p_MFLEW (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLNS (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLUP (:,:,:,:) => NULL()
 #endif
       REAL(fp),  POINTER :: p_STT   (:,:,:,:) ! v/v
 
@@ -701,11 +691,7 @@
 #endif
 
       ! Pick the proper # of tracers
-#if   defined( APM )
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
-#else
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
-#endif
 
       ! Dynamic timestep [s]
       N_DYN = GET_TS_DYN() * 60
@@ -887,10 +873,6 @@
       USE TPCORE_BC_MOD,             ONLY : DO_WINDOW_TPCORE_BC 
       USE TPCORE_WINDOW_MOD,         ONLY : TPCORE_WINDOW
       USE UNITCONV_MOD
-#if   defined( APM )
-      USE TRACER_MOD,                ONLY : N_APMTRA
-#endif
-
       USE CMN_SIZE_MOD                    ! Size parameters
       USE CMN_DIAG_MOD                    ! NDxx flags
       USE PHYSCONSTANTS                   ! Physical constants
@@ -1012,11 +994,7 @@
 #endif
 
       ! Pick the proper # of tracers
-#if   defined( APM )
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
-#else
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
-#endif
 
       ! Get nested-grid lon/lat offsets [# boxes]
       I0    = GET_XOFFSET( GLOBAL=.TRUE. )

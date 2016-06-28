@@ -17,7 +17,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_FJX_MOD, ONLY : W_
+      USE CMN_FJX_MOD,   ONLY : W_
       USE PRECISION_MOD, ONLY : fpp => fp    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -181,8 +181,6 @@
 #endif
 #if   defined( TOMAS )
       INTEGER, PARAMETER :: MAX_TRACER = NNPAR+1   ! For TOMAS (win, 1/25/10)
-#elif defined( APM ) 
-      INTEGER, PARAMETER :: MAX_TRACER = NNPAR+100 ! For APM (G. Luo 3/8/11)
 #else
       INTEGER, PARAMETER :: MAX_TRACER = NNPAR+6   ! For non-TOMAS simulations 
 #endif
@@ -245,6 +243,10 @@
 !  %%%  in CMN_DIAG_MOD ARE NOW INCLUDED IN THE INPUT OPTIONS OBJECT,    %%%
 !  %%%  BASED ON THE DERIVED TYPE IN Headers/gigc_input_opt_mod.F90.     %%%
 !  %%%  (bmy, 11/19/12)                                                  %%%
+!  %%%                                                                   %%%
+!  %%%  ALSO NOTE: IN GEOS-CHEM v11-01, WE WILL BE RETIRING THE BPCH     %%%
+!  %%%  DIAGNOSTICS.  MANY OF THESE PARAMETERS CAN THEN BE REMOVED.      %%%
+!  %%%  (bmy, 6/24/16)                                                   %%%
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
@@ -292,6 +294,8 @@
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND72 to ND72 to
 !                              avoid conflicts with hourly max ppbv diagnostic.
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC

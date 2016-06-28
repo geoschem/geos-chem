@@ -61,9 +61,6 @@
       USE TPCORE_WINDOW_MOD,       ONLY : EXIT_TPCORE_WINDOW
       USE UCX_MOD,                 ONLY : CLEANUP_UCX
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
-#if   defined( APM )
-      USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
-#endif
 
 #if ! defined( ESMF_ )
       USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
@@ -313,10 +310,6 @@
 #endif
       CALL CLEANUP_TOMS()
       CALL CLEANUP_WETSCAV()
-
-#if   defined( APM )
-      CALL CLEANUP_WETSCAVBIN()  ! Cleanup arrays for APM wet scavenging
-#endif
 
 #if   defined( TOMAS )
       CALL CLEANUP_TOMAS()

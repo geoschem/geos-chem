@@ -120,7 +120,7 @@ MODULE Diagnostics_Mod
 ! !PRIVATE TYPES:
 !
   ! Local tracer ID flags
-  INTEGER :: IDTRn, IDTPb, IDTBe7
+  INTEGER :: id_Rn, id_Pb, id_Be7
 
 CONTAINS
 #if defined( NC_DIAG )
@@ -146,9 +146,9 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Chm_Mod, ONLY : Ind_
     USE GRID_MOD,           ONLY : AREA_M2
     USE HCO_DIAGN_MOD
-    USE Species_Mod,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_TS_CHEM
 #if defined( DEVEL )
     USE TENDENCIES_MOD,     ONLY : TEND_INIT
@@ -173,6 +173,8 @@ CONTAINS
 !  25 Mar 2015 - C. Keller   - Moved UCX initialization to UCX_mod.F
 !  06 Nov 2015 - C. Keller   - Added argument OutTimeStamp
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  22 Jun 2016 - R. Yantosca - Now use IND_() to define id_Rn, id_Pb, id_Be7
+!  22 Jun 2016 - R. Yantosca - Remove reference to Species type
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -185,8 +187,6 @@ CONTAINS
     REAL(sp)           :: TS
     REAL(fp), POINTER  :: AM2(:,:)
     CHARACTER(LEN=255) :: LOC = 'Diagnostics_Init (diagnostics_mod.F90)'
-
-    TYPE(Species), POINTER :: ThisSpc
 
     !=======================================================================
     ! Diagnostics_Init begins here 
@@ -204,31 +204,10 @@ CONTAINS
     ! these from tracerid_mod.F for FlexChem (bmy, 5/2/16)
     !-----------------------------------------------------------------------
 
-    ! Initialize
-    IDTRn  = 0
-    IDTPb  = 0
-    IDTBe7 = 0
-
-    ! Loop over all species
-    DO N = 1, State_Chm%nSpecies
-
-       ! Get info about this species from the database
-       ThisSpc => State_Chm%SpcData(N)%Info
-            
-       SELECT CASE ( TRIM( ThisSpc%Name ) )
-          CASE( 'Rn'  )
-             IDTRn  = ThisSpc%ModelId
-          CASE( 'Pb'  )
-             IDTPb  = ThisSpc%ModelId
-          CASE( 'Be7' )
-             IDTBe7 = ThisSpc%ModelId
-          CASE DEFAULT
-             ! Nothing
-       END SELECT
-
-       ! Free pointer
-       ThisSpc => NULL()
-    ENDDO
+    ! Get species ID flags
+    id_Rn  = Ind_('Rn' )
+    id_Pb  = Ind_('Pb' )
+    id_Be7 = Ind_('Be7')
 
     !-----------------------------------------------------------------------
     ! Create diagnostics collection for GEOS-Chem.  This will keep the
@@ -809,7 +788,6 @@ CONTAINS
 !
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE TRACERID_Mod,       ONLY : IDTISOPN, IDTMMN
 !
 ! !INPUT PARAMETERS:
 !
@@ -1309,9 +1287,9 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : IND_
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
 
-    USE TRACERID_MOD,       ONLY : IDTPB   
 !
 ! !INPUT PARAMETERS:
 !
@@ -1324,6 +1302,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  21 Jan 2015 - E. Lundgren - Initial version
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function  
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1331,6 +1310,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: Collection
+    INTEGER            :: id_Pb
     CHARACTER(LEN=15)  :: OutOper
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
@@ -1343,20 +1323,23 @@ CONTAINS
     ! Assume successful return
     RC = GIGC_SUCCESS
 
+    ! Pb210 species Id
+    id_Pb      = IND_('PB')
+
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND01_OUTPUT_TYPE
     
     ! If the tracer number for lead is scheduled for output in input.geos, 
     ! then define the diagnostic container for 210Pb emissions.
-    IF ( ANY ( Input_Opt%TINDEX(1,:) == IDTPB ) ) THEN
+    IF ( ANY ( Input_Opt%TINDEX(1,:) == id_Pb ) ) THEN
 
        !----------------------------------------------------------------
        ! Create containers for Pb emissions [kg/s]
        !----------------------------------------------------------------
 
        ! Diagnostic container name and id
-       DiagnName = 'EMISS_' // TRIM( Input_Opt%TRACER_NAME( IDTPB ) )
+       DiagnName = 'EMISS_' // TRIM( Input_Opt%TRACER_NAME( id_PB ) )
        cId = cId + 1
 
        ! Create container
@@ -1434,7 +1417,7 @@ CONTAINS
     OutOper    = Input_Opt%ND02_OUTPUT_TYPE
     
     ! Assign array of tracer numbers corresponding to decaying species
-    TracersN = (/ IDTPb, IDTRN, IDTBe7 /)
+    TracersN = (/ id_Pb, id_RN, id_Be7 /)
 
     ! Loop over # of radon decay diagnostics
     DO M = 1, NumTracers
@@ -2654,7 +2637,7 @@ CONTAINS
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
-    USE TRACERID_MOD
+    USE GIGC_State_Chm_Mod, ONLY : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -2670,6 +2653,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  05 Mar 2015 - C. Keller   - Initial version
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2702,21 +2686,21 @@ CONTAINS
        ID = GetHcoID( TrcId = N )
  
        ! Restrict diagnostics to these species
-       IF ( N /= IDTNO    .AND. N /= IDTCO     .AND. &
-            N /= IDTALK4  .AND. N /= IDTISOP   .AND. &
-            N /= IDTHNO3  .AND. N /= IDTACET   .AND. &
-            N /= IDTMEK   .AND. N /= IDTALD2   .AND. &
-            N /= IDTPRPE  .AND. N /= IDTC3H8   .AND. &
-            N /= IDTC2H6  .AND. N /= IDTDMS    .AND. &
-            N /= IDTSO2   .AND. N /= IDTSO4    .AND. &
-            N /= IDTNH3   .AND. N /= IDTBCPI   .AND. &
-            N /= IDTOCPI  .AND. N /= IDTBCPO   .AND. &
-            N /= IDTOCPO  .AND. N /= IDTDST1   .AND. &
-            N /= IDTDST2  .AND. N /= IDTDST3   .AND. &
-            N /= IDTDST4  .AND. N /= IDTSALA   .AND. &
-            N /= IDTSALC  .AND. N /= IDTBr2    .AND. &
-            N /= IDTBrO   .AND. N /= IDTCH2Br2 .AND. &
-            N /= IDTCH3Br .AND. N /= IDTO3             ) THEN
+       IF ( N /= IND_('NO'   ) .AND. N /= IND_('CO'    ) .AND. &
+            N /= IND_('ALK4' ) .AND. N /= IND_('ISOP'  ) .AND. &
+            N /= IND_('HNO3' ) .AND. N /= IND_('ACET'  ) .AND. &
+            N /= IND_('MEK'  ) .AND. N /= IND_('ALD2'  ) .AND. &
+            N /= IND_('PRPE' ) .AND. N /= IND_('C3H8'  ) .AND. &
+            N /= IND_('C2H6' ) .AND. N /= IND_('DMS'   ) .AND. &
+            N /= IND_('SO2'  ) .AND. N /= IND_('SO4'   ) .AND. &
+            N /= IND_('NH3'  ) .AND. N /= IND_('BCPI'  ) .AND. &
+            N /= IND_('OCPI' ) .AND. N /= IND_('BCPO'  ) .AND. &
+            N /= IND_('OCPO' ) .AND. N /= IND_('DST1'  ) .AND. &
+            N /= IND_('DST2' ) .AND. N /= IND_('DST3'  ) .AND. &
+            N /= IND_('DST4' ) .AND. N /= IND_('SALA'  ) .AND. &
+            N /= IND_('SALC' ) .AND. N /= IND_('Br2'   ) .AND. &
+            N /= IND_('BrO'  ) .AND. N /= IND_('CH2Br2') .AND. &
+            N /= IND_('CH3Br') .AND. N /= IND_('O3'    )        ) THEN
           ID = -1
        ENDIF
  
@@ -2769,8 +2753,8 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : IND_
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE TRACERID_MOD, ONLY : IDTO3
 !
 ! !INPUT PARAMETERS:
 !
@@ -2783,6 +2767,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  07 Jul 2015 - C. Keller   - Initial version 
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2803,7 +2788,7 @@ CONTAINS
     RC = GIGC_SUCCESS
 
     ! Nothing to do if O3 is not a tracer
-    IF ( IDTO3 <= 0 ) RETURN
+    IF ( IND_('O3') <= 0 ) RETURN
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -2859,8 +2844,10 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE HCO_Diagn_Mod,      ONLY : Diagn_Update, DiagnCont, DiagnCont_Find
-    USE TRACERID_MOD,       ONLY : IDTO3
+    USE GIGC_State_Chm_Mod, ONLY : IND_
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Update
+    USE HCO_Diagn_Mod,      ONLY : DiagnCont
+    USE HCO_Diagn_Mod,      ONLY : DiagnCont_Find
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE PRESSURE_MOD,       ONLY : GET_PEDGE
 !
@@ -2878,6 +2865,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  07 Jul 2015 - C. Keller   - Initial version 
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2886,7 +2874,7 @@ CONTAINS
 !
     TYPE(DiagnCont), POINTER :: DgnPtr
 
-    INTEGER                  :: I, J, L
+    INTEGER                  :: I, J, L, id_O3
 
     REAL(fp)                 :: constant
     REAL(fp)                 :: DP, O3vv, DU
@@ -2909,9 +2897,10 @@ CONTAINS
 
     ! Initialize
     DgnPtr => NULL()
+    id_O3  = IND_('O3')
 
     ! Nothing to do if O3 is not a tracer
-    IF ( IDTO3 <= 0 ) RETURN
+    IF ( id_O3 <= 0 ) RETURN
 
     ! On first call, check if any of the two diagnostics is defined
     IF ( FIRST ) THEN
@@ -2948,7 +2937,8 @@ CONTAINS
        DP = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
 
        ! Ozone in v/v
-       O3vv = State_Chm%Tracers(I,J,L,IDTO3) * Input_Opt%TCVV(IDTO3) / State_Met%AD(I,J,L)
+       O3vv = State_Chm%Tracers(I,J,L,id_O3) * Input_Opt%TCVV(id_O3) &
+            / State_Met%AD(I,J,L)
 
        ! Calculate O3 in DU for this grid box 
        DU = O3vv * DP * constant / 2.69e16_fp

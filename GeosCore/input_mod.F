@@ -148,6 +148,8 @@
 !  23 Jun 2014 - R. Yantosca - Removed INIT_INPUT routine
 !  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  24 Nov 2014 - C. Keller   - Updates on timestep handling in ESMF environment
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -233,6 +235,7 @@
 !                              so that we can pass it to INITIALIZE_GEOS_GRID
 !  04 Aug 2015 - M. Long     - Removed ".rc" file specifier. Not necessary.
 !  16 Dec 2015 - R. Yantosca - Now pass State_Chm to READ_TRACER_MENU
+!  16 Jun 2016 - E. Lundgren - Move TOMAS init to GIGC_INIT_EXTRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -309,17 +312,6 @@
 
          ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
             CALL READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )              
-
-#if defined( TOMAS )
-         ! Initialize the TOMAS microphysics package, if necessary
-         CALL INIT_TOMAS_MICROPHYSICS( am_I_Root, Input_Opt, RC )    
-#endif
-
-#if defined( APM )
-         ! Initialize APM microphysics package, if necessary
-         ELSE IF ( INDEX( LINE, 'APM MENU'         ) > 0 ) THEN
-            CALL READ_APM_MENU( am_I_Root, Input_Opt, RC )
-#endif
 
          ELSE IF ( INDEX( LINE, 'EMISSIONS MENU'   ) > 0 ) THEN
             CALL READ_EMISSIONS_MENU( am_I_Root, Input_Opt, RC )             
@@ -432,14 +424,6 @@
 
       ! Check GEOS-CHEM timesteps
       CALL CHECK_TIME_STEPS( am_I_Root, Input_Opt, RC )
-
-      !---------------------------------------------
-      ! Prior to 12/16/15:
-      !! Echo output
-      !IF ( am_I_Root ) THEN
-      !   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      !ENDIF
-      !---------------------------------------------
 
       END SUBROUTINE READ_INPUT_FILE
 !EOC
@@ -1308,10 +1292,6 @@
       USE CHARPAK_MOD,        ONLY : ISDIGIT
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
-#if defined( APM )
-      USE TRACER_MOD,         ONLY : INIT_TRACER
-#endif
-      USE TRACERID_MOD,       ONLY : TRACERID
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1348,6 +1328,7 @@
 !  21 Aug 2014 - R. Yantosca - Bug fix: add ITS_A_RnPbBe_SIM to the test
 !                              that defines the ITS_A_SPECIALTY_SIM flag
 !  24 Mar 2015 - E. Lundgren - Move init_tracer to within APM ifdef block 
+!  23 Jun 2016 - R. Yantosca - Remove call to TRACERID, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1544,14 +1525,6 @@
 
       ENDIF
 
-      ! Set up tracer flags
-      CALL TRACERID( am_I_Root, Input_Opt, RC )
-
-#if defined( APM ) 
-      ! Store the # of APM tracers in tracer_mod.F
-      CALL INIT_TRACER( am_I_Root, Input_Opt, RC )
-#endif
-
       ! Set counter
       CT1 = CT1 + 1
 
@@ -1580,7 +1553,6 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD
       USE UCX_MOD,            ONLY : T_NAT_SUPERCOOL, P_ICE_SUPERSAT
 !
 ! !INPUT PARAMETERS:
@@ -1595,6 +1567,11 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
+! !REMARKS:
+!  Move error checks that depend on species indices to the subroutine
+!  DO_ERROR_CHECKS.  This is now called from GIGC_INIT_EXTRA, after the
+!  initialization of the species database.
+!
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now reference LSOA (bmy, 9/28/04)
@@ -1625,7 +1602,8 @@
 !                              restart file. These options are now handled
 !                              by HEMCO.
 !  08 Jul 2015 - E. Lundgren - Added LMPOA option for marine organic aerosols
-!EOP
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function
+!  22 Jun 2016 - R. Yantosca - Move error checks to DO_ERROR_CHECKS routine
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -1775,238 +1753,6 @@
       !%%% (rjp, bmy, 3/15/05)
       LCRYST = .FALSE.
 
-      !---------------------------------
-      ! Error check SEASALT AEROSOLS
-      !---------------------------------
-      I = IDTSALA + IDTSALC
-
-      IF ( LSSALT ) THEN
-         IF ( I == 0 ) THEN
-            MSG = 'LSSALT=T but ONLINE SEASALT AEROSOLS are undefined!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ELSE
-         IF ( I > 0 ) THEN
-            MSG = 'Cannot use ONLINE SEASALT AEROSOLS if LSSALT=F!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ENDIF
-
-      !------------------------------------
-      ! Error check MARINE ORGANIC AEROSOLS
-      !------------------------------------
-      I = IDTMOPO + IDTMOPI
-
-      IF ( LMPOA ) THEN
-         IF ( .not. LSSALT ) THEN
-            MSG = 'LMPOA=T but LSSALT=F!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-         IF ( I == 0 ) THEN
-            MSG = 'LMPOA=T but MARINE ORGANIC AEROSOLS are undefined!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ELSE
-         IF ( I > 0 ) THEN
-            MSG = 'Cannot use MARINE ORGANIC AEROSOLS if LMPOA=F!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ENDIF
-
-      !---------------------------------
-      ! Error check SULFUR AEROSOLS
-      !---------------------------------
-      I = IDTDMS + IDTSO2 + IDTSO4 + IDTSO4s + 
-     &    IDTMSA + IDTNH3 + IDTNH4 + IDTNITs
-
-      IF ( LSULF ) THEN
-
-         ! We now compute the production of SO4s and NITs, so when 
-         ! LSULF=T, then we must also have LSSALT=T (bec, bmy, 4/13/05)
-         IF ( .not. LSSALT ) THEN 
-            MSG = 'LSULF=T now also requires LSSALT=T!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-
-         ! Stop w/ error if everything is undefined
-         IF ( I == 0 ) THEN
-            MSG = 'LSULF=T but ONLINE SULFUR AEROSOLS are undefined!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-
-      ELSE
-
-         ! If LSULF=F but we have defined tracers, stop w/ error
-         IF ( I > 0 ) THEN
-            MSG = 'Cannot use ONLINE SULFUR AEROSOLS if LSULF=F!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-
-      ENDIF
-
-      !---------------------------------
-      ! Error check CRYST /AQ AEROSOLS
-      !---------------------------------
-      I = IDTAS + IDTAHS + IDTLET + IDTNH4aq + IDTSO4aq
-
-      IF ( LCRYST ) THEN
-         IF ( I == 0 ) THEN
-            MSG = 'LCRYST=T but ONLINE CRYST/AQ AEROSOLS are undefined!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ELSE
-         IF ( I > 0 ) THEN
-            MSG = 'Cannot use ONLINE CRYST/AQ AEROSOLS if LCRYST=F!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ENDIF
-
-      !---------------------------------
-      ! Error check CARBON AEROSOLS
-      !---------------------------------
-      ! SOAupdate: Add POA (hotp 10/11/09)
-      I = IDTBCPO + IDTBCPI + IDTOCPO + IDTOCPI + IDTPOA1
-
-      IF ( LCARB ) THEN
-         IF ( I == 0 ) THEN
-            MSG = 'LCARB=T but ONLINE CARBON AEROSOLS are undefined!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ELSE
-         IF ( I > 0 ) THEN
-            MSG = 'Cannot use ONLINE CARBON AEROSOLS if LCARB=F!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ENDIF
-
-      IF ( LSVPOA .and. ( .NOT. LSOA ) ) THEN
-         MSG = 'Semivolatile POA requires LSOA=T'
-         CALL ERROR_STOP( MSG, LOCATION )
-      ENDIF
-
-      ! SOAupdate: Error check (hotp 8/24/09)
-      ! OCPI and OCPO are the non-volatile POA tracers
-      ! POA (along w/ POG, OPOA, and OPOG) are the semivol POA tracers
-      ! You can't have both!
-      I = IDTOCPI + IDTOCPO
-      IF ( IDTPOA1 > 0 ) THEN
-         IF ( I > 0 ) THEN
-            MSG = 'Semivolatile POA tracer is defined in addition to
-     &             Nonvolatile POA'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-         IF ( ( .NOT. LSOA ) .or. (.NOT. LSVPOA ) ) THEN
-            MSG = 'Semivolatile POA requires LSOA=T and LSVPOA=T'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ENDIF
-
-      ! SOAupdate
-      ! Options for organic aerosol tracers:
-      ! IF LSOA = F: only OCPI and OCPO
-      ! IF LSOA = T:
-      !   OCPI OCPO SOA (non-vol + original traditional)
-      !   POA POG OPOA OPOG SOA BTX NAP (semivol + orig trad + IVOC )
-      ! NAP emissions are set in input.geos
-      ! LSVPOA is just a check (doesn't do anything hotp 7/21/10)
-      I = IDTPOA1  + IDTPOA2  + IDTPOG1  + IDTPOG2  + 
-     &    IDTOPOA1 + IDTOPOA2 + IDTOPOG1 + IDTOPOG2
-      IF ( LSVPOA ) THEN
-         IF ( I < 8 ) THEN
-            MSG = 'Not enough semivolatile POA tracers!'
-                     CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-         IF ( IDTNAP == 0 ) THEN
-            MSG = 'Semivolatile POA requires IVOCs/NAP!'
-                     CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ENDIF
-
-      !---------------------------------
-      ! Error check 2dy ORG AEROSOLS
-      !---------------------------------
-      ! SOAupdate: update for new mtp (hotp 5/24/10)
-      I = IDTMTPA  + IDTLIMO  + IDTMTPO  + 
-     &    IDTBENZ  + IDTTOLU  + IDTXYLE  +
-     &    IDTTSOA1 + IDTTSOA2 + IDTTSOA3 +
-     &    IDTISOA1 + IDTISOA2 + IDTISOA3 +
-     &    IDTASOA1 + IDTASOA2 + IDTASOA3 + IDTASOAN +
-     &    IDTSOAG  + IDTSOAM
-
-      IF ( LSOA ) THEN
-         IF ( I == 0 ) THEN
-            MSG = 'LSOA=T but ONLINE 2dy ORG AEROSOLS are undefined!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ELSE
-         IF ( I > 0 ) THEN
-            MSG = 'Cannot use ONLINE 2dy ORG AEROSOLS if LSOA=F!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ENDIF
-
-      !---------------------------------
-      ! Error check DUST AEROSOLS
-      !---------------------------------
-! JKODROS - Uncomment this if the dust fixes are back working. 
-#if defined( TOMAS )
-      ! For TOMAS only: If DUST1 is present, the other dust tracers are too
-      I = IDTDUST1
-#else
-      ! Non-TOMAS simulations: Need all DST1-DST4 tracers
-      I = IDTDST1 + IDTDST2 + IDTDST3 + IDTDST4
-#endif
-
-      IF ( LDUST ) THEN
-         IF ( I == 0 ) THEN
-            MSG = 'LDUST=T but ONLINE DUST AEROSOLS are undefined!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ELSE
-         IF ( I > 0 ) THEN
-            MSG = 'Cannot use ONLINE DUST AEROSOLS if LDUST=F!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ENDIF
-
-      !--------------------------------------
-      ! Error check DUST NITRATE    AEROSOLS
-      !             DUST SULFATE    AEROSOLS
-      !             DUST ALKALINITY AEROSOLS
-      !--------------------------------------
-      I = IDTNITd1 + IDTNITd2 + IDTNITd3 + IDTNITd4 +
-     &    IDTSO4d1 + IDTSO4d2 + IDTSO4d3 + IDTSO4d4 +
-     &    IDTDAL1  + IDTDAL2  + IDTDAL3  + IDTDAL4
-
-      IF ( LDSTUP ) THEN
-         IF ( I == 0 ) THEN
-            MSG = 'LDSTUP=T but COATED DUST AEROSOLS are undefined!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ELSE
-         IF ( I > 0 ) THEN
-            MSG = 'Cannot use COATED DUST AEROSOLS if LDSTUP=F!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ENDIF
-
-      !---------------------------------
-      ! Error check SEASALT AEROSOLS
-      !---------------------------------
-      I = IDTSALA + IDTSALC
-
-      IF ( LSSALT ) THEN
-         IF ( I == 0 ) THEN
-            MSG = 'LSSALT=T but ONLINE SEASALT AEROSOLS are undefined!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ELSE
-         IF ( I > 0 ) THEN
-            MSG = 'Cannot use ONLINE SEASALT AEROSOLS if LSSALT=F!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ENDIF
-
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -2089,22 +1835,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TOMAS_MICROPHYSICS( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_TOMAS_MICROPHYSICS( am_I_Root, Input_Opt, 
+     &                                    State_Chm, RC )
 !
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : Ind_
       USE TOMAS_MOD,          ONLY : INIT_TOMAS
-      USE TRACERID_MOD,       ONLY : IDTNK1
-      USE TRACERID_MOD,       ONLY : IDTSF1
-      USE TRACERID_MOD,       ONLY : IDTSS1
-      USE TRACERID_MOD,       ONLY : IDTECOB1, IDTECIL1, IDTOCOB1
-      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTH2SO4, IDTDUST1
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2121,6 +1866,12 @@
 !  segregated from the rest of GEOS-Chem with #ifdef blocks.  Therefore,
 !  we no longer need to read the microphysics menu, but we still need to
 !  apply some error checks and then call INIT_TOMAS. (bmy, 4/23/13)
+!                                                                             .
+!  The IND_() function now defines all species ID's.  It returns -1 if
+!  a species cannot be found.  The prior behavior was to return 0 if a 
+!  species wasn't found.  Therefore, in order to preserve the logic of the
+!  error checks, we must force any -1's returned by IND_() to 0's in
+!  this subroutine.
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2167,6 +1918,10 @@
 !                              running with the traditional driver main.F
 !  23 Apr 2013 - R. Yantosca - Renamed to INIT_TOMAS_MICROPHYS
 !  30 Jan 2014 - R. Yantosca - INIT_TOMAS accepts am_I_Root, Input_Opt, RC
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function 
+!  16 Jun 2016 - E. Lundgren - INIT_TOMAS now accepts State_Chm
+!  22 Jun 2016 - R. Yantosca - Force -1's returned by IND_() to zeroes,
+!                              in order to preserve the program logic
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2194,21 +1949,32 @@
       ENDIF
 
       ! Halt with error if none of the TOMAS aerosol species are defined
-      I =  IDTNK1 + IDTSF1 + IDTSS1 + IDTECOB1 + IDTECIL1 + 
-     &     IDTOCOB1 + IDTOCIL1  + IDTDUST1
+      I = MAX( IND_('NK1'  ), 0 )
+     &  + MAX( IND_('SF1'  ), 0 ) 
+     &  + MAX( IND_('SS1'  ), 0 )
+     &  + MAX( IND_('ECOB1'), 0 ) 
+     &  + MAX( IND_('ECIL1'), 0 )  
+     &  + MAX( IND_('OCOB1'), 0 ) 
+     &  + MAX( IND_('OCIL1'), 0 )
+     &  + MAX( IND_('DUST1'), 0 )
+
       IF ( I == 0 ) THEN 
          MSG = 'None of the TOMAS aerosols are defined!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
       
       ! Halt with error if sulfate aerosols are not defined
-      IF( IDTSF1 > 0 .and. ( .not. Input_Opt%LSULF ) ) THEN
+      IF( IND_('SF1') > 0 .and. ( .not. Input_Opt%LSULF ) ) THEN
          MSG = 'Need LSULF on for TOMAS-Sulfate to work (for now)'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
       ! Halt with error if carbonaceous aerosols are not defined
-      I = IDTECOB1 + IDTECIL1 + IDTOCOB1 + IDTOCIL1
+      I = MAX( IND_('ECOB1'), 0 ) 
+     &  + MAX( IND_('ECIL1'), 0 ) 
+     &  + MAX( IND_('OCOB1'), 0 ) 
+     &  + MAX( IND_('OCIL1'), 0 )
+
       IF ( I > 0 .and. (.not. Input_Opt%LCARB ) ) THEN
          MSG = 'Need LCARB on for TOMAS-carb to work (for now)'
          CALL ERROR_STOP( MSG, LOCATION )
@@ -2216,7 +1982,7 @@
 
       ! Halt with error if dust aerosols are turned on.
       ! TOMAS defines its own dust aerosol tracers.
-!      IF ( IDTDUST1 > 0 .AND. Input_Opt%LDUST ) THEN
+!      IF ( IND_('DUST1') > 0 .AND. Input_Opt%LDUST ) THEN
 !         MSG = 'Need to turn off LDUST for TOMAS Dust to work'
 !         CALL ERROR_STOP( MSG, LOCATION )
 !      ENDIF
@@ -2224,7 +1990,7 @@
       !=================================================================
       ! All error checks are satisfied, so initialize TOMAS
       !=================================================================
-      CALL INIT_TOMAS( am_I_Root, Input_Opt, RC )
+      CALL INIT_TOMAS( am_I_Root, Input_Opt, State_Chm, RC )
  
       END SUBROUTINE INIT_TOMAS_MICROPHYSICS
 !EOC
@@ -2252,8 +2018,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE TIME_MOD,           ONLY : SET_HISTYR
-      USE TRACERID_MOD,       ONLY : IDTCH4, IDTOCS, IDTCFCX
-      USE TRACERID_MOD,       ONLY : IDTCl,  IDTN2O, IDTBr2, IDTH2O
       USE UCX_MOD,            ONLY : CFCYEAR
 !
 ! !INPUT PARAMETERS:
@@ -2268,6 +2032,11 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
+! !REMARKS:
+!  The IND_() function now defines all species ID's.  It returns -1 if
+!  a species cannot be found.  Therefore now test for IND_() > 0  for a
+!  valid species.
+!
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
@@ -2341,6 +2110,8 @@
 !  04 Sep 2014 - R. Yantosca - Bug fix: Now use Input_Opt%OTDLOC since we have
 !                              now removed logical_mod.F
 !  24 Jun 2015 - R. Yantosca - Now always turn off emissions for mass cons test
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function 
+!  22 Jun 2016 - R. Yantosca - Move some error checks to DO_ERROR_CHECKS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2512,105 +2283,6 @@
          LSETCFC        = .FALSE. 
       ENDIF
       
-      !=================================================================
-      ! Error check CFC emissions
-      !=================================================================
-      IF ( LCFCEMIS .or. LSETCFC ) THEN
-         IF ( IDTCFCX == 0 ) THEN
-            LCFCEMIS = .FALSE.
-            LSETCFC  = .FALSE.
-            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'CFCs are emitted but CFC tracers are undefined.'
-            WRITE( 6, '(a)' ) 'Turning off CFC emissions.'
-         ENDIF
-      ENDIF
-
-      !=================================================================
-      ! Error check N2O emissions
-      !=================================================================
-      IF ( LN2OEMIS .or. LSETN2O ) THEN
-         IF ( IDTN2O == 0 ) THEN
-            LN2OEMIS = .FALSE.
-            LSETN2O  = .FALSE.
-            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'N2O is emitted but N2O tracer is undefined.'
-            WRITE( 6, '(a)' ) 'Turning off nitrous oxide emissions.'
-         ENDIF
-      ENDIF
-
-      !=================================================================
-      ! Error check stratospheric H2O
-      !=================================================================
-#if defined( UCX )
-      IF ( LSETH2O ) THEN
-         IF (IDTH2O==0) THEN
-            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'H2O is set but H2O tracer is undefined.'
-            LSETH2O = .FALSE.
-         ENDIF
-      ENDIF
-#else
-      LSETH2O = .FALSE.
-#endif
-
-      !=================================================================
-      ! Error check halogen emissions
-      !=================================================================
-      IF ( LCLEMIS .or. LSETCL) THEN
-         IF ( IDTCl == 0 ) THEN
-            LCLEMIS = .FALSE.
-            LSETCL  = .FALSE.
-            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'Cl species emitted but Cl tracer is undefined.'
-            WRITE( 6, '(a)' ) 'Turning off chlorine emissions.'
-         ENDIF
-      ENDIF
-
-      IF ( LBREMIS .or. LSETBR .or. LSETBRSTRAT .or. LBRGCCM ) THEN
-         IF ( IDTBR2 == 0 ) THEN
-            LBREMIS = .FALSE.
-            LSETBR  = .FALSE.
-            LSETBRSTRAT = .FALSE.
-            LBRGCCM = .FALSE.
-            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'Br species emitted but Br2 tracer is undefined.'
-            WRITE( 6, '(a)' ) 'Turning off bromine emissions.'
-         ENDIF
-      ENDIF
-
-      !=================================================================
-      ! Error check OCS emissions
-      !=================================================================
-      IF ( LOCSEMIS .or. LSETOCS ) THEN
-         IF ( IDTOCS == 0 ) THEN
-            LOCSEMIS = .FALSE.
-            LSETOCS  = .FALSE.
-            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'OCS is emitted but OCS tracer is undefined.'
-            WRITE( 6, '(a)' ) 'Turning off OCS emissions.'
-         ENDIF
-      ENDIF
-
-      !=================================================================
-      ! Error check methane emissions
-      !=================================================================
-      IF ( LCH4EMIS .AND. LCH4SBC ) THEN
-            CALL ERROR_STOP( 
-     &         ' CH4 surface BC & emissions cannot both be turned on!', 
-     &         ' READ_EMISSIONS_MENU ("input_mod.f")' )
-      ENDIF
-
-      IF ( LCH4EMIS .or. LSETCH4 .or. LCH4SBC ) THEN
-         IF ( IDTCH4 == 0 ) THEN
-            LCH4EMIS = .FALSE.
-            LSETCH4  = .FALSE.
-            LCH4SBC  = .FALSE.
-            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'CH4 is emitted but CH4 tracer is undefined.'
-            WRITE( 6, '(a)' ) 'Turning off methane emissions.'
-         ENDIF
-      ENDIF
-
 #if    defined( GCAP )
 
       !--------------------------------
@@ -3065,7 +2737,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_CHEM
-      USE TRACERID_MOD,       ONLY : IDTCH4
 !
 ! !INPUT PARAMETERS:
 !
@@ -3582,7 +3253,7 @@
       LOCATION = 'READ_TRANSPORT_MENU ("input_mod.f")'
 
       ! Error check
-      IF ( CT1 /= 2 ) THEN 
+      IF ( CT1 /= 2 ) THEN
          MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
@@ -3686,15 +3357,15 @@
       !-----------------------------------------------------------------
       Input_Opt%TS_DYN      = TS_DYN
 
-#endif
-
       ! If TS_DYN is greater than MAX_DYN, then stop w/ error
       IF ( .not. Input_Opt%HPC ) THEN
       IF ( Input_Opt%TS_DYN > MAX_DYN .and. LTRAN ) THEN
-         write(*,*) '<>', Input_Opt%TS_DYN, Input_Opt%HPC
+         write(MSG,'(I,a,L)') '<>', Input_Opt%TS_DYN, Input_Opt%HPC
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
       ENDIF
+
+#endif
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -4268,7 +3939,6 @@
       USE DIAG42_MOD,   ONLY : ND42,      PD42,      INIT_DIAG42
       USE DIAG53_MOD,   ONLY : ND53,      PD53,      INIT_DIAG53
       USE DIAG56_MOD,   ONLY : ND56,      PD56,      INIT_DIAG56
-      USE DIAG_OH_MOD,  ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,   ONLY : NUMDEP
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE FILE_MOD,     ONLY : IU_BPCH
@@ -4335,6 +4005,7 @@
 !                              avoid conflicts with hourly max ppbv diagnostic.
 !  15 Jan 2015 - R. Yantosca - Now define Input_Opt%DIAG_COLLECTION 
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
+!  23 Jun 2016 - R. Yantosca - Now call INIT_DIAG_OH from GIGC_Init_Extra
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5025,20 +4696,11 @@
       !================================================================
 
       ! Allocate diagnostic arrays
-!-----------------------------------------------------------------------------
-! Prior to 4/25/16:
-! Need to move INIT_DIAG03 to GIGC_Init_Extra so that we can use the
-! species database in the State_Chm object (bmy, 4/25/16)
-!      CALL INIT_DIAG03
-!-----------------------------------------------------------------------------
       CALL INIT_DIAG04
       CALL INIT_DIAG41
       CALL INIT_DIAG42( am_I_Root, Input_Opt, RC )
       CALL INIT_DIAG53
       CALL INIT_DIAG56
-
-      ! Enable Mean OH (or CH3CCl3) diag for runs which need it
-      CALL INIT_DIAG_OH( am_I_Root, Input_Opt, RC )
 
       ! Expand YYYYMMDD tokens in the bpch file name
       CALL EXPAND_DATE( BPCH_FILE, GET_NYMDb(), GET_NHMSb() )
@@ -7546,136 +7208,6 @@
 
       END SUBROUTINE READ_POPS_MENU
 !EOC
-#if   defined( APM ) 
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_apm_menu
-!
-! !DESCRIPTION: Subroutine READ\_APM\_MENU reads the APM MENU 
-!  section of the GEOS-Chem input file.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_APM_MENU( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-      USE APM_INIT_MOD,       ONLY : APMTRACER_MW_G
-      USE APM_INIT_MOD,       ONLY : APMTRACER_MW_Kg
-      USE APM_INIT_MOD,       ONLY : IFNUCL
-      USE APM_INIT_MOD,       ONLY : FE0
-      USE APM_INIT_MOD,       ONLY : LAPM
-      USE CHARPAK_MOD,        ONLY : STRREPL
-      USE PHYSCONSTANTS,      ONLY : AIRMW, AVO
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE FILE_MOD,           ONLY : IOERROR
-      USE GAMAP_MOD,          ONLY : DO_GAMAP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACER_MOD,         ONLY : N_APMTRA
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!
-! !REMARKS:
-!  This subroutine is only compiled when you build GEOS-Chem with the
-!  APM=yes makefile option.
-!
-! !REVISION HISTORY: 
-!  30 Sep 2008 - G. Luo, F. Yu - Initial version
-!  16 Feb 2011 - R. Yantosca - Added ProTeX headers
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
-!  06 Jan 2015 - E. Lundgren - Use global physical parameters
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER            :: N,               N_APMTRAC1, T, N_TRACERS
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
-
-      !=================================================================
-      ! READ_APM_MENU begins here!
-      !=================================================================
-      
-      ! Get fields from Input_Opt
-      N_TRACERS = Input_Opt%N_TRACERS
-
-      ! Error check
-      IF ( CT1 /= 2 ) THEN
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
-         CALL ERROR_STOP( MSG, 'READ_APM_MENU ("input_mod.f")' )
-      ENDIF
-
-      ! Nucleation scheme
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_apm_menu:1' )
-      READ( SUBSTRS(1:N), * ) IFNUCL
-
-      ! Primary sulfate fraction
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_apm_menu:2' )
-      READ( SUBSTRS(1:N), * ) FE0
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_apm_menu:3' )
-
-      ! Increment the TCVV and XNUMOL arrays for APM tracers
-      DO T = 1, N_APMTRA
-         Input_Opt%TCVV(N_TRACERS+T) = AIRMW / APMTRACER_MW_G(T)
-         Input_Opt%XNUMOL(N_TRACERS+T) = AVO / 
-     &                                   APMTRACER_MW_KG(T) 
-      ENDDO
-
-      !=================================================================
-      ! Set fields of the Input Options object
-      !=================================================================
-      Input_Opt%IFNUCL = IFNUCL
-      Input_Opt%FE0    = FE0
-
-      DO T = 1, N_APMTRA
-         Input_Opt%TCVV  (N_TRACERS+T) = TCVV(T)
-         Input_Opt%XNUMOL(N_TRACERS+T) = XNUMOL(T)
-      ENDDO
-
-      ! Return success
-      RC = GIGC_SUCCESS
-
-      !=================================================================
-      ! Print to screen
-      !=================================================================
-      IF ( am_I_Root ) THEN
-         WRITE( 6, '(/,a)' ) 'APM MENU'
-         WRITE( 6, '(  a)' ) '----------------'
-         WRITE( 6, 100     ) 'Turn on APM and add tracers?: ', LAPM
-         WRITE( 6, 110     ) '# of additional APM tracers : ', N_APMTRA
-         WRITE( 6, 110     ) 'Nucleation Scheme           : ', IFNUCL
-         WRITE( 6, 120     ) 'Primary Sulfate Fraction    : ', FE0
-      ENDIF
-
-      ! FORMATs
- 100  FORMAT( A, L5 )
- 110  FORMAT( A, I5 )
- 120  FORMAT( A, F7.3 )
-
-      END SUBROUTINE READ_APM_MENU
-!EOC
-#endif
-!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -8242,10 +7774,12 @@
       USE Chemgrid_Mod,       ONLY : Init_Chemgrid
       USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
       USE Diag03_Mod,         ONLY : Init_Diag03
+      USE Diag_OH_Mod,        ONLY : Init_Diag_OH
       USE Drydep_Mod,         ONLY : Init_Drydep
       USE Dust_Mod,           ONLY : Init_Dust
       USE Error_Mod,          ONLY : Debug_Msg
       USE Gamap_Mod,          ONLY : Do_Gamap
+      USE Get_Ndep_Mod,       ONLY : Init_Get_Ndep
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -8263,9 +7797,6 @@
       USE Toms_Mod,           ONLY : Init_Toms
       USE Vdiff_Pre_Mod,      ONLY : Set_Vdiff_Values
       USE WetScav_Mod,        ONLY : Init_WetScav
-!#if   defined( APM )
-!      USE APM_WETS_MOD, ONLY : WETDEPBINID
-!#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -8315,6 +7846,7 @@
 !  23 Sep 2015 - R. Yantosca - Now pass State_Chm to INIT_SULFATE
 !  25 Apr 2016 - R. Yantosca - Now call INIT_DIAG03 here
 !  25 Apr 2016 - R. Yantosca - Now initialize all mercury modules from here
+!  23 Jun 2016 - R. Yantosca - Now call INIT_DIAG_OH from here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8332,6 +7864,13 @@
 
       ! Set a flag for debugging
       prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
+
+      !=================================================================
+      ! Make sure various input options are consistent with the
+      ! species that are defined for the simulation.  If not, then
+      ! exit the simulation gracefully and display an error message.
+      !=================================================================
+      CALL Do_Error_Checks( am_I_Root, Input_Opt, RC )
 
       !=================================================================
       ! Call setup routines for drydep and wetdep
@@ -8369,14 +7908,6 @@
          CALL Init_WetScav( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
          
-! This might be obsolete now
-!#if   defined( APM )
-!     ! Initialize wet deposition tracers for APM
-!      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
-!         CALL WETDEPBINID
-!      ENDIF
-!#endif
-
       !=================================================================
       ! Call setup routines from other F90 modules
       !=================================================================
@@ -8390,6 +7921,10 @@
       ! of logical_mod.F and tracer_mod.F..  This has to be called
       ! after the input.geos file has been read from disk.
       CALL Set_Vdiff_Values( am_I_Root, Input_Opt, RC )
+
+      ! Initialize the GET_NDEP_MOD for soil NOx deposition (bmy, 6/17/16)
+      CALL Init_Get_Ndep( am_I_Root, RC )
+      IF ( RC /= GIGC_SUCCESS ) RETURN
 
       ! Initialize "carbon_mod.F"
       IF ( Input_Opt%LCARB ) THEN
@@ -8481,26 +8016,512 @@
 
       ! Initialize Mercury simulation routines
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN 
-         CALL INIT_MERCURY      ( am_I_Root, Input_Opt, State_Chm, RC )
-         CALL INIT_LAND_MERCURY ( am_I_Root, Input_Opt, State_Chm, RC )
-         CALL INIT_DEPO_MERCURY ( am_I_Root, Input_Opt, State_Chm, RC )
-         CALL INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL Init_Mercury      ( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL Init_Land_Mercury ( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL Init_Depo_Mercury ( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL Init_Ocean_Mercury( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
 
+#if defined( TOMAS )
+      ! Initialize the TOMAS microphysics package, if necessary
+      CALL Init_Tomas_Microphysics( am_I_Root, Input_Opt, 
+     &                              State_Chm, RC )    
+#endif
+
       !=================================================================
-      ! Initialize GEOS-Chem bpch diagnostics here.  This allows us to
-      ! take advantage of the species database object. (bmy, 8/31/15)
+      ! Call setup routines for certain GEOS-Chem diangostics
+      ! This allows us to use the species database object.
       !=================================================================
 
       ! Allocate and initialize variables
-      CALL NDXX_SETUP( am_I_Root, Input_Opt, State_Chm, RC )
+      CALL Ndxx_Setup( am_I_Root, Input_Opt, State_Chm, RC )
 
       ! Initialize the Hg diagnostics (bpch)
-      CALL INIT_DIAG03( State_Chm )
+      CALL Init_Diag03( State_Chm )
+
+      ! Enable Mean OH (or CH3CCl3) diag for runs which need it
+      CALL Init_Diag_OH( am_I_Root, Input_Opt, RC )
 
       ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
-      CALL DO_GAMAP( am_I_Root, Input_Opt, State_Chm, RC )
+      CALL Do_Gamap( am_I_Root, Input_Opt, State_Chm, RC )
 
       END SUBROUTINE GIGC_Init_Extra
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_error_checks
+!
+! !DESCRIPTION: Makes sure that certain species are defined in order to
+!  proceed with a certain option.  Halts the simulation with an error message
+!  if incorrect inputs  would have caused  a simulation to crash.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Do_Error_Checks( am_I_root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE Error_Mod,          ONLY : Error_Stop
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : Ind_
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt
+!
+! !OUTPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(OUT)   :: RC
+!
+! !REMARKS:
+!  These error checks were originally called when the various menus were
+!  read in from disk.  However, in order to use the IND_() function to look
+!  up given species indices, we need to call this after the Species Database
+!  (which is in State_Chm) is initialized.  Therefore, we have now moved these
+!  error checks to this routine, which is now called from GIGC_Init_Extra.
+!                                                                             .
+!  The IND_() function now defines all species ID's.  It returns -1 if
+!  a species cannot be found.  The prior behavior was to return 0 if a 
+!  species wasn't found.  Therefore, in order to preserve the logic of the
+!  error checks, we must force any -1's returned by IND_() to 0's in
+!  this subroutine.
+!
+! !REVISION HISTORY:
+!  22 Jun 2016 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER            :: I
+
+      ! Strings
+      CHARACTER(LEN=255) :: MSG, LOCATION
+
+      !=================================================================
+      ! Initialization
+      !=================================================================
+
+      ! Assume success
+      RC       = GIGC_SUCCESS
+
+      ! Define location string
+      LOCATION = 'DO_ERROR_CHECKS (in GeosCore/input_mod.F)'
+
+      !=================================================================
+      ! Error check SEASALT AEROSOLS
+      !=================================================================
+      I = MAX( IND_('SALA'), 0 ) 
+     &  + MAX( IND_('SALC'), 0 )
+
+      IF ( Input_Opt%LSSALT ) THEN
+         IF ( I == 0 ) THEN
+            MSG = 'LSSALT=T but ONLINE SEASALT AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use ONLINE SEASALT AEROSOLS if LSSALT=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! Error check MARINE ORGANIC AEROSOLS
+      !=================================================================
+      I = MAX( IND_('MOPO'), 0 )  
+     &  + MAX( IND_('MOPI'), 0 )
+
+      IF ( Input_Opt%LMPOA ) THEN
+         IF ( .not. Input_Opt%LSSALT ) THEN
+            MSG = 'LMPOA=T but LSSALT=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+         IF ( I == 0 ) THEN
+            MSG = 'LMPOA=T but MARINE ORGANIC AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use MARINE ORGANIC AEROSOLS if LMPOA=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! Error check SULFUR AEROSOLS
+      !=================================================================
+      I = MAX( IND_('DMS' ), 0 )
+     &  + MAX( IND_('SO2' ), 0 )
+     &  + MAX( IND_('SO4' ), 0 )
+     &  + MAX( IND_('SO4s'), 0 )
+     &  + MAX( IND_('MSA' ), 0 )
+     &  + MAX( IND_('NH3' ), 0 )
+     &  + MAX( IND_('NH4' ), 0 )
+     &  + MAX( IND_('NITs'), 0 ) 
+
+      IF ( Input_Opt%LSULF ) THEN
+
+         ! We now compute the production of SO4s and NITs, so when 
+         ! LSULF=T, then we must also have LSSALT=T (bec, bmy, 4/13/05)
+         IF ( .not. Input_Opt%LSSALT ) THEN 
+            MSG = 'LSULF=T now also requires LSSALT=T!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+
+         ! Stop w/ error if everything is undefined
+         IF ( I == 0 ) THEN
+            MSG = 'LSULF=T but ONLINE SULFUR AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+
+      ELSE
+
+         ! If LSULF=F but we have defined tracers, stop w/ error
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use ONLINE SULFUR AEROSOLS if LSULF=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+
+      ENDIF
+
+      !=================================================================
+      ! Error check CRYST /AQ AEROSOLS
+      !=================================================================
+      I = MAX( IND_('AS'   ), 0 )
+     &  + MAX( IND_('AHS'  ), 0 )
+     &  + MAX( IND_('LET'  ), 0 )
+     &  + MAX( IND_('NH4aq'), 0 )
+     &  + MAX( IND_('SO4aq'), 0 )
+
+      IF ( Input_Opt%LCRYST ) THEN
+         IF ( I == 0 ) THEN
+            MSG = 'LCRYST=T but ONLINE CRYST/AQ AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use ONLINE CRYST/AQ AEROSOLS if LCRYST=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! Error check CARBON AEROSOLS
+      !=================================================================
+
+      ! SOAupdate: Add POA (hotp 10/11/09)
+      I = MAX( IND_('BCPO'), 0 )
+     &  + MAX( IND_('BCPI'), 0 )
+     &  + MAX( IND_('OCPO'), 0 )
+     &  + MAX( IND_('OCPI'), 0 )
+     &  + MAX( IND_('POA1'), 0 )
+
+      IF ( Input_Opt%LCARB ) THEN
+         IF ( I == 0 ) THEN
+            MSG = 'LCARB=T but ONLINE CARBON AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use ONLINE CARBON AEROSOLS if LCARB=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      IF ( Input_Opt%LSVPOA .and. ( .NOT. Input_Opt%LSOA ) ) THEN
+         MSG = 'Semivolatile POA requires LSOA=T'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
+      ! SOAupdate: Error check (hotp 8/24/09)
+      ! OCPI and OCPO are the non-volatile POA tracers
+      ! POA (along w/ POG, OPOA, and OPOG) are the semivol POA tracers
+      ! You can't have both!
+      I = MAX( IND_('OCPI'), 0 )  
+     &  + MAX( IND_('OCPO'), 0 )
+
+      IF ( IND_('POA1') > 0 ) THEN
+         IF ( I > 0 ) THEN
+            MSG = 'Semivolatile POA tracer is defined in addition to
+     &             Nonvolatile POA'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+         IF ( ( .NOT. Input_Opt%LSOA   ) .or. 
+     &        ( .NOT. Input_Opt%LSVPOA ) ) THEN
+            MSG = 'Semivolatile POA requires LSOA=T and LSVPOA=T'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      ! SOAupdate
+      ! Options for organic aerosol tracers:
+      ! IF LSOA = F: only OCPI and OCPO
+      ! IF LSOA = T:
+      !   OCPI OCPO SOA (non-vol + original traditional)
+      !   POA POG OPOA OPOG SOA BTX NAP (semivol + orig trad + IVOC )
+      ! NAP emissions are set in input.geos
+      ! LSVPOA is just a check (doesn't do anything hotp 7/21/10)
+      I = MAX( IND_('POA1' ), 0 )
+     &  + MAX( IND_('POA2' ), 0 )
+     &  + MAX( IND_('POG1' ), 0 )
+     &  + MAX( IND_('POG2' ), 0 )
+     &  + MAX( IND_('OPOA1'), 0 )
+     &  + MAX( IND_('OPOA2'), 0 )
+     &  + MAX( IND_('OPOG1'), 0 )
+     &  + MAX( IND_('OPOG2'), 0 )
+
+      IF ( Input_Opt%LSVPOA ) THEN
+         IF ( I < 8 ) THEN
+            MSG = 'Not enough semivolatile POA tracers!'
+                     CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+         IF ( IND_('NAP','T') < 0 ) THEN
+            MSG = 'Semivolatile POA requires IVOCs/NAP!'
+                     CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! Error check SECONDARY ORGANIC AEROSOLS
+      !=================================================================
+
+      ! SOAupdate: update for new mtp (hotp 5/24/10)
+      I = MAX( IND_('MTPA' ), 0 )
+     &  + MAX( IND_('LIMO' ), 0 )
+     &  + MAX( IND_('MTPO' ), 0 )
+     &  + MAX( IND_('BENZ' ), 0 )
+     &  + MAX( IND_('TOLU' ), 0 )
+     &  + MAX( IND_('XYLE' ), 0 )
+     &  + MAX( IND_('TSOA1'), 0 )
+     &  + MAX( IND_('TSOA2'), 0 )
+     &  + MAX( IND_('TSOA3'), 0 )
+     &  + MAX( IND_('ISOA1'), 0 )
+     &  + MAX( IND_('ISOA2'), 0 )
+     &  + MAX( IND_('ISOA3'), 0 )
+     &  + MAX( IND_('ASOA1'), 0 )
+     &  + MAX( IND_('ASOA2'), 0 )
+     &  + MAX( IND_('ASOA3'), 0 )
+     &  + MAX( IND_('ASOAN'), 0 )
+     &  + MAX( IND_('SOAG' ), 0 )
+     &  + MAX( IND_('SOAM' ), 0 )
+
+      IF ( Input_Opt%LSOA ) THEN
+         IF ( I == 0 ) THEN
+            MSG = 'LSOA=T but ONLINE 2dy ORG AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use ONLINE 2dy ORG AEROSOLS if LSOA=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! Error check DUST AEROSOLS
+      !=================================================================
+
+! JKODROS - Uncomment this if the dust fixes are back working. 
+#if defined( TOMAS )
+      ! For TOMAS only: If DUST1 is present, the other dust tracers are too
+      I = MAX( IND_('DUST1'), 0 )
+#else
+      ! Non-TOMAS simulations: Need all DST1-DST4 tracers
+      I = MAX( IND_('DST1'), 0 )
+     &  + MAX( IND_('DST2'), 0 )
+     &  + MAX( IND_('DST3'), 0 )
+     &  + MAX( IND_('DST4'), 0 )
+#endif
+
+      IF ( Input_Opt%LDUST ) THEN
+         IF ( I == 0 ) THEN
+            MSG = 'LDUST=T but ONLINE DUST AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use ONLINE DUST AEROSOLS if LDUST=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! Error check DUST NITRATE    AEROSOLS
+      !             DUST SULFATE    AEROSOLS
+      !             DUST ALKALINITY AEROSOLS
+      !=================================================================
+      I = MAX( IND_('NITd1'  ), 0 ) 
+     &  + MAX( IND_('NITd2'  ), 0 ) 
+     &  + MAX( IND_('NITd3'  ), 0 )
+     &  + MAX( IND_('NITd4'  ), 0 ) 
+     &  + MAX( IND_('SO4d1'  ), 0 ) 
+     &  + MAX( IND_('SO4d2'  ), 0 )
+     &  + MAX( IND_('SO4d3'  ), 0 ) 
+     &  + MAX( IND_('SO4d4'  ), 0 ) 
+     &  + MAX( IND_('DSTAL1' ), 0 )
+     &  + MAX( IND_('DSTAL2' ), 0 ) 
+     &  + MAX( IND_('DSTAL3' ), 0 ) 
+     &  + MAX( IND_('DSTAL4' ), 0 )
+
+      IF ( Input_Opt%LDSTUP ) THEN
+         IF ( I < 12 ) THEN
+            MSG = 'LDSTUP=T but COATED DUST AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use COATED DUST AEROSOLS if LDSTUP=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! Error check SEASALT AEROSOLS
+      !=================================================================
+      I = MAX( IND_('SALA'), 0 ) 
+     &  + MAX( IND_('SALC'), 0 )
+
+      IF ( Input_Opt%LSSALT ) THEN
+         IF ( I == 0 ) THEN
+            MSG = 'LSSALT=T but ONLINE SEASALT AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use ONLINE SEASALT AEROSOLS if LSSALT=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      
+      !=================================================================
+      ! Error check CFC emissions
+      !=================================================================
+      IF ( Input_Opt%LCFCEMIS .or. Input_Opt%LSETCFC ) THEN
+         IF ( IND_('CFCX') < 0 ) THEN
+            Input_Opt%LCFCEMIS = .FALSE.
+            Input_Opt%LSETCFC  = .FALSE.
+            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
+            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
+     &            // 'CFCs are emitted but CFC tracers are undefined.'
+            WRITE( 6, '(a)' ) 'Turning off CFC emissions.'
+            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! Error check N2O emissions
+      !=================================================================
+      IF ( Input_Opt%LN2OEMIS .or. Input_Opt%LSETN2O ) THEN
+         IF ( IND_('N2O') < 0 ) THEN
+            Input_Opt%LN2OEMIS = .FALSE.
+            Input_Opt%LSETN2O  = .FALSE.
+            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
+            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
+     &            // 'N2O is emitted but N2O tracer is undefined.'
+            WRITE( 6, '(a)' ) 'Turning off nitrous oxide emissions.'
+            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! Error check stratospheric H2O
+      !=================================================================
+#if defined( UCX )
+      IF ( Input_Opt%LSETH2O ) THEN
+         IF (IND_('H2O') < 0 ) THEN
+            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
+            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
+     &            // 'H2O is set but H2O tracer is undefined.'
+            Input_Opt%LSETH2O = .FALSE.
+            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
+         ENDIF
+      ENDIF
+#else
+      Input_Opt%LSETH2O = .FALSE.
+#endif
+
+      !=================================================================
+      ! Error check halogen emissions
+      !=================================================================
+      IF ( Input_Opt%LCLEMIS .or. Input_Opt%LSETCL) THEN
+         IF ( IND_('Cl') < 0 ) THEN
+            Input_Opt%LCLEMIS = .FALSE.
+            Input_Opt%LSETCL  = .FALSE.
+            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
+            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
+     &            // 'Cl species emitted but Cl tracer is undefined.'
+            WRITE( 6, '(a)' ) 'Turning off chlorine emissions.'
+            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
+         ENDIF
+      ENDIF
+
+      IF ( Input_Opt%LBREMIS     .or. Input_Opt%LSETBR    .or. 
+     &     Input_Opt%LSETBRSTRAT .or. Input_Opt%LBRGCCM ) THEN
+         IF ( IND_('Br2') < 0 ) THEN
+            Input_Opt%LBREMIS     = .FALSE.
+            Input_Opt%LSETBR      = .FALSE.
+            Input_Opt%LSETBRSTRAT = .FALSE.
+            Input_Opt%LBRGCCM     = .FALSE.
+            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
+            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
+     &            // 'Br species emitted but Br2 tracer is undefined.'
+            WRITE( 6, '(a)' ) 'Turning off bromine emissions.'
+            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! Error check OCS emissions
+      !=================================================================
+      IF ( Input_Opt%LOCSEMIS .or. Input_Opt%LSETOCS ) THEN
+         IF ( IND_('OCS') < 0 ) THEN
+            Input_Opt%LOCSEMIS = .FALSE.
+            Input_Opt%LSETOCS  = .FALSE.
+            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
+            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
+     &            // 'OCS is emitted but OCS tracer is undefined.'
+            WRITE( 6, '(a)' ) 'Turning off OCS emissions.'
+            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! Error check methane emissions
+      !=================================================================
+      IF ( Input_Opt%LCH4EMIS .AND. Input_Opt%LCH4SBC ) THEN
+            CALL ERROR_STOP( 
+     &         ' CH4 surface BC & emissions cannot both be turned on!', 
+     &         ' READ_EMISSIONS_MENU ("input_mod.f")' )
+      ENDIF
+
+      IF ( Input_Opt%LCH4EMIS   .or. 
+     &     Input_Opt%LSETCH4    .or. 
+     &     Input_Opt%LCH4SBC  ) THEN
+         IF ( IND_('CH4') < 0 ) THEN
+            Input_Opt%LCH4EMIS = .FALSE.
+            Input_Opt%LSETCH4  = .FALSE.
+            Input_Opt%LCH4SBC  = .FALSE.
+            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
+            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
+     &            // 'CH4 is emitted but CH4 tracer is undefined.'
+            WRITE( 6, '(a)' ) 'Turning off methane emissions.'
+            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
+         ENDIF
+      ENDIF
+
+      END SUBROUTINE DO_ERROR_CHECKS
 !EOC
       END MODULE INPUT_MOD

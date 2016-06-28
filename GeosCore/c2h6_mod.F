@@ -273,8 +273,8 @@
 !
 ! !USES:
 !
-      USE TRACERID_MOD, ONLY : IDTC2H6
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD
+      USE GIGC_State_Chm_Mod, ONLY :  IND_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -284,7 +284,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                :: C2H6_ANTHRO
+      REAL(fp)              :: C2H6_ANTHRO
 ! 
 ! !REVISION HISTORY: 
 !  22 Mar 2012 - M. Payer    - Initial version adapted from GET_RETRO_ANTHRO
@@ -295,7 +295,7 @@
       !  GET_C2H6_ANTHRO begins here
       !=================================================================
 
-      IF ( N == IDTC2H6 ) THEN
+      IF ( N == IND_('C2H6') ) THEN
          C2H6_ANTHRO = NGASC2H6(I,J)
       ENDIF
 

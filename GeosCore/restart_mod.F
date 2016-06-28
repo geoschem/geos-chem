@@ -641,6 +641,8 @@ dvected tracer input  restart file
 !                              database field emMW_g (emitted species g/mol)
 !  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
 !                              NAMEGAS with ThisSpc%Name from species database
+!  22 Jun 2016 - R. Yantosca - Now refer to Hg0_Id_List, Hg2_Id_List, and
+!                              HgP_Id_List fields of State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -681,9 +683,9 @@ dvected tracer input  restart file
       ! For Hg species indexing (bmy, 4/26/16)
       INTEGER                   :: N_Hg_CATS 
       INTEGER                   :: Id_Hg_tot
-      INTEGER,          POINTER :: Id_Hg0     (:)
-      INTEGER,          POINTER :: Id_Hg2     (:)
-      INTEGER,          POINTER :: Id_HgP     (:)
+      INTEGER,          POINTER :: Hg0_Id_List(:)
+      INTEGER,          POINTER :: Hg2_Id_List(:)
+      INTEGER,          POINTER :: HgP_Id_List(:)
       CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:)
 
       ! Objects
@@ -699,9 +701,9 @@ dvected tracer input  restart file
       ! Initialize pointers
       Ptr2D       => NULL()
       Ptr3D       => NULL()
-      Id_Hg0      => NULL()
-      Id_Hg2      => NULL()
-      Id_HgP      => NULL()
+      Hg0_Id_List => NULL()
+      Hg2_Id_List => NULL()
+      HgP_Id_List => NULL()
       Hg_Cat_Name => NULL()
       ThisSpc     => NULL()
 
@@ -727,12 +729,12 @@ dvected tracer input  restart file
          Hg_Cat_Name => State_Chm%Hg_Cat_Name
     
          ! Hg species index corresponding to a given Hg category number
-         Id_Hg0      => State_Chm%Id_Hg0
-         Id_Hg2      => State_Chm%Id_Hg2
-         Id_HgP      => State_Chm%Id_HgP
+         Hg0_Id_List => State_Chm%Hg0_Id_List
+         Hg2_Id_List => State_Chm%Hg2_Id_List
+         HgP_Id_List => State_Chm%HgP_Id_List
 
          ! ID_Hg_Tot is always the first category
-         Id_Hg_Tot   =  Id_Hg0(1)
+         Id_Hg_Tot   =  Hg0_Id_List(1)
 
       ENDIF
 
@@ -1062,13 +1064,13 @@ dvected tracer input  restart file
             SELECT CASE( M )
                CASE ( 1 )
                   Tracer = 'Hg0' 
-                  Tracer_id = ID_Hg0(1)
+                  Tracer_id = Hg0_Id_List(1)
                CASE ( 2 )
                   Tracer = 'Hg2'
-                  Tracer_id = ID_Hg2(1)
+                  Tracer_id = Hg2_Id_List(1)
                CASE ( 3 )
                   Tracer = 'HgP' 
-                  Tracer_id = ID_HgP(1)
+                  Tracer_id = HgP_Id_List(1)
             END SELECT
             v_name = 'Ocean_' // TRIM( Tracer )
 
@@ -1133,13 +1135,13 @@ dvected tracer input  restart file
                   SELECT CASE( M )
                      CASE ( 1 )
                         Tracer = 'Hg0' 
-                        Tracer_id = ID_Hg0(N)
+                        Tracer_id = Hg0_Id_List(N)
                      CASE ( 2 )
                         Tracer = 'Hg2'
-                        Tracer_id = ID_Hg2(N)
+                        Tracer_id = Hg2_Id_List(N)
                      CASE ( 3 )
                         Tracer = 'HgP' 
-                        Tracer_id = ID_HgP(N)
+                        Tracer_id = HgP_Id_List(N)
                   END SELECT
                   v_name = 'Ocean_' // TRIM( Tracer         ) //
      &                     '_'      // TRIM( Hg_Cat_Name(N) )
@@ -1280,9 +1282,9 @@ dvected tracer input  restart file
          ENDIF
 
          ! Free pointers for Hg indexing
-         Id_Hg0      => NULL()
-         Id_Hg2      => NULL()
-         Id_HgP      => NULL()
+         Hg0_Id_List => NULL()
+         Hg2_Id_List => NULL()
+         HgP_Id_List => NULL()
          Hg_Cat_Name => NULL()
 
       ENDIF
@@ -1886,6 +1888,8 @@ dvected tracer input  restart file
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
 !                              NAMEGAS with ThisSpc%Name from species database
+!  22 Jun 2016 - R. Yantosca - Now refer to Hg0_Id_List, Hg2_Id_List, and
+!                              HgP_Id_List fields of State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1911,9 +1915,9 @@ dvected tracer input  restart file
       ! For indexing of Hg species
       INTEGER                   :: N_Hg_CATS
       INTEGER                   :: Id_Hg_tot
-      INTEGER,          POINTER :: Id_Hg0     (:)
-      INTEGER,          POINTER :: Id_Hg2     (:)
-      INTEGER,          POINTER :: Id_HgP     (:)
+      INTEGER,          POINTER :: Hg0_Id_List(:)
+      INTEGER,          POINTER :: Hg2_Id_List(:)
+      INTEGER,          POINTER :: HgP_Id_List(:)
       CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:)
 
       ! Pointer to HEMCO state (is this needed?)
@@ -1932,9 +1936,9 @@ dvected tracer input  restart file
       ! Initialize pointers
       Ptr3D       => NULL()
       Ptr2D       => NULL()
-      Id_Hg0      => NULL()
-      Id_Hg2      => NULL()
-      Id_HgP      => NULL()
+      Hg0_Id_List => NULL()
+      Hg2_Id_List => NULL()
+      HgP_Id_List => NULL()
       Hg_Cat_Name => NULL()
       HcoState    => NULL()
       ThisSpc     => NULL()
@@ -1959,12 +1963,12 @@ dvected tracer input  restart file
          Hg_Cat_Name => State_Chm%Hg_Cat_Name
 
          ! Hg species index corresponding to a given Hg category number
-         Id_Hg0      => State_Chm%Id_Hg0
-         Id_Hg2      => State_Chm%Id_Hg2
-         Id_HgP      => State_Chm%Id_HgP
+         Hg0_Id_List => State_Chm%Hg0_Id_List
+         Hg2_Id_List => State_Chm%Hg2_Id_List
+         HgP_Id_List => State_Chm%HgP_Id_List
 
          ! Total Hg is always the first category
-         ID_Hg_Tot   =  Id_Hg0(1)
+         ID_Hg_Tot   =  Hg0_Id_List(1)
 
       ENDIF
 
@@ -2212,19 +2216,19 @@ dvected tracer input  restart file
             SELECT CASE( M )
                CASE ( 1 )
                   ContainerName = 'Ocean_Hg0' 
-                  Tracer_id = ID_Hg0(1)
+                  Tracer_id = Hg0_Id_List(1)
                   Temp2D = Hg0aq(:,:,ID_Hg_tot)
                   WRITE( 6, 180 ) ContainerName, 
      &                            SUM( Hg0aq(:,:,ID_Hg_tot) ), 'kg'
                CASE ( 2 )
                   ContainerName = 'Ocean_Hg2'
-                  Tracer_id = ID_Hg2(1)
+                  Tracer_id = Hg2_Id_List(1)
                   Temp2D = Hg2aq(:,:,ID_Hg_tot)
                   WRITE( 6, 180 ) ContainerName, 
      &                            SUM( Hg2aq(:,:,ID_Hg_tot) ), 'kg'
                CASE ( 3 )
                   ContainerName = 'Ocean_HgP' 
-                  Tracer_id = ID_HgP(1)
+                  Tracer_id = HgP_Id_List(1)
                   Temp2D = HgPaq(:,:,ID_Hg_tot)
                   WRITE( 6, 180 ) ContainerName, 
      &                            SUM( HgPaq(:,:,ID_Hg_tot) ), 'kg'
@@ -2261,15 +2265,15 @@ dvected tracer input  restart file
                   SELECT CASE( M )
                      CASE ( 1 )
                         Tracer = 'Hg0' 
-                        Tracer_id = ID_Hg0(N)
+                        Tracer_id = Hg0_Id_List(N)
                         Temp2D = Hg0aq(:,:,N)
                      CASE ( 2 )
                         Tracer = 'Hg2'
-                        Tracer_id = ID_Hg2(N)
+                        Tracer_id = Hg2_Id_List(N)
                         Temp2D = Hg2aq(:,:,N)
                      CASE ( 3 )
                         Tracer = 'HgP' 
-                        Tracer_id = ID_HgP(N)
+                        Tracer_id = HgP_Id_List(N)
                         Temp2D = HgPaq(:,:,N)
                   END SELECT
                   Ptr2D => Temp2D
@@ -2388,9 +2392,9 @@ dvected tracer input  restart file
 
          ! Free pointers for Hg indexing
          Hg_Cat_Name => NULL()
-         Id_Hg0      => NULL()
-         Id_Hg2      => NULL() 
-         Id_HgP      => NULL() 
+         Hg0_Id_List => NULL()
+         Hg2_Id_List => NULL() 
+         HgP_Id_List => NULL() 
 
       ENDIF
 

@@ -134,6 +134,8 @@
 !                              (orig. 3/19/13)
 !  28 Mar 2016 - E. Lundgren - Read/write nc restart file from restart_mod.F
 !  26 Apr 2016 - R. Yantosca - Now store Hg indexing variables locally
+!  22 Jun 2016 - R. Yantosca - Now reference the Hg0_Id_List, Hg2_Id_List,
+!                              and HgP_Id_List fields of State_Chm
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
@@ -282,9 +284,9 @@
       ! Pointers for Hg indexing
       ! NOTE: We can declare these NULL here because 
       ! these are SAVED global pointers (bmy, 4/29/16)
-      INTEGER, POINTER  :: Id_Hg0(:) => NULL()
-      INTEGER, POINTER  :: Id_Hg2(:) => NULL()
-      INTEGER, POINTER  :: Id_HgP(:) => NULL()
+      INTEGER, POINTER  :: Hg0_Id_List(:) => NULL()
+      INTEGER, POINTER  :: Hg2_Id_List(:) => NULL()
+      INTEGER, POINTER  :: HgP_Id_List(:) => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -2087,7 +2089,7 @@
                !--------------------------------------------------------
 
                ! Hg0 tracer number (for STT)
-               N             = ID_Hg0(NN)
+               N             = Hg0_Id_List(NN)
 
                ! Add converted Hg(II) and subtract converted Hg(0) mass 
                ! to the ocean mass of Hg(0) [kg]
@@ -2941,6 +2943,7 @@
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Chm_Mod, ONLY : Ind_
       USE FILE_MOD,           ONLY : IOERROR
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE SPECIES_MOD,        ONLY : Species
@@ -3217,13 +3220,15 @@
 
       ! Hg0
       DO NN = 1, N_Hg_CATS
-         WRITE( 6, 140 ) ID_Hg0(NN), TRACER_NAME( Id_Hg0(NN) ), 
+         WRITE( 6, 140 ) Hg0_Id_List(NN), 
+     &                   TRACER_NAME( Hg0_Id_List(NN) ), 
      &                   SUM( Hg0aq(:,:,NN) ),  'kg'
       ENDDO
 
       ! Hg2
       DO NN = 1, N_Hg_CATS
-         WRITE( 6, 140 ) ID_Hg2(NN), TRACER_NAME( Id_Hg2(NN) ), 
+         WRITE( 6, 140 ) Hg2_Id_List(NN), 
+     &                   TRACER_NAME( Hg2_Id_List(NN) ), 
      &                   SUM( Hg2aq(:,:,NN) ), 'kg'
       ENDDO
 
@@ -3403,7 +3408,7 @@
       !---------------------------
       ! Total Hg(0) in ocean
       !---------------------------
-      N            = ID_Hg0(Id_Hg_tot)
+      N            = Hg0_Id_List(Id_Hg_tot)
       ARRAY(:,:,1) = Hg0aq(:,:,ID_Hg_tot)
 
       CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
@@ -3415,7 +3420,7 @@
       !---------------------------
       ! Total Hg(II) in ocean
       !---------------------------
-      N            = ID_Hg2(ID_Hg_tot)
+      N            = Hg2_Id_List(ID_Hg_tot)
       ARRAY(:,:,1) = Hg2aq(:,:,ID_Hg_tot)
 
       CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
@@ -3427,7 +3432,7 @@
       !---------------------------
       ! Total HgP in ocean
       !---------------------------
-      N            = ID_HgP(ID_Hg_tot)
+      N            = HgP_Id_List(ID_Hg_tot)
       ARRAY(:,:,1) = HgPaq(:,:,ID_Hg_tot)   !eds 10/18/10
 
       CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
@@ -3443,7 +3448,7 @@
          ! Tagged Hg(0) in ocean
          !------------------------
          DO NN = 2, N_Hg_CATS
-            N            = ID_Hg0(NN)
+            N            = Hg0_Id_List(NN)
             ARRAY(:,:,1) = Hg0aq(:,:,NN)
 
             CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
@@ -3457,7 +3462,7 @@
          ! Tagged Hg(II) in ocean
          !------------------------
          DO NN = 2, N_Hg_CATS
-            N            = ID_Hg2(NN)
+            N            = Hg2_Id_List(NN)
             ARRAY(:,:,1) = Hg2aq(:,:,NN)
 
             CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
@@ -3471,7 +3476,7 @@
          ! Tagged Hg(P) in ocean !eds 9/9/10 
          !------------------------
          DO NN = 2, N_Hg_CATS
-            N            = ID_HgP(NN)  
+            N            = HgP_Id_List(NN)  
             ARRAY(:,:,1) = HgPaq(:,:,NN)
 
             CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
@@ -3487,7 +3492,7 @@
       !---------------------------
          DO NN = 1, N_Hg_CATS
             CATEGORY     = 'SNOW-HG'
-            N            = ID_Hg0(NN)
+            N            = Hg0_Id_List(NN)
             ARRAY(:,:,1) = SNOW_HG_OC(:,:,NN)
 
             CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
@@ -3502,7 +3507,7 @@
       !-----------------------------------
          DO NN = 1, N_Hg_CATS
             CATEGORY     = 'SNOW-HGN'
-            N            = ID_Hg0(NN)
+            N            = Hg0_Id_List(NN)
             ARRAY(:,:,1) = SNOW_HG_STORED_OC(:,:,NN)
 
             CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
@@ -3517,7 +3522,7 @@
       !-----------------------------------
          DO NN = 1, N_Hg_CATS
             CATEGORY     = 'SNHG-LN'
-            N            = ID_Hg0(NN)
+            N            = Hg0_Id_List(NN)
             ARRAY(:,:,1) = SNOW_HG_LN(:,:,NN)
 
             CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
@@ -3532,7 +3537,7 @@
       !-----------------------------------
          DO NN = 1, N_Hg_CATS
             CATEGORY     = 'SNHGN-LN'
-            N            = ID_Hg0(NN)
+            N            = Hg0_Id_List(NN)
             ARRAY(:,:,1) = SNOW_HG_STORED_LN(:,:,NN)
 
             CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
@@ -3633,12 +3638,12 @@
          !--------
 
          ! Total Hg(0)
-         N       = ID_Hg0(ID_Hg_tot)
+         N       = Hg0_Id_List(ID_Hg_tot)
          Hg0_tot = STT(I,J,L,N)
 
          ! Sum of tagged Hg(0)
          DO NN = 2, N_Hg_CATS
-            N       = ID_Hg0(NN) 
+            N       = Hg0_Id_List(NN) 
             Hg0_tag = Hg0_tag + STT(I,J,L,N)
          ENDDO
 
@@ -3657,12 +3662,12 @@
          !--------
 
          ! Total Hg(II)
-         N       = ID_Hg2(ID_Hg_tot)
+         N       = Hg2_Id_List(ID_Hg_tot)
          Hg2_tot = STT(I,J,L,N)
 
          ! Sum of tagged Hg(II)
          DO NN = 2, N_Hg_CATS
-            N       = ID_Hg2(NN) 
+            N       = Hg2_Id_List(NN) 
             Hg2_tag = Hg2_tag + STT(I,J,L,N)
          ENDDO
 
@@ -3681,12 +3686,12 @@
          !--------
 
          ! Total Hg(P)
-         N       = ID_HgP(ID_Hg_tot)
+         N       = HgP_Id_List(ID_Hg_tot)
          HgP_tot = STT(I,J,L,N)
 
          ! Sum of tagged Hg(P)
          DO NN = 2, N_Hg_CATS
-            N = ID_HgP(NN)
+            N = HgP_Id_List(NN)
             IF ( N > 0 ) HgP_tag = HgP_tag + STT(I,J,L,N)
          ENDDO
 
@@ -4137,9 +4142,9 @@
       N_Hg_CATS =  State_Chm%N_Hg_CATS
       
       ! Hg species index corresponding to a given Hg category number
-      Id_Hg0    => State_Chm%Id_Hg0
-      Id_Hg2    => State_Chm%Id_Hg2
-      Id_HgP    => State_Chm%Id_HgP
+      Hg0_Id_List    => State_Chm%Hg0_Id_List
+      Hg2_Id_List    => State_Chm%Hg2_Id_List
+      HgP_Id_List    => State_Chm%HgP_Id_List
 
       ! Loop over all Hg species
       DO N = 1, State_Chm%nSpecies
@@ -4430,16 +4435,17 @@
       IF ( ALLOCATED( SO4_CONC  ) ) DEALLOCATE( SO4_CONC  )
 
       ! Free pointers
-      CHL    => NULL()
-      CHL_A  => NULL()
-      MLD    => NULL()
-      NPP    => NULL()
-      NPP_A  => NULL()
-      UPVEL  => NULL()
-      dMLD1  => NULL()
-      dMLD2  => NULL()
-      Id_Hg2 => NULL()
-      Id_HgP => NULL()
+      CHL         => NULL()
+      CHL_A       => NULL()
+      MLD         => NULL()
+      NPP         => NULL()
+      NPP_A       => NULL()
+      UPVEL       => NULL()
+      dMLD1       => NULL()
+      dMLD2       => NULL()
+      Hg0_Id_List => NULL()
+      Hg2_Id_List => NULL()
+      HgP_Id_List => NULL()
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_OCEAN_MERCURY
