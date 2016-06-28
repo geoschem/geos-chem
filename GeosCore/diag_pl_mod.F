@@ -307,9 +307,6 @@
 !      ! Process family information
 !      !=================================================================
 !
-!      ! Set NFAMILIES in "comode.h"
-!      NFAMILIES = NFAM
-!      
 !      ! Loop over families
 !      DO F = 1, NFAM
 !
@@ -378,7 +375,7 @@
 !      ! Now determine which reactions are sources or sinks of the
 !      ! specified families. Amend the IRM array accordingly.
 !      !=================================================================
-!      DO N = 1, NFAMILIES
+!      DO N = 1, NFAM
 !         NNPL(N) = 0
 !      ENDDO
 !
@@ -405,7 +402,7 @@
 !            !===========================================================
 !            ! For this rxn, loop over all prod/loss diagnostic families
 !            !===========================================================
-!            DO N = 1, NFAMILIES
+!            DO N = 1, NFAM
 !
 !               ! Initialize for each family
 !               PL        = 0
@@ -535,7 +532,7 @@
 !      ENDIF
 !
 !      ! Loop over P/L diagnostic families
-!      DO N = 1, NFAMILIES
+!      DO N = 1, NFAM
 !
 !         ! Write family header
 !         IF ( am_I_Root ) THEN
@@ -690,7 +687,7 @@
 !!$OMP+DEFAULT( SHARED )
 !!$OMP+PRIVATE( I, J, L, N, IS_PSO4 )
 !!$OMP+SCHEDULE( DYNAMIC ) 
-!      DO N = 1, NFAMILIES
+!      DO N = 1, NFAM
 !
 !         ! Now avoid doing a string comparison in the (I,J,L) loops
 !         ! We can do it once here and then save the value for use below
@@ -1482,7 +1479,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD
       USE CMN_DIAG_MOD
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
@@ -1530,6 +1526,8 @@
 !  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !  06 Jul 2015 - R. Yantosca - Bug fix: zero arrays after allocation
+!  28 Jun 2016 - M. Sulprizio- Now copy NFAM and DO_SAVE_O3 from Input_Opt and
+!                              remove dependency on comode_loop_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1540,29 +1538,9 @@
       ! INIT_DIAG_PL begins here!
       !=================================================================
 
-      ! Turn on prod loss diagnostic?
-      DO_SAVE_PL = DOPL
-
-      ! Save out P(Ox), L(Ox) for future tagged Ox simulation?
-      DO_SAVE_O3 = SAVEO3
-
-      ! Number of prod/loss families
-      NFAM       = N_FAM
-
-      ! Define NFAMILIES from "comode.h" for backwards compatibility
-      NFAMILIES  = NFAM
-
-      ! Define LFAMILY from "comode.h" for backwards compatibility
-      LFAMILY    = ( DO_SAVE_PL .and. NFAM > 0 )
-
       ! Return if there are no prod/loss families
       ! or if we have turned off this diagnostic
-      IF ( .not. LFAMILY ) THEN
-         DO_SAVE_PL = .FALSE.
-         DO_SAVE_O3 = .FALSE.
-         NFAMILIES  = 0
-         NFAM       = 0
-         ND65       = 0
+      IF ( .not. Input_Opt%LFAMILY ) THEN
          RETURN
       ENDIF
 
@@ -1572,6 +1550,10 @@
       ELSE
          LD65 = MIN( ND65, LLPAR  )
       ENDIF
+
+      ! Copy fields from Input_Opt
+      NFAM       = Input_Opt%NFAM
+      DO_SAVE_O3 = Input_Opt%DO_SAVE_O3
 
       !=================================================================
       ! Allocate arrays

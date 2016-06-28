@@ -201,8 +201,11 @@
 !  14 Jan 2016 - M. Sulprizio- POAEMISS(:,:,:,1) now represents POG1 and
 !                              POAEMISS(:,:,:,2) now represents POG2
 !  17 Jun 2016 - J.D.Maaasakkers - Now use IND_ to define species ID's  
-!  17 Jun 2016 - R. Yantosca - Now declare all species ID"s as module 
+!  17 Jun 2016 - R. Yantosca - Now declare all species ID's as module
 !                              variables, and initialize them at startup
+!  28 Jun 2016 - M. Sulprizio- Add species ID's for L*RO2N/H and LISOP* to
+!                              replace uses of IL*RO2N/H and ILISOP* from
+!                              comode_loop_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -347,18 +350,20 @@
       REAL(f4), POINTER     :: NO3(:,:,:) => NULL()
 
       ! Species ID flags (formerly in tracerid_mod.F)
-      INTEGER :: id_ASOG1, id_ASOG2, id_ASOG3, id_ASOA1, id_ASOA2
-      INTEGER :: id_ASOA3, id_ASOAN, id_AW1,   id_BCPI,  id_BCPO 
-      INTEGER :: id_BENZ,  id_ECIL1, id_ECOB1, id_GLYX,  id_HO2  
-      INTEGER :: id_ISOA1, id_ISOA2, id_ISOA3, id_ISOG1, id_ISOG2
-      INTEGER :: id_ISOG3, id_ISOP,  id_LIMO,  id_MGLY,  id_MTPA 
-      INTEGER :: id_MTPO,  id_NAP,   id_NK1,   id_NH4,   id_NO   
-      INTEGER :: id_NO3,   id_OCIL1, id_OCOB1, id_O3,    id_OH   
-      INTEGER :: id_OCPO,  id_OCPI,  id_OPOA1, id_OPOG1, id_OPOA2
-      INTEGER :: id_OPOG2, id_POA1,  id_POA2,  id_POG1,  id_POG2 
-      INTEGER :: id_SOAG,  id_SOAM,  id_TOLU,  id_TSOA0, id_TSOA1
-      INTEGER :: id_TSOA2, id_TSOA3, id_TSOG0, id_TSOG1, id_TSOG2
-      INTEGER :: id_TSOG3, id_XYLE 
+      INTEGER :: id_ASOG1,   id_ASOG2,  id_ASOG3,  id_ASOA1,  id_ASOA2
+      INTEGER :: id_ASOA3,   id_ASOAN,  id_AW1,    id_BCPI,   id_BCPO 
+      INTEGER :: id_BENZ,    id_ECIL1,  id_ECOB1,  id_GLYX,   id_HO2  
+      INTEGER :: id_ISOA1,   id_ISOA2,  id_ISOA3,  id_ISOG1,  id_ISOG2
+      INTEGER :: id_ISOG3,   id_ISOP,   id_LIMO,   id_MGLY,   id_MTPA 
+      INTEGER :: id_MTPO,    id_NAP,    id_NK1,    id_NH4,    id_NO   
+      INTEGER :: id_NO3,     id_OCIL1,  id_OCOB1,  id_O3,     id_OH   
+      INTEGER :: id_OCPO,    id_OCPI,   id_OPOA1,  id_OPOG1,  id_OPOA2
+      INTEGER :: id_OPOG2,   id_POA1,   id_POA2,   id_POG1,   id_POG2 
+      INTEGER :: id_SOAG,    id_SOAM,   id_TOLU,   id_TSOA0,  id_TSOA1
+      INTEGER :: id_TSOA2,   id_TSOA3,  id_TSOG0,  id_TSOG1,  id_TSOG2
+      INTEGER :: id_TSOG3,   id_XYLE,   id_LBRO2N, id_LBRO2H, id_LTRO2N
+      INTEGER :: id_LTRO2H,  id_LXRO2N, id_LXRO2H, id_LNRO2N, id_LNRO2H
+      INTEGER :: id_LISOPOH, id_LISOPNO3
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -1271,7 +1276,6 @@
       USE CMN_DIAG_MOD
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD
       USE DIAG_MOD,           ONLY : AD07_SOAGM
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_ErrCode_Mod
@@ -1508,7 +1512,6 @@
       USE CMN_DIAG_MOD
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD
       USE DIAG_MOD,           ONLY : AD07_SOAGM
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_ErrCode_Mod
@@ -6419,7 +6422,6 @@ ccc
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -6488,9 +6490,9 @@ ccc
                ! (NOX = 1) while loss due to HO2 corresponds to 
                ! low NOX experiments (NOX = 2). 
                IF ( NOX == 1 ) THEN
-                  ILARO2 = ILBRO2N
+                  ILARO2 = id_LBRO2N
                ELSEIF ( NOX == 2 ) THEN
-                  ILARO2 = ILBRO2H
+                  ILARO2 = id_LBRO2H
                ELSE
                   CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
                ENDIF
@@ -6512,9 +6514,9 @@ ccc
             ELSEIF ( JHC == PARENTTOLU ) THEN
 
                IF ( NOX == 1 ) THEN
-                  ILARO2 = ILTRO2N
+                  ILARO2 = id_LTRO2N
                ELSEIF ( NOX == 2 ) THEN
-                  ILARO2 = ILTRO2H
+                  ILARO2 = id_LTRO2H
                ELSE
                   CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
                ENDIF
@@ -6538,9 +6540,9 @@ ccc
             ELSEIF ( JHC == PARENTXYLE ) THEN
 
                IF ( NOX == 1 ) THEN
-                  ILARO2 = ILXRO2N
+                  ILARO2 = id_LXRO2N
                ELSEIF ( NOX == 2 ) THEN
-                  ILARO2 = ILXRO2H
+                  ILARO2 = id_LXRO2H
                ELSE
                   CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
                ENDIF
@@ -6565,9 +6567,9 @@ ccc
             ELSEIF ( JHC == PARENTNAP ) THEN
 
                IF ( NOX == 1 ) THEN
-                  ILARO2 = ILNRO2N
+                  ILARO2 = id_LNRO2N
                ELSEIF ( NOX == 2 ) THEN
-                  ILARO2 = ILNRO2H
+                  ILARO2 = id_LNRO2H
                ELSE
                   CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
                ENDIF
@@ -6663,7 +6665,6 @@ ccc
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -6722,7 +6723,7 @@ ccc
             MolecRatio = State_Chm%SpcData(id_ISOP)%Info%MolecRatio
             ISOP_MW_G  = State_Chm%SpcData(id_ISOP)%Info%emMW_g
 
-            DOH = State_Chm%Species(I,J,L,ILISOPOH)
+            DOH = State_Chm%Species(I,J,L,id_LISOPOH)
      &          * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
      &          * MolecRatio * ISOP_MW_G * 1.e-3_fp / AVO 
  
@@ -8587,7 +8588,6 @@ ccc
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -8654,7 +8654,7 @@ ccc
             MolecRatio = State_Chm%SpcData(id_ISOP)%Info%MolecRatio
             ISOP_MW_G  = State_Chm%SpcData(id_ISOP)%Info%emMW_g
 
-            ISOPNO3 = State_Chm%Species(I,J,L,ILISOPNO3)
+            ISOPNO3 = State_Chm%Species(I,J,L,id_LISOPNO3)
      &              * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
      &              * MolecRatio * ISOP_MW_G * 1.e-3_fp / AVO
  
@@ -8746,7 +8746,6 @@ ccc
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  11 Aug 2015 - R. Yantosca - Add support for MERRA2 data
 !  23 Sep 2015 - R. Yantosca - Remove reference to DRY* flags, they're obsolete
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8764,63 +8763,73 @@ ccc
       RC = GIGC_SUCCESS
 
       ! Define species ID's (formerly in tracerid_mod.F)
-      id_ASOG1 = IND_('ASOG1')
-      id_ASOG2 = IND_('ASOG2')
-      id_ASOG3 = IND_('ASOG3')
-      id_ASOA1 = IND_('ASOA1')
-      id_ASOA2 = IND_('ASOA2')
-      id_ASOA3 = IND_('ASOA3')
-      id_ASOAN = IND_('ASOAN')
-      id_AW1   = IND_('AW1'  )
-      id_BCPI  = IND_('BCPI' )
-      id_BCPO  = IND_('BCPO' )
-      id_BENZ  = IND_('BENZ' )
-      id_ECIL1 = IND_('ECIL1')
-      id_ECOB1 = IND_('ECOB1')
-      id_GLYX  = IND_('GLYX' )
-      id_HO2   = IND_('HO2'  )
-      id_ISOA1 = IND_('ISOA1')
-      id_ISOA2 = IND_('ISOA2')
-      id_ISOA3 = IND_('ISOA3')
-      id_ISOG1 = IND_('ISOG1')
-      id_ISOG2 = IND_('ISOG2')
-      id_ISOG3 = IND_('ISOG3')
-      id_ISOP  = IND_('ISOP' )
-      id_LIMO  = IND_('LIMO' )
-      id_MGLY  = IND_('MGLY' )
-      id_MTPA  = IND_('MTPA' )
-      id_MTPO  = IND_('MTPO' )
-      id_NAP   = IND_('NAP'  )
-      id_NK1   = IND_('NK1'  )
-      id_NH4   = IND_('NH4'  )
-      id_NO    = IND_('NO'   )
-      id_NO3   = IND_('NO3'  )
-      id_OCIL1 = IND_('OCIL1')
-      id_OCOB1 = IND_('OCOB1')
-      id_O3    = IND_('O3'   )
-      id_OH    = IND_('OH'   )
-      id_OCPO  = IND_('OCPO' )
-      id_OCPI  = IND_('OCPI' )
-      id_OPOA1 = IND_('OPOA1')
-      id_OPOG1 = IND_('OPOG1')
-      id_OPOA2 = IND_('OPOA2')
-      id_OPOG2 = IND_('OPOG2')
-      id_POA1  = IND_('POA1' )
-      id_POA2  = IND_('POA2' )
-      id_POG1  = IND_('POG1' )
-      id_POG2  = IND_('POG2' )
-      id_SOAG  = IND_('SOAG' )
-      id_SOAM  = IND_('SOAM' )
-      id_TOLU  = IND_('TOLU' )
-      id_TSOA0 = IND_('TSOA0')
-      id_TSOA1 = IND_('TSOA1')
-      id_TSOA2 = IND_('TSOA2')
-      id_TSOA3 = IND_('TSOA3')
-      id_TSOG0 = IND_('TSOG0')
-      id_TSOG1 = IND_('TSOG1')
-      id_TSOG2 = IND_('TSOG2')
-      id_TSOG3 = IND_('TSOG3')
-      id_XYLE  = IND_('XYLE ')  
+      id_ASOG1    = IND_('ASOG1'   )
+      id_ASOG2    = IND_('ASOG2'   )
+      id_ASOG3    = IND_('ASOG3'   )
+      id_ASOA1    = IND_('ASOA1'   )
+      id_ASOA2    = IND_('ASOA2'   )
+      id_ASOA3    = IND_('ASOA3'   )
+      id_ASOAN    = IND_('ASOAN'   )
+      id_AW1      = IND_('AW1'     )
+      id_BCPI     = IND_('BCPI'    )
+      id_BCPO     = IND_('BCPO'    )
+      id_BENZ     = IND_('BENZ'    )
+      id_ECIL1    = IND_('ECIL1'   )
+      id_ECOB1    = IND_('ECOB1'   )
+      id_GLYX     = IND_('GLYX'    )
+      id_HO2      = IND_('HO2'     )
+      id_ISOA1    = IND_('ISOA1'   )
+      id_ISOA2    = IND_('ISOA2'   )
+      id_ISOA3    = IND_('ISOA3'   )
+      id_ISOG1    = IND_('ISOG1'   )
+      id_ISOG2    = IND_('ISOG2'   )
+      id_ISOG3    = IND_('ISOG3'   )
+      id_ISOP     = IND_('ISOP'    )
+      id_LIMO     = IND_('LIMO'    )
+      id_MGLY     = IND_('MGLY'    )
+      id_MTPA     = IND_('MTPA'    )
+      id_MTPO     = IND_('MTPO'    )
+      id_NAP      = IND_('NAP'     )
+      id_NK1      = IND_('NK1'     )
+      id_NH4      = IND_('NH4'     )
+      id_NO       = IND_('NO'      )
+      id_NO3      = IND_('NO3'     )
+      id_OCIL1    = IND_('OCIL1'   )
+      id_OCOB1    = IND_('OCOB1'   )
+      id_O3       = IND_('O3'      )
+      id_OH       = IND_('OH'      )
+      id_OCPO     = IND_('OCPO'    )
+      id_OCPI     = IND_('OCPI'    )
+      id_OPOA1    = IND_('OPOA1'   )
+      id_OPOG1    = IND_('OPOG1'   )
+      id_OPOA2    = IND_('OPOA2'   )
+      id_OPOG2    = IND_('OPOG2'   )
+      id_POA1     = IND_('POA1'    )
+      id_POA2     = IND_('POA2'    )
+      id_POG1     = IND_('POG1'    )
+      id_POG2     = IND_('POG2'    )
+      id_SOAG     = IND_('SOAG'    )
+      id_SOAM     = IND_('SOAM'    )
+      id_TOLU     = IND_('TOLU'    )
+      id_TSOA0    = IND_('TSOA0'   )
+      id_TSOA1    = IND_('TSOA1'   )
+      id_TSOA2    = IND_('TSOA2'   )
+      id_TSOA3    = IND_('TSOA3'   )
+      id_TSOG0    = IND_('TSOG0'   )
+      id_TSOG1    = IND_('TSOG1'   )
+      id_TSOG2    = IND_('TSOG2'   )
+      id_TSOG3    = IND_('TSOG3'   )
+      id_XYLE     = IND_('XYLE '   )
+      id_LBRO2N   = IND_('LBRO2N'  )
+      id_LBRO2H   = IND_('LBRO2H'  )
+      id_LTRO2N   = IND_('LTRO2N'  )
+      id_LTRO2H   = IND_('LTRO2H'  )
+      id_LXRO2N   = IND_('LXRO2N'  )
+      id_LXRO2H   = IND_('LXRO2H'  )
+      id_LNRO2N   = IND_('LNRO2N'  )
+      id_LNRO2H   = IND_('LNRO2H'  )
+      id_LISOPOH  = IND_('LISOPOH' )
+      id_LISOPNO3 = IND_('LISOPNO3')
 
       ! Some parent hydrocarbons are lumped together into 1 or more
       ! semivolatiles. Map the parent HC to lumped semivolatiles here

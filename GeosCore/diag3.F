@@ -21,7 +21,6 @@
       USE CMN_O3_MOD                         ! FMOL
       USE CMN_DIAG_MOD                       ! Diagnostic switches & arrays
       USE CMN_FJX_MOD                        ! Fast-JX flux diagnostics
-      USE COMODE_LOOP_MOD                    ! NFAMILIES
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -5947,7 +5946,7 @@
          CATEGORY = 'PORL-L=$'
 
          ! Loop over ND65 families
-         DO N = 1, NFAMILIES
+         DO N = 1, Input_Opt%NFAM
 
             ! Don't add TRCOFFSET for single tracer Ox
             ! Also select proper unit string
@@ -5998,6 +5997,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD65) )
          ENDDO       
       ENDIF
+
 #if defined( BPCH_DIAG )
 !
 !******************************************************************************

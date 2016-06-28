@@ -255,7 +255,6 @@
 
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE COMODE_LOOP_MOD          ! NPVERT
       USE CMN_O3_MOD               ! SAVEOH
       USE PHYSCONSTANTS            ! SCALE_HEIGHT, XNUMOLAIR
 !
@@ -315,6 +314,8 @@
 !  17 May 2016 - M. Sulprizio- Add IS_CHEM logical for incrementing COUNT_CHEM3D
 !  16 Jun 2016 - K. Yu       - Now define species ID's with the IND_ function
 !  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
+!  28 Jun 2016 - M. Sulprizio- Replace NPVERT with LLPAR to remove dependence
+!                              on comode_loop_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -426,7 +427,7 @@
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( X, Y, K, I, J, L )
 !$OMP+SCHEDULE( DYNAMIC )
-         DO K = 1, MIN(ND50_NL, NPVERT)
+         DO K = 1, MIN(ND50_NL, LLPAR)
             L = LOFF + K
 
          ! Loop over latitudes 

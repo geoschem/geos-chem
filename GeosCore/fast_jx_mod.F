@@ -4916,7 +4916,6 @@ c  Ensure all 'AN_' types are valid selections
 !
       USE CMN_DIAG_MOD,       ONLY : LD22, ND22
       USE DIAG_MOD,           ONLY : AD22, LTJV
-      USE COMODE_Loop_Mod
       USE GIGC_ErrCode_Mod
       USE Precision_Mod,      ONLY : fp
 !     
