@@ -301,7 +301,7 @@
          WRITE( 6, '(a)' ) 'CHECK_VAR_TROP: LLTROP is set too low!' 
          WRITE( 6, 10   ) LMAX, LLTROP
  10      FORMAT( 'MAX TROPOSPHERE LEVEL = ', i3, ' and LLTROP = ', i3 )
-         WRITE( 6, '(a)' ) 'STOP in TROPOPAUSE_MOD.F!!!'
+         WRITE( 6, '(a)' ) 'STOP in CHECK_VAR_TROP.F!!!'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          CALL GEOS_CHEM_STOP
       ENDIF
