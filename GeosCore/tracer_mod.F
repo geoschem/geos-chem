@@ -25,6 +25,7 @@
 !
       PUBLIC :: CHECK_STT
       PUBLIC :: CHECK_STT_NESTED
+      PUBLIC :: PRINT_GLOBAL_TRACER_KG
 #if   defined( APM )
       PUBLIC :: INIT_TRACER
 #endif
@@ -57,6 +58,7 @@
 !  24 Mar 2015 - E. Lundgren - Remove shadow copy of Input_Opt%N_TRACERS
 !  24 Mar 2015 - E. Lundgren - Put init_tracer within APM ifdef block
 !  24 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
+!  22 Jun 2016 - E. Lundgren - Add routine to print global tracer mass to log
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -322,6 +324,76 @@
  100  FORMAT( ' STT(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
 
       END SUBROUTINE CHECK_STT_NESTED
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Print_Global_Tracer_Kg
+!
+! !DESCRIPTION: Subroutine Print\_Global\_Tracer\_Kg sums up the total 
+!   global tracer mass for tracer #1 and prints it to log along with
+!   a user-defined location
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Print_Global_Tracer_Kg( State_Chm, State_Met, 
+     &                                   LOCATION )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*), INTENT(IN)    :: LOCATION
+      TYPE(ChmState),   INTENT(IN)    :: State_Chm 
+      TYPE(MetState),   INTENT(IN)    :: State_Met 
+! 
+! !REMARKS:
+!  This routine is for debugging purposes to trace where tracer
+!  mass is not conserved 
+!
+! !REVISION HISTORY: 
+!  22 Jun 2016 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!     
+      INTEGER      :: I, J, L
+      REAL(fp)     :: TRACER_KG(IIPAR,JJPAR,LLPAR)
+      REAL(fp)     :: SUM_TRACERMASS
+
+      !================================================================
+      ! Print_Global_Tracer_Kg begins here!
+      !================================================================
+      PRINT *, " "
+      PRINT *, TRIM( LOCATION )
+      SUM_TRACERMASS = 0.e+0_fp
+      TRACER_KG      = 0.e+0_fp
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         TRACER_KG(I,J,L) =
+     &            State_Chm%TRACERS(I,J,L,1) * State_Met%AD(I,J,L)
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+      SUM_TRACERMASS = SUM( TRACER_KG(:,:,:) )
+      PRINT *, "Global tracer Kg: ", SUM_TRACERMASS      
+      PRINT *, " "
+
+      END SUBROUTINE Print_Global_Tracer_Kg
 !EOC
 #if   defined( APM )
 !------------------------------------------------------------------------------
