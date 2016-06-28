@@ -301,6 +301,10 @@
       USE CMN_SIZE_MOD             ! Size parameters        
       USE CMN_DIAG_MOD             ! NDxx flags
       USE PHYSCONSTANTS            ! Physical constants
+
+      ! DEBUGGING (ewl)
+      USE TRACER_MOD,         ONLY : PRINT_GLOBAL_TRACER_KG
+      ! END DEBUGGING
 !
 ! !INPUT PARAMETERS:
 !
@@ -430,27 +434,10 @@
       !=================================================================
 
       ! DEBUGGING (ewl)
-      PRINT *, " "
-      PRINT *, "Before advection"
-      ! Get total tracer mass, dry air mass, and wet air mass
-      SUM_DRYAIRMASS = SUM( State_Met%AD(:,:,:) )
-      SUM_WETAIRMASS = SUM( State_Met%ADMOIST(:,:,:) )
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         TRACERMASS(I,J,L) =
-     &            State_Chm%TRACERS(I,J,L,1) * State_Met%AD(I,J,L)
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-      SUM_TRACERMASS = SUM( TRACERMASS(:,:,:) )
-      PRINT *, "Total dry air mass:   ", SUM_DRYAIRMASS
-      PRINT *, "Total wet air mass:   ", SUM_WETAIRMASS
-      PRINT *, "Total tracer mass:    ", SUM_TRACERMASS      
+      IF ( LPRT ) THEN
+         CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+     &                                "pre-advection")
+      ENDIF
       ! END DEBUGGING
     
 !$OMP PARALLEL DO
@@ -478,13 +465,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! DEBUGGING (ewl)
-      PRINT *, " "
-      PRINT *, "In TRANSPORT_MOD"
-      PRINT *, "   P_TP1(56,20):        ", P_TP1(56,20)
-      PRINT *, "   P_TP2(56,20):        ", P_TP2(56,20)
-      ! END DEBUGGING
-      
       !=================================================================
       ! Call the PJC/LLNL pressure fixer to get the adjusted air 
       ! masses XMASS and YMASS.  XMASS and YMASS need to be passed to 
@@ -570,28 +550,10 @@
       !ENDIF 
 
       ! DEBUGGING (ewl)
-      PRINT *, " "
-      PRINT *, "After advection"
-      ! Get total tracer mass, dry air mass, and wet air mass
-      SUM_DRYAIRMASS = SUM( State_Met%AD(:,:,:) )
-      SUM_WETAIRMASS = SUM( State_Met%ADMOIST(:,:,:) )
-      SUM_TRACERMASS = 0.e+0_fp
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         TRACERMASS(I,J,L) = 
-     &            State_Chm%TRACERS(I,J,L,1) * State_Met%AD(I,J,L)
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-      SUM_TRACERMASS = SUM( TRACERMASS(:,:,:) )
-      PRINT *, "Total dry air mass:   ", SUM_DRYAIRMASS
-      PRINT *, "Total wet air mass:   ", SUM_WETAIRMASS
-      PRINT *, "Total tracer mass:    ", SUM_TRACERMASS      
+      IF ( LPRT ) THEN
+         CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+     &                                "post-advection")
+      ENDIF
       ! END DEBUGGING
 
       ! Free pointer memory
@@ -608,33 +570,17 @@
       ! MOISTURE FIX (ewl, 6/16/16) -  Update dry and wet floating 
       ! pressures to the most recently interpolated MET pressure.
       ! NOTE: GET_PEDGE used in AIRQNT gets PEDGE from wet floating pressure
-      CALL SET_WET_FLOATING_PRESSURE( State_Met%PSC2 )
-      CALL SET_DRY_FLOATING_PRESSURE( State_Met%PSC2_DRY )
-
+!      CALL SET_WET_FLOATING_PRESSURE( State_Met%PSC2 )
+!      CALL SET_DRY_FLOATING_PRESSURE( State_Met%PSC2_DRY )
+      ! DEBUGGING (ewl) - replace above with this
+      CALL SET_FLOATING_PRESSURES( am_I_Root, State_Met, RC )
+      ! END DEBUGGING
 
       ! DEBUGGING (ewl)
-      PRINT *, " "
-      PRINT *, "After setting floating pressures"
-      ! Get total tracer mass, dry air mass, and wet air mass
-      SUM_DRYAIRMASS = SUM( State_Met%AD(:,:,:) )
-      SUM_WETAIRMASS = SUM( State_Met%ADMOIST(:,:,:) )
-      SUM_TRACERMASS = 0.e+0_fp
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         TRACERMASS(I,J,L) =
-     &          State_Chm%TRACERS(I,J,L,1) * State_Met%AD(I,J,L)
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-      SUM_TRACERMASS = SUM( TRACERMASS(:,:,:) )
-      PRINT *, "Total dry air mass:   ", SUM_DRYAIRMASS
-      PRINT *, "Total wet air mass:   ", SUM_WETAIRMASS
-      PRINT *, "Total tracer mass:    ", SUM_TRACERMASS      
+      IF ( LPRT ) THEN
+         CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met,
+     &                                "post-set pflt")
+      ENDIF
       ! END DEBUGGING
 
       ! Prior to 04 May 2016: Floating pressure is wet.
@@ -647,30 +593,11 @@
       CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
      &             update_mixing_ratio=.FALSE. )
 
-
       ! DEBUGGING (ewl)
-      PRINT *, " "
-      PRINT *, "After AIRQNT call"
-      ! Get total tracer mass, dry air mass, and wet air mass
-      SUM_DRYAIRMASS = SUM( State_Met%AD(:,:,:) )
-      SUM_WETAIRMASS = SUM( State_Met%ADMOIST(:,:,:) )
-      SUM_TRACERMASS = 0.e+0_fp
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         TRACERMASS(I,J,L) =
-     &            State_Chm%TRACERS(I,J,L,1) * State_Met%AD(I,J,L)
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-      SUM_TRACERMASS = SUM( TRACERMASS(:,:,:) )
-      PRINT *, "Total dry air mass:   ", SUM_DRYAIRMASS
-      PRINT *, "Total wet air mass:   ", SUM_WETAIRMASS
-      PRINT *, "Total tracer mass:    ", SUM_TRACERMASS      
+      IF ( LPRT ) THEN
+         CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met,
+     &                                "post-airqnt")
+      ENDIF
       ! END DEBUGGING
 
       !### Debug
@@ -966,8 +893,12 @@
       ! pressures to the most recently interpolated MET pressure.
       ! NOTE 1: assume negligible moisture at top of atmosphere
       ! NOTE 2: GET_PEDGE used in AIRQNT gets PEDGE from wet floating pressure
-      CALL SET_WET_FLOATING_PRESSURE( State_Met%PSC2 )
-      CALL SET_DRY_FLOATING_PRESSURE( P_TP2 + PTOP )
+!      CALL SET_WET_FLOATING_PRESSURE( State_Met%PSC2 )
+!      CALL SET_DRY_FLOATING_PRESSURE( P_TP2 + PTOP )
+      ! DEBUGGING (ewl) - replace above with this
+      CALL SET_FLOATING_PRESSURES( am_I_Root, State_Met, RC )
+      ! END DEBUGGING
+
 
       ! Prior to 04 May 2016: Floating pressure is wet.
       !! Reset the floating surface pressure with P_TP2+PTOP, the "true"
@@ -1334,8 +1265,11 @@
       ! MOISTURE FIX (ewl, 6/16/16) - Update dry and wet floating 
       ! pressures to the most recently interpolated MET pressure.
       ! NOTE: GET_PEDGE used in AIRQNT gets PEDGE from wet floating pressure
-      CALL SET_WET_FLOATING_PRESSURE( State_Met%PSC2 )
-      CALL SET_DRY_FLOATING_PRESSURE( State_Met%PSC2_DRY )
+!      CALL SET_WET_FLOATING_PRESSURE( State_Met%PSC2 )
+!      CALL SET_DRY_FLOATING_PRESSURE( State_Met%PSC2_DRY )
+      ! DEBUGGING (ewl) - replace above with this
+      CALL SET_FLOATING_PRESSURES(  am_I_Root, State_Met, RC )
+      ! END DEBUGGING
 
       !! Prior to 04 May 2016: Floating pressure is wet.
       !! Reset the floating surface pressure with P_TP2, the "true"

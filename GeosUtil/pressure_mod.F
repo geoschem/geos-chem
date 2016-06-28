@@ -32,9 +32,9 @@
       PUBLIC  :: GET_PEDGE_FULLGRID       ! wet air P at lower grid edge
       PUBLIC  :: CLEANUP_PRESSURE
       PUBLIC  :: GET_PEDGE_DRY                ! MOISTURE FIX (ewl, 6/16/16)
+      PUBLIC  :: GET_PEDGE_TEST               ! MOISTURE FIX (ewl, 6/16/16)
+      PUBLIC  :: SET_FLOATING_PRESSURES       ! MOISTURE FIX (ewl, 5/4/16)
 !      PUBLIC  :: GET_PFLT_DRY                 ! MOISTURE FIX (ewl, 5/4/16)
-      PUBLIC  :: SET_WET_FLOATING_PRESSURE    ! MOISTURE FIX (ewl, 5/4/16)
-      PUBLIC  :: SET_DRY_FLOATING_PRESSURE    ! MOISTURE FIX (ewl, 5/4/16)
 
 #if defined( ESMF_ )
       PUBLIC  :: Accept_External_Pedge
@@ -211,159 +211,123 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_wet_floating_pressure
+! !IROUTINE: set_floating_pressures
 !
-! !DESCRIPTION: Subroutine SET\_WET\_FLOATING\_PRESSURE assigns the 
-!  floating pressure field PFLT_WET with a pressure from the main program.  
+! !DESCRIPTION: Subroutine SET\_FLOATING\_PRESSURE initializes the 
+!  dry floating pressure field PFLT_DRY with the State_Met field
+!  PSC2_DRY (interpolated dry surface pressure).  It then calculates 
+!  the wet floating pressure from the dry floating pressure by 
+!  incorporating the current state specific humidity.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_WET_FLOATING_PRESSURE( PS )
+      SUBROUTINE SET_FLOATING_PRESSURES( am_I_Root, State_Met, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : CHECK_VALUE
       USE CMN_SIZE_MOD  ! Size parameters
-!
+      USE ERROR_MOD, ONLY : CHECK_VALUE
+      USE GIGC_ErrCode_Mod
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!     
 ! !INPUT PARAMETERS: 
 !
-      ! Array containing pressure with which to initialize PFLT [hPa]
-      REAL(fp), INTENT(IN) :: PS(:,:)  
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on root CPU?
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology state object
+!
+! !OUTPUT ARGUMENTS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  27 Aug 2002 - D. Abbot, B. Field,  R. Yantosca - Initial version  
-!  (1 ) Now check PFLT for NaN or Infinities (bmy, 8/27/02)
-!  (2 ) Added parallel DO-loop (bmy, 4/14/04)
-!  20 Nov 2009 - R. Yantosca - Added ProTeX header
-!  10 Jun 2013 - R. Yantosca - Avoid array temporaries in CHECK_VALUE
-!  04 Nov 2013 - M. Sulprizio- Eliminate array temporary by accepting assumed-
-!                              shape dummy argument
-!  18 May 2016 - E. Lundgren - Rename from set_floating_pressure to
-!                              set_wet_floating_pressure
+!  21 Jun 2016 - E. Lundgren- Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER            :: I, J
+      INTEGER            :: I, J, L
       INTEGER            :: ERR_LOC(4)
       CHARACTER(LEN=255) :: ERR_VAR
       CHARACTER(LEN=255) :: ERR_MSG
+      REAL(fp)           :: PEDGE1, PEDGE2, SPHU_KGKG
 
       !=================================================================
-      ! SET_WET_FLOATING_PRESSURE begins here!
+      ! SET_FLOATING_PRESSURES begins here!
       !=================================================================
 
-      ! DEBUGGING (ewl)
-      PRINT *, " "
-      PRINT *, "In SET_WET_FLOATING_PRESSURE"
-      PRINT *, "   Old PFLT_WET(56,20): ", PFLT_WET(56,20)
-      ! END DEBUGGING
+      !! DEBUGGING (ewl)
+      !PRINT *, " "
+      !PRINT *, "In SET_FLOATING_PRESSURES"
+      !PRINT *, "   Old PFLT_DRY(56,20): ", PFLT_DRY(56,20)
+      !PRINT *, "   Old PFLT_WET(56,20): ", PFLT_WET(56,20)
+      !! END DEBUGGING
 
-      ! Define quantities for CHECK_VALUE
+      ! Set PFLT_DRY equal to input value PS
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, ERR_LOC, ERR_VAR, ERR_MSG )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Assign into PFLT array
-         PFLT_WET(I,J) = PS(I,J)
+         ! DEBUGGING (ewl)
+         ! NOTE: If using gcap, need to add PTOP - come back to this later
+         ! END DEBUGGING
 
-         ! Check for NaN or Infinities
-         ERR_LOC = (/ I, J, 0, 0 /)
-         ERR_VAR = 'PFLT_WET'
-         ERR_MSG = 'set_wet_floating_pressure:1'
-         CALL CHECK_VALUE( PFLT_WET(I,J), ERR_LOC, ERR_VAR, ERR_MSG )
-
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! DEBUGGING (ewl)
-      PRINT *, "   New PFLT_WET(56,20): ", PFLT_WET(56,20)
-      ! END DEBUGGING
-
-      ! Return to calling program
-      END SUBROUTINE SET_WET_FLOATING_PRESSURE
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: set_dry_floating_pressure
-!
-! !DESCRIPTION: Subroutine SET\_DRY\_FLOATING\_PRESSURE initializes the 
-!  dry floating pressure field PFLT_DRY with a pressure from the main 
-!  program.  This is needed to initialize and reset PFLT_DRY after transport.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SET_DRY_FLOATING_PRESSURE( PS )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE ERROR_MOD, ONLY : CHECK_VALUE
-!
-! !INPUT PARAMETERS: 
-!
-      ! Array containing pressure with which to initialize PFLT_DRY [hPa]
-      REAL(fp), INTENT(IN) :: PS(:,:)  
-!
-! !REVISION HISTORY:
-!  04 May 2016 - E. Lundgren- Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-! 
-      INTEGER            :: I, J
-      INTEGER            :: ERR_LOC(4)
-      CHARACTER(LEN=255) :: ERR_VAR
-      CHARACTER(LEN=255) :: ERR_MSG
-
-      !=================================================================
-      ! SET_DRY_FLOATING_PRESSURE begins here!
-      !=================================================================
-
-      ! DEBUGGING (ewl)
-      PRINT *, " "
-      PRINT *, "In SET_DRY_FLOATING_PRESSURE"
-      PRINT *, "   Old PFLT_DRY(56,20): ", PFLT_DRY(56,20)
-      ! END DEBUGGING
-
-      ! Define quantities for CHECK_VALUE
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, ERR_LOC, ERR_VAR, ERR_MSG )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Assign into PFLT_DRY array
-         PFLT_DRY(I,J) = PS(I,J)
+         ! Set the floating dry pressure, PFLT_DRY, to the 
+         ! interpolate dry pressure, PSC2_DRY
+         PFLT_DRY(I,J) = State_Met%PSC2_DRY(I,J)
 
          ! Check for NaN or Infinities
          ERR_LOC = (/ I, J, 0, 0 /)
          ERR_VAR = 'PFLT_DRY'
-         ERR_MSG = 'set_dry_floating_pressure:1'
+         ERR_MSG = 'set_floating_pressures:1'
          CALL CHECK_VALUE( PFLT_DRY(I,J), ERR_LOC, ERR_VAR, ERR_MSG )
 
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! DEBUGGING (ewl)
-      PRINT *, "   New PFLT_DRY(56,20): ", PFLT_DRY(56,20)
-      ! END DEBUGGING
+      ! Calculate PFLT_WET using PFLT_DRY and specific humidity
+      PFLT_WET = 0.e+0_fp
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, PEDGE1, PEDGE2, SPHU_KgKg )
+!$OMP+PRIVATE( ERR_LOC, ERR_VAR, ERR_MSG )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Convert specific humidity from g/kg to kg/kg locally
+         SPHU_KgKg = State_Met%SPHU(I,J,L) * 1.0e-3_fp
+
+         ! Calculate top and bottom dry edge pressures for this 
+         ! level by applying AP and BP params to dry surface pressure
+         PEDGE1    = GET_AP(L)   + GET_BP(L)   * PFLT_DRY(I,J)
+         PEDGE2    = GET_AP(L+1) + GET_BP(L+1) * PFLT_DRY(I,J)
+
+         ! Add the wet delta pressure for this level to the
+         ! cumulative wet pressure in this column
+         PFLT_WET(I,J) = PFLT_WET(I,J) + ( PEDGE2 - PEDGE1 ) / 
+     &                   ( 1.e+0_fp - SPHU_KgKg) )
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! NOTE: To accurately get the wet pressure back from the dry
+      !       pressure using this method, must also add in a PTOP
+      !       bias factor...this is under construction
+
+      !! DEBUGGING (ewl)
+      !PRINT *, "   New PFLT_DRY(56,20): ", PFLT_DRY(56,20)
+      !PRINT *, "   New PFLT_WET(56,20): ", PFLT_WET(56,20)
+      !! END DEBUGGING
 
       ! Return to calling program
-      END SUBROUTINE SET_DRY_FLOATING_PRESSURE
+      END SUBROUTINE SET_FLOATING_PRESSURES
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -386,9 +350,9 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I      ! GEOS-Chem lon   index
-      INTEGER, INTENT(IN) :: J      ! GEOS-Chem lat   index
-      INTEGER, INTENT(IN) :: L      ! GEOS-Chem level index
+      INTEGER, INTENT(IN)   :: I        ! GEOS-Chem lon   index
+      INTEGER, INTENT(IN)   :: J        ! GEOS-Chem lat   index
+      INTEGER, INTENT(IN)   :: L        ! GEOS-Chem level index
 !
 ! !RETURN VALUE:
 !
@@ -458,6 +422,59 @@
 #endif     
 
       END FUNCTION GET_PEDGE 
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_pedge_test
+!
+! !DESCRIPTION: Function GET\_PEDGE\_TEST returns the pressure at the 
+!  bottom edge of level L by calculating it from the dry surface pressure
+!  and state humidity. This function is a test to allow passing State_Met
+!  to pedge in dao_mod only as part of the moisture fix debugging.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_PEDGE_TEST( II, JJ, LL, State_Met ) RESULT( PEDGE )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD   ! PTOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)        :: II        ! GEOS-Chem lon   index
+      INTEGER, INTENT(IN)        :: JJ        ! GEOS-Chem lat   index
+      INTEGER, INTENT(IN)        :: LL        ! GEOS-Chem level index
+      TYPE(MetState), INTENT(IN) :: State_Met ! Meteorology state object
+!
+! !RETURN VALUE:
+!
+      INTEGER               :: L, P1, P2
+      REAL(f8)              :: PEDGE  ! Pressure @ bottom edge of (I,J,L) [hPa]
+!
+! !REVISION HISTORY:
+!  21 Jun 2016 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      ! NOTE: This routine is for testing only!!!
+
+      ! Calculate PEDGE from PFLT_DRY and SPHU
+      PEDGE = 0.e+0_fp
+      DO L = LL, LLPAR
+        P1 = GET_AP(L) + GET_BP(L) * PFLT_DRY(II,JJ)
+        P2 = GET_AP(L+1) + GET_BP(L+1) * PFLT_DRY(II,JJ)
+        PEDGE = PEDGE + ( P1 - P2 ) / 
+     &                ( 1.e+0_fp - State_Met%SPHU(II,JJ,L) * 1.0e-3_fp )
+      ENDDO   
+
+      END FUNCTION GET_PEDGE_TEST 
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

@@ -153,6 +153,10 @@
       USE GIGC_State_Chm_Mod    ! Derived type for Chemistry State object    
       USE GIGC_State_Met_Mod    ! Derived type for Meteorology State object
 
+      ! DEBUGGING (ewl)
+      USE TRACER_MOD, ONLY :  PRINT_GLOBAL_TRACER_KG
+      ! END DEBUGGING
+
       IMPLICIT NONE
 !
 ! !REMARKS:
@@ -314,10 +318,6 @@
 
       ! Arrays
       INTEGER                  :: DATE(2)
-
-      ! DEBUGGING (ewl)
-      REAL(f8)                 :: TOTAL
-      ! END DEBUGGING
 
       ! Derived type objects
       TYPE(MapWeight), POINTER :: mapping(:,:) => NULL()
@@ -661,14 +661,8 @@
       CALL GEOS_Timer_End( "Reading met fields",  RC )
 #endif
 
-      ! MOISTURE FIX (ewl, 5/4/16)
-      CALL SET_DRY_SURFACE_PRESSURE( State_Met, 1 )
-      CALL AVGPOLE( State_Met%PS1 )
-      CALL AVGPOLE( State_Met%PS1_DRY )
-      CALL SET_WET_FLOATING_PRESSURE( State_Met%PS1 )
-      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a SET_WET_FLT_PRS' )
-      CALL SET_DRY_FLOATING_PRESSURE( State_Met%PS1_DRY )
-      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a SET_DRY_FLT_PRS' )
+      !------------------------------------------------------------
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       ! Prior to 04 May 2016:
       !! Compute avg surface pressure near polar caps
@@ -677,6 +671,22 @@
       !
       !CALL SET_FLOATING_PRESSURE( State_Met%PS1 )
       !IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
+
+      ! MOISTURE FIX (ewl, 5/4/16)
+      CALL SET_DRY_SURFACE_PRESSURE( State_Met, 1 )
+      CALL AVGPOLE( State_Met%PS1 )
+      CALL AVGPOLE( State_Met%PS1_DRY )
+
+      !CALL SET_WET_FLOATING_PRESSURE( State_Met%PS1 )
+      !CALL SET_DRY_FLOATING_PRESSURE( State_Met%PS1_DRY )
+
+      ! DEBUGGING (ewl) - replace above with this
+      State_Met%PSC2_DRY = State_Met%PS1 ! initialize before interp
+      CALL SET_FLOATING_PRESSURES( am_I_Root, State_Met, RC )
+      ! END DEBUGGING
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !-------------------------------------------------------------
 
       ! Call AIRQNT to compute initial air mass quantities
       ! Do not update initial tracer concentrations since not read 
@@ -869,6 +879,13 @@
       !=================================================================
       DO N_STEP = 1, N_DYN_STEPS
     
+         ! DEBUGGING (ewl)
+         IF ( prtDebug ) THEN
+            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+     &                                   "top of dyn loop")
+         ENDIF
+         ! END DEBUGGING
+
 #if defined( LINUX_PGI )
          ! Flush the buffer each timestep so we get output
          CALL FLUSH( 6 )
@@ -1036,6 +1053,13 @@
 
          CALL READ_MET_FIELDS()
 
+         ! DEBUGGING (ewl)
+         IF ( prtDebug ) THEN
+            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+     &                                   "post-read met")
+         ENDIF
+         ! END DEBUGGING
+
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_End( "Reading met fields",  RC )
 #endif
@@ -1160,10 +1184,24 @@
          !   ***** I N T E R P O L A T E   Q U A N T I T I E S *****   
          !==============================================================
 
+         ! DEBUGGING (ewl)
+         IF ( prtDebug ) THEN
+            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+     &                                   "pre-interp")
+         ENDIF
+         ! END DEBUGGING
+
          ! Interpolate I-6 fields to current dynamic timestep, 
          ! based on their values at NSEC and NSEC+N_DYN
          CALL INTERP( NSECb, ELAPSED_TODAY,
      &                N_DYN, Input_Opt,     State_Met )
+
+         ! DEBUGGING (ewl)
+         IF ( prtDebug ) THEN
+            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+     &                                   "post-interp")
+         ENDIF
+         ! END DEBUGGING
 
          ! Case of variable tropopause:
          ! Check LLTROP and set LMIN, LMAX, and LPAUSE
@@ -1171,12 +1209,17 @@
          ! (Need to double-check that LMIN, Lmax are not used before-phs) 
          IF ( LVARTROP ) CALL CHECK_VAR_TROP( State_Met )
 
+         !--------------------------------------------------------
+         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
          ! MOISTURE FIX (ewl, 5/4/16)
          ! If we are not doing transport, then make sure that
          ! the dry floating pressure is set to PSC2_DRY
          IF ( .not. LTRAN ) THEN
-            CALL SET_WET_FLOATING_PRESSURE( State_Met%PSC2 )
-            CALL SET_DRY_FLOATING_PRESSURE( State_Met%PSC2_DRY )
+!            CALL SET_WET_FLOATING_PRESSURE( State_Met%PSC2 )
+!            CALL SET_DRY_FLOATING_PRESSURE( State_Met%PSC2_DRY )
+            ! DEBUGGING (ewl) - replace above with this
+            CALL SET_FLOATING_PRESSURES( am_I_Root, State_Met, RC )
+            ! END DEBUGGING
          ENDIF
 
          ! Prior to 04 May 2016:
@@ -1184,11 +1227,28 @@
          !! the floating pressure is set to PSC2 (bdf, bmy, 8/22/02)
          !IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( State_Met%PSC2 )
 
+         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         !---------------------------------------------------------
+
+         ! DEBUGGING (ewl)
+         IF ( prtDebug ) THEN
+            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+     &                                   "after set pflt")
+         ENDIF
+         ! END DEBUGGING
+
          ! Compute updated airmass quantities at each grid box 
          ! and update tracer concentration to conserve tracer mass
          ! (ewl, 10/28/15)
          CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
      &                update_mixing_ratio=.TRUE. )
+
+         ! DEBUGGING (ewl)
+         IF ( prtDebug ) THEN
+            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+     &                                   "post-airqnt")
+         ENDIF
+         ! END DEBUGGING
 
          ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant and,
          ! if LUCX=T and LSETH2O=F and LACTIVEH2O=T, update specific humidity 
@@ -1204,6 +1264,13 @@
             ! Only force strat once if using UCX
             IF (LSETH2O) LSETH2O = .FALSE.
          ENDIF
+
+         ! DEBUGGING (ewl)
+         IF ( prtDebug ) THEN
+            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+     &                                   "post-set h2o trac")
+         ENDIF
+         ! END DEBUGGING
 
          ! Compute the cosine of the solar zenith angle array
          ! State_Met%SUNCOS     = at the current time
@@ -1316,10 +1383,11 @@
 #endif
 !-----------------------------------------------------------------------------
 
-
             ! DEBUGGING (ewl)
-            PRINT *, " "
-            PRINT *, "Before Transport - in main"
+            IF ( prtDebug ) THEN
+               CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+     &                                      "pre-transport")
+            ENDIF
             ! END DEBUGGING
 
             ! Call the appropriate version of TPCORE
@@ -1340,7 +1408,10 @@
             ENDIF
 
             ! DEBUGGING (ewl)
-            PRINT *, "Transport done - back in main"
+            IF ( prtDebug ) THEN
+               CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+     &                                      "post-transport")
+            ENDIF
             ! END DEBUGGING
 
             ! Initialize wet scavenging and wetdep fields after
@@ -1409,6 +1480,13 @@
                CALL GEOS_Timer_Start( "Dry deposition", RC )
 #endif
 
+               ! DEBUGGING (ewl)
+               IF ( prtDebug ) THEN
+                  CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+     &                                         "pre-drydep")
+               ENDIF
+               ! END DEBUGGING
+
                CALL DO_DRYDEP( am_I_Root, Input_Opt, 
      &                         State_Met, State_Chm, RC )
                IF ( RC /= GIGC_SUCCESS ) THEN
@@ -1424,6 +1502,13 @@
                   CALL DEBUG_MSG( '### MAIN: a DO_DRYDEP' )
                ENDIF
             ENDIF
+
+            ! DEBUGGING (ewl)
+            IF ( prtDebug ) THEN
+               CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+     &                                      "pre-emissions")
+            ENDIF
+            ! END DEBUGGING
 
             !===========================================================
             !             ***** E M I S S I O N S *****
@@ -1470,6 +1555,13 @@
             ! Increment the convection timestep
             CALL SET_CT_CONV( INCREMENT=.TRUE. )
 
+            ! DEBUGGING (ewl)
+            IF ( prtDebug ) THEN
+               CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+     &                                      "pre-mixing")
+            ENDIF
+            ! END DEBUGGING
+
             !===========================================================
             !      ***** M I X E D   L A Y E R   M I X I N G *****
             !===========================================================
@@ -1502,6 +1594,13 @@
             !        ***** C L O U D   C O N V E C T I O N *****
             !===========================================================
 
+            ! DEBUGGING (ewl)
+            IF ( prtDebug ) THEN
+               CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+     &                                      "pre-convection")
+            ENDIF
+            ! END DEBUGGING
+
             IF ( LCONV ) THEN
             
                ! Call the appropriate convection routine
@@ -1522,6 +1621,13 @@
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "Convection", RC )
 #endif
+
+            ! DEBUGGING (ewl)
+            IF ( prtDebug ) THEN
+               CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+     &                                      "post-convection")
+            ENDIF
+            ! END DEBUGGING
 
          ENDIF 
 
@@ -1652,6 +1758,13 @@
          CALL GEOS_Timer_End( "All chemistry", RC )
 #endif
 
+         ! DEBUGGING (ewl)
+         IF ( prtDebug ) THEN
+            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+     &                                   "post-chemistry")
+         ENDIF
+         ! END DEBUGGING
+
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
@@ -1676,6 +1789,13 @@
 #endif
 
          ENDIF
+
+         ! DEBUGGING (ewl)
+         IF ( prtDebug ) THEN
+            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+     &                                   "post-wetdep")
+         ENDIF
+         ! END DEBUGGING
 
          !==============================================================
          !      ***** U P D A T E  O P T I C A L  D E P T H *****          
@@ -1941,6 +2061,14 @@
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_End( "Diagnostics", RC )
 #endif
+
+
+         ! DEBUGGING (ewl)
+         IF ( prtDebug ) THEN
+            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+     &                                   "dyn loop end")
+         ENDIF
+         ! END DEBUGGING
 
       ENDDO
 
