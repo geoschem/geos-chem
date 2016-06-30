@@ -284,7 +284,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Comode_Loop_Mod,      ONLY : ILONG, ILAT, IPVERT
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod,   ONLY : OptInput
     USE Species_Mod,          ONLY : Species
