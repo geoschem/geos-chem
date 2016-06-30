@@ -5739,13 +5739,12 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
-      USE COMODE_LOOP_MOD,    ONLY : IRM, NKSO4PHOT, NCSGAS
-      USE COMODE_LOOP_MOD,    ONLY : DEFPRAT, NAMEGAS, NRATES
+      USE CMN_FJX_MOD,        ONLY : ZPJ
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE FAST_JX_MOD,        ONLY : FJXFUNC
+      USE FAST_JX_MOD,        ONLY : RXN_H2SO4
 !
 ! !INPUT PARAMETERS:
 !
@@ -5768,6 +5767,9 @@
 !  31 May 2016 - E. Lundgren   - Replace Input_Opt%TRACER_MW_G with species
 !                                database emMW_g (emitted species g/mol)
 !  21 Jun 2016 - R. Yantosca   - Remove reference to tracerid_mod.F
+!  27 Jun 2016 - M. Sulprizio  - Obtain photolysis rate directly from ZPJ array
+!                                and remove reference to FJXFUNC and obsolete
+!                                SMVGEAR variables like NKSO4PHOT, NAMEGAS, etc.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5779,11 +5781,7 @@
       REAL(fp)              :: SO2_MW_G, SO4_MW_g, SO4_DELTA
       LOGICAL               :: DAYCOLUMN
       INTEGER               :: LMINPHOT
-      INTEGER,SAVE          :: LOCAL_NKSO4PHOT
-      CHARACTER(fp),SAVE    :: LOCAL_NAME
-      INTEGER,SAVE          :: LOCAL_IPHOT
-      INTEGER,SAVE          :: IFNC,IBRCH
-      REAL(fp),SAVE         :: RELWT
+      REAL(fp)              :: RELWT
       LOGICAL,SAVE          :: FIRST=.TRUE.
       INTEGER               :: ICS
 
@@ -5803,36 +5801,21 @@
       ! Copy fields from species database
       SO2_MW_G = State_Chm%SpcData(id_SO2)%Info%emMW_g ! g/mol
       SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%emMW_g ! g/mol
+      RELWT    = SO2_MW_G / SO4_MW_G
 
       ! Initialize GEOS-Chem tracer array [kg]
       STT => State_Chm%Tracers
-
-      IF (FIRST) THEN
-         FIRST = .FALSE.
-         DO ICS = 1,NCSGAS
-            IF (NKSO4PHOT(ICS).ne.0) THEN
-               LOCAL_NKSO4PHOT = NKSO4PHOT(ICS)
-               LOCAL_NAME = NAMEGAS(IRM(1,LOCAL_NKSO4PHOT,ICS))
-               LOCAL_IPHOT = LOCAL_NKSO4PHOT - NRATES(ICS)
-               IFNC = DEFPRAT(LOCAL_NKSO4PHOT,ICS) + 0.01e+0_fp
-               IBRCH = 10.e+0_fp*(DEFPRAT(LOCAL_NKSO4PHOT,ICS)-IFNC) + 
-     &                 0.5e+0_fp
-               RELWT = SO2_MW_G / SO4_MW_G
-            ENDIF
-         ENDDO 
-      ENDIF
 
       ! Allow for the possibility of variable timestep
       DTCHEM = GET_TS_CHEM()*60.e+0_fp
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IJWINDOW, DAYCOLUMN, GMU )
+!$OMP+PRIVATE( I, J, L, DAYCOLUMN, GMU )
 !$OMP+PRIVATE( LMINPHOT, PHOTDELTA, SO4_IN, SO4_DELTA )
       DO J=1,JJPAR
       DO I=1,IIPAR
 
-         IJWINDOW  = (J-1)*IIPAR + I
          GMU       = State_Met%SUNCOSmid(I,J)
          DAYCOLUMN = (GMU.gt.0e+0_fp)
 
@@ -5840,8 +5823,7 @@
             LMINPHOT  = GET_CHEMGRID_LEVEL( I, J, State_Met)
 
             ! Retrieve photolysis rate as a fraction of gaseous SO4
-            PHOTDELTA = FJXFUNC( I, J, LMINPHOT, LOCAL_IPHOT,
-     &                           IBRCH, LOCAL_NAME) * DTCHEM
+            PHOTDELTA = ZPJ(LMINPHOT,RXN_H2SO4,I,J) * DTCHEM
             PHOTDELTA = MIN(1.e+0_fp,PHOTDELTA)
 
             DO L=LMINPHOT+1,LLPAR

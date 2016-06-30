@@ -18,7 +18,6 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_O3_MOD,         ONLY : SAVEOH, SAVEHO2, SAVEO1D, SAVEO3P
       USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Chm_Mod, only : IND_
       USE GIGC_State_Met_Mod, ONLY : MetState
