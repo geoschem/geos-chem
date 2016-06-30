@@ -32,11 +32,6 @@
       PUBLIC  :: INIT_TAGGED_CO
       PUBLIC  :: CLEANUP_TAGGED_CO
 !
-! !PUBLIC DATA MEMBERS:
-!
-!      ! Pointers
-!      REAL(fp), PUBLIC, ALLOCATABLE :: EMACET  (:,:  )           ! ACET emiss
-!
 ! !REMARKS:
 !  Tagged CO Tracers (you can modify these as needs be!)
 !  ============================================================================
@@ -273,6 +268,8 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  28 Jun 2016 - R. Yantosca - Add error traps to make sure that the ISOP,
 !                              ACET, MONX non-advected species are all found
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -281,7 +278,7 @@
 !
       ! Scalars
       LOGICAL                  :: FOUND,         LSPLIT
-      INTEGER                  :: N_TRACERS,     HcoID
+      INTEGER                  :: nAdvect,       HcoID,       NA
       INTEGER                  :: I,             J,           L
       INTEGER                  :: N,             MONTH,       YEAR
       REAL(fp)                 :: ALPHA_ISOP,    DTCHEM,      GCO
@@ -309,7 +306,7 @@
       ! Pointers
       REAL(fp),        POINTER :: AD    (:,:,:  )
       REAL(fp),        POINTER :: AIRVOL(:,:,:  )
-      REAL(fp),        POINTER :: STT   (:,:,:,:)
+      REAL(fp),        POINTER :: Spc   (:,:,:,:)
       REAL(fp),        POINTER :: T     (:,:,:  )
       REAL(f4),        POINTER :: Ptr2D (:,:    )
       TYPE(HCO_State), POINTER :: HcoState
@@ -335,13 +332,26 @@
       !=================================================================
       ! CHEM_TAGGED_CO begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
       RC        = GIGC_SUCCESS
 
       ! Get fields from Input_Opt
       LSPLIT    = Input_Opt%LSPLIT
-      N_TRACERS = Input_Opt%N_TRACERS
 
       ! DTCHEM is the number of seconds per chemistry timestep
       DTCHEM    = GET_TS_CHEM() * 60.0_fp
@@ -349,7 +359,7 @@
       ! Initialize pointers
       AD        => State_Met%AD
       AIRVOL    => State_Met%AIRVOL
-      STT       => State_Chm%Tracers
+      Spc       => State_Chm%Species
       T         => State_Met%T
       Ptr2D     => NULL()  
       HcoState  => NULL()
@@ -500,8 +510,8 @@
      &           FMOL_CO * AVO
 
          ! GCO is CO concentration in [molec CO/cm3]
-         GCO   = STT(I,J,L,1) * STTCO
-         
+         GCO   = Spc(I,J,L,1) * STTCO
+     
          ! DENS is the number density of air [molec air/cm3]
          DENS  = AD(I,J,L) * 1000.e+0_fp   /
      &           BOXVL     * AVO  / AIRMW
@@ -757,11 +767,11 @@
          ! %%% get an array-out-of-bounds error (bmy, 6/11/08)
          !==============================================================
          IF ( LSPLIT ) THEN
-            STT(I,J,L,12) = STT(I,J,L,12) + CO_CH4   / STTCO
-            STT(I,J,L,14) = STT(I,J,L,14) + CO_ISOP  / STTCO 
-            STT(I,J,L,15) = STT(I,J,L,15) + CO_MONO  / STTCO
-            STT(I,J,L,16) = STT(I,J,L,16) + CO_CH3OH / STTCO
-            STT(I,J,L,17) = STT(I,J,L,17) + CO_ACET  / STTCO
+            Spc(I,J,L,12) = Spc(I,J,L,12) + CO_CH4   / STTCO
+            Spc(I,J,L,14) = Spc(I,J,L,14) + CO_ISOP  / STTCO 
+            Spc(I,J,L,15) = Spc(I,J,L,15) + CO_MONO  / STTCO
+            Spc(I,J,L,16) = Spc(I,J,L,16) + CO_CH3OH / STTCO
+            Spc(I,J,L,17) = Spc(I,J,L,17) + CO_ACET  / STTCO
          ENDIF
 
          !==============================================================
@@ -790,26 +800,31 @@
             ! Handle strat loss by OH for regional CO tracers
             IF ( LSPLIT ) THEN
 
-               ! Loop over regional CO tracers
-               DO N = 2, N_TRACERS
+               ! Loop over regional CO species
+               DO NA = 2, nAdvect
+
+                  ! Advected species ID
+                  N            = State_Chm%Map_Advect(NA)
 
                   ! Loss
-                  STT(I,J,L,N) = STT(I,J,L,N) * ( 1e+0_fp - CO_OH )
+                  Spc(I,J,L,N) = Spc(I,J,L,N) * ( 1.0_fp - CO_OH )
 
-                  ! STT shouldn't be less than zero
-                  IF ( STT(I,J,L,N) < 0e+0_fp ) STT(I,J,L,N) = 0e+0_fp
+                  ! Species shouldn't be less than zero
+                  IF ( Spc(I,J,L,N) < 0.0_fp ) THEN
+                     Spc(I,J,L,N) = 0.0_fp
+                  ENDIF
 
                   ! Error check
                   ERR_LOC = (/ I, J, L, N /)
-                  ERR_VAR = 'STT'
+                  ERR_VAR = 'Spc (points to State_Chm%Species)'
                   ERR_MSG = 'STOP at tagged_co_mod:7'
-                  CALL CHECK_VALUE( STT(I,J,L,N), ERR_LOC,
+                  CALL CHECK_VALUE( Spc(I,J,L,N), ERR_LOC,
      &                              ERR_VAR,      ERR_MSG )
 
                   ! ND65 diagnostic -- loss of CO by OH for "tagged" tracers
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
                      AD65(I,J,L,N) = AD65(I,J,L,N) +
-     &                               ( CORATE * STT(I,J,L,N) * STTCO )
+     &                               ( CORATE * Spc(I,J,L,N) * STTCO)
                   ENDIF
                ENDDO
             ENDIF
@@ -878,23 +893,26 @@
             IF ( LSPLIT ) THEN
 
                ! Loop over regional CO tracers
-               DO N = 2, N_TRACERS
+               DO NA = 2, nAdvect
+
+                  ! Advected species ID
+                  N            = State_Chm%Map_Advect(NA)
 
                   ! Use tropospheric rate constant 
-                  STT(I,J,L,N) = STT(I,J,L,N) *
+                  Spc(I,J,L,N) = Spc(I,J,L,N) *
      &                 ( 1e+0_fp - KRATE * OH_MOLEC_CM3 * DTCHEM )
 
                   ! Error check
                   ERR_LOC = (/ I, J, L, N /)
-                  ERR_VAR = 'STT'
+                  ERR_VAR = 'Spc (points to State_Chm%Species)'
                   ERR_MSG = 'STOP at tagged_co_mod:8'
-                  CALL CHECK_VALUE( STT(I,J,L,N), ERR_LOC,
+                  CALL CHECK_VALUE( Spc(I,J,L,N), ERR_LOC,
      &                              ERR_VAR,      ERR_MSG )
 
                   ! ND65 diagnostic -- loss of CO by OH for "tagged" tracers
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
                      AD65(I,J,L,N) = AD65(I,J,L,N) + 
-     &                   ( KRATE * OH_MOLEC_CM3 * STT(I,J,L,N) * STTCO )
+     &                   ( KRATE * OH_MOLEC_CM3 * Spc(I,J,L,N) * STTCO )
                   ENDIF
                ENDDO
             ENDIF
@@ -912,7 +930,7 @@
      &               CO_CH3OH + CO_ISOP - CO_OH
 
          ! Convert net CO from [molec CO/cm3] to [kg] and store in STT
-         STT(I,J,L,1) = GCO / STTCO
+         Spc(I,J,L,1) = GCO / STTCO
 
          !==============================================================
          ! Archive ND65 diagnostics -- Production & Loss of CO
@@ -925,23 +943,23 @@
             AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_OH / DTCHEM )
 
             ! Production of CO from Isoprene [molec CO/cm3/s]
-            N             = N_TRACERS + 1
+            N             = nAdvect + 1
             AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_ISOP / DTCHEM )
 
             ! Production of CO from CH4 [molec CO/cm3/s]
-            N             = N_TRACERS + 2
+            N             = nAdvect + 2
             AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_CH4 / DTCHEM )
 
             ! Production of CO from CH3OH [molec CO/cm3/s]            
-            N             = N_TRACERS + 3
+            N             = nAdvect + 3
             AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_CH3OH / DTCHEM )
 
             ! Production of CO from MONO [molec CO/cm3/s]
-            N             = N_TRACERS + 4
+            N             = nAdvect + 4
             AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_MONO / DTCHEM )    
 
             ! Production of CO from ACET [molec CO/cm3/s]
-            N             = N_TRACERS + 5 
+            N             = nAdvect + 5 
             AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_ACET / DTCHEM )
          ENDIF
       ENDDO
@@ -952,11 +970,20 @@
       ! Free pointers
       AD       => NULL()
       AIRVOL   => NULL()
-      STT      => NULL()
+      Spc      => NULL()
       T        => NULL()
       Ptr2D    => NULL()
       HcoState => NULL()
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CHEM_TAGGED_CO
 !EOC
 !------------------------------------------------------------------------------

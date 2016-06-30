@@ -204,6 +204,8 @@
 !                              e.g. unit fixes for aviation and chem source
 !  11 Sep 2015 - E. Lundgren - Tracer units are now kg/kg dry air (prev kg)
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -211,8 +213,8 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER                    :: I, J, L, N
-      INTEGER                    :: N_TRACERS
+      INTEGER                    :: I, J, L, N, NA
+      INTEGER                    :: nAdvect
       LOGICAL                    :: LFOSSIL
       LOGICAL                    :: LCHEMCO2
       LOGICAL                    :: LBIODIURNAL
@@ -248,7 +250,7 @@
       ! Pointers
       TYPE(HCO_State), POINTER   :: HcoState
       REAL(f4),        POINTER   :: CO2_COPROD(:,:,:  )
-      REAL(fp),        POINTER   :: STT       (:,:,:,:)
+      REAL(fp),        POINTER   :: Spc       (:,:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -258,6 +260,21 @@
       !=================================================================
       ! EMISSCO2 begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 
       ! Return success
       RC          = GIGC_SUCCESS
@@ -275,12 +292,11 @@
       LFOSSILTAG  = Input_Opt%LFOSSILTAG
       LSHIPTAG    = Input_Opt%LSHIPTAG
       LPLANETAG   = Input_Opt%LPLANETAG
-      N_TRACERS   = Input_Opt%N_TRACERS
   
       ! Initialize pointers
       HcoState    => NULL()
       CO2_COPROD  => NULL()
-      STT         => NULL()
+      Spc         => NULL()
 
       ! Import emissions from HEMCO (through HEMCO state)
       CALL GetHcoState( HcoState )
@@ -408,9 +424,8 @@
       ! Read in monthly, daily or variable emissions fields
       !=================================================================      
 
-      ! Initialize GEOS-Chem tracer array [kg/kg] (dry air) from Chemistry 
-      ! State object (ewl, 9/11/15)
-      STT => State_Chm%Tracers
+      ! Point to the chemical species ([kg/kg] dry air)
+      Spc  => State_Chm%Species
 
       ! Get a pointer to the CO2 production from CO oxidation
       ! This is now listed in the NON-EMISSIONS DATA section of
@@ -462,29 +477,29 @@
 ! end new (ewl)
 
             ! Add to Tracer #1: Total CO2 [kg/kg]
-            STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
+            Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
 
 	     ! Add to Tracer #2: Fossil CO2 [kg/kg]
-            IF ( N_TRACERS > 1 ) THEN
-               STT(I,J,1,2)   = STT(I,J,1,2) + E_CO2
+            IF ( nAdvect > 1 ) THEN
+               Spc(I,J,1,2)   = Spc(I,J,1,2) + E_CO2
 
                ! Split Fossil Fuel CO2 into geographic regions
                IF ( LFOSSILTAG ) THEN
                   N            = FOSSIL_REGION(I,J)
-                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO2
+                  Spc(I,J,1,N) = Spc(I,J,1,N) + E_CO2
                ENDIF
             ENDIF
 
 	     ! Add to Tracer #12: Background with Fossil CO2 [kg/kg]
             IF ( LFFBKGRD ) THEN
-               STT(I,J,1,12)   = STT(I,J,1,12) + E_CO2
+               Spc(I,J,1,12)   = Spc(I,J,1,12) + E_CO2
             ENDIF
 
 	   ! Note: To define the background as including fossil fuels here 
            ! (instead of during data processing) for tagged-CO2 runs which 
            ! will be used for estimating natural bio/ocean fluxes etc., and 
            ! accepting the FF inventory
-           ! use STT(I,J,1,12) = STT(I,J,1,12) + E_CO2.
+           ! use Spc(I,J,1,12) = Spc(I,J,1,12) + E_CO2.
 	   ! Shipping and aviation emissions can be included in a similar way.
 	   
          ENDIF
@@ -518,16 +533,16 @@
 ! end new (ewl)
 
             ! Add to Tracer #1: Total CO2 [kg/kg]
-            STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
+            Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
 
             ! Add to Tracer #3: Ocean CO2 [kg/kg]
-            IF ( N_TRACERS > 2 ) THEN
-               STT(I,J,1,3)   = STT(I,J,1,3) + E_CO2   
+            IF ( nAdvect > 2 ) THEN
+               Spc(I,J,1,3)   = Spc(I,J,1,3) + E_CO2   
 
                ! Split ocean CO2 into geographic regions
                IF ( LBIOSPHTAG ) THEN
                   N            = OCEAN_REGION(I,J)
-                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO2
+                  Spc(I,J,1,N) = Spc(I,J,1,N) + E_CO2
                ENDIF
             ENDIF
          ENDIF
@@ -561,16 +576,16 @@
 ! end new (ewl)
  
             ! Add to Tracer #1 -- total CO2 [kg/kg]
-            STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
+            Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
 
             ! Add to Tracer #4 -- Bal Bio CO2 [kg/kg]
-            IF ( N_TRACERS > 3 ) THEN
-               STT(I,J,1,4)   = STT(I,J,1,4) + E_CO2
+            IF ( nAdvect > 3 ) THEN
+               Spc(I,J,1,4)   = Spc(I,J,1,4) + E_CO2
                 
                	! Split biospheric CO2 exchange into geographic regions
                IF ( LBIOSPHTAG ) THEN
                   N            = BIOSPH_REGION(I,J)
-                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO2
+                  Spc(I,J,1,N) = Spc(I,J,1,N) + E_CO2
                ENDIF
             ENDIF	
          ENDIF
@@ -607,16 +622,16 @@
      &                   - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
 ! end new (ewl)   
                ! Add to Tracer #1: Total CO2 [kg/kg]
-               STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
+               Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
                
                ! Add to Tracer #5: Biomass burning CO2 [kg/kg]
-               IF ( N_TRACERS > 4 ) THEN
-                  STT(I,J,1,5)   = STT(I,J,1,5) + E_CO2
+               IF ( nAdvect > 4 ) THEN
+                  Spc(I,J,1,5)   = Spc(I,J,1,5) + E_CO2
    
                   ! Split Bioburn CO2 into geographic regions
                   IF ( LBIOSPHTAG ) THEN
                      N            = BIOSPH_REGION(I,J)
-                     STT(I,J,1,N) = STT(I,J,1,N) + E_CO2
+                     Spc(I,J,1,N) = Spc(I,J,1,N) + E_CO2
                   ENDIF
                ENDIF
             ENDIF
@@ -655,16 +670,16 @@
 ! end new (ewl)
    
                ! Add to Tracer #1: Total CO2 [kg/kg]
-               STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
+               Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
    
                ! Add to Tracer #6: Biofuel CO2 [kg/kg]
-               IF (N_TRACERS > 5) THEN
-                  STT(I,J,1,6)   = STT(I,J,1,6) + E_CO2
+               IF (nAdvect > 5) THEN
+                  Spc(I,J,1,6)   = Spc(I,J,1,6) + E_CO2
    
                   ! Split BF CO2 into geographic regions
                   IF ( LBIOSPHTAG ) THEN
                      N            = BIOSPH_REGION(I,J)
-                     STT(I,J,1,N) = STT(I,J,1,N) + E_CO2
+                     Spc(I,J,1,N) = Spc(I,J,1,N) + E_CO2
                   ENDIF
                ENDIF
             ENDIF
@@ -699,16 +714,16 @@
 ! end new (ewl)
 
             ! Add to Tracer #1: Total CO2 [kg CO2]
-            STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
+            Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
 
             ! Add to Tracer #7: Net Terr exchange CO2 [kg]
-            IF ( N_TRACERS > 6 ) THEN
-               STT(I,J,1,7)   = STT(I,J,1,7) + E_CO2
+            IF ( nAdvect > 6 ) THEN
+               Spc(I,J,1,7)   = Spc(I,J,1,7) + E_CO2
 
                ! Split Net Terr Exch CO2 into geographic regions
                IF ( LBIOSPHTAG ) THEN
                   N            = BIOSPH_REGION(I,J)
-                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO2
+                  Spc(I,J,1,N) = Spc(I,J,1,N) + E_CO2
                ENDIF
             ENDIF	
          ENDIF
@@ -742,22 +757,22 @@
 ! end new (ewl)
 
             ! Add to Tracer #1: Total CO2 [kg/kg]
-            STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
+            Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
 
             ! Add to Tracer #8: Ship CO2 [kg/kg]
-            IF (N_TRACERS > 7) THEN
-               STT(I,J,1,8)   = STT(I,J,1,8) + E_CO2
+            IF (nAdvect > 7) THEN
+               Spc(I,J,1,8)   = Spc(I,J,1,8) + E_CO2
  
               	! Tagged tracer for global ship emissions
                IF ( LSHIPTAG ) THEN
-                  STT(I,J,1,53) = STT(I,J,1,53) + E_CO2
+                  Spc(I,J,1,53) = Spc(I,J,1,53) + E_CO2
                ENDIF
             ENDIF
 
 	   ! Add to Tracer #12: Background with Fossil CO2 [kg/kg]
            !-------------------------------------------
 	   !IF ( LFFBKGRD ) THEN
-           !   STT(I,J,1,12)   = STT(I,J,1,12) + E_CO2
+           !   Spc(I,J,1,12)   = Spc(I,J,1,12) + E_CO2
 	   !ENDIF
            !-------------------------------------------
 	   ! Uncomment to include ship CO2 emissions in the background
@@ -797,22 +812,22 @@
 ! end new (ewl)
 
                ! Add to Tracer #1: Total CO2 [kg/kg]
-               STT(I,J,L,1)   = STT(I,J,L,1) + E_CO2
+               Spc(I,J,L,1)   = Spc(I,J,L,1) + E_CO2
 
                ! Add to Tracer #9: Aviation CO2 [kg/kg]
-               IF ( N_TRACERS > 8 ) THEN
-                  STT(I,J,L,9) = STT(I,J,L,9) + E_CO2
+               IF ( nAdvect > 8 ) THEN
+                  Spc(I,J,L,9) = Spc(I,J,L,9) + E_CO2
  
               	  ! Tagged tracer for global aviation emissions
                   IF ( LPLANETAG ) THEN
-                     STT(I,J,L,54) = STT(I,J,L,54) + E_CO2
+                     Spc(I,J,L,54) = Spc(I,J,L,54) + E_CO2
                   ENDIF
                ENDIF
 	
 	      ! Add to Tracer #12: Background with Fossil CO2 [kg]
               !-------------------------------------------
 	      !IF (LFFBKGRD) THEN
-	      !   STT(I,J,L,12)   = STT(I,J,L,12) + E_CO2
+	      !   Spc(I,J,L,12)   = Spc(I,J,L,12) + E_CO2
 	      !ENDIF
               !-------------------------------------------
 	      ! Uncomment to include aviation CO2 emissions in the background
@@ -854,11 +869,11 @@
 ! end new (ewl)
 
                ! Add to Tracer #1: Total CO2 [kg/kg]
-               STT(I,J,L,1)   = STT(I,J,L,1) + E_CO2
+               Spc(I,J,L,1)   = Spc(I,J,L,1) + E_CO2
 
                ! Add to Tracer #10: Chemical Source of CO2 [kg/kg]
-               IF (N_TRACERS > 9) THEN
-                  STT(I,J,L,10)   = STT(I,J,L,10) + E_CO2
+               IF (nAdvect > 9) THEN
+                  Spc(I,J,L,10)   = Spc(I,J,L,10) + E_CO2
                ENDIF
 		
             ENDDO
@@ -894,11 +909,11 @@
 ! end new (ewl)
 
             ! Subtract from Tracer #1: Total CO2 [kg/kg]
-            STT(I,J,1,1)   = STT(I,J,1,1) - E_CO2
+            Spc(I,J,1,1)   = Spc(I,J,1,1) - E_CO2
 
             ! Subtract from Tracer #11: Chem Source Surf Correction [kg/kg]
-            IF ( N_TRACERS > 10 ) THEN
-               STT(I,J,1,11)   = STT(I,J,1,11) - E_CO2
+            IF ( nAdvect > 10 ) THEN
+               Spc(I,J,1,11)   = Spc(I,J,1,11) - E_CO2
             ENDIF
 		
          ENDIF
@@ -918,9 +933,18 @@
 
       ! Free pointers
       HcoState   => NULL()
-      STT        => NULL()
+      Spc        => NULL()
       CO2_COPROD => NULL()
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE EMISSCO2 
 !EOC
 !------------------------------------------------------------------------------

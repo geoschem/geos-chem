@@ -147,6 +147,8 @@
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !  06 Nov 2014 - M. Yannetti - Converted REAL*8 to REAL(fp)
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -158,27 +160,37 @@
       INTEGER, SAVE      :: LASTMONTH = -99
 
       ! Scalars
-      LOGICAL            :: LSPLIT
-      INTEGER            :: N_TRACERS, MONTH
-      INTEGER            :: I, J, L, N
+      INTEGER            :: nAdvect
+      INTEGER            :: MONTH
+      INTEGER            :: I, J, L, N, NA
       REAL(fp)           :: DTCHEM, KRATE
 
       ! Strings
-      CHARACTER(LEN=255) :: LOC = 'CHEMPOPS (pops_mod.F)'
+      CHARACTER(LEN=255) :: LOC = 'CHEMC2H6 (c2h6_mod.F)'
 
       ! Pointers
-      REAL(fp), POINTER  :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: Spc(:,:,:,:)
 
       !=================================================================
       ! CHEMC2H6 begins here! 
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
-      RC        = GIGC_SUCCESS
-
-      ! Get fields from Input_Opt
-      LSPLIT    = Input_Opt%LSPLIT
-      N_TRACERS = Input_Opt%N_TRACERS
+      RC     = GIGC_SUCCESS
 
       IF ( FIRSTCHEM ) THEN
          FIRSTCHEM = .FALSE.  ! save for future use?
@@ -187,12 +199,11 @@
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Poiont to chemical species
+      Spc    => State_Chm%Species
 
       ! Get current month
-      MONTH = GET_MONTH()
+      MONTH  = GET_MONTH()
 
       !=================================================================
       ! Read in the tropospheric OH fields of the (LMN)th month
@@ -200,6 +211,9 @@
       !=================================================================
       IF ( MONTH /= LASTMONTH ) THEN
          
+         !%%% NOTE: THIS MAY ONLY NEED TO BE DONE ON THE FIRST CALL! %%%
+         !%%% (bmy, 6/30/16)                                         %%%
+
          ! Get a pointer to the HEMCO data structure (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,  RC )
          IF ( RC /= GIGC_SUCCESS ) THEN
@@ -230,17 +244,20 @@
          KRATE = 8.7e-12_fp * EXP( -1070.0e+0_fp / State_Met%T(I,J,L) )
 
          ! Apply loss to total C2H6 (tracer #1)
-         STT(I,J,L,1) = STT(I,J,L,1) *
+         Spc(I,J,L,1) = Spc(I,J,L,1) *
      &                  ( 1e+0_fp - KRATE * OH(I,J,L) * DTCHEM )
 
          ! If we are running w/ tagged tracers,
          ! then also apply the loss to each of these
-         IF ( LSPLIT ) THEN 
-            DO N = 2, N_TRACERS
+         IF ( Input_Opt%LSPLIT ) THEN 
+            DO NA = 2, nAdvect
             
+               ! Advected species ID
+               N            = State_Chm%Map_Advect(NA)
+
                ! Subtract loss of C2H6 by OH and store in STT [kg C2H6]
                ! Loss = k * [C2H6] * [OH] * dt
-               STT(I,J,L,N) = STT(I,J,L,N) *
+               Spc(I,J,L,N) = Spc(I,J,L,N) *
      &                        ( 1e+0_fp - KRATE * OH(I,J,L) * DTCHEM )
             ENDDO
          ENDIF
@@ -251,8 +268,17 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      STT => NULL()
+      Spc => NULL()
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CHEMC2H6
 !EOC
 !------------------------------------------------------------------------------

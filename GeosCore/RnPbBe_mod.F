@@ -177,6 +177,8 @@
 !   2 May 2016 - R. Yantosca - Now define IDTRn, IDTPb, IDTBe locally
 !  22 Jun 2016 - R. Yantosca - Now use IND_() to define species ID's
 !  22 Jun 2016 - R. Yantosca - Rename species ID's to id_Rn, id_Pb, id_Be7
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -184,60 +186,69 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER             :: I,        J,         L
-      INTEGER             :: LSTART,   N,         N_TRACERS            
-      REAL(fp)            :: ADD_Pb,   Be_LOST,   DTCHEM   
-      REAL(fp)            :: Pb_LOST
+      INTEGER                  :: I,        J,         L
+      INTEGER                  :: A,        N,         nAdvect
+      REAL(fp)                 :: ADD_Pb,   Be_LOST,   DTCHEM   
+      REAL(fp)                 :: Pb_LOST,  Decay
 
-      ! Static scalars
-      LOGICAL,   SAVE     :: FIRSTCHEM = .TRUE.
-      REAL(fp),  SAVE     :: EXP_Rn,   EXP_Pb,    EXP_Be
+      ! SAVEd scalars
+      LOGICAL,       SAVE      :: FIRSTCHEM = .TRUE.
+      REAL(fp),      SAVE      :: EXP_Rn,   EXP_Pb,    EXP_Be
 
       ! Arrays
-      REAL(fp)            :: Rn_LOST(IIPAR,JJPAR,LLPAR)
+      REAL(fp)                 :: Rn_LOST(IIPAR,JJPAR,LLPAR)
 
       ! To calculate decay rate
-      REAL(fp)            :: Decay
 
       ! For netCDF diagnostics via HEMCO
-      CHARACTER(LEN=255) :: MSG
-      CHARACTER(LEN=255) :: LOC = 'CHEMRNPBBE (RnPbBe_mod.F)'
-      REAL(fp), TARGET   :: PB_EMISS(IIPAR, JJPAR, LLPAR)
-      REAL(fp), TARGET   :: RN_DECAY(IIPAR, JJPAR, LLPAR)
-      REAL(fp), TARGET   :: PB_DECAY(IIPAR, JJPAR, LLPAR) 
-      REAL(fp), TARGET   :: BE_DECAY(IIPAR, JJPAR, LLPAR)  
+      CHARACTER(LEN=255)       :: MSG
+      CHARACTER(LEN=255)       :: LOC = 'CHEMRNPBBE (RnPbBe_mod.F)'
+      REAL(fp),      TARGET    :: PB_EMISS(IIPAR, JJPAR, LLPAR)
+      REAL(fp),      TARGET    :: RN_DECAY(IIPAR, JJPAR, LLPAR)
+      REAL(fp),      TARGET    :: PB_DECAY(IIPAR, JJPAR, LLPAR) 
+      REAL(fp),      TARGET    :: BE_DECAY(IIPAR, JJPAR, LLPAR)  
 
-      ! For the Species Database
-      TYPE(Species), POINTER :: ThisSpc
-
-!      ! To get HEMCO values
-!      ! NOTE: These are not commented out in NewDiag (ewl, 1/11/16)
-!      REAL(hp)              :: Emis
-!      LOGICAL             :: FOUND
+      ! Pointers
+      REAL(fp),      POINTER   :: Spc(:,:,:,:)
+      TYPE(Species), POINTER   :: ThisSpc
 !
 ! !DEFINED PARAMETERS
 !
       ! Ratio of molecular weights of 210Pb/222Rn
-      REAL(fp), PARAMETER :: Pb_Rn_RATIO = 210e+0_fp / 222e+0_fp
+      REAL(fp),      PARAMETER :: Pb_Rn_RATIO = 210e+0_fp / 222e+0_fp
 
       ! Ln 2
-      REAL(fp), PARAMETER :: ln2   = 0.693147181E+00_fp
+      REAL(fp),      PARAMETER :: ln2   = 0.693147181E+00_fp
 
       ! Lifetime of Radon-222 in days
-      REAL(fp), PARAMETER :: RnTau = 3.83E+00_fp
+      REAL(fp),      PARAMETER :: RnTau = 3.83E+00_fp
 
       !=================================================================
       ! CHEMRnPbBe begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO A = 1, nAdvect
+         N                          = State_Chm%Map_Advect(A)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
-      RC           =  GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
-      N_TRACERS    = Input_Opt%N_TRACERS
+      RC     =  GIGC_SUCCESS
 
       ! Chemistry timestep [s]
-      DTCHEM       =  GET_TS_CHEM() * 60e+0_fp
+      DTCHEM =  GET_TS_CHEM() * 60e+0_fp
+
+      ! Point to the species array
+      Spc    => State_Chm%Species
 
       ! Pre-compute exponential terms only on first timestep
       IF ( FIRSTCHEM ) THEN 
@@ -271,7 +282,7 @@
       ! Radioactive decay of Rn222
       !=================================================================
       
-      ! Tracer index
+      ! Species index for Rn222
       N = id_Rn
 
       ! Make sure Rn222 is a defined tracer
@@ -284,14 +295,13 @@
          DO I = 1, IIPAR
 
             ! Rn_LOST = amount of 222Rn lost to decay [kg]
-            Rn_LOST(I,J,L)             = State_Chm%TRACERS(I,J,L,N) 
-     &                                 * ( 1e+0_fp - EXP_Rn )
+            Rn_LOST(I,J,L)     = Spc(I,J,L,N) * ( 1.0_fp - EXP_Rn )
 
             ! ND02 diag: 222Rn lost to decay [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
 #if defined( BPCH_DIAG )
-               AD02(I,J,L,1)           = AD02(I,J,L,1) 
-     &                                 + ( Rn_LOST(I,J,L) / DTCHEM )
+               AD02(I,J,L,1)   = AD02(I,J,L,1) 
+     &                         + ( Rn_LOST(I,J,L) / DTCHEM )
 #endif
 #if defined( NC_DIAG )
                RN_DECAY(I,J,L) = RN_LOST(I,J,L) / DTCHEM
@@ -299,8 +309,7 @@
             ENDIF
 
             ! Subtract Rn_LOST from STT [kg]
-            State_Chm%TRACERS(I,J,L,N) = 
-     &      State_Chm%TRACERS(I,J,L,N) - Rn_LOST(I,J,L)
+            Spc(I,J,L,N)       = Spc(I,J,L,N) - Rn_LOST(I,J,L)
          ENDDO
          ENDDO
          ENDDO
@@ -325,7 +334,7 @@
       ! Radioactive decay of Pb210
       !=================================================================
       
-      ! Tracer index
+      ! Species index for Pb210
       N = id_Pb
 
       ! Make sure Pb210 is a defined tracer
@@ -347,35 +356,31 @@
             !%%%%% the Be7 source is computed.  This replicates the
             !%%%%% pre-HEMCO code. (bmy, 9/4/14)
             IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) THEN
-               ADD_Pb                  = ADD_Pb / 3.5e+0_fp
+               ADD_Pb          = ADD_Pb / 3.5e+0_fp
             ENDIF
 #endif
 
             ! ND01 diag: 210Pb emission from 222Rn decay [kg/s]
             IF ( ND01 > 0 .and. L <= LD01 ) THEN
 #if defined( BPCH_DIAG )
-               AD01(I,J,L)             = AD01(I,J,L) + 
-     &                                   ( ADD_Pb / DTCHEM )
+               AD01(I,J,L)     = AD01(I,J,L) + ( ADD_Pb / DTCHEM )
 #endif
 #if defined ( NC_DIAG )
-               PB_EMISS(I,J,L)         = ADD_Pb / DTCHEM
+               PB_EMISS(I,J,L) = ADD_Pb / DTCHEM
 #endif
             ENDIF
 
             ! Add 210Pb gained by decay from 222Rn into STT [kg]
-            State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) 
-     &                                 + ADD_Pb          
+            Spc(I,J,L,N)       = Spc(I,J,L,N) + ADD_Pb          
 
             ! Amount of 210Pb lost to radioactive decay [kg]
             ! NOTE: we've already added in the 210Pb gained from 222Rn
-            Pb_LOST                    = State_Chm%TRACERS(I,J,L,N) 
-     &                                 * ( 1e+0_fp - EXP_Pb )
+            Pb_LOST            = Spc(I,J,L,N) * ( 1.0_fp - EXP_Pb )
 
             ! ND02 diag: 210Pb lost to decay [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
 #if defined( BPCH_DIAG )
-               AD02(I,J,L,2)           = AD02(I,J,L,2) 
-     &                                 + ( Pb_LOST / DTCHEM )
+               AD02(I,J,L,2)   = AD02(I,J,L,2) + ( Pb_LOST / DTCHEM )
 #endif
 #if defined( NC_DIAG )
                PB_DECAY(I,J,L) = Pb_LOST / DTCHEM
@@ -383,8 +388,7 @@
             ENDIF
 
             ! Subtract 210Pb lost to decay from STT [kg]
-            State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) 
-     &                                 - Pb_LOST
+            Spc(I,J,L,N)       = Spc(I,J,L,N) - Pb_LOST
          ENDDO
          ENDDO
          ENDDO
@@ -434,14 +438,12 @@
          DO I = 1, IIPAR
 
             ! Amount of 7Be lost to decay [kg]
-            Be_LOST                    = State_Chm%TRACERS(I,J,L,N) 
-     &                                 * ( 1d0 - EXP_Be )
+            Be_LOST            = Spc(I,J,L,N) * ( 1d0 - EXP_Be )
 
             ! ND02 diag: 7Be lost to decay [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
 #if defined( BPCH_DIAG )
-               AD02(I,J,L,3)           = AD02(I,J,L,3) 
-     &                                 + ( Be_LOST / DTCHEM )
+               AD02(I,J,L,3)   = AD02(I,J,L,3) + ( Be_LOST / DTCHEM )
 #endif
 #if defined( NC_DIAG )
                BE_DECAY(I,J,L) = Be_LOST / DTCHEM
@@ -449,8 +451,7 @@
             ENDIF
 
             ! Subtract amount of 7Be lost to decay from STT [kg]
-            State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) 
-     &                                 - Be_LOST
+            Spc(I,J,L,N)       = Spc(I,J,L,N) - Be_LOST
          ENDDO
          ENDDO
          ENDDO
@@ -471,6 +472,18 @@
 
       ENDIF
 
+      ! Free pointer
+      Spc => NULL()
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO A = 1, nAdvect
+         N                          = State_Chm%Map_Advect(A)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CHEMRnPbBe
 !EOC
 
