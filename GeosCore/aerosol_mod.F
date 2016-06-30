@@ -653,7 +653,6 @@
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE PHYSCONSTANTS,      ONLY : CONSVAP
-      USE COMODE_LOOP_MOD,    ONLY : IOUT
       USE DIAG_MOD,           ONLY : AD21
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
@@ -748,6 +747,8 @@
 !                              3D fields in State_Chm.
 !  16 May 2016 - M. Sulprizio- Remove JLOOP entirely and loop over LLPAR, JJPAR,
 !                              IIPAR instead.
+!  28 Jun 2016 - M. Sulprizio- Make IOUT a local variable to remove dependence
+!                              on comode_loop_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -759,6 +760,7 @@
       CHARACTER(LEN=16)   :: STAMP
       INTEGER             :: I, J, L, N, R, IRH, W, IRHN
       INTEGER             :: AA, IWV, IIWV, NWVS, IR, NRT
+      INTEGER             :: IOUT
       REAL*4              :: TEMP(IIPAR,JJPAR,LGLOB)
       REAL(fp)            :: TEMP2(IIPAR,JJPAR,LLPAR)
       REAL(fp)            :: MSDENS(NAER), DRYAREA

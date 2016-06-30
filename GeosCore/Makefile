@@ -157,6 +157,7 @@
 #                              leftover routines from SMVGEAR
 #  23 Jun 2016 - R. Yantosca - Remove references to tracerid_mod
 #  23 Jun 2016 - R. Yantosca - Remove references to GeosApm
+#  30 Jun 2016 - M. Sulprizio- Remove readchem.F, reader.F, jsparse.F, ksparse.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -689,10 +690,6 @@ input_mod.o                 : input_mod.F                                    \
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               chemgrid_mod.o          
 
-jsparse.o                   : jsparse.F
-
-ksparse.o                   : ksparse.F
-
 land_mercury_mod.o          : land_mercury_mod.F                             \
                               dao_mod.o               depo_mercury_mod.o     \
                               modis_lai_mod.o         hcoi_gc_main_mod.o
@@ -797,11 +794,6 @@ pops_mod.o           	    : pops_mod.F    	                             \
 			      diag_mod.o	      diag53_mod.o           \
                               drydep_mod.o            pbl_mix_mod.o	     \
                               vdiff_pre_mod.o
-
-readchem.o                  : readchem.F                                     \
-                              diag_pl_mod.o           drydep_mod.o
-
-reader.o                    : reader.F
 
 read_jv_atms_dat.o          : read_jv_atms_dat.F90
 

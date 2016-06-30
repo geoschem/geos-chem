@@ -90,7 +90,6 @@
       USE CARBON_MOD,         ONLY : CHEMCARBON
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
-      USE COMODE_LOOP_MOD     
       USE DUST_MOD,           ONLY : CHEMDUST
       USE DUST_MOD,           ONLY : RDUST_ONLINE
       USE ERROR_MOD
@@ -909,7 +908,6 @@
       USE CMN_SIZE_MOD,       ONLY : LLTROP
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE FAST_JX_MOD,        ONLY : INIT_FJX
-      USE COMODE_LOOP_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -920,7 +918,6 @@
       TYPE(OptInput), INTENT(INOUT)  :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(INOUT)  :: State_Chm   ! Chemistry State object
       INTEGER,        INTENT(INOUT)  :: RC          ! Success or failure?
-     
 !
 ! !REVISION HISTORY: 
 !  19 May 2014 - C. Keller   - Initial version (stripped from do_chemistry
@@ -933,25 +930,20 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE   :: FIRST = .TRUE.
+      LOGICAL, SAVE :: FIRST = .TRUE.
 
       !=================================================================
       ! INIT_CHEMISTRY begins here!
       !=================================================================
 
       ! Assume success
-      RC                   = GIGC_SUCCESS
+      RC = GIGC_SUCCESS
 
       IF ( FIRST ) THEN
 
-         ! Init chem mechanism and photolysis
-         CALL READER  ( FIRST, am_I_Root                           )
-         CALL READCHEM(        am_I_Root, Input_Opt,            RC )
+         ! Init photolysis
          CALL INIT_FJX(        am_I_Root, Input_Opt,  RC           )
          
-         ! Reset NCS with NCSURBAN=1
-         NCS                 = NCSURBAN
-
          ! Adjust first flag
          FIRST = .FALSE.
       ENDIF

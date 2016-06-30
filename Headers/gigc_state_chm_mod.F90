@@ -280,11 +280,10 @@ CONTAINS
 !
   SUBROUTINE Init_GIGC_State_Chm( am_I_Root, IM,        JM,         &   
                                   LM,        Input_Opt, State_Chm,  &
-                                  nSpecies,  nAerosol,  RC         )
+                                  nAerosol,  RC         )
 !
 ! !USES:
 !
-    USE Comode_Loop_Mod,      ONLY : ILONG, ILAT, IPVERT
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod,   ONLY : OptInput
     USE Species_Mod,          ONLY : Species
@@ -298,11 +297,6 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: JM          ! # longitudes on this PET
     INTEGER,        INTENT(IN)    :: LM          ! # longitudes on this PET
     INTEGER,        INTENT(IN)    :: nAerosol    ! # aerosol species
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: KEEP THIS FOR NOW TO AVOID SEG FAULTS, 
-!%%% AT LEAST UNTIL WE REMOVE REFERENCES TO NTSPEC ETC. (bmy, 5/18/16)
-    INTEGER,        INTENT(IN)    :: nSpecies    ! # of species from SMVGEAR
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -339,6 +333,8 @@ CONTAINS
 !  18 May 2016 - R. Yantosca - Now determine the # of each species first,
 !                              then allocate fields of State_Chm
 !  18 May 2016 - R. Yantosca - Now populate the species mapping vectors
+!  30 Jun 2016 - M. Sulprizio- Remove nSpecies as an input argument. This is now
+!                              initialized as the size of SpcData.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -477,24 +473,15 @@ CONTAINS
     ! Allocate and initialize chemical species fields
     !=====================================================================
 
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    !%%% NOTE: For now, allocate species arrays with nSpecies, which
-    !%%% passes the value of IGAS from gigc_environment_mod.F90.
-    !%%% Keep this until we remove all SMVGEAR references (bmy, 5/18/16)
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    ALLOCATE( State_Chm%Spec_Id   (             nSpecies           ), STAT=RC )
-   !ALLOCATE( State_Chm%Spec_Id   (             State_Chm%nSpecies ), STAT=RC )
+    ALLOCATE( State_Chm%Spec_Id   (             State_Chm%nSpecies ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Chm%Spec_Id = 0
 
-    ALLOCATE( State_Chm%Spec_Name (             nSpecies           ), STAT=RC )
-   !ALLOCATE( State_Chm%Spec_Name (             State_Chm%nSpecies ), STAT=RC )
+    ALLOCATE( State_Chm%Spec_Name (             State_Chm%nSpecies ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Chm%Spec_Name = ''
 
-    ALLOCATE( State_Chm%Species   ( IM, JM, LM, nSpecies           ), STAT=RC )
-   !ALLOCATE( State_Chm%Species   ( IM, JM, LM, State_Chm%nSpecies ), STAT=RC )
+    ALLOCATE( State_Chm%Species   ( IM, JM, LM, State_Chm%nSpecies ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Chm%Species = 0e+0_fp
 

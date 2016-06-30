@@ -79,12 +79,6 @@ CONTAINS
     USE CMN_FJX_MOD,        ONLY : Init_CMN_FJX
     USE CMN_O3_Mod,         ONLY : Init_CMN_O3
     USE CMN_SIZE_Mod,       ONLY : Init_CMN_SIZE
-    USE COMODE_LOOP_Mod,    ONLY : Init_COMODE_LOOP
-!------------------------------------------------------------------------------
-! Move call to INIT_GET_NDEP to GIGC_INIT_EXTRA, which is called
-! after species database init (bmy, 6/17/16)
-!    USE Get_Ndep_Mod,       ONLY : Init_Get_Ndep
-!------------------------------------------------------------------------------
     USE GIGC_ErrCode_Mod  
     USE GIGC_Input_Opt_Mod
     USE VDIFF_PRE_Mod,      ONLY : Init_Vdiff_Pre
@@ -137,6 +131,7 @@ CONTAINS
 !  04 Aug 2015 - C. Keller   - Now pass LLTROP and LLSTRAT to INIT_CMN_SIZE.
 !  17 Jun 2016 - R. Yantosca - Move call to INIT_GET_NDEP to GIGC_INIT_EXTRA
 !                              which is called after species database init
+!  30 Jun 2016 - M. Sulprizio- Remove call to INIT_COMODE_LOOP; it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -201,9 +196,6 @@ CONTAINS
     CALL Init_CMN_O3( am_I_Root, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    CALL Init_COMODE_LOOP( am_I_Root, Input_Opt, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-
     CALL Init_VDIFF_PRE( am_I_Root, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
@@ -232,7 +224,6 @@ CONTAINS
 !
     USE CMN_Size_Mod,       ONLY : IIPAR, JJPAR, LLPAR
     USE CMN_SIZE_Mod,       ONLY : NDUST, NAER
-    USE Comode_Loop_Mod,    ONLY : IGAS
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod
     USE GIGC_State_Chm_Mod
@@ -277,6 +268,7 @@ CONTAINS
 !  25 Jan 2016 - R. Yantosca - Bug fix: Declare Input_Opt as INTENT(INOUT),
 !                              to match the declaration in INIT_GIGC_STATE_CHM
 !  28 Jan 2016 - M. Sulprizio- Remove NBIOMAX from call to Init_GIGC_State_Chm
+!  30 Jun 2016 - M. Sulprizio- Remove nSpecies from call to Init_GIGC_State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -315,10 +307,6 @@ CONTAINS
                                JM         = JJPAR,      &  ! # of lats
                                LM         = LLPAR,      &  ! # of levels
                                nAerosol   = NDUST+NAER, &  ! # of aerosol types
-!-------------------------------------------------------------------------------
-!%%% KEEP THIS UNTIL WE CAN REMOVE REFERENCES TO SMVGEAR ARRAYS (bmy, 5/18/16)
-                               nSpecies   = IGAS,       &
-!-------------------------------------------------------------------------------
                                Input_Opt  = Input_Opt,  &  ! Input Options
                                State_Chm  = State_Chm,  &  ! Chemistry State
                                RC         = RC         )   ! Success or failure

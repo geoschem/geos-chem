@@ -57,6 +57,7 @@
 #  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
 #  08 Jan 2016 - E. Lundgren - Move CMN_GCTM_mod.F to obsolete/ dir and replace
 #                              with physconstants.F
+#  30 Jun 2016 - M. Sulprizio- Remove comode_loop_mod.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -162,12 +163,6 @@ commsoil_mod.o         : commsoil_mod.F90         \
                          CMN_SIZE_mod.o           \
                          gigc_errcode_mod.o
 
-comode_loop_mod.o      : comode_loop_mod.F        \
-                         CMN_SIZE_mod.o           \
-                         gigc_errcode_mod.o       \
-                         gigc_input_opt_mod.o     \
-                         precision_mod.o
-
 gigc_errcode_mod.o     : gigc_errcode_mod.F90
 
 gigc_input_opt_mod.o   : gigc_input_opt_mod.F90   \
@@ -179,7 +174,6 @@ gigc_state_chm_mod.o   : gigc_state_chm_mod.F90   \
                          physconstants.o          \
                          gigc_errcode_mod.o       \
                          gigc_input_opt_mod.o     \
-		         comode_loop_mod.o        \
                          precision_mod.o          \
                          species_mod.o            \
                          species_database_mod.o

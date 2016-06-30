@@ -311,6 +311,8 @@
 !                              remove dependency on pressure_mod.
 !  24 Sep 2015 - E. Lundgren - Add tracer concentration unit check      
 !  20 Jun 2016 - R. Yantosca - Now define species ID's only on first call
+!  30 Jun 2016 - M. Sulprizio- Replace NFAMILIES with Input_Opt%NFAM to remove
+!                              dependence on comode_loop_mod.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -324,7 +326,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND60, ND61,  LD61
-      USE COMODE_LOOP_MOD          ! NFAMILIES
      
       ! Arguments
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
@@ -424,8 +425,6 @@
 
       ! Assume success
       RC = GIGC_SUCCESS
-
-
       
       ! Check that tracer units are in [kg]. While tracer units
       ! are now generally [kg/kg] in GEOS-Chem, they are converted to 
@@ -467,7 +466,7 @@
          ! with at leaste one family with the family name PSO4 with SO4 as its 
          ! one member. (win, 9/30/08)     
 
-         DO N = 1, NFAMILIES
+         DO N = 1, Input_Opt%NFAM
             ! If family name 'PSO4' is found, then skip error-stop
             IF ( FAM_NAME(N) == 'PSO4') GOTO 1            
          ENDDO

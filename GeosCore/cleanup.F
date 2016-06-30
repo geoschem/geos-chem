@@ -67,7 +67,6 @@
 #endif
       USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
       USE CMN_SIZE_Mod,            ONLY : Cleanup_CMN_SIZE
-      USE COMODE_LOOP_Mod,         ONLY : Cleanup_COMODE_LOOP
       USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
       USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
       USE GIGC_Input_Opt_Mod,      ONLY : OptInput
@@ -243,6 +242,7 @@
 !  25 Mar 2015 - C. Keller   - Now cleanup UCX before emissisions.
 !  16 Apr 2015 - R. Yantosca - Remove call to CLEANUP_DAO; it's obsolete
 !  18 May 2016 - M. Sulprizio- Remove call to CLEANUP_COMODE; it's obsolete
+!  30 Jun 2016 - M. Sulprizio- Remove call to CLEANUP_COMODE_LOOP; it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -331,7 +331,6 @@
       CALL Cleanup_CMN_O3     ( am_I_Root, RC )
       CALL Cleanup_CMN_SIZE   ( am_I_Root, RC )
       CALL Cleanup_Get_Ndep   ( am_I_Root, RC )
-      CALL Cleanup_COMODE_LOOP( am_I_Root, RC )
       CALL Cleanup_VDIFF_PRE  ( am_I_Root, RC )
       CALL Cleanup_CMN_FJX    ( am_I_Root, RC )
 

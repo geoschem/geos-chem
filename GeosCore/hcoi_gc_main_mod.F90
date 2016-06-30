@@ -1389,14 +1389,13 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CMN_FJX_MOD,           ONLY : ZPJ
     USE GIGC_ErrCode_Mod
     USE ERROR_MOD,             ONLY : ERROR_STOP
     USE GIGC_State_Met_Mod,    ONLY : MetState
     USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
     USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
-    USE FAST_JX_MOD,           ONLY : FJXFUNC
-    USE COMODE_LOOP_MOD,       ONLY : NCS, JPHOTRAT, NRATES
-    USE COMODE_LOOP_MOD,       ONLY : NAMEGAS, IRM
+    USE FAST_JX_MOD,           ONLY : RXN_NO2, RXN_O3_1, RXN_O3_2a
     USE HCO_GeoTools_Mod,      ONLY : HCO_GetSUNCOS
 #if defined(ESMF_) 
     USE HCOI_ESMF_MOD,         ONLY : HCO_SetExtState_ESMF
@@ -1419,6 +1418,9 @@ CONTAINS
 !  11 Sep 2015 - E. Lundgren - Remove State_Chm from passed args since not used
 !  20 Apr 2016 - M. Sulprizio- Change JO1D to JOH to reflect that the array now
 !                              holds the effective O3 + hv -> 2OH rates
+!  27 Jun 2016 - M. Sulprizio- Obtain photolysis rate directly from ZPJ array
+!                              and remove reference to FJXFUNC and obsolete
+!                              SMVGEAR variables like NKSO4PHOT, NAMEGAS, etc.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1426,10 +1428,6 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
     INTEGER                       :: I, J, L
-
-    ! To calculate J-values
-    INTEGER                       :: K, NK, KMAX
-    CHARACTER(LEN=  8)            :: SPECNAME
 
     CHARACTER(LEN=255), PARAMETER :: &
        LOC = 'ExtState_UpdateFields (hcoi_gc_main_mod.F90)'
@@ -1470,7 +1468,7 @@ CONTAINS
 
 !$OMP PARALLEL DO                                                 &
 !$OMP DEFAULT( SHARED )                                           &
-!$OMP PRIVATE( I, J, L, K, NK, KMAX, SPECNAME )
+!$OMP PRIVATE( I, J, L )
     ! Loop over all grid boxes
     DO L = 1, LLPAR
     DO J = 1, JJPAR
@@ -1502,32 +1500,19 @@ CONTAINS
              IF ( ExtState%JNO2%DoUse ) JNO2 = 0.0_hp
              IF ( ExtState%JOH%DoUse  ) JOH  = 0.0_hp
           ELSE
-             ! Loop over photolysis reactions to find NO2, O3
-             KMAX = JPHOTRAT(NCS)
-             DO K = 1, KMAX 
-                ! Reaction number
-                NK = NRATES(NCS) + K
-
-                ! Nae of species being photolyzed
-                SPECNAME = NAMEGAS(IRM(1,NK,NCS))
-
-                ! Check if this is NO2 or O3, store values, 1/s
-                SELECT CASE ( TRIM( SPECNAME ) )
-                   CASE ( 'NO2' )
-                      IF ( ExtState%JNO2%DoUse ) &
-                         JNO2(I,J) = FJXFUNC(I,J,1,K,1,SPECNAME)
-                   CASE ( 'O3'  )
-                      IF ( ExtState%JOH%DoUse ) &
+             IF ( ExtState%JNO2%DoUse ) THEN
+                ! RXN_NO2: NO2 + hv --> NO  + O
+                JNO2(I,J) = ZPJ(L,RXN_NO2,I,J)
+             ENDIF
+             IF ( ExtState%JOH%DoUse ) THEN
 #if defined( UCX )
-                      ! IMPORTANT: Need branch *2* for O1D
-                      !            Branch 1 is O3P!
-                      JOH(I,J) = FJXFUNC(I,J,1,L,2,SPECNAME)
+                ! RXN_O3_1: O3  + hv --> O2  + O
+                JOH(I,J) = ZPJ(L,RXN_O3_1,I,J)
 #else
-                      JOH(I,J) = FJXFUNC(I,J,1,L,1,SPECNAME)
+                ! RXN_O3_2a: O3 + hv --> 2OH
+                JOH(I,J) = ZPJ(L,RXN_O3_2a,I,J)
 #endif
-                   CASE DEFAULT
-                END SELECT
-             ENDDO !K
+             ENDIF
           ENDIF
 
        ENDIF

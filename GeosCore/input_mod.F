@@ -6270,11 +6270,21 @@
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
-      Input_Opt%DO_SAVE_PL          = DO_SAVE_PL
       Input_Opt%LFAMILY             = ( DO_SAVE_PL .and. NFAM > 0 )
-      Input_Opt%ND65                = ND65
+
+      ! Return if there are no prod/loss families
+      ! or if we have turned off this diagnostic
+      IF ( .not. Input_Opt%LFAMILY ) THEN
+         DO_SAVE_PL = .FALSE.
+         DO_SAVE_O3 = .FALSE.
+         NFAM       = 0
+         ND65       = 0
+      ENDIF
+
+      Input_Opt%DO_SAVE_PL          = DO_SAVE_PL
       Input_Opt%DO_SAVE_O3          = DO_SAVE_O3
       Input_Opt%NFAM                = NFAM
+      Input_Opt%ND65                = ND65
 
       ! Loop over # families
       DO F = 1, NFAM
