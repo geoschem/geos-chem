@@ -1,4 +1,4 @@
- !------------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
@@ -15,10 +15,11 @@ MODULE VDIFF_MOD
 ! 
 ! !USES:
 !
+  USE CMN_DIAG_MOD,  ONLY : ND15,  ND44            ! Diagnostics
   USE CMN_SIZE_MOD,  ONLY : IIPAR, JJPAR, LLPAR    ! Grid dimensions
+  USE CMN_SIZE_MOD,  ONLY : plev  => LLPAR         ! # of levels
   USE PHYSCONSTANTS                                ! Physical constants
   USE ERROR_MOD,     ONLY : DEBUG_MSG              ! Routine for debug output
-  USE VDIFF_PRE_MOD, ONLY : plev  => LLPAR         ! # of levels
   USE VDIFF_PRE_MOD, ONLY : PCNST                  ! N_TRACERS
   USE VDIFF_PRE_MOD, ONLY : LPRT                   ! Debug print?
   USE VDIFF_PRE_MOD, ONLY : LTURB                  ! Do PBL mixing?
@@ -220,7 +221,6 @@ contains
     USE DIAG_MOD,           ONLY : TURBFLUP
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
-    USE VDIFF_PRE_MOD,      ONLY : ND15
 
     implicit none
 !
@@ -1847,7 +1847,6 @@ contains
                                    GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
     USE SPECIES_MOD,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
-    USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, NCS, ND44, NDRYDEP
 #if defined( DEVEL )
     USE TENDENCIES_MOD
 #endif

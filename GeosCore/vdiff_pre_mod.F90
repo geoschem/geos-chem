@@ -14,11 +14,6 @@ MODULE VDIFF_PRE_MOD
 ! 
 ! !USES:
 !
-  USE CMN_SIZE_MOD                           ! Size parameters
-  USE COMODE_LOOP_MOD                        ! NCS, NDRYDEP
-  USE CMN_DIAG_MOD                           ! ND15
-  USE PRECISION_MOD                          ! For GEOS-Chem Precision (fp)
-
   IMPLICIT NONE
   
   PRIVATE
@@ -31,11 +26,6 @@ MODULE VDIFF_PRE_MOD
 !
 ! !PUBLIC DATA MEMBERS:
 !
-  PUBLIC :: IIPAR,  JJPAR,  LLPAR            ! from "CMN_SIZE_mod"
-  PUBLIC :: NCS,    NDRYDEP                  ! from "comode_loop_mod"
-  PUBLIC :: ND15,   ND44                     ! from "CMN_DIAG_mod"
-
-  ! Scalars
   LOGICAL, PUBLIC      :: LPRT               ! Passes LPRT to vdiff_mod
   LOGICAL, PUBLIC      :: LTURB              ! Passes LTURB to vdiff_mod
   INTEGER, PUBLIC      :: PCNST              ! Passes N_TRACERS to vdiff_mod
@@ -50,6 +40,8 @@ MODULE VDIFF_PRE_MOD
 !                              now that logical_mod.F, tracer_mod.F are gone.
 !  24 Jun 2014 - R. Yantosca - Renamed to vdiff_pre_mod.F90
 !  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  30 Jun 2016 - M. Sulprizio- Remove NCS, NDRYDEP, ND15, ND44, IIPAR, JJPAR
+!                              since they are not used anymore
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -75,11 +67,11 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(OUT)        :: RC          ! Success or failure?
+    INTEGER, INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Need to add error-checking on the allocation statements, so that we
