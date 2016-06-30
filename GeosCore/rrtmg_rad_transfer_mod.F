@@ -139,7 +139,6 @@
       USE CMN_FJX_MOD,         ONLY : WVAA,       NWVAA
       USE CMN_FJX_MOD,         ONLY : NWVAA0
       USE PHYSCONSTANTS,       ONLY : AIRMW, PI, AVO
-      USE COMODE_LOOP_MOD,     ONLY : ICH4
       USE DIAG_MOD,            ONLY : AD72
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
@@ -208,6 +207,8 @@
 !  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
 !  27 Jun 2016 - R. Yantosca - Bug fix: replace a couple of leftover IDO3
 !                              variables with the new id_O3 species ID
+!  30 Jun 2016 - M. Sulprizio- Replace ICH4 with id_CH4 to remove dependence
+!                              on comode_loop_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -577,9 +578,12 @@
       IF ( FIRST ) THEN
 
          ! Get tracer ids kyu codeathon
-         id_O3     = IND_('O3');    id_CH4   = IND_('CH4'); 
-         id_N2O    = IND_('N2O');   id_CFC11 = IND_('CFC11'); 
-         id_CFC12  = IND_('CFC12'); id_CCL4  = IND_('CCL4')
+         id_O3     = IND_('O3')
+         id_CH4    = IND_('CH4')
+         id_N2O    = IND_('N2O')
+         id_CFC11  = IND_('CFC11')
+         id_CFC12  = IND_('CFC12')
+         id_CCL4   = IND_('CCL4')
          id_HCFC22 = IND_('HCFC22')
 
          ! Reset first-time flag
@@ -775,7 +779,7 @@
      &                          State_Met%AIRNUMDEN(I,J,L)
             ENDIF
             IF (SPECMASK(NASPECRAD+2).EQ.1) THEN
-             CH4VMR(I,J,L) = State_Chm%Species(I,J,L,ICH4)/
+             CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4)/
      &                          State_Met%AIRNUMDEN(I,J,L)
             ENDIF
             N2OVMR(I,J,L) = N2OCLIM(I,J,L)/1E9
@@ -851,7 +855,7 @@
             !GET SCALINGS IF THIS IS THE FIRST LEVEL IN THE STRAT
             IF (FLG_FIRST_STRAT(I,J).EQ.0) THEN
                 FLG_FIRST_STRAT(I,J) = 1
-                CH4SCL(I,J) = (State_Chm%Species(I,J,L,ICH4)/
+                CH4SCL(I,J) = (State_Chm%Species(I,J,L,id_CH4)/
      &                            State_Met%AIRNUMDEN(I,J,L))/
      &                           (CH4CLIM(I,J,L)/1E9)
             ENDIF

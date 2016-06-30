@@ -232,7 +232,6 @@ CONTAINS
 !
     USE CMN_Size_Mod,       ONLY : IIPAR, JJPAR, LLPAR
     USE CMN_SIZE_Mod,       ONLY : NDUST, NAER
-    USE Comode_Loop_Mod,    ONLY : IGAS
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod
     USE GIGC_State_Chm_Mod
@@ -277,6 +276,7 @@ CONTAINS
 !  25 Jan 2016 - R. Yantosca - Bug fix: Declare Input_Opt as INTENT(INOUT),
 !                              to match the declaration in INIT_GIGC_STATE_CHM
 !  28 Jan 2016 - M. Sulprizio- Remove NBIOMAX from call to Init_GIGC_State_Chm
+!  30 Jun 2016 - M. Sulprizio- Remove nSpecies from call to Init_GIGC_State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -315,10 +315,6 @@ CONTAINS
                                JM         = JJPAR,      &  ! # of lats
                                LM         = LLPAR,      &  ! # of levels
                                nAerosol   = NDUST+NAER, &  ! # of aerosol types
-!-------------------------------------------------------------------------------
-!%%% KEEP THIS UNTIL WE CAN REMOVE REFERENCES TO SMVGEAR ARRAYS (bmy, 5/18/16)
-                               nSpecies   = IGAS,       &
-!-------------------------------------------------------------------------------
                                Input_Opt  = Input_Opt,  &  ! Input Options
                                State_Chm  = State_Chm,  &  ! Chemistry State
                                RC         = RC         )   ! Success or failure
