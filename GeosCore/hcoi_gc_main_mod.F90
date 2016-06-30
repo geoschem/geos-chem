@@ -1468,7 +1468,7 @@ CONTAINS
 
 !$OMP PARALLEL DO                                                 &
 !$OMP DEFAULT( SHARED )                                           &
-!$OMP PRIVATE( I, J, L, HCO_PBL_MAX )
+!$OMP PRIVATE( I, J, L )
     ! Loop over all grid boxes
     DO L = 1, LLPAR
     DO J = 1, JJPAR
