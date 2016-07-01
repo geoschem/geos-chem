@@ -156,6 +156,9 @@
 !  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
 !                              NAMEGAS with ThisSpc%Name from species database
 !  22 Jun 2016 - R. Yantosca - Now use IND_() to define id_PASV species ID
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -163,10 +166,11 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL            :: AVGW_ALLOCATED, IS_FULLCHEM, IS_CHEM
-      INTEGER            :: I, J, K, L, N, NN, IREF, JREF, LN45, N_TRC
+      INTEGER            :: I, J, K, L, N, NN, IREF, JREF, LN45
+      INTEGER            :: NA, nAdvect
       REAL(fp)           :: FDTT, XLOCTM, AREA_M2
-      REAL(fp), TARGET   :: STT_VV(IIPAR,JJPAR,LLPAR,
-     &                             Input_Opt%N_TRACERS+2)
+      REAL(fp), TARGET   :: Spc_VV(IIPAR,JJPAR,LLPAR,
+     &                             State_Chm%nAdvect+2)
 
       ! For FP potential temperature (hotp 7/31/09)
       REAL(fp)          :: P0
@@ -186,7 +190,7 @@
       CHARACTER(LEN=255) :: DiagnName
 
       ! For species ID's
-      TYPE(Species), POINTER :: ThisSpc
+      TYPE(Species), POINTER :: SpcInfo
       LOGICAL,       SAVE    :: FIRST = .TRUE.
       INTEGER,       SAVE    :: id_PASV
       INTEGER,       SAVE    :: id_Hg2
@@ -195,25 +199,31 @@
       !=================================================================
       ! DIAG1 begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       
       ! Assume success
       RC                 =  GIGC_SUCCESS
 
-      ! Copy values from Input_Opt
-      ITS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
-      N_TRACERS          = Input_Opt%N_TRACERS
-
-      ! Initialize pointers
+      ! Initialize
       Ptr3D              => NULL()
       Ptr2D              => NULL()
-      ThisSpc            => NULL()
-
-      ! Pick the proper # of tracers for diagnostics
-      N_TRC       = N_TRACERS               ! G-C advected tracers
-
-      ! Is it a fullchem run?
-      IS_FULLCHEM = ITS_A_FULLCHEM_SIM
-      IS_CHEM     = ITS_TIME_FOR_CHEM()
+      SpcInfo            => NULL()
+      ITS_A_FULLCHEM_SIM =  Input_Opt%ITS_A_FULLCHEM_SIM
+      IS_FULLCHEM        =  ITS_A_FULLCHEM_SIM
+      IS_CHEM            =  ITS_TIME_FOR_CHEM()
       
       !---------------------------------------------
       ! First-time setup
@@ -231,49 +241,54 @@
 
       ! Compute conc. in mixing ratio for ND35, ND45, ND47 diagnostics 
       IF ( ND35 > 0 .or. ND45 > 0 .or. ND47 > 0 .or. ND71 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, ThisSpc )
-         DO N = 1, N_TRC
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, N, NA, SpcInfo )
+         DO NA = 1, nAdvect
+
+            ! Species ID
+            N = State_Chm%Map_Advect(NA)
 
             ! Get info about this tracer from the database
             ! NOTE: Assumes 1:1 mapping of tracer and species indexes
-            ThisSpc => State_Chm%SpcData(N)%Info
+            SpcInfo => State_Chm%SpcData(N)%Info
+            
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
-            ! Tracer conc. in v/v dry air
-            STT_VV(I,J,L,N) = 
-     &         MAX( State_Chm%Tracers(I,J,L,N) * AIRMW / ThisSpc%emMW_g,
-     &              0e+0_fp )
+               ! Tracer conc. in v/v dry air
+               Spc_VV(I,J,L,NA) = 
+     &              MAX( State_Chm%Species(I,J,L,N) * 
+     &                   AIRMW / SpcInfo%emMW_g, 0e+0_fp )
 
-            IF ( N == id_PASV ) THEN
+               IF ( N == id_PASV ) THEN
 
-               ! Also express tracer conc. in v/v total air (mps, 11/18/15)
-               STT_VV(I,J,L,N+1) =
-     &            MAX( State_Chm%Tracers(I,J,L,N) *
-     &                 ( 1.0e+0_fp - State_Met%SPHU(I,J,L) * 1.e-3_fp ) 
-     &                 * State_Met%MOISTMW(I,J,L) 
-     &                 / ThisSpc%emMW_g,
-     &                 0e+0_fp )
+                  ! Also express tracer conc. in v/v total air (mps, 11/18/15)
+                  Spc_VV(I,J,L,NA+1) =
+     &               MAX( State_Chm%Species(I,J,L,N) *
+     &                  ( 1.0e+0_fp - State_Met%SPHU(I,J,L) * 1.e-3_fp ) 
+     &                    * State_Met%MOISTMW(I,J,L) 
+     &                    / SpcInfo%emMW_g,
+     &                    0e+0_fp )
 
 
-               ! Also express tracer conc. in kg/kg total air (mps, 11/18/15)
-               STT_VV(I,J,L,N+2) =
-     &            MAX( State_Chm%Tracers(I,J,L,N) *
+                  ! Also express tracer conc. in kg/kg total air (mps, 11/18/15)
+                  Spc_VV(I,J,L,NA+2) =
+     &                 MAX( State_Chm%Species(I,J,L,N) *
      &                 ( 1.0e+0_fp - State_Met%SPHU(I,J,L) * 1.e-3_fp ),
      &                 0e+0_fp )
 
-            ENDIF
+               ENDIF
+
+            ENDDO
+            ENDDO
+            ENDDO
 
             ! Free pointer
-            ThisSpc => NULL()
+            SpcInfo => NULL()
          ENDDO
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
       ENDIF
 
 ! H Amos, 25 Oct 2011--------------------------------------------------
@@ -357,15 +372,19 @@
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRC
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            AD33(I,J,N) = AD33(I,J,N) + State_Chm%Tracers(I,J,L,N)
-         ENDDO
-         ENDDO
-         ENDDO
+!$OMP+PRIVATE( I, J, L, N, NA )
+         DO NA = 1, nAdvect
+
+            ! Species ID
+            N = State_Chm%Map_Advect(NA)
+
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               AD33(I,J,N) = AD33(I,J,N) + State_Chm%Species(I,J,L,N)
+            ENDDO
+            ENDDO
+            ENDDO
          ENDDO  
 !$OMP END PARALLEL DO
 
@@ -382,11 +401,11 @@
          L = 9
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, N )
-         DO N = 1, N_TRACERS
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            AD35(I,J,N) = AD35(I,J,N) + STT_VV(I,J,L,N)
+!$OMP+PRIVATE( I, J, NA )
+         DO NA = 1, nAdvect
+         DO J  = 1, JJPAR
+         DO I  = 1, IIPAR
+            AD35(I,J,NA) = AD35(I,J,NA) + Spc_VV(I,J,L,NA)
          ENDDO
          ENDDO
          ENDDO
@@ -409,23 +428,27 @@
       IF ( ND45 > 0 ) THEN
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRC
-            DO L = 1, LD45  
-            DO J = 1, JJPAR 
-            DO I = 1, IIPAR
-               AD45(I,J,L,N) = AD45(I,J,L,N) + 
-     &                         STT_VV(I,J,L,N) * LTOTH(I,J)
+!$OMP+PRIVATE( I, J, L, N, NA )
+         DO NA = 1, nAdvect
+            
+            ! Species ID
+            N = State_Chm%Map_Advect(NA)
+
+            DO L  = 1, LD45  
+            DO J  = 1, JJPAR 
+            DO I  = 1, IIPAR
+               AD45(I,J,L,NA) = AD45  (I,J,L,NA) + 
+     &                          Spc_VV(I,J,L,NA) * LTOTH(I,J)
 
                IF ( N == id_PASV ) THEN
 
                   ! Also save passive tracer in v/v total air (mps, 11/18/15)
-                  AD45(I,J,L,N+1) = AD45(I,J,L,N+1) + 
-     &                              STT_VV(I,J,L,N+1) * LTOTH(I,J)
+                  AD45(I,J,L,NA+1) = AD45  (I,J,L,NA+1) + 
+     &                               Spc_VV(I,J,L,NA+1) * LTOTH(I,J)
 
                   ! Also save passive tracer in kg/kg total air (mps, 11/18/15)
-                  AD45(I,J,L,N+2) = AD45(I,J,L,N+2) + 
-     &                              STT_VV(I,J,L,N+2) * LTOTH(I,J)
+                  AD45(I,J,L,NA+2) = AD45  (I,J,L,NA+2) + 
+     &                               Spc_VV(I,J,L,NA+2) * LTOTH(I,J)
 
                ENDIF
 
@@ -448,26 +471,30 @@
       IF ( ND47 > 0 ) THEN
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRC
-            DO L = 1, LD47
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               AD47(I,J,L,N) = AD47(I,J,L,N) + STT_VV(I,J,L,N) 
+!$OMP+PRIVATE( I, J, L, NA )
+         DO NA = 1, nAdvect
 
-               IF ( N == id_PASV ) THEN
+            ! Species ID
+            N = State_Chm%Map_Advect(NA)
 
-                  ! Also save passive tracer in v/v total air (mps, 11/18/15)
-                  AD47(I,J,L,N+1) = AD47(I,J,L,N+1) + STT_VV(I,J,L,N+1)
+         DO L  = 1, LD47
+         DO J  = 1, JJPAR
+         DO I  = 1, IIPAR
+            AD47(I,J,L,NA) = AD47(I,J,L,NA) + Spc_VV(I,J,L,NA) 
 
-                  ! Also save passive tracer in kg/kg total air (mps, 11/18/15)
-                  AD47(I,J,L,N+2) = AD47(I,J,L,N+2) + STT_VV(I,J,L,N+2)
+            IF ( N == id_PASV ) THEN
 
-               ENDIF
+               ! Also save passive tracer in v/v total air (mps, 11/18/15)
+               AD47(I,J,L,NA+1) = AD47(I,J,L,NA+1) + Spc_VV(I,J,L,NA+1)
 
-            ENDDO   
-            ENDDO
-            ENDDO
+               ! Also save passive tracer in kg/kg total air (mps, 11/18/15)
+               AD47(I,J,L,NA+2) = AD47(I,J,L,NA+2) + Spc_VV(I,J,L,NA+2)
+
+            ENDIF
+
+         ENDDO   
+         ENDDO
+         ENDDO
          ENDDO 
 !$OMP END PARALLEL DO   
       ENDIF
@@ -606,14 +633,14 @@
             ! Set daily max
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-            DO N = 1, N_TRC
-               DO J = 1, JJPAR
-               DO I = 1, IIPAR
-                  AD71_DAY(I,J,N) = MAX(AD71_DAY(I,J,N),
-     &                     (AD71_HR(I,J,N)/(AD71_HRCT)))
-               ENDDO   
-               ENDDO
+!$OMP+PRIVATE( I, J, L, NA )
+            DO NA = 1, nAdvect
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               AD71_DAY(I,J,NA) = MAX(AD71_DAY(I,J,NA),
+     &                            (AD71_HR(I,J,N)/(AD71_HRCT)))
+            ENDDO   
+            ENDDO
             ENDDO 
 !$OMP END PARALLEL DO
             AD71_HR = 0e0
@@ -623,13 +650,13 @@
          ! Set the tracking variables
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRC
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               AD71_HR(I,J,N) = AD71_HR(I,J,N) + STT_VV(I,J,1,N)
-            ENDDO   
-            ENDDO
+!$OMP+PRIVATE( I, J, L, NA )
+         DO NA = 1, nAdvect
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            AD71_HR(I,J,NA) = AD71_HR(I,J,NA) + Spc_VV(I,J,1,NA)
+         ENDDO   
+         ENDDO
          ENDDO
 !$OMP END PARALLEL DO   
 
@@ -718,7 +745,7 @@
      &                        '_VVDry'
 
                   ! Point to the proper slice of the DEPSAV array
-                  Ptr3D => STT_VV(:,:,:,N)
+                  Ptr3D => Spc_VV(:,:,:,N)
 
                   ! Update the deposition velocity diagostics
                   CALL Diagn_Update( am_I_Root,
@@ -736,7 +763,7 @@
      &                        '_VVTotal'
 
                   ! Point to the proper slice of the DEPSAV array
-                  Ptr3D => STT_VV(:,:,:,N+1)
+                  Ptr3D => Spc_VV(:,:,:,N+1)
 
                   ! Update the deposition velocity diagostics
                   CALL Diagn_Update( am_I_Root,
@@ -754,7 +781,7 @@
      &                        '_KgKgTotal'
 
                   ! Point to the proper slice of the DEPSAV array
-                  Ptr3D => STT_VV(:,:,:,N+2)
+                  Ptr3D => Spc_VV(:,:,:,N+2)
 
                   ! Update the deposition velocity diagostics
                   CALL Diagn_Update( am_I_Root,
@@ -769,7 +796,7 @@
      &                         TRIM( Input_Opt%TRACER_NAME(N) )
 
                   ! Point to the proper slice of the DEPSAV array
-                  Ptr3D => STT_VV(:,:,:,N)
+                  Ptr3D => Spc_VV(:,:,:,N)
 
                   ! Update the deposition velocity diagostics
                   CALL Diagn_Update( am_I_Root,
@@ -797,11 +824,11 @@
             DO N = 1, State_Chm%nSpecies
 
                ! Get info about this species from the species database
-               ThisSpc => State_Chm%SpcData(N)%Info
+               SpcInfo => State_Chm%SpcData(N)%Info
    
                ! Construct diagnostic name
-               IF ( TRIM( ThisSpc%Name ) == '' ) CYCLE
-               DiagnName = 'SPECIES_CONC_' // TRIM( ThisSpc%Name ) 
+               IF ( TRIM( SpcInfo%Name ) == '' ) CYCLE
+               DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name ) 
          
                ! Get value in #/cm3
                Ptr3D => State_Chm%Species(:,:,:,N)
@@ -814,7 +841,7 @@
    
                ! Free the pointers
                Ptr3D   => NULL()
-               ThisSpc => NULL()
+               SpcInfo => NULL()
 
                ! STOP wieth error if the diagnostics were unsuccessful
                IF ( RC /= HCO_SUCCESS ) THEN
@@ -943,5 +970,14 @@
 !      ENDIF ! ND68
 #endif
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE DIAG1
 !EOC

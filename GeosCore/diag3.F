@@ -270,12 +270,16 @@
 !  17 Jun 2016 - R. Yantosca - Renamed IDT* variables to id_* 
 !  23 Jun 2016 - R. Yantosca - Bug fix: only print out CH4 diagnostics if
 !                              it is an advected species
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      INTEGER            :: NA, nAdvect
       INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, LMAX
       INTEGER            :: N, NN, NMAX, NTEST, N_TOT_TRC, T
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
@@ -306,9 +310,6 @@
       CHARACTER (LEN=40) :: UNIT
       CHARACTER (LEN=40) :: RESERVED = ''
 
-      ! For fields from Input_Opt
-      INTEGER            :: N_TRACERS
-
 #if   defined( TOMAS )
       ! For ND06 diagnostics
       CHARACTER(LEN=1)   :: ISTR1
@@ -325,7 +326,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER        :: STT(:,:,:,:)
+      REAL(fp), POINTER        :: Spc(:,:,:,:)
       REAL(fp), POINTER        :: AD(:,:,:)
 
       ! Interface w/ HEMCO diagnostics
@@ -350,7 +351,7 @@
 
       ! To point to the species database
       CHARACTER(LEN=31)        :: Name
-      TYPE(Species), POINTER   :: ThisSpc
+      TYPE(Species), POINTER   :: SpcInfo
 
       ! Now define local tracer flags so that we can remove these from 
       ! tracerid_mod.F to facilitate FlexChem implementation (bmy, 5/2/16)
@@ -380,17 +381,28 @@
 !  Add a small number (e.g. 1d-32) to prevent division by zero errors.
 !******************************************************************************
 !
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       ! Assume success
       RC         = GIGC_SUCCESS
 
       ! Initialize
-      N_TRACERS  = Input_Opt%N_TRACERS
-      ThisSpc    => NULL()
+      SpcInfo    => NULL()
       DiagnCnt   => NULL() 
       HcoState   => NULL()      
-
-      ! Pick the proper # of tracers
-      N_TOT_TRC = N_TRACERS              ! G-C advected tracers 
 
       ! Now use counter variables from "time_mod.f" (bmy, 3/27/03)
       DIAGb      = GET_DIAGb()
@@ -594,7 +606,7 @@
 
          DO M = 1, TMAX(2)
             N  = TINDEX(2,M)
-            IF ( N > N_TRACERS ) CYCLE
+            IF ( N > nAdvect ) CYCLE
             NN = N
 
             ! Divide by # of chemistry timesteps
@@ -1431,10 +1443,10 @@
          ! Binary punch file
          DO M = 1, TMAX(9)
             N  = TINDEX(9,M)
-            IF ( N > N_TRACERS+6 ) CYCLE
+            IF ( N > nAdvect+6 ) CYCLE
 
             ! Test tracer number
-            IF ( N <= N_TRACERS ) THEN
+            IF ( N <= nAdvect ) THEN
 
                !---------------------------
                ! HCN/CH3CN sinks
@@ -1461,7 +1473,7 @@
                !---------------------------
                CATEGORY     = 'HCN-SRCE'
                UNIT         = 'molec/cm2/s'
-               NN           = N - N_TRACERS
+               NN           = N - nAdvect
 
                ! Pick proper scale
                IF ( NN <= 4 ) THEN
@@ -1737,7 +1749,7 @@
 
          DO M = 1, TMAX(14)
             N  = TINDEX(14,M)
-            IF ( N > N_TRACERS ) CYCLE
+            IF ( N > nAdvect ) CYCLE
             NN = N
                
             ARRAY(:,:,1:LD14) = CONVFLUP(:,:,1:LD14,N) / SCALECONV
@@ -1767,7 +1779,7 @@
 
          DO M = 1, TMAX(15)
             N  = TINDEX(15,M)
-            IF ( N > N_TRACERS ) CYCLE
+            IF ( N > nAdvect ) CYCLE
             NN = N
 
             ARRAY(:,:,1:LD15) = TURBFLUP(:,:,1:LD15,N) / SCALECONV
@@ -2387,7 +2399,7 @@
 
          DO M = 1, TMAX(24)
             N  = TINDEX(24,M)
-            IF ( N > N_TRACERS ) CYCLE
+            IF ( N > nAdvect ) CYCLE
             NN = N
             
             ARRAY(:,:,1:LD24) = MASSFLEW(:,:,LLPAR:LLPAR-LD24+1:-1,N) /
@@ -2420,7 +2432,7 @@
 
          DO M = 1, TMAX(25)
             N  = TINDEX(25,M)
-            IF ( N > N_TRACERS ) CYCLE
+            IF ( N > nAdvect ) CYCLE
             NN = N
 
             ARRAY(:,:,1:LD25) = MASSFLNS(:,:,LLPAR:LLPAR-LD25+1:-1,N) /
@@ -2453,7 +2465,7 @@
 
          DO M = 1, TMAX(26)
             N  = TINDEX(26,M)
-            IF ( N > N_TRACERS ) CYCLE
+            IF ( N > nAdvect ) CYCLE
             NN = N
             
             ARRAY(:,:,1:LD26) = MASSFLUP(:,:,LLPAR:LLPAR-LD26+1:-1,N) /
@@ -2515,8 +2527,8 @@
             DiagnName = 'BIOMASS_NO'
             UNIT      = 'molec/cm2/s'
             N         = id_NO
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp * CM2PERM2 )
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp * CM2PERM2 )
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2527,8 +2539,8 @@
             DiagnName = 'BIOMASS_CO'
             UNIT      = 'molec/cm2/s'
             N         = id_CO
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2539,8 +2551,8 @@
             DiagnName = 'BIOMASS_ALK4'
             UNIT      = 'atoms C/cm2/s'
             N         = id_ALK4
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2551,8 +2563,8 @@
             DiagnName = 'BIOMASS_ACET'
             UNIT      = 'atoms C/cm2/s'
             N         = id_ACET
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2563,8 +2575,8 @@
             DiagnName = 'BIOMASS_MEK'
             UNIT      = 'atoms C/cm2/s'
             N         = id_MEK
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2575,8 +2587,8 @@
             DiagnName = 'BIOMASS_ALD2'
             UNIT      = 'atoms C/cm2/s'
             N         = id_ALD2
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2587,8 +2599,8 @@
             DiagnName = 'BIOMASS_PRPE'
             UNIT      = 'atoms C/cm2/s'
             N         = id_PRPE
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2599,8 +2611,8 @@
             DiagnName = 'BIOMASS_C3H8'
             UNIT      = 'atoms C/cm2/s'
             N         = id_C3H8
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2611,8 +2623,8 @@
             DiagnName = 'BIOMASS_CH2O'
             UNIT      = 'molec/cm2/s'
             N         = id_CH2O
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2623,8 +2635,8 @@
             DiagnName = 'BIOMASS_C2H6'
             UNIT      = 'atoms C/cm2/s'
             N         = id_C2H6
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2635,8 +2647,8 @@
             DiagnName = 'BIOMASS_SO2'
             UNIT      = 'molec/cm2/s'
             N         = id_SO2
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2647,23 +2659,23 @@
             DiagnName = 'BIOMASS_NH3'
             UNIT      = 'molec/cm2/s'
             N         = id_NH3
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
 
          !%%%%% BC %%%%%
 
          ! Save all as BCPI
          UNIT      = 'atoms C/cm2/s'
          N         = id_BCPI
-         ThisSpc => State_Chm%SpcData(N)%Info
-         FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+         SpcInfo => State_Chm%SpcData(N)%Info
+         FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
 
          ! Get BIOMASS_BCPI 
          DiagnName = 'BIOMASS_BCPI'
@@ -2717,15 +2729,15 @@
       
          ! Free pointer
          DiagnCnt => NULL()
-         ThisSpc => NULL()
+         SpcInfo => NULL()
 
          !%%%%% POA simulation %%%%%
          IF ( id_POA1 > 0 ) THEN
             DiagnName = 'BIOMASS_POA1'
             UNIT      = 'atoms C/cm2/s'
             N         = id_POA1
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
 
@@ -2735,8 +2747,8 @@
             ! Save all as OCPI
             UNIT      = 'atoms C/cm2/s'
             N         = id_OCPI
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
    
             ! Get BIOMASS_OCPI 
             DiagnName = 'BIOMASS_OCPI'
@@ -2797,15 +2809,15 @@
             DiagnName = 'BIOMASS_CH4'
             UNIT      = 'molec/cm2/s'
             N         = id_CH4
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
 
       ENDIF
 #endif
@@ -2838,10 +2850,10 @@
          ! GC versions, use the string "mol/cm2/s". (bmy, 8/29/14)
          UNIT     = 'mol/cm2/s'  
 
-         ThisSpc => State_Chm%SpcData(id_CO)%Info
+         SpcInfo => State_Chm%SpcData(id_CO)%Info
 
          ! Converts from kg/m2/s (in HEMCO) to molec/cm2/s (for bpch)
-         FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+         FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
 
          ! Loop over tagged tracers if necessary
          IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
@@ -2929,7 +2941,7 @@
          ENDDO
 
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
       ENDIF
 #endif
 #if defined( BPCH)
@@ -3030,10 +3042,10 @@
 
          ! Diagnostic tracer number
          N      = id_NO
-         ThisSpc => State_Chm%SpcData(N)%Info
+         SpcInfo => State_Chm%SpcData(N)%Info
 
          ! Converts from kg/m2/s (in HEMCO) to molec/cm2/s (for bpch)
-         FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+         FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
 
          !%%%%% Aircraft NO %%%%%
          DiagnName = 'AIRCRAFT_NO' 
@@ -3141,7 +3153,7 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
 
       ENDIF
 #endif
@@ -3167,7 +3179,7 @@
 
          DO M = 1, TMAX(33)
             N  = TINDEX(33,M)
-            IF ( N > N_TRACERS ) CYCLE
+            IF ( N > nAdvect ) CYCLE
             NN = N
             
             ARRAY(:,:,1) = AD33(:,:,N) / SCALEDIAG
@@ -3231,8 +3243,8 @@
             DiagnName = 'BIOFUEL_NO'
             UNIT     = 'molec/cm2/s'
             N         = id_NO
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3243,8 +3255,8 @@
             DiagnName = 'BIOFUEL_CO'
             UNIT      = 'molec/cm2/s'
             N         = id_CO
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3255,8 +3267,8 @@
             DiagnName = 'BIOFUEL_ALK4'
             UNIT      = 'atoms C/cm2/s'
             N         = id_ALK4
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3267,8 +3279,8 @@
             DiagnName = 'BIOFUEL_ACET'
             UNIT      = 'atoms C/cm2/s'
             N         = id_ACET
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3279,8 +3291,8 @@
             DiagnName = 'BIOFUEL_MEK'
             UNIT      = 'atoms C/cm2/s'
             N         = id_MEK
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3291,8 +3303,8 @@
             DiagnName = 'BIOFUEL_ALD2'
             UNIT      = 'atoms C/cm2/s'
             N         = id_ALD2
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3303,8 +3315,8 @@
             DiagnName = 'BIOFUEL_PRPE'
             UNIT      = 'atoms C/cm2/s'
             N         = id_PRPE
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3315,8 +3327,8 @@
             DiagnName = 'BIOFUEL_C3H8'
             UNIT      = 'atoms C/cm2/s'
             N         = id_C3H8
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3327,8 +3339,8 @@
             DiagnName = 'BIOFUEL_CH2O'
             UNIT      = 'molec/cm2/s'
             N         = id_CH2O
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3339,8 +3351,8 @@
             DiagnName = 'BIOFUEL_C2H6'
             UNIT      = 'atoms C/cm2/s'
             N         = id_C2H6
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3351,8 +3363,8 @@
             DiagnName = 'BIOFUEL_SO2'
             UNIT      = 'molec/cm2/s'
             N         = id_SO2
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3363,15 +3375,15 @@
             DiagnName = 'BIOFUEL_NH3'
             UNIT      = 'molec/cm2/s'
             N         = id_NH3
-            ThisSpc => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR,RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
       ENDIF
 #endif
 !
@@ -3393,7 +3405,7 @@
 
          DO M = 1, TMAX(35)
             N  = TINDEX(35,M)
-            IF ( N > N_TRACERS ) CYCLE
+            IF ( N > nAdvect ) CYCLE
             NN = N
                
             ARRAY(:,:,1) = AD35(:,:,N) / SCALEDIAG
@@ -3459,105 +3471,108 @@
 
          ! Now loop over all species and write out every defined
          ! diagnostics (ckeller, 10/15/2014) 
-         DO I = 1, Input_Opt%N_TRACERS
+         DO NA = 1, nAdvect
 
             ! Init
             N = 0
 
+            ! Species ID
+            I = State_Chm%Map_Advect(NA)
+
             ! Point to the species database entry for this species name
-            ThisSpc => State_Chm%SpcData(I)%Info
+            SpcInfo => State_Chm%SpcData(I)%Info
 
             ! Get variables needed for HEMCO diagnostics
-            SELECT CASE( TRIM( ThisSpc%Name ) )
+            SELECT CASE( TRIM( SpcInfo%Name ) )
                CASE( 'NO'     )
                   DiagnName = 'ANTHROPOGENIC_NO'
                   UNIT      = 'molec/cm2/s'
-                  N         = ThisSpc%ModelId
-                  FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE ( 'CO'    ) 
                   DiagnName = 'ANTHROPOGENIC_CO'
                   UNIT      = 'molec/cm2/s'
-                  N         = ThisSpc%ModelId
-                  FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE ( 'COus'  ) 
                   DiagnName = 'ANTHROPOGENIC_TAGCO_US'
                   UNIT      = 'molec/cm2/s'
-                  N         = ThisSpc%ModelId
-                  FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE ( 'COeur'  ) 
                   DiagnName = 'ANTHROPOGENIC_TAGCO_EUR'
                   UNIT      = 'molec/cm2/s'
-                  N         = ThisSpc%ModelId
-                  FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE ( 'COasia' ) 
                   DiagnName = 'ANTHROPOGENIC_TAGCO_ASIA'
                   UNIT      = 'molec/cm2/s'
-                  N         = ThisSpc%ModelId
-                  FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE ( 'COoth'  ) 
                   DiagnName = 'ANTHROPOGENIC_TAGCO_OTHER'
                   UNIT      = 'molec/cm2/s'
-                  N         = ThisSpc%ModelId
-                  FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE( 'ALK4'    )
                   DiagnName = 'ANTHROPOGENIC_ALK4'
                   UNIT      = 'atoms C/cm2/s'
-                  N         = ThisSpc%ModelId
-                  FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE( 'ACET'    ) 
                   DiagnName = 'ANTHROPOGENIC_ACET'
                   UNIT      = 'atoms C/cm2/s'
-                  N         = ThisSpc%ModelId
-                  FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE( 'MEK'     )
                   DiagnName = 'ANTHROPOGENIC_MEK'
                   UNIT      = 'atoms C/cm2/s'
-                  N         = ThisSpc%ModelId
-                  FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE( 'ALD2'    )
                   DiagnName = 'ANTHROPOGENIC_ALD2'
                   UNIT      = 'atoms C/cm2/s'
-                  N         = ThisSpc%ModelId
-                  FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE( 'PRPE'    )
                   DiagnName = 'ANTHROPOGENIC_PRPE'
                   UNIT      = 'atoms C/cm2/s'
-                  N         = ThisSpc%ModelId
-                  FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE( 'C3H8'    )
                   DiagnName = 'ANTHROPOGENIC_C3H8'
                   UNIT      = 'atoms C/cm2/s'
-                  N         = ThisSpc%ModelId
-                  FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE( 'CH2O'    )
                   DiagnName = 'ANTHROPOGENIC_CH2O'
                   UNIT      = 'molec/cm2/s'
-                  N         = ThisSpc%ModelId
-                  FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE( 'C2H6'    )
                   DiagnName = 'ANTHROPOGENIC_C2H6'
                   UNIT      = 'atoms C/cm2/s'
-                  N         = ThisSpc%ModelId
-                  FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE( 'CH4'     )
                   DiagnName = 'ANTHROPOGENIC_CH4'
                   UNIT      = 'molec/cm2/s'
-                  N         = ThisSpc%ModelId
-                  FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp ) /
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
                CASE DEFAULT
                   ! Do nothing
@@ -3572,7 +3587,7 @@
             ENDIF
 
             ! Free pointer
-            ThisSpc => NULL()
+            SpcInfo => NULL()
 
          ENDDO ! I
       ENDIF
@@ -3929,7 +3944,7 @@
          ! # of drydep flux tracers
          IF ( Input_Opt%ITS_A_TAGOX_SIM .or. 
      &        Input_Opt%ITS_A_MERCURY_SIM ) THEN
-            M = N_TRACERS
+            M = nAdvect
          ELSE
             ! Extend dry dep tracers if TOMAS aerosol is turned on
 #if   defined ( TOMAS )
@@ -4052,7 +4067,7 @@
                   ARRAY(:,:,1) = ( AD44(:,:,N+1,1) / SCALECHEM )
 
                   ! Index under which ISOPN is stored
-                  T            = N_TRACERS + 1
+                  T            = nAdvect + 1
 
                   ! Write to file
                   ! It's number is NNPAR+1 (see gamap_mod.f)
@@ -4068,7 +4083,7 @@
                   ARRAY(:,:,1) = ( AD44(:,:,N+1,1) / SCALECHEM )
 
                   ! Index under which MVKN is stored
-                  T            = N_TRACERS + 2
+                  T            = nAdvect + 2
 
                   ! Write to file
                   ! It's number is NNPAR+2 (see gamap_mod.f)
@@ -4154,7 +4169,7 @@
                   ARRAY(:,:,1) = ( AD44(:,:,N+1,2) / SCALECHEM )
 
                   ! Index under which ISOPN is stored
-                  T            = N_TRACERS + 1
+                  T            = nAdvect + 1
 
                   ! Write to file
                   ! It's number is NNPAR+1 (see gamap_mod.f)
@@ -4170,7 +4185,7 @@
                   ARRAY(:,:,1) = ( AD44(:,:,N+1,2) / SCALECHEM )
 
                   ! Index under which MVKN is stored
-                  T            = N_TRACERS + 2
+                  T            = nAdvect + 2
 
                   ! Write to file
                   ! It's number is NNPAR+2 (see gamap_mod.f)
@@ -4212,7 +4227,7 @@
 
          DO M = 1, TMAX(45)
             N  = TINDEX(45,M)
-            IF ( N > N_TOT_TRC ) CYCLE !(sfarina, 1/28/2013 - valid for all sims)
+            IF ( N > nAdvect ) CYCLE !(sfarina, 1/28/2013 - valid for all sims)
             NN = N
 
             DO L = 1, LD45
@@ -4321,15 +4336,15 @@
             DiagnName = 'BIOGENIC_ISOP'
             UNIT      = 'atoms C/cm2/s'
             N         = 1         
-            ThisSpc => State_Chm%SpcData(id_ISOP)%Info
+            SpcInfo => State_Chm%SpcData(id_ISOP)%Info
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
             ! Free pointer
-            ThisSpc => NULL()
+            SpcInfo => NULL()
          ENDIF
 
          !-----------------------------------------------------------
@@ -4338,9 +4353,9 @@
          IF ( id_ACET > 0 ) THEN
             UNIT   = 'atoms C/cm2/s'
             N      = 2
-            ThisSpc => State_Chm%SpcData(id_ACET)%Info
+            SpcInfo => State_Chm%SpcData(id_ACET)%Info
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             ! (1) BIOGENIC ACET 
             DiagnName = 'BIOGENIC_ACET'
             DiagnCnt  => NULL()
@@ -4397,7 +4412,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
             ! Free pointer
-            ThisSpc => NULL()
+            SpcInfo => NULL()
          ENDIF
 
          !-----------------------------------------------------------
@@ -4407,15 +4422,15 @@
             DiagnName = 'BIOGENIC_PRPE'
             UNIT      = 'atoms C/cm2/s'
             N         = 3
-            ThisSpc => State_Chm%SpcData(id_PRPE)%Info
+            SpcInfo => State_Chm%SpcData(id_PRPE)%Info
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
             ! Free pointer
-            ThisSpc => NULL()
+            SpcInfo => NULL()
          ENDIF
 
          !-----------------------------------------------------------
@@ -4451,15 +4466,15 @@
             DiagnName = 'BIOGENIC_C2H4'
             UNIT      = 'atoms C/cm2/s'
             N         = 6
-            ThisSpc => State_Chm%SpcData(id_C2H4)%Info
+            SpcInfo => State_Chm%SpcData(id_C2H4)%Info
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
             ! Free pointer
-            ThisSpc => NULL()
+            SpcInfo => NULL()
          ENDIF
  
          !-----------------------------------------------------------
@@ -4577,15 +4592,15 @@
             DiagnName = 'BIOGENIC_ALD2'
             UNIT      = 'atoms C/cm2/s'
             N         = 16
-            ThisSpc => State_Chm%SpcData(id_ALD2)%Info
+            SpcInfo => State_Chm%SpcData(id_ALD2)%Info
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
             ! Free pointer
-            ThisSpc => NULL()
+            SpcInfo => NULL()
          ENDIF
 
          !-----------------------------------------------------------
@@ -4707,9 +4722,9 @@
          IF ( id_CH4 > 0 ) THEN
             UNIT      = 'molec/cm2/s'
             N         = 26
-            ThisSpc => State_Chm%SpcData(id_CH4)%Info
+            SpcInfo => State_Chm%SpcData(id_CH4)%Info
             ! Conversion factor from kg/m2/s to molec/cm2/s
-            FACTOR    = AVO / ( ThisSpc%emMW_g * 1.e-3_fp) / CM2PERM2
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             ! (1) Wetlands
             DiagnName = 'CH4_WETLANDS'
             DiagnCnt  => NULL()
@@ -4790,7 +4805,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
             ! Free pointer
-            ThisSpc => NULL()
+            SpcInfo => NULL()
          ENDIF
 
       ENDIF
@@ -4822,7 +4837,7 @@
 
          DO M = 1, TMAX(47)
             N  = TINDEX(47,M)
-            IF ( N > N_TRACERS ) CYCLE
+            IF ( N > nAdvect ) CYCLE
             NN = N
             
             DO L = 1, LD47
@@ -5816,20 +5831,20 @@
 !
 !  The unit conversion is as follows:
 !
-!  First, convert STT (kg/kg dry) to STT (kg):
+!  First, convert Spc (kg/kg dry) to Spc (kg):
 !
-!    STT (kg) = STT (kg/kg dry) * AD (dry air mass in kg)
+!    Spc (kg) = Spc (kg/kg dry) * AD (dry air mass in kg)
 !  
 !  Next, do this unit conversion:
 !
-!    STT (kg) | 6.022e23 molec |   mole   | 1000 g |    1        |   m^2
+!    Spc (kg) | 6.022e23 molec |   mole   | 1000 g |    1        |   m^2
 !    ---------+----------------+----------+--------+-------------+----------
 !             |     mole       |  MOLWT g |  kg    | AREA_M2 m^2 | 10^4 cm^2
 !
 !
 !  which is equivalent to
 !
-!   ( STT * 6.022e22 ) / ( MOLWT * AREA_M2 )
+!   ( Spc * 6.022e22 ) / ( MOLWT * AREA_M2 )
 !
 !*****************************************************************************
 !
@@ -5838,32 +5853,32 @@
 
          ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
          ! (mpayer, 12/6/12)
-         STT => State_Chm%Tracers
+         Spc => State_Chm%Species
          AD  => State_Met%AD
 
          DO M = 1, TMAX(62)
             N  = TINDEX(62,M)
-            IF ( N > N_TRACERS ) CYCLE
+            IF ( N > nAdvect ) CYCLE
             NN = N
 
             ! Get info about this species from the database
             ! NOTE: Assumes 1:1 mapping of tracer and species indexes
-            ThisSpc => State_Chm%SpcData(N)%Info
+            SpcInfo => State_Chm%SpcData(N)%Info
 
             DO J = 1, JJPAR
             DO I = 1, IIPAR
 
                ! Grid box surface area [cm2]
                AREA_M2 = GET_AREA_M2( I, J, 1 )
-               ARRAY(I,J,1) = ( SUM( STT(I,J,:,N)   *
+               ARRAY(I,J,1) = ( SUM( Spc(I,J,:,N)   *
      &                               AD (I,J,:  ) ) * AVO    )
-     &                        / ( ThisSpc%emMW_g
+     &                        / ( SpcInfo%emMW_g
      &                            * AREA_M2 * 10.e+0_fp )
             ENDDO
             ENDDO
 
             ! Write the proper unit string
-            IF ( ThisSpc%emMW_g > 12e+0_fp ) THEN
+            IF ( SpcInfo%emMW_g > 12e+0_fp ) THEN
                UNIT = 'molec/cm2'
             ELSE
                UNIT = 'atoms C/cm2'
@@ -5876,12 +5891,12 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
             ! Free pointer
-            ThisSpc => NULL()
+            SpcInfo => NULL()
 
          ENDDO
 
          ! Free pointers
-         STT => NULL()
+         Spc => NULL()
          AD  => NULL()
 
       ENDIF
@@ -6345,7 +6360,7 @@
 
          DO M = 1, TMAX(71)
             N  = TINDEX(71,M)
-            IF ( N > N_TRACERS ) CYCLE
+            IF ( N > nAdvect ) CYCLE
             NN = N
             
             ARRAY(:,:,1) = AD71(:,:,N)/AD71_COUNT
@@ -6470,7 +6485,17 @@
       ! Cleanup
       HcoState => NULL()
       DiagnCnt => NULL()
-      ThisSpc => NULL()
+      SpcInfo => NULL()
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       CONTAINS
 !EOC

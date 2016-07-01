@@ -184,7 +184,7 @@
 !
       ! Scalars
       INTEGER                  :: I,        J,         L
-      INTEGER                  :: A,        N,         nAdvect
+      INTEGER                  :: N,        NA,        nAdvect
       REAL(fp)                 :: ADD_Pb,   Be_LOST,   DTCHEM   
       REAL(fp)                 :: Pb_LOST,  Decay
 
@@ -231,8 +231,8 @@
       nAdvect = State_Chm%nAdvect
 
       ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO A = 1, nAdvect
-         N                          = State_Chm%Map_Advect(A)
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
          State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -475,8 +475,8 @@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
 !@@@
-      DO A = 1, nAdvect
-         N                          = State_Chm%Map_Advect(A)
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
          State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@

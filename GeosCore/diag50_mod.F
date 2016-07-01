@@ -220,7 +220,7 @@
       ! Write data to disk at the end of the day
       IF ( ITS_TIME_FOR_WRITE_DIAG50() .and. 
      &     Input_Opt%DO_DIAG_WRITE    ) THEN
-         CALL WRITE_DIAG50( am_I_Root, Input_Opt, RC )
+         CALL WRITE_DIAG50( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
 
       END SUBROUTINE DIAG50
@@ -316,6 +316,8 @@
 !  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
 !  28 Jun 2016 - M. Sulprizio- Replace NPVERT with LLPAR to remove dependence
 !                              on comode_loop_mod.F
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -333,7 +335,7 @@
       ! Scalars
       LOGICAL             :: IS_CHEM
       LOGICAL             :: LINTERP
-      INTEGER             :: H, I, J, K, L, M, N
+      INTEGER             :: H, I, J, K, L, M, N, NA, nAdvect
       INTEGER             :: PBLINT,  R, X, Y, W
       INTEGER             :: ISPC
       REAL(fp)            :: C1, C2, PBLDEC, TEMPBL, TMP, SCALEAODnm
@@ -344,27 +346,37 @@
 
 
       ! For fields from Input_Opt
-      INTEGER             :: N_TRACERS
-      REAL(fp)            :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)            :: TCVV(State_Chm%nAdvect)
 
       ! Pointers
-      REAL(fp), POINTER     :: STT(:,:,:,:)
-!      REAL(fp), POINTER     :: AD(:,:,:)
+      REAL(fp), POINTER     :: Spc(:,:,:,:)
 
       !=================================================================
       ! ACCUMULATE_DIAG50 begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
       RC        =  GIGC_SUCCESS
 
       ! Copy values from Input_Opt
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+      TCVV      = Input_Opt%TCVV(1:nAdvect)
 
       ! Initialize pointers
-      STT      => State_Chm%Tracers
-!      AD       => State_Met%AD
+      Spc      => State_Chm%Species
 
       ! First-time setup
       IF ( FIRST ) THEN
@@ -475,14 +487,12 @@
             I = GET_I( X )
 
             ! Archive by simulation 
-            IF ( N <= N_TRACERS ) THEN
+            IF ( N <= nAdvect ) THEN
 
                !--------------------------------------
                ! GEOS-CHEM TRACERS [v/v]
                !--------------------------------------
-!               Q(X,Y,K,W) = Q(X,Y,K,W) + ( STT(I,J,L,N) * 
-!     &                      TCVV(N)    /   AD(I,J,L) )
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( STT(I,J,L,N) * 
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( Spc(I,J,L,N) * 
      &                      TCVV(N) )
 
             ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
@@ -502,84 +512,40 @@
                ! Temp variable for accumulation
                TMP = 0e+0_fp
             
-!              ! NO
-!              TMP = TMP + ( TCVV(id_NO)         * 
-!    &                       STT(I,J,L,id_NO)    / 
-!    &                       AD(I,J,L) )
-!
-!              ! NO2
-!              TMP = TMP + ( TCVV(id_NO2)        * 
-!    &                       STT(I,J,L,id_NO2)   / 
-!    &                       AD(I,J,L) )
-!              ! PAN
-!              TMP = TMP + ( TCVV(id_PAN)        * 
-!    &                       STT(I,J,L,id_PAN)   / 
-!    &                       AD(I,J,L) )
-!
-!              ! HNO3
-!              TMP = TMP + ( TCVV(id_HNO3)       * 
-!    &                       STT(I,J,L,id_HNO3)  / 
-!    &                       AD(I,J,L) )
-!           
-!              ! PMN
-!              TMP = TMP + ( TCVV(id_PMN)        * 
-!    &                       STT(I,J,L,id_PMN)   / 
-!    &                       AD(I,J,L) )
-!
-!              ! PPN
-!              TMP = TMP + ( TCVV(id_PPN)        * 
-!    &                       STT(I,J,L,id_PPN)   / 
-!    &                       AD(I,J,L) )
-!
-!              ! R4N2
-!              TMP = TMP + ( TCVV(id_R4N2)       * 
-!    &                       STT(I,J,L,id_R4N2)  / 
-!    &                       AD(I,J,L) )
-!           
-!              ! N2O5
-!              TMP = TMP + ( 2d0 * TCVV(id_N2O5) * 
-!    &                       STT(I,J,L,id_N2O5)  / 
-!    &                       AD(I,J,L) )
-!                       
-!              ! HNO4
-!              TMP = TMP + ( TCVV(id_HNO4)       * 
-!    &                       STT(I,J,L,id_HNO4)  / 
-!    &                       AD(I,J,L) )
-
                ! NO
                TMP = TMP + ( TCVV(id_NO)         * 
-     &                       STT(I,J,L,id_NO) )  
+     &                       Spc(I,J,L,id_NO) )  
 
                ! NO2
                TMP = TMP + ( TCVV(id_NO2)        * 
-     &                       STT(I,J,L,id_NO2) )
+     &                       Spc(I,J,L,id_NO2) )
                ! PAN
                TMP = TMP + ( TCVV(id_PAN)        * 
-     &                       STT(I,J,L,id_PAN) )
+     &                       Spc(I,J,L,id_PAN) )
 
                ! HNO3
                TMP = TMP + ( TCVV(id_HNO3)       * 
-     &                       STT(I,J,L,id_HNO3) )
+     &                       Spc(I,J,L,id_HNO3) )
             
                ! PMN
                TMP = TMP + ( TCVV(id_PMN)        * 
-     &                       STT(I,J,L,id_PMN) )
+     &                       Spc(I,J,L,id_PMN) )
 
                ! PPN
                TMP = TMP + ( TCVV(id_PPN)        * 
-     &                       STT(I,J,L,id_PPN) )
+     &                       Spc(I,J,L,id_PPN) )
  
                ! R4N2
                TMP = TMP + ( TCVV(id_R4N2)       * 
-     &                       STT(I,J,L,id_R4N2) )
+     &                       Spc(I,J,L,id_R4N2) )
             
                ! N2O5
                TMP = TMP + ( 2d0 * TCVV(id_N2O5) * 
-     &                       STT(I,J,L,id_N2O5) )
+     &                       Spc(I,J,L,id_N2O5) )
                         
                ! HNO4
                TMP = TMP + ( TCVV(id_HNO4)       * 
-     &                       STT(I,J,L,id_HNO4) )
+     &                       Spc(I,J,L,id_HNO4) )
 
                ! Accumulate into Q
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
@@ -629,12 +595,12 @@
                ! TOTAL SEASALT TRACER [v/v]
                !--------------------------------------
 !               Q(X,Y,K,W) = Q(X,Y,K,W) +
-!     &                      ( STT(I,J,L,id_SALA) + 
-!     &                        STT(I,J,L,id_SALC) ) *
+!     &                      ( Spc(I,J,L,id_SALA) + 
+!     &                        Spc(I,J,L,id_SALC) ) *
 !     &                        TCVV(id_SALA)  / AD(I,J,L)
                Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &                      ( STT(I,J,L,id_SALA) + 
-     &                        STT(I,J,L,id_SALC) ) *
+     &                      ( Spc(I,J,L,id_SALA) + 
+     &                        Spc(I,J,L,id_SALC) ) *
      &                        TCVV(id_SALA)
 
             ELSE IF ( N == 159 ) THEN
@@ -905,8 +871,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointers
-      NULLIFY( STT )
-!      NULLIFY( AD  )
+      Spc => NULL()
 
       END SUBROUTINE ACCUMULATE_DIAG50
 !EOC
@@ -977,7 +942,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_DIAG50( am_I_Root, Input_Opt, RC )
+      SUBROUTINE WRITE_DIAG50( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -988,6 +953,7 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_XOFFSET
       USE GRID_MOD,           ONLY : GET_YOFFSET
       USE inquireMod,         ONLY : findFreeLUN
@@ -1013,6 +979,10 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1053,7 +1023,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: DIVISOR(ND50_NI,ND50_NJ,ND50_NL)
-      INTEGER            :: I,    J,     L,   W, N  
+      INTEGER            :: I,    J,     L,   W, N, nAdvect
       INTEGER            :: GMNL, GMTRC, IOS, X, Y, K, NHMS
       CHARACTER(LEN=16)  :: STAMP
       CHARACTER(LEN=40)  :: CATEGORY
@@ -1062,7 +1032,6 @@
 
       ! For fields from Input_Opt
       LOGICAL            :: LND50_HDF
-      INTEGER            :: N_TRACERS
 
       !=================================================================
       ! WRITE_DIAG50 begins here!
@@ -1071,9 +1040,11 @@
       ! Assume success
       RC        =  GIGC_SUCCESS
 
+      ! Nubmer of advected species
+      nAdvect   = State_Chm%nAdvect
+
       ! Copy values from Input_Opt
       LND50_HDF = Input_Opt%LND50_HDF
-      N_TRACERS = Input_Opt%N_TRACERS
 
       ! Replace time & date tokens in the filename
       FILENAME = ND50_OUTPUT_FILE
@@ -1156,7 +1127,7 @@
          N = ND50_TRACERS(W)
 
          ! Save by simulation
-         IF ( N <= N_TRACERS ) THEN
+         IF ( N <= nAdvect ) THEN
 
             !---------------------
             ! GEOS-CHEM tracers

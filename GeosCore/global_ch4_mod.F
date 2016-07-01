@@ -1257,20 +1257,6 @@
       !=================================================================
       ! CH4_DECAY begins here!
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Chemistry timestep in seconds
       DT = GET_TS_CHEM() * 60e+0_fp
@@ -1357,15 +1343,6 @@
       ! Free pointers
       Spc => NULL()
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CH4_DECAY
 !EOC
 !------------------------------------------------------------------------------
@@ -1440,20 +1417,6 @@
       ! (1) Pass OH mass, total air mass, and  to "diag_oh_mod.f"
       ! (2) ND59: Diagnostic for CH3CCl3 calculation
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Point to chemical species array [kg]
       Spc => State_Chm%Species
@@ -1538,15 +1501,6 @@
       ! Free pointer
       Spc => NULL()
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CH4_OHSAVE
 !EOC
 !------------------------------------------------------------------------------
@@ -1638,30 +1592,16 @@
       !=================================================================
       ! CH4_STRAT begins here!
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
       RC                  =  GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT
-      LUCX                = Input_Opt%LUCX
-      ITS_A_FULLCHEM_SIM  = Input_Opt%ITS_A_FULLCHEM_SIM
+      LUCX                =  Input_Opt%LUCX
+      ITS_A_FULLCHEM_SIM  =  Input_Opt%ITS_A_FULLCHEM_SIM
 
-      ! Point to chemical speices
-      Spc => State_Chm%Species
+      ! Point to chemical species
+      Spc                 => State_Chm%Species
 
       ! If unified chemistry is active, ignore all of this
       IF ( .not. LUCX ) THEN
@@ -1764,22 +1704,14 @@
 
 !      FIRSTCHEM = .FALSE.
 
-      ! Check Spc for negatives and NaN
-      CALL CHECK_STT( State_Chm, Input_Opt,
-     &                'IN global_ch4_mod.F: CH4_STRAT' )
+!%%% Comment out during removal of State_Chm%TRACERS
+!%%%      ! Check Spc for negatives and NaN
+!%%%      CALL CHECK_STT( State_Chm, Input_Opt,
+!%%%     &                'IN global_ch4_mod.F: CH4_STRAT' )
 
       ! Free pointer
       Spc => NULL()
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CH4_STRAT
 !EOC
 #if defined( USE_CH4_BUDGET_DIAG )
@@ -1856,13 +1788,13 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, K, L, M, NERROR, UD
+      INTEGER           :: I, J, K, L, M, NERROR, UD, N, NA, nAdvect
 
-      REAL(fp)              :: SpcCONV, TGS, SCALEDYN
-      REAL(fp)              :: NTP, NTQ, NTP2, NTQ2 
-      REAL(fp)              :: SOURCES, SINKS
+      REAL(fp)          :: SpcCONV, TGS, SCALEDYN
+      REAL(fp)          :: NTP, NTQ, NTP2, NTQ2 
+      REAL(fp)          :: SOURCES, SINKS
 
-      CHARACTER(LEN=17)   :: MERGE
+      CHARACTER(LEN=17) :: MERGE
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -1874,6 +1806,21 @@
       !
       ! Initialize quantities 
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 
       ! Scale factor for dynamic time steps
       SCALEDYN  = FLOAT( GET_CT_DYN() ) + 1e-20_fp
@@ -2272,7 +2219,16 @@
       !=================================================================
       TCH4(:,:,:,1      ) = TCH4(:,:,:,2)
       TCH4(:,:,:,2:N_CH4) = 0e+0_fp
-	
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CH4_BUDGET
 !EOC
 !------------------------------------------------------------------------------
@@ -2455,20 +2411,6 @@
       !========================================================================
       ! CH4_DISTRIB begins here
       !========================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Point to chemical species array [kg]
       Spc => State_Chm%Species
@@ -2497,15 +2439,6 @@
       ! Free pointer
       Spc => NULL()
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CH4_DISTRIB
 !EOC
 !------------------------------------------------------------------------------

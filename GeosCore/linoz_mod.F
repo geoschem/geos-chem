@@ -267,6 +267,8 @@
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !  16 Jun 2016 - R. Silvern  - Now define species ID of O3 with Ind_ function
 !  17 Jun 2016 - R. Yantosca - Only look up species ID of O3 on first call
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -274,11 +276,11 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER  :: IM,      JM,         LM,   N_TRACERS
-      INTEGER  :: I,       J,          L,    N
+      INTEGER  :: IM,      JM,         LM,   nAdvect
+      INTEGER  :: I,       J,          L,    N,         NA
       INTEGER  :: K,       M,          LBOT, L_OVERWRLD
       INTEGER  :: NTRACER, NUM_TRACER, LPOS, ITRC
-      REAL(fp) :: CLIMO3,  CLIMPML,    DCO3, DERO3, DERTMP
+      REAL(fp) :: CLIMO3,  CLIMPML,    DCO3, DERO3,     DERTMP
       REAL(fp) :: DERCO3,  DMASS,      DTMP, SSO3
 
       ! Arrays
@@ -289,10 +291,10 @@
 
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       ! From Input_Opt
-      LOGICAL      :: LPRT
+      LOGICAL       :: LPRT
 
       ! SAVED scalars
       LOGICAL, SAVE :: FIRST = .TRUE.
@@ -301,6 +303,21 @@
       !=================================================================
       ! LINOZ_CHEM3 begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 
       ! From Input_Opt
       LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
@@ -312,12 +329,12 @@
       IM         = IIPAR
       JM         = JJPAR
       LM         = LLPAR
-      N_TRACERS  = Input_Opt%N_TRACERS
-      TCVV       = Input_Opt%TCVV(1:N_TRACERS)
+      ! NOTE: TCVV can be removed soon!
+      TCVV       = Input_Opt%TCVV(1:nAdvect)
 
       ! Initialize GEOS-Chem tracer array [v/v dry air] from State_Chm object
       ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      Spc => State_Chm%Tracers
 
       ! Look up the species ID of O3 only on the first call
       IF ( FIRST ) THEN
@@ -356,7 +373,7 @@
          NUM_TRACER = 1
       ELSE
          IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
-            IF ( N_TRACERS > 1 ) THEN
+            IF ( nAdvect > 1 ) THEN
                NUM_TRACER = 2
             ELSE
                NUM_TRACER = 1
@@ -381,7 +398,7 @@
       ! Perform stratospheric chemistry
       !=================================================================
 
-      ! **** note dbj: check STT(I,J,20:LLPAR,NTRACER) = with trop level
+      ! **** note dbj: check Spc(I,J,20:LLPAR,NTRACER) = with trop level
       ! ****         : check DMASS
       DO ITRC = 1, NUM_TRACER
 
@@ -443,8 +460,8 @@
             ! dbj: for now, set tagged stratospheric tracer to total 
             ! O3 in the overworld to avoid issues with spin ups
             IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
-              STT(I,J,(L_OVERWRLD+1):LLPAR,NTRACER) =
-     &                STT(I,J,(L_OVERWRLD+1):LLPAR,1)
+              Spc(I,J,(L_OVERWRLD+1):LLPAR,NTRACER) =
+     &                Spc(I,J,(L_OVERWRLD+1):LLPAR,1)
             ENDIF
 #endif
            ! IF ( LPRT ) CALL DEBUG_MSG( '### LINOZ_CHEM3: at LM, LBOT')
@@ -453,29 +470,29 @@
             ! Loop over levels
             DO L = LM, LBOT, -1
             ! IF ( LPRT ) THEN
-            !   PRINT*, '### STT: ', STT(I,J,L,NTRACER)
+            !   PRINT*, '### Spc: ', Spc(I,J,L,NTRACER)
             !   CALL FLUSH(6) 
             ! ENDIF
 
                ! Skip if tracer is negative
                ! SDE 2016-04-06: Changed from LE to LT
-               IF ( STT(I,J,L,NTRACER) .LT. 0.e+0_fp ) CYCLE
+               IF ( Spc(I,J,L,NTRACER) .LT. 0.e+0_fp ) CYCLE
 
                ! calculate ozone column above box (and save)
                ! dcolo3 = ozone column (in DU) in given layer
                ! colo3 =  ozone column above layer + half of
                ! column in layer
 
-               ! bdf stt is in v/v, make conversion to DU
+               ! bdf Spc is in v/v, make conversion to DU
                if (l.eq.lm) then !top model layer
-                  dcolo3(i,j,l) = (stt(i,j,l,NTRACER) *
+                  dcolo3(i,j,l) = (Spc(i,j,l,NTRACER) *
      &                 State_Met%AD(I,J,L) /
      &                 TCVV(NTRACER))      / GET_AREA_CM2(I,J,L) *
      &                 AVO / (AIRMW/TCVV(NTRACER)*1e-3_fp) / 
      &                 2.687e+16_fp
                   colo3(i,j,l) = dcolo3(i,j,l)*0.5
                else
-                  dcolo3(i,j,l) = (stt(i,j,l,NTRACER) * 
+                  dcolo3(i,j,l) = (Spc(i,j,l,NTRACER) * 
      &                 State_Met%AD(I,J,L) / 
      &                 TCVV(NTRACER))      / GET_AREA_CM2(I,J,L) *
      &                 AVO / (AIRMW/TCVV(NTRACER)*1e-3_fp) / 
@@ -506,18 +523,18 @@
 
                ! ++++++ change in ozone mass due to chemistry: ++++++
                !ssO3 = f^*
-               dmass=(sso3-STT(I,J,L,NTRACER))*(1.0-exp(dero3*dtchem))
+               dmass=(sso3-Spc(I,J,L,NTRACER))*(1.0-exp(dero3*dtchem))
 
                ! ++++++ update ozone mass ++++++ 
                ! LINOX valid only up to 58 km, so do not use above 0.3 hPa
                ! dbj: impose exponential fall off of mixing ratio 
                ! between 0.3 and 0.01 hPa (with fall off of a scale height)
                IF (State_Met%PEDGE(I,J,L) .LE. 0.3e+0_f8) THEN
-                  STT(I,J,L,NTRACER) = 
+                  Spc(I,J,L,NTRACER) = 
      &                (State_Met%PMID(I,J,L)/State_Met%PMID(I,J,LPOS-1)) 
-     &                * STT(I,J,LPOS-1,NTRACER)
+     &                * Spc(I,J,LPOS-1,NTRACER)
                ELSE
-                  STT(I,J,L,NTRACER) = STT(I,J,L,NTRACER)+DMASS 
+                  Spc(I,J,L,NTRACER) = Spc(I,J,L,NTRACER)+DMASS 
                ENDIF
 
             ENDDO       ! loop over L
@@ -532,9 +549,19 @@
 
       ENDDO
       IF (LPRT) CALL DEBUG_MSG('DONE LINOZ_CHEM3')
-      ! Free pointer
-      NULLIFY( STT )
 
+      ! Free pointer
+      Spc => NULL()
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE LINOZ_CHEM3
 !EOC
 !------------------------------------------------------------------------------
