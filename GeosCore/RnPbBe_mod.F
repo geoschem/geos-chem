@@ -127,10 +127,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Chm_Mod, ONLY : Ind_
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-!      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
-!      USE HCO_Error_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -210,7 +207,6 @@
 
       ! Pointers
       REAL(fp),      POINTER   :: Spc(:,:,:,:)
-      TYPE(Species), POINTER   :: ThisSpc
 !
 ! !DEFINED PARAMETERS
 !

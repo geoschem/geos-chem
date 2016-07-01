@@ -1886,16 +1886,17 @@
          ! saved. (ccc, 5/13/09)
          IF ( ITS_TIME_FOR_DIAG() ) THEN
 
-         ! Sometimes tracers in the stratosphere can be negative at 
-         ! the nested-grid domain edges. Force them to be zero before
-         ! CHECK_STT (yxw)
-#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125)
-            CALL CHECK_STT_NESTED( State_Chm, Input_Opt,
-     &                             'End of Dynamic Loop' )
-#else
-            CALL CHECK_STT( State_Chm, Input_Opt, 
-     &                      'End of Dynamic Loop' )
-#endif
+!%%% COMMENT OUT CHECK_STT WHILE REPLACING STATE_CHM%TRACERS
+!         ! Sometimes tracers in the stratosphere can be negative at 
+!         ! the nested-grid domain edges. Force them to be zero before
+!         ! CHECK_STT (yxw)
+!#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125)
+!            CALL CHECK_STT_NESTED( State_Chm, Input_Opt,
+!     &                             'End of Dynamic Loop' )
+!#else
+!            CALL CHECK_STT( State_Chm, Input_Opt, 
+!     &                      'End of Dynamic Loop' )
+!#endif
          ENDIF
 
 #if defined( USE_TIMERS )
