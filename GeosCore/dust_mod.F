@@ -724,6 +724,9 @@
       ! Pointers
       TYPE(Species),    POINTER :: ThisSpc
 
+      ! Temp variables due to threading issues with pointers
+      REAL(fp)              :: tempMW
+
 #if defined( NC_DIAG )
       ! For netcdf diagnostics (ND44 drydep flux)
       INTEGER               :: drydep_id, trc_id, HCRC
@@ -765,13 +768,14 @@
 
       ! Get info about this tracer from the Database
       ThisSpc => State_Chm%SpcData(INDEX)%Info
+      tempMW = ThisSpc%emMW_g
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,     J,        L,    N,     DEN,  REFF, DP    )
 !$OMP+PRIVATE( CONST, AREA_CM2, VTS,  TEMP,  P,    PDP,  SLIP  )
 !$OMP+PRIVATE( VISC,  TC0,      DELZ, DELZ1, TOT1, TOT2, FLUX  )
-!$OMP+PRIVATE( ThisSpc )
+!$OMP+PRIVATE( ThisSpc, tempMW )
 
       ! Loop over dust bins
       DO N = 1, NDSTBIN
@@ -879,7 +883,7 @@
 
                   ! Convert dust flux from [kg/s] to [molec/cm2/s]
                   FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
-                  FLUX = FLUX * AVO * ( AIRMW / ThisSpc%emMW_g ) / 
+                  FLUX = FLUX * AVO * ( AIRMW / tempMW ) / 
      &                   ( AIRMW * 1.e-3_fp ) / AREA_CM2 
 
 #if defined( BPCH_DIAG )

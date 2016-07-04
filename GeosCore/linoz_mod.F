@@ -219,7 +219,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2   
-      USE TRACERID_MOD                         
       USE Species_Mod,        ONLY : Species 
       !USE TRACERID_MOD        ! CODEATHON                  
 !
@@ -303,6 +302,9 @@
       ! SAVED scalars
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER, SAVE :: id_O3
+
+      ! Temporary
+      REAL(fp) :: tempMW
       
       !=================================================================
       ! LINOZ_CHEM3 begins here!
@@ -403,6 +405,9 @@
          ! Get info about this tracer from the Database
          ThisSpc => State_Chm%SpcData(NTRACER)%Info
 
+         ! Have to put in this temp variable due to threading
+         tempMW = ThisSpc%emMW_g
+
          ! Start at top layer and continue to lowest layer for strat. chem
          OUT_DATA = 0e+0_fp
          !IF ( LPRT ) THEN
@@ -415,6 +420,7 @@
 !$OMP+PRIVATE( I,       J,     LBOT,   LPOS,   L      )
 !$OMP+PRIVATE( CLIMPML, DERO3, CLIMO3, DERCO3, DCO3   )
 !$OMP+PRIVATE( DERTMP,  DTMP,  SSO3,   DMASS,  ThisSpc)
+!$OMP+PRIVATE( tempMW )
          DO J = 1, JM
          DO I = 1, IM
 
@@ -482,15 +488,15 @@
                if (l.eq.lm) then !top model layer
                   dcolo3(i,j,l) = (stt(i,j,l,NTRACER) *
      &                 State_Met%AD(I,J,L) /
-     &                 (AIRMW / ThisSpc%emMW_g)) / GET_AREA_CM2(I,J,L) *
-     &                 AVO / (ThisSpc%emMW_g*1e-3_fp) / 
+     &                 (AIRMW / tempMW)) / GET_AREA_CM2(I,J,L) *
+     &                 AVO / (tempMW*1e-3_fp) / 
      &                 2.687e+16_fp
                   colo3(i,j,l) = dcolo3(i,j,l)*0.5
                else
                   dcolo3(i,j,l) = (stt(i,j,l,NTRACER) * 
      &                 State_Met%AD(I,J,L) / 
-     &                 (AIRMW / ThisSpc%emMW_g)) / GET_AREA_CM2(I,J,L) *
-     &                 AVO / (ThisSpc%emMW_g*1e-3_fp) / 
+     &                 (AIRMW / tempMW)) / GET_AREA_CM2(I,J,L) *
+     &                 AVO / (tempMW*1e-3_fp) / 
      &                 2.687e+16_fp
                   colo3(i,j,l) = colo3(i,j,l+1) +
      &                 (dcolo3(i,j,l)+dcolo3(i,j,l+1))*0.5

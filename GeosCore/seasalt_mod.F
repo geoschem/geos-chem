@@ -244,8 +244,8 @@
       !=================================================================
       ! Accumulation mode wet settling
       !=================================================================
-     IF ( id_SALA > 0 ) THEN
-      CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
+      IF ( id_SALA > 0 ) THEN
+       CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
      &                   State_Chm, STT(:,:,:,id_SALA), 1,         
      &                   RC         )
 
