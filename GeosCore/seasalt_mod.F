@@ -200,6 +200,8 @@
 !  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
 !                              so we can greatly collapse this code
 !  17 Jun 2016 - R. Yantosca - Add error checks before calling routines
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -209,14 +211,29 @@
       ! Non-SAVEd variables
       LOGICAL           :: prtDebug
       LOGICAL           :: LPRT, LMPOA
-      INTEGER           :: N
+      INTEGER           :: N,    NA,   nAdvect
 
       ! Pointers
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! CHEMSEASALT begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 
       ! Assume success
       RC       = GIGC_SUCCESS
@@ -225,9 +242,8 @@
       LPRT     = Input_Opt%LPRT
       LMPOA    = Input_Opt%LMPOA
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT      => State_Chm%Tracers
+      ! Point to chemical species array [kg]
+      Spc      => State_Chm%Species
 
       ! Do we have to print debug output?
       prtDebug = ( LPRT .and. am_I_Root )
@@ -242,7 +258,7 @@
       !=================================================================
       IF ( id_SALA > 0 ) THEN
          CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                      STT(:,:,:,id_SALA), 1,    RC   )
+     &                      Spc(:,:,:,id_SALA), 1,    RC   )
 
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
@@ -254,7 +270,7 @@
       !=================================================================
       IF ( id_SALC > 0 ) THEN
          CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                      STT(:,:,:,id_SALC), 2,    RC   )
+     &                      Spc(:,:,:,id_SALC), 2,    RC   )
 
          IF ( prtDebug ) THEN 
             CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
@@ -285,8 +301,17 @@
       ENDIF
 
       ! Free pointer
-      STT => NULL()
+      Spc => NULL()
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CHEMSEASALT
 !EOC
 !------------------------------------------------------------------------------
@@ -849,6 +874,8 @@
 ! 
 ! !REVISION HISTORY: 
 !  10 Jul 2015 - E. Lundgren - Initial version (based on routine Chem_OCPO)
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -860,7 +887,7 @@
       REAL(fp)            :: DTCHEM, KOC, TC0, CNEW, RKT, FREQ
 
       ! Pointers
-      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: Spc(:,:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -879,7 +906,7 @@
       OCCONV    = 0e+0_fp
 
       ! Set pointer to GEOS-Chem tracer array [kg]
-      STT      => State_Chm%Tracers
+      Spc      => State_Chm%Species
       
       !=================================================================
       ! For tracers with dry deposition, the loss rate of dry dep is 
@@ -901,7 +928,7 @@
       DO I = 1, IIPAR
 
          ! Initial OC [kg]
-         TC0  = STT(I,J,L,id_MOPO)
+         TC0  = Spc(I,J,L,id_MOPO)
 
          ! Zero drydep freq
          ! ### NOTE: Remove this later, but need to make
@@ -919,14 +946,15 @@
          OCCONV(I,J,L) = ( TC0 - CNEW ) * KOC / ( KOC + FREQ )
 
          ! Store modified OC concentration back in tracer array
-         STT(I,J,L,id_MOPO) = CNEW
+         Spc(I,J,L,id_MOPO) = CNEW
 
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO  
 
-      NULLIFY( STT )
+      ! Free pointer
+      Spc => NULL()
 
       END SUBROUTINE CHEM_MOPO
 !EOC
@@ -983,7 +1011,7 @@
       REAL(fp) :: TC0, CNEW, CCV
 
       ! Pointers
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! CHEM_MOPI begins here!
@@ -993,7 +1021,7 @@
       RC        = GIGC_SUCCESS
 
       ! Set pointer to GEOS-Chem tracer array [kg]
-      STT      => State_Chm%Tracers
+      Spc      => State_Chm%Species
       
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1004,7 +1032,7 @@
       DO I = 1, IIPAR
 
          ! Initial H-philic OC [kg]
-         TC0 = STT(I,J,L,id_MOPI)
+         TC0 = Spc(I,J,L,id_MOPI)
 
          ! H-philic OC that used to be H-phobic OC [kg]
          CCV = OCCONV(I,J,L)
@@ -1016,7 +1044,7 @@
          IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
 
          ! Store modified concentration back in tracer array [kg]
-         STT(I,J,L,id_MOPI) = CNEW
+         Spc(I,J,L,id_MOPI) = CNEW
 
       ENDDO
       ENDDO
@@ -1024,11 +1052,14 @@
 !$OMP END PARALLEL DO  
 
       !=================================================================
-      ! Zero OCCONV array for next timestep
+      ! Cleanup and quit
       !=================================================================
+
+      ! Zero OCCONV array for next timestep
       OCCONV = 0e+0_fp
 
-      NULLIFY( STT )
+      ! Free pointer
+      Spc => NULL()
 
       END SUBROUTINE CHEM_MOPI
 !EOC
