@@ -189,6 +189,8 @@
 !  10 Aug 2015 - E. Lundgren - Incoming tracer units are now kg/kg dry air
 !  11 Aug 2015 - R. Yantosca - Added support for MERRA2 data
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -196,9 +198,8 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER           :: N_TOT_TRC             ! # of tracers to convect
-      INTEGER           :: N_TRACERS
-      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
+      INTEGER           :: N, NA, nAdvect
+      REAL(fp)          :: TCVV(State_Chm%nAdvect)
       REAL(fp)          :: DT_TEND
 
       ! Pointers
@@ -206,7 +207,7 @@
       ! from the Chemistry State (State_Chm) object. Units are 
       ! initially kg/kg dry air but will be converted to
       ! kg/kg total air for convection (ewl, 8/10/15)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! MERRA or GEOS-FP met fields definitions
@@ -214,19 +215,18 @@
 #if defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       
       ! Scalars          
-      INTEGER           :: I, J, L, N, NN, TS_DYN
+      INTEGER           :: I, J, L, NN, TS_DYN
       REAL(fp)          :: AREA_M2, DT
       LOGICAL           :: DO_ND14
       LOGICAL           :: DO_ND38
       
       ! Arrays        
-      REAL(fp)          :: PEDGE  (LLPAR+1)
-      INTEGER           :: ISOL   (      Input_Opt%N_TRACERS )
-      REAL(fp)          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS )
-      REAL(fp)          :: DIAG38 (LLPAR,Input_Opt%N_TRACERS )
-      REAL(fp)          :: F      (LLPAR,Input_Opt%N_TRACERS )
-      REAL(fp), TARGET  :: FSOL   (IIPAR,JJPAR,LLPAR,
-     &                                 Input_Opt%N_TRACERS )
+      REAL(fp)          :: PEDGE  (          LLPAR+1                  )
+      INTEGER           :: ISOL   (                  State_Chm%nAdvect)
+      REAL(fp)          :: DIAG14 (            LLPAR,State_Chm%nAdvect)
+      REAL(fp)          :: DIAG38 (            LLPAR,State_Chm%nAdvect)
+      REAL(fp)          :: F      (            LLPAR,State_Chm%nAdvect)
+      REAL(fp), TARGET  :: FSOL   (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
       ! Pointers
       REAL(fp), POINTER :: p_FSOL (:,:,:)
@@ -258,12 +258,9 @@
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CONV', .TRUE., RC )
 #endif
-
+ 
       ! Assume success
-      RC        =  GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
-      N_TRACERS         = Input_Opt%N_TRACERS
+      RC = GIGC_SUCCESS
 
       ! Convert State_Chm%Tracers from [kg/kg dry air] to 
       ! [kg/kg total air] prior to convection (ewl, 8/10/15)
@@ -274,6 +271,21 @@
      &                   'DO_CONVECTION in convection_mod.F')
          RETURN
       ENDIF  
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! For netCDF diagnostics, archive old species concentration. At the 
       ! moment, the new ND38 diagnostics only returns the total column 
@@ -299,7 +311,7 @@
       !=================================================================
 
       ! Assume success
-      RC                =  GIGC_SUCCESS
+      RC =  GIGC_SUCCESS
 
       ! Call GCAP driver routine
       CALL DO_GCAP_CONVECT
@@ -312,7 +324,7 @@
       !=================================================================
 
       ! Assume success
-      RC                =  GIGC_SUCCESS
+      RC =  GIGC_SUCCESS
 
       ! Call GEOS-4 driver routine
       CALL DO_GEOS4_CONVECT
@@ -325,14 +337,10 @@
       !=================================================================
 
       ! Assume success
-      RC                =  GIGC_SUCCESS
-
-      ! Pick the proper # of tracers
-      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
+      RC =  GIGC_SUCCESS
 
       ! Call the S-J Lin convection routine for GEOS-5
-      CALL NFCLDMX( am_I_Root, Input_Opt, State_Met, 
-     &              State_Chm, RC )
+      CALL NFCLDMX( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
 #elif defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
@@ -348,11 +356,11 @@
       DT        = DBLE( TS_DYN )                  ! Dynamic timestep [min]
       FSOL      = 0e+0_fp                         ! Zero the FSOL array
 
-      ! Pick the proper # of tracers
-      N_TOT_TRC = Input_Opt%N_TRACERS             ! Without APM microphysics
-
       ! Loop over advected tracers
-      DO N = 1, N_TOT_TRC
+      DO NA = 1, nAdvect
+         
+         ! Species ID
+         N = State_Chm%Map_Advect(NA)
 
          ! Now point to a 3D slice of the FSOL array
          p_FSOL => FSOL(:,:,:,N)
@@ -405,7 +413,6 @@
      &                             State_Chm  = State_Chm,
      &                             I          = I,
      &                             J          = J,
-     &                             N_TRACERS  = N_TOT_TRC,
      &                             AREA_M2    = AREA_M2,
      &                             F          = F,
      &                             PEDGE      = PEDGE,
@@ -425,10 +432,17 @@
          ! ND14 diagnostic [kg/s]
          !--------------------------
          IF ( DO_ND14 ) THEN
-            DO N = 1, N_TOT_TRC
-            DO L = 1, LD14
-               CONVFLUP(I,J,L,N) = CONVFLUP(I,J,L,N) + DIAG14(L,N)
-            ENDDO
+
+            ! Loop over only the advected species
+            DO NA = 1, nAdvect
+
+               ! Species ID
+               N = State_Chm%Map_Advect(NA)
+
+               ! Archive diagnostic
+               DO L = 1, LD14
+                  CONVFLUP(I,J,L,N) = CONVFLUP(I,J,L,N) + DIAG14(L,N)
+               ENDDO
             ENDDO
          ENDIF
 
@@ -437,9 +451,12 @@
          ! ND38 diagnostic [kg/s]
          !--------------------------
          IF ( DO_ND38 ) THEN
-            DO N = 1, N_TOT_TRC
+
+            ! Loop over only the advected species
+            DO N = 1, nAdvect
 
                ! Wetdep species for each tracer N
+               !%%% CAN PROBABLY REPLACE WITH State_Chm%Map_WetDep %%%
                NN = ISOL(N)
 
                ! Only archive wet-deposited species
@@ -517,6 +534,16 @@
          DEALLOCATE( BEFORE, TMP3D, TMP2D )
       ENDIF
 #endif
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Convert tracer concentration from kg/kg total air to 
       ! kg/kg dry air after convection (ewl, 8/10/15)
@@ -607,6 +634,8 @@
 !  23 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v)
 !  22 Apr 2016 - R. Yantosca - Now pass State_Chm to FVDAS_CONVECT_MOD
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -620,22 +649,21 @@
       REAL(fp)          :: DP( IIPAR, JJPAR, LLPAR )
       REAL(fp)          :: P1, P2, TDT
       INTEGER           :: N_TOT_TRC
-      INTEGER           :: INDEXSOL( Input_Opt%N_TRACERS )
-      REAL(fp), TARGET  :: F( IIPAR, JJPAR, LLPAR,
-     &                            Input_Opt%N_TRACERS )
+      INTEGER           :: INDEXSOL(State_Chm%nAdvect)
+      REAL(fp), TARGET  :: F(IIPAR,JJPAR,LLPAR, State_Chm%nAdvect)
 
       ! For fields from Input_Opt
       LOGICAL           :: LPRT
       INTEGER           :: N_TRACERS
 
       ! Pointers
-      REAL(fp), POINTER :: STT     (:,:,:,:) ! Ptr to State_Chm%TRACERS
+      REAL(fp), POINTER :: Spc     (:,:,:,:) ! Ptr to State_Chm%TRACERS
       REAL(fp), POINTER :: p_HKETA (:,:,:  ) ! Ptr to HKETA  (flipped in vert)
       REAL(fp), POINTER :: p_HKBETA(:,:,:  ) ! Ptr to HKBETA (flipped in vert)
       REAL(fp), POINTER :: p_ZMMU  (:,:,:  ) ! Ptr to ZMMU   (flipped in vert)
       REAL(fp), POINTER :: p_ZMMD  (:,:,:  ) ! Ptr to ZMMD   (flipped in vert)
       REAL(fp), POINTER :: p_ZMEU  (:,:,:  ) ! Ptr to ZMEU   (flipped in vert)
-      REAL(fp), POINTER :: p_STT   (:,:,:,:) ! Ptr to STT    (flipped in vert)
+      REAL(fp), POINTER :: p_Spc   (:,:,:,:) ! Ptr to Spc    (flipped in vert)
       REAL(fp), POINTER :: p_F     (:,:,:,:) ! Ptr to F      (flipped in vert)
       REAL(fp), POINTER :: p_FSOL  (:,:,:  ) ! Ptr to F      (for COMPUTE_F)
 
@@ -757,7 +785,7 @@
 
       ! Initialize GEOS-Chem tracer array from Chemistry State object
       ! [kg/kg total air] (ewl, 6/23/15)
-      STT      => State_Chm%Tracers
+      Spc      => State_Chm%Species
 
       ! Point to various fields and flip in vertical.  This avoids 
       ! array temporaries in the call to FVDAS_CONVECT (bmy, 4/14/14)
@@ -766,13 +794,13 @@
       p_ZMMU   => State_Met%ZMMU   (:,:,LLPAR:1:-1  )
       p_ZMMD   => State_Met%ZMMD   (:,:,LLPAR:1:-1  )
       p_ZMEU   => State_Met%ZMEU   (:,:,LLPAR:1:-1  )
-      p_STT    => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
+      p_Spc    => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
       p_F      => F                (:,:,LLPAR:1:-1,:)
 
       ! Call the fvDAS convection routines (originally from NCAR!)
       CALL FVDAS_CONVECT( TDT,   
      &                    N_TOT_TRC, 
-     &                    p_STT,
+     &                    p_Spc,
      &                    RPDEL,         
      &                    p_HKETA,
      &                    p_HKBETA,
@@ -787,7 +815,7 @@
      &                    State_Met,
      &                    State_Chm )
 
-      ! Add a check to set negative values in STT to TINY
+      ! Add a check to set negative values in Spc to TINY
       ! (ccc, 4/15/09)
 !$OMP PARALLEL DO        
 !$OMP+DEFAULT( SHARED   )
@@ -796,7 +824,7 @@
       DO L = 1,LLPAR
       DO J = 1,JJPAR
       DO I = 1,IIPAR
-         STT(I,J,L,N) = MAX(STT(I,J,L,N),TINY(1e+0_fp))
+         Spc(I,J,L,N) = MAX(Spc(I,J,L,N),TINY(1e+0_fp))
       ENDDO
       ENDDO
       ENDDO
@@ -804,7 +832,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointers
-      NULLIFY( STT,     p_STT,    p_F                    )
+      NULLIFY( Spc,     p_Spc,    p_F                    )
       NULLIFY( p_HKETA, p_HKBETA, p_ZMMU, p_ZMMD, p_ZMEU )
 
       !### Debug! 
@@ -880,6 +908,8 @@
 !                              Remove dependency on pressure_mod.
 !  23 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v)
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -887,22 +917,20 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE      :: FIRST = .TRUE.
-      INTEGER            :: I, ISOL, J, L, L2, N, NSTEP  
+      INTEGER            :: I, ISOL, J, L, L2, N, NSTEP, NA, nAdvect
       INTEGER            :: CONVDT    
       REAL(fp)           :: DP( IIPAR, JJPAR, LLPAR )
       REAL(fp)           :: P1, P2, TDT   
       REAL(fp)           :: GAINMASS
       INTEGER            :: N_TOT_TRC      
-      INTEGER            :: INDEXSOL( Input_Opt%N_TRACERS ) 
-      REAL(fp),  TARGET  :: F( IIPAR, JJPAR, LLPAR,
-     &                            Input_Opt%N_TRACERS )
+      INTEGER            :: INDEXSOL(State_Chm%nAdvect)
+      REAL(fp),  TARGET  :: F(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
       ! For fields from Input_Opt
       LOGICAL            :: LPRT
-      INTEGER            :: N_TRACERS
 
       ! Pointers
-      REAL(fp),  POINTER :: STT        (:,:,:,:) ! Ptr to Tracer concentrations
+      REAL(fp),  POINTER :: Spc        (:,:,:,:) ! Ptr to Tracer concentrations
       REAL(fp),  POINTER :: p_UPDE     (:,:,:  ) ! Ptr to UPDE     met field
       REAL(fp),  POINTER :: p_DNDE     (:,:,:  ) ! Ptr to DNDE     met field
       REAL(fp),  POINTER :: p_ENTRAIN  (:,:,:  ) ! Ptr to ENTRAIN  met field
@@ -910,7 +938,7 @@
       REAL(fp),  POINTER :: p_UPDN     (:,:,:  ) ! Ptr to UPDN     met field
       REAL(fp),  POINTER :: p_DNDN     (:,:,:  ) ! Ptr to DNDN     met field
       REAL(fp),  POINTER :: p_DETRAINN (:,:,:  ) ! Ptr to DETRAINN met field
-      REAL(fp),  POINTER :: p_STT      (:,:,:,:) ! Ptr to STT (flipped)
+      REAL(fp),  POINTER :: p_Spc      (:,:,:,:) ! Ptr to Spc (flipped)
       REAL(fp),  POINTER :: p_F        (:,:,:,:) ! Ptr to F   (flipped)
       REAL(fp),  POINTER :: p_FSOL     (:,:,:  ) ! Ptr to F   (for COMPUTE_F)
 
@@ -918,29 +946,23 @@
       ! DO_GCAP_CONVECT begins here!
       !=================================================================
       
+      ! Initialize
       ! Assume success
-      RC        =  GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
-      LPRT      = Input_Opt%LPRT
-      N_TRACERS = Input_Opt%N_TRACERS
-
-      ! Pick the proper # of tracers for convection
-      N_TOT_TRC = N_TRACERS              ! G-C tracers only
-
-      ! Test??
+      RC       = GIGC_SUCCESS
+      LPRT     = Input_Opt%LPRT
+      nAdvect  = State_Chm%nAdvect
       GAINMASS = 0e+0_fp
 
       ! Convection timestep [s]
-      CONVDT = GET_TS_CONV() * 60e+0_fp 
+      CONVDT   = GET_TS_CONV() * 60e+0_fp 
        
       ! NSTEP is the # of internal convection timesteps.  According to
       ! notes in the old convection code, 300s works well. (swu, 12/12/03)
-      NSTEP  = CONVDT / 300    
-      NSTEP  = MAX( NSTEP, 1 ) 
+      NSTEP    = CONVDT / 300    
+      NSTEP    = MAX( NSTEP, 1 ) 
 
       ! TIMESTEP*2; will be divided by 2 before passing to CONVTRAN 
-      TDT    = DBLE( CONVDT ) * 2.0e+0_fp / DBLE( NSTEP )
+      TDT      = DBLE( CONVDT ) * 2.0e+0_fp / DBLE( NSTEP )
          
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_GCAP_CONV: a INIT_FV' )
@@ -954,7 +976,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, ISOL, p_FSOL )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO N = 1, N_TOT_TRC
+      DO N = 1, nAdvect
 
          ! Point to 3D slice of F
          p_FSOL => F(:,:,:,N)
@@ -1029,9 +1051,11 @@
       ! Flip arrays in the vertical and call GCAP_CONVECT
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array from Chemistry State object
-      ! [kg/kg total air]
-      STT        => State_Chm%Tracers
+      !%%%% NOTE: WE SHOULD JUST FLIP THESE POINTERS WITHIN GCAP_CONVECT
+      !%%%% SO AS TO BE ABLE TO PASS JUST STATE_CHM (bmy, 7/20/16)
+
+      ! Point to the chemical species array [kg/kg total air]
+      Spc        => State_Chm%Species
 
       ! Point to met fields and flip in vertical
       p_UPDE     => State_Met%UPDE     (:,:,LLPAR:1:-1  )
@@ -1041,13 +1065,13 @@
       p_UPDN     => State_Met%UPDN     (:,:,LLPAR:1:-1  )
       p_DNDN     => State_Met%DNDN     (:,:,LLPAR:1:-1  )
       p_DETRAINN => State_Met%DETRAINN (:,:,LLPAR:1:-1  )
-      p_STT      => State_Chm%Tracers  (:,:,LLPAR:1:-1,:)
+      p_Spc      => State_Chm%Species  (:,:,LLPAR:1:-1,:)
       p_F        => F                  (:,:,LLPAR:1:-1,:)
 
       ! Call the GCAP convection routines 
       CALL GCAP_CONVECT( TDT, 
-     &                   p_STT,
-     &                   N_TOT_TRC,
+     &                   p_Spc,
+     &                   nAdvect,
      &                   DP, ! I think this is the correct way (bmy, 5/25/05)
      &                   NSTEP, 
      &                   p_F,
@@ -1060,26 +1084,31 @@
      &                   p_DNDN,
      &                   p_DETRAINN )
 
-      ! Add a check to set negative values in STT to TINY
-      ! (ccc, 4/15/09)
+      ! Add a check to set negative values in Spc to TINY (ccc, 4/15/09)
+      ! Only loop over the advected species (bmy, 7/5/16)
 !$OMP PARALLEL DO        
 !$OMP+DEFAULT( SHARED   )
-!$OMP+PRIVATE( N, L, J, I )
-      DO N = 1,N_TOT_TRC
-      DO L = 1,LLPAR
-      DO J = 1,JJPAR
-      DO I = 1,IIPAR
-         STT(I,J,L,N) = MAX(STT(I,J,L,N),TINY(1e+0_fp))
-      ENDDO
-      ENDDO
-      ENDDO
+!$OMP+PRIVATE( NA, N, L, J, I )
+      DO NA = 1, nAdvect
+
+         ! Species ID
+         N = State_Chm%Map_Advect(NA)
+
+         ! Loop over grid boxes
+         DO L  = 1, LLPAR
+         DO J  = 1, JJPAR
+         DO I  = 1, IIPAR
+            Spc(I,J,L,N) = MAX(Spc(I,J,L,N),TINY(1e+0_fp))
+         ENDDO
+         ENDDO
+         ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT,    p_STT,  p_F                    )
+      NULLIFY( Spc,    p_Spc,  p_F                    )
       NULLIFY( p_UPDE, p_DNDE, p_ENTRAIN,  p_DETRAINE )
-      NULLIFY( p_UPDN, p_DNDN, p_DETRAINN )
+      NULLIFY( p_UPDN, p_DNDN, p_DETRAINN             )
 
       !### Debug! 
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_GCAP_CONV: a GCAP_CONVECT' )
@@ -1300,7 +1329,7 @@
 !  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
 !                              F array to subroutine COMPUTE_F
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE differences with DELP and
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE dinnerences with DELP and
 !                              remove dependency on pressure_mod
 !  20 Apr 2015 - E. Lundgren - Use DELP*100/g instead of AD/area for BMASS
 !                              to keep definition as grid box moist mass/area
@@ -1313,6 +1342,9 @@
 !  22 Apr 2016 - R. Yantosca - Now get Is_Hg2 and Is_HgP from species database
 !  22 Apr 2016 - R. Yantosca - Now pass ThisSpc to ADD_HG2_SNOWPACK
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1320,19 +1352,18 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE            :: FIRST = .TRUE.
-      INTEGER                  :: I, J, K, KTOP, L, N, NDT
+      INTEGER                  :: I, J, K, KTOP, L, N, NDT, NA
       INTEGER                  :: IC, ISTEP, JUMP, JS, JN, NS
       INTEGER                  :: IMR, JNP, NLAY, AS, Hg_Cat
       REAL(fp)                 :: SDT, CMOUT, ENTRN, DQ, AREA_M2
       REAL(fp)                 :: T0, T1, T2, T3, T4, TSUM, DELQ
-      REAL(fp)                 :: DTCSUM( IIPAR, JJPAR, LLPAR,
-     &                                    Input_Opt%N_TRACERS )
+      REAL(fp)                 :: DTCSUM(IIPAR,JJPAR,LLPAR,
+     &                                   State_Chm%nAdvect )
 
       REAL(fp), ALLOCATABLE, SAVE :: DSIG(:)
 
       ! F is the fraction of tracer lost to wet scavenging in updrafts
-      REAL(fp), TARGET         :: F( IIPAR, JJPAR, LLPAR,
-     &                               Input_Opt%N_TRACERS )
+      REAL(fp), TARGET         :: F(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
       ! Local Work arrays
       REAL(fp)                 :: BMASS( IIPAR, JJPAR, LLPAR )
@@ -1350,7 +1381,7 @@
 
       ! ISOL is an index for the diagnostic arrays
       INTEGER                  :: ISOL
-      INTEGER                  :: ISOL_SAVE( Input_Opt%N_TRACERS )
+      INTEGER                  :: ISOL_SAVE(State_Chm%nAdvect)
 
       ! QC_PRES and QC_SCAV are the amounts of tracer 
       ! preserved against and lost to wet scavenging
@@ -1377,7 +1408,7 @@
       REAL(fp),      POINTER   :: CLDMAS   (:,:,:  )
       REAL(fp),      POINTER   :: DTRN     (:,:,:  )
       REAL(fp),      POINTER   :: p_FSOL   (:,:,:  )
-      TYPE(Species), POINTER   :: ThisSpc           
+      TYPE(Species), POINTER   :: SpcInfo           
 
       !=================================================================
       ! NFCLDMX begins here!
@@ -1390,11 +1421,11 @@
       ITS_A_MERCURY_SIM = Input_Opt%ITS_A_MERCURY_SIM
       LDYNOCEAN         = Input_Opt%LDYNOCEAN
       LGTMM             = Input_Opt%LGTMM
-      NC                = Input_Opt%N_TRACERS
+      NC                = State_Chm%nAdvect
 
       ! Initialize GEOS-Chem tracer array from Chemistry State object
       ! [kg/kg total air]
-      Q                 => State_Chm%Tracers
+      Q                 => State_Chm%Species
 
       ! Initialize cloud mass flux at upper edge of each level [kg/m2/s]
       ! from Meteorology State object (ewl, 4/28/15)
@@ -1405,7 +1436,7 @@
       DTRN              => State_Met%DTRAIN
 
       ! Initialize pointer to species database
-      ThisSpc           => NULL()
+      SpcInfo           => NULL()
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -1523,11 +1554,16 @@
       ! when parallelization is turned on compared to when it is
       ! turned off. (bmy, sfarina, 2/4/14)
       !=================================================================
+      
+      ! Loop over the advected species
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED   )
-!$OMP+PRIVATE( IC, ISOL, I, J, K, p_FSOL ) 
+!$OMP+PRIVATE( NA, IC, ISOL, I, J, K, p_FSOL ) 
 !$OMP+SCHEDULE( DYNAMIC )
-      DO IC = 1, NC
+      DO NA = 1, NC
+         
+         ! Species ID
+         IC = State_Chm%Map_Advect(NA)
 
          ! Point to 3D slice of F
          p_FSOL => F(:,:,:,IC)
@@ -1556,7 +1592,7 @@
 !$OMP END PARALLEL DO
 
       !=================================================================
-      ! (2)  T r a c e r   L o o p 
+      ! (2)  A d v e c t e d   S p e c i e s   L o o p 
       !
       ! We now parallelize over tracers, since tracers are independent 
       ! of each other.  The parallel loop only takes effect if you 
@@ -1571,16 +1607,21 @@
       !     ( CMOUT, DELQ, ENTRN, ISOL, QC_PRES, etc. )
       ! (3) Arrays independent of tracer ( F, MB, QB, QC )
       !=================================================================
+
+      ! Loop over only the advected species
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( CMOUT, DELQ, ENTRN, I, IC, ISTEP, ISOL, J, AREA_M2, K  ) 
 !$OMP+PRIVATE( MB, QB, QC, QC_PRES, QC_SCAV, T0, T1, T2, T3, T4, TSUM )
-!$OMP+PRIVATE( WET_Hg2, WET_HgP, ThisSpc, Hg_Cat                      )
+!$OMP+PRIVATE( WET_Hg2, WET_HgP, SpcInfo, Hg_Cat, NA                  )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO IC = 1, NC
+      DO NA = 1, NC
+         
+         ! Species ID
+         IC = State_Chm%Map_Advect(NA)
 
          ! Point to the Species Database entry for this tracer
-         ThisSpc => State_Chm%SpcData(IC)%Info
+         SpcInfo => State_Chm%SpcData(IC)%Info
 
          ! Get previously archived value of ISOL (bmy, 2/4/14)
          ISOL    = ISOL_SAVE(IC)
@@ -1845,14 +1886,14 @@
                   IF ( ITS_A_MERCURY_SIM ) THEN
 !$OMP CRITICAL
                      ! Is it a Hg2 tracer?
-                     IF ( ThisSpc%Is_Hg2 ) THEN
+                     IF ( SpcInfo%Is_Hg2 ) THEN
 
                         ! Wet scavenged Hg(II) in [kg/s], converted
                         ! to [kg] by multiplying by NDT
                         WET_Hg2 = T0 * AREA_M2 / DNS * NDT
                         
                         ! Category # for this Hg2 tracer
-                        Hg_Cat  = ThisSpc%Hg_Cat
+                        Hg_Cat  = SpcInfo%Hg_Cat
 
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_Hg2_WD      ( I, J, Hg_Cat, WET_Hg2   )
@@ -1861,14 +1902,14 @@
                      ENDIF
 
                      ! Is it a HgP tracer?
-                     IF ( ThisSpc%Is_HgP ) THEN 
+                     IF ( SpcInfo%Is_HgP ) THEN 
 
                         ! Wet scavenged Hg(P) in [kg/s], converted 
                         ! to [kg] by multiplying by NDT
                         WET_HgP = T0 * AREA_M2 / DNS * NDT
 
                         ! Category # for this Hg2 tracer
-                        Hg_Cat  = ThisSpc%Hg_Cat
+                        Hg_Cat  = SpcInfo%Hg_Cat
 
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_HgP_WD      ( I, J, Hg_Cat, WET_HgP   ) 
@@ -1950,7 +1991,7 @@
          ENDDO              !NSTEP
 
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
       ENDDO                 !IC
 !$OMP END PARALLEL DO
 
@@ -1959,36 +2000,47 @@
       ! Also divide by the number of internal timesteps (DNS).
       !================================================================= 
       IF ( ND14 > 0 ) THEN
+
+         ! Loop over only the advected species
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, IC, J, K ) 
+!$OMP+PRIVATE( I, NA, IC, J, K ) 
 !$OMP+SCHEDULE( DYNAMIC )
-         DO IC = 1,  NC
-         DO K  = 3,  KTOP
-         DO J  = JS, JN
-         DO I  = 1,  IMR
-            CONVFLUP(I,J,K,IC) = CONVFLUP(I,J,K,IC) +
-     &                           ( DTCSUM(I,J,K,IC) / DNS )
-         ENDDO
-         ENDDO
-         ENDDO
+         DO NA = 1,  NC
+
+            ! Species ID
+            IC = State_Chm%Map_Advect(NA)
+
+            ! Archive diagnostic
+            DO K  = 3,  KTOP
+            DO J  = JS, JN
+            DO I  = 1,  IMR
+               CONVFLUP(I,J,K,IC) = CONVFLUP(I,J,K,IC) +
+     &                              ( DTCSUM(I,J,K,IC) / DNS )
+            ENDDO
+            ENDDO
+            ENDDO
          ENDDO 
 !$OMP END PARALLEL DO
       ENDIF
 
       ! Add a check to set negative values in Q to TINY2
-      ! (ccc, 4/15/09)
+      ! Loop over only the advected species
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED   )
-!$OMP+PRIVATE( N, L, J, I )
-      DO N = 1,NC
-      DO L = 1,LLPAR
-      DO J = 1,JJPAR
-      DO I = 1,IIPAR
-         Q(I,J,L,N) = MAX(Q(I,J,L,N),TINY2)
-      ENDDO
-      ENDDO
-      ENDDO
+!$OMP+PRIVATE( NA, IC, L, J, I )
+      DO NA = 1,NC
+         
+         ! Species ID
+         IC = State_Chm%Map_Advect(NA)
+
+         DO L = 1,LLPAR
+         DO J = 1,JJPAR
+         DO I = 1,IIPAR
+            Q(I,J,L,IC) = MAX(Q(I,J,L,IC),TINY2)
+         ENDDO
+         ENDDO
+         ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -2017,7 +2069,6 @@
      &                                State_Chm,
      &                                I,          
      &                                J,
-     &                                N_TRACERS,  
      &                                AREA_M2,    
      &                                F,          
      &                                PEDGE,      
@@ -2053,7 +2104,6 @@
       TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
       INTEGER,        INTENT(IN)    :: I, J       ! Lon & lat indices
-      INTEGER,        INTENT(IN)    :: N_TRACERS  ! # of convected tracers
       REAL(fp),       INTENT(IN)    :: AREA_M2    ! Surface area [m2]
       REAL(fp),       INTENT(IN)    :: F(:,:)     ! Fraction of soluble tracer
                                                   !  for updraft scavenging 
@@ -2154,6 +2204,11 @@
 !  28 Apr 2016 - R. Yantosca - Rewrite Is_Hg block to avoid unassociated
 !                              pointer seg faults
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!  05 Jul 2016 - R. Yantosca - Now replace N_TRACERS argument with the
+!                              State_Chm%nAdvect field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2169,7 +2224,7 @@
       INTEGER                :: IC,          ISTEP,     K        
       INTEGER                :: KTOP,        NC,        NDT
       INTEGER                :: NLAY,        NS,        CLDBASE
-      INTEGER                :: Hg_Cat
+      INTEGER                :: Hg_Cat,      NA,        nAdvect
       REAL(fp)               :: CMFMC_BELOW, ALPHA,     ALPHA2
       REAL(fp)               :: CMOUT,       DELQ,      DQ
       REAL(fp)               :: DNS,         ENTRN,     QC
@@ -2200,7 +2255,7 @@
       REAL(fp),      POINTER :: H2O2s    (:        )
       REAL(fp),      POINTER :: SO2s     (:        )
       REAL(fp),      POINTER :: Q        (:,:      )
-      TYPE(Species), POINTER :: ThisSpc
+      TYPE(Species), POINTER :: SpcInfo
 
       !========================================================================
       ! (0)  I n i t i a l i z a t i o n
@@ -2216,8 +2271,8 @@
       T        => State_Met%T       (I,J,:        ) ! Air temperature [K]
       H2O2s    => H2O2s_3D          (I,J,:        ) ! H2O2s from sulfate_mod
       SO2s     => SO2s_3D           (I,J,:        ) ! SO2s from sulfate_mod
-      Q        => State_Chm%TRACERS (I,J,:,:      ) ! Tracer concentration
-      ThisSpc  => NULL()                            ! Species database entry
+      Q        => State_Chm%Species (I,J,:,:      ) ! Chemical species
+      SpcInfo  => NULL()                            ! Species database entry
                                                 
 #if   defined( GEOS_FP ) || defined( MERRA2 )
 
@@ -2236,7 +2291,7 @@
         
       ! # of levels and # of tracers
       NLAY     = LLPAR
-      NC       = N_TRACERS
+      NC       = State_Chm%nAdvect
 
       ! Top level for convection
       KTOP     = NLAY - 1
@@ -2303,12 +2358,15 @@
       IS_Hg = Input_Opt%ITS_A_MERCURY_SIM
 
       !========================================================================
-      ! (1)  T r a c e r   L o o p 
+      ! (1)  A d v e c t e d   S p e c i e s   L o o p 
       !========================================================================
-      DO IC = 1, NC
+      DO NA = 1, NC
+
+         ! Species ID
+         IC = State_Chm%Map_Advect(NA)
 
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
 
          ! Initialize
          DIAG14(:,IC) = 0e+0_fp                      ! ND14 diag array      
@@ -2927,18 +2985,18 @@
             IF ( Is_Hg ) THEN
 
                ! Point to the Species Database entry for tracer IC
-               ThisSpc => State_Chm%SpcData(IC)%Info 
+               SpcInfo => State_Chm%SpcData(IC)%Info 
 
                !--------------------------------------
                ! Hg2 
                !--------------------------------------
-               IF ( ThisSpc%IS_Hg2 ) THEN
+               IF ( SpcInfo%IS_Hg2 ) THEN
 
                   ! Wet scavenged Hg(II) in [kg]
                   WET_Hg2 = ( T0_SUM * AREA_M2 )
 
                   ! Category # for this Hg2 species
-                  Hg_Cat  = ThisSpc%Hg_Cat
+                  Hg_Cat  = SpcInfo%Hg_Cat
 
                   ! Pass to "ocean_mercury_mod.f"
                   CALL ADD_Hg2_WD      ( I, J, Hg_Cat, WET_Hg2   )
@@ -2949,13 +3007,13 @@
                !--------------------------------------
                ! HgP
                !--------------------------------------
-               IF ( ThisSpc%Is_HgP ) THEN
+               IF ( SpcInfo%Is_HgP ) THEN
 
                   ! Wet scavenged Hg(P) in [kg]
                   WET_HgP = ( T0_SUM * AREA_M2 )
 
                   ! Category # for this Hg2 species
-                  Hg_Cat  = ThisSpc%Hg_Cat
+                  Hg_Cat  = SpcInfo%Hg_Cat
 
                   ! Pass to "ocean_mercury_mod.f"
                   CALL ADD_HgP_WD      ( I, J, Hg_Cat, WET_HgP   )
@@ -2964,7 +3022,7 @@
                ENDIF
 
                ! Free pointers
-               ThisSpc => NULL()
+               SpcInfo => NULL()
          
             ENDIF
          ENDDO               ! End internal timestep loop

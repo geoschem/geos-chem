@@ -471,30 +471,32 @@
       IF ( ND47 > 0 ) THEN
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, NA )
+!$OMP+PRIVATE( I, J, L, N, NA )
          DO NA = 1, nAdvect
 
             ! Species ID
             N = State_Chm%Map_Advect(NA)
 
-         DO L  = 1, LD47
-         DO J  = 1, JJPAR
-         DO I  = 1, IIPAR
-            AD47(I,J,L,NA) = AD47(I,J,L,NA) + Spc_VV(I,J,L,NA) 
+            DO L  = 1, LD47
+            DO J  = 1, JJPAR
+            DO I  = 1, IIPAR
+               AD47(I,J,L,NA) = AD47(I,J,L,NA) + Spc_VV(I,J,L,NA) 
 
-            IF ( N == id_PASV ) THEN
+               IF ( N == id_PASV ) THEN
 
-               ! Also save passive tracer in v/v total air (mps, 11/18/15)
-               AD47(I,J,L,NA+1) = AD47(I,J,L,NA+1) + Spc_VV(I,J,L,NA+1)
+                  ! Also save passive tracer in v/v total air (mps, 11/18/15)
+                  AD47(I,J,L,NA+1) = AD47(I,J,L,NA+1) 
+     &                             + Spc_VV(I,J,L,NA+1)
 
-               ! Also save passive tracer in kg/kg total air (mps, 11/18/15)
-               AD47(I,J,L,NA+2) = AD47(I,J,L,NA+2) + Spc_VV(I,J,L,NA+2)
+                  ! Also save passive tracer in kg/kg total air (mps, 11/18/15)
+                  AD47(I,J,L,NA+2) = AD47(I,J,L,NA+2)
+     &                             + Spc_VV(I,J,L,NA+2)
 
-            ENDIF
+               ENDIF
 
-         ENDDO   
-         ENDDO
-         ENDDO
+            ENDDO   
+            ENDDO
+            ENDDO
          ENDDO 
 !$OMP END PARALLEL DO   
       ENDIF
