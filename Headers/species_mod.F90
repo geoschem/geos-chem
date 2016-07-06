@@ -580,6 +580,7 @@ CONTAINS
 !  21 Jun 2016 - M. Sulprizio- Add optional argument Is_Photolysis. Also set
 !                              Is_ActiveChem and Is_Fixed Chem according to
 !                              KppVarId and KPPFixId.
+!  06 Jul 2016 - R. Yantosca - Add more error checks to avoid uninit'd fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -854,13 +855,16 @@ CONTAINS
        
        ! Update count & index of advected species
        IF ( Is_Advected ) THEN
-          AdvectCount      = AdvectCount + 1
-          ThisSpc%AdvectID = AdvectCount
+          AdvectCount         = AdvectCount + 1
+          ThisSpc%AdvectID    = AdvectCount
+       ELSE
+          ThisSpc%Is_Advected = .FALSE.
+          ThisSpc%AdvectID    = MISSING_INT
        ENDIF
 
     ELSE
-       ThisSpc%Is_Advected = .FALSE.
-       ThisSpc%AdvectID    = MISSING_INT
+       ThisSpc%Is_Advected    = .FALSE.
+       ThisSpc%AdvectID       = MISSING_INT
     ENDIF
 
     !---------------------------------------------------------------------
@@ -869,7 +873,7 @@ CONTAINS
     IF ( PRESENT( Is_Drydep ) ) THEN
        ThisSpc%Is_Drydep       = Is_Drydep
 
-       IF( Is_Drydep ) THEN
+       IF ( Is_Drydep ) THEN
 
           ! Increment count of drydep'd species
           DryDepCount          = DryDepCount + 1
@@ -892,7 +896,12 @@ CONTAINS
              CASE DEFAULT
                 ! Nothing
           END SELECT
+
+       ELSE
+          ThisSpc%Is_DryDep    = .FALSE.
+          ThisSpc%DryDepID     = MISSING_INT
        ENDIF
+
     ELSE
        ThisSpc%Is_Drydep       = .FALSE.
        ThisSpc%DryDepID        = MISSING_INT
@@ -908,6 +917,9 @@ CONTAINS
        IF ( Is_WetDep ) THEN
           WetDepCount       = WetDepCount + 1
           ThisSpc%WetDepID  = WetDepCount
+       ELSE 
+          ThisSpc%Is_Wetdep = .FALSE.
+          ThisSpc%WetDepID  = MISSING_INT
        ENDIF
 
     ELSE
@@ -947,6 +959,9 @@ CONTAINS
        IF ( Is_Photolysis ) THEN
           PhotolCount        = PhotolCount + 1
           ThisSpc%PhotolID   = PhotolCount
+       ELSE
+          ThisSpc%Is_Photolysis = .FALSE.
+          ThisSpc%PhotolID      = MISSING_INT
        ENDIF
 
     ELSE
@@ -991,10 +1006,12 @@ CONTAINS
        IF ( Is_Hg0 ) THEN
           Hg0Count       = Hg0Count + 1
           ThisSpc%Hg_Cat = Hg0Count
+       ELSE
+          ThisSpc%Is_Hg0 = .FALSE.
        ENDIF
 
     ELSE
-       ThisSpc%Is_Hg0 = .FALSE.
+       ThisSpc%Is_Hg0    = .FALSE.
     ENDIF
     
     !---------------------------------------------------------------------
@@ -1007,10 +1024,12 @@ CONTAINS
        IF ( Is_Hg2 ) THEN
           Hg2Count       = Hg2Count + 1
           ThisSpc%Hg_Cat = Hg2Count
+       ELSE
+          ThisSpc%Is_Hg2 = .FALSE.
        ENDIF
 
     ELSE
-       ThisSpc%Is_Hg2 = .FALSE.
+       ThisSpc%Is_Hg2    = .FALSE.
     ENDIF
     
     !---------------------------------------------------------------------
@@ -1023,10 +1042,12 @@ CONTAINS
        IF ( Is_HgP ) THEN
           HgPCount       = HgPCount + 1
           ThisSpc%Hg_Cat = HgPCount
+       ELSE
+          ThisSpc%Is_HgP = .FALSE.
        ENDIF
 
     ELSE
-       ThisSpc%Is_HgP = .FALSE.
+       ThisSpc%Is_HgP    = .FALSE.
     ENDIF
     
     !---------------------------------------------------------------------
