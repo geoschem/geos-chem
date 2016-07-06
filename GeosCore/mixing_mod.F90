@@ -144,17 +144,20 @@ CONTAINS
 !      computed in the dust/seasalt modules.
 !
 ! !REVISION HISTORY: 
-!  04 Mar 2015 - C. Keller    - Initial version 
-!  12 Aug 2015 - E. Lundgren  - Input tracer units are now [kg/kg] and 
-!                               are converted to [v/v] for mixing
-!  30 Sep 2014 - E. Lundgren  - Move unit conversion for DO_TEND to DO_TEND
+!  04 Mar 2015 - C. Keller   - Initial version 
+!  12 Aug 2015 - E. Lundgren - Input tracer units are now [kg/kg] and 
+!                              are converted to [v/v] for mixing
+!  30 Sep 2014 - E. Lundgren - Move unit conversion for DO_TEND to DO_TEND
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
-    LOGICAL   :: OnlyAbovePBL
+    ! Scalars
+    LOGICAL :: OnlyAbovePBL
 
     !=================================================================
     ! DO_MIXING begins here!
@@ -171,6 +174,11 @@ CONTAINS
                        'DO_MIXING in mixing_mod.F')
        RETURN
     ENDIF  
+
+    !%%%% NOTE: Copy State_Chm%Tracers to State_Chm%Species and
+    !%%%% vice versa in each of the routines DO_PBL_MIX_2,
+    !%%%% DO_TEND, and DO_PBL_MIX.  This should preserve the
+    !%%%% unit conversion.
 
     ! ------------------------------------------------------------------
     ! Do non-local PBL mixing. This will apply the tracer tendencies
@@ -304,13 +312,16 @@ CONTAINS
 !                              database field emMW_g (emitted species g/mol)
 !  16 Jun 2016 - C. Miller   - Now define species ID's with the Ind_ function
 !  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                 :: I, J, L, L1, L2, N, D, NN
+    INTEGER                 :: I, J, L, L1, L2, N, D, NN, NA, nAdvect
     INTEGER                 :: DRYDEPID
     INTEGER                 :: PBL_TOP, DRYD_TOP, EMIS_TOP
     REAL(fp)                :: TS, TMP, FRQ, RKT, FRAC, FLUX, AREA_M2
@@ -324,13 +335,13 @@ CONTAINS
 #if defined( NC_DIAG )
     INTEGER            :: cID, trc_id, HCRC
     CHARACTER(LEN=30)       :: DiagnName
-    REAL(fp), TARGET        :: DryDepFlux( IIPAR, JJPAR, Input_Opt%NUMDEP ) 
+    REAL(fp), TARGET        :: DryDepFlux( IIPAR, JJPAR, State_Chm%nDryDep ) 
     REAL(fp), POINTER       :: Ptr2D(:,:)
 
     ! tracer emissions diagnostic (does not correspond to any bpch diags)
-    REAL(fp), TARGET        :: EMIS( IIPAR, JJPAR, LLPAR, Input_Opt%N_TRACERS ) 
+    REAL(fp), TARGET        :: EMIS( IIPAR, JJPAR, LLPAR, State_Chm%nAdvect) 
     REAL(fp), POINTER       :: Ptr3D(:,:,:)
-    REAL(fp)                :: TOTFLUX( Input_Opt%N_TRACERS )
+    REAL(fp)                :: TOTFLUX(State_Chm%nAdvect)
 #endif
 
     ! PARANOX loss fluxes (kg/m2/s). These are obtained from the 
@@ -348,7 +359,7 @@ CONTAINS
     INTEGER,           SAVE :: id_BrNO3, id_ISOPN, id_MMN
 
     ! Pointers and objects
-    TYPE(Species), POINTER  :: ThisSpc
+    TYPE(Species), POINTER  :: SpcInfo
 #if defined( NC_DIAG )
     REAL(fp),      POINTER  :: Ptr2D => NULL()
     REAL(fp),      POINTER  :: Ptr3D => NULL()
@@ -371,7 +382,7 @@ CONTAINS
     PBL_DRYDEP = Input_Opt%PBL_DRYDEP
 
     ! Initialize pointer
-    ThisSpc => NULL()
+    SpcInfo => NULL()
 
     ! DO_TEND previously operated in units of kg. The tracer arrays are in
     ! v/v for mixing, hence needed to convert before and after.
@@ -385,6 +396,21 @@ CONTAINS
 
     CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,   &
                                   State_Met, State_Chm, RC )
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     ! Get time step [s]
     IF ( PRESENT(DT) ) THEN
@@ -444,22 +470,25 @@ CONTAINS
 
     ! Archive concentrations for tendencies (ckeller, 7/15/2015) 
 #if defined( DEVEL )
-      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, &
+    CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, &
                         State_Chm, 'FLUX', .FALSE., RC )
 #endif
 
     ! Do for every tracer and grid box
 !$OMP PARALLEL DO                                                    &
 !$OMP DEFAULT ( SHARED )                                             &
-!$OMP PRIVATE( I, J, L, L1, L2, N, D, PBL_TOP, FND, TMP, DRYDEPID ) &
+!$OMP PRIVATE( I, J, L, L1, L2, N, D, PBL_TOP, FND, TMP, DRYDEPID  ) &
 !$OMP PRIVATE( FRQ, RKT, FRAC, FLUX, AREA_M2,   MWkg, ChemGridOnly ) & 
 !$OMP PRIVATE( DryDepSpec, EmisSpec, DRYD_TOP,  EMIS_TOP, PNOXLOSS ) &
-!$OMP PRIVATE( DENOM, ThisSpc                                         )
-    DO N = 1, Input_Opt%N_TRACERS
+!$OMP PRIVATE( DENOM, SpcInfo, NA                                  )
+    DO NA = 1, nAdvect
+
+       ! Get the species ID from the advected species ID
+       N = State_Chm%Map_Advect(NA)
 
        ! Get info about this species from the species database
        ! NOTE: This assumes a 1:1 tracer index to species index mapping
-       ThisSpc => State_Chm%SpcData(N)%Info
+       SpcInfo => State_Chm%SpcData(N)%Info
 
        !----------------------------------------------------------------
        ! Check if we need to do dry deposition for this species 
@@ -473,17 +502,12 @@ CONTAINS
        ! processes below the PBL...
        IF ( LDRYD .AND. .NOT. OnlyAbovePBL ) THEN
 
-          ! Get dry deposition index DRYDEPID. This is the ID used by
-          ! drydep_mod.F90 for this species. 
-          DO D = 1, Input_Opt%NUMDEP
-             IF ( Input_Opt%NTRAIND(D) == N ) THEN
-                DRYDEPID = D
-                EXIT
-             ENDIF
-          ENDDO ! D
+          ! Get dry deposition ID (used by drydep_mod.F) for this species.
+          ! This is now stored in the species database object. (bmy, 7/6/16)
+          DryDepID = SpcInfo%DryDepId
 
           ! Check if this is a HEMCO drydep species 
-          DryDepSpec = ( DRYDEPID > 0 )
+          DryDepSpec = ( DryDepId > 0 )
           IF ( .NOT. DryDepSpec ) THEN
              CALL GetHcoVal ( N, 1, 1, 1, DryDepSpec, dep = TMP )
           ENDIF
@@ -522,7 +546,7 @@ CONTAINS
           PBL_TOP = State_Met%PBL_TOP_L(I,J)
 
           ! Molecular weight in kg
-          MWkg = ThisSpc%emMW_g * 1.e-3_fp
+          MWkg = SpcInfo%emMW_g * 1.e-3_fp
 
           ! Determine lower level L1 to be used: 
           ! If specified so, apply emissions only above the PBL_TOP.
@@ -637,11 +661,11 @@ CONTAINS
                    FRAC = EXP(-RKT)
 
                    ! Apply dry deposition
-                   State_Chm%Tracers(I,J,L,N) = FRAC *    &
-                                                State_Chm%Tracers(I,J,L,N)
+                   State_Chm%Species(I,J,L,N) = FRAC *    &
+                                                State_Chm%Species(I,J,L,N)
 
                    ! Loss in kg/m2
-                   FLUX = ( 1.0_fp - FRAC ) * State_Chm%Tracers(I,J,L,N) 
+                   FLUX = ( 1.0_fp - FRAC ) * State_Chm%Species(I,J,L,N) 
 
                    ! Eventually add PARANOX loss. PNOXLOSS is in kg/m2/s. 
                    IF ( PNOXLOSS > 0 ) THEN
@@ -677,9 +701,9 @@ CONTAINS
                       CALL SOIL_DRYDEP( I, J, L, N, FLUX )
                    ENDIF
 
-      !========================================================      
-      ! ND44: Dry deposition diagnostic [molec/cm2/s]
-      !========================================================
+                   !========================================================
+                   ! ND44: Dry deposition diagnostic [molec/cm2/s]
+                   !========================================================
                    IF ( ND44 > 0 .and. DryDepID > 0 ) THEN
 #if defined( BPCH_DIAG )
                       ! For bpch diagnostic, store data in global AD44 array
@@ -712,7 +736,7 @@ CONTAINS
                    FLUX = TMP * TS
 
                    ! Add to tracer array
-                   State_Chm%Tracers(I,J,L,N) = State_Chm%Tracers(I,J,L,N) & 
+                   State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) & 
                                               + FLUX 
 
 #if defined( NC_DIAG )
@@ -728,7 +752,7 @@ CONTAINS
        ENDDO !I
 
        ! Nullify pointer
-       ThisSpc  => NULL()
+       SpcInfo  => NULL()
 
     ENDDO !N
 !$OMP END PARALLEL DO
@@ -749,12 +773,12 @@ CONTAINS
        ! Assume success
        HCRC = HCO_SUCCESS
 
-       ! Loop over all depositing species
-       DO D = 1, Input_Opt%NUMDEP
-       
-          ! Get the corresponding GEOS-Chem tracer number
-          trc_id = Input_Opt%NTRAIND( D )
-       
+       ! Loop over all drydep species
+       DO D = 1, State_Chm%nDryDep
+
+          ! Get the species ID from the drydep ID
+          trc_id = State_Chm%Map_DryDep(D)
+      
           ! If this tracer number is scheduled for output in input.geos, 
           ! then archive the latest depvel data into the diagnostic structure
           IF ( ANY( Input_Opt%TINDEX(44,:) == trc_id ) ) THEN
@@ -787,7 +811,10 @@ CONTAINS
 
     ! For now, always output tracer emissions diagnostic since there
     ! is no logical switch for it in Input_Mod, nor an entry in input.geos
-    DO N = 1, Input_Opt%N_TRACERS
+    DO NA = 1, nAdvect
+
+       ! Get the species ID from the advected species count
+       N = State_Chm%Map_Advect(NA)
  
        ! Skip if there are no emissions
        IF ( TOTFLUX(N) == 0.0_fp ) CYCLE
@@ -824,6 +851,16 @@ CONTAINS
     ENDDO
 
 #endif
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     ! Convert State_Chm%TRACERS back: kg/m2 --> v/v (ewl, 9/30/15)
     CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,   &

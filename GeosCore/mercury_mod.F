@@ -488,42 +488,47 @@
 !                              calculate dry air gas constant from global params
 !  25 Apr 2016 - R. Yantosca - Now pass Hg category # to ADD_Hg2_* routines
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 
-      LOGICAL, SAVE   :: FIRST = .TRUE.
-      INTEGER         :: I, J, L, K, N, NN, MONTH, NSTEPS, Hg_Cat
-      REAL(fp)        :: K_DRYD0, K_DRYD2G, K_DRYD2P, K_SALT
-      REAL(fp)        :: C_OH, C_O3, C_BR, C_BRO
-      REAL(fp)        :: K_OH, K_O3, K_BR, K_BRO
-      REAL(fp)        :: K_OX, K_RED, K_DEP0, K_DEP2G, K_DEP2P
-      REAL(fp)        :: DEP_Hg0, DEP_HG2G, DEP_HG2P
-      REAL(fp)        :: DEP_HG2G_DRY, DEP_HG2G_SALT, DEP_HG2P_DRY
-      REAL(fp)        :: DEP_HG2_DRY
-      REAL(fp)        :: GROSS_OX, GROSS_OX_BR, GROSS_OX_OH, GROSS_OX_O3
-      REAL(fp)        :: GROSS_RED, NET_OX
-      REAL(fp)        :: F_PBL, FC, Faq, LWC
-      REAL(fp)        :: AREA_CM2, DEP_DRY_FLX
-      REAL(fp)        :: F_HG0_DEP
-      REAL(fp)        :: DTCHEM, DT
-      REAL(fp)        :: KMAX
-      REAL(fp)        :: A(9,9), Xold(9), Xnew(9)
-      REAL(fp)        :: s1(9), s2(9), s3(9), s4(9)
-      REAL(fp)        :: K0, R_DRY
+      ! SAVEd scalars
+      LOGICAL, SAVE      :: FIRST = .TRUE.
 
-      ! For values from Input_Opt
-      LOGICAL         :: LDYNOCEAN
-      LOGICAL         :: LGTMM 
-      LOGICAL         :: LNLPBL
-      LOGICAL         :: LPRT
-      INTEGER         :: N_TRACERS
+      ! Scalars
+      LOGICAL            :: LDYNOCEAN
+      LOGICAL            :: LGTMM 
+      LOGICAL            :: LNLPBL
+      LOGICAL            :: LPRT
+      INTEGER            :: NA, nAdvect
+      INTEGER            :: I, J, L, K, N, NN, MONTH, NSTEPS, Hg_Cat
+      REAL(fp)           :: K_DRYD0, K_DRYD2G, K_DRYD2P, K_SALT
+      REAL(fp)           :: C_OH, C_O3, C_BR, C_BRO
+      REAL(fp)           :: K_OH, K_O3, K_BR, K_BRO
+      REAL(fp)           :: K_OX, K_RED, K_DEP0, K_DEP2G, K_DEP2P
+      REAL(fp)           :: DEP_Hg0, DEP_HG2G, DEP_HG2P
+      REAL(fp)           :: DEP_HG2G_DRY, DEP_HG2G_SALT, DEP_HG2P_DRY
+      REAL(fp)           :: DEP_HG2_DRY
+      REAL(fp)           :: GROSS_OX, GROSS_OX_BR
+      REAL(fp)           :: GROSS_OX_OH, GROSS_OX_O3
+      REAL(fp)           :: GROSS_RED, NET_OX
+      REAL(fp)           :: F_PBL, FC, Faq, LWC
+      REAL(fp)           :: AREA_CM2, DEP_DRY_FLX
+      REAL(fp)           :: F_HG0_DEP
+      REAL(fp)           :: DTCHEM, DT
+      REAL(fp)           :: KMAX
+      REAL(fp)           :: A(9,9), Xold(9), Xnew(9)
+      REAL(fp)           :: s1(9), s2(9), s3(9), s4(9)
+      REAL(fp)           :: K0, R_DRY
 
       ! Pointers
-      REAL(fp), POINTER :: STT(:,:,:,:)
-      REAL(fp), POINTER :: T(:,:,:)
+      REAL(fp), POINTER  :: Spc(:,:,:,:)
+      REAL(fp), POINTER  :: T(:,:,:)
 
       ! Strings
       CHARACTER(LEN=255) :: LOC = 'CHEMMERCURY (mercury_mod.F)'
@@ -626,11 +631,25 @@
       CHARACTER(LEN=*), PARAMETER  :: METHOD='GoodsiteUpdate'
 
       ! Objects
-      TYPE(Species), POINTER :: ThisSpc
+      TYPE(Species), POINTER :: SpcInfo
 
       !================================================================
       ! CHEMMERCURY begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -640,18 +659,17 @@
       LGTMM     = Input_Opt%LGTMM
       LNLPBL    = Input_Opt%LNLPBL
       LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
-      N_TRACERS = Input_Opt%N_TRACERS
 
       ! Initialize pointers
-      STT      => State_Chm%Tracers
-      T        => State_Met%T
-      ThisSpc  => NULL()
+      Spc      => State_Chm%Species   ! Chemical species array [kg]
+      T        => State_Met%T         ! Temperature [K]
+      SpcInfo  => NULL()
 
       ! Get info about this species from the database
-      ThisSpc => State_Chm%SpcData(id_Hg2)%Info
+      SpcInfo => State_Chm%SpcData(id_Hg2)%Info
 
       ! Get Henry's Law constant for Hg2 [mol/L/atm] (ewl, 1/5/16)
-      K0 = ThisSpc%Henry_K0
+      K0 = SpcInfo%Henry_K0
 
       ! Calculate dry air gas constant in [L atm/K/mol] (ewl, 1/5/16)
       R_DRY = Rd * AIRMW / ATM
@@ -1040,9 +1058,9 @@
 
             ! Load initial concentrations into vector, kg
             Xold(:) = 0e+0_fp
-            Xold(1) = MAX( STT(I,J,L,Hg0_Id_List(N)), SMALLNUM )
-            Xold(2) = MAX( STT(I,J,L,Hg2_Id_List(N)), SMALLNUM )   
-            Xold(3) = MAX( STT(I,J,L,HgP_Id_List(N)), SMALLNUM )   
+            Xold(1) = MAX( Spc(I,J,L,Hg0_Id_List(N)), SMALLNUM )
+            Xold(2) = MAX( Spc(I,J,L,Hg2_Id_List(N)), SMALLNUM )   
+            Xold(3) = MAX( Spc(I,J,L,HgP_Id_List(N)), SMALLNUM )   
             ! Rows 4-9 accumulate oxidation, reduction, and deposition fluxes
             ! so these start at zero
 
@@ -1085,9 +1103,9 @@
             !--------------------------------------------------
 
             ! Archive Concentrations, kg/box
-            STT(I,J,L,Hg0_Id_List(N)) = Xnew(1)
-            STT(I,J,L,Hg2_Id_List(N)) = Xnew(2)
-            STT(I,J,L,HgP_Id_List(N)) = Xnew(3)
+            Spc(I,J,L,Hg0_Id_List(N)) = Xnew(1)
+            Spc(I,J,L,Hg2_Id_List(N)) = Xnew(2)
+            Spc(I,J,L,HgP_Id_List(N)) = Xnew(3)
 
             ! Accumulated fluxes, kg/box/timestep [timestep=DTCHEM]
             DEP_HG0  = Xnew(4)
@@ -1243,13 +1261,21 @@
       CALL PARTITIONHG2( am_I_Root, Input_Opt, State_Chm, RC )
 
       ! Free pointer memory
-      STT     => NULL()
+      Spc     => NULL()
       T       => NULL()
-      ThisSpc => NULL()
+      SpcInfo => NULL()
 
       IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a CHEM_HgP' )
 
-      ! Return to calling program
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CHEMMERCURY
 !EOC
 !------------------------------------------------------------------------------
@@ -1602,7 +1628,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE   :: FIRST = .TRUE. 
-      INTEGER         :: THISMONTH, I, J, N
+      INTEGER         :: THISMONTH, I, J, N, NA, nAdvect
 
       ! For fields from Input_Opt
       LOGICAL         :: LDYNOCEAN
@@ -1636,6 +1662,20 @@
      &                   'Routine EMISSIONS_RUN in emissions_mod.F')
          RETURN
       ENDIF                         
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -1751,7 +1791,6 @@
       ! If we are using the non-local PBL mixing,
       ! we need to initialize the EMIS_SAVE array (cdh, 08/27/09)
       ! EMIS_SAVE is now HG_EMIS (ckeller, 10/21/2014)
-!      IF (LNLPBL) EMIS_SAVE = 0e+0_fp
       IF ( LNLPBL ) HG_EMIS = 0.0e+0_fp
 
       ! Add Hg(0) source into State_Chm%TRACERS [kg]
@@ -1765,6 +1804,16 @@
       ! Add HgP source into State_Chm%TRACERS [kg]
       CALL SRCHgP( am_I_Root, Input_Opt, State_Chm, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHgP' )
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       
       ! Convert tracer units back to [kg/kg] after mercury emissions
       !  (ewl, 8/12/15)
@@ -1786,9 +1835,9 @@
 !
 ! !IROUTINE: emithg
 !
-! !DESCRIPTION: Subroutine EMITHG directs emission either to STT directly 
-!  or to EMIS_SAVE for use by the non-local PBL mixing. This is a programming
-!  convenience.
+! !DESCRIPTION: Subroutine EMITHG directs emission either to the chemical
+!  species array (State_Chm%Species) directly or to Hg_EMIS for use by the 
+!  non-local PBL mixing. This is a programming convenience.
 !\\
 !\\
 ! !INTERFACE:
@@ -1802,13 +1851,11 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE TIME_MOD,           ONLY : GET_TS_EMIS
-!      USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE
-!
 !
 ! !INPUT PARAMETERS:
 !
       INTEGER,        INTENT(IN)    :: I, J, L, ID ! Grid boxes + tracer #
-      REAL(fp),         INTENT(IN)    :: E_Hg        ! Hg emissions 
+      REAL(fp),       INTENT(IN)    :: E_Hg        ! Hg emissions 
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1824,47 +1871,57 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! For fields in Input_Opt
-      LOGICAL         :: LNLPBL
-
-      ! Working variables
+      ! Scalars
       REAL(fp)          :: AM2, TS
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! EMITHG begins here!
       !=================================================================
 
-      ! Copy values from Input_Opt
-      LNLPBL = Input_Opt%LNLPBL
+      IF ( Input_Opt%LNLPBL ) THEN
 
-      ! Save emissions for non-local PBL mixing or emit directly.
-      ! Make sure that emitted mass is non-negative
-      ! This is hear only for consistency with old code which warned of
-      ! underflow error (cdh, 08/27/09)
-      ! EMIS_SAVE is now HG_EMIS array. Convert kg to kg/m2/s
-      ! (ckeller, 09/23/2014)
-      IF ( LNLPBL ) THEN
-!         EMIS_SAVE(I,J,ID) = EMIS_SAVE(I,J,ID) + MAX( E_HG, 0e+0_fp )
-          AM2 = GET_AREA_M2(I,J,1)
-          TS  = GET_TS_EMIS() * 60.0e+0_fp
-!          State_Chm%Trac_Tend(I,J,1,ID) = State_Chm%Trac_Tend(I,J,1,ID)
-          HG_EMIS(I,J,ID) = HG_EMIS(I,J,ID) 
-     &                    + ( MAX(E_HG,0e+0_fp) / AM2 / TS )
+         !--------------------------------------------------------------
+         ! We are using FULL PBL MIXING (routine TURBDAY)
+
+         ! Save emissions for non-local PBL mixing or emit directly.
+         ! Make sure that emitted mass is non-negative
+         ! This is hear only for consistency with old code which warned
+         ! of underflow error (cdh, 08/27/09)
+         ! EMIS_SAVE is now HG_EMIS array. Convert kg to kg/m2/s
+         ! (ckeller, 09/23/2014)
+         !--------------------------------------------------------------
+
+         ! Surface area [m2]
+         AM2             = GET_AREA_M2(I,J,1)
+
+         ! Emission timestep
+         TS              = GET_TS_EMIS() * 60.0e+0_fp
+
+         ! Save emissions as [kg/m2/s].  These will be added
+         ! to the chemical species array in routine DO_TEND
+         ! (in mixing_mod.F90).
+         HG_EMIS(I,J,ID) = HG_EMIS(I,J,ID) 
+     &                   + ( MAX(E_HG,0e+0_fp) / AM2 / TS )
+
       ELSE
 
-         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-         ! (mpayer, 12/6/12)
-         STT => State_Chm%Tracers
+         !--------------------------------------------------------------
+         ! We are using FULL PBL MIXING (routine TURBDAY)
+         ! so add directly to the State_Chm%Species array
+         !--------------------------------------------------------------
 
-         STT(I,J,L,ID) = STT(I,J,L,ID) + MAX( E_HG, 0e+0_fp )
+         ! Point to the chemical spcies array [kg]
+         Spc             => State_Chm%Species
+
+         ! Add emissions 
+         Spc(I,J,L,ID)   =  Spc(I,J,L,ID) + MAX( E_HG, 0e+0_fp )
 
          ! Free pointer
-         NULLIFY( STT )
+         Spc             => NULL()
+
       ENDIF
 
       END SUBROUTINE EMITHG
@@ -1919,18 +1976,19 @@
 !        Now use ID_Hg0 index array from "tracerid_mod.f".  Now make sure
 !        STT does not underflow. (cdh, bmy, 4/6/06)
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I,      J,    L,        N,    PBL_MAX
-      INTEGER :: NN !eds 9/9/10 
-      REAL(fp)  :: DTSRCE, E_Hg, F_OF_PBL, T_Hg, T_Hg_An
+      INTEGER  :: I,      J,    L,        N,    NN,     PBL_MAX
+      REAL(fp) :: DTSRCE, E_Hg, F_OF_PBL, T_Hg, T_Hg_An
 
       ! For fields from Input_Opt
-      LOGICAL :: LSPLIT, LPREINDHG, LGTMM
+      LOGICAL  :: LSPLIT, LPREINDHG, LGTMM
 
       !=================================================================
       ! SRCHg0 begins here!
@@ -2702,11 +2760,11 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I,      J,        L,    N,   PBL_MAX
-      REAL(fp)  :: DTSRCE, F_OF_PBL, E_Hg 
+      INTEGER  :: I,      J,        L,    N,   PBL_MAX
+      REAL(fp) :: DTSRCE, F_OF_PBL, E_Hg 
 
       ! For values from Input_Opt
-      LOGICAL :: LSPLIT, LPREINDHG
+      LOGICAL  :: LSPLIT, LPREINDHG
 
       !=================================================================
       ! SRCHg2 begins here!
@@ -4345,36 +4403,30 @@
 !                              we no longer need to 'reverse' partition. 
 !  03 Jun 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  18 Nov 2014 - M. Yannetti - Took out OCEAN_MERCURY_MOD calling Fp
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       INTEGER           :: I, J, L, N
       REAL(fp)          :: FGas, Hg2TOT
 
-      ! For values from Input_Opt
-      INTEGER           :: N_TRACERS
-
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! PARTITIONHG2 begins here!
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS 
+      RC  =  GIGC_SUCCESS 
 
-      ! Copy values from Input_Opt
-      N_TRACERS = Input_Opt%N_TRACERS
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT       => State_Chm%Tracers
+      ! Point to the chemical species array [kg]
+      Spc => State_Chm%Species
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -4396,14 +4448,14 @@
          DO N = 1, N_HG_CATS
 
             ! Total Hg(II) (gas +aerosol)
-            HG2TOT = STT(I,J,L,Hg2_Id_List(N)) + 
-     &               STT(I,J,L,HgP_Id_List(N))
+            HG2TOT = Spc(I,J,L,Hg2_Id_List(N)) + 
+     &               Spc(I,J,L,HgP_Id_List(N))
 
             ! Gas portion
-            STT(I,J,L,Hg2_Id_List(N)) = Hg2TOT * Fgas 
+            Spc(I,J,L,Hg2_Id_List(N)) = Hg2TOT * Fgas 
 
             ! Aerosol portion
-            STT(I,J,L,HgP_Id_List(N)) = Hg2TOT * (1e+0_fp - Fgas)
+            Spc(I,J,L,HgP_Id_List(N)) = Hg2TOT * (1e+0_fp - Fgas)
 
          ENDDO
 
@@ -4413,7 +4465,7 @@
 !$OMP END PARALLEL DO
       
       ! Free pointer memory
-      STT => NULL()
+      Spc => NULL()
 
       ! Return to calling program
       END SUBROUTINE PARTITIONHG2
@@ -4617,6 +4669,7 @@
 !  12 Mar 2015 - R. Yantosca - Now test if HEMCO_Collections are defined
 !  25 Apr 2016 - R. Yantosca - Now use species database for tagHg indexing
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4634,7 +4687,7 @@
       CHARACTER(LEN=255)     :: LOCATION
 
       ! Pointers
-      TYPE(Species), POINTER :: ThisSpc
+      TYPE(Species), POINTER :: SpcInfo
 
       !=================================================================
       ! INIT_MERCURY begins here!
@@ -4647,7 +4700,7 @@
       IF ( IS_INIT ) RETURN
 
       ! Initialize 
-      ThisSpc        => NULL()
+      SpcInfo        => NULL()
       LDRYD          = Input_Opt%LDRYD            ! Use drydep?
       LGTMM          = Input_Opt%LGTMM            ! Use GTMM model?
       LNLPBL         = Input_Opt%LNLPBL           ! Use non-local PBL?
@@ -4663,89 +4716,89 @@
       !=================================================================
 
       ! Store the # of tagged Hg categories in a module variable
-      N_Hg_CATS = State_Chm%N_Hg_CATS
+      N_Hg_CATS   = State_Chm%N_Hg_CATS
       
       ! Hg species index corresponding to a given Hg category number
-      Hg0_Id_List    => State_Chm%Hg0_Id_List
-      Hg2_Id_List    => State_Chm%Hg2_Id_List
-      HgP_Id_List    => State_Chm%HgP_Id_List
+      Hg0_Id_List => State_Chm%Hg0_Id_List
+      Hg2_Id_List => State_Chm%Hg2_Id_List
+      HgP_Id_List => State_Chm%HgP_Id_List
 
       ! Locate various tracer flags
       DO N = 1, State_Chm%nSpecies
          
          ! Point to the species database entry for tracer # N
-         ThisSpc => State_Chm%SpcData(N)%Info
+         SpcInfo => State_Chm%SpcData(N)%Info
 
-         SELECT CASE( TRIM( ThisSpc%Name ) )
+         SELECT CASE( TRIM( SpcInfo%Name ) )
             CASE( 'Hg0'     )
-               id_Hg0    = ThisSpc%ModelId
-               ID_Hg_tot = ThisSpc%Hg_Cat
+               id_Hg0    = SpcInfo%ModelId
+               ID_Hg_tot = SpcInfo%Hg_Cat
             CASE( 'Hg2'     )
-               id_Hg2    = ThisSpc%ModelId
+               id_Hg2    = SpcInfo%ModelId
             CASE( 'HgP'     )
-               id_HgP    = ThisSpc%ModelId
+               id_HgP    = SpcInfo%ModelId
             CASE( 'Hg0_can' )
-               ID_Hg_can = ThisSpc%Hg_Cat
+               ID_Hg_can = SpcInfo%Hg_Cat
             CASE( 'Hg0_usa' )
-               ID_Hg_usa = ThisSpc%Hg_Cat
+               ID_Hg_usa = SpcInfo%Hg_Cat
             CASE( 'Hg0_cam' )
-               ID_Hg_cam = ThisSpc%Hg_Cat 
+               ID_Hg_cam = SpcInfo%Hg_Cat 
             CASE( 'Hg0_sam' )
-               ID_Hg_sam = ThisSpc%Hg_Cat 
+               ID_Hg_sam = SpcInfo%Hg_Cat 
             CASE( 'Hg0_waf' )
-               ID_Hg_waf = ThisSpc%Hg_Cat
+               ID_Hg_waf = SpcInfo%Hg_Cat
             CASE( 'Hg0_eaf' )
-               ID_Hg_eaf = ThisSpc%Hg_Cat 
+               ID_Hg_eaf = SpcInfo%Hg_Cat 
             CASE( 'Hg0_saf' )
-               ID_Hg_saf = ThisSpc%Hg_Cat 
+               ID_Hg_saf = SpcInfo%Hg_Cat 
             CASE( 'Hg0_naf' )
-               ID_Hg_naf = ThisSpc%Hg_Cat
+               ID_Hg_naf = SpcInfo%Hg_Cat
             CASE( 'Hg0_eur' )
-               ID_Hg_eur = ThisSpc%Hg_Cat 
+               ID_Hg_eur = SpcInfo%Hg_Cat 
             CASE( 'Hg0_eeu' )
-               ID_Hg_eeu = ThisSpc%Hg_Cat 
+               ID_Hg_eeu = SpcInfo%Hg_Cat 
             CASE( 'Hg0_sov' )
-               ID_Hg_sov = ThisSpc%Hg_Cat
+               ID_Hg_sov = SpcInfo%Hg_Cat
             CASE( 'Hg0_mde' )
-               ID_Hg_mde = ThisSpc%Hg_Cat 
+               ID_Hg_mde = SpcInfo%Hg_Cat 
             CASE( 'Hg0_sas' )
-               ID_Hg_sas = ThisSpc%Hg_Cat 
+               ID_Hg_sas = SpcInfo%Hg_Cat 
             CASE( 'Hg0_eas' )
-               ID_Hg_eas = ThisSpc%Hg_Cat
+               ID_Hg_eas = SpcInfo%Hg_Cat
             CASE( 'Hg0_sea' )
-               ID_Hg_sea = ThisSpc%Hg_Cat 
+               ID_Hg_sea = SpcInfo%Hg_Cat 
             CASE( 'Hg0_jpn' )
-               ID_Hg_jpn = ThisSpc%Hg_Cat 
+               ID_Hg_jpn = SpcInfo%Hg_Cat 
             CASE( 'Hg0_oce' )
-               ID_Hg_oce = ThisSpc%Hg_Cat
+               ID_Hg_oce = SpcInfo%Hg_Cat
             CASE( 'Hg0_so'  )
-               ID_Hg_so  = ThisSpc%Hg_Cat 
+               ID_Hg_so  = SpcInfo%Hg_Cat 
             CASE( 'Hg0_bb'  )
-               ID_Hg_bb  = ThisSpc%Hg_Cat 
+               ID_Hg_bb  = SpcInfo%Hg_Cat 
             CASE( 'Hg0_geo' )
-               ID_Hg_geo = ThisSpc%Hg_Cat
+               ID_Hg_geo = SpcInfo%Hg_Cat
             CASE( 'Hg0_atl' ) 
-               ID_Hg_atl = ThisSpc%Hg_Cat
+               ID_Hg_atl = SpcInfo%Hg_Cat
             CASE( 'Hg0_nat' )
-               ID_Hg_nat = ThisSpc%Hg_Cat
+               ID_Hg_nat = SpcInfo%Hg_Cat
             CASE( 'Hg0_sat' )
-               ID_Hg_sat = ThisSpc%Hg_Cat
+               ID_Hg_sat = SpcInfo%Hg_Cat
             CASE( 'Hg0_npa' )
-               ID_Hg_npa = ThisSpc%Hg_Cat
+               ID_Hg_npa = SpcInfo%Hg_Cat
             CASE( 'Hg0_arc' )
-               ID_Hg_arc = ThisSpc%Hg_Cat
+               ID_Hg_arc = SpcInfo%Hg_Cat
             CASE( 'Hg0_ant' )
-               ID_Hg_ant = ThisSpc%Hg_Cat
+               ID_Hg_ant = SpcInfo%Hg_Cat
             CASE( 'Hg0_ocn' )
-               ID_Hg_ocn = ThisSpc%Hg_Cat
+               ID_Hg_ocn = SpcInfo%Hg_Cat
             CASE( 'Hg0_str' )
-               ID_Hg_str = ThisSpc%Hg_cat
+               ID_Hg_str = SpcInfo%Hg_cat
             CASE DEFAULT
                ! Do nothing
          END SELECT
 
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
       ENDDO
 
       !=================================================================

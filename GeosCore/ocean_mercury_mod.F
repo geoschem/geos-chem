@@ -974,6 +974,8 @@
 !                              (orig. 3/24/12)
 !  26 May 2016 - E. Lundgren - Replace input_opt TRACER_MW_KG with species
 !                              database field emMW_g (emitted species g/mol)
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1011,6 +1013,7 @@
       LOGICAL, SAVE        :: FIRST = .TRUE.
       LOGICAL              :: IS_OCEAN_BOX ! jaf
       CHARACTER(LEN=255)   :: FILENAME
+      INTEGER              :: nAdvect,   NA
       INTEGER              :: I,         J,        NN, C
       INTEGER              :: N,         N_tot_oc
       INTEGER              :: NEXTMONTH, THISMONTH
@@ -1086,9 +1089,7 @@
       LOGICAL              :: LArcticRiv,  LKRedUV
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fpp), POINTER   :: STT(:,:,:,:)
+      REAL(fpp), POINTER   :: Spc(:,:,:,:)
 
       ! Pointers to fields in the HEMCO data structure
       REAL(f4), POINTER    :: TOMS   (:,:)   ! O3   
@@ -1118,7 +1119,6 @@
       LSPLIT       = Input_Opt%LSPLIT
       LArcticRiv   = Input_Opt%LArcticRiv
       LKRedUV      = Input_Opt%LKRedUV
-      N_TRACERS    = Input_Opt%N_TRACERS
 
       ! Loop limit for use below
       IF ( LSPLIT ) THEN
@@ -1278,9 +1278,8 @@
      &              A_ARCTIC_OCEAN
       ENDIF
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to the chemical species array [kg]
+      Spc => State_Chm%Species
 
       ! Loop over surface boxes  
 !$OMP PARALLEL DO
@@ -1907,7 +1906,7 @@
             ! (1) Hg2 <-> HgP and HgP sinks
             ! (2) Hg2 <-> Hg0 and Hg0 evades
             !
-            ! NOTE: N is the GEOS-CHEM tracer # (for STT)
+            ! NOTE: N is the GEOS-CHEM tracer # (for Spc)
             !       and NN is the Hg category # (for Hg0aq, Hg2aq, HgP)
             !===========================================================
 
@@ -2088,7 +2087,7 @@
                ! Calculate new Hg(0) mass
                !--------------------------------------------------------
 
-               ! Hg0 tracer number (for STT)
+               ! Hg0 tracer number (for Spc)
                N             = Hg0_Id_List(NN)
 
                ! Add converted Hg(II) and subtract converted Hg(0) mass 
@@ -2104,7 +2103,7 @@
      &                         ( A_M2          * FRAC_O ) / MLDcm 
                
                ! Gas phase Hg(0) concentration: convert [kg] -> [ng/L]
-               CHg0          = STT(I,J,1,N) * 1.0e+9_fpp /
+               CHg0          = Spc(I,J,1,N) * 1.0e+9_fpp /
      &                         State_Met%AIRVOL(I,J,1)
                
                !--------------------------------------------------------
@@ -2161,15 +2160,15 @@
 
                 
                ! Cap the neg flux w/ the available Hg(0) atm mass
-               IF ( (-FLUX(I,J,NN) * DTSRCE ) > STT(I,J,1,N) ) THEN
-                  FLUX(I,J,NN) = -STT(I,J,1,N) / DTSRCE       
+               IF ( (-FLUX(I,J,NN) * DTSRCE ) > Spc(I,J,1,N) ) THEN
+                  FLUX(I,J,NN) = -Spc(I,J,1,N) / DTSRCE       
                ENDIF
                 
                
                ! Cap FDOWN with available Hg(0) atm mass
 
-!               IF ((FDOWN(I,J,NN)*DTSRCE)>STT(I,J,1,N)) THEN
-!                  FDOWN(I,J,NN) = STT(I,J,1,N) / DTSRCE
+!               IF ((FDOWN(I,J,NN)*DTSRCE)>Spc(I,J,1,N)) THEN
+!                  FDOWN(I,J,NN) = Spc(I,J,1,N) / DTSRCE
 !               ENDIF
 
                ! make sure Fup and Fdown do not underflow either
@@ -2270,7 +2269,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointers
-       STT     => NULL()
+       Spc     => NULL()
        TOMS    => NULL()
        TOMS_PD => NULL()
        TOMS_LT => NULL()
