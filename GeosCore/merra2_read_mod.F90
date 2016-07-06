@@ -1763,7 +1763,7 @@ CONTAINS
     ! Read PS
     v_name = "PS"
     CALL NcRd( Q2, fI3_1, TRIM(v_name), st3d, ct3d )
-    State_Met%PS1 = Q2
+    State_Met%PS1_WET = Q2
 
     !-------------------------------------------------
     ! Read 4D data (3D spatial + 1D time)
@@ -1821,8 +1821,8 @@ CONTAINS
     State_Met%T         = State_Met%TMPU1
     State_Met%SPHU      = State_Met%SPHU1
 
-    ! Convert PS1 from [Pa] to [hPa]
-    State_Met%PS1 = State_Met%PS1 * 1e-2_fp
+    ! Convert PS1_WET from [Pa] to [hPa]
+    State_Met%PS1_WET = State_Met%PS1_WET * 1e-2_fp
 
     !======================================================================
     ! Diagnostics, cleanup, and quit
@@ -1984,7 +1984,7 @@ CONTAINS
     ! Read PS
     v_name = "PS"
     CALL NcRd( Q2, fI3_2, TRIM(v_name), st3d, ct3d )
-    State_Met%PS2 = Q2
+    State_Met%PS2_WET = Q2
 
     !-------------------------------------------------
     ! Read 4D data (3D spatial + 1D time)
@@ -2034,8 +2034,8 @@ CONTAINS
 
     ENDWHERE
 
-    ! Convert PS1 from [Pa] to [hPa]
-    State_Met%PS2 = State_Met%PS2 * 1e-2_fp
+    ! Convert PS2_WET from [Pa] to [hPa]
+    State_Met%PS2_WET = State_Met%PS2_WET * 1e-2_fp
 
     !======================================================================
     ! Diagnostics, cleanup, and quit

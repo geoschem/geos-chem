@@ -1846,7 +1846,7 @@ CONTAINS
     ! Read PS
     v_name = "PS"
     CALL NcRd( Q2, fI3_1, TRIM(v_name), st3d, ct3d )
-    State_Met%PS1 = Q2
+    State_Met%PS1_WET = Q2
 
     !-------------------------------------------------
     ! Read 4D data (3D spatial + 1D time)
@@ -2073,7 +2073,7 @@ CONTAINS
     ! Read PS
     v_name = "PS"
     CALL NcRd( Q2, fI3_2, TRIM(v_name), st3d, ct3d )
-    State_Met%PS2 = Q2
+    State_Met%PS2_WET = Q2
 
     !-------------------------------------------------
     ! Read 4D data (3D spatial + 1D time)

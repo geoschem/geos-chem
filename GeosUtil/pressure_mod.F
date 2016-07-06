@@ -24,17 +24,17 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC  :: INIT_PRESSURE
       PUBLIC  :: GET_AP
       PUBLIC  :: GET_BP
-      PUBLIC  :: GET_PCENTER              ! wet air P at grid center
       PUBLIC  :: GET_PEDGE                ! wet air P at lower grid edge
-      PUBLIC  :: GET_PEDGE_FULLGRID       ! wet air P at lower grid edge
+      PUBLIC  :: GET_PCENTER              ! wet air P at grid center
+      PUBLIC  :: GET_PEDGE_FULLGRID
+      PUBLIC  :: GET_PEDGE_DRY            ! ** moisture fix **
+      PUBLIC  :: GET_DELP_DRY             ! ** moisture fix **
+      PUBLIC  :: INIT_PRESSURE
+      PUBLIC  :: SET_FLOATING_PRESSURES   ! ** moisture fix **
       PUBLIC  :: CLEANUP_PRESSURE
-      PUBLIC  :: GET_PEDGE_DRY                ! MOISTURE FIX (ewl, 6/16/16)
-      PUBLIC  :: GET_PEDGE_TEST               ! MOISTURE FIX (ewl, 6/16/16)
-      PUBLIC  :: SET_FLOATING_PRESSURES       ! MOISTURE FIX (ewl, 5/4/16)
-!      PUBLIC  :: GET_PFLT_DRY                 ! MOISTURE FIX (ewl, 5/4/16)
+
 
 #if defined( ESMF_ )
       PUBLIC  :: Accept_External_Pedge
@@ -109,6 +109,7 @@
 !  18 Sep 2013 - M. Long     - Now use #if defined( ESMF_ ) for HPC code
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  11 Aug 2015 - R. Yantosca - Added support for MERRA2 data
+!  06 Jul 2016 - E. Lundgren - Renamed PFLT to PFLT_WET and added PFLT_DRY
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -118,8 +119,6 @@
       ! Module variables
       REAL(fp), ALLOCATABLE :: AP(:)                  ! "A" term for hybrid grid
       REAL(fp), ALLOCATABLE :: BP(:)                  ! "B" term for hybrid grid
-! Prior to 04 May 2016: old variable PFLT includes moisture
-!      REAL(fp), ALLOCATABLE :: PFLT(:,:)              ! "Floating" sfc pressure
       REAL(fp), ALLOCATABLE :: PFLT_DRY(:,:)          ! "Floating" dry sfc pres
       REAL(fp), ALLOCATABLE :: PFLT_WET(:,:)          ! "Floating" wet sfc pres
       REAL(fp), ALLOCATABLE :: AP_FULLGRID(:)         ! "A" term for full grid
@@ -214,10 +213,8 @@
 ! !IROUTINE: set_floating_pressures
 !
 ! !DESCRIPTION: Subroutine SET\_FLOATING\_PRESSURE initializes the 
-!  dry floating pressure field PFLT_DRY with the State_Met field
-!  PSC2_DRY (interpolated dry surface pressure).  It then calculates 
-!  the wet floating pressure from the dry floating pressure by 
-!  incorporating the current state specific humidity.
+!  dry and wet floating pressure fields PFLT_DRY and PFLT_WET with the 
+!  "true" surface pressures PSC2_DRY and PSC2_WET, stored in State_Met.
 !\\
 !\\
 ! !INTERFACE:
@@ -239,6 +236,11 @@
 ! !OUTPUT ARGUMENTS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!   The surface pressures PSC2_DRY and PSC2_WET represent the most recently
+!   interpolated values derived from GMAO instantaneous atmospheric pressure
+!   at the surface (including moisture).
 !
 ! !REVISION HISTORY:
 !  21 Jun 2016 - E. Lundgren- Initial version
@@ -272,82 +274,41 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! DEBUGGING (ewl)
-         ! NOTE: If using gcap, need to add PTOP - come back to this later
-         ! END DEBUGGING
-
-         ! Set the floating dry pressure, PFLT_DRY, to the 
-         ! interpolate dry pressure, PSC2_DRY
+#if defined( GCAP )
+         !-----------------------------
+         ! GCAP met fields
+         !-----------------------------
+         ! Set the floating pressures to PTOP plus the most recently
+         ! interpolated instantaneous pressures
+         PFLT_DRY(I,J) = State_Met%PSC2_DRY(I,J) + PTOP
+#else
+         !-------------------------------------------------------
+         ! GEOS-4, GEOS-5, GEOS-FP, MERRA, and MERRA-2 met fields
+         !-------------------------------------------------------
+         ! Set the floating pressures to the most recently interpolated
+         ! instantaneous pressures
          PFLT_DRY(I,J) = State_Met%PSC2_DRY(I,J)
+         PFLT_WET(I,J) = State_Met%PSC2_WET(I,J)
+#endif
 
-         ! Check for NaN or Infinities
+         ! Check for NaN or Infinities in PFLT_DRY and PFLT_WET
          ERR_LOC = (/ I, J, 0, 0 /)
          ERR_VAR = 'PFLT_DRY'
          ERR_MSG = 'set_floating_pressures:1'
          CALL CHECK_VALUE( PFLT_DRY(I,J), ERR_LOC, ERR_VAR, ERR_MSG )
-
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! for the wet pressure, use the old way and set PFLT_WET to PSC2 
-      ! (the interpolated GMAO pressure). The new way is under 
-      ! construction
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, ERR_LOC, ERR_VAR, ERR_MSG )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR    
-         PFLT_WET(I,J) = State_Met%PSC2(I,J)
-
-         ! Check for NaN or Infinities
-         ERR_LOC = (/ I, J, 0, 0 /)
          ERR_VAR = 'PFLT_WET'
-         ERR_MSG = 'set_floating_pressures:1'
+         ERR_MSG = 'set_floating_pressures:2'
          CALL CHECK_VALUE( PFLT_WET(I,J), ERR_LOC, ERR_VAR, ERR_MSG )
 
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
-!      ! New way: calculate PFLT_WET using PFLT_DRY and specific humidity
-!      PFLT_WET = 0.e+0_fp
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, PEDGE1, PEDGE2, SPHU_KgKg )
-!!$OMP+PRIVATE( ERR_LOC, ERR_VAR, ERR_MSG )
-!      DO L = 1, LLPAR
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!
-!         ! Convert specific humidity from g/kg to kg/kg locally
-!         SPHU_KgKg = State_Met%SPHU(I,J,L) * 1.0e-3_fp
-!
-!         ! Calculate top and bottom dry edge pressures for this 
-!         ! level by applying AP and BP params to dry surface pressure
-!         PEDGE1    = GET_AP(L)   + GET_BP(L)   * PFLT_DRY(I,J)
-!         PEDGE2    = GET_AP(L+1) + GET_BP(L+1) * PFLT_DRY(I,J)
-!
-!         ! Add the wet delta pressure for this level to the
-!         ! cumulative wet pressure in this column
-!         PFLT_WET(I,J) = PFLT_WET(I,J) + ( PEDGE2 - PEDGE1 ) / 
-!     &                   ( 1.e+0_fp - SPHU_KgKg )
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-
-      ! NOTE: To accurately get the wet pressure back from the dry
-      !       pressure using this method, must also add in a PTOP
-      !       bias factor...this is under construction
-
       ! DEBUGGING (ewl)
       PRINT *, "   New PFLT_DRY(56,20): ", PFLT_DRY(56,20)
       PRINT *, "   New PFLT_WET(56,20): ", PFLT_WET(56,20)
       ! END DEBUGGING
 
-      ! Return to calling program
       END SUBROUTINE SET_FLOATING_PRESSURES
 !EOC
 !------------------------------------------------------------------------------
@@ -400,268 +361,38 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+# if defined( GCAP )
+      !-----------------------------
+      ! GCAP met fields
+      !-----------------------------
+#if defined( ESMF_ )
+      ! Pressure [hPa] at bottom edge of level L (see documentation header)
+      ! Taken from the GCM fields
+      PEDGE = EXTERNAL_PEDGE(I,J,L)
+#else
+      ! Pressure [hPa] at bottom edge of level L (see documentation header)
+      ! Computed for use within GEOS-Chem
+      PEDGE = AP(L) + ( BP(L) * ( PFLT_WET(I,J) - PTOP ) ) 
+#endif
 
+# else
       !-------------------------------------------------------
       ! GEOS-4, GEOS-5, GEOS-FP, MERRA, and MERRA-2 met fields
       !-------------------------------------------------------
-
 #if defined( ESMF_ )
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
       ! Taken from the GCM fields
       PEDGE = EXTERNAL_PEDGE(I,J,L)
 #else
-      ! MOISTURE FIX (ewl, 5/4/16) - Use new variable name PFLT_WET
+      ! Pressure [hPa] at bottom edge of level L (see documentation header)
+      ! Computed for use w/in GEOS-Chem
       PEDGE = AP(L) + ( BP(L) * PFLT_WET(I,J) )
-
-      ! Prior to 04 May 2016: Use old variable name PFLT
-      !! Pressure [hPa] at bottom edge of level L (see documentation header)
-      !! Computed for use w/in GEOS-Chem
-      !PEDGE = AP(L) + ( BP(L) * PFLT(I,J) )
-#endif
-
-#else 
-
-      !-----------------------------
-      ! GEOS-3 & GCAP met fields
-      !-----------------------------
-
-#if defined( ESMF_ )
-      ! Pressure [hPa] at bottom edge of level L (see documentation header)
-      ! Taken from the GCM fields
-      PEDGE = EXTERNAL_PEDGE(I,J,L)
-#else
-      ! MOISTURE FIX (ewl, 5/4/16) - Use new variable name PFLT_WET
-      PEDGE = AP(L) + ( BP(L) * ( PFLT_WET(I,J) - PTOP ) ) 
-
-      ! Prior to 04 May 2016: Use old variable name PFLT
-      !! Pressure [hPa] at bottom edge of level L (see documentation header)
-      !! Computed for use within GEOS-Chem
-      !PEDGE = AP(L) + ( BP(L) * ( PFLT(I,J) - PTOP ) )
 #endif
 
 #endif     
 
       END FUNCTION GET_PEDGE 
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_pedge_test
-!
-! !DESCRIPTION: Function GET\_PEDGE\_TEST returns the pressure at the 
-!  bottom edge of level L by calculating it from the dry surface pressure
-!  and state humidity. This function is a test to allow passing State_Met
-!  to pedge in dao_mod only as part of the moisture fix debugging.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_PEDGE_TEST( II, JJ, LL, State_Met ) RESULT( PEDGE )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD   ! PTOP
-      USE GIGC_State_Met_Mod, ONLY : MetState
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN)        :: II        ! GEOS-Chem lon   index
-      INTEGER, INTENT(IN)        :: JJ        ! GEOS-Chem lat   index
-      INTEGER, INTENT(IN)        :: LL        ! GEOS-Chem level index
-      TYPE(MetState), INTENT(IN) :: State_Met ! Meteorology state object
-!
-! !RETURN VALUE:
-!
-      INTEGER               :: L, P1, P2
-      REAL(f8)              :: PEDGE  ! Pressure @ bottom edge of (I,J,L) [hPa]
-!
-! !REVISION HISTORY:
-!  21 Jun 2016 - E. Lundgren - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-      ! NOTE: This routine is for testing only!!!
-
-      ! Calculate PEDGE from PFLT_DRY and SPHU
-      PEDGE = 0.e+0_fp
-      DO L = LL, LLPAR
-        P1 = GET_AP(L) + GET_BP(L) * PFLT_DRY(II,JJ)
-        P2 = GET_AP(L+1) + GET_BP(L+1) * PFLT_DRY(II,JJ)
-        PEDGE = PEDGE + ( P1 - P2 ) / 
-     &                ( 1.e+0_fp - State_Met%SPHU(II,JJ,L) * 1.0e-3_fp )
-      ENDDO   
-
-      END FUNCTION GET_PEDGE_TEST 
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_pedge_dry
-!
-! !DESCRIPTION: Function GET\_PEDGE\_DRY returns the pressure at the 
-!  bottom edge of level L, reconstructed using the dry surface pressure. 
-!  L=1 is the surface, L=LLPAR+1 is the atm top.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_PEDGE_DRY( I, J, L ) RESULT( PEDGE_DRY )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD   ! PTOP
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: I      ! GEOS-Chem lon   index
-      INTEGER, INTENT(IN) :: J      ! GEOS-Chem lat   index
-      INTEGER, INTENT(IN) :: L      ! GEOS-Chem level index
-!
-! !RETURN VALUE:
-!
-      REAL(f8)              :: PEDGE_DRY  ! Prssr @ bottom edge of (I,J,L) [hPa]
-!
-! !REVISION HISTORY:
-!  16 Jun 2016 - E. Lundgren - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-! MOISTURE FIX NOTE: Will this break GCHP? Took out external grid...
-! Should be okay as long as this is used only in transport.
-! But... it is in AIRQNT and interp, etc... Might need to bracket
-! those with if transport is on. 
-
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
-      !-------------------------------------------------------
-      ! GEOS-4, GEOS-5, GEOS-FP, MERRA, and MERRA-2 met fields
-      !-------------------------------------------------------
-      PEDGE_DRY = AP(L) + ( BP(L) * PFLT_DRY(I,J) )
-
-#else 
-
-      !-----------------------------
-      ! GEOS-3 & GCAP met fields
-      !-----------------------------
-      PEDGE_DRY = AP(L) + ( BP(L) * ( PFLT_DRY(I,J) - PTOP ) ) 
-#endif    
-
-      END FUNCTION GET_PEDGE_DRY 
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_pedge_fullgrid
-!
-! !DESCRIPTION: Function GET\_PEDGE\_FULLGRID returns the pressure at the
-!  bottom edge of level L of the unreduced vertical grid.  L=1 is the surface, 
-!  L=LLLPAR+1 is the atm top.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_PEDGE_FULLGRID( I, J, L ) RESULT( PEDGE )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD   ! PTOP
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: I      ! GEOS-Chem lon   index
-      INTEGER, INTENT(IN) :: J      ! GEOS-Chem lat   index
-      INTEGER, INTENT(IN) :: L      ! GEOS-Chem level index
-!
-! !RETURN VALUE:
-!
-      REAL(fp)              :: PEDGE  ! Pressure @ bottom edge of (I,J,L) [hPa]
-!
-! !REVISION HISTORY:
-!  (1 ) Modified from GET_PEDGE (cdh, 1/22/09)
-!  02 Feb 2012 - R. Yantosca - Compute PEDGE for GEOS-5.7.2 the same as MERRA
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  11 Aug 2015 - R. Yantosca - Compute PEDGE for MERRA2 the same as for GEOS-FP
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! GET_PEDGE_FULLGRID begins here!
-      !=================================================================
-
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
-      !-----------------------------
-      ! GEOS-4 & GEOS-5 met fields
-      !-----------------------------
-
-      ! MOISTURE FIX (ewl, 5/4/16) - Use new variable name PFLT_WET
-      PEDGE = AP_FULLGRID(L) + ( BP_FULLGRID(L) * PFLT_WET(I,J) )
-
-      ! Prior to 04 May 2016: Use old variable name PFLT
-      !! Pressure [hPa] at bottom edge of level L (see documentation header)
-      !PEDGE = AP_FULLGRID(L) + ( BP_FULLGRID(L) * PFLT(I,J) )
-
-#else 
-
-      !-----------------------------
-      ! GEOS-3 & GCAP met fields
-      !-----------------------------
-
-      ! MOISTURE FIX (ewl, 5/4/16) - Use new variable name PFLT_WET
-      PEDGE = AP_FULLGRID(L) + ( BP_FULLGRID(L) * 
-     &        ( PFLT_WET(I,J) - PTOP ) ) 
-
-      ! Prior to 04 May 2016: Use old variable name PFLT
-      !! Pressure [hPa] at bottom edge of level L (see documentation header)
-      !PEDGE = AP_FULLGRID(L) + ( BP_FULLGRID(L) * ( PFLT(I,J) - PTOP ) )
-
-#endif     
- 
-      ! Return to calling program
-      END FUNCTION GET_PEDGE_FULLGRID
-!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: get_pflt_dry
-!!
-!! !DESCRIPTION: Function GET\_PFLT\_DRY returns the dry surface pressure at 
-!!   (lat,lon) grid point (I,J).
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      FUNCTION GET_PFLT_DRY( I, J ) RESULT( PS )
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      INTEGER, INTENT(IN) :: I        ! GEOS-Chem lon   index
-!      INTEGER, INTENT(IN) :: J        ! GEOS-Chem lat   index
-!!
-!! !RETURN VALUE:
-!!
-!      REAL(fp)            :: PS  ! Floating dry pressure @ (I,J,1) [hPa]
-!!
-!! !REVISION HISTORY:
-!!  04 May 2016 - E. Lundgren - Initial version
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!      PS = PFLT_DRY(I,J)
-!
-!      END FUNCTION GET_PFLT_DRY
-!!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -705,6 +436,179 @@
       PCENTER = 0.5e+0_fp * ( GET_PEDGE(I,J,L) + GET_PEDGE(I,J,L+1) )
 
       END FUNCTION GET_PCENTER
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_pedge_fullgrid
+!
+! !DESCRIPTION: Function GET\_PEDGE\_FULLGRID returns the pressure at the
+!  bottom edge of level L of the unreduced vertical grid.  L=1 is the surface, 
+!  L=LLLPAR+1 is the atm top.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_PEDGE_FULLGRID( I, J, L ) RESULT( PEDGE )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD   ! PTOP
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: I      ! GEOS-Chem lon   index
+      INTEGER, INTENT(IN) :: J      ! GEOS-Chem lat   index
+      INTEGER, INTENT(IN) :: L      ! GEOS-Chem level index
+!
+! !RETURN VALUE:
+!
+      REAL(fp)              :: PEDGE  ! Pressure @ bottom edge of (I,J,L) [hPa]
+!
+! !REVISION HISTORY:
+!  (1 ) Modified from GET_PEDGE (cdh, 1/22/09)
+!  02 Feb 2012 - R. Yantosca - Compute PEDGE for GEOS-5.7.2 the same as MERRA
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  11 Aug 2015 - R. Yantosca - Compute PEDGE for MERRA2 the same as for GEOS-FP
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      !=================================================================
+      ! GET_PEDGE_FULLGRID begins here!
+      !=================================================================
+#if defined( GCAP ) 
+      !-----------------------------
+      ! GCAP met fields
+      !-----------------------------
+      ! Pressure [hPa] at bottom edge of level L (see documentation header)
+      PEDGE = AP_FULLGRID(L) + ( BP_FULLGRID(L) * 
+     &        ( PFLT_WET(I,J) - PTOP ) ) 
+#else
+      !-----------------------------
+      ! GEOS-4 & GEOS-5 met fields
+      !-----------------------------
+      ! Pressure [hPa] at bottom edge of level L (see documentation header)
+      PEDGE = AP_FULLGRID(L) + ( BP_FULLGRID(L) * PFLT_WET(I,J) )
+#endif     
+
+      END FUNCTION GET_PEDGE_FULLGRID
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_pedge_dry
+!
+! !DESCRIPTION: Function GET\_PEDGE\_DRY returns the pressure at the 
+!  bottom edge of level L, reconstructed using the dry surface pressure. 
+!  L=1 is the surface, L=LLPAR+1 is the atm top.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_PEDGE_DRY( I, J, L ) RESULT( PEDGE_DRY )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD   ! PTOP
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: I      ! GEOS-Chem lon   index
+      INTEGER, INTENT(IN) :: J      ! GEOS-Chem lat   index
+      INTEGER, INTENT(IN) :: L      ! GEOS-Chem level index
+!
+! !RETURN VALUE:
+!
+      REAL(f8) :: PEDGE_DRY  ! Dry prssr @ bottom edge of (I,J,L) [hPa]
+!
+! !REMARKS:
+!  Dry pressures at the edges calculated within this routine should not
+!  be used as height proxies. Wet pressure edge should be used instead.
+! 
+! !REVISION HISTORY:
+!  16 Jun 2016 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+#if defined( GCAP ) 
+      !-----------------------------
+      ! GCAP met fields
+      !-----------------------------
+      ! Assume negligible humidity at top of atmosphere
+      PEDGE_DRY = AP(L) + ( BP(L) * ( PFLT_DRY(I,J) - PTOP ) ) 
+#else
+      !-------------------------------------------------------
+      ! GEOS-4, GEOS-5, GEOS-FP, MERRA, and MERRA-2 met fields
+      !-------------------------------------------------------
+      PEDGE_DRY = AP(L) + ( BP(L) * PFLT_DRY(I,J) )
+#endif    
+
+      END FUNCTION GET_PEDGE_DRY 
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_delp_dry
+!
+! !DESCRIPTION: Function GET\_DELP\_DRY returns the delta dry pressure 
+!  between the bottom edge of level L and top edge of level L+1, 
+!  constructed using the dry surface pressure and A and B parameters. 
+!  L=1 is the surface, L=LLPAR+1 is the atm top.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_DELP_DRY( I, J, L ) RESULT( DELP_DRY )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD   ! PTOP
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: I      ! GEOS-Chem lon   index
+      INTEGER, INTENT(IN) :: J      ! GEOS-Chem lat   index
+      INTEGER, INTENT(IN) :: L      ! GEOS-Chem level index
+!
+! !RETURN VALUE:
+!
+      REAL(f8) :: DELP_DRY          ! Prssr difference [hPa] between
+                                    ! bottom edge of (I,J,L) and 
+                                    ! bottom edge of (I,J,L+1)
+!
+! !REVISION HISTORY:
+!  06 Jul 2016 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
+      REAL(fp)           :: PEDGE_DRY_BOT, PEDGE_DRY_TOP
+
+#if defined( GCAP ) 
+      !-----------------------------
+      ! GCAP met fields
+      !-----------------------------
+      ! Assume negligible humidity at top of atmosphere
+      PEDGE_DRY_BOT = AP(L) + ( BP(L) * ( PFLT_DRY(I,J) - PTOP ) ) 
+      PEDGE_DRY_TOP = AP(L+1) + ( BP(L+1) * ( PFLT_DRY(I,J) - PTOP ) ) 
+#else
+      !-------------------------------------------------------
+      ! GEOS-4, GEOS-5, GEOS-FP, MERRA, and MERRA-2 met fields
+      !-------------------------------------------------------
+      PEDGE_DRY_BOT = AP(L) + ( BP(L) * PFLT_DRY(I,J) )
+      PEDGE_DRY_TOP = AP(L+1) + ( BP(L+1) * PFLT_DRY(I,J) )
+#endif    
+      DELP_DRY = PEDGE_DRY_BOT - PEDGE_DRY_TOP
+
+      END FUNCTION GET_DELP_DRY 
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -773,11 +677,6 @@
       !=================================================================
       ! INIT_PRESSURE begins here!
       !=================================================================
-! Prior to 04 May 2016:
-!      ALLOCATE( PFLT( IIPAR, JJPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLT' )
-!      PFLT = 0e+0_fp
-
       ALLOCATE( PFLT_DRY( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLT_DRY' )
       PFLT_DRY = 0e+0_fp
@@ -1257,8 +1156,6 @@
       IF ( ALLOCATED( BP          ) ) DEALLOCATE( BP          )
       IF ( ALLOCATED( AP_FULLGRID ) ) DEALLOCATE( AP_FULLGRID )
       IF ( ALLOCATED( BP_FULLGRID ) ) DEALLOCATE( BP_FULLGRID )
-! Prior to 04 May 2016:
-!      IF ( ALLOCATED( PFLT        ) ) DEALLOCATE( PFLT        )
       IF ( ALLOCATED( PFLT_DRY    ) ) DEALLOCATE( PFLT_DRY    )
       IF ( ALLOCATED( PFLT_WET    ) ) DEALLOCATE( PFLT_WET    )
 #if defined( ESMF_ )

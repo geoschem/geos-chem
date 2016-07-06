@@ -143,7 +143,7 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: SZAFACT     ! current SZA/total daily SZA
      TYPE(ExtDat_2R),  POINTER :: PARDR       ! direct photsyn radiation [W/m2]
      TYPE(ExtDat_2R),  POINTER :: PARDF       ! diffuse photsyn radiation [W/m2]
-     TYPE(ExtDat_2R),  POINTER :: PSC2        ! Interpolated sfc pressure [hPa]
+     TYPE(ExtDat_2R),  POINTER :: PSC2_WET    ! Interpolated sfc pressure [hPa]
      TYPE(ExtDat_2R),  POINTER :: RADSWG      ! surface radiation [W/m2]
      TYPE(ExtDat_2R),  POINTER :: FRCLND      ! Olson land fraction [-] 
      TYPE(ExtDat_2R),  POINTER :: FRLAND      ! land fraction [-] 
@@ -386,7 +386,7 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%PARDF, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%PSC2, RC ) 
+    CALL ExtDat_Init ( ExtState%PSC2_WET, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Init ( ExtState%RADSWG, RC ) 
@@ -533,7 +533,7 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%SZAFACT    )
        CALL ExtDat_Cleanup( ExtState%PARDR      )
        CALL ExtDat_Cleanup( ExtState%PARDF      )
-       CALL ExtDat_Cleanup( ExtState%PSC2       )
+       CALL ExtDat_Cleanup( ExtState%PSC2_WET   )
        CALL ExtDat_Cleanup( ExtState%RADSWG     )
        CALL ExtDat_Cleanup( ExtState%FRCLND     )
        CALL ExtDat_Cleanup( ExtState%FRLAND     )

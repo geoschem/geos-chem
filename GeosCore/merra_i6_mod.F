@@ -224,7 +224,7 @@
       CALL READ_I6( NYMD      = NYMD, 
      &              NHMS      = NHMS, 
      &              Input_Opt = Input_Opt,
-     &              PS        = State_Met%PS1, 
+     &              PS        = State_Met%PS1_WET, 
      &              RH        = State_Met%RH1   )
 
       END SUBROUTINE GET_MERRA_I6_FIELDS_1
@@ -273,7 +273,7 @@
       CALL READ_I6( NYMD      = NYMD, 
      &              NHMS      = NHMS,
      &              Input_Opt = Input_Opt,
-     &              PS        = State_Met%PS2, 
+     &              PS        = State_Met%PS2_WET, 
      &              RH        = State_Met%RH2  )
 
       END SUBROUTINE GET_MERRA_I6_FIELDS_2

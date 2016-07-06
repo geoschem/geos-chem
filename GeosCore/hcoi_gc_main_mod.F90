@@ -1156,8 +1156,8 @@ CONTAINS
             'PARDF', HCRC,      FIRST,    State_Met%PARDF  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%PSC2, &
-             'PSC2', HCRC,      FIRST,    State_Met%PSC2  )
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%PSC2_WET, &
+            'PSC2_WET', HCRC,  FIRST,    State_Met%PSC2_WET  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     ! NOTE: State_Met%RADSWG is net radiation at ground for all

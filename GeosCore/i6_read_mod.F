@@ -499,26 +499,26 @@
 #if   defined( GEOS_4 )
 
       !=================================================================
-      ! GEOS-4: read LWI, PS1, SLP      
+      ! GEOS-4: read LWI, PS1_WET, SLP      
       !=================================================================
       CALL READ_I6( NYMD      = NYMD, 
      &              NHMS      = NHMS, 
      &              Input_Opt = Input_Opt, 
      &              LWI       = State_Met%LWI,   
-     &              PS        = State_Met%PS1,  
+     &              PS        = State_Met%PS1_WET,  
      &              SLP       = State_Met%SLP, 
      &              TROPP     = State_Met%TROPP1 )
 
 #elif defined( GEOS_5 )
 
       !=================================================================
-      ! GEOS-5: read LWI, PS1, SLP, TO3, TTO3
+      ! GEOS-5: read LWI, PS1_WET, SLP, TO3, TTO3
       !=================================================================
       CALL READ_I6( NYMD      = NYMD, 
      &              NHMS      = NHMS,
      &              Input_Opt = Input_Opt, 
      &              LWI       = State_Met%LWI,   
-     &              PS        = State_Met%PS1,  
+     &              PS        = State_Met%PS1_WET,  
      &              SLP       = State_Met%SLP, 
      &              TO3       = State_Met%TO31, 
      &              TTO3      = State_Met%TTO3 )
@@ -526,12 +526,12 @@
 #elif defined( GCAP )
 
       !=================================================================
-      ! GCAP: read PS1, SLP
+      ! GCAP: read PS1_WET, SLP
       !=================================================================
       CALL READ_I6( NYMD      = NYMD, 
      &              NHMS      = NHMS, 
      &              Input_Opt = Input_Opt,
-     &              PS        = State_Met%PS1, 
+     &              PS        = State_Met%PS1_WET, 
      &              SLP       = State_Met%SLP )
 
 #endif
@@ -589,26 +589,26 @@
 #if   defined( GEOS_4 )
 
       !=================================================================
-      ! GEOS-4: read LWI, PS2, SLP
+      ! GEOS-4: read LWI, PS2_WET, SLP
       !=================================================================
       CALL READ_I6( NYMD      = NYMD, 
      &              NHMS      = NHMS, 
      &              Input_Opt = Input_Opt,
      &              LWI       = State_Met%LWI,   
-     &              PS        = State_Met%PS2, 
+     &              PS        = State_Met%PS2_WET, 
      &              SLP       = State_Met%SLP, 
      &              TROPP     = State_Met%TROPP2 )
 
 #elif defined( GEOS_5 )
 
       !=================================================================
-      ! GEOS-5: read LWI, PS2, SLP, TO3, TTO3
+      ! GEOS-5: read LWI, PS2_WET, SLP, TO3, TTO3
       !=================================================================
       CALL READ_I6( NYMD      = NYMD, 
      &              NHMS      = NHMS, 
      &              Input_Opt = Input_Opt,
      &              LWI       = State_Met%LWI,   
-     &              PS        = State_Met%PS2,   
+     &              PS        = State_Met%PS2_WET,   
      &              SLP       = State_Met%SLP, 
      &              TO3       = State_Met%TO32, 
      &              TTO3      = State_Met%TTO3 )
@@ -616,12 +616,12 @@
 #elif defined( GCAP )
 
       !=================================================================
-      ! GCAP: read PS1, SLP
+      ! GCAP: read PS2_WET, SLP
       !=================================================================
       CALL READ_I6( NYMD      = NYMD, 
      &              NHMS      = NHMS,
      &              Input_Opt = Input_Opt, 
-     &              PS        = State_Met%PS2, 
+     &              PS        = State_Met%PS2_WET, 
      &              SLP       = State_Met%SLP )
 
 #endif

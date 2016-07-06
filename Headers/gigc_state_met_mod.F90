@@ -74,9 +74,9 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: PRECTOT   (:,:  ) ! Total precip @ ground [kg/m2/s]
      REAL(fp), POINTER :: PRECLSC   (:,:  ) ! LS precip @ ground [kg/m2/s]
      REAL(fp), POINTER :: PRECSNO   (:,:  ) ! Snow precip [kg/m2/s]
-     REAL(fp), POINTER :: PS1       (:,:  ) ! Wet sfc press at dt start[hPa]
-     REAL(fp), POINTER :: PS2       (:,:  ) ! Wet sfc press at dt end [hPa]
-     REAL(fp), POINTER :: PSC2      (:,:  ) ! Wet interpolated sfc press [hPa]
+     REAL(fp), POINTER :: PS1_WET   (:,:  ) ! Wet sfc press at dt start[hPa]
+     REAL(fp), POINTER :: PS2_WET   (:,:  ) ! Wet sfc press at dt end [hPa]
+     REAL(fp), POINTER :: PSC2_WET  (:,:  ) ! Wet interpolated sfc press [hPa]
      REAL(fp), POINTER :: PS1_DRY   (:,:  ) ! Dry sfc press at dt start[hPa]
      REAL(fp), POINTER :: PS2_DRY   (:,:  ) ! Dry sfc press at dt end [hPa]
      REAL(fp), POINTER :: PSC2_DRY  (:,:  ) ! Dry interpolated sfc press [hPa]
@@ -256,6 +256,7 @@ MODULE GIGC_State_Met_Mod
 !                              tracer mass conservation in mixing ratio update
 !  17 Mar 2016 - M. Sulprizio- Remove OPTDEP. Instead, we now solely use OPTD.
 !  03 May 2016 - E. Lundgren - Add PSC2_DRY, PS1_DRY, and PS2_DRY
+!  06 Jul 2016 - E. Lundgren - Rename PS1, PS2, and PSC1: add '_WET' suffix
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -430,17 +431,17 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%PRECTOT  = 0.0_fp
 
-    ALLOCATE( State_Met%PS1       ( IM, JM ), STAT=RC )
+    ALLOCATE( State_Met%PS1_WET   ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Met%PS1      = 0.0_fp
+    State_Met%PS1_WET  = 0.0_fp
 
-    ALLOCATE( State_Met%PS2       ( IM, JM ), STAT=RC )
+    ALLOCATE( State_Met%PS2_WET   ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Met%PS2      = 0.0_fp
+    State_Met%PS2_WET  = 0.0_fp
 
-    ALLOCATE( State_Met%PSC2      ( IM, JM ), STAT=RC )
+    ALLOCATE( State_Met%PSC2_WET  ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Met%PSC2     = 0.0_fp
+    State_Met%PSC2_WET = 0.0_fp
 
     ALLOCATE( State_Met%PS1_DRY    ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -1056,9 +1057,9 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%PRECCON    )) DEALLOCATE( State_Met%PRECCON    )
     IF ( ASSOCIATED( State_Met%PRECTOT    )) DEALLOCATE( State_Met%PRECTOT    )
     IF ( ASSOCIATED( State_Met%PRECSNO    )) DEALLOCATE( State_Met%PRECSNO    )
-    IF ( ASSOCIATED( State_Met%PS1        )) DEALLOCATE( State_Met%PS1        )
-    IF ( ASSOCIATED( State_Met%PS2        )) DEALLOCATE( State_Met%PS2        )
-    IF ( ASSOCIATED( State_Met%PSC2       )) DEALLOCATE( State_Met%PSC2       )
+    IF ( ASSOCIATED( State_Met%PS1_WET    )) DEALLOCATE( State_Met%PS1_WET    )
+    IF ( ASSOCIATED( State_Met%PS2_WET    )) DEALLOCATE( State_Met%PS2_WET    )
+    IF ( ASSOCIATED( State_Met%PSC2_WET   )) DEALLOCATE( State_Met%PSC2_WET   )
     IF ( ASSOCIATED( State_Met%PS1_DRY    )) DEALLOCATE( State_Met%PS1_DRY    )
     IF ( ASSOCIATED( State_Met%PS2_DRY    )) DEALLOCATE( State_Met%PS2_DRY    )
     IF ( ASSOCIATED( State_Met%PSC2_DRY   )) DEALLOCATE( State_Met%PSC2_DRY   )
