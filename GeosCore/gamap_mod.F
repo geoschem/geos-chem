@@ -1758,8 +1758,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
       USE Species_Mod,        ONLY : Species
-      USE WETSCAV_MOD,        ONLY : GET_WETDEP_NSOL
-      USE WETSCAV_MOD,        ONLY : GET_WETDEP_IDWETD
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
 #endif
@@ -5121,13 +5119,13 @@
       IF ( ND17 + ND18 > 0 ) THEN
          
          ! Number of tracers
-         NTRAC(17) = GET_WETDEP_NSOL()
+         NTRAC(17) = State_Chm%nWetDep
 
          ! Loop over tracers
          DO N = 1, NTRAC(17)
 
             ! Tracer number for Nth wetdep species
-            T = GET_WETDEP_IDWETD(N)
+            T = State_Chm%Map_WetDep(N)
 
             ! Point to this tracer's information
             ThisSpc     => State_Chm%SpcData(T)%Info

@@ -684,7 +684,6 @@ CONTAINS
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-!    USE WETSCAV_MOD,        ONLY : GET_WETDEP_IDWETD
     USE Species_Mod,        ONLY : Species   
 !
 ! !INPUT PARAMETERS:
@@ -709,7 +708,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                :: N, D
+    INTEGER                :: N, NW
     INTEGER                :: Collection
 
     ! Strings
@@ -734,14 +733,10 @@ CONTAINS
     OutOper    = Input_Opt%WETSCAV_OUTPUT_TYPE ! Assume same for ND38 and ND39
 
     ! Loop over # of soluble species 
-    DO D = 1, State_Chm%nWetDep
+    DO NW = 1, State_Chm%nWetDep
 
-! This is now obsolete, can replace with Map_WetDep
-!       ! Get GEOS-Chem tracer number
-!       N = GET_WETDEP_IDWETD( D )
-
-       ! Species ID
-       N = State_Chm%Map_WetDep( D )
+       ! Get the species ID from the wetdep ID
+       N = State_Chm%Map_WetDep(NW)
 
        ! Get info about the Nth species from the species database
        SpcInfo => State_Chm%SpcData(N)%Info

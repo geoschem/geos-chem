@@ -31,8 +31,6 @@
       PUBLIC  :: CLEANUP_WETSCAV
       PUBLIC  :: COMPUTE_F
       PUBLIC  :: DO_WETDEP
-      PUBLIC  :: GET_WETDEP_NSOL
-      PUBLIC  :: GET_WETDEP_IDWETD
       PUBLIC  :: INIT_WETSCAV
       PUBLIC  :: SETUP_WETSCAV
       PUBLIC  :: WASHOUT
@@ -169,6 +167,8 @@
 !                              replaced IDTXXX with IND_('XXX')
 !  20 Jun 2016 - R. Yantosca - Now define species ID's only in the INIT phase
 !  20 Jun 2016 - R. Yantosca - Renamed species ID's IDTxxxx to id_XXXX
+!  06 Jul 2016 - R. Yantosca - Removed GET_WETDEP_NSOL and GET_WETDEP_IDWETD,
+!                              these are now replaced by State_Chm fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5572,99 +5572,9 @@
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
       ! DEALLOCATE memory and stop
-      CALL GEOS_CHEM_STOP
+      CALL GEOS_CHEM_STOP()
 
       END SUBROUTINE SAFETY
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_wetdep_nsol
-!
-! !DESCRIPTION: Function GET\_WETDEP\_NSOL returns NSOL (# of soluble tracers) 
-!  to a calling program outside WETSCAV_MOD.  This is so that we can keep 
-!  NSOL declared as a PRIVATE variable.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_WETDEP_NSOL() RESULT( N_SOLUBLE )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: N_SOLUBLE   ! Number of soluble tracers
-!
-! !REMARKS:
-!  This routine returns the actual number of wet deposited species.  For
-!  example, if wet deposition is turned off in input.geos, then N_SOLUBLE
-!  will be zero, even though the count of species that can potentially
-!  undergo wet deposition (State_Chm%nWetDep) is nonzero.
-!
-! !REVISION HISTORY: 
-!  10 Jan 2003 - R. Yantosca - Initial version
-!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! GET_WETDEP_NSOL begins here!
-      !=================================================================
-
-      ! Get the # of soluble tracers
-      N_SOLUBLE = NSOL
-     
-      END FUNCTION GET_WETDEP_NSOL
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_wetdep_idwetd
-!
-! !DESCRIPTION: Function GET\_WETDEP\_IDWETD returns the tracer number of 
-!  wet deposition species NWET.  This is meant to be called outside of 
-!  WETSCAV\_MOD so that IDWETD can be kept as a PRIVATE variable.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_WETDEP_IDWETD( NWET ) RESULT( N )
-!
-! !USES:
-!
-      USE ERROR_MOD, ONLY : ERROR_STOP
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: NWET   ! Wet deposition species #
-!
-! !RETURN VALUE:
-!
-      INTEGER             :: N      ! Tracer # corresponding to NWET
-! 
-! !REVISION HISTORY:
-!  10 Jan 2003 - R. Yantosca - Initial version 
-!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!EOP 
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! GET_WETDEP_IDWETD begins here!
-      !=================================================================
-
-      ! Make sure NWET is valid
-      IF ( NWET < 1 .or. NWET > NSOL ) THEN
-         CALL ERROR_STOP( 'Invalid value of NWET!', 
-     &                    'GET_WETDEP_IDWETD (wetscav_mod.f)' )
-      ENDIF
-
-      ! Get the tracer # for wet deposition species N
-      N = IDWETD(NWET)
-     
-      END FUNCTION GET_WETDEP_IDWETD
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

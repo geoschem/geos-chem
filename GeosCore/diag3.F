@@ -279,7 +279,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: NA, nAdvect
+      INTEGER            :: NA, nAdvect, NW
       INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, LMAX
       INTEGER            :: N, NN, NMAX, NTEST, N_TOT_TRC, T
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
@@ -1841,36 +1841,33 @@
       IF ( ND17 > 0 ) THEN
          UNIT = 'unitless'
 
-         ! Get actual # of wet-deposited tracers for this simulation
-         NMAX = GET_WETDEP_NSOL()
+         ! Loop over soluble species
+         DO NW = 1, State_Chm%nWetDep
 
-         ! Loop over soluble tracers
-         DO N = 1, NMAX
-
-            ! Tracer number 
-            NN = GET_WETDEP_IDWETD( N )
+            ! Get the species ID from the wetdep ID
+            N = State_Chm%Map_WetDep(NW)
 
             ! To output only the species asked in input.geos 
             ! (ccc, 5/15/09)
             MM  = 1
             MMB = 0
-            DO WHILE ( MMB /= NN .AND. MM <= TMAX(17) )
+            DO WHILE ( MMB /= N .AND. MM <= TMAX(17) )
                MMB = TINDEX(17,MM)
                MM  = MM + 1
             ENDDO
             
-            IF ( MMB /= NN ) CYCLE
+            IF ( MMB /= N ) CYCLE
 
             ! Large-scale rainout/washout fractions
             CATEGORY = 'WD-LSR-$'
                
             DO L = 1, LD17
                SCALE_TMP(:,:) = FLOAT( CT17(:,:,L,1) ) + 1e-20_fp
-               ARRAY(:,:,L)   = AD17(:,:,L,N,1) / SCALE_TMP(:,:) 
+               ARRAY(:,:,L)   = AD17(:,:,L,NW,1) / SCALE_TMP(:,:) 
             ENDDO
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                  IIPAR,     JJPAR,     LD17,     IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD17) )
@@ -1881,11 +1878,11 @@
 
             DO L = 1, LD17
                SCALE_TMP(:,:) = FLOAT( CT17(:,:,L,2) ) + 1e-20_fp
-               ARRAY(:,:,L)   = AD17(:,:,L,N,2) / SCALE_TMP(:,:) 
+               ARRAY(:,:,L)   = AD17(:,:,L,NW,2) / SCALE_TMP(:,:) 
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                  IIPAR,     JJPAR,     LD17,     IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD17) )
@@ -1908,36 +1905,33 @@
       IF ( ND18 > 0 ) THEN
          UNIT = 'unitless'
 
-         ! Get actual # of wet-deposited tracers for this simulation
-         NMAX = GET_WETDEP_NSOL()
+         ! Loop over the soluble species
+         DO NW = 1, State_Chm%nWetDep
 
-         ! Get actual # of wet-deposited tracers for this simulation
-         DO N = 1, NMAX
-
-            ! Tracer number
-            NN = GET_WETDEP_IDWETD( N )
+            ! Get the species ID from the wetdep ID
+            N = State_Chm%Map_WetDep(NW)
 
             ! To output only the species asked in input.geos 
             ! (ccc, 5/15/09)
             MM  = 1
             MMB = 0
-            DO WHILE ( MMB /= NN .AND. MM <= TMAX(18) )
+            DO WHILE ( MMB /= N .AND. MM <= TMAX(18) )
                MMB = TINDEX(18,MM)
                MM  = MM + 1
             ENDDO
             
-            IF ( MMB /= NN ) CYCLE
+            IF ( MMB /= N ) CYCLE
 
             ! Large-scale rainout/washout fractions
             CATEGORY = 'WD-LSW-$'
 
             DO L = 1, LD18
                SCALE_TMP(:,:) = FLOAT( CT18(:,:,L,1) ) + 1e-20_fp
-               ARRAY(:,:,L)   = AD18(:,:,L,N,1) / SCALE_TMP(:,:) 
+               ARRAY(:,:,L)   = AD18(:,:,L,NW,1) / SCALE_TMP(:,:) 
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                  IIPAR,     JJPAR,     LD18,     IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD18) )
@@ -1948,11 +1942,11 @@
 
             DO L = 1, LD18
                SCALE_TMP(:,:) = FLOAT( CT18(:,:,L,2) ) + 1e-20_fp
-               ARRAY(:,:,L)   = AD18(:,:,L,N,2) / SCALE_TMP(:,:) 
+               ARRAY(:,:,L)   = AD18(:,:,L,NW,2) / SCALE_TMP(:,:) 
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                  IIPAR,     JJPAR,     LD18,     IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD18) )
@@ -3605,32 +3599,29 @@
          CATEGORY = 'MC-FRC-$'
          UNIT     = 'unitless'
 
-         ! Get actual # of wet-deposited tracers for this simulation
-         NMAX = GET_WETDEP_NSOL()
-
          ! Loop over soluble tracers
-         DO N = 1, NMAX
+         DO NW = 1, State_Chm%nWetDep
 
-            ! Tracer number 
-            NN = GET_WETDEP_IDWETD( N )
+            ! Get the species ID from the wetdep ID
+            N = State_Chm%Map_WetDep(NW)
 
             ! To output only the species asked in input.geos 
             ! (ccc, 5/15/09)
             MM  = 1
             MMB = 0
-            DO WHILE ( MMB /= NN .AND. MM <= TMAX(37) )
+            DO WHILE ( MMB /= N .AND. MM <= TMAX(37) )
                MMB = TINDEX(37,MM)
                MM  = MM + 1
             ENDDO
             
-            IF ( MMB /= NN ) CYCLE
+            IF ( MMB /= N ) CYCLE
 
             DO L = 1, LD37
-               ARRAY(:,:,L) = AD37(:,:,L,N) / SCALECONV
+               ARRAY(:,:,L) = AD37(:,:,L,NW) / SCALECONV
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                  IIPAR,     JJPAR,     LD37,     IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD37) )
@@ -3655,33 +3646,30 @@
          CATEGORY = 'WETDCV-$'
          UNIT     = 'kg/s'
 
-         ! Get actual # of soluble tracers
-         M = GET_WETDEP_NSOL()
-
          ! Loop over soluble tracers
-         DO N = 1, M
+         DO NW = 1, State_Chm%nWetDep
 
-            ! Tracer number
-            NN = GET_WETDEP_IDWETD( N )
+            ! Get the species ID from the wetdep ID
+            N = State_Chm%Map_WetDep(NW)
 
             ! To output only the species asked in input.geos 
             ! (ccc, 5/15/09)
             MM  = 1
             MMB = 0
-            DO WHILE ( MMB /= NN .AND. MM <= TMAX(38) )
+            DO WHILE ( MMB /= N .AND. MM <= TMAX(38) )
                MMB = TINDEX(38,MM)
                MM  = MM + 1
             ENDDO
             
-            IF ( MMB /= NN ) CYCLE
+            IF ( MMB /= N ) CYCLE
 
             ! Divide by # of convective timesteps
             DO L = 1, LD38
-               ARRAY(:,:,L) = AD38(:,:,L,N) / SCALECONV
+               ARRAY(:,:,L) = AD38(:,:,L,NW) / SCALECONV
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                  IIPAR,     JJPAR,     LD38,     IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD38) )
@@ -3702,33 +3690,30 @@
          CATEGORY = 'WETDLS-$'
          UNIT     = 'kg/s'
 
-         ! Get actual # of soluble tracers
-         M = GET_WETDEP_NSOL()
-
-         ! Loop over soluble tracers
-         DO N = 1, M
+         ! Loop over soluble species
+         DO NW = 1, State_Chm%nWetDep
                
-            ! Tracer number
-            NN = GET_WETDEP_IDWETD( N )
+            ! Get the species ID from the wetdep ID
+            N = State_Chm%Map_WetDep(NW)
 
             ! To output only the species asked in input.geos 
             ! (ccc, 5/15/09)
             MM  = 1
             MMB = 0
-            DO WHILE ( MMB /= NN .AND. MM <= TMAX(39) )
+            DO WHILE ( MMB /= N .AND. MM <= TMAX(39) )
                MMB = TINDEX(39,MM)
                MM  = MM + 1
             ENDDO
                
-            IF ( MMB /= NN ) CYCLE
+            IF ( MMB /= N ) CYCLE
 
             ! Divide by # of wetdep (= dynamic) timesteps
             DO L = 1, LD39
-               ARRAY(:,:,L) = AD39(:,:,L,N) / SCALEDYN
+               ARRAY(:,:,L) = AD39(:,:,L,NW) / SCALEDYN
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                  IIPAR,     JJPAR,     LD39,     IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD39) )

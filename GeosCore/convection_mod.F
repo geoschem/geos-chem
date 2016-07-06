@@ -116,7 +116,6 @@
       USE HCO_ERROR_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-      USE WETSCAV_MOD,        ONLY : GET_WETDEP_IDWETD
 
 #endif
 #if defined( DEVEL )
@@ -191,6 +190,7 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  06 Jul 2016 - R. Yantosca - Use State_Chm%Map_WetDep to get species ID's
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -198,7 +198,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER           :: N, NA, nAdvect
+      INTEGER           :: N, NA, nAdvect, NW
       REAL(fp)          :: TCVV(State_Chm%nAdvect)
       REAL(fp)          :: DT_TEND
 
@@ -379,7 +379,8 @@
       !-----------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J,  I, AREA_M2, L, PEDGE, F, DIAG14, DIAG38, RC, N, NN )
+!$OMP+PRIVATE( J,      I,      AREA_M2, L, PEDGE, F  ) 
+!$OMP_PRIVATE( DIAG14, DIAG38, RC,      N, NA,    NW )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -452,19 +453,16 @@
          !--------------------------
          IF ( DO_ND38 ) THEN
 
-            ! Loop over only the advected species
-            DO N = 1, nAdvect
+            ! Loop over only the soluble species
+            DO NW = 1, State_Chm%nWetDep
 
-               ! Wetdep species for each tracer N
-               !%%% CAN PROBABLY REPLACE WITH State_Chm%Map_WetDep %%%
-               NN = ISOL(N)
+               ! Get the species ID from the wetdep ID
+               N = State_Chm%Map_WetDep(NW)
 
-               ! Only archive wet-deposited species
-               IF ( NN > 0 ) THEN
-                  DO L = 1, LD38
-                     AD38(I,J,L,NN) = AD38(I,J,L,NN) + DIAG38(L,N)
-                  ENDDO
-               ENDIF
+               ! Archive into ND38
+               DO L = 1, LD38
+                  AD38(I,J,L,NW) = AD38(I,J,L,NW) + DIAG38(L,N)
+               ENDDO
             ENDDO
          ENDIF
 #endif
@@ -492,11 +490,11 @@
          ! Allocate temporary pointer
          ALLOCATE(TMP3D(IIPAR,JJPAR,LLPAR), TMP2D(IIPAR,JJPAR) )
         
-         ! Loop over all soluble tracers
+         ! Loop over the number of wet-depositing species
          DO D = 1, State_Chm%nWetDep
 
-            ! Get GEOS-Chem tracer number
-            trc_id = GET_WETDEP_IDWETD( D )
+            ! Get the species ID from the wetdep ID
+            trc_id = State_Chm%Map_WetDep(D)
 
             ! Is this a tracer selected for this diagnostics type?
             IF ( ANY( Input_Opt%TINDEX(38,:) == trc_id ) ) THEN
@@ -612,6 +610,9 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
+! !REMARKS:
+!  %%%% GEOS-4 IS DEPRECATED AND MAY BE REMOVED SOON %%%%
+!
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
 !  (1 ) Now use array masks to flip arrays vertically in call to FVDAS_CONVECT

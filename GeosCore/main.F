@@ -978,17 +978,20 @@
          ! month but not start of the run.
          IF ( LGTMM .AND. ITS_A_NEW_MONTH() .AND. NYMD /= NYMDb ) THEN
             IF (.NOT.( ITS_TIME_FOR_BPCH() )) THEN
-               N = 1
-               NNN = GET_WETDEP_IDWETD( N )
+
+               ! Get the species ID (NNN) from the wetdep ID (N)
+               N   = 1
+               NNN = State_Chm%Map_Wetdep(N)
+
                DO
                   ! Exit once we encounter Hg2
                   If ( State_Chm%SpcData(NNN)%Info%Is_Hg2 ) THEN
                      EXIT
                   ENDIF
 
-                  N = N + 1
-                  ! Tracer number
-                  NNN = GET_WETDEP_IDWETD( N )
+                  ! Get the species ID (NNN) from the wetdep ID (N)
+                  N   = N + 1
+                  NNN = State_Chm%Map_Wetdep(N)
                ENDDO
                CALL UPDATE_DEP( N )
             ENDIF
