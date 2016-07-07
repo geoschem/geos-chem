@@ -191,6 +191,8 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  06 Jul 2016 - R. Yantosca - Use State_Chm%Map_WetDep to get species ID's
+!  07 Jul 2016 - R. Yantosca - Now dimension DIAG14 and DIAG38 for the #
+!                              of soluble species (State_Chm%nWetDep)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -223,8 +225,8 @@
       ! Arrays        
       REAL(fp)          :: PEDGE  (          LLPAR+1                  )
       INTEGER           :: ISOL   (                  State_Chm%nAdvect)
-      REAL(fp)          :: DIAG14 (            LLPAR,State_Chm%nAdvect)
-      REAL(fp)          :: DIAG38 (            LLPAR,State_Chm%nAdvect)
+      REAL(fp)          :: DIAG14 (            LLPAR,State_Chm%nWetDep)
+      REAL(fp)          :: DIAG38 (            LLPAR,State_Chm%nWetDep)
       REAL(fp)          :: F      (            LLPAR,State_Chm%nAdvect)
       REAL(fp), TARGET  :: FSOL   (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
@@ -345,7 +347,7 @@
 #elif defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
       !=================================================================
-      ! MERRA or GEOS-FP met fields
+      ! GEOS-FP, MERRA, or MERRA-2 met fields
       !=================================================================
 
       ! Initialize
@@ -363,17 +365,17 @@
          N = State_Chm%Map_Advect(NA)
 
          ! Now point to a 3D slice of the FSOL array
-         p_FSOL => FSOL(:,:,:,N)
+         p_FSOL => FSOL(:,:,:,NA)
 
          ! Fraction of soluble tracer
-         CALL COMPUTE_F( am_I_Root, N, p_FSOL, ISOL(N), 
+         CALL COMPUTE_F( am_I_Root, N, p_FSOL, ISOL(NA), 
      &                   Input_Opt, State_Met, State_Chm, RC ) 
 
          ! Free pointer memory
          p_FSOL => NULL()
-
+         
       ENDDO
-      
+
       !-----------------------------------------------------------------
       ! Do convection column by column
       !-----------------------------------------------------------------
@@ -434,15 +436,15 @@
          !--------------------------
          IF ( DO_ND14 ) THEN
 
-            ! Loop over only the advected species
-            DO NA = 1, nAdvect
+            ! Loop over only the soluble species
+            DO NW = 1, State_Chm%nWetDep
 
-               ! Species ID
+               ! Get the species ID From the wetdep ID
                N = State_Chm%Map_Advect(NA)
 
                ! Archive diagnostic
                DO L = 1, LD14
-                  CONVFLUP(I,J,L,N) = CONVFLUP(I,J,L,N) + DIAG14(L,N)
+                  CONVFLUP(I,J,L,N) = CONVFLUP(I,J,L,N) + DIAG14(L,NW)
                ENDDO
             ENDDO
          ENDIF
@@ -455,14 +457,9 @@
 
             ! Loop over only the soluble species
             DO NW = 1, State_Chm%nWetDep
-
-               ! Get the species ID from the wetdep ID
-               N = State_Chm%Map_WetDep(NW)
-
-               ! Archive into ND38
-               DO L = 1, LD38
-                  AD38(I,J,L,NW) = AD38(I,J,L,NW) + DIAG38(L,N)
-               ENDDO
+            DO L  = 1, LD38
+               AD38(I,J,L,NW) = AD38(I,J,L,NW) + DIAG38(L,NW)
+            ENDDO
             ENDDO
          ENDIF
 #endif
@@ -1380,9 +1377,8 @@
 #endif
       REAL(fp), PARAMETER      :: TINY2 = 1e-30_fp 
 
-      ! ISOL is an index for the diagnostic arrays
+      ! ISOL is the wet deposition ID from the species database
       INTEGER                  :: ISOL
-      INTEGER                  :: ISOL_SAVE(State_Chm%nAdvect)
 
       ! QC_PRES and QC_SCAV are the amounts of tracer 
       ! preserved against and lost to wet scavenging
@@ -1402,9 +1398,6 @@
       INTEGER                  :: NC
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object (mpayer, 12/6/12)
-      ! and the Meteorology State (State_Met) Object
       REAL(fp),      POINTER   :: Q        (:,:,:,:)
       REAL(fp),      POINTER   :: CLDMAS   (:,:,:  )
       REAL(fp),      POINTER   :: DTRN     (:,:,:  )
@@ -1424,8 +1417,7 @@
       LGTMM             = Input_Opt%LGTMM
       NC                = State_Chm%nAdvect
 
-      ! Initialize GEOS-Chem tracer array from Chemistry State object
-      ! [kg/kg total air]
+      ! Point to the chemical species array [kg/kg total air]
       Q                 => State_Chm%Species
 
       ! Initialize cloud mass flux at upper edge of each level [kg/m2/s]
@@ -1563,28 +1555,26 @@
 !$OMP+SCHEDULE( DYNAMIC )
       DO NA = 1, NC
          
-         ! Species ID
+         ! Get the species ID from the advected species ID
          IC = State_Chm%Map_Advect(NA)
 
          ! Point to 3D slice of F
-         p_FSOL => F(:,:,:,IC)
+         p_FSOL => F(:,:,:,NA)
 
          ! Compute the fraction of tracer IC scavenged in updrafts
+         ! NOTE: ISOL is the wetdep Id from the species DB (bmy, 7/7/16)
          CALL COMPUTE_F( am_I_Root, IC, p_FSOL, ISOL, 
      &                   Input_Opt, State_Met, State_Chm, RC ) 
 
          ! Free pointer memory
-         NULLIFY( p_FSOL )
-
-         ! Save ISOL values in an array for use below
-         ISOL_SAVE(IC) = ISOL
+         p_FSOL => NULL()
 
          ! ND37 diagnostic -- store F only for soluble tracers
          IF ( ND37 > 0 .and. ISOL > 0 ) THEN
             DO K = 1, LD37
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-               AD37(I,J,K,ISOL) = AD37(I,J,K,ISOL) + F(I,J,K,IC) 
+               AD37(I,J,K,ISOL) = AD37(I,J,K,ISOL) + F(I,J,K,NA) 
             ENDDO
             ENDDO
             ENDDO
@@ -1618,14 +1608,15 @@
 !$OMP+SCHEDULE( DYNAMIC )
       DO NA = 1, NC
          
-         ! Species ID
-         IC = State_Chm%Map_Advect(NA)
+         ! Get the species ID from the advected species ID
+         IC      =  State_Chm%Map_Advect(NA)
 
          ! Point to the Species Database entry for this tracer
          SpcInfo => State_Chm%SpcData(IC)%Info
 
-         ! Get previously archived value of ISOL (bmy, 2/4/14)
-         ISOL    = ISOL_SAVE(IC)
+         ! Also get wetdep ID that corresponds to IC
+         ! If not a soluble species, then ISOL = -999
+         ISOL    =  SpcInfo%WetDepID
 
          !==============================================================
          ! (3)  I n t e r n a l   T i m e   S t e p   L o o p
@@ -1760,11 +1751,22 @@
                IF ( CLDMAS(I,J,K-1) .gt. TINY ) THEN
                   CMOUT    = CLDMAS(I,J,K) + DTRN(I,J,K)
                   ENTRN    = CMOUT         - CLDMAS(I,J,K-1)
-                  QC_PRES  = QC(I,J) * ( 1e+0_fp - F(I,J,K,IC) )
-                  QC_SCAV  = QC(I,J) * F(I,J,K,IC)
+!-----------------------------------------------------------------------------
+! Prior to 7/7/16:
+! F loops over the # of advected species, so use NA index (bmy, 7/7/16)
+!                  QC_PRES  = QC(I,J) * ( 1e+0_fp - F(I,J,K,IC) )
+!-----------------------------------------------------------------------------
+                  QC_PRES  = QC(I,J) * ( 1e+0_fp - F(I,J,K,NA) )
+!-----------------------------------------------------------------------------
+! Prior to 7/7/16:
+! F loops over the # of advected species, so use NA index (bmy, 7/7/16)
+!                  QC_SCAV  = QC(I,J) * F(I,J,K,IC)
+!-----------------------------------------------------------------------------
+                  QC_SCAV  = QC(I,J) * F(I,J,K,NA)
+
 !#if defined ( DEBUG )
 !       IF ( IC == 129 ) THEN
-!          print *, I, J, K, QC_PRES, QC_SCAV, QC(I,J), F(I,J,K,IC)
+!          print *, I, J, K, QC_PRES, QC_SCAV, QC(I,J), F(I,J,K,NA)
 !       ENDIF
 !#endif
                   
@@ -1993,7 +1995,7 @@
 
          ! Free pointer
          SpcInfo => NULL()
-      ENDDO                 !IC
+      ENDDO                 !NA (also IC)
 !$OMP END PARALLEL DO
 
       !=================================================================
@@ -2210,6 +2212,10 @@
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !  05 Jul 2016 - R. Yantosca - Now replace N_TRACERS argument with the
 !                              State_Chm%nAdvect field
+!  07 Jul 2016 - R. Yantosca - Bug fix: F and ISOL need to be indexed with
+!                              the advected species index NA
+!  07 Jul 2016 - R. Yantosca - DIAG14 and DIAG38 now are dimensioned with
+!                              of size State_Chm%nWetDep instead of N_TRACERS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2225,7 +2231,7 @@
       INTEGER                :: IC,          ISTEP,     K        
       INTEGER                :: KTOP,        NC,        NDT
       INTEGER                :: NLAY,        NS,        CLDBASE
-      INTEGER                :: Hg_Cat,      NA,        nAdvect
+      INTEGER                :: Hg_Cat,      NA,        nAdvect, NW
       REAL(fp)               :: CMFMC_BELOW, ALPHA,     ALPHA2
       REAL(fp)               :: CMOUT,       DELQ,      DQ
       REAL(fp)               :: DNS,         ENTRN,     QC
@@ -2361,17 +2367,25 @@
       !========================================================================
       ! (1)  A d v e c t e d   S p e c i e s   L o o p 
       !========================================================================
+
+      ! Loop over only the advected species
       DO NA = 1, NC
 
-         ! Species ID
-         IC = State_Chm%Map_Advect(NA)
+         ! Get the species ID (modelID) from the advected species ID
+         IC       =  State_Chm%Map_Advect(NA)
 
-         ! Free pointer
-         SpcInfo => NULL()
+         ! Look up the corresponding entry in the species database
+         SpcInfo  => State_Chm%SpcData(IC)%Info 
 
-         ! Initialize
-         DIAG14(:,IC) = 0e+0_fp                      ! ND14 diag array      
-         DIAG38(:,IC) = 0e+0_fp                      ! ND38 diag array
+         ! Also get the corresponding wetdep ID
+         NW       =  SpcInfo%WetDepId
+
+         ! Zero the ND14 and ND38 diagnostic arrays 
+         ! These are only sized for the # of soluble species
+         IF ( NW > 0 ) THEN
+            DIAG14(:,NW) = 0.0_fp 
+            DIAG38(:,NW) = 0.0_fp
+         ENDIF
 
          !=====================================================================
          ! (2)  I n t e r n a l   T i m e   S t e p   L o o p
@@ -2485,7 +2499,7 @@
                   !------------------------------------------------------------
                   ! (3.1)  M a s s   B a l a n c e   i n   C l o u d
                   !
-                  ! F(K,IC) = fraction of tracer IC in level K that is 
+                  ! F(K,NA) = fraction of tracer IC in level K that is 
                   !           available for wet-scavenging by cloud updrafts.  
                   !
                   ! If ENTRN > 0 then compute the new value of QC:
@@ -2512,11 +2526,13 @@
                   ENTRN   = CMOUT - CMFMC_BELOW
 
                   ! Amount of QC preserved against scavenging [kg/kg]
-                  QC_PRES = QC * ( 1e+0_fp - F(K,IC) )
+!                  QC_PRES = QC * ( 1e+0_fp - F(K,IC) )
+                  QC_PRES = QC * ( 1e+0_fp - F(K,NA) )
 
                   ! Amount of QC lost to scavenging [kg/kg]
                   ! QC_SCAV = 0 for non-soluble tracer
-                  QC_SCAV = QC * F(K,IC)
+!                  QC_SCAV = QC * F(K,IC)
+                  QC_SCAV = QC * F(K,NA)
 
                   ! - - - - - - - - FOR SOLUBLE TRACERS ONLY - - - - - - - - - 
                   IF ( QC_SCAV > 0e+0_fp ) THEN 
@@ -2708,10 +2724,8 @@
                   ! across all internal timesteps.
                   !------------------------------------------------------------
                   IF ( USE_DIAG14 ) THEN
- 
-                    DIAG14(K,IC) = DIAG14(K,IC) + ( -T2-T3 ) * AREA_M2 
-     &                              / DNS   
-
+                     DIAG14(K,NW) = 
+     &               DIAG14(K,NW) + ( -T2-T3 ) * AREA_M2 / DNS   
                   ENDIF
 
                   !------------------------------------------------------------
@@ -2722,12 +2736,12 @@
                   ! internal timesteps so that the sum represents the
                   ! average loss rate across all internal timesteps.
                   !------------------------------------------------------------
-                  IF ( USE_DIAG38 ) THEN
-
-                     DIAG38(K,IC) = DIAG38(K,IC) + T0 * AREA_M2 / DNS  
+                  IF ( USE_DIAG38 .and. NW > 0 ) THEN
+                     DIAG38(K,NW) = 
+     &               DIAG38(K,NW) + ( T0 * AREA_M2 / DNS )
 
                      ! check for infinity (added by hma, 20101117)
-                     IF ( .not. IT_IS_FINITE( DIAG38(K,IC) ) ) THEN
+                     IF ( .not. IT_IS_FINITE( DIAG38(K,NW) ) ) THEN
                         PRINT*, 'DIAG38 IS INFINITY at K = ', K
                         CALL GEOS_CHEM_STOP
                      ENDIF
@@ -2943,11 +2957,9 @@
                   ! timesteps so that the sum represents the average loss 
                   ! rate across all internal timesteps.
                   !------------------------------------------------------------
-                  IF ( USE_DIAG14 ) THEN
-
-                     DIAG14(K,IC) = DIAG14(K,IC) 
-     &                              + ( -T2-T3 ) * AREA_M2 / DNS 
-
+                  IF ( USE_DIAG14 .and. NW > 0 ) THEN
+                     DIAG14(K,NW) = 
+     &               DIAG14(K,NW) + ( -T2-T3 ) * AREA_M2 / DNS 
                   ENDIF
 
                   !------------------------------------------------------------
@@ -2960,13 +2972,16 @@
                   ! across all internal timesteps. Note that the units of
                   ! WETLOSS are [kg/m2/timestep].
                   !------------------------------------------------------------
-                  IF ( USE_DIAG38 .and. F(K,IC) > 0e+0_fp ) THEN
-                     DIAG38(K,IC) = DIAG38(K,IC) +
-     &                              ( WETLOSS * AREA_M2 / NDT )
+                  !%%% NOTE: SHOULD TEST FOR NW > 0 BUT IF WE DO THAT WE
+                  !%%% NO LONGER GET IDENTICAL RESULTS WITH THE REF CODE.
+                  !%%% LOOK INTO THIS LATER.  (bmy, 7/7/16)
+                  IF ( USE_DIAG38 .and. F(K,NA) > 0.0_fp ) THEN
+                     DIAG38(K,NW) = 
+     &               DIAG38(K,NW) + ( WETLOSS * AREA_M2 / NDT )
                   ENDIF
                 
                   ! CHECK for infinity (added by hma, 20101117)
-                  IF ( .not. IT_IS_FINITE( DIAG38(K,IC) ) ) THEN
+                  IF ( .not. IT_IS_FINITE( DIAG38(K,NW) ) ) THEN
                      PRINT*, 'DIAG38 IS INFINITY at K = ', K
                      CALL GEOS_CHEM_STOP
                   ENDIF
@@ -2984,9 +2999,6 @@
             ! NOTE: Reorder 
             !==================================================================
             IF ( Is_Hg ) THEN
-
-               ! Point to the Species Database entry for tracer IC
-               SpcInfo => State_Chm%SpcData(IC)%Info 
 
                !--------------------------------------
                ! Hg2 
@@ -3021,13 +3033,12 @@
                   CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_HgP, 
      &                                                 State_Met )
                ENDIF
-
-               ! Free pointers
-               SpcInfo => NULL()
-         
             ENDIF
          ENDDO               ! End internal timestep loop
-      ENDDO                  ! End loop over tracers
+
+         ! Free pointer
+         SpcInfo => NULL()
+      ENDDO                  ! End loop over advected species
 
       !================================================================
       ! Succesful return!

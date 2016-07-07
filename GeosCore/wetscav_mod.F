@@ -995,7 +995,7 @@
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
-      INTEGER,        INTENT(IN)    :: N          ! Tracer number
+      INTEGER,        INTENT(IN)    :: N          ! Species ID
       TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met  ! Met State object
 !
@@ -1095,6 +1095,8 @@
 !  06 Oct 2015 - R. Yantosca - Add missing variables for TOMAS
 !  16 Oct 2015 - E. Lundgren - Consolidate remaining embedded ifelse blocks
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!  07 Jul 2016 - R. Yantosca - Now set ISOL = -1 if not a wetdep species
+!  07 Jul 2016 - R. Yantosca - Remove pointer nullification from declarations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1102,33 +1104,28 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER                      :: N_TRACERS, I, J, L
-      REAL(fp)                     :: SO2LOSS,   Ki
+      INTEGER                  :: I, J, L
+      REAL(fp)                 :: SO2LOSS,   Ki
 #if defined( TOMAS )
-      REAL(fp)                     :: SOLFRAC,   XFRAC
+      REAL(fp)                 :: SOLFRAC,   XFRAC
 #endif
 
       ! Arrays
-      REAL(fp)                     :: KcScale(3)
+      REAL(fp)                 :: KcScale(3)
 
       ! Pointers
-      REAL(fp),      POINTER, SAVE :: p_C_H2O  => NULL()
-      REAL(fp),      POINTER, SAVE :: p_CLDICE => NULL()
-      REAL(fp),      POINTER, SAVE :: p_CLDLIQ => NULL()
-      REAL(fp),      POINTER, SAVE :: p_T      => NULL()
+      REAL(fp),      POINTER   :: p_C_H2O
+      REAL(fp),      POINTER   :: p_CLDICE
+      REAL(fp),      POINTER   :: p_CLDLIQ
+      REAL(fp),      POINTER   :: p_T
 
       ! Objects
-      TYPE(Species), POINTER, SAVE :: SpcInfo  => NULL()
-#if defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
-      ! For GEOS-4, GEOS-5, and GCAP make pointers and objects THREADPRIVATE
-      ! because COMPUTE_F is called from a parallel loop (bmy, 10/5/15)
-!$OMP THREADPRIVATE( p_C_H2O, p_CLDICE, p_CLDLIQ, p_T, SpcInfo )
-#endif
+      TYPE(Species), POINTER   :: SpcInfo
 !
 ! !DEFINED PARAMETERS:
 !
       ! Kc is the conversion rate from cloud condensate to precip [s^-1]
-      REAL(fp),      PARAMETER     :: Kc = 5e-3_fp
+      REAL(fp),      PARAMETER :: Kc = 5e-3_fp
 
       !=================================================================
       ! COMPUTE_F begins here!
@@ -1138,12 +1135,17 @@
       RC         =  GIGC_SUCCESS
 
       ! Initialize
-      N_TRACERS  =  Input_Opt%N_TRACERS
       F          =  0.0_fp
-      ISOL       =  0
+      p_C_H2O    => NULL()
+      p_CLDICE   => NULL()
+      p_CLDLIQ   => NULL()
+      p_T        => NULL()
 
       ! Get information for this species from the species database
       SpcInfo    => State_Chm%SpcData(N)%Info
+
+      ! ISOL is the wetdep ID (will be -999 if not a wetdep species)
+      ISOL       =  SpcInfo%WetDepId
 
       ! Exit with F=0, ISOL=0 if this is not a wetdep species
       IF ( .not. SpcInfo%Is_WetDep ) THEN
@@ -1164,7 +1166,6 @@
 
          ! Compute fraction of SO2 scavenged
          CALL F_AEROSOL( KC, KcScale, State_Met, F )
-         ISOL = GET_ISOL( N, N_TRACERS )
 
          !--------------------------------------------------------------
          ! Coupled full chemistry/aerosol simulation:
@@ -1254,9 +1255,6 @@
          ENDDO
          ENDDO
          
-         ! ND38 index
-         ISOL = GET_ISOL( N, N_TRACERS )
-
       !-----------------------------------------------------------
       ! Size-resolved soluble aerosol species
       ! (Microphysics simulations only)
@@ -1279,7 +1277,7 @@
          ENDDO
          ENDDO
          ENDDO
-         ISOL = GET_ISOL( N, N_TRACERS )
+
 #endif
 
       !-----------------------------------------------------------
@@ -1305,7 +1303,7 @@
          ENDDO
          ENDDO
          ENDDO
-         ISOL = GET_ISOL( N, N_TRACERS )
+
 #endif
 
       !-----------------------------------------------------------
@@ -1327,13 +1325,14 @@
             F = F * SpcInfo%WD_AerScavEff
          ENDIF
 
-         ! Wetdep species index for ND38 diagnostic
-         ISOL = GET_ISOL( N, N_TRACERS )
-
       ENDIF
 
       ! Nullify pointers
-      SpcInfo  => NULL()
+      p_C_H2O   => NULL()
+      p_CLDICE  => NULL()
+      p_CLDLIQ  => NULL()
+      p_T       => NULL()
+      SpcInfo   => NULL()
 
       END SUBROUTINE COMPUTE_F
 !EOC
@@ -1545,88 +1544,88 @@
       ENDDO
       
       END SUBROUTINE F_AEROSOL 
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: get_isol
+!!
+!! !DESCRIPTION: Function GET\_ISOL returns the value of ISOL (tracer index for 
+!!  ND38) for all simulation types.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      FUNCTION GET_ISOL( N_TEST, N_TRACERS ) RESULT( VALUE )
+!!
+!! !USES:
+!!
+!      USE CMN_SIZE_MOD                 ! Size parameters
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      INTEGER, INTENT(IN) :: N_TEST    ! Tracer number to look up
+!      INTEGER, INTENT(IN) :: N_TRACERS ! # of GEOS_Chem tracers
+!!
+!! !RETURN VALUE:
+!!
+!      INTEGER             :: VALUE     ! Index for ND38 diagnostic
 !
-! !IROUTINE: get_isol
+!!
+!! !REVISION HISTORY: 
+!!  05 Apr 2004 - R. Yantosca - Initial version
+!!  (1 ) Now initializes a lookup table for faster execution.  Now made into
+!!        an EXTERNAL function. (rjp, bmy, 4/5/04)
+!!  (2 ) Now references N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
+!!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      LOGICAL, SAVE :: FIRST = .TRUE.
+!      INTEGER, SAVE :: NSOL_INDEX(NNPAR)
+!      INTEGER       :: I, L, N
 !
-! !DESCRIPTION: Function GET\_ISOL returns the value of ISOL (tracer index for 
-!  ND38) for all simulation types.
-!\\
-!\\
-! !INTERFACE:
+!      !=================================================================
+!      ! GET_ISOL begins here!
+!      !=================================================================
 !
-      FUNCTION GET_ISOL( N_TEST, N_TRACERS ) RESULT( VALUE )
+!      ! Initialize lookup table on the first call
+!      IF ( FIRST ) THEN
+!      
+!         ! Initialize
+!         NSOL_INDEX(:) = 0
+!   
+!         ! Loop over tracers
+!         DO N = 1, N_TRACERS
+!            
+!            ! Loop over soluble tracers
+!            DO L = 1, NSOL
 !
-! !USES:
+!               ! Test if tracer N is among the soluble tracers
+!               IF ( IDWETD(L) == N ) THEN
 !
-      USE CMN_SIZE_MOD                 ! Size parameters
+!                  ! Save location into the lookup table
+!                  NSOL_INDEX(N) = L 
 !
-! !INPUT PARAMETERS: 
+!                  !Go to next N
+!                  EXIT
+!               ENDIF
+!            ENDDO
+!         ENDDO
 !
-      INTEGER, INTENT(IN) :: N_TEST    ! Tracer number to look up
-      INTEGER, INTENT(IN) :: N_TRACERS ! # of GEOS_Chem tracers
+!         ! Reset first-time flag
+!         FIRST = .FALSE.
+!      ENDIF
 !
-! !RETURN VALUE:
+!      ! Return value
+!      VALUE = NSOL_INDEX(N_TEST)
 !
-      INTEGER             :: VALUE     ! Index for ND38 diagnostic
-
-!
-! !REVISION HISTORY: 
-!  05 Apr 2004 - R. Yantosca - Initial version
-!  (1 ) Now initializes a lookup table for faster execution.  Now made into
-!        an EXTERNAL function. (rjp, bmy, 4/5/04)
-!  (2 ) Now references N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
-!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER, SAVE :: NSOL_INDEX(NNPAR)
-      INTEGER       :: I, L, N
-
-      !=================================================================
-      ! GET_ISOL begins here!
-      !=================================================================
-
-      ! Initialize lookup table on the first call
-      IF ( FIRST ) THEN
-      
-         ! Initialize
-         NSOL_INDEX(:) = 0
-   
-         ! Loop over tracers
-         DO N = 1, N_TRACERS
-            
-            ! Loop over soluble tracers
-            DO L = 1, NSOL
-
-               ! Test if tracer N is among the soluble tracers
-               IF ( IDWETD(L) == N ) THEN
-
-                  ! Save location into the lookup table
-                  NSOL_INDEX(N) = L 
-
-                  !Go to next N
-                  EXIT
-               ENDIF
-            ENDDO
-         ENDDO
-
-         ! Reset first-time flag
-         FIRST = .FALSE.
-      ENDIF
-
-      ! Return value
-      VALUE = NSOL_INDEX(N_TEST)
-
-      END FUNCTION GET_ISOL
+!      END FUNCTION GET_ISOL
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1738,6 +1737,8 @@
 !  16 Oct 2015 - E. Lundgren - Use ThisSpc%WD_Is_H2SO4 to treat H2SO4 as
 !                              aerosol for wetdep (for microphysics)
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!   7 Jul 2016 - R. Yantosca - Now remove pointer threadprivate declarations
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1745,20 +1746,29 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      REAL(fp)                     :: Ki, SO2LOSS
+      REAL(fp)               :: Ki, SO2LOSS
 
-      ! Pointers (add SAVE to make them THREADPRIVATE)
-      REAL(fp),      POINTER, SAVE :: p_C_H2O  => NULL()
-      REAL(fp),      POINTER, SAVE :: p_CLDICE => NULL()
-      REAL(fp),      POINTER, SAVE :: p_CLDLIQ => NULL()
-      REAL(fp),      POINTER, SAVE :: p_T      => NULL()
+!      ! Pointers (add SAVE to make them THREADPRIVATE)
+!      REAL(fp),      POINTER, SAVE :: p_C_H2O  => NULL()
+!      REAL(fp),      POINTER, SAVE :: p_CLDICE => NULL()
+!      REAL(fp),      POINTER, SAVE :: p_CLDLIQ => NULL()
+!      REAL(fp),      POINTER, SAVE :: p_T      => NULL()
+!
+!      ! Objects
+!      TYPE(Species), POINTER, SAVE :: SpcInfo  => NULL()
+!
+!      ! Need to declare the pointers and objects THREADPRIVATE
+!      ! because RAINOUT is called from within a parallel loop
+!!$OMP THREADPRIVATE( p_C_H2O, p_CLDICE, p_CLDLIQ, p_T, SpcInfo )
+
+      ! Pointers
+      REAL(fp),      POINTER :: p_C_H2O
+      REAL(fp),      POINTER :: p_CLDICE
+      REAL(fp),      POINTER :: p_CLDLIQ
+      REAL(fp),      POINTER :: p_T
 
       ! Objects
-      TYPE(Species), POINTER, SAVE :: SpcInfo  => NULL()
-
-      ! Need to declare the pointers and objects THREADPRIVATE
-      ! because RAINOUT is called from within a parallel loop
-!$OMP THREADPRIVATE( p_C_H2O, p_CLDICE, p_CLDLIQ, p_T, SpcInfo )
+      TYPE(Species), POINTER :: SpcInfo
 
       !==================================================================
       ! RAINOUT begins here!
@@ -1768,7 +1778,7 @@
       !==================================================================
 
       ! Set pointers
-      p_C_H2O  => C_H2O (I,J,L)
+      p_C_H2O  => C_H2O(I,J,L)
       p_CLDICE => CLDICE(I,J,L)
       p_CLDLIQ => CLDLIQ(I,J,L)
       p_T      => State_Met%T(I,J,L)
@@ -1816,8 +1826,9 @@
       ! Compute rainout fraction for soluble gas-phase species
       ! (except for HNO3 and H2SO4 which scavenge like aerosols)
       !=================================================================
-      ELSE IF ( SpcInfo%Is_Gas .and. ( .not. SpcInfo%WD_Is_HNO3 ) 
-     &          .and. ( .not. SpcInfo%WD_Is_H2SO4 ) ) THEN  
+      ELSE IF ( SpcInfo%Is_Gas                 .and. 
+     &          ( .not. SpcInfo%WD_Is_HNO3 )   .and. 
+     &          ( .not. SpcInfo%WD_Is_H2SO4 ) ) THEN  
 
          ! Compute Ki, the loss rate of a gas-phase species from
          ! the convective updraft (Eq. 1, Jacob et al, 2000)
@@ -6127,6 +6138,20 @@
       ! arrays on each dynamic timestep.  (bmy, 9/22/15)
       !====================================================================
       IF ( FIRST ) THEN 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ We only have to copy the H2O2 and SO2 slots from TRACERS to SPECIES
+!@@@
+         IF ( id_H2O2 > 0 ) THEN
+            State_Chm%Species(:,:,:,id_H2O2) = 
+     &      State_Chm%Tracers(:,:,:,id_H2O2)
+         ENDIF
+
+         IF ( id_SO2 > 0 ) THEN
+            State_Chm%Species(:,:,:,id_SO2) = 
+     &      State_Chm%Tracers(:,:,:,id_SO2)
+         ENDIF
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
          ! Set H2O2s to the initial H2O2 from STT, so that we will have
          ! nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
@@ -6134,7 +6159,7 @@
          ! call to SETUP_WETSCAV, store H2O2s in legacy units [v/v dry air] 
          ! for now for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
          IF ( id_H2O2 > 0 ) THEN
-            H2O2s = State_Chm%Tracers(:,:,:,id_H2O2)
+            H2O2s = State_Chm%Species(:,:,:,id_H2O2)
      &            * Input_Opt%TCVV(id_H2O2)
          ENDIF
 
@@ -6144,9 +6169,23 @@
          ! call to SETUP_WETSCAV, store SO2s in units [v/v dry air] for now 
          ! for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
          IF ( id_SO2 > 0 ) THEN
-            SO2s = State_Chm%Tracers(:,:,:,id_SO2)
+            SO2s = State_Chm%Species(:,:,:,id_SO2)
      &           * Input_Opt%TCVV(id_SO2)
          ENDIF
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ We only have to copy the H2O2 and SO2 slots from SPECIES to TRACERS
+!@@@
+         IF ( id_H2O2 > 0 ) THEN
+            State_Chm%Tracers(:,:,:,id_H2O2) = 
+     &      State_Chm%Species(:,:,:,id_H2O2)
+         ENDIF
+
+         IF ( id_SO2 > 0 ) THEN
+            State_Chm%Tracers(:,:,:,id_SO2) = 
+     &      State_Chm%Species(:,:,:,id_SO2)
+         ENDIF
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
          ! Reset first-time flag
          FIRST = .FALSE.
