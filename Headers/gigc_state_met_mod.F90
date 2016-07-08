@@ -203,12 +203,13 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: AVGW      (:,:,:) ! Water vapor volume mixing ratio
                                             ! [vol H2O / vol dry air]
      REAL(fp), POINTER :: BXHEIGHT  (:,:,:) ! Grid box height [m] (dry air)
-     REAL(fp), POINTER :: DELP      (:,:,:) ! Delta-P extent of grid box [hPa]
-                                            ! (wet air)
+     REAL(fp), POINTER :: DELP      (:,:,:) ! Delta-P (wet) across box [hPa]
+     REAL(fp), POINTER :: DELP_DRY  (:,:,:) ! Delta-P (dry) across box [hPa]
      REAL(fp), POINTER :: AD        (:,:,:) ! Dry air mass [kg] in grid box
      REAL(fp), POINTER :: ADMOIST   (:,:,:) ! Moist air mass [kg] in grid box
      REAL(fp), POINTER :: AIRVOL    (:,:,:) ! Grid box volume [m3] (dry air)
      REAL(fp), POINTER :: DELP_PREV (:,:,:) ! Previous State_Met%DELP
+     REAL(fp), POINTER :: DP_DRY_PREV (:,:,:) ! Previous State_Met%DELP_DRY
      REAL(fp), POINTER :: SPHU_PREV (:,:,:) ! Previous State_Met%SPHU
 
      !----------------------------------------------------------------------
@@ -257,6 +258,7 @@ MODULE GIGC_State_Met_Mod
 !  17 Mar 2016 - M. Sulprizio- Remove OPTDEP. Instead, we now solely use OPTD.
 !  03 May 2016 - E. Lundgren - Add PSC2_DRY, PS1_DRY, and PS2_DRY
 !  06 Jul 2016 - E. Lundgren - Rename PS1, PS2, and PSC1: add '_WET' suffix
+!  06 Jul 2016 - E. Lundgren - Add DELP_DRY and DP_DRY_PREV
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -709,9 +711,17 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%DELP     = 0.0_fp
 
+    ALLOCATE( State_Met%DELP_DRY   ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%DELP_DRY = 0.0_fp
+
     ALLOCATE( State_Met%DELP_PREV ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%DELP_PREV= 0.0_fp
+
+    ALLOCATE( State_Met%DP_DRY_PREV ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%DP_DRY_PREV= 0.0_fp
 
     ALLOCATE( State_Met%DQRCU     ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -1095,7 +1105,9 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%CLDF       )) DEALLOCATE( State_Met%CLDF       )
     IF ( ASSOCIATED( State_Met%CMFMC      )) DEALLOCATE( State_Met%CMFMC      )
     IF ( ASSOCIATED( State_Met%DELP       )) DEALLOCATE( State_Met%DELP       )
+    IF ( ASSOCIATED( State_Met%DELP_DRY   )) DEALLOCATE( State_Met%DELP_DRY   )
     IF ( ASSOCIATED( State_Met%DELP_PREV  )) DEALLOCATE( State_Met%DELP_PREV  )
+    IF ( ASSOCIATED( State_Met%DP_DRY_PREV)) DEALLOCATE( State_Met%DP_DRY_PREV)
     IF ( ASSOCIATED( State_Met%DQRCU      )) DEALLOCATE( State_Met%DQRCU      )
     IF ( ASSOCIATED( State_Met%DQRLSAN    )) DEALLOCATE( State_Met%DQRLSAN    )
     IF ( ASSOCIATED( State_Met%DQIDTMST   )) DEALLOCATE( State_Met%DQIDTMST   )

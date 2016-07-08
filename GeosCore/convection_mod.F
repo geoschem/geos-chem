@@ -68,6 +68,7 @@
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  23 Jun 2015 - E. Lundgren - Convert tracer units from v/v dry air to
 !                              kg/kg total air for convection
+!  06 Jul 2016 - E. Lundgren - Trcr units are now kg/kg dry air in convection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -191,6 +192,7 @@
 !                              (previously v/v)
 !  10 Aug 2015 - E. Lundgren - Incoming tracer units are now kg/kg dry air
 !  11 Aug 2015 - R. Yantosca - Added support for MERRA2 data
+!  07 Jul 2016 - E. Lundgren - Now use trcr kg/kg dry instead of kg/kg total
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -223,7 +225,7 @@
       LOGICAL           :: DO_ND38
       
       ! Arrays        
-      REAL(fp)          :: PEDGE  (LLPAR+1)
+      REAL(fp)          :: PEDGE_DRY (LLPAR+1)
 #if defined( APM )
       INTEGER           :: ISOL   (      Input_Opt%N_TRACERS+N_APMTRA)
       REAL(fp)          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
@@ -272,15 +274,20 @@
       ! Copy values from Input_Opt
       N_TRACERS         = Input_Opt%N_TRACERS
 
-      ! Convert State_Chm%Tracers from [kg/kg dry air] to 
-      ! [kg/kg total air] prior to convection (ewl, 8/10/15)
-      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
-     &                                   State_Met, State_Chm, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                   'DO_CONVECTION in convection_mod.F')
-         RETURN
-      ENDIF  
+      !============================================================
+      ! Moisture fix (7/6/2016):
+      !============================================================
+      ! Prior to 06 Jul 2016: 
+      !! Convert State_Chm%Tracers from [kg/kg dry air] to 
+      !! [kg/kg total air] prior to convection (ewl, 8/10/15)
+      !CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
+      !&                                   State_Met, State_Chm, RC )
+      !IF ( RC /= GIGC_SUCCESS ) THEN
+      !   CALL GIGC_Error('Unit conversion error', RC, 
+      !&                   'DO_CONVECTION in convection_mod.F')
+      !   RETURN
+      !ENDIF  
+      !============================================================
 
       ! For netCDF diagnostics, archive old species concentration. At the 
       ! moment, the new ND38 diagnostics only returns the total column 
@@ -387,7 +394,8 @@
       !-----------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J,  I, AREA_M2, L, PEDGE, F, DIAG14, DIAG38, RC, N, NN )
+!$OMP+PRIVATE( J,  I, AREA_M2, L, PEDGE_DRY )
+!$OMP+PRIVATE( F, DIAG14, DIAG38, RC, N, NN )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -405,7 +413,7 @@
 
          ! Pressure edges
          DO L = 1, LLPAR+1
-            PEDGE(L) =  State_Met%PEDGE( I, J, L )
+            PEDGE_DRY(L) =  State_Met%PEDGE_DRY( I, J, L )
          ENDDO
 
          ! NOTE: For some reason the code chokes when we try
@@ -424,7 +432,7 @@
      &                             N_TRACERS  = N_TOT_TRC,
      &                             AREA_M2    = AREA_M2,
      &                             F          = F,
-     &                             PEDGE      = PEDGE,
+     &                             PEDGE_DRY  = PEDGE_DRY,
      &                             TS_DYN     = DT, 
      &                             USE_DIAG14 = DO_ND14,
      &                             DIAG14     = DIAG14,
@@ -500,13 +508,21 @@
             ! Is this a tracer selected for this diagnostics type?
             IF ( ANY( Input_Opt%TINDEX(38,:) == trc_id ) ) THEN
 
-               ! Loss rate [kg/kg total air per seconnd]
+               ! Loss rate [kg/kg dry air per seconnd]
                TMP3D = ( BEFORE(:,:,:,trc_id) - 
      &                 State_Chm%Tracers(:,:,:,trc_id)) / DTIME 
 
+               !============================================================
+               ! Moisture fix (7/6/2016):
+               !============================================================
+               ! Prior to 06 Jul 2016:
                ! Convert to [kg/s]
                ! Now use moist air mass rather than dry air mass (ewl, 6/23/15)
-               TMP3D = TMP3D * State_Met%ADMOIST  
+               !TMP3D = TMP3D * ( State_Met%DELP(I,J,L) * G0_100 ) * AREA_M2
+
+               ! Convert to [kg/s]
+               TMP3D = TMP3D * State_Met%AD
+               !============================================================
 
                ! Sum over the column
                TMP2D = SUM(TMP3D,DIM=3) 
@@ -534,15 +550,21 @@
       ENDIF
 #endif
 
+      !============================================================
+      ! Moisture fix (7/6/2016):
+      !============================================================
+      ! Prior to 06 Jul 2016: 
+
       ! Convert tracer concentration from kg/kg total air to 
       ! kg/kg dry air after convection (ewl, 8/10/15)
-      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
-     &                                   State_Met, State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                   'DO_CONVECTION in convection_mod.F')
-         RETURN
-      ENDIF  
+      !CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
+      !&                                   State_Met, State_Chm, RC ) 
+      !IF ( RC /= GIGC_SUCCESS ) THEN
+      !   CALL GIGC_Error('Unit conversion error', RC, 
+      !&                   'DO_CONVECTION in convection_mod.F')
+      !   RETURN
+      !ENDIF  
+      !============================================================
 
       !=================================================================
       ! Calculate tendencies and write to diagnostics 
@@ -624,8 +646,9 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE differences with 
 !                              State_Met%DELP. Remove dependency on 
 !                              pressure_mod
-!  23 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
-!                              (previously v/v)
+!  23 Jun 2015 - E. Lundgren - Now use kg/kg total air as trcr units, not v/v
+!  06 Jul 2015 - E. Lundgren - Now use kg/kg dry air as trcr units, requiring
+!                              use of DELP_DRY instead of DELP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -766,9 +789,9 @@
          DO I = 1, IIPAR
                
             ! DP = Pressure difference between top & bottom edges [Pa]
-            ! Now use DELP, equivalent to delta pressure level [hPa]
-            ! (ewl, 3/2/15)
-            DP(I,J,L2) = State_Met%DELP(I,J,L) * 100.0e+0_fp
+            ! Now use DELP_DRY, equivalent to delta dry pressure across
+            ! the level [hPa] (ewl, 7/6/15)
+            DP(I,J,L2) = State_Met%DELP_DRY(I,J,L) * 100.0e+0_fp
 
             ! RPDEL = reciprocal of DP [1/hPa]
             RPDEL(I,J,L2) = 100.0e+0_fp / DP(I,J,L2) 
@@ -785,7 +808,7 @@
       !=================================================================
 
       ! Initialize GEOS-Chem tracer array from Chemistry State object
-      ! [kg/kg total air] (ewl, 6/23/15)
+      ! [kg/kg dry air] (ewl, 7/6/16)
       STT      => State_Chm%Tracers
 
       ! Point to various fields and flip in vertical.  This avoids 
@@ -909,8 +932,9 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
 !                              Replace PEDGE difference with State_Met%DELP.
 !                              Remove dependency on pressure_mod.
-!  23 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
-!                              (previously v/v)
+!  23 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units not v/v
+!  06 Jul 2015 - E. Lundgren - Now use kg/kg dry air as trcr units, requiring
+!                              use of DELP_DRY instead of DELP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1055,9 +1079,9 @@
          DO I = 1, IIPAR
                
              ! DP = Pressure difference between top & bottom edges [Pa]
-             ! Now use DELP, equivalent to delta pressure level [hPa]
-             ! (ewl, 3/2/15)
-             DP(I,J,L2) = State_Met%DELP(I,J,L) * 100.0e+0_fp
+             ! Now use DELP_DRY, equivalent to the delta dry pressure 
+             ! across the level [hPa] (ewl, 7/6/15)
+             DP(I,J,L2) = State_Met%DELP_DRY(I,J,L) * 100.0e+0_fp
          ENDDO
          ENDDO
       ENDDO
@@ -1071,7 +1095,7 @@
       !=================================================================
 
       ! Initialize GEOS-Chem tracer array from Chemistry State object
-      ! [kg/kg total air]
+      ! [kg/kg dry air]
       STT        => State_Chm%Tracers
 
       ! Point to met fields and flip in vertical
@@ -1350,8 +1374,9 @@
 !                              now included in State_Met
 !  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
 !                              whether the dynamic ocean is used
-!  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
-!                              (previously v/v)
+!  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units not v/v
+!  06 Jul 2015 - E. Lundgren - Now use kg/kg dry air as trcr units, requiring
+!                              use of DELP_DRY instead of DELP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1432,7 +1457,7 @@
       NC                = Input_Opt%N_TRACERS
 
       ! Initialize GEOS-Chem tracer array from Chemistry State object
-      ! [kg/kg total air]
+      ! [kg/kg dry air]
       Q                 => State_Chm%Tracers
 
       ! Initialize cloud mass flux at upper edge of each level [kg/m2/s]
@@ -1511,7 +1536,7 @@
       DNS = DBLE( NS )
 
 !=============================================================================
-!  BMASS has units of kg/m^2 and is equivalent to AD(I,J,L) / AREA_M2
+!  BMASS has units of kg/m^2 and is equivalent to mass (I,J,L) / area (I,J)
 !
 !   Ps - Pt (mb)| P2 - P1 | 100 Pa |  s^2  | 1  |  1 kg        kg
 !  -------------+---------+--------+-------+----+--------  =  -----
@@ -1525,10 +1550,11 @@
 !  Now use routine GET_AREA_M2 from "grid_mod.f" to get surface area of
 !  grid boxes in m2. (bmy, 2/4/03)
 !
-!  Now using delta pressure * 100 / g for BMASS calculation. Removed
-!  area-dependent AD / AREA_M2. Note that BMASS is the moist air kg/m2 and 
-!  the change of AD from moist to dry in AIRQNT precludes its legacy usage 
-!  here (ewl, 4/28/15)
+!  Now using delta dry pressure * 100 / g for BMASS calculation. 
+!  Area-dependent AD / AREA_M2 is no longer used. Note that BMASS is 
+!  the dry air kg/m2 as estimated using the dry delta pressure derived 
+!  from surface dry pressure, itself derived from GMAO surface wet pressure.
+!  (ewl, 7/6/15)
 !
 !=============================================================================
 !$OMP PARALLEL DO
@@ -1538,7 +1564,7 @@
       DO K = 1, NLAY
       DO J = 1, JJPAR
       DO I = 1, IMR
-         BMASS(I,J,K) = State_Met%DELP(I,J,K) * G0_100
+         BMASS(I,J,K) = State_Met%DELP_DRY(I,J,K) * G0_100
       ENDDO
       ENDDO
       ENDDO
@@ -1646,7 +1672,7 @@
                ! QB is "weighted average" mixing ratio below the cloud 
                ! base.  QB is used to compute QC, which is the mixing 
                ! ratio of the air that moved in cumulus transport up 
-               ! to the next level.  MB is the total mass of air below 
+               ! to the next level.  MB is the dry mass of air below 
                ! the cloud base.
                !========================================================
 
@@ -1655,13 +1681,13 @@
 
                   ! Need to replace DSIG w/ the difference 
                   ! of pressure edges for GEOS-5 (bmy, 6/27/07)
-                  ! Now use DELP, equivalent to delta pressure level [hPa]
-                  ! (ewl, 3/2/15)
+                  ! Now use DELP_DRY, equivalent to delta dry pressure 
+                  ! across the level [hPa] (ewl, 7/6/15)
                   QB(I,J) = 
-     &                      ( Q(I,J,1,IC) * State_Met%DELP(I,J,1) + 
-     &                      Q(I,J,2,IC) * State_Met%DELP(I,J,2) ) / 
-     &                      ( State_Met%DELP(I,J,1) 
-     &                      + State_Met%DELP(I,J,2) )
+     &                      ( Q(I,J,1,IC) * State_Met%DELP_DRY(I,J,1) + 
+     &                      Q(I,J,2,IC) * State_Met%DELP_DRY(I,J,2) ) / 
+     &                      ( State_Met%DELP_DRY(I,J,1) 
+     &                      + State_Met%DELP_DRY(I,J,2) )
 
 #else
                   ! for GEOS-3
@@ -1671,14 +1697,14 @@
 
 #endif
 
-                  ! total mass of air below the cloud base
+                  ! Dry mass of air below the cloud base
                   MB(I,J) = BMASS(I,J,1) + BMASS(I,J,2)
 
 !=============================================================================
-!         Total mass of tracer below cloud base (i.e. MB  * QB ) +   
+!         Dry mass of tracer below cloud base (i.e. MB  * QB ) +   
 !         Subsidence into cloud base from above (i.e. SDT * C(2) * Q(3) ) 
 !  QC =  -----------------------------------------------------------------
-!             Total air mass below cloud base (i.e. MB + C(2)*Q(3) )
+!             Dry air mass below cloud base (i.e. MB + C(2)*Q(3) )
 !=============================================================================
                   QC(I,J) = 
      &               ( MB(I,J)       * QB(I,J)       + 
@@ -1686,7 +1712,7 @@
      &               ( MB(I,J)       + CLDMAS(I,J,2) * SDT )
      
                   !=====================================================
-                  ! DQ = QB - QC is the total mass to be transported 
+                  ! DQ = QB - QC is the dry mass to be transported 
                   ! out of the cloud base.  Changes below cloud base 
                   ! are proportional to the background mass.
                   ! 
@@ -1739,7 +1765,7 @@
 !            =   tracer mass coming in from below      (i.e. level K-1) + 
 !                tracer mass coming in from this level (i.e. level K)
 !               -----------------------------------------------------------
-!                             total mass coming into cloud
+!                             dry mass coming into cloud
 !
 !  Otherwise, preserve the previous value of QC(I,J).  This will ensure
 !  that TERM1 - TERM2 is not a negative quantity (see below).
@@ -2004,7 +2030,7 @@
      &                                N_TRACERS,  
      &                                AREA_M2,    
      &                                F,          
-     &                                PEDGE,      
+     &                                PEDGE_DRY,      
      &                                TS_DYN,   
      &                                USE_DIAG14, 
      &                                DIAG14,
@@ -2034,20 +2060,20 @@
 !
 ! !INPUT PARAMETERS:
 !  
-      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
-      INTEGER,        INTENT(IN)    :: I, J       ! Lon & lat indices
-      INTEGER,        INTENT(IN)    :: N_TRACERS  ! # of convected tracers
-      REAL(fp),       INTENT(IN)    :: AREA_M2    ! Surface area [m2]
-      REAL(fp),       INTENT(IN)    :: F(:,:)     ! Fraction of soluble tracer
-                                                  !  for updraft scavenging 
-                                                  !  [unitless].  Computed by
-                                                  !  routine  COMPUTE_F.
-      REAL(fp),       INTENT(IN)    :: PEDGE(:)   ! P @ level box edges [hPa]
-      REAL(fp),       INTENT(IN)    :: TS_DYN     ! Dynamic timestep [min]
-      LOGICAL,        INTENT(IN)    :: USE_DIAG14 ! Archive DIAG14?
-      LOGICAL,        INTENT(IN)    :: USE_DIAG38 ! Archive DIAG38?
+      LOGICAL,        INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
+      INTEGER,        INTENT(IN)    :: I, J         ! Lon & lat indices
+      INTEGER,        INTENT(IN)    :: N_TRACERS    ! # of convected tracers
+      REAL(fp),       INTENT(IN)    :: AREA_M2      ! Surface area [m2]
+      REAL(fp),       INTENT(IN)    :: F(:,:)       ! Fraction of soluble tracer
+                                                    !  for updraft scavenging 
+                                                    !  [unitless].  Computed by
+                                                    !  routine  COMPUTE_F.
+      REAL(fp),       INTENT(IN)    :: PEDGE_DRY(:) ! P @ level box edges [hPa]
+      REAL(fp),       INTENT(IN)    :: TS_DYN       ! Dynamic timestep [min]
+      LOGICAL,        INTENT(IN)    :: USE_DIAG14   ! Archive DIAG14?
+      LOGICAL,        INTENT(IN)    :: USE_DIAG38   ! Archive DIAG38?
 !                                                  
 ! !INPUT/OUTPUT PARAMETERS:                        
 !        
@@ -2126,14 +2152,16 @@
 !  04 Jun 2015 - E. Lundgren - Adapt Viral Shah bug fixes to moist mixing ratio
 !  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
 !                              whether the dynamic ocean is used
-!  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
-!                              (previously v/v)
+!  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units not v/v
 !  22 Jun 2015 - E. Lundgren - Move QB_NUM calculation to within timestep loop
 !  12 Aug 2015 - R. Yantosca - Treat MERRA2 in same way as we do for GEOS-FP
 !  14 Sep 2015 - E. Lundgren - Apply bug fixes provided by Viral Shah:
 !                              -- Prevent ALPHA > 1 in washout of aerosols 
 !                              -- Add tracer GAINED to Q before WETLOSS
 !                                 calculation in aerosol washout
+!  06 Jul 2015 - E. Lundgren - Now use kg/kg dry air as trcr units, requiring
+!                              use of DELP_DRY instead of DELP, and PEDGE_DRY
+!                              instead of PEDGE for average mixing ratio
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2172,7 +2200,7 @@
       REAL(fp),  POINTER  :: PFICU    (:        )
       REAL(fp),  POINTER  :: PFLCU    (:        )
       REAL(fp),  POINTER  :: REEVAPCN (:        )
-      REAL(fp),  POINTER  :: DELP     (:        )
+      REAL(fp),  POINTER  :: DELP_DRY (:        )
       REAL(fp),  POINTER  :: T        (:        )
       REAL(fp),  POINTER  :: H2O2s    (:        )
       REAL(fp),  POINTER  :: SO2s     (:        )
@@ -2188,12 +2216,12 @@
       DQRCU    => State_Met%DQRCU   (I,J,:        ) ! Precip production rate:
       DTRAIN   => State_Met%DTRAIN  (I,J,:        ) ! Detrainment flux [kg/m2/s]
       REEVAPCN => State_Met%REEVAPCN(I,J,:        ) ! Evap of precip'ing conv.
-      DELP     => State_Met%DELP    (I,J,:        ) ! Edge pressure diff [hPa]
+      DELP_DRY => State_Met%DELP_DRY(I,J,:        ) ! Edge dry P diff [hPa]
       T        => State_Met%T       (I,J,:        ) ! Air temperature [K]
       H2O2s    => H2O2s_3D          (I,J,:        ) ! H2O2s from sulfate_mod
       SO2s     => SO2s_3D           (I,J,:        ) ! SO2s from sulfate_mod
       Q        => State_Chm%TRACERS (I,J,:,:      ) ! Tracer concentration
-                                                    ! [mol/mol total air] 
+                                                    ! [mol/mol dry air] 
                                                 
 #if   defined( GEOS_FP ) || defined( MERRA2 )
 
@@ -2257,16 +2285,16 @@
          PDOWN(K) = ( ( PFLCU(K) / 1000e+0_fp ) 
      &            +   ( PFICU(K) /  917e+0_fp ) ) * 100e+0_fp
 
-         ! BMASS is the total air mass per unit area for the grid box
+         ! BMASS is the dry air mass per unit area for the grid box
          ! bounded by level K and K+1 [kg/m2] 
-         ! BMASS is equivalent to deltaP * 100 / g
+         ! BMASS is equivalent to deltaP (dry) * 100 / g
          ! This is done to keep BMASS in the same units as CMFMC * SDT
-         BMASS(K) = DELP(K) * G0_100
+         BMASS(K) = DELP_DRY(K) * G0_100
 
       ENDDO
 
       !-----------------------------------------------------------------
-      ! Compute MB, the mass per unit area of total air below the cloud
+      ! Compute MB, the mass per unit area of dry air below the cloud
       ! base [kg/m2]. Calculate MB by looping over levels below the 
       ! cloud base.
       !-----------------------------------------------------------------
@@ -2293,17 +2321,17 @@
          DO ISTEP = 1, NS
 
             ! Initialize
-            QC     = 0e+0_fp    ! [kg tracer/kg total air]                  
+            QC     = 0e+0_fp    ! [kg tracer/kg dry air]                  
             T0_SUM = 0e+0_fp    ! [kg tracer/m2/timestep]
 
             !----------------------------------------------------------
             ! B e l o w   C l o u d   B a s e   (K < CLDBASE) 
             !
             ! QB is the "weighted avg" mixing ratio below the cloud
-            ! base [kg/kg total air].
+            ! base [kg/kg dry air].
             ! QC is the mixing ratio of the air that moved in cumulus 
-            ! transport up to the next level [kg/kg total air]. 
-            ! MB is the total mass of air below the cloud base per 
+            ! transport up to the next level [kg/kg dry air]. 
+            ! MB is the dry mass of air below the cloud base per 
             ! unit area [kg/m2] (see calculation before loop).
             !-----------------------------------------------------------
 
@@ -2320,25 +2348,25 @@
                   ! Calculate QB_NUM, the numerator for QB. QB is the 
                   ! weighted average mixing ratio below the cloud base.
                   ! QB_NUM is equal to the grid box tracer concentrations 
-                  ! [kg/kg total air] weighted by the adjacent level pressure 
-                  ! differences and summed over all levels up to just 
-                  ! below the cloud base (ewl, 6/22/15)           
+                  ! [kg/kg dry air] weighted by the adjacent level dry 
+                  ! pressure differences, and summed over all levels up 
+                  ! to just below the cloud base (ewl, 7/6/15)           
                   QB_NUM  = 0e+0_fp  
                   DO K  = 1, CLDBASE-1
-                     QB_NUM = QB_NUM + Q(K,IC) * DELP(K)
+                     QB_NUM = QB_NUM + Q(K,IC) * DELP_DRY(K)
                   ENDDO
 
                   ! Compute QB, the weighted avg mixing ratio below
-                  ! the cloud base [kg/kg total air]
-                  QB = QB_NUM / ( PEDGE(1) - PEDGE(CLDBASE) )
+                  ! the cloud base [kg/kg dry air]
+                  QB = QB_NUM / ( PEDGE_DRY(1) - PEDGE_DRY(CLDBASE) )
 
                   ! Compute QC, the mixing ratio of the air that moved
                   ! in cumulus transport up to the next level [kg/kg]
                   !
-                  !        Total mass of tracer below cloud base  +   
+                  !        Dry mass of tracer below cloud base  +   
                   !        Subsidence into cloud base from above  
                   ! QC =  --------------------------------------------
-                  !            Total air mass below cloud base 
+                  !            Dry air mass below cloud base 
                   !
                   QC = ( MB*QB + CMFMC(CLDBASE-1) * 
      &                           Q(CLDBASE,IC)    * SDT  ) /
@@ -2407,7 +2435,7 @@
                   !      tracer mass from below      (i.e. level K-1) + 
                   !      tracer mass from this level (i.e. level K)
                   !  = -----------------------------------------------------
-                  !             total mass coming into cloud
+                  !             dry mass coming into cloud
                   !
                   ! Otherwise, preserve the previous value of QC.  This will 
                   ! ensure that TERM1 - TERM2 is not a negative quantity (see 
@@ -2570,7 +2598,7 @@
                   ! out of the box.
                   !
                   ! Units of T0, T1, T2, T3, T4, and TSUM are
-                  ! [kg/m2/s * kg tracer / kg total air]
+                  ! [kg/m2/s * kg tracer / kg dry air]
                   !------------------------------------------------------------
                   T0      =  CMFMC_BELOW * QC_SCAV      
                   T1      =  CMFMC_BELOW * QC_PRES       
@@ -2606,7 +2634,7 @@
                   ENDIF
 
                   ! Pass T0_SUM in units of [kg tracer/m2/timestep].
-                  ! Converting kg total air to kg tracer requires use
+                  ! Converting kg dry air to kg tracer requires use
                   ! of the molecular weight of air including moisture
                   ! (ewl, 6/5/15)
                   T0_SUM = T0_SUM + T0 * SDT
@@ -2665,11 +2693,11 @@
                   IF ( CMFMC(K) > TINYNUM ) THEN 
 
                      ! Tracer convected from K -> K+1 
-                     ! [kg/m2/s * kg tracer/kg total air]
+                     ! [kg/m2/s * kg tracer/kg dry air]
                      T2   = -CMFMC(K) * QC
 
                      ! Tracer subsiding from K+1 -> K [kg/m2/s]
-                     ! [kg/m2/s * kg tracer/kg total air]
+                     ! [kg/m2/s * kg tracer/kg dry air]
                      T3   =  CMFMC(K) * Q(K+1,IC)
 
                      ! Change in tracer concentration [kg/kg]
@@ -2952,7 +2980,7 @@
       NULLIFY( PFICU    )
       NULLIFY( PFLCU    )
       NULLIFY( REEVAPCN )
-      NULLIFY( DELP     )
+      NULLIFY( DELP_DRY )
       NULLIFY( T        )
       NULLIFY( H2O2s    )
       NULLIFY( SO2s     )

@@ -2136,10 +2136,23 @@
       ! box. Otherwise, run will take too long (ewl, 9/22/15)
       UNITCHANGE_KGKG = .FALSE.
       UNITCHANGE_KGM2 = .FALSE.
-      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg total' ) THEN
+
+      !============================================================
+      ! MOISTURE FIX (ewl, 7/8/16)
+      !============================================================
+      ! Prior to 08 July 2016:
+      ! (units are moist mixing ratio in convection)
+      !IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg total' ) THEN
+      !   UNITCHANGE_KGKG = .TRUE.
+      !   CALL Convert_KgKgTotal_to_Kg( am_I_Root, I, J, L, Input_Opt, 
+      !&                                 State_Met, State_Chm, RC )
+
+      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg dry' ) THEN
          UNITCHANGE_KGKG = .TRUE.
-         CALL Convert_KgKgTotal_to_Kg( am_I_Root, I, J, L, Input_Opt, 
-     &                                 State_Met, State_Chm, RC )
+         CALL Convert_KgKgDry_to_Kg( am_I_Root, I, J, L, Input_Opt, 
+     &                               State_Met, State_Chm, RC )
+      !============================================================
+
       ELSE IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/m2' ) THEN
          UNITCHANGE_KGM2 = .TRUE.
          CALL Convert_Kgm2_to_Kg( am_I_Root, I, J, L, Input_Opt, 
@@ -2291,8 +2304,19 @@
       ! Convert State_Chm%Tracers units back to original units 
       ! if conversion occurred at start of WASHOUT (ewl, 5/12/15)
       IF ( UNITCHANGE_KGKG ) THEN
-         CALL Convert_Kg_to_KgKgTotal( am_I_Root, I, J, L, Input_Opt, 
+
+         !============================================================
+         ! MOISTURE FIX (ewl, 7/8/16)
+         !============================================================
+         ! Prior to 08 July 2016:
+         ! (units are moist mixing ratio in convection)
+         !CALL Convert_Kg_to_KgKgTotal( am_I_Root, I, J, L, Input_Opt, 
+         !&                                 State_Met, State_Chm, RC )
+
+         CALL Convert_Kg_to_KgKgDry( am_I_Root, I, J, L, Input_Opt, 
      &                                 State_Met, State_Chm, RC )
+         !============================================================
+
       ELSE IF ( UNITCHANGE_KGM2 ) THEN
          CALL Convert_Kg_to_Kgm2( am_I_Root, I, J, L, Input_Opt, 
      &                            State_Met, State_Chm, RC )

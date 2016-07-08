@@ -542,11 +542,6 @@
       !ENDIF 
       !============================================================
 
-      IF ( LPRT ) THEN
-         CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
-     &                                "post-advection, pre-airqnt")
-      ENDIF
-
       ! Free pointer memory
       NULLIFY( p_UWND,  p_VWND,  p_STT   )
       NULLIFY( p_XMASS, p_YMASS          )
@@ -873,11 +868,6 @@
       !   RETURN
       !ENDIF 
       !============================================================
-
-      IF ( LPRT ) THEN
-         CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
-     &                                "post-advection, pre-airqnt")
-      ENDIF
 
       ! Free pointer memory
       NULLIFY( p_UWND,  p_VWND,  p_STT   )
@@ -1264,11 +1254,6 @@
       !   RETURN
       !ENDIF 
       !============================================================
-
-      IF ( LPRT ) THEN
-         CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
-     &                                "post-advection, pre-airqnt")
-      ENDIF
 
       ! Free pointer memory
       NULLIFY( p_UWND,  p_VWND,  p_STT,   p_XMASS  ) 
