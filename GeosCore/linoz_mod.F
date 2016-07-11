@@ -269,6 +269,8 @@
 !  17 Jun 2016 - R. Yantosca - Only look up species ID of O3 on first call
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  11 Jul 2016 - R. Yantosca - Bug fix: SPC now points to State_Chm%Species
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -332,9 +334,8 @@
       ! NOTE: TCVV can be removed soon!
       TCVV       = Input_Opt%TCVV(1:nAdvect)
 
-      ! Initialize GEOS-Chem tracer array [v/v dry air] from State_Chm object
-      ! (mpayer, 12/6/12)
-      Spc => State_Chm%Tracers
+      ! Point to chemical species array [v/v dry air]
+      Spc => State_Chm%Species
 
       ! Look up the species ID of O3 only on the first call
       IF ( FIRST ) THEN

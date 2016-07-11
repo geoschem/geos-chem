@@ -322,15 +322,26 @@ CONTAINS
     ENDIF
 10  FORMAT( '     - DO_STRAT_CHEM: Linearized strat chemistry at ', a )
     
-    ! On first call, establish pointers to data fields read by HEMCO. These are
-    ! the stratospheric Bry fields as well as the production/loss rates.
+    ! On first call, establish pointers to data fields read by HEMCO. These 
+    ! are the stratospheric Bry fields as well as the production/loss rates.
     ! (ckeller, 12/30/2014)
+    !
+    ! If we are doing a tagO3 simulation, then we can skip this section,
+    ! since tagO3 only uses Linoz or Synoz, but doesn't read in any P/L
+    ! fields from disk. (bmy, 7/11/16)
     IF ( FIRST ) THEN
-       CALL Set_BryPointers ( am_I_Root, Input_Opt, State_Chm, State_Met, errCode )
-       IF ( errCode /= GIGC_SUCCESS ) RETURN
+       IF ( .not. IT_IS_A_TAGOX_SIM ) THEN
 
-       CALL Set_PLVEC ( am_I_Root, Input_Opt, State_Chm, State_Met, errCode )
-       IF ( errCode /= GIGC_SUCCESS ) RETURN
+          ! Get pointers to Bry fields via HEMCO
+          CALL Set_BryPointers ( am_I_Root, Input_Opt,          &
+                                 State_Chm, State_Met, errCode )
+          IF ( errCode /= GIGC_SUCCESS ) RETURN
+
+          ! Get pointers to prod/loss fields via HEMCO
+          CALL Set_PLVEC ( am_I_Root, Input_Opt,                &
+                           State_Chm, State_Met, errCode )
+          IF ( errCode /= GIGC_SUCCESS ) RETURN
+       ENDIF
     ENDIF
 
     ! SDE 2014-01-14: Allow the user to overwrite stratospheric
