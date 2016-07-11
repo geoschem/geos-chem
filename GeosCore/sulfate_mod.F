@@ -841,17 +841,11 @@
          CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
       ENDIF
 
-      ! For offline runs only ...
-      IF ( IT_IS_AN_AEROSOL_SIM ) THEN
-
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
 !@@@ This can be removed later once State_Chm%Tracers is removed everywhere
 !@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
       ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
@@ -859,6 +853,8 @@
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
+      ! For offline runs only ...
+      IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
          ! DMS (offline only)
          CALL CHEM_DMS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -893,7 +889,7 @@
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4' )
       ENDIF
-d
+
 #if   defined( TOMAS )
       !-----------------------------------------------------------------
       ! For TOMAS microphysics:
