@@ -288,6 +288,7 @@
 !                              was made obsolete by the species database
 !  22 Jun 2016 - R. Yantosca - Add error checks to prevent calling UCX routines
 !                              when we are running specialty simulations
+!  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -728,7 +729,7 @@
       ! to kg/kg dry air (ewl, 9/18/15)
       CALL READ_GC_RESTART( am_I_Root, NYMDb,     NHMSb, 
      &                      Input_Opt, State_Met, State_Chm, RC )
-      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_GC_RESTART' )
 
       ! Initialize stratospheric routines
       IF ( LUCX ) THEN
@@ -793,9 +794,7 @@
      &                       State_Met, State_Chm, RC )
 #endif 
 
-#if !defined( BPCH_RST_OUT )
-      CALL INIT_GC_RESTART_NC( am_I_Root, Input_Opt, State_Chm, RC )
-#endif
+      CALL INIT_GC_RESTART( am_I_Root, Input_Opt, State_Chm, RC )
 
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_End( "Initialization", RC )
@@ -931,13 +930,12 @@
                ENDIF
                
                ! Make atmospheric restart file
-               CALL WRITE_GC_RESTART( am_I_Root, Input_Opt, NYMD, 
-     &                                NHMS, TAU, State_Chm, State_Met,
-     &                                RC )
+               CALL WRITE_GC_RESTART( am_I_Root, NYMD, NHMS, Input_Opt,
+     &                                State_Chm, State_Met, RC )
 
                !### Debug
                IF ( prtDebug ) THEN
-                  CALL DEBUG_MSG( '### MAIN: a WRITE_GC_RESTART_FILE' )
+                  CALL DEBUG_MSG( '### MAIN: a WRITE_GC_RESTART' )
                ENDIF
 
 #if defined( USE_TIMERS )
