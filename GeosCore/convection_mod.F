@@ -225,7 +225,7 @@
       LOGICAL           :: DO_ND38
       
       ! Arrays        
-      REAL(fp)          :: PEDGE_DRY (LLPAR+1)
+!      REAL(fp)          :: PEDGE_DRY (LLPAR+1) ! moisture fix
 #if defined( APM )
       INTEGER           :: ISOL   (      Input_Opt%N_TRACERS+N_APMTRA)
       REAL(fp)          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
@@ -394,7 +394,7 @@
       !-----------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J,  I, AREA_M2, L, PEDGE_DRY )
+!$OMP+PRIVATE( J,  I, AREA_M2, L )
 !$OMP+PRIVATE( F, DIAG14, DIAG38, RC, N, NN )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
@@ -411,10 +411,11 @@
          ! Grid box surface area [m2]
          AREA_M2     =  GET_AREA_M2( I, J, 1 ) 
 
-         ! Pressure edges
-         DO L = 1, LLPAR+1
-            PEDGE_DRY(L) =  State_Met%PEDGE_DRY( I, J, L )
-         ENDDO
+! moisture fix
+!         ! Pressure edges
+!         DO L = 1, LLPAR+1
+!            PEDGE_DRY(L) =  State_Met%PEDGE_DRY( I, J, L )
+!         ENDDO
 
          ! NOTE: For some reason the code chokes when we try
          ! to use a pointer, so we'll use a 2D array here.
@@ -432,7 +433,7 @@
      &                             N_TRACERS  = N_TOT_TRC,
      &                             AREA_M2    = AREA_M2,
      &                             F          = F,
-     &                             PEDGE_DRY  = PEDGE_DRY,
+!     &                             PEDGE_DRY  = PEDGE_DRY,
      &                             TS_DYN     = DT, 
      &                             USE_DIAG14 = DO_ND14,
      &                             DIAG14     = DIAG14,
@@ -521,7 +522,8 @@
                !TMP3D = TMP3D * ( State_Met%DELP(I,J,L) * G0_100 ) * AREA_M2
 
                ! Convert to [kg/s]
-               TMP3D = TMP3D * State_Met%AD
+               TMP3D = TMP3D * State_Met%DELP_DRY(I,J,L) * 
+     &                 G0_100 * AREA_M2
                !============================================================
 
                ! Sum over the column
@@ -2030,7 +2032,7 @@
      &                                N_TRACERS,  
      &                                AREA_M2,    
      &                                F,          
-     &                                PEDGE_DRY,      
+!     &                                PEDGE_DRY,      
      &                                TS_DYN,   
      &                                USE_DIAG14, 
      &                                DIAG14,
@@ -2070,7 +2072,7 @@
                                                     !  for updraft scavenging 
                                                     !  [unitless].  Computed by
                                                     !  routine  COMPUTE_F.
-      REAL(fp),       INTENT(IN)    :: PEDGE_DRY(:) ! P @ level box edges [hPa]
+!      REAL(fp),       INTENT(IN)    :: PEDGE_DRY(:) ! P @ level box edges [hPa]
       REAL(fp),       INTENT(IN)    :: TS_DYN       ! Dynamic timestep [min]
       LOGICAL,        INTENT(IN)    :: USE_DIAG14   ! Archive DIAG14?
       LOGICAL,        INTENT(IN)    :: USE_DIAG38   ! Archive DIAG38?
@@ -2160,8 +2162,8 @@
 !                              -- Add tracer GAINED to Q before WETLOSS
 !                                 calculation in aerosol washout
 !  06 Jul 2015 - E. Lundgren - Now use kg/kg dry air as trcr units, requiring
-!                              use of DELP_DRY instead of DELP, and PEDGE_DRY
-!                              instead of PEDGE for average mixing ratio
+!                              use of DELP_DRY instead of DELP and PEDGE_DRY
+!                              for avg mixing ratio 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2187,6 +2189,7 @@
       REAL(fp)            :: MASS_NOWASH, QDOWN,    DT,      F_WASHOUT
       REAL(fp)            :: K_RAIN,      WASHFRAC, WET_Hg2, WET_HgP 
       REAL(fp)            :: MB,          QB,       QB_NUM
+      REAL(fp)            :: DELP_DRY_NUM
 
       ! Arrays
       REAL(fp)            :: BMASS       (LLPAR    )    
@@ -2352,13 +2355,23 @@
                   ! pressure differences, and summed over all levels up 
                   ! to just below the cloud base (ewl, 7/6/15)           
                   QB_NUM  = 0e+0_fp  
+                  DELP_DRY_NUM = 0e+0_fp
+
                   DO K  = 1, CLDBASE-1
                      QB_NUM = QB_NUM + Q(K,IC) * DELP_DRY(K)
+                     DELP_DRY_NUM = DELP_DRY_NUM + DELP_DRY(K)
                   ENDDO
 
                   ! Compute QB, the weighted avg mixing ratio below
                   ! the cloud base [kg/kg dry air]
-                  QB = QB_NUM / ( PEDGE_DRY(1) - PEDGE_DRY(CLDBASE) )
+                  !============================================================
+                  ! Moisture fix (5/4/2016):
+                  !============================================================
+                  ! Prior to 12 Jul 2016:
+                  ! (use dry edge pressures)
+                  !QB = QB_NUM / ( PEDGE_DRY(1) - PEDGE_DRY(CLDBASE) )
+                  QB = QB_NUM / DELP_DRY_NUM
+                  !============================================================
 
                   ! Compute QC, the mixing ratio of the air that moved
                   ! in cumulus transport up to the next level [kg/kg]
