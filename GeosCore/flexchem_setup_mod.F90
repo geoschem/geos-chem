@@ -83,7 +83,7 @@ CONTAINS
     USE gckpp_Global,       ONLY : NSPEC, NREACT
     USE gckpp_Monitor,      ONLY : SPC_NAMES, EQN_NAMES
     USE PRECISION_MOD
-    USE RESTART_MOD,        ONLY : SPC_IN_NC_RST
+    USE RESTART_MOD,        ONLY : NONADV_SPC_IN_RESTART
     USE Species_Mod,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_NYMD, GET_NHMS
 !
@@ -199,11 +199,15 @@ CONTAINS
 
     ENDDO
 
-    ! If species data was in the NetCDF restart file then do nothing
-    ! since species was converted to [molec/cm3] after being read in.
-    ! Otherwise, convert the default background values set in restart_mod.F
-    ! from [mol/mol] to [molec/cm3]. (ewl, 2/16/16)
-    IF ( .NOT. SPC_IN_NC_RST ) THEN
+    ! If non-advected species data was not in the NetCDF restart file then 
+    ! convert the default background values set in restart_mod.F from 
+    ! [mol/mol] to [molec/cm3]. Otherwise, do nothing since concentrations 
+    ! for these species were converted to [molec/cm3] after being read in.
+    ! Note that advected species concentrations are now always read in 
+    ! from the restart file but non-advected species concentrations are
+    ! only read in if using a restart file output from a previous run.
+    ! (ewl, 7/12/16)
+    IF ( .NOT. NONADV_SPC_IN_RESTART ) THEN
 
        ! Write message to log
        IF ( am_I_Root .and. Input_Opt%LPRT ) THEN
@@ -321,7 +325,7 @@ CONTAINS
        ! Mark end of unit conversion in log
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
-    ENDIF ! .not. SPC_IN_NC_RST
+    ENDIF
 
 #if defined( DEVEL )
 !------------------------------------------------------------------------------
