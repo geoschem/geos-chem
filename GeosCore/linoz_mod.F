@@ -270,7 +270,6 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  11 Jul 2016 - R. Yantosca - Bug fix: SPC now points to State_Chm%Species
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -305,24 +304,9 @@
       !=================================================================
       ! LINOZ_CHEM3 begins here!
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
 
       ! From Input_Opt
-      LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
+      LPRT       = ( Input_Opt%LPRT .and. am_I_Root )
 
       ! Assume success
       RC         = GIGC_SUCCESS
@@ -331,11 +315,13 @@
       IM         = IIPAR
       JM         = JJPAR
       LM         = LLPAR
+      nAdvect    = State_Chm%nAdvect
+
       ! NOTE: TCVV can be removed soon!
       TCVV       = Input_Opt%TCVV(1:nAdvect)
 
       ! Point to chemical species array [v/v dry air]
-      Spc => State_Chm%Species
+      Spc        => State_Chm%Species
 
       ! Look up the species ID of O3 only on the first call
       IF ( FIRST ) THEN
@@ -554,15 +540,6 @@
       ! Free pointer
       Spc => NULL()
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE LINOZ_CHEM3
 !EOC
 !------------------------------------------------------------------------------

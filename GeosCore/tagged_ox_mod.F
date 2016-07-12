@@ -31,7 +31,6 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
-      PUBLIC  :: ADD_STRAT_POX 
       PUBLIC  :: CHEM_TAGGED_OX 
       PUBLIC  :: CLEANUP_TAGGED_OX 
       PUBLIC  :: INIT_TAGGED_OX
@@ -107,6 +106,9 @@
 !  04 Mar 2015 - R. Yantosca - Declare pointer args to HCO_GetPtr with REAL(f4)
 !  16 Jun 2016 - M. Sulprizio- Replace IDTO3Strt from tracerid_mod.F with
 !                              a local definition (module variable id_O3Strat)
+!  12 Jul 2016 - R. Yantosca - Remove routine ADD_STRAT_POX, we now just
+!                              directly add into State_Chm%Species in 
+!                              strat_chm_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -150,67 +152,6 @@
 #endif
 
       CONTAINS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: add_strat_pox
-!
-! !DESCRIPTION: Subroutine ADD\_STRAT\_POX adds the stratospheric influx of 
-!  Ox to the stratospheric Ox tracer.  This is called from routine 
-!  Do\_Synoz, which is applied when the tracer array has units of [v/v].  
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE ADD_STRAT_POX( I, J, L, POx, State_Chm )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : IND_
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER,  INTENT(IN) :: I     ! GEOS-Chem grid box lon index
-      INTEGER,  INTENT(IN) :: J     ! GEOS-Chem grid box lat index
-      INTEGER,  INTENT(IN) :: L     ! GEOS-Chem grid box level index
-      REAL(fp), INTENT(IN) :: POx   ! P(Ox) in the stratosphere [v/v]
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-! 
-! !REMARKS:
-!  This routine is only called if you are using the Synoz stratospheric
-!  ozone chemistry.  Synoz is now obsolete and has been replaced by Linoz.
-!
-! !REVISION HISTORY:
-!  19 Aug 2003 - R. Yantosca - Initial version
-!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
-!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  10 Jun 2012 - L. Murray - Enable tagged Ox for Synoz.
-!  05 Nov 2013 - R. Yantosca - Rename IDTOxStrt to IDTO3Strt
-!  05 Nov 2013 - R. Yantosca - Remove STT pointer for simplicity
-!  20 Jun 2016 - R. Yantosca - Rename IDTO3Strt to id_O3Strat.  This is now
-!                              a module variable which is only defined at init.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      !=================================================================
-      ! GET_STRAT_POX begins here!
-      !=================================================================
-
-      State_Chm%Tracers(I,J,L,id_O3Strat) = 
-     &State_Chm%Tracers(I,J,L,id_O3Strat) + POx
-
-      END SUBROUTINE ADD_STRAT_POX
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
