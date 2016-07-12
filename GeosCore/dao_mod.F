@@ -425,228 +425,204 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         !****************************************************************!
-         ! KEEP:                                                          !
-                                                                          !
-         !=============================================================   !
-         ! Set wet air pressures [hPa]                                    !
-         ! (lower edge, delta, centroid, and spatially-weighted mean)     !
-         !=============================================================   !
-                                                                          !
-         ! Pressure at bottom edge of grid box [hPa]                      !
-         State_Met%PEDGE( I,J,L )  = GET_PEDGE( I,J,L )                   !
-                                                                          !
-         ! Pressure at top edge of grid box [hPa]                         !
-         PEdge_Top                 = GET_PEDGE( I,J,L+1 )                 !
-                                                                          !
-         ! Pressure at bottom edge of grid box [hPa] (level LLPAR+1 only) !
-         IF (L == LLPAR) THEN                                             !
-            State_Met%PEDGE( I,J,L+1 ) = PEdge_Top                        !
-         ENDIF                                                            !
-                                                                          !
-         ! Set previous pressure difference to current pressure difference!
-         State_Met%DELP_PREV( I,J,L ) = State_Met%DELP( I,J,L )           !
-                                                                          !
-         ! Pressure difference between top & bottom edges [hPa]           !
-         State_Met%DELP( I,J,L )   = State_Met%PEDGE( I,J,L )             !
-     &                                - PEdge_Top                         !
-                                                                          !
-         ! Arithmetic average pressure in grid box [hPa] defined as       !
-         ! ( PEDGE(L) + PEDGE(L+1) ) / 2. This represents the grid box    !
-         ! mass centroid pressure. Use in the ideal gas law yields        !
-         ! a local air density at the centroid.                           !
-         State_Met%PMID( I,J,L )   = GET_PCENTER( I,J,L )                 !
-                                                                          !
-         !=============================================================   !
-         ! Calculate water vapor saturation pressure [hPa]                !
-         ! from temperature                                               !
-         !=============================================================   !
-                                                                          !
-         EsatA = ESATP1 + ESATP2 * log10( State_Met%T(I,J,L) )            !
-         EsatB = ESATP3 * 10**( ESATP4 + ESATP5 / State_Met%T(I,J,L) )    !
-         EsatC = ESATP6 * 10**( ESATP7 + ESATP8 * State_Met%T(I,J,L) )    !
-         EsatD = ESATP9 / State_Met%T(I,J,L)                              !
-                                                                          !
-         ! Saturation water vapor pressure [mb]                           !
-         Esat = 10**( EsatA + EsatB + EsatC + EsatD )                     !
-                                                                          !
-         !=============================================================   !
-         ! Set AVGW, the water vapor volume mixing ratio from             !
-         ! specific humidity [mol H2O / mol dry air]                      !
-         !=============================================================   !
-         !                                                                !
-         ! vol H2O       dry air    H2O         kg H2O      kg wet air    !
-         ! ----------  = molec wt / molec wt * ---------- * ---------     !
-         ! vol dry air   [g/mol]    [g/mol]    kg wet air   kg dry air    !
-         !                                                                !
-         !      thus AVGW = AIRMW * SPHU_kgkg / ( H2OMW * (1-SPHU_kgkg) ) !
-         !                                                                !
-         ! where,                                                         !
-         !        SPHU_kgkg = specific humidity in [kg/kg]                !
-         !                                                                !
-                                                                          !
-         ! Convert specific humidity from [g/kg] to [kg/kg]               !
-         SPHU_kgkg = State_Met%SPHU(I,J,L) * MCONV                        !
-                                                                          !
-         ! Water vapor volume mixing ratio [v/v dry air]                  !
-         State_Met%AVGW(I,J,L) = AIRMW * SPHU_kgkg                        !
-     &                           / ( H2OMW * (1.0e+0_fp - SPHU_kgkg ) )   !
-                                                                          !
+                                                                          
+         !=============================================================   
+         ! Set wet air pressures [hPa]                                    
+         ! (lower edge, delta, centroid, and spatially-weighted mean)     
+         !=============================================================   
+                                                                          
+         ! Pressure at bottom edge of grid box [hPa]                      
+         State_Met%PEDGE( I,J,L )  = GET_PEDGE( I,J,L )                   
+                                                                          
+         ! Pressure at top edge of grid box [hPa]                         
+         PEdge_Top                 = GET_PEDGE( I,J,L+1 )                 
+                                                                          
+         ! Pressure at bottom edge of grid box [hPa] (level LLPAR+1 only) 
+         IF (L == LLPAR) THEN                                             
+            State_Met%PEDGE( I,J,L+1 ) = PEdge_Top                        
+         ENDIF                                                            
+                                                                          
+         ! Set previous pressure difference to current pressure difference
+         State_Met%DELP_PREV( I,J,L ) = State_Met%DELP( I,J,L )           
+                                                                          
+         ! Pressure difference between top & bottom edges [hPa]           
+         State_Met%DELP( I,J,L )   = State_Met%PEDGE( I,J,L )             
+     &                                - PEdge_Top                         
+                                                                          
+         ! Arithmetic average pressure in grid box [hPa] defined as       
+         ! ( PEDGE(L) + PEDGE(L+1) ) / 2. This represents the grid box    
+         ! mass centroid pressure. Use in the ideal gas law yields        
+         ! a local air density at the centroid.                           
+         State_Met%PMID( I,J,L )   = GET_PCENTER( I,J,L )                 
+                                                                          
+         !=============================================================   
+         ! Calculate water vapor saturation pressure [hPa]                
+         ! from temperature                                               
+         !=============================================================   
+                                                                          
+         EsatA = ESATP1 + ESATP2 * log10( State_Met%T(I,J,L) )            
+         EsatB = ESATP3 * 10**( ESATP4 + ESATP5 / State_Met%T(I,J,L) )    
+         EsatC = ESATP6 * 10**( ESATP7 + ESATP8 * State_Met%T(I,J,L) )    
+         EsatD = ESATP9 / State_Met%T(I,J,L)                              
+                                                                          
+         ! Saturation water vapor pressure [mb]                           
+         Esat = 10**( EsatA + EsatB + EsatC + EsatD )                     
+                                                                          
+         !=============================================================   
+         ! Set AVGW, the water vapor volume mixing ratio from             
+         ! specific humidity [mol H2O / mol dry air]                      
+         !=============================================================   
+         !                                                                
+         ! vol H2O       dry air    H2O         kg H2O      kg wet air    
+         ! ----------  = molec wt / molec wt * ---------- * ---------     
+         ! vol dry air   [g/mol]    [g/mol]    kg wet air   kg dry air    
+         !                                                                
+         !      thus AVGW = AIRMW * SPHU_kgkg / ( H2OMW * (1-SPHU_kgkg) ) 
+         !                                                                
+         ! where,                                                         
+         !        SPHU_kgkg = specific humidity in [kg/kg]                
+         !                                                                
+                                                                          
+         ! Convert specific humidity from [g/kg] to [kg/kg]               
+         SPHU_kgkg = State_Met%SPHU(I,J,L) * MCONV                        
+                                                                          
+         ! Water vapor volume mixing ratio [v/v dry air]                  
+         State_Met%AVGW(I,J,L) = AIRMW * SPHU_kgkg                        
+     &                           / ( H2OMW * (1.0e+0_fp - SPHU_kgkg ) )   
+                                                                          
 #if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
-                                                                          !
-         !=============================================================   !
-         ! Calculate water vapor partial pressure from specific humidity  !
-         ! if using GEOS-4 or GCAP                                        !
-         !=============================================================   !
-                                                                          !
-         ! Mol water vapor per mol moist air from specific humidity       !
-         ! (this formulation is derived from the ideal gas law            !
-         !  and the definition of specific humidity)                      !
-         AVGW_moist = AIRMW * SPHU_kgkg / ( AIRMW * SPHU_kgkg             !
-     &                      + H2OMW * ( 1.0e+0_fp - SPHU_kgkg ) )         !
-                                                                          !
-         !****************************************************************!
-
+                                                                          
+         !=============================================================   
+         ! Calculate water vapor partial pressure from specific humidity  
+         ! if using GEOS-4 or GCAP                                        
+         !=============================================================   
+                                                                          
+         ! Mol water vapor per mol moist air from specific humidity       
+         ! (this formulation is derived from the ideal gas law            
+         !  and the definition of specific humidity)                      
+         AVGW_moist = AIRMW * SPHU_kgkg / ( AIRMW * SPHU_kgkg             
+     &                      + H2OMW * ( 1.0e+0_fp - SPHU_kgkg ) )         
+                                                                          
          ! Water vapor partial pressure at grid box centroid [hPa]
          Ev_mid = State_Met%PMID(I,J,L) * AVGW_moist
 
-         !****************************************************************!
-         ! KEEP:                                                          !
-                                                                          !
-         !=============================================================   !
-         ! Set grid box relative humidity [%] if using GEOS-4 or GCAP     !
-         !=============================================================   !
-         !                                                                !
-         ! RH is the ratio of water vapor partial pressure to the         !
-         ! saturation pressure of water, expressed as a percentage.       !
-         !                                                                !
-         ! If RH is not externally input, first calculate the             !
-         ! water vapor partial pressure from specific humidity.           !
-         ! Then use it with the saturation pressure of water              !
-         ! calculated above to set RH.                                    !
-         !                                                                !
-         !          Grid box           mol H2O                            !
-         !  Ev   =  moist air * ----------------------                    !
-         ! [hPa]    pressure     mol H2O + mol dry air                    !
-         !          [hPa]                                                 !
-         !                                                                !
-         !          H2O vapor partial pressure                            !
-         !  RH   =  -------------------------- * 100                      !
-         !           H2O saturation pressure                              !
-         !                                                                !
-                                                                          !
-         ! Relative humidity [%]                                          !
-         State_Met%RH(I,J,L) = ( Ev_mid / Esat ) * 100e+0_fp              !
-                                                                          !
+         !=============================================================   
+         ! Set grid box relative humidity [%] if using GEOS-4 or GCAP     
+         !=============================================================   
+         !                                                                
+         ! RH is the ratio of water vapor partial pressure to the         
+         ! saturation pressure of water, expressed as a percentage.       
+         !                                                                
+         ! If RH is not externally input, first calculate the             
+         ! water vapor partial pressure from specific humidity.           
+         ! Then use it with the saturation pressure of water              
+         ! calculated above to set RH.                                    
+         !                                                                
+         !          Grid box           mol H2O                            
+         !  Ev   =  moist air * ----------------------                    
+         ! [hPa]    pressure     mol H2O + mol dry air                    
+         !          [hPa]                                                 
+         !                                                                
+         !          H2O vapor partial pressure                            
+         !  RH   =  -------------------------- * 100                      
+         !           H2O saturation pressure                              
+         !                                                                
+                                                                          
+         ! Relative humidity [%]                                          
+         State_Met%RH(I,J,L) = ( Ev_mid / Esat ) * 100e+0_fp              
+                                                                          
 #elif defined( GEOS_5 ) || defined ( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-                                                                          !
-         !=============================================================   !
-         ! Calculate water vapor partial pressures [hPa] from relative    !
-         ! humidity if using GEOS-5, MERRA, or GEOS-FP.                   !
-         !=============================================================   !
-                                                                          !
-         Ev_mid = State_Met%RH( I,J,L ) * RHCONV * Esat                   !
-                                                                          !
+                                                                          
+         !=============================================================   
+         ! Calculate water vapor partial pressures [hPa] from relative    
+         ! humidity if using GEOS-5, MERRA, or GEOS-FP.                   
+         !=============================================================   
+                                                                          
+         Ev_mid = State_Met%RH( I,J,L ) * RHCONV * Esat                   
+                                                                          
 #endif                                                                    
-                                                                          !
-         Ev_edge = State_Met%PEDGE(I,J,L) * Ev_mid                        !
-     &             / State_Met%PMID(I,J,L)                                !
-                                                                          !
-         !=============================================================   !
-         ! Set grid box height [m]                                        !
-         !=============================================================   !
-         !                                                                !
-         ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L)           !
-         ! in meters. It is calculated using the hypsometric equation.    !
-         ! A virtual temperature is calculated to enable use of           !
-         ! of moist air pressure with dry air molecular weight.           !
-         !                                                                !
-         !              Gas constant   virtual                            !
-         !              for dry air  * grid box                           !
-         !              [J/K/mol]      temp [K]       bottom edge P       !
-         ! height [m] = ----------------------- * ln(---------------)     !
-         !                     g [m/s2]                top edge P         !
-         !                                                                !
-         !  where,                                                        !
-         !                                                                !
-         !                         Grid box temperature [K]               !
-         !    Virtual  = -------------------------------------------      !
-         !    Temp [K]       H20 partial pressure          MW_H2O         !
-         !               1 - -------------------- * ( 1 - --------- )     !
-         !                    moist air  pressure         MW_dryair       !
-         !                                                                !
-         ! Source: Wallace and Hobbes "Atmospheric Science: An            !
-         !         Introductory Survey"                                   !
-         !                                                                !
-         ! Assume constant temperature and moisture acros grid box.       !
-         !                                                                !
-                                                                          !
-         ! Grid box virtual temperature [K]                               !
-         State_Met%TV( I,J,L ) = State_Met%T(I,J,L) / (1 -                !
-     &                           Ev_edge / State_Met%PEDGE(I,J,L)         !
-     &                           * ( 1 - H2OMW / AIRMW ) )                !
-                                                                          !
-         ! Grid box box height [m]                                        !
-         State_Met%BXHEIGHT( I,J,L ) = Rdg0 * State_Met%TV(I,J,L)         !
-     &                                 * LOG( State_Met%PEDGE(I,J,L)      !
-     &                                 / PEdge_Top )                      !
-                                                                          !
-         !=============================================================   !
-         ! Set grid box surface area [m2]                                 !
-         ! NOTE: We intend to gradually remove area use by                !
-         ! changing tracer units to mixing ratio                          !
-         !=============================================================   !
-                                                                          !
+                                                                          
+         Ev_edge = State_Met%PEDGE(I,J,L) * Ev_mid                        
+     &             / State_Met%PMID(I,J,L)                                
+                                                                          
+         !=============================================================   
+         ! Set grid box height [m]                                        
+         !=============================================================   
+         !                                                                
+         ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L)           
+         ! in meters. It is calculated using the hypsometric equation.    
+         ! A virtual temperature is calculated to enable use of           
+         ! of moist air pressure with dry air molecular weight.           
+         !                                                                
+         !              Gas constant   virtual                            
+         !              for dry air  * grid box                           
+         !              [J/K/mol]      temp [K]       bottom edge P       
+         ! height [m] = ----------------------- * ln(---------------)     
+         !                     g [m/s2]                top edge P         
+         !                                                                
+         !  where,                                                        
+         !                                                                
+         !                         Grid box temperature [K]               
+         !    Virtual  = -------------------------------------------      
+         !    Temp [K]       H20 partial pressure          MW_H2O         
+         !               1 - -------------------- * ( 1 - --------- )     
+         !                    moist air  pressure         MW_dryair       
+         !                                                                
+         ! Source: Wallace and Hobbes "Atmospheric Science: An            
+         !         Introductory Survey"                                   
+         !                                                                
+         ! Assume constant temperature and moisture acros grid box.       
+         !                                                                
+                                                                          
+         ! Grid box virtual temperature [K]                               
+         State_Met%TV( I,J,L ) = State_Met%T(I,J,L) / (1 -                
+     &                           Ev_edge / State_Met%PEDGE(I,J,L)         
+     &                           * ( 1 - H2OMW / AIRMW ) )                
+                                                                          
+         ! Grid box box height [m]                                        
+         State_Met%BXHEIGHT( I,J,L ) = Rdg0 * State_Met%TV(I,J,L)         
+     &                                 * LOG( State_Met%PEDGE(I,J,L)      
+     &                                 / PEdge_Top )                      
+                                                                          
+         !=============================================================   
+         ! Set grid box surface area [m2]                                 
+         ! NOTE: We intend to gradually remove area use by                
+         ! changing tracer units to mixing ratio                          
+         !=============================================================   
+                                                                          
 #if defined( ESMF_ )                                                      
-            AREA_M2                   = State_Met%AREA_M2(I,J,1)          !
+            AREA_M2                   = State_Met%AREA_M2(I,J,1)          
 #else                                                                     
-            AREA_M2                   = GET_AREA_M2( I,J,L )              !
+            AREA_M2                   = GET_AREA_M2( I,J,L )              
 #endif                                                                    
-                                                                          !
-         !=============================================================   !
-         ! Set grid box volume [m3]                                       !
-         !=============================================================   !
-         !                                                                !
-         ! AIRVOL is the volume of grid box (I,J,L) in meters^3           !
-         !                                                                !
-         ! AREA_M2 is the Delta-X * Delta-Y surface area of grid          !
-         ! boxes (I,J,L=1), that is, at the earth's surface.              !
-         !                                                                !
-         ! Since the thickness of the atmosphere is much smaller          !
-         ! than the radius of the earth, we can make the "thin            !
-         ! atmosphere" approximation, namely:                             !
-         !                                                                !
-         !               (Rearth + h) ~ Rearth                            !
-         !                                                                !
-         ! Therefore, the Delta-X * Delta-Y surface area of grid          !
-         ! boxes that are above the earth's surface will be               !
-         ! approx. the same as AREA_M2.  Thus we are justified            !
-         ! in using AREA_M2 for grid boxes (I, J, L > 1)                  !
-         !                                                                !
-         State_Met%AIRVOL( I,J,L ) = State_Met%BXHEIGHT(I,J,L) * AREA_M2  !
-                                                                          !
-         !============================================================
-         ! Moisture fix (7/8/2016):
-         !============================================================
-         ! Set previous dry P difference to current dry P difference
-         ! prior to updating with new met values
-         State_Met%DP_DRY_PREV(I,J,L) = State_Met%DELP_DRY(I,J,L)
-         State_Met%DELP_DRY(I,J,L) = GET_DELP_DRY(I,J,L)
-         !============================================================
-         
-         ! Mean altitude-weighted pressure in grid box [hPa] defined as   
-         ! average P(z) over z. Use in the ideal gas law yields a         
-         ! mean density equivalent to total mass per volume in grid box.  
-         ! NOTE: Use of PMEAN is a temporary fix to preserve current      
-         ! usage of AIRDEN as total mass per volume.                      
-         State_Met%PMEAN( I,J,L ) = State_Met%DELP(I,J,L) /               
-     &                              log( State_Met%PEDGE(I,J,L) /         
-     &                                   PEdge_Top )     
-         ! MF NOTE: used in diag1 and this routine one. Remove?                 
+                                                                          
+         !=============================================================   
+         ! Set grid box volume [m3]                                       
+         !=============================================================   
+         !                                                                
+         ! AIRVOL is the volume of grid box (I,J,L) in meters^3           
+         !                                                                
+         ! AREA_M2 is the Delta-X * Delta-Y surface area of grid          
+         ! boxes (I,J,L=1), that is, at the earth's surface.              
+         !                                                                
+         ! Since the thickness of the atmosphere is much smaller          
+         ! than the radius of the earth, we can make the "thin            
+         ! atmosphere" approximation, namely:                             
+         !                                                                
+         !               (Rearth + h) ~ Rearth                            
+         !                                                                
+         ! Therefore, the Delta-X * Delta-Y surface area of grid          
+         ! boxes that are above the earth's surface will be               
+         ! approx. the same as AREA_M2.  Thus we are justified            
+         ! in using AREA_M2 for grid boxes (I, J, L > 1)                  
+         !                                                                
+         State_Met%AIRVOL( I,J,L ) = State_Met%BXHEIGHT(I,J,L) * AREA_M2  
+                                                                          
 
          !=============================================================
-         ! Set grid box dry air partial pressures at grid box edges [hPa]
-         ! Assume constant humidity across grid box.
+         ! Set grid box dry air partial pressures at grid box edges
+         ! and at grid box centroid (arithmetic mean pressure level)
+         ! [hPa]. Assume constant humidity across grid box.
          !=============================================================  
 
          ! Partial pressure of dry air at lower edge of grid box [hPa]
@@ -657,13 +633,48 @@
             State_Met%PEDGE_DRY( I,J,L+1 ) = Pedge_Top - Ev_edge
          ENDIF
 
-         !=============================================================
-         ! Set grid box dry air partial pressures [hPa]
-         ! at grid box centroid (arithmetic mean pressure level)
-         !=============================================================  
-
          ! Partial pressure of dry air at box centroid [hPa]
          State_Met%PMID_DRY( I,J,L ) = State_Met%PMID(I,J,L) - Ev_mid
+
+         !============================================================
+         ! Moisture fix (7/8/2016) - use only for unit conversions
+         !============================================================
+
+         ! Set previous dry P difference to current dry P difference
+         ! prior to updating with new met values
+         State_Met%DP_DRY_PREV(I,J,L) = State_Met%DELP_DRY(I,J,L)
+
+         ! Update dry pressure difference as calculated from the
+         ! dry surface pressure
+         State_Met%DELP_DRY(I,J,L) = GET_DELP_DRY(I,J,L)
+
+         ! Prior to 08 Jul 2016: 
+         ! (Calculate dry air mass from moist air mass)
+         !State_Met%AD(I,J,L) = State_Met%ADMOIST(I,J,L)
+         !&                         * ( 1.0e+0_fp - SPHU_kgkg )
+
+         State_Met%AD(I,J,L) = ( State_Met%DELP_DRY(I,J,L) * G0_100 )
+     &                         * AREA_M2
+         ! MF NOTE: The new definition will NOT match the old values.
+         !          Must make all unit conversion quantities consistent
+         !          with this new definition.
+         !============================================================
+
+         !---------------------------------------------------------
+         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         !!! *** THE REST IS FOR AIRDEN - NOT YET COMPLETE ***  !!!
+         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         !--------------------------------------------------------
+
+         ! Mean altitude-weighted pressure in grid box [hPa] defined as   
+         ! average P(z) over z. Use in the ideal gas law yields a         
+         ! mean density equivalent to total mass per volume in grid box.  
+         ! NOTE: Use of PMEAN is a temporary fix to preserve current      
+         ! usage of AIRDEN as total mass per volume.                      
+         State_Met%PMEAN( I,J,L ) = State_Met%DELP(I,J,L) /               
+     &                              log( State_Met%PEDGE(I,J,L) /         
+     &                                   PEdge_Top )     
+         ! MF NOTE: used in this routine once. Remove?
 
          !=============================================================
          ! Set grid box dry air partial pressures at grid box 
@@ -671,12 +682,9 @@
          ! Assume constant humidity across grid box.
          !=============================================================  
 
+         ! ***UNCLEAR IF THIS WILL BE NEEDED IN SOME FORM FOR AIRDEN***
          Ev_mean = State_Met%PMEAN(I,J,L) * Ev_mid
      &             / State_Met%PMID(I,J,L)
-
-         ! Altitude-weighted mean dry air partial pressure of grid box [hPa]
-         State_Met%PMEAN_DRY( I,J,L ) = State_Met%PMEAN(I,J,L) - Ev_mean
-         ! MF NOTE: used only in this routine and diag1. Remove?
 
          !=============================================================
          ! Set grid box moist molecular weight [g/mol]
@@ -685,6 +693,7 @@
          ! MOISTMW is constant within the box. 
          !=============================================================  
 
+         ! ***UNCLEAR IF THIS WILL BE NEEDED IN SOME FORM FOR CONVECTION***
          ! Grid box moist air molecular weight [g/mol]
          State_Met%MOISTMW(I,J,L) = ( State_Met%PMID_DRY(I,J,L) 
      &                              * AIRMW + Ev_mid * H2OMW )
@@ -719,24 +728,10 @@
          !    (2) Specific humidity in GEOS-Chem (SPHU) is stored in [g/kg]
          !
          !==============================================================
+         ! ***UNCLEAR IF THIS WILL BE NEEDED IN SOME FORM FOR UCX***
          State_Met%ADMOIST(I,J,L) = ( State_Met%DELP(I,J,L) * G0_100 ) 
      &                              * AREA_M2 
          ! MF NOTE: Now only used in ucx_mod. Remove?
-
-         !============================================================
-         ! Moisture fix (7/8/2016):
-         !============================================================
-         ! Prior to 08 Jul 2016: 
-         ! (Calculate dry air mass from moist air mass)
-         !State_Met%AD(I,J,L) = State_Met%ADMOIST(I,J,L)
-         !&                         * ( 1.0e+0_fp - SPHU_kgkg )
-
-         State_Met%AD(I,J,L) = ( State_Met%DELP_DRY(I,J,L) * G0_100 )
-     &                         * AREA_M2
-         ! MF NOTE: The new definition will NOT match the old values.
-         !          Must make all unit conversion quantities consistent
-         !          with this new definition.
-         !============================================================
 
          !===========================================================
          ! Set grid box densities [kg/m3] using the ideal gas law.
@@ -760,13 +755,21 @@
          ! Density    Universal gas constant * Temp * 1000  * 0.01
          !                   [J/K/mol]         [K]   [g/kg]   [hPa/Pa]
          !
+
+         ! ***UNCLEAR IF THIS WILL BE NEEDED IN SOME FORM FOR AIRDEN***
+         ! Altitude-weighted mean dry air partial pressure of grid box [hPa]
+         State_Met%PMEAN_DRY( I,J,L ) = State_Met%PMEAN(I,J,L) - Ev_mean
+         ! MF NOTE: used only in this routine. Remove?
+
+         ! ***UNCLEAR IF THIS WILL BE NEEDED IN SOME FORM FOR WETSCAV***
          State_Met%MAIRDEN(I,J,L) = ( State_Met%PMEAN_DRY(I,J,L) 
      &                                * AIRMW + Ev_mean * H2OMW ) 
      &                                * PCONV * MCONV
      &                                / RSTARG / State_Met%T(I,J,L)
-         ! NOTE: MAIRDEN used in wetscav_mod and diag1 only. Need
+         ! NOTE: MAIRDEN now used in wetscav_mod only. Need
          !       to look closer at use in wetscave_mod. Can we remove?
 
+         ! ***UNCLEAR HOW TO DERIVE THIS FROM DRY SFC PRESSURE***
          ! Set grid box dry air density [kg/m3]
          State_Met%AIRDEN(I,J,L) = State_Met%PMEAN_DRY(I,J,L) * AIRMW 
      &                             * PCONV * MCONV

@@ -152,6 +152,7 @@
 !  19 Oct 2015 - C. Keller   - Now use Input_Opt%ND68 instead of ND68;
 !                              Rename AIRDEN diagnostics to AIRDENSITY to
 !                              avoid name conflict with GEOS-5 model.
+!  12 Jul 2016 - E. Lundgren - Reduce # of met fields included in ND68
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -513,17 +514,11 @@
       !================================================================= 
       ! ND68: 1:  BXHEIGHT     - box height [m] 
       !       2:  AD           - dry air mass [kg]
-      !       3:  AVGW         - mol H2O / mol dry air [v/v]
+      !       3:  RH           - relative humidity [%]
       !       4:  N_DRYAIR     - dry air number density [molecules/m3]
-      !       5:  MAIRDEN      - moist air mass density [kg/m3]
-      !       6:  T            - temperature [K]
-      !       7:  TV           - virtual temperature [K]
-      !       8:  PMID         - arithmetic mean pressure [hPa]
-      !       9:  PMEAN        - altitude-weighted mean pressure [hPa]
-      !       10: PEDGE        - level pressure (bottom edge) [hPa]
-      !       11: RH           - relative humidity [%]
-      !       12: PMID_DRY     - dry air partial pressure at PMID [hPa]
-      !       13: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
+      !       5:  T            - temperature [K]
+      !       6:  PEDGE        - wet level pressure (bottom edge) [hPa]
+      !       7:  PMID         - mean pressure at level mid-point [hPa]
       !================================================================= 
       IF ( Input_Opt%ND68 > 0 ) THEN
 
@@ -535,18 +530,12 @@
          DO I = 1, IIPAR
             AD68(I,J,L,1)  = AD68(I,J,L,1)  + State_Met%BXHEIGHT(I,J,L)
             AD68(I,J,L,2)  = AD68(I,J,L,2)  + State_Met%AD(I,J,L)
-            AD68(I,J,L,3)  = AD68(I,J,L,3)  + State_Met%AVGW(I,J,L)
+            AD68(I,J,L,3)  = AD68(I,J,L,3)  + State_Met%RH(I,J,L)
             AD68(I,J,L,4)  = AD68(I,J,L,4)  + State_Met%AIRDEN(I,J,L) 
      &                                        * XNUMOLAIR
-            AD68(I,J,L,5)  = AD68(I,J,L,5)  + State_Met%MAIRDEN(I,J,L) 
-            AD68(I,J,L,6)  = AD68(I,J,L,6)  + State_Met%T(I,J,L)
-            AD68(I,J,L,7)  = AD68(I,J,L,7)  + State_Met%TV(I,J,L)
-            AD68(I,J,L,8)  = AD68(I,J,L,8)  + State_Met%PMID(I,J,L)
-            AD68(I,J,L,9)  = AD68(I,J,L,9)  + State_Met%PMEAN(I,J,L)
-            AD68(I,J,L,10) = AD68(I,J,L,10) + State_Met%PEDGE(I,J,L)
-            AD68(I,J,L,11) = AD68(I,J,L,11) + State_Met%RH(I,J,L)
-            AD68(I,J,L,12) = AD68(I,J,L,12) + State_Met%PMID_DRY(I,J,L)
-            AD68(I,J,L,13) = AD68(I,J,L,13) + State_Met%PMEAN_DRY(I,J,L)
+            AD68(I,J,L,5)  = AD68(I,J,L,5)  + State_Met%T(I,J,L) 
+            AD68(I,J,L,6)  = AD68(I,J,L,6)  + State_Met%PEDGE(I,J,L)
+            AD68(I,J,L,7)  = AD68(I,J,L,7)  + State_Met%PMID(I,J,L)
          ENDDO
          ENDDO
          ENDDO
@@ -814,110 +803,6 @@
          CALL DiagnUpdate_Met( am_I_Root, Input_Opt, State_Met, RC ) 
       ENDIF
 
-      ! Formerly, netcdf ND68 diagnostic included:
-!      !================================================================= 
-!      ! ND68: 1:  BXHEIGHT     - box height [m] 
-!      !       2:  AD           - dry air mass [kg]
-!      !       3:  AVGW         - mol H2O / mol dry air [v/v]
-!      !       4:  AIRDENSITY   - dry air number mass density [kg/m3]
-!      !                          (Note this is different units than bpch)
-!      !       5:  MAIRDENSITY  - moist air mass density [kg/m3]
-!      !       6:  T            - temperature [K]
-!      !       7:  TV           - virtual temperature [K]
-!      !       8:  PMID         - arithmetic mean pressure [hPa]
-!      !       9:  PMEAN        - altitude-weighted mean pressure [hPa]
-!      !       10: PEDGE        - level pressure (bottom edge) [hPa]
-!      !       11: RH           - relative humidity [%]
-!      !       12: PMID_DRY     - dry air partial pressure at PMID [hPa]
-!      !       13: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
-!      !=================================================================   
-!         ! There are 13 diagnostics
-!         DO I = 1,13
-!
-!            ! Construct diagnostic name and get proper array
-!            SELECT CASE ( I ) 
-!               CASE ( 1 ) 
-!                  DiagnName = 'BOXHEIGHT'
-!                  Ptr3D => State_Met%BXHEIGHT
-!               CASE ( 2 ) 
-!                  DiagnName = 'AIRMASS'
-!                  Ptr3D => State_Met%AD
-!               CASE ( 3 ) 
-!                  DiagnName = 'AVGW'
-!                  Ptr3D => State_Met%AVGW
-!               CASE ( 4 ) 
-!                  DiagnName = 'AIRDENSITY'
-!                  Ptr3D => State_Met%AIRDEN
-!               CASE ( 5 ) 
-!                  DiagnName = 'MAIRDENSITY'
-!                  Ptr3D => State_Met%MAIRDEN
-!               CASE ( 6 ) 
-!                  DiagnName = 'T'
-!                  Ptr3D => State_Met%T
-!               CASE ( 7 ) 
-!                  DiagnName = 'TV'
-!                  Ptr3D => State_Met%TV
-!               CASE ( 8 ) 
-!                  DiagnName = 'PMID'
-!                  Ptr3D => State_Met%PMID
-!               CASE ( 9 ) 
-!                  DiagnName = 'PMEAN'
-!                  Ptr3D => State_Met%PMEAN
-!               CASE ( 10 ) 
-!                  DiagnName = 'PEDGE'
-!                  Ptr3D => State_Met%PEDGE
-!               CASE ( 11 ) 
-!                  DiagnName = 'RH'
-!                  Ptr3D => State_Met%RH
-!                CASE ( 12 ) 
-!                  DiagnName = 'PMID_DRY'
-!                  Ptr3D => State_Met%PMID_DRY
-!               CASE ( 13 ) 
-!                  DiagnName = 'PMEAN_DRY'
-!                  Ptr3D => State_Met%PMEAN_DRY
-!            END SELECT
-! 
-!            ! Update diagnostics
-!            IF ( ASSOCIATED(Ptr3D) ) THEN 
-!               CALL Diagn_Update( am_I_Root,
-!     &                            cName   = TRIM( DiagnName ),
-!     &                            Array3D = Ptr3D,
-!     &                            RC      = RC )
-!
-!               ! Free the pointer
-!               Ptr3D => NULL()
-!   
-!               ! STOP with error if the diagnostics were unsuccessful
-!               IF ( RC /= HCO_SUCCESS ) THEN
-!                  CALL ERROR_STOP(
-!     &                 'Cannot update diagnostics '//TRIM(DiagnName),  
-!     &                 'DIAG1 (diag1.F)')
-!               ENDIF
-!            ENDIF   
-!         ENDDO
-!
-!         ! Now also add TROPP_PRESSURE and TROPP_LEVEL
-!         DiagnName = 'TROPP_PRESSURE'
-!         Ptr2D => State_Met%TROPP
-!         CALL Diagn_Update( am_I_Root, cName=DiagnName, 
-!     &      Array2D=Ptr2D, RC=RC )
-!         Ptr2D => NULL()
-!         
-!         DiagnName = 'TROPP_LEVEL'
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, TPL )
-!         DO J=1,JJPAR
-!         DO I=1,IIPAR
-!            TPL        = GET_TPAUSE_LEVEL( I, J, State_Met )
-!            Arr2D(I,J) = TPL
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO   
-!         CALL Diagn_Update( am_I_Root, cName=DiagnName, 
-!     &      Array2D=Arr2D, RC=RC )
-! 
-!      ENDIF ! ND68
 #endif
 
       END SUBROUTINE DIAG1
