@@ -53,7 +53,7 @@
 
       ! mje
       USE GCKPP_HETRATES,       ONLY : SET_HET
-      USE GCKPP_MONITOR,        ONLY : SPC_NAMES
+      USE GCKPP_MONITOR,        ONLY : SPC_NAMES, FLUX_MAP
       USE GCKPP_PARAMETERS
       USE GCKPP_INTEGRATOR,     ONLY : INTEGRATE, NHnew
       USE GCKPP_FUNCTION 
@@ -158,6 +158,10 @@
       ! To avoid array temporaries in call to SET_HET (bmy, 3/28/16)
       REAL(fp)              :: SCOEFF(IIPAR,JJPAR,LLPAR,3)
       REAL(fp)              :: SCF(3)
+
+      ! For prod/loss diagnostic
+      REAL(fp)              :: PROD(NVAR), LOSS(NVAR)
+      REAL(fp)              :: deltaCheck(2,2) ! debug only
 
       ! For testing only, may be removed later (mps, 4/26/16)
       LOGICAL               :: DO_HETCHEM
@@ -564,6 +568,7 @@
 !$OMP+PRIVATE  ( I,    J,        L,      N,       YLAT       )
 !$OMP+PRIVATE  ( SCF,  SO4_FRAC, IERR,   RCNTRL,  AVERAGEVAR )
 !$OMP+PRIVATE  ( MASS, START,    FINISH, ISTATUS, RSTATE     )
+!$OMP+PRIVATE  ( PROD, LOSS,     DELTACHECK                  )
 !$OMP+REDUCTION( +:ITIM                                      )
 !$OMP+REDUCTION( +:RTIM                                      )
 !$OMP+REDUCTION( +:TOTSTEPS                                  )
@@ -740,6 +745,7 @@
          !### Debug printout, we can remove it later
          IF ( prtDebug ) THEN
             IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
+               deltaCheck(1,1) = C(ind_OH)
                DO N = 1,NSPEC
                   write(*,'(a5,a10,es13.6)') '<> b ', 
      &                 trim(SPC_NAMES(N)), C(N)
@@ -757,8 +763,8 @@
          ! cannot appear in an EQUIVALENCE statement.  Therfore, we
          ! will just copy the relevant elements of C to VAR and FIX
          ! here. (bmy, 3/28/16)
-         VAR = C(1:NVAR)
-         FIX = C(NVAR+1:NSPEC)
+         VAR(1:NVAR) = C(1:NVAR)
+         FIX         = C(NVAR+1:NSPEC)
 
          ! Update the array of rate constants
          CALL Update_RCONST( )
@@ -844,15 +850,6 @@
             
          ENDIF
 
-         ! mje calculate some diagnostics
-         ! mje calculate d[X]/dt for all the species
-         !CALL FUN(VAR, FIX, RCONST, DERIV)
-
-         ! mje Copy d[X]/dt for this box into the global array
-         ! mje x Copy Fluxes through each reation into the global array
-         !GLOB_DERIV(I,J,L,:)=DERIV
-         !GLOB_RATES(I,J,L,:)=A
-
          ! Copy VAR and FIX back into C (mps, 2/24/16)
          C(1:NVAR)       = VAR(:)
          C(NVAR+1:NSPEC) = FIX(:)
@@ -892,11 +889,11 @@
          !==============================================================
          DO N = 1, NSPEC
 
-            ! Set negative concentrations to zero
-            C(N) = MAX( C(N), 0.0E0_dp )
-            
             ! Skip if this is not a KPP species
             IF ( CSPECTOKPP(N) .eq. 0 ) CYCLE
+
+            ! Set negative concentrations to zero
+            C(N) = MAX( C(N), 0.0E0_dp )
 
             ! Copy concentrations back into State_Chm%SPECIES
             State_Chm%Species(I,J,L,CSPECTOKPP(N)) = real(C(N),kind=fp)
@@ -911,9 +908,23 @@
 
          ENDDO
 
+         CALL Flux( C(FLUX_MAP(:)), PROD, LOSS)
+         ! NEED A CHUNK HERE THAT WILL WILL TAKE THE PROD & LOSS
+         ! VECTORS ABOVE AND PIPE OUTPUT FROM A SPECIFIC SET OF
+         ! SPECIES PER input.geos ND65
+         ! Prod and loss are in units of mcl/timestep
+         ! Convert to rate with the chemistry timestep (DT)
+         ! e.g. (PROD-LOSS)/DT
+         !------------------------------------------------------
+
          !### Debug output, we can remove it later
          IF ( prtDebug ) THEN
             IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
+               deltaCheck(1,1) = C(ind_OH) - deltaCheck(1,1)
+               deltaCheck(2,1) = PROD(ind_OH)-LOSS(ind_OH)
+               write(*,'(a25,a10,2e13.3)') '<> DELTA (actual v P-L): ', 
+     &              trim(SPC_NAMES(ind_OH)), deltaCheck(1,1),
+     &              deltaCheck(2,1)
                DO N = 1,NSPEC
                   write(*,'(a5,a10,es13.6)') '<> a ', 
      &                 trim(SPC_NAMES(N)), C(N)
@@ -1122,7 +1133,7 @@
             ! Update the deposition velocity diagostics 
             CALL Diagn_Update( am_I_Root,
      &                 cName   = TRIM( DiagnName ),
-     &                 Array3D = State_Chm%Species(:,:,:,CSPECTOKPP(N)),
+     &                 Array2D = State_Chm%Species(:,:,1,CSPECTOKPP(N)),
      &                 COL     = Input_Opt%DIAG_COLLECTION,
      &                 RC      = HCRC )
 

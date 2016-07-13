@@ -3192,7 +3192,7 @@ CONTAINS
                           Col       = Collection,        & 
                           cId       = cId,               &
                           cName     = TRIM( DiagnName ), &
-                          SpaceDim  =  3,                &
+                          SpaceDim  =  2,                &
                           OutUnit   = 'cm-3',            &
                           OutOper   = TRIM( OutOper   ), &
                           RC        = RC )
