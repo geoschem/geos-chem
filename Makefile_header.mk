@@ -185,6 +185,7 @@
 #                              replaces the RRTMG_CLEAN variabe
 #  10 Feb 2016 - E. Lundgren - Add BPCH restart file input and output switches
 #  11 Feb 2016 - E. Lundgren - Change BPCH to BPCH_DIAG, NETCDF to NC_DIAG
+#  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -270,16 +271,6 @@ ifndef TIMERS
  TIMERS              :=0
 endif
 
-# %%%%% Default to bpch input restart file disabled %%%%%
-ifndef BPCH_RST_IN
- BPCH_RST_IN         :=no
-endif
-
-# %%%%% Default to bpch output restart file disabled %%%%%
-ifndef BPCH_RST_OUT
- BPCH_RST_OUT        :=no
-endif
-
 # %%%%% Set default compiler %%%%%
 
 # %%%%% If COMPILER is not defined, default to the $(FC) variable, which %%%%%
@@ -337,22 +328,6 @@ REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(EXTERNAL_FORCING)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DEXTERNAL_FORCING
   NO_GRID_NEEDED     :=1
-endif
-
-#------------------------------------------------------------------------------
-# Restart settings
-#------------------------------------------------------------------------------
-
-# %%%%% BPCH_RST_IN (for using bpch restart file as input ) %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(BPCH_RST_IN)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DBPCH_RST_IN
-endif
-
-# %%%%% BPCH_RST_OUT (for using bpch restart file as output ) %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(BPCH_RST_OUT)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DBPCH_RST_OUT
 endif
 
 #------------------------------------------------------------------------------
