@@ -777,18 +777,6 @@
          K_DRYD2G = 0e+0_fp
          K_DRYD2P = 0e+0_fp
 
-         ! Use calculated deposition velocity, as long as
-         ! they are defined. If using non-local PBL mixing
-         ! then drydep will happen in vdiff_mod and dry
-         ! deposition here should be zero.
-         ! dry-deposition is now handled in mixing_mod.F90 
-         ! (ckeller, 3/5/15).
-!         IF (.NOT. LNLPBL) THEN
-!            IF (DRYHG0 > 0) K_DRYD0  = DEPSAV(I,J,DRYHG0)
-!            IF (DRYHG2 > 0) K_DRYD2G = DEPSAV(I,J,DRYHG2)
-!            IF (DRYHGP > 0) K_DRYD2P = DEPSAV(I,J,DRYHGP)
-!         ENDIF
-
          !------------------------------------------------------
          ! Sea-salt aerosol uptake
          !------------------------------------------------------
@@ -4638,7 +4626,6 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE DRYDEP_MOD,         ONLY : DEPNAME  , NUMDEP
       USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput

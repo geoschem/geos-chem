@@ -47,10 +47,9 @@
       PUBLIC :: DEPSAV
       PUBLIC :: NUMDEP
       PUBLIC :: NTRAIND
-      PUBLIC :: DRYHg0, DRYHg2, DryHgP    !CDH
       PUBLIC :: IDEP,   IRGSS,  IRAC, IRCLS
       PUBLIC :: IRGSO,  IRLU,   IRI,  IRCLO, DRYCOEFF
-      PUBLIC :: NDVZIND ! MSL -> For MPI broadcasting in GIGC
+!      PUBLIC :: NDVZIND ! MSL -> For MPI broadcasting in GIGC
 !
 ! !REMARKS:
 !  References:
@@ -188,14 +187,14 @@
 !  01 Oct 2015 - R. Yantosca - Remove DVZ_MINVAL function
 !  01 Oct 2015 - R. Yantosca - Added PRIVATE flag ID_ACET
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
+!  13 Jul 2016 - R. Yantosca - Remove DRYHg0, DRYHg2, DRYHgP ID flags
+!  13 Jul 2016 - R. Yantosca - Also make NDVZIND a local variable for now
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      !REAL(f8), PARAMETER :: XCKMAN    = 0.4e+0_f8 ! Von Karman's constant
-                                                    ! Use global VON_KARMAN
       INTEGER,  PARAMETER :: NR_MAX    = 200       ! # of seasalt bins 
       INTEGER,  PARAMETER :: NDRYDTYPE = 11        ! # of drydep land types
 !
@@ -627,7 +626,7 @@
          First_MMN = .TRUE.
 
          ! Loop over all depositing species
-         DO D = 1, Input_Opt%NUMDEP
+         DO D = 1, NUMDEP
 
             ! Get the corresponding GEOS-Chem tracer number
             N = NTRAIND(D)
@@ -4116,7 +4115,7 @@
       !      uppercase.  Therefore, we overwrite the values from
       !      the species database with SO4S, NITS.
       !=================================================================
-      DO N = 1, Input_Opt%N_TRACERS
+      DO N = 1, State_Chm%nAdvect
 
          ! Point to the Nth species in the species database
          ThisSpc => State_Chm%SpcData(N)%Info
@@ -4263,45 +4262,6 @@
       ! For TOMAS 
       id_NK1   = Ind_('NK1'  )
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%%% NOTE: This can eventually be made local to mercury_mod.F (bmy, 9/21/15)   
-      !=================================================================
-      ! Additional variables required for mercury simultion
-      ! Locate the drydep species w/in the DEPSAV array
-      !=================================================================
-      IF ( IS_HG ) THEN
-
-         ! Initialize flags
-         ! add dry dep of Hg0
-         DRYHg0 = 0
-         DRYHg2 = 0
-         DRYHgP = 0
-         
-         ! If drydep is turned on ...
-         IF ( LDRYD ) THEN
-         
-            ! Loop over drydep species
-            DO N = 1, NUMDEP
-
-               ! Locate by DEPNAME
-               SELECT CASE ( TRIM( DEPNAME(N) ) )
-                  ! add dry dep of Hg(0)
-                  CASE( 'Hg0' )
-                     DRYHg0 = N
-                  CASE( 'Hg2' )
-                     DRYHg2 = N
-                  CASE( 'HgP' )
-                     DRYHgP = N
-                  CASE DEFAULT
-                     ! nothing
-                END SELECT
-             ENDDO
-
-          ENDIF
-
-      ENDIF
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
       !=================================================================
       ! Allocate arrays
       ! add allocation for SALT_V and DMID (jaegle 5/11/11)
@@ -4320,27 +4280,9 @@
 
       ! SDE 2016-03-27: This is now called after Input_Opt has already
       ! been broadcast, so each CPU will do this independently anyway
-      Input_Opt%NUMDEP            = NUMDEP
-      Input_Opt%NDVZIND(1:NUMDEP) = NDVZIND(1:NUMDEP)
+!      Input_Opt%NUMDEP            = NUMDEP
       Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
       Input_Opt%NTRAIND(1:NUMDEP) = NTRAIND(1:NUMDEP)
-
-!      ! If we are not on the root CPU, don't pass variables to
-!      ! Input_Opt but check if local NUMDEP matches the value
-!      ! set in Input_Opt (ckeller, 1/14/2015).
-!      IF ( am_I_Root ) THEN
-!         Input_Opt%NUMDEP            = NUMDEP
-!         Input_Opt%NDVZIND(1:NUMDEP) = NDVZIND(1:NUMDEP)
-!         Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
-!         Input_Opt%NTRAIND(1:NUMDEP) = NTRAIND(1:NUMDEP)
-!
-!      ELSE
-!         IF ( Input_Opt%NUMDEP /= NUMDEP ) THEN
-!            WRITE(MSG,*) 'NUMDEP /= Input_Opt%NUMDEP: ', NUMDEP,
-!     &                   Input_Opt%NUMDEP
-!            CALL ERROR_STOP( MSG, 'INIT_DRYDEP (drydep_mod.F)' )
-!         ENDIF
-!      ENDIF
 
       !=================================================================
       ! Echo information to stdout

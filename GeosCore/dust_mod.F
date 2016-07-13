@@ -2632,7 +2632,7 @@
       IF ( .not. LDEAD ) THEN
 
          DO BIN = 1, IBINS
-         DO N   = 1, Input_Opt%NUMDEP
+         DO N   = 1, State_Chm%nDryDep
             IF ( Input_Opt%NTRAIND(N) == ( id_NK1-1+BIN ) )THEN
                Input_Opt%IDDEP(BIN) = N
                GOTO 100

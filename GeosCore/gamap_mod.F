@@ -1841,7 +1841,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: N, NN, NYMDb, NHMSb, T, T0, T1
+      INTEGER :: N, NN, NYMDb, NHMSb, T, T0, T1, nDryDep
       LOGICAL :: DO_TIMESERIES
 
       REAL(fp),      SAVE     :: POP_XMW
@@ -1870,6 +1870,9 @@
 
       ! Save the # of tagHg categories in a local variable
       N_Hg_CATS = State_Chm%N_Hg_CATS
+
+      ! Number of drydep species
+      nDryDep   = State_Chm%nDryDep
 
       !----------------------------------
       ! General tracer information
@@ -6303,7 +6306,7 @@
                         !-----------------------------------------------
                         T             = id_ISOPN
                         ThisSpc       => State_Chm%SpcData(T)%Info
-                        NN            = N + Input_Opt%NUMDEP
+                        NN            = N + NDryDep
                         NAME (NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                                 'dv'
                         FNAME(NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
@@ -6342,7 +6345,7 @@
                         !--------------------------------------------------
                         T             = id_MMN
                         ThisSpc       => State_Chm%SpcData(T)%Info
-                        NN            = N + Input_Opt%NUMDEP
+                        NN            = N + NDryDep
                         NAME (NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                                  'dv'
                         FNAME(NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
@@ -6435,7 +6438,7 @@
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             ! Loop over # of depositing species
-            DO N = 1, Input_Opt%NUMDEP
+            DO N = 1, NDryDep
 
                ! Handle drydep flux first
                SELECT CASE( TRIM( Input_Opt%DEPNAME(N) ) )
@@ -6466,7 +6469,7 @@
                      !--------------------------------------------------
                      T             = id_ISOPN
                      ThisSpc       => State_Chm%SpcData(T)%Info
-                     NN            = N + Input_Opt%NUMDEP
+                     NN            = N + NDryDep
                      NAME (NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                              'dv'
                      FNAME(NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
@@ -6505,7 +6508,7 @@
                      !--------------------------------------------------
                      T             = id_MMN
                      ThisSpc       => State_Chm%SpcData(T)%Info
-                     NN            = N + Input_Opt%NUMDEP
+                     NN            = N + NDryDep
                      NAME (NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                              'dv'
                      FNAME(NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
@@ -6543,7 +6546,7 @@
                      !--------------------------------------------------
                      ! Drydep velocity all other G-C tracers
                      !--------------------------------------------------
-                     NN            = N + Input_Opt%NUMDEP
+                     NN            = N + NDryDep
                      NAME (NN,44)  = TRIM( DEPNAME(N) ) // 'dv'        
                      FNAME(NN,44)  = TRIM( DEPNAME(N) ) // 
      &                               ' drydep velocity'

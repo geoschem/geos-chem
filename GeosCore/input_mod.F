@@ -1331,7 +1331,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: N,  T,  C
+      INTEGER            :: N,  T,  C,    ID
       CHARACTER(LEN=255) :: C1, C2, LINE, NAME
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
       REAL(fp)           :: DUMMY
@@ -1460,29 +1460,10 @@
          CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:4' )
 
          ! Save tracer number
-         READ( SUBSTRS(1), * ) Input_Opt%ID_TRACER(T)
+         READ( SUBSTRS(1), * ) ID !Input_Opt%ID_TRACER(T)
 
          ! Save tracer name
          Input_Opt%TRACER_NAME(T)  = TRIM( SUBSTRS(2) )
-
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         !%%% These fields will be overwritten with information from the 
-         !%%% GEOS-Chem Species Database.  This will eliminate inconsistencies
-         !%%% caused by multiple definitions of the same quantity.
-         !%%% (bmy, 12/16/15)
-         !%%%
-         !%%%! Save tracer molecular wt [g/mole]
-         !%%%READ( SUBSTRS(3), * ) Input_Opt%TRACER_MW_G(T) 
-         !%%%
-         !%%%! Save tracer molecular wt [kg/mole]
-         !%%%Input_Opt%TRACER_MW_KG(T) = Input_Opt%TRACER_MW_G(T) * 1e-3_fp
-         !%%%
-         !%%%! Ratio of MW dry air / MW tracer 
-         !%%%Input_Opt%TCVV(T) = 28.97e+0_fp / Input_Opt%TRACER_MW_G(T)
-         !%%%
-         !%%%! Molecules tracer / kg tracer
-         !%%%Input_Opt%XNUMOL(T) = 6.022e+23_fp / Input_Opt%TRACER_MW_KG(T)
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ! Read a dummy placeholder in place of molecular weight
          ! The molecular weight will be taken from the species database
@@ -2453,22 +2434,17 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL          :: LFOSSIL
-      LOGICAL          :: LCHEMCO2
-	LOGICAL          :: LBIODIURNAL
-      LOGICAL          :: LBIONETCLIM
-      LOGICAL          :: LOCEAN
-      LOGICAL          :: LSHIP
-      LOGICAL          :: LPLANE
-	LOGICAL          :: LFFBKGRD
-!      LOGICAL            :: LGENFF,      LANNFF,      LMONFF
-!      LOGICAL            :: LCHEMCO2,    LBIODAILY,   LBIODIURNAL
-!      LOGICAL            :: LBIONETORIG, LBIONETCLIM, LOCN1997
-!      LOGICAL            :: LOCN2009ANN, LOCN2009MON, LSHIPEDG
-!      LOGICAL            :: LSHIPICO,    LPLANE,      LFFBKGRD
+      LOGICAL            :: LFOSSIL
+      LOGICAL            :: LCHEMCO2
+      LOGICAL            :: LBIODIURNAL
+      LOGICAL            :: LBIONETCLIM
+      LOGICAL            :: LOCEAN
+      LOGICAL            :: LSHIP
+      LOGICAL            :: LPLANE
+      LOGICAL            :: LFFBKGRD
       LOGICAL            :: LBIOSPHTAG,  LFOSSILTAG,  LSHIPTAG
       LOGICAL            :: LPLANETAG
-	INTEGER            :: N
+      INTEGER            :: N
       CHARACTER(LEN=255) :: MSG, LOC
 
       ! Arrays

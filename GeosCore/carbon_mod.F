@@ -5457,7 +5457,6 @@ ccc
 
       ! For fields from Input_Opt
       INTEGER                  :: N_TRACERS
-      INTEGER                  :: ID_TRACER(Input_Opt%N_TRACERS)
       ! Pointers
       TYPE(HCO_State), POINTER :: HcoState
       REAL(f4),        POINTER :: Ptr2D(:,:)
@@ -5471,10 +5470,6 @@ ccc
       ! Get nested-grid offsets
       I0                  = GET_XOFFSET()
       J0                  = GET_YOFFSET()
-
-      ! Copy values from Input_Opt
-      N_TRACERS           = Input_Opt%N_TRACERS
-      ID_TRACER           = Input_Opt%ID_TRACER(1:N_TRACERS)
 
       ! Initialize pointers
       HcoState            => NULL()

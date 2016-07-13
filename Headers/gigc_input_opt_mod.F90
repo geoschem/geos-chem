@@ -85,7 +85,6 @@ MODULE GIGC_Input_Opt_Mod
      ! TRACER MENU fields
      !----------------------------------------
      INTEGER                     :: N_TRACERS
-     INTEGER,            POINTER :: ID_TRACER(:)       
      CHARACTER(LEN=255), POINTER :: TRACER_NAME(:) 
      REAL(fp),           POINTER :: TCVV(:)
      INTEGER                     :: SIM_TYPE
@@ -562,20 +561,12 @@ MODULE GIGC_Input_Opt_Mod
      ! from file "input.geos". (mlong, 1/5/13)
      !----------------------------------------
      INTEGER                     :: N_DUST_BINS
-     INTEGER                     :: NUMDEP
-     INTEGER,            POINTER :: NDVZIND(:)
      INTEGER,            POINTER :: NTRAIND(:)
      INTEGER,            POINTER :: IDDEP(:)
      INTEGER,            POINTER :: IDEP(:)
      REAL(fp),           POINTER :: DUSTREFF(:)
      REAL(fp),           POINTER :: DUSTDEN(:)
      CHARACTER(LEN=14),  POINTER :: DEPNAME(:)
-     REAL(fp),           POINTER :: F0(:)
-     REAL(fp),           POINTER :: HSTAR(:)
-     REAL(fp),           POINTER :: XMW(:)
-     REAL(fp),           POINTER :: A_RADI(:)
-     REAL(fp),           POINTER :: A_DEN(:)
-     LOGICAL,            POINTER :: AIROSOL(:)
 
      !----------------------------------------
      ! Fields for interface to GEOS-5 GCM
@@ -650,6 +641,7 @@ MODULE GIGC_Input_Opt_Mod
 !  31 May 2016 - E. Lundgren - Remove TRACER_MW_KG, TRACER_MW_G, and XNUMOL
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
+!  13 Jul 2016 - R. Yantosca - Remove some unused drydep fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -733,6 +725,8 @@ CONTAINS
 !  17 May 2016 - R. Yantosca - Remove TRACER_N_CONST, TRACER_CONST, ID_EMITTED,
 !                              TRACER_COEFF
 !  31 May 2016 - E. Lundgren - Remove TRACER_MW_G, TRACER_MW_KG, and XNUMOL
+!  13 Jul 2016 - R. Yantosca - Remove some obsolete drydep fields
+!  13 Jul 2016 - R. Yantosca - Remove ID_TRACER, NUMDEP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -794,12 +788,10 @@ CONTAINS
     !----------------------------------------
     ! TRACER MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ID_TRACER     ( MAX_TRCS           ), STAT=RC )
     ALLOCATE( Input_Opt%TRACER_NAME   ( MAX_TRCS           ), STAT=RC )
     ALLOCATE( Input_Opt%TCVV          ( MAX_TRCS           ), STAT=RC )
 
     Input_Opt%N_TRACERS              = 0
-    Input_Opt%ID_TRACER              = 0
     Input_Opt%TRACER_NAME            = ''
     Input_Opt%TCVV                   = 0e+0_fp
     Input_Opt%SIM_TYPE               = 0
@@ -1353,7 +1345,6 @@ CONTAINS
     ! Fields for DRYDEP and DUST based on
     ! input from the file "input.geos"
     !----------------------------------------
-    ALLOCATE( Input_Opt%NDVZIND ( MAX_DEP ),   STAT=RC ) ! Drydep
     ALLOCATE( Input_Opt%DEPNAME ( MAX_DEP ),   STAT=RC ) ! Drydep
     ALLOCATE( Input_Opt%IDEP    ( MAX_DEP ),   STAT=RC ) ! Drydep
     ! Double size of IDDEP to account for dust alkalinity   tdf 04/10/08
@@ -1361,27 +1352,13 @@ CONTAINS
     ALLOCATE( Input_Opt%DUSTREFF( NDSTBIN ),   STAT=RC ) ! Dust_mod
     ALLOCATE( Input_Opt%DUSTDEN ( NDSTBIN ),   STAT=RC ) ! Dust_mod
     ALLOCATE( Input_Opt%NTRAIND ( MAX_DEP ),   STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%F0      ( MAX_DEP ),   STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%HSTAR   ( MAX_DEP ),   STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%AIROSOL ( MAX_DEP ),   STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%XMW     ( MAX_DEP ),   STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%A_RADI  ( MAX_DEP ),   STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%A_DEN   ( MAX_DEP ),   STAT=RC ) ! Drydep
 
     Input_Opt%N_DUST_BINS            = NDSTBIN
-    Input_Opt%NUMDEP                 = 0
-    Input_Opt%NDVZIND                = 0
     Input_Opt%IDDEP                  = 0
     Input_Opt%IDEP                   = 0
     Input_Opt%DUSTREFF               = 0e+0_fp
     Input_Opt%DUSTDEN                = 0e+0_fp
     Input_Opt%DEPNAME                = ''
-    Input_Opt%F0                     = 0d0
-    Input_Opt%HSTAR                  = 0d0
-    Input_Opt%AIROSOL                = 0
-    Input_Opt%XMW                    = 0d0
-    Input_Opt%A_RADI                 = 0d0
-    Input_Opt%A_DEN                  = 0d0
 
     !----------------------------------------
     ! Fields for interface to GEOS-5 GCM
@@ -1451,6 +1428,7 @@ CONTAINS
 !  17 May 2016 - R. Yantosca - Remove TRACER_N_CONST, TRACER_CONST, ID_EMITTED,
 !                              TRACER_COEFF
 !  31 May 2016 - E. Lundgren - Remove TRACER_MW_G, TRACER_MW_KG, and XNUMOL
+!  13 Jul 2016 - R. Yantosca - Remove ID_TRACER
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1461,10 +1439,6 @@ CONTAINS
     !======================================================================
     ! Deallocate fields of the Input Options object
     !======================================================================
-    IF ( ASSOCIATED( Input_Opt%ID_TRACER ) ) THEN
-       DEALLOCATE( Input_Opt%ID_TRACER  ) 
-    ENDIF
-
     IF ( ASSOCIATED( Input_Opt%TRACER_NAME ) ) THEN
        DEALLOCATE( Input_Opt%TRACER_NAME )
     ENDIF
@@ -1553,10 +1527,6 @@ CONTAINS
        DEALLOCATE( Input_Opt%FAM_TYPE )
     ENDIF
 
-    IF ( ASSOCIATED( Input_Opt%NDVZIND ) ) THEN
-       DEALLOCATE( Input_Opt%NDVZIND )
-    ENDIF
-    
     IF ( ASSOCIATED( Input_Opt%DEPNAME ) ) THEN
        DEALLOCATE( Input_Opt%DEPNAME )
     ENDIF
