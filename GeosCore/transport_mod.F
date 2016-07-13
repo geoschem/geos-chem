@@ -106,9 +106,6 @@
       REAL(fp), ALLOCATABLE         :: Bp(:)
       REAL(fp), ALLOCATABLE, TARGET :: A_M2(:)
 
-      ! This seems to be obsolete ???
-      !REAL(fp), ALLOCATABLE :: STT_BC2(:,:,:)
-
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -314,6 +311,11 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
+! !REMARKS:
+!  As of July 2016, we assume that all of the advected species are listed
+!  first in the species database.  This is the easiest way to pass a slab
+!  to the TPCORE routine.  This may change in the future. (bmy, 7/13/16)
+!
 ! !REVISION HISTORY: 
 !  30 Oct 2007 - R. Yantosca - Initial version
 !  (1 ) Split off the GEOS-4 & GEOS-5 relevant parts from the previous 
@@ -338,64 +340,61 @@
 !                              concentration following advection
 !  13 Aug 2015 - E. lundgren - Remove v/v <-> kg/kg conversion
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: I, J, L, L2, N, N_DYN, N_TOT_TRC
-      REAL(fp)           :: D_DYN
-      REAL(fp)           :: P_TP1(IIPAR,JJPAR)
-      REAL(fp)           :: P_TP2(IIPAR,JJPAR)
-      REAL(fp)           :: P_TEMP(IIPAR,JJPAR)
-      REAL(fp),  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR) 
-      REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR) 
-
-      ! Pointers
-      REAL(fp),  POINTER :: p_UWND   (:,:,:  )
-      REAL(fp),  POINTER :: p_VWND   (:,:,:  )
-      REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
-      REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
-      REAL(fp),  POINTER :: p_MFLEW  (:,:,:,:) => NULL()
-      REAL(fp),  POINTER :: p_MFLNS  (:,:,:,:) => NULL()
-      REAL(fp),  POINTER :: p_MFLUP  (:,:,:,:) => NULL()
-#endif
-      REAL(fp),  POINTER :: p_STT    (:,:,:,:)
-
-      ! For fields from Input_Opt
+      ! Scalars
       LOGICAL            :: LFILL
       LOGICAL            :: LPRT
       LOGICAL            :: LWINDO
-      INTEGER            :: N_TRACERS
+      INTEGER            :: I, J, L, L2, N, N_DYN, NA, nAdvect
+      REAL(fp)           :: D_DYN
 
+      ! Arrays
+      REAL(fp)           :: P_TP1      (IIPAR,JJPAR            )
+      REAL(fp)           :: P_TP2      (IIPAR,JJPAR            )
+      REAL(fp)           :: P_TEMP     (IIPAR,JJPAR            )
+      REAL(fp),  TARGET  :: XMASS      (IIPAR,JJPAR,LLPAR      ) 
+      REAL(fp),  TARGET  :: YMASS      (IIPAR,JJPAR,LLPAR      ) 
 #if defined( NC_DIAG )
-      ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
-      ! Note that these are different than if writing to bpch
       REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,NNPAR)        
       REAL(fp),  TARGET  :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,NNPAR)
       REAL(fp),  TARGET  :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,NNPAR) 
 #endif
+
+      ! Pointers
+      REAL(fp),  POINTER :: p_UWND (:,:,:  )
+      REAL(fp),  POINTER :: p_VWND (:,:,:  )
+      REAL(fp),  POINTER :: p_XMASS(:,:,:  )
+      REAL(fp),  POINTER :: p_YMASS(:,:,:  )
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+      REAL(fp),  POINTER :: p_MFLEW(:,:,:,:)
+      REAL(fp),  POINTER :: p_MFLNS(:,:,:,:)
+      REAL(fp),  POINTER :: p_MFLUP(:,:,:,:)
+#endif
+      REAL(fp),  POINTER :: p_Spc  (:,:,:,:)
 
       !=================================================================
       ! GEOS4_GEOS5_GLOBAL_ADV begins here!
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC          =  GIGC_SUCCESS
 
-      ! Copy values from Input_Opt
-      LFILL     = Input_Opt%LFILL
-      LPRT      = Input_Opt%LPRT
-      LWINDO    = Input_Opt%LWINDO
-      N_TRACERS = Input_Opt%N_TRACERS
-
+      ! Initialize
+      LFILL       = Input_Opt%LFILL
+      LPRT        = Input_Opt%LPRT
+      LWINDO      = Input_Opt%LWINDO
+      nAdvect     = State_Chm%nAdvect
 #if defined( BPCH_DIAG ) || defined( NETCDF )
-      ! Initialize pointers 
-      p_MFLEW   => NULL()
-      p_MFLNS   => NULL()
-      p_MFLUP   => NULL()
+      p_MFLEW     => NULL()
+      p_MFLNS     => NULL()
+      p_MFLUP     => NULL()
 #endif
 
 #if defined( NC_DIAG )
@@ -405,12 +404,9 @@
       MASSFLUP_NC = 0.0e+0_fp
 #endif
 
-      ! Pick the proper # of tracers
-      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
-
       ! Dynamic timestep [s]
-      N_DYN = GET_TS_DYN() * 60
-      D_DYN = DBLE( N_DYN )
+      N_DYN       = GET_TS_DYN() * 60
+      D_DYN       = DBLE( N_DYN )
 
       !=================================================================
       ! Prepare variables for calls to PJC pressure-fixer and TPCORE
@@ -457,11 +453,18 @@
       !=================================================================
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND    => State_Met%U      (:,:,LLPAR:1:-1  )
-      p_VWND    => State_Met%V      (:,:,LLPAR:1:-1  )
-      p_STT     => State_Chm%Tracers(:,:,LLPAR:1:-1,:) ! v/v
-      p_XMASS   => XMASS            (:,:,LLPAR:1:-1  )
-      p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
+      p_UWND    => State_Met%U      ( :, :, LLPAR:1:-1            )
+      p_VWND    => State_Met%V      ( :, :, LLPAR:1:-1            )
+      p_XMASS   => XMASS            ( :, :, LLPAR:1:-1            )
+      p_YMASS   => YMASS            ( :, :, LLPAR:1:-1            )
+
+      ! NOTE: For now, so as to avoid having to rewrite the internals
+      ! of the TPCORE routines, just point to 1:nAdvect entries of
+      ! State_Chm%Species.  This is OK for now, as of July 2016, all of
+      ! the advected species are listed first.  This may change in the
+      ! future, but we'll worry about that later.  The units of p_SPC
+      ! will be converted to [kg/kg moist air] below. (bmy, 7/13/16)
+      p_Spc     => State_Chm%Species( :, :, LLPAR:1:-1, 1:nAdvect )
 
       ! Diagnostic arrays are vertically flipped at writeout
 #if defined( BPCH_DIAG )
@@ -486,22 +489,34 @@
      &                   'GEOS4_GEOS5_GLOBAL_ADV in transport_mod.F')
          RETURN
       ENDIF 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Do the advection
-      CALL TPCORE_FVDAS( D_DYN,  Re,        IIPAR,    JJPAR,
-     &                   LLPAR,  JFIRST,    JLAST,    NG,
-     &                   MG,     N_TOT_TRC, Ap,       Bp,
-     &                   p_UWND, p_VWND,    P_TP1,    P_TP2,
-     &                   P_TEMP, p_STT,     IORD,     JORD,      
-     &                   KORD,   N_ADJ,     p_XMASS,  p_YMASS, LFILL,  
+      CALL TPCORE_FVDAS( D_DYN,    Re,       IIPAR,    JJPAR,
+     &                   LLPAR,    JFIRST,   JLAST,    NG,
+     &                   MG,       nAdvect,  Ap,       Bp,
+     &                   p_UWND,   p_VWND,   P_TP1,    P_TP2,
+     &                   P_TEMP,   p_Spc,    IORD,     JORD,      
+     &                   KORD,     N_ADJ,    p_XMASS,  p_YMASS, 
+     &                   LFILL,  
 #if defined( BPCH_DIAG ) || defined( NC_DIAG )
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
       ! (ccc, 3/8/10)
-     &                   p_MFLEW,  p_MFLNS, p_MFLUP,
+     &                   p_MFLEW,  p_MFLNS,  p_MFLUP,
 #endif    
-     &                   A_M2, ND24, ND25, ND26 )
+     &                   A_M2,     ND24,     ND25,     ND26 )
 
 #if defined( NC_DIAG )
       IF ( Input_Opt%ND24 > 0 ) THEN 
@@ -509,6 +524,16 @@
      &                                    p_MFLUP, Input_Opt, RC )
       ENDIF
 #endif
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Convert tracer concentration from kg/kg wet air to 
       ! kg/kg dry air after advection (ewl, 6/15/15)
@@ -521,10 +546,15 @@
       ENDIF 
 
       ! Free pointer memory
-      NULLIFY( p_UWND,  p_VWND,  p_STT   )
-      NULLIFY( p_XMASS, p_YMASS          )
+      p_UWND  => NULL()
+      p_VWND  => NULL()
+      p_XMASS => NULL()
+      p_YMASS => NULL()
+      p_Spc   => NULL()
 #if defined( BPCH_DIAG ) || defined( NC_DIAG )
-      NULLIFY( p_MFLEW, p_MFLNS, p_MFLUP )
+      p_MFLEW => NULL()
+      p_MFLNS => NULL()  
+      p_MFLUP => NULL()
 #endif
 
       !=================================================================
@@ -598,6 +628,11 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
+! !REMARKS:
+!  As of July 2016, we assume that all of the advected species are listed
+!  first in the species database.  This is the easiest way to pass a slab
+!  to the TPCORE routine.  This may change in the future. (bmy, 7/13/16)
+!
 ! !REVISION HISTORY: 
 !  30 Oct 2007 - R. Yantosca - Initial version
 !  (1 ) Split off the GCAP relevant parts from the previous routine
@@ -622,65 +657,62 @@
 !                              concentration following advection
 !  13 Aug 2015 - E. lundgren - Remove v/v <-> kg/kg conversion
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: I, J, L, L2, N, N_DYN, N_TOT_TRC
-      REAL(fp)           :: D_DYN
-      REAL(fp)           :: P_TP1(IIPAR,JJPAR)
-      REAL(fp)           :: P_TP2(IIPAR,JJPAR)
-      REAL(fp)           :: P_TEMP(IIPAR,JJPAR)
-      REAL(fp)           :: VTMP(IIPAR,JJPAR,LLPAR)
-      REAL(fp),  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR) 
-      REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR) 
-
-      ! Pointers
-      REAL(fp),  POINTER :: p_UWND   (:,:,:  )
-      REAL(fp),  POINTER :: p_VWND   (:,:,:  )
-      REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
-      REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
-      REAL(fp),  POINTER :: p_MFLEW (:,:,:,:) => NULL()
-      REAL(fp),  POINTER :: p_MFLNS (:,:,:,:) => NULL()
-      REAL(fp),  POINTER :: p_MFLUP (:,:,:,:) => NULL()
-#endif
-      REAL(fp),  POINTER :: p_STT   (:,:,:,:) ! v/v
-
-      ! For fields from Input_Opt
+      ! Scalars
       LOGICAL            :: LFILL
       LOGICAL            :: LPRT
       LOGICAL            :: LWINDO
-      INTEGER            :: N_TRACERS
+      INTEGER            :: I, J, L, L2, N, N_DYN, NA, nAdvect
+      REAL(fp)           :: D_DYN
 
+      ! Arrays
+      REAL(fp)           :: P_TP1      (IIPAR,JJPAR            )
+      REAL(fp)           :: P_TP2      (IIPAR,JJPAR            )
+      REAL(fp)           :: P_TEMP     (IIPAR,JJPAR            )
+      REAL(fp)           :: VTMP       (IIPAR,JJPAR,LLPAR      )
+      REAL(fp),  TARGET  :: XMASS      (IIPAR,JJPAR,LLPAR      )       
+      REAL(fp),  TARGET  :: YMASS      (IIPAR,JJPAR,LLPAR      ) 
 #if defined( NC_DIAG )
-      ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
-      ! Note that these are different than if writing to bpch
       REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,NNPAR)        
       REAL(fp),  TARGET  :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,NNPAR)
       REAL(fp),  TARGET  :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,NNPAR) 
 #endif
+
+      ! Pointers
+      REAL(fp),  POINTER :: p_UWND (:,:,:  )
+      REAL(fp),  POINTER :: p_VWND (:,:,:  )
+      REAL(fp),  POINTER :: p_XMASS(:,:,:  )
+      REAL(fp),  POINTER :: p_YMASS(:,:,:  )
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+      REAL(fp),  POINTER :: p_MFLEW(:,:,:,:)
+      REAL(fp),  POINTER :: p_MFLNS(:,:,:,:)
+      REAL(fp),  POINTER :: p_MFLUP(:,:,:,:)
+#endif
+      REAL(fp),  POINTER :: p_Spc  (:,:,:,:)
 
       !=================================================================
       ! GCAP_GLOBAL_ADV begins here!
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC          =  GIGC_SUCCESS
 
-      ! Copy values from Input_Opt
-      LFILL     = Input_Opt%LFILL
-      LPRT      = Input_Opt%LPRT
-      LWINDO    = Input_Opt%LWINDO
-      N_TRACERS = Input_Opt%N_TRACERS
-
+      ! Initialize
+      LFILL       = Input_Opt%LFILL
+      LPRT        = Input_Opt%LPRT
+      LWINDO      = Input_Opt%LWINDO
+      nAdvect     = State_Chm%nAdvect
 #if defined( BPCH_DIAG ) || defined( NETCDF )
-      ! Initialize pointers
-      p_MFLEW   => NULL()
-      p_MFLNS   => NULL()
-      p_MFLUP   => NULL()
+      p_MFLEW     => NULL()
+      p_MFLNS     => NULL()
+      p_MFLUP     => NULL()
 #endif
 
 #if defined( NC_DIAG )
@@ -690,12 +722,9 @@
       MASSFLUP_NC = 0.0e+0_fp
 #endif
 
-      ! Pick the proper # of tracers
-      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
-
       ! Dynamic timestep [s]
-      N_DYN = GET_TS_DYN() * 60
-      D_DYN = DBLE( N_DYN )
+      N_DYN       = GET_TS_DYN() * 60
+      D_DYN       = DBLE( N_DYN )
 
       !=================================================================
       ! Prepare variables for calls to PJC presure-fixer and TPCORE
@@ -747,11 +776,19 @@
       !=================================================================
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND    => State_Met%U      (:,:,LLPAR:1:-1  )
-      p_VWND    => State_Met%V      (:,:,LLPAR:1:-1  )
-      p_STT     => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
-      p_XMASS   => XMASS            (:,:,LLPAR:1:-1  )
-      p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
+      p_UWND    => State_Met%U      ( :, :, LLPAR:1:-1            )
+      p_VWND    => State_Met%V      ( :, :, LLPAR:1:-1            )
+      p_XMASS   => XMASS            ( :, :, LLPAR:1:-1            )
+      p_YMASS   => YMASS            ( :, :, LLPAR:1:-1            )
+
+      ! NOTE: For now, so as to avoid having to rewrite the internals
+      ! of the TPCORE routines, just point to 1:nAdvect entries of
+      ! State_Chm%Species.  This is OK for now, as of July 2016, all of
+      ! the advected species are listed first.  This may change in the
+      ! future, but we'll worry about that later.  The units of p_SPC
+      ! will be converted to [kg/kg moist air] below. (bmy, 7/13/16)
+      p_Spc     => State_Chm%Species( :, :, LLPAR:1:-1, 1:nAdvect )
+
 #if defined( BPCH_DIAG )
       p_MFLEW   => MASSFLEW
       p_MFLNS   => MASSFLNS
@@ -763,32 +800,44 @@
       p_MFLUP   => MASSFLUP_NC
 #endif
 
-
       ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg total air before advection (ewl, 6/15/15)
       CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
-     &                                    State_Met, State_Chm, RC )
+     &                                   State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'GCAP_GLOBAL_ADV in transport_mod.F')
          RETURN
       ENDIF 
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       ! Do the advection
-      CALL TPCORE_FVDAS( D_DYN,   Re,        IIPAR,    JJPAR,
-     &                   LLPAR,   JFIRST,    JLAST,    NG,
-     &                   MG,      N_TOT_TRC, Ap,       Bp,
-     &                   p_UWND,  p_VWND,    P_TP1,    P_TP2,
-     &                   P_TEMP,  p_STT,     IORD,     JORD,      
-     &                   KORD,    N_ADJ,     p_XMASS,  p_YMASS, LFILL,
+      CALL TPCORE_FVDAS( D_DYN,   Re,      IIPAR,   JJPAR,
+     &                   LLPAR,   JFIRST,  JLAST,   NG,
+     &                   MG,      nAdvect, Ap,      Bp,
+     &                   p_UWND,  p_VWND,  P_TP1,   P_TP2,
+     &                   P_TEMP,  p_Spc,   IORD,    JORD,      
+     &                   KORD,    N_ADJ,   p_XMASS, p_YMASS, 
+     &                   LFILL,
 #if defined( BPCH_DIAG ) || defined( NC_DIAG )
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
       ! (ccc, 3/8/10)
-     &                   p_MFLEW,  p_MFLNS, p_MFLUP,
+     &                   p_MFLEW, p_MFLNS, p_MFLUP,
 #endif    
-     &                   A_M2, ND24, ND25, ND26 )
+     &                   A_M2,    ND24,    ND25,    ND26 )
 
 #if defined( NC_DIAG )
       IF ( Input_Opt%ND24 > 0 ) THEN
@@ -796,6 +845,16 @@
      &                                    p_MFLUP, Input_Opt, RC )
       ENDIF
 #endif
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Convert tracer concentration from kg/kg total air to 
       ! kg/kg dry air after advection (ewl, 6/15/15)
@@ -808,10 +867,15 @@
       ENDIF 
 
       ! Free pointer memory
-      NULLIFY( p_UWND,  p_VWND,  p_STT   )
-      NULLIFY( p_XMASS, p_YMASS          )
+      p_UWND  => NULL()
+      p_VWND  => NULL()
+      p_Spc   => NULL()
+      p_XMASS => NULL()
+      p_YMASS => NULL()
 #if defined( BPCH_DIAG ) || defined( NC_DIAG )
-      NULLIFY( p_MFLEW, p_MFLNS, p_MFLUP )
+      p_MFLEW => NULL()
+      p_MFLNS => NULL() 
+      p_MFLUP => NULL()
 #endif
 
       !=================================================================
@@ -891,6 +955,11 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
+! !REMARKS:
+!  As of July 2016, we assume that all of the advected species are listed
+!  first in the species database.  This is the easiest way to pass a slab
+!  to the TPCORE routine.  This may change in the future. (bmy, 7/13/16)
+!
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
@@ -910,21 +979,34 @@
 !  04 Nov 2015 - M. Sulprizio- Rename from DO_GEOSFP_WINDOW_TRANSPORT to
 !                              DO_WINDOW_TRANSPORT for use with all nested grids
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: I0,    J0
-      INTEGER            :: IM_W1, JM_W1, I0_W1, J0_W1, BUFF_SIZE
-      INTEGER            :: I, J, L, L2, N, N_DYN, N_TOT_TRC
+      ! Scalars
+      LOGICAL            :: LFILL
+      LOGICAL            :: LPRT
+      LOGICAL            :: LWINDO
+      INTEGER            :: I0,    J0,    NA,    nAdvect, N_DYN 
+      INTEGER            :: IM_W1, JM_W1, I0_W1, J0_W1,   BUFF_SIZE
+      INTEGER            :: I,     J,     L,     L2,      N
       REAL(fp)           :: D_DYN
-      REAL(fp),  TARGET  :: P_TP1(IIPAR,JJPAR)
-      REAL(fp),  TARGET  :: P_TP2(IIPAR,JJPAR)
-      REAL(fp),  TARGET  :: P_TEMP(IIPAR,JJPAR)
-      REAL(fp),  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR)
-      REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR)
+
+      ! Arrays
+      REAL(fp),  TARGET  :: P_TP1      (IIPAR,JJPAR            )
+      REAL(fp),  TARGET  :: P_TP2      (IIPAR,JJPAR            )
+      REAL(fp),  TARGET  :: P_TEMP     (IIPAR,JJPAR            )
+      REAL(fp),  TARGET  :: XMASS      (IIPAR,JJPAR,LLPAR      )
+      REAL(fp),  TARGET  :: YMASS      (IIPAR,JJPAR,LLPAR      )
+#if defined( NC_DIAG )
+      REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,NNPAR)        
+      REAL(fp),  TARGET  :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,NNPAR)
+      REAL(fp),  TARGET  :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,NNPAR) 
+#endif
 
       ! Pointers
       REAL(fp),  POINTER :: p_A_M2  (  :    )
@@ -940,76 +1022,58 @@
       REAL(fp),  POINTER :: p_MFLNS (:,:,:,:)
       REAL(fp),  POINTER :: p_MFLUP (:,:,:,:)
 #endif
-      REAL(fp),  POINTER :: p_STT   (:,:,:,:)
-
-      ! For fields from Input_Opt
-      LOGICAL          :: LFILL
-      LOGICAL          :: LPRT
-      LOGICAL          :: LWINDO
-      INTEGER          :: N_TRACERS
-      REAL(fp)         :: TCVV(Input_Opt%N_TRACERS)
-
-#if defined( NC_DIAG )
-      ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
-      ! Note that these are different than if writing to bpch
-      REAL(fp), TARGET :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,NNPAR)        
-      REAL(fp), TARGET :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,NNPAR)
-      REAL(fp), TARGET :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,NNPAR) 
-#endif
+      REAL(fp),  POINTER :: p_Spc   (:,:,:,:)
 
       !=================================================================
       ! DO_FVDAS_WINDOW_TRANSPORT begins here!
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC          =  GIGC_SUCCESS
 
       ! Copy values from Input_Opt
-      LFILL     = Input_Opt%LFILL
-      LPRT      = Input_Opt%LPRT
-      LWINDO    = Input_Opt%LWINDO
-      N_TRACERS = Input_Opt%N_TRACERS
+      LFILL       =  Input_Opt%LFILL
+      LPRT        =  Input_Opt%LPRT
+      LWINDO      =  Input_Opt%LWINDO
+      nAdvect     =  State_Chm%nAdvect
 
       ! Initialize pointers
-      p_A_M2   => NULL()
-      p_P_TP1  => NULL()
-      p_P_TP2  => NULL()
-      p_P_TEMP => NULL()
-      p_UWND   => NULL()
-      p_VWND   => NULL()
-      p_XMASS  => NULL()
-      p_YMASS  => NULL()
+      p_A_M2      => NULL()
+      p_P_TP1     => NULL()
+      p_P_TP2     => NULL()
+      p_P_TEMP    => NULL()
+      p_UWND      => NULL()
+      p_VWND      => NULL()
+      p_XMASS     => NULL()
+      p_YMASS     => NULL()
 #if defined( BPCH_DIAG ) || defined( NETCDF )
-      p_MFLEW  => NULL()
-      p_MFLNS  => NULL()
-      p_MFLUP  => NULL()
+      p_MFLEW     => NULL()
+      p_MFLNS     => NULL()
+      p_MFLUP     => NULL()
 #endif
-      p_STT    => NULL()
+      p_Spc       => NULL()
 
 #if defined( NC_DIAG )
       ! Initialize netcdf diagnostic arrays
-      MASSFLEW_NC = 0.0e+0_fp
-      MASSFLNS_NC = 0.0e+0_fp
-      MASSFLUP_NC = 0.0e+0_fp
+      MASSFLEW_NC =  0.0e+0_fp
+      MASSFLNS_NC =  0.0e+0_fp
+      MASSFLUP_NC =  0.0e+0_fp
 #endif
 
-      ! Pick the proper # of tracers
-      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
-
       ! Get nested-grid lon/lat offsets [# boxes]
-      I0    = GET_XOFFSET( GLOBAL=.TRUE. )
-      J0    = GET_YOFFSET( GLOBAL=.TRUE. )
+      I0          =  GET_XOFFSET( GLOBAL=.TRUE. )
+      J0          =  GET_YOFFSET( GLOBAL=.TRUE. )
 
       ! Dynamic timestep [s]
-      N_DYN = GET_TS_DYN() * 60
-      D_DYN = DBLE( N_DYN )
+      N_DYN       =  GET_TS_DYN() * 60
+      D_DYN       =  DBLE( N_DYN )
 
       ! (lzh, 09/01/2014)
-      BUFF_SIZE = 2
-      IM_W1     = IM_W + 2 * BUFF_SIZE
-      JM_W1     = JM_W + 2 * BUFF_SIZE
-      I0_W1     = I0_W     - BUFF_SIZE
-      J0_W1     = J0_W     - BUFF_SIZE
+      BUFF_SIZE   =  2
+      IM_W1       =  IM_W + 2 * BUFF_SIZE
+      JM_W1       =  JM_W + 2 * BUFF_SIZE
+      I0_W1       =  I0_W     - BUFF_SIZE
+      J0_W1       =  J0_W     - BUFF_SIZE
 
       !=================================================================
       ! Prepare variables for calls to PJC pressure-fixer and TPCORE
@@ -1068,9 +1132,15 @@
      &                              J0_W1+1 : J0_W1+JM_W1, 
      &                              LLPAR:1:-1                   )
 
-      p_STT   => State_Chm%Tracers( I0_W1+1 : I0_W1+IM_W1,
+      ! NOTE: For now, so as to avoid having to rewrite the internals
+      ! of the TPCORE routines, just point to 1:nAdvect entries of
+      ! State_Chm%Species.  This is OK for now, as of July 2016, all of
+      ! the advected species are listed first.  This may change in the
+      ! future, but we'll worry about that later. (bmy, 7/13/16)
+      p_Spc   => State_Chm%Species( I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1, 
-     &                              LLPAR:1:-1,                : )             
+     &                              LLPAR:1:-1,                
+     &                              1:nAdvect                    )             
 
       p_XMASS => XMASS(             I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1,
@@ -1129,21 +1199,33 @@
          RETURN
       ENDIF 
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       ! Do the advection
       CALL TPCORE_WINDOW( 
      &      D_DYN,   Re,       IM_W1,   JM_W1,   LLPAR, 
-     &      JFIRST,  JLAST,    NG,      MG,      N_TOT_TRC, 
+     &      JFIRST,  JLAST,    NG,      MG,      nAdvect, 
      &      Ap,      Bp,       p_UWND,  p_VWND,  p_P_TP1, 
-     &      p_P_TP2, p_P_TEMP, p_STT,   IORD,    JORD, 
+     &      p_P_TP2, p_P_TEMP, p_Spc,   IORD,    JORD, 
      &      KORD,    N_ADJ,    p_XMASS, p_YMASS, 
 #if defined( BPCH_DIAG ) || defined( NC_DIAG )
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
       ! (ccc, 3/8/10)
-     &                         p_MFLEW, p_MFLNS, p_MFLUP,
+     &      p_MFLEW, p_MFLNS,  p_MFLUP,
 #endif
-     &                          p_A_M2,   ND24,      ND25,     ND26 ) 
+     &      p_A_M2,  ND24,     ND25,    ND26              ) 
 
 #if defined( NC_DIAG )
       IF ( Input_Opt%ND24 > 0 ) THEN
@@ -1151,6 +1233,16 @@
      &                                    p_MFLUP, Input_Opt, RC )
       ENDIF
 #endif
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Convert tracer concentration from kg/kg wet air to 
       ! kg/kg dry air after advection (ewl, 6/15/15)
@@ -1162,13 +1254,20 @@
          RETURN
       ENDIF 
 
-!=========================================================================
-
       ! Free pointer memory
-      NULLIFY( p_UWND,  p_VWND,  p_STT,   p_XMASS  ) 
-      NULLIFY( p_YMASS, p_P_TP1, p_P_TP2, p_P_TEMP, p_A_M2 )
+      p_UWND   => NULL()  
+      p_VWND   => NULL()
+      p_Spc    => NULL()
+      p_XMASS  => NULL()
+      p_YMASS  => NULL()
+      p_P_TP1  => NULL()
+      p_P_TP2  => NULL()
+      p_P_TEMP => NULL()
+      p_A_M2   => NULL()
 #if defined( BPCH_DIAG ) || defined( NC_DIAG )
-      NULLIFY( p_MFLEW, p_MFLNS, p_MFLUP )
+      p_MFLEW  => NULL()
+      p_MFLNS  => NULL() 
+      p_MFLUP  => NULL() 
 #endif
 
       !=================================================================
@@ -1283,12 +1382,12 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: J, K, L, N_DYN
-      REAL(fp)  :: YMID_R(JJPAR)
-      REAL(fp)  :: REAL_N_DYN
+      INTEGER  :: J, K, L, N_DYN
+      REAL(fp) :: YMID_R(JJPAR)
+      REAL(fp) :: REAL_N_DYN
 
       ! For fields from Input_Opt
-      LOGICAL :: LTRAN
+      LOGICAL  :: LTRAN
 
       !=================================================================
       ! Initialize
