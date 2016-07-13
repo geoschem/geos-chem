@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Global.f90
-! Time                 : Wed Apr 27 11:38:47 2016
-! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/v11-01f_SOA_SVPOA
+! Time                 : Wed Jul 13 11:39:55 2016
+! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/SOA_SVPOA
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -39,7 +39,7 @@ MODULE gckpp_Global
   REAL(kind=dp) :: FIX(NFIX)
 ! VAR, FIX are chunks of array C
 !      EQUIVALENCE( C(1),VAR(1) )
-!      EQUIVALENCE( C(135),FIX(1) )
+!      EQUIVALENCE( C(541),FIX(1) )
 ! RCONST - Rate constants (global)
   REAL(kind=dp) :: RCONST(NREACT)
 ! TIME - Current integration time
@@ -66,8 +66,6 @@ MODULE gckpp_Global
   REAL(kind=dp) :: STEPMAX
 ! CFACTOR - Conversion factor for concentration units
   REAL(kind=dp) :: CFACTOR
-! DDMTYPE - DDM sensitivity w.r.t.: 0=init.val., 1=params
-  INTEGER :: DDMTYPE
 
 ! INLINED global variable declarations
 
