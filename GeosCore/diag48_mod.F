@@ -181,6 +181,7 @@
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod since
 !                              XNUMOLAIR now defined in CMN_GTCM_MOD
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -200,6 +201,7 @@
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD               ! SAVEOH, XNUMOLAIR
       USE PHYSCONSTANTS            ! SCALE_HEIGHT, XNUMOLAIR
+      USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -234,11 +236,15 @@
       ! For fields from Input_Opt
       LOGICAL            :: DO_DIAG_WRITE
       INTEGER            :: N_TRACERS
-      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
+!      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER :: STT(:,:,:,:)
 !      REAL(fp), POINTER :: AD(:,:,:)
+      TYPE(Species), POINTER :: ThisSpc
+
+      ! Temp Variables
+      REAL(fp)          :: tempTCVV
 
       !=================================================================
       ! DIAG48 begins here!
@@ -250,11 +256,12 @@
       ! Copy values from Input_Opt
       DO_DIAG_WRITE = Input_Opt%DO_DIAG_WRITE
       N_TRACERS     = Input_Opt%N_TRACERS
-      TCVV          = Input_Opt%TCVV(1:N_TRACERS)
+!      TCVV          = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Initialize pointers
       STT          => State_Chm%Tracers
 !      AD           => State_Met%AD
+      ThisSpc => NULL()
 
       ! Get grid offsets
       I0 = GET_XOFFSET( GLOBAL=.TRUE. )
@@ -331,9 +338,12 @@
             UNIT     = ''              ! Let GAMAP pick the unit
             GMTRC    = N
 
+            ThisSpc => State_Chm%SpcData(N)%Info
+            tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+
             DO L = 1, K
 !               Q(L) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
-               Q(L) = STT(I,J,L,N) * TCVV(N)
+               Q(L) = STT(I,J,L,N) * tempTCVV
             ENDDO
 
          ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
@@ -409,39 +419,57 @@
 !     &                         AD(I,J,L) )
 
                ! NO
-               Q(L) = Q(L) + ( TCVV(id_NO)         * 
+               ThisSpc => State_Chm%SpcData(id_NO)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               Q(L) = Q(L) + ( tempTCVV         * 
      &                         STT(I,J,L,id_NO) )
 
                ! NO2
-               Q(L) = Q(L) + ( TCVV(id_NO2)        * 
+               ThisSpc => State_Chm%SpcData(id_NO2)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               Q(L) = Q(L) + ( tempTCVV        * 
      &                         STT(I,J,L,id_NO2) )
 
                ! PAN
-               Q(L) = Q(L) + ( TCVV(id_PAN)        * 
+               ThisSpc => State_Chm%SpcData(id_PAN)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               Q(L) = Q(L) + ( tempTCVV        * 
      &                         STT(I,J,L,id_PAN) )
 
                ! HNO3
-               Q(L) = Q(L) + ( TCVV(id_HNO3)       *
+               ThisSpc => State_Chm%SpcData(id_HNO3)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               Q(L) = Q(L) + ( tempTCVV        *
      &                         STT(I,J,L,id_HNO3) )
             
                ! PMN
-               Q(L) = Q(L) + ( TCVV(id_PMN)        *
+               ThisSpc => State_Chm%SpcData(id_PMN)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               Q(L) = Q(L) + ( tempTCVV        *
      &                         STT(I,J,L,id_PMN) )
 
                ! PPN
-               Q(L) = Q(L) + ( TCVV(id_PPN)        * 
+               ThisSpc => State_Chm%SpcData(id_PPN)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               Q(L) = Q(L) + ( tempTCVV        * 
      &                         STT(I,J,L,id_PPN) )
  
                ! R4N2
-               Q(L) = Q(L) + ( TCVV(id_R4N2)       *
+               ThisSpc => State_Chm%SpcData(id_R4N2)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               Q(L) = Q(L) + ( tempTCVV       *
      &                         STT(I,J,L,id_R4N2) )
             
                ! N2O5
-               Q(L) = Q(L) + ( 2d0 * TCVV(id_N2O5) *
+               ThisSpc => State_Chm%SpcData(id_N2O5)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               Q(L) = Q(L) + ( 2d0 * tempTCVV *
      &                         STT(I,J,L,id_N2O5) )
                         
                ! HNO4
-               Q(L) = Q(L) + ( TCVV(id_HNO4)       *
+               ThisSpc => State_Chm%SpcData(id_HNO4)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               Q(L) = Q(L) + ( tempTCVV       *
      &                         STT(I,J,L,id_HNO4) )
             ENDDO
 
@@ -517,11 +545,14 @@
             UNIT     = ''              ! Let GAMAP pick unit
             GMTRC    = 8
 
+            ThisSpc => State_Chm%SpcData(id_SALA)%Info
+            tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+
             DO L = 1, K
 !               Q(L) = ( STT(I,J,L,id_SALA) + STT(I,J,L,id_SALC) ) *
 !     &                  TCVV(id_SALA)      / AD(I,J,L) 
                Q(L) = ( STT(I,J,L,id_SALA) + STT(I,J,L,id_SALC) ) *
-     &                  TCVV(id_SALA)
+     &                  tempTCVV
             ENDDO
 
          ELSE IF ( N == 159 ) THEN

@@ -16,6 +16,8 @@
 ! !USES:
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE PHYSCONSTANTS
+      USE Species_Mod,        ONLY : Species
 
       IMPLICIT NONE
       PRIVATE
@@ -6051,6 +6053,7 @@
 !  23 Sep 2015 - R. Yantosca - Now accept State_Chm as an argument
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  23 Jun 2016 - R. Yantosca - Remove reference to tracerid_mod.F
+!  04 Jul 2016 - M. Yannetti - Removed TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6064,6 +6067,7 @@
       ! Pointers
       REAL(fp), POINTER :: PL
       REAL(fp), POINTER :: TK
+      TYPE(Species), POINTER :: ThisSpc
             
       !=====================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
@@ -6072,6 +6076,7 @@
       ! Initialize
       PL => NULL()
       TK => NULL()
+      ThisSpc => NULL()
 
       ! Only do computation if wetdep or convection is turned on
       IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
@@ -6165,8 +6170,10 @@
          ! call to SETUP_WETSCAV, store H2O2s in legacy units [v/v dry air] 
          ! for now for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
          IF ( id_H2O2 > 0 ) THEN
+            ThisSpc => State_Chm%SpcData(id_H2O2)%Info
             H2O2s = State_Chm%Tracers(:,:,:,id_H2O2)
-     &            * Input_Opt%TCVV(id_H2O2)
+     &            * ( AIRMW / ThisSpc%emMW_g )
+            ThisSpc => NULL()
          ENDIF
 
          ! Set SO2s to the initial SO2 from STT, so that we will have
@@ -6175,8 +6182,10 @@
          ! call to SETUP_WETSCAV, store SO2s in units [v/v dry air] for now 
          ! for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
          IF ( id_SO2 > 0 ) THEN
+            ThisSpc => State_Chm%SpcData(id_SO2)%Info
             SO2s = State_Chm%Tracers(:,:,:,id_SO2)
-     &           * Input_Opt%TCVV(id_SO2)
+     &           * ( AIRMW / ThisSpc%emMW_g )
+            ThisSpc => NULL()
          ENDIF
 
          ! Reset first-time flag

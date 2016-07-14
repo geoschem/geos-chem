@@ -2847,6 +2847,7 @@ CONTAINS
     USE HCO_Diagn_Mod,      ONLY : Diagn_Update, DiagnCont, DiagnCont_Find
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE PRESSURE_MOD,       ONLY : GET_PEDGE
+    USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -2863,6 +2864,7 @@ CONTAINS
 !  07 Jul 2015 - C. Keller   - Initial version 
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function 
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2884,6 +2886,12 @@ CONTAINS
 
     CHARACTER(LEN=255)       :: MSG
     CHARACTER(LEN=255)       :: LOC = 'CalcDobsonColumn (diagnostics_mod.F)' 
+
+    ! Pointers
+    TYPE(Species), POINTER   :: ThisSpc
+
+    ! Temp
+    REAL(fp)                 :: tempMW
     
     !=======================================================================
     ! CalcDobsonColumn begins here!
@@ -2895,6 +2903,7 @@ CONTAINS
     ! Initialize
     DgnPtr => NULL()
     id_O3  = IND_('O3')
+    ThisSpc => NULL()
 
     ! Nothing to do if O3 is not a tracer
     IF ( id_O3 <= 0 ) RETURN
@@ -2919,13 +2928,18 @@ CONTAINS
     TROPO3 = 0.0_fp
     TOTO3  = 0.0_fp
 
+    ! Get info about this species from the species database
+    ThisSpc => State_Chm%SpcData(id_O3)%Info
+    tempMW = ThisSpc%emMW_g
+
+
     ! Constant
     constant = 0.01_fp * AVO / ( g0 * ( AIRMW/1000.0_fp) )
 
     ! Do for all levels
     !$OMP PARALLEL DO &
     !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, DP, O3vv, DU )
+    !$OMP PRIVATE( I, J, L, DP, O3vv, DU, tempMW )
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
@@ -2934,7 +2948,8 @@ CONTAINS
        DP = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
 
        ! Ozone in v/v
-       O3vv = State_Chm%Tracers(I,J,L,id_O3) * Input_Opt%TCVV(id_O3) &
+       O3vv = State_Chm%Tracers(I,J,L,id_O3) &
+            * (AIRMW / tempMW) &
             / State_Met%AD(I,J,L)
 
        ! Calculate O3 in DU for this grid box 
