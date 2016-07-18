@@ -648,17 +648,36 @@
          ! dry surface pressure
          State_Met%DELP_DRY(I,J,L) = GET_DELP_DRY(I,J,L)
 
+         !===============================================================
+         ! Set mass of dry air in grid box [kg]
+         !==============================================================
+         !
+         ! AD = mass of dry air in grid box (I,J,L) 
+         !
+         ! given by:        
+         ! 
+         !        Dry air pressure   Grid box   100 [Pa]   1 [s2]
+         ! Mass = difference       * surface  * -------- * -----
+         !        across grid        area       1 [hPa]    g [m]
+         !        box [hPa]          [m2]                        
+         !
+         ! NOTES: 
+         !    (1) Dry air pressure difference across grid box is
+         !        calculated from the surface dry pressure and GMAO
+         !        A and B parameters (see GeosUtil/pressure_mod.F).
+         !        The dry surface pressure that is used is calculated 
+         !        from the GMAO wet surface pressure (or 
+         !        time-interpolated value) and the A and B parameters 
+         !        (see SET_DRY_SURFACE_PRESSURE). It is not derived from
+         !        the wet edge pressures. This distinction is important
+         !        for mass conservation.
+         !==============================================================
          ! Prior to 08 Jul 2016: 
          ! (Calculate dry air mass from moist air mass)
          !State_Met%AD(I,J,L) = State_Met%ADMOIST(I,J,L)
          !&                         * ( 1.0e+0_fp - SPHU_kgkg )
-
          State_Met%AD(I,J,L) = ( State_Met%DELP_DRY(I,J,L) * G0_100 )
      &                         * AREA_M2
-         ! MF NOTE: The new definition will NOT match the old values.
-         !          Must make all unit conversion quantities consistent
-         !          with this new definition.
-         !============================================================
 
          !---------------------------------------------------------
          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -701,37 +720,10 @@
          ! MF NOTE: Since convection now uses dry, unit conversions no
          !          longer use this. Remove if possible.
 
-         !===============================================================
-         ! Set mass of dry air in grid box [kg]
-         !==============================================================
-         !
-         ! AD = mass of dry air in grid box (I,J,L) 
-         !    = mass of wet air * mass ratio of dry air to wet air
-         !
-         ! given by:        
-         ! 
-         !        Air pressure   Grid box   Mass       100 [Pa]   1 [s2]
-         ! Mass = difference   * surface  * ratio of * -------- * -----
-         !        across grid    area       dry to     1 [hPa]    g [m]
-         !        box [hPa]      [m2]       wet air                  
-         !
-         ! where,
-         !
-         !  Ratio of dry     mass density of dry air 
-         !  to wet air   =  --------------------------
-         !  mass [.]         mass density of moist air
-         !
-         ! NOTES: 
-         !    (1) Air pressure difference across grid box is the same for 
-         !        wet (DELP) and dry air partial pressures due to
-         !        the assumption of constant humidity within the grid box.
-         !    (2) Specific humidity in GEOS-Chem (SPHU) is stored in [g/kg]
-         !
-         !==============================================================
-         ! ***UNCLEAR IF THIS WILL BE NEEDED IN SOME FORM FOR UCX***
+         ! ***This can now be removed since ucx set_h2O_trac updated
+         !    to be independent of grid mass ***
          State_Met%ADMOIST(I,J,L) = ( State_Met%DELP(I,J,L) * G0_100 ) 
      &                              * AREA_M2 
-         ! MF NOTE: Now only used in ucx_mod. Remove?
 
          !===========================================================
          ! Set grid box densities [kg/m3] using the ideal gas law.
@@ -986,10 +978,12 @@
 #endif
 
       ! DEBUGGING
+      IF ( Input_Opt%LPRT ) THEN
       PRINT *, " "
       PRINT *, "In INTERP"
       PRINT *, "   Old PSC2_WET(56,20):     ", State_Met%PSC2_WET(56,20)
       PRINT *, "   Old PSC2_DRY(56,20): ", State_Met%PSC2_DRY(56,20)
+      ENDIF
       ! END DEBUGGING
 
 #if   defined( GEOS_4 ) || defined( GCAP )
@@ -1213,9 +1207,11 @@
 #endif
 
       ! DEBUGGING
+      IF ( Input_Opt%LPRT ) THEN
       PRINT *, " "
       PRINT *, "   New PSC2_WET(56,20):     ", State_Met%PSC2_WET(56,20)
       PRINT *, "   New PSC2_DRY(56,20): ", State_Met%PSC2_DRY(56,20)
+      ENDIF
       ! END DEBUGGING
 
       END SUBROUTINE INTERP
@@ -1288,19 +1284,19 @@
       ! SET_DRY_SURFACE_PRESSURE begins here!
       !=================================================================
 
-      ! DEBUGGING
-      PRINT *, " "
-      PRINT *, "In SET_DRY_SURFACE_PRESSURE"
-      IF ( PS_ID == 1 ) THEN
-         PRINT *, "   PS1_WET(56,20):      ", State_Met%PS1_WET(56,20)
-         PRINT *, "   Old PS1_DRY(56,20):  ", 
-     &            State_Met%PS1_DRY(56,20)
-      ELSE
-         PRINT *, "   PS2_WET(56,20):      ", State_Met%PS2_WET(56,20)
-         PRINT *, "   Old PS2_DRY(56,20):  ", 
-     &            State_Met%PS2_DRY(56,20)
-      ENDIF
-      ! END DEBUGGING
+!      ! DEBUGGING
+!      PRINT *, " "
+!      PRINT *, "In SET_DRY_SURFACE_PRESSURE"
+!      IF ( PS_ID == 1 ) THEN
+!         PRINT *, "   PS1_WET(56,20):      ", State_Met%PS1_WET(56,20)
+!         PRINT *, "   Old PS1_DRY(56,20):  ", 
+!     &            State_Met%PS1_DRY(56,20)
+!      ELSE
+!         PRINT *, "   PS2_WET(56,20):      ", State_Met%PS2_WET(56,20)
+!         PRINT *, "   Old PS2_DRY(56,20):  ", 
+!     &            State_Met%PS2_DRY(56,20)
+!      ENDIF
+!      ! END DEBUGGING
 
       ! Set pointer to the appropriate humidity
 #if defined( GEOS_FP ) || defined( MERRA2 )
@@ -1357,16 +1353,16 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! DEBUGGING
-      IF ( PS_ID == 1 ) THEN
-         PRINT *, "   New PS1_DRY(56,20):  ", 
-     &            State_Met%PS1_DRY(56,20)
-      ELSE
-         PRINT *, "   New PS2_DRY(56,20):  ", 
-     &            State_Met%PS2_DRY(56,20)
-      ENDIF
-      PRINT *, " "
-      ! END DEBUGGING
+!      ! DEBUGGING
+!      IF ( PS_ID == 1 ) THEN
+!         PRINT *, "   New PS1_DRY(56,20):  ", 
+!     &            State_Met%PS1_DRY(56,20)
+!      ELSE
+!         PRINT *, "   New PS2_DRY(56,20):  ", 
+!     &            State_Met%PS2_DRY(56,20)
+!      ENDIF
+!      PRINT *, " "
+!      ! END DEBUGGING
 
 !      ! reversibility test (MML) - adapted by ewl
 !      I2   = 56

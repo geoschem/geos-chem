@@ -152,7 +152,6 @@
 !  19 Oct 2015 - C. Keller   - Now use Input_Opt%ND68 instead of ND68;
 !                              Rename AIRDEN diagnostics to AIRDENSITY to
 !                              avoid name conflict with GEOS-5 model.
-!  12 Jul 2016 - E. Lundgren - Reduce # of met fields included in ND68
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -514,11 +513,17 @@
       !================================================================= 
       ! ND68: 1:  BXHEIGHT     - box height [m] 
       !       2:  AD           - dry air mass [kg]
-      !       3:  RH           - relative humidity [%]
+      !       3:  AVGW         - mol H2O / mol dry air [v/v]
       !       4:  N_DRYAIR     - dry air number density [molecules/m3]
-      !       5:  T            - temperature [K]
-      !       6:  PEDGE        - wet level pressure (bottom edge) [hPa]
-      !       7:  PMID         - mean pressure at level mid-point [hPa]
+      !       5:  MAIRDEN      - moist air mass density [kg/m3]
+      !       6:  T            - temperature [K]
+      !       7:  TV           - virtual temperature [K]
+      !       8:  PMID         - arithmetic mean pressure [hPa]
+      !       9:  PMEAN        - altitude-weighted mean pressure [hPa]
+      !       10: PEDGE        - level pressure (bottom edge) [hPa]
+      !       11: RH           - relative humidity [%]
+      !       12: PMID_DRY     - dry air partial pressure at PMID [hPa]
+      !       13: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
       !================================================================= 
       IF ( Input_Opt%ND68 > 0 ) THEN
 
@@ -530,12 +535,18 @@
          DO I = 1, IIPAR
             AD68(I,J,L,1)  = AD68(I,J,L,1)  + State_Met%BXHEIGHT(I,J,L)
             AD68(I,J,L,2)  = AD68(I,J,L,2)  + State_Met%AD(I,J,L)
-            AD68(I,J,L,3)  = AD68(I,J,L,3)  + State_Met%RH(I,J,L)
+            AD68(I,J,L,3)  = AD68(I,J,L,3)  + State_Met%AVGW(I,J,L)
             AD68(I,J,L,4)  = AD68(I,J,L,4)  + State_Met%AIRDEN(I,J,L) 
      &                                        * XNUMOLAIR
-            AD68(I,J,L,5)  = AD68(I,J,L,5)  + State_Met%T(I,J,L) 
-            AD68(I,J,L,6)  = AD68(I,J,L,6)  + State_Met%PEDGE(I,J,L)
-            AD68(I,J,L,7)  = AD68(I,J,L,7)  + State_Met%PMID(I,J,L)
+            AD68(I,J,L,5)  = AD68(I,J,L,5)  + State_Met%MAIRDEN(I,J,L) 
+            AD68(I,J,L,6)  = AD68(I,J,L,6)  + State_Met%T(I,J,L)
+            AD68(I,J,L,7)  = AD68(I,J,L,7)  + State_Met%TV(I,J,L)
+            AD68(I,J,L,8)  = AD68(I,J,L,8)  + State_Met%PMID(I,J,L)
+            AD68(I,J,L,9)  = AD68(I,J,L,9)  + State_Met%PMEAN(I,J,L)
+            AD68(I,J,L,10) = AD68(I,J,L,10) + State_Met%PEDGE(I,J,L)
+            AD68(I,J,L,11) = AD68(I,J,L,11) + State_Met%RH(I,J,L)
+            AD68(I,J,L,12) = AD68(I,J,L,12) + State_Met%PMID_DRY(I,J,L)
+            AD68(I,J,L,13) = AD68(I,J,L,13) + State_Met%PMEAN_DRY(I,J,L) 
          ENDDO
          ENDDO
          ENDDO

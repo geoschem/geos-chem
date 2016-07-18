@@ -260,12 +260,12 @@
       ! SET_FLOATING_PRESSURES begins here!
       !=================================================================
 
-      ! DEBUGGING (ewl)
-      PRINT *, " "
-      PRINT *, "In SET_FLOATING_PRESSURES"
-      PRINT *, "   Old PFLT_DRY(56,20): ", PFLT_DRY(56,20)
-      PRINT *, "   Old PFLT_WET(56,20): ", PFLT_WET(56,20)
-      ! END DEBUGGING
+      !! DEBUGGING (ewl)
+      !PRINT *, " "
+      !PRINT *, "In SET_FLOATING_PRESSURES"
+      !PRINT *, "   Old PFLT_DRY(56,20): ", PFLT_DRY(56,20)
+      !PRINT *, "   Old PFLT_WET(56,20): ", PFLT_WET(56,20)
+      !! END DEBUGGING
 
       ! Set PFLT_DRY equal to input value PS
 !$OMP PARALLEL DO
@@ -304,10 +304,10 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! DEBUGGING (ewl)
-      PRINT *, "   New PFLT_DRY(56,20): ", PFLT_DRY(56,20)
-      PRINT *, "   New PFLT_WET(56,20): ", PFLT_WET(56,20)
-      ! END DEBUGGING
+      !! DEBUGGING (ewl)
+      !PRINT *, "   New PFLT_DRY(56,20): ", PFLT_DRY(56,20)
+      !PRINT *, "   New PFLT_WET(56,20): ", PFLT_WET(56,20)
+      !! END DEBUGGING
 
       END SUBROUTINE SET_FLOATING_PRESSURES
 !EOC
