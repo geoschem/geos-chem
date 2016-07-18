@@ -31,31 +31,19 @@
       PUBLIC  :: SET_RESTART           ! called from input_mod
       PUBLIC  :: READ_GC_RESTART
       PUBLIC  :: WRITE_GC_RESTART
-      PUBLIC  :: READ_CSPEC_FILE       ! For binary-punch read
-      PUBLIC  :: INIT_GC_RESTART_NC    ! For NetCDF write
+      PUBLIC  :: INIT_GC_RESTART
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: CHECK_RST_DIMENSIONS
       PRIVATE :: CONVERT_TRACER_TO_VV
-      PRIVATE :: READ_GC_RESTART_BPCH  ! For binary-punch read
-      PRIVATE :: COPY_STT              ! For binary-punch read
-      PRIVATE :: CHECK_DATA_BLOCKS     ! For binary-punch read
-      PRIVATE :: WRITE_GC_RESTART_BPCH ! For binary-punch write
-      PRIVATE :: MAKE_CSPEC_FILE       ! For binary-punch write
-      PRIVATE :: READ_GC_RESTART_NC    ! For NetCDF read
-      PRIVATE :: WRITE_GC_RESTART_NC   ! For NetCDF write
 !
 ! !DEFINED PARAMETERS:
 !
-      ! Logical indicator of whether species data is read from NetCDF file 
-      ! (true) or if default values (previously from globchem.dat) are 
-      ! used (false).
-      ! This is now used for both netCDF and BPCH species restart files
-      ! to make sure that we handle species conversions the same. This is
-      ! a temporary fix because we plan to remove the option to use BPCH
-      ! restarts in the near future. (mps, 5/9/16)
-      LOGICAL, SAVE, PUBLIC :: SPC_IN_NC_RST = .FALSE.
+      ! Logical indicator of whether non-advected species data is read 
+      ! from NetCDF file or if default values (previously from 
+      ! globchem.dat) are used instead.
+      LOGICAL, SAVE, PUBLIC :: NONADV_SPC_IN_RESTART
 
       ! Full path name of the advected tracer restart file (INPUT)
       CHARACTER(LEN=255)    :: INPUT_RESTART_FILE  
@@ -91,6 +79,9 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  09 Feb 2016 - E. Lundgren - Add NetCDF restart file routines
+!  11 Jul 2016 - E. Lundgren - Store only species in restart files
+!  12 Jul 2016 - E. Lundgren - Remove bpch restart file format option and
+!                              associated routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -101,9 +92,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_gc_restart_nc
+! !IROUTINE: init_gc_restart
 !
-! !DESCRIPTION: Subroutine INIT\_GC\_RESTART\_NC initializes the GEOS-Chem
+! !DESCRIPTION: Subroutine INIT\_GC\_RESTART initializes the GEOS-Chem
 !  restart file collection and populates it with containers. This collection
 !  includes restart data that traditionally would be found in three different 
 !  binary-punch format files: tracers, species, and ocean mercury.
@@ -111,8 +102,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GC_RESTART_NC( am_I_Root, Input_Opt, 
-     &                               State_Chm, RC         )
+      SUBROUTINE INIT_GC_RESTART( am_I_Root, Input_Opt, 
+     &                            State_Chm, RC         )
 !
 ! !USES:
 !
@@ -144,6 +135,8 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
 !                              NAMEGAS with ThisSpc%Name from species database
+!  11 Jul 2016 - E. Lundgren - Remove tracer container; now only use species
+!  12 Jul 2016 - E. Lundgren - Rename routine from init_gc_restart_nc
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -157,7 +150,7 @@
       REAL(fp), POINTER  :: GridAreas_ptr(:,:)
       CHARACTER(LEN=60)  :: ContainerName, Prefix, Tracer
       CHARACTER(LEN=255) :: MSG, LOC = 
-     &                      'INIT_GC_RESTART_NC (restart_mod.F90)'
+     &                      'INIT_GC_RESTART (restart_mod.F90)'
 
       ! For Hg indexing 
       INTEGER                   :: N_Hg_CATS
@@ -167,7 +160,7 @@
       TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
-      ! INIT_GC_RESTART_NC begins here!
+      ! INIT_GC_RESTART begins here!
       !=================================================================
 
       ! Assume success
@@ -229,83 +222,41 @@
       ENDIF
 
       !=================================================================
-      ! Create tracer restart containers
+      ! Create species restart containers
       !=================================================================
-      
+
       ! Initialize container id
       cID = 0
 
-      ! Loop over tracers
-      DO N = 1, Input_Opt%N_TRACERS
-         
-         ! Define container name and id
-         ContainerName = 'TRC_' // TRIM( Input_Opt%TRACER_NAME(N) )
+       ! Loop over the total # of species
+      DO N = 1 , State_Chm%nSpecies
+      
+         ! Get info about this species from the species database
+         ThisSpc => State_Chm%SpcData(N)%Info
+
+         ! Define container name and ID
+         ContainerName = 'SPC_' // TRIM( ThisSpc%Name )
          cID = cID + 1
 
          ! Create container
          CALL Diagn_Create( am_I_Root,                     
      &                      Col       = GC_RST_Collection,         
-     &                      cId       = cId,                 
+     &                      cId       = cID,                 
      &                      cName     = TRIM( ContainerName ), 
      &                      SpaceDim  =  3,                
      &                      OutUnit   = 'mol mol-1',           
      &                      OutOper   = 'Instantaneous', 
      &                      RC        = RC )
+
+         ! Free pointer
+         ThisSpc => NULL()
          
          IF ( RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot create restart tracer container: ' 
+            MSG = 'Cannot create restart species container: ' 
      &            // TRIM(ContainerName)
             CALL ERROR_STOP( MSG, LOC ) 
          ENDIF  
       ENDDO
-
-      !=================================================================
-      ! Create species restart containers
-      !=================================================================
-
-      ! Only save species if chemistry simulation
-      IF ( Input_Opt%LCHEM .AND. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
-
-         ! Loop over the total # of species.  This also includes the "fake"
-         ! prod/loss family species for the ND65 diagnostic.
-         DO N = 1 , State_Chm%nSpecies
-         
-            ! Remove check for ND65 prod/loss families pending work on ND65 
-            ! diagnostics and incorporation of FlexChem (ewl, 2/4/16)
-            ! If the species is included in the IFAM array, which denotes 
-            ! the index # of species in the CSPEC array that are "fake" ND65 
-            ! prod/loss families, then skip. 
-            !IF ( ANY( IFAM == N ) ) THEN
-            !   CYCLE
-            !ENDIF
-         
-            ! Get info about this species from the species database
-            ThisSpc => State_Chm%SpcData(N)%Info
-
-            ! Define container name and ID
-            ContainerName = 'SPC_' // TRIM( ThisSpc%Name )
-            cID = cID + 1
-         
-            ! Create container
-            CALL Diagn_Create( am_I_Root,                     
-     &                         Col       = GC_RST_Collection,         
-     &                         cId       = cID,                 
-     &                         cName     = TRIM( ContainerName ), 
-     &                         SpaceDim  =  3,                
-     &                         OutUnit   = 'mol/mol',           
-     &                         OutOper   = 'Instantaneous', 
-     &                         RC        = RC )
-
-            ! Free pointer
-            ThisSpc => NULL()
-            
-            IF ( RC /= HCO_SUCCESS ) THEN
-               MSG = 'Cannot create restart species container: ' 
-     &               // TRIM(ContainerName)
-               CALL ERROR_STOP( MSG, LOC ) 
-            ENDIF  
-         ENDDO
-      ENDIF
 
       !=================================================================
       ! If Hg simulation, create Hg restart containers
@@ -340,7 +291,6 @@
      &                         OutUnit   = 'kg',           
      &                         OutOper   = 'Instantaneous', 
      &                         RC        = RC )
-            
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot create restart species container: ' 
      &               // TRIM(ContainerName)
@@ -417,7 +367,6 @@
                   ! Define container name and ID
                   ContainerName = 'Ocean_' // TRIM( TRACER         ) //
      &                            '_'      // TRIM( Hg_Cat_Name(N) )
-
                   cID = cId + 1
                
                   ! Create container
@@ -429,7 +378,6 @@
      &                               OutUnit   = 'kg',           
      &                               OutOper   = 'Instantaneous', 
      &                               RC        = RC )
-                  
                   IF ( RC /= HCO_SUCCESS ) THEN
                      MSG = 'Cannot create restart species container: ' 
      &                     // TRIM(ContainerName)
@@ -444,7 +392,7 @@
 
       ENDIF
 
-      END SUBROUTINE INIT_GC_RESTART_NC
+      END SUBROUTINE INIT_GC_RESTART
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -479,16 +427,12 @@ dvected tracer input  restart file
       ! SET_RESTART begins here
       !=================================================================
       INPUT_RESTART_FILE  = INFILE
-#if defined( BPCH_RST_OUT )
-      ! If outputting bpch restart file, use filename in input.geos
-      OUTPUT_RESTART_FILE = OUTFILE 
-#else
-      ! If outputting netcdf restart file, use format that mirrors
+
+      ! For GEOS-Chem netcdf restart file, use format that mirrors
       ! HEMCO restart filename. NOTE: first part of this string is
       ! also hard-coded when creating GEOS-Chem restart collection.
       ! If one is changed, then the other must be changed as well.
       OUTPUT_RESTART_FILE = "GEOSChem_restart.YYYYMMDDhhmm"
-#endif     
 
       END SUBROUTINE SET_RESTART
 !EOC
@@ -499,100 +443,16 @@ dvected tracer input  restart file
 !
 ! !IROUTINE: read_gc_restart
 !
-! !DESCRIPTION: Subroutine READ\_GC\_RESTART is wrapper subroutine
-!  to read restart files in either binary-punch (bpch) or NetCDF format.
-!  If reading bpch, indicated by setting compile option BPCH=y, then only 
-!  tracer concentrations are read in by this routine. If reading NetCDF,
-!  indicated by setting compile option NETCDF=y, then both tracers and 
-!  species are read in using this routine. 
+! !DESCRIPTION: Subroutine READ\_GC\_RESTART initializes GEOS-Chem 
+!  concentrations of species from a restart file in NetCDF format. Default
+!  initial values are used for species missing from the restart file.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_GC_RESTART( am_I_Root, YYYYMMDD,  HHMMSS,
+      SUBROUTINE READ_GC_RESTART( am_I_Root,  YYYYMMDD,  HHMMSS,
      &                            Input_Opt, State_Met, State_Chm, 
      &                            RC ) 
-!
-! !USES:
-!
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE OCEAN_MERCURY_MOD,  ONLY : READ_OCEAN_Hg_RESTART
-!
-! !INPUT PARAMETERS: 
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
-      INTEGER,        INTENT(IN)    :: YYYYMMDD   ! YYYY/MM/DD GMT date
-      INTEGER,        INTENT(IN)    :: HHMMSS     ! hh:mm:ss   GMT time
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC         ! Failure or success
-! 
-! !REVISION HISTORY: 
-!
-!  09 Feb 2016 - E. Lundgren - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      !=================================================================
-      ! READ_GC_RESTART begins here!
-      !=================================================================
-
-      ! Assume success
-      RC = GIGC_SUCCESS
-
-#if defined( BPCH_RST_IN )
-      ! Read binary-punch restart files
-      CALL READ_GC_RESTART_BPCH( am_I_Root, YYYYMMDD,  HHMMSS,
-     &                           Input_Opt, State_Met, State_Chm, RC )
-
-      ! Read ocean Hg initial conditions (if needed)
-      IF ( Input_Opt%ITS_A_MERCURY_SIM .AND.
-     &     Input_Opt%LDYNOCEAN ) THEN
-         CALL READ_OCEAN_Hg_RESTART( YYYYMMDD,  HHMMSS, 
-     &                               Input_Opt, State_Chm )
-      ENDIF
-#else
-      ! Read NetCDF restart file
-      CALL READ_GC_RESTART_NC( am_I_Root, YYYYMMDD, HHMMSS, 
-     &                         Input_Opt, State_Met, State_Chm, RC )
-#endif
-
-      !### Debug
-      IF ( Input_Opt%LPRT .AND. am_I_Root ) THEN
-         CALL DEBUG_MSG('### READ_GC_RESTART: read file')
-      ENDIF
-
-      END SUBROUTINE READ_GC_RESTART
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_gc_restart_nc
-!
-! !DESCRIPTION: Subroutine READ\_GC\_RESTART\_NC initializes GEOS-Chem 
-!  concentrations of advected tracers and species (if applicable) from 
-!  a restart file in NetCDF format.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_GC_RESTART_NC( am_I_Root,  YYYYMMDD,  HHMMSS,
-     &                               Input_Opt, State_Met, State_Chm, 
-     &                               RC ) 
 !
 ! !USES:
 !     
@@ -643,6 +503,8 @@ dvected tracer input  restart file
 !                              NAMEGAS with ThisSpc%Name from species database
 !  22 Jun 2016 - R. Yantosca - Now refer to Hg0_Id_List, Hg2_Id_List, and
 !                              HgP_Id_List fields of State_Chm
+!  11 Jul 2016 - E. Lundgren - Remove tracers and read only species
+!  12 Jul 2016 - E. Lundgren - Rename from read_gc_restart_nc
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -655,8 +517,14 @@ dvected tracer input  restart file
       CHARACTER(LEN=60)    :: Prefix, Tracer
       REAL(fp)             :: Background_VV      ! background species conc
       REAL(fp)             :: CONV_FACTOR        ! convert mol/mol -> molec/cm3
-      LOGICAL              :: FOUND              ! variable in nc restart
+      LOGICAL              :: FOUND              ! variable in restart file
 
+      !*******************************************************************
+      ! TEMPORARY PENDING FAMILIES REMOVAL
+      LOGICAL              :: FAMILIES_SPC       ! families species
+      REAL(fp)             :: TRC_TO_SPC_FACTOR  ! tracer conc -> spc conc
+      !*******************************************************************
+      
       ! NetCDF file info
       INTEGER              :: fId                ! netCDF file ID
       INTEGER              :: NX, NY, NZ, NT     ! netCDF file dimensions
@@ -692,7 +560,7 @@ dvected tracer input  restart file
       TYPE(Species),    POINTER :: ThisSpc
 
       !=================================================================
-      ! READ_GC_RESTART_NC begins here!
+      ! READ_GC_RESTART begins here!
       !=================================================================
 
       ! Assume success
@@ -708,7 +576,7 @@ dvected tracer input  restart file
       ThisSpc     => NULL()
 
       ! Name of this routine
-      LOC       = 'READ_GC_RESTART_NC (restart_mod.F)'
+      LOC       = 'READ_GC_RESTART (restart_mod.F)'
 
       ! Copy input filename to a local variable
       nc_file   = TRIM( INPUT_RESTART_FILE )
@@ -769,282 +637,269 @@ dvected tracer input  restart file
      &                    // '( NetCDF )'
       WRITE( 6, 100 ) TRIM( nc_file )
  100  FORMAT( 'READ_RESTART_FILE: Reading ', a )
-
-      !=================================================================
-      ! Read tracer concentrations
-      !=================================================================
-
-      ! Print header for min/max concentration to log
-      WRITE( 6, 110 )
- 110  FORMAT( /,'Min and Max of each tracer in file [mol mol-1]:' )
-
-      ! Loop over tracers
-      DO N = 1, Input_Opt%N_TRACERS
- 
-         ! Initialize local array for this tracer and point to it
-         Temp3D = 0.0
-         Ptr3D => Temp3D
-
-         ! Define variable name
-         v_name = 'TRC_' // TRIM( Input_Opt%TRACER_NAME(N) )
-         
-         ! Read variable from file and store in local array
-         CALL NcRd( Ptr3D, fId, TRIM(v_name), st4d, ct4d )
-
-         ! Read the units attribute
-         v_attr = "units"
-         CALL NcGet_Var_Attributes( fId, TRIM(v_name), TRIM(v_attr), 
-     &                              v_unit )
-
-         ! Convert units to v/v if not already
-         CALL CONVERT_TRACER_TO_VV( N, Ptr3D, v_unit )
-
-         ! Print the min & max of each tracer as it is read from the file
-         WRITE( 6, 120 ) N, TRIM( Input_Opt%TRACER_NAME(N) ),
-     &                   MINVAL( Ptr3D ), MAXVAL( Ptr3D )
- 120     FORMAT( 'Tracer ', i3, ', ', a8, ': Min = ', es15.9,
-     &           '  Max = ',es15.9)
-         
-         ! Convert tracer concentration from [v/v dry] to [kg/kg dry] and 
-         ! store in State_Chm%Tracers
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            State_Chm%Tracers(I,J,L,N) = Ptr3D(I,J,L) / 
-     &                                   Input_Opt%TCVV(N) 
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      
-         ! Set State_Chm units
-         State_Chm%Trac_Units = 'kg/kg dry'
-
-         ! Nullify pointer
-         Ptr3D => NULL()
-         
-      ENDDO
-
-      ! Print mean atmospheric kg/kg for each tracer to log
-      WRITE( 6, 130 )
- 130  FORMAT( /, 'Mean mass mixing ratio per tracer: ' ) 
-      
-      DO N = 1, Input_Opt%N_TRACERS
-      
-         ! Get info about this tracer from the database
-         ! NOTE: Assumes 1:1 mapping of tracer and species indexes
-         ThisSpc => State_Chm%SpcData(N)%Info
-
-         ! For carbon, be sure to use correct unit string
-         IF ( INT( ThisSpc%emMW_g + 0.5 ) == 12 ) THEN
-            UNIT = 'kg C/kg'
-         ELSE
-            UNIT = 'kg/kg  '
-         ENDIF
-      
-         ! Print totals
-         WRITE( 6, 150 ) N, TRIM( Input_Opt%TRACER_NAME(N) ), 
-     &                   SUM( State_Chm%TRACERS(:,:,:,N) ) / 
-     &                   ( IIPAR * JJPAR * LLPAR), ADJUSTL( UNIT )
- 150     FORMAT( 'Tracer ', i3, ', ', a8, ':  ', es15.9, 1x, a7)
-
-         ! Free pointer
-         ThisSpc => NULL()
-
-      ENDDO
             
       !=================================================================
       ! Read species concentrations if present, else set to default vals
       !=================================================================
 
-      ! Only read species if chemistry simulation
-      IF ( Input_Opt%LCHEM .AND. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
-         
-         ! Get info about first species from the species database
-         ThisSpc => State_Chm%SpcData(1)%Info
+      ! Print header for min/max concentration to log
+      WRITE( 6, 110 )
+ 110  FORMAT( /,'Min and Max of each species in file:' )
 
-         ! Check if species data is in file by looking for first species
+      ! Assume non-advected species concentrations are stored in the
+      ! restart file until proven otherwise (ewl, 7/12,16)
+      NONADV_SPC_IN_RESTART = .TRUE.
+
+      ! Initialize species to all zeroes
+      State_Chm%Species = 0.e+0_fp
+
+      ! Loop over species
+      DO N = 1, State_Chm%nSpecies
+
+         ! Get info about this species from the species database
+         ThisSpc => State_Chm%SpcData(N)%Info
+
+         ! Define variable name
          v_name = 'SPC_' // TRIM( ThisSpc%Name )
-         ierr = Nf_Inq_Varid (fId, v_name, v_id)
 
-         ! Set species in restart file logical flag and write to log
+         ! Check if species data is in file
+         ierr = Nf_Inq_Varid (fId, v_name, v_id)
          IF ( ierr /= NF_NOERR ) THEN
-            SPC_IN_NC_RST = .FALSE.
-            IF ( Input_Opt%LPRT ) THEN
-               WRITE( 6, 160 )
- 160           FORMAT( /,'No species data found in restart file.',/,
-     &                   'Using default background of each species',
-     &                   ' [mol mol-1]:' )
-            ENDIF
+            FOUND = .FALSE.
          ELSE
-            SPC_IN_NC_RST = .TRUE.
-            IF ( Input_Opt%LPRT ) THEN
-               WRITE( 6, 170 )
- 170           FORMAT( /,'Species data found in restart file,',/,
-     &                   'Min and Max of each species after conversion',
-     &                   ' to [molec/cm3]: ')
-            ENDIF
+            FOUND = .TRUE.
          ENDIF
 
-         ! Free pointer
-         ThisSpc => NULL()
+         !************************************************************
+         ! TEMPORARY CODE PENDING FAMILIES REMOVAL (ewl, 7/11/16)
+         ! If species is not in the restart file, check if is is part of 
+         ! a family.,If yes, then the legacy family tracer should be in
+         ! the initial restart file. Set the variable name to the family
+         ! tracer name and set a factor for converting tracer concentration
+         ! to species concentration (e.g. ISOPN * 0.5 for ISOPND and ISOPNB).
+         IF ( .NOT. FOUND ) THEN
 
-         ! Initialize species to all zeroes
-         State_Chm%Species = 0.e+0_fp
+            SELECT CASE ( TRIM( ThisSpc%Name ) )
+            
+               CASE ('ISOPND', 'ISOPNB')
+                  v_name = 'SPC_ISOPN'
+                  TRC_TO_SPC_FACTOR = 0.5e+0_fp
+            
+               CASE ('MVKN', 'MACRN')
+                  v_name = 'SPC_ISOPN'
+                  TRC_TO_SPC_FACTOR = 0.5e+0_fp
+            
+               CASE( 'HCFC123', 'HCFC141b', 'HCFC142b' )
+                  v_name = 'SPC_HCFCX'
+                  TRC_TO_SPC_FACTOR = 1.0e+0_fp / 3.0e+0_fp
+            
+               CASE( 'CFC113', 'CFC114', 'CFC115' )
+                  v_name = 'SPC_CFCX'
+                  TRC_TO_SPC_FACTOR = 1.0e+0_fp / 3.0e+0_fp
+            
+               CASE DEFAULT
+                  TRC_TO_SPC_FACTOR = 1.0e+0_fp
+            
+            END SELECT
+   
+            IF ( TRC_TO_SPC_FACTOR > 1.0e+0_fp ) THEN
+               FAMILIES_SPC = .TRUE.
+            ENDIF
 
-         ! Loop over species
-         DO N = 1, State_Chm%nSpecies
-         
-            ! Remove check for ND65 prod/loss families pending work on ND65 
-            ! diagnostics and incorporation of FlexChem (ewl, 2/4/16)
-            ! If the species is included in the IFAM array, which denotes 
-            ! the index # of species in the CSPEC array that are "fake" ND65 
-            ! prod/loss families, then skip. 
-            !IF ( ANY( IFAM == N ) ) THEN
-            !   CYCLE
-            !ENDIF
+         ENDIF
+         !************************************************************
 
-            ! Get info about this species from the species database
-            ThisSpc => State_Chm%SpcData(N)%Info
+         ! If data in file, read and convert to molec/cm2
+         IF ( FOUND .OR. FAMILIES_SPC ) THEN
 
-            ! Read species data from file if it is there, otherwise set
-            ! default values 
-            IF ( SPC_IN_NC_RST ) THEN
+            ! Initialize temporary array for this tracer and point to it
+            ! use 1e-30 as min (hotp 2/25/09)
+            ! NOTE: the 1.0e-30 minimum is for [molec/cm3] in legacy
+            Temp3D = 1.0e-30_fp
+            Ptr3D => Temp3D
 
-               ! Initialize temporary array for this tracer and point to it
-               ! use 1e-30 as min (hotp 2/25/09)
-               ! NOTE: the 1.0e-30 minimum is for [molec/cm3] in legacy
-               Temp3D = 1.0e-30_fp
-               Ptr3D => Temp3D
+            ! Read variable from file and store in local array
+            CALL NcRd( Ptr3D, fId, TRIM(v_name), st4d, ct4d )
 
-               ! Define variable name
-               v_name = 'SPC_' // TRIM( ThisSpc%Name )
-               
-               ! Read variable from file and store in local array
-               CALL NcRd( Ptr3D, fId, TRIM(v_name), st4d, ct4d )
+            !************************************************************
+            ! TEMPORARY CODE PENDING TRACER REMOVAL
+            ! For the first run, all species in the restart file are
+            ! advected tracers and so State_Chm%Tracers and units must be set
+            
+            ! NOTE: Do not use this temporary code with restart files
+            !       generated by a previous run.
 
-               ! Convert [mol/mol] to [molec/cm3]
+            ! Print the min & max of each tracer as it is read from the file
+            IF ( Input_Opt%LPRT ) THEN
+               WRITE( 6, 120 ) N, TRIM( Input_Opt%TRACER_NAME(N) ),
+     &                         MINVAL( Ptr3D ), MAXVAL( Ptr3D )
+ 120           FORMAT( 'Tracer ', i3, ', ', a8, ': Min = ', es15.9,
+     &                 '  Max = ',es15.9)
+            ENDIF
+            
+            ! Convert tracer concentration from [v/v dry] to [kg/kg dry] and 
+            ! store in State_Chm%Tracers
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               State_Chm%Tracers(I,J,L,N) = Ptr3D(I,J,L) / 
+     &                                      Input_Opt%TCVV(N) 
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+      
+            ! Set State_Chm units
+            State_Chm%Trac_Units = 'kg/kg dry'
+            !************************************************************
+
+            ! Convert [mol/mol] to [molec/cm3] to store in State_Met%Species
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, CONV_FACTOR )
-               ! Loop over all chemistry grid boxes
-               DO L = 1, LLCHEM
-               DO J = 1, JJPAR
-               DO I = 1, IIPAR
-               
-                  ! Set box-dependent unit conversion factor 
-                  CONV_FACTOR = 
-     &                    State_Met%PMID_DRY(I,J,L) * 1000e+0_fp /
-     &                    ( State_Met%T(I,J,L) * BOLTZ * 1e+7_fp )
-                                       
-                  ! Convert units from [mol/mol] to [molec/cm3/box]
-                  State_Chm%Species(I,J,L,N) = 
-     &                    Ptr3D(I,J,L) * CONV_FACTOR
-               
-                  ! Make a small number if concentration is very low
-                  State_Chm%Species(I,J,L,N) = 
-     &                 MAX( State_Chm%Species(I,J,L,N), 1.0e-30_fp )
-               
-               ENDDO
-               ENDDO
-               ENDDO
+            ! Prior to 7/11/16: Loop over all chemistry grid boxes
+            ! Tracer removal update: Now loop over all boxes
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+            
+               ! Set box-dependent unit conversion factor 
+               CONV_FACTOR = 
+     &                 State_Met%PMID_DRY(I,J,L) * 1000e+0_fp /
+     &                 ( State_Met%T(I,J,L) * BOLTZ * 1e+7_fp )
+ 
+               ! Convert units from [mol/mol] to [molec/cm3/box]
+               State_Chm%Species(I,J,L,N) = 
+     &                 Ptr3D(I,J,L) * CONV_FACTOR
+                                    
+               !*********************************************************
+               ! TEMPORARY CODE PENDING FAMILIES REMOVAL
+               ! Adjust conversion factor to set family species
+               ! concentration equal to the tracer concentration divided 
+               ! by the number of species in the family. 
+               IF ( FAMILIES_SPC ) THEN
+                  State_Chm%Species(I,J,L,N) =
+     &                    State_Chm%Species(I,J,L,N) * TRC_TO_SPC_FACTOR
+               ENDIF
+               !*********************************************************
+          
+               ! Make a small number if concentration is very low
+               State_Chm%Species(I,J,L,N) = 
+     &              MAX( State_Chm%Species(I,J,L,N), 1.0e-30_fp )
+            
+            ENDDO
+            ENDDO
+            ENDDO
 !$OMP END PARALLEL DO
 
-               ! Print the min and max of this species in [molec/cm3]
-               IF ( Input_Opt%LPRT ) THEN
-                  WRITE( 6, 180 ) N, TRIM( ThisSpc%Name ),
-     &                      MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ),
-     &                      MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) )
- 180              FORMAT('Species ', i3, ', ', a9, ': MIN = ', 
-     &                    es15.9, ' MAX = ', es15.9)
-               ENDIF
-
-               ! Nullify pointer
-               Ptr3D => NULL()
-
-            ELSE
-
-               ! If species data is not in the restart file, then assign
-               ! default background values in units of [mol/mol].
-               ! These values were traditionally stored in globchem.dat
-               ! and assigned along with a unit conversion to [molec/cm3]
-               ! in gasconc called from chemdr. Now init_flexchem converts
-               ! these initial [mol/mol] values to [molec/cm3]. 
-               ! Eventually store these values in the species database.
-               SELECT CASE ( TRIM( ThisSpc%Name ) )
-                  CASE ('CH2O', 'H2O2', 'HNO2', 'HNO3', 'HNO4') 
-                     Background_VV = 4.0e-15_fp
-                  CASE ('HO2', 'MO2', 'MP', 'N2O5', 'NO3', 'OH')
-                     Background_VV = 4.0e-15_fp
-                  CASE ('CH4')
-                     Background_VV = 1.7e-06_fp
-                  CASE ('CO')
-                     Background_VV = 1.0e-07_fp
-                  CASE ('CO2')
-                     Background_VV = 3.55e-04_fp
-                  CASE ('H2')
-                     Background_VV = 5.0e-07_fp
-                  CASE ('H2O')
-                     Background_VV = 1.839e-02_fp
-                  CASE ('M')
-                     Background_VV = 0.0e+0_fp
-                  CASE ('N2')
-                     Background_VV = 7.808e-01_fp
-                  CASE ('NO', 'NO2')
-                     Background_VV = 4.0e-13_fp
-                  CASE ('N2O')
-                     Background_VV = 3.0e-07_fp
-                  CASE ('EMISSION')
-                     Background_VV = 1.0e+0_fp
-                  CASE ('H', 'O', 'N')
-                     Background_VV = 4.0e-20_fp
-                  CASE ('O1D')
-                     IF ( Input_Opt%LUCX ) THEN
-                        Background_VV = 1.0e-15_fp ! benchmark and ucx sims
-                     ELSE
-                        Background_VV = 4.0e-22_fp
-                     ENDIF
-                  CASE ('O2')
-                     Background_VV = 2.095e-01_fp
-                  CASE ('O3')
-                     Background_VV = 2.0e-08_fp
-                  CASE ('OCS')
-                     Background_VV = 9.0e-15_fp
-                  CASE DEFAULT
-                     Background_VV = 1.0e-20_fp
-               END SELECT
-               
-               ! Set 'DRY' species to all zeroes
-               IF ( ThisSpc%Name(1:3) == 'DRY') THEN
-                  Background_VV = 0.0e+0_fp
-               ENDIF
-
-               ! Put this array into State_Chm%Species [mol/mol], but
-               ! only up to LLCHEM levels
-               State_Chm%Species(:,:,1:LLCHEM,N) = Background_VV
-               
-               ! Print the background value of this species if debugging
-               IF ( Input_Opt%LPRT ) THEN
-                  WRITE( 6, 190 ) N, TRIM( ThisSpc%Name ),
-     &                            Background_VV
- 190              FORMAT('Species ', i3, ', ', a9, ': Background = ', 
-     &                    es15.9)
-               ENDIF
-
-               ! NOTE: Keep State_Chm%Species background values as
-               ! mol/mol here to preserve location of unit conversion
-               ! in pre-FlexChem code. This is temporary to minimize
-               ! differences with FlexChem.
-
-               ! Free pointer
-               ThisSpc => NULL()
-
+            ! Print the min and max of this species in [molec/cm3]
+            IF ( Input_Opt%LPRT ) THEN
+               WRITE( 6, 180 ) N, TRIM( ThisSpc%Name ),
+     &                   MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ),
+     &                   MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) )
+ 180           FORMAT('Species (molec/cm3) ', i3, ', ', a9, ': MIN = ', 
+     &                 es15.9, ' MAX = ', es15.9)
             ENDIF
-         ENDDO
-      ENDIF
+
+            ! Nullify pointer
+            Ptr3D => NULL()
+
+         ELSE
+
+            !**********************************************************
+            ! TRACER REMOVAL NOTE: (ewl, 7/11/16)
+            ! Prior to tracer removal work ALL species were initialized
+            ! using initial values for the first run of a simulation.
+            ! With tracers removed, advected species will be initialized
+            ! from the legacy tracer restart file values rather than the
+            ! default initial values. This will impact output values.
+            !**********************************************************
+
+            ! Set module-level variable indicating non-advected species
+            ! are absent from the restart file and default background
+            ! values will be used (ewl, 7/12/16)
+            NONADV_SPC_IN_RESTART = .FALSE.
+
+            ! If species data is not in the restart file, then assign
+            ! default background values in units of [mol/mol].
+            ! These values were traditionally stored in globchem.dat
+            ! and assigned along with a unit conversion to [molec/cm3]
+            ! in gasconc called from chemdr. Now init_flexchem converts
+            ! these initial [mol/mol] values to [molec/cm3]. 
+            ! Eventually store these values in the species database.
+            SELECT CASE ( TRIM( ThisSpc%Name ) )
+               CASE ('CH2O', 'H2O2', 'HNO2', 'HNO3', 'HNO4') 
+                  Background_VV = 4.0e-15_fp
+               CASE ('HO2', 'MO2', 'MP', 'N2O5', 'NO3', 'OH')
+                  Background_VV = 4.0e-15_fp
+               CASE ('CH4')
+                  Background_VV = 1.7e-06_fp
+               CASE ('CO')
+                  Background_VV = 1.0e-07_fp
+               CASE ('CO2')
+                  Background_VV = 3.55e-04_fp
+               CASE ('H2')
+                  Background_VV = 5.0e-07_fp
+               CASE ('H2O')
+                  Background_VV = 1.839e-02_fp
+               CASE ('M')
+                  Background_VV = 0.0e+0_fp
+               CASE ('N2')
+                  Background_VV = 7.808e-01_fp
+               CASE ('NO', 'NO2')
+                  Background_VV = 4.0e-13_fp
+               CASE ('N2O')
+                  Background_VV = 3.0e-07_fp
+               CASE ('EMISSION')
+                  Background_VV = 1.0e+0_fp
+               CASE ('H', 'O', 'N')
+                  Background_VV = 4.0e-20_fp
+               CASE ('O1D')
+                  IF ( Input_Opt%LUCX ) THEN
+                     Background_VV = 1.0e-15_fp ! benchmark and ucx sims
+                  ELSE
+                     Background_VV = 4.0e-22_fp
+                  ENDIF
+               CASE ('O2')
+                  Background_VV = 2.095e-01_fp
+               CASE ('O3')
+                  Background_VV = 2.0e-08_fp
+               CASE ('OCS')
+                  Background_VV = 9.0e-15_fp
+               CASE DEFAULT
+                  Background_VV = 1.0e-20_fp
+            END SELECT
+               
+            ! Set 'DRY' species to all zeroes
+            IF ( ThisSpc%Name(1:3) == 'DRY') THEN
+               Background_VV = 0.0e+0_fp
+            ENDIF
+
+            ! Put this array into State_Chm%Species [mol/mol], but
+            ! only up to LLCHEM levels
+            State_Chm%Species(:,:,1:LLCHEM,N) = Background_VV
+            
+            ! Print the background value of this species if debugging
+            IF ( Input_Opt%LPRT ) THEN
+               WRITE( 6, 190 ) N, TRIM( ThisSpc%Name ),
+     &                         Background_VV
+ 190           FORMAT('Species ', i3, ', ', a9, ': Background = ', 
+     &                 es15.9)
+            ENDIF
+
+            ! NOTE: Keep State_Chm%Species background values as
+            ! mol/mol here to preserve location of unit conversion
+            ! in pre-FlexChem code. This is temporary to minimize
+            ! differences with FlexChem.
+
+            ! Free pointer
+            ThisSpc => NULL()
+
+         ENDIF
+      ENDDO
 
       !=================================================================
       ! Read ocean mercury variables
@@ -1190,7 +1045,7 @@ dvected tracer input  restart file
 
             ! Make sure tagged & total tracers sum up
             IF ( Input_Opt%USE_CHECKS ) THEN
-               CALL CHECK_OCEAN_MERCURY( 'end of READ_GC_RESTART_NC' )
+               CALL CHECK_OCEAN_MERCURY( 'end of READ_GC_RESTART' )
             ENDIF
          ENDIF
 
@@ -1293,7 +1148,6 @@ dvected tracer input  restart file
       ! Clean up
       !=================================================================
       
-
       ! Mark end of section in log
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
@@ -1302,410 +1156,10 @@ dvected tracer input  restart file
       
       !### Debug
       IF ( Input_Opt%LPRT .AND. am_I_Root ) THEN
-         CALL DEBUG_MSG('### READ_GC_RESTART_NC: read file')
+         CALL DEBUG_MSG('### READ_GC_RESTART: read file')
       ENDIF
 
-      END SUBROUTINE READ_GC_RESTART_NC
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_gc_restart_bpch
-!
-! !DESCRIPTION: Subroutine READ\_GC\_RESTART\_FILE\_BPCH initializes GEOS-Chem 
-!  advected tracer concentrations from a restart file in binary punch file 
-!  format
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_GC_RESTART_BPCH( am_I_Root, YYYYMMDD,  HHMMSS,
-     &                                 Input_Opt, State_Met, State_Chm,
-     &                                 RC ) 
-!
-! !USES:
-!
-      USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
-      USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE Species_Mod,        ONLY : Species
-      USE TIME_MOD,           ONLY : EXPAND_DATE
-      USE UNITCONV_MOD
-!
-! !INPUT PARAMETERS: 
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
-      INTEGER,        INTENT(IN)    :: YYYYMMDD   ! YYYY/MM/DD GMT date
-      INTEGER,        INTENT(IN)    :: HHMMSS     ! hh:mm:ss   GMT time
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
-!
-! !OUTPUT PARAMETERS: 
-!
-      INTEGER,        INTENT(OUT)   :: RC         ! Success or failure?
-! 
-! !REVISION HISTORY: 
-!  27 May 1999 - R. Yantosca - Initial version
-!  (1 ) Now check that N = NTRACER - TRCOFFSET is valid.  
-!        Also reorganize some print statements  (bmy, 10/25/99)
-!  (2 ) Now pass LFORCE, LSPLIT via CMN_SETUP. (bmy, 11/4/99)
-!  (3 ) Cosmetic changes, added comments (bmy, 3/17/00)
-!  (4 ) Now use function NYMD_STRING from "time_mod.f" to generate a
-!        Y2K compliant string for all data sets. (bmy, 6/22/00)
-!  (5 ) Broke up sections of code into internal subroutines.  Also updated
-!        comments & cleaned up a few things. (bmy, 7/17/00)
-!  (6 ) Now use IOS /= 0 to trap both I/O errors and EOF. (bmy, 9/13/00)
-!  (7 ) Print max & min of tracer regardless of the units (bmy, 10/5/00)
-!  (8 ) Removed obsolete code from 10/00 (bmy, 12/21/00)
-!  (9 ) Removed obsolete commented out code (bmy, 4/23/01)
-!  (10) Added updates from amf for tagged Ox run.  Also updated comments
-!        and made some cosmetic changes (bmy, 7/3/01)
-!  (11) Bug fix: if starting from multiox restart file, then NTRACER 
-!        will be greater than 40  but less than 60.  Adjust COPY_STT_FOR_OX
-!        accordingly. (amf, bmy, 9/6/01)
-!  (12) Now reference TRANUC from "charpak_mod.f" (bmy, 11/15/01)
-!  (13) Updated comments (bmy, 1/25/02)
-!  (14) Now reference AD from "dao_mod.f" (bmy, 9/18/02)
-!  (15) Now added a call to DEBUG_MSG from "error_mod.f" (bmy, 2/11/03)
-!  (16) Remove call to COPY_STT_FOR_OX, it's obsolete. (bmy, 8/18/03)
-!  (17) Add fancy output string (bmy, 4/26/04)
-!  (18) No longer use hardwired filename.  Also now reference "logical_mod.f"
-!        and "tracer_mod.f" (bmy, 7/20/04)
-!  (19) Remove code for obsolete CO-OH simulation.  Also remove references
-!        to CMN_DIAG and TRCOFFSET.   Change tracer name format string to 
-!        A10. (bmy, 6/24/05)
-!  (20) Updated comments (bmy, 12/16/05)
-!  11 Jul 2011 - R. Yantosca - Added ProTeX headers
-!  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
-!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
-!  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm arguments
-!  16 Dec 2014 - M. Yannetti - Changed ZTAU0 and ZTAU1 to REAL*8
-!  17 Feb 2015 - E. Lundgren - Change main units from kg to kg/kg.
-!                              Write mean kg/kg per tracer to log.
-!  09 Feb 2016 - E. Lundgren - Change name from READ_RESTART_FILE
-!  09 May 2016 - M. Sulprizio- Move code to read CSPEC restart file and code
-!                              to set species to default values here. This is
-!                              a temporary fix because we plan to remove the 
-!                              option to use BPCH restarts in the near future.
-!  31 May 2016 - E. Lundgren - Replace Input_Opt%TRACER_MW_G with species
-!                              database field emMW_g (emitted species g/mol)
-!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with ThisSpc%Name from species database
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL             :: LSPLIT
-      INTEGER             :: I, IOS, IU_RST, J, L, N
-      INTEGER             :: NCOUNT(NNPAR) 
-      REAL*4              :: TRACER(IIPAR,JJPAR,LLPAR)
-      REAL(fp)            :: SUMTC
-      CHARACTER(LEN=255)  :: FILENAME
-
-      ! For binary punch file, version 2.0
-      INTEGER             :: NI,        NJ,       NL
-      INTEGER             :: IFIRST,    JFIRST,   LFIRST
-      INTEGER             :: NTRACER,   NSKIP
-      INTEGER             :: HALFPOLAR, CENTER180
-      REAL*4              :: LONRES,    LATRES
-      REAL*8              :: ZTAU0,     ZTAU1
-      CHARACTER(LEN=20)   :: MODELNAME
-      CHARACTER(LEN=40)   :: CATEGORY
-      CHARACTER(LEN=40)   :: UNIT     
-      CHARACTER(LEN=40)   :: RESERVED
-      CHARACTER(LEN=255)  :: LOC = 'READ_GC_RESTART_BPCH'
-     &                             // ' (restart_mod.F)'
-
-      ! Pointers
-      REAL(fp), POINTER   :: STT(:,:,:,:)
-
-      ! For setting species concentrations
-      LOGICAL             :: IT_EXISTS
-      REAL(fp)            :: Background_VV      ! background species conc
-
-      ! Objects
-      TYPE(Species), POINTER :: ThisSpc
-
-      !=================================================================
-      ! READ_GC_RESTART_BPCH begins here!
-      !=================================================================
-
-      ! Get fields from Input_Opt
-      LSPLIT    = Input_Opt%LSPLIT
-
-      ! Initialize some variables
-      NCOUNT(:)     = 0
-      TRACER(:,:,:) = 0e0
-
-      ! Initialize pointer for Chemistry State object [kg/kg] (ewl, 2/17/15)
-      STT => State_Chm%Tracers
-
-      ! Initialize pointer
-      ThisSpc => NULL()
-
-      !=================================================================
-      ! Open restart file and read top-of-file header
-      !=================================================================
-
-      ! Find a free file LUN
-      IU_RST   = findFreeLUN()
-      
-      ! Copy input file name to a local variable
-      FILENAME = TRIM( INPUT_RESTART_FILE )
-
-      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
-      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
-
-      ! Echo some input to the screen
-      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-      WRITE( 6, '(a,/)' ) 'R E S T A R T   F I L E   I N P U T ( BPCH )'
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( 'READ_RESTART_FILE: Reading ', a )
-
-      ! Open the binary punch file for input
-      CALL OPEN_BPCH2_FOR_READ( IU_RST, FILENAME )
-      
-      ! Echo more output
-      WRITE( 6, 110 )
- 110  FORMAT( /, 'Min and Max of each tracer in file [v/v]:' )
-
-      !=================================================================
-      ! Read concentrations -- store in the TRACER array
-      !=================================================================
-      DO 
-         READ( IU_RST, IOSTAT=IOS ) 
-     &     MODELNAME, LONRES, LATRES, HALFPOLAR, CENTER180
-
-         ! IOS < 0 is end-of-file, so exit
-         IF ( IOS < 0 ) EXIT
-
-         ! IOS > 0 is a real I/O error -- print error message
-         IF ( IOS > 0 ) CALL IOERROR( IOS,IU_RST,'read_restart_file:4' )
-
-         READ( IU_RST, IOSTAT=IOS ) 
-     &        CATEGORY, NTRACER,  UNIT, ZTAU0,  ZTAU1,  RESERVED,
-     &        NI,       NJ,       NL,   IFIRST, JFIRST, LFIRST,
-     &        NSKIP
-
-         IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_RST,'read_restart_file:5')
-
-         READ( IU_RST, IOSTAT=IOS ) 
-     &        ( ( ( TRACER(I,J,L), I=1,NI ), J=1,NJ ), L=1,NL )
-
-         IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_RST,'read_restart_file:6')
-
-         !==============================================================
-         ! Assign data from the TRACER array to the STT array.
-         !==============================================================
-  
-         ! Only process concentration data (i.e. mixing ratio)
-         IF ( CATEGORY(1:8) == 'IJ-AVG-$' ) THEN 
-
-            ! Make sure array dimensions are of global size
-            ! (NI=IIPAR; NJ=JJPAR, NL=LLPAR), or stop the run
-            CALL CHECK_RST_DIMENSIONS( lon=NI, lat=NJ, lev=NL, LOC=LOC )
-
-            ! Convert TRACER from its native units (eg. [ppbv]) to 
-            ! [v/v] mixing ratio, and write min/max to file
-            CALL CONVERT_TRACER_TO_VV( NTRACER, TRACER, UNIT )
-
-            ! Print the min & max of each tracer
-            WRITE( 6, 120 ) NTRACER,  
-     &                      TRIM( Input_Opt%TRACER_NAME(NTRACER) ),
-     &                      MINVAL( TRACER ), MAXVAL( TRACER )
- 120        FORMAT( 'Tracer ', i3, ', ', a8, ': Min = ', es15.9, 
-     &              '  Max = ',  es15.9 )
-
-            ! Convert TRACER from [v/v] to [kg/kg] and copy into STT array
-            CALL COPY_STT( NTRACER,   TRACER,   NCOUNT,
-     &                     Input_Opt, State_Met, State_Chm )
-
-         ENDIF
-
-      ENDDO
-
-      !=================================================================
-      ! Examine data blocks and return
-      !=================================================================
-
-      ! Check for missing or duplicate data blocks
-      CALL CHECK_DATA_BLOCKS( Input_Opt%N_TRACERS, NCOUNT )
-
-      ! Close file
-      CLOSE( IU_RST )      
-
-      ! Print mean atmospheric kg/kg for each tracer
-      WRITE( 6, 130 )
- 130  FORMAT( /, 'Mean mass mixing ratio of each tracer: ' ) 
-
-      DO N = 1, Input_Opt%N_TRACERS
-
-         ! Get info about this tracer from the database
-         ! NOTE: Assumes 1:1 mapping of tracer and species indexes
-         ThisSpc => State_Chm%SpcData(N)%Info
-
-         ! For carbon, be sure to use correct unit string
-         IF ( INT( ThisSpc%emMW_g + 0.5 ) == 12 ) THEN
-            UNIT = 'kg C/kg'
-         ELSE
-            UNIT = 'kg/kg  '
-         ENDIF
-
-         ! Print totals
-         WRITE( 6, 150 ) N, TRIM( Input_Opt%TRACER_NAME(N) ), 
-     &                   SUM( STT(:,:,:,N) ) / (NI*NJ*NL), 
-     &                   ADJUSTL( UNIT )
- 150     FORMAT( 'Tracer ', i3, ', ', a8, ':  ', es15.9, 1x, a7)
-
-         ! Free pointer
-         ThisSpc => NULL()
-
-      ENDDO
-
-      ! Fancy output
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-
-      ! Free pointer
-      STT => NULL()
-
-      !=================================================================
-      ! Read species concentrations and store in array
-      !=================================================================
-
-      ! Only read species if chemistry simulation
-      IF ( Input_Opt%LCHEM .AND. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
-
-         ! Read CSPEC restart file if option is turned on in input.geos
-         IF ( Input_Opt%LSVCSPEC ) THEN
-
-            ! Read the species restart file.  If not found, then 
-            ! return IT_EXISTS = .FALSE.
-            CALL READ_CSPEC_FILE( am_I_Root, Input_Opt, YYYYMMDD,
-     &                            HHMMSS,    IT_EXISTS, State_Chm,
-     &                            RC )
-
-            ! Set species in restart file logical flag
-            IF ( IT_EXISTS ) THEN
-               SPC_IN_NC_RST = .TRUE.
-            ELSE
-               SPC_IN_NC_RST = .FALSE.
-            ENDIF
-
-         ENDIF
-
-         ! If no species restart file is found or if not using species
-         ! restart file then initialize species with default values
-         IF ( ( Input_Opt%LSVCSPEC .and. .not. IT_EXISTS ) .or.
-     &        ( .not. Input_Opt%LSVCSPEC ) ) THEN
-
-            ! Loop over KPP species
-            DO N = 1, State_Chm%nSpecies
-
-               ! Remove check for ND65 prod/loss families pending work on ND65 
-               ! diagnostics and incorporation of FlexChem (ewl, 2/4/16)
-               ! If the species is included in the IFAM array, which denotes 
-               ! the index # of species in the CSPEC array that are "fake" ND65 
-               ! prod/loss families, then skip. 
-               !IF ( ANY( IFAM == N ) ) THEN
-               !   CYCLE
-               !ENDIF
-
-               ! Get info about this species from the species database
-               ThisSpc => State_Chm%SpcData(N)%Info
-
-               ! If species data is not in the restart file, then assign
-               ! default background values in units of [mol/mol].
-               ! These values were traditionally stored in globchem.dat
-               ! and assigned along with a unit conversion to [molec/cm3]
-               ! in gasconc called from chemdr. Now chemdr converts these
-               ! initial [mol/mol] values to [molec/cm3]. 
-               ! Eventually store these values in the species database.
-               SELECT CASE ( TRIM( ThisSpc%Name ) )
-                  CASE ('CH2O', 'H2O2', 'HNO2', 'HNO3', 'HNO4') 
-                     Background_VV = 4.0e-15_fp
-                  CASE ('HO2', 'MO2', 'MP', 'N2O5', 'NO3', 'OH')
-                     Background_VV = 4.0e-15_fp
-                  CASE ('CH4')
-                     Background_VV = 1.7e-06_fp
-                  CASE ('CO')
-                     Background_VV = 1.0e-07_fp
-                  CASE ('CO2')
-                     Background_VV = 3.55e-04_fp
-                  CASE ('H2')
-                     Background_VV = 5.0e-07_fp
-                  CASE ('H2O')
-                     Background_VV = 1.839e-02_fp
-                  CASE ('M')
-                     Background_VV = 0.0e+0_fp
-                  CASE ('N2')
-                     Background_VV = 7.808e-01_fp
-                  CASE ('NO', 'NO2')
-                     Background_VV = 4.0e-13_fp
-                  CASE ('N2O')
-                     Background_VV = 3.0e-07_fp
-                  CASE ('EMISSION')
-                     Background_VV = 1.0e+0_fp
-                  CASE ('H', 'O', 'N')
-                     Background_VV = 4.0e-20_fp
-                  CASE ('O1D')
-                     IF ( Input_Opt%LUCX ) THEN
-                        Background_VV = 1.0e-15_fp
-                     ELSE
-                        Background_VV = 4.0e-22_fp
-                     ENDIF
-                  CASE ('O2')
-                     Background_VV = 2.095e-01_fp
-                  CASE ('O3')
-                     Background_VV = 2.0e-08_fp
-                  CASE ('OCS')
-                     Background_VV = 9.0e-15_fp
-                  CASE DEFAULT
-                     Background_VV = 1.0e-20_fp
-               END SELECT
-
-               ! Set 'DRY' species to all zeroes
-               IF ( ThisSpc%Name(1:3) == 'DRY') THEN
-                  Background_VV = 0.0e+0_fp
-               ENDIF
-
-               ! Put this array into State_Chm%Species [mol/mol], but
-               ! only up to LLCHEM levels
-               State_Chm%Species(:,:,1:LLCHEM,N) = Background_VV
-
-               ! Print the background value of this species if debugging
-               IF ( Input_Opt%LPRT ) THEN
-                  WRITE( 6, 190 ) N, TRIM( ThisSpc%Name ),
-     &                            Background_VV
- 190              FORMAT('Species ', i3, ', ', a9, ': Background = ', 
-     &                    es15.9)
-               ENDIF
-
-               ! Free pointer
-               ThisSpc => NULL()
-
-               ! NOTE: Keep State_Chm%Species background values as
-               ! mol/mol here to preserve location of unit conversion
-               ! in pre-FlexChem code. This is temporary to minimize
-               ! differences with FlexChem.
-
-            ENDDO
-
-         ENDIF
-
-      ENDIF
-
-      END SUBROUTINE READ_GC_RESTART_BPCH
+      END SUBROUTINE READ_GC_RESTART
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1714,136 +1168,16 @@ dvected tracer input  restart file
 !
 ! !IROUTINE: write_gc_restart
 !
-! !DESCRIPTION: Subroutine WRITE\_GC\_RESTART creates restart files  
-!  for GEOS-Chem advected tracers [units: vol tracer /vol dry air] by
-!  calling subroutines that write to either binary punch or NetCDF format.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE WRITE_GC_RESTART( am_I_Root, Input_Opt, 
-     &                             YYYYMMDD,  HHMMSS, TAU,       
-     &                             State_Chm, State_Met, RC )
-! 
-! !USES:
-!
-      USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE OCEAN_MERCURY_MOD,  ONLY : MAKE_OCEAN_Hg_RESTART
-!
-! !INPUT PARAMETERS: 
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      INTEGER,        INTENT(IN)  :: YYYYMMDD    ! YYYY/MM/DD GMT date
-      INTEGER,        INTENT(IN)  :: HHMMSS      ! hh:mm:ss GMT time
-      REAL(f8),       INTENT(IN)  :: TAU         ! TAU value (hrs from 1/1/1985)
-      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC        ! Success or failure?
-! 
-! !REVISION HISTORY: 
-!  09 Feb 2016 - E. Lundgren - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Local Variables      
-      INTEGER           :: I, J, L, N
-      REAL(f4), TARGET  :: TracerVV
-     &                     (IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
-      REAL(f4), POINTER :: TracerVV_ptr(:,:,:,:)
-
-
-      !=================================================================
-      ! WRITE_GC_RESTART begins here!
-      !=================================================================
-
-      ! Assume success
-      RC = GIGC_SUCCESS
-
-      ! Calculate tracer concentration in v/v dry air
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, Input_Opt%N_TRACERS
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-          ! Convert from mass mixing ratio [kg/kg dry air] to 
-          ! molar mixing ratio [v/v dry air]
-          TracerVV(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) * 
-     &                         Input_Opt%TCVV(N)
-         
-      ENDDO
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Set pointer
-      TracerVV_ptr => TracerVV
-
-      !=================================================================
-      ! Call routines to write binary-punch or NetCDF restart files 
-      !=================================================================
-#if defined( BPCH_RST_OUT )                  
-      ! Write GEOS-Chem restart file in bpch format
-      CALL WRITE_GC_RESTART_BPCH( am_I_Root, Input_Opt, 
-     &                             YYYYMMDD, HHMMSS, 
-     &                             TAU,      TracerVV_ptr, RC )
-
-      ! Make ocean mercury restart file in bpch format
-      IF ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LDYNOCEAN ) THEN
-         CALL MAKE_OCEAN_Hg_RESTART( YYYYMMDD, HHMMSS, TAU, Input_Opt )
-      ENDIF
-
-      ! Save species concentrations (CSPEC_FULL) (bpch) (dkh, 02/12/09)
-      IF ( Input_Opt%LCHEM .and. Input_Opt%LSVCSPEC ) THEN 
-         CALL MAKE_CSPEC_FILE( am_I_Root, Input_Opt,  YYYYMMDD, 
-     &                         HHMMSS,    State_Chm,  RC    )
-      ENDIF 
-#else
-      ! Write GEOS-Chem restart file in NetCDF format
-      CALL WRITE_GC_RESTART_NC( am_I_Root, YYYYMMDD, HHMMSS, Input_Opt, 
-     &                          State_Chm, State_Met, TracerVV_ptr, RC )
-#endif
-
-      ! Free pointer
-      TracerVV_ptr => NULL()
-
-      !### Debug
-      IF ( Input_Opt%LPRT .AND. am_I_Root ) THEN 
-         CALL DEBUG_MSG('### WRITE_GC_RESTART: read file')
-      ENDIF
-
-      END SUBROUTINE WRITE_GC_RESTART
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: write_gc_restart_nc
-!
-! !DESCRIPTION: Subroutine WRITE\_GC\_RESTART\_NC creates restart files for 
+! !DESCRIPTION: Subroutine WRITE\_GC\_RESTART creates restart files for 
 !  GEOS-Chem advected tracers [units: vol tracer /vol dry air] in NetCDF
 !  format.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_GC_RESTART_NC( am_I_Root, YYYYMMDD,  HHMMSS,
-     &                                Input_Opt, State_Chm, State_Met,
-     &                                TracerVV,  RC )
+      SUBROUTINE WRITE_GC_RESTART( am_I_Root, YYYYMMDD,  HHMMSS,
+     &                             Input_Opt, State_Chm, State_Met,
+     &                             RC )
 !
 ! !USES:
 !
@@ -1872,8 +1206,6 @@ dvected tracer input  restart file
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       INTEGER,        INTENT(IN)  :: YYYYMMDD    ! YYYY/MM/DD GMT date
       INTEGER,        INTENT(IN)  :: HHMMSS      ! hh:mm:ss GMT time
-      REAL(f4),       INTENT(IN)  :: TracerVV(:,:,:,:) ! Tracer concentrations
-                                                       ! [v/v dry air]!
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
@@ -1890,6 +1222,8 @@ dvected tracer input  restart file
 !                              NAMEGAS with ThisSpc%Name from species database
 !  22 Jun 2016 - R. Yantosca - Now refer to Hg0_Id_List, Hg2_Id_List, and
 !                              HgP_Id_List fields of State_Chm
+!  11 Jul 2016 - E. Lundgren - Remove tracers and write only species
+!  12 Jul 2016 - E. Lundgren - Rename from write_gc_restart_nc
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1904,7 +1238,7 @@ dvected tracer input  restart file
       REAL*4               :: SMALL_NUM
       CHARACTER(LEN=60)    :: ContainerName, Tracer, Prefix
       CHARACTER(LEN=255)   :: MSG, FILENAME, LOC = 
-     &                       'WRITE_GC_NC_RESTART (restart_mod.F90)'
+     &                       'WRITE_GC_RESTART (restart_mod.F90)'
 
       ! Temporary arrays and pointers
       REAL*4,            TARGET :: Temp3D( IIPAR, JJPAR, LLPAR )
@@ -1927,7 +1261,7 @@ dvected tracer input  restart file
       TYPE(Species),    POINTER :: ThisSpc
 
       !=================================================================
-      ! WRITE_GC_RESTART_NC begins here!
+      ! WRITE_GC_RESTART begins here!
       !=================================================================
 
       ! Assume success
@@ -1950,9 +1284,7 @@ dvected tracer input  restart file
       SMALL_NUM = 1.e-30_sp
 
       !=================================================================
-      ! Initialize local Hg indexing variables.  These used to be 
-      ! contained in tracerid_mod.F, but tracerid_mod.F is going
-      ! to be removed with the FlexChem implementation (bmy, 4/26/16)
+      ! Initialize local Hg indexing variables (bmy, 4/26/16)
       !=================================================================
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN 
          
@@ -1987,214 +1319,154 @@ dvected tracer input  restart file
       WRITE( 6, '(a,/)' ) 'R E S T A R T   F I L E   O U T P U T ' 
      &                   // '( NetCDF )'
       WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( 'WRITE_GC_RESTART_NC: Writing ', a )
+ 100  FORMAT( 'WRITE_GC_RESTART: Writing ', a )
       
       !=================================================================
-      ! Populate tracer concentration restart containers
+      ! Populate species concentration restart containers
       !=================================================================
 
-      ! Print min and max to log for testing if in debug mode
-      WRITE( 6, 110 )
- 110  FORMAT( /, 'Min and Max of each tracer in file [mol/mol]:' )
+      ! Print min/max species conc to log in [molec/cm3]
+      IF ( Input_Opt%LPRT ) THEN
+         WRITE( 6, 130 )
+ 130     FORMAT( /, 'Min and Max of each species before unit ',
+     &              'conversion [molec/cm3]:' )
+      ENDIF
 
-      DO N = 1, Input_Opt%N_TRACERS
+      ! Initialize Temp3D to all zeros
+      Temp3D = 0.e+0_sp
+
+      ! Populate Temp3D for all levels up to LLCHEM
+      DO N = 1, State_Chm%nSpecies
+
+         ! Get info about this species from the species database
+         ThisSpc => State_Chm%SpcData(N)%Info
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLCHEM
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            IF ( State_Chm%Species(I,J,L,N) >= SMALL_NUM ) THEN
+               Temp3D(I,J,L) = State_Chm%Species(I,J,L,N)
+            ELSE
+               Temp3D(I,J,L) = SMALL_NUM  
+            ENDIF
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+
+         ! If debugging, print out species values up to LLCHEM.
+         ! Above this level, all values are zero.
+         IF ( Input_Opt%LPRT ) THEN
+            WRITE( 6, 140 ) N, TRIM( ThisSpc%Name ),
+     &                      MINVAL( Temp3D(:,:,1:LLCHEM) ), 
+     &                      MAXVAL( Temp3D(:,:,1:LLCHEM) )
+ 140        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
+     &              '  Max = ', es15.9 )
+         ENDIF
+
+         ! Free pointer
+         ThisSpc => NULL()
+
+      ENDDO
+
+      ! Write header for post-conversion write to log (if debugging)
+      IF ( Input_Opt%LPRT ) THEN
+         WRITE( 6, 150 )
+ 150     FORMAT( /, 'Min and Max of each species written to file',
+     &              ' [mol/mol]:' )
+      ENDIF
+
+      ! Convert species values locally to [mol/mol] for output
+      ! in NetCDF. Print min and max values to log.
+      DO N = 1, State_Chm%nSpecies
       
-         ! Define container name
-         ContainerName = 'TRC_' // TRIM( Input_Opt%TRACER_NAME(N) )
+         ! Remove check for ND65 prod/loss families pending work on ND65 
+         ! diagnostics and incorporation of FlexChem (ewl, 2/4/16)
+         !! If the species is included in the IFAM array, which denotes 
+         !! the index # of species in the CSPEC array that are "fake" ND65 
+         !! prod/loss families, then skip. 
+         !IF ( ANY( IFAM == N ) ) THEN
+         !   CYCLE
+         !ENDIF
+      
+         ! Get info about this species from the species database
+         ThisSpc => State_Chm%SpcData(N)%Info
 
-         ! Point to this tracer concentration array
-         Temp3D = TracerVV(:,:,:,N)
+         ! Clear the species concentration array to all zeroes before
+         ! populating array up to LLCHEM
+         Temp3D(:,:,:) = 0.e+0_sp
+      
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, CONV_FACTOR )
+         DO L = 1, LLCHEM
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! NOTE: species is output to the binary-punch "spec_rst"
+            ! restart file as molec/cm3 but is output to the NetCDF
+            ! restart file as mol/mol. This results in small differences
+            ! in the initial molec/cm3 species values at the beginning
+            ! of the next run that uses the restart file. The difference
+            ! is due to the pressure-dependency of the unit conversion 
+            ! between molec/cm3 and mol/mol. 
+
+            ! Set box-dependent unit conversion factor to convert
+            ! from [molec/cm3] to [mol/mol]
+            CONV_FACTOR = State_Met%T(I,J,L) * BOLTZ * 1e+7_fp /
+     &                    ( State_Met%PMID_DRY(I,J,L) * 1000e+0_fp )
+
+            ! Store species conc in [mol/mol] in local array
+            IF ( State_Chm%Species(I,J,L,N) > SMALL_NUM ) THEN
+               Temp3D(I,J,L) = State_Chm%Species(I,J,L,N) *
+     &                         CONV_FACTOR
+            ELSE
+               Temp3D(I,J,L) = 1.0e-30_fp * CONV_FACTOR  
+            ENDIF
+
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+
+         ! Point to the array
          Ptr3D => Temp3D
- 
-         ! Populate with data
+         
+         ! Define container name
+         ContainerName = 'SPC_' // TRIM( ThisSpc%Name )
+         
+         ! Populate container
          CALL Diagn_Update( am_I_Root,                   
      &                      cName   = TRIM( ContainerName ),
      &                      COL     = GC_RST_Collection,
      &                      Array3D = Ptr3D,             
      &                      RC      = HCRC )
-      
-         ! Print the min & max of each tracer written to file (if debug)
-         WRITE( 6, 120 ) N, TRIM( Input_Opt%TRACER_NAME(N) ),
-     &                   MINVAL( Temp3D ), MAXVAL( Temp3D )
- 120     FORMAT( 'Tracer ', i3, ', ', a8, ': Min = ', es15.9, 
-     &           '  Max = ',es15.9)
-
+         
          ! Free the pointer
          Ptr3D => NULL()
-      
-         IF ( HCRC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot update restart tracer container: ' 
-     &            // TRIM( ContainerName )
-            CALL ERROR_STOP( MSG, LOC ) 
+
+         ! Print the min & max of each species written to file
+         IF ( Input_Opt%LPRT ) THEN
+            WRITE( 6, 160 ) N, TRIM( ThisSpc%Name ),
+     &                      MINVAL( Temp3D(:,:,1:LLCHEM) ), 
+     &                      MAXVAL( Temp3D(:,:,1:LLCHEM) )
+ 160        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
+     &                 '  Max = ', es15.9 )
          ENDIF
+         
+         IF ( RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot update restart species container: ' 
+     &            // TRIM(ContainerName)
+            CALL ERROR_STOP( MSG, LOC ) 
+         ENDIF  
+
+         ! Free pointer
+         ThisSpc => NULL()
 
       ENDDO
-
-      !=================================================================
-      ! Populate species concentration restart containers
-      !=================================================================
-
-      ! Only save species if doing full chemistry simulation
-      IF ( Input_Opt%LCHEM .AND. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-
-         ! Print min/max species conc to log in [molec/cm3] if debugging
-         ! to compare with legacy bpch cspec restart file for testing
-         IF ( Input_Opt%LPRT ) THEN
-            WRITE( 6, 130 )
- 130        FORMAT( /, 'Min and Max of each species before unit ',
-     &                 'conversion [molec/cm3]:' )
-         ENDIF
-
-         ! Initialize Temp3D to all zeros
-         Temp3D = 0.e+0_sp
-
-         ! Populate Temp3D for all levels up to LLCHEM
-         DO N = 1, State_Chm%nSpecies
-
-            ! Get info about this species from the species database
-            ThisSpc => State_Chm%SpcData(N)%Info
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-            DO L = 1, LLCHEM
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               IF ( State_Chm%Species(I,J,L,N) >= SMALL_NUM ) THEN
-                  Temp3D(I,J,L) = State_Chm%Species(I,J,L,N)
-               ELSE
-                  Temp3D(I,J,L) = SMALL_NUM  
-               ENDIF
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-            ! If debugging, print out species values up to LLCHEM.
-            ! Above this level, all values are zero.
-            IF ( Input_Opt%LPRT ) THEN
-               WRITE( 6, 140 ) N, TRIM( ThisSpc%Name ),
-     &                         MINVAL( Temp3D(:,:,1:LLCHEM) ), 
-     &                         MAXVAL( Temp3D(:,:,1:LLCHEM) )
- 140           FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
-     &                 '  Max = ', es15.9 )
-            ENDIF
-
-            ! Free pointer
-            ThisSpc => NULL()
-
-         ENDDO
-
-         ! Write header for post-conversion write to log (if debugging)
-         IF ( Input_Opt%LPRT ) THEN
-            WRITE( 6, 150 )
- 150        FORMAT( /, 'Min and Max of each species written to file',
-     &                 ' [mol/mol]:' )
-         ENDIF
-
-         ! Convert species values locally to [mol/mol] for output
-         ! in NetCDF. Print min and max values to log.
-         DO N = 1, State_Chm%nSpecies
-         
-            ! Remove check for ND65 prod/loss families pending work on ND65 
-            ! diagnostics and incorporation of FlexChem (ewl, 2/4/16)
-            !! If the species is included in the IFAM array, which denotes 
-            !! the index # of species in the CSPEC array that are "fake" ND65 
-            !! prod/loss families, then skip. 
-            !IF ( ANY( IFAM == N ) ) THEN
-            !   CYCLE
-            !ENDIF
-         
-            ! Get info about this species from the species database
-            ThisSpc => State_Chm%SpcData(N)%Info
-
-            ! Clear the species concentration array to all zeroes before
-            ! populating array up to LLCHEM
-            Temp3D(:,:,:) = 0.e+0_sp
-         
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, CONV_FACTOR )
-            DO L = 1, LLCHEM
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-
-               ! NOTE: species is output to the binary-punch "spec_rst"
-               ! restart file as molec/cm3 but is output to the NetCDF
-               ! restart file as mol/mol. This results in small differences
-               ! in the initial molec/cm3 species values at the beginning
-               ! of the next run that uses the restart file. The difference
-               ! is due to the pressure-dependency of the unit conversion 
-               ! between molec/cm3 and mol/mol. 
-               !
-               ! While the met-fields are the same for the end time of 
-               ! this run and the start time of the next run, the pressures 
-               ! are not the same. This run calculates the dry pressure 
-               ! using the "floating pressure" which is influenced by the 
-               ! pressure fixer in transport and specific humidity which 
-               ! is variable in GEOS-Chem.
-               ! 
-               ! The next run will also use the "floating pressure" but 
-               ! that pressure will be slightly different. The unit 
-               ! conversion will happen in chemistry which is at a 
-               ! different point in the timestep as this (after transport)
-               ! and there will have been fewer iterations for the 
-               ! pressure to be "fixed".
-
-               ! Set box-dependent unit conversion factor to convert
-               ! from [molec/cm3] to [mol/mol]
-               CONV_FACTOR = State_Met%T(I,J,L) * BOLTZ * 1e+7_fp /
-     &                       ( State_Met%PMID_DRY(I,J,L) * 1000e+0_fp )
-
-               ! Store species conc in [mol/mol] in local array
-               IF ( State_Chm%Species(I,J,L,N) > SMALL_NUM ) THEN
-                  Temp3D(I,J,L) = State_Chm%Species(I,J,L,N) *
-     &                            CONV_FACTOR
-               ELSE
-                  Temp3D(I,J,L) = 1.0e-30_fp * CONV_FACTOR  
-               ENDIF
-
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-            ! Point to the array
-            Ptr3D => Temp3D
-            
-            ! Define container name
-            ContainerName = 'SPC_' // TRIM( ThisSpc%Name )
-            
-            ! Populate container
-            CALL Diagn_Update( am_I_Root,                   
-     &                         cName   = TRIM( ContainerName ),
-     &                         COL     = GC_RST_Collection,
-     &                         Array3D = Ptr3D,             
-     &                         RC      = HCRC )
-            
-            ! Free the pointer
-            Ptr3D => NULL()
-
-            ! Print the min & max of each species written to file
-            IF ( Input_Opt%LPRT ) THEN
-               WRITE( 6, 160 ) N, TRIM( ThisSpc%Name ),
-     &                         MINVAL( Temp3D(:,:,1:LLCHEM) ), 
-     &                         MAXVAL( Temp3D(:,:,1:LLCHEM) )
- 160           FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
-     &                 '  Max = ', es15.9 )
-            ENDIF
-           
-            IF ( RC /= HCO_SUCCESS ) THEN
-               MSG = 'Cannot update restart species container: ' 
-     &               // TRIM(ContainerName)
-               CALL ERROR_STOP( MSG, LOC ) 
-            ENDIF  
-
-            ! Free pointer
-            ThisSpc => NULL()
-
-         ENDDO
-      ENDIF
 
       !=================================================================
       ! If Hg simulation, populate ocean mercury restart containers
@@ -2420,204 +1692,10 @@ dvected tracer input  restart file
 
       !### Debug
       IF ( Input_Opt%LPRT .AND. am_I_Root ) THEN 
-         CALL DEBUG_MSG('### WRITE_GC_RESTART_NC: wrote file')
+         CALL DEBUG_MSG('### WRITE_GC_RESTART: wrote file')
       ENDIF
 
-      END SUBROUTINE WRITE_GC_RESTART_NC
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: write_gc_restart_bpch
-!
-! !DESCRIPTION: Subroutine WRITE\_GC\_RESTART\_BPCH creates restart files 
-!  for GEOS-Chem advected tracers [units: vol tracer /vol dry air] in binary 
-!  punch (bpch) format.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE WRITE_GC_RESTART_BPCH( am_I_Root, Input_Opt, 
-     &                                  YYYYMMDD,  HHMMSS,   
-     &                                  TAU,       TracerVV, RC )
-!
-! !USES:
-!
-      USE BPCH2_MOD,          ONLY : BPCH2,         GET_MODELNAME
-      USE BPCH2_MOD,          ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
-      USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
-      USE TIME_MOD,           ONLY : EXPAND_DATE
-!
-! !INPUT PARAMETERS: 
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      INTEGER,        INTENT(IN)  :: YYYYMMDD    ! YYYY/MM/DD GMT date
-      INTEGER,        INTENT(IN)  :: HHMMSS      ! hh:mm:ss GMT time
-      REAL(f8),       INTENT(IN)  :: TAU         ! TAU value (hrs from 1/1/1985)
-      REAL(f4),       INTENT(IN)  :: TracerVV(:,:,:,:) ! Tracer concentrations
-                                                       ! [v/v dry air]
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC        ! Success or failure?
-! 
-! !REVISION HISTORY: 
-!  27 May 1999 - R. Yantosca - Initial version
-!  (1 ) Now use function NYMD_STRING from "time_mod.f" to generate a
-!        Y2K compliant string for all data sets. (bmy, 6/22/00)
-!  (2 ) Reference F90 module "bpch2_mod.f" which contains routines BPCH2_HDR, 
-!        BPCH2, and GET_MODELNAME for writing data to binary punch files. 
-!        (bmy, 6/22/00)
-!  (3 ) Now do not write more than NTRACE data blocks to disk.  
-!        Also updated comments. (bmy, 7/17/00)
-!  (4 ) Now use IOS /= 0 to trap both I/O errors and EOF. (bmy, 9/13/00)
-!  (5 ) Added to "restart_mod.f".  Also now save the entire grid to the
-!        restart file. (bmy, 6/24/02)
-!  (6 ) Bug fix: Remove duplicate definition of MM.  This causes compile-time
-!        problems on the ALPHA platform. (gcc, bmy, 11/6/02)
-!  (7 ) Now references functions GET_OFFSET, GET_YOFFSET from "grid_mod.f".
-!        Now references function GET_TAU from "time_mod.f".  Now added a call 
-!        to DEBUG_MSG from "error_mod.f" (bmy, 2/11/03)
-!  (8 ) Cosmetic changes (bmy, 4/29/03)
-!  (9 ) Now reference STT, N_TRACERS, TCVV from "tracer_mod.f".  Also now
-!        remove hardwired output restart filename.   Now references LPRT
-!        from "logical_mod.f". (bmy, 7/20/04)
-!  (10) Remove references to CMN_DIAG and TRCOFFSET.  Now call GET_HALFPOLAR 
-!        from "bpch2_mod.f" to get the HALFPOLAR flag value for GEOS or GCAP 
-!        grids. (bmy, 6/28/05)
-!  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (12) Add TAU to the argument list (bmy, 12/16/05)
-!  11 Jul 2011 - R. Yantosca - Added ProTeX headers
-!  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
-!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  17 Feb 2015 - E. Lundgren - Change program main units from kg to kg/kg
-!  02 Feb 2016 - E. Lundgren - Change name from MAKE_RESTART_FILE
-!  09 Feb 2016 - E. Lundgren - Pass TracerVV ptr, remove State_Met and
-!                              State_Chm from arg list, and print min/max
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Local Variables      
-      INTEGER              :: I0, IOS, J0, N
-      INTEGER              :: YYYY, MM, DD, HH, SS
-      REAL(f4)             :: ThisTracerVV(IIPAR,JJPAR,LLPAR)
-      CHARACTER(LEN=255)   :: FILENAME
-
-      ! For binary punch file, version 2.0
-      INTEGER              :: IU_RST
-      REAL(f4)             :: LONRES, LATRES
-      INTEGER              :: HALFPOLAR
-      INTEGER, PARAMETER   :: CENTER180 = 1
-      
-      CHARACTER(LEN=20)    :: MODELNAME
-      CHARACTER(LEN=40)    :: CATEGORY
-      CHARACTER(LEN=40)    :: UNIT     
-      CHARACTER(LEN=40)    :: RESERVED = ''
-      CHARACTER(LEN=80)    :: TITLE 
-
-      !=================================================================
-      ! WRITE_GC_RESTART_BPCH begins here!
-      !=================================================================
-
-      ! Assume success
-      RC        =  GIGC_SUCCESS
-
-      ! Define variables for BINARY PUNCH FILE OUTPUT
-      TITLE    = 'GEOS-CHEM Restart File: ' // 
-     &           'Instantaneous Tracer Concentrations (v/v)'
-      UNIT     = 'v/v'
-      CATEGORY = 'IJ-AVG-$'
-      LONRES   = DISIZE
-      LATRES   = DJSIZE
-
-      ! Call GET_MODELNAME to return the proper model name for
-      ! the given met data being used (bmy, 6/22/00)
-      MODELNAME = GET_MODELNAME()
-
-      ! Call GET_HALFPOLAR to return the proper value
-      ! for either GCAP or GEOS grids (bmy, 6/28/05)
-      HALFPOLAR = GET_HALFPOLAR()
-
-      ! Get the nested-grid offsets
-      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
-
-      !=================================================================
-      ! Open the restart file for output -- binary punch format
-      !=================================================================
-
-      ! Find a free file LUN
-      IU_RST   = findFreeLUN()
-
-      ! Copy the output restart file name into a local variable
-      FILENAME = TRIM( OUTPUT_RESTART_FILE )
-
-      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
-      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
-
-      WRITE( 6, 100 ) TRIM( FILENAME ), IU_RST
- 100  FORMAT( '     - MAKE_RESTART_FILE: Writing ', a, ' on unit ', i4 )
-
-      ! Open restart file for output
-      CALL OPEN_BPCH2_FOR_WRITE( IU_RST, FILENAME, TITLE )
-
-      ! Echo some input to the screen
-      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-      WRITE( 6, '(a,/)' ) 'R E S T A R T   F I L E   O U T P U T ' 
-     &                   // '( BPCH )'
-      WRITE( 6, 110 ) TRIM( FILENAME )
- 110  FORMAT( 'WRITE_GC_RESTART_BPCH: Writing ', a )
-      
-      ! Echo more output
-      WRITE( 6, 120 )
- 120  FORMAT( /, 'Min and Max of each tracer [v/v]:' )
-
-      !=================================================================
-      ! Write each tracer to the restart file
-      !=================================================================
-
-      ! Loop over all tracers
-      DO N = 1, Input_Opt%N_TRACERS
-
-         ! Store data for this tracer only
-         ThisTracerVV = TracerVV(:,:,:,N)
-
-         ! Write tracer data to file
-         CALL BPCH2( IU_RST,    MODELNAME, LONRES,      LATRES,    
-     &               HALFPOLAR, CENTER180, CATEGORY,    N,
-     &               UNIT,      TAU,       TAU,         RESERVED,   
-     &               IIPAR,     JJPAR,     LLPAR,       I0+1,            
-     &               J0+1,      1,         ThisTracerVV )
-
-         ! Print the min & max of each tracer written to file
-         WRITE( 6, 130 ) N, TRIM( Input_Opt%TRACER_NAME(N) ),
-     &                   MINVAL( ThisTracerVV ), MAXVAL( ThisTracerVV )
- 130     FORMAT( 'Tracer ', i3, ', ', a8, ': Min = ', es15.9,
-     &           '  Max = ',es15.9)
-
-      ENDDO  
-
-      ! Close file
-      CLOSE( IU_RST )
-
-      !### Debug
-      IF ( Input_Opt%LPRT .AND. am_I_Root ) THEN
-         CALL DEBUG_MSG( '### WRITE_GC_RESTART_BPCH: wrote file' )
-      ENDIF
-
-      END SUBROUTINE WRITE_GC_RESTART_BPCH
+      END SUBROUTINE WRITE_GC_RESTART
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2786,642 +1864,5 @@ dvected tracer input  restart file
       ENDIF
 
       END SUBROUTINE Check_Rst_Dimensions
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: copy_stt
-! !DESCRIPTION: Subroutine COPY\_STT converts tracer concentrations from [v/v] 
-!  to [kg/kg] and then copies the results into the STT tracer array. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE COPY_STT( NTRACER,   TRACER,    NCOUNT,
-     &                     Input_Opt, State_Met, State_Chm )
-!
-! !USES:
-!
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER,        INTENT(IN)    :: NTRACER                   ! Tracer #
-      REAL*4,         INTENT(IN)    :: TRACER(IIPAR,JJPAR,LLPAR) ! Tracers from 
-                                                                 !rst file [v/v]
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      INTEGER,        INTENT(INOUT) :: NCOUNT(NNPAR)       ! # of data blocks
-!                                                          !  for each tracer
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-! 
-! !REVISION HISTORY: 
-!  (1 ) Added to "restart_mod.f".  Also added parallel loops. (bmy, 6/25/02)
-!  (2 ) Now reference AD from "dao_mod.f" (bmy, 9/18/02)
-!  (3 ) Now exit if N is out of range (bmy, 4/29/03)
-!  (4 ) Now references N_TRACERS, STT & TCVV from "tracer_mod.f" (bmy, 7/20/04)
-!  (5 ) Remove call to TRUE_TRACER_INDEX (bmy, 6/24/05)
-!  11 Jul 2011 - R. Yantosca - Added ProTeX headers
-!  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  25 Mar 2013 - R. Yantosca - Now pass State_Chm, Input_Opt as arguments
-!  17 Feb 2015 - E. Lundgren - Change units from kg to kg/kg
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I, J, L, N
-
-      !=================================================================
-      ! COPY_STT begins here!
-      !=================================================================
-
-      ! Tracer number
-      N = NTRACER
-
-      ! Exit if N is out of range
-      IF ( N < 1 .or. N > Input_Opt%N_TRACERS ) RETURN
-
-      ! Convert tracer concentration from [v/v dry] to [kg/kg dry] and 
-      ! store in State_Chm%Tracers
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         State_Chm%Tracers(I,J,L,N) = TRACER(I,J,L) / Input_Opt%TCVV(N) 
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-      
-      ! Set State_Chm units
-      State_Chm%Trac_Units = 'kg/kg dry'
-
-      ! Increment the # of records found for tracer N
-      NCOUNT(N) = NCOUNT(N) + 1
-
-      END SUBROUTINE COPY_STT
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: check_data_blocks
-!
-! !DESCRIPTION: Subroutine CHECK\_DATA\_BLOCKS checks to see if we have 
-!  multiple or missing data blocks for a given tracer. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CHECK_DATA_BLOCKS( NTRACE, NCOUNT )
-!
-! !USES:
-!
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: NTRACE          ! # of advected tracers 
-      INTEGER, INTENT(IN) :: NCOUNT(NNPAR)   ! Data blocks found per tracer
-! 
-! !REVISION HISTORY: 
-!  25 Jun 2002 - R. Yantosca - Initial version
-!  (1 ) Added to "restart_mod.f".  Also now use F90 intrinsic REPEAT to
-!        write a long line of "="'s to the screen. (bmy, 6/25/02)
-!  (2 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
-!        allocated memory before stopping the run. (bmy, 10/15/02)
-!  11 Jul 2011 - R. Yantosca - Added ProTeX headers
-!  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: N
-
-      !=================================================================
-      ! CHECK_DATA_BLOCKS begins here! 
-      !=================================================================
-
-      ! Loop over all tracers
-      DO N = 1, NTRACE
-
-         ! Stop if a tracer has more than one data block 
-         IF ( NCOUNT(N) > 1 ) THEN 
-            WRITE( 6, 100 ) N
-            WRITE( 6, 120 ) 
-            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-            CALL GEOS_CHEM_STOP
-         ENDIF
-         
-         ! Stop if a tracer has no data blocks 
-         IF ( NCOUNT(N) == 0 ) THEN
-            WRITE( 6, 110 ) N
-            WRITE( 6, 120 ) 
-            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-            CALL GEOS_CHEM_STOP
-         ENDIF
-      ENDDO
-
-      ! FORMAT statements
- 100  FORMAT( 'More than one record found for tracer : ', i4 )
- 110  FORMAT( 'No records found for tracer : ',           i4 ) 
- 120  FORMAT( 'STOP in CHECK_DATA_BLOCKS (restart_mod.f)'    )
-
-      END SUBROUTINE CHECK_DATA_BLOCKS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_cspec_file
-!
-! !DESCRIPTION: Subroutine READ\_CSPEC\_FILE initializes GEOS-Chem chemical
-!  species concentrations from a checkpoint file (binary punch file format).
-!  The chemical species are saved into State_Chm%Species, which is used by
-!  the KPP solver.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_CSPEC_FILE( am_I_Root, Input_Opt, YYYYMMDD, 
-     &                            HHMMSS,    IT_EXISTS, State_Chm, RC )
-!
-! !USES:
-!
-      USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE FILE_MOD,           ONLY : IOERROR
-      USE FILE_MOD,           ONLY : FILE_EXISTS
-      USE Species_Mod,        ONLY : Species
-      USE TIME_MOD,           ONLY : EXPAND_DATE
-!
-! !INPUT PARAMETERS: 
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      INTEGER,        INTENT(IN)    :: YYYYMMDD    ! YYYY/MM/DD GMT date
-      INTEGER,        INTENT(IN)    :: HHMMSS      ! hh:mm:ss   GMT time
-!     
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!     
-! !OUTPUT PARAMETERS: 
-!
-      LOGICAL,        INTENT(OUT)   :: IT_EXISTS   ! Does species restart exist?
-      INTEGER,        INTENT(OUT)   :: RC 
-! 
-! !REVISION HISTORY: 
-!  30 Aug 2004 - D. Henze    - Initial version, based on READ_RESTART  
-!  11 Jul 2011 - R. Yantosca - Now skip over ND65 families when reading 
-!                              species from the restart.cspec.YYYYMMDDhh file
-!  11 Jul 2011 - R. Yantosca - Added ProTeX headers
-!  12 Jul 2011 - R. Yantosca - Now read species name from RESERVED slot
-!                              of bpch file as an extra error check
-!  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
-!  04 Apr 2013 - R. Yantosca - Now declare State_Chm INTENT(INOUT)
-!  22 Aug 2013 - R. Yantosca - Add Input_Opt, RC arguments
-!  22 Aug 2013 - R. Yantosca - Now get species restart filename from Input_Opt
-!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
-!  16 Dec 2014 - M. Yannetti - Changed ZTAU0 and ZTAU1 to REAL*8
-!  18 May 2016 - M. Sulprizio- Change ILONG,ILAT,IPVERT to IIPAR,JJPAR,LLPAR
-!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with ThisSpc%Name from species database
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER             :: I, IOS, IU_RST, J, L, N, NN, NTL
-      INTEGER             :: NCOUNT(NNPAR) 
-      REAL*4		  :: TMP(IIPAR,JJPAR,LLPAR)
-
-      REAL(fp)              :: SUMTC
-      CHARACTER(LEN=255)  :: FILENAME
-      CHARACTER(LEN=255)  :: MSG
-
-      ! For binary punch file, version 2.0
-      INTEGER             :: NI,     NJ,     NL
-      INTEGER             :: IFIRST, JFIRST, LFIRST
-      INTEGER             :: NTRACER,   NSKIP
-      INTEGER             :: HALFPOLAR, CENTER180
-      REAL*4              :: LONRES,    LATRES
-      REAL*8              :: ZTAU0,     ZTAU1  ! has to be REAL*8
-      CHARACTER(LEN=20)   :: MODELNAME
-      CHARACTER(LEN=40)   :: CATEGORY
-      CHARACTER(LEN=40)   :: UNIT     
-      CHARACTER(LEN=40)   :: RESERVED
-
-      ! Objects
-      TYPE(Species), POINTER :: ThisSpc
-
-      !=================================================================
-      ! READ_CSPEC_FILE begins here!
-      !=================================================================
-
-      ! Assume success
-      RC         = GIGC_SUCCESS
-
-      ! Initialize pointer
-      ThisSpc => NULL()
-
-      ! Initialize some variables
-      !TMP(:,:,:) = 0e0
-      ! use 1e-30 as min (hotp 2/25/09)
-      TMP(:,:,:) = 1e-30
-
-      !=================================================================
-      ! Open checkpoint file and read top-of-file header
-      !=================================================================
-
-      ! Find a free file LUN
-      IU_RST   = findFreeLUN()
-     
-      ! Copy the output restart file name into a local variable
-      FILENAME = TRIM( Input_Opt%SPEC_RST_FILE )
-
-      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
-      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
-
-      ! Add ADJ_DIR prefix to name
-      !FILENAME = TRIM( ADJ_DIR ) // TRIM( FILENAME )
-
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME )
-      ENDIF
- 100  FORMAT( '     - READ_CSPEC_FILE: Reading ', a )
- 
-      ! Check to see if species restart file exists
-      IT_EXISTS = FILE_EXISTS( FILENAME )
-      IF ( .not. IT_EXISTS ) RETURN
-
-      ! Open the binary punch file for input
-      CALL OPEN_BPCH2_FOR_READ( IU_RST, FILENAME )
-
-      ! Echo some input to the screen
-      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-      WRITE( 6, '(a,/)' ) 'C S P E C   R E S T A R T   F I L E'
-     &                    // '   I N P U T  ( BPCH )'
-      WRITE( 6, 110 ) TRIM( FILENAME )
- 110  FORMAT( 'READ_CSPEC_FILE: Reading ', a )
-
-      ! Echo more output
-      WRITE( 6, 120 )
- 120  FORMAT( /, 'Min and Max of each species in file',
-     &           ' [molec/cm3/box]:' )
-
-      ! Loop over all species in the chemical mechanism
-      DO N = 1, State_Chm%nSpecies
-
-         ! Remove check for ND65 prod/loss families pending work on ND65 
-         ! diagnostics and incorporation of FlexChem (mps, 6/6/16)
-         ! The IFAM array denotes the index # of species in State_Chm%Species
-         ! that are "fake" ND65 prod/loss families.  If we 
-         ! encounter one of these, then we can skip it.
-         !IF ( ANY( IFAM == N ) ) THEN
-         !   CYCLE
-         !ENDIF
-
-         ! Get info about this species from the species database
-         ThisSpc => State_Chm%SpcData(N)%Info
-
-         ! Read the model info
-         READ( IU_RST, IOSTAT=IOS )
-     &       MODELNAME, LONRES, LATRES, HALFPOLAR, CENTER180
-
-         ! IOS < 0 is end-of-file, so exit
-         IF ( IOS < 0 ) GOTO 555
-
-         ! IOS > 0 is a real I/O error -- print error message
-         IF ( IOS > 0 ) 
-     &      CALL IOERROR( IOS,IU_RST,'read_cspec_file:13' )
-
-         ! Read data block header
-         READ( IU_RST, IOSTAT=IOS )
-     &         CATEGORY, NTRACER,  UNIT, ZTAU0,  ZTAU1,  RESERVED,
-     &         NTL,      NN,       NL,   IFIRST, JFIRST, LFIRST,
-     &         NSKIP
-
-         ! Error check
-         IF ( IOS /= 0 ) 
-     &      CALL IOERROR(IOS,IU_RST,'read_cspec_file:14' )
-
-         ! Read data block
-         READ( IU_RST, IOSTAT=IOS )
-     &       ( ( ( TMP(I,J,L), I= 1, NTL), J=1,NN ), L = 1, NL)
-
-         ! Error check
-         IF ( IOS /= 0 ) 
-     &      CALL IOERROR( IOS,IU_RST,'read_cspec_file:16' )
-
-         !==============================================================
-         ! Assign data from the TMP array to State_Chm%Species
-         !==============================================================
-
-         ! Only process checkpoint data 
-         IF ( CATEGORY(1:8) == 'IJ-CHK-$' .and.
-     &        NTL           == IIPAR      .and. 
-     &        NN            == JJPAR      .and. 
-     &        NL            == LLPAR      ) THEN
-
-            ! Also make sure we have the proper species
-            IF ( TRIM( ThisSpc%Name ) /= TRIM( RESERVED ) ) THEN
-               IF ( am_I_Root ) THEN
-                  WRITE( 6, 200 ) TRIM( ThisSpc%Name )
-               ENDIF
- 200           FORMAT( 'Species mismatch for ', a )
-               CALL ERROR_STOP( 'Species mismatch!', 
-     &                          'READ_CSPEC_FILE (restart_mod.f)' )
-            ENDIF
-
-            ! Read data from temporary array into State_Chm%Species
-            ! NOTE: Using N instead of NTRACER will skip over
-            ! the "fake" ND65 prod/loss families (bmy, 7/12/11)
-            State_Chm%Species(:,:,:,N) = TMP(:,:,:)
-
-            ! Print the min & max of each species
-            WRITE( 6, 300 ) N, TRIM( ThisSpc%Name ), 
-     &                      MINVAL(TMP), MAXVAL(TMP)
- 300        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
-     &              '  Max = ',  es15.9 )
-
-         ELSE
-            CALL ERROR_STOP( ' Species restart data is not correct ',
-     &                       ' READ_CSPEC_FILE (restart_mod.F)' )
-
-         ENDIF
- 
-         ! Free pointer
-         ThisSpc => NULL()
-
-      ENDDO ! N 
-
- 555  CONTINUE
-
-      ! Close file
-      CLOSE( IU_RST )      
-
-      !### Debug
-      IF ( Input_Opt%LPRT .AND. am_I_Root ) THEN
-         CALL DEBUG_MSG( '### READ_CSPEC_FILE: read file' )
-      ENDIF
-
-      END SUBROUTINE READ_CSPEC_FILE
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: make_cspec_file
-!
-! !DESCRIPTION: Subroutine MAKE\_CSPEC\_FILE writes GEOS-Chem chemical
-!  species concentrations into a checkpoint file (binary punch file format).
-!  The chemical species are saved into State_Chm%Species, which is used by
-!  the KPP solver.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE MAKE_CSPEC_FILE( am_I_Root, Input_Opt, YYYYMMDD, 
-     &                            HHMMSS,    State_Chm, RC        )
-!
-! !USES:
-!
-      USE BPCH2_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE FILE_MOD,           ONLY : IOERROR
-      USE GRID_MOD,           ONLY : GET_XOFFSET
-      USE GRID_MOD,           ONLY : GET_YOFFSET
-      USE Species_Mod,        ONLY : Species
-      USE TIME_MOD,           ONLY : EXPAND_DATE
-      USE TIME_MOD,           ONLY : GET_TAU
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      INTEGER,        INTENT(IN)    :: YYYYMMDD    ! YYYY/MM/DD GMT date
-      INTEGER,        INTENT(IN)    :: HHMMSS      ! hh:mm:ss   GMT time
-      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
-!
-! !OUTPUT PARAMETERS:
-!
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
-!  27 Aug 2004 - D. Henze    - Initial version, based on MAKE_RESTART
-!  11 Jul 2011 - R. Yantosca - Now skip over ND65 families when writing
-!                              species to the restart.cspec.YYYYMMDDhh file!
-!  11 Jul 2011 - R. Yantosca - Added ProTeX headers
-!  12 Jul 2011 - R. Yantosca - Save species name to restart file using the
-!                              RESERVED field of the bpch file
-!  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
-!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  18 May 2016 - M. Sulprizio- Change ILONG,ILAT,IPVERT to IIPAR,JJPAR,LLPAR
-!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with ThisSpc%Name from species database
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER              :: IU_RST
-      INTEGER              :: I,    I0, IOS, J,  J0, L, N
-      INTEGER              :: YYYY, MM, DD,  HH, SS, ZIP_HH
-      CHARACTER(LEN=255)   :: FILENAME
-
-      ! Temporary storage arrays for checkpointed variables
-      REAL*4               :: TMP(IIPAR,JJPAR,LLPAR)
-
-      ! For binary punch file, version 2.0
-      REAL*4               :: LONRES, LATRES
-      ! make HALFPOLAR variable (hotp 2/25/09)
-      !INTEGER, PARAMETER   :: HALFPOLAR = 1
-      INTEGER              :: HALFPOLAR
-      INTEGER, PARAMETER   :: CENTER180 = 1
-
-      INTEGER 		   :: MAX_nitr_max
-      INTEGER 		   :: NSOFAR
-      
-      CHARACTER(LEN=20)    :: MODELNAME
-      CHARACTER(LEN=40)    :: CATEGORY
-      CHARACTER(LEN=40)    :: UNIT     
-      CHARACTER(LEN=40)    :: RESERVED = ''
-      CHARACTER(LEN=80)    :: TITLE 
-
-      ! Objects
-      TYPE(Species), POINTER :: ThisSpc
-
-      !=================================================================
-      ! MAKE_CSPEC_FILE begins here!
-      !=================================================================
-
-      ! Assume success
-      RC       =  GIGC_SUCCESS
-
-      ! Initialize pointer
-      ThisSpc  => NULL()
-
-      ! Clear some arrays 
-      ! use minimum value instead of zero hotp 2/25/09
-      !TMP(:,:,:)   = 0e0
-      TMP(:,:,:)   = 1e-30
-
-      ! Define variables for BINARY PUNCH FILE OUTPUT
-      TITLE    = 'GEOS-CHEM Checkpoint File: ' // 
-     &           'Instantaneous Species Concentrations (#/cm3)'
-      CATEGORY = 'IJ-CHK-$'
-      LONRES   = DISIZE
-      LATRES   = DJSIZE
-      ! get value of HALFPOLAR hotp 2/25/09
-      HALFPOLAR = GET_HALFPOLAR()
-
-      ! Call GET_MODELNAME to return the proper model name for
-      ! the given met data being used (bmy, 6/22/00)
-      MODELNAME = GET_MODELNAME()
-
-      ! Get the nested-grid offsets
-      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
-
-      !=================================================================
-      ! Open the checkpoint file for output -- binary punch format
-      !=================================================================
-
-      ! Find a free file LUN
-      IU_RST   = findFreeLUN()
-
-      ! Copy the output restart filename template into a local variable
-      FILENAME = TRIM( Input_Opt%SPEC_RST_FILE )
-
-      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
-      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
-
-      ! Add ADJ_DIR prefix to filename
-      !FILENAME = TRIM( ADJ_DIR ) // TRIM( FILENAME )
-
-      ! Open checkpoint file for output
-      CALL OPEN_BPCH2_FOR_WRITE( IU_RST, FILENAME, TITLE )
-
-      ! Echo some input to the screen
-      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-      WRITE( 6, '(a,/)' ) 'C S P E C   R E S T A R T   F I L E'
-     &                    // '   O U T P U T  ( BPCH )'
-      WRITE( 6, 110 ) TRIM( FILENAME )
- 110  FORMAT( 'MAKE_CSPEC_FILE: Writing ', a )
-      
-      ! Echo more output
-      WRITE( 6, 120 )
- 120  FORMAT( /, 'Min and Max of each species [molec/cm3/box]:' )
-
-      !=================================================================
-      ! Write each checkpointed quantity to the checkpoint file
-      !=================================================================
-
-      ! Checkpt additional values for full chem simulation
-  
-      ! Write the final species concetrations after full chemistry
-      UNIT = 'molec/cm3/box'
-          
-      ! Loop over the total # of species.  This also includes the "fake"
-      ! prod/loss family species for the ND65 diagnostic (bmy, 7/11/11)
-      DO N = 1, State_Chm%nSpecies
-         
-         ! Remove check for ND65 prod/loss families pending work on ND65 
-         ! diagnostics and incorporation of FlexChem (mps, 6/6/16)
-         ! The IFAM array denotes the index # of species in State_Chm%Species
-         ! that are "fake" ND65 prod/loss families.  If we 
-         ! encounter one of these, then we can skip it (bmy, 7/11/11)
-         !IF ( ANY( IFAM == N ) ) THEN
-         !   CYCLE
-         !ENDIF
-
-         ! Get info about this species from the species database
-         ThisSpc => State_Chm%SpcData(N)%Info
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-        
-            ! Fix recommended by pls, save State_Chm%Species (hotp 2/18/09)
-            ! Now set conc no smaller than 1d-30
-            IF ( State_Chm%Species(I,J,L,N) .LE. 1e-30_fp ) THEN
-                 TMP(I,J,L) = 1e-30
-            ELSE
-                 TMP(I,J,L) = State_Chm%Species(I,J,L,N)
-            ENDIF
-
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
- 
-         ! Save the species name to the RESERVED slot of the bpch file
-         RESERVED = TRIM( ThisSpc%Name )
-
-         ! Write the data block to the species restart file
-         CALL BPCH2( IU_RST,    MODELNAME, LONRES,    LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY,  N,
-     &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,
-     &               IIPAR,     JJPAR,     LLPAR,     I0+1,
-     &               J0+1,      1,         TMP(:,:,:) )
- 
-         ! Print the min & max of each tracer written to file
-         WRITE( 6, 130 ) N, TRIM( ThisSpc%Name ), 
-     &                   MINVAL( TMP ), MAXVAL( TMP )
- 130     FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
-     &           '  Max = ', 
-     &           es15.9 )
-
-         ! Free pointer
-         ThisSpc => NULL()
-
-      ENDDO
-
-      ! Mark end of section in log
-      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-
-      ! Close file
-      CLOSE( IU_RST )
-
-      !### Debug
-      IF ( Input_Opt%LPRT .AND. am_I_Root ) THEN
-         CALL DEBUG_MSG( '### MAKE_CSPEC_FILE: wrote file' )
-      ENDIF
-
-      END SUBROUTINE MAKE_CSPEC_FILE
 !EOC
       END MODULE RESTART_MOD
