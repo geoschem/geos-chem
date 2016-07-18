@@ -505,6 +505,8 @@ dvected tracer input  restart file
 !                              HgP_Id_List fields of State_Chm
 !  11 Jul 2016 - E. Lundgren - Remove tracers and read only species
 !  12 Jul 2016 - E. Lundgren - Rename from read_gc_restart_nc
+!  18 Jul 2016 - M. Sulprizio- Remove special handling of ISOPN, MMN, CFCX, and
+!                              HCFCX. Family tracers have been eliminated.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -519,12 +521,6 @@ dvected tracer input  restart file
       REAL(fp)             :: CONV_FACTOR        ! convert mol/mol -> molec/cm3
       LOGICAL              :: FOUND              ! variable in restart file
 
-      !*******************************************************************
-      ! TEMPORARY PENDING FAMILIES REMOVAL
-      LOGICAL              :: FAMILIES_SPC       ! families species
-      REAL(fp)             :: TRC_TO_SPC_FACTOR  ! tracer conc -> spc conc
-      !*******************************************************************
-      
       ! NetCDF file info
       INTEGER              :: fId                ! netCDF file ID
       INTEGER              :: NX, NY, NZ, NT     ! netCDF file dimensions
@@ -670,47 +666,8 @@ dvected tracer input  restart file
             FOUND = .TRUE.
          ENDIF
 
-         !************************************************************
-         ! TEMPORARY CODE PENDING FAMILIES REMOVAL (ewl, 7/11/16)
-         ! If species is not in the restart file, check if is is part of 
-         ! a family.,If yes, then the legacy family tracer should be in
-         ! the initial restart file. Set the variable name to the family
-         ! tracer name and set a factor for converting tracer concentration
-         ! to species concentration (e.g. ISOPN * 0.5 for ISOPND and ISOPNB).
-         IF ( .NOT. FOUND ) THEN
-
-            SELECT CASE ( TRIM( ThisSpc%Name ) )
-            
-               CASE ('ISOPND', 'ISOPNB')
-                  v_name = 'SPC_ISOPN'
-                  TRC_TO_SPC_FACTOR = 0.5e+0_fp
-            
-               CASE ('MVKN', 'MACRN')
-                  v_name = 'SPC_ISOPN'
-                  TRC_TO_SPC_FACTOR = 0.5e+0_fp
-            
-               CASE( 'HCFC123', 'HCFC141b', 'HCFC142b' )
-                  v_name = 'SPC_HCFCX'
-                  TRC_TO_SPC_FACTOR = 1.0e+0_fp / 3.0e+0_fp
-            
-               CASE( 'CFC113', 'CFC114', 'CFC115' )
-                  v_name = 'SPC_CFCX'
-                  TRC_TO_SPC_FACTOR = 1.0e+0_fp / 3.0e+0_fp
-            
-               CASE DEFAULT
-                  TRC_TO_SPC_FACTOR = 1.0e+0_fp
-            
-            END SELECT
-   
-            IF ( TRC_TO_SPC_FACTOR > 1.0e+0_fp ) THEN
-               FAMILIES_SPC = .TRUE.
-            ENDIF
-
-         ENDIF
-         !************************************************************
-
          ! If data in file, read and convert to molec/cm2
-         IF ( FOUND .OR. FAMILIES_SPC ) THEN
+         IF ( FOUND ) THEN
 
             ! Initialize temporary array for this tracer and point to it
             ! use 1e-30 as min (hotp 2/25/09)
@@ -775,17 +732,6 @@ dvected tracer input  restart file
                State_Chm%Species(I,J,L,N) = 
      &                 Ptr3D(I,J,L) * CONV_FACTOR
                                     
-               !*********************************************************
-               ! TEMPORARY CODE PENDING FAMILIES REMOVAL
-               ! Adjust conversion factor to set family species
-               ! concentration equal to the tracer concentration divided 
-               ! by the number of species in the family. 
-               IF ( FAMILIES_SPC ) THEN
-                  State_Chm%Species(I,J,L,N) =
-     &                    State_Chm%Species(I,J,L,N) * TRC_TO_SPC_FACTOR
-               ENDIF
-               !*********************************************************
-          
                ! Make a small number if concentration is very low
                State_Chm%Species(I,J,L,N) = 
      &              MAX( State_Chm%Species(I,J,L,N), 1.0e-30_fp )

@@ -356,7 +356,7 @@ CONTAINS
     INTEGER,           SAVE :: id_ALK4,  id_C2H6,  id_C3H8, id_CH2O 
     INTEGER,           SAVE :: id_PRPE,  id_O3,    id_HNO3, id_BrO 
     INTEGER,           SAVE :: id_Br2,   id_Br,    id_HOBr, id_HBr
-    INTEGER,           SAVE :: id_BrNO3, id_ISOPN, id_MMN
+    INTEGER,           SAVE :: id_BrNO3
 
     ! Pointers and objects
     TYPE(Species), POINTER  :: SpcInfo
@@ -440,8 +440,6 @@ CONTAINS
        id_HOBr = IND_('HOBr' )
        id_HBr  = IND_('HBr'  )
        id_BrNO3= IND_('BrNO3')
-       id_ISOPN= IND_('ISOPN')
-       id_MMN  = IND_('MMN'  )
 
        ! On first call, get pointers to the PARANOX loss fluxes. These are
        ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and 

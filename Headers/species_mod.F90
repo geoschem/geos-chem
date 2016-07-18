@@ -581,6 +581,8 @@ CONTAINS
 !                              Is_ActiveChem and Is_Fixed Chem according to
 !                              KppVarId and KPPFixId.
 !  06 Jul 2016 - R. Yantosca - Add more error checks to avoid uninit'd fields
+!  18 Jul 2016 - M. Sulprizio- Remove special handling of ISOPN and MMN for
+!                              DryDepCount. Family tracers have been eliminated.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -885,17 +887,6 @@ CONTAINS
           ELSE
              ThisSpc%DryDepID  = DryDepCount
           ENDIF
-
-          ! ISOPN dry deposits as ISOPND + ISOPNB
-          ! MMN   dry deposits as MACRN  + MVKN
-          ! So we need to increment the drydep counter to
-          ! leave space for the next species
-          SELECT CASE( TRIM( ThisSpc%Name ) ) 
-             CASE( 'ISOPN', 'MMN' )
-                DryDepCount    = DryDepCount + 1
-             CASE DEFAULT
-                ! Nothing
-          END SELECT
 
        ELSE
           ThisSpc%Is_DryDep    = .FALSE.

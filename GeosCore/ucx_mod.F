@@ -112,6 +112,9 @@
 !  21 Jun 2016 - R. Yantosca   - Now store species ID flags as module variables
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
+!  18 Jul 2016 - M. Sulprizio- Remove CFCX and HCFCX everywhere and replace with
+!                              their constituents. Family tracers have been
+!                              eliminated.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -317,16 +320,18 @@
       ! These are now defined in INIT_UCX and used where needed.
       ! (sde, bmy, 6/21/16)
       !=================================================================
-      INTEGER :: id_BCPI,    id_Br,    id_Br2,   id_BrCl,   id_BrNO2
-      INTEGER :: id_BrNO3,   id_BrO,   id_CCl4,  id_CFC11,  id_CFC12 
-      INTEGER :: id_CFCX,    id_CH3Br, id_CHBr3, id_CH2Br2, id_CH3Cl 
-      INTEGER :: id_CH3CCl3, id_CH4,   id_Cl,    id_Cl2,    id_Cl2O2
-      INTEGER :: id_ClNO2,   id_ClNO3, id_ClO,   id_ClOO,   id_H1211
-      INTEGER :: id_H1301,   id_H2,    id_H2402, id_H2O,    id_HBr
-      INTEGER :: id_HCFC22,  id_HCFCX, id_HCl,   id_HNO2,   id_HNO3
-      INTEGER :: id_HNO4,    id_HOBr,  id_HOCl,  id_N2O,    id_N2O5
-      INTEGER :: id_NIT,     id_NO,    id_NO2,   id_NO3,    id_O3
-      INTEGER :: id_OClO,    id_OCS,   id_PAN,   id_SO2,    id_SO4
+      INTEGER :: id_BCPI,    id_Br,       id_Br2,    id_BrCl,  id_BrNO2
+      INTEGER :: id_BrNO3,   id_BrO,      id_CCl4,   id_CFC11, id_CFC12 
+      INTEGER :: id_CH3Br,   id_CHBr3,    id_CH2Br2, id_CH3Cl
+      INTEGER :: id_CH3CCl3, id_CH4,      id_Cl,     id_Cl2,   id_Cl2O2
+      INTEGER :: id_ClNO2,   id_ClNO3,    id_ClO,    id_ClOO,  id_H1211
+      INTEGER :: id_H1301,   id_H2,       id_H2402,  id_H2O,   id_HBr
+      INTEGER :: id_HCFC22,  id_HCl,      id_HNO2,   id_HNO3
+      INTEGER :: id_HNO4,    id_HOBr,     id_HOCl,   id_N2O,   id_N2O5
+      INTEGER :: id_NIT,     id_NO,       id_NO2,    id_NO3,   id_O3
+      INTEGER :: id_OClO,    id_OCS,      id_PAN,    id_SO2,   id_SO4
+      INTEGER :: id_CFC113,  id_CFC114,   id_CFC115
+      INTEGER :: id_HCFC123, id_HCFC141b, id_HCFC142b
       INTEGER :: id_CLOCK
 
       !=================================================================
@@ -909,20 +914,26 @@
      &                            Input_Opt, State_Met, State_Chm )
             ENDIF
 
-            IF ( id_CFCX > 0 ) THEN
-               TRAC_IDX = id_CFCX
+            IF ( id_CFC113 > 0 ) THEN
+               TRAC_IDX = id_CFC113
                TRAC_SET = 'C2CL3F3'
                SCALEFAC = MONTREAL_SCALEFAC('CFC113',
      &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
                CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
      &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
 
+            IF ( id_CFC114 > 0 ) THEN
+               TRAC_IDX = id_CFC114
                TRAC_SET = 'C2CL2F4'
                SCALEFAC = MONTREAL_SCALEFAC('CFC114',
      &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
                CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC,
      &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
 
+            IF ( id_CFC113 > 0 ) THEN
+               TRAC_IDX = id_CFC115
                TRAC_SET = 'C2CLF5'
                SCALEFAC = MONTREAL_SCALEFAC('CFC115',
      &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
@@ -940,20 +951,26 @@
      &                            Input_Opt, State_Met, State_Chm )
             ENDIF
 
-            IF ( id_HCFCX > 0 ) THEN
-               TRAC_IDX = id_HCFCX
+            IF ( id_HCFC123 > 0 ) THEN
+               TRAC_IDX = id_HCFC123
                TRAC_SET = 'C2HF3CL2'
 
                ! Take scaling factor for HCFC22 (no data for 123)
                CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
      &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
 
+            IF ( id_HCFC123 > 0 ) THEN
+               TRAC_IDX = id_HCFC141b
                TRAC_SET = 'C2H3FCL2'
                SCALEFAC = MONTREAL_SCALEFAC('HCFC141b',
      &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
                CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC,
      &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
 
+            IF ( id_HCFC123 > 0 ) THEN
+               TRAC_IDX = id_HCFC142b
                TRAC_SET = 'C2H3F2CL'
                SCALEFAC = MONTREAL_SCALEFAC('HCFC142b',
      &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
@@ -2317,22 +2334,23 @@
          DO N=1,N_EMIT
             LOCAL_NAME = TRIM(TRAC_EMIT(N))
             SELECT CASE (LOCAL_NAME)
-               CASE ('CFCX')
-                  ! Add 3 CFCs
+               CASE ('CFC113')
                   LOCAL_NAME = TRIM('CFC113')
                   CALL SET_MONTREAL_NCDF(LOCAL_NAME,
      &                    TARG_YR_NC,TARG_MO_NC,N)
+               CASE ('CFC114')
                   LOCAL_NAME = TRIM('CFC114')
                   CALL SET_MONTREAL_NCDF(LOCAL_NAME,
      &                    TARG_YR_NC,TARG_MO_NC,N)
+               CASE ('CFC115')
                   LOCAL_NAME = TRIM('CFC115')
                   CALL SET_MONTREAL_NCDF(LOCAL_NAME,
      &                    TARG_YR_NC,TARG_MO_NC,N)
-               CASE ('HCFCX')
-                  ! Add 2 HCFCs
+               CASE ('HCFC141b')
                   LOCAL_NAME = TRIM('HCFC141b')
                   CALL SET_MONTREAL_NCDF(LOCAL_NAME,
      &                    TARG_YR_NC,TARG_MO_NC,N)
+               CASE ('HCFC142b')
                   LOCAL_NAME = TRIM('HCFC142b')
                   CALL SET_MONTREAL_NCDF(LOCAL_NAME,
      &                    TARG_YR_NC,TARG_MO_NC,N)
@@ -2384,18 +2402,19 @@
          DO N=1,N_EMIT
             LOCAL_NAME = TRIM(TRAC_EMIT(N))
             SELECT CASE (LOCAL_NAME)
-               CASE ('CFCX')
-                  ! Add 3 CFCs
+               CASE ('CFC113')
                   LOCAL_NAME = TRIM('CFC113')
                   CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+               CASE ('CFC114')
                   LOCAL_NAME = TRIM('CFC114')
                   CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+               CASE ('CFC115')
                   LOCAL_NAME = TRIM('CFC115')
                   CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
-               CASE ('HCFCX')
-                  ! Add 2 HCFCs
+               CASE ('HCFC141b')
                   LOCAL_NAME = TRIM('HCFC141b')
                   CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+               CASE ('HCFC142b')
                   LOCAL_NAME = TRIM('HCFC142b')
                   CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
                   ! Ignore HCFC123 for the moment
@@ -6024,16 +6043,19 @@
          ID = IDT_EMIT(I)
          SELECT CASE (TRIM(TRAC_EMIT(I)))
 
-            CASE ('CFCX')
+            CASE ('CFC113')
                LOCAL_NAME = TRIM('CFC113')
                CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
+            CASE ('CFC114')
                LOCAL_NAME = TRIM('CFC114')
                CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
+            CASE ('CFC115')
                LOCAL_NAME = TRIM('CFC115')
                CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
-            CASE ('HCFCX')
+            CASE ('HCFC141b')
                LOCAL_NAME = TRIM('HCFC141b')
                CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
+            CASE ('HCFC142b')
                LOCAL_NAME = TRIM('HCFC142b')
                CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
             CASE ('H2402')
@@ -6674,7 +6696,9 @@
       id_CCl4    = Ind_('CCl4'      )
       id_CFC11   = Ind_('CFC11'     )
       id_CFC12   = Ind_('CFC12'     )
-      id_CFCX    = Ind_('CFCX'      )
+      id_CFC113  = Ind_('CFC113'    )
+      id_CFC114  = Ind_('CFC114'    )
+      id_CFC115  = Ind_('CFC115'    )
       id_CH3Br   = Ind_('CH3Br'     )
       id_CHBr3   = Ind_('CHBr3 '    )
       id_CH2Br2  = Ind_('CH2Br2'    )
@@ -6695,7 +6719,9 @@
       id_H2O     = Ind_('H2O'       )
       id_HBr     = Ind_('HBr'       )
       id_HCFC22  = Ind_('HCFC22'    )
-      id_HCFCX   = Ind_('HCFCX'     )
+      id_HCFC123 = Ind_('HCFC123'   )
+      id_HCFC141b= Ind_('HCFC141b'  )
+      id_HCFC142b= Ind_('HCFC142b'  )
       id_HCl     = Ind_('HCl'       )
       id_HNO2    = Ind_('HNO2'      )
       id_HNO3    = Ind_('HNO3'      )
@@ -6886,8 +6912,16 @@
          TRAC_EMIT(N_EMIT) = 'CFC12'
 
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_CFCX
-         TRAC_EMIT(N_EMIT) = 'CFCX'
+         IDT_EMIT( N_EMIT) = id_CFC113
+         TRAC_EMIT(N_EMIT) = 'CFC113'
+
+         N_EMIT = N_EMIT + 1
+         IDT_EMIT( N_EMIT) = id_CFC114
+         TRAC_EMIT(N_EMIT) = 'CFC114'
+
+         N_EMIT = N_EMIT + 1
+         IDT_EMIT( N_EMIT) = id_CFC115
+         TRAC_EMIT(N_EMIT) = 'CFC115'
 
          ! HCFC-22/123/141b/142b
          N_EMIT = N_EMIT + 1
@@ -6895,8 +6929,12 @@
          TRAC_EMIT(N_EMIT) = 'HCFC22'
 
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_HCFCX
-         TRAC_EMIT(N_EMIT) = 'HCFCX'
+         IDT_EMIT( N_EMIT) = id_HCFC141b
+         TRAC_EMIT(N_EMIT) = 'HCFC141b'
+
+         N_EMIT = N_EMIT + 1
+         IDT_EMIT( N_EMIT) = id_HCFC142b
+         TRAC_EMIT(N_EMIT) = 'HCFC142b'
 
          ! Halons (H-1301/2402/1211)
          N_EMIT = N_EMIT + 1

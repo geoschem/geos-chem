@@ -3926,6 +3926,8 @@
 !  29 Jan 2014 - R. Yantosca - Now save DEPNAME(N) into DRYDEP_NAME, which
 !                              helps avoid ambiguity for TOMAS simulations
 !  12 Jun 2015 - R. Yantosca - ND44 is now always in molec/cm2/s
+!  18 Jul 2016 - M. Sulprizio- Remove special handling of ISOPN and MMN. Family
+!                              tracers have been eliminated.
 !******************************************************************************
 !
       IF ( ND44 > 0 ) THEN
@@ -4019,17 +4021,6 @@
                MM  = MM + 1
             ENDDO
 #endif
-          
-            IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-               ! Special case for tracers with several dry dep. tracers
-               ! E.g. ISOPN: ISOPND and ISOPNB.
-               ! We handle both tracers at the same time so we need to 
-               ! skip the second tracer. (ccc, 2/3/10)
-               !IF ( MMB /= NN ) CYCLE
-               IF ( MMB /= NN                       .OR.
-     &              TRIM( DRYDEP_NAME ) == 'ISOPNB' .OR.
-     &              TRIM( DRYDEP_NAME ) == 'MVKN'       ) CYCLE
-            ENDIF
 
             ! Save into ARRAY
             ARRAY(:,:,1) = ( AD44(:,:,N,1) / SCALECHEM )
@@ -4048,53 +4039,6 @@
      &                  IIPAR,     JJPAR,     1,        IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 #endif
-
-            !-----------------------------------------------------------
-            ! Special case for tracers with several deposition tracers.
-            ! We have already written drydep fluxes for ISOPND and 
-            ! MACRN above.  Therefore, also write the drydep velocities
-            ! for the second species (ISOPNB and MVKN) here.
-            !-----------------------------------------------------------
-            SELECT CASE( TRIM( DRYDEP_NAME ) )
-
-               CASE( 'ISOPND' ) 
-                  !ISOPNB is the next deposition tracer
-                  ! Save into ARRAY
-                  ARRAY(:,:,1) = ( AD44(:,:,N+1,1) / SCALECHEM )
-
-                  ! Index under which ISOPN is stored
-                  T            = nAdvect + 1
-
-                  ! Write to file
-                  ! It's number is NNPAR+1 (see gamap_mod.f)
-                  CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                        HALFPOLAR, CENTER180, CATEGORY, T,    
-     &                        UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                        IIPAR,     JJPAR,     1,        IFIRST,     
-     &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
-               CASE( 'MACRN' )
-                  !MVKN are the next deposition tracer
-                  ! Save into ARRAY
-                  ARRAY(:,:,1) = ( AD44(:,:,N+1,1) / SCALECHEM )
-
-                  ! Index under which MVKN is stored
-                  T            = nAdvect + 2
-
-                  ! Write to file
-                  ! It's number is NNPAR+2 (see gamap_mod.f)
-                  CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                        HALFPOLAR, CENTER180, CATEGORY, T,
-     &                        UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                        IIPAR,     JJPAR,     1,        IFIRST,     
-     &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
-
-                CASE DEFAULT
-                   ! Do Nothing
-
-            END SELECT
-                  
 
          ENDDO
 
@@ -4128,17 +4072,6 @@
                MM  = MM + 1
             ENDDO
 
-            IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-               ! Special case for tracers with several dry dep. tracers
-               ! E.g. ISOPN: ISOPND and ISOPNB.
-               ! We handle both tracers at the same time so we need to 
-               ! skip the second tracer. (ccc, 2/3/10)
-               !IF ( MMB /= NN ) CYCLE
-               IF ( MMB /= NN                .OR.
-     &              DEPNAME( N ) == 'ISOPNB' .OR.
-     &              DEPNAME( N ) == 'MVKN'       ) CYCLE
-            ENDIF
-
             ! Tracer number plus GAMAP offset
             ARRAY(:,:,1) = AD44(:,:,N,2) / SCALESRCE
 
@@ -4148,53 +4081,6 @@
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     1,        IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
-
-            !-----------------------------------------------------------
-            ! Special case for tracers with several deposition tracers.
-            ! We have already written drydep velocities for ISOPND and 
-            ! MACRN above.  Therefore, also write the drydep velocities
-            ! for the second species (ISOPNB and MVKN) here.
-            ! (ccc, bmy, 9/4/13)
-            !-----------------------------------------------------------
-            SELECT CASE( TRIM( DEPNAME( N ) ) )
-
-               CASE( 'ISOPND' ) 
-                  !ISOPNB is the next deposition tracer
-                  ! Save into ARRAY
-                  ARRAY(:,:,1) = ( AD44(:,:,N+1,2) / SCALECHEM )
-
-                  ! Index under which ISOPN is stored
-                  T            = nAdvect + 1
-
-                  ! Write to file
-                  ! It's number is NNPAR+1 (see gamap_mod.f)
-                  CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                        HALFPOLAR, CENTER180, CATEGORY, T,    
-     &                        UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                        IIPAR,     JJPAR,     1,        IFIRST,     
-     &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
-               CASE( 'MACRN' )
-                  !MVKN are the next deposition tracer
-                  ! Save into ARRAY
-                  ARRAY(:,:,1) = ( AD44(:,:,N+1,2) / SCALECHEM )
-
-                  ! Index under which MVKN is stored
-                  T            = nAdvect + 2
-
-                  ! Write to file
-                  ! It's number is NNPAR+2 (see gamap_mod.f)
-                  CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                        HALFPOLAR, CENTER180, CATEGORY, T,    
-     &                        UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                        IIPAR,     JJPAR,     1,        IFIRST,     
-     &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
-               CASE DEFAULT
-                  ! Do nothing
-
-            END SELECT
 
          ENDDO
       ENDIF

@@ -136,8 +136,8 @@
       INTEGER :: id_BCPI,  id_BCPO,  id_BENZ,  id_C2H2  
       INTEGER :: id_C2H4,  id_C2H6,  id_C3H8,  id_CH2O  
       INTEGER :: id_CH4,   id_CO,    id_GLYC,  id_GLYX  
-      INTEGER :: id_HAC,   id_ISOPN, id_ISOA1, id_LIMO  
-      INTEGER :: id_MEK,   id_MGLY,  id_MMN,   id_MTPA  
+      INTEGER :: id_HAC,   id_ISOA1, id_LIMO
+      INTEGER :: id_MEK,   id_MGLY,  id_MTPA
       INTEGER :: id_MTPO,  id_NAP,   id_NH3,   id_NK1   
       INTEGER :: id_NO,    id_OCPI,  id_OCPO,  id_OPOA1 
       INTEGER :: id_OPOG1, id_PASV,  id_POA1,  id_PRPE  
@@ -1835,6 +1835,8 @@
 !  25 May 2016 - E. Lundgren - Replace Input_Opt%TRACER_MW_KG with converted
 !                              species database emMW_g (emitted species g/mol)
 !  16 Jun 2016 - E. Lundgren - Remove dependency on tracerid_mod
+!  18 Jul 2016 - M. Sulprizio- Remove special handling of ISOPN and MMN for
+!                              ND44. Family tracers have been eliminated.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6277,126 +6279,41 @@
                
                IF ( N <= NUMDEP ) THEN 
 
-                  ! Handle drydep flux first
-                  SELECT CASE( TRIM( Input_Opt%DEPNAME(N) ) )
+                  !-----------------------------------------------
+                  ! Drydep flux
+                  !-----------------------------------------------
+                  T             = NTRAIND(N)         
+                  ThisSpc       => State_Chm%SpcData(T)%Info
+                  NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                            'df'
+                  FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                           ' drydep flux'
+                  MWT  (N,44)   = ThisSpc%emMW_g * 1.e-3_fp
+                  MOLC (N,44)   = ThisSpc%MolecRatio
+                  SCALE(N,44)   = 1.0e0
+                  INDEX(N,44)   = T + ( SPACING * 36 )
+                  NTRAC(44)     = NTRAC(44) + 1
 
-                     CASE( 'ISOPNB' )
+                  ! For the Rn simulation, unit is kg/s (bmy, 2/22/08)
+                  IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
+                     UNIT(N,44) = 'kg/s'
+                  ELSE
+                     UNIT(N,44) = 'molec/cm2/s'
+                  ENDIF
 
-                        !-----------------------------------------------
-                        ! Drydep flux: ISOPNB.  Use the same info as
-                        ! for ISOPND but save as w/ index N_TRACERS+1.
-                        !-----------------------------------------------
-                        T             = id_ISOPN
-                        ThisSpc       => State_Chm%SpcData(T)%Info
-                        NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                                  'df'
-                        FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                                  ' drydep flux'
-                        MWT  (N,44)   = ThisSpc%emMW_g * 1.e-3_fp
-                        MOLC (N,44)   = ThisSpc%MolecRatio
-                        SCALE(N,44)   = 1.0e0
-                        UNIT (N,44)   = 'molec/cm2/s'
-                        INDEX(N,44)   = ( Input_Opt%N_TRACERS + 1  )
-     &                                + ( SPACING             * 36 )
-                        NTRAC(44)     = NTRAC(44) + 1
-
-                        !-----------------------------------------------
-                        ! Drydep velocity: ISOPNB.  Use the same info as
-                        ! for ISOPND but save as w/ index N_TRACERS+1.
-                        !-----------------------------------------------
-                        T             = id_ISOPN
-                        ThisSpc       => State_Chm%SpcData(T)%Info
-                        NN            = N + NDryDep
-                        NAME (NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                                 'dv'
-                        FNAME(NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                                  ' drydep velocity'
-                        MWT  (NN,44)  = ThisSpc%emMW_g * 1.e-3_fp
-                        MOLC (NN,44)  = ThisSpc%MolecRatio
-                        SCALE(NN,44)  = 1.0e0
-                        UNIT (NN,44)  = 'cm/s'
-                        INDEX(NN,44)  = ( Input_Opt%N_TRACERS + 1  )
-     &                                + ( SPACING             * 37 )
-                        NTRAC(44)     = NTRAC(44) + 1
-
-                     CASE( 'MVKN' )
-
-                        !-----------------------------------------------
-                        ! Drydep flux: MVKN.  Use the same info as
-                        ! for MMN but save as w/ index N_TRACERS+2.
-                        !-----------------------------------------------
-                        T             = id_MMN
-                        ThisSpc       => State_Chm%SpcData(T)%Info
-                        NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                       'df'
-                        FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                       ' drydep flux'
-                        MWT  (N,44)   = ThisSpc%emMW_g * 1.e-3_fp
-                        MOLC (N,44)   = ThisSpc%MolecRatio
-                        SCALE(N,44)   = 1.0e0
-                        UNIT (N,44)   = 'molec/cm2/s'
-                        INDEX(N,44)   = ( Input_Opt%N_TRACERS + 2  )
-     &                                + ( SPACING             * 36 )
-                        NTRAC(44)     = NTRAC(44) + 1
-                        
-                        !--------------------------------------------------
-                        ! Drydep velocity: MVKN.  Use the same info as
-                        ! for MMN but save as w/ index N_TRACERS+2.
-                        !--------------------------------------------------
-                        T             = id_MMN
-                        ThisSpc       => State_Chm%SpcData(T)%Info
-                        NN            = N + NDryDep
-                        NAME (NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                                  'dv'
-                        FNAME(NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                                  ' drydep flux'
-                        MWT  (NN,44)  = ThisSpc%emMW_g * 1.e-3_fp
-                        MOLC (NN,44)  = ThisSpc%MolecRatio
-                        SCALE(NN,44)  = 1.0e0
-                        UNIT (NN,44)  = 'cm/s'
-                        INDEX(NN,44)  = ( Input_Opt%N_TRACERS + 2  )
-     &                                + ( SPACING             * 37 )
-                        NTRAC(44)     = NTRAC(44) + 1
-
-                     CASE DEFAULT
-
-                        !-----------------------------------------------
-                        ! Drydep flux: all other G-C tracers
-                        !-----------------------------------------------
-                        T             = NTRAIND(N)         
-                        ThisSpc       => State_Chm%SpcData(T)%Info
-                        NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                                  'df'
-                        FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                                 ' drydep flux'
-                        MWT  (N,44)   = ThisSpc%emMW_g * 1.e-3_fp
-                        MOLC (N,44)   = ThisSpc%MolecRatio
-                        SCALE(N,44)   = 1.0e0
-                        INDEX(N,44)   = T + ( SPACING * 36 )
-                        NTRAC(44)     = NTRAC(44) + 1
-
-                        ! For the Rn simulation, unit is kg/s (bmy, 2/22/08)
-                        IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
-                           UNIT(N,44) = 'kg/s'
-                        ELSE
-                           UNIT(N,44) = 'molec/cm2/s'
-                        ENDIF
-
-                        !-----------------------------------------------
-                        ! Drydep velocity all other G-C tracers
-                        !-----------------------------------------------
-                        NN            = N + NUMDEP  +(ICOMP-IDIAG)*IBINS
-                        NAME (NN,44)  = TRIM( DEPNAME(N) ) // 'dv'        
-                        FNAME(NN,44)  = TRIM( DEPNAME(N) ) // 
-     &                                  ' drydep velocity'
-                        MWT  (NN,44)  = ThisSpc%emMW_g * 1.e-3_fp
-                        MOLC (NN,44)  = ThisSpc%MolecRatio
-                        UNIT (NN,44)  = 'cm/s'                     
-                        SCALE(NN,44)  = 1.0e0
-                        INDEX(NN,44)  = T + ( SPACING * 37 )
-                        NTRAC(44)     = NTRAC(44) + 1
-
-                  END SELECT
+                  !-----------------------------------------------
+                  ! Drydep velocity
+                  !-----------------------------------------------
+                  NN            = N + NUMDEP  +(ICOMP-IDIAG)*IBINS
+                  NAME (NN,44)  = TRIM( DEPNAME(N) ) // 'dv'        
+                  FNAME(NN,44)  = TRIM( DEPNAME(N) ) // 
+     &                            ' drydep velocity'
+                  MWT  (NN,44)  = ThisSpc%emMW_g * 1.e-3_fp
+                  MOLC (NN,44)  = ThisSpc%MolecRatio
+                  UNIT (NN,44)  = 'cm/s'                     
+                  SCALE(NN,44)  = 1.0e0
+                  INDEX(NN,44)  = T + ( SPACING * 37 )
+                  NTRAC(44)     = NTRAC(44) + 1
 
                ELSE
 
@@ -6438,126 +6355,41 @@
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             ! Loop over # of depositing species
-            DO N = 1, NDryDep
+            DO N = 1, nDryDep
 
-               ! Handle drydep flux first
-               SELECT CASE( TRIM( Input_Opt%DEPNAME(N) ) )
+               !--------------------------------------------------
+               ! Drydep flux
+               !--------------------------------------------------
+               T             = NTRAIND(N)
+               ThisSpc       => State_Chm%SpcData(T)%Info
+               NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                         'df'
+               FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                        ' drydep flux'
+               MWT  (N,44)   = ThisSpc%emMW_g * 1.e-3_fp
+               MOLC (N,44)   = ThisSpc%MolecRatio
+               SCALE(N,44)   = 1.0e0
+               INDEX(N,44)   = T + ( SPACING * 36 )
+               NTRAC(44)     = NTRAC(44) + 1
 
-                  CASE( 'ISOPNB' )
+               ! NOTE: ND44 is now molec/cm2/s for all species
+               ! because this is now centrally archived in
+               ! module GeosCore/mixing_mod.F90 (bmy, 6/16/15)
+               UNIT(N,44) = 'molec/cm2/s'
 
-                     !--------------------------------------------------
-                     ! Drydep flux: ISOPNB.  Use the same info as
-                     ! for ISOPND but save as w/ index N_TRACERS+1.
-                     !--------------------------------------------------
-                     T             = id_ISOPN
-                     ThisSpc       => State_Chm%SpcData(T)%Info
-                     NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                               'df'
-                     FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                               ' drydep flux'
-                     MWT  (N,44)   = ThisSpc%emMW_g * 1.e-3_fp
-                     MOLC (N,44)   = ThisSpc%MolecRatio
-                     SCALE(N,44)   = 1.0e0
-                     UNIT (N,44)   = 'molec/cm2/s'
-                     INDEX(N,44)   = ( Input_Opt%N_TRACERS + 1  )
-     &                             + ( SPACING             * 36 )
-                     NTRAC(44)     = NTRAC(44) + 1
-
-                     !--------------------------------------------------
-                     ! Drydep velocity: ISOPNB.  Use the same info as
-                     ! for ISOPND but save as w/ index N_TRACERS+1.
-                     !--------------------------------------------------
-                     T             = id_ISOPN
-                     ThisSpc       => State_Chm%SpcData(T)%Info
-                     NN            = N + NDryDep
-                     NAME (NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                              'dv'
-                     FNAME(NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                             ' drydep velocity'
-                     MWT  (NN,44)  = ThisSpc%emMW_g * 1.e-3_fp
-                     MOLC (NN,44)  = ThisSpc%MolecRatio
-                     SCALE(NN,44)  = 1.0e0
-                     UNIT (NN,44)  = 'cm/s'
-                     INDEX(NN,44)  = ( Input_Opt%N_TRACERS + 1  )
-     &                             + ( SPACING             * 37 )
-                     NTRAC(44)     = NTRAC(44) + 1
-
-                  CASE( 'MVKN' )
-
-                     !--------------------------------------------------
-                     ! Drydep flux: MVKN.  Use the same info as
-                     ! for MMN but save as w/ index N_TRACERS+2.
-                     !--------------------------------------------------
-                     T             = id_MMN
-                     ThisSpc       => State_Chm%SpcData(T)%Info
-                     NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                               'df'
-                     FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                              ' drydep flux'
-                     MWT  (N,44)   = ThisSpc%emMW_g * 1.e-3_fp
-                     MOLC (N,44)   = ThisSpc%MolecRatio
-                     SCALE(N,44)   = 1.0e0
-                     UNIT (N,44)   = 'molec/cm2/s'
-                     INDEX(N,44)   = ( Input_Opt%N_TRACERS + 2  )
-     &                             + ( SPACING             * 36 )
-                     NTRAC(44)     = NTRAC(44) + 1
-                    
-                     !--------------------------------------------------
-                     ! Drydep velocity: MVKN.  Use the same info as
-                     ! for MMN but save as w/ index N_TRACERS+2.
-                     !--------------------------------------------------
-                     T             = id_MMN
-                     ThisSpc       => State_Chm%SpcData(T)%Info
-                     NN            = N + NDryDep
-                     NAME (NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                              'dv'
-                     FNAME(NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                             ' drydep velocity'
-                     MWT  (NN,44)  = ThisSpc%emMW_g * 1.e-3_fp
-                     MOLC (NN,44)  = ThisSpc%MolecRatio
-                     SCALE(NN,44)  = 1.0e0
-                     UNIT (NN,44)  = 'cm/s'
-                     INDEX(NN,44)  = ( Input_Opt%N_TRACERS + 2  )
-     &                             + ( SPACING             * 37 )
-                     NTRAC(44)     = NTRAC(44) + 1
-
-                  CASE DEFAULT
-
-                     !--------------------------------------------------
-                     ! Drydep flux: all other G-C tracers
-                     !--------------------------------------------------
-                     T             = NTRAIND(N)
-                     ThisSpc       => State_Chm%SpcData(T)%Info
-                     NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                               'df'
-                     FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                              ' drydep flux'
-                     MWT  (N,44)   = ThisSpc%emMW_g * 1.e-3_fp
-                     MOLC (N,44)   = ThisSpc%MolecRatio
-                     SCALE(N,44)   = 1.0e0
-                     INDEX(N,44)   = T + ( SPACING * 36 )
-                     NTRAC(44)     = NTRAC(44) + 1
-
-                     ! NOTE: ND44 is now molec/cm2/s for all species
-                     ! because this is now centrally archived in
-                     ! module GeosCore/mixing_mod.F90 (bmy, 6/16/15)
-                     UNIT(N,44) = 'molec/cm2/s'
-
-                     !--------------------------------------------------
-                     ! Drydep velocity all other G-C tracers
-                     !--------------------------------------------------
-                     NN            = N + NDryDep
-                     NAME (NN,44)  = TRIM( DEPNAME(N) ) // 'dv'        
-                     FNAME(NN,44)  = TRIM( DEPNAME(N) ) // 
-     &                               ' drydep velocity'
-                     MWT  (NN,44)  = ThisSpc%emMW_g * 1.e-3_fp
-                     MOLC (NN,44)  = ThisSpc%MolecRatio
-                     UNIT (NN,44)  = 'cm/s'                     
-                     SCALE(NN,44)  = 1.0e0
-                     INDEX(NN,44)  = T + ( SPACING * 37 )
-                     NTRAC(44)     = NTRAC(44) + 1
-
-               END SELECT
+               !--------------------------------------------------
+               ! Drydep velocity
+               !--------------------------------------------------
+               NN            = N + nDryDep
+               NAME (NN,44)  = TRIM( DEPNAME(N) ) // 'dv'        
+               FNAME(NN,44)  = TRIM( DEPNAME(N) ) // 
+     &                         ' drydep velocity'
+               MWT  (NN,44)  = ThisSpc%emMW_g * 1.e-3_fp
+               MOLC (NN,44)  = ThisSpc%MolecRatio
+               UNIT (NN,44)  = 'cm/s'                     
+               SCALE(NN,44)  = 1.0e0
+               INDEX(NN,44)  = T + ( SPACING * 37 )
+               NTRAC(44)     = NTRAC(44) + 1
 
             ENDDO
 #endif
@@ -7859,12 +7691,10 @@
       id_GLYC  = IND_('GLYC' )
       id_GLYX  = IND_('GLYX' )
       id_HAC   = IND_('HAC'  )
-      id_ISOPN = IND_('ISOPN')
       id_ISOA1 = IND_('ISOA1')
       id_LIMO  = IND_('LIMO' )
       id_MEK   = IND_('MEK'  ) 
       id_MGLY  = IND_('MGLY' )
-      id_MMN   = IND_('MMN'  )
       id_MTPA  = IND_('MTPA' )
       id_MTPO  = IND_('MTPO' )
       id_NAP   = IND_('NAP'  )

@@ -8387,7 +8387,9 @@
       ! Error check CFC emissions
       !=================================================================
       IF ( Input_Opt%LCFCEMIS .or. Input_Opt%LSETCFC ) THEN
-         IF ( IND_('CFCX') < 0 ) THEN
+         IF ( IND_('CFC113') < 0 .or.
+     &        IND_('CFC114') < 0 .or. 
+     &        IND_('CFC115') < 0) THEN
             Input_Opt%LCFCEMIS = .FALSE.
             Input_Opt%LSETCFC  = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )

@@ -26,7 +26,7 @@
       USE DUST_MOD
       USE ERROR_MOD
       USE FAST_JX_MOD
-      USE FLEXCHEM_SETUP_MOD
+      USE FLEXCHEM_SETUP_MOD,   ONLY : CSPECTOKPP, HSAVE_KPP
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
@@ -97,6 +97,10 @@
 !                              by applying unit conversions to non-KPP species
 !  16 Jun 2016 - M. Sulprizio- Now define IDTCH4 locally
 !  20 Jun 2016 - R. Yantosca - Renamed IDTCH4 to id_CH4 for consistency
+!  18 Jul 2016 - M. Sulprizio- Remove calls to FAMILIES_KLUDGE. Family tracers
+!                              have been eliminated. Also simplify code to copy
+!                              to/from STT so that unit conversions to/from
+!                              molec/cm3 are done in the same step as the copy.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -375,9 +379,7 @@
       ENDIF
 
       !=================================================================
-      ! Loop over tracers and grid boxes
-      ! The following 4-loop block mimics partition.F
-      ! -- Families are dealt with in the KLUDGE Pt.1 below
+      ! Copy STT to State_Chm%Species
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -400,63 +402,13 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            ! Convert STT from kg to molec/cm3
-            STT(I,J,L,N) = STT(I,J,L,N)
-     &                   * ( AVO / MW_KG ) 
-     &                   / ( State_Met%AIRVOL(I,J,L)  * 
-     &                        1e+6_fp                  *
-     &                        MolecRatio              )
-
-            ! Copy STT to State_Chm%Species [molec/cm3]
+            ! Copy from STT to State_Chm%Species
+            ! Convert from [kg] to [molec/cm3]
             State_Chm%Species(I,J,L,N) = STT(I,J,L,N)
-
-         ENDDO
-         ENDDO
-         ENDDO
-
-         ! Free pointer
-         ThisSpc => NULL()
-
-      ENDDO
-!$OMP END PARALLEL DO
-      
-      ! Kludge for families: tracers to species
-      CALL FAMILIES_KLUDGE(am_I_Root,STT,Input_Opt,State_Chm,State_Met,
-     &                     1,RC)
- 
-      !=================================================================
-      ! Convert STT from molec/cm3 back to kg (required for 
-      ! gckpp_HetRates.F90) 
-      ! 
-      ! NOTE: When we remove the tracer families we can get rid of this 
-      ! step by converting units when we copy STT to State_Chm%Species 
-      ! and leaving STT in units kg (mps, 1/28/16)
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg, ThisSpc )
-      DO N = 1, State_Chm%nSpecies
-
-         ! Get info about this species from the species database
-         ThisSpc => State_Chm%SpcData(N)%Info
-
-         ! Skip non-advected and non-KPP species
-         IF ( .not. This Spc%Is_Advected ) CYCLE
-         IF ( .not. ThisSpc%Is_Kpp       ) CYCLE
-
-         ! Moles C per moles species
-         MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
-         MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
-
-         ! Loop over grid boxes
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            STT(I,J,L,N) = STT(I,J,L,N)
-     &                   / ( AVO / MW_kg ) * 
-     &                     ( State_Met%AIRVOL(I,J,L) * 
-     &                       1e+6_fp                 *
-     &                       MolecRatio                )
+     &                                 * ( AVO / MW_KG ) 
+     &                                 / ( State_Met%AIRVOL(I,J,L) * 
+     &                                     1e+6_fp                 *
+     &                                     MolecRatio              )
          ENDDO
          ENDDO
          ENDDO
@@ -947,53 +899,6 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       !=================================================================
-      ! Convert STT from kg to molec/cm3
-      !
-      ! NOTE: When we remove the tracer families we can get rid of this 
-      ! step because STT will be left in units kg and we can convert 
-      ! units from molec/cm3/s to kg when we copy State_Chm%Species to 
-      ! STT (mps, 1/28/16)
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg, ThisSpc )
-      DO N = 1, State_Chm%nSpecies
-
-         ! Get info about this species from the species database
-         ThisSpc => State_Chm%SpcData(N)%Info
-
-         ! Skip non-advected and non-KPP species
-         IF ( .not. This Spc%Is_Advected ) CYCLE
-         IF ( .not. ThisSpc%Is_Kpp       ) CYCLE
-
-         ! Moles C per moles species
-         MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
-         MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
-
-         ! Loop over grid boxes
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            STT(I,J,L,N) = STT(I,J,L,N)
-     &                   * ( AVO / MW_kg ) 
-     &                   / ( State_Met%AIRVOL(I,J,L)  * 
-     &                       1e+6_fp                  *
-     &                       MolecRatio              )
-         ENDDO
-         ENDDO
-         ENDDO
-
-         ! Free pointer
-         ThisSpc => NULL()
-
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Kludge for families: species to tracers
-      CALL FAMILIES_KLUDGE(am_I_Root,STT,Input_Opt,State_Chm,State_Met,
-     &                     2,RC)
-
-      !=================================================================
       ! Copy updated tracer concentrations back into STT
       !=================================================================
 !$OMP PARALLEL DO
@@ -1018,15 +923,13 @@
          DO I = 1, IIPAR
 
             ! Copy new tracer concentrations from State_Chm%Species to STT
-            ! [molec/cm3]
+            ! Convert from [molec/cm3] to [kg]
             STT(I,J,L,N) = State_Chm%Species(I,J,L,N)
-         
-            ! Convert STT from molec/cm3 back to kg
-            STT(I,J,L,N) = STT(I,J,L,N)
      &                   / ( AVO / MW_kg ) 
      &                   * ( State_Met%AIRVOL(I,J,L)  * 
      &                       1e+6_fp                  *
      &                       MolecRatio              ) 
+
          ENDDO
          ENDDO
          ENDDO
