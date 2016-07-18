@@ -584,12 +584,11 @@
       LOGICAL,  SAVE    :: FIRST = .TRUE.
       
       ! Non-SAVEd scalars
-      INTEGER           :: N_TRACERS
       LOGICAL           :: LDEAD
       LOGICAL           :: LDUST
       LOGICAL           :: LPRT
       LOGICAL           :: LINTERP 
-      INTEGER           :: I, J, K, NA, nAdvect
+      INTEGER           :: I, J, K, N, NA, nAdvect
       REAL(fp)          :: MEMIS, MINIT(IIPAR,JJPAR,1,IBINS)
 
       ! Pointers
@@ -617,7 +616,6 @@
       RC        = GIGC_SUCCESS
 
       ! Initialize
-      N_TRACERS =  Input_Opt%N_TRACERS
       LDEAD     =  Input_Opt%LDEAD
       LDUST     =  Input_Opt%LDUST
       LPRT      =  Input_Opt%LPRT

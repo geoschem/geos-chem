@@ -86,43 +86,47 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, J, L, N, JC, BIN, ID
-      REAL(fp)               :: DTCHEM,  AREA_CM2, FLUX
-      REAL(fp)               :: X, X0(IBINS, ICOMP-IDIAG+1)
-      REAL(fp)               :: Y, Y0, RKT
-      REAL(fp)               :: NU0(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL(fp)               :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL(fp)               :: SIZ_DIA(IIPAR,JJPAR,IBINS)
-      REAL(fp)               :: SIZ_DEN(IIPAR,JJPAR,IBINS)
-      REAL(fp)               :: DEN,   DP,    PDP,  TEMP,  P
-      REAL(fp)               :: CONST, SLIP,  VISC, DELZ,  DELZ1
-      REAL(fp)               :: TOT1,  TOT2
-      REAL(fp)               :: TC(LLPAR),  TC0(LLPAR)
-      INTEGER,SAVE           :: DRYD(IBINS)
-      LOGICAL,SAVE           :: FIRST = .TRUE.
-      INTEGER,SAVE           :: H2SO4ID
-      LOGICAL                :: DOSETTLING = .TRUE.
-
-      ! Settling velocity of particle (m/s)
-      REAL(fp)                :: VTS(LLPAR)  
-      
-      !debug
-      integer   :: ii, jj , ix, jx, bb, ll
-      data ii,jj, ix, jx, bb, ll /55, 29, 55, 29, 1, 1 /
-      CHARACTER(LEN=255) :: LOC, MSG
-
-      ! For fields from Input_Opt
-      LOGICAL           :: LPRT
-
-      ! Pointers
-      REAL(fp), POINTER :: Spc     (:,:,:,:)
-      REAL(fp), POINTER :: BXHEIGHT(:,:,:  )
-      REAL(fp), POINTER :: T       (:,:,:  )
 
       ! SAVEd scalars 
-      LOGICAL, SAVE     :: FIRST = .TRUE.
-      INTEGER, SAVE     :: id_H2SO4
-      INTEGER, SAVE     :: id_NK1
+      LOGICAL,  SAVE     :: DOSETTLING = .TRUE.
+      LOGICAL,  SAVE     :: FIRST      = .TRUE.
+      INTEGER,  SAVE     :: H2SO4ID
+      INTEGER,  SAVE     :: id_H2SO4
+      INTEGER,  SAVE     :: id_NK1
+
+      ! Scalars
+      LOGICAL            :: LPRT
+      INTEGER            :: I,      J,        L
+      INTEGER            :: N,      JC,       BIN,   ID
+      REAL(fp)           :: DTCHEM, AREA_CM2, FLUX,  X,    Y
+      REAL(fp)           :: Y0,     RKT,      DEN,   DP,   PDP
+      REAL(fp)           :: TEMP,   P,        CONST, SLIP, VISC
+      REAL(fp)           :: DELZ,   DELZ1,    TOT1,  TOT2
+
+      ! Strings
+      CHARACTER(LEN=255) :: LOC, MSG
+
+      ! Arrays
+      REAL(fp)           :: TC     (            LLPAR      )
+      REAL(fp)           :: TC0    (            LLPAR      )
+      REAL(fp)           :: VTS    (            LLPAR      ) ! Settling V [m/s]
+      REAL(fp)           :: NU0    (IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp)           :: DU0    (IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp)           :: SIZ_DIA(IIPAR,JJPAR,      IBINS)
+      REAL(fp)           :: SIZ_DEN(IIPAR,JJPAR,      IBINS)
+      REAL(fp)           :: X0     (IBINS,ICOMP-IDIAG+1    )
+
+      ! Pointers
+      REAL(fp), POINTER  :: Spc     (:,:,:,:)
+      REAL(fp), POINTER  :: BXHEIGHT(:,:,:  )
+      REAL(fp), POINTER  :: T       (:,:,:  )
+
+      ! SAVEd arrays
+      INTEGER,  SAVE     :: DRYD(IBINS)
+
+!      !debug
+!     integer   :: ii, jj , ix, jx, bb, ll
+!     data ii,jj, ix, jx, bb, ll /55, 29, 55, 29, 1, 1 /
 
       !=================================================================
       ! AERO_DRYDEP begins here!

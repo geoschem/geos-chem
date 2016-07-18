@@ -273,6 +273,7 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!  18 Jul 2016 - R. Yantosca - Bug fix: look up TOMAS species ID's
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -361,18 +362,20 @@
       INTEGER, SAVE            :: id_POPG
       INTEGER, SAVE            :: id_POPPOCPO, id_POPPOCPI
       INTEGER, SAVE            :: id_POPPBCPO, id_POPPBCPI
-      INTEGER, SAVE            :: id_DST1, id_DST2, id_DST3, id_DST4
-      INTEGER, SAVE            :: id_DAL1, id_DAL2, id_DAL3, id_DAL4
-      INTEGER, SAVE            :: id_BCPI, id_OCPI, id_POA1, id_MTPA
-      INTEGER, SAVE            :: id_LIMO, id_MTPO, id_TSOA1,id_ISOA1
-      INTEGER, SAVE            :: id_ASOA1,id_OPOA1,id_OPOG1,id_SOAG
-      INTEGER, SAVE            :: id_SOAM, id_SALA, id_SALC, id_MOPO    
-      INTEGER, SAVE            :: id_MOPI, id_DMS,  id_SO2,  id_SO4
-      INTEGER, SAVE            :: id_NH3,  id_NO,   id_CO,   id_ALK4
-      INTEGER, SAVE            :: id_ACET, id_MEK,  id_ALD2, id_PRPE
-      INTEGER, SAVE            :: id_C3H8, id_CH2O, id_C2H6, id_CH4
-      INTEGER, SAVE            :: id_ISOP, id_C2H4, id_CHBR3,id_CH2BR2
-      INTEGER, SAVE            :: id_BR2
+      INTEGER, SAVE            :: id_DST1,  id_DST2,  id_DST3,  id_DST4
+      INTEGER, SAVE            :: id_DAL1,  id_DAL2,  id_DAL3,  id_DAL4
+      INTEGER, SAVE            :: id_BCPI,  id_OCPI,  id_POA1,  id_MTPA
+      INTEGER, SAVE            :: id_LIMO,  id_MTPO,  id_TSOA1, id_ISOA1
+      INTEGER, SAVE            :: id_ASOA1, id_OPOA1, id_OPOG1, id_SOAG
+      INTEGER, SAVE            :: id_SOAM,  id_SALA,  id_SALC,  id_MOPO    
+      INTEGER, SAVE            :: id_MOPI,  id_DMS,   id_SO2,   id_SO4
+      INTEGER, SAVE            :: id_NH3,   id_NO,    id_CO,    id_ALK4
+      INTEGER, SAVE            :: id_ACET,  id_MEK,   id_ALD2,  id_PRPE
+      INTEGER, SAVE            :: id_C3H8,  id_CH2O,  id_C2H6,  id_CH4
+      INTEGER, SAVE            :: id_ISOP,  id_C2H4,  id_CHBR3, id_BR2
+      INTEGER, SAVE            :: id_DUST1, id_NK1,   id_SF1,   id_SS1
+      INTEGER, SAVE            :: id_ECIL1, id_ECOB1, id_OCIL1, id_OCOB1
+      INTEGER, SAVE            :: id_CH2BR2
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -483,6 +486,14 @@
          id_CHBR3     = IND_('CHBR3'   )
          id_CH2BR2    = IND_('CH2BR2'  )
          id_BR2       = IND_('BR2'     )
+         id_DUST1     = IND_('DUST1'   )
+         id_NK1       = IND_('NK1'     )
+         id_SF1       = IND_('SF1'     )
+         id_SS1       = IND_('SS1'     )
+         id_ECIL1     = IND_('ECIL1'   )
+         id_ECOB1     = IND_('ECOB1'   )
+         id_OCIL1     = IND_('OCIL1'   )
+         id_OCOB1     = IND_('OCOB1'   )
 
          ! NOTE: CH4 can be an advected species (in CH4 or UCX-based sims),
          ! or a non-advected species (tropchem, soa, soa-svpoa).  We only
