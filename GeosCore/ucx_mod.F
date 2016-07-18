@@ -5492,6 +5492,7 @@
 !                                1973 and call AirQnt if moisture vars
 !                                are updated using H2O tracer concentration
 !  28 Oct 2015 - E. Lundgren   - Tracer units are now kg/kg dry air
+!  18 Jul 2016 - E. Lundgren   - Remove dependency on grid box mass
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5567,20 +5568,22 @@
          READ_SPHU = ( ITS_IN_THE_TROP( I, J, L, State_Met ) .or.
      &                 SETSTRAT .or. ( .not. LACTIVEH2O )  )
 
+
          IF ( READ_SPHU ) THEN
+
+            ! Calculate specific humidity [g H2O/kg total air] as [kg/kg] 
+            SPHU_kgkg = State_Met%SPHU(I,J,L) * 1.e-3_fp
             
-            ! Set H2O tracer concentration [kg/kg dry] using SPHU 
-            ! (ewl, 11/4/15)
-            STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
-     &                          ( State_Met%ADMOIST(I,J,L)
-     &                            / State_Met%AD(I,J,L) )
+            ! Set H2O tracer concentration [kg/kg dry] using SPHU [kg/kg]
+            ! without using box mass (ewl, 7/18/16)
+            STT(I,J,L,IDTH2O) = SPHU_kgkg / ( 1.0e+0_fp - SPHU_kgkg )
 
          ELSE
 
-            ! Calculate specific humidity [g/kg total air] from 
-            ! transported H2O [kg/kg dry] (ewl, 9/17/15)
-            SPHU_kgkg = STT(I,J,L,IDTH2O) * State_Met%AD(I,J,L)
-     &                  / State_Met%ADMOIST(I,J,L)
+            ! Calculate specific humidity in [kg H2O / kg total air] 
+            ! using transported H2O [kg/kg dry] (ewl, 7/18/16)
+            SPHU_kgkg =  STT(I,J,L,IDTH2O) / 
+     &                  ( 1.0e+0_fp + STT(I,J,L,IDTH2O) ) 
 
             ! Set previous humidity to current humidity prior to update
             ! (ewl, 10/28/15)
