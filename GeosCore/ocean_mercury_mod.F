@@ -2918,6 +2918,8 @@
 !  (1 ) LOC (CHARACTER) : Name of routine where CHECK_ATMOS_MERCURY is called
 !
 !  NOTES:
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2930,17 +2932,15 @@
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Local variables
-      LOGICAL                      :: FLAG
-      INTEGER                      :: I,       J,       L
-      INTEGER                      :: N,       NN
-      REAL(fpp)                    :: Hg0_tot, Hg0_tag, RELERR0, ABSERR0
-      REAL(fpp)                    :: Hg2_tot, Hg2_tag, RELERR2, ABSERR2
-      REAL(fpp)                    :: HgP_tot, HgP_tag, RELERRP, ABSERRP
+      LOGICAL            :: FLAG
+      INTEGER            :: I,       J,       L
+      INTEGER            :: N,       NN
+      REAL(fpp)          :: Hg0_tot, Hg0_tag, RELERR0, ABSERR0
+      REAL(fpp)          :: Hg2_tot, Hg2_tag, RELERR2, ABSERR2
+      REAL(fpp)          :: HgP_tot, HgP_tag, RELERRP, ABSERRP
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fpp), POINTER :: STT(:,:,:,:)
+      REAL(fpp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! CHECK_ATMOS_MERCURY begins here!
@@ -2949,9 +2949,8 @@
       ! Set error flags
       FLAG = .FALSE.
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [kg]
+      Spc => State_Chm%Species
 
       ! Loop over grid boxes
 ! OMP PARALLEL DO
@@ -2985,12 +2984,12 @@
 
          ! Total Hg(0)
          N       = Hg0_Id_List(ID_Hg_tot)
-         Hg0_tot = STT(I,J,L,N)
+         Hg0_tot = Spc(I,J,L,N)
 
          ! Sum of tagged Hg(0)
          DO NN = 2, N_Hg_CATS
             N       = Hg0_Id_List(NN) 
-            Hg0_tag = Hg0_tag + STT(I,J,L,N)
+            Hg0_tag = Hg0_tag + Spc(I,J,L,N)
          ENDDO
 
          ! Absolute error for Hg0
@@ -3009,12 +3008,12 @@
 
          ! Total Hg(II)
          N       = Hg2_Id_List(ID_Hg_tot)
-         Hg2_tot = STT(I,J,L,N)
+         Hg2_tot = Spc(I,J,L,N)
 
          ! Sum of tagged Hg(II)
          DO NN = 2, N_Hg_CATS
             N       = Hg2_Id_List(NN) 
-            Hg2_tag = Hg2_tag + STT(I,J,L,N)
+            Hg2_tag = Hg2_tag + Spc(I,J,L,N)
          ENDDO
 
          ! Absolute error for Hg2
@@ -3033,12 +3032,12 @@
 
          ! Total Hg(P)
          N       = HgP_Id_List(ID_Hg_tot)
-         HgP_tot = STT(I,J,L,N)
+         HgP_tot = Spc(I,J,L,N)
 
          ! Sum of tagged Hg(P)
          DO NN = 2, N_Hg_CATS
             N = HgP_Id_List(NN)
-            IF ( N > 0 ) HgP_tag = HgP_tag + STT(I,J,L,N)
+            IF ( N > 0 ) HgP_tag = HgP_tag + Spc(I,J,L,N)
          ENDDO
 
          ! Absolute error for HgP
@@ -3086,7 +3085,7 @@
 ! OMP END PARALLEL DO
 
       ! Free pointer
-      STT => NULL()
+      Spc => NULL()
 
       ! FORMAT strings
  100  FORMAT( 'Hg0 error: ', 3i5, 4es13.6 )

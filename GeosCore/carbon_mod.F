@@ -1597,7 +1597,7 @@
                               !  type [kg]
       REAL(fp) :: XUPTKSUM    ! Potential uptake of gas by aerosol [kg]
       REAL(fp) :: XUPTK       ! Actual uptake of gas by aerosol [kg]
-                              !  XUPTK <= STT( I, J, L, IDTGLYX )
+                              !  XUPTK <= State_Chm%Species(I,J,L,id_GLYX)
       REAL(fp) :: XGAMMA      ! Uptake coefficient 
 
       ! Local  changing 

@@ -232,6 +232,7 @@
 !  16 Jun 2016 - C. Miller   - Now use Ind_ function to define species ID's
 !  17 Jun 2016 - R. Yantosca - Now define species ID's only on first call
 !  17 Jun 2016 - R. Yantosca - Now reset first-time flag at end of routine
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -273,11 +274,6 @@
 
       ! Chemistry time step in seconds
       REAL(fp)          :: DT_TEND
-
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
@@ -345,10 +341,6 @@
      &                      'DO_CHEMISTRY in chemistry_mod.F')
          RETURN
       ENDIF  
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT                      => State_Chm%Tracers
 
       !=================================================================
       ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
@@ -728,9 +720,6 @@
      &                  State_Chm, 'CHEM', .FALSE., DT_TEND, RC )
 #endif
 
-      ! Free pointer
-      NULLIFY( STT )
-       
       ! Reset first-time flag
       FIRST = .FALSE.
 
