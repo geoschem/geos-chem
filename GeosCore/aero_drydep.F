@@ -78,6 +78,8 @@
 !  07 Jun 2016 - E. Lundgren - Remove XNUMOL; use species database MW instead
 !  16 Jun 2016 - R. Silvern  - Now use Ind_ function to define species IDs
 !  17 Jun 2016 - R. Yantosca - Now define species ID's on the first call
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -111,12 +113,11 @@
 
       ! For fields from Input_Opt
       LOGICAL           :: LPRT
-      INTEGER           :: N_TRACERS
 
       ! Pointers
-      REAL(fp), POINTER :: STT(:,:,:,:)
-      REAL(fp), POINTER :: BXHEIGHT(:,:,:)
-      REAL(fp), POINTER :: T(:,:,:)
+      REAL(fp), POINTER :: Spc     (:,:,:,:)
+      REAL(fp), POINTER :: BXHEIGHT(:,:,:  )
+      REAL(fp), POINTER :: T       (:,:,:  )
 
       ! SAVEd scalars 
       LOGICAL, SAVE     :: FIRST = .TRUE.
@@ -166,10 +167,9 @@
 
       ! Get logical values from Input_Opt
       LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
-      N_TRACERS = Input_Opt%N_TRACERS
 
       ! Initialize pointers
-      STT      => State_Chm%TRACERS
+      Spc      => State_Chm%Species
       BXHEIGHT => State_Met%BXHEIGHT
       T        => State_Met%T
 
@@ -313,7 +313,7 @@ cdbg      print *, dryd(:)
             ! Method is to solve bidiagonal matrix 
             ! which is implicit and first order accurate in Z
             DO L = 1, LLPAR
-               TC0(L) = STT(I,J,L,ID)
+               TC0(L) = Spc(I,J,L,ID)
                TC(L)  = TC0(L)
             ENDDO
 
@@ -331,7 +331,7 @@ cdbg      print *, dryd(:)
             ENDDO
 
             DO L = 1, LLPAR
-               STT(I,J,L,ID) = TC(L)
+               Spc(I,J,L,ID) = TC(L)
 
 !debug            if(i==ix .and. j==jx .and. l==ll ) 
 !     &              print *, BIN, TC0(L), TC(L), VTS(L)              
@@ -422,14 +422,14 @@ cdbg      print *, dryd(:)
          DO JC = 1, ICOMP-IDIAG+1
             DO BIN = 1, IBINS
                ID = id_NK1 - 1 + BIN + ( IBINS * (JC-1) )
-               X0(BIN,JC) = STT(I,J,L,ID)
+               X0(BIN,JC) = Spc(I,J,L,ID)
             ENDDO
          ENDDO
 !debug            if(i==ii .and. j==jj .and. L==1) 
-c     &          print *,'L    STT(',I,J,'L',bb,')   DIF    ',
+c     &          print *,'L    Spc(',I,J,'L',bb,')   DIF    ',
 c     &           'FLUX  AD44' 
 c            if(i==ix .and. j==jx .and. L==1) 
-c     &          print *,'L    STT(',I,J,'L',bb,')   DIF    ',
+c     &          print *,'L    Spc(',I,J,'L',bb,')   DIF    ',
 c     &           'FLUX  AD44' 
 !debug-----
  
@@ -484,22 +484,22 @@ c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
 !debug
 c            if(i==ii .and. j==jj .and. 
 c     &           bin==bb .and. JC==1) 
-c     &           print *,'>',L, STT(I,J,L,ID), X0(BIN,JC) - X, FLUX, 
+c     &           print *,'>',L, Spc(I,J,L,ID), X0(BIN,JC) - X, FLUX, 
 c     &           AD44(I,J,DRYD(BIN),1)
 c            if(i==ii .and. j==jj .and. 
 c     &           bin==bb .and. JC==2) 
-c     &           print *,'>',L, STT(I,J,L,ID), X0(BIN,JC) - X, FLUX, 
+c     &           print *,'>',L, Spc(I,J,L,ID), X0(BIN,JC) - X, FLUX, 
 c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
 !debug            if(i==ix .and. j==jx .and. 
 c     &           bin==bb .and. JC==ICOMP) 
-c     &          print *, L, STT(I,J,L,ID), X0(BIN,JC) - X, FLUX, 
+c     &          print *, L, Spc(I,J,L,ID), X0(BIN,JC) - X, FLUX, 
 c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
 !debug------
 #endif
 
 
-            ! Swap X back into STT array
-            STT(I,J,L,ID) = X
+            ! Swap X back into Spc array
+            Spc(I,J,L,ID) = X
 
 
          ENDDO
@@ -509,8 +509,8 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
 ! NOTE: I'm not sure if this is now covered by dry-deposition in mixing_mod.F90
 ! (ckeller, 3/5/15)
          !Dry deposit H2SO4 gas (win, 5/24/06)
-         Y0 = STT(I,J,L,id_H2SO4)
-         !Y0 = STT(I,J,L,IDTH2SO4) CODEATHON
+         Y0 = Spc(I,J,L,id_H2SO4)
+         !Y0 = Spc(I,J,L,IDTH2SO4) CODEATHON
          RKT = DEPSAV(I,J,H2SO4ID)* GET_FRAC_UNDER_PBLTOP( I, J, L)
          Y = Y0 * EXP(-RKT)
 ! ******************************************************************************
@@ -534,8 +534,8 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
          ENDIF
 #endif
 
-         !Swap final H2SO4 back into STT array
-         STT(I,J,L,id_H2SO4) = Y   !CODEATHON      
+         !Swap final H2SO4 back into Spc array
+         Spc(I,J,L,id_H2SO4) = Y   !CODEATHON      
 
       ENDDO
       ENDDO
@@ -546,9 +546,9 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
       IF ( LPRT ) PRINT *,'### Finish AERO_DRYDEP'
 
       ! Free pointers
-      NULLIFY( STT      )
-      NULLIFY( BXHEIGHT )
-      NULLIFY( T        )
+      Spc      => NULL()
+      BXHEIGHT => NULL()
+      T        => NULL()
 
       ! Check that tracer units are still in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN

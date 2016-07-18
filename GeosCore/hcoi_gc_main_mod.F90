@@ -1085,6 +1085,8 @@ CONTAINS
 !  12 Mar 2015 - R. Yantosca  - Use 0.0e0_hp when zeroing REAL(hp) variables
 !  03 Apr 2015 - C. Keller    - Now call down to ExtDat_Set for all fields
 !  02 May 2016 - R. Yantosca  - Now define IDTPOPG locally
+!  30 Jun 2016 - R. Yantosca  - Remove instances of STT.  Now get the advected
+!                               species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1297,34 +1299,77 @@ CONTAINS
            'AIRDEN', HCRC,      FIRST,    State_Met%AIRDEN  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
  
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+    IF ( id_O3 > 0 ) THEN
+       State_Chm%Species(:,:,:,id_O3  ) = State_Chm%Tracers(:,:,:,id_O3  )
+    ENDIF
+    IF ( id_NO2 > 0 ) THEN
+       State_Chm%Species(:,:,:,id_NO2 ) = State_Chm%Tracers(:,:,:,id_NO2 )
+    ENDIF
+    IF ( id_NO > 0 ) THEN
+       State_Chm%Species(:,:,:,id_NO  ) = State_Chm%Tracers(:,:,:,id_NO  )
+    ENDIF
+    IF ( id_HNO3 > 0 ) THEN
+       State_Chm%Species(:,:,:,id_HNO3) = State_Chm%Tracers(:,:,:,id_HNO3)
+    ENDIF
+    IF ( id_POPG > 0 ) THEN
+       State_Chm%Species(:,:,:,id_POPG) = State_Chm%Tracers(:,:,:,id_POPG)
+    ENDIF
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
     ! ----------------------------------------------------------------
     ! Tracer fields
     ! ----------------------------------------------------------------
     IF ( id_O3 > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%O3, &
-            'HEMCO_O3', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_O3))
+            'HEMCO_O3', HCRC,      FIRST,    State_Chm%Species(:,:,:,id_O3))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( id_NO2 > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%NO2, &
-           'HEMCO_NO2', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_NO2))
+           'HEMCO_NO2', HCRC,      FIRST,    State_Chm%Species(:,:,:,id_NO2))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( id_NO > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%NO, &
-            'HEMCO_NO', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_NO))
+            'HEMCO_NO', HCRC,      FIRST,    State_Chm%Species(:,:,:,id_NO))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( id_HNO3 > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%HNO3, &
-          'HEMCO_HNO3', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_HNO3))
+          'HEMCO_HNO3', HCRC,      FIRST,    State_Chm%Species(:,:,:,id_HNO3))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( id_POPG > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%POPG, &
-          'HEMCO_POPG', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_POPG))
+          'HEMCO_POPG', HCRC,      FIRST,    State_Chm%Species(:,:,:,id_POPG))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+    IF ( id_O3 > 0 ) THEN
+       State_Chm%Tracers(:,:,:,id_O3  ) = State_Chm%Species(:,:,:,id_O3  )
+    ENDIF
+    IF ( id_NO2 > 0 ) THEN
+       State_Chm%Tracers(:,:,:,id_NO2 ) = State_Chm%Species(:,:,:,id_NO2 )
+    ENDIF
+    IF ( id_NO > 0 ) THEN
+       State_Chm%Tracers(:,:,:,id_NO  ) = State_Chm%Species(:,:,:,id_NO  )
+    ENDIF
+    IF ( id_HNO3 > 0 ) THEN
+       State_Chm%Tracers(:,:,:,id_HNO3) = State_Chm%Species(:,:,:,id_HNO3)
+    ENDIF
+    IF ( id_POPG > 0 ) THEN
+       State_Chm%Tracers(:,:,:,id_POPG) = State_Chm%Species(:,:,:,id_POPG)
+    ENDIF
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     ! ----------------------------------------------------------------
     ! Deposition parameter

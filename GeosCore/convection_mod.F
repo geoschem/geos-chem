@@ -608,6 +608,10 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
+!  As of July 2016, we assume that all of the advected species are listed
+!  first in the species database.  This is the easiest way to pass a slab
+!  to the TPCORE routine.  This may change in the future. (bmy, 7/13/16)
+!                                                                             .
 !  %%%% GEOS-4 IS DEPRECATED AND MAY BE REMOVED SOON %%%%
 !
 ! !REVISION HISTORY: 
@@ -640,22 +644,23 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! SAVEd scalars
       LOGICAL, SAVE     :: FIRST = .TRUE.
-      INTEGER           :: I, ISOL, J, L, L2, N, NSTEP
-      INTEGER           :: CONVDT
-      REAL(fp)          :: RPDEL( IIPAR, JJPAR, LLPAR )
-      REAL(fp)          :: DP( IIPAR, JJPAR, LLPAR )
-      REAL(fp)          :: P1, P2, TDT
-      INTEGER           :: N_TOT_TRC
-      INTEGER           :: INDEXSOL(State_Chm%nAdvect)
-      REAL(fp), TARGET  :: F(IIPAR,JJPAR,LLPAR, State_Chm%nAdvect)
 
-      ! For fields from Input_Opt
+      ! Scalars
       LOGICAL           :: LPRT
-      INTEGER           :: N_TRACERS
+      INTEGER           :: I, ISOL, J, L, L2, N, NSTEP, NA, nAdvect
+      INTEGER           :: CONVDT
+      REAL(fp)          :: P1, P2, TDT
+
+      ! Arrays
+      REAL(fp)          :: RPDEL   (IIPAR,JJPAR,LLPAR                  )
+      REAL(fp)          :: DP      (IIPAR,JJPAR,LLPAR                  )
+      REAL(fp), TARGET  :: F       (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+      INTEGER           :: INDEXSOL(                  State_Chm%nAdvect)
 
       ! Pointers
-      REAL(fp), POINTER :: Spc     (:,:,:,:) ! Ptr to State_Chm%TRACERS
+      REAL(fp), POINTER :: Spc     (:,:,:,:) ! Ptr to advected species
       REAL(fp), POINTER :: p_HKETA (:,:,:  ) ! Ptr to HKETA  (flipped in vert)
       REAL(fp), POINTER :: p_HKBETA(:,:,:  ) ! Ptr to HKBETA (flipped in vert)
       REAL(fp), POINTER :: p_ZMMU  (:,:,:  ) ! Ptr to ZMMU   (flipped in vert)
@@ -672,12 +677,9 @@
       ! Assume success
       RC        =  GIGC_SUCCESS
 
-      ! Copy values from Input_Opt
+      ! Initialize
       LPRT      = Input_Opt%LPRT
-      N_TRACERS = Input_Opt%N_TRACERS
-
-      ! Pick the proper # of tracers for convection
-      N_TOT_TRC = N_TRACERS
+      nAdvect   = State_Chm%nAdvect
 
       ! Convection timestep [s]
       CONVDT = GET_TS_CONV() * 60e+0_fp 
@@ -704,25 +706,26 @@
       ! tracer (Finsoluble) lost in updrafts.  Finsoluble = 1-Fsoluble.
       !=================================================================
 
+      ! Loop over only the advected species
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, ISOL, p_FSOL )
+!$OMP+PRIVATE( I, J, L, NA, ISOL, p_FSOL )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO N = 1, N_TOT_TRC
+      DO NA = 1, nAdvect
 
          ! Point to array slice of F
-         p_FSOL => F(:,:,:,N)
+         p_FSOL => F(:,:,:,NA)
 
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
-         CALL COMPUTE_F( am_I_Root, N, p_FSOL, ISOL, 
+         CALL COMPUTE_F( am_I_Root, NA,        p_FSOL,    ISOL, 
      &                   Input_Opt, State_Met, State_Chm, RC ) 
          
          ! Free pointer memory
-         NULLIFY( p_FSOL )
+         p_FSOL => NULL()
 
          ! Store ISOL in an array for later use
-         INDEXSOL(N) = ISOL
+         INDEXSOL(NA) = ISOL
 
          ! Loop over grid boxes
          DO L = 1, LLPAR
@@ -732,11 +735,11 @@
             ! ND37 diagnostic: store fraction of tracer 
             ! lost in moist convective updrafts ("MC-FRC-$")
             IF ( ND37 > 0 .and. ISOL > 0 .and. L <= LD37 ) THEN
-               AD37(I,J,L,ISOL) = AD37(I,J,L,ISOL) + F(I,J,L,N) 
+               AD37(I,J,L,ISOL) = AD37(I,J,L,ISOL) + F(I,J,L,NA) 
             ENDIF
 
             ! GEOS-4 convection routines need the insoluble fraction
-            F(I,J,L,N) = 1e+0_fp - F(I,J,L,N)
+            F(I,J,L,NA) = 1e+0_fp - F(I,J,L,NA)
          ENDDO
          ENDDO
          ENDDO
@@ -780,24 +783,33 @@
       !=================================================================
       ! Flip arrays in the vertical and call FVDAS_CONVECT
       !=================================================================
+      
+      ! Point to chemical species array  [kg/kg total air]
+      !
+      ! NOTE: For now, so as to avoid having to rewrite the internals
+      ! of the GEOS-4 convection routines, just point to 1:nAdvect entries 
+      ! of State_Chm%Species.  This is OK for now, as of July 2016, all of
+      ! the advected species are listed first.  This may change in the
+      ! future, but we'll worry about that later.  The units of p_SPC
+      ! will be converted to [kg/kg moist air] below. (bmy, 7/13/16)
+      Spc      => State_Chm%Species( :, :, :,          1:nAdvect )   
 
-      ! Initialize GEOS-Chem tracer array from Chemistry State object
-      ! [kg/kg total air] (ewl, 6/23/15)
-      Spc      => State_Chm%Species
+      ! Point to the chemical species array [kg/kg moist air]
+      ! flipping the arrays in the vertical (bmy, 7/18/16)
+      p_Spc    => State_Chm%Species( :, :, LLPAR:1:-1, 1:nAdvect )
 
       ! Point to various fields and flip in vertical.  This avoids 
       ! array temporaries in the call to FVDAS_CONVECT (bmy, 4/14/14)
-      p_HKETA  => State_Met%HKETA  (:,:,LLPAR:1:-1  )
-      p_HKBETA => State_Met%HKBETA (:,:,LLPAR:1:-1  )
-      p_ZMMU   => State_Met%ZMMU   (:,:,LLPAR:1:-1  )
-      p_ZMMD   => State_Met%ZMMD   (:,:,LLPAR:1:-1  )
-      p_ZMEU   => State_Met%ZMEU   (:,:,LLPAR:1:-1  )
-      p_Spc    => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
-      p_F      => F                (:,:,LLPAR:1:-1,:)
+      p_HKETA  => State_Met%HKETA  ( :, :, LLPAR:1:-1            )
+      p_HKBETA => State_Met%HKBETA ( :, :, LLPAR:1:-1            )
+      p_ZMMU   => State_Met%ZMMU   ( :, :, LLPAR:1:-1            )
+      p_ZMMD   => State_Met%ZMMD   ( :, :, LLPAR:1:-1            )
+      p_ZMEU   => State_Met%ZMEU   ( :, :, LLPAR:1:-1            )
+      p_F      => F                ( :, :, LLPAR:1:-1, :         )
 
       ! Call the fvDAS convection routines (originally from NCAR!)
       CALL FVDAS_CONVECT( TDT,   
-     &                    N_TOT_TRC, 
+     &                    nAdvect, 
      &                    p_Spc,
      &                    RPDEL,         
      &                    p_HKETA,
@@ -813,19 +825,25 @@
      &                    State_Met,
      &                    State_Chm )
 
-      ! Add a check to set negative values in Spc to TINY
-      ! (ccc, 4/15/09)
+      !==================================================================
+      ! Add a check to set negative values in Spc to TINY (ccc, 4/15/09)
+      ! Only loop over the advected species (bmy, 7/18/16)
+      !==================================================================
 !$OMP PARALLEL DO        
 !$OMP+DEFAULT( SHARED   )
-!$OMP+PRIVATE( N, L, J, I )
-      DO N = 1,N_TOT_TRC
-      DO L = 1,LLPAR
-      DO J = 1,JJPAR
-      DO I = 1,IIPAR
-         Spc(I,J,L,N) = MAX(Spc(I,J,L,N),TINY(1e+0_fp))
-      ENDDO
-      ENDDO
-      ENDDO
+!$OMP+PRIVATE( NA, N, L, J, I )
+      DO NA = 1, nAdvect
+
+         ! Get the species ID from the advected species ID
+         N = State_Chm%Map_Advect(NA)
+         
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            Spc(I,J,L,N) = MAX(Spc(I,J,L,N),TINY(1e+0_fp))
+         ENDDO
+         ENDDO
+         ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -928,7 +946,7 @@
       LOGICAL            :: LPRT
 
       ! Pointers
-      REAL(fp),  POINTER :: Spc        (:,:,:,:) ! Ptr to Tracer concentrations
+      REAL(fp),  POINTER :: Spc        (:,:,:,:) ! Ptr to advected species
       REAL(fp),  POINTER :: p_UPDE     (:,:,:  ) ! Ptr to UPDE     met field
       REAL(fp),  POINTER :: p_DNDE     (:,:,:  ) ! Ptr to DNDE     met field
       REAL(fp),  POINTER :: p_ENTRAIN  (:,:,:  ) ! Ptr to ENTRAIN  met field
@@ -970,25 +988,26 @@
       ! tracer (Finsoluble) lost in updrafts.  Finsoluble = 1-Fsoluble.
       !=================================================================
 
+      ! Loop over only the advected species
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, ISOL, p_FSOL )
+!$OMP+PRIVATE( I, J, L, NA, ISOL, p_FSOL )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO N = 1, nAdvect
+      DO NA = 1, nAdvect
 
          ! Point to 3D slice of F
-         p_FSOL => F(:,:,:,N)
+         p_FSOL => F(:,:,:,NA)
 
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
-         CALL COMPUTE_F( am_I_Root, N, p_FSOL, ISOL, 
-     &                   Input_Opt, State_Met, State_Chm, RC ) 
+         CALL COMPUTE_F( am_I_Root, NA,        p_FSOL,    ISOL, 
+     &                   Input_Opt, State_Met, State_Chm, RC    ) 
          
          ! Free pointer memory
-         NULLIFY( p_FSOL )
+         p_FSOL => NULL()
 
          ! Store ISOL in an array for later use
-         INDEXSOL(N) = ISOL
+         INDEXSOL(NA) = ISOL
 
          ! Loop over grid boxes
          DO L = 1, LLPAR
@@ -998,16 +1017,16 @@
             ! Shut off scavenging in shallow convection for GCAP
             ! (swu, bmy, 11/1/05)
             IF ( State_Met%PMID( I, J, L ) > 700e+0_fp ) 
-     &            F(I,J,L,N) = 0e+0_fp
+     &            F(I,J,L,NA) = 0e+0_fp
 
             ! ND37 diagnostic: store fraction of tracer 
             ! lost in moist convective updrafts ("MC-FRC-$")
             IF ( ND37 > 0 .and. ISOL > 0 .and. L <= LD37 ) THEN
-               AD37(I,J,L,ISOL) = AD37(I,J,L,ISOL) + F(I,J,L,N) 
+               AD37(I,J,L,ISOL) = AD37(I,J,L,ISOL) + F(I,J,L,NA) 
             ENDIF
 
             ! GEOS-4 convection routines need the insoluble fraction
-            F(I,J,L,N) = 1e+0_fp - F(I,J,L,N)
+            F(I,J,L,NA) = 1e+0_fp - F(I,J,L,NA)
          ENDDO
          ENDDO
          ENDDO
@@ -1049,22 +1068,29 @@
       ! Flip arrays in the vertical and call GCAP_CONVECT
       !=================================================================
 
-      !%%%% NOTE: WE SHOULD JUST FLIP THESE POINTERS WITHIN GCAP_CONVECT
-      !%%%% SO AS TO BE ABLE TO PASS JUST STATE_CHM (bmy, 7/20/16)
+      ! Point to chemical species array  [kg/kg total air]
+      !
+      ! NOTE: For now, so as to avoid having to rewrite the internals
+      ! of the GEOS-4 convection routines, just point to 1:nAdvect entries 
+      ! of State_Chm%Species.  This is OK for now, as of July 2016, all of
+      ! the advected species are listed first.  This may change in the
+      ! future, but we'll worry about that later.  The units of p_SPC
+      ! will be converted to [kg/kg moist air] below. (bmy, 7/13/16)
+      Spc        => State_Chm%Species ( :, :, :,          1:nAdvect )   
 
-      ! Point to the chemical species array [kg/kg total air]
-      Spc        => State_Chm%Species
+      ! Point to the chemical species array [kg/kg moist air]
+      ! flipping the arrays in the vertical (bmy, 7/18/16)
+      p_Spc      => State_Chm%Species ( :, :, LLPAR:1:-1, 1:nAdvect )
 
       ! Point to met fields and flip in vertical
-      p_UPDE     => State_Met%UPDE     (:,:,LLPAR:1:-1  )
-      p_DNDE     => State_Met%DNDE     (:,:,LLPAR:1:-1  )
-      p_ENTRAIN  => State_Met%ENTRAIN  (:,:,LLPAR:1:-1  )
-      p_DETRAINE => State_Met%DETRAINE (:,:,LLPAR:1:-1  )
-      p_UPDN     => State_Met%UPDN     (:,:,LLPAR:1:-1  )
-      p_DNDN     => State_Met%DNDN     (:,:,LLPAR:1:-1  )
-      p_DETRAINN => State_Met%DETRAINN (:,:,LLPAR:1:-1  )
-      p_Spc      => State_Chm%Species  (:,:,LLPAR:1:-1,:)
-      p_F        => F                  (:,:,LLPAR:1:-1,:)
+      p_UPDE     => State_Met%UPDE    ( :, :, LLPAR:1:-1            )
+      p_DNDE     => State_Met%DNDE    ( :, :, LLPAR:1:-1            )
+      p_ENTRAIN  => State_Met%ENTRAIN ( :, :, LLPAR:1:-1            )
+      p_DETRAINE => State_Met%DETRAINE( :, :, LLPAR:1:-1            )
+      p_UPDN     => State_Met%UPDN    ( :, :, LLPAR:1:-1            )
+      p_DNDN     => State_Met%DNDN    ( :, :, LLPAR:1:-1            )
+      p_DETRAINN => State_Met%DETRAINN( :, :, LLPAR:1:-1            )
+      p_F        => F                 ( :, :, LLPAR:1:-1, :         )
 
       ! Call the GCAP convection routines 
       CALL GCAP_CONVECT( TDT, 
@@ -1082,14 +1108,16 @@
      &                   p_DNDN,
      &                   p_DETRAINN )
 
+      !===================================================================
       ! Add a check to set negative values in Spc to TINY (ccc, 4/15/09)
       ! Only loop over the advected species (bmy, 7/5/16)
+      !===================================================================
 !$OMP PARALLEL DO        
 !$OMP+DEFAULT( SHARED   )
 !$OMP+PRIVATE( NA, N, L, J, I )
       DO NA = 1, nAdvect
 
-         ! Species ID
+         ! Get the species ID from the advected species ID
          N = State_Chm%Map_Advect(NA)
 
          ! Loop over grid boxes
