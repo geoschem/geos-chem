@@ -163,6 +163,7 @@ CONTAINS
 !  26 Oct 2015 - C. Keller   - Initial version 
 !  16 Jun 2016 - J. Kaiser   - Move tracer IDS to variable names CODEATHON
 !  20 Jun 2016 - R. Yantosca - Renamed IDTCO, IDTO3 to id_CO and id_O3
+!  19 Jul 2016 - R. Yantosca - Activate more tendency classes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -189,37 +190,68 @@ CONTAINS
     ! Assume successful return
     RC = GIGC_SUCCESS
 
-    ! Define species ID"s
+    ! Define species ID's (add more as necessary)
     id_CO = Ind_('CO')
     id_O3 = Ind_('O3') 
        
     ! Execute only if DoTend is enabled
     IF ( DoTend ) THEN
 
-       ! Define classes
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'CHEM', RC )
+       !--------------------------------------------------------------------
+       ! Define tendency classes (add more as you wish)
+       !--------------------------------------------------------------------
+
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'ADV' ,   RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'ADV' , RC )
+
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'CHEM',   RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'CONV', RC )
+
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'CONV',   RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'WETD', RC )
+
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'FLUX',   RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'FLUX', RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+
        CALL Tend_CreateClass( am_I_Root, Input_Opt, 'PBLMIX', RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
 
-       ! Add species to classes
-       CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM', id_O3, RC )
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'WETD',   RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
-       CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM', id_CO, RC )
+
+       !--------------------------------------------------------------------
+       ! Activate tendency computations for O3 (add more as you wish)
+       !--------------------------------------------------------------------
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'ADV',    id_O3, RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
-       CALL Tend_Add ( am_I_Root, Input_Opt, 'CONV', id_CO, RC )
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM',   id_O3, RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
-       CALL Tend_Add ( am_I_Root, Input_Opt, 'DRYD', id_O3, RC )
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'CONV',   id_O3, RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
-       CALL Tend_Add ( am_I_Root, Input_Opt, 'ADV',  id_O3, RC )
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'DRYD',   id_O3, RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'PBLMIX', id_O3, RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! Activate tendency computations for CO (add more as you wish)
+       !--------------------------------------------------------------------
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'ADV',    id_CO, RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM',   id_CO, RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'CONV',   id_CO, RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'PBLMIX', id_CO, RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
 
     ENDIF ! test toggle
@@ -668,18 +700,8 @@ CONTAINS
 
        ! Fill 3D array with current values. Make sure it's in v/v
        IF ( IsInvv ) THEN
-!-----------------------------------------------------------------------
-! Prior to 7/19/16:
-! Now use State_Chm%Species (bmy, 7/19/16)
-!          Ptr3D = State_Chm%Tracers(:,:,:,I)
-!-----------------------------------------------------------------------
           Ptr3D = State_Chm%Species(:,:,:,I)
        ELSE
-!-----------------------------------------------------------------------
-! Prior to 7/19/16:
-! Now use State_Chm%Species (bmy, 7/19/16)
-!          Ptr3D = State_Chm%Tracers(:,:,:,I) &
-!-----------------------------------------------------------------------
           Ptr3D = State_Chm%Species(:,:,:,I) &
                 * Input_Opt%TCVV(I) / State_Met%AD(:,:,:)
        ENDIF
@@ -801,18 +823,8 @@ CONTAINS
           Tend = 0.0_f4
        ELSE
           IF ( IsInvv ) THEN
-!-----------------------------------------------------------------------------
-! Prior to 7/19/16:
-! Now use State_Chm%Species (bmy, 7/16/15)
-!             Tend = ( State_Chm%Tracers(:,:,:,I) - Ptr3D(:,:,:) ) / DT
-!-----------------------------------------------------------------------------
              Tend = ( State_Chm%Species(:,:,:,I) - Ptr3D(:,:,:) ) / DT
           ELSE
-!-----------------------------------------------------------------------------
-! Prior to 7/19/16:
-! Now use State_Chm%Species (bmy, 7/16/15)
-!             Tend = ( ( State_Chm%Tracers(:,:,:,I)                &
-!-----------------------------------------------------------------------------
              Tend = ( ( State_Chm%Species(:,:,:,I)                &
                       * Input_Opt%TCVV(I) / State_Met%AD(:,:,:) ) &
                       - Ptr3D(:,:,:) ) / DT

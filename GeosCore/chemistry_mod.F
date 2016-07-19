@@ -271,6 +271,10 @@
       LOGICAL, SAVE     :: FIRST = .TRUE.
       INTEGER, SAVE     :: id_DST1
       INTEGER, SAVE     :: id_NK1
+#if defined( USE_TEND )
+      INTEGER, SAVE     :: id_O3 
+      INTEGER, SAVE     :: id_CO
+#endif
 
       ! Chemistry time step in seconds
       REAL(fp)          :: DT_TEND
@@ -311,6 +315,10 @@
       IF ( FIRST ) THEN
          id_DST1 = Ind_('DST1')
          id_NK1  = Ind_('NK1' )
+#if defined( USE_TEND )
+         id_O3   = Ind_('O3'  )
+         id_CO   = Ind_('CO'  )
+#endif
       ENDIF
 
       !-----------------------------------------------------------------
@@ -342,12 +350,34 @@
          RETURN
       ENDIF  
 
+#if defined( USE_TEND )
       !=================================================================
       ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
-#if defined( USE_TEND )
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+      IF ( id_O3 > 0 ) THEN
+         State_Chm%Species(:,:,:,id_O3) = State_Chm%Tracers(:,:,:,id_O3)
+      ENDIF
+      IF ( id_CO > 0 ) THEN
+         State_Chm%Species(:,:,:,id_CO) = State_Chm%Tracers(:,:,:,id_CO)
+      ENDIF
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CHEM', .FALSE., RC )
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+      IF ( id_O3 > 0 ) THEN
+         State_Chm%Tracers(:,:,:,id_O3) = State_Chm%Species(:,:,:,id_O3)
+      ENDIF
+      IF ( id_CO > 0 ) THEN
+         State_Chm%Tracers(:,:,:,id_CO) = State_Chm%Species(:,:,:,id_CO)
+      ENDIF
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 #endif
 
       !=================================================================
@@ -710,14 +740,36 @@
          RETURN
       ENDIF  
 
+#if defined( USE_TEND )
       !=================================================================
       ! Calculate tendencies and write to diagnostics 
       ! (ckeller,7/15/2015)
       !=================================================================
-#if defined( USE_TEND )
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+      IF ( id_O3 > 0 ) THEN
+         State_Chm%Species(:,:,:,id_O3) = State_Chm%Tracers(:,:,:,id_O3)
+      ENDIF
+      IF ( id_CO > 0 ) THEN
+         State_Chm%Species(:,:,:,id_CO) = State_Chm%Tracers(:,:,:,id_CO)
+      ENDIF
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       DT_TEND = GET_TS_CHEM() * 60.0_fp
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CHEM', .FALSE., DT_TEND, RC )
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+      IF ( id_O3 > 0 ) THEN
+         State_Chm%Tracers(:,:,:,id_O3) = State_Chm%Species(:,:,:,id_O3)
+      ENDIF
+      IF ( id_CO > 0 ) THEN
+         State_Chm%Tracers(:,:,:,id_CO) = State_Chm%Species(:,:,:,id_CO)
+      ENDIF
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 #endif
 
       ! Reset first-time flag
