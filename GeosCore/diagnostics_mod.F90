@@ -150,7 +150,7 @@ CONTAINS
     USE GRID_MOD,           ONLY : AREA_M2
     USE HCO_DIAGN_MOD
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-#if defined( DEVEL )
+#if defined( USE_TEND )
     USE TENDENCIES_MOD,     ONLY : TEND_INIT
 #endif
 !
@@ -158,10 +158,10 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   ) :: am_I_Root  ! Are we on the root CPU?
     TYPE(MetState),   INTENT(IN   ) :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! Chemistry state 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm  ! Chemistry state 
     TYPE(OptInput),   INTENT(INOUT) :: Input_Opt  ! Input opts
 !
 ! !OUTPUT PARAMETERS:
@@ -176,6 +176,8 @@ CONTAINS
 !  22 Jun 2016 - R. Yantosca - Now use IND_() to define id_Rn, id_Pb, id_Be7
 !  22 Jun 2016 - R. Yantosca - Remove reference to Species type
 !  01 Jul 2016 - R. Yantosca - Pass State_Chm to several other routines
+!  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
+!  19 Jul 2016 - R. Yantosca - Add missing nAdvect variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -183,9 +185,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: N
+    INTEGER            :: N,           nAdvect
     INTEGER            :: CollectionID
-    INTEGER            :: DeltaYMD, DeltaHMS 
+    INTEGER            :: DeltaYMD,    DeltaHMS 
     REAL(sp)           :: TS
 
     ! Pointers
@@ -342,7 +344,7 @@ CONTAINS
 
     ! Pb emissions diagnostic (ND01)
     IF ( Input_Opt%ND01 > 0 ) THEN
-       CALL DiagnInit_Pb_Emiss( am_I_Root, Input_Opt, RC )
+       CALL DiagnInit_Pb_Emiss( am_I_Root, Input_Opt, State_Chm, RC )
        IF ( RC /= GIGC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_Pb_Emiss', LOC ) 
        ENDIF
@@ -447,13 +449,17 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DiagnInit_Dobson', LOC ) 
     ENDIF
+#endif
 
+#if defined( USE_TEND )
     ! Initialize tendencies
     CALL Tend_Init( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in Tendencies_Init', LOC ) 
     ENDIF
+#endif
 
+#if defined( DEVEL )
     ! Tracer emission diagnostics (NEW) (added by Christoph)
     ! NOTE: Currently this diagnostic must be initialized last since since
     ! container ids start at 10000 for routine TotalsToLogFile (ewl, 1/20/16)
@@ -501,7 +507,7 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#if defined( DEVEL )
+#if defined( USE_TEND )
     USE TENDENCIES_MOD,     ONLY : TEND_CLEANUP
 #endif
 !
@@ -517,6 +523,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  09 Jan 2015 - C. Keller   - Initial version 
 !  15 Jan 2015 - R. Yantosca - Now accept Input_Opt, am_I_Root, RC arguments
+!  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -524,7 +531,7 @@ CONTAINS
 !    ! Finalize diagnostics
 !    CALL DiagnCollection_Cleanup( COL = Input_Opt%DIAG_COLLECTION )
 
-#if defined( DEVEL )
+#if defined( USE_TEND )
     CALL TEND_CLEANUP()
 #endif
 
@@ -552,6 +559,7 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
     USE Species_Mod,        ONLY : Species
 !
@@ -586,8 +594,8 @@ CONTAINS
     CHARACTER(LEN=60)      :: DiagnName
     CHARACTER(LEN=30)      :: NamePrefix
     CHARACTER(LEN=255)     :: MSG
-
     CHARACTER(LEN=255)     :: LOC='DiagnInit_Transport_Flux (diagnostics_mod.F90)' 
+
     ! Pointers
     TYPE(Species), POINTER :: SpcInfo
 
@@ -1348,19 +1356,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnInit_Pb_Emiss( am_I_Root, Input_Opt, RC )
+  SUBROUTINE DiagnInit_Pb_Emiss( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : IND_
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Chm_Mod, ONLY : Ind_
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1370,6 +1382,7 @@ CONTAINS
 !  21 Jan 2015 - E. Lundgren - Initial version
 !  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function
 !  01 Jul 2016 - R. Yantosca - Remove reference to Input_Opt%TRACER_NAME
+!  19 Jul 2016 - R. Yantosca - Now pass State_Chm as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1394,7 +1407,7 @@ CONTAINS
     RC = GIGC_SUCCESS
 
     ! Pb210 species Id
-    id_Pb      = IND_('PB')
+    id_Pb      = Ind_('PB')
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -1688,7 +1701,7 @@ CONTAINS
     ! NEED TO ADD LOOP OVER TRACERS
     
     ! Loop over advected species
-    DO NA = 1, nAdvect
+    DO NA = 1, State_Chm%nAdvect
          
        ! Species ID 
        N = State_Chm%Map_Advect(NA)
@@ -1983,6 +1996,7 @@ CONTAINS
 !  26 Jan 2015 - E. Lundgren - Initial version
 !  01 Jul 2016 - R. Yantosca - Use module variable nAdvect to replace N_TRACERS
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!  19 Jul 2016 - R. Yantosca - Bug fix: now declare N, nAdvect variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1990,7 +2004,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                :: Collection, M, NA
+    INTEGER                :: Collection, M, NA, N, nAdvect
 
     ! Strings
     CHARACTER(LEN=15)      :: OutOper
@@ -2122,7 +2136,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                :: Collection, M, NA
+    INTEGER                :: Collection, M, NA, N
 
     ! Strings
     CHARACTER(LEN=15)      :: OutOper

@@ -118,7 +118,7 @@
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 
 #endif
-#if defined( DEVEL )
+#if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
 !
@@ -256,7 +256,7 @@
       !=================================================================
       ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
-#if defined( DEVEL )
+#if defined( USE_TEND )
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CONV', .TRUE., RC )
 #endif
@@ -554,7 +554,7 @@
       ! Calculate tendencies and write to diagnostics 
       ! (ckeller,7/15/2015)
       !=================================================================
-#if defined( DEVEL )
+#if defined( USE_TEND )
       DT_TEND = GET_TS_CONV() * 60.0_fp
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CONV', .TRUE., DT_TEND, RC )

@@ -1845,7 +1845,7 @@ contains
                                    GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
     USE SPECIES_MOD,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
-#if defined( DEVEL )
+#if defined( USE_TEND )
     USE TENDENCIES_MOD
 #endif
 
@@ -1935,6 +1935,7 @@ contains
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !  13 Jul 2016 - R. Yantosca - Now use NA as loop index for advected species
 !                              and ND as loop index for drydep species
+!  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2118,9 +2119,9 @@ contains
        FIRST = .FALSE.
     ENDIF
 
+#if defined( USE_TEND )
     ! Archive concentrations for tendencies calculations. Tracers array
     ! is already in v/v (ckeller, 7/15/2015).
-#if defined(DEVEL)
     CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, &
                       State_Chm, 'PBLMIX', .TRUE., RC )
 #endif
@@ -2827,8 +2828,8 @@ contains
        CALL COMPUTE_PBL_HEIGHT( State_Met )
     endif
 
+#if defined( USE_TEND )
     ! Compute tendencies and write to diagnostics (ckeller, 7/15/2015)
-#if defined(DEVEL)
     CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, &
                       State_Chm, 'PBLMIX', .TRUE., dtime, RC )
 #endif

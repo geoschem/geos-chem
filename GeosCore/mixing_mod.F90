@@ -274,7 +274,7 @@ CONTAINS
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
-#if defined( DEVEL )
+#if defined( USE_TEND )
     USE TENDENCIES_MOD
 #endif
 !
@@ -315,12 +315,14 @@ CONTAINS
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER                 :: I, J, L, L1, L2, N, D, NN, NA, nAdvect
     INTEGER                 :: DRYDEPID
     INTEGER                 :: PBL_TOP, DRYD_TOP, EMIS_TOP
@@ -331,17 +333,15 @@ CONTAINS
     LOGICAL                 :: LEMIS,      LDRYD
     LOGICAL                 :: DryDepSpec, EmisSpec
 
-    ! For diagnostics
 #if defined( NC_DIAG )
-    INTEGER            :: cID, trc_id, HCRC
+    ! For netCDF diagnostics
+    INTEGER                 :: cID, trc_id, HCRC
     CHARACTER(LEN=30)       :: DiagnName
     REAL(fp), TARGET        :: DryDepFlux( IIPAR, JJPAR, State_Chm%nDryDep ) 
-    REAL(fp), POINTER       :: Ptr2D(:,:)
-
-    ! tracer emissions diagnostic (does not correspond to any bpch diags)
     REAL(fp), TARGET        :: EMIS( IIPAR, JJPAR, LLPAR, State_Chm%nAdvect) 
-    REAL(fp), POINTER       :: Ptr3D(:,:,:)
     REAL(fp)                :: TOTFLUX(State_Chm%nAdvect)
+    REAL(fp), POINTER       :: Ptr2D(:,:  )
+    REAL(fp), POINTER       :: Ptr3D(:,:,:)
 #endif
 
     ! PARANOX loss fluxes (kg/m2/s). These are obtained from the 
@@ -360,10 +360,6 @@ CONTAINS
 
     ! Pointers and objects
     TYPE(Species), POINTER  :: SpcInfo
-#if defined( NC_DIAG )
-    REAL(fp),      POINTER  :: Ptr2D => NULL()
-    REAL(fp),      POINTER  :: Ptr3D => NULL()
-#endif
 
     !=================================================================
     ! DO_TEND begins here!
@@ -468,10 +464,10 @@ CONTAINS
     TOTFLUX     = 0.0_fp
 #endif
 
+#if defined( USE_TEND )
     ! Archive concentrations for tendencies (ckeller, 7/15/2015) 
-#if defined( DEVEL )
-    CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, &
-                        State_Chm, 'FLUX', .FALSE., RC )
+    CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met,    &
+                      State_Chm, 'FLUX',    .FALSE.,  RC )
 #endif
 
     ! Do for every tracer and grid box
@@ -757,10 +753,11 @@ CONTAINS
     ENDDO !N
 !$OMP END PARALLEL DO
 
+#if defined( USE_TEND )
       ! Calculate tendencies and write to diagnostics (ckeller, 7/15/2015)
-#if defined( DEVEL )
-      CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, &
-                        State_Chm, 'FLUX', .FALSE., TS, RC )
+      CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met,  &
+                        State_Chm, 'FLUX',   .FALSE.,     &
+                        TS,        RC                    )
 #endif
 
 

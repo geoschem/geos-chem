@@ -122,7 +122,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CONV
-#if defined( DEVEL )
+#if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
 !
@@ -148,6 +148,7 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  06 Jul 2016 - R. Yantosca - Now pass State_Chm and am_I_Root to TURBDAY
+!  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -159,7 +160,9 @@
 
       ! Scalars
       INTEGER        :: N, NA, nAdvect
+#if defined( USE_TEND )
       REAL(fp)       :: DT_TEND
+#endif
 
       !=================================================================
       ! DO_PBL_MIX begins here!
@@ -191,9 +194,9 @@
       ! The following only needs be done if turbulence is turned on...
       IF ( DO_TURBDAY ) THEN
 
-         ! Archive tracer concentrations for tendencies. Tracers are 
+#if defined( USE_TEND ) 
+         ! Archive species concentrations for tendencies. Tracers are 
          ! already in v/v (ckeller, 7/15/2015)
-#if defined( DEVEL ) 
          CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met,
      &                     State_Chm, 'PBLMIX', .TRUE., RC )
 #endif
@@ -201,11 +204,12 @@
          ! Do complete mixing of tracers in the PBL (if necessary)
          CALL TURBDAY( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
 
-         ! Archive tracer concentrations for tendencies (ckeller, 7/15/2015)
-#if defined( DEVEL ) 
+#if defined( USE_TEND ) 
+         ! Archive species concentrations for tendencies (ckeller, 7/15/2015)
          DT_TEND = GET_TS_CONV() * 60.0_fp
          CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met,
-     &                     State_Chm, 'PBLMIX', .TRUE., DT_TEND, RC )
+     &                     State_Chm, 'PBLMIX', .TRUE., 
+     &                     DT_TEND,   RC                    )
 #endif
       ENDIF
 

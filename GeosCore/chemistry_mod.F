@@ -111,8 +111,7 @@
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE GIGC_State_Chm_Mod, only : IND_
-
-#if defined( DEVEL )
+#if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
       USE UNITCONV_MOD
@@ -121,7 +120,7 @@
       USE UCX_MOD,            ONLY : READ_PSC_FILE
       USE UCX_MOD,            ONLY : WRITE_STATE_PSC
 #endif
-#if   defined( TOMAS )
+#if defined( TOMAS )
       USE TOMAS_MOD,          ONLY : DO_TOMAS  !(win, 7/14/09)
 #endif
 
@@ -233,6 +232,7 @@
 !  17 Jun 2016 - R. Yantosca - Now define species ID's only on first call
 !  17 Jun 2016 - R. Yantosca - Now reset first-time flag at end of routine
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.
+!  19 Jul 2016 - R. Yantosca - Now bracket DO_TEND calls with #ifdef USE_TEND
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -345,7 +345,7 @@
       !=================================================================
       ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
-#if defined( DEVEL )
+#if defined( USE_TEND )
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CHEM', .FALSE., RC )
 #endif
@@ -714,7 +714,7 @@
       ! Calculate tendencies and write to diagnostics 
       ! (ckeller,7/15/2015)
       !=================================================================
-#if defined( DEVEL )
+#if defined( USE_TEND )
       DT_TEND = GET_TS_CHEM() * 60.0_fp
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CHEM', .FALSE., DT_TEND, RC )

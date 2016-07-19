@@ -245,7 +245,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-#if defined( DEVEL )
+#if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
       USE TIME_MOD,           ONLY : GET_TS_DYN
@@ -295,6 +295,7 @@
 !  08 Aug 2015 - E. Lundgren - Tracer units are now input as [kg/kg]
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -339,17 +340,18 @@
       ! Only print output on the root CPU
       doPrt = ( LPRT .and. am_I_Root )
 
+#if defined( USE_TEND )
       !=================================================================
       ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
-#if defined( DEVEL )
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'WETD', .FALSE., RC )
 #endif
 
+#if   defined( NC_DIAG )
       !=================================================================
       ! For netCDF diagnostics, mirror old species
-#if   defined( NC_DIAG )
+      !=================================================================
       IF ( Input_Opt%ND39 > 0 ) THEN
          ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
          BEFORE = State_Chm%Tracers
@@ -421,10 +423,11 @@
 
 #endif
 
-      !---------------------
-      ! NetCDF diagnostics 
-      !---------------------
 #if   defined( NC_DIAG )
+      !=================================================================
+      ! NetCDF diagnostics 
+      !=================================================================
+
       ! Use ND38 as indicator for entire wet scavenging diagnostic group
       IF ( Input_Opt%ND38 > 0 ) THEN
 
@@ -480,11 +483,11 @@
       ENDIF
 #endif
 
+#if defined( USE_TEND )
       !=================================================================
       ! Calculate tendencies and write to diagnostics 
       ! (ckeller,7/15/2015)
       !=================================================================
-#if defined( DEVEL )
       DT_TEND = GET_TS_DYN() * 60.0_fp
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'WETD', .FALSE., DT_TEND, RC )
