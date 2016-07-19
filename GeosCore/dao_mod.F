@@ -753,6 +753,17 @@
          State_Met%PMEAN_DRY( I,J,L ) = State_Met%PMEAN(I,J,L) - Ev_mean
          ! MF NOTE: used only in this routine. Remove?
 
+         ! Try this definition instead for moisture fix:
+         ! Mean altitude-weighted pressure in grid box [hPa] defined as   
+         ! average P(z) over z. Use in the ideal gas law yields a         
+         ! mean density equivalent to total mass per volume in grid box.  
+         ! NOTE: Use of PMEAN is a temporary fix to preserve current      
+         ! usage of AIRDEN as total mass per volume.                      
+!         State_Met%PMEAN_DRY( I,J,L ) = State_Met%DELP_DRY(I,J,L) /
+!     &                              log( State_Met%PEDGE(I,J,L) /         
+!     &                                   PEdge_Top )     
+
+
          ! ***UNCLEAR IF THIS WILL BE NEEDED IN SOME FORM FOR WETSCAV***
          State_Met%MAIRDEN(I,J,L) = ( State_Met%PMEAN_DRY(I,J,L) 
      &                                * AIRMW + Ev_mean * H2OMW ) 
@@ -763,11 +774,11 @@
 
          ! ***UNCLEAR HOW TO DERIVE THIS FROM DRY SFC PRESSURE***
          ! Set grid box dry air density [kg/m3]
-         State_Met%AIRDEN(I,J,L) = State_Met%PMEAN_DRY(I,J,L) * AIRMW 
-     &                             * PCONV * MCONV
-     &                             / RSTARG / State_Met%T(I,J,L)
-!         State_Met%AIRDEN(I,J,L) = State_Met%AD(I,J,L)  
-!     &                             / State_Met%AIRVOL(I,J,L)
+!         State_Met%AIRDEN(I,J,L) = State_Met%PMEAN_DRY(I,J,L) * AIRMW 
+!     &                             * PCONV * MCONV
+!     &                             / RSTARG / State_Met%T(I,J,L)
+         State_Met%AIRDEN(I,J,L) = State_Met%AD(I,J,L)  
+     &                             / State_Met%AIRVOL(I,J,L)
          ! MOISTURE FIX GOAL: Make the former AIRDEN equal to the latter.
          !                    AIRDEN not currently in conversions, but will be
          ! NOTE: not currently used in tracer conversions so for now
