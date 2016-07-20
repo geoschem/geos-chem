@@ -2020,12 +2020,7 @@
       LPRT      = Input_Opt%LPRT
       TCVV = Input_Opt%TCVV(1:Input_Opt%N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg/kg]
-      ! NOTE for tracer removal: this routine is called within 
-      ! set_initial_mixratios which currently has temporary code
-      ! setting species to tracers. Therefore, simply updating
-      ! the pointer in this routine to point to species should be ok.
-      ! (ewl, 7/15/1)
+      ! Initialize GEOS-Chem species array [kg/kg]
       Spc => State_Chm%Species
 
       ! Filename
@@ -2862,7 +2857,7 @@
       REAL(f4), POINTER      :: STATE_PSC(:,:,:)
       REAL(fp), POINTER      :: WERADIUS(:,:,:,:)
 
-      ! TEMPORARY TRACER REMOVAL CODE (ewl, 7/15/16)
+      ! TEMPORARY TRACER REMOVAL CODE (ewl, 7/7/16)
       INTEGER         :: nAdvect, NA, N
       REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
@@ -2872,6 +2867,14 @@
 
       ! Assume success
       RC = GIGC_SUCCESS
+
+      ! Copy fields from INPUT_OPT
+      LPRT        = Input_Opt%LPRT
+      LGRAVSTRAT  = Input_Opt%LGRAVSTRAT
+
+      ! Copy fields from species database
+      NIT_MW_G    = State_Chm%SpcData(id_NIT)%Info%emMW_g  ! g/mol
+      HNO3_MW_G   = State_Chm%SpcData(id_HNO3)%Info%emMW_g ! g/mol
 
       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
@@ -2887,24 +2890,13 @@
       DO NA = 1, nAdvect
          N = State_Chm%Map_Advect(NA)
          !Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
-         ! Comment out setting species to tracers since results
-         ! in differences in HEMCO rst, GC rst, and diagnostics even
-         ! when resetting species to Spc_temp values at end
          !State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
       ENDDO
       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-      ! Copy fields from INPUT_OPT
-      LPRT        = Input_Opt%LPRT
-      LGRAVSTRAT  = Input_Opt%LGRAVSTRAT
-
-      ! Copy fields from species database
-      NIT_MW_G    = State_Chm%SpcData(id_NIT)%Info%emMW_g  ! g/mol
-      HNO3_MW_G   = State_Chm%SpcData(id_HNO3)%Info%emMW_g ! g/mol
-
       ! Initialize pointers
-      Spc       => State_Chm%Tracers   
-      ! Spc => State_Chm%Species ! Results in HEMCO rst, GC rst, & diag diffs
+      !Spc => State_Chm%Species
+      Spc => State_Chm%Tracers ! debugging (eventually point to species)
       STATE_PSC => State_Chm%STATE_PSC   ! PSC type (Kirner et al. 2011, GMD)
       WERADIUS  => State_Chm%WetAeroRadi ! Aerosol Radius [cm]
 
@@ -3476,10 +3468,6 @@
       !@@@
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
-         ! Setting tracers equal to species is not necessary as long
-         ! as setting species to tracers at the beginning is commented
-         ! out. That is the case here pending resolution of differences
-         ! caused by the switch.
          !State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
 
          ! Restore State_Chm%SPECIES to its original values for testing
@@ -6042,17 +6030,7 @@
       ! Store incoming State_Chm%Species in a local variable for testing
       DO NA = 1, nAdvect
          N = State_Chm%Map_Advect(NA)
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L)
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            Spc_temp(I,J,L,NA) = State_Chm%Species(I,J,L,N)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
+         Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
          State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
       ENDDO
       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@

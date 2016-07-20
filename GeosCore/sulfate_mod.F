@@ -808,6 +808,16 @@
          ENDIF
       ENDIF
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 #if defined( UCX )
       ! Stratospheric aerosol gravitational settling
       IF ( LGRAVSTRAT ) THEN
@@ -818,16 +828,6 @@
          ENDIF
       ENDIF
 #endif
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Convert all tracers in Spc from [kg] -> [v/v]
       CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,
