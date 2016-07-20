@@ -982,7 +982,8 @@
          DO N = 1, NDSTBIN
 
             ! Get drydep id
-            drydep_id = Input_Opt%IDISP+N
+!            drydep_id = Input_Opt%IDISP+N
+            drydep_id = IDISP + N
 
             ! Get tracer id
             trc_id = Input_Opt%NTRAIND( drydep_id )

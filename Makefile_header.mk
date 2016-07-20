@@ -186,6 +186,7 @@
 #  10 Feb 2016 - E. Lundgren - Add BPCH restart file input and output switches
 #  11 Feb 2016 - E. Lundgren - Change BPCH to BPCH_DIAG, NETCDF to NC_DIAG
 #  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
+#  19 Jul 2016 - R. Yantosca - Add more flags for enabling experimental code
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -300,7 +301,7 @@ ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
 endif
 
 #------------------------------------------------------------------------------
-# GEOS-Chem HP settings
+# Special flags for enabling experimental or development code
 #------------------------------------------------------------------------------
 
 # %%%%% DEVEL %%%%%
@@ -308,6 +309,30 @@ REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(DEVEL)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DDEVEL
 endif
+
+# %%%%% HCO_DEVEL: Enable experimental code specific to HEMCO %%%%%
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(HCO_DEVEL)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DHCO_DEVEL
+endif
+
+# %%%%% HPC_DEVEL: Enable experimental code specific to GCHP %%%%%
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(HPC_DEVEL)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DHPC_DEVEL
+endif
+
+# %%%%% Turn on tendencies computation  %%%%%
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(USE_TEND)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DUSE_TEND
+  NC_DIAG            :=yes
+  BPCH_DIAG          :=no
+endif
+
+#------------------------------------------------------------------------------
+# GEOS-Chem HP settings
+#------------------------------------------------------------------------------
 
 # %%%%% ESMF %%%%%
 REGEXP               := (^[Yy]|^[Yy][Ee][Ss])

@@ -447,7 +447,7 @@
       LOGICAL           :: First_ISOPN
       LOGICAL           :: First_MMN
       CHARACTER(LEN=30) :: DryDepName, DiagnName
-      REAL(fp), TARGET  :: SAVE_DEPVEL(IIPAR,JJPAR,Input_Opt%NUMDEP)
+      REAL(fp), TARGET  :: SAVE_DEPVEL(IIPAR,JJPAR,State_Chm%nDryDep)
       REAL(hp), POINTER :: Ptr2D(:,:)
 #endif
 
