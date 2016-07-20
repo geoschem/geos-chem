@@ -348,6 +348,7 @@
 !                              species ID from State_Chm%Map_Advect.
 !  20 Jul 2016 - R. Yantosca - Add minor bug fixes for netCDF diagnostics
 !  20 Jul 2016 - R. Yantosca - Now replace NNPAR with State_Chm%nAdvect
+!  20 Jul 2016 - R. Yantosca - Now pass State_Chm to DiagnUpdate_Transport_Flux
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -517,8 +518,9 @@
 
 #if defined( NC_DIAG )
       IF ( Input_Opt%ND24 > 0 ) THEN 
-         CALL DiagnUpdate_Transport_Flux( am_I_Root, p_MFLEW, p_MFLNS, 
-     &                                    p_MFLUP, Input_Opt, RC )
+         CALL DiagnUpdate_Transport_Flux( am_I_Root, 
+     &                                    p_MFLEW,   p_MFLNS,   p_MFLUP, 
+     &                                    Input_Opt, State_Chm, RC )
       ENDIF
 #endif
 
@@ -659,6 +661,7 @@
 !                              species ID from State_Chm%Map_Advect.
 !  20 Jul 2016 - R. Yantosca - Add minor bug fixes for netCDF diagnostics
 !  20 Jul 2016 - R. Yantosca - Now replace NNPAR with State_Chm%nAdvect
+!  20 Jul 2016 - R. Yantosca - Now pass State_Chm to DiagnUpdate_Transport_Flux
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -831,9 +834,10 @@
      &                   A_M2,    ND24,    ND25,    ND26 )
 
 #if defined( NC_DIAG )
-      IF ( Input_Opt%ND24 > 0 ) THEN
-         CALL DiagnUpdate_Transport_Flux( am_I_Root, p_MFLEW, p_MFLNS, 
-     &                                    p_MFLUP, Input_Opt, RC )
+      IF ( Input_Opt%ND24 > 0 ) THEN 
+         CALL DiagnUpdate_Transport_Flux( am_I_Root, 
+     &                                    p_MFLEW,   p_MFLNS,   p_MFLUP, 
+     &                                    Input_Opt, State_Chm, RC )
       ENDIF
 #endif
 
@@ -975,6 +979,7 @@
 !                              species ID from State_Chm%Map_Advect.
 !  20 Jul 2016 - R. Yantosca - Add minor bug fixes for netCDF diagnostics
 !  20 Jul 2016 - R. Yantosca - Now replace NNPAR with State_Chm%nAdvect
+!  20 Jul 2016 - R. Yantosca - Now pass State_Chm to DiagnUpdate_Transport_Flux
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1214,9 +1219,10 @@
      &      ND26                                          ) 
 
 #if defined( NC_DIAG )
-      IF ( Input_Opt%ND24 > 0 ) THEN
-         CALL DiagnUpdate_Transport_Flux( am_I_Root, p_MFLEW, p_MFLNS, 
-     &                                    p_MFLUP, Input_Opt, RC )
+      IF ( Input_Opt%ND24 > 0 ) THEN 
+         CALL DiagnUpdate_Transport_Flux( am_I_Root, 
+     &                                    p_MFLEW,   p_MFLNS,   p_MFLUP, 
+     &                                    Input_Opt, State_Chm, RC )
       ENDIF
 #endif
 

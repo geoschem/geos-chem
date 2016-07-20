@@ -3973,6 +3973,7 @@
 !  15 Jan 2015 - R. Yantosca - Now define Input_Opt%DIAG_COLLECTION 
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !  23 Jun 2016 - R. Yantosca - Now call INIT_DIAG_OH from GIGC_Init_Extra
+!  20 Jul 2016 - R. Yantosca - Remove references to NNPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3999,7 +4000,12 @@
       ENDIF
 
       ! Get max number of tracers
-      N_MAX = MIN( N_TRACERS, NNPAR )
+!--------------------------------------------
+! Prior to 7/20/16:
+! Remove NNPAR (bmy, 7/20/16)
+!      N_MAX = MAX( N_TRACERS, NNPAR )
+!--------------------------------------------
+      N_MAX = N_TRACERS
 
       IF ( .not. Input_Opt%LEMIS ) THEN
          WRITE( 6, '(a)' ) 'WARNING: Emissions are turned off. The'

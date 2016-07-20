@@ -2682,62 +2682,79 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnUpdate_Transport_Flux( am_I_Root, FLUX_EW, FLUX_NS,  &
-                                         FLUX_VERT, Input_Opt, RC )
+  SUBROUTINE DiagnUpdate_Transport_Flux( am_I_Root, FLUX_EW,   FLUX_NS,       &
+                                         FLUX_VERT, Input_Opt, State_Chm, RC )
 
 !
 ! !USES:
 !
    USE GIGC_Input_Opt_Mod, ONLY : OptInput    
+   USE GIGC_State_Chm_Mod, ONLY : ChmState
    USE HCO_Diagn_Mod,      ONLY : Diagn_Update
+   USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
-   LOGICAL,          INTENT(IN)  :: am_I_Root          ! Are we on root CPU?
-   REAL(fp),         INTENT(IN)  :: FLUX_EW(:,:,:,:)   ! zonal mass flux
-   REAL(fp),         INTENT(IN)  :: FLUX_NS(:,:,:,:)   ! meridional flux
-   REAL(fp),         INTENT(IN)  :: FLUX_VERT(:,:,:,:) ! vertical mass flux
-   TYPE(OptInput),   INTENT(IN)  :: Input_Opt          ! Input options object
+   LOGICAL,        INTENT(IN)    :: am_I_Root          ! Are we on root CPU?
+   REAL(fp),       INTENT(IN)    :: FLUX_EW(:,:,:,:)   ! zonal mass flux
+   REAL(fp),       INTENT(IN)    :: FLUX_NS(:,:,:,:)   ! meridional flux
+   REAL(fp),       INTENT(IN)    :: FLUX_VERT(:,:,:,:) ! vertical mass flux
+   TYPE(OptInput), INTENT(IN)    :: Input_Opt          ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+   TYPE(ChmState), INTENT(INOUT) :: State_Chm          ! Chemistry State object
+!
 !
 ! !OUTPUT PARAMETERS:
 !
-   INTEGER,          INTENT(OUT) :: RC               ! Success or failure
+   INTEGER,        INTENT(OUT)   :: RC                 ! Success or failure
 !
-! !REVISION HISTORY:
-!  12 Feb 2015 - E. Lundgren   - Initial version
-!  19 Jan 2016 - E. Lundgren   - Updated to include all transport flux diags
-! 
 ! !REMARKS:
 !
+! !REVISION HISTORY:
+!  12 Feb 2015 - E. Lundgren - Initial version
+!  19 Jan 2016 - E. Lundgren - Updated to include all transport flux diags
+!  30 Jun 2016 - R. Yantosca - Now get advected species IDs from State_Chm
+!  20 Jul 2016 - R. Yantosca - Remove references to NNPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-   INTEGER             :: N, M, NumLevels
-   CHARACTER(LEN=60)   :: DiagnPrefix, DiagnName
-   CHARACTER(LEN=255)  :: MSG
-   CHARACTER(LEN=255)  :: LOC = 'DiagnUpdate_Transport_Flux'  &
-                                 // ' (Transport_mod.F)'
+   ! Scalars
+   INTEGER                :: N, M, NumLevels, NA
+
+   ! Strings
+   CHARACTER(LEN=60)      :: DiagnPrefix, DiagnName
+   CHARACTER(LEN=255)     :: MSG
+   CHARACTER(LEN=255)     :: LOC = 'DiagnUpdate_Transport_Flux'  &
+                               // ' (Transport_mod.F)'
 
    ! Array to hold input mass flux array with reverse-order levels
    ! and only levels that have data (ie. less than LLPAR if input.geos
    ! levels for the diagnostic are less than LLPAR).
-   REAL(fp), TARGET  :: DiagnArray( IIPAR, JJPAR, Input_Opt%LD24, NNPAR )
+   REAL(fp), TARGET       :: DiagnArray( IIPAR, JJPAR, Input_Opt%LD24,    &
+                                                       State_Chm%nAdvect )
 
    ! Pointers
-   REAL(fp), POINTER :: Ptr3D(:,:,:)
+   REAL(fp),      POINTER :: Ptr3D(:,:,:)
+   TYPE(Species), POINTER :: SpcInfo
 
    !=================================================================
    ! DIAGNUPDATE_TRANSPORT_FULX begins here!
    !=================================================================
    
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC        =  GIGC_SUCCESS
 
     ! Get number of levels for transport diagnostics
-    NumLevels = Input_Opt%LD24
+    NumLevels =  Input_Opt%LD24
+
+    ! Initialize pointers
+    Ptr3d     => NULL()
+    SpcInfo   => NULL()
 
     ! Loop over diagnostics
     DO M = 1, 3
@@ -2756,9 +2773,12 @@ CONTAINS
              DiagnArray  = FLUX_VERT(:,:,LLPAR:LLPAR-NumLevels+1:-1,:)
        END SELECT
 
-       ! Loop over tracers
-       DO N = 1, Input_Opt%N_TRACERS
-       
+       ! Loop over only the advected species
+       DO NA = 1, State_Chm%nAdvect
+      
+          ! Get the species ID from the advected species ID
+          N = State_Chm%Map_Advect(NA)
+
           ! If this tracer number N is scheduled for output in input.geos, 
           ! then update its diagnostic container for transport flux
           IF ( ANY( Input_Opt%TINDEX(24,:) == N ) ) THEN
@@ -2767,12 +2787,14 @@ CONTAINS
              ! Update diagnostic container
              !----------------------------------------------------------------
          
+             ! Point to the corresponding entry in the species database
+             SpcInfo   => State_Chm%SpcData(N)%Info
+
              ! Diagnostic container name
-             DiagnName = TRIM( DiagnPrefix )                      &
-                         // TRIM( Input_Opt%TRACER_NAME( N ) )
+             DiagnName =  TRIM( DiagnPrefix ) // TRIM( SpcInfo%Name )
        
              ! Point to the array with levels corrected
-             Ptr3D => DiagnArray(:,:,:,N)
+             Ptr3D     => DiagnArray(:,:,:,NA)
        
              ! Create container
              CALL Diagn_Update( am_I_Root,                        &
@@ -2780,14 +2802,15 @@ CONTAINS
                                 Array3D   = Ptr3D,                &
                                 RC        = RC )
        
-             ! Free the pointer 
-             Ptr3D => NULL()
+             ! Free the pointers
+             Ptr3D   => NULL()
+             SpcInfo => NULL()
        
              ! Stop with error if the diagnostics update was unsuccessful.
              IF ( RC /= HCO_SUCCESS ) THEN
                 MSG = 'Cannot update diagnostic: ' // TRIM( DiagnName )
                 CALL ERROR_STOP( MSG, LOC ) 
-             ENDIF  
+             ENDIF 
           ENDIF
        ENDDO
     ENDDO
