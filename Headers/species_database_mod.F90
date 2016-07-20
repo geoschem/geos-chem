@@ -1709,13 +1709,15 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Isoprene nitrate Delta',     &
                               MW_g          = 147.0_fp,                     &
-                              Is_Advected   = F,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
+                              Is_Wetdep     = T,                            &
                               Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )					    
