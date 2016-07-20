@@ -1355,7 +1355,7 @@ CONTAINS
                               ModelID       = N,                            &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
+                              Name          = 'HCFC141b',                   &
                               FullName      = 'HCFC-141b',                  &
                               MW_g          = 117.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
@@ -1372,7 +1372,7 @@ CONTAINS
                               ModelID       = N,                            &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
+                              Name          = 'HCFC142b',                   &
                               FullName      = 'HCFC-142b',                  &
                               MW_g          = 117.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
