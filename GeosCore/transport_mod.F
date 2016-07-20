@@ -278,9 +278,8 @@
 !
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
-#endif
-#if defined( NC_DIAG )
-      USE DIAGNOSTICS_MOD, ONLY : DIAGNUPDATE_TRANSPORT_FLUX
+#elif defined( NC_DIAG )
+      USE DIAGNOSTICS_MOD,    ONLY : DIAGNUPDATE_TRANSPORT_FLUX
 #endif
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
@@ -316,6 +315,10 @@
 !  As of July 2016, we assume that all of the advected species are listed
 !  first in the species database.  This is the easiest way to pass a slab
 !  to the TPCORE routine.  This may change in the future. (bmy, 7/13/16)
+!                                                                             .
+!  Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
+!  are incremented upside-down (level 1 = top of the atmosphere).
+!  The levels order is reversed only when written out to diagnostic output.
 !
 ! !REVISION HISTORY: 
 !  30 Oct 2007 - R. Yantosca - Initial version
@@ -343,6 +346,8 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  20 Jul 2016 - R. Yantosca - Add minor bug fixes for netCDF diagnostics
+!  20 Jul 2016 - R. Yantosca - Now replace NNPAR with State_Chm%nAdvect
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -357,15 +362,18 @@
       REAL(fp)           :: D_DYN
 
       ! Arrays
-      REAL(fp)           :: P_TP1      (IIPAR,JJPAR            )
-      REAL(fp)           :: P_TP2      (IIPAR,JJPAR            )
-      REAL(fp)           :: P_TEMP     (IIPAR,JJPAR            )
-      REAL(fp),  TARGET  :: XMASS      (IIPAR,JJPAR,LLPAR      ) 
-      REAL(fp),  TARGET  :: YMASS      (IIPAR,JJPAR,LLPAR      ) 
+      REAL(fp)           :: P_TP1      (IIPAR,JJPAR      )
+      REAL(fp)           :: P_TP2      (IIPAR,JJPAR      )
+      REAL(fp)           :: P_TEMP     (IIPAR,JJPAR      )
+      REAL(fp),  TARGET  :: XMASS      (IIPAR,JJPAR,LLPAR) 
+      REAL(fp),  TARGET  :: YMASS      (IIPAR,JJPAR,LLPAR) 
 #if defined( NC_DIAG )
-      REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,NNPAR)        
-      REAL(fp),  TARGET  :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,NNPAR)
-      REAL(fp),  TARGET  :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,NNPAR) 
+      REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,
+     &                                  State_Chm%nAdvect)        
+      REAL(fp),  TARGET  :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,
+     &                                  State_Chm%nAdvect)
+      REAL(fp),  TARGET  :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,
+     &                                  State_Chm%nAdvect) 
 #endif
 
       ! Pointers
@@ -373,11 +381,9 @@
       REAL(fp),  POINTER :: p_VWND (:,:,:  )
       REAL(fp),  POINTER :: p_XMASS(:,:,:  )
       REAL(fp),  POINTER :: p_YMASS(:,:,:  )
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
       REAL(fp),  POINTER :: p_MFLEW(:,:,:,:)
       REAL(fp),  POINTER :: p_MFLNS(:,:,:,:)
       REAL(fp),  POINTER :: p_MFLUP(:,:,:,:)
-#endif
       REAL(fp),  POINTER :: p_Spc  (:,:,:,:)
 
       !=================================================================
@@ -388,26 +394,24 @@
       RC          =  GIGC_SUCCESS
 
       ! Initialize
-      LFILL       = Input_Opt%LFILL
-      LPRT        = Input_Opt%LPRT
-      LWINDO      = Input_Opt%LWINDO
-      nAdvect     = State_Chm%nAdvect
-#if defined( BPCH_DIAG ) || defined( NETCDF )
+      LFILL       =  Input_Opt%LFILL
+      LPRT        =  Input_Opt%LPRT
+      LWINDO      =  Input_Opt%LWINDO
+      nAdvect     =  State_Chm%nAdvect
       p_MFLEW     => NULL()
       p_MFLNS     => NULL()
       p_MFLUP     => NULL()
-#endif
 
 #if defined( NC_DIAG )
       ! Initialize netcdf diagnostic arrays
-      MASSFLEW_NC = 0.0e+0_fp
-      MASSFLNS_NC = 0.0e+0_fp
-      MASSFLUP_NC = 0.0e+0_fp
+      MASSFLEW_NC =  0.0e+0_fp
+      MASSFLNS_NC =  0.0e+0_fp
+      MASSFLUP_NC =  0.0e+0_fp
 #endif
 
       ! Dynamic timestep [s]
-      N_DYN       = GET_TS_DYN() * 60
-      D_DYN       = DBLE( N_DYN )
+      N_DYN       =  GET_TS_DYN() * 60
+      D_DYN       =  DBLE( N_DYN )
 
       !=================================================================
       ! Prepare variables for calls to PJC pressure-fixer and TPCORE
@@ -473,8 +477,7 @@
       p_MFLEW   => MASSFLEW
       p_MFLNS   => MASSFLNS
       p_MFLUP   => MASSFLUP
-#endif
-#if defined( NC_DIAG )
+#elif defined( NC_DIAG )
       ! Point to local arrays for netcdf
       p_MFLEW   => MASSFLEW_NC
       p_MFLNS   => MASSFLNS_NC
@@ -509,14 +512,7 @@
      &                   p_UWND,   p_VWND,   P_TP1,    P_TP2,
      &                   P_TEMP,   p_Spc,    IORD,     JORD,      
      &                   KORD,     N_ADJ,    p_XMASS,  p_YMASS, 
-     &                   LFILL,  
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
-      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
-      ! are incremented upside-down (level 1 = top of the atmosphere).
-      ! The levels order is reversed only when written out in diag3.f
-      ! (ccc, 3/8/10)
-     &                   p_MFLEW,  p_MFLNS,  p_MFLUP,
-#endif    
+     &                   LFILL,    p_MFLEW,  p_MFLNS,  p_MFLUP,
      &                   A_M2,     ND24,     ND25,     ND26 )
 
 #if defined( NC_DIAG )
@@ -552,11 +548,9 @@
       p_XMASS => NULL()
       p_YMASS => NULL()
       p_Spc   => NULL()
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
       p_MFLEW => NULL()
       p_MFLNS => NULL()  
       p_MFLUP => NULL()
-#endif
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -596,9 +590,8 @@
 !
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
-#endif
-#if defined( NC_DIAG )
-      USE DIAGNOSTICS_MOD, ONLY : DIAGNUPDATE_TRANSPORT_FLUX
+#elif defined( NC_DIAG )
+      USE DIAGNOSTICS_MOD,    ONLY : DIAGNUPDATE_TRANSPORT_FLUX
 #endif
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
@@ -634,6 +627,10 @@
 !  first in the species database.  This is the easiest way to pass a slab
 !  to the TPCORE routine.  This may change in the future. (bmy, 7/13/16)
 !
+!  Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
+!  are incremented upside-down (level 1 = top of the atmosphere).
+!  The levels order is reversed only when written out to diagnostic output.
+!
 ! !REVISION HISTORY: 
 !  30 Oct 2007 - R. Yantosca - Initial version
 !  (1 ) Split off the GCAP relevant parts from the previous routine
@@ -660,6 +657,8 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  20 Jul 2016 - R. Yantosca - Add minor bug fixes for netCDF diagnostics
+!  20 Jul 2016 - R. Yantosca - Now replace NNPAR with State_Chm%nAdvect
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -674,16 +673,19 @@
       REAL(fp)           :: D_DYN
 
       ! Arrays
-      REAL(fp)           :: P_TP1      (IIPAR,JJPAR            )
-      REAL(fp)           :: P_TP2      (IIPAR,JJPAR            )
-      REAL(fp)           :: P_TEMP     (IIPAR,JJPAR            )
-      REAL(fp)           :: VTMP       (IIPAR,JJPAR,LLPAR      )
-      REAL(fp),  TARGET  :: XMASS      (IIPAR,JJPAR,LLPAR      )       
-      REAL(fp),  TARGET  :: YMASS      (IIPAR,JJPAR,LLPAR      ) 
+      REAL(fp)           :: P_TP1      (IIPAR,JJPAR      )
+      REAL(fp)           :: P_TP2      (IIPAR,JJPAR      )
+      REAL(fp)           :: P_TEMP     (IIPAR,JJPAR      )
+      REAL(fp)           :: VTMP       (IIPAR,JJPAR,LLPAR)
+      REAL(fp),  TARGET  :: XMASS      (IIPAR,JJPAR,LLPAR)       
+      REAL(fp),  TARGET  :: YMASS      (IIPAR,JJPAR,LLPAR) 
 #if defined( NC_DIAG )
-      REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,NNPAR)        
-      REAL(fp),  TARGET  :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,NNPAR)
-      REAL(fp),  TARGET  :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,NNPAR) 
+      REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,
+     &                                  State_Chm%nAdvect)        
+      REAL(fp),  TARGET  :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,
+     &                                  State_Chm%nAdvect)
+      REAL(fp),  TARGET  :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,
+     &                                  State_Chm%nAdvect) 
 #endif
 
       ! Pointers
@@ -691,11 +693,9 @@
       REAL(fp),  POINTER :: p_VWND (:,:,:  )
       REAL(fp),  POINTER :: p_XMASS(:,:,:  )
       REAL(fp),  POINTER :: p_YMASS(:,:,:  )
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
       REAL(fp),  POINTER :: p_MFLEW(:,:,:,:)
       REAL(fp),  POINTER :: p_MFLNS(:,:,:,:)
       REAL(fp),  POINTER :: p_MFLUP(:,:,:,:)
-#endif
       REAL(fp),  POINTER :: p_Spc  (:,:,:,:)
 
       !=================================================================
@@ -706,15 +706,13 @@
       RC          =  GIGC_SUCCESS
 
       ! Initialize
-      LFILL       = Input_Opt%LFILL
-      LPRT        = Input_Opt%LPRT
-      LWINDO      = Input_Opt%LWINDO
-      nAdvect     = State_Chm%nAdvect
-#if defined( BPCH_DIAG ) || defined( NETCDF )
+      LFILL       =  Input_Opt%LFILL
+      LPRT        =  Input_Opt%LPRT
+      LWINDO      =  Input_Opt%LWINDO
+      nAdvect     =  State_Chm%nAdvect
       p_MFLEW     => NULL()
       p_MFLNS     => NULL()
       p_MFLUP     => NULL()
-#endif
 
 #if defined( NC_DIAG )
       ! Initialize netcdf diagnostic arrays
@@ -794,8 +792,7 @@
       p_MFLEW   => MASSFLEW
       p_MFLNS   => MASSFLNS
       p_MFLUP   => MASSFLUP
-#endif
-#if defined( NC_DIAG )
+#elif defined( NC_DIAG )
       p_MFLEW   => MASSFLEW_NC
       p_MFLNS   => MASSFLNS_NC
       p_MFLUP   => MASSFLUP_NC
@@ -830,14 +827,7 @@
      &                   p_UWND,  p_VWND,  P_TP1,   P_TP2,
      &                   P_TEMP,  p_Spc,   IORD,    JORD,      
      &                   KORD,    N_ADJ,   p_XMASS, p_YMASS, 
-     &                   LFILL,
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
-      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
-      ! are incremented upside-down (level 1 = top of the atmosphere).
-      ! The levels order is reversed only when written out in diag3.f
-      ! (ccc, 3/8/10)
-     &                   p_MFLEW, p_MFLNS, p_MFLUP,
-#endif    
+     &                   LFILL,   p_MFLEW, p_MFLNS, p_MFLUP,
      &                   A_M2,    ND24,    ND25,    ND26 )
 
 #if defined( NC_DIAG )
@@ -873,11 +863,9 @@
       p_Spc   => NULL()
       p_XMASS => NULL()
       p_YMASS => NULL()
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
       p_MFLEW => NULL()
       p_MFLNS => NULL() 
       p_MFLUP => NULL()
-#endif
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -918,29 +906,28 @@
 !
       ! References to F90 modules
 #if defined( BPCH_DIAG )
-      USE DIAG_MOD,                  ONLY : MASSFLEW, MASSFLNS, MASSFLUP
-#endif
-#if defined( NC_DIAG )
-      USE DIAGNOSTICS_MOD, ONLY : DIAGNUPDATE_TRANSPORT_FLUX
+      USE DIAG_MOD,             ONLY : MASSFLEW, MASSFLNS, MASSFLUP
+#elif defined( NC_DIAG )
+      USE DIAGNOSTICS_MOD,      ONLY : DIAGNUPDATE_TRANSPORT_FLUX
 #endif
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,        ONLY : OptInput
-      USE GIGC_State_Chm_Mod,        ONLY : ChmState
-      USE GIGC_State_Met_Mod,        ONLY : MetState
-      USE GRID_MOD,                  ONLY : GET_XOFFSET,   GET_YOFFSET
-      USE PJC_PFIX_WINDOW_MOD,       ONLY : DO_PJC_PFIX_WINDOW
-      USE PRESSURE_MOD,              ONLY : SET_FLOATING_PRESSURE
-      USE DAO_MOD,                   ONLY : AIRQNT
-      USE TIME_MOD,                  ONLY : GET_TS_DYN
-      USE TPCORE_BC_MOD,             ONLY : I0_W, J0_W, I1_W, J1_W
-      USE TPCORE_BC_MOD,             ONLY : I2_W, J2_W, IM_W, JM_W, IGZD
-      USE TPCORE_BC_MOD,             ONLY : DO_WINDOW_TPCORE_BC 
-      USE TPCORE_WINDOW_MOD,         ONLY : TPCORE_WINDOW
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE GIGC_State_Chm_Mod,   ONLY : ChmState
+      USE GIGC_State_Met_Mod,   ONLY : MetState
+      USE GRID_MOD,             ONLY : GET_XOFFSET,   GET_YOFFSET
+      USE PJC_PFIX_WINDOW_MOD,  ONLY : DO_PJC_PFIX_WINDOW
+      USE PRESSURE_MOD,         ONLY : SET_FLOATING_PRESSURE
+      USE DAO_MOD,              ONLY : AIRQNT
+      USE TIME_MOD,             ONLY : GET_TS_DYN
+      USE TPCORE_BC_MOD,        ONLY : I0_W, J0_W, I1_W, J1_W
+      USE TPCORE_BC_MOD,        ONLY : I2_W, J2_W, IM_W, JM_W, IGZD
+      USE TPCORE_BC_MOD,        ONLY : DO_WINDOW_TPCORE_BC 
+      USE TPCORE_WINDOW_MOD,    ONLY : TPCORE_WINDOW
       USE UNITCONV_MOD
-      USE CMN_SIZE_MOD                    ! Size parameters
-      USE CMN_DIAG_MOD                    ! NDxx flags
-      USE PHYSCONSTANTS                   ! Physical constants
+      USE CMN_SIZE_MOD               ! Size parameters
+      USE CMN_DIAG_MOD               ! NDxx flags
+      USE PHYSCONSTANTS              ! Physical constants
 !
 ! !INPUT PARAMETERS:
 !
@@ -960,6 +947,10 @@
 !  As of July 2016, we assume that all of the advected species are listed
 !  first in the species database.  This is the easiest way to pass a slab
 !  to the TPCORE routine.  This may change in the future. (bmy, 7/13/16)
+!                                                                             .
+!  Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
+!  are incremented upside-down (level 1 = top of the atmosphere).
+!  The levels order is reversed only when written out to diagnostic output.
 !
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
@@ -982,6 +973,8 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  20 Jul 2016 - R. Yantosca - Add minor bug fixes for netCDF diagnostics
+!  20 Jul 2016 - R. Yantosca - Now replace NNPAR with State_Chm%nAdvect
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -998,15 +991,18 @@
       REAL(fp)           :: D_DYN
 
       ! Arrays
-      REAL(fp),  TARGET  :: P_TP1      (IIPAR,JJPAR            )
-      REAL(fp),  TARGET  :: P_TP2      (IIPAR,JJPAR            )
-      REAL(fp),  TARGET  :: P_TEMP     (IIPAR,JJPAR            )
-      REAL(fp),  TARGET  :: XMASS      (IIPAR,JJPAR,LLPAR      )
-      REAL(fp),  TARGET  :: YMASS      (IIPAR,JJPAR,LLPAR      )
+      REAL(fp),  TARGET  :: P_TP1      (IIPAR,JJPAR      )
+      REAL(fp),  TARGET  :: P_TP2      (IIPAR,JJPAR      )
+      REAL(fp),  TARGET  :: P_TEMP     (IIPAR,JJPAR      )
+      REAL(fp),  TARGET  :: XMASS      (IIPAR,JJPAR,LLPAR)
+      REAL(fp),  TARGET  :: YMASS      (IIPAR,JJPAR,LLPAR)
 #if defined( NC_DIAG )
-      REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,NNPAR)        
-      REAL(fp),  TARGET  :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,NNPAR)
-      REAL(fp),  TARGET  :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,NNPAR) 
+      REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,
+     &                                  State_Chm%nAdvect)        
+      REAL(fp),  TARGET  :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,
+     &                                  State_Chm%nAdvect)
+      REAL(fp),  TARGET  :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,
+     &                                  State_Chm%nAdvect) 
 #endif
 
       ! Pointers
@@ -1018,11 +1014,9 @@
       REAL(fp),  POINTER :: p_VWND  (:,:,:  )
       REAL(fp),  POINTER :: p_XMASS (:,:,:  )
       REAL(fp),  POINTER :: p_YMASS (:,:,:  )
-#if defined( BPCH_DIAG ) || defined( NETCDF )
       REAL(fp),  POINTER :: p_MFLEW (:,:,:,:)
       REAL(fp),  POINTER :: p_MFLNS (:,:,:,:)
       REAL(fp),  POINTER :: p_MFLUP (:,:,:,:)
-#endif
       REAL(fp),  POINTER :: p_Spc   (:,:,:,:)
 
       !=================================================================
@@ -1047,11 +1041,9 @@
       p_VWND      => NULL()
       p_XMASS     => NULL()
       p_YMASS     => NULL()
-#if defined( BPCH_DIAG ) || defined( NETCDF )
       p_MFLEW     => NULL()
       p_MFLNS     => NULL()
       p_MFLUP     => NULL()
-#endif
       p_Spc       => NULL()
 
 #if defined( NC_DIAG )
@@ -1172,8 +1164,7 @@
       p_MFLUP => MASSFLUP(          I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1,  
      &                              :,                         : )
-#endif
-#if defined( NC_DIAG )
+#elif defined( NC_DIAG )
       p_MFLEW => MASSFLEW_NC(       I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1,  
      &                              :,                         : )
@@ -1218,15 +1209,9 @@
      &      JFIRST,  JLAST,    NG,      MG,      nAdvect, 
      &      Ap,      Bp,       p_UWND,  p_VWND,  p_P_TP1, 
      &      p_P_TP2, p_P_TEMP, p_Spc,   IORD,    JORD, 
-     &      KORD,    N_ADJ,    p_XMASS, p_YMASS, 
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
-      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
-      ! are incremented upside-down (level 1 = top of the atmosphere).
-      ! The levels order is reversed only when written out in diag3.f
-      ! (ccc, 3/8/10)
-     &      p_MFLEW, p_MFLNS,  p_MFLUP,
-#endif
-     &      p_A_M2,  ND24,     ND25,    ND26              ) 
+     &      KORD,    N_ADJ,    p_XMASS, p_YMASS, p_MFLEW, 
+     &      p_MFLNS, p_MFLUP,  p_A_M2,  ND24,    ND25,    
+     &      ND26                                          ) 
 
 #if defined( NC_DIAG )
       IF ( Input_Opt%ND24 > 0 ) THEN
@@ -1265,11 +1250,9 @@
       p_P_TP2  => NULL()
       p_P_TEMP => NULL()
       p_A_M2   => NULL()
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
       p_MFLEW  => NULL()
       p_MFLNS  => NULL() 
       p_MFLUP  => NULL() 
-#endif
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation

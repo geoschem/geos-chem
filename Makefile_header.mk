@@ -304,10 +304,18 @@ endif
 # Special flags for enabling experimental or development code
 #------------------------------------------------------------------------------
 
-# %%%%% DEVEL %%%%%
+# %%%%% DEVEL: Enable user-added experimental code %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(DEVEL)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DDEVEL
+endif
+
+# %%%%% DIAG_DEVEL: Enable experimental code specific to HEMCO %%%%%
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(DIAG_DEVEL)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DDIAG_DEVEL
+  NC_DIAG            :=yes
+  BPCH_DIAG          :=no
 endif
 
 # %%%%% HCO_DEVEL: Enable experimental code specific to HEMCO %%%%%
@@ -335,21 +343,21 @@ endif
 #------------------------------------------------------------------------------
 
 # %%%%% ESMF %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(ESMF)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DESMF_
   NO_GRID_NEEDED     :=1
 endif
 
 # %%%%% EXTERNAL_GRID %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(EXTERNAL_GRID)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DEXTERNAL_GRID
   NO_GRID_NEEDED     :=1
 endif
 
 # %%%%% EXTERNAL_FORCING %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(EXTERNAL_FORCING)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DEXTERNAL_FORCING
   NO_GRID_NEEDED     :=1
@@ -372,24 +380,43 @@ ifndef BPCH_DIAG
   endif
 endif
 
-# %%%%% ERROR CHECK!  Make sure only one diagnostic output type is selected %%%%%
-ifeq ($(BPCH_DIAG),y)
-  ifeq ($(NC_DIAG),y)
-    $(error $(ERR_DIAG))
-  endif
-endif 
-
 # %%%%% BPCH (for using old BPCH diagnostic output) %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DBPCH_DIAG
+  IS_BPCH_DIAG       :=1
 endif
 
 # %%%%% NETCDF (for using new netCDF diagnostic output) %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DNC_DIAG
+  IS_NC_DIAG         :=1
 endif
+
+# %%%%% Test if bpch diagnostics are activated %%%%%
+REGEXP               :=-DBPCH_DIAG
+ifeq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
+  IS_BPCH_DIAG       :=1
+else
+  IS_BPCH_DIAG       :=0
+endif
+
+# %%%%% Test if netCDF diagnostics are activated %%%%%
+REGEXP               :=-DNC_DIAG
+ifeq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
+  IS_NC_DIAG         :=1
+else
+  IS_NC_DIAG         :=0
+endif
+
+# %%%%% ERROR CHECK!  Make sure only one diagnostic output type is %%%%%
+# %%%%% selected.  Now use a numeric test which is more robust.    %%%%%
+ifeq ($(IS_BPCH_DIAG),1)
+  ifeq ($(IS_NC_DIAG),1)
+    $(error $(ERR_DIAG))
+  endif
+endif 
 
 #------------------------------------------------------------------------------
 # KPP settings chemistry solver settings.  NOTE: We can't redefine CHEM 
@@ -1260,3 +1287,7 @@ export TIMERS
 #	@@echo "USERDEFS    : $(USER_DEFS)"
 #	@@echo "NC_INC_CMD  : $(NC_INC_CMD)"
 #	@@echo "NC_LINK_CMD : $(NC_LINK_CMD)"
+#	@@echo "NC_DIAG     : $(NC_DIAG)"
+#	@@echo "IS_NC_DIAG  : $(IS_NC_DIAG)"	
+#	@@echo "BPCH_DIAG   : $(BPCH_DIAG)"
+#	@@echo "IS_BPCH_DIAG: $(IS_BPCH_DIAG)"

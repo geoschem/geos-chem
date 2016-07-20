@@ -637,10 +637,11 @@
          ! Get rates for heterogeneous chemistry
          !===========================================================
 
-#if defined( DEVEL )
-         ! Get starting time for rate computation
-         CALL CPU_TIME( start )
-#endif
+! Comment out for now 
+!#if defined( DEVEL )
+!         ! Get starting time for rate computation
+!         CALL CPU_TIME( start )
+!#endif
 
          IF ( DO_HETCHEM ) THEN
 
@@ -763,13 +764,13 @@
          ! Update the array of rate constants
          CALL Update_RCONST( )
 
-#if defined( DEVEL )
-         ! Get time when rate computation finished
-         CALL CPU_TIME( finish )
-
-         ! Compute how long it took for KPP to compute rates
-         rtim = rtim + finish - start
-#endif
+!#if defined( DEVEL )
+!         ! Get time when rate computation finished
+!         CALL CPU_TIME( finish )
+!
+!         ! Compute how long it took for KPP to compute rates
+!         rtim = rtim + finish - start
+!#endif
 
          !===========================================================
          ! Set options for the KPP Integrator (M. J. Evans)
@@ -790,8 +791,8 @@
          ! Integrate the box forwards
          !===========================================================
 
-         ! Get time before integrator starts
-         call CPU_TIME( start )
+!         ! Get time before integrator starts
+!         call CPU_TIME( start )
 
          ! Call the KPP integrator
          call Integrate( TIN,    TOUT,    ICNTRL, 
@@ -802,21 +803,22 @@
             WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
          ENDIF
 
-#if defined( DEVEL )
-         ! Get time when integrator ends
-         call CPU_TIME( finish )
-
-         ! Compute how long the integrator took 
-         itim     = itim + finish - start
-
-         ! Compute other statistics from the integrator
-         totfuncs = totfuncs + ISTATUS(1)
-         totjacob = totjacob + ISTATUS(2)
-         totsteps = totsteps + ISTATUS(3)
-         totaccep = totaccep + ISTATUS(4)
-         totrejec = totrejec + ISTATUS(5)
-         totnumLU = totnumLU + ISTATUS(6)
-#endif
+! Comment out for now
+!#if defined( DEVEL )
+!         ! Get time when integrator ends
+!         call CPU_TIME( finish )
+!
+!         ! Compute how long the integrator took 
+!         itim     = itim + finish - start
+!
+!         ! Compute other statistics from the integrator
+!         totfuncs = totfuncs + ISTATUS(1)
+!         totjacob = totjacob + ISTATUS(2)
+!         totsteps = totsteps + ISTATUS(3)
+!         totaccep = totaccep + ISTATUS(4)
+!         totrejec = totrejec + ISTATUS(5)
+!         totnumLU = totnumLU + ISTATUS(6)
+!#endif
 
          ! Zero certain species
          C(ind_ACTA)  = 0.e0_dp

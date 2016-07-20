@@ -327,7 +327,7 @@ CONTAINS
 
     ENDIF
 
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
 !------------------------------------------------------------------------------
 ! Initialize Diagnostics Per the new diagnostic package | M. Long 1-21-15
 !------------------------------------------------------------------------------

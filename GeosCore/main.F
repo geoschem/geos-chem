@@ -713,7 +713,7 @@
       CALL GEOS_Timer_End ( "HEMCO", RC )
 #endif
 
-#if defined( DEVEL )
+#if defined( NC_DIAG )
       ! Initialize diagnostics other than the default HEMCO diagnostics
       ! initialized above (ckeller, 1/13/15).
       CALL Diagnostics_Init( am_I_Root, Input_Opt, 
@@ -1729,7 +1729,7 @@
 #endif
 
          ! Eventually write dobson columns into diagnostics array
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
          CALL CalcDobsonColumn ( am_I_Root, Input_Opt,
      &                           State_Met, State_Chm, RC )
 #endif

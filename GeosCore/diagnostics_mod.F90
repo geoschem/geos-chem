@@ -33,7 +33,7 @@ MODULE Diagnostics_Mod
   PUBLIC  :: Diagnostics_Final
   PUBLIC  :: DiagnUpdate_Met            ! ND31, 55, 57, 66, 67, and 68
   PUBLIC  :: DiagnUpdate_Transport_Flux ! ND24, ND25, ND26
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
   PUBLIC  :: CalcDobsonColumn           ! added by ck - no existing bpch diag
 #endif
 !
@@ -70,7 +70,7 @@ MODULE Diagnostics_Mod
   PRIVATE :: DiagnInit_Rain_Frac        ! ND17 init
   PRIVATE :: DiagnInit_Wash_Frac        ! ND18 init
   PRIVATE :: DiagnInit_Landmap          ! ND30 init
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
   PRIVATE :: DiagnInit_Tracer_Emis      ! added by ck
 #endif
   !PRIVATE :: DiagnInit_HrlyMax_SurfConc ! ND71 init (impementation commented
@@ -78,11 +78,11 @@ MODULE Diagnostics_Mod
   !   to do: ND37 (updraft scav fraction)
   !          ND62 (instantaneous column maps)
 
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
   PRIVATE :: DiagnInit_Dobson          ! added by ck
 #endif
 
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
   ! Diagnostics for testing FlexChem (may be removed later)
   PRIVATE :: DiagnInit_KPP_Rates
   PRIVATE :: DiagnInit_KPP_Spec
@@ -113,6 +113,7 @@ MODULE Diagnostics_Mod
 !  09 Jan 2015 - C. Keller   - Initial version. 
 !  14 Jan 2016 - E. Lundgren - Add several GEOS-Chem diagnostics
 !  29 Jan 2016 - E. Lundgren - Update diagnostics for recent HEMCO updates
+!  20 Jul 2016 - R. Yantosca - Replace #ifdef DEVEL with #ifdef DIAG_DEVEL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -444,7 +445,7 @@ CONTAINS
     !   ENDIF
     !ENDIF
 
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
     CALL DiagnInit_Dobson( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DiagnInit_Dobson', LOC ) 
@@ -459,7 +460,7 @@ CONTAINS
     ENDIF
 #endif
 
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
     ! Tracer emission diagnostics (NEW) (added by Christoph)
     ! NOTE: Currently this diagnostic must be initialized last since since
     ! container ids start at 10000 for routine TotalsToLogFile (ewl, 1/20/16)
@@ -471,7 +472,7 @@ CONTAINS
     ENDIF
 #endif
 
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
     ! KPP diagnostics
     CALL DiagnInit_KPP_Rates( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
@@ -2793,7 +2794,7 @@ CONTAINS
 
    END SUBROUTINE DiagnUpdate_Transport_Flux
 !EOC
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
