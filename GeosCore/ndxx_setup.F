@@ -621,7 +621,7 @@
       !       --> uses AD33 array (allocatable)!
       !=================================================================
       IF ( ND33 > 0 ) THEN
-         ALLOCATE( AD33( IIPAR, JJPAR, PD33 ), STAT=AS )
+         ALLOCATE( AD33( IIPAR, JJPAR, nAdvect ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD33' )
       ENDIF
 
@@ -716,7 +716,7 @@
       IF ( ND43 > 0 ) THEN
          
          ! For full chemistry, only save OH up to the tropopause.  
-         ! For tagged CO or CO-OH, save OH everywhere (bmy, 2/12/01)
+         ! For tagged CO ior CO-OH, save OH everywhere (bmy, 2/12/01)
          IF ( IT_IS_A_FULLCHEM_SIM ) THEN
             LD43 = MIN( ND43, LLCHEM )
          ELSE
