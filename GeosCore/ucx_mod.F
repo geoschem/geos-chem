@@ -928,16 +928,16 @@
                TRAC_SET = 'C2CL2F4'
                SCALEFAC = MONTREAL_SCALEFAC('CFC114',
      &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-               CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC,
+               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
      &                            Input_Opt, State_Met, State_Chm )
             ENDIF
 
-            IF ( id_CFC113 > 0 ) THEN
+            IF ( id_CFC115 > 0 ) THEN
                TRAC_IDX = id_CFC115
                TRAC_SET = 'C2CLF5'
                SCALEFAC = MONTREAL_SCALEFAC('CFC115',
      &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-               CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC,
+               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
      &                            Input_Opt, State_Met, State_Chm )
             ENDIF
 
@@ -960,21 +960,21 @@
      &                            Input_Opt, State_Met, State_Chm )
             ENDIF
 
-            IF ( id_HCFC123 > 0 ) THEN
+            IF ( id_HCFC141b > 0 ) THEN
                TRAC_IDX = id_HCFC141b
                TRAC_SET = 'C2H3FCL2'
                SCALEFAC = MONTREAL_SCALEFAC('HCFC141b',
      &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-               CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC,
+               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
      &                            Input_Opt, State_Met, State_Chm )
             ENDIF
 
-            IF ( id_HCFC123 > 0 ) THEN
+            IF ( id_HCFC142b > 0 ) THEN
                TRAC_IDX = id_HCFC142b
                TRAC_SET = 'C2H3F2CL'
                SCALEFAC = MONTREAL_SCALEFAC('HCFC142b',
      &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-               CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC,
+               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
      &                            Input_Opt, State_Met, State_Chm )
             ENDIF
          ENDIF
