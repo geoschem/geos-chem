@@ -293,6 +293,11 @@ CONTAINS
     REAL(fp), POINTER :: Spc(:,:,:,:)
     REAL(fp), POINTER :: AD (:,:,:  )
     REAL(fp), POINTER :: T  (:,:,:  )
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     !=======================================================================
     ! DO_STRAT_CHEM begins here!
@@ -373,6 +378,7 @@ CONTAINS
       ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
          State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -643,6 +649,9 @@ CONTAINS
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
          State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -1119,6 +1128,11 @@ CONTAINS
     ! Pointers
     REAL(fp),      POINTER :: Spc(:,:,:,:)
     TYPE(Species), POINTER :: SpcInfo
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! By simple mass balance, dStrat/dt = P - L - STE,
@@ -1163,6 +1177,7 @@ CONTAINS
     ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
     DO NA = 1, nAdvect
        N                          = State_Chm%Map_Advect(NA)
+       Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
        State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
     ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -1278,6 +1293,9 @@ CONTAINS
 !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
 !@@@
        State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+       ! Restore State_Chm%SPECIES to its original values
+       State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     ENDDO
 

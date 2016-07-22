@@ -888,6 +888,11 @@
          CALL EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, 
      &                       State_Chm, ITS_TIME_FOR_EMIS(), 1, RC )
 
+         !### Debug
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### MAIN: a HEMCO PHASE 1' )
+         ENDIf
+
          !==============================================================
          !   ***** W R I T E   D I A G N O S T I C   F I L E S *****
          !==============================================================
@@ -1413,10 +1418,14 @@
      &                          'main.F' )
             ENDIF
 
+            !### Debug
+            IF ( prtDebug ) THEN 
+               CALL DEBUG_MSG( '### MAIN: a HEMCO PHASE 2' )
+            ENDIF
+
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "HEMCO", RC )
 #endif
-
          ENDIF
 
          !-------------------------------

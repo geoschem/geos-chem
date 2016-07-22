@@ -115,6 +115,7 @@ CONTAINS
 !                              Register_Species; these routines were made
 !                              obsolete by the species database
 !  14 Jun 2016 - M. Sulprizio- Replace Spc_GetIndx with Ind_ (M. Long)
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -132,7 +133,7 @@ CONTAINS
     REAL(fp)           :: CONV_FACTOR        ! [mol/mol] -> [molec/cm3]
 
     ! Objects
-    TYPE(Species), POINTER :: ThisSpc
+    TYPE(Species), POINTER :: SpcInfo
 
     !=================================================================
     ! INIT_FLEXCHEM begins here!
@@ -142,7 +143,7 @@ CONTAINS
     RC = GIGC_SUCCESS
 
     ! Initialize pointer
-    ThisSpc => NULL()
+    SpcInfo => NULL()
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -167,7 +168,7 @@ CONTAINS
        FOUND=0
 
        ! Get info about this species from the species database
-       ThisSpc => State_Chm%SpcData(N)%Info
+       SpcInfo => State_Chm%SpcData(N)%Info
 
        ! Loop over KPP species
        DO N1 = 1, NSPEC
@@ -176,7 +177,7 @@ CONTAINS
           ! State_Chm%Species order defined in species_database_mod.F90
           ! to KPP order defined in gckpp_Parameters.F90
           IF ( ADJUSTL( TRIM( SPC_NAMES(N1) ) ) == &
-               ADJUSTL( TRIM( ThisSpc%Name  ) ) ) THEN
+               ADJUSTL( TRIM( SpcInfo%Name  ) ) ) THEN
              CSPECTOKPP(N1)=N
              FOUND=1
              EXIT
@@ -186,16 +187,16 @@ CONTAINS
 
        ! Print info to log
        IF (FOUND .NE. 1) THEN
-          WRITE (6,'(a8,a17)') TRIM( ThisSpc%Name ),   &
+          WRITE (6,'(a8,a17)') TRIM( SpcInfo%Name ),   &
              ' NOT found in KPP'
        ENDIF
        IF (FOUND .EQ. 1) THEN
-          WRITE (6,'(a8,a29,I4)') TRIM( ThisSpc%Name ), &
+          WRITE (6,'(a8,a29,I4)') TRIM( SpcInfo%Name ), &
              ' was found in KPP with index ', N1
        ENDIF
 
        ! Free pointer
-       ThisSpc => NULL()
+       SpcInfo => NULL()
 
     ENDDO
 
@@ -222,10 +223,10 @@ CONTAINS
        DO N = 1, State_Chm%nSpecies
 
           ! Get info about this species from the species database
-          ThisSpc => State_Chm%SpcData(N)%Info
+          SpcInfo => State_Chm%SpcData(N)%Info
 
           ! Skip non-KPP species
-          IF ( .not. ThisSpc%Is_Kpp ) CYCLE
+          IF ( .not. SpcInfo%Is_Kpp ) CYCLE
 
           !$OMP PARALLEL DO &
           !$OMP DEFAULT( SHARED ) &
@@ -240,7 +241,7 @@ CONTAINS
              CONV_FACTOR = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp / &
                          ( State_Met%T(I,J,L) * ( BOLTZ * 1e+7_fp ) )
 
-             IF ( TRIM( ThisSpc%Name ) /= 'MOH' ) THEN
+             IF ( TRIM( SpcInfo%Name ) /= 'MOH' ) THEN
 
                 ! Convert units from [mol/mol] to [molec/cm3/box]
                 State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) * &
@@ -310,7 +311,7 @@ CONTAINS
           ! after conversion if in debug mode (ewl, 3/1/16)
           IF ( Input_Opt%LPRT ) THEN
              WRITE(6,120) N, &
-                          TRIM( ThisSpc%Name ), &
+                          TRIM( SpcInfo%Name ), &
                           MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ), &
                           MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) ) 
 120          FORMAT( 'Species ', i3, ', ', a9, ': Min = ', &
@@ -318,7 +319,7 @@ CONTAINS
           ENDIF
 
           ! Free pointer
-          ThisSpc => NULL()
+          SpcInfo => NULL()
 
        ENDDO ! State_Chm%nSpecies
 
@@ -398,9 +399,6 @@ CONTAINS
     S_HCFC123  = IND_( 'HCFC123'  )
     S_HCFC141b = IND_( 'HCFC141b' )
     S_HCFC142b = IND_( 'HCFC142b' )
-
-    ! Return to calling program
-    RETURN
 
   END SUBROUTINE INIT_FLEXCHEM
 !EOC
