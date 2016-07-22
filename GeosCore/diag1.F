@@ -233,12 +233,15 @@
 
                ! Also express tracer conc. in v/v total air (mps, 11/18/15)
                STT_VV(I,J,L,N+1) =
-     &            MAX( State_Chm%Tracers(I,J,L,N) *
-     &                 ( 1.0e+0_fp - State_Met%SPHU(I,J,L) * 1.e-3_fp ) 
-     &                 * State_Met%MOISTMW(I,J,L) 
-     &                 / Input_Opt%TRACER_MW_G(N),
-     &                 0e+0_fp )
-
+!     &            MAX( State_Chm%Tracers(I,J,L,N) *
+!     &                 ( 1.0e+0_fp - State_Met%SPHU(I,J,L) * 1.e-3_fp ) 
+!     &                 * State_Met%MOISTMW(I,J,L) 
+!     &                 / Input_Opt%TRACER_MW_G(N),
+!     &                 0e+0_fp )
+! DEBUGGING (ewl, moisture fix)
+     &         0e+0_fp 
+! ! removed moistmw from state_met
+! END DEBUGGING
 
                ! Also express tracer conc. in kg/kg total air (mps, 11/18/15)
                STT_VV(I,J,L,N+2) =
@@ -519,11 +522,11 @@
       !       6:  T            - temperature [K]
       !       7:  TV           - virtual temperature [K]
       !       8:  PMID         - arithmetic mean pressure [hPa]
-      !       9:  PMEAN        - altitude-weighted mean pressure [hPa]
+      !!rm       9:  PMEAN        - altitude-weighted mean pressure [hPa]
       !       10: PEDGE        - level pressure (bottom edge) [hPa]
       !       11: RH           - relative humidity [%]
       !       12: PMID_DRY     - dry air partial pressure at PMID [hPa]
-      !       13: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
+      !!rm       13: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
       !================================================================= 
       IF ( Input_Opt%ND68 > 0 ) THEN
 
@@ -542,11 +545,11 @@
             AD68(I,J,L,6)  = AD68(I,J,L,6)  + State_Met%T(I,J,L)
             AD68(I,J,L,7)  = AD68(I,J,L,7)  + State_Met%TV(I,J,L)
             AD68(I,J,L,8)  = AD68(I,J,L,8)  + State_Met%PMID(I,J,L)
-            AD68(I,J,L,9)  = AD68(I,J,L,9)  + State_Met%PMEAN(I,J,L)
+            AD68(I,J,L,9)  = AD68(I,J,L,9)  + 0.e+0_fp ! LL rm
             AD68(I,J,L,10) = AD68(I,J,L,10) + State_Met%PEDGE(I,J,L)
             AD68(I,J,L,11) = AD68(I,J,L,11) + State_Met%RH(I,J,L)
             AD68(I,J,L,12) = AD68(I,J,L,12) + State_Met%PMID_DRY(I,J,L)
-            AD68(I,J,L,13) = AD68(I,J,L,13) + State_Met%PMEAN_DRY(I,J,L) 
+            AD68(I,J,L,13) = AD68(I,J,L,13) + 0.e+0_fp ! LL rm
          ENDDO
          ENDDO
          ENDDO

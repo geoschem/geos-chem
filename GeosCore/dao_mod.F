@@ -374,7 +374,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER   :: I,  J,  L,  N    
-      REAL(fp)  :: PEdge_Top, Esat, Ev_mid, Ev_edge, Ev_mean  
+      REAL(fp)  :: PEdge_Top, Esat, Ev_mid, Ev_edge, Ev_mean
+      REAL(fp)  :: PMEAN, PMEAN_DRY  
       REAL(fp)  :: EsatA, EsatB, EsatC, EsatD
       REAL(fp)  :: AREA_M2, SPHU_kgkg, SPHU_kgkg_prev, AVGW_moist
 
@@ -418,6 +419,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
 !$OMP+PRIVATE( PEdge_Top, Esat, Ev_mid, Ev_edge, Ev_mean )
+!$OMP+PRIVATE( PMEAN, PMEAN_DRY )
 !$OMP+PRIVATE( EsatA, EsatB, EsatC, EsatD )
 !$OMP+PRIVATE( AREA_M2, SPHU_kgkg, AVGW_moist )
 
@@ -674,10 +676,16 @@
          !==============================================================
          ! Prior to 08 Jul 2016: 
          ! (Calculate dry air mass from moist air mass)
-         !State_Met%AD(I,J,L) = State_Met%ADMOIST(I,J,L)
-         !&                         * ( 1.0e+0_fp - SPHU_kgkg )
-         State_Met%AD(I,J,L) = ( State_Met%DELP_DRY(I,J,L) * G0_100 )
+!         State_Met%AD(I,J,L) = ( ( State_Met%DELP(I,J,L) * G0_100 ) 
+!     &                       * AREA_M2 ) * ( 1.0e+0_fp - SPHU_kgkg )
+         
+         ! New definition
+         State_Met%AD(I,J,L) = (State_Met%DELP_DRY(I,J,L) * G0_100)
      &                         * AREA_M2
+
+         ! Keep around the old for testing, in a temporary State_Met var
+         State_Met%AD_OLD(I,J,L) = ( ( State_Met%DELP(I,J,L) * G0_100 ) 
+     &                       * AREA_M2 ) * ( 1.0e+0_fp - SPHU_kgkg )
 
          !---------------------------------------------------------
          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -689,41 +697,18 @@
          ! average P(z) over z. Use in the ideal gas law yields a         
          ! mean density equivalent to total mass per volume in grid box.  
          ! NOTE: Use of PMEAN is a temporary fix to preserve current      
-         ! usage of AIRDEN as total mass per volume.                      
-         State_Met%PMEAN( I,J,L ) = State_Met%DELP(I,J,L) /               
+         ! usage of AIRDEN as total mass per volume. 
+         ! *** Now make PMEAN a local variable rather than in State_Met ***
+         PMEAN = State_Met%DELP(I,J,L) /               
      &                              log( State_Met%PEDGE(I,J,L) /         
      &                                   PEdge_Top )     
-         ! MF NOTE: used in this routine once. Remove?
 
          !=============================================================
          ! Set grid box dry air partial pressures at grid box 
          ! altitude-weighted mean pressure [hPa]
          ! Assume constant humidity across grid box.
          !=============================================================  
-
-         ! ***UNCLEAR IF THIS WILL BE NEEDED IN SOME FORM FOR AIRDEN***
-         Ev_mean = State_Met%PMEAN(I,J,L) * Ev_mid
-     &             / State_Met%PMID(I,J,L)
-
-         !=============================================================
-         ! Set grid box moist molecular weight [g/mol]
-         ! This quantity is useful if using TCVV with moist mixing ratio.
-         ! Since we assume constant moisture and T across the grid box,
-         ! MOISTMW is constant within the box. 
-         !=============================================================  
-
-         ! ***UNCLEAR IF THIS WILL BE NEEDED IN SOME FORM FOR CONVECTION***
-         ! Grid box moist air molecular weight [g/mol]
-         State_Met%MOISTMW(I,J,L) = ( State_Met%PMID_DRY(I,J,L) 
-     &                              * AIRMW + Ev_mid * H2OMW )
-     &                              / State_Met%PMID(I,J,L) 
-         ! MF NOTE: Since convection now uses dry, unit conversions no
-         !          longer use this. Remove if possible.
-
-         ! ***This can now be removed since ucx set_h2O_trac updated
-         !    to be independent of grid mass ***
-         State_Met%ADMOIST(I,J,L) = ( State_Met%DELP(I,J,L) * G0_100 ) 
-     &                              * AREA_M2 
+         Ev_mean = PMEAN * Ev_mid / State_Met%PMID(I,J,L)
 
          !===========================================================
          ! Set grid box densities [kg/m3] using the ideal gas law.
@@ -748,12 +733,25 @@
          !                   [J/K/mol]         [K]   [g/kg]   [hPa/Pa]
          !
 
-         ! ***UNCLEAR IF THIS WILL BE NEEDED IN SOME FORM FOR AIRDEN***
+         ! ** Now make this a local variable rather than in State_Met ***
          ! Altitude-weighted mean dry air partial pressure of grid box [hPa]
-         State_Met%PMEAN_DRY( I,J,L ) = State_Met%PMEAN(I,J,L) - Ev_mean
-         ! MF NOTE: used only in this routine. Remove?
+         PMEAN_DRY = PMEAN - Ev_mean
 
-         ! Try this definition instead for moisture fix:
+         ! Previous dry air density value (derived from wet surface 
+         ! pressure) is now stored in AIRDEN_OLD for testing
+         State_Met%AIRDEN_OLD(I,J,L) = PMEAN_DRY * AIRMW * PCONV * MCONV
+     &                             / RSTARG / State_Met%T(I,J,L)
+
+         ! ***UNCLEAR IF THIS WILL BE NEEDED IN SOME FORM FOR WETSCAV***
+         ! NOTE: MAIRDEN now used in wetscav_mod only. Need
+         !       to look closer at use in wetscave_mod. Can we remove?
+         State_Met%MAIRDEN(I,J,L) = ( PMEAN_DRY 
+     &                                * AIRMW + Ev_mean * H2OMW ) 
+     &                                * PCONV * MCONV
+     &                                / RSTARG / State_Met%T(I,J,L)
+
+
+         ! Eventually try this definition instead for moisture fix:
          ! Mean altitude-weighted pressure in grid box [hPa] defined as   
          ! average P(z) over z. Use in the ideal gas law yields a         
          ! mean density equivalent to total mass per volume in grid box.  
@@ -764,25 +762,11 @@
 !     &                                   PEdge_Top )     
 
 
-         ! ***UNCLEAR IF THIS WILL BE NEEDED IN SOME FORM FOR WETSCAV***
-         State_Met%MAIRDEN(I,J,L) = ( State_Met%PMEAN_DRY(I,J,L) 
-     &                                * AIRMW + Ev_mean * H2OMW ) 
-     &                                * PCONV * MCONV
-     &                                / RSTARG / State_Met%T(I,J,L)
-         ! NOTE: MAIRDEN now used in wetscav_mod only. Need
-         !       to look closer at use in wetscave_mod. Can we remove?
-
-         ! ***UNCLEAR HOW TO DERIVE THIS FROM DRY SFC PRESSURE***
+         ! New air density value derived from dry surface pressure
          ! Set grid box dry air density [kg/m3]
-!         State_Met%AIRDEN(I,J,L) = State_Met%PMEAN_DRY(I,J,L) * AIRMW 
-!     &                             * PCONV * MCONV
-!     &                             / RSTARG / State_Met%T(I,J,L)
          State_Met%AIRDEN(I,J,L) = State_Met%AD(I,J,L)  
      &                             / State_Met%AIRVOL(I,J,L)
-         ! MOISTURE FIX GOAL: Make the former AIRDEN equal to the latter.
-         !                    AIRDEN not currently in conversions, but will be
-         ! NOTE: not currently used in tracer conversions so for now
-         ! keeping old method.
+
 
       ENDDO
       ENDDO

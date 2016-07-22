@@ -123,6 +123,7 @@ MODULE GIGC_State_Met_Mod
      !----------------------------------------------------------------------
      REAL(fp), POINTER :: AREA_M2   (:,:,:) ! Grid box surface area [cm2]
      REAL(fp), POINTER :: AIRDEN    (:,:,:) ! Dry air density [kg/m3]
+     REAL(fp), POINTER :: AIRDEN_OLD(:,:,:) ! (temp) Dry air density [kg/m3]
      REAL(fp), POINTER :: CLDF      (:,:,:) ! 3-D cloud fraction [1]
      REAL(fp), POINTER :: CMFMC     (:,:,:) ! Cloud mass flux [kg/m2/s]
      REAL(fp), POINTER :: DETRAINE  (:,:,:) ! Detrainment (entrain plume)[Pa/s]
@@ -178,8 +179,8 @@ MODULE GIGC_State_Met_Mod
      !----------------------------------------------------------------------
      ! Air quantities assigned in AIRQNT
      !----------------------------------------------------------------------
-     ! Note on pressures: PMID and PMEAN are calculated from PEDGE, 
-     ! and dry air partial pressures assume constant RH and T across grid box
+     ! Note on pressures: PMID is calculated from PEDGE, 
+     ! and dry air pressures assume constant RH and T across grid box
      REAL(fp), POINTER :: PEDGE_DRY (:,:,:) ! Dry air partial pressure [hPa] 
                                             ! @ level edges [hPa]
      REAL(fp), POINTER :: PMID      (:,:,:) ! Average wet air pressure [hPa]
@@ -188,16 +189,6 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: PMID_DRY  (:,:,:) ! Dry air partial pressure [hPa]
                                             ! defined as arithmetic average
                                             ! of edge pressures 
-     REAL(fp), POINTER :: PMEAN     (:,:,:) ! Grid box mean wet air pressure 
-                                            ! [hPa] calculated as P
-                                            ! integrated over z
-     REAL(fp), POINTER :: PMEAN_DRY (:,:,:) ! Grid box mean dry air partial 
-                                            ! pressure calculated using water 
-                                            ! vapor partial pressure derived
-                                            ! from PMEAN
-     REAL(fp), POINTER :: MOISTMW   (:,:,:) ! Moist air molec weight [g/mol]
-                                            ! at the grid box altitude-weighted
-                                            ! pressure level (temporary)        
      REAL(fp), POINTER :: TV        (:,:,:) ! Virtual temperature [K]
      REAL(fp), POINTER :: MAIRDEN   (:,:,:) ! Moist air density [kg/m3]
      REAL(fp), POINTER :: AVGW      (:,:,:) ! Water vapor volume mixing ratio
@@ -206,7 +197,7 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: DELP      (:,:,:) ! Delta-P (wet) across box [hPa]
      REAL(fp), POINTER :: DELP_DRY  (:,:,:) ! Delta-P (dry) across box [hPa]
      REAL(fp), POINTER :: AD        (:,:,:) ! Dry air mass [kg] in grid box
-     REAL(fp), POINTER :: ADMOIST   (:,:,:) ! Moist air mass [kg] in grid box
+     REAL(fp), POINTER :: AD_OLD    (:,:,:) ! (temp) air mass [kg] in grid box
      REAL(fp), POINTER :: AIRVOL    (:,:,:) ! Grid box volume [m3] (dry air)
      REAL(fp), POINTER :: DELP_PREV (:,:,:) ! Previous State_Met%DELP
      REAL(fp), POINTER :: DP_DRY_PREV (:,:,:) ! Previous State_Met%DELP_DRY
@@ -259,6 +250,7 @@ MODULE GIGC_State_Met_Mod
 !  03 May 2016 - E. Lundgren - Add PSC2_DRY, PS1_DRY, and PS2_DRY
 !  06 Jul 2016 - E. Lundgren - Rename PS1, PS2, and PSC1: add '_WET' suffix
 !  06 Jul 2016 - E. Lundgren - Add DELP_DRY and DP_DRY_PREV
+!  19 Jul 2016 - E. Lundgren - Remove PMEAN, PMEAN_DRY, MOISTMW, and ADMOIST  
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -670,13 +662,17 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%AD       = 0.0_fp
 
-    ALLOCATE( State_Met%ADMOIST   ( IM, JM, LM   ), STAT=RC )
+    ALLOCATE( State_Met%AD_OLD    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
-    State_Met%ADMOIST  = 0.0_fp
+    State_Met%AD_OLD   = 0.0_fp
                                                
     ALLOCATE( State_Met%AIRDEN    ( IM, JM, LM   ), STAT=RC )  
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%AIRDEN   = 0.0_fp
+
+    ALLOCATE( State_Met%AIRDEN_OLD ( IM, JM, LM   ), STAT=RC )  
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%AIRDEN_OLD = 0.0_fp
     
     ALLOCATE( State_Met%MAIRDEN    ( IM, JM, LM   ), STAT=RC )  
     IF ( RC /= GIGC_SUCCESS ) RETURN           
@@ -747,10 +743,6 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%DTRAIN   = 0.0_fp
 
-    ALLOCATE( State_Met%MOISTMW ( IM, JM, LM   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN           
-    State_Met%MOISTMW = 0.0_fp
-                                               
     ALLOCATE( State_Met%MOISTQ    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%MOISTQ   = 0.0_fp
@@ -774,14 +766,6 @@ CONTAINS
     ALLOCATE( State_Met%PMID_DRY   ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%PMID_DRY  = 0.0_fp
-
-    ALLOCATE( State_Met%PMEAN      ( IM, JM, LM   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN           
-    State_Met%PMEAN     = 0.0_fp
-
-    ALLOCATE( State_Met%PMEAN_DRY   ( IM, JM, LM   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN           
-    State_Met%PMEAN_DRY  = 0.0_fp
 
     ALLOCATE( State_Met%PV        ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -1095,8 +1079,9 @@ CONTAINS
 
     ! 3-D fields
     IF ( ASSOCIATED( State_Met%AD         )) DEALLOCATE( State_Met%AD         )
-    IF ( ASSOCIATED( State_Met%ADMOIST    )) DEALLOCATE( State_Met%ADMOIST    )
+    IF ( ASSOCIATED( State_Met%AD_OLD     )) DEALLOCATE( State_Met%AD_OLD     )
     IF ( ASSOCIATED( State_Met%AIRDEN     )) DEALLOCATE( State_Met%AIRDEN     )
+    IF ( ASSOCIATED( State_Met%AIRDEN_OLD )) DEALLOCATE( State_Met%AIRDEN_OLD )
     IF ( ASSOCIATED( State_Met%MAIRDEN    )) DEALLOCATE( State_Met%MAIRDEN    )
     IF ( ASSOCIATED( State_Met%AIRVOL     )) DEALLOCATE( State_Met%AIRVOL     )
     IF ( ASSOCIATED( State_Met%AREA_M2    )) DEALLOCATE( State_Met%AREA_M2    )
@@ -1113,7 +1098,6 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%DQIDTMST   )) DEALLOCATE( State_Met%DQIDTMST   )
     IF ( ASSOCIATED( State_Met%DQLDTMST   )) DEALLOCATE( State_Met%DQLDTMST   )
     IF ( ASSOCIATED( State_Met%DQVDTMST   )) DEALLOCATE( State_Met%DQVDTMST   )
-    IF ( ASSOCIATED( State_Met%MOISTMW    )) DEALLOCATE( State_Met%MOISTMW    )
     IF ( ASSOCIATED( State_Met%DTRAIN     )) DEALLOCATE( State_Met%DTRAIN     )
     IF ( ASSOCIATED( State_Met%MOISTQ     )) DEALLOCATE( State_Met%MOISTQ     )
     IF ( ASSOCIATED( State_Met%OPTD       )) DEALLOCATE( State_Met%OPTD       )
@@ -1121,8 +1105,6 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%PEDGE_DRY  )) DEALLOCATE( State_Met%PEDGE_DRY  )
     IF ( ASSOCIATED( State_Met%PMID       )) DEALLOCATE( State_Met%PMID       )
     IF ( ASSOCIATED( State_Met%PMID_DRY   )) DEALLOCATE( State_Met%PMID_DRY   )
-    IF ( ASSOCIATED( State_Met%PMEAN      )) DEALLOCATE( State_Met%PMEAN      )
-    IF ( ASSOCIATED( State_Met%PMEAN_DRY  )) DEALLOCATE( State_Met%PMEAN_DRY  )
     IF ( ASSOCIATED( State_Met%PV         )) DEALLOCATE( State_Met%PV         )
     IF ( ASSOCIATED( State_Met%QI         )) DEALLOCATE( State_Met%QI         )
     IF ( ASSOCIATED( State_Met%QL         )) DEALLOCATE( State_Met%QL         )
