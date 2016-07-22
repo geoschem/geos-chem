@@ -1063,7 +1063,10 @@ CONTAINS
 #if defined(ESMF_)
     USE HCOI_ESMF_MOD,         ONLY : HCO_SetExtState_ESMF
 #endif
-
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+    USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !
 ! !INPUT PARAMETERS:
 !
@@ -1096,6 +1099,13 @@ CONTAINS
     LOGICAL, SAVE      :: FIRST = .TRUE.
     INTEGER            :: HCRC
     CHARACTER(LEN=255) :: LOC = 'ExtState_SetFields (hcoi_gc_main_mod.F90)'
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     !=================================================================
     ! ExtState_SetFields begins here
@@ -1305,18 +1315,23 @@ CONTAINS
 !@@@ This can be removed later once State_Chm%Tracers is removed everywhere
 !@@@
     IF ( id_O3 > 0 ) THEN
+       Spc_Temp         (:,:,:,id_O3  ) = State_Chm%Species(:,:,:,id_O3  )
        State_Chm%Species(:,:,:,id_O3  ) = State_Chm%Tracers(:,:,:,id_O3  )
     ENDIF
     IF ( id_NO2 > 0 ) THEN
+       Spc_Temp         (:,:,:,id_NO2 ) = State_Chm%Species(:,:,:,id_NO2 )
        State_Chm%Species(:,:,:,id_NO2 ) = State_Chm%Tracers(:,:,:,id_NO2 )
     ENDIF
     IF ( id_NO > 0 ) THEN
+       Spc_Temp         (:,:,:,id_NO  ) = State_Chm%Species(:,:,:,id_NO  )
        State_Chm%Species(:,:,:,id_NO  ) = State_Chm%Tracers(:,:,:,id_NO  )
     ENDIF
     IF ( id_HNO3 > 0 ) THEN
+       Spc_Temp         (:,:,:,id_HNO3) = State_Chm%Species(:,:,:,id_HNO3)
        State_Chm%Species(:,:,:,id_HNO3) = State_Chm%Tracers(:,:,:,id_HNO3)
     ENDIF
     IF ( id_POPG > 0 ) THEN
+       Spc_Temp         (:,:,:,id_POPG) = State_Chm%Species(:,:,:,id_POPG)
        State_Chm%Species(:,:,:,id_POPG) = State_Chm%Tracers(:,:,:,id_POPG)
     ENDIF
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -1356,18 +1371,23 @@ CONTAINS
 !@@@
     IF ( id_O3 > 0 ) THEN
        State_Chm%Tracers(:,:,:,id_O3  ) = State_Chm%Species(:,:,:,id_O3  )
+       State_Chm%Species(:,:,:,id_O3  ) = Spc_temp         (:,:,:,id_O3  )
     ENDIF
     IF ( id_NO2 > 0 ) THEN
        State_Chm%Tracers(:,:,:,id_NO2 ) = State_Chm%Species(:,:,:,id_NO2 )
+       State_Chm%Species(:,:,:,id_NO2) = Spc_temp          (:,:,:,id_NO2 )
     ENDIF
     IF ( id_NO > 0 ) THEN
        State_Chm%Tracers(:,:,:,id_NO  ) = State_Chm%Species(:,:,:,id_NO  )
+       State_Chm%Species(:,:,:,id_NO  ) = Spc_temp         (:,:,:,id_NO  )
     ENDIF
     IF ( id_HNO3 > 0 ) THEN
        State_Chm%Tracers(:,:,:,id_HNO3) = State_Chm%Species(:,:,:,id_HNO3)
+       State_Chm%Species(:,:,:,id_HNO3) = Spc_temp         (:,:,:,id_HNO3)
     ENDIF
     IF ( id_POPG > 0 ) THEN
        State_Chm%Tracers(:,:,:,id_POPG) = State_Chm%Species(:,:,:,id_POPG)
+       State_Chm%Species(:,:,:,id_POPG) = Spc_temp         (:,:,:,id_POPG)
     ENDIF
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 

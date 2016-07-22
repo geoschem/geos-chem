@@ -1,3 +1,4 @@
+
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -150,6 +151,11 @@
 
       ! Pointers
       REAL(fp),   POINTER :: Spc(:,:,:,:)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp)            :: Spc_temp(IIPAR,JJPAR,LLPAR)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !=================================================================
       ! Initialization
@@ -182,6 +188,8 @@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@ We only need to copy the id_CH3Br slot from TRACERS to SPECIES
 !@@@
+      Spc_Temp = State_Chm%Species(:,:,:,id_CH3Br)
+
       State_Chm%Species(:,:,:,id_CH3Br) = 
      &State_Chm%Tracers(:,:,:,id_CH3Br)
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -243,6 +251,9 @@
 !@@@
       State_Chm%Tracers(:,:,:,id_CH3Br) = 
      &State_Chm%Species(:,:,:,id_CH3Br)
+
+      ! Restore State_Chm%SPECIES to its original values
+      State_Chm%Species(:,:,:,id_CH3Br) = Spc_temp
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE SET_CH3Br
 !EOC
@@ -326,6 +337,11 @@
 
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !====================================================================
       ! SET_BrO begins here!
@@ -361,6 +377,7 @@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@ We only need to copy the id_BrO slot from TRACERS to SPECIES
 !@@@
+      Spc_temp                        = State_Chm%Species(:,:,:,id_BrO)
       State_Chm%Species(:,:,:,id_BrO) = State_Chm%Tracers(:,:,:,id_BrO)
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -457,6 +474,7 @@
 !@@@ We only need to copy the BrO slot from SPECIES TO TRACERS
 !@@@
       State_Chm%Tracers(:,:,:,id_BrO) = State_Chm%Species(:,:,:,id_BrO)
+      State_Chm%Species(:,:,:,id_BrO) = Spc_temp
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE SET_BRO
 !EOC

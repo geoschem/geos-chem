@@ -5952,6 +5952,7 @@
 !  23 Sep 2015 - R. Yantosca - Now accept State_Chm as an argument
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  23 Jun 2016 - R. Yantosca - Remove reference to tracerid_mod.F
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT and State_Chm%TRACERS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5965,6 +5966,11 @@
       ! Pointers
       REAL(fp), POINTER :: PL
       REAL(fp), POINTER :: TK
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,2)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
             
       !=====================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
@@ -6064,11 +6070,13 @@
 !@@@ We only have to copy the H2O2 and SO2 slots from TRACERS to SPECIES
 !@@@
          IF ( id_H2O2 > 0 ) THEN
+            Spc_Temp(:,:,:,1) = State_Chm%Species(:,:,:,id_H2O2)
             State_Chm%Species(:,:,:,id_H2O2) = 
      &      State_Chm%Tracers(:,:,:,id_H2O2)
          ENDIF
 
          IF ( id_SO2 > 0 ) THEN
+            Spc_Temp(:,:,:,2) = State_Chm%Species(:,:,:,id_SO2)
             State_Chm%Species(:,:,:,id_SO2) = 
      &      State_Chm%Tracers(:,:,:,id_SO2)
          ENDIF
@@ -6100,11 +6108,13 @@
          IF ( id_H2O2 > 0 ) THEN
             State_Chm%Tracers(:,:,:,id_H2O2) = 
      &      State_Chm%Species(:,:,:,id_H2O2)
+            State_Chm%Species(:,:,:,id_H2O2) = Spc_Temp(:,:,:,1)
          ENDIF
 
          IF ( id_SO2 > 0 ) THEN
             State_Chm%Tracers(:,:,:,id_SO2) = 
      &      State_Chm%Species(:,:,:,id_SO2)
+            State_Chm%Species(:,:,:,id_SO2) = Spc_Temp(:,:,:,2)
          ENDIF
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
