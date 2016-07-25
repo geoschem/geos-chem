@@ -1395,6 +1395,11 @@ CONTAINS
 
     ! Pointers
     TYPE(Species), POINTER :: SpcInfo
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     !=================================================================
     ! INIT_STRAT_CHEM begins here!
@@ -1638,6 +1643,7 @@ CONTAINS
 !@@@ This can be removed later once State_Chm%Tracers is removed everywhere
 !@@@
        ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+       Spc_temp                   = State_Chm%Species(:,:,:,N)
        State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -1649,6 +1655,7 @@ CONTAINS
 !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
 !@@@
        State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+       State_Chm%Species(:,:,:,N) = Spc_temp
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     ENDDO
 
