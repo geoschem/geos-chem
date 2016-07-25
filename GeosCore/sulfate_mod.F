@@ -598,12 +598,15 @@
 !@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
 !@@@ This can be removed later once State_Chm%Tracers is removed everywhere
 !@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+
       ! Number of advected species
       nAdvect = State_Chm%nAdvect
 
       ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
          State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -808,16 +811,6 @@
          ENDIF
       ENDIF
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
 #if defined( UCX )
       ! Stratospheric aerosol gravitational settling
       IF ( LGRAVSTRAT ) THEN
@@ -828,6 +821,16 @@
          ENDIF
       ENDIF
 #endif
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Convert all tracers in Spc from [kg] -> [v/v]
       CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,
@@ -882,7 +885,7 @@
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2' )
       ENDIF
-
+      
       ! SO4
       ! CHEM_SO4 now includes the effect of dust chemistry  tdf 04/07/08
       CALL CHEM_SO4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -926,6 +929,9 @@
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
          State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -2956,6 +2962,8 @@
          IF ( LDSTUP ) THEN
 
             !==============================================================
+            ! %%% NOTE: THIS IS ONLY DONE FOR ACID UPTAKE SIMULATIONS %%%
+            !
             ! Update SO2 conc. after DUST chemistry (tdf, 04/07/08)
             !==============================================================
 
@@ -6807,6 +6815,10 @@
 
       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
+!%%% NOTE: we are not sure GET_NO3 is called for a full-chemistry
+!%%% simulation. It only seems to be called for CHEM_DMS, which
+!%%% is only called for the aerosol-only simulation
+
          !--------------------
          ! Coupled simulation
          !--------------------
@@ -6814,7 +6826,25 @@
          ! Take NO3 from State_Chm%Species [molec/cm3]
          ! NO3 is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-            NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO3)
+!----------------------------------------------------------------------------
+! Prior to 7/25/16:
+! State_Chm%Species is now already in v/v/ so convert to molec/cm3
+! following the algorithm for ITS_AN_AEROSOL_SIM
+!            NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO3)
+!----------------------------------------------------------------------------
+
+            ! Grid box volume [cm3]
+            BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
+
+            ! At night: Get NO3 [v/v] and convert it to [kg]
+            NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO3)    
+     &                    * State_Met%AD(I,J,L) 
+     &                    * ( 62e+0_fp/AIRMW ) 
+
+            ! Convert NO3 from [kg] to [molec/cm3]
+            NO3_MOLEC_CM3 = NO3_MOLEC_CM3  * XNUMOL_NO3 / BOXVL
+
+
          ELSE
             NO3_MOLEC_CM3 = 0e+0_fp
          ENDIF
@@ -6947,8 +6977,14 @@
          ! Get O3 from State_Chm%Species [molec/cm3] and convert it to [v/v]
          ! O3 is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-            O3_VV = ( State_Chm%Species(I,J,L,id_O3)  * 1e+6_fp   ) / 
-     &              ( State_Met%AIRDEN(I,J,L) * XNUMOLAIR )
+!----------------------------------------------------------------------------
+! Prior to 7/25/16:
+! NOTE: Formerly, State_Chm%Species had units of molec/cm3 but now at this
+! point the units are already in v/v.  So this unit conversion isn't needed.
+!            O3_VV = ( State_Chm%Species(I,J,L,id_O3)  * 1e+6_fp   ) / 
+!     &              ( State_Met%AIRDEN(I,J,L) * XNUMOLAIR )
+!----------------------------------------------------------------------------
+            O3_VV = State_Chm%Species(I,J,L,id_O3)
          ELSE
             O3_VV = 0e+0_fp
          ENDIF

@@ -239,7 +239,8 @@
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER           :: N_TROP
+      ! Scalars
+      INTEGER           :: N_TROP, N
       INTEGER           :: MONTH
       INTEGER           :: YEAR
       INTEGER           :: WAVELENGTH
@@ -267,17 +268,20 @@
       LOGICAL           :: LSOA
       LOGICAL           :: LNLPBL
 
-      ! SAVEd variables
+      ! SAVEd scalars
       LOGICAL, SAVE     :: FIRST = .TRUE.
       INTEGER, SAVE     :: id_DST1
       INTEGER, SAVE     :: id_NK1
 #if defined( USE_TEND )
       INTEGER, SAVE     :: id_O3 
       INTEGER, SAVE     :: id_CO
-#endif
-
-      ! Chemistry time step in seconds
       REAL(fp)          :: DT_TEND
+#endif
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,2)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
@@ -358,9 +362,11 @@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
       IF ( id_O3 > 0 ) THEN
+         Spc_Tmp          (:,:,:,1    ) = State_Chm%Species(:,:,:,id_O3)
          State_Chm%Species(:,:,:,id_O3) = State_Chm%Tracers(:,:,:,id_O3)
       ENDIF
       IF ( id_CO > 0 ) THEN
+         Spc_Tmp          (:,:,:,2    ) = State_Chm%Species(:,:,:,id_CO)
          State_Chm%Species(:,:,:,id_CO) = State_Chm%Tracers(:,:,:,id_CO)
       ENDIF
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -373,9 +379,11 @@
 !@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
       IF ( id_O3 > 0 ) THEN
          State_Chm%Tracers(:,:,:,id_O3) = State_Chm%Species(:,:,:,id_O3)
+         State_Chm%Species(:,:,:,id_O3) = Spc_Tmp          (:,:,:,1    )
       ENDIF
       IF ( id_CO > 0 ) THEN
          State_Chm%Tracers(:,:,:,id_CO) = State_Chm%Species(:,:,:,id_CO)
+         State_Chm%Species(:,:,:,id_CO) = Spc_Tmp          (:,:,:,2    )
       ENDIF
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 #endif
@@ -749,14 +757,19 @@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
       IF ( id_O3 > 0 ) THEN
+         Spc_Tmp          (:,:,:,1    ) = State_Chm%Species(:,:,:,id_O3)
          State_Chm%Species(:,:,:,id_O3) = State_Chm%Tracers(:,:,:,id_O3)
       ENDIF
       IF ( id_CO > 0 ) THEN
+         Spc_Tmp          (:,:,:,2    ) = State_Chm%Species(:,:,:,id_CO)
          State_Chm%Species(:,:,:,id_CO) = State_Chm%Tracers(:,:,:,id_CO)
       ENDIF
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
+      ! Chemistry timestep [s]
       DT_TEND = GET_TS_CHEM() * 60.0_fp
+
+      ! Compute tendencies
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CHEM', .FALSE., DT_TEND, RC )
 
@@ -765,9 +778,11 @@
 !@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
       IF ( id_O3 > 0 ) THEN
          State_Chm%Tracers(:,:,:,id_O3) = State_Chm%Species(:,:,:,id_O3)
+         State_Chm%Species(:,:,:,id_O3) = Spc_Tmp          (:,:,:,1    )
       ENDIF
       IF ( id_CO > 0 ) THEN
          State_Chm%Tracers(:,:,:,id_CO) = State_Chm%Species(:,:,:,id_CO)
+         State_Chm%Species(:,:,:,id_CO) = Spc_Tmp          (:,:,:,2    )
       ENDIF
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 #endif
