@@ -562,7 +562,7 @@ CONTAINS
        State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
                                     * ( 1.0e+0_fp                       &      
                                     / ( g0_100                          &
-                                    * State_Met%DELP(I,J,L) ) )          
+                                    * State_Met%DELP_DRY(I,J,L) ) )          
 
     ENDDO
     ENDDO
