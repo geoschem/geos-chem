@@ -3421,8 +3421,8 @@ Cjrp      endif
       UNITCHANGE_KGM2 = .FALSE.
       IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/m2' ) THEN
          UNITCHANGE_KGM2 = .TRUE.
-         CALL Convert_Kgm2_to_Kg( am_I_Root, I, J, L, Input_Opt, 
-     &                            State_Met, State_Chm, RC )
+         CALL ConvertBox_Kgm2_to_Kg( am_I_Root, I, J, L, Input_Opt, 
+     &                               State_Met, State_Chm, RC )
       ELSE IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
          MSG = 'Incorrect initial tracer units: ' 
      &           // TRIM(State_Chm%Trac_Units)
@@ -3650,8 +3650,8 @@ Cjrp      endif
       ! Convert State_Chm%Tracers units back to original units 
       ! if conversion occurred at start of AQOXID (ewl, 9/30/15)
       IF ( UNITCHANGE_KGM2 ) THEN
-         CALL Convert_Kg_to_Kgm2( am_I_Root, I, J, L, Input_Opt, 
-     &                            State_Met, State_Chm, RC )
+         CALL ConvertBox_Kg_to_Kgm2( am_I_Root, I, J, L, Input_Opt, 
+     &                               State_Met, State_Chm, RC )
       ENDIF
 
       ! Check that tracer units are as expected (ewl, 9/29/15)
@@ -6967,7 +6967,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ! ratio (ewl, 8/12/15)
       IF ( UNITCONV ) THEN
          CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met, 
-     &                            State_Chm, RC )  
+     &                               State_Chm, RC )  
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL GIGC_Error('Unit conversion error', RC, 
      &                      'Routine AERO_DIADEN in tomas_mod.F')

@@ -2098,6 +2098,7 @@
 !                              to flag the special cases of HNO3 & SO2 wetdep
 !  16 Oct 2015 - E. Lundgren - Use ThisSpc%WD_Is_H2SO4 to treat H2SO4 as aerosol
 !                              for wetdep, and consolidate ifelse blocks
+!  27 Jul 2016 - E. Lundgren - Now expect dry mixing ratio not total
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2149,14 +2150,14 @@
 
       IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg dry' ) THEN
          UNITCHANGE_KGKG = .TRUE.
-         CALL Convert_KgKgDry_to_Kg( am_I_Root, I, J, L, Input_Opt, 
-     &                               State_Met, State_Chm, RC )
+         CALL ConvertBox_KgKgDry_to_Kg( am_I_Root, I, J, L, Input_Opt, 
+     &                                  State_Met, State_Chm, RC )
       !============================================================
 
       ELSE IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/m2' ) THEN
          UNITCHANGE_KGM2 = .TRUE.
-         CALL Convert_Kgm2_to_Kg( am_I_Root, I, J, L, Input_Opt, 
-     &                            State_Met, State_Chm, RC )
+         CALL ConvertBox_Kgm2_to_Kg( am_I_Root, I, J, L, Input_Opt, 
+     &                               State_Met, State_Chm, RC )
       ELSE
          CALL ERROR_STOP('Incorrect initial tracer units:' // 
      &                   State_Chm%Trac_Units, 
@@ -2313,17 +2314,17 @@
          !CALL Convert_Kg_to_KgKgTotal( am_I_Root, I, J, L, Input_Opt, 
          !&                                 State_Met, State_Chm, RC )
 
-         CALL Convert_Kg_to_KgKgDry( am_I_Root, I, J, L, Input_Opt, 
-     &                                 State_Met, State_Chm, RC )
+         CALL ConvertBox_Kg_to_KgKgDry( am_I_Root, I, J, L, Input_Opt, 
+     &                                  State_Met, State_Chm, RC )
          !============================================================
 
       ELSE IF ( UNITCHANGE_KGM2 ) THEN
-         CALL Convert_Kg_to_Kgm2( am_I_Root, I, J, L, Input_Opt, 
-     &                            State_Met, State_Chm, RC )
+         CALL ConvertBox_Kg_to_Kgm2( am_I_Root, I, J, L, Input_Opt, 
+     &                               State_Met, State_Chm, RC )
       ENDIF
 
       ! Check that tracer units are as expected (ewl, 9/29/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg total' .AND.
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' .AND.
      &     TRIM( State_Chm%Trac_Units ) /= 'kg/m2' ) THEN
          CALL ERROR_STOP('Incorrect final tracer units:' // 
      &                    State_Chm%Trac_Units,  
@@ -3104,7 +3105,7 @@
       ! mass per unit area (kg/m2) for wet deposition since computation is
       ! done per column (ewl, 9/8/15)
       CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,           
-     &                               State_Met, State_Chm, RC )   
+     &                              State_Met, State_Chm, RC )   
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP in wetscav_mod.F')
@@ -3480,7 +3481,7 @@
 
       ! Convert tracer units back to mixing ratio (ewl, 9/8/15)
       CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,           
-     &                               State_Met, State_Chm, RC )   
+     &                              State_Met, State_Chm, RC )   
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP in wetscav_mod.F')
@@ -3709,7 +3710,7 @@
       ! mass per unit area (kg/m2) for wet deposition since computation is
       ! done per column (ewl, 9/8/15)
       CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,
-     &                               State_Met, State_Chm, RC )
+     &                              State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP_MERRA in wetscav_mod.F')
@@ -4047,7 +4048,7 @@
 
       ! Convert tracer concentration back to kg/kg dry air (ewl, 9/8/15)
       CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,
-     &                               State_Met, State_Chm, RC )
+     &                              State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP_MERRA in wetscav_mod.F')
