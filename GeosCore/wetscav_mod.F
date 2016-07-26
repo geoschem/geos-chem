@@ -424,12 +424,23 @@
             ! Is this a tracer selected for wetscav diagnostics?
             IF ( ANY( Input_Opt%TINDEX(38,:) == N ) ) THEN
 
+               !=========================================================
+               ! Moisture fix (7/26/2016):
+               !=========================================================
+               ! Prior to 26 July 2016:
+               ! (calculate dry air mass from wet delta pressure)
+               !! Convert [kg/kg/s] to [kg/m2/s] so that the vertical
+               !! sum makes physical sense (ewl, 8/14/15)
+               !TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Tracers(:,:,:,N) )
+               !&           * State_Met%DELP * 1.e+2_fp 
+               !&           * ( 1.e+0_fp - 1.e-3_fp * State_Met%SPHU ) 
+               !&           / ( G0_100 * DT )
+
                ! Convert [kg/kg/s] to [kg/m2/s] so that the vertical
-               ! sum makes physical sense (ewl, 8/14/15)
+               ! sum makes physical sense (ewl, 8/14/15)      
                TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Tracers(:,:,:,N) )
-     &                 * State_Met%DELP * 1.e+2_fp 
-     &                 * ( 1.e+0_fp - 1.e-3_fp * State_Met%SPHU ) 
-     &                 / ( G0_100 * DT )
+     &           * State_Met%DELP_DRY * 1.e+2_fp 
+     &           / ( G0_100 * DT )
 
                ! Convert loss rate [kg/m2/s] to [kg/s] for diagnostics 
                ! NOTE: eventually diagnostic unit will be [kg/m2/s]
@@ -617,6 +628,8 @@
 !                              since AIRDEN is now dry air density and MAIRDEN
 !                              is moist air density, needed for use with MOISTQ
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
+!  26 Jul 2016 - E. Lundgren - Replace moist air density (MAIRDEN) with dry
+!                              air density derived from dry surface pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -731,9 +744,20 @@
             L = LLPAR
 
             ! Compute QQ and PDOWN.  Keep PTEMP for the next level
+
+            !============================================================
+            ! Moisture fix (7/26/2016):
+            !============================================================
+            ! Prior to 26 Jul 2016:
+            ! (previously used moist air density, now use dry)
+            !QQ(L,I,J)    = FRAC                      *
+            !&               State_Met%MOISTQ(I,J,L)   *
+            !&               State_Met%MAIRDEN(I,J,L)   / 1e+3_fp
             QQ(L,I,J)    = FRAC                      *
      &                     State_Met%MOISTQ(I,J,L)   *
-     &                     State_Met%MAIRDEN(I,J,L)   / 1e+3_fp
+     &                     State_Met%AIRDEN(I,J,L)   / 1e+3_fp
+
+
             PTEMP        = QQ(L,I,J)                 *
      &                     State_Met%BXHEIGHT(I,J,L) * 1e+2_fp
             PDOWN(L,I,J) = PTEMP
@@ -745,9 +769,19 @@
             DO L = LLPAR-1, 1, -1
                
                ! Compute QQ and PDOWN.  Keep PTEMP for the next level.
+
+               !============================================================
+               ! Moisture fix (7/26/2016):
+               !============================================================
+               ! Prior to 26 Jul 2016:
+               ! (previously used moist air density, now use dry)
+               !QQ(L,I,J)    = FRAC                      *
+               !&              State_Met%MOISTQ(I,J,L)   *
+               !&              State_Met%MAIRDEN(I,J,L)   / 1e+3_fp
                QQ(L,I,J)    = FRAC                      *
      &                        State_Met%MOISTQ(I,J,L)   *
-     &                        State_Met%MAIRDEN(I,J,L)   / 1e+3_fp
+     &                        State_Met%AIRDEN(I,J,L)   / 1e+3_fp
+
                PDOWN(L,I,J) = PTEMP                     + QQ(L,I,J) *
      &                        State_Met%BXHEIGHT(I,J,L) * 1e+2_fp  
                PTEMP        = PDOWN(L,I,J)
@@ -779,9 +813,19 @@
             L = LLPAR
 
             ! Compute QQ and PDOWN.  Keep PTEMP for the next level
+
+            !============================================================
+            ! Moisture fix (7/26/2016):
+            !============================================================
+            ! Prior to 26 Jul 2016:
+            ! (previously used moist air density, now use dry)
+            !QQ(L,I,J)    = FRAC                      *
+            !&              State_Met%MOISTQ(I,J,L)   *
+            !&              State_Met%MAIRDEN(I,J,L)   / 1e+3_fp
             QQ(L,I,J)    = FRAC                      *
      &                     State_Met%MOISTQ(I,J,L)   *
-     &                     State_Met%MAIRDEN(I,J,L)   / 1e+3_fp
+     &                     State_Met%AIRDEN(I,J,L)   / 1e+3_fp
+
             PTEMP        = QQ(L,I,J)                 *
      &                     State_Met%BXHEIGHT(I,J,L) * 1e+2_fp
             PDOWN(L,I,J) = PTEMP
@@ -793,9 +837,19 @@
             DO L = LLPAR-1, 1, -1
               
                ! Compute QQ and PDOWN.  Keep PTEMP for the next level
+
+               !============================================================
+               ! Moisture fix (7/26/2016):
+               !============================================================
+               ! Prior to 26 Jul 2016:
+               ! (previously used moist air density, now use dry)
+               !QQ(L,I,J)    = FRAC                      *
+               !&              State_Met%MOISTQ(I,J,L)   *
+               !&              State_Met%MAIRDEN(I,J,L)   / 1e+3_fp
                QQ(L,I,J)    = FRAC                      *
      &                        State_Met%MOISTQ(I,J,L)   *
-     &                        State_Met%MAIRDEN(I,J,L)   / 1e+3_fp
+     &                        State_Met%AIRDEN(I,J,L)   / 1e+3_fp
+
                PDOWN(L,I,J) = PTEMP                     + QQ(L,I,J) *
      &                        State_Met%BXHEIGHT(I,J,L) * 1e+2_fp 
                PTEMP        = PDOWN(L,I,J)
