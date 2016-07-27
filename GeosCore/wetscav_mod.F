@@ -2981,6 +2981,11 @@
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Is this a mercury simulation?
       IS_Hg = ( ITS_A_MERCURY_SIM )
@@ -3011,6 +3016,7 @@
       ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
          State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -3406,6 +3412,9 @@
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
          State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -3634,6 +3643,11 @@
       ! Pointers
       REAL(fp),      POINTER :: Spc(:,:,:,:)
       TYPE(Species), POINTER :: SpcInfo
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
@@ -3668,12 +3682,10 @@
       ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
          State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-!      ! Point to chemical species array [kg]
-!      Spc => State_Chm%Species
 
       ! Dynamic timestep [s]
       DT  = GET_TS_DYN() * 60e+0_fp
@@ -4026,6 +4038,9 @@
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
          State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
