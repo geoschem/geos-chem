@@ -41,7 +41,6 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: MPICOMM   ! MPI Communicator Handle
      LOGICAL                     :: HPC       ! Is this an HPC (ESMF or otherwise) sim?
      LOGICAL                     :: RootCPU   ! Is this the root cpu?
-     
 
      !----------------------------------------
      ! SIZE PARAMETER fields
@@ -61,8 +60,6 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: NHMSe              
      CHARACTER(LEN=255)          :: RUN_DIR            
      CHARACTER(LEN=255)          :: IN_RST_FILE        
-     LOGICAL                     :: LSVGLB             
-     CHARACTER(LEN=255)          :: OUT_RST_FILE       
      CHARACTER(LEN=255)          :: DATA_DIR           
      CHARACTER(LEN=255)          :: CHEM_INPUTS_DIR
      CHARACTER(LEN=255)          :: RES_DIR
@@ -194,8 +191,6 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LSCHEM
      LOGICAL                     :: LLINOZ
      INTEGER                     :: TS_CHEM
-     LOGICAL                     :: LSVCSPEC
-     CHARACTER(LEN=255)          :: SPEC_RST_FILE
      REAL(fp)                    :: GAMMA_HO2
      LOGICAL                     :: LUCX
      LOGICAL                     :: LCH4CHEM
@@ -517,8 +512,6 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: USE_CHECKS
      LOGICAL                     :: LDYNOCEAN
      LOGICAL                     :: LPREINDHG
-     CHARACTER(LEN=255)          :: IN_HG_RST_FILE
-     CHARACTER(LEN=255)          :: OUT_HG_RST_FILE
      LOGICAL                     :: LGTMM
      CHARACTER(LEN=255)          :: GTMM_RST_FILE
      LOGICAL                     :: LARCTICRIV
@@ -764,8 +757,6 @@ CONTAINS
     Input_Opt%NHMSe                  = 0
     Input_Opt%RUN_DIR                = './'
     Input_Opt%IN_RST_FILE            = ''
-    Input_Opt%LSVGLB                 = .FALSE.
-    Input_Opt%OUT_RST_FILE           = ''
     Input_Opt%DATA_DIR               = './'
     Input_Opt%RES_DIR                = './'
     Input_Opt%CHEM_INPUTS_DIR        = './'
@@ -903,8 +894,6 @@ CONTAINS
     Input_Opt%LSCHEM                 = .FALSE.
     Input_Opt%LLINOZ                 = .FALSE. 
     Input_Opt%TS_CHEM                = 0
-    Input_Opt%LSVCSPEC               = .FALSE. 
-    Input_Opt%SPEC_RST_FILE          = ''
     Input_Opt%GAMMA_HO2              = 0e+0_fp
     Input_Opt%LUCX                   = .FALSE.
     Input_Opt%LCH4CHEM               = .FALSE.
@@ -1305,8 +1294,6 @@ CONTAINS
     Input_Opt%USE_CHECKS             = .FALSE.
     Input_Opt%LDYNOCEAN              = .FALSE.
     Input_Opt%LPREINDHG              = .FALSE.
-    Input_Opt%IN_HG_RST_FILE         = ''
-    Input_Opt%OUT_HG_RST_FILE        = ''
     Input_Opt%LGTMM                  = .FALSE.
     Input_Opt%GTMM_RST_FILE          = ''
 

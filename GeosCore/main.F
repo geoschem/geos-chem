@@ -379,8 +379,6 @@
       LOGICAL                  :: LSTDRUN
       LOGICAL                  :: LSCHEM
       LOGICAL                  :: LSETH2O
-      LOGICAL                  :: LSVCSPEC
-      LOGICAL                  :: LSVGLB
       LOGICAL                  :: LTRAN
       LOGICAL                  :: LTURB
       LOGICAL                  :: LUCX
@@ -520,8 +518,6 @@
       LSCHEM              =  Input_Opt%LSCHEM
       LSETH2O             =  Input_Opt%LSETH2O
       LSTDRUN             =  Input_Opt%LSTDRUN
-      LSVCSPEC            =  Input_Opt%LSVCSPEC
-      LSVGLB              =  Input_Opt%LSVGLB
       LTRAN               =  Input_Opt%LTRAN
       LTURB               =  Input_Opt%LTURB
       LUCX                =  Input_Opt%LUCX
@@ -921,36 +917,32 @@
             !===========================================================
             !    *****  W R I T E   R E S T A R T   F I L E S  *****
             !===========================================================
-            IF ( LSVGLB ) THEN
-
-               ! Determine and print STE fluxes (ltm, 06/10/12)
-               IF ( LSCHEM ) THEN
-                  CALL CALC_STE( am_I_Root, Input_Opt, State_Chm, 
-     &                           State_Met, RC )
-               ENDIF
-               
-               ! Make atmospheric restart file
-               CALL WRITE_GC_RESTART( am_I_Root, NYMD, NHMS, Input_Opt,
-     &                                State_Chm, State_Met, RC )
-
-               !### Debug
-               IF ( prtDebug ) THEN
-                  CALL DEBUG_MSG( '### MAIN: a WRITE_GC_RESTART' )
-               ENDIF
-
-#if defined( USE_TIMERS )
-               CALL GEOS_Timer_Start( "HEMCO", RC )
-#endif
-
-               ! Force the output of a HEMCO restart file. 
-               ! (ckeller, 4/1/15)
-               CALL Diagnostics_Write( am_I_Root, Input_Opt, .TRUE., RC)
-
-#if defined( USE_TIMERS )
-               CALL GEOS_Timer_End( "HEMCO", RC )
-#endif
-
+            ! Determine and print STE fluxes (ltm, 06/10/12)
+            IF ( LSCHEM ) THEN
+               CALL CALC_STE( am_I_Root, Input_Opt, State_Chm, 
+     &                        State_Met, RC )
             ENDIF
+               
+            ! Make atmospheric restart file
+            CALL WRITE_GC_RESTART( am_I_Root, NYMD, NHMS, Input_Opt,
+     &                             State_Chm, State_Met, RC )
+
+            !### Debug
+            IF ( prtDebug ) THEN
+               CALL DEBUG_MSG( '### MAIN: a WRITE_GC_RESTART' )
+            ENDIF
+
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_Start( "HEMCO", RC )
+#endif
+
+            ! Force the output of a HEMCO restart file. 
+            ! (ckeller, 4/1/15)
+            CALL Diagnostics_Write( am_I_Root, Input_Opt, .TRUE., RC)
+
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_End( "HEMCO", RC )
+#endif
 
             ! Set time at beginning of next diagnostic timestep
             CALL SET_DIAGb( TAU )

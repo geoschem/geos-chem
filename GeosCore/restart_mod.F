@@ -409,17 +409,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_RESTART( INFILE, OUTFILE )
+      SUBROUTINE SET_RESTART( INFILE )
 !
 ! !INPUT PARAMETERS: 
 !
-      CHARACTER(LEN=255) :: INFILE    ! A
-dvected tracer input  restart file
-      CHARACTER(LEN=255) :: OUTFILE   ! Advected tracer output restart file 
+      CHARACTER(LEN=255) :: INFILE    ! Advected tracer input  restart file
 ! 
 ! !REVISION HISTORY: 
 !  09 Jul 2004 - R. Yantosca - Initial version
 !  11 Jul 2011 - R. Yantosca - Added ProTeX headers
+!  27 Jul 2016 - M. Sulprizio- Remove OUTFILE as input argument. This is now
+!                              hardcoded.
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -680,6 +680,9 @@
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2
 !  12 Aug 2015 - R. Yantosca - Add support for 05x0625 grids
 !  13 Aug 2015 - R. Yantosca - Bug fix: prefix RES_DIR in front of MERRA2_DIR
+!  27 Jul 2016 - M. Sulprizio- Remove LSVGLB and OUT_RST_FILE options. Restart
+!                              files are now always saved out and the output
+!                              restart file name is hardcoded in restart_mod.F.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -687,7 +690,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LSVGLB,  LUNZIP
+      LOGICAL            :: LUNZIP
       LOGICAL            :: LWAIT,   LVARTROP
       INTEGER            :: I0,      J0
       INTEGER            :: N,       NDIAGTIME
@@ -720,14 +723,6 @@
       ! Input restart file
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:4' )
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%IN_RST_FILE
-
-      ! Make new restart file?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:5' )
-      READ( SUBSTRS(1:N), * ) LSVGLB
-
-      ! Output restart file(s)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:6' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%OUT_RST_FILE
 
       ! Root data dir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:7' )
@@ -939,7 +934,6 @@
       Input_Opt%NYMDe         = NYMDe
       Input_Opt%NHMSe         = NHMSe
 #endif
-      Input_Opt%LSVGLB        = LSVGLB
       Input_Opt%LUNZIP        = LUNZIP
       Input_Opt%LWAIT         = LWAIT
       Input_Opt%LVARTROP      = LVARTROP
@@ -1054,8 +1048,8 @@
       ! Set the start of the 1st diagnostic interval
       CALL SET_DIAGb( GET_TAU() )
      
-      ! Set input & output restart file names
-      CALL SET_RESTART( Input_Opt%IN_RST_FILE, Input_Opt%OUT_RST_FILE )
+      ! Set input restart file name
+      CALL SET_RESTART( Input_Opt%IN_RST_FILE )
 
       ! Set global offsets for the horizontal grid
       CALL SET_XOFFSET( Input_Opt%NESTED_I0 )
@@ -1587,8 +1581,8 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LSULF,      LCARB,    LBRC,  LSOA
-      LOGICAL            :: LSVPOA,     LDUST,    LDSTUP
+      LOGICAL            :: LSULF,      LCARB,      LBRC,  LSOA
+      LOGICAL            :: LSVPOA,     LDUST,      LDSTUP
       LOGICAL            :: LSSALT,     LCRYST,     LDICARB
       LOGICAL            :: LGRAVSTRAT, LHOMNUCNAT, LSOLIDPSC
       LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMPOA
@@ -2740,6 +2734,9 @@
 !                              based on Jacon et al (2000) and Mao et al (2013).
 !  22 Aug 2013 - R. Yantosca - Now read in path for species restart file
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  27 Jul 2016 - M. Sulprizio- Remove LSVCSPEC and SPEC_RST_FILE. Restart files
+!                              are now always saved out and the output restart
+!                              file name is hardcoded in restart_mod.F.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2747,13 +2744,11 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LCHEM,    LSCHEM,   LLINOZ
-      LOGICAL            :: LSVCSPEC, LUCX
+      LOGICAL            :: LCHEM,    LSCHEM,   LLINOZ, LUCX
       LOGICAL            :: LO3FJX,   LCH4CHEM, LACTIVEH2O
       INTEGER            :: N
       INTEGER            :: TS_CHEM
       CHARACTER(LEN=255) :: MSG, LOCATION
-      CHARACTER(LEN=255) :: SPEC_RST_FILE
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -2798,14 +2793,6 @@
       ! Chemistry timestep
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
       READ( SUBSTRS(1:N), * ) TS_CHEM
-
-      ! Read and save species restart file ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:8' )
-      READ( SUBSTRS(1:N), * ) LSVCSPEC
-
-      ! Species restart file name
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:9' )
-      READ( SUBSTRS(1:N), '(a)' ) SPEC_RST_FILE
 
       ! Use online ozone in extinction calculations for FAST-JX?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:11' )
@@ -2907,8 +2894,6 @@
       Input_Opt%LCHEM         = LCHEM
       Input_Opt%LSCHEM        = LSCHEM
       Input_Opt%LLINOZ        = LLINOZ
-      Input_Opt%LSVCSPEC      = LSVCSPEC
-      Input_Opt%SPEC_RST_FILE = TRIM( SPEC_RST_FILE )
       Input_Opt%LUCX          = LUCX
       Input_Opt%LCH4CHEM      = LCH4CHEM
       Input_Opt%LACTIVEH2O    = LACTIVEH2O
@@ -6730,6 +6715,9 @@
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !  25 Apr 2016 - R. Yantosca - Now init mercury modules from GIGC_INIT_EXTRA
+!  27 Jul 2016 - M. Sulprizio- Remove IN_HG_RST_FILE and OUT_HG_RST_FILE.
+!                              Hg restart fields are now stored in the GEOS-Chem
+!                              netCDF restart file.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6742,8 +6730,6 @@
       LOGICAL            :: LARCTICRIV,     LKRedUV
       INTEGER            :: ANTHRO_Hg_YEAR, N 
       CHARACTER(LEN=255) :: HG_SCENARIO
-      CHARACTER(LEN=255) :: IN_HG_RST_FILE
-      CHARACTER(LEN=255) :: OUT_HG_RST_FILE
       CHARACTER(LEN=255) :: GTMM_RST_FILE
 
       ! Arrays
@@ -6772,14 +6758,6 @@
       ! Use preindustrial simulation?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read mercury_menu:5' )
       READ( SUBSTRS(1:N), * ) LPREINDHG
-
-      ! Name of input ocean restart file
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:6' )
-      READ( SUBSTRS(1:N), '(a)' ) IN_HG_RST_FILE
-
-      ! Name of output ocean restart file
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:6' )
-      READ( SUBSTRS(1:N), '(a)' ) OUT_HG_RST_FILE
 
       ! Use GTMM ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:7' )
@@ -6821,10 +6799,6 @@
          WRITE( 6, 110 ) 'Error check tag & total Hg? : ', USE_CHECKS
          WRITE( 6, 110 ) 'Use dynamic ocean Hg model? : ', LDYNOCEAN
          WRITE( 6, 110 ) 'Preindustrial simulation?   : ', LPREINDHG
-         WRITE( 6, 120 ) 'Input  ocean Hg restart file: ',
-     &                    TRIM( IN_HG_RST_FILE )
-         WRITE( 6, 120 ) 'Output ocean Hg restart file: ',
-     &                    TRIM( OUT_HG_RST_FILE )
          WRITE( 6, 110 ) 'Use GTMM ?                  : ', LGTMM
          WRITE( 6, 120 ) '=> GTMM restart file        : ',
      &                        TRIM( GTMM_RST_FILE )
@@ -6846,8 +6820,6 @@
       Input_Opt%USE_CHECKS     = USE_CHECKS
       Input_Opt%LDYNOCEAN      = LDYNOCEAN
       Input_Opt%LPREINDHG      = LPREINDHG
-      Input_Opt%In_HG_RST_FILE = IN_HG_RST_FILE
-      Input_Opt%OUT_HG_RST_FILE= OUT_HG_RST_FILE
       Input_Opt%LGTMM          = LGTMM
       Input_Opt%GTMM_RST_FILE  = GTMM_RST_FILE
       Input_Opt%LARCTICRIV     = LARCTICRIV
