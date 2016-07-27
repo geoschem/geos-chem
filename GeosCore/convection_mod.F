@@ -220,6 +220,11 @@
       ! initially kg/kg dry air but will be converted to
       ! kg/kg total air for convection (ewl, 8/10/15)
       REAL(fp), POINTER :: Spc(:,:,:,:)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !=================================================================
       ! MERRA or GEOS-FP met fields definitions
@@ -278,9 +283,11 @@
          FIRST = .FALSE.
       ENDIF
       IF ( id_O3 > 0 ) THEN
+         Spc_Temp         (:,:,:,id_O3) = State_Chm%Species(:,:,:,id_O3)
          State_Chm%Species(:,:,:,id_O3) = State_Chm%Tracers(:,:,:,id_O3)
       ENDIF
       IF ( id_CO > 0 ) THEN
+         Spc_Temp         (:,:,:,id_CO) = State_Chm%Species(:,:,:,id_CO)
          State_Chm%Species(:,:,:,id_CO) = State_Chm%Tracers(:,:,:,id_CO)
       ENDIF
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -291,11 +298,13 @@
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-      IF ( id_O3 > 0 ) THEN
+      IF ( id_O3 > 0 ) THEN         
          State_Chm%Tracers(:,:,:,id_O3) = State_Chm%Species(:,:,:,id_O3)
+         State_Chm%Species(:,:,:,id_O3) = Spc_Temp         (:,:,:,id_O3)
       ENDIF
       IF ( id_CO > 0 ) THEN
          State_Chm%Tracers(:,:,:,id_CO) = State_Chm%Species(:,:,:,id_CO)
+         State_Chm%Species(:,:,:,id_CO) = Spc_Temp         (:,:,:,id_CO)
       ENDIF
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 #endif
@@ -324,6 +333,7 @@
       ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
          State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -576,6 +586,9 @@
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
          State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -598,9 +611,11 @@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
       IF ( id_O3 > 0 ) THEN
+         Spc_Temp         (:,:,:,id_O3) = State_Chm%Species(:,:,:,id_O3)
          State_Chm%Species(:,:,:,id_O3) = State_Chm%Tracers(:,:,:,id_O3)
       ENDIF
       IF ( id_CO > 0 ) THEN
+         Spc_Temp         (:,:,:,id_CO) = State_Chm%Species(:,:,:,id_CO)
          State_Chm%Species(:,:,:,id_CO) = State_Chm%Tracers(:,:,:,id_CO)
       ENDIF
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -614,9 +629,11 @@
 !@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
       IF ( id_O3 > 0 ) THEN
          State_Chm%Tracers(:,:,:,id_O3) = State_Chm%Species(:,:,:,id_O3)
+         State_Chm%Species(:,:,:,id_O3) = Spc_Temp         (:,:,:,id_O3)
       ENDIF
       IF ( id_CO > 0 ) THEN
          State_Chm%Tracers(:,:,:,id_CO) = State_Chm%Species(:,:,:,id_CO)
+         State_Chm%Species(:,:,:,id_CO) = Spc_Temp         (:,:,:,id_CO)
       ENDIF
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 #endif
