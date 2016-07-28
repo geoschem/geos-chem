@@ -2876,27 +2876,8 @@
       NIT_MW_G    = State_Chm%SpcData(id_NIT)%Info%emMW_g  ! g/mol
       HNO3_MW_G   = State_Chm%SpcData(id_HNO3)%Info%emMW_g ! g/mol
 
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
-      !@@@ Need to force State_Chm%Species = State_Chm%Tracers during 
-      !@@@ development. This can be removed later once State_Chm%Tracers 
-      !@@@ is removed everywhere
-      !@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-      
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      ! Store incoming State_Chm%Species in a local variable for testing
-      DO NA = 1, nAdvect
-         N = State_Chm%Map_Advect(NA)
-         !Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
-         !State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
       ! Initialize pointers
-      !Spc => State_Chm%Species
-      Spc => State_Chm%Tracers ! debugging (eventually point to species)
+      Spc       => State_Chm%Species     ! Chemical species [kg]       
       STATE_PSC => State_Chm%STATE_PSC   ! PSC type (Kirner et al. 2011, GMD)
       WERADIUS  => State_Chm%WetAeroRadi ! Aerosol Radius [cm]
 
@@ -3462,24 +3443,12 @@
      &                         D_SEDQ, D_PSED
       ENDIF
 
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
-      !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-      !@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         !State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values for testing
-         !State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
       ! Free pointers
-      NULLIFY( Spc, STATE_PSC, WERADIUS )
+      Spc       => NULL()
+      STATE_PSC => NULL() 
+      WERADIUS  => NULL()
 
       END SUBROUTINE SETTLE_STRAT_AER
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
