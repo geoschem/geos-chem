@@ -664,7 +664,7 @@
          ENDIF
 
          ! If data in file, read and convert to molec/cm2
-         IF ( ThisSpc%Is_InRestart .OR. FAMILIES_SPC ) THEN
+         IF ( ThisSpc%Is_InRestart ) THEN
 
             ! Initialize temporary array for this tracer and point to it
             ! use 1e-30 as min (hotp 2/25/09)
