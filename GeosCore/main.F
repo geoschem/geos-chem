@@ -724,12 +724,31 @@
       !       *****  I N I T I A L   C O N D I T I O N S *****
       !=================================================================
 
+      ! DEBUGGING (ewl)
+      IF ( Input_Opt%LPRT ) THEN
+         PRINT *, "Before read_gc_restart"
+         PRINT *, " Current species units: ", State_Chm%Spc_Units
+         PRINT *, " SPECIES #1: ", State_Chm%Species(25,25,1,1)
+         PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+      ENDIF
+      ! END DEBUGGING
+
       ! Read initial tracer conditions
       ! NOTE: Tracer concentrations are read in as [v/v dry air] and converted
       ! to kg/kg dry air (ewl, 9/18/15)
       CALL READ_GC_RESTART( am_I_Root, NYMDb,     NHMSb, 
      &                      Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_GC_RESTART' )
+
+      ! DEBUGGING (ewl)
+      IF ( Input_Opt%LPRT ) THEN
+         PRINT *, " "
+         PRINT *, "After read_gc_restart"
+         PRINT *, " Current species units: ", State_Chm%Spc_Units
+         PRINT *, " SPECIES #1: ", State_Chm%Species(25,25,1,1)
+         PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+      ENDIF
+      ! END DEBUGGING
 
       ! Initialize stratospheric routines
       IF ( LUCX ) THEN
@@ -1598,6 +1617,16 @@
      &                            State_Met, State_Chm, RC )
             ENDIF
 
+            ! DEBUGGING (ewl)
+            IF ( Input_Opt%LPRT ) THEN
+               PRINT *, " "
+               PRINT *, "Before do_chemistry"
+               PRINT *, " Current species units: ", State_Chm%Spc_Units
+               PRINT *, " SPECIES #1:  ", State_Chm%Species(25,25,1,1)
+               PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+            ENDIF
+            ! END DEBUGGING
+
             ! Do GEOS-Chem chemistry
             ! NOTE: Tracer concentration units are converted locally
             ! to [kg] for all of chemistry. We will replace use of [kg] 
@@ -1607,6 +1636,17 @@
             IF ( RC /= GIGC_SUCCESS ) THEN
                CALL ERROR_STOP('Error in DO_CHEMISTRY!', 'main.F')
             ENDIF
+
+            ! DEBUGGING (ewl)
+            IF ( Input_Opt%LPRT ) THEN
+               PRINT *, " "
+               PRINT *, "After do_chemistry"
+               PRINT *, " Current species units: ", State_Chm%Spc_Units
+               PRINT *, " SPECIES #1:  ", State_Chm%Species(25,25,1,1)
+               PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+            ENDIF
+            ! END DEBUGGING
+
 
          ENDIF 
 

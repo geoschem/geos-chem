@@ -76,6 +76,7 @@ MODULE GIGC_State_Chm_Mod
      INTEGER,           POINTER :: Spec_Id    (:      ) ! Species ID # 
      CHARACTER(LEN=14), POINTER :: Spec_Name  (:      ) ! Species names
      REAL(fp),          POINTER :: Species    (:,:,:,:) ! Species [molec/cm3]
+     CHARACTER(LEN=20)          :: Spc_Units            ! Species units
 
      ! Aerosol quantities
      INTEGER                    :: nAero                ! # of Aerosol Types
@@ -335,6 +336,7 @@ CONTAINS
 !  18 May 2016 - R. Yantosca - Now populate the species mapping vectors
 !  30 Jun 2016 - M. Sulprizio- Remove nSpecies as an input argument. This is now
 !                              initialized as the size of SpcData.
+!  22 Jul 2016 - E. Lundgren - Initialize spc_units to ''
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -383,6 +385,7 @@ CONTAINS
     State_Chm%Spec_ID     => NULL()
     State_Chm%Spec_Name   => NULL()
     State_Chm%Species     => NULL()
+    State_Chm%Spc_Units   = ''
 
     ! Species database
     State_Chm%SpcData     => NULL()
