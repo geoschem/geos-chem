@@ -34,7 +34,7 @@
       PRIVATE :: READ_ONE_LINE
       PRIVATE :: SPLIT_ONE_LINE        
       PRIVATE :: READ_SIMULATION_MENU
-      PRIVATE :: READ_TRACER_MENU  
+      PRIVATE :: READ_ADVECTED_SPECIES_MENU
       PRIVATE :: READ_AEROSOL_MENU     
       PRIVATE :: READ_EMISSIONS_MENU
       PRIVATE :: READ_FUTURE_MENU
@@ -150,6 +150,8 @@
 !  24 Nov 2014 - C. Keller   - Updates on timestep handling in ESMF environment
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
+!  28 Jul 2016 - M. Sulprizio- Rename subroutine READ_TRACER_MENU to
+!                              READ_ADVECTED_SPECIES_MENU
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -293,7 +295,7 @@
          ! menus in the input file; however, a few guidelines apply:
          !
          ! (1) SIMULATION MENU should be listed first.
-         ! (2) TRACER MENU should be listed second.
+         ! (2) ADVECTED SPECIES MENU should be listed second.
          ! (3) EMISSIONS, AEROSOL, CHEMISTRY, TRANSPORT, CONVECTION, 
          !      and DEPOSITION menus (in any order) should follow.
          ! (4) Diagnostic menus, including OUTPUT, DIAGNOSTIC,
@@ -307,8 +309,8 @@
          IF      ( INDEX( LINE, 'SIMULATION MENU'  ) > 0 ) THEN
             CALL READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )             
 
-         ELSE IF ( INDEX( LINE, 'TRACER MENU'      ) > 0 ) THEN
-            CALL READ_TRACER_MENU( am_I_Root, Input_Opt, RC )
+         ELSE IF ( INDEX( LINE, 'ADVECTED SPECIES MENU' ) > 0 ) THEN
+            CALL READ_ADVECTED_SPECIES_MENU( am_I_Root, Input_Opt, RC )
 
          ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
             CALL READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )              
@@ -1267,15 +1269,15 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_tracer_menu
+! !IROUTINE: read_advected_species_menu
 !
-! !DESCRIPTION: Subroutine READ\_TRACER\_MENU reads the TRACER MENU section 
-!  of the GEOS-Chem input file.
+! !DESCRIPTION: Subroutine READ\_ADVECTED\_SPECIES\_MENU reads the ADVECTED
+!  SPECIES MENU section of the GEOS-Chem input file.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_TRACER_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_ADVECTED_SPECIES_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -1319,25 +1321,25 @@
 !                              that defines the ITS_A_SPECIALTY_SIM flag
 !  24 Mar 2015 - E. Lundgren - Move init_tracer to within APM ifdef block 
 !  23 Jun 2016 - R. Yantosca - Remove call to TRACERID, it's obsolete
+!  28 Jul 2016 - M. Sulprizio- Rename TRACER MENU to ADVECTED SPECIES MENU;
+!                              Remove ID, MW, and member columns from menu
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: N,  T,  C,    ID
-      CHARACTER(LEN=255) :: C1, C2, LINE, NAME
+      INTEGER            :: N,  T
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-      REAL(fp)           :: DUMMY
 
       !=================================================================
-      ! READ_TRACER_MENU begins here!
+      ! READ_ADVECTED_SPECIES_MENU begins here!
       !
       ! Get the simulation type
       !=================================================================
 
       ! NSRCX
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:1' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_adv_spec_menu:1' )
       READ( SUBSTRS(1:N), * ) Input_Opt%SIM_TYPE
 
       ! Set fields of Input Options object
@@ -1426,57 +1428,49 @@
        END SELECT
 
       !=================================================================
-      ! Read the # of tracers
+      ! Read the # of advected species
       !=================================================================
 
       ! NTRACE
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:2' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_adv_spec_menu:2' )
       READ( SUBSTRS(1:N), * ) Input_Opt%N_TRACERS
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:3' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_adv_spec_menu:3' )
 
       ! Input_Opt vectors are of length MAX_TRCS. Make sure that
       ! # of tracers does not exceed length of these vectors.
       IF ( Input_Opt%N_TRACERS > Input_Opt%MAX_TRCS ) THEN
          CALL ERROR_STOP( 'Error: N_TRACERS > MAX_TRCS!', 
-     &                    'read_tracer_menu (input_mod.f)' )
+     &                    'read_adv_spec_menu (input_mod.f)' )
          RC = GIGC_FAILURE
          RETURN
       ENDIF
 
       !=================================================================
-      ! Read tracer ID, emission ID, biomass ID, biofuel ID, & mol wt
+      ! Read advected species name
       !=================================================================
       DO T = 1, Input_Opt%N_TRACERS
 
          ! Split line into substrings
-         CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:4' )
-
-         ! Save tracer number
-         READ( SUBSTRS(1), * ) ID !Input_Opt%ID_TRACER(T)
+         CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_adv_spec_menu:4' )
 
          ! Save tracer name
-         Input_Opt%TRACER_NAME(T)  = TRIM( SUBSTRS(2) )
+         Input_Opt%TRACER_NAME(T)  = TRIM( SUBSTRS(1) )
 
-         ! Read a dummy placeholder in place of molecular weight
-         ! The molecular weight will be taken from the species database
-         ! in routine INIT_GIGC_STATE_CHM. (bmy, 12/16/15)
-         READ( SUBSTRS(3), * ) DUMMY
-         
       ENDDO
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_adv_spec_menu:5' )
 
       !=================================================================
       ! Call setup routines from other F90 modules
       !=================================================================
 
-      ! Split into tagged tracers (turn off for full-chemistry)
+      ! Split into tagged species (turn off for full-chemistry)
       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
-         ! There are no tagged tracers for fullchem
+         ! There are no tagged species for fullchem
          Input_Opt%LSPLIT = .FALSE.
 
       ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
@@ -1491,7 +1485,7 @@
 
       ELSE
 
-         ! All other simulations: tagged if more than 1 tracer
+         ! All other simulations: tagged if more than 1 species listed
          Input_Opt%LSPLIT = ( Input_Opt%N_TRACERS > 1 )
 
       ENDIF
@@ -1502,7 +1496,7 @@
       ! Return success
       RC = GIGC_SUCCESS
 
-      END SUBROUTINE READ_TRACER_MENU
+      END SUBROUTINE READ_ADVECTED_SPECIES_MENU
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1601,7 +1595,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
@@ -2115,7 +2110,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, LOC )
       ENDIF
 
@@ -2453,7 +2449,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, LOC )
       ENDIF
 
@@ -2762,7 +2759,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
@@ -2992,7 +2990,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_RADIATION_MENU ("input_mod.f")' )
       ENDIF
 
@@ -3206,7 +3205,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
@@ -3423,7 +3423,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_TRANSPORT_MENU ("input_mod.f")' )
       ENDIF
 
@@ -3585,7 +3586,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_DEPOSITION_MENU ("input_mod.f")' )
       ENDIF
 
@@ -3979,7 +3981,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
@@ -4916,7 +4919,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_PLANEFLIGHT_MENU ("input_mod.f")' )
       ENDIF
 
@@ -5040,7 +5044,8 @@
       
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_ND48_MENU ("input_mod.f")' )
       ENDIF
 
@@ -5184,7 +5189,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_ND49_MENU ("input_mod.f")' )
       ENDIF
 
@@ -5371,7 +5377,8 @@
       
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_ND50_MENU ("input_mod.f")' )
       ENDIF
 
@@ -5537,7 +5544,8 @@
       
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_ND51_MENU ("input_mod.f")' )
       ENDIF
 
@@ -5715,7 +5723,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_ND51b_MENU ("input_mod.f")' )
       ENDIF
 
@@ -5888,7 +5897,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_ND63_MENU ("input_mod.f")' )
       ENDIF
 
@@ -6064,7 +6074,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 

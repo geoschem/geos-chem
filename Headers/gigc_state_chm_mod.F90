@@ -523,9 +523,9 @@ CONTAINS
     ! Set up the species mapping vectors
     !=======================================================================
     IF ( am_I_Root ) THEN
-       WRITE( 6,'(/,a)' ) 'TRACER MENU (==> denotes SMVGEAR emitted species)'
+       WRITE( 6,'(/,a)' ) 'ADVECTED SPECIES MENU'
        WRITE( 6,'(  a)' ) REPEAT( '-', 48 )
-       WRITE( 6,'(  a)' ) '  # Tracer          g/mole'
+       WRITE( 6,'(  a)' ) '  # Species Name  g/mole'
     ENDIF
 
     ! Loop over all species
@@ -675,7 +675,7 @@ CONTAINS
     ENDIF 
 
     ! Format statement
-100 FORMAT( I3, 1x, A10, 6x, F7.2 )
+100 FORMAT( I3, 1x, A10, 3x, F7.2 )
 110 FORMAT( 5x, '===> ', f4.1, 1x, A6  )
 120 FORMAT( 5x, '---> ', f4.1, 1x, A4  )
 
