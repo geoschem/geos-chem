@@ -228,13 +228,13 @@ CONTAINS
     DO N = 1, State_Chm%nSpecies
 
        ! Get info about this species from the species database
-       ThisSpc => State_Chm%SpcData(N)%Info
+       SpcInfo => State_Chm%SpcData(N)%Info
 
        ! Skip non-KPP species
-       IF ( .not. ThisSpc%Is_Kpp ) CYCLE
+       IF ( .not. SpcInfo%Is_Kpp ) CYCLE
 
        ! Skip species that were in the restart file
-       IF ( ThisSpc%Is_InRestart ) CYCLE
+       IF ( SpcInfo%Is_InRestart ) CYCLE
 
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
@@ -249,7 +249,7 @@ CONTAINS
           CONV_FACTOR = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp / &
                       ( State_Met%T(I,J,L) * ( BOLTZ * 1e+7_fp ) )
 
-          IF ( TRIM( ThisSpc%Name ) /= 'MOH' ) THEN
+          IF ( TRIM( SpcInfo%Name ) /= 'MOH' ) THEN
 
              ! Convert units from [mol/mol] to [molec/cm3/box]
              State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) * &
@@ -327,7 +327,7 @@ CONTAINS
 
           ! Write min/max value to log
           WRITE(6,120) N, &
-                       TRIM( ThisSpc%Name ), &
+                       TRIM( SpcInfo%Name ), &
                        MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ), &
                        MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) ) 
 110       FORMAT('     - INIT_FLEXCHEM: converting species background', &
@@ -340,7 +340,7 @@ CONTAINS
        ENDIF
 
        ! Free pointer
-       ThisSpc => NULL()
+       SpcInfo => NULL()
 
     ENDDO ! State_Chm%nSpecies
 
