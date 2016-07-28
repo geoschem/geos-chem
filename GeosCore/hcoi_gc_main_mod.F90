@@ -1063,7 +1063,10 @@ CONTAINS
 #if defined(ESMF_)
     USE HCOI_ESMF_MOD,         ONLY : HCO_SetExtState_ESMF
 #endif
-
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+    USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !
 ! !INPUT PARAMETERS:
 !
@@ -1096,6 +1099,15 @@ CONTAINS
     LOGICAL, SAVE      :: FIRST = .TRUE.
     INTEGER            :: HCRC
     CHARACTER(LEN=255) :: LOC = 'ExtState_SetFields (hcoi_gc_main_mod.F90)'
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+!@@@ NOTE: PUT THIS ON HOLD FOR NOW.  USING SPECIES SEEMS TO MESS UP THE 
+!@@@ HEMCO POINTERS BECAUSE SPECIES ARE IN THE WRONG UNITS (bmy, 7/22/16)
+!      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     !=================================================================
     ! ExtState_SetFields begins here
@@ -1304,21 +1316,28 @@ CONTAINS
 !@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
 !@@@ This can be removed later once State_Chm%Tracers is removed everywhere
 !@@@
-    IF ( id_O3 > 0 ) THEN
-       State_Chm%Species(:,:,:,id_O3  ) = State_Chm%Tracers(:,:,:,id_O3  )
-    ENDIF
-    IF ( id_NO2 > 0 ) THEN
-       State_Chm%Species(:,:,:,id_NO2 ) = State_Chm%Tracers(:,:,:,id_NO2 )
-    ENDIF
-    IF ( id_NO > 0 ) THEN
-       State_Chm%Species(:,:,:,id_NO  ) = State_Chm%Tracers(:,:,:,id_NO  )
-    ENDIF
-    IF ( id_HNO3 > 0 ) THEN
-       State_Chm%Species(:,:,:,id_HNO3) = State_Chm%Tracers(:,:,:,id_HNO3)
-    ENDIF
-    IF ( id_POPG > 0 ) THEN
-       State_Chm%Species(:,:,:,id_POPG) = State_Chm%Tracers(:,:,:,id_POPG)
-    ENDIF
+!@@@ NOTE: PUT THIS ON HOLD FOR NOW.  USING SPECIES SEEMS TO MESS UP THE 
+!@@@ HEMCO POINTERS BECAUSE SPECIES ARE IN THE WRONG UNITS (bmy, 7/22/16)
+!    IF ( id_O3 > 0 ) THEN
+!       Spc_Temp         (:,:,:,id_O3  ) = State_Chm%Species(:,:,:,id_O3  )
+!       State_Chm%Species(:,:,:,id_O3  ) = State_Chm%Tracers(:,:,:,id_O3  )
+!    ENDIF
+!    IF ( id_NO2 > 0 ) THEN
+!       Spc_Temp         (:,:,:,id_NO2 ) = State_Chm%Species(:,:,:,id_NO2 )
+!       State_Chm%Species(:,:,:,id_NO2 ) = State_Chm%Tracers(:,:,:,id_NO2 )
+!    ENDIF
+!    IF ( id_NO > 0 ) THEN
+!       Spc_Temp         (:,:,:,id_NO  ) = State_Chm%Species(:,:,:,id_NO  )
+!       State_Chm%Species(:,:,:,id_NO  ) = State_Chm%Tracers(:,:,:,id_NO  )
+!    ENDIF
+!    IF ( id_HNO3 > 0 ) THEN
+!       Spc_Temp         (:,:,:,id_HNO3) = State_Chm%Species(:,:,:,id_HNO3)
+!       State_Chm%Species(:,:,:,id_HNO3) = State_Chm%Tracers(:,:,:,id_HNO3)
+!    ENDIF
+!    IF ( id_POPG > 0 ) THEN
+!       Spc_Temp         (:,:,:,id_POPG) = State_Chm%Species(:,:,:,id_POPG)
+!       State_Chm%Species(:,:,:,id_POPG) = State_Chm%Tracers(:,:,:,id_POPG)
+!    ENDIF
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     ! ----------------------------------------------------------------
@@ -1326,27 +1345,27 @@ CONTAINS
     ! ----------------------------------------------------------------
     IF ( id_O3 > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%O3, &
-            'HEMCO_O3', HCRC,      FIRST,    State_Chm%Species(:,:,:,id_O3))
+            'HEMCO_O3', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_O3))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( id_NO2 > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%NO2, &
-           'HEMCO_NO2', HCRC,      FIRST,    State_Chm%Species(:,:,:,id_NO2))
+           'HEMCO_NO2', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_NO2))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( id_NO > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%NO, &
-            'HEMCO_NO', HCRC,      FIRST,    State_Chm%Species(:,:,:,id_NO))
+            'HEMCO_NO', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_NO))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( id_HNO3 > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%HNO3, &
-          'HEMCO_HNO3', HCRC,      FIRST,    State_Chm%Species(:,:,:,id_HNO3))
+          'HEMCO_HNO3', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_HNO3))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( id_POPG > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%POPG, &
-          'HEMCO_POPG', HCRC,      FIRST,    State_Chm%Species(:,:,:,id_POPG))
+          'HEMCO_POPG', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_POPG))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
 
@@ -1354,21 +1373,28 @@ CONTAINS
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
 !@@@
-    IF ( id_O3 > 0 ) THEN
-       State_Chm%Tracers(:,:,:,id_O3  ) = State_Chm%Species(:,:,:,id_O3  )
-    ENDIF
-    IF ( id_NO2 > 0 ) THEN
-       State_Chm%Tracers(:,:,:,id_NO2 ) = State_Chm%Species(:,:,:,id_NO2 )
-    ENDIF
-    IF ( id_NO > 0 ) THEN
-       State_Chm%Tracers(:,:,:,id_NO  ) = State_Chm%Species(:,:,:,id_NO  )
-    ENDIF
-    IF ( id_HNO3 > 0 ) THEN
-       State_Chm%Tracers(:,:,:,id_HNO3) = State_Chm%Species(:,:,:,id_HNO3)
-    ENDIF
-    IF ( id_POPG > 0 ) THEN
-       State_Chm%Tracers(:,:,:,id_POPG) = State_Chm%Species(:,:,:,id_POPG)
-    ENDIF
+!@@@ NOTE: PUT THIS ON HOLD FOR NOW.  USING SPECIES SEEMS TO MESS UP THE 
+!@@@ HEMCO POINTERS BECAUSE SPECIES ARE IN THE WRONG UNITS (bmy, 7/22/16)
+!    IF ( id_O3 > 0 ) THEN
+!       State_Chm%Tracers(:,:,:,id_O3  ) = State_Chm%Species(:,:,:,id_O3  )
+!       State_Chm%Species(:,:,:,id_O3  ) = Spc_temp         (:,:,:,id_O3  )
+!    ENDIF
+!    IF ( id_NO2 > 0 ) THEN
+!       State_Chm%Tracers(:,:,:,id_NO2 ) = State_Chm%Species(:,:,:,id_NO2 )
+!       State_Chm%Species(:,:,:,id_NO2) = Spc_temp          (:,:,:,id_NO2 )
+!    ENDIF
+!    IF ( id_NO > 0 ) THEN
+!       State_Chm%Tracers(:,:,:,id_NO  ) = State_Chm%Species(:,:,:,id_NO  )
+!       State_Chm%Species(:,:,:,id_NO  ) = Spc_temp         (:,:,:,id_NO  )
+!    ENDIF
+!    IF ( id_HNO3 > 0 ) THEN
+!       State_Chm%Tracers(:,:,:,id_HNO3) = State_Chm%Species(:,:,:,id_HNO3)
+!       State_Chm%Species(:,:,:,id_HNO3) = Spc_temp         (:,:,:,id_HNO3)
+!    ENDIF
+!    IF ( id_POPG > 0 ) THEN
+!       State_Chm%Tracers(:,:,:,id_POPG) = State_Chm%Species(:,:,:,id_POPG)
+!       State_Chm%Species(:,:,:,id_POPG) = Spc_temp         (:,:,:,id_POPG)
+!    ENDIF
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     ! ----------------------------------------------------------------

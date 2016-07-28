@@ -709,7 +709,7 @@
       CALL GEOS_Timer_End ( "HEMCO", RC )
 #endif
 
-#if defined( DEVEL )
+#if defined( NC_DIAG )
       ! Initialize diagnostics other than the default HEMCO diagnostics
       ! initialized above (ckeller, 1/13/15).
       CALL Diagnostics_Init( am_I_Root, Input_Opt, 
@@ -720,12 +720,31 @@
       !       *****  I N I T I A L   C O N D I T I O N S *****
       !=================================================================
 
+      ! DEBUGGING (ewl)
+      IF ( Input_Opt%LPRT ) THEN
+         PRINT *, "Before read_gc_restart"
+         PRINT *, " Current species units: ", State_Chm%Spc_Units
+         PRINT *, " SPECIES #1: ", State_Chm%Species(25,25,1,1)
+         PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+      ENDIF
+      ! END DEBUGGING
+
       ! Read initial tracer conditions
       ! NOTE: Tracer concentrations are read in as [v/v dry air] and converted
       ! to kg/kg dry air (ewl, 9/18/15)
       CALL READ_GC_RESTART( am_I_Root, NYMDb,     NHMSb, 
      &                      Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_GC_RESTART' )
+
+      ! DEBUGGING (ewl)
+      IF ( Input_Opt%LPRT ) THEN
+         PRINT *, " "
+         PRINT *, "After read_gc_restart"
+         PRINT *, " Current species units: ", State_Chm%Spc_Units
+         PRINT *, " SPECIES #1: ", State_Chm%Species(25,25,1,1)
+         PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+      ENDIF
+      ! END DEBUGGING
 
       ! Initialize stratospheric routines
       IF ( LUCX ) THEN
@@ -883,6 +902,11 @@
 
          CALL EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, 
      &                       State_Chm, ITS_TIME_FOR_EMIS(), 1, RC )
+
+         !### Debug
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### MAIN: a HEMCO PHASE 1' )
+         ENDIf
 
          !==============================================================
          !   ***** W R I T E   D I A G N O S T I C   F I L E S *****
@@ -1405,10 +1429,14 @@
      &                          'main.F' )
             ENDIF
 
+            !### Debug
+            IF ( prtDebug ) THEN 
+               CALL DEBUG_MSG( '### MAIN: a HEMCO PHASE 2' )
+            ENDIF
+
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "HEMCO", RC )
 #endif
-
          ENDIF
 
          !-------------------------------
@@ -1581,6 +1609,16 @@
      &                            State_Met, State_Chm, RC )
             ENDIF
 
+            ! DEBUGGING (ewl)
+            IF ( Input_Opt%LPRT ) THEN
+               PRINT *, " "
+               PRINT *, "Before do_chemistry"
+               PRINT *, " Current species units: ", State_Chm%Spc_Units
+               PRINT *, " SPECIES #1:  ", State_Chm%Species(25,25,1,1)
+               PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+            ENDIF
+            ! END DEBUGGING
+
             ! Do GEOS-Chem chemistry
             ! NOTE: Tracer concentration units are converted locally
             ! to [kg] for all of chemistry. We will replace use of [kg] 
@@ -1590,6 +1628,17 @@
             IF ( RC /= GIGC_SUCCESS ) THEN
                CALL ERROR_STOP('Error in DO_CHEMISTRY!', 'main.F')
             ENDIF
+
+            ! DEBUGGING (ewl)
+            IF ( Input_Opt%LPRT ) THEN
+               PRINT *, " "
+               PRINT *, "After do_chemistry"
+               PRINT *, " Current species units: ", State_Chm%Spc_Units
+               PRINT *, " SPECIES #1:  ", State_Chm%Species(25,25,1,1)
+               PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+            ENDIF
+            ! END DEBUGGING
+
 
          ENDIF 
 
@@ -1721,7 +1770,7 @@
 #endif
 
          ! Eventually write dobson columns into diagnostics array
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
          CALL CalcDobsonColumn ( am_I_Root, Input_Opt,
      &                           State_Met, State_Chm, RC )
 #endif

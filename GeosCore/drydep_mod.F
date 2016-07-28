@@ -448,7 +448,7 @@
       ! Variables for netCDF diagnostics routines
       INTEGER           :: HCRC
       CHARACTER(LEN=30) :: DryDepName, DiagnName
-      REAL(fp), TARGET  :: SAVE_DEPVEL(IIPAR,JJPAR,Input_Opt%NUMDEP)
+      REAL(fp), TARGET  :: SAVE_DEPVEL(IIPAR,JJPAR,State_Chm%nDryDep)
       REAL(hp), POINTER :: Ptr2D(:,:)
 #endif
 

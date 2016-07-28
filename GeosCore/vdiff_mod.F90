@@ -1845,7 +1845,7 @@ contains
                                    GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
     USE SPECIES_MOD,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
-#if defined( DEVEL )
+#if defined( USE_TEND )
     USE TENDENCIES_MOD
 #endif
 
@@ -1856,6 +1856,14 @@ contains
     USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 7/27/16)
+!@@@ Need to use DEPNAME, NUMDEP, NTRAIND until we remove family tracers
+!@@@ becuase these are kludged properly for ISOPNB/ISOPND, MACRN/MVNK species.
+!@@@ (bmy, 7/27/16)
+!@@@
+    USE DRYDEP_MOD,         ONLY : NUMDEP, NTRAIND
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     implicit none
 !
@@ -1935,13 +1943,15 @@ contains
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !  13 Jul 2016 - R. Yantosca - Now use NA as loop index for advected species
 !                              and ND as loop index for drydep species
+!  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
+!  27 Jul 2016 - R. Yantosca - Bug fix: set nDrydep=0 if drydep is turned off
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    integer :: I, J, L, N, NN, D, trc_id, NA, nAdvect, ND
+    integer :: I, J, L, N, NN, D, trc_id, NA, nAdvect, ND, nDryDep
 
     REAL(fp)                :: FRAC_NO_HG0_DEP !jaf 
     LOGICAL                 :: ZERO_HG0_DEP !jaf 
@@ -2021,6 +2031,7 @@ contains
     LOGICAL,           SAVE :: FIRST = .TRUE.
     INTEGER,           SAVE :: id_O3
     INTEGER,           SAVE :: id_HNO3
+!  27 Jul 2016 - R. Yantosca -  
 
     ! For pointing to the species database
     TYPE(Species),  POINTER :: SpcInfo
@@ -2035,18 +2046,31 @@ contains
 !@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
 !@@@ This can be removed later once State_Chm%Tracers is removed everywhere
 !@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+
       ! Number of advected species
       nAdvect = State_Chm%nAdvect
 
       ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
          State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
       ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR begins' )
+
+    ! NOTE: The prior behavior of the code assumed that NUMDEP=0 when
+    ! drydep was shut off.  NUMDEP=0 prevented the main drydep loops
+    ! from occurring, thus avoiding seg faults.  We now replicate the
+    ! same behavior here. (bmy, 7/27/16)
+    IF ( Input_Opt%LDRYD ) THEN
+       nDryDep = State_Chm%nDryDep
+    ELSE
+       nDryDep = 0
+    ENDIF
 
     ! Initialize pointers
     SpcInfo => NULL()
@@ -2118,9 +2142,9 @@ contains
        FIRST = .FALSE.
     ENDIF
 
+#if defined( USE_TEND )
     ! Archive concentrations for tendencies calculations. Tracers array
     ! is already in v/v (ckeller, 7/15/2015).
-#if defined(DEVEL)
     CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, &
                       State_Chm, 'PBLMIX', .TRUE., RC )
 #endif
@@ -2276,13 +2300,27 @@ contains
        ! PARANOX) were already added above.
        !----------------------------------------------------------------
 
-       ! Loop over only the drydep species
-       DO ND = 1, State_Chm%nDryDep
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 7/27/16)
+!@@@ 
+!@@@
+!-----------------------------------------------------------------------------
+! Activate these lines once we remove family tracers (bmy, 7/27/16)
+!       ! Loop over only the drydep species
+!       ! If drydep is turned off, nDryDep=0 and the loop won't execute
+!       DO ND = 1, nDryDep
+!
+!          ! Get the species ID from the drydep ID
+!          N = State_Chm%Map_Drydep(ND)
+!-----------------------------------------------------------------------------
+! Remove this when family tracers are taken out (bmy, 7/27/16)
+       do ND = 1, NUMDEP 
+          
+          ! Species ID
+          N = NTRAIND(ND)
+!-----------------------------------------------------------------------------
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-          ! Get the species ID from the drydep ID
-          N = State_Chm%Map_Drydep(ND)
-
-          ! Skip if this is not a valid species
           IF ( N <= 0 ) CYCLE
           
           ! Point to the corresponding Species Database entry
@@ -2445,11 +2483,24 @@ contains
        !----------------------------------------------------------------
        IF ( IS_Hg ) THEN
           
-          ! Loop over only the drydep species
-          DO ND = 1, State_Chm%nDryDep
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION
+!@@@ Restore old code until after family tracer are removed (bmy, 7/27/18)
+!----------------------------------------------------------------------------
+! Activate these after family tracer removal (bmy, 7/27/16)
+!          ! Loop over only the drydep species
+!          ! If drydep is turned off, nDryDep=0 and the loop won't execute
+!          DO ND = 1, nDryDep
+!
+!             ! Get the species ID from the drydep ID
+!             N = State_Chm%Map_DryDep(ND)
+!----------------------------------------------------------------------------
+! Remove this code after family tracers are taken out (bmy, 7/27/16)
+          DO ND = 1, NUMDEP
 
-             ! Get the species ID from the drydep ID
-             N = State_Chm%Map_DryDep(ND)
+             N = NTRAIND(ND)
+!----------------------------------------------------------------------------
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
              ! Point to the Species Database entry for tracer N
              SpcInfo => State_Chm%SpcData(N)%Info
@@ -2551,11 +2602,25 @@ contains
     ! for aerosols -- 
     if (ND44 > 0 .or. LGTMM .or. LSOILNOX) then
 
-       ! Loop over only the drydep species
-       DO ND = 1, State_Chm%nDryDep
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION
+!@@@ Restore old code until after family tracer are removed (bmy, 7/27/18)
+!----------------------------------------------------------------------------
+! Activate these after family tracer removal (bmy, 7/27/16)
+!       ! Loop over only the drydep species
+!       ! If drydep is turned off, nDryDep=0 and the loop won't execute
+!       DO ND = 1, nDryDep       
+!
+!          ! Get the species ID from the drydep Id
+!          N = State_Chm%Map_DryDep(ND)
+!----------------------------------------------------------------------------
+! Remove this after family tracers are taken out (bmy, 7/27/16)
+       DO ND = 1, NUMDEP
 
-          ! Get the species ID from the drydep Id
-          N = State_Chm%Map_DryDep(ND)
+          ! Species ID
+          N = NTRAIND(ND)
+!----------------------------------------------------------------------------
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
           ! Skip if not a valid species
           IF ( N <= 0 ) CYCLE 
@@ -2827,8 +2892,8 @@ contains
        CALL COMPUTE_PBL_HEIGHT( State_Met )
     endif
 
+#if defined( USE_TEND )
     ! Compute tendencies and write to diagnostics (ckeller, 7/15/2015)
-#if defined(DEVEL)
     CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, &
                       State_Chm, 'PBLMIX', .TRUE., dtime, RC )
 #endif
@@ -2843,6 +2908,9 @@ contains
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
          State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   END SUBROUTINE VDIFFDR

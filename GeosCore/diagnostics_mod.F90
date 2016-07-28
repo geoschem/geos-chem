@@ -33,7 +33,7 @@ MODULE Diagnostics_Mod
   PUBLIC  :: Diagnostics_Final
   PUBLIC  :: DiagnUpdate_Met            ! ND31, 55, 57, 66, 67, and 68
   PUBLIC  :: DiagnUpdate_Transport_Flux ! ND24, ND25, ND26
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
   PUBLIC  :: CalcDobsonColumn           ! added by ck - no existing bpch diag
 #endif
 !
@@ -70,7 +70,7 @@ MODULE Diagnostics_Mod
   PRIVATE :: DiagnInit_Rain_Frac        ! ND17 init
   PRIVATE :: DiagnInit_Wash_Frac        ! ND18 init
   PRIVATE :: DiagnInit_Landmap          ! ND30 init
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
   PRIVATE :: DiagnInit_Tracer_Emis      ! added by ck
 #endif
   !PRIVATE :: DiagnInit_HrlyMax_SurfConc ! ND71 init (impementation commented
@@ -78,11 +78,11 @@ MODULE Diagnostics_Mod
   !   to do: ND37 (updraft scav fraction)
   !          ND62 (instantaneous column maps)
 
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
   PRIVATE :: DiagnInit_Dobson          ! added by ck
 #endif
 
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
   ! Diagnostics for testing FlexChem (may be removed later)
   PRIVATE :: DiagnInit_KPP_Rates
   PRIVATE :: DiagnInit_KPP_Spec
@@ -113,6 +113,7 @@ MODULE Diagnostics_Mod
 !  09 Jan 2015 - C. Keller   - Initial version. 
 !  14 Jan 2016 - E. Lundgren - Add several GEOS-Chem diagnostics
 !  29 Jan 2016 - E. Lundgren - Update diagnostics for recent HEMCO updates
+!  20 Jul 2016 - R. Yantosca - Replace #ifdef DEVEL with #ifdef DIAG_DEVEL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -150,7 +151,7 @@ CONTAINS
     USE GRID_MOD,           ONLY : AREA_M2
     USE HCO_DIAGN_MOD
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-#if defined( DEVEL )
+#if defined( USE_TEND )
     USE TENDENCIES_MOD,     ONLY : TEND_INIT
 #endif
 !
@@ -158,10 +159,10 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   ) :: am_I_Root  ! Are we on the root CPU?
     TYPE(MetState),   INTENT(IN   ) :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! Chemistry state 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm  ! Chemistry state 
     TYPE(OptInput),   INTENT(INOUT) :: Input_Opt  ! Input opts
 !
 ! !OUTPUT PARAMETERS:
@@ -176,6 +177,8 @@ CONTAINS
 !  22 Jun 2016 - R. Yantosca - Now use IND_() to define id_Rn, id_Pb, id_Be7
 !  22 Jun 2016 - R. Yantosca - Remove reference to Species type
 !  01 Jul 2016 - R. Yantosca - Pass State_Chm to several other routines
+!  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
+!  19 Jul 2016 - R. Yantosca - Add missing nAdvect variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -183,9 +186,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: N
+    INTEGER            :: N,           nAdvect
     INTEGER            :: CollectionID
-    INTEGER            :: DeltaYMD, DeltaHMS 
+    INTEGER            :: DeltaYMD,    DeltaHMS 
     REAL(sp)           :: TS
 
     ! Pointers
@@ -342,7 +345,7 @@ CONTAINS
 
     ! Pb emissions diagnostic (ND01)
     IF ( Input_Opt%ND01 > 0 ) THEN
-       CALL DiagnInit_Pb_Emiss( am_I_Root, Input_Opt, RC )
+       CALL DiagnInit_Pb_Emiss( am_I_Root, Input_Opt, State_Chm, RC )
        IF ( RC /= GIGC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_Pb_Emiss', LOC ) 
        ENDIF
@@ -442,18 +445,22 @@ CONTAINS
     !   ENDIF
     !ENDIF
 
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
     CALL DiagnInit_Dobson( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DiagnInit_Dobson', LOC ) 
     ENDIF
+#endif
 
+#if defined( USE_TEND )
     ! Initialize tendencies
     CALL Tend_Init( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in Tendencies_Init', LOC ) 
     ENDIF
+#endif
 
+#if defined( DIAG_DEVEL )
     ! Tracer emission diagnostics (NEW) (added by Christoph)
     ! NOTE: Currently this diagnostic must be initialized last since since
     ! container ids start at 10000 for routine TotalsToLogFile (ewl, 1/20/16)
@@ -465,7 +472,7 @@ CONTAINS
     ENDIF
 #endif
 
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
     ! KPP diagnostics
     CALL DiagnInit_KPP_Rates( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
@@ -501,7 +508,7 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#if defined( DEVEL )
+#if defined( USE_TEND )
     USE TENDENCIES_MOD,     ONLY : TEND_CLEANUP
 #endif
 !
@@ -517,6 +524,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  09 Jan 2015 - C. Keller   - Initial version 
 !  15 Jan 2015 - R. Yantosca - Now accept Input_Opt, am_I_Root, RC arguments
+!  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -524,7 +532,7 @@ CONTAINS
 !    ! Finalize diagnostics
 !    CALL DiagnCollection_Cleanup( COL = Input_Opt%DIAG_COLLECTION )
 
-#if defined( DEVEL )
+#if defined( USE_TEND )
     CALL TEND_CLEANUP()
 #endif
 
@@ -552,6 +560,7 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
     USE Species_Mod,        ONLY : Species
 !
@@ -586,8 +595,8 @@ CONTAINS
     CHARACTER(LEN=60)      :: DiagnName
     CHARACTER(LEN=30)      :: NamePrefix
     CHARACTER(LEN=255)     :: MSG
-
     CHARACTER(LEN=255)     :: LOC='DiagnInit_Transport_Flux (diagnostics_mod.F90)' 
+
     ! Pointers
     TYPE(Species), POINTER :: SpcInfo
 
@@ -1348,19 +1357,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnInit_Pb_Emiss( am_I_Root, Input_Opt, RC )
+  SUBROUTINE DiagnInit_Pb_Emiss( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : IND_
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Chm_Mod, ONLY : Ind_
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1370,6 +1383,7 @@ CONTAINS
 !  21 Jan 2015 - E. Lundgren - Initial version
 !  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function
 !  01 Jul 2016 - R. Yantosca - Remove reference to Input_Opt%TRACER_NAME
+!  19 Jul 2016 - R. Yantosca - Now pass State_Chm as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1394,7 +1408,7 @@ CONTAINS
     RC = GIGC_SUCCESS
 
     ! Pb210 species Id
-    id_Pb      = IND_('PB')
+    id_Pb      = Ind_('PB')
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -1688,7 +1702,7 @@ CONTAINS
     ! NEED TO ADD LOOP OVER TRACERS
     
     ! Loop over advected species
-    DO NA = 1, nAdvect
+    DO NA = 1, State_Chm%nAdvect
          
        ! Species ID 
        N = State_Chm%Map_Advect(NA)
@@ -1983,6 +1997,7 @@ CONTAINS
 !  26 Jan 2015 - E. Lundgren - Initial version
 !  01 Jul 2016 - R. Yantosca - Use module variable nAdvect to replace N_TRACERS
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!  19 Jul 2016 - R. Yantosca - Bug fix: now declare N, nAdvect variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1990,7 +2005,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                :: Collection, M, NA
+    INTEGER                :: Collection, M, NA, N, nAdvect
 
     ! Strings
     CHARACTER(LEN=15)      :: OutOper
@@ -2122,7 +2137,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                :: Collection, M, NA
+    INTEGER                :: Collection, M, NA, N
 
     ! Strings
     CHARACTER(LEN=15)      :: OutOper
@@ -2667,62 +2682,79 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnUpdate_Transport_Flux( am_I_Root, FLUX_EW, FLUX_NS,  &
-                                         FLUX_VERT, Input_Opt, RC )
+  SUBROUTINE DiagnUpdate_Transport_Flux( am_I_Root, FLUX_EW,   FLUX_NS,       &
+                                         FLUX_VERT, Input_Opt, State_Chm, RC )
 
 !
 ! !USES:
 !
    USE GIGC_Input_Opt_Mod, ONLY : OptInput    
+   USE GIGC_State_Chm_Mod, ONLY : ChmState
    USE HCO_Diagn_Mod,      ONLY : Diagn_Update
+   USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
-   LOGICAL,          INTENT(IN)  :: am_I_Root          ! Are we on root CPU?
-   REAL(fp),         INTENT(IN)  :: FLUX_EW(:,:,:,:)   ! zonal mass flux
-   REAL(fp),         INTENT(IN)  :: FLUX_NS(:,:,:,:)   ! meridional flux
-   REAL(fp),         INTENT(IN)  :: FLUX_VERT(:,:,:,:) ! vertical mass flux
-   TYPE(OptInput),   INTENT(IN)  :: Input_Opt          ! Input options object
+   LOGICAL,        INTENT(IN)    :: am_I_Root          ! Are we on root CPU?
+   REAL(fp),       INTENT(IN)    :: FLUX_EW(:,:,:,:)   ! zonal mass flux
+   REAL(fp),       INTENT(IN)    :: FLUX_NS(:,:,:,:)   ! meridional flux
+   REAL(fp),       INTENT(IN)    :: FLUX_VERT(:,:,:,:) ! vertical mass flux
+   TYPE(OptInput), INTENT(IN)    :: Input_Opt          ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+   TYPE(ChmState), INTENT(INOUT) :: State_Chm          ! Chemistry State object
+!
 !
 ! !OUTPUT PARAMETERS:
 !
-   INTEGER,          INTENT(OUT) :: RC               ! Success or failure
+   INTEGER,        INTENT(OUT)   :: RC                 ! Success or failure
 !
-! !REVISION HISTORY:
-!  12 Feb 2015 - E. Lundgren   - Initial version
-!  19 Jan 2016 - E. Lundgren   - Updated to include all transport flux diags
-! 
 ! !REMARKS:
 !
+! !REVISION HISTORY:
+!  12 Feb 2015 - E. Lundgren - Initial version
+!  19 Jan 2016 - E. Lundgren - Updated to include all transport flux diags
+!  30 Jun 2016 - R. Yantosca - Now get advected species IDs from State_Chm
+!  20 Jul 2016 - R. Yantosca - Remove references to NNPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-   INTEGER             :: N, M, NumLevels
-   CHARACTER(LEN=60)   :: DiagnPrefix, DiagnName
-   CHARACTER(LEN=255)  :: MSG
-   CHARACTER(LEN=255)  :: LOC = 'DiagnUpdate_Transport_Flux'  &
-                                 // ' (Transport_mod.F)'
+   ! Scalars
+   INTEGER                :: N, M, NumLevels, NA
+
+   ! Strings
+   CHARACTER(LEN=60)      :: DiagnPrefix, DiagnName
+   CHARACTER(LEN=255)     :: MSG
+   CHARACTER(LEN=255)     :: LOC = 'DiagnUpdate_Transport_Flux'  &
+                               // ' (Transport_mod.F)'
 
    ! Array to hold input mass flux array with reverse-order levels
    ! and only levels that have data (ie. less than LLPAR if input.geos
    ! levels for the diagnostic are less than LLPAR).
-   REAL(fp), TARGET  :: DiagnArray( IIPAR, JJPAR, Input_Opt%LD24, NNPAR )
+   REAL(fp), TARGET       :: DiagnArray( IIPAR, JJPAR, Input_Opt%LD24,    &
+                                                       State_Chm%nAdvect )
 
    ! Pointers
-   REAL(fp), POINTER :: Ptr3D(:,:,:)
+   REAL(fp),      POINTER :: Ptr3D(:,:,:)
+   TYPE(Species), POINTER :: SpcInfo
 
    !=================================================================
    ! DIAGNUPDATE_TRANSPORT_FULX begins here!
    !=================================================================
    
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC        =  GIGC_SUCCESS
 
     ! Get number of levels for transport diagnostics
-    NumLevels = Input_Opt%LD24
+    NumLevels =  Input_Opt%LD24
+
+    ! Initialize pointers
+    Ptr3d     => NULL()
+    SpcInfo   => NULL()
 
     ! Loop over diagnostics
     DO M = 1, 3
@@ -2741,9 +2773,12 @@ CONTAINS
              DiagnArray  = FLUX_VERT(:,:,LLPAR:LLPAR-NumLevels+1:-1,:)
        END SELECT
 
-       ! Loop over tracers
-       DO N = 1, Input_Opt%N_TRACERS
-       
+       ! Loop over only the advected species
+       DO NA = 1, State_Chm%nAdvect
+      
+          ! Get the species ID from the advected species ID
+          N = State_Chm%Map_Advect(NA)
+
           ! If this tracer number N is scheduled for output in input.geos, 
           ! then update its diagnostic container for transport flux
           IF ( ANY( Input_Opt%TINDEX(24,:) == N ) ) THEN
@@ -2752,12 +2787,14 @@ CONTAINS
              ! Update diagnostic container
              !----------------------------------------------------------------
          
+             ! Point to the corresponding entry in the species database
+             SpcInfo   => State_Chm%SpcData(N)%Info
+
              ! Diagnostic container name
-             DiagnName = TRIM( DiagnPrefix )                      &
-                         // TRIM( Input_Opt%TRACER_NAME( N ) )
+             DiagnName =  TRIM( DiagnPrefix ) // TRIM( SpcInfo%Name )
        
              ! Point to the array with levels corrected
-             Ptr3D => DiagnArray(:,:,:,N)
+             Ptr3D     => DiagnArray(:,:,:,NA)
        
              ! Create container
              CALL Diagn_Update( am_I_Root,                        &
@@ -2765,21 +2802,22 @@ CONTAINS
                                 Array3D   = Ptr3D,                &
                                 RC        = RC )
        
-             ! Free the pointer 
-             Ptr3D => NULL()
+             ! Free the pointers
+             Ptr3D   => NULL()
+             SpcInfo => NULL()
        
              ! Stop with error if the diagnostics update was unsuccessful.
              IF ( RC /= HCO_SUCCESS ) THEN
                 MSG = 'Cannot update diagnostic: ' // TRIM( DiagnName )
                 CALL ERROR_STOP( MSG, LOC ) 
-             ENDIF  
+             ENDIF 
           ENDIF
        ENDDO
     ENDDO
 
    END SUBROUTINE DiagnUpdate_Transport_Flux
 !EOC
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

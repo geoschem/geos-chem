@@ -210,19 +210,19 @@
 !                              arrays. These diagnostics are tracked by HEMCO.
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
+!  20 Jul 2016 - R. Yantosca - Remove references to NNPAR (now use nAdvect)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: NMAX, AS, NEMISS, LMAX, N_TRC_TOT, nAdvect
+      INTEGER :: NMAX, AS, NEMISS, LMAX, nAdvect
       INTEGER :: IT_IS_A_CH3I_SIM
       INTEGER :: IT_IS_A_FULLCHEM_SIM
       INTEGER :: IT_IS_A_MERCURY_SIM
       INTEGER :: IT_IS_A_TAGOX_SIM
       INTEGER :: IT_IS_A_H2HD_SIM
-      INTEGER :: N_TRACERS
       LOGICAL :: LDUST
       LOGICAL :: LCARB
       LOGICAL :: LSSALT
@@ -373,8 +373,8 @@
       !       --> uses CONVFLUP array (allocatable)
       !=================================================================
       IF ( ND14 > 0 ) THEN
-         LD14 = MIN( ND14,      LLCONVM )
-         NMAX = MIN( nAdvect, NNPAR   )
+         LD14 = MIN( ND14, LLCONVM )
+         NMAX = nAdvect
 
          ALLOCATE( CONVFLUP( IIPAR, JJPAR, LLCONVM, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CONVFLUP' )
@@ -385,8 +385,8 @@
       !       --> uses TURBFLUP array (allocatable)
       !=================================================================
       IF ( ND15 > 0 ) THEN
-         LD15 = MIN( ND15,      LLPAR )
-         NMAX = MIN( nAdvect, NNPAR )
+         LD15 = MIN( ND15, LLPAR )
+         NMAX = nAdvect
 
          ALLOCATE( TURBFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TURBFLUP' )
@@ -553,7 +553,7 @@
       !=================================================================
       IF ( ND24 > 0 ) THEN
          LD24 = MIN( ND24, LLPAR )
-         NMAX = MIN( nAdvect, NNPAR )
+         NMAX = nAdvect
 #if defined( BPCH_DIAG )      
          ALLOCATE( MASSFLEW( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLEW' )
@@ -569,7 +569,7 @@
       !=================================================================
       IF ( ND25 > 0 ) THEN
          LD25 = MIN( ND25, LLPAR )
-         NMAX = MIN( nAdvect, NNPAR )
+         NMAX = nAdvect
 #if defined( BPCH_DIAG )      
          ALLOCATE( MASSFLNS( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLNS' ) 
@@ -585,7 +585,7 @@
       !=================================================================
       IF ( ND26 > 0 ) THEN
          LD26 = MIN( ND26, LLPAR )
-         NMAX = MIN( nAdvect, NNPAR )
+         NMAX = nAdvect
 #if defined( BPCH_DIAG )      
          ALLOCATE( MASSFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLUP' )
@@ -621,7 +621,7 @@
       !       --> uses AD33 array (allocatable)!
       !=================================================================
       IF ( ND33 > 0 ) THEN
-         ALLOCATE( AD33( IIPAR, JJPAR, PD33 ), STAT=AS )
+         ALLOCATE( AD33( IIPAR, JJPAR, nAdvect ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD33' )
       ENDIF
 
@@ -716,7 +716,7 @@
       IF ( ND43 > 0 ) THEN
          
          ! For full chemistry, only save OH up to the tropopause.  
-         ! For tagged CO or CO-OH, save OH everywhere (bmy, 2/12/01)
+         ! For tagged CO ior CO-OH, save OH everywhere (bmy, 2/12/01)
          IF ( IT_IS_A_FULLCHEM_SIM ) THEN
             LD43 = MIN( ND43, LLCHEM )
          ELSE
@@ -855,8 +855,8 @@
       !       --> uses AD45 array (allocatable)
       !=================================================================
       IF ( ND45 > 0 ) THEN
-         LD45 = MIN( ND45,        LLPAR   )
-         NMAX = MIN( nAdvect+2,   NNPAR+2 )
+         LD45 = MIN( ND45, LLPAR )
+         NMAX = nAdvect+2
 
 #if defined( BPCH_DIAG )
          ! Accumulating diagnostic array
@@ -882,8 +882,8 @@
       !       can be averaged over any arbitrary time period.
       !=================================================================
       IF ( ND47 > 0 ) THEN
-         LD47 = MIN( ND47,        LLPAR   )
-         NMAX = MIN( nAdvect+2,   NNPAR+2 )
+         LD47 = MIN( ND47, LLPAR   )
+         NMAX = nAdvect+2
 
          ! Resize to NMAX to save memory (bmy, 10/18/00)
          ALLOCATE( AD47( IIPAR, JJPAR, LD47, NMAX ), STAT=AS )
@@ -1134,7 +1134,7 @@
       ! ND71: Maximum tracer concentration [v/v]
       !=================================================================
       IF ( ND71 > 0 ) THEN
-         NMAX = MIN( nAdvect+1, NNPAR+1 )
+         NMAX = nAdvect+1
 
          ! Resize to NMAX to save memory (bmy, 10/18/00)
          ALLOCATE( AD71( IIPAR, JJPAR, NMAX ), STAT=AS )

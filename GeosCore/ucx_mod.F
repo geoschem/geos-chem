@@ -373,9 +373,9 @@
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
-! !OUTPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS: ! ewl note: can't be just output for trc removal
 !
-      TYPE(ChmState), INTENT(OUT) :: State_Chm   ! Chemistry State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REMARKS:
 !  Concentrations of each of the following tracers are read from
@@ -433,6 +433,7 @@
 !  21 Jun 2016 - R. Yantosca   - Add error checks to make sure that each
 !                                species ID flag has a valid value before
 !                                calling APPLY_2DRATIO routine
+!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with specie pointer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -440,13 +441,13 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: AS, N, I, J, L
-      REAL(fp)             :: PLAST, PCURR, PNEXT
-      REAL(fp)             :: YLAT
+      REAL(fp)           :: PLAST, PCURR, PNEXT
+      REAL(fp)           :: YLAT
       CHARACTER(LEN=255) :: MSG
       LOGICAL            :: USE2DDATA
-      REAL(fp)             :: C3090S, C0030S, C0030N, C3090N
+      REAL(fp)           :: C3090S, C0030S, C0030N, C3090N
       INTEGER            :: CH4_YEAR, INIT_MO
-      REAL(fp)             :: SCALEFAC
+      REAL(fp)           :: SCALEFAC
       INTEGER            :: FUTURE_LINE
       INTEGER            :: BASIS_LINE
 
@@ -462,16 +463,37 @@
       LOGICAL            :: LSETBRSTRAT
       LOGICAL            :: LSETNOYSTRAT
 !      LOGICAL            :: LBASICEMIS
-      INTEGER            :: N_TRACERS
-      REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
       Real(fp)           :: MWTemp
 
       ! Pointers
-      REAL(fp), POINTER    :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: Spc (:,:,:,:)
+
+      ! TEMPOARY TRACER REMOVAL CODE (ewl, 7/7/16)
+      INTEGER         :: nAdvect, NA
+      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
       !=================================================================
       ! SET_INITIAL_MIXRATIOS begins here!
       !=================================================================
+
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
+      !@@@ Need to force State_Chm%Species = State_Chm%Tracers during 
+      !@@@ development. This can be removed later once State_Chm%Tracers 
+      !@@@ is removed everywhere
+      !@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+      
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      ! Store incoming State_Chm%Species in a local variable for testing
+      DO NA = 1, nAdvect
+         N = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Copy fields from INPUT_OPT
       LPRT         = ( Input_Opt%LPRT .and. am_I_Root )
@@ -485,13 +507,12 @@
       LSETBRSTRAT  = Input_Opt%LSETBRSTRAT
       LSETNOYSTRAT = Input_Opt%LSETNOYSTRAT
 !      LBASICEMIS   = Input_Opt%LBASICEMIS
-      N_TRACERS    = Input_Opt%N_TRACERS
-      TCVV         = Input_Opt%TCVV(1:N_TRACERS)
+      TCVV         = Input_Opt%TCVV(1:Input_Opt%N_TRACERS)
 
       ! Set module variable
 
       ! Initialize GEOS-Chem tracer array [kg/kg]
-      STT => State_Chm%Tracers
+      Spc => State_Chm%Species
 
       IF ( am_I_Root ) THEN
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -1066,15 +1087,15 @@
             YLAT  = GET_YMID( I,J,L )
 
             ! Set CH4 according to latitude
-            ! STT now in [kg/kg] (ewl, 3/16/15)
+            ! Spc now in [kg/kg] (ewl, 3/16/15)
             IF ( YLAT < -30e+0_fp ) THEN
-               STT(I,J,L,TRAC_IDX) = C3090S
+               Spc(I,J,L,TRAC_IDX) = C3090S
             ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  ) THEN
-               STT(I,J,L,TRAC_IDX) = C0030S
+               Spc(I,J,L,TRAC_IDX) = C0030S
             ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp ) THEN
-               STT(I,J,L,TRAC_IDX) = C0030N
+               Spc(I,J,L,TRAC_IDX) = C0030N
             ELSE
-               STT(I,J,L,TRAC_IDX) = C3090N
+               Spc(I,J,L,TRAC_IDX) = C3090N
             ENDIF
          ENDDO
          ENDDO
@@ -1096,8 +1117,21 @@
          ENDIF
       ENDIF
 
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
+      !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+      !@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      ENDDO
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( Spc )
  
       END SUBROUTINE SET_INITIAL_MIXRATIOS
 !EOC
@@ -1217,6 +1251,7 @@
 !                                Remove dependency on PRESSURE_MOD.
 !  16 Jun 2016 - S. D. Eastham - Remove references to tracerid_mod.F
 !  21 Jun 2016 - R. Yantosca   - Use the module variables for species ID flags
+!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1278,29 +1313,49 @@
       REAL(fp)             :: TSTART, TEND, TMIN, TMAX
       REAL(f8)             :: GMTSTART
       REAL(fp), PARAMETER  :: SOL_ECC=0.016
-      INTEGER            :: NDYEAR, AS
-      LOGICAL            :: CYCLEBOX
-      CHARACTER(LEN=255) :: DBGMSG
+      INTEGER              :: NDYEAR, AS
+      LOGICAL              :: CYCLEBOX
+      CHARACTER(LEN=255)   :: DBGMSG
 
       ! Local variables for quantities from Input_Opt
-      LOGICAL            :: LPRT
-      INTEGER            :: N_TRACERS
+      LOGICAL              :: LPRT
       REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL(fp), POINTER    :: STT(:,:,:,:)
+      REAL(fp), POINTER    :: Spc (:,:,:,:)
+
+      ! TEMPOARY TRACER REMOVAL CODE (ewl, 7/7/16)
+      INTEGER         :: nAdvect, NA, N
+      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
       !=================================================================
       ! UCX_NOX begins here!
       !=================================================================
 
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
+      !@@@ Need to force State_Chm%Species = State_Chm%Tracers during 
+      !@@@ development. This can be removed later once State_Chm%Tracers 
+      !@@@ is removed everywhere
+      !@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+      
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      ! Store incoming State_Chm%Species in a local variable for testing
+      DO NA = 1, nAdvect
+         N = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       ! Copy fields from INPUT_OPT
       LPRT      = Input_Opt%LPRT
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+      TCVV      = Input_Opt%TCVV(1:Input_Opt%N_TRACERS)
 
       ! Initialize GEOS-Chem tracer array [kg]
-      STT => State_Chm%Tracers
+      Spc => State_Chm%Species
 
       ! Retrieve monthly mean data if necessary
       IF (LASTMONTH.ne.GET_MONTH()) THEN
@@ -1439,13 +1494,13 @@
          XAIR  = NDAIR / State_Met%AD(I,J,L)
 
          ! Calculate local NOx, N2O and O3 number density
-         KGNOX = STT(I,J,L,id_NO)
+         KGNOX = Spc(I,J,L,id_NO)
          ! Add local NO2
-         ! KGNOX = KGNOX + (STT(I,J,L,id_NO2)*TCVV(id_NO)/TCVV(id_NO2))
-         KGN2O = STT(I,J,L,id_N2O)
+         ! KGNOX = KGNOX + (Spc(I,J,L,id_NO2)*TCVV(id_NO)/TCVV(id_NO2))
+         KGN2O = Spc(I,J,L,id_N2O)
          LOCALNOX = KGNOX*TCVV(id_NO)*XAIR
          LOCALN2O = KGN2O*TCVV(id_N2O)*XAIR
-         LOCALO3  = STT(I,J,L,id_O3)*TCVV(id_O3)*XAIR
+         LOCALO3  = Spc(I,J,L,id_O3)*TCVV(id_O3)*XAIR
 
          ! Retrieve local O3P/O1D mixing ratios and relevant
          ! j-rates from interpolated 2D arrays
@@ -1513,9 +1568,9 @@
             LOCALNOX = LOCALNOX + (NOXRATE*DTCHEM)
          ENDIF
          ! Separate into NO and NO2...
-         !STT(I,J,L,id_NO)  = (LOCALNOX*(FRACN  +FRACNO ))/(TCVV(id_NO)*XAIR)
-         !STT(I,J,L,id_NO2) = (LOCALNOX*(FRACNO3+FRACNO2))/(TCVV(id_NO)*XAIR)
-         STT(I,J,L,id_NO) = KGNOX
+         !Spc(I,J,L,id_NO)  = (LOCALNOX*(FRACN  +FRACNO ))/(TCVV(id_NO)*XAIR)
+         !Spc(I,J,L,id_NO2) = (LOCALNOX*(FRACNO3+FRACNO2))/(TCVV(id_NO)*XAIR)
+         Spc(I,J,L,id_NO) = KGNOX
 
          MESONOX_DELTA = MESONOX_DELTA + DNOX
 
@@ -1526,7 +1581,7 @@
          ELSE
             KGN2O = KGN2O + DN2O
          ENDIF
-         STT(I,J,L,id_N2O) = KGN2O
+         Spc(I,J,L,id_N2O) = KGN2O
 
          MESON2O_DELTA = MESON2O_DELTA + DN2O
          
@@ -1550,8 +1605,21 @@
          CALL DEBUG_MSG(TRIM(DBGMSG))
       ENDIF
 
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
+      !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+      !@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values for testing
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      ENDDO
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( Spc )
 
       END SUBROUTINE UCX_NOX
 !EOC
@@ -1932,6 +2000,7 @@
 !                                air pressure, with State_Met%PMID and
 !                                remove dependency on PRESSURE_MOD.
 !  19 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg
+!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1955,11 +2024,10 @@
 
       ! Local variables for quantities from Input_Opt
       LOGICAL            :: LPRT
-      INTEGER            :: N_TRACERS
       REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL(fp), POINTER  :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: Spc(:,:,:,:)
 
       !=================================================================
       ! APPLY_2DTRAC begins here!
@@ -1967,11 +2035,10 @@
 
       ! Copy fields from INPUT_OPT
       LPRT      = Input_Opt%LPRT
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV = Input_Opt%TCVV(1:N_TRACERS)
+      TCVV = Input_Opt%TCVV(1:Input_Opt%N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg/kg]
-      STT => State_Chm%Tracers
+      ! Initialize GEOS-Chem species array [kg/kg]
+      Spc => State_Chm%Species
 
       ! Filename
       TRAC_FILE = TRIM(AVG_FILE_ROOT)//TRIM(TRAC_SET )
@@ -2073,7 +2140,7 @@
          L_MAX = LLPAR
       ENDIF
 
-      ! Scan through STT, element by element
+      ! Scan through Spc, element by element
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,        J,       L,        VERTCOUNT, EXTRAP   )
@@ -2119,16 +2186,16 @@
      &               (UCX_MR(J,VERTCOUNT+1)-UCX_MR(J,VERTCOUNT))
                   TRACMR = UCX_MR(J,VERTCOUNT+1) - TRACMR
                ENDIF
-               ! Send to STT (currently kg/box)
+               ! Send to Spc (currently kg/box)
                IF (SET_CELL) THEN
 
                   ! Convert from [ppbv] to [kg/kg] (ewl, 3/19/15)
                   TRACMASS = SCALEFAC * TRACMR / TCVV(TRAC_IDX)
 
                   IF (TRAC_ADD) THEN
-                     STT(I,J,L,TRAC_IDX) = STT(I,J,L,TRAC_IDX)+TRACMASS
+                     Spc(I,J,L,TRAC_IDX) = Spc(I,J,L,TRAC_IDX)+TRACMASS
                   ELSE
-                     STT(I,J,L,TRAC_IDX) = TRACMASS
+                     Spc(I,J,L,TRAC_IDX) = TRACMASS
                   ENDIF
                 ENDIF
             ENDDO
@@ -2137,7 +2204,7 @@
 !$OMP END PARALLEL DO
  
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( Spc )
 
       ! Return to calling program
       END SUBROUTINE APPLY_2DTRAC
@@ -2188,6 +2255,7 @@
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
 !  10 Sep 2015 - E. Lundgren   - Tracer units are now kg/kg dry air (prev v/v)
+!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2201,11 +2269,14 @@
 
       ! Local variables for quantities from Input_Opt
       LOGICAL              :: LPRT
-      INTEGER              :: N_TRACERS
       REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL(fp), POINTER    :: STT(:,:,:,:)
+      REAL(fp), POINTER     :: Spc (:,:,:,:)
+
+      ! TEMPOARY TRACER REMOVAL CODE (ewl, 7/7/16)
+      INTEGER         :: nAdvect, NA
+      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
       !=================================================================
       ! EMISS_BASIC begins here!
@@ -2214,10 +2285,27 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
+      !@@@ Need to force State_Chm%Species = State_Chm%Tracers during 
+      !@@@ development. This can be removed later once State_Chm%Tracers 
+      !@@@ is removed everywhere
+      !@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+      
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      ! Store incoming State_Chm%Species in a local variable for testing
+      DO NA = 1, nAdvect
+         N = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       ! Copy fields from INPUT_OPT
       LPRT      = Input_Opt%LPRT
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+      TCVV      = Input_Opt%TCVV(1:Input_Opt%N_TRACERS)
 
       ! Check that tracer units are in kg/kg dry air (ewl, 9/10/15)
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
@@ -2228,7 +2316,7 @@
       ENDIF
 
       ! Initialize GEOS-Chem tracer array [kg/kg dry]
-      STT => State_Chm%Tracers
+      Spc => State_Chm%Species
 
        ! If not correct hour block and day read in new fields
        IF (SFC_MONTH/=GET_MONTH()) THEN
@@ -2262,7 +2350,7 @@
              DO I = 1, IIPAR
            
                 ! Set kg/kg dry air using vol/vol (ewl, 9/10/15)
-                STT(I,J,1,N_EMITTED) = GRID_EMIT(J,N)
+                Spc(I,J,1,N_EMITTED) = GRID_EMIT(J,N)
      &                               / TCVV(N_EMITTED)
 
              ENDDO
@@ -2271,8 +2359,21 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
+      !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+      !@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      ENDDO
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( Spc )
 
       IF ( LPRT ) CALL DEBUG_MSG( '### UCX: Emissions complete' )
 
@@ -2704,6 +2805,7 @@
 !  31 May 2016 - E. Lundgren - Replace Input_Opt%TRACER_MW_G with species
 !                              database emMW_g (emitted species g/mol)
 !  16 Jun 2016 - S.D.Eastham - Remove references to tracerid_mod.F
+!  15 Jul 2016 - E. Lundgren - Replace tracer pointer with species pointer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2768,12 +2870,15 @@
       ! Local variables for quantities from Input_Opt
       LOGICAL                :: LPRT
       LOGICAL                :: LGRAVSTRAT
-      INTEGER                :: N_TRACERS
 
       ! Pointers
-      REAL(fp), POINTER      :: STT(:,:,:,:)
+      REAL(fp), POINTER      :: Spc (:,:,:,:)
       REAL(f4), POINTER      :: STATE_PSC(:,:,:)
       REAL(fp), POINTER      :: WERADIUS(:,:,:,:)
+
+      ! TEMPORARY TRACER REMOVAL CODE (ewl, 7/7/16)
+      INTEGER         :: nAdvect, NA, N
+      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
       !=================================================================
       ! SETTLE_STRAT_AER begins here!
@@ -2785,14 +2890,13 @@
       ! Copy fields from INPUT_OPT
       LPRT        = Input_Opt%LPRT
       LGRAVSTRAT  = Input_Opt%LGRAVSTRAT
-      N_TRACERS   = Input_Opt%N_TRACERS
 
       ! Copy fields from species database
       NIT_MW_G    = State_Chm%SpcData(id_NIT)%Info%emMW_g  ! g/mol
       HNO3_MW_G   = State_Chm%SpcData(id_HNO3)%Info%emMW_g ! g/mol
 
       ! Initialize pointers
-      STT       => State_Chm%Tracers     ! GEOS-Chem tracer array [kg] 
+      Spc       => State_Chm%Species     ! Chemical species [kg]       
       STATE_PSC => State_Chm%STATE_PSC   ! PSC type (Kirner et al. 2011, GMD)
       WERADIUS  => State_Chm%WetAeroRadi ! Aerosol Radius [cm]
 
@@ -2995,7 +3099,7 @@
             IF (IDTCURRENT.ne.0) THEN
                ! Calculate local phase partitioning
                ! Total upper gridbox mass
-               PHASEMASS(3,2) = STT(I,J,L,IDTCURRENT)
+               PHASEMASS(3,2) = Spc(I,J,L,IDTCURRENT)
                ! Aerosol-phase upper gridbox mass
                PHASEMASS(2,2) = AERFRAC(I,J,L,K)*PHASEMASS(3,2)
                ! Gas-phase upper gridbox mass
@@ -3016,10 +3120,10 @@
                ENDIF
 
                ! Store result
-               STT(I,J,L,IDTCURRENT) = PHASEMASS(3,2)
+               Spc(I,J,L,IDTCURRENT) = PHASEMASS(3,2)
             ENDIF
          ENDDO
-         STT(I,J,L,id_BCPI)= STT(I,J,L,id_BCPI)* CONST_V(IBC) 
+         Spc(I,J,L,id_BCPI)= Spc(I,J,L,id_BCPI)* CONST_V(IBC) 
 
          DO L = LLPAR-1,1,-1
             IF (ITS_IN_THE_TROP(I,J,L+1,State_Met)) CYCLE
@@ -3030,14 +3134,14 @@
                IDTCURRENT = AERFRACIND(K)
                IF (IDTCURRENT.ne.0) THEN
                   ! Total upper gridbox mass
-                  PHASEMASS(3,2) = STT(I,J,L+1,IDTCURRENT)
+                  PHASEMASS(3,2) = Spc(I,J,L+1,IDTCURRENT)
                   ! Aerosol-phase upper gridbox mass
                   PHASEMASS(2,2) = AERFRAC(I,J,L+1,K)*PHASEMASS(3,2)
                   ! Gas-phase upper gridbox mass
                   PHASEMASS(1,2) = PHASEMASS(3,2) - PHASEMASS(2,2)
                   
                   ! Total lower gridbox mass
-                  PHASEMASS(3,1) = STT(I,J,L,IDTCURRENT)
+                  PHASEMASS(3,1) = Spc(I,J,L,IDTCURRENT)
                   ! Aerosol-phase lower gridbox mass
                   PHASEMASS(2,1) = AERFRAC(I,J,L,K)*PHASEMASS(3,1)
                   ! Gas-phase lower gridbox mass
@@ -3060,13 +3164,13 @@
                   ENDIF
 
                   ! Store result
-                  STT(I,J,L,IDTCURRENT) = PHASEMASS(3,1)
+                  Spc(I,J,L,IDTCURRENT) = PHASEMASS(3,1)
                ENDIF
             ENDDO
-            STT(I,J,L,id_BCPI) = 1.e+0_fp/(1.e+0_fp+DTCHEM
+            Spc(I,J,L,id_BCPI) = 1.e+0_fp/(1.e+0_fp+DTCHEM
      &              * VTS(L,IBC) / DELZ)
-     &              * (STT(I,J,L,id_BCPI)+DTCHEM*VTS(L+1,IBC)/DELZ1
-     &              * STT(I,J,L+1,id_BCPI)) 
+     &              * (Spc(I,J,L,id_BCPI)+DTCHEM*VTS(L+1,IBC)/DELZ1
+     &              * Spc(I,J,L+1,id_BCPI)) 
          ENDDO
 
          ! Now perform trapezoidal scheme for particulates
@@ -3097,12 +3201,12 @@
                   XNAT_0 = 0e+0_fp
                   XICE_0 = 0e+0_fp
                ELSE
-                  XNO3_0 = STT(I,J,L,id_NIT) * AIRMW / 
+                  XNO3_0 = Spc(I,J,L,id_NIT) * AIRMW / 
      &                     ( NIT_MW_G * State_Met%AD(I,J,L) )
                   XNAT_0 = XNO3_0! * 4.e+0_fp
                   XICE_0 = (KG_AER(I,J,L,I_SPA)-
      &                     ( ( NATMW / NIT_MW_G ) *
-     &                     STT(I,J,L,id_NIT)))*AIRMW/(ICEMW*
+     &                     Spc(I,J,L,id_NIT)))*AIRMW/(ICEMW*
      &                     State_Met%AD(I,J,L))
                ENDIF
                XPSC_0   = XNAT_0 + XICE_0
@@ -3115,15 +3219,15 @@
                      XNAT_ABOVE = 0e+0_fp
                      XICE_ABOVE = 0e+0_fp
                   ELSE
-                     XNO3_ABOVE = STT(I,J,L+1,id_NIT) * INVAIR_ABOVE / 
+                     XNO3_ABOVE = Spc(I,J,L+1,id_NIT) * INVAIR_ABOVE / 
      &                            NIT_MW_G
                      ! NAT = HNO3.3H2O = 4 molecules
                      XNAT_ABOVE = XNO3_ABOVE! * 4.e+0_fp
-!                     XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)-STT(I,J,L+1,id_NIT))
+!                     XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)-Spc(I,J,L+1,id_NIT))
 !     &                                          *INVAIR_ABOVE/ICEMW
                      XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)-
      &                   ( ( NATMW / NIT_MW_G ) *
-     &                   STT(I,J,L+1,id_NIT)))*INVAIR_ABOVE/ICEMW
+     &                   Spc(I,J,L+1,id_NIT)))*INVAIR_ABOVE/ICEMW
                   ENDIF
                   XPSC_ABOVE = XNAT_ABOVE + XICE_ABOVE
                   P_ABOVE    = 100.0e+0_fp * State_Met%PMID(I,J,L+1)
@@ -3168,12 +3272,12 @@
                   IF (L.lt.(LLPAR-1)) THEN
                      INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+2)
                      IF (STATE_PSC(I,J,L+2) >= 2.0e+0_f4 ) THEN
-                        XNO3_ABOVE = STT(I,J,L+2,id_NIT)*INVAIR_ABOVE/ 
+                        XNO3_ABOVE = Spc(I,J,L+2,id_NIT)*INVAIR_ABOVE/ 
      &                               NIT_MW_G
                         XNAT_ABOVE = XNO3_ABOVE! * 4.e+0_fp
                         XICE_ABOVE = (KG_AER(I,J,L+2,I_SPA)-
      &                      ( ( NATMW / NIT_MW_G )*
-     &                      STT(I,J,L+2,id_NIT)))*INVAIR_ABOVE/ICEMW
+     &                      Spc(I,J,L+2,id_NIT)))*INVAIR_ABOVE/ICEMW
                      ELSE
                         XNO3_ABOVE = 0e+0_fp
                         XNAT_ABOVE = 0e+0_fp
@@ -3289,14 +3393,14 @@
                   SEDNO3 = SEDNO3 * NIT_MW_G / INVAIR_0
                   SEDICE = SEDICE*ICEMW/INVAIR_0
                   
-                  SEDNO3 = MIN(SEDNO3,STT(I,J,L+1,id_NIT))
-                  STT(I,J,L,id_NIT) = STT(I,J,L,id_NIT) + SEDNO3
-                  STT(I,J,L+1,id_NIT)=STT(I,J,L+1,id_NIT)-SEDNO3
+                  SEDNO3 = MIN(SEDNO3,Spc(I,J,L+1,id_NIT))
+                  Spc(I,J,L,id_NIT) = Spc(I,J,L,id_NIT) + SEDNO3
+                  Spc(I,J,L+1,id_NIT)=Spc(I,J,L+1,id_NIT)-SEDNO3
 
                   ! Settle the ice out too
-                  SEDH2O = MIN(SEDICE,STT(I,J,L+1,id_H2O))
-                  STT(I,J,L,id_H2O) = STT(I,J,L,id_H2O) + SEDH2O
-                  STT(I,J,L+1,id_H2O)=STT(I,J,L+1,id_H2O)-SEDH2O
+                  SEDH2O = MIN(SEDICE,Spc(I,J,L+1,id_H2O))
+                  Spc(I,J,L,id_H2O) = Spc(I,J,L,id_H2O) + SEDH2O
+                  Spc(I,J,L+1,id_H2O)=Spc(I,J,L+1,id_H2O)-SEDH2O
 
                   ! Now correct aerosol totals
                   SEDNAT = SEDNO3 * NATMW / NIT_MW_G
@@ -3307,16 +3411,16 @@
                   
                   ! Store for debug
                   IF (LPRT) THEN
-                     FRACLOSS = SEDH2O/STT(I,J,L+1,id_H2O)
+                     FRACLOSS = SEDH2O/Spc(I,J,L+1,id_H2O)
                      IF (FRACLOSS .gt. MAXLOSS) THEN
                         MAXLOSS = FRACLOSS
                         D_ICE0 = XICE_0*ICEMW/INVAIR_0
                         D_ICE1 = D_ICE0 - SEDICE
-                        D_H2O1 = STT(I,J,L+1,id_H2O)
+                        D_H2O1 = Spc(I,J,L+1,id_H2O)
                         D_H2O0 = D_H2O1 + SEDH2O
-                        D_NAT1 = STT(I,J,L+1,id_NIT) * NATMW / NIT_MW_G
+                        D_NAT1 = Spc(I,J,L+1,id_NIT) * NATMW / NIT_MW_G
                         D_NAT0 = D_NAT1 + SEDNAT
-                        D_HNO3 = STT(I,J,L+1,id_HNO3)
+                        D_HNO3 = Spc(I,J,L+1,id_HNO3)
                         D_RMAX = RAD_AER(I,J,L+1,I_SPA)
                         D_VMAX = VNAT(L+1)
                         D_SEDQ = SEDQUANT
@@ -3359,10 +3463,11 @@
       ENDIF
 
       ! Free pointers
-      NULLIFY( STT, STATE_PSC, WERADIUS )
+      Spc       => NULL()
+      STATE_PSC => NULL() 
+      WERADIUS  => NULL()
 
       END SUBROUTINE SETTLE_STRAT_AER
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -3404,6 +3509,7 @@
 !  26 Mar 2015 - E. Lundgren   - Now use moist and dry air partial pressures
 !  31 May 2016 - E. Lundgren   - Replace Input_Opt%TRACER_MW_G with species
 !                                database emMW_g (emitted species g/mol)
+!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3431,10 +3537,9 @@
 
       ! Local variables for quantities from Input_Opt
       LOGICAL            :: LPRT
-      INTEGER            :: N_TRACERS
 
       ! Pointers
-      REAL(fp), POINTER  :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: Spc (:,:,:,:)
 
       !=================================================================
       ! CALC_H2SO4_GAS begins here!
@@ -3442,13 +3547,12 @@
 
       ! Copy fields from INPUT_OPT
       LPRT        = Input_Opt%LPRT
-      N_TRACERS   = Input_Opt%N_TRACERS
 
       ! Copy fields from species database
       SO4_MW_G    = State_Chm%SpcData(id_SO4)%Info%emMW_g ! g/mol
 
       ! Initialize GEOS-Chem tracer array [kg]
-      STT => State_Chm%Tracers
+      Spc => State_Chm%Species
 
       IF (FIRST) THEN
          FIRST = .FALSE.
@@ -3486,7 +3590,7 @@
             ! Don't want to interfere with tropospheric aerosols
             AERFRAC(I,J,L,1) = 1e+0_fp
          ELSE
-            H2SO4SUM = STT(I,J,L,id_SO4) * INVAIR / SO4_MW_G
+            H2SO4SUM = Spc(I,J,L,id_SO4) * INVAIR / SO4_MW_G
             ! Use approximation from Kumala (1990)
             ! Use dry air partial pressure (ewl, 3/26/15)
             GF_PP = H2SO4SUM*PCENTER_P
@@ -3512,7 +3616,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( Spc )
 
       IF ( LPRT ) CALL DEBUG_MSG( '### UCX: H2SO4 partitioned' )
 
@@ -3619,6 +3723,7 @@
 !                                from species database (emitted species g/mol) 
 !  16 Jun 2016 - S. D. Eastham - Remove references to tracerid_mod.F
 !  21 Jun 2016 - R. Yantosca   - Now use module variables for species ID flags
+!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3713,15 +3818,18 @@
       LOGICAL                 :: LHOMNUCNAT
       LOGICAL                 :: LSOLIDPSC
       LOGICAL                 :: LACTIVEH2O
-      INTEGER                 :: N_TRACERS
 
       ! Local variables for quantities from species database
       REAL(fp)                :: NIT_MW_G, HNO3_MW_G, H2O_MW_G
 
       ! Pointers
-      REAL(fp), POINTER       :: STT(:,:,:,:)
+      REAL(fp), POINTER       :: Spc (:,:,:,:)
       REAL(fp), POINTER       :: KHETI_SLA(:,:,:,:)
       REAL(f4), POINTER       :: STATE_PSC(:,:,:)
+
+      ! TEMPORARY TRACER REMOVAL CODE (ewl, 7/7/16)
+      INTEGER         :: nAdvect, NA, N
+      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
       !=================================================================
       ! CALC_STRAT_AER begins here!
@@ -3730,12 +3838,29 @@
       ! Assume success
       RC       = GIGC_SUCCESS
 
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
+      !@@@ Need to force State_Chm%Species = State_Chm%Tracers during 
+      !@@@ development. This can be removed later once State_Chm%Tracers 
+      !@@@ is removed everywhere
+      !@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+      
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      ! Store incoming State_Chm%Species in a local variable for testing
+      DO NA = 1, nAdvect
+         N = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       ! Copy fields from INPUT_OPT
       LPRT        = Input_Opt%LPRT
       LHOMNUCNAT  = Input_Opt%LHOMNUCNAT
       LSOLIDPSC   = Input_Opt%LSOLIDPSC
       LACTIVEH2O  = Input_Opt%LACTIVEH2O
-      N_TRACERS   = Input_Opt%N_TRACERS
 
       ! Copy fields from species database
       NIT_MW_G  = State_Chm%SpcData(id_NIT)%Info%emMW_g   ! g/mol
@@ -3743,7 +3868,7 @@
       H2O_MW_G  = State_Chm%SpcData(id_H2O)%Info%emMW_g   ! g/mol
 
       ! Initialize GEOS-Chem tracer array [kg]
-      STT => State_Chm%Tracers
+      Spc => State_Chm%Species
 
       ! Initialize sticking coefficients for PSC reactions on SLA
       KHETI_SLA => State_Chm%KHETI_SLA
@@ -3863,14 +3988,14 @@
                INVAIR = AIRMW / State_Met%AD(I,J,L)
 
                ! Get available NO3 mass
-               KG_NO3 = ( STT(I,J,L,id_HNO3) * NIT_MW_G / HNO3_MW_g ) +
-     &                    STT(I,J,L,id_NIT)
+               KG_NO3 = ( Spc(I,J,L,id_HNO3) * NIT_MW_G / HNO3_MW_g ) +
+     &                    Spc(I,J,L,id_NIT)
 
                ! Calculate HNO3 mixing ratio
-               HNO3SUM = STT(I,J,L,id_HNO3) * INVAIR / HNO3_MW_G
-               HNO3SUM = HNO3SUM + STT(I,J,L,id_NIT) * INVAIR / NIT_MW_G
+               HNO3SUM = Spc(I,J,L,id_HNO3) * INVAIR / HNO3_MW_G
+               HNO3SUM = HNO3SUM + Spc(I,J,L,id_NIT) * INVAIR / NIT_MW_G
 
-               H2OSUM = STT(I,J,L,id_H2O) * INVAIR / H2O_MW_G
+               H2OSUM = Spc(I,J,L,id_H2O) * INVAIR / H2O_MW_G
 
                ! Calculate partial pressures (Pa)
                HNO3PP = PCENTER_PA * HNO3SUM
@@ -4070,11 +4195,11 @@
                IF (LSOLIDPSC.and.IS_STRAT) THEN
 
                   ! Convert NAT from kg NAT to kg NO3
-                  STT(I,J,L,id_NIT) = KG_NAT * NIT_MW_G / NATMW
+                  Spc(I,J,L,id_NIT) = KG_NAT * NIT_MW_G / NATMW
 
                   ! Remove (kg NO3 as NAT) from total kg NO3
                   ! then convert to kg HNO3
-                  STT(I,J,L,id_HNO3) = (KG_NO3-STT(I,J,L,id_NIT))
+                  Spc(I,J,L,id_HNO3) = (KG_NO3-Spc(I,J,L,id_NIT))
      &                  * HNO3_MW_G / NIT_MW_G 
                ENDIF
 
@@ -4086,19 +4211,19 @@
                H2O_BOX_L = 0e+0_fp
 
                ! Calculate mixing ratios of other relevant species
-               H2SO4SUM = STT(I,J,L,id_SO4) * INVAIR /
+               H2SO4SUM = Spc(I,J,L,id_SO4) * INVAIR /
      &                    State_Chm%SpcData(id_SO4)%Info%emMW_g
-               BrNO3SUM = STT(I,J,L,id_BrNO3) * INVAIR /
+               BrNO3SUM = Spc(I,J,L,id_BrNO3) * INVAIR /
      &                    State_Chm%SpcData(id_BrNO3)%Info%emMW_g
-               ClNO3SUM = STT(I,J,L,id_ClNO3) * INVAIR /
+               ClNO3SUM = Spc(I,J,L,id_ClNO3) * INVAIR /
      &                    State_Chm%SpcData(id_ClNO3)%Info%emMW_g
-               HOClSUM  = STT(I,J,L,id_HOCl) * INVAIR /
+               HOClSUM  = Spc(I,J,L,id_HOCl) * INVAIR /
      &                    State_Chm%SpcData(id_HOCl)%Info%emMW_g
-               HClSUM   = STT(I,J,L,id_HCl) * INVAIR /
+               HClSUM   = Spc(I,J,L,id_HCl) * INVAIR /
      &                    State_Chm%SpcData(id_HCl)%Info%emMW_g
-               HOBrSUM  = STT(I,J,L,id_HOBr) * INVAIR /
+               HOBrSUM  = Spc(I,J,L,id_HOBr) * INVAIR /
      &                    State_Chm%SpcData(id_HOBr)%Info%emMW_g
-               HBrSUM   = STT(I,J,L,id_HBr) * INVAIR /
+               HBrSUM   = Spc(I,J,L,id_HBr) * INVAIR /
      &                    State_Chm%SpcData(id_HBr)%Info%emMW_g
 
                ! H2SO4 gas fraction calculated earlier throughout grid
@@ -4320,8 +4445,21 @@
      &                               D_TK                    
       ENDIF
 
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
+      !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+      !@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      ENDDO
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       ! Free pointers
-      NULLIFY( STT, STATE_PSC, KHETI_SLA )
+      NULLIFY( Spc, STATE_PSC, KHETI_SLA )
 
       END SUBROUTINE CALC_STRAT_AER
 !EOC
@@ -5601,6 +5739,7 @@
 !                                1973 and call AirQnt if moisture vars
 !                                are updated using H2O tracer concentration
 !  28 Oct 2015 - E. Lundgren   - Tracer units are now kg/kg dry air
+!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5608,7 +5747,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER           :: I,J,L
-
       LOGICAL           :: READ_SPHU
       REAL(fp)          :: SPHU_kgkg, H2OVV_moist, Ev_mid
       REAL(fp)          :: Esat, EsatA, EsatB, EsatC, EsatD
@@ -5634,7 +5772,11 @@
       REAL(fp), PARAMETER   :: ESATP9  = -2.949076e+3_fp
       
       ! Pointers
-      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER     :: Spc (:,:,:,:)
+
+      ! TEMPORARY TRACER REMOVAL CODE (ewl, 7/7/16)
+      INTEGER         :: nAdvect, NA, N
+      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
       !=================================================================
       ! SET_H2O_TRAC begins here!
@@ -5642,6 +5784,29 @@
 
       ! Assume success
       RC  = GIGC_SUCCESS   
+
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
+      !@@@ Need to force State_Chm%Species = State_Chm%Tracers during 
+      !@@@ development. This can be removed later once State_Chm%Tracers 
+      !@@@ is removed everywhere
+      !@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+      
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+
+         ! Get tracer and species index for this advected species
+         N = State_Chm%Map_Advect(NA)
+
+         ! Store incoming State_Chm%Species in a local variable for testing
+         Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
+
+         ! Set advected species values equal to current tracer values
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Copy fields from INPUT_OPT
       LACTIVEH2O = Input_Opt%LACTIVEH2O
@@ -5654,7 +5819,7 @@
       ENDIF
 
       ! Initialize GEOS-Chem tracer array [kg/kg dry]
-      STT => State_Chm%Tracers
+      Spc => State_Chm%Species
 
       ! If specific humidity will be updated, set previous humidity to
       ! to current humidity prior to change. This is used to preserve
@@ -5680,7 +5845,7 @@
             
             ! Set H2O tracer concentration [kg/kg dry] using SPHU 
             ! (ewl, 11/4/15)
-            STT(I,J,L,id_H2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
+            Spc(I,J,L,id_H2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
      &                          ( State_Met%ADMOIST(I,J,L)
      &                            / State_Met%AD(I,J,L) )
 
@@ -5688,7 +5853,7 @@
 
             ! Calculate specific humidity [g/kg total air] from 
             ! transported H2O [kg/kg dry] (ewl, 9/17/15)
-            SPHU_kgkg = STT(I,J,L,id_H2O) * State_Met%AD(I,J,L)
+            SPHU_kgkg = Spc(I,J,L,id_H2O) * State_Met%AD(I,J,L)
      &                  / State_Met%ADMOIST(I,J,L)
 
             ! Set previous humidity to current humidity prior to update
@@ -5726,6 +5891,23 @@
       ENDDO ! J
 !$OMP END PARALLEL DO
 
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
+      !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+      !@@@
+      DO NA = 1, nAdvect
+
+         ! Get tracer and species index for this advected species
+         N = State_Chm%Map_Advect(NA)
+
+         ! Set tracer values to new advected species values
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore advected species original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      ENDDO
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       ! If humidity was updated, update all moist-dependent air quantities
       ! and tracer mixing ratio with the new moisture content (ewl, 4/29/15) 
       IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
@@ -5734,7 +5916,7 @@
       ENDIF
 
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( Spc )
 
       END SUBROUTINE SET_H2O_TRAC
 !
@@ -5789,6 +5971,7 @@
 !  27 Jun 2016 - M. Sulprizio  - Obtain photolysis rate directly from ZPJ array
 !                                and remove reference to FJXFUNC and obsolete
 !                                SMVGEAR variables like NKSO4PHOT, NAMEGAS, etc.
+!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5805,25 +5988,43 @@
       INTEGER               :: ICS
 
       ! Local variables for quantities from Input_Opt
-      INTEGER               :: N_TRACERS
 
       ! Pointers
-      REAL(fp), POINTER     :: STT(:,:,:,:)
+      REAL(fp), POINTER     :: Spc (:,:,:,:)
+
+      ! TEMPORARY TRACER REMOVAL CODE (ewl, 7/7/16)
+      INTEGER         :: nAdvect, NA, N
+      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
       !=================================================================
       ! UCX_H2SO4PHOT begins here!
       !=================================================================
-
-      ! Copy fields from INPUT_OPT
-      N_TRACERS  = Input_Opt%N_TRACERS
 
       ! Copy fields from species database
       SO2_MW_G = State_Chm%SpcData(id_SO2)%Info%emMW_g ! g/mol
       SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%emMW_g ! g/mol
       RELWT    = SO2_MW_G / SO4_MW_G
 
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
+      !@@@ Need to force State_Chm%Species = State_Chm%Tracers during 
+      !@@@ development. This can be removed later once State_Chm%Tracers 
+      !@@@ is removed everywhere
+      !@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+      
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      ! Store incoming State_Chm%Species in a local variable for testing
+      DO NA = 1, nAdvect
+         N = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       ! Initialize GEOS-Chem tracer array [kg]
-      STT => State_Chm%Tracers
+      Spc => State_Chm%Species
 
       ! Allow for the possibility of variable timestep
       DTCHEM = GET_TS_CHEM()*60.e+0_fp
@@ -5848,12 +6049,12 @@
             DO L=LMINPHOT+1,LLPAR
                ! Apply photolysis to SO4
                ! First retrieve gaseous fraction
-               SO4_IN = STT(I,J,L,id_SO4)*SO4_PHOTFRAC(I,J,L)
+               SO4_IN = Spc(I,J,L,id_SO4)*SO4_PHOTFRAC(I,J,L)
                SO4_DELTA = PHOTDELTA*SO4_IN
                ! Remove from SO4
-               STT(I,J,L,id_SO4) = STT(I,J,L,id_SO4) - SO4_DELTA
+               Spc(I,J,L,id_SO4) = Spc(I,J,L,id_SO4) - SO4_DELTA
                ! Add to SO2. Note change in molar mass
-               STT(I,J,L,id_SO2) = STT(I,J,L,id_SO2) + (SO4_DELTA*RELWT)
+               Spc(I,J,L,id_SO2) = Spc(I,J,L,id_SO2) + (SO4_DELTA*RELWT)
             ENDDO
 
          ENDIF
@@ -5861,6 +6062,23 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
+      !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+      !@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values for testing
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      ENDDO
+      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+      ! Free pointer
+      NULLIFY( Spc )
+
 
       END SUBROUTINE UCX_H2SO4PHOT
 !

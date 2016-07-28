@@ -264,8 +264,12 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER               :: I1_NA,    J1_NA
-      INTEGER               :: I2_NA,    J2_NA
+!-----------------------------------------------------------------------------
+! Prior to 7/20/16:
+! These are rendered obsolete by HEMCO (bmy, 7/20/16)
+!     INTEGER               :: I1_NA,    J1_NA
+!     INTEGER               :: I2_NA,    J2_NA
+!-----------------------------------------------------------------------------
       ! Rate constant for RO2+NO and RO2+HO2
       ! k=Aexp(B/T) like globchem.dat (hotp 5/7/10)
       REAL(fp)              :: AARO2NO,  BBRO2NO
@@ -481,12 +485,15 @@
 !@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
 !@@@ This can be removed later once State_Chm%Tracers is removed everywhere
 !@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+
       ! Number of advected species
       nAdvect = State_Chm%nAdvect
 
       ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
          State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -723,6 +730,9 @@
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
          State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CHEMCARBON
@@ -6192,6 +6202,7 @@ ccc
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  23 Sep 2014 - M. Sulprizio- Now get NO3 for offline aerosol sims from HEMCO
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
+!  28 Jul 2016 - R. Yantosca - Now convert NO3 from kg to molec/cm3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6216,7 +6227,14 @@ ccc
          ! Take NO3 from the State_Chm%Species [molec/cm3]
          ! NO3 is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+
+            ! NO3 comes to us in [kg] at this point
             NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO3)
+
+            ! Convert from [kg] to [molec/cm3]
+            BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
+            NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL
+
          ELSE
             NO3_MOLEC_CM3 = 0e+0_fp
          ENDIF
@@ -6334,6 +6352,7 @@ ccc
 !                              CMN_GTCM_MOD for XNUMOLAIR
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !  06 Jan 2016 - E. Lundgren - Use global physical parameter AVO
+!  28 Jul 2016 - R. Yantosca - Now convert O3 from kg to molec/cm3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6358,7 +6377,14 @@ ccc
          ! Get O3 from State_Chm%Species [molec/cm3]
          ! O3 is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+            
+            ! NOTE: O3 is in [kg] at this point
             O3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_O3)
+
+            ! Convert from [kg] to [molec/cm3]
+            BOXVL        = State_Met%AIRVOL(I,J,L) * 1e+6_fp
+            O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 / BOXVL
+
          ELSE
             O3_MOLEC_CM3 = 0e+0_fp
          ENDIF
@@ -8468,12 +8494,20 @@ ccc
 !  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
+!  28 Jul 2016 - R. Yantosca - Now convert NO from kg to molec/cm3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
+! !DEFINED PARAMETERS:
+!
+      ! NOTE: THIS IS TEMPORARY, REPLACE LATER
+      REAL(fp),  PARAMETER :: XNUMOL_NO = AVO / 30e-3_fp ! hard-coded MW
+!
 ! !LOCAL VARIABLES:
 !
+      REAL(fp)             :: BOXVL
+
       !=================================================================
       ! GET_NO begins here!
       !=================================================================
@@ -8486,7 +8520,14 @@ ccc
          ! Take NO from State_Chm%Species [molec/cm3]
          ! NO is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+
+            ! NOTE: NO comes to us as [kg] at this point
             NO_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO)
+
+            ! Convert from [kg] to [molec/cm3]
+            BOXVL        = State_Met%AIRVOL(I,J,L) * 1e+6_fp
+            NO_MOLEC_CM3 = NO_MOLEC_CM3 * XNUMOL_NO / BOXVL
+
          ELSE
             NO_MOLEC_CM3 = 0e+0_fp
          ENDIF
@@ -8726,7 +8767,11 @@ ccc
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : IND_
-      USE GRID_MOD,           ONLY : GET_BOUNDING_BOX
+!-----------------------------------------------------------------------------
+! Prior to 7/20/16:
+! HEMCO has now rendered this code obsolete (bmy, 7/20/16)
+!      USE GRID_MOD,           ONLY : GET_BOUNDING_BOX
+!-----------------------------------------------------------------------------
       USE TIME_MOD,           ONLY : GET_NYMDb, GET_NHMSb, GET_TAUb
 !
 ! !INPUT PARAMETERS:
@@ -9029,64 +9074,69 @@ ccc
 
       ENDIF
 
-      !=================================================================
-      ! Compute indices which define the N. America region so that we 
-      ! can overwrite T. Bond emissions w/ Cooke/RJP emissions 
-      !=================================================================
+!-----------------------------------------------------------------------------
+! Prior to 7/20/16:
+! Emissions are now handled by HEMCO; these are now obsolete (bmy, 7/20/16)
+!     !=================================================================
+!     ! Compute indices which define the N. America region so that we 
+!     ! can overwrite T. Bond emissions w/ Cooke/RJP emissions 
+!     !=================================================================
+!
+!#if   defined( NESTED_NA )
+!      ! For 1x1 N. America nested grid: set indices to grid extent
+!      I1_NA = 1
+!      J1_NA = 1
+!      I2_NA = IIPAR
+!      J2_NA = JJPAR
+!
+!#elif defined( NESTED_CH )
+!      ! For China nested grids: we don't cover N. America region
+!      ! Setting these to zero will turn off Cooke/RJP emissions
+!      I1_NA = 0
+!      J1_NA = 0
+!      I2_NA = 0
+!      J2_NA = 0
+!
+!#elif defined( NESTED_EU )
+!      ! For EU nested grid: we don't cover N. America region
+!      ! Setting these to zero will turn off Cooke/RJP emissions
+!      I1_NA = 0
+!      J1_NA = 0
+!      I2_NA = 0
+!      J2_NA = 0
+!
+!#else
+!
+!      ! Definition of the N. American bounding box
+!      ! with LL corner (10N,165W) and UR corner (90N,40W)
+!      !            Lon_LL  Lat_LL  Lon_UR  Lat_UR
+!#if defined( DEVEL )
+!
+!      I1_NA = 0
+!      J1_NA = 0
+!      I2_NA = 0
+!      J2_NA = 0
+!
+!#else
+!
+!      ! Definition of the N. American bounding box
+!      ! with LL corner (10N,165W) and UR corner (90N,40W)
+!      !            Lon_LL  Lat_LL  Lon_UR  Lat_UR
+!      COORDS = (/ -165e+0_fp,  10e+0_fp,  -40e+0_fp,   90e+0_fp  /)
+!      
+!      ! Get the indices corresponding to the lon/lat values in COORDS
+!      CALL GET_BOUNDING_BOX( 1, IIPAR, 1, JJPAR, 1, COORDS, INDICES )
+!
+!      ! Copy values from INDEX array to scalars
+!      I1_NA = INDICES(1)
+!      J1_NA = INDICES(2)
+!      I2_NA = INDICES(3)
+!      J2_NA = INDICES(4)
+!
+!#endif
+!#endif
+!-----------------------------------------------------------------------------
 
-#if   defined( NESTED_NA )
-      ! For 1x1 N. America nested grid: set indices to grid extent
-      I1_NA = 1
-      J1_NA = 1
-      I2_NA = IIPAR
-      J2_NA = JJPAR
-
-#elif defined( NESTED_CH )
-      ! For China nested grids: we don't cover N. America region
-      ! Setting these to zero will turn off Cooke/RJP emissions
-      I1_NA = 0
-      J1_NA = 0
-      I2_NA = 0
-      J2_NA = 0
-
-#elif defined( NESTED_EU )
-      ! For EU nested grid: we don't cover N. America region
-      ! Setting these to zero will turn off Cooke/RJP emissions
-      I1_NA = 0
-      J1_NA = 0
-      I2_NA = 0
-      J2_NA = 0
-
-#else
-
-      ! Definition of the N. American bounding box
-      ! with LL corner (10N,165W) and UR corner (90N,40W)
-      !            Lon_LL  Lat_LL  Lon_UR  Lat_UR
-#if defined( DEVEL )
-
-      I1_NA = 0
-      J1_NA = 0
-      I2_NA = 0
-      J2_NA = 0
-
-#else
-
-      ! Definition of the N. American bounding box
-      ! with LL corner (10N,165W) and UR corner (90N,40W)
-      !            Lon_LL  Lat_LL  Lon_UR  Lat_UR
-      COORDS = (/ -165e+0_fp,  10e+0_fp,  -40e+0_fp,   90e+0_fp  /)
-      
-      ! Get the indices corresponding to the lon/lat values in COORDS
-      CALL GET_BOUNDING_BOX( 1, IIPAR, 1, JJPAR, 1, COORDS, INDICES )
-
-      ! Copy values from INDEX array to scalars
-      I1_NA = INDICES(1)
-      J1_NA = INDICES(2)
-      I2_NA = INDICES(3)
-      J2_NA = INDICES(4)
-
-#endif
-#endif
       END SUBROUTINE INIT_CARBON
 !EOC
 !------------------------------------------------------------------------------

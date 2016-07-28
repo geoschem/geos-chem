@@ -245,7 +245,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-#if defined( DEVEL )
+#if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
       USE TIME_MOD,           ONLY : GET_TS_DYN
@@ -295,6 +295,7 @@
 !  08 Aug 2015 - E. Lundgren - Tracer units are now input as [kg/kg]
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -339,17 +340,18 @@
       ! Only print output on the root CPU
       doPrt = ( LPRT .and. am_I_Root )
 
+#if defined( USE_TEND )
       !=================================================================
       ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
-#if defined( DEVEL )
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'WETD', .FALSE., RC )
 #endif
 
+#if   defined( NC_DIAG )
       !=================================================================
       ! For netCDF diagnostics, mirror old species
-#if   defined( NC_DIAG )
+      !=================================================================
       IF ( Input_Opt%ND39 > 0 ) THEN
          ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
          BEFORE = State_Chm%Tracers
@@ -421,10 +423,11 @@
 
 #endif
 
-      !---------------------
-      ! NetCDF diagnostics 
-      !---------------------
 #if   defined( NC_DIAG )
+      !=================================================================
+      ! NetCDF diagnostics 
+      !=================================================================
+
       ! Use ND38 as indicator for entire wet scavenging diagnostic group
       IF ( Input_Opt%ND38 > 0 ) THEN
 
@@ -480,11 +483,11 @@
       ENDIF
 #endif
 
+#if defined( USE_TEND )
       !=================================================================
       ! Calculate tendencies and write to diagnostics 
       ! (ckeller,7/15/2015)
       !=================================================================
-#if defined( DEVEL )
       DT_TEND = GET_TS_DYN() * 60.0_fp
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'WETD', .FALSE., DT_TEND, RC )
@@ -1544,88 +1547,6 @@
       ENDDO
       
       END SUBROUTINE F_AEROSOL 
-!!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: get_isol
-!!
-!! !DESCRIPTION: Function GET\_ISOL returns the value of ISOL (tracer index for 
-!!  ND38) for all simulation types.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      FUNCTION GET_ISOL( N_TEST, N_TRACERS ) RESULT( VALUE )
-!!
-!! !USES:
-!!
-!      USE CMN_SIZE_MOD                 ! Size parameters
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      INTEGER, INTENT(IN) :: N_TEST    ! Tracer number to look up
-!      INTEGER, INTENT(IN) :: N_TRACERS ! # of GEOS_Chem tracers
-!!
-!! !RETURN VALUE:
-!!
-!      INTEGER             :: VALUE     ! Index for ND38 diagnostic
-!
-!!
-!! !REVISION HISTORY: 
-!!  05 Apr 2004 - R. Yantosca - Initial version
-!!  (1 ) Now initializes a lookup table for faster execution.  Now made into
-!!        an EXTERNAL function. (rjp, bmy, 4/5/04)
-!!  (2 ) Now references N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
-!!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      LOGICAL, SAVE :: FIRST = .TRUE.
-!      INTEGER, SAVE :: NSOL_INDEX(NNPAR)
-!      INTEGER       :: I, L, N
-!
-!      !=================================================================
-!      ! GET_ISOL begins here!
-!      !=================================================================
-!
-!      ! Initialize lookup table on the first call
-!      IF ( FIRST ) THEN
-!      
-!         ! Initialize
-!         NSOL_INDEX(:) = 0
-!   
-!         ! Loop over tracers
-!         DO N = 1, N_TRACERS
-!            
-!            ! Loop over soluble tracers
-!            DO L = 1, NSOL
-!
-!               ! Test if tracer N is among the soluble tracers
-!               IF ( IDWETD(L) == N ) THEN
-!
-!                  ! Save location into the lookup table
-!                  NSOL_INDEX(N) = L 
-!
-!                  !Go to next N
-!                  EXIT
-!               ENDIF
-!            ENDDO
-!         ENDDO
-!
-!         ! Reset first-time flag
-!         FIRST = .FALSE.
-!      ENDIF
-!
-!      ! Return value
-!      VALUE = NSOL_INDEX(N_TEST)
-!
-!      END FUNCTION GET_ISOL
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3060,6 +2981,11 @@
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Is this a mercury simulation?
       IS_Hg = ( ITS_A_MERCURY_SIM )
@@ -3090,6 +3016,7 @@
       ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
          State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -3485,6 +3412,9 @@
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
          State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -3713,6 +3643,11 @@
       ! Pointers
       REAL(fp),      POINTER :: Spc(:,:,:,:)
       TYPE(Species), POINTER :: SpcInfo
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
@@ -3747,12 +3682,10 @@
       ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
          State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-!      ! Point to chemical species array [kg]
-!      Spc => State_Chm%Species
 
       ! Dynamic timestep [s]
       DT  = GET_TS_DYN() * 60e+0_fp
@@ -4105,6 +4038,9 @@
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
          State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -6031,6 +5967,7 @@
 !  23 Sep 2015 - R. Yantosca - Now accept State_Chm as an argument
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  23 Jun 2016 - R. Yantosca - Remove reference to tracerid_mod.F
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT and State_Chm%TRACERS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6044,6 +5981,11 @@
       ! Pointers
       REAL(fp), POINTER :: PL
       REAL(fp), POINTER :: TK
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,2)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
             
       !=====================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
@@ -6143,11 +6085,13 @@
 !@@@ We only have to copy the H2O2 and SO2 slots from TRACERS to SPECIES
 !@@@
          IF ( id_H2O2 > 0 ) THEN
+            Spc_Temp(:,:,:,1) = State_Chm%Species(:,:,:,id_H2O2)
             State_Chm%Species(:,:,:,id_H2O2) = 
      &      State_Chm%Tracers(:,:,:,id_H2O2)
          ENDIF
 
          IF ( id_SO2 > 0 ) THEN
+            Spc_Temp(:,:,:,2) = State_Chm%Species(:,:,:,id_SO2)
             State_Chm%Species(:,:,:,id_SO2) = 
      &      State_Chm%Tracers(:,:,:,id_SO2)
          ENDIF
@@ -6179,11 +6123,13 @@
          IF ( id_H2O2 > 0 ) THEN
             State_Chm%Tracers(:,:,:,id_H2O2) = 
      &      State_Chm%Species(:,:,:,id_H2O2)
+            State_Chm%Species(:,:,:,id_H2O2) = Spc_Temp(:,:,:,1)
          ENDIF
 
          IF ( id_SO2 > 0 ) THEN
             State_Chm%Tracers(:,:,:,id_SO2) = 
      &      State_Chm%Species(:,:,:,id_SO2)
+            State_Chm%Species(:,:,:,id_SO2) = Spc_Temp(:,:,:,2)
          ENDIF
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
