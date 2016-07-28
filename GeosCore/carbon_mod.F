@@ -6202,6 +6202,7 @@ ccc
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  23 Sep 2014 - M. Sulprizio- Now get NO3 for offline aerosol sims from HEMCO
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
+!  28 Jul 2016 - R. Yantosca - Now convert NO3 from kg to molec/cm3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6226,7 +6227,14 @@ ccc
          ! Take NO3 from the State_Chm%Species [molec/cm3]
          ! NO3 is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+
+            ! NO3 comes to us in [kg] at this point
             NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO3)
+
+            ! Convert from [kg] to [molec/cm3]
+            BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
+            NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL
+
          ELSE
             NO3_MOLEC_CM3 = 0e+0_fp
          ENDIF
@@ -6344,6 +6352,7 @@ ccc
 !                              CMN_GTCM_MOD for XNUMOLAIR
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !  06 Jan 2016 - E. Lundgren - Use global physical parameter AVO
+!  28 Jul 2016 - R. Yantosca - Now convert O3 from kg to molec/cm3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6368,7 +6377,14 @@ ccc
          ! Get O3 from State_Chm%Species [molec/cm3]
          ! O3 is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+            
+            ! NOTE: O3 is in [kg] at this point
             O3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_O3)
+
+            ! Convert from [kg] to [molec/cm3]
+            BOXVL        = State_Met%AIRVOL(I,J,L) * 1e+6_fp
+            O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 / BOXVL
+
          ELSE
             O3_MOLEC_CM3 = 0e+0_fp
          ENDIF
@@ -8478,12 +8494,20 @@ ccc
 !  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
+!  28 Jul 2016 - R. Yantosca - Now convert NO from kg to molec/cm3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
+! !DEFINED PARAMETERS:
+!
+      ! NOTE: THIS IS TEMPORARY, REPLACE LATER
+      REAL(fp),  PARAMETER :: XNUMOL_NO = AVO / 30e-3_fp ! hard-coded MW
+!
 ! !LOCAL VARIABLES:
 !
+      REAL(fp)             :: BOXVL
+
       !=================================================================
       ! GET_NO begins here!
       !=================================================================
@@ -8496,7 +8520,14 @@ ccc
          ! Take NO from State_Chm%Species [molec/cm3]
          ! NO is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+
+            ! NOTE: NO comes to us as [kg] at this point
             NO_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO)
+
+            ! Convert from [kg] to [molec/cm3]
+            BOXVL        = State_Met%AIRVOL(I,J,L) * 1e+6_fp
+            NO_MOLEC_CM3 = NO_MOLEC_CM3 * XNUMOL_NO / BOXVL
+
          ELSE
             NO_MOLEC_CM3 = 0e+0_fp
          ENDIF
