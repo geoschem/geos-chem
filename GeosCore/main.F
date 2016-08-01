@@ -379,8 +379,6 @@
       LOGICAL                  :: LSTDRUN
       LOGICAL                  :: LSCHEM
       LOGICAL                  :: LSETH2O
-      LOGICAL                  :: LSVCSPEC
-      LOGICAL                  :: LSVGLB
       LOGICAL                  :: LTRAN
       LOGICAL                  :: LTURB
       LOGICAL                  :: LUCX
@@ -520,8 +518,6 @@
       LSCHEM              =  Input_Opt%LSCHEM
       LSETH2O             =  Input_Opt%LSETH2O
       LSTDRUN             =  Input_Opt%LSTDRUN
-      LSVCSPEC            =  Input_Opt%LSVCSPEC
-      LSVGLB              =  Input_Opt%LSVGLB
       LTRAN               =  Input_Opt%LTRAN
       LTURB               =  Input_Opt%LTURB
       LUCX                =  Input_Opt%LUCX
@@ -713,7 +709,7 @@
       CALL GEOS_Timer_End ( "HEMCO", RC )
 #endif
 
-#if defined( DEVEL )
+#if defined( NC_DIAG )
       ! Initialize diagnostics other than the default HEMCO diagnostics
       ! initialized above (ckeller, 1/13/15).
       CALL Diagnostics_Init( am_I_Root, Input_Opt, 
@@ -724,12 +720,31 @@
       !       *****  I N I T I A L   C O N D I T I O N S *****
       !=================================================================
 
+      ! DEBUGGING (ewl)
+      IF ( Input_Opt%LPRT ) THEN
+         PRINT *, "Before read_gc_restart"
+         PRINT *, " Current species units: ", State_Chm%Spc_Units
+         PRINT *, " SPECIES #1: ", State_Chm%Species(25,25,1,1)
+         PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+      ENDIF
+      ! END DEBUGGING
+
       ! Read initial tracer conditions
       ! NOTE: Tracer concentrations are read in as [v/v dry air] and converted
       ! to kg/kg dry air (ewl, 9/18/15)
       CALL READ_GC_RESTART( am_I_Root, NYMDb,     NHMSb, 
      &                      Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_GC_RESTART' )
+
+      ! DEBUGGING (ewl)
+      IF ( Input_Opt%LPRT ) THEN
+         PRINT *, " "
+         PRINT *, "After read_gc_restart"
+         PRINT *, " Current species units: ", State_Chm%Spc_Units
+         PRINT *, " SPECIES #1: ", State_Chm%Species(25,25,1,1)
+         PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+      ENDIF
+      ! END DEBUGGING
 
       ! Initialize stratospheric routines
       IF ( LUCX ) THEN
@@ -888,6 +903,11 @@
          CALL EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, 
      &                       State_Chm, ITS_TIME_FOR_EMIS(), 1, RC )
 
+         !### Debug
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### MAIN: a HEMCO PHASE 1' )
+         ENDIf
+
          !==============================================================
          !   ***** W R I T E   D I A G N O S T I C   F I L E S *****
          !==============================================================
@@ -921,36 +941,32 @@
             !===========================================================
             !    *****  W R I T E   R E S T A R T   F I L E S  *****
             !===========================================================
-            IF ( LSVGLB ) THEN
-
-               ! Determine and print STE fluxes (ltm, 06/10/12)
-               IF ( LSCHEM ) THEN
-                  CALL CALC_STE( am_I_Root, Input_Opt, State_Chm, 
-     &                           State_Met, RC )
-               ENDIF
-               
-               ! Make atmospheric restart file
-               CALL WRITE_GC_RESTART( am_I_Root, NYMD, NHMS, Input_Opt,
-     &                                State_Chm, State_Met, RC )
-
-               !### Debug
-               IF ( prtDebug ) THEN
-                  CALL DEBUG_MSG( '### MAIN: a WRITE_GC_RESTART' )
-               ENDIF
-
-#if defined( USE_TIMERS )
-               CALL GEOS_Timer_Start( "HEMCO", RC )
-#endif
-
-               ! Force the output of a HEMCO restart file. 
-               ! (ckeller, 4/1/15)
-               CALL Diagnostics_Write( am_I_Root, Input_Opt, .TRUE., RC)
-
-#if defined( USE_TIMERS )
-               CALL GEOS_Timer_End( "HEMCO", RC )
-#endif
-
+            ! Determine and print STE fluxes (ltm, 06/10/12)
+            IF ( LSCHEM ) THEN
+               CALL CALC_STE( am_I_Root, Input_Opt, State_Chm, 
+     &                        State_Met, RC )
             ENDIF
+               
+            ! Make atmospheric restart file
+            CALL WRITE_GC_RESTART( am_I_Root, NYMD, NHMS, Input_Opt,
+     &                             State_Chm, State_Met, RC )
+
+            !### Debug
+            IF ( prtDebug ) THEN
+               CALL DEBUG_MSG( '### MAIN: a WRITE_GC_RESTART' )
+            ENDIF
+
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_Start( "HEMCO", RC )
+#endif
+
+            ! Force the output of a HEMCO restart file. 
+            ! (ckeller, 4/1/15)
+            CALL Diagnostics_Write( am_I_Root, Input_Opt, .TRUE., RC)
+
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_End( "HEMCO", RC )
+#endif
 
             ! Set time at beginning of next diagnostic timestep
             CALL SET_DIAGb( TAU )
@@ -976,17 +992,20 @@
          ! month but not start of the run.
          IF ( LGTMM .AND. ITS_A_NEW_MONTH() .AND. NYMD /= NYMDb ) THEN
             IF (.NOT.( ITS_TIME_FOR_BPCH() )) THEN
-               N = 1
-               NNN = GET_WETDEP_IDWETD( N )
+
+               ! Get the species ID (NNN) from the wetdep ID (N)
+               N   = 1
+               NNN = State_Chm%Map_Wetdep(N)
+
                DO
                   ! Exit once we encounter Hg2
                   If ( State_Chm%SpcData(NNN)%Info%Is_Hg2 ) THEN
                      EXIT
                   ENDIF
 
-                  N = N + 1
-                  ! Tracer number
-                  NNN = GET_WETDEP_IDWETD( N )
+                  ! Get the species ID (NNN) from the wetdep ID (N)
+                  N   = N + 1
+                  NNN = State_Chm%Map_Wetdep(N)
                ENDDO
                CALL UPDATE_DEP( N )
             ENDIF
@@ -1410,10 +1429,14 @@
      &                          'main.F' )
             ENDIF
 
+            !### Debug
+            IF ( prtDebug ) THEN 
+               CALL DEBUG_MSG( '### MAIN: a HEMCO PHASE 2' )
+            ENDIF
+
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "HEMCO", RC )
 #endif
-
          ENDIF
 
          !-------------------------------
@@ -1586,6 +1609,16 @@
      &                            State_Met, State_Chm, RC )
             ENDIF
 
+            ! DEBUGGING (ewl)
+            IF ( Input_Opt%LPRT ) THEN
+               PRINT *, " "
+               PRINT *, "Before do_chemistry"
+               PRINT *, " Current species units: ", State_Chm%Spc_Units
+               PRINT *, " SPECIES #1:  ", State_Chm%Species(25,25,1,1)
+               PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+            ENDIF
+            ! END DEBUGGING
+
             ! Do GEOS-Chem chemistry
             ! NOTE: Tracer concentration units are converted locally
             ! to [kg] for all of chemistry. We will replace use of [kg] 
@@ -1595,6 +1628,17 @@
             IF ( RC /= GIGC_SUCCESS ) THEN
                CALL ERROR_STOP('Error in DO_CHEMISTRY!', 'main.F')
             ENDIF
+
+            ! DEBUGGING (ewl)
+            IF ( Input_Opt%LPRT ) THEN
+               PRINT *, " "
+               PRINT *, "After do_chemistry"
+               PRINT *, " Current species units: ", State_Chm%Spc_Units
+               PRINT *, " SPECIES #1:  ", State_Chm%Species(25,25,1,1)
+               PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+            ENDIF
+            ! END DEBUGGING
+
 
          ENDIF 
 
@@ -1726,7 +1770,7 @@
 #endif
 
          ! Eventually write dobson columns into diagnostics array
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
          CALL CalcDobsonColumn ( am_I_Root, Input_Opt,
      &                           State_Met, State_Chm, RC )
 #endif
@@ -1884,16 +1928,17 @@
          ! saved. (ccc, 5/13/09)
          IF ( ITS_TIME_FOR_DIAG() ) THEN
 
-         ! Sometimes tracers in the stratosphere can be negative at 
-         ! the nested-grid domain edges. Force them to be zero before
-         ! CHECK_STT (yxw)
-#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125)
-            CALL CHECK_STT_NESTED( State_Chm, Input_Opt,
-     &                             'End of Dynamic Loop' )
-#else
-            CALL CHECK_STT( State_Chm, Input_Opt, 
-     &                      'End of Dynamic Loop' )
-#endif
+!%%% COMMENT OUT CHECK_STT WHILE REPLACING STATE_CHM%TRACERS
+!         ! Sometimes tracers in the stratosphere can be negative at 
+!         ! the nested-grid domain edges. Force them to be zero before
+!         ! CHECK_STT (yxw)
+!#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125)
+!            CALL CHECK_STT_NESTED( State_Chm, Input_Opt,
+!     &                             'End of Dynamic Loop' )
+!#else
+!            CALL CHECK_STT( State_Chm, Input_Opt, 
+!     &                      'End of Dynamic Loop' )
+!#endif
          ENDIF
 
 #if defined( USE_TIMERS )

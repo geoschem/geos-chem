@@ -105,6 +105,8 @@
 !  17 Dec 2014 - R. Yantosca - Now use State_Chm%TRACERS instead of STT
 !  19 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
 !  16 Jun 2016 - R. Yantosca - Now use Ind_ to get species ID for O3
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -112,7 +114,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: IU_FILE
-      INTEGER             :: id_O3
+      INTEGER             :: id_O3,    NA,       nAdvect
       INTEGER             :: N,        NYMD,     NHMS
       INTEGER, PARAMETER  :: IFIRST=1, JFIRST=1, LFIRST=1
       INTEGER, PARAMETER  :: CENTER180=1
@@ -128,6 +130,23 @@
       !=================================================================
       ! STDRUN begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Return if we are not doing either a radon or fullchem stdrun
       IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )  .and. 
@@ -173,11 +192,14 @@
          ! Open binary punch file for writing
          CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )
 
-         ! Loop over tracers
-         DO N = 1, Input_Opt%N_TRACERS
+         ! Loop over only the advected species
+         DO NA = 1, nAdvect
+
+            ! Get the species ID from the advected species ID
+            N = State_Chm%Map_Advect(NA)
 
             ! Save Rn, Pb, Be as REAL*4
-            ARRAY(:,:,:) = State_Chm%TRACERS(:,:,:,N)
+            ARRAY(:,:,:) = State_Chm%Species(:,:,:,N)
 
             ! Write Rn, Pb, Be to binary punch file
             CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
@@ -197,7 +219,7 @@
          CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )
         
          ! Save O3 as REAL*4
-         ARRAY(:,:,:) = State_Chm%TRACERS(:,:,:,id_O3)
+         ARRAY(:,:,:) = State_Chm%Species(:,:,:,id_O3)
 
          ! Write O3 to binary punch file
          CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
@@ -210,6 +232,19 @@
 
       ! Close file
       CLOSE( IU_FILE )
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       END SUBROUTINE STDRUN
 !EOC

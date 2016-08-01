@@ -111,8 +111,7 @@
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE GIGC_State_Chm_Mod, only : IND_
-
-#if defined( DEVEL )
+#if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
       USE UNITCONV_MOD
@@ -121,7 +120,7 @@
       USE UCX_MOD,            ONLY : READ_PSC_FILE
       USE UCX_MOD,            ONLY : WRITE_STATE_PSC
 #endif
-#if   defined( TOMAS )
+#if defined( TOMAS )
       USE TOMAS_MOD,          ONLY : DO_TOMAS  !(win, 7/14/09)
 #endif
 
@@ -232,13 +231,16 @@
 !  16 Jun 2016 - C. Miller   - Now use Ind_ function to define species ID's
 !  17 Jun 2016 - R. Yantosca - Now define species ID's only on first call
 !  17 Jun 2016 - R. Yantosca - Now reset first-time flag at end of routine
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.
+!  19 Jul 2016 - R. Yantosca - Now bracket DO_TEND calls with #ifdef USE_TEND
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER           :: N_TROP
+      ! Scalars
+      INTEGER           :: N_TROP, N
       INTEGER           :: MONTH
       INTEGER           :: YEAR
       INTEGER           :: WAVELENGTH
@@ -266,18 +268,20 @@
       LOGICAL           :: LSOA
       LOGICAL           :: LNLPBL
 
-      ! SAVEd variables
+      ! SAVEd scalars
       LOGICAL, SAVE     :: FIRST = .TRUE.
       INTEGER, SAVE     :: id_DST1
       INTEGER, SAVE     :: id_NK1
-
-      ! Chemistry time step in seconds
+#if defined( USE_TEND )
+      INTEGER, SAVE     :: id_O3 
+      INTEGER, SAVE     :: id_CO
       REAL(fp)          :: DT_TEND
-
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+#endif
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,2)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
@@ -315,6 +319,10 @@
       IF ( FIRST ) THEN
          id_DST1 = Ind_('DST1')
          id_NK1  = Ind_('NK1' )
+#if defined( USE_TEND )
+         id_O3   = Ind_('O3'  )
+         id_CO   = Ind_('CO'  )
+#endif
       ENDIF
 
       !-----------------------------------------------------------------
@@ -346,16 +354,38 @@
          RETURN
       ENDIF  
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT                      => State_Chm%Tracers
-
+#if defined( USE_TEND )
       !=================================================================
       ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
-#if defined( DEVEL )
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+      IF ( id_O3 > 0 ) THEN
+         Spc_Tmp          (:,:,:,1    ) = State_Chm%Species(:,:,:,id_O3)
+         State_Chm%Species(:,:,:,id_O3) = State_Chm%Tracers(:,:,:,id_O3)
+      ENDIF
+      IF ( id_CO > 0 ) THEN
+         Spc_Tmp          (:,:,:,2    ) = State_Chm%Species(:,:,:,id_CO)
+         State_Chm%Species(:,:,:,id_CO) = State_Chm%Tracers(:,:,:,id_CO)
+      ENDIF
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CHEM', .FALSE., RC )
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+      IF ( id_O3 > 0 ) THEN
+         State_Chm%Tracers(:,:,:,id_O3) = State_Chm%Species(:,:,:,id_O3)
+         State_Chm%Species(:,:,:,id_O3) = Spc_Tmp          (:,:,:,1    )
+      ENDIF
+      IF ( id_CO > 0 ) THEN
+         State_Chm%Tracers(:,:,:,id_CO) = State_Chm%Species(:,:,:,id_CO)
+         State_Chm%Species(:,:,:,id_CO) = Spc_Tmp          (:,:,:,2    )
+      ENDIF
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 #endif
 
       !=================================================================
@@ -718,19 +748,45 @@
          RETURN
       ENDIF  
 
+#if defined( USE_TEND )
       !=================================================================
       ! Calculate tendencies and write to diagnostics 
       ! (ckeller,7/15/2015)
       !=================================================================
-#if defined( DEVEL )
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+      IF ( id_O3 > 0 ) THEN
+         Spc_Tmp          (:,:,:,1    ) = State_Chm%Species(:,:,:,id_O3)
+         State_Chm%Species(:,:,:,id_O3) = State_Chm%Tracers(:,:,:,id_O3)
+      ENDIF
+      IF ( id_CO > 0 ) THEN
+         Spc_Tmp          (:,:,:,2    ) = State_Chm%Species(:,:,:,id_CO)
+         State_Chm%Species(:,:,:,id_CO) = State_Chm%Tracers(:,:,:,id_CO)
+      ENDIF
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+      ! Chemistry timestep [s]
       DT_TEND = GET_TS_CHEM() * 60.0_fp
+
+      ! Compute tendencies
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CHEM', .FALSE., DT_TEND, RC )
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+      IF ( id_O3 > 0 ) THEN
+         State_Chm%Tracers(:,:,:,id_O3) = State_Chm%Species(:,:,:,id_O3)
+         State_Chm%Species(:,:,:,id_O3) = Spc_Tmp          (:,:,:,1    )
+      ENDIF
+      IF ( id_CO > 0 ) THEN
+         State_Chm%Tracers(:,:,:,id_CO) = State_Chm%Species(:,:,:,id_CO)
+         State_Chm%Species(:,:,:,id_CO) = Spc_Tmp          (:,:,:,2    )
+      ENDIF
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 #endif
 
-      ! Free pointer
-      NULLIFY( STT )
-       
       ! Reset first-time flag
       FIRST = .FALSE.
 

@@ -1,4 +1,4 @@
-#if defined( DEVEL )
+#if defined( USE_TEND )
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -118,14 +118,12 @@ MODULE Tendencies_Mod
 ! !REVISION HISTORY:
 !  14 Jul 2015 - C. Keller   - Initial version. 
 !  26 Oct 2015 - C. Keller   - Now organize in linked list for more flexibility.
+!  19 Jul 2016 - R. Yantosca - Now block out this routine with #ifdef USE_TEND
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !PRIVATE TYPES:
-!
-
 CONTAINS
+!EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -165,6 +163,7 @@ CONTAINS
 !  26 Oct 2015 - C. Keller   - Initial version 
 !  16 Jun 2016 - J. Kaiser   - Move tracer IDS to variable names CODEATHON
 !  20 Jun 2016 - R. Yantosca - Renamed IDTCO, IDTO3 to id_CO and id_O3
+!  19 Jul 2016 - R. Yantosca - Activate more tendency classes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -191,37 +190,68 @@ CONTAINS
     ! Assume successful return
     RC = GIGC_SUCCESS
 
-    ! Define species ID"s
+    ! Define species ID's (add more as necessary)
     id_CO = Ind_('CO')
     id_O3 = Ind_('O3') 
        
     ! Execute only if DoTend is enabled
     IF ( DoTend ) THEN
 
-       ! Define classes
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'CHEM', RC )
+       !--------------------------------------------------------------------
+       ! Define tendency classes (add more as you wish)
+       !--------------------------------------------------------------------
+
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'ADV' ,   RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'ADV' , RC )
+
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'CHEM',   RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'CONV', RC )
+
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'CONV',   RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'WETD', RC )
+
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'FLUX',   RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'FLUX', RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+
        CALL Tend_CreateClass( am_I_Root, Input_Opt, 'PBLMIX', RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
 
-       ! Add species to classes
-       CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM', id_O3, RC )
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'WETD',   RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
-       CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM', id_CO, RC )
+
+       !--------------------------------------------------------------------
+       ! Activate tendency computations for O3 (add more as you wish)
+       !--------------------------------------------------------------------
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'ADV',    id_O3, RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
-       CALL Tend_Add ( am_I_Root, Input_Opt, 'CONV', id_CO, RC )
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM',   id_O3, RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
-       CALL Tend_Add ( am_I_Root, Input_Opt, 'DRYD', id_O3, RC )
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'CONV',   id_O3, RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
-       CALL Tend_Add ( am_I_Root, Input_Opt, 'ADV',  id_O3, RC )
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'DRYD',   id_O3, RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'PBLMIX', id_O3, RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! Activate tendency computations for CO (add more as you wish)
+       !--------------------------------------------------------------------
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'ADV',    id_CO, RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM',   id_CO, RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'CONV',   id_CO, RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, 'PBLMIX', id_CO, RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
 
     ENDIF ! test toggle
@@ -338,14 +368,15 @@ CONTAINS
     TYPE(TendClass),  POINTER,      OPTIONAL :: ThisTend   ! Pointer to this class
 !
 ! !REVISION HISTORY: 
-!  26 Oct 2015 - C. Keller   - Initial version 
+!  26 Oct 2015 - C. Keller   - Initial version
+!  19 Jul 2016 - R. Yantosca - Don't nullify local pointers in declarations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(TendClass), POINTER :: TmpTend => NULL()
+    TYPE(TendClass), POINTER :: TmpTend
     
     !=======================================================================
     ! Tend_FindClass begins here!
@@ -355,7 +386,8 @@ CONTAINS
     RC = GIGC_SUCCESS
 
     ! Init
-    FOUND = .FALSE.
+    FOUND   = .FALSE.
+    TmpTend => NULL()
 
     ! Loop through linked list and search for class with same name
     TmpTend => TendList
@@ -400,7 +432,8 @@ CONTAINS
 !
 !
 ! !REVISION HISTORY: 
-!  26 Oct 2015 - C. Keller   - Initial version 
+!  26 Oct 2015 - C. Keller   - Initial version
+!  19 Jul 2016 - R. Yantosca - Don't nullify local pointers in declarations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -408,12 +441,16 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                  :: I
-    TYPE(TendClass), POINTER :: ThisTend => NULL()
-    TYPE(TendClass), POINTER :: NextTend => NULL()
+    TYPE(TendClass), POINTER :: ThisTend
+    TYPE(TendClass), POINTER :: NextTend
     
     !=======================================================================
     ! Tend_Cleanup begins here!
     !=======================================================================
+
+    ! Initialize
+    ThisTend => NULL()
+    NextTend => NULL()
 
     ! Loop through linked list and search for class with same name
     ThisTend => TendList
@@ -479,16 +516,22 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  14 Jul 2015 - C. Keller   - Initial version 
 !  26 Oct 2015 - C. Keller   - Update for linked list 
+!  19 Jul 2016 - R. Yantosca - Don't nullify local pointers in declarations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER                  :: AS
     INTEGER                  :: Collection
     LOGICAL                  :: FOUND 
-    TYPE(TendClass), POINTER :: ThisTend => NULL()
+
+    ! Pointers
+    TYPE(TendClass), POINTER :: ThisTend
+
+    ! Strings
     CHARACTER(LEN=63)        :: DiagnName
     CHARACTER(LEN=255)       :: MSG
     CHARACTER(LEN=255)       :: LOC = 'Tend_Add (tendencies_mod.F)' 
@@ -499,6 +542,9 @@ CONTAINS
 
     ! Assume successful return
     RC = GIGC_SUCCESS
+
+    ! Initialize
+    ThisTend => NULL()
 
     ! Ignore invalid tracer IDs
     IF ( TrcID <= 0 ) RETURN
@@ -568,6 +614,9 @@ CONTAINS
        CALL ERROR_STOP( MSG, LOC ) 
     ENDIF
 
+    ! Initialize
+    ThisTend => NULL()
+
   END SUBROUTINE Tend_Add
 !EOC
 !------------------------------------------------------------------------------
@@ -605,16 +654,23 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  14 Jul 2015 - C. Keller   - Initial version 
 !  26 Oct 2015 - C. Keller   - Update to include tendency classes
+!  19 Jul 2016 - R. Yantosca - Don't nullify local pointers in declarations
+!  19 Jul 2016 - R. Yantosca - Now use State_Chm%Species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER                  :: I
     LOGICAL                  :: FOUND 
-    REAL(f4), POINTER        :: Ptr3D(:,:,:) => NULL()
-    TYPE(TendClass), POINTER :: ThisTend => NULL()
+
+    ! Pointers
+    REAL(f4),        POINTER :: Ptr3D(:,:,:)
+    TYPE(TendClass), POINTER :: ThisTend
+
+    ! Strings
     CHARACTER(LEN=255)       :: MSG
     CHARACTER(LEN=255)       :: LOC = 'TEND_STAGE1 (tendencies_mod.F)' 
     
@@ -624,6 +680,10 @@ CONTAINS
 
     ! Assume successful return
     RC = GIGC_SUCCESS
+
+    ! Initialize
+    Ptr3D    => NULL()
+    ThisTend => NULL()
 
     ! Find tendency class
     CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, ThisTend=ThisTend )
@@ -640,9 +700,9 @@ CONTAINS
 
        ! Fill 3D array with current values. Make sure it's in v/v
        IF ( IsInvv ) THEN
-          Ptr3D = State_Chm%Tracers(:,:,:,I)
+          Ptr3D = State_Chm%Species(:,:,:,I)
        ELSE
-          Ptr3D = State_Chm%Tracers(:,:,:,I) &
+          Ptr3D = State_Chm%Species(:,:,:,I) &
                 * Input_Opt%TCVV(I) / State_Met%AD(:,:,:)
        ENDIF
 
@@ -671,8 +731,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tend_Stage2( am_I_Root, Input_Opt, State_Met, &
-                          State_Chm, TendName,  IsInvv, DT, RC ) 
+  SUBROUTINE Tend_Stage2( am_I_Root, Input_Opt, State_Met,  &
+                          State_Chm, TendName,  IsInvv,     &
+                          DT,        RC                    ) 
 !
 ! !USES:
 !
@@ -695,18 +756,27 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  14 Jul 2015 - C. Keller   - Initial version 
 !  26 Oct 2015 - C. Keller   - Update to include tendency classes
+!  19 Jul 2016 - R. Yantosca - Don't nullify local pointers in declarations
+!  19 Jul 2016 - R. Yantosca - Now use State_Chm%Species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     LOGICAL                  :: ZeroTend
     LOGICAL                  :: FOUND
     INTEGER                  :: cID, I
-    REAL(f4), POINTER        :: Ptr3D(:,:,:) => NULL()
+
+    ! Arrays
     REAL(f4)                 :: TEND(IIPAR,JJPAR,LLPAR)
-    TYPE(TendClass), POINTER :: ThisTend => NULL()
+
+    ! Pointers
+    REAL(f4),        POINTER :: Ptr3D(:,:,:)
+    TYPE(TendClass), POINTER :: ThisTend
+
+    ! Strings
     CHARACTER(LEN=63)        :: DiagnName
     CHARACTER(LEN=255)       :: MSG
     CHARACTER(LEN=255)       :: LOC = 'TEND_STAGE2 (tendencies_mod.F)' 
@@ -717,6 +787,10 @@ CONTAINS
 
     ! Assume successful return
     RC = GIGC_SUCCESS
+
+    ! Initialize
+    Ptr3d    => NULL()
+    ThisTend => NULL()
 
     ! Find tendency class
     CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, ThisTend=ThisTend )
@@ -749,9 +823,9 @@ CONTAINS
           Tend = 0.0_f4
        ELSE
           IF ( IsInvv ) THEN
-             Tend = ( State_Chm%Tracers(:,:,:,I) - Ptr3D(:,:,:) ) / DT
+             Tend = ( State_Chm%Species(:,:,:,I) - Ptr3D(:,:,:) ) / DT
           ELSE
-             Tend = ( ( State_Chm%Tracers(:,:,:,I)                &
+             Tend = ( ( State_Chm%Species(:,:,:,I)                &
                       * Input_Opt%TCVV(I) / State_Met%AD(:,:,:) ) &
                       - Ptr3D(:,:,:) ) / DT
           ENDIF
@@ -823,9 +897,14 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     LOGICAL                  :: FOUND
     INTEGER                  :: cID, I
-    TYPE(TendClass), POINTER :: ThisTend => NULL()
+
+    ! Pointers
+    TYPE(TendClass), POINTER :: ThisTend
+
+    ! Strings
     CHARACTER(LEN=63)        :: DiagnName
     CHARACTER(LEN=255)       :: MSG
     CHARACTER(LEN=255)       :: LOC = 'TEND_GET (tendencies_mod.F)' 
@@ -838,8 +917,9 @@ CONTAINS
     RC = GIGC_SUCCESS
 
     ! Init
-    Tend  => NULL()
-    Stage =  0
+    ThisTend => NULL()
+    Tend     => NULL()
+    Stage    =  0
 
     ! Find tendency class
     CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, ThisTend=ThisTend )

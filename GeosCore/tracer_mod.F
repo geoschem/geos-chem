@@ -98,85 +98,98 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  05 Mar 2012 - M. Payer    - Added ProTeX headers
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL                      :: LNEG, LNAN, LINF
-      INTEGER                      :: I,    J,    L,   N, N_TOT_TRC
+      LOGICAL           :: LNEG, LNAN, LINF
+      INTEGER           :: I,    J,    L,   N,  NA,  nAdvect
       
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! CHECK_STT begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
 
-      ! Pick the proper # of tracers
-      ! G-C advected tracers only
-      N_TOT_TRC = Input_Opt%N_TRACERS       
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-      ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to GEOS-Chem species [kg/kg]
+      Spc => State_Chm%Species
 
       ! Initialize
       LNEG = .FALSE.
       LNAN = .FALSE.
       LINF = .FALSE.
 
-      ! Loop over grid boxes
+      ! Loop over the advected species
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, N_TOT_TRC
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+!$OMP+PRIVATE( I, J, L, N, NA )
+      DO NA = 1, nAdvect
+         
+         ! Advected species ID
+         N = State_Chm%Map_Advect(NA)
 
-         !---------------------------
-         ! Check for Negatives
-         !---------------------------
-!clb fill nega
-         STT(I,J,L,N) = ABS(STT(I,J,L,N))
-         IF ( STT(I,J,L,N) < 0e+0_fp ) THEN 
+         ! Loop over grid boxes
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            !---------------------------
+            ! Check for Negatives
+            !---------------------------
+            Spc(I,J,L,N) = ABS(Spc(I,J,L,N))
+            IF ( Spc(I,J,L,N) < 0e+0_fp ) THEN 
 !$OMP CRITICAL
-            LNEG = .TRUE.
-            WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
-            PRINT*, STT(I,J,L,N)
+               LNEG = .TRUE.
+               WRITE( 6, 100 ) I, J, L, N, Spc(I,J,L,N)
+               PRINT*, Spc(I,J,L,N)
 !$OMP END CRITICAL
 
-         !---------------------------
-         ! Check for NaN's
-         !---------------------------
-         ELSE IF ( IT_IS_NAN( STT(I,J,L,N) ) ) THEN
+            !---------------------------
+            ! Check for NaN's
+            !---------------------------
+            ELSE IF ( IT_IS_NAN( Spc(I,J,L,N) ) ) THEN
 !$OMP CRITICAL
-            LNAN = .TRUE.
-            WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
+               LNAN = .TRUE.
+               WRITE( 6, 100 ) I, J, L, N, Spc(I,J,L,N)
 !$OMP END CRITICAL
 
-         !----------------------------
-         ! Check STT's for Infinities
-         !----------------------------
-         ELSE IF ( .not. IT_IS_FINITE( STT(I,J,L,N) ) ) THEN
+            !----------------------------
+            ! Check Spc's for Infinities
+            !----------------------------
+            ELSE IF ( .not. IT_IS_FINITE( Spc(I,J,L,N) ) ) THEN
 !$OMP CRITICAL
-            LINF = .TRUE.
-            WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
+               LINF = .TRUE.
+               WRITE( 6, 100 ) I, J, L, N, Spc(I,J,L,N)
 !$OMP END CRITICAL            
 
-         ENDIF
-      ENDDO
-      ENDDO
-      ENDDO
+            ENDIF
+         ENDDO
+         ENDDO
+         ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       !=================================================================
       ! Stop the run if any of LNEG, LNAN, LINF is true
@@ -192,6 +205,15 @@
  100  FORMAT( 'CHECK_STT: STT(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
  120  FORMAT( 'CHECK_STT: STOP at ', a , 3L2 )
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CHECK_STT
 !EOC
 !------------------------------------------------------------------------------
@@ -233,80 +255,111 @@
 !  05 Mar 2012 - M. Payer    - Added ProTeX headers
 !  26 Oct 2015 - M. Sulprizio- Rename from CHECK_STT_05x0666 to CHECK_STT_NESTED
 !                              for use with all nested grids
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                      :: I,    J,    L,   N
+      INTEGER           :: I, J, L, N, NA, nAdvect
       
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! CHECK_STT_NESTED begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
 
-      ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
+      ! Point to chemical species array [kg/kg]
+      Spc => State_Chm%Species
+
+      ! Loop over advected species
       ! Loop over grid boxes
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, Input_Opt%N_TRACERS
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+!$OMP+PRIVATE( I, J, L, N, NA )
+      DO NA = 1, nAdvect
 
-         !---------------------------
-         ! Check for Negatives
-         !---------------------------
-         IF ( STT(I,J,L,N) < 0e+0_fp ) THEN 
+         ! Advected species ID
+         N = State_Chm%Map_Advect(NA)
+
+         ! Loop over grid boxes
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            !---------------------------
+            ! Check for Negatives
+            !---------------------------
+            IF ( Spc(I,J,L,N) < 0e+0_fp ) THEN 
 !$OMP CRITICAL
-            WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
-            PRINT*, 'Neg STT ' // TRIM( LOCATION ) //
-     &              '. SET STT TO BE ZERO.'
-            STT(I,J,L,N) = 0e+0_fp
+               WRITE( 6, 100 ) I, J, L, N, Spc(I,J,L,N)
+               PRINT*, 'Neg Spc ' // TRIM( LOCATION ) //
+     &                 '. SET Spc TO BE ZERO.'
+               Spc(I,J,L,N) = 0e+0_fp
 !$OMP END CRITICAL
 
-         !---------------------------
-         ! Check for NaN's
-         !---------------------------
-         ELSE IF ( IT_IS_NAN( STT(I,J,L,N) ) ) THEN 
+            !---------------------------
+            ! Check for NaN's
+            !---------------------------
+            ELSE IF ( IT_IS_NAN( Spc(I,J,L,N) ) ) THEN 
 !$OMP CRITICAL
-            WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
-            PRINT*, 'NaN STT ' // TRIM( LOCATION ) //
-     &              '. SET STT TO BE LOWER LEVEL.'
-            STT(I,J,L,N) = STT(I,J,L-1,N)
+               WRITE( 6, 100 ) I, J, L, N, Spc(I,J,L,N)
+               PRINT*, 'NaN Spc ' // TRIM( LOCATION ) //
+     &              '. SET Spc TO BE LOWER LEVEL.'
+               Spc(I,J,L,N) = Spc(I,J,L-1,N)
 !$OMP END CRITICAL
 
-         !----------------------------
-         ! Check STT's for Infinities
-         !----------------------------
-         ELSE IF ( .not. IT_IS_FINITE( STT(I,J,L,N) ) ) THEN
+            !----------------------------
+            ! Check Spc's for Infinities
+            !----------------------------
+            ELSE IF ( .not. IT_IS_FINITE( Spc(I,J,L,N) ) ) THEN
 !$OMP CRITICAL
-            WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
-            PRINT*, 'Inf STT ' // TRIM( LOCATION ) //
-     &              '. SET STT TO BE LOWER LEVEL.'
-            STT(I,J,L,N) =  STT(I,J,L-1,N)
+               WRITE( 6, 100 ) I, J, L, N, Spc(I,J,L,N)
+               PRINT*, 'Inf Spc ' // TRIM( LOCATION ) //
+     &                 '. SET Spc TO BE LOWER LEVEL.'
+               Spc(I,J,L,N) =  Spc(I,J,L-1,N)
 !$OMP END CRITICAL
 
-         ENDIF
-      ENDDO
-      ENDDO
-      ENDDO
+            ENDIF
+         ENDDO
+         ENDDO
+         ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
- 100  FORMAT( ' STT(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
+ 100  FORMAT( ' Spc(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       END SUBROUTINE CHECK_STT_NESTED
 !EOC

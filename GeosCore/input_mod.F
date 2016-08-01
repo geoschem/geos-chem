@@ -34,7 +34,7 @@
       PRIVATE :: READ_ONE_LINE
       PRIVATE :: SPLIT_ONE_LINE        
       PRIVATE :: READ_SIMULATION_MENU
-      PRIVATE :: READ_TRACER_MENU  
+      PRIVATE :: READ_ADVECTED_SPECIES_MENU
       PRIVATE :: READ_AEROSOL_MENU     
       PRIVATE :: READ_EMISSIONS_MENU
       PRIVATE :: READ_FUTURE_MENU
@@ -150,6 +150,8 @@
 !  24 Nov 2014 - C. Keller   - Updates on timestep handling in ESMF environment
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
+!  28 Jul 2016 - M. Sulprizio- Rename subroutine READ_TRACER_MENU to
+!                              READ_ADVECTED_SPECIES_MENU
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -293,7 +295,7 @@
          ! menus in the input file; however, a few guidelines apply:
          !
          ! (1) SIMULATION MENU should be listed first.
-         ! (2) TRACER MENU should be listed second.
+         ! (2) ADVECTED SPECIES MENU should be listed second.
          ! (3) EMISSIONS, AEROSOL, CHEMISTRY, TRANSPORT, CONVECTION, 
          !      and DEPOSITION menus (in any order) should follow.
          ! (4) Diagnostic menus, including OUTPUT, DIAGNOSTIC,
@@ -307,8 +309,8 @@
          IF      ( INDEX( LINE, 'SIMULATION MENU'  ) > 0 ) THEN
             CALL READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )             
 
-         ELSE IF ( INDEX( LINE, 'TRACER MENU'      ) > 0 ) THEN
-            CALL READ_TRACER_MENU( am_I_Root, Input_Opt, RC )
+         ELSE IF ( INDEX( LINE, 'ADVECTED SPECIES MENU' ) > 0 ) THEN
+            CALL READ_ADVECTED_SPECIES_MENU( am_I_Root, Input_Opt, RC )
 
          ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
             CALL READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )              
@@ -680,6 +682,9 @@
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2
 !  12 Aug 2015 - R. Yantosca - Add support for 05x0625 grids
 !  13 Aug 2015 - R. Yantosca - Bug fix: prefix RES_DIR in front of MERRA2_DIR
+!  27 Jul 2016 - M. Sulprizio- Remove LSVGLB and OUT_RST_FILE options. Restart
+!                              files are now always saved out and the output
+!                              restart file name is hardcoded in restart_mod.F.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -687,7 +692,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LSVGLB,  LUNZIP
+      LOGICAL            :: LUNZIP
       LOGICAL            :: LWAIT,   LVARTROP
       INTEGER            :: I0,      J0
       INTEGER            :: N,       NDIAGTIME
@@ -720,14 +725,6 @@
       ! Input restart file
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:4' )
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%IN_RST_FILE
-
-      ! Make new restart file?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:5' )
-      READ( SUBSTRS(1:N), * ) LSVGLB
-
-      ! Output restart file(s)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:6' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%OUT_RST_FILE
 
       ! Root data dir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:7' )
@@ -939,7 +936,6 @@
       Input_Opt%NYMDe         = NYMDe
       Input_Opt%NHMSe         = NHMSe
 #endif
-      Input_Opt%LSVGLB        = LSVGLB
       Input_Opt%LUNZIP        = LUNZIP
       Input_Opt%LWAIT         = LWAIT
       Input_Opt%LVARTROP      = LVARTROP
@@ -1054,8 +1050,8 @@
       ! Set the start of the 1st diagnostic interval
       CALL SET_DIAGb( GET_TAU() )
      
-      ! Set input & output restart file names
-      CALL SET_RESTART( Input_Opt%IN_RST_FILE, Input_Opt%OUT_RST_FILE )
+      ! Set input restart file name
+      CALL SET_RESTART( Input_Opt%IN_RST_FILE )
 
       ! Set global offsets for the horizontal grid
       CALL SET_XOFFSET( Input_Opt%NESTED_I0 )
@@ -1273,15 +1269,15 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_tracer_menu
+! !IROUTINE: read_advected_species_menu
 !
-! !DESCRIPTION: Subroutine READ\_TRACER\_MENU reads the TRACER MENU section 
-!  of the GEOS-Chem input file.
+! !DESCRIPTION: Subroutine READ\_ADVECTED\_SPECIES\_MENU reads the ADVECTED
+!  SPECIES MENU section of the GEOS-Chem input file.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_TRACER_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_ADVECTED_SPECIES_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -1325,25 +1321,25 @@
 !                              that defines the ITS_A_SPECIALTY_SIM flag
 !  24 Mar 2015 - E. Lundgren - Move init_tracer to within APM ifdef block 
 !  23 Jun 2016 - R. Yantosca - Remove call to TRACERID, it's obsolete
+!  28 Jul 2016 - M. Sulprizio- Rename TRACER MENU to ADVECTED SPECIES MENU;
+!                              Remove ID, MW, and member columns from menu
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: N,  T,  C
-      CHARACTER(LEN=255) :: C1, C2, LINE, NAME
+      INTEGER            :: N,  T
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-      REAL(fp)           :: DUMMY
 
       !=================================================================
-      ! READ_TRACER_MENU begins here!
+      ! READ_ADVECTED_SPECIES_MENU begins here!
       !
       ! Get the simulation type
       !=================================================================
 
       ! NSRCX
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:1' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_adv_spec_menu:1' )
       READ( SUBSTRS(1:N), * ) Input_Opt%SIM_TYPE
 
       ! Set fields of Input Options object
@@ -1432,76 +1428,49 @@
        END SELECT
 
       !=================================================================
-      ! Read the # of tracers
+      ! Read the # of advected species
       !=================================================================
 
       ! NTRACE
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:2' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_adv_spec_menu:2' )
       READ( SUBSTRS(1:N), * ) Input_Opt%N_TRACERS
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:3' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_adv_spec_menu:3' )
 
       ! Input_Opt vectors are of length MAX_TRCS. Make sure that
       ! # of tracers does not exceed length of these vectors.
       IF ( Input_Opt%N_TRACERS > Input_Opt%MAX_TRCS ) THEN
          CALL ERROR_STOP( 'Error: N_TRACERS > MAX_TRCS!', 
-     &                    'read_tracer_menu (input_mod.f)' )
+     &                    'read_adv_spec_menu (input_mod.f)' )
          RC = GIGC_FAILURE
          RETURN
       ENDIF
 
       !=================================================================
-      ! Read tracer ID, emission ID, biomass ID, biofuel ID, & mol wt
+      ! Read advected species name
       !=================================================================
       DO T = 1, Input_Opt%N_TRACERS
 
          ! Split line into substrings
-         CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:4' )
-
-         ! Save tracer number
-         READ( SUBSTRS(1), * ) Input_Opt%ID_TRACER(T)
+         CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_adv_spec_menu:4' )
 
          ! Save tracer name
-         Input_Opt%TRACER_NAME(T)  = TRIM( SUBSTRS(2) )
+         Input_Opt%TRACER_NAME(T)  = TRIM( SUBSTRS(1) )
 
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         !%%% These fields will be overwritten with information from the 
-         !%%% GEOS-Chem Species Database.  This will eliminate inconsistencies
-         !%%% caused by multiple definitions of the same quantity.
-         !%%% (bmy, 12/16/15)
-         !%%%
-         !%%%! Save tracer molecular wt [g/mole]
-         !%%%READ( SUBSTRS(3), * ) Input_Opt%TRACER_MW_G(T) 
-         !%%%
-         !%%%! Save tracer molecular wt [kg/mole]
-         !%%%Input_Opt%TRACER_MW_KG(T) = Input_Opt%TRACER_MW_G(T) * 1e-3_fp
-         !%%%
-         !%%%! Ratio of MW dry air / MW tracer 
-         !%%%Input_Opt%TCVV(T) = 28.97e+0_fp / Input_Opt%TRACER_MW_G(T)
-         !%%%
-         !%%%! Molecules tracer / kg tracer
-         !%%%Input_Opt%XNUMOL(T) = 6.022e+23_fp / Input_Opt%TRACER_MW_KG(T)
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-         ! Read a dummy placeholder in place of molecular weight
-         ! The molecular weight will be taken from the species database
-         ! in routine INIT_GIGC_STATE_CHM. (bmy, 12/16/15)
-         READ( SUBSTRS(3), * ) DUMMY
-         
       ENDDO
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_adv_spec_menu:5' )
 
       !=================================================================
       ! Call setup routines from other F90 modules
       !=================================================================
 
-      ! Split into tagged tracers (turn off for full-chemistry)
+      ! Split into tagged species (turn off for full-chemistry)
       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
-         ! There are no tagged tracers for fullchem
+         ! There are no tagged species for fullchem
          Input_Opt%LSPLIT = .FALSE.
 
       ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
@@ -1516,7 +1485,7 @@
 
       ELSE
 
-         ! All other simulations: tagged if more than 1 tracer
+         ! All other simulations: tagged if more than 1 species listed
          Input_Opt%LSPLIT = ( Input_Opt%N_TRACERS > 1 )
 
       ENDIF
@@ -1527,7 +1496,7 @@
       ! Return success
       RC = GIGC_SUCCESS
 
-      END SUBROUTINE READ_TRACER_MENU
+      END SUBROUTINE READ_ADVECTED_SPECIES_MENU
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1606,8 +1575,8 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LSULF,      LCARB,    LBRC,  LSOA
-      LOGICAL            :: LSVPOA,     LDUST,    LDSTUP
+      LOGICAL            :: LSULF,      LCARB,      LBRC,  LSOA
+      LOGICAL            :: LSVPOA,     LDUST,      LDSTUP
       LOGICAL            :: LSSALT,     LCRYST,     LDICARB
       LOGICAL            :: LGRAVSTRAT, LHOMNUCNAT, LSOLIDPSC
       LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMPOA
@@ -1626,7 +1595,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
@@ -2140,7 +2110,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, LOC )
       ENDIF
 
@@ -2453,22 +2424,17 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL          :: LFOSSIL
-      LOGICAL          :: LCHEMCO2
-	LOGICAL          :: LBIODIURNAL
-      LOGICAL          :: LBIONETCLIM
-      LOGICAL          :: LOCEAN
-      LOGICAL          :: LSHIP
-      LOGICAL          :: LPLANE
-	LOGICAL          :: LFFBKGRD
-!      LOGICAL            :: LGENFF,      LANNFF,      LMONFF
-!      LOGICAL            :: LCHEMCO2,    LBIODAILY,   LBIODIURNAL
-!      LOGICAL            :: LBIONETORIG, LBIONETCLIM, LOCN1997
-!      LOGICAL            :: LOCN2009ANN, LOCN2009MON, LSHIPEDG
-!      LOGICAL            :: LSHIPICO,    LPLANE,      LFFBKGRD
+      LOGICAL            :: LFOSSIL
+      LOGICAL            :: LCHEMCO2
+      LOGICAL            :: LBIODIURNAL
+      LOGICAL            :: LBIONETCLIM
+      LOGICAL            :: LOCEAN
+      LOGICAL            :: LSHIP
+      LOGICAL            :: LPLANE
+      LOGICAL            :: LFFBKGRD
       LOGICAL            :: LBIOSPHTAG,  LFOSSILTAG,  LSHIPTAG
       LOGICAL            :: LPLANETAG
-	INTEGER            :: N
+      INTEGER            :: N
       CHARACTER(LEN=255) :: MSG, LOC
 
       ! Arrays
@@ -2483,7 +2449,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, LOC )
       ENDIF
 
@@ -2764,6 +2731,9 @@
 !                              based on Jacon et al (2000) and Mao et al (2013).
 !  22 Aug 2013 - R. Yantosca - Now read in path for species restart file
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  27 Jul 2016 - M. Sulprizio- Remove LSVCSPEC and SPEC_RST_FILE. Restart files
+!                              are now always saved out and the output restart
+!                              file name is hardcoded in restart_mod.F.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2771,13 +2741,11 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LCHEM,    LSCHEM,   LLINOZ
-      LOGICAL            :: LSVCSPEC, LUCX
+      LOGICAL            :: LCHEM,    LSCHEM,   LLINOZ, LUCX
       LOGICAL            :: LO3FJX,   LCH4CHEM, LACTIVEH2O
       INTEGER            :: N
       INTEGER            :: TS_CHEM
       CHARACTER(LEN=255) :: MSG, LOCATION
-      CHARACTER(LEN=255) :: SPEC_RST_FILE
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -2791,7 +2759,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
@@ -2822,14 +2791,6 @@
       ! Chemistry timestep
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
       READ( SUBSTRS(1:N), * ) TS_CHEM
-
-      ! Read and save species restart file ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:8' )
-      READ( SUBSTRS(1:N), * ) LSVCSPEC
-
-      ! Species restart file name
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:9' )
-      READ( SUBSTRS(1:N), '(a)' ) SPEC_RST_FILE
 
       ! Use online ozone in extinction calculations for FAST-JX?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:11' )
@@ -2931,8 +2892,6 @@
       Input_Opt%LCHEM         = LCHEM
       Input_Opt%LSCHEM        = LSCHEM
       Input_Opt%LLINOZ        = LLINOZ
-      Input_Opt%LSVCSPEC      = LSVCSPEC
-      Input_Opt%SPEC_RST_FILE = TRIM( SPEC_RST_FILE )
       Input_Opt%LUCX          = LUCX
       Input_Opt%LCH4CHEM      = LCH4CHEM
       Input_Opt%LACTIVEH2O    = LACTIVEH2O
@@ -3031,7 +2990,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_RADIATION_MENU ("input_mod.f")' )
       ENDIF
 
@@ -3245,7 +3205,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
@@ -3462,7 +3423,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_TRANSPORT_MENU ("input_mod.f")' )
       ENDIF
 
@@ -3624,7 +3586,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_DEPOSITION_MENU ("input_mod.f")' )
       ENDIF
 
@@ -3997,6 +3960,7 @@
 !  15 Jan 2015 - R. Yantosca - Now define Input_Opt%DIAG_COLLECTION 
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !  23 Jun 2016 - R. Yantosca - Now call INIT_DIAG_OH from GIGC_Init_Extra
+!  20 Jul 2016 - R. Yantosca - Remove references to NNPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4018,12 +3982,18 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
       ! Get max number of tracers
-      N_MAX = MIN( N_TRACERS, NNPAR )
+!--------------------------------------------
+! Prior to 7/20/16:
+! Remove NNPAR (bmy, 7/20/16)
+!      N_MAX = MAX( N_TRACERS, NNPAR )
+!--------------------------------------------
+      N_MAX = N_TRACERS
 
       IF ( .not. Input_Opt%LEMIS ) THEN
          WRITE( 6, '(a)' ) 'WARNING: Emissions are turned off. The'
@@ -4140,7 +4110,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:14' )
       READ( SUBSTRS(1), * ) ND12
-      CALL SET_TINDEX( am_I_Root, 12, ND12, SUBSTRS(2:N), N-1, PD12 )
+      CALL SET_TINDEX( am_I_Root, 12, ND12, SUBSTRS(2:N), N-1, 1 )
 
       !--------------------------
       ! ND13: Sulfur sources
@@ -4149,7 +4119,7 @@
       READ( SUBSTRS(1), * ) ND13
       IF ( .not. Input_Opt%LSULF .or.
      &     .not. Input_Opt%LEMIS ) ND13 = 0
-      CALL SET_TINDEX( am_I_Root, 13, ND13, SUBSTRS(2:N), N-1, PD13 )
+      CALL SET_TINDEX( am_I_Root, 13, ND13, SUBSTRS(2:N), N-1, 1 )
 
       !--------------------------
       ! ND14: Wet conv up flux
@@ -4197,7 +4167,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:21' )
       READ( SUBSTRS(1), * ) ND19
-      CALL SET_TINDEX( am_I_Root, 19, ND19, SUBSTRS(2:N), N-1, PD19 )
+      CALL SET_TINDEX( am_I_Root, 19, ND19, SUBSTRS(2:N), N-1, 1 )
 
       !--------------------------
       ! ND21: Opt depths etc.
@@ -4249,7 +4219,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:28' )
       READ( SUBSTRS(1), * ) ND27
-      CALL SET_TINDEX( am_I_Root, 27, ND27, SUBSTRS(2:N), N-1, PD27 )
+      CALL SET_TINDEX( am_I_Root, 27, ND27, SUBSTRS(2:N), N-1, 1 )
 
       !--------------------------
       ! ND28: Biomass emissions
@@ -4264,21 +4234,21 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:30' )
       READ( SUBSTRS(1), * ) ND29
       IF ( .not. Input_Opt%LEMIS ) ND29 = 0
-      CALL SET_TINDEX( am_I_Root, 29, ND29, SUBSTRS(2:N), N-1, PD29 )
+      CALL SET_TINDEX( am_I_Root, 29, ND29, SUBSTRS(2:N), N-1, 5 )
 
       !--------------------------
       ! ND30: Land map
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:31' )
       READ( SUBSTRS(1), * ) ND30
-      CALL SET_TINDEX( am_I_Root, 30, ND30, SUBSTRS(2:N), N-1, PD30 )
+      CALL SET_TINDEX( am_I_Root, 30, ND30, SUBSTRS(2:N), N-1, 1 )
 
       !--------------------------
       ! ND31: Surface pressure
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:32' )
       READ( SUBSTRS(1), * ) ND31
-      CALL SET_TINDEX( am_I_Root, 31, ND31, SUBSTRS(2:N), N-1, PD31 )
+      CALL SET_TINDEX( am_I_Root, 31, ND31, SUBSTRS(2:N), N-1, 1 )
 
       !--------------------------
       ! ND32: NOx sources
@@ -4286,7 +4256,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:33' )
       READ( SUBSTRS(1), * ) ND32
       IF ( .not. Input_Opt%LEMIS ) ND32 = 0
-      CALL SET_TINDEX( am_I_Root, 32, ND32, SUBSTRS(2:N), N-1, PD32 )
+      CALL SET_TINDEX( am_I_Root, 32, ND32, SUBSTRS(2:N), N-1, 1 )
 
       !--------------------------
       ! ND33: Column tracer
@@ -4391,9 +4361,10 @@
       !--------------------------
       ! ND45: Tracer conc.
       !--------------------------
+      N_TMP = N_TRACERS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:47' )
       READ( SUBSTRS(1), * ) ND45
-      CALL SET_TINDEX( am_I_Root, 45, ND45, SUBSTRS(2:N), N-1, PD45 )
+      CALL SET_TINDEX( am_I_Root, 45, ND45, SUBSTRS(2:N), N-1, N_TMP )
 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:48' ) 
       READ( SUBSTRS(1:N), * ) HR1_OTH, HR2_OTH
@@ -4404,7 +4375,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:49' )
       READ( SUBSTRS(1), * ) ND46
       IF ( .not. Input_Opt%LEMIS ) ND46 = 0
-      CALL SET_TINDEX( am_I_Root, 46, ND46, SUBSTRS(2:N), N-1, PD46 )
+      CALL SET_TINDEX( am_I_Root, 46, ND46, SUBSTRS(2:N), N-1, 26 )
 
       !--------------------------
       ! ND47: 24h avg tracer
@@ -4419,7 +4390,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:51' )
       READ( SUBSTRS(1), * ) ND52
-      CALL SET_TINDEX( am_I_Root, 52, ND52, SUBSTRS(2:N), N-1, PD52 )
+      CALL SET_TINDEX( am_I_Root, 52, ND52, SUBSTRS(2:N), N-1, 1 )
 
       !--------------------------
       ! ND53: POPS
@@ -4492,9 +4463,10 @@
       !--------------------------
       ! ND62: Free
       !--------------------------
+      N_TMP = N_TRACERS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:61' )
       READ( SUBSTRS(1), * ) ND62
-      CALL SET_TINDEX( am_I_Root, 62, ND62, SUBSTRS(2:N), N-1, PD62 )
+      CALL SET_TINDEX( am_I_Root, 62, ND62, SUBSTRS(2:N), N-1, N_TMP )
 
       !--------------------------
       ! ND64: Radiative flux
@@ -4536,7 +4508,12 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:68' )
       READ( SUBSTRS(1), * ) ND70
-      CALL SET_TINDEX( am_I_Root, 70, ND70, SUBSTRS(2:N), N-1, PD70 )
+!-----------------------------------------------------------------------------
+! Prior to 7/21/16:
+! Remove PD70 parameter (bmy, 7/21/16)
+!      CALL SET_TINDEX( am_I_Root, 70, ND70, SUBSTRS(2:N), N-1, PD70 )
+!-----------------------------------------------------------------------------
+      CALL SET_TINDEX( am_I_Root, 70, ND70, SUBSTRS(2:N), N-1, 0 )
      
       !--------------------------
       ! ND71: Maximum tracer
@@ -4955,7 +4932,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_PLANEFLIGHT_MENU ("input_mod.f")' )
       ENDIF
 
@@ -5079,7 +5057,8 @@
       
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_ND48_MENU ("input_mod.f")' )
       ENDIF
 
@@ -5223,7 +5202,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_ND49_MENU ("input_mod.f")' )
       ENDIF
 
@@ -5410,7 +5390,8 @@
       
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_ND50_MENU ("input_mod.f")' )
       ENDIF
 
@@ -5576,7 +5557,8 @@
       
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_ND51_MENU ("input_mod.f")' )
       ENDIF
 
@@ -5754,7 +5736,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_ND51b_MENU ("input_mod.f")' )
       ENDIF
 
@@ -5927,7 +5910,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, 'READ_ND63_MENU ("input_mod.f")' )
       ENDIF
 
@@ -6103,7 +6087,8 @@
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
@@ -6754,6 +6739,9 @@
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !  25 Apr 2016 - R. Yantosca - Now init mercury modules from GIGC_INIT_EXTRA
+!  27 Jul 2016 - M. Sulprizio- Remove IN_HG_RST_FILE and OUT_HG_RST_FILE.
+!                              Hg restart fields are now stored in the GEOS-Chem
+!                              netCDF restart file.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6766,8 +6754,6 @@
       LOGICAL            :: LARCTICRIV,     LKRedUV
       INTEGER            :: ANTHRO_Hg_YEAR, N 
       CHARACTER(LEN=255) :: HG_SCENARIO
-      CHARACTER(LEN=255) :: IN_HG_RST_FILE
-      CHARACTER(LEN=255) :: OUT_HG_RST_FILE
       CHARACTER(LEN=255) :: GTMM_RST_FILE
 
       ! Arrays
@@ -6796,14 +6782,6 @@
       ! Use preindustrial simulation?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read mercury_menu:5' )
       READ( SUBSTRS(1:N), * ) LPREINDHG
-
-      ! Name of input ocean restart file
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:6' )
-      READ( SUBSTRS(1:N), '(a)' ) IN_HG_RST_FILE
-
-      ! Name of output ocean restart file
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:6' )
-      READ( SUBSTRS(1:N), '(a)' ) OUT_HG_RST_FILE
 
       ! Use GTMM ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:7' )
@@ -6845,10 +6823,6 @@
          WRITE( 6, 110 ) 'Error check tag & total Hg? : ', USE_CHECKS
          WRITE( 6, 110 ) 'Use dynamic ocean Hg model? : ', LDYNOCEAN
          WRITE( 6, 110 ) 'Preindustrial simulation?   : ', LPREINDHG
-         WRITE( 6, 120 ) 'Input  ocean Hg restart file: ',
-     &                    TRIM( IN_HG_RST_FILE )
-         WRITE( 6, 120 ) 'Output ocean Hg restart file: ',
-     &                    TRIM( OUT_HG_RST_FILE )
          WRITE( 6, 110 ) 'Use GTMM ?                  : ', LGTMM
          WRITE( 6, 120 ) '=> GTMM restart file        : ',
      &                        TRIM( GTMM_RST_FILE )
@@ -6870,8 +6844,6 @@
       Input_Opt%USE_CHECKS     = USE_CHECKS
       Input_Opt%LDYNOCEAN      = LDYNOCEAN
       Input_Opt%LPREINDHG      = LPREINDHG
-      Input_Opt%In_HG_RST_FILE = IN_HG_RST_FILE
-      Input_Opt%OUT_HG_RST_FILE= OUT_HG_RST_FILE
       Input_Opt%LGTMM          = LGTMM
       Input_Opt%GTMM_RST_FILE  = GTMM_RST_FILE
       Input_Opt%LARCTICRIV     = LARCTICRIV
@@ -8411,7 +8383,9 @@
       ! Error check CFC emissions
       !=================================================================
       IF ( Input_Opt%LCFCEMIS .or. Input_Opt%LSETCFC ) THEN
-         IF ( IND_('CFCX') < 0 ) THEN
+         IF ( IND_('CFC113') < 0 .or.
+     &        IND_('CFC114') < 0 .or. 
+     &        IND_('CFC115') < 0) THEN
             Input_Opt%LCFCEMIS = .FALSE.
             Input_Opt%LSETCFC  = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )

@@ -122,6 +122,8 @@
 !  16 Jun 2016 - J. Sheng    - Add tracer index retriever
 !  20 Jun 2016 - R. Yantosca - Now only get species ID's on the first call
 !  20 Jun 2016 - R. Yantosca - Rename species ID's from IDT* to id_*
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !******************************************************************************
 !
 ! !USES:
@@ -146,10 +148,9 @@
       INTEGER, SAVE          :: LASTMONTH = -99
 
       ! scalars
-      INTEGER                :: I,    J,     L
-      !CODEATHON
-      REAL(fp)               :: ARH,  ATEMP, AVOL, SO4,  ASO4, ANO3    
-      REAL(fp)               :: AH2O, ANH4,  GNH3, GNO3, AHSO4   
+      INTEGER                :: I,    J,     L,    nAdvect, N,    NA
+      REAL(fp)               :: ARH,  ATEMP, AVOL, SO4,     ASO4, ANO3    
+      REAL(fp)               :: AH2O, ANH4,  GNH3, GNO3,    AHSO4   
       CHARACTER(LEN=255)     :: X 
 !
 ! !INPUT PARAMETERS:
@@ -174,7 +175,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       ! For getting fields from HEMCO 
       LOGICAL :: aIR
@@ -182,6 +183,20 @@
       !=================================================================
       ! DO_RPMARES begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !CODEATHON
 
@@ -240,8 +255,7 @@
       ENDIF
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      Spc => State_Chm%Species
 
       !=================================================================
       ! Get equilibrium values of water, ammonium  and nitrate content
@@ -264,16 +278,16 @@
 
          ! Convert sulfate, ammonimum, gaseous NH3, gaseous HNO3, 
          ! and aerosol NO3  from [kg] to [ug/m3].
-         SO4   = MAX( STT(I,J,L,id_SO4) * 1.e+9_fp / AVOL, CONMIN )
-         GNH3  = MAX( STT(I,J,L,id_NH3) * 1.e+9_fp / AVOL, CONMIN ) 
-         ANH4  = MAX( STT(I,J,L,id_NH4) * 1.e+9_fp / AVOL, CONMIN ) 
-         ANO3  = MAX( STT(I,J,L,id_NIT) * 1.e+9_fp / AVOL, CONMIN )
+         SO4   = MAX( Spc(I,J,L,id_SO4) * 1.e+9_fp / AVOL, CONMIN )
+         GNH3  = MAX( Spc(I,J,L,id_NH3) * 1.e+9_fp / AVOL, CONMIN ) 
+         ANH4  = MAX( Spc(I,J,L,id_NH4) * 1.e+9_fp / AVOL, CONMIN ) 
+         ANO3  = MAX( Spc(I,J,L,id_NIT) * 1.e+9_fp / AVOL, CONMIN )
 
-         ! For coupled simulations, use HNO3 tracer from STT array.
+         ! For coupled simulations, use HNO3 tracer from Spc array.
          ! For offline simulations, call GET_HNO3, which lets HNO3
          ! conc's evolve, but relaxes to monthly mean values every 3h.
          IF ( id_HNO3 > 0 ) THEN
-            GNO3 = MAX( STT(I,J,L,id_HNO3) * 1.e+9_fp / AVOL, CONMIN )
+            GNO3 = MAX( Spc(I,J,L,id_HNO3) * 1.e+9_fp / AVOL, CONMIN )
          ELSE
             GNO3 = MAX( GET_HNO3( I, J, L, State_Met ), CONMIN )
          ENDIF
@@ -298,14 +312,14 @@
          ! Convert modified concentrations from [ug/m3] to [kg] 
          ! for ammonium, ammonia, nitric acid (g), and Nitrate         
          ! NOTE: We don't modify the total sulfate mass.
-         STT(I,J,L,id_NH3) = MAX( GNH3 * AVOL * 1.e-9_fp, CONMIN )  
-         STT(I,J,L,id_NH4) = MAX( ANH4 * AVOL * 1.e-9_fp, CONMIN )  
-         STT(I,J,L,id_NIT) = MAX( ANO3 * AVOL * 1.e-9_fp, CONMIN )  
+         Spc(I,J,L,id_NH3) = MAX( GNH3 * AVOL * 1.e-9_fp, CONMIN )  
+         Spc(I,J,L,id_NH4) = MAX( ANH4 * AVOL * 1.e-9_fp, CONMIN )  
+         Spc(I,J,L,id_NIT) = MAX( ANO3 * AVOL * 1.e-9_fp, CONMIN )  
 
-         ! For coupled runs, convert HNO3 [kg] and store in STT.
+         ! For coupled runs, convert HNO3 [kg] and store in Spc.
          ! For offline runs, save evolving HNO3 [ug/m3] for next timestep.
          IF ( id_HNO3 > 0 ) THEN
-            STT(I,J,L,id_HNO3) = MAX( GNO3 * AVOL * 1.e-9_fp, CONMIN )  
+            Spc(I,J,L,id_HNO3) = MAX( GNO3 * AVOL * 1.e-9_fp, CONMIN )  
          ELSE
             CALL SET_HNO3( I, J, L, GNO3 )
          ENDIF   
@@ -316,9 +330,17 @@
 !$OMP END PARALLEL DO      
     
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
-      ! Return to calling program
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE DO_RPMARES
 
 !------------------------------------------------------------------------------

@@ -171,6 +171,8 @@
 !  16 Jun 2016 - K. Travis    - Now define species ID's with the IND_ function 
 !  17 Jun 2016 - R. Yantosca  - Now only define species ID's on the first call;
 !                               we don't want to do it on each loop iteration
+!  30 Jun 2016 - R. Yantosca  - Remove instances of STT.  Now get the advected
+!                               species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -197,8 +199,9 @@
 
       ! Scalars
       INTEGER                  :: I,    J,    L,    N
+      INTEGER                  :: NA,   nAdvect
       REAL(fp)                 :: ANO3, GNO3
-      REAL(f8)                 :: RHI, TEMPI
+      REAL(f8)                 :: RHI,  TEMPI
       REAL(fp)                 :: TCA,  TMG,  TK,   HNO3_DEN
       REAL(fp)                 :: TNA,  TCL,  TNH3, TNH4
       REAL(fp)                 :: TNIT, TNO3, TSO4, VOL
@@ -229,7 +232,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER          :: STT(:,:,:,:)
+      REAL(fp), POINTER        :: Spc(:,:,:,:)
 
       ! For getting fields from HEMCO 
       LOGICAL                  :: aIR
@@ -237,6 +240,24 @@
       !=================================================================
       ! DO_ISOROPIAII begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+
+
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
       RC                   = GIGC_SUCCESS
@@ -324,9 +345,8 @@
          GAS_HNO3 = 0e+0_fp
       ENDIF
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [kg]
+      Spc => State_Chm%Species
 
       !=================================================================
       ! Loop over grid boxes and call ISOROPIA (see comments in the 
@@ -379,11 +399,11 @@
          !---------------------------------
 
          ! Total SO4 [mole/m3]
-         TSO4 = STT(I,J,L,id_SO4) * 1.e+3_fp / ( 96.e+0_fp * VOL )
+         TSO4 = Spc(I,J,L,id_SO4) * 1.e+3_fp / ( 96.e+0_fp * VOL )
 
          ! Total NH3 [mole/m3] 
-         TNH3 = STT(I,J,L,id_NH4) * 1.e+3_fp / (18.e+0_fp * VOL ) +
-     &          STT(I,J,L,id_NH3) * 1.e+3_fp / (17.e+0_fp * VOL )
+         TNH3 = Spc(I,J,L,id_NH4) * 1.e+3_fp / (18.e+0_fp * VOL ) +
+     &          Spc(I,J,L,id_NH3) * 1.e+3_fp / (17.e+0_fp * VOL )
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% NOTE: The error-trap statement above will halt execution if id_SALA is
@@ -393,11 +413,11 @@
 !%%%         IF ( id_SALA > 0 ) THEN
             
             ! Total Na+ (30.61% by weight of seasalt) [mole/m3]
-            TNA = STT(I,J,L,id_SALA) * 0.3061e+0_fp * 1.e+3_fp /
+            TNA = Spc(I,J,L,id_SALA) * 0.3061e+0_fp * 1.e+3_fp /
      &        ( 22.99e+0_fp  * VOL  )
 
             ! Total Cl- (55.04% by weight of seasalt) [mole/m3]
-            TCL = STT(I,J,L,id_SALA) * 0.5504e+0_fp * 1.e+3_fp /
+            TCL = Spc(I,J,L,id_SALA) * 0.5504e+0_fp * 1.e+3_fp /
      &           ( 35.45e+0_fp  * VOL  )
 
 !==============================================================================
@@ -406,15 +426,15 @@
 !=== isoropiaIIcode.f ISRP4F routines must be debugged.  (hotp, bmy, 2/1/10)
 !===
 !===            ! Total Ca2+ (1.16% by weight of seasalt) [mole/m3]
-!===            TCA      = STT(I,J,L,id_SALA) * 0.0116e+0_fp * 1.d3 /
+!===            TCA      = Spc(I,J,L,id_SALA) * 0.0116e+0_fp * 1.d3 /
 !===     &                                 ( 40.08e+0_fp  * VOL  )
 !===
 !===            ! Total K+   (1.1% by weight of seasalt)  [mole/m3]
-!===            TK       = STT(I,J,L,id_SALA) * 0.0110e+0_fp * 1.d3 /
+!===            TK       = Spc(I,J,L,id_SALA) * 0.0110e+0_fp * 1.d3 /
 !===     &                                 ( 39.102e+0_fp * VOL  )
 !===
 !===            ! Total Mg+  (3.69% by weight of seasalt) [mole/m3]
-!===            TMG      = STT(I,J,L,id_SALA) * 0.0369e+0_fp * 1.d3 /
+!===            TMG      = Spc(I,J,L,id_SALA) * 0.0369e+0_fp * 1.d3 /
 !===     &                                 ( 24.312e+0_fp * VOL  )
 
             ! Set Ca, K, Mg to zero for time being (hotp, bmy, 2/1/10)
@@ -442,11 +462,11 @@
             !---------------------
 
             ! Compute gas-phase HNO3 [mole/m3] from HNO3 tracer
-            GNO3 = STT(I,J,L,id_HNO3)
+            GNO3 = Spc(I,J,L,id_HNO3)
             GNO3 = MAX( GNO3 * 1.e+3_fp / ( 63.e+0_fp * VOL ), CONMIN )
 
             ! Aerosol-phase NO3 [mole/m3]
-            ANO3 = STT(I,J,L,id_NIT) * 1.e+3_fp /
+            ANO3 = Spc(I,J,L,id_NIT) * 1.e+3_fp /
      &           (62.e+0_fp * VOL )
 
             ! Total NO3 [mole/m3]
@@ -505,13 +525,13 @@
          TNH4 = MAX( 18.e-3_fp * VOL * ( WT(3) - GAS(1) ), CONMIN )
          TNIT = MAX( 62.e-3_fp * VOL * ( WT(4) - GAS(2) ), CONMIN )
 
-         ! Save tracers back into STT array [kg]
-         ! no longer save TSO4 back into STT. SO4 is all aerosol phase
+         ! Save tracers back into Spc array [kg]
+         ! no longer save TSO4 back into Spc. SO4 is all aerosol phase
          ! (hotp 11/7/07)
-         ! STT(I,J,L,id_SO4) = TSO4
-         STT(I,J,L,id_NH3) = TNH3
-         STT(I,J,L,id_NH4) = TNH4
-         STT(I,J,L,id_NIT) = TNIT
+         ! Spc(I,J,L,id_SO4) = TSO4
+         Spc(I,J,L,id_NH3) = TNH3
+         Spc(I,J,L,id_NH4) = TNH4
+         Spc(I,J,L,id_NIT) = TNIT
 
          ! Special handling for HNO3 [kg]
          IF ( id_HNO3 > 0 ) THEN
@@ -520,12 +540,12 @@
             ! COUPLED SIMULATION
             !---------------------
 
-            ! HNO3 [mole/m3] is in GAS(2); convert & store in STT [kg]
-            STT(I,J,L,id_HNO3)
+            ! HNO3 [mole/m3] is in GAS(2); convert & store in Spc [kg]
+            Spc(I,J,L,id_HNO3)
      &           = MAX( 63.e-3_fp * VOL * GAS(2), CONMIN )
 
             ! Save for use in DEN_SAV expression below (sofen, 4/21/10)
-            HNO3_DEN           = STT(I,J,L,id_HNO3)
+            HNO3_DEN           = Spc(I,J,L,id_HNO3)
 
          ELSE
 
@@ -573,14 +593,14 @@
          SULRAT_SAV(I,J,L)  = OTHER(2)
          NARAT_SAV(I,J,L)   = OTHER(4)
 
-         NUM_SAV    = ( STT(I,J,L,id_NH3) /17e+0_fp         +
-     &                  STT(I,J,L,id_NH4) /18e+0_fp         +
-     &                  STT(I,J,L,id_SALA)*0.3061e+0_fp/23.0e+0_fp )
+         NUM_SAV    = ( Spc(I,J,L,id_NH3) /17e+0_fp         +
+     &                  Spc(I,J,L,id_NH4) /18e+0_fp         +
+     &                  Spc(I,J,L,id_SALA)*0.3061e+0_fp/23.0e+0_fp )
 
-         DEN_SAV    = ( STT(I,J,L,id_SO4)  / 96e+0_fp  * 2e+0_fp  +
-     &                  STT(I,J,L,id_NIT)  / 62e+0_fp             + 
+         DEN_SAV    = ( Spc(I,J,L,id_SO4)  / 96e+0_fp  * 2e+0_fp  +
+     &                  Spc(I,J,L,id_NIT)  / 62e+0_fp             + 
      &                  HNO3_DEN           / 63e+0_fp             +
-     &                  STT(I,J,L,id_SALA) *0.55e+0_fp / 35.45e+0_fp)
+     &                  Spc(I,J,L,id_SALA) *0.55e+0_fp / 35.45e+0_fp)
 
          ! Value if DEN_SAV and NUM_SAV too small.
          ACIDPUR_SAV(I,J,L) = SAFE_DIV(NUM_SAV, DEN_SAV,
@@ -592,12 +612,23 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### ISOROPIAII: a AERO_THERMO' )
 
-      ! Return to calling program
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE DO_ISOROPIAII
 !EOC
 !------------------------------------------------------------------------------

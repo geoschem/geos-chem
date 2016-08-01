@@ -1063,7 +1063,10 @@ CONTAINS
 #if defined(ESMF_)
     USE HCOI_ESMF_MOD,         ONLY : HCO_SetExtState_ESMF
 #endif
-
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+    USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !
 ! !INPUT PARAMETERS:
 !
@@ -1085,6 +1088,8 @@ CONTAINS
 !  12 Mar 2015 - R. Yantosca  - Use 0.0e0_hp when zeroing REAL(hp) variables
 !  03 Apr 2015 - C. Keller    - Now call down to ExtDat_Set for all fields
 !  02 May 2016 - R. Yantosca  - Now define IDTPOPG locally
+!  30 Jun 2016 - R. Yantosca  - Remove instances of STT.  Now get the advected
+!                               species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1094,6 +1099,15 @@ CONTAINS
     LOGICAL, SAVE      :: FIRST = .TRUE.
     INTEGER            :: HCRC
     CHARACTER(LEN=255) :: LOC = 'ExtState_SetFields (hcoi_gc_main_mod.F90)'
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+!@@@ NOTE: PUT THIS ON HOLD FOR NOW.  USING SPECIES SEEMS TO MESS UP THE 
+!@@@ HEMCO POINTERS BECAUSE SPECIES ARE IN THE WRONG UNITS (bmy, 7/22/16)
+!      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     !=================================================================
     ! ExtState_SetFields begins here
@@ -1297,6 +1311,35 @@ CONTAINS
            'AIRDEN', HCRC,      FIRST,    State_Met%AIRDEN  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
  
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+!@@@ NOTE: PUT THIS ON HOLD FOR NOW.  USING SPECIES SEEMS TO MESS UP THE 
+!@@@ HEMCO POINTERS BECAUSE SPECIES ARE IN THE WRONG UNITS (bmy, 7/22/16)
+!    IF ( id_O3 > 0 ) THEN
+!       Spc_Temp         (:,:,:,id_O3  ) = State_Chm%Species(:,:,:,id_O3  )
+!       State_Chm%Species(:,:,:,id_O3  ) = State_Chm%Tracers(:,:,:,id_O3  )
+!    ENDIF
+!    IF ( id_NO2 > 0 ) THEN
+!       Spc_Temp         (:,:,:,id_NO2 ) = State_Chm%Species(:,:,:,id_NO2 )
+!       State_Chm%Species(:,:,:,id_NO2 ) = State_Chm%Tracers(:,:,:,id_NO2 )
+!    ENDIF
+!    IF ( id_NO > 0 ) THEN
+!       Spc_Temp         (:,:,:,id_NO  ) = State_Chm%Species(:,:,:,id_NO  )
+!       State_Chm%Species(:,:,:,id_NO  ) = State_Chm%Tracers(:,:,:,id_NO  )
+!    ENDIF
+!    IF ( id_HNO3 > 0 ) THEN
+!       Spc_Temp         (:,:,:,id_HNO3) = State_Chm%Species(:,:,:,id_HNO3)
+!       State_Chm%Species(:,:,:,id_HNO3) = State_Chm%Tracers(:,:,:,id_HNO3)
+!    ENDIF
+!    IF ( id_POPG > 0 ) THEN
+!       Spc_Temp         (:,:,:,id_POPG) = State_Chm%Species(:,:,:,id_POPG)
+!       State_Chm%Species(:,:,:,id_POPG) = State_Chm%Tracers(:,:,:,id_POPG)
+!    ENDIF
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
     ! ----------------------------------------------------------------
     ! Tracer fields
     ! ----------------------------------------------------------------
@@ -1325,6 +1368,34 @@ CONTAINS
           'HEMCO_POPG', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_POPG))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+!@@@ NOTE: PUT THIS ON HOLD FOR NOW.  USING SPECIES SEEMS TO MESS UP THE 
+!@@@ HEMCO POINTERS BECAUSE SPECIES ARE IN THE WRONG UNITS (bmy, 7/22/16)
+!    IF ( id_O3 > 0 ) THEN
+!       State_Chm%Tracers(:,:,:,id_O3  ) = State_Chm%Species(:,:,:,id_O3  )
+!       State_Chm%Species(:,:,:,id_O3  ) = Spc_temp         (:,:,:,id_O3  )
+!    ENDIF
+!    IF ( id_NO2 > 0 ) THEN
+!       State_Chm%Tracers(:,:,:,id_NO2 ) = State_Chm%Species(:,:,:,id_NO2 )
+!       State_Chm%Species(:,:,:,id_NO2) = Spc_temp          (:,:,:,id_NO2 )
+!    ENDIF
+!    IF ( id_NO > 0 ) THEN
+!       State_Chm%Tracers(:,:,:,id_NO  ) = State_Chm%Species(:,:,:,id_NO  )
+!       State_Chm%Species(:,:,:,id_NO  ) = Spc_temp         (:,:,:,id_NO  )
+!    ENDIF
+!    IF ( id_HNO3 > 0 ) THEN
+!       State_Chm%Tracers(:,:,:,id_HNO3) = State_Chm%Species(:,:,:,id_HNO3)
+!       State_Chm%Species(:,:,:,id_HNO3) = Spc_temp         (:,:,:,id_HNO3)
+!    ENDIF
+!    IF ( id_POPG > 0 ) THEN
+!       State_Chm%Tracers(:,:,:,id_POPG) = State_Chm%Species(:,:,:,id_POPG)
+!       State_Chm%Species(:,:,:,id_POPG) = Spc_temp         (:,:,:,id_POPG)
+!    ENDIF
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     ! ----------------------------------------------------------------
     ! Deposition parameter

@@ -31,8 +31,6 @@
       PUBLIC  :: CLEANUP_WETSCAV
       PUBLIC  :: COMPUTE_F
       PUBLIC  :: DO_WETDEP
-      PUBLIC  :: GET_WETDEP_NSOL
-      PUBLIC  :: GET_WETDEP_IDWETD
       PUBLIC  :: INIT_WETSCAV
       PUBLIC  :: SETUP_WETSCAV
       PUBLIC  :: WASHOUT
@@ -169,6 +167,8 @@
 !                              replaced IDTXXX with IND_('XXX')
 !  20 Jun 2016 - R. Yantosca - Now define species ID's only in the INIT phase
 !  20 Jun 2016 - R. Yantosca - Renamed species ID's IDTxxxx to id_XXXX
+!  06 Jul 2016 - R. Yantosca - Removed GET_WETDEP_NSOL and GET_WETDEP_IDWETD,
+!                              these are now replaced by State_Chm fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -245,7 +245,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-#if defined( DEVEL )
+#if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
       USE TIME_MOD,           ONLY : GET_TS_DYN
@@ -295,6 +295,7 @@
 !  08 Aug 2015 - E. Lundgren - Tracer units are now input as [kg/kg]
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -339,17 +340,18 @@
       ! Only print output on the root CPU
       doPrt = ( LPRT .and. am_I_Root )
 
+#if defined( USE_TEND )
       !=================================================================
       ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
-#if defined( DEVEL )
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'WETD', .FALSE., RC )
 #endif
 
+#if   defined( NC_DIAG )
       !=================================================================
       ! For netCDF diagnostics, mirror old species
-#if   defined( NC_DIAG )
+      !=================================================================
       IF ( Input_Opt%ND39 > 0 ) THEN
          ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
          BEFORE = State_Chm%Tracers
@@ -421,10 +423,11 @@
 
 #endif
 
-      !---------------------
-      ! NetCDF diagnostics 
-      !---------------------
 #if   defined( NC_DIAG )
+      !=================================================================
+      ! NetCDF diagnostics 
+      !=================================================================
+
       ! Use ND38 as indicator for entire wet scavenging diagnostic group
       IF ( Input_Opt%ND38 > 0 ) THEN
 
@@ -480,11 +483,11 @@
       ENDIF
 #endif
 
+#if defined( USE_TEND )
       !=================================================================
       ! Calculate tendencies and write to diagnostics 
       ! (ckeller,7/15/2015)
       !=================================================================
-#if defined( DEVEL )
       DT_TEND = GET_TS_DYN() * 60.0_fp
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'WETD', .FALSE., DT_TEND, RC )
@@ -995,7 +998,7 @@
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
-      INTEGER,        INTENT(IN)    :: N          ! Tracer number
+      INTEGER,        INTENT(IN)    :: N          ! Species ID
       TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met  ! Met State object
 !
@@ -1094,6 +1097,9 @@
 !  05 Oct 2015 - R. Yantosca - Need to make ThisSpc !$OMP THREADPRIVATE
 !  06 Oct 2015 - R. Yantosca - Add missing variables for TOMAS
 !  16 Oct 2015 - E. Lundgren - Consolidate remaining embedded ifelse blocks
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!  07 Jul 2016 - R. Yantosca - Now set ISOL = -1 if not a wetdep species
+!  07 Jul 2016 - R. Yantosca - Remove pointer nullification from declarations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1101,33 +1107,28 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER                      :: N_TRACERS, I, J, L
-      REAL(fp)                     :: SO2LOSS,   Ki
+      INTEGER                  :: I, J, L
+      REAL(fp)                 :: SO2LOSS,   Ki
 #if defined( TOMAS )
-      REAL(fp)                     :: SOLFRAC,   XFRAC
+      REAL(fp)                 :: SOLFRAC,   XFRAC
 #endif
 
       ! Arrays
-      REAL(fp)                     :: KcScale(3)
+      REAL(fp)                 :: KcScale(3)
 
       ! Pointers
-      REAL(fp),      POINTER, SAVE :: p_C_H2O  => NULL()
-      REAL(fp),      POINTER, SAVE :: p_CLDICE => NULL()
-      REAL(fp),      POINTER, SAVE :: p_CLDLIQ => NULL()
-      REAL(fp),      POINTER, SAVE :: p_T      => NULL()
+      REAL(fp),      POINTER   :: p_C_H2O
+      REAL(fp),      POINTER   :: p_CLDICE
+      REAL(fp),      POINTER   :: p_CLDLIQ
+      REAL(fp),      POINTER   :: p_T
 
       ! Objects
-      TYPE(Species), POINTER, SAVE :: ThisSpc  => NULL()
-#if defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
-      ! For GEOS-4, GEOS-5, and GCAP make pointers and objects THREADPRIVATE
-      ! because COMPUTE_F is called from a parallel loop (bmy, 10/5/15)
-!$OMP THREADPRIVATE( p_C_H2O, p_CLDICE, p_CLDLIQ, p_T, ThisSpc )
-#endif
+      TYPE(Species), POINTER   :: SpcInfo
 !
 ! !DEFINED PARAMETERS:
 !
       ! Kc is the conversion rate from cloud condensate to precip [s^-1]
-      REAL(fp),      PARAMETER     :: Kc = 5e-3_fp
+      REAL(fp),      PARAMETER :: Kc = 5e-3_fp
 
       !=================================================================
       ! COMPUTE_F begins here!
@@ -1137,33 +1138,37 @@
       RC         =  GIGC_SUCCESS
 
       ! Initialize
-      N_TRACERS  =  Input_Opt%N_TRACERS
       F          =  0.0_fp
-      ISOL       =  0
+      p_C_H2O    => NULL()
+      p_CLDICE   => NULL()
+      p_CLDLIQ   => NULL()
+      p_T        => NULL()
 
       ! Get information for this species from the species database
-      ThisSpc    => State_Chm%SpcData(N)%Info
+      SpcInfo    => State_Chm%SpcData(N)%Info
+
+      ! ISOL is the wetdep ID (will be -999 if not a wetdep species)
+      ISOL       =  SpcInfo%WetDepId
 
       ! Exit with F=0, ISOL=0 if this is not a wetdep species
-      IF ( .not. ThisSpc%Is_WetDep ) THEN
-         ThisSpc => NULL()
+      IF ( .not. SpcInfo%Is_WetDep ) THEN
+         SpcInfo => NULL()
          RETURN
       ENDIF
 
       ! Temperature-dependent scale factors for the KC rate
       ! (conversion of cloud condensate -> precipitation)
-      KcScale    = ThisSpc%WD_KcScaleFac
+      KcScale    = SpcInfo%WD_KcScaleFac
 
       !=================================================================
       ! %%% SPECIAL CASE %%%
       ! SO2 scavenges like an aerosol although it is considered
       ! to be a gas-phase species elsewhere (e.g. dry deposition)
       !=================================================================
-      IF ( ThisSpc%WD_Is_SO2 ) THEN
+      IF ( SpcInfo%WD_Is_SO2 ) THEN
 
          ! Compute fraction of SO2 scavenged
          CALL F_AEROSOL( KC, KcScale, State_Met, F )
-         ISOL = GET_ISOL( N, N_TRACERS )
 
          !--------------------------------------------------------------
          ! Coupled full chemistry/aerosol simulation:
@@ -1218,7 +1223,7 @@
       ! fraction of HNO3 scavenged out of the column further down
       ! in the last ELSE block.
       !--------------------------------------------------------------
-      ELSE IF ( ThisSpc%Is_Gas .and. ( .not. ThisSpc%WD_Is_HNO3 ) ) THEN
+      ELSE IF ( SpcInfo%Is_Gas .and. ( .not. SpcInfo%WD_Is_HNO3 ) ) THEN
 
          ! No scavenging at the surface
          F(:,:,1) = 0.0_fp
@@ -1236,7 +1241,7 @@
 
             ! Compute Ki, the loss rate of a gas-phase species from
             ! the convective updraft (Eq. 1, Jacob et al, 2000)
-            CALL COMPUTE_Ki( ThisSpc,  p_C_H2O, p_CLDICE,
+            CALL COMPUTE_Ki( SpcInfo,  p_C_H2O, p_CLDICE,
      &                       p_CLDLIQ, Kc,      p_T,      Ki )
 
             ! Free pointers
@@ -1253,14 +1258,11 @@
          ENDDO
          ENDDO
          
-         ! ND38 index
-         ISOL = GET_ISOL( N, N_TRACERS )
-
       !-----------------------------------------------------------
       ! Size-resolved soluble aerosol species
       ! (Microphysics simulations only)
       !-----------------------------------------------------------
-      ELSE IF ( ThisSpc%MP_SizeResAer ) THEN
+      ELSE IF ( SpcInfo%MP_SizeResAer ) THEN
 
 #if defined( TOMAS )
          ! Get the fraction of tracer scavenged in updrafts
@@ -1278,14 +1280,14 @@
          ENDDO
          ENDDO
          ENDDO
-         ISOL = GET_ISOL( N, N_TRACERS )
+
 #endif
 
       !-----------------------------------------------------------
       ! Size-resolved aerosol number
       ! (Microphysics simulations only)
       !-----------------------------------------------------------
-      ELSE IF ( ThisSpc%MP_SizeResNum ) THEN
+      ELSE IF ( SpcInfo%MP_SizeResNum ) THEN
 
 #if defined( TOMAS )
          ! Get the fraction of tracer scavenged in updrafts
@@ -1304,7 +1306,7 @@
          ENDDO
          ENDDO
          ENDDO
-         ISOL = GET_ISOL( N, N_TRACERS )
+
 #endif
 
       !-----------------------------------------------------------
@@ -1322,17 +1324,18 @@
          ! Multiply by the aerosol scavenging efficiency
          ! For most species this is 1.0
          ! For SOA species this is usually 0.8
-         IF ( ThisSpc%WD_AerScavEff > 0.0_fp ) THEN
-            F = F * ThisSpc%WD_AerScavEff
+         IF ( SpcInfo%WD_AerScavEff > 0.0_fp ) THEN
+            F = F * SpcInfo%WD_AerScavEff
          ENDIF
-
-         ! Wetdep species index for ND38 diagnostic
-         ISOL = GET_ISOL( N, N_TRACERS )
 
       ENDIF
 
       ! Nullify pointers
-      ThisSpc  => NULL()
+      p_C_H2O   => NULL()
+      p_CLDICE  => NULL()
+      p_CLDLIQ  => NULL()
+      p_T       => NULL()
+      SpcInfo   => NULL()
 
       END SUBROUTINE COMPUTE_F
 !EOC
@@ -1349,7 +1352,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COMPUTE_Ki( ThisSpc, C_H2O, CLDICE, CLDLIQ, Kc, T, Ki )
+      SUBROUTINE COMPUTE_Ki( SpcInfo, C_H2O, CLDICE, CLDLIQ, Kc, T, Ki )
 !
 ! !USES:
 !
@@ -1357,7 +1360,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(Species), INTENT(IN)  :: ThisSpc  ! Species database object
+      TYPE(Species), INTENT(IN)  :: SpcInfo  ! Species database object
       REAL(fp),      INTENT(IN)  :: C_H2O    ! Mixing ratio of H2O [v/v]
       REAL(fp),      INTENT(IN)  :: CLDICE   ! Cloud ice mixing ratio
                                              !  [cm3 ice/cm3 air]
@@ -1380,6 +1383,7 @@
 !  25 Sep 2015 - R. Yantosca - Initial version
 !  08 Dec 2015 - R. Yantosca - Make K0, CR, pKa 8-byte variables for
 !                              compatibility w/ CALC_KH, CALC_HEFF routines
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1395,17 +1399,17 @@
       !=================================================================
 
       ! Get Henry's law parameters
-      K0   = ThisSpc%Henry_K0
-      CR   = ThisSpc%Henry_CR
-      pKa  = ThisSpc%Henry_pKa
+      K0   = SpcInfo%Henry_K0
+      CR   = SpcInfo%Henry_CR
+      pKa  = SpcInfo%Henry_pKa
 
-      IF ( ThisSpc%WD_LiqAndGas ) THEN
+      IF ( SpcInfo%WD_LiqAndGas ) THEN
 
          ! For species that consider ice and liquid phases
          ! in wet deposition, compute ice to gas ratio for by
          ! co-condensation (Eq. 9, Jacob et al, 2000)
          IF ( C_H2O > 0.0_fp ) THEN
-            I2G = ( CLDICE / C_H2O ) * ThisSpc%WD_ConvFacI2G
+            I2G = ( CLDICE / C_H2O ) * SpcInfo%WD_ConvFacI2G
          ELSE
             I2G = 0.0_fp
          ENDIF
@@ -1434,7 +1438,7 @@
          Ki = KC * ( F_L + F_I )
 
       ELSE IF ( T > 248.0_fp  .and. T < 268.0_fp ) THEN
-         Ki = KC * ( ( ThisSpc%WD_RetFactor * F_L ) + F_I )
+         Ki = KC * ( ( SpcInfo%WD_RetFactor * F_L ) + F_I )
 
       ELSE
          Ki = KC * F_I
@@ -1549,88 +1553,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_isol
-!
-! !DESCRIPTION: Function GET\_ISOL returns the value of ISOL (tracer index for 
-!  ND38) for all simulation types.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_ISOL( N_TEST, N_TRACERS ) RESULT( VALUE )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD                 ! Size parameters
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: N_TEST    ! Tracer number to look up
-      INTEGER, INTENT(IN) :: N_TRACERS ! # of GEOS_Chem tracers
-!
-! !RETURN VALUE:
-!
-      INTEGER             :: VALUE     ! Index for ND38 diagnostic
-
-!
-! !REVISION HISTORY: 
-!  05 Apr 2004 - R. Yantosca - Initial version
-!  (1 ) Now initializes a lookup table for faster execution.  Now made into
-!        an EXTERNAL function. (rjp, bmy, 4/5/04)
-!  (2 ) Now references N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
-!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER, SAVE :: NSOL_INDEX(NNPAR)
-      INTEGER       :: I, L, N
-
-      !=================================================================
-      ! GET_ISOL begins here!
-      !=================================================================
-
-      ! Initialize lookup table on the first call
-      IF ( FIRST ) THEN
-      
-         ! Initialize
-         NSOL_INDEX(:) = 0
-   
-         ! Loop over tracers
-         DO N = 1, N_TRACERS
-            
-            ! Loop over soluble tracers
-            DO L = 1, NSOL
-
-               ! Test if tracer N is among the soluble tracers
-               IF ( IDWETD(L) == N ) THEN
-
-                  ! Save location into the lookup table
-                  NSOL_INDEX(N) = L 
-
-                  !Go to next N
-                  EXIT
-               ENDIF
-            ENDDO
-         ENDDO
-
-         ! Reset first-time flag
-         FIRST = .FALSE.
-      ENDIF
-
-      ! Return value
-      VALUE = NSOL_INDEX(N_TEST)
-
-      END FUNCTION GET_ISOL
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: rainout
 !
 ! !DESCRIPTION: Subroutine RAINOUT computes RAINFRAC, the fraction of soluble 
@@ -1735,6 +1657,9 @@
 !                              to flag the special cases of HNO3 & SO2 wetdep
 !  16 Oct 2015 - E. Lundgren - Use ThisSpc%WD_Is_H2SO4 to treat H2SO4 as
 !                              aerosol for wetdep (for microphysics)
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!   7 Jul 2016 - R. Yantosca - Now remove pointer threadprivate declarations
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1742,20 +1667,29 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      REAL(fp)                     :: Ki, SO2LOSS
+      REAL(fp)               :: Ki, SO2LOSS
 
-      ! Pointers (add SAVE to make them THREADPRIVATE)
-      REAL(fp),      POINTER, SAVE :: p_C_H2O  => NULL()
-      REAL(fp),      POINTER, SAVE :: p_CLDICE => NULL()
-      REAL(fp),      POINTER, SAVE :: p_CLDLIQ => NULL()
-      REAL(fp),      POINTER, SAVE :: p_T      => NULL()
+!      ! Pointers (add SAVE to make them THREADPRIVATE)
+!      REAL(fp),      POINTER, SAVE :: p_C_H2O  => NULL()
+!      REAL(fp),      POINTER, SAVE :: p_CLDICE => NULL()
+!      REAL(fp),      POINTER, SAVE :: p_CLDLIQ => NULL()
+!      REAL(fp),      POINTER, SAVE :: p_T      => NULL()
+!
+!      ! Objects
+!      TYPE(Species), POINTER, SAVE :: SpcInfo  => NULL()
+!
+!      ! Need to declare the pointers and objects THREADPRIVATE
+!      ! because RAINOUT is called from within a parallel loop
+!!$OMP THREADPRIVATE( p_C_H2O, p_CLDICE, p_CLDLIQ, p_T, SpcInfo )
+
+      ! Pointers
+      REAL(fp),      POINTER :: p_C_H2O
+      REAL(fp),      POINTER :: p_CLDICE
+      REAL(fp),      POINTER :: p_CLDLIQ
+      REAL(fp),      POINTER :: p_T
 
       ! Objects
-      TYPE(Species), POINTER, SAVE :: ThisSpc  => NULL()
-
-      ! Need to declare the pointers and objects THREADPRIVATE
-      ! because RAINOUT is called from within a parallel loop
-!$OMP THREADPRIVATE( p_C_H2O, p_CLDICE, p_CLDLIQ, p_T, ThisSpc )
+      TYPE(Species), POINTER :: SpcInfo
 
       !==================================================================
       ! RAINOUT begins here!
@@ -1765,18 +1699,18 @@
       !==================================================================
 
       ! Set pointers
-      p_C_H2O  => C_H2O (I,J,L)
+      p_C_H2O  => C_H2O(I,J,L)
       p_CLDICE => CLDICE(I,J,L)
       p_CLDLIQ => CLDLIQ(I,J,L)
       p_T      => State_Met%T(I,J,L)
-      ThisSpc  => State_Chm%SpcData(N)%Info
+      SpcInfo  => State_Chm%SpcData(N)%Info
 
       !=================================================================
       ! %%% SPECIAL CASE %%%
       ! SO2 scavenges like an aerosol although it is considered
       ! to be a gas-phase species elsewhere (e.g. dry deposition)
       !=================================================================
-      IF ( ThisSpc%WD_Is_SO2 ) THEN
+      IF ( SpcInfo%WD_Is_SO2 ) THEN
   
          ! Update SO2 and H2O2
          IF ( SO2s(I,J,L) > TINY_FP ) THEN 
@@ -1786,7 +1720,7 @@
 
             ! Apply temperature-dependent rainout efficiencies
             ! This accounts for impaction scavenging of certain aerosols
-            CALL APPLY_RAINOUT_EFF( p_T, ThisSpc, RAINFRAC )
+            CALL APPLY_RAINOUT_EFF( p_T, SpcInfo, RAINFRAC )
 
             ! Limit RAINFRAC 
             SO2LOSS      = MIN( SO2s(I,J,L), H2O2s(I,J,L) )
@@ -1813,12 +1747,13 @@
       ! Compute rainout fraction for soluble gas-phase species
       ! (except for HNO3 and H2SO4 which scavenge like aerosols)
       !=================================================================
-      ELSE IF ( ThisSpc%Is_Gas .and. ( .not. ThisSpc%WD_Is_HNO3 ) 
-     &          .and. ( .not. ThisSpc%WD_Is_H2SO4 ) ) THEN  
+      ELSE IF ( SpcInfo%Is_Gas                 .and. 
+     &          ( .not. SpcInfo%WD_Is_HNO3 )   .and. 
+     &          ( .not. SpcInfo%WD_Is_H2SO4 ) ) THEN  
 
          ! Compute Ki, the loss rate of a gas-phase species from
          ! the convective updraft (Eq. 1, Jacob et al, 2000)
-         CALL COMPUTE_Ki( ThisSpc,  p_C_H2O, p_CLDICE,
+         CALL COMPUTE_Ki( SpcInfo,  p_C_H2O, p_CLDICE,
      &                    p_CLDLIQ, K_RAIN,  p_T,      Ki )
 
 
@@ -1837,7 +1772,7 @@
 
          ! Apply temperature-dependent rainout efficiencies
          ! This accounts for impaction scavenging of certain aerosols
-         CALL APPLY_RAINOUT_EFF( p_T, ThisSpc, RAINFRAC )
+         CALL APPLY_RAINOUT_EFF( p_T, SpcInfo, RAINFRAC )
 
       ENDIF
 
@@ -1846,7 +1781,7 @@
       p_CLDICE => NULL()
       p_CLDLIQ => NULL()
       p_T      => NULL()
-      ThisSpc  => NULL()
+      SpcInfo  => NULL()
 
       END SUBROUTINE RAINOUT
 !EOC
@@ -1872,7 +1807,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE APPLY_RAINOUT_EFF( TK, ThisSpc, RainFrac )
+      SUBROUTINE APPLY_RAINOUT_EFF( TK, SpcInfo, RainFrac )
 !
 ! !USES:
 !
@@ -1881,7 +1816,7 @@
 ! !INPUT PARAMETERS: 
 !
       REAL(fp),      INTENT(IN)    :: TK         ! Temperature [K]
-      TYPE(Species), INTENT(IN)    :: ThisSpc    ! Species Database object
+      TYPE(Species), INTENT(IN)    :: SpcInfo    ! Species Database object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -1900,17 +1835,17 @@
       IF ( TK < 237.0_fp ) THEN 
 
          ! Ice: T < 237 K
-         RainFrac = RainFrac * ThisSpc%WD_RainoutEff(1)
+         RainFrac = RainFrac * SpcInfo%WD_RainoutEff(1)
 
       ELSE IF ( TK >= 237.0_fp .and. TK < 258.0_fp ) THEN
 
          ! Snow: 237 K <= T < 258 K
-         RainFrac = RainFrac * ThisSpc%WD_RainoutEff(2)
+         RainFrac = RainFrac * SpcInfo%WD_RainoutEff(2)
 
       ELSE
             
          ! Liquid rain: T > 258 K
-         RainFrac = RainFrac * ThisSpc%WD_RainoutEff(3)
+         RainFrac = RainFrac * SpcInfo%WD_RainoutEff(3)
 
       ENDIF
 
@@ -2109,17 +2044,16 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( TOMAS )
-      LOGICAL           :: UNITCHANGE_KGKG ! flag for STT units kg/kg
-      LOGICAL           :: UNITCHANGE_KGM2 ! flag for STT units kg/m2 
-#endif
-
       ! Scalars
+#if defined( TOMAS )
+      LOGICAL                :: UNITCHANGE_KGKG ! flag for STT units kg/kg
+      LOGICAL                :: UNITCHANGE_KGM2 ! flag for STT units kg/m2 
+#endif
       REAL(fp)               :: L2G, DZ, SO2LOSS
       REAL(fp)               :: K0,  CR, pKa
 
       ! Pointers
-      TYPE(Species), POINTER :: ThisSpc
+      TYPE(Species), POINTER :: SpcInfo
 
       !=================================================================
       ! WASHOUT begins here!
@@ -2161,14 +2095,14 @@
       DZ      =  BXHEIGHT * 1e+2_fp
 
       ! Get info about Nth species from the species database
-      ThisSpc => State_Chm%SpcData(N)%Info
+      SpcInfo => State_Chm%SpcData(N)%Info
       
       !=================================================================
       ! %%% SPECIAL CASE %%%
       ! HNO3 scavenges like an aerosol although it is considered
       ! to be a gas-phase species elsewhere (e.g. dry deposition)
       !=================================================================
-      IF ( ThisSpc%WD_Is_HNO3 ) THEN
+      IF ( SpcInfo%WD_Is_HNO3 ) THEN
 
          ! Washout is a kinetic process
          KIN      = .TRUE.
@@ -2181,7 +2115,7 @@
       ! SO2 scavenges like an aerosol although it is considered
       ! to be a gas-phase species elsewhere (e.g. dry deposition)
       !=================================================================
-      ELSE IF ( ThisSpc%WD_Is_SO2 ) THEN
+      ELSE IF ( SpcInfo%WD_Is_SO2 ) THEN
 
          ! NOTE: Even though SO2 is not an aerosol we treat it as SO4 in
          ! wet scavenging.  When evaporation occurs, it returns to SO4.
@@ -2222,13 +2156,13 @@
       ! NO3 and SO2 are handled above and H2SO4 is handled in TOMAS 
       ! block further below)
       !--------------------------------------------------------------
-      ELSE IF ( ThisSpc%Is_Gas .and.
-     &        ( .not. ThisSpc%WD_Is_H2SO4 ) ) THEN
+      ELSE IF ( SpcInfo%Is_Gas .and.
+     &        ( .not. SpcInfo%WD_Is_H2SO4 ) ) THEN
 
          ! Get Henry's law parameters
-         K0  = ThisSpc%Henry_K0
-         CR  = ThisSpc%Henry_CR
-         pKa = ThisSpc%Henry_pKa
+         K0  = SpcInfo%Henry_K0
+         CR  = SpcInfo%Henry_CR
+         pKa = SpcInfo%Henry_pKa
 
          ! Washout is an equilibrium process
          KIN = .FALSE.
@@ -2242,7 +2176,7 @@
       ! size-resolved aerosol number (e.g. from TOMAS)
       ! NOTE: treat H2SO4 as an aerosol for wetdep in TOMAS
       !-----------------------------------------------------------
-      ELSE IF ( ThisSpc%MP_SizeResAer .or. ThisSpc%MP_SizeResNum ) THEN
+      ELSE IF ( SpcInfo%MP_SizeResAer .or. SpcInfo%MP_SizeResNum ) THEN
 
 #if defined( TOMAS )
          ! Washout is a kinetic process
@@ -2256,7 +2190,7 @@
       !-----------------------------------------------------------
       ! Washout for coarse aerosol species (Reff >= 1um)
       !-----------------------------------------------------------
-      ELSE IF ( ThisSpc%WD_CoarseAer ) THEN
+      ELSE IF ( SpcInfo%WD_CoarseAer ) THEN
          
          ! Washout is a kinetic process
          KIN      = .TRUE.
@@ -2298,7 +2232,7 @@
 #endif
 
       ! Free pointer
-      ThisSpc => NULL()
+      SpcInfo => NULL()
 
       END SUBROUTINE WASHOUT
 !EOC
@@ -3007,6 +2941,10 @@
 !  22 Apr 2016 - R. Yantosca - Now get Is_Hg2, Is_HgP from species database
 !  25 Apr 2016 - R. Yantosca - Now get the Hg category # from species database
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  30 Jun 2016 - R. Yantosca - Replace STT with Spc and DSTT with DSpc
+!  05 Jul 2016 - R. Yantosca - Now replace IDWETD with State_Chm%Map_Wetdep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3014,59 +2952,80 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL, SAVE      :: FIRST = .TRUE.
-      LOGICAL            :: IS_Hg
-      LOGICAL            :: KIN
-      INTEGER            :: I,     IDX,    J,         L
-      INTEGER            :: N,     NN,     Hg_Cat
-      REAL(fp)           :: Q,     QDOWN,  DT,        DT_OVER_TAU
-      REAL(fp)           :: K,     K_MIN,  K_RAIN,    RAINFRAC
-      REAL(fp)           :: F,     FTOP,   F_PRIME,   WASHFRAC
-      REAL(fp)           :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
-      REAL(fp)           :: ALPHA, ALPHA2, WETLOSS,   TMP
-      REAL(fp)           :: F_RAINOUT,     F_WASHOUT
-      REAL(fp)           :: DEP_HG
+      LOGICAL, SAVE          :: FIRST = .TRUE.
+      LOGICAL                :: IS_Hg
+      LOGICAL                :: KIN
+      INTEGER                :: I,     IDX,    J,         L
+      INTEGER                :: N,     NW,     Hg_Cat
+      INTEGER                :: NA,    nAdvect
+      REAL(fp)               :: Q,     QDOWN,  DT,        DT_OVER_TAU
+      REAL(fp)               :: K,     K_MIN,  K_RAIN,    RAINFRAC
+      REAL(fp)               :: F,     FTOP,   F_PRIME,   WASHFRAC
+      REAL(fp)               :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
+      REAL(fp)               :: ALPHA, ALPHA2, WETLOSS,   TMP
+      REAL(fp)               :: F_RAINOUT,     F_WASHOUT
+      REAL(fp)               :: DEP_HG
 
       ! Arrays
       ! DSTT is the accumulator array of rained-out 
       ! soluble tracer for a given (I,J) column
-      REAL(fp)           :: DSTT(NSOL,LLPAR,IIPAR,JJPAR)
+      REAL(fp)               :: DSpc(NSOL,LLPAR,IIPAR,JJPAR)
 
       ! Strings
-      CHARACTER(LEN=255) :: ERRMSG
+      CHARACTER(LEN=255)     :: ERRMSG
 
       ! Pointers
-      REAL(fp),      POINTER :: STT(:,:,:,:)
-      TYPE(Species), POINTER :: ThisSpc
+      REAL(fp),      POINTER :: Spc(:,:,:,:)
+      TYPE(Species), POINTER :: SpcInfo
 
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Is this a mercury simulation?
       IS_Hg = ( ITS_A_MERCURY_SIM )
 
       ! Initialize pointers
-      STT     => NULL()
-      ThisSpc => NULL()
+      Spc     => NULL()
+      SpcInfo => NULL()
 
       ! Convert tracer concentration from mixing ratio (kg/kg dry air) to
       ! mass per unit area (kg/m2) for wet deposition since computation is
       ! done per column (ewl, 9/8/15)
       CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,           
-     &                               State_Met, State_Chm, RC )   
+     &                              State_Met, State_Chm, RC )   
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP in wetscav_mod.F')
          RETURN
       ENDIF  
 
-      ! Initialize GEOS-Chem tracer array [kg/m2] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+      ! Point to chemical species array [kg/m2]
+      Spc => State_Chm%Species
 
       ! Dynamic timestep [s]
-      DT    = GET_TS_DYN() * 60e+0_fp
+      DT  = GET_TS_DYN() * 60e+0_fp
       
       ! Select index for diagnostic arrays -- will archive either
       ! large-scale or convective rainout/washout fractions
@@ -3083,8 +3042,8 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,       J,       FTOP,      ERRMSG,    F          )
 !$OMP+PRIVATE( F_PRIME, K_RAIN,  L,         Q,         QDOWN      )
-!$OMP+PRIVATE( NN,      N,       F_RAINOUT, F_WASHOUT             )
-!$OMP+PRIVATE( DEP_HG,  ThisSpc, Hg_Cat                           )
+!$OMP+PRIVATE( NW,      N,       F_RAINOUT, F_WASHOUT             )
+!$OMP+PRIVATE( DEP_HG,  SpcInfo, Hg_Cat                           )
 !$OMP+SCHEDULE( DYNAMIC )   
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -3094,8 +3053,8 @@
 
          ! Zero accumulator array
          DO L  = 1, LLPAR
-         DO NN = 1, NSOL
-            DSTT(NN,L,I,J) = 0e+0_fp
+         DO NW = 1, NSOL
+            DSpc(NW,L,I,J) = 0e+0_fp
          ENDDO
          ENDDO
 
@@ -3145,7 +3104,7 @@
             IF ( F > 0e+0_fp ) THEN 
                CALL DO_RAINOUT_ONLY( am_I_Root, LS,        I, J, L,         
      &                               IDX,       ERRMSG,    F,    
-     &                               K_RAIN,    DT,        DSTT,   
+     &                               K_RAIN,    DT,        DSpc,   
      &                               Input_Opt, State_Met, State_Chm,
      &                               RC                              )
             ENDIF
@@ -3268,7 +3227,7 @@
                ! Do rainout if we meet the above criteria
                CALL DO_RAINOUT_ONLY( am_I_Root, LS,        I, J, L, 
      &                               IDX,       ERRMSG,    F_RAINOUT, 
-     &                               K_RAIN,    DT,        DSTT,      
+     &                               K_RAIN,    DT,        DSpc,      
      &                               Input_Opt, State_Met, State_Chm,
      &                               RC                              )
             ENDIF
@@ -3309,7 +3268,7 @@
                CALL DO_WASHOUT_ONLY( am_I_Root, LS,        I, J, L,         
      &                               IDX,       ERRMSG,    QDOWN,     
      &                               Q,         F_WASHOUT, F_RAINOUT, 
-     &                               DT,        PDOWN,     DSTT,      
+     &                               DT,        PDOWN,     DSpc,      
      &                               Input_Opt, State_Met, State_Chm, 
      &                               RC                              )
             ENDIF
@@ -3337,7 +3296,7 @@
                ! Re-evaporate all of the rain
                CALL DO_COMPLETE_REEVAP( am_I_Root, LS,        I, J, L,         
      &                                  IDX,       ERRMSG,    DT,
-     &                                  DSTT,      Input_Opt, State_Met, 
+     &                                  DSpc,      Input_Opt, State_Met, 
      &                                  State_Chm, RC        )
             ENDIF 
 
@@ -3379,7 +3338,7 @@
             IF ( F > 0e+0_fp ) THEN
                CALL DO_WASHOUT_AT_SFC( am_I_Root, LS,        I, J, L,         
      &                                 IDX,       ERRMSG,    QDOWN,   
-     &                                 F,         DT,        DSTT,  
+     &                                 F,         DT,        DSpc,  
      &                                 Input_Opt, State_Met, State_Chm, 
      &                                 RC                             )
             ENDIF    
@@ -3395,29 +3354,29 @@
          ! NOTES:
          ! (a) Now moved outside the loop above for clarity and to 
          !      fix a bug where HgP scavenging was not recorded. 
-         ! (b) The values of DSTT in the first layer accumulates all 
+         ! (b) The values of DSpc in the first layer accumulates all 
          !      scavenging and washout in the column
          ! (c) Updates from cdh. (ccc, 5/17/10)
          !==============================================================
          IF ( IS_Hg ) THEN
 
             ! Loop over soluble tracers and/or aerosol tracers
-            DO NN = 1, NSOL
+            DO NW = 1, State_Chm%nWetDep
 
-               ! Convert wetdep index to advected tracer index
-               N      = IDWETD(NN)
+               ! Get species ID from wetdep ID
+               N      = State_Chm%Map_WetDep(NW)
 
                ! Amount of Hg deposited out of the column
-               DEP_HG = DSTT(NN,1,I,J)
+               DEP_HG = DSpc(NW,1,I,J)
 
                ! Point to the Species Database entry for tracer N
-               ThisSpc => State_Chm%SpcData(N)%Info
+               SpcInfo => State_Chm%SpcData(N)%Info
 
                ! Check if it is a gaseous Hg2 tag
-               IF ( ThisSpc%Is_Hg2 ) THEN
+               IF ( SpcInfo%Is_Hg2 ) THEN
                   
                   ! Get the category # for this Hg2 tracer
-                  Hg_Cat = ThisSpc%Hg_Cat
+                  Hg_Cat = SpcInfo%Hg_Cat
                   
                   ! Archive wet-deposited Hg2
                   CALL ADD_Hg2_WD      ( I, J, Hg_Cat, DEP_HG    )
@@ -3425,10 +3384,10 @@
      &                                                 State_Met )
 
                ! Check if it is a HgP tag
-               ELSE IF ( ThisSpc%Is_HgP ) THEN 
+               ELSE IF ( SpcInfo%Is_HgP ) THEN 
                                     
                   ! Get the category # for this HgP tracer
-                  Hg_Cat = ThisSpc%Hg_Cat
+                  Hg_Cat = SpcInfo%Hg_Cat
 
                   ! Archive wet-deposited HgP
                   CALL ADD_HgP_WD      ( I, J, Hg_Cat, DEP_HG    )
@@ -3438,13 +3397,26 @@
                ENDIF
 
                ! Free pointer
-               ThisSpc => NULL()
+               SpcInfo => NULL()
             ENDDO
          ENDIF
 
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Convert tracer units back to mixing ratio (ewl, 9/8/15)
       CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,           
@@ -3456,7 +3428,7 @@
       ENDIF  
 
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( Spc )
 
       END SUBROUTINE WETDEP
 !EOC
@@ -3633,6 +3605,11 @@
 !  22 Apr 2016 - R. Yantosca - Now get Is_Hg2, Is_HgP from species database
 !  25 Apr 2016 - R. Yantosca - Now get the Hg category # from species database
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  30 Jun 2016 - R. Yantosca - Replace STT with Spc and DSTT with DSpc
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!  05 Jul 2016 - R. Yantosca - Now replace IDWETD with State_Chm%Map_Wetdep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3640,31 +3617,37 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL, SAVE      :: FIRST = .TRUE.
-      LOGICAL            :: IS_Hg
-      LOGICAL            :: KIN
-      LOGICAL            :: IS_RAINOUT, IS_WASHOUT, IS_BOTH
-      INTEGER            :: I,     IDX,    J,         L
-      INTEGER            :: N,     NN,     Hg_Cat
-      REAL(fp)           :: Q,     QDOWN,  DT,        DT_OVER_TAU
-      REAL(fp)           :: K,     K_MIN,  K_RAIN,    RAINFRAC
-      REAL(fp)           :: F,     FTOP,   F_PRIME,   WASHFRAC
-      REAL(fp)           :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
-      REAL(fp)           :: ALPHA, ALPHA2, WETLOSS,   TMP
-      REAL(fp)           :: F_RAINOUT,     F_WASHOUT 
-      REAL(fp)           :: DEP_HG
+      LOGICAL, SAVE          :: FIRST = .TRUE.
+      LOGICAL                :: IS_Hg
+      LOGICAL                :: KIN
+      LOGICAL                :: IS_RAINOUT, IS_WASHOUT, IS_BOTH
+      INTEGER                :: I,     IDX,    J,         L
+      INTEGER                :: N,     NW,     Hg_Cat
+      INTEGER                :: NA,    nAdvect
+      REAL(fp)               :: Q,     QDOWN,  DT,        DT_OVER_TAU
+      REAL(fp)               :: K,     K_MIN,  K_RAIN,    RAINFRAC
+      REAL(fp)               :: F,     FTOP,   F_PRIME,   WASHFRAC
+      REAL(fp)               :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
+      REAL(fp)               :: ALPHA, ALPHA2, WETLOSS,   TMP
+      REAL(fp)               :: F_RAINOUT,     F_WASHOUT 
+      REAL(fp)               :: DEP_HG
 
       ! Arrays
-      ! DSTT is the accumulator array of rained-out 
+      ! DSpc is the accumulator array of rained-out 
       ! soluble tracer for a given (I,J) column
-      REAL(fp)           :: DSTT(NSOL,LLPAR,IIPAR,JJPAR)
+      REAL(fp)               :: DSpc(NSOL,LLPAR,IIPAR,JJPAR)
  
       ! Strings
-      CHARACTER(LEN=255) :: ERRMSG
+      CHARACTER(LEN=255)     :: ERRMSG
 
       ! Pointers
-      REAL(fp),      POINTER :: STT(:,:,:,:)
-      TYPE(Species), POINTER :: ThisSpc
+      REAL(fp),      POINTER :: Spc(:,:,:,:)
+      TYPE(Species), POINTER :: SpcInfo
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
@@ -3674,26 +3657,38 @@
       IS_Hg = ITS_A_MERCURY_SIM
 
       ! Initialize pointers
-      STT     => NULL()
-      ThisSpc => NULL()
+      Spc     => NULL()
+      SpcInfo => NULL()
 
       ! Convert tracer concentration from mixing ratio (kg/kg dry air) to
       ! mass per unit area (kg/m2) for wet deposition since computation is
       ! done per column (ewl, 9/8/15)
       CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,
-     &                               State_Met, State_Chm, RC )
+     &                              State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP_MERRA in wetscav_mod.F')
          RETURN
       ENDIF  
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Dynamic timestep [s]
-      DT    = GET_TS_DYN() * 60e+0_fp
+      DT  = GET_TS_DYN() * 60e+0_fp
       
       ! Select index for diagnostic arrays -- will archive either
       ! large-scale or convective rainout/washout fractions
@@ -3709,10 +3704,10 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,           J,          FTOP,        L          )    
-!$OMP+PRIVATE( NN,          ERRMSG,     F,           F_PRIME    )
+!$OMP+PRIVATE( NW,          ERRMSG,     F,           F_PRIME    )
 !$OMP+PRIVATE( F_RAINOUT,   F_WASHOUT,  K_RAIN,      Q          )       
 !$OMP+PRIVATE( QDOWN,       IS_RAINOUT, IS_WASHOUT,  N          ) 
-!$OMP+PRIVATE( DEP_HG,      ThisSpc,    Hg_Cat                  )
+!$OMP+PRIVATE( DEP_HG,      SpcInfo,    Hg_Cat                  )
 !$OMP+SCHEDULE( DYNAMIC )   
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -3730,8 +3725,8 @@
 
          ! Zero accumulator array
          DO L  = 1, LLPAR
-         DO NN = 1, NSOL
-            DSTT(NN,L,I,J) = 0e+0_fp
+         DO NW = 1, NSOL
+            DSpc(NW,L,I,J) = 0e+0_fp
          ENDDO
          ENDDO
 
@@ -3770,7 +3765,7 @@
             IF ( F > 0e+0_fp ) THEN 
                CALL DO_RAINOUT_ONLY( am_I_Root, LS,        I, J, L,         
      &                               IDX,       ERRMSG,    F,    
-     &                               K_RAIN,    DT,        DSTT,   
+     &                               K_RAIN,    DT,        DSpc,   
      &                               Input_Opt, State_Met, State_Chm,   
      &                               RC                              )
             ENDIF
@@ -3879,7 +3874,7 @@
                ! Do rainout if we meet the above criteria
                CALL DO_RAINOUT_ONLY( am_I_Root, LS,        I, J, L,         
      &                               IDX,       ERRMSG,    F_RAINOUT, 
-     &                               K_RAIN,    DT,        DSTT,   
+     &                               K_RAIN,    DT,        DSpc,   
      &                               Input_Opt, State_Met, State_Chm,   
      &                               RC                              )
             ENDIF  
@@ -3897,7 +3892,7 @@
                CALL DO_WASHOUT_ONLY( am_I_Root, LS,        I, J, L,    
      &                               IDX,       ERRMSG,    QDOWN,     
      &                               Q,         F_WASHOUT, F_RAINOUT, 
-     &                               DT,        PDOWN,     DSTT,      
+     &                               DT,        PDOWN,     DSpc,      
      &                               Input_Opt, State_Met, State_Chm, 
      &                               RC                              )
 
@@ -3922,14 +3917,14 @@
 
                ! No precipitation at grid box (I,J,L), thus F = 0
                F = 0e+0_fp
-               
+              
                ! Error message
                ERRMSG = 'RESUSPENSION in middle levels'
 
-! Re-evaporate all of the rain
+               ! Re-evaporate all of the rain
                CALL DO_COMPLETE_REEVAP( am_I_Root, LS,        I, J, L,         
      &                                  IDX,       ERRMSG,    DT,
-     &                                  DSTT,      Input_Opt, State_Met, 
+     &                                  DSpc,      Input_Opt, State_Met, 
      &                                  State_Chm, RC       )
             ENDIF 
 
@@ -3967,7 +3962,7 @@
             IF ( F > 0e+0_fp ) THEN
                CALL DO_WASHOUT_AT_SFC( am_I_Root, LS,        I, J, L,
      &                                 IDX,       ERRMSG,    QDOWN,     
-     &                                 F,         DT,        DSTT,      
+     &                                 F,         DT,        DSpc,      
      &                                 Input_Opt, State_Met, State_Chm, 
      &                                 RC                              )
 
@@ -3984,29 +3979,29 @@
          ! NOTES:
          ! (a) Now moved outside the loop above for clarity and to 
          !      fix a bug where HgP scavenging was not recorded. 
-         ! (b) The values of DSTT in the first layer accumulates all 
+         ! (b) The values of DSpc in the first layer accumulates all 
          !      scavenging and washout in the column
          ! (c) Updates from cdh. (ccc, 5/17/10)
          !==============================================================
          IF ( IS_Hg ) THEN
 
             ! Loop over soluble tracers and/or aerosol tracers
-            DO NN = 1, NSOL
+            DO NW = 1, State_Chm%NWetDep
 
-               ! Convert wetdep index to advected tracer index
-               N       = IDWETD(NN)
+               ! Get the species index from the wetdep index
+               N       = State_Chm%Map_WetDep(NW)
 
                ! Amount of Hg wet-deposited out of the column
-               DEP_HG  = DSTT(NN,1,I,J)
+               DEP_HG  = DSpc(NW,1,I,J)
 
                ! Point to the Species Database entry for tracer N
-               ThisSpc => State_Chm%SpcData(N)%Info
+               SpcInfo => State_Chm%SpcData(N)%Info
 
                ! Check if it is a gaseous Hg2 tag
-               IF ( ThisSpc%Is_Hg2 ) THEN
+               IF ( SpcInfo%Is_Hg2 ) THEN
                   
                   ! Get the category # for this Hg2 tracer
-                  Hg_Cat = ThisSpc%Hg_Cat
+                  Hg_Cat = SpcInfo%Hg_Cat
 
                   ! Archive wet-deposited Hg2
                   CALL ADD_Hg2_WD      ( I, J, Hg_Cat, DEP_HG    )
@@ -4014,10 +4009,10 @@
      &                                                 State_Met )
 
                ! Check if it is a HgP tag
-               ELSE IF ( ThisSpc%Is_HgP ) THEN
+               ELSE IF ( SpcInfo%Is_HgP ) THEN
                   
                   ! Get the category # for this HgP tracer
-                  Hg_Cat = ThisSpc%Hg_Cat
+                  Hg_Cat = SpcInfo%Hg_Cat
 
                   ! Archive wet-deposited HgP
                   CALL ADD_HgP_WD      ( I, J, Hg_Cat, DEP_HG    )
@@ -4027,7 +4022,7 @@
                ENDIF
 
                ! Free pointer
-               ThisSpc => NULL()
+               SpcInfo => NULL()
             ENDDO
             
          ENDIF
@@ -4036,17 +4031,30 @@
       ENDDO	
 !$OMP END PARALLEL DO
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       ! Convert tracer concentration back to kg/kg dry air (ewl, 9/8/15)
       CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,
-     &                               State_Met, State_Chm, RC )
+     &                              State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP_MERRA in wetscav_mod.F')
          RETURN
       ENDIF  
 
-      ! Free pointer
-      STT => NULL()
+!      ! Free pointer
+!      Spc => NULL()
 
       END SUBROUTINE WETDEP_MERRA
 !EOC
@@ -4214,7 +4222,7 @@
 !
       SUBROUTINE DO_RAINOUT_ONLY( am_I_Root, LS,        I, J, L,
      &                            IDX,       ERRMSG,    F_RAINOUT, 
-     &                            K_RAIN,    DT,        DSTT,   
+     &                            K_RAIN,    DT,        DSpc,   
      &                            Input_Opt, State_Met, State_Chm,   
      &                            RC                              )
 !
@@ -4258,7 +4266,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL(fp),         INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
+      REAL(fp),         INTENT(INOUT) :: DSpc(:,:,:,:) ! Accumulator array [kg]
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
 ! !OUTPUT PARAMETERS:
 !
@@ -4290,34 +4298,33 @@
 !  22 Sep 2015 - E. Lundgren - Input STT is now in kg/m2 (prev kg)
 !  24 Sep 2015 - E. Lundgren - Now pass am_I_Root and RC as arguments 
 !  29 Sep 2015 - E. Lundgren - Now pass State_Chm as argument and use 
-!                              local pointer for STT array [kg/m2]     
+!                              local pointer for STT array [kg/m2] 
+!  30 Jun 2016 - R. Yantosca - Replace STT with Spc and DSTT with DSpc
+!  05 Jul 2016 - R. Yantosca - Now replace IDWETD with State_Chm%Map_WetDep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: N,        NN
-      REAL(fp) :: RAINFRAC, WETLOSS
+      INTEGER           :: N,        NW
+      REAL(fp)          :: RAINFRAC, WETLOSS
 
       ! Pointers
-      ! We need to define local array to hold tracer concentraiton values 
-      ! from the Chemistry State (State_Chm) object [kg/m2] (ewl, 9/29/15)
-      REAL(fp), POINTER      :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
 #if defined( TOMAS )
       ! Scavenging fraction of 30-bin aerosols (win, 7/16/09)
-      REAL(fp) :: TOM_SC_FRACTION(IBINS)
-      REAL(fp) :: SOLFRAC, XFRAC
+      REAL(fp)          :: TOM_SC_FRACTION(IBINS)
+      REAL(fp)          :: SOLFRAC, XFRAC
 #endif
 
       !=================================================================
       ! DO_RAINOUT_ONLY begins here!
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array from Chemistry State object
-      ! [kg/m2] (ewl, 9/29/15)
-      STT => State_Chm%Tracers
+      ! Point to the chemical species array [kg/m2]
+      Spc => State_Chm%Species
 
       ! ND16 diagnostic...save F 
       IF ( ND16 > 0 .and. L <= LD16 ) THEN
@@ -4333,10 +4340,10 @@
       !-----------------------------------------------------------------
       ! Loop over all wet deposition species
       !-----------------------------------------------------------------
-      DO NN = 1, NSOL
+      DO NW = 1, State_Chm%nWetDep
 
-         ! Tracer # corresponding to wetdep species #
-         N = IDWETD(NN)
+         ! Get the wetdep ID from the species ID
+         N = State_Chm%Map_WetDep(NW)
                   
          ! Call subroutine RAINOUT to comptue the fraction
          ! of tracer lost to rainout in grid box (I,J,L) 
@@ -4364,28 +4371,28 @@
 #endif
          ! WETLOSS is the amount of tracer in grid box per unit area
          ! (I,J,L) that is lost to rainout [kg/m2]
-         WETLOSS = STT(I,J,L,N) * RAINFRAC
+         WETLOSS = Spc(I,J,L,N) * RAINFRAC
 
-         ! Subtract the rainout loss in grid box (I,J,L) from STT [kg/m2]
-         STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS
+         ! Subtract the rainout loss in grid box (I,J,L) from Spc [kg/m2]
+         Spc(I,J,L,N) = Spc(I,J,L,N) - WETLOSS
 
          IF ( L == LLPAR ) THEN
            
-            ! DSTT is an accumulator array for rained-out tracers.  
-            ! The tracers in DSTT are in the liquid phase and will 
+            ! DSpc is an accumulator array for rained-out tracers.  
+            ! The tracers in DSpc are in the liquid phase and will 
             ! precipitate to the levels below until a washout occurs.
-            ! Initialize DSTT at (I,J,L=LLPAR) with WETLOSS.
-            DSTT(NN,L,I,J) = WETLOSS
+            ! Initialize DSpc at (I,J,L=LLPAR) with WETLOSS.
+            DSpc(NW,L,I,J) = WETLOSS
 
          ELSE
                                  
-            ! Add to DSTT the tracer lost to rainout in grid box        
+            ! Add to DSpc the tracer lost to rainout in grid box        
             ! (I,J,L) plus the tracer lost to rainout from grid box 
             ! (I,J,L+1), which has by now precipitated down into 
-            ! grid box (I,J,L).  DSTT will continue to accumulate 
+            ! grid box (I,J,L).  DSpc will continue to accumulate 
             ! rained out tracer in this manner until a washout 
             ! event occurs.
-            DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
+            DSpc(NW,L,I,J) = DSpc(NW,L+1,I,J) + WETLOSS
 
          ENDIF
 
@@ -4395,8 +4402,8 @@
 
          ! ND17 diagnostic...rainout fractions [unitless]
          IF ( ND17 > 0 .and. L <= LD17 ) THEN
-            AD17(I,J,L,NN,IDX) = 
-     &           AD17(I,J,L,NN,IDX) + RAINFRAC / F_RAINOUT
+            AD17(I,J,L,NW,IDX) = 
+     &           AD17(I,J,L,NW,IDX) + RAINFRAC / F_RAINOUT
          ENDIF
 
 #if defined( BPCH_DIAG )
@@ -4404,7 +4411,7 @@
          ! NOTE: eventually change this to kg/m2/s (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
-            AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
+            AD39(I,J,L,NW) = AD39(I,J,L,NW) + WETLOSS / DT
      &                       * State_Met%AREA_M2(I,J,1)
          ENDIF
 #endif
@@ -4418,9 +4425,9 @@
          !--------------------------------------------------------------
          ! Error checks
          !--------------------------------------------------------------
-         IF ( IT_IS_NAN( STT(I,J,L,N) )   .or.
-     &        STT(I,J,L,N)   < 0e+0_fp        .or.
-     &        DSTT(NN,L,I,J) < 0e+0_fp      ) THEN
+         IF ( IT_IS_NAN( Spc(I,J,L,N) )   .or.
+     &        Spc(I,J,L,N)   < 0e+0_fp        .or.
+     &        DSpc(NW,L,I,J) < 0e+0_fp      ) THEN
 
             ! Print error message and stop simulaton
             CALL SAFETY( I, J, L, N, ERRMSG,
@@ -4436,13 +4443,13 @@
      &                   WETLOSS     = WETLOSS,
      &                   GAINED      = 0e+0_fp,         
      &                   LOST        = 0e+0_fp,         
-     &                   DSTT        = DSTT(NN,:,I,J), 
-     &                   STT         = STT(I,J,:,N)     )
+     &                   DSpc        = DSpc(NW,:,I,J), 
+     &                   Spc         = Spc(I,J,:,N)     )
          ENDIF
       ENDDO
 
       ! Free pointer
-      STT => NULL()
+      Spc => NULL()
 
       END SUBROUTINE DO_RAINOUT_ONLY
 !EOC
@@ -4466,7 +4473,7 @@
       SUBROUTINE DO_WASHOUT_ONLY( am_I_Root, LS,        I, J, L, 
      &                            IDX,       ERRMSG,    QDOWN,   
      &                            Q,         F_WASHOUT, F_RAINOUT, 
-     &                            DT,        PDOWN,     DSTT,      
+     &                            DT,        PDOWN,     DSpc,      
      &                            Input_Opt, State_Met, State_Chm, 
      &                            RC,        REEVAP               )
 !
@@ -4519,13 +4526,13 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL(fp),         INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array 
+      REAL(fp),         INTENT(INOUT) :: DSpc(:,:,:,:) ! Accumulator array 
                                                        ! [kg/m2]
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+      INTEGER,          INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !  A fraction ALPHA of the raindrops falling down from grid 
@@ -4606,23 +4613,25 @@
 !                              following recommendation by Viral Shah
 !  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
 !  22 Sep 2015 - E. Lundgren - Incoming tracer units are now [kg/m2]
-!  29 Sep 2015 - E. Lundgren - Now use local pointer for STT array [kg/m2]   
+!  29 Sep 2015 - E. Lundgren - Now use local pointer for STT array [kg/m2]
+!  30 Jun 2016 - R. Yantosca - Replace STT with Spc and DSTT with DSpc
+!  05 Jul 2016 - R. Yantosca - Replace IDWETD with State_Chm%Map_WetDep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL   :: KIN,       DO_REEVAP
-      INTEGER   :: N,         NN
-      REAL(fp)  :: ALPHA,     ALPHA2,      GAINED,   LOST
-      REAL(fp)  :: MASS_WASH, MASS_NOWASH, WASHFRAC, WETLOSS
-      REAL(fp)  :: TK,        TF  
+      LOGICAL            :: KIN,       DO_REEVAP
+      INTEGER            :: N,         NW
+      REAL(fp)           :: ALPHA,     ALPHA2,      GAINED,   LOST
+      REAL(fp)           :: MASS_WASH, MASS_NOWASH, WASHFRAC, WETLOSS
+      REAL(fp)           :: TK,        TF  
 
       ! Pointers
       ! We need to define local array to hold tracer concentraiton values 
       ! from the Chemistry State (State_Chm) object [kg/m2] (ewl, 9/29/15)
-      REAL(fp), POINTER  :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: Spc(:,:,:,:)
 
 #if defined( TOMAS )
       REAL(fp)           :: REEVAPSO2  !(win, 7/16/09)
@@ -4636,11 +4645,10 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC  =  GIGC_SUCCESS
 
-      ! Initialize GEOS-Chem tracer array from Chemistry State object
-      ! [kg/m2] (ewl, 9/29/15)
-      STT => State_Chm%Tracers
+      ! Point to the chemical species array [kg/m2]
+      Spc => State_Chm%Species
 
       ! ND16 diagnostic...save F (fraction of grid box raining)
       IF ( ND16 > 0e+0_fp .and. L <= LD16 ) THEN
@@ -4662,7 +4670,10 @@
       !-----------------------------------------------------------------
       ! Loop over all wet deposition species
       !-----------------------------------------------------------------
-      DO NN = 1, NSOL
+      DO NW = 1, State_Chm%nWetDep
+
+         ! Get the species ID from the wetdep ID
+         N           = State_Chm%Map_WetDep(NW)
 
          ! zero local variables
          ALPHA       = 0e+0_fp
@@ -4673,9 +4684,6 @@
          WETLOSS     = 0e+0_fp
          GAINED      = 0e+0_fp
          LOST        = 0e+0_fp
-
-         ! Tracer # corresponding to each wetdep species #
-         N  = IDWETD(NN)
 
          ! Call WASHOUT to compute the fraction of 
          ! tracer lost to washout in grid box (I,J,L)
@@ -4693,10 +4701,10 @@
          !
          ! Check if WASHFRAC = NaN or WASHFRAC < 0.1 %
          ! 
-         ! If WASHFRAC = NaN, then DSTT = NaN and SAFETY trips because 
+         ! If WASHFRAC = NaN, then DSpc = NaN and SAFETY trips because 
          ! tracer concentrations must be finite.WASHFRAC = NaN when F = 0. 
          ! When less than 0.1% of a soluble tracer is available for washout
-         ! DSTT < 0 and SAFETY trips.  (Helen Amos, 20100928)
+         ! DSpc < 0 and SAFETY trips.  (Helen Amos, 20100928)
          IF ( IT_IS_NAN( WASHFRAC ) ) THEN
             CYCLE
 !------------------------------------------------------------------------------
@@ -4706,8 +4714,8 @@
 !  for washout to occur, prevents the partial resuspension of the dissolved
 !  mass falling from above, and leads to an overestimate in the wet deposited
 !  mass... I recommend that the condition on WASHFRAC should be removed. If
-!  this leads to negative values of DSTT, we should add a few lines to restrict
-!  DSTT to a minimum of 0. (mps, 5/20/15)
+!  this leads to negative values of DSpc, we should add a few lines to restrict
+!  DSpc to a minimum of 0. (mps, 5/20/15)
 !         ELSEIF ( WASHFRAC < 1e-3_fp ) THEN
 !            CYCLE
 !------------------------------------------------------------------------------
@@ -4747,23 +4755,23 @@
             ! GAINED is the rained out aerosol coming down from 
             ! grid box (I,J,L+1) that will evaporate and re-enter 
             ! the atmosphere in the gas phase in grid box (I,J,L).
-            GAINED  = DSTT(NN,L+1,I,J) * ALPHA2
+            GAINED  = DSpc(NW,L+1,I,J) * ALPHA2
 
             ! Amount of aerosol lost to washout in grid box
             ! (qli, bmy, 10/29/02)
-            WETLOSS = STT(I,J,L,N) * WASHFRAC - GAINED
+            WETLOSS = Spc(I,J,L,N) * WASHFRAC - GAINED
 
-            ! Remove washout losses in grid box (I,J,L) from STT.
+            ! Remove washout losses in grid box (I,J,L) from Spc.
             ! Add the aerosol that was reevaporated in (I,J,L).
             ! SO2 in sulfate chemistry is wet-scavenged on the
             ! raindrop and converted to SO4 by aqeuous chem.
             ! If evaporation occurs then SO2 comes back as SO4
             ! (rjp, bmy, 3/23/03)
             IF ( N == id_SO2 ) THEN
-               STT(I,J,L,id_SO4) = STT(I,J,L,id_SO4) 
+               Spc(I,J,L,id_SO4) = Spc(I,J,L,id_SO4) 
      &                           + GAINED * 96e+0_fp / 64e+0_fp
 
-               STT(I,J,L,N)      = STT(I,J,L,N) *
+               Spc(I,J,L,N)      = Spc(I,J,L,N) *
      &                                          ( 1e+0_fp - WASHFRAC )
 
 
@@ -4824,27 +4832,27 @@
 #endif
 
             ELSE
-               STT(I,J,L,N)      = STT(I,J,L,N) - WETLOSS
+               Spc(I,J,L,N)      = Spc(I,J,L,N) - WETLOSS
             ENDIF
 
             ! LOST is the rained out aerosol coming down from
             ! grid box (I,J,L+1) that will remain in the liquid
             ! phase in grid box (I,J,L) and will NOT re-evaporate.
-            LOST = DSTT(NN,L+1,I,J) - GAINED
+            LOST = DSpc(NW,L+1,I,J) - GAINED
 
             ! Add the washed out tracer from grid box (I,J,L) to 
-            ! DSTT.  Also add the amount of tracer coming down
+            ! DSpc.  Also add the amount of tracer coming down
             ! from grid box (I,J,L+1) that does NOT re-evaporate.
             IF ( F_RAINOUT > 0e+0_fp ) THEN 
-               DSTT(NN,L,I,J) = DSTT(NN,L,  I,J) + WETLOSS
+               DSpc(NW,L,I,J) = DSpc(NW,L,  I,J) + WETLOSS
             ELSE
-               DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
+               DSpc(NW,L,I,J) = DSpc(NW,L+1,I,J) + WETLOSS
             ENDIF
 
             ! ND18 diagnostic...divide washout fraction by F
             IF ( ND18 > 0 .and. L <= LD18 ) THEN
-               AD18(I,J,L,NN,IDX) = 
-     &         AD18(I,J,L,NN,IDX) + ( WASHFRAC / F_WASHOUT )
+               AD18(I,J,L,NW,IDX) = 
+     &         AD18(I,J,L,NW,IDX) + ( WASHFRAC / F_WASHOUT )
             ENDIF
 
          !--------------------------------------------------------------
@@ -4855,7 +4863,7 @@
                   
             ! MASS_NOWASH is the amount of non-aerosol tracer in 
             ! grid box (I,J,L) that is NOT available for washout.
-            MASS_NOWASH = ( 1e+0_fp - F_WASHOUT ) * STT(I,J,L,N)
+            MASS_NOWASH = ( 1e+0_fp - F_WASHOUT ) * Spc(I,J,L,N)
                
             ! MASS_WASH is the total amount of non-aerosol tracer
             ! that is available for washout in grid box (I,J,L).
@@ -4863,30 +4871,30 @@
             ! part of box (I,J,L), plus the previously rained-out
             ! tracer coming down from grid box (I,J,L+1).
             ! (Eq. 15, Jacob et al, 2000).
-            MASS_WASH = ( F_WASHOUT*STT(I,J,L,N) ) + DSTT(NN,L+1,I,J)
+            MASS_WASH = ( F_WASHOUT*Spc(I,J,L,N) ) + DSpc(NW,L+1,I,J)
 
             ! WETLOSS is the amount of tracer mass in 
             ! grid box (I,J,L) that is lost to washout.
             ! (Eq. 16, Jacob et al, 2000)
-            WETLOSS = ( MASS_WASH - DSTT(NN,L+1,I,J) ) * WASHFRAC
+            WETLOSS = ( MASS_WASH - DSpc(NW,L+1,I,J) ) * WASHFRAC
 
             ! The tracer left in grid box (I,J,L) is what was
             ! in originally in the non-precipitating fraction 
             ! of the box, plus MASS_WASH, less WETLOSS. 
-            STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS  
+            Spc(I,J,L,N) = Spc(I,J,L,N) - WETLOSS  
             
-            ! Add washout losses in grid box (I,J,L) to DSTT 
+            ! Add washout losses in grid box (I,J,L) to DSpc 
             IF ( F_RAINOUT > 0e+0_fp ) THEN
-               DSTT(NN,L,I,J) = DSTT(NN,L,  I,J) + WETLOSS
+               DSpc(NW,L,I,J) = DSpc(NW,L,  I,J) + WETLOSS
             ELSE
-               DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
+               DSpc(NW,L,I,J) = DSpc(NW,L+1,I,J) + WETLOSS
             ENDIF
 
             ! ND18 diagnostic...we don't have to divide the
             ! washout fraction by F since this is accounted for.
             IF ( ND18 > 0 .and. L <= LD18 ) THEN
-               AD18(I,J,L,NN,IDX) = 
-     &         AD18(I,J,L,NN,IDX) + WASHFRAC
+               AD18(I,J,L,NW,IDX) = 
+     &         AD18(I,J,L,NW,IDX) + WASHFRAC
             ENDIF
          ENDIF
 
@@ -4895,7 +4903,7 @@
          ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
-            AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
+            AD39(I,J,L,NW) = AD39(I,J,L,NW) + WETLOSS / DT
      &                       * State_Met%AREA_M2(I,J,1)
 
          ENDIF
@@ -4910,9 +4918,9 @@
          !--------------------------------------------------------------
          ! Error checks
          !--------------------------------------------------------------
-         IF ( IT_IS_NAN( STT(I,J,L,N) )   .or.
-     &        STT(I,J,L,N)   < 0e+0_fp        .or. 
-     &        DSTT(NN,L,I,J) < 0e+0_fp      ) THEN
+         IF ( IT_IS_NAN( Spc(I,J,L,N) )   .or.
+     &        Spc(I,J,L,N)   < 0e+0_fp        .or. 
+     &        DSpc(NW,L,I,J) < 0e+0_fp      ) THEN
 
             ! Print error message and stop simulaton
             CALL SAFETY( I, J, L, N, ERRMSG,
@@ -4928,14 +4936,14 @@
      &                   WETLOSS     = WETLOSS,
      &                   GAINED      = GAINED,         
      &                   LOST        = LOST,         
-     &                   DSTT        = DSTT(NN,:,I,J), 
-     &                   STT         = STT(I,J,:,N)     )
+     &                   DSpc        = DSpc(NW,:,I,J), 
+     &                   Spc         = Spc(I,J,:,N)     )
 
          ENDIF
       ENDDO  
 
       ! Free pointer
-      STT => NULL()
+      Spc => NULL()
  
       END SUBROUTINE DO_WASHOUT_ONLY
 !EOC
@@ -4954,7 +4962,7 @@
 !
       SUBROUTINE DO_COMPLETE_REEVAP( am_I_Root, LS,        I, J, L,
      &                               IDX,       ERRMSG,    DT,             
-     &                               DSTT,      Input_Opt, State_Met, 
+     &                               DSpc,      Input_Opt, State_Met, 
      &                               State_Chm, RC                   )
 !     
 ! !USES:
@@ -4982,27 +4990,26 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)      :: am_I_Root   ! Are we on the root CPU?
-      LOGICAL,          INTENT(IN)    :: LS          ! =T denotes LS precip
-      INTEGER,          INTENT(IN)    :: I           ! Longitude index
-      INTEGER,          INTENT(IN)    :: J           ! Latitude index
-      INTEGER,          INTENT(IN)    :: L           ! Level index
-      INTEGER,          INTENT(IN)    :: IDX         ! ND38 index
-      CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG      ! Error message
-      REAL(fp),         INTENT(IN)    :: DT          ! Rainout timestep [s]
-      TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input options
-      TYPE(MetState),   INTENT(IN)    :: State_Met   ! sfarina Required for
-                                                     ! TOMAS routines
+      LOGICAL,          INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
+      LOGICAL,          INTENT(IN)    :: LS            ! =T denotes LS precip
+      INTEGER,          INTENT(IN)    :: I             ! Longitude index
+      INTEGER,          INTENT(IN)    :: J             ! Latitude index
+      INTEGER,          INTENT(IN)    :: L             ! Level index
+      INTEGER,          INTENT(IN)    :: IDX           ! ND38 index
+      CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG        ! Error message
+      REAL(fp),         INTENT(IN)    :: DT            ! Rainout timestep [s]
+      TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
+      TYPE(MetState),   INTENT(IN)    :: State_Met     ! Meteorology State obj
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
-      REAL(fp),         INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array 
+      REAL(fp),         INTENT(INOUT) :: DSpc(:,:,:,:) ! Accumulator array 
                                                        ! [kg/m2] 
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)     :: RC          ! Success or failure?
+      INTEGER,          INTENT(OUT)   :: RC            ! Success or failure?
 ! 
 ! !REMARKS:
 !  The modifications for the MERRA met fields require calling this same 
@@ -5014,18 +5021,20 @@
 !  22 Sep 2015 - E. Lundgren - Incoming tracer units are now kg/m2 (prev kg)
 !  24 Sep 2015 - E. Lundgren - Now pass am_I_Root and RC as arguments and  
 !                              local pointer for STT array [kg/m2] 
-!  30 Sep 2015 - E. Lundgren - Now pass Input_Opt for use in TOMAS AQOXID  
+!  30 Sep 2015 - E. Lundgren - Now pass Input_Opt for use in TOMAS AQOXID
+!  30 Jun 2016 - R. Yantosca - Replace STT with Spc and DSTT with DSpc
+!  05 Jul 2016 - R. Yantosca - Replace IDWETD with State_Chm%Map_WetDep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: N, NN
+      INTEGER            :: N, NW
       REAL(fp)           :: WETLOSS
 
       ! Pointers
-      REAL(fp), POINTER  :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: Spc(:,:,:,:)
 
 #if defined( TOMAS )
       REAL(fp)           :: REEVAPSO2  !(win, 7/16/09)
@@ -5037,25 +5046,24 @@
       ! DO_COMPLETE_REEVAP begins here!
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array from Chemistry State object
-      ! [kg/m2] (ewl, 9/29/15)
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [kg/m2]
+      Spc => State_Chm%Species
 
       ! Loop over wetdep species
-      DO NN = 1, NSOL
+      DO NW = 1, State_Chm%nWetDep
  
-         ! Tracer # corresponding to the wetdep species #
-         N = IDWETD(NN) 
+         ! Get the species ID from the wetdep ID
+         N = State_Chm%Map_WetDep(NW)
 
          ! WETLOSS is the amount of tracer in grid box (I,J,L) per area
          ! that is lost to rainout. (qli, bmy, 10/29/02)
-         WETLOSS = -DSTT(NN,L+1,I,J)
+         WETLOSS = -DSpc(NW,L+1,I,J)
 
          ! All of the rained-out tracer coming from grid box
          ! (I,J,L+1) goes back into the gas phase at (I,J,L)
          ! In evap, SO2 comes back as SO4 (rjp, bmy, 3/23/03)
          IF ( N == id_SO2 ) THEN
-            STT(I,J,L,id_SO4) = STT(I,J,L,id_SO4) 
+            Spc(I,J,L,id_SO4) = Spc(I,J,L,id_SO4) 
      &                        - ( WETLOSS * 96e+0_fp / 64e+0_fp )
 
 
@@ -5127,12 +5135,12 @@
 
 
          ELSE
-            STT(I,J,L,N)      = STT(I,J,L,N) - WETLOSS
+            Spc(I,J,L,N)      = Spc(I,J,L,N) - WETLOSS
          ENDIF
 
          ! There is nothing rained out/washed out in grid box
-         ! (I,J,L), so set DSTT at grid box (I,J,L) to zero.
-         DSTT(NN,L,I,J) = 0e+0_fp
+         ! (I,J,L), so set DSpc at grid box (I,J,L) to zero.
+         DSpc(NW,L,I,J) = 0e+0_fp
          
          !--------------------------------------------------------------
          ! Diagnostics
@@ -5143,7 +5151,7 @@
          ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
-            AD39(I,J,L,NN) = AD39(I,J,L,NN) + ( WETLOSS / DT )
+            AD39(I,J,L,NW) = AD39(I,J,L,NW) + ( WETLOSS / DT )
      &                       * State_Met%AREA_M2(I,J,1)
 
          ENDIF
@@ -5158,9 +5166,9 @@
          !--------------------------------------------------------------
          ! Error checks
          !--------------------------------------------------------------
-         IF ( IT_IS_NAN( STT(I,J,L,N) )   .or.
-     &        STT(I,J,L,N)   < 0e+0_fp        .or. 
-     &        DSTT(NN,L,I,J) < 0e+0_fp      ) THEN
+         IF ( IT_IS_NAN( Spc(I,J,L,N) )   .or.
+     &        Spc(I,J,L,N)   < 0e+0_fp        .or. 
+     &        DSpc(NW,L,I,J) < 0e+0_fp      ) THEN
 
             ! Print error message and stop simulaton
             CALL SAFETY( I, J, L, N, ERRMSG,
@@ -5176,13 +5184,13 @@
      &                   WETLOSS     = WETLOSS,
      &                   GAINED      = 0e+0_fp,         
      &                   LOST        = 0e+0_fp,         
-     &                   DSTT        = DSTT(NN,:,I,J), 
-     &                   STT         = STT(I,J,:,N)     )
+     &                   DSpc        = DSpc(NW,:,I,J), 
+     &                   Spc         = Spc(I,J,:,N)     )
          ENDIF
       ENDDO
 
       ! Free pointer
-      STT => NULL()
+      Spc => NULL()
 
       END SUBROUTINE DO_COMPLETE_REEVAP
 !EOC
@@ -5201,7 +5209,7 @@
 !
       SUBROUTINE DO_WASHOUT_AT_SFC( am_I_Root, LS,        I, J, L,         
      &                              IDX,       ERRMSG,    QDOWN,     
-     &                              F,         DT,        DSTT,      
+     &                              F,         DT,        DSpc,      
      &                              Input_Opt, State_Met, State_Chm, 
      &                              RC                              )
 !
@@ -5244,13 +5252,13 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL(fp),         INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array 
+      REAL(fp),         INTENT(INOUT) :: DSpc(:,:,:,:) ! Accumulator array 
                                                        ! [kg/m2]
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
 ! 
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+      INTEGER,          INTENT(OUT)   :: RC            ! Success or failure?
 !
 ! !REMARKS:
 !  Assume all of the tracer precipitating down from grid box (I,J,L=2) to 
@@ -5268,21 +5276,20 @@
 !  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
 !  22 Sep 2015 - E. Lundgren - Tracer units are now kg/m2 (prev kg)
 !  29 Sep 2015 - E. Lundgren - Now use local pointer for STT array [kg/m2]
+!  30 Jun 2016 - R. Yantosca - Replace STT with Spc and DSTT with DSpc
+!  05 Jul 2016 - R. Yantosca - Now replace IDWETD with State_Chm%Map_Wetdep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL :: KIN
-      INTEGER :: N,        NN
-      REAL(fp)  :: WASHFRAC, WETLOSS, TMP
-      REAL(fp)  :: TK   
+      LOGICAL           :: KIN
+      INTEGER           :: N,        NW
+      REAL(fp)          :: WASHFRAC, WETLOSS, TMP, TK
 
       ! Pointers
-      ! We need to define local array to hold tracer concentraiton values 
-      ! from the Chemistry State (State_Chm) object [kg/m2] (ewl, 9/29/15)
-      REAL(fp), POINTER      :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! DO_WASHOUT_AT_SFC begins here!
@@ -5291,9 +5298,8 @@
       ! Assume success
       RC        =  GIGC_SUCCESS
 
-      ! Initialize GEOS-Chem tracer array from Chemistry State object
-      ! (ewl, 9/29/15)
-      STT => State_Chm%Tracers
+      ! Point to the chemical species array [kg/m2]
+      Spc => State_Chm%Species
 
       ! ND16 diagnostic...save F 
       IF ( ND16 > 0 .and. L <= LD16 ) THEN
@@ -5312,10 +5318,10 @@
       !-----------------------------------------------------------------
       ! Loop over all wet deposition species
       !-----------------------------------------------------------------
-      DO NN = 1, NSOL
+      DO NW = 1, State_Chm%nWetDep
 
-         ! Tracer number corresponding to this wetdep species
-         N = IDWETD(NN)
+         ! Get species ID from wetdep ID
+         N = State_Chm%Map_WetDep(NW)
 
          ! Call WASHOUT to compute the fraction of tracer 
          ! in grid box (I,J,L) that is lost to washout.  
@@ -5330,17 +5336,17 @@
          ! already present in WASHFRAC.  For other soluble
          ! gases, we need to multiply by the F (hyl, bmy, 10/27/00)
          IF ( KIN ) THEN
-            WETLOSS = STT(I,J,L,N) * WASHFRAC
+            WETLOSS = Spc(I,J,L,N) * WASHFRAC
          ELSE
-            WETLOSS = STT(I,J,L,N) * WASHFRAC * F
+            WETLOSS = Spc(I,J,L,N) * WASHFRAC * F
          ENDIF
 
-         ! Subtract WETLOSS from STT [kg/m2]
-         STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS     
+         ! Subtract WETLOSS from Spc [kg/m2]
+         Spc(I,J,L,N) = Spc(I,J,L,N) - WETLOSS     
       
-         ! Add washout losses in grid box (I,J,L=1) to DSTT [kg/m2] 
+         ! Add washout losses in grid box (I,J,L=1) to DSpc [kg/m2] 
          ! (added cdh, 4/14/2009)
-         DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
+         DSpc(NW,L,I,J) = DSpc(NW,L+1,I,J) + WETLOSS
 
          !--------------------------------------------------------------
          ! Diagnostics
@@ -5357,7 +5363,7 @@
                TMP = WASHFRAC
             ENDIF
             
-            AD18(I,J,L,NN,IDX) = AD18(I,J,L,NN,IDX) + TMP
+            AD18(I,J,L,NW,IDX) = AD18(I,J,L,NW,IDX) + TMP
          ENDIF
 
 #if defined( BPCH_DIAG )
@@ -5365,7 +5371,7 @@
          ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
-            AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
+            AD39(I,J,L,NW) = AD39(I,J,L,NW) + WETLOSS / DT
      &                       * State_Met%AREA_M2(I,J,1)
          ENDIF
 #endif
@@ -5381,21 +5387,21 @@
          ! stuff from stratospheric boxes -- this can cause 
          ! negative tracer (rvm, bmy, 6/21/00)
          !
-         IF ( STT(I,J,L,N) < 0e+0_fp .and. L > 23 ) THEN
+         IF ( Spc(I,J,L,N) < 0e+0_fp .and. L > 23 ) THEN
              WRITE ( 6, 101 ) I, J, L, N, 7
- 101         FORMAT( 'WETDEP - STT < 0 at ', 3i4, 
+ 101         FORMAT( 'WETDEP - Spc < 0 at ', 3i4, 
      &               ' for tracer ', i4, 'in area ', i4 )
-             PRINT*, 'STT:', STT(I,J,:,N)
-             STT(I,J,L,N) = 0e+0_fp
+             PRINT*, 'Spc:', Spc(I,J,:,N)
+             Spc(I,J,L,N) = 0e+0_fp
          ENDIF
          !-----------------------------------------------------
 
          !--------------------------------------------------------------
          ! Error checks
          !--------------------------------------------------------------
-         IF ( IT_IS_NAN( STT(I,J,L,N) )   .or.
-     &        STT(I,J,L,N)   < 0e+0_fp        .or. 
-     &        DSTT(NN,L,I,J) < 0e+0_fp      ) THEN
+         IF ( IT_IS_NAN( Spc(I,J,L,N) )   .or.
+     &        Spc(I,J,L,N)   < 0e+0_fp        .or. 
+     &        DSpc(NW,L,I,J) < 0e+0_fp      ) THEN
 
             PRINT*, 'WASHFRAC = ', WASHFRAC
             PRINT*, 'F        = ', F
@@ -5414,14 +5420,14 @@
      &                   WETLOSS     = WETLOSS,
      &                   GAINED      = 0e+0_fp,         
      &                   LOST        = 0e+0_fp,         
-     &                   DSTT        = DSTT(NN,:,I,J), 
-     &                   STT         = STT(I,J,:,N)     )
+     &                   DSpc        = DSpc(NW,:,I,J), 
+     &                   Spc         = Spc(I,J,:,N)     )
 
          ENDIF
       ENDDO
 
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( Spc )
 
       END SUBROUTINE DO_WASHOUT_AT_SFC
 !EOC
@@ -5442,7 +5448,7 @@
      &                   A,         LS,          PDOWN,    QQ,       
      &                   ALPHA,     ALPHA2,      RAINFRAC, WASHFRAC, 
      &                   MASS_WASH, MASS_NOWASH, WETLOSS,  GAINED,   
-     &                   LOST,      DSTT,        STT )
+     &                   LOST,      DSpc,        Spc )
 
 !
 ! !USES:
@@ -5471,8 +5477,8 @@
       REAL(fp),         INTENT(IN) :: WETLOSS       !
       REAL(fp),         INTENT(IN) :: GAINED        !
       REAL(fp),         INTENT(IN) :: LOST          !
-      REAL(fp),         INTENT(IN) :: DSTT(LLPAR)   !
-      REAL(fp),         INTENT(IN) :: STT(LLPAR)    !
+      REAL(fp),         INTENT(IN) :: DSpc(LLPAR)   !
+      REAL(fp),         INTENT(IN) :: Spc(LLPAR)    !
 ! 
 ! !REVISION HISTORY: 
 !  18 Mar 2004 - R. Yantosca - Initial version
@@ -5506,106 +5512,16 @@
       PRINT*, 'WETLOSS     : ', WETLOSS
       PRINT*, 'GAINED      : ', GAINED
       PRINT*, 'LOST        : ', LOST
-      PRINT*, 'DSTT(NN,:)  : ', DSTT(:)
-      PRINT*, 'STT(I,J,:N) : ', STT(:)
+      PRINT*, 'DSpc(NW,:)  : ', DSpc(:)
+      PRINT*, 'Spc(I,J,:N) : ', Spc(:)
 
       ! Print line
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
       ! DEALLOCATE memory and stop
-      CALL GEOS_CHEM_STOP
+      CALL GEOS_CHEM_STOP()
 
       END SUBROUTINE SAFETY
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_wetdep_nsol
-!
-! !DESCRIPTION: Function GET\_WETDEP\_NSOL returns NSOL (# of soluble tracers) 
-!  to a calling program outside WETSCAV_MOD.  This is so that we can keep 
-!  NSOL declared as a PRIVATE variable.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_WETDEP_NSOL() RESULT( N_SOLUBLE )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: N_SOLUBLE   ! Number of soluble tracers
-!
-! !REMARKS:
-!  This routine returns the actual number of wet deposited species.  For
-!  example, if wet deposition is turned off in input.geos, then N_SOLUBLE
-!  will be zero, even though the count of species that can potentially
-!  undergo wet deposition (State_Chm%nWetDep) is nonzero.
-!
-! !REVISION HISTORY: 
-!  10 Jan 2003 - R. Yantosca - Initial version
-!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! GET_WETDEP_NSOL begins here!
-      !=================================================================
-
-      ! Get the # of soluble tracers
-      N_SOLUBLE = NSOL
-     
-      END FUNCTION GET_WETDEP_NSOL
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_wetdep_idwetd
-!
-! !DESCRIPTION: Function GET\_WETDEP\_IDWETD returns the tracer number of 
-!  wet deposition species NWET.  This is meant to be called outside of 
-!  WETSCAV\_MOD so that IDWETD can be kept as a PRIVATE variable.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_WETDEP_IDWETD( NWET ) RESULT( N )
-!
-! !USES:
-!
-      USE ERROR_MOD, ONLY : ERROR_STOP
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: NWET   ! Wet deposition species #
-!
-! !RETURN VALUE:
-!
-      INTEGER             :: N      ! Tracer # corresponding to NWET
-! 
-! !REVISION HISTORY:
-!  10 Jan 2003 - R. Yantosca - Initial version 
-!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!EOP 
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! GET_WETDEP_IDWETD begins here!
-      !=================================================================
-
-      ! Make sure NWET is valid
-      IF ( NWET < 1 .or. NWET > NSOL ) THEN
-         CALL ERROR_STOP( 'Invalid value of NWET!', 
-     &                    'GET_WETDEP_IDWETD (wetscav_mod.f)' )
-      ENDIF
-
-      ! Get the tracer # for wet deposition species N
-      N = IDWETD(NWET)
-     
-      END FUNCTION GET_WETDEP_IDWETD
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -5808,7 +5724,7 @@
       CHARACTER(LEN=80)      :: LINE
 
       ! Pointers
-      TYPE(Species), POINTER :: ThisSpc
+      TYPE(Species), POINTER :: SpcInfo
 
       !=================================================================
       ! INIT_WETSCAV begins here!
@@ -5818,7 +5734,7 @@
       IF ( .not. FIRST ) RETURN
 
       ! Initialize
-      ThisSpc => NULL()
+      SpcInfo => NULL()
       
       ! Actual number of wet-depositing species
       NSOL = 0
@@ -5878,18 +5794,18 @@
 
             ! Get physical parameters for the Nth species from the
             ! species database object (which is part of State_Chm)
-            ThisSpc => State_Chm%SpcData(N)%Info
+            SpcInfo => State_Chm%SpcData(N)%Info
 
             ! If this is a wet-depositing species, then store the
             ! advected species index in the IDWETD array
-            IF ( ThisSpc%Is_WetDep ) THEN
+            IF ( SpcInfo%Is_WetDep ) THEN
                NSOL         = NSOL + 1          ! Increment counter
-               N_WD         = ThisSpc%WetDepID  ! Wetdep ID
-               IDWETD(N_WD) = ThisSpc%AdvectId  ! Species ID
+               N_WD         = SpcInfo%WetDepID  ! Wetdep ID
+               IDWETD(N_WD) = SpcInfo%AdvectId  ! Species ID
             ENDIF
 
             ! Free pointer
-            ThisSpc => NULL()
+            SpcInfo => NULL()
 
          ENDDO
       ENDIF
@@ -5922,40 +5838,40 @@
             N = IDWETD(N_WD)
 
             ! Get physical parameters from the species database object
-            ThisSpc => State_Chm%SpcData(N)%Info 
+            SpcInfo => State_Chm%SpcData(N)%Info 
 
             ! Convert Henry's law K0 parameter to string
-            IF ( ThisSpc%Henry_K0 > 0.0_f8 ) THEN
-               WRITE( K0, '(es9.2)' ) ThisSpc%Henry_K0
+            IF ( SpcInfo%Henry_K0 > 0.0_f8 ) THEN
+               WRITE( K0, '(es9.2)' ) SpcInfo%Henry_K0
             ELSE
                K0 = '    -    '
             ENDIF
 
             ! Convert Henry's law CR parameter to string
-            IF ( ThisSpc%Henry_K0 > 0.0_f8 ) THEN
-               WRITE( CR, '(es9.2)' ) ThisSpc%Henry_CR
+            IF ( SpcInfo%Henry_K0 > 0.0_f8 ) THEN
+               WRITE( CR, '(es9.2)' ) SpcInfo%Henry_CR
             ELSE
                CR = '    -    '
             ENDIF
 
             ! Convert Henry's law pKa parameter to string
-            IF ( ThisSpc%Henry_pKa > 0.0_f8 ) THEN
-               WRITE( pKa, '(es9.2)' ) ThisSpc%Henry_pKa
+            IF ( SpcInfo%Henry_pKa > 0.0_f8 ) THEN
+               WRITE( pKa, '(es9.2)' ) SpcInfo%Henry_pKa
             ELSE
                pKa = '    -    '
             ENDIF
 
             ! Write info to stdout
             WRITE( 6, 100 ) N_WD,           
-     &                      TRIM( ThisSpc%Name ),  
+     &                      TRIM( SpcInfo%Name ),  
      &                      N,    
-     &                      ThisSpc%EmMW_g, 
+     &                      SpcInfo%EmMW_g, 
      &                      K0, CR, pKA
 
  100        FORMAT( i3,3x,a14,3x,i3,3x,f6.1,3(1x,a9) )
 
             ! Free pointer
-            ThisSpc => NULL()
+            SpcInfo => NULL()
 
          ENDDO
       ENDIF
@@ -6051,6 +5967,7 @@
 !  23 Sep 2015 - R. Yantosca - Now accept State_Chm as an argument
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  23 Jun 2016 - R. Yantosca - Remove reference to tracerid_mod.F
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT and State_Chm%TRACERS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6064,6 +5981,11 @@
       ! Pointers
       REAL(fp), POINTER :: PL
       REAL(fp), POINTER :: TK
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,2)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
             
       !=====================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
@@ -6158,6 +6080,22 @@
       ! arrays on each dynamic timestep.  (bmy, 9/22/15)
       !====================================================================
       IF ( FIRST ) THEN 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ We only have to copy the H2O2 and SO2 slots from TRACERS to SPECIES
+!@@@
+         IF ( id_H2O2 > 0 ) THEN
+            Spc_Temp(:,:,:,1) = State_Chm%Species(:,:,:,id_H2O2)
+            State_Chm%Species(:,:,:,id_H2O2) = 
+     &      State_Chm%Tracers(:,:,:,id_H2O2)
+         ENDIF
+
+         IF ( id_SO2 > 0 ) THEN
+            Spc_Temp(:,:,:,2) = State_Chm%Species(:,:,:,id_SO2)
+            State_Chm%Species(:,:,:,id_SO2) = 
+     &      State_Chm%Tracers(:,:,:,id_SO2)
+         ENDIF
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
          ! Set H2O2s to the initial H2O2 from STT, so that we will have
          ! nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
@@ -6165,7 +6103,7 @@
          ! call to SETUP_WETSCAV, store H2O2s in legacy units [v/v dry air] 
          ! for now for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
          IF ( id_H2O2 > 0 ) THEN
-            H2O2s = State_Chm%Tracers(:,:,:,id_H2O2)
+            H2O2s = State_Chm%Species(:,:,:,id_H2O2)
      &            * Input_Opt%TCVV(id_H2O2)
          ENDIF
 
@@ -6175,9 +6113,25 @@
          ! call to SETUP_WETSCAV, store SO2s in units [v/v dry air] for now 
          ! for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
          IF ( id_SO2 > 0 ) THEN
-            SO2s = State_Chm%Tracers(:,:,:,id_SO2)
+            SO2s = State_Chm%Species(:,:,:,id_SO2)
      &           * Input_Opt%TCVV(id_SO2)
          ENDIF
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ We only have to copy the H2O2 and SO2 slots from SPECIES to TRACERS
+!@@@
+         IF ( id_H2O2 > 0 ) THEN
+            State_Chm%Tracers(:,:,:,id_H2O2) = 
+     &      State_Chm%Species(:,:,:,id_H2O2)
+            State_Chm%Species(:,:,:,id_H2O2) = Spc_Temp(:,:,:,1)
+         ENDIF
+
+         IF ( id_SO2 > 0 ) THEN
+            State_Chm%Tracers(:,:,:,id_SO2) = 
+     &      State_Chm%Species(:,:,:,id_SO2)
+            State_Chm%Species(:,:,:,id_SO2) = Spc_Temp(:,:,:,2)
+         ENDIF
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
          ! Reset first-time flag
          FIRST = .FALSE.

@@ -196,6 +196,8 @@
 !                              mineral dust aerosols (non-TOMAS)
 !  13 Aug 2015 - E. Lundgren - Convert tracer units to kg if input units are
 !                              mixing ratio
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -226,7 +228,7 @@
       LOGICAL, SAVE       :: FIRST = .TRUE. 
 
       ! Non-SAVEd variables
-      INTEGER             :: I, J, L, N, K
+      INTEGER             :: I, J, L, N, K, NA, nAdvect
       LOGICAL             :: LCARB
       LOGICAL             :: LDUST
       LOGICAL             :: LSOA
@@ -235,12 +237,18 @@
       LOGICAL             :: UNITCONVERSION
 
       ! Pointers
-      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: Spc(:,:,:,:)
       REAL(fp), POINTER   :: AIRVOL(:,:,:)
 
       !=================================================================
       ! AEROSOL_CONC begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 
       ! Assume success
       RC     = GIGC_SUCCESS
@@ -272,8 +280,24 @@
          RETURN
       ENDIF
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       ! Initialize pointers
-      STT    => State_Chm%Tracers
+      Spc    => State_Chm%Species
       AIRVOL => State_Met%AIRVOL
 
 !$OMP PARALLEL DO
@@ -299,7 +323,7 @@
          ! hydrophilic but sooner or later we can pass only hydrophilic 
          ! aerosols from the thermodynamic calculations for this 
          ! purpose.  This dumping should be done before calling INITGAS, 
-         ! which converts the unit of STT from kg/box to molec/cm3.
+         ! which converts the unit of Spc from kg/box to molec/cm3.
          !
          ! Units of SO4_NH4_NIT are [kg/m3].  (rjp, bmy, 3/23/03)
          !==============================================================
@@ -316,11 +340,11 @@
                ! distribution but are currently simply treated in the same
                ! way (size and optics) as all other sulfate aerosol (DAR
                ! 2013)
-               SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,id_SO4)    + 
-     &                                STT(I,J,L,id_NH4)    +
-     &                                STT(I,J,L,id_NIT)    +
-     &                                STT(I,J,L,id_SO4s)   +
-     &                                STT(I,J,L,id_NITs) ) /
+               SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)    + 
+     &                                Spc(I,J,L,id_NH4)    +
+     &                                Spc(I,J,L,id_NIT)    +
+     &                                Spc(I,J,L,id_SO4s)   +
+     &                                Spc(I,J,L,id_NITs) ) /
      &                                AIRVOL(I,J,L)
                SLA(I,J,L) = 0e+0_fp
                SPA(I,J,L) = 0e+0_fp
@@ -337,11 +361,11 @@
             ! distribution but are currently simply treated in the same
             ! way (size and optics) as all other sulfate aerosol (DAR
             ! 2013)
-            SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,id_SO4)    + 
-     &                             STT(I,J,L,id_NH4)    +
-     &                             STT(I,J,L,id_NIT)    +
-     &                             STT(I,J,L,id_SO4s)   +
-     &                             STT(I,J,L,id_NITs) ) /
+            SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)    + 
+     &                             Spc(I,J,L,id_NH4)    +
+     &                             Spc(I,J,L,id_NIT)    +
+     &                             Spc(I,J,L,id_SO4s)   +
+     &                             Spc(I,J,L,id_NITs) ) /
      &                             AIRVOL(I,J,L)
 #endif
             
@@ -350,17 +374,17 @@
 
                ! Save these fractions for partitioning of optics
                ! until later when these may be treated independently
-               FRAC_SNA(I,J,L,1) = ( ( STT(I,J,L,id_SO4 ) 
-     &                           +     STT(I,J,L,id_SO4s) )
+               FRAC_SNA(I,J,L,1) = ( ( Spc(I,J,L,id_SO4 ) 
+     &                           +     Spc(I,J,L,id_SO4s) )
      &                           /   AIRVOL(I,J,L)          )
      &                           / SO4_NH4_NIT(I,J,L)
 
-               FRAC_SNA(I,J,L,2) = ( ( STT(I,J,L,id_NIT )
-     &                           +     STT(I,J,L,id_NITs) )
+               FRAC_SNA(I,J,L,2) = ( ( Spc(I,J,L,id_NIT )
+     &                           +     Spc(I,J,L,id_NITs) )
      &                           /   AIRVOL(I,J,L)          )
      &                           / SO4_NH4_NIT(I,J,L)
 
-               FRAC_SNA(I,J,L,3) = ( STT(I,J,L,id_NH4)
+               FRAC_SNA(I,J,L,3) = ( Spc(I,J,L,id_NH4)
      &                           /   AIRVOL(I,J,L)        ) 
      &                           / SO4_NH4_NIT(I,J,L)
                
@@ -386,19 +410,19 @@
          IF ( LCARB ) THEN
 
             ! Hydrophilic BC [kg/m3]
-            BCPI(I,J,L) = STT(I,J,L,id_BCPI) / AIRVOL(I,J,L)
+            BCPI(I,J,L) = Spc(I,J,L,id_BCPI) / AIRVOL(I,J,L)
 
             ! Hydrophobic BC [kg/m3]
-            BCPO(I,J,L) = STT(I,J,L,id_BCPO) / AIRVOL(I,J,L)
+            BCPO(I,J,L) = Spc(I,J,L,id_BCPO) / AIRVOL(I,J,L)
 
             ! Hydrophobic OC [kg/m3]
             ! SOAupdate: Treat either OCPO (x2.1) or POA (x1.4) 
             ! POA now 1 and 2 (hotp 10/11/09)
             IF ( id_POA1 > 0 .and. id_POA2 > 0 ) THEN
-               OCPO(I,J,L) = STT(I,J,L,id_POA1) * OCF / AIRVOL(I,J,L) +
-     &                       STT(I,J,L,id_POA2) * OCF / AIRVOL(I,J,L)
+               OCPO(I,J,L) = Spc(I,J,L,id_POA1) * OCF / AIRVOL(I,J,L) +
+     &                       Spc(I,J,L,id_POA2) * OCF / AIRVOL(I,J,L)
             ELSE
-               OCPO(I,J,L) = STT(I,J,L,id_OCPO) * OCFOPOA / 
+               OCPO(I,J,L) = Spc(I,J,L,id_OCPO) * OCFOPOA / 
      &                       AIRVOL(I,J,L)
             ENDIF
 
@@ -410,47 +434,47 @@
                ! (rjp, bmy, 7/15/04)
                ! SOAupdate: Update traditional SOA (hotp 7/21/10)
                ! for new mtp and isop (hotp 5/20/10)
-               OCPI(I,J,L) = ( STT(I,J,L,id_TSOA1)
-     &                      +  STT(I,J,L,id_TSOA2)
-     &                      +  STT(I,J,L,id_TSOA3)
-     &                      +  STT(I,J,L,id_TSOA0)
-     &                      +  STT(I,J,L,id_ISOA1)
-     &                      +  STT(I,J,L,id_ISOA2)
-     &                      +  STT(I,J,L,id_ISOA3) )
+               OCPI(I,J,L) = ( Spc(I,J,L,id_TSOA1)
+     &                      +  Spc(I,J,L,id_TSOA2)
+     &                      +  Spc(I,J,L,id_TSOA3)
+     &                      +  Spc(I,J,L,id_TSOA0)
+     &                      +  Spc(I,J,L,id_ISOA1)
+     &                      +  Spc(I,J,L,id_ISOA2)
+     &                      +  Spc(I,J,L,id_ISOA3) )
      &                      /  AIRVOL(I,J,L) 
 
                IF ( id_OPOA1 > 0 .and. id_OPOA2 > 0 ) THEN  ! hotp 7/28/10
                   OCPI(I,J,L) = OCPI(I,J,L) 
-     &                        + ( STT(I,J,L,id_OPOA1) * OCFOPOA
+     &                        + ( Spc(I,J,L,id_OPOA1) * OCFOPOA
      &                        / AIRVOL(I,J,L) )
-     &                        + ( STT(I,J,L,id_OPOA2) * OCFOPOA
+     &                        + ( Spc(I,J,L,id_OPOA2) * OCFOPOA
      &                        / AIRVOL(I,J,L) )
                ENDIF
 
                IF ( id_OCPI > 0 ) THEN  ! hotp 7/28/10
                   OCPI(I,J,L) = OCPI(I,J,L)                                  
-     &                        + ( STT(I,J,L,id_OCPI) * OCFOPOA
+     &                        + ( Spc(I,J,L,id_OCPI) * OCFOPOA
      &                        / AIRVOL(I,J,L) )
                ENDIF
 
                ! LUMPAROMIVOC (always present) hotp 7/28/10
                OCPI(I,J,L) = OCPI(I,J,L) +
-     &                  ( (  STT(I,J,L,id_ASOAN) 
-     &                     + STT(I,J,L,id_ASOA1)
-     &                     + STT(I,J,L,id_ASOA2)
-     &                     + STT(I,J,L,id_ASOA3) )
+     &                  ( (  Spc(I,J,L,id_ASOAN) 
+     &                     + Spc(I,J,L,id_ASOA1)
+     &                     + Spc(I,J,L,id_ASOA2)
+     &                     + Spc(I,J,L,id_ASOA3) )
      &                     / AIRVOL(I,J,L) )
 
                ! Check to see if we are simulating SOAG and SOAM (tmf, 1/7/09)
                IF ( id_SOAG > 0 ) THEN
                  OCPI(I,J,L) = OCPI(I,J,L) + 
-     &                         STT(I,J,L,id_SOAG) * OCFG /
+     &                         Spc(I,J,L,id_SOAG) * OCFG /
      &                         AIRVOL(I,J,L)
                ENDIF
 
                IF ( id_SOAM > 0 ) THEN
                  OCPI(I,J,L) = OCPI(I,J,L) + 
-     &                         STT(I,J,L,id_SOAM) * OCFM /
+     &                         Spc(I,J,L,id_SOAM) * OCFM /
      &                         AIRVOL(I,J,L)
                ENDIF
 
@@ -461,7 +485,7 @@
                ! components which are attached to the OC aerosol.
                ! (rjp, bmy, 7/15/04)
                ! SOAupdate: use 2.1 (OCFOPOA) (hotp 7/21/10)
-               OCPI(I,J,L) = STT(I,J,L,id_OCPI) * OCFOPOA /
+               OCPI(I,J,L) = Spc(I,J,L,id_OCPI) * OCFOPOA /
      &                       AIRVOL(I,J,L)
                   
             ENDIF ! LSOA
@@ -512,44 +536,44 @@
                ! Bin #1
                IF ( Input_Opt%DUSTREFF(K) < 0.2e-6_fp ) THEN
                   SOILDUST(I,J,L,1) = SOILDUST(I,J,L,1)
-     &                              + STT(I,J,L,id_DUST1+K-1)  
+     &                              + Spc(I,J,L,id_DUST1+K-1)  
      &                              / AIRVOL(I,J,L)
 
 
                ! Bin #2
                ELSE IF ( Input_Opt%DUSTREFF(K) < 0.325e-6_fp ) THEN
                   SOILDUST(I,J,L,2) = SOILDUST(I,J,L,2)
-     &                              + STT(I,J,L,id_DUST1+K-1) 
+     &                              + Spc(I,J,L,id_DUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #3
                ELSE IF ( Input_Opt%DUSTREFF(K) < 0.6e-6_fp ) THEN
                   SOILDUST(I,J,L,3) = SOILDUST(I,J,L,3)
-     &                              + STT(I,J,L,id_DUST1+K-1) 
+     &                              + Spc(I,J,L,id_DUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #4
                ELSE IF ( Input_Opt%DUSTREFF(K) < 1.15e-6_fp ) THEN
                   SOILDUST(I,J,L,4) = SOILDUST(I,J,L,4)
-     &                              + STT(I,J,L,id_DUST1+K-1) 
+     &                              + Spc(I,J,L,id_DUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #5
                ELSE IF ( Input_Opt%DUSTREFF(K) < 2.0e-6_fp ) THEN
                   SOILDUST(I,J,L,5) = SOILDUST(I,J,L,5)
-     &                              + STT(I,J,L,id_DUST1+K-1) 
+     &                              + Spc(I,J,L,id_DUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #6
                ELSE IF ( Input_Opt%DUSTREFF(K) < 3.25e-6_fp ) THEN
                   SOILDUST(I,J,L,6) = SOILDUST(I,J,L,6)
-     &                              + STT(I,J,L,id_DUST1+K-1) 
+     &                              + Spc(I,J,L,id_DUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #7
                ELSE 
                   SOILDUST(I,J,L,7) = SOILDUST(I,J,L,7)
-     &                              + STT(I,J,L,id_DUST1+K-1) 
+     &                              + Spc(I,J,L,id_DUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ENDIF
@@ -567,18 +591,18 @@
             ! Now use dust size distribution scheme to improve PM2.5
             ! surface dust conc over western U.S. (L. Zhang, 6/25/15)
             SOILDUST(I,J,L,1) = 
-     &            0.007e+0_fp * STT(I,J,L,id_DST1) / AIRVOL(I,J,L)
+     &            0.007e+0_fp * Spc(I,J,L,id_DST1) / AIRVOL(I,J,L)
             SOILDUST(I,J,L,2) =
-     &            0.0332e+0_fp * STT(I,J,L,id_DST1) / AIRVOL(I,J,L)
+     &            0.0332e+0_fp * Spc(I,J,L,id_DST1) / AIRVOL(I,J,L)
             SOILDUST(I,J,L,3) =
-     &            0.2487e+0_fp * STT(I,J,L,id_DST1) / AIRVOL(I,J,L)
+     &            0.2487e+0_fp * Spc(I,J,L,id_DST1) / AIRVOL(I,J,L)
             SOILDUST(I,J,L,4) =
-     &            0.7111e+0_fp * STT(I,J,L,id_DST1) / AIRVOL(I,J,L)
+     &            0.7111e+0_fp * Spc(I,J,L,id_DST1) / AIRVOL(I,J,L)
 
             ! Other hetchem bins
-            SOILDUST(I,J,L,5) = STT(I,J,L,id_DST2) / AIRVOL(I,J,L)
-            SOILDUST(I,J,L,6) = STT(I,J,L,id_DST3) / AIRVOL(I,J,L)
-            SOILDUST(I,J,L,7) = STT(I,J,L,id_DST4) / AIRVOL(I,J,L)
+            SOILDUST(I,J,L,5) = Spc(I,J,L,id_DST2) / AIRVOL(I,J,L)
+            SOILDUST(I,J,L,6) = Spc(I,J,L,id_DST3) / AIRVOL(I,J,L)
+            SOILDUST(I,J,L,7) = Spc(I,J,L,id_DST4) / AIRVOL(I,J,L)
             
          ENDIF
 
@@ -592,10 +616,10 @@
          IF ( LSSALT ) THEN
 
             ! Accumulation mode seasalt aerosol [kg/m3]
-            SALA(I,J,L) = STT(I,J,L,id_SALA) / AIRVOL(I,J,L)
+            SALA(I,J,L) = Spc(I,J,L,id_SALA) / AIRVOL(I,J,L)
             
             ! Coarse mode seasalt aerosol [kg/m3]
-            SALC(I,J,L) = STT(I,J,L,id_SALC) / AIRVOL(I,J,L)
+            SALC(I,J,L) = Spc(I,J,L,id_SALC) / AIRVOL(I,J,L)
 
             ! Avoid division by zero
             SALA(I,J,L) = MAX( SALA(I,J,L), 1e-35_fp )
@@ -607,6 +631,19 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! If units were originally 'kg/kg dry', convert [kg] back to mixing 
       ! ratio (ewl, 8/12/15)
@@ -621,8 +658,8 @@
       ENDIF
 
       ! Free pointers
-      NULLIFY( STT    )
-      NULLIFY( AIRVOL )
+      Spc    => NULL()
+      AIRVOL => NULL()
 
       END SUBROUTINE AEROSOL_CONC
 !EOC

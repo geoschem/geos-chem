@@ -79,10 +79,10 @@
       !=================================================================
 
       ! Scalars
-      INTEGER              :: PBL_MAX_L
+      INTEGER                :: PBL_MAX_L
       
       ! Arrays
-      INTEGER, ALLOCATABLE :: IMIX(:,:)
+      INTEGER,   ALLOCATABLE :: IMIX(:,:)
       REAL(fp),  ALLOCATABLE :: FPBL(:,:)
       REAL(fp),  ALLOCATABLE :: F_OF_PBL(:,:,:)
       REAL(fp),  ALLOCATABLE :: F_UNDER_TOP(:,:,:)
@@ -122,9 +122,13 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CONV
-#if defined( DEVEL )
+#if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+      USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !
 ! !INPUT PARAMETERS: 
 !
@@ -145,79 +149,89 @@
 !  28 Feb 2012 - R. Yantosca - Added ProTeX headers
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  22 Aug 2014 - R. Yantosca - Now declare State_Met INTENT(INOUT)
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  06 Jul 2016 - R. Yantosca - Now pass State_Chm and am_I_Root to TURBDAY
+!  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! Scalars
+      ! SAVEd scalars
       LOGICAL, SAVE  :: FIRST = .TRUE.
-      INTEGER        :: N_TOT_TRC
-      INTEGER        :: N_TRACERS
+
+      ! Scalars
+      INTEGER        :: N, NA, nAdvect
+#if defined( USE_TEND )
       REAL(fp)       :: DT_TEND
-
-      ! Arrays
-      REAL(fp)         :: TCVV(Input_Opt%N_TRACERS)
-
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+#endif
 
       !=================================================================
       ! DO_PBL_MIX begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
       RC = GIGC_SUCCESS
 
-      ! Get fields from the Input_OPt object
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
-
-      ! Pick the proper # of tracers
-      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
-
-      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
-
       ! First-time initialization
       IF ( FIRST ) THEN
-         CALL INIT_PBL_MIX
+         CALL INIT_PBL_MIX()
          FIRST = .FALSE.
       ENDIF
          
-      ! Compute PBL height and related quantities
-      ! -> now done in main.F (ckeller, 3/5/15)
-!      CALL COMPUTE_PBL_HEIGHT( State_Met )
-
       ! The following only needs be done if turbulence is turned on...
       IF ( DO_TURBDAY ) THEN
 
-         ! Archive tracer concentrations for tendencies. Tracers are 
+#if defined( USE_TEND ) 
+         ! Archive species concentrations for tendencies. Tracers are 
          ! already in v/v (ckeller, 7/15/2015)
-#if defined( DEVEL ) 
          CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met,
      &                     State_Chm, 'PBLMIX', .TRUE., RC )
 #endif
 
          ! Do complete mixing of tracers in the PBL (if necessary)
-         CALL TURBDAY( N_TOT_TRC, STT, TCVV, 
-     &                 Input_Opt, State_Met )
+         CALL TURBDAY( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
 
-         ! Archive tracer concentrations for tendencies (ckeller, 7/15/2015)
-#if defined( DEVEL ) 
+#if defined( USE_TEND ) 
+         ! Archive species concentrations for tendencies (ckeller, 7/15/2015)
          DT_TEND = GET_TS_CONV() * 60.0_fp
          CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met,
-     &                     State_Chm, 'PBLMIX', .TRUE., DT_TEND, RC )
+     &                     State_Chm, 'PBLMIX', .TRUE., 
+     &                     DT_TEND,   RC                    )
 #endif
       ENDIF
 
-      ! First-time initialization
-      ! Free pointer
-      NULLIFY( STT )
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       END SUBROUTINE DO_PBL_MIX
 !EOC
@@ -457,34 +471,33 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TURBDAY( NTRC, TC, TCVV, Input_Opt, State_Met )              
+      SUBROUTINE TURBDAY( am_I_root, Input_Opt, 
+     &                    State_Met, State_Chm, RC )
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : TURBFLUP
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CONV
-
-      USE CMN_SIZE_MOD             ! Size parameters    
-      USE CMN_DIAG_MOD             ! ND15
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Number of tracers used in computation
-      INTEGER,        INTENT(IN)    :: NTRC             
-
-      ! MW air (g/mol) / MW tracer (g/mol)     [ unitless ]
-      REAL(fp),         INTENT(IN)    :: TCVV(NTRC)
-
-      ! Meteorology State object
-      TYPE(MetState), INTENT(IN)    :: State_Met
+      LOGICAL,        INTENT(IN)    :: am_I_Root      
       TYPE(OptInput), INTENT(IN)    :: Input_Opt
+      TYPE(MetState), INTENT(IN)    :: State_Met
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      ! Tracer concentration [v/v]
-      REAL(fp),         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NTRC) 
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC
 ! 
 ! !REMARKS:
 !  Original subroutine by Dale Allen, Univ of MD.
@@ -549,6 +562,8 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  15 Jul 2015 - C. Keller   - Added tendencies module
+!  06 Jul 2016 - R. Yantosca - Now pass State_Chm and am_I_Root as args
+!                              so that we can loop over advected species   
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -556,17 +571,25 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: I,  J,  L,     LTOP,    N
-      REAL(fp)        :: AA, CC, CC_AA, AREA_M2, DTCONV
-      REAL(fp)        :: A(IIPAR,JJPAR)
-      REAL(fp)        :: DTC(IIPAR,JJPAR,LLPAR,NTRC)  
+
+      INTEGER           :: I,    J,  L     
+      INTEGER           :: LTOP, N,  NA,    nAdvect            
+      REAL(fp)          :: AA,   CC, CC_AA, AREA_M2, DTCONV
+
+      ! Arrays
+      REAL(fp)          :: A(IIPAR,JJPAR)
+      REAL(fp)          :: DTC(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)  
 
       ! Pointers
       REAL(fp), POINTER :: AD(:,:,:)
+      REAL(fp), POINTER :: TC(:,:,:,:)
 
       !=================================================================
       ! TURBDAY begins here!          
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! First-time initialization
       IF ( FIRST .and. Input_Opt%RootCPU ) THEN
@@ -586,8 +609,10 @@
       ! Do the boundary layer mixing
       !=================================================================
 
-      ! Initialize pointers
-      AD    => State_Met%AD
+      ! Initalize
+      AD      => State_Met%AD        ! Dry air mass
+      nAdvect =  State_Chm%nAdvect   ! # of advected species
+      TC      => State_Chm%Species   ! Chemical species [v/v]
 
       ! Convection timestep [s]
       DTCONV = GET_TS_CONV() * 60e+0_fp
@@ -595,7 +620,7 @@
       ! Loop over Lat/Long grid boxes (I,J)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, AA, CC, CC_AA ) 
+!$OMP+PRIVATE( I, J, L, NA, N, AA, CC, CC_AA ) 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
   
@@ -607,14 +632,17 @@
          AA = 0.e+0_fp 
          DO L = 1, IMIX(I,J)-1 
             AA = AA + AD(I,J,L) 
-         ENDDO       
+         ENDDO
                
          L  = IMIX(I,J) 
          AA = AA + AD(I,J,L) * FPBL(I,J)
 
-         ! Loop over tracers 
-         DO N = 1, NTRC
-     
+         ! Loop over only the advected species
+         DO NA = 1, nAdvect
+            
+            ! Species ID
+            N = State_Chm%Map_Advect(NA)
+    
             !===========================================================
             ! Calculate tracer mass within PBL at grid box (I,J,L)
             !===========================================================
@@ -672,7 +700,7 @@
             IF ( ND15 > 0 ) THEN
                DO L = 1, IMIX(I,J)
                   TURBFLUP(I,J,L,N) = TURBFLUP(I,J,L,N) +
-     &                 DTC(I,J,L,N) / ( TCVV(N) * DTCONV )
+     &                 DTC(I,J,L,N) / ( Input_Opt%TCVV(N) * DTCONV )
                ENDDO
             ENDIF
          ENDDO                  
@@ -695,7 +723,8 @@
 !-----------------------------------------------------------------------------
 
       ! Free pointers
-      NULLIFY( AD )
+      AD => NULL()
+      TC => NULL()
 
       END SUBROUTINE TURBDAY
 !EOC

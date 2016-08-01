@@ -153,6 +153,8 @@
 !                              aerosols (T.D. Fairlie)
 !  01 Apr 2015 - R. Yantosca - Remove call to DRY_DEPOSITION, this is now
 !                              done in mixing_mod.F90.
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -168,16 +170,34 @@
       LOGICAL       :: LDSTUP
       LOGICAL       :: prtDebug
       INTEGER       :: N
-      INTEGER       :: IDISP
+      INTEGER       :: IDISP, NA, nAdvect
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! CHEMDUST begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 
       ! Assume success
       RC    = GIGC_SUCCESS
@@ -194,7 +214,13 @@
       IF ( FIRST ) THEN
  
          ! Stop w/ error if dust tracer flags are undefined
-        IF ( id_DST1 + id_DST2 + id_DST3 + id_DST4 == 0 ) THEN 
+         ! NOTE: Ind_() returns -1 for species not found, so for the
+         ! algorithm below to work, we need to make sure all id's are
+         ! not less than zero (bmy, 7/5/16)
+         IF ( MAX( id_DST1, 0 )  + 
+     &        MAX( id_DST2, 0 )  + 
+     &        MAX( id_DST3, 0 )  + 
+     &        MAX( id_DST4, 0 ) == 0 ) THEN 
             IF ( LDUST ) THEN 
                CALL ERROR_STOP( 
      &              'LDUST=T but dust tracers are undefined!',
@@ -211,23 +237,33 @@
       !=================================================================
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      Spc => State_Chm%Species
 
-      !----------------------
-      ! Dust settling
-      !----------------------
+      !-------------------------------------------------------------
+      ! Dust settling for regular dust species
+      !
+      ! NOTE: Assumes that id_DST1, id_DST2, id_DST3, id_DST4 are 
+      ! contiguous in the species list.  This is usually correct,
+      ! but we may have to update this later. (bmy, 7/5/16)
+      !-------------------------------------------------------------
       IDISP = 0
-      CALL DRY_SETTLING(  am_I_Root, Input_Opt,                           
-     &                    State_Met, STT(:,:,:,id_DST1:id_DST4), RC,      
-     &                    id_DST1,   IDISP )                              
+      CALL DRY_SETTLING(  am_I_Root, Input_Opt, 
+     &                    State_Met, Spc(:,:,:,id_DST1:id_DST4),
+     &                    RC,        id_DST1,  IDISP             )
    
+      !-------------------------------------------------------------
+      ! Dust settling for acid uptake on dust species
+      !
+      ! NOTE: Assumes that id_DAL1, id_DAL2, id_DAL3, id_DAL4 are 
+      ! contiguous in the species list.  This is usually correct,
+      ! but we may have to update this later. (bmy, 7/5/16)
+      !-------------------------------------------------------------
       IF ( LDSTUP ) THEN
          ! Include dust alkalinity settling                 tdf 04/10/08
          IDISP = 4
-       CALL DRY_SETTLING(  am_I_Root, Input_Opt,  
-     &                       State_Met, STT(:,:,:,id_DAL1:id_DAL4), RC,
-     &                       id_DAL1,   IDISP )
+         CALL DRY_SETTLING( am_I_Root, Input_Opt,  
+     &                     State_Met,  Spc(:,:,:,id_DAL1:id_DAL4), 
+     &                     RC,         id_DAL1,  IDISP             )
          ! Note: DRY SETTLING of DSTNIT, DSTSO4 occurs in GRAV_SETTLING
          !       called from CHEMSULFATE in SULFATE_MOD.    tdf 04/10/08
       ENDIF
@@ -238,8 +274,20 @@
       ENDIF
 
       ! Free pointer
-      STT => NULL()
+      Spc => NULL()
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CHEMDUST
 #if   defined( TOMAS )
 !------------------------------------------------------------------------------
@@ -301,6 +349,8 @@
 !  16 Jul 2015 - R. Yantosca - Now pass INDEX and IDISP to DRY_SETTLING
 !  31 May 2016 - E. Lundgren - Replace Input_Opt%XNUMOL with AVO/(emMW_g*1e-3)
 !                              where emMW_g is from species database
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -311,7 +361,7 @@
       LOGICAL, SAVE     :: FIRST = .TRUE.
 
       ! Non-SAVEd scalars
-      INTEGER           :: N, BIN, I, J, L, NN, IDISP
+      INTEGER           :: N, BIN, I, J, L, NN, IDISP, NA, nAdvect
       REAL(fp)          :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
       REAL(fp)          :: DIF, FLUXN, FLUXD
       REAL(fp)          :: DT_SETTL, AREA_CM2
@@ -325,13 +375,25 @@
       INTEGER           :: N_TRACERS
       
       ! Pointers
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! SETTLEDUST begins here!
       !=================================================================
- 
-     ! Add tracer IDs as variables 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -346,9 +408,8 @@
       ! Copy values from Input_Opt
       N_TRACERS = Input_Opt%N_TRACERS
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT       => State_Chm%Tracers
+      ! Point to chemical species array [kg]
+      Spc       => State_Chm%Species
 
       !=================================================================
       ! Do dust settling & deposition
@@ -362,7 +423,7 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         DU0(I,J,L,BIN) = STT(I,J,L,id_DUST1-1+BIN) 
+         DU0(I,J,L,BIN) = Spc(I,J,L,id_DUST1-1+BIN) 
       ENDDO
       ENDDO
       ENDDO
@@ -373,7 +434,7 @@
       CALL DRY_SETTLING( am_I_Root,
      &                   Input_Opt,  
      &                   State_Met,
-     &                   STT(:,:,:,id_DUST1:id_DUST1-1+IBINS),
+     &                   Spc(:,:,:,id_DUST1:id_DUST1-1+IBINS),
      &                   RC,
      &                   id_DUST1,
      &                   IDISP )
@@ -400,9 +461,9 @@
 !     &           'FLUXD  AD44' 
 !debug-----
             DO L = 1, LLPAR
-               DIF = DU0(I,J,L,BIN) - STT(I,J,L,id_DUST1-1+BIN)
+               DIF = DU0(I,J,L,BIN) - Spc(I,J,L,id_DUST1-1+BIN)
 
-               STT(I,J,L,id_NK1-1+BIN) = STT(I,J,L,id_NK1-1+BIN) - 
+               Spc(I,J,L,id_NK1-1+BIN) = Spc(I,J,L,id_NK1-1+BIN) - 
      &                                DIF/(SQRT( Xk(BIN)*Xk(BIN+1)))
             
                ! Convert flux from [kg/s] to [molec/cm2/s]
@@ -442,8 +503,17 @@
       ENDDO
 
       ! Free pointer memory
-      STT => NULL()
+      Spc => NULL()
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE SETTLEDUST
 !EOC
 !------------------------------------------------------------------------------
@@ -506,6 +576,10 @@
 !                              now no longer calling INIT_DUST from here,
 !                              it is now called in the init stage
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -516,26 +590,38 @@
       LOGICAL,  SAVE    :: FIRST = .TRUE.
       
       ! Non-SAVEd scalars
-      INTEGER           :: N_TRACERS
       LOGICAL           :: LDEAD
       LOGICAL           :: LDUST
       LOGICAL           :: LPRT
       LOGICAL           :: LINTERP 
-      INTEGER           :: I, J, K                            !(win, 7/17/09)
-      REAL(fp)          :: MEMIS, MINIT(IIPAR,JJPAR,1,IBINS)  !(win, 7/17/09)
+      INTEGER           :: I, J, K, N, NA, nAdvect
+      REAL(fp)          :: MEMIS, MINIT(IIPAR,JJPAR,1,IBINS)
 
       ! Pointers
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! EMISSDUST begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
      
       ! Assume success
       RC        = GIGC_SUCCESS
 
       ! Initialize
-      N_TRACERS =  Input_Opt%N_TRACERS
       LDEAD     =  Input_Opt%LDEAD
       LDUST     =  Input_Opt%LDUST
       LPRT      =  Input_Opt%LPRT
@@ -560,16 +646,15 @@
       ! Call appropriate emissions routine
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [kg]
+      Spc => State_Chm%Species
 
       !=================================================================
       ! For TOMAS microphysics
       !=================================================================
       IF ( id_NK1 > 0 .and. id_DUST1 > 0 ) THEN
 
-         MINIT(:,:,1,1:IBINS) = STT(:,:,1,id_DUST1:id_DUST1-1+IBINS)
+         MINIT(:,:,1,1:IBINS) = Spc(:,:,1,id_DUST1:id_DUST1-1+IBINS)
 
          IF ( LDEAD ) THEN
             ! still didn't figure out why run would crash w/ this option (win, 7/17/09)
@@ -588,11 +673,11 @@
             DO K = 1, IBINS
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-               MEMIS = STT(I,J,1,id_DUST1-1+K) - MINIT(I,J,1,K)
+               MEMIS = Spc(I,J,1,id_DUST1-1+K) - MINIT(I,J,1,K)
                IF ( MEMIS == 0.e+0_fp ) GOTO 10
 
                AD59_DUST(I,J,1,K) = AD59_DUST(I,J,1,K) + MEMIS ! kg ????
-               STT(I,J,1,id_NK1-1+K) = STT(I,J,1,id_NK1-1+K) +
+               Spc(I,J,1,id_NK1-1+K) = Spc(I,J,1,id_NK1-1+K) +
      &                                 MEMIS / (sqrt(Xk(K)*Xk(K+1)))
 
                AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + 
@@ -605,8 +690,17 @@
       ENDIF
 
       ! Free pointers
-      STT => NULL()
+      Spc => NULL()
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE EMISSDUST
 !EOC
 #endif
@@ -894,7 +988,8 @@
          DO N = 1, NDSTBIN
 
             ! Get drydep id
-            drydep_id = Input_Opt%IDISP+N
+!            drydep_id = Input_Opt%IDISP+N
+            drydep_id = IDISP + N
 
             ! Get tracer id
             trc_id = Input_Opt%NTRAIND( drydep_id )
@@ -1875,6 +1970,8 @@
 !  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. ERADIUS,
 !                              TAREA, are now pointers that point to 3D fields
 !                              fields in State_Chm.
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1944,20 +2041,20 @@
       REAL(fp)            :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: Spc(:,:,:,:)
       REAL(fp), POINTER   :: ERADIUS(:,:,:,:)
       REAL(fp), POINTER   :: TAREA(:,:,:,:)
 
       !=================================================================
       ! GET_DUST_ALK begins here!
       !=================================================================
- 
+
       ! Copy fields from INPUT_OPT to local variables for use below
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Initialize pointers
-      STT      => State_Chm%Tracers  ! GEOS-Chem tracer array [kg]
+      Spc      => State_Chm%Tracers  ! GEOS-Chem tracer array [kg]
       ERADIUS  => State_Chm%AeroRadi ! Aerosol Radius [cm]
       TAREA    => State_Chm%AeroArea ! Aerosol Area [cm2/cm3]
 
@@ -1974,18 +2071,18 @@
       ! Air density [kg/m3]
       AIR_DENS = State_Met%AD(I,J,L) / State_Met%AIRVOL(I,J,L) 
 
-      ! Retrieve Dust Alkalinity [v/v] from STT array
-      ALK_d(1) = STT(I,J,L,id_DAL1)
-      ALK_d(2) = STT(I,J,L,id_DAL2)
-      ALK_d(3) = STT(I,J,L,id_DAL3)
-      ALK_d(4) = STT(I,J,L,id_DAL4)
+      ! Retrieve Dust Alkalinity [v/v] from Spc array
+      ALK_d(1) = Spc(I,J,L,id_DAL1)
+      ALK_d(2) = Spc(I,J,L,id_DAL2)
+      ALK_d(3) = Spc(I,J,L,id_DAL3)
+      ALK_d(4) = Spc(I,J,L,id_DAL4)
 
-      ! Dust [kg/m3] from STT, used to compute dust surface area
+      ! Dust [kg/m3] from Spc, used to compute dust surface area
       ! Units: (moles/mole).(kg(air)/m3).(kg(dust)/mole)/(kg(air)/mole)
-      DST_d(1) = STT(I,J,L,id_DST1) * AIR_DENS/TCVV(id_DST1)
-      DST_d(2) = STT(I,J,L,id_DST2) * AIR_DENS/TCVV(id_DST2)
-      DST_d(3) = STT(I,J,L,id_DST3) * AIR_DENS/TCVV(id_DST3)
-      DST_d(4) = STT(I,J,L,id_DST4) * AIR_DENS/TCVV(id_DST4)
+      DST_d(1) = Spc(I,J,L,id_DST1) * AIR_DENS/TCVV(id_DST1)
+      DST_d(2) = Spc(I,J,L,id_DST2) * AIR_DENS/TCVV(id_DST2)
+      DST_d(3) = Spc(I,J,L,id_DST3) * AIR_DENS/TCVV(id_DST3)
+      DST_d(4) = Spc(I,J,L,id_DST4) * AIR_DENS/TCVV(id_DST4)
 
       ! tdf Now get aerosol surface area from TAREA (cm2/cm3)
       SULF_AREA = TAREA(I,J,L,NDUST+1)
@@ -2291,7 +2388,7 @@
       END DO
 
       ! Free pointers
-      STT     => NULL()
+      Spc     => NULL()
       ERADIUS => NULL()
       TAREA   => NULL()
 
@@ -2540,7 +2637,7 @@
       IF ( .not. LDEAD ) THEN
 
          DO BIN = 1, IBINS
-         DO N   = 1, Input_Opt%NUMDEP
+         DO N   = 1, State_Chm%nDryDep
             IF ( Input_Opt%NTRAIND(N) == ( id_NK1-1+BIN ) )THEN
                Input_Opt%IDDEP(BIN) = N
                GOTO 100

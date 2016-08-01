@@ -118,13 +118,16 @@
 !  06 Jan 2016 - E. Lundgren - Use global physical parameter ATM
 !  16 Jun 2016 - K. Yu       - Now define species ID's with the IND_ function
 !  17 Jun 2016 - R. Yantosca - Now only define species ID's on the first call
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I,      J,    L
+      INTEGER             :: I,       J,   L
+      INTEGER             :: nAdvect, N,   NA
       ! SOAupdate: Temporary variables for diagnostics (hotp 8/24/09)
       REAL(fp)            :: FACTOR, PRES
       REAL(fp)            :: TEMP6, TEMP7
@@ -161,11 +164,25 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !================================================================= 
       ! DIAG42 begins here! 
       !================================================================= 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! First-time setup
       IF ( FIRST ) THEN
@@ -210,9 +227,8 @@
       IS_POA     = ( id_POA1  > 0 .AND. id_POA2  > 0 )
       IS_OPOA    = ( id_OPOA1 > 0 .AND. id_OPOA2 > 0 )
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to the 
+      Spc => State_Chm%Species
 
       ! SOAupdate: TEMPS need to be private!!!(hotp 10/14/09)
       ! Loop over grid boxes     
@@ -240,105 +256,105 @@
          ! TSOA (terpene SOA) (hotp 5/24/10)
          IF ( IS_TSOA ) THEN
             AD42(I,J,L,1) = AD42(I,J,L,1)       + 
-     &                  ( ( STT(I,J,L,id_TSOA1) +
-     &                      STT(I,J,L,id_TSOA2) +
-     &                      STT(I,J,L,id_TSOA3) +
-     &                      STT(I,J,L,id_TSOA0) ) * FACTOR )
+     &                  ( ( Spc(I,J,L,id_TSOA1) +
+     &                      Spc(I,J,L,id_TSOA2) +
+     &                      Spc(I,J,L,id_TSOA3) +
+     &                      Spc(I,J,L,id_TSOA0) ) * FACTOR )
          ENDIF
 
          ! ISOA (isoprene SOA) (hotp 5/24/10)
          IF ( IS_ISOA ) THEN
             AD42(I,J,L,2) = AD42(I,J,L,2)       + 
-     &                  ( ( STT(I,J,L,id_ISOA1) +
-     &                      STT(I,J,L,id_ISOA2) +
-     &                      STT(I,J,L,id_ISOA3) ) * FACTOR )
+     &                  ( ( Spc(I,J,L,id_ISOA1) +
+     &                      Spc(I,J,L,id_ISOA2) +
+     &                      Spc(I,J,L,id_ISOA3) ) * FACTOR )
          ENDIF
 
          ! ASOA (benz, tolu, xyle, + NAP/IVOC SOA) (hotp 5/24/10)
          IF ( IS_ASOA ) THEN
             AD42(I,J,L,3) = AD42(I,J,L,3)       + 
-     &                  ( ( STT(I,J,L,id_ASOAN) +
-     &                      STT(I,J,L,id_ASOA1) +
-     &                      STT(I,J,L,id_ASOA2) +
-     &                      STT(I,J,L,id_ASOA3) ) * FACTOR )
+     &                  ( ( Spc(I,J,L,id_ASOAN) +
+     &                      Spc(I,J,L,id_ASOA1) +
+     &                      Spc(I,J,L,id_ASOA2) +
+     &                      Spc(I,J,L,id_ASOA3) ) * FACTOR )
          ENDIF
 
          ! POA hotp
          IF ( IS_POA ) THEN
             AD42(I,J,L,4) = AD42(I,J,L,4)      + 
-     &                  ( ( STT(I,J,L,id_POA1) +
-     &                      STT(I,J,L,id_POA2) ) * OCFPOA  * FACTOR )
+     &                  ( ( Spc(I,J,L,id_POA1) +
+     &                      Spc(I,J,L,id_POA2) ) * OCFPOA  * FACTOR )
          ELSEIF ( IS_OC ) THEN
             AD42(I,J,L,4) = AD42(I,J,L,4)      + 
-     &                  ( ( STT(I,J,L,id_OCPI) +
-     &                      STT(I,J,L,id_OCPO) ) * OCFOPOA * FACTOR )
+     &                  ( ( Spc(I,J,L,id_OCPI) +
+     &                      Spc(I,J,L,id_OCPO) ) * OCFOPOA * FACTOR )
          ENDIF
 
          ! OPOA hotp
          IF ( IS_OPOA ) THEN
             AD42(I,J,L,5) = AD42(I,J,L,5)       + 
-     &                  ( ( STT(I,J,L,id_OPOA1) +
-     &                      STT(I,J,L,id_OPOA2) ) * OCFOPOA 
+     &                  ( ( Spc(I,J,L,id_OPOA1) +
+     &                      Spc(I,J,L,id_OPOA2) ) * OCFOPOA 
      &                    * FACTOR )
          ENDIF
 
          ! sum of all OA (hotp 5/24/10)
          IF ( IS_TSOA .AND. IS_ISOA .AND. IS_ASOA ) THEN
-            TEMP6 = STT(I,J,L,id_TSOA1) +
-     &              STT(I,J,L,id_TSOA2) + 
-     &              STT(I,J,L,id_TSOA3) + 
-     &              STT(I,J,L,id_TSOA0) + 
-     &              STT(I,J,L,id_ISOA1) + 
-     &              STT(I,J,L,id_ISOA2) + 
-     &              STT(I,J,L,id_ISOA3) + 
-     &              STT(I,J,L,id_ASOAN) + 
-     &              STT(I,J,L,id_ASOA1) + 
-     &              STT(I,J,L,id_ASOA2) + 
-     &              STT(I,J,L,id_ASOA3) 
+            TEMP6 = Spc(I,J,L,id_TSOA1) +
+     &              Spc(I,J,L,id_TSOA2) + 
+     &              Spc(I,J,L,id_TSOA3) + 
+     &              Spc(I,J,L,id_TSOA0) + 
+     &              Spc(I,J,L,id_ISOA1) + 
+     &              Spc(I,J,L,id_ISOA2) + 
+     &              Spc(I,J,L,id_ISOA3) + 
+     &              Spc(I,J,L,id_ASOAN) + 
+     &              Spc(I,J,L,id_ASOA1) + 
+     &              Spc(I,J,L,id_ASOA2) + 
+     &              Spc(I,J,L,id_ASOA3) 
  
             IF ( IS_POA ) THEN
-               TEMP6 = TEMP6 + STT(I,J,L,id_POA1) * OCFPOA +
-     &                         STT(I,J,L,id_POA2) * OCFPOA
+               TEMP6 = TEMP6 + Spc(I,J,L,id_POA1) * OCFPOA +
+     &                         Spc(I,J,L,id_POA2) * OCFPOA
             ENDIF
           
             IF ( IS_OPOA ) THEN
-               TEMP6 = TEMP6 + STT(I,J,L,id_OPOA1) * OCFOPOA +
-     &                         STT(I,J,L,id_OPOA2) * OCFOPOA
+               TEMP6 = TEMP6 + Spc(I,J,L,id_OPOA1) * OCFOPOA +
+     &                         Spc(I,J,L,id_OPOA2) * OCFOPOA
             ENDIF
 
             IF ( IS_OC ) THEN
-               TEMP6 = TEMP6 + STT(I,J,L,id_OCPI) * OCFOPOA +
-     &                         STT(I,J,L,id_OCPO) * OCFOPOA
+               TEMP6 = TEMP6 + Spc(I,J,L,id_OCPI) * OCFOPOA +
+     &                         Spc(I,J,L,id_OCPO) * OCFOPOA
             ENDIF
 
             AD42(I,J,L,6) = AD42(I,J,L,6)  + ( TEMP6 * FACTOR )
 
             ! sum of all OC (hotp 5/24/10)
-            TEMP7 = (  STT(I,J,L,id_TSOA1) +
-     &                 STT(I,J,L,id_TSOA2) + 
-     &                 STT(I,J,L,id_TSOA3) + 
-     &                 STT(I,J,L,id_TSOA0) + 
-     &                 STT(I,J,L,id_ISOA1) + 
-     &                 STT(I,J,L,id_ISOA2) + 
-     &                 STT(I,J,L,id_ISOA3) + 
-     &                 STT(I,J,L,id_ASOAN) + 
-     &                 STT(I,J,L,id_ASOA1) + 
-     &                 STT(I,J,L,id_ASOA2) + 
-     &                 STT(I,J,L,id_ASOA3)  ) / 2.1e+0_fp
+            TEMP7 = (  Spc(I,J,L,id_TSOA1) +
+     &                 Spc(I,J,L,id_TSOA2) + 
+     &                 Spc(I,J,L,id_TSOA3) + 
+     &                 Spc(I,J,L,id_TSOA0) + 
+     &                 Spc(I,J,L,id_ISOA1) + 
+     &                 Spc(I,J,L,id_ISOA2) + 
+     &                 Spc(I,J,L,id_ISOA3) + 
+     &                 Spc(I,J,L,id_ASOAN) + 
+     &                 Spc(I,J,L,id_ASOA1) + 
+     &                 Spc(I,J,L,id_ASOA2) + 
+     &                 Spc(I,J,L,id_ASOA3)  ) / 2.1e+0_fp
 
             IF ( IS_POA ) THEN
-               TEMP7 = TEMP7 + STT(I,J,L,id_POA1) +
-     &                         STT(I,J,L,id_POA2) 
+               TEMP7 = TEMP7 + Spc(I,J,L,id_POA1) +
+     &                         Spc(I,J,L,id_POA2) 
             ENDIF
           
             IF ( IS_OPOA ) THEN
-               TEMP7 = TEMP7 + STT(I,J,L,id_OPOA1) +
-     &                         STT(I,J,L,id_OPOA2)
+               TEMP7 = TEMP7 + Spc(I,J,L,id_OPOA1) +
+     &                         Spc(I,J,L,id_OPOA2)
             ENDIF
 
             IF ( IS_OC ) THEN
-               TEMP7 = TEMP7 + STT(I,J,L,id_OCPI) +
-     &                         STT(I,J,L,id_OCPO)
+               TEMP7 = TEMP7 + Spc(I,J,L,id_OCPI) +
+     &                         Spc(I,J,L,id_OCPO)
             ENDIF
 
             AD42(I,J,L,7) = AD42(I,J,L,7)  +
@@ -349,13 +365,13 @@
          ! sum of biogenic OC (hotp 5/24/10)
          IF ( IS_TSOA .AND. IS_ISOA ) THEN
             AD42(I,J,L,8) = AD42(I,J,L,8)       +
-     &                  ( ( STT(I,J,L,id_TSOA1) +
-     &                      STT(I,J,L,id_TSOA2) +
-     &                      STT(I,J,L,id_TSOA3) +
-     &                      STT(I,J,L,id_TSOA0) +
-     &                      STT(I,J,L,id_ISOA1) +
-     &                      STT(I,J,L,id_ISOA2) +
-     &                      STT(I,J,L,id_ISOA3) ) * FACTOR )
+     &                  ( ( Spc(I,J,L,id_TSOA1) +
+     &                      Spc(I,J,L,id_TSOA2) +
+     &                      Spc(I,J,L,id_TSOA3) +
+     &                      Spc(I,J,L,id_TSOA0) +
+     &                      Spc(I,J,L,id_ISOA1) +
+     &                      Spc(I,J,L,id_ISOA2) +
+     &                      Spc(I,J,L,id_ISOA3) ) * FACTOR )
          ENDIF
           
          ! NO branching ratio (hotp 5/24/10)
@@ -365,19 +381,19 @@
          ! POA (ugC/m3) hotp 7/28/10
          IF ( IS_POA ) THEN
             AD42(I,J,L,10) = AD42(I,J,L,10)     + 
-     &                   ( ( STT(I,J,L,id_POA1) +
-     &                       STT(I,J,L,id_POA2) )  * FACTOR )
+     &                   ( ( Spc(I,J,L,id_POA1) +
+     &                       Spc(I,J,L,id_POA2) )  * FACTOR )
          ELSEIF ( IS_OC ) THEN
             AD42(I,J,L,10) = AD42(I,J,L,10)     + 
-     &                   ( ( STT(I,J,L,id_OCPI) +
-     &                       STT(I,J,L,id_OCPO) )  * FACTOR )
+     &                   ( ( Spc(I,J,L,id_OCPI) +
+     &                       Spc(I,J,L,id_OCPO) )  * FACTOR )
          ENDIF
 
          ! OPOA (ugC/m3) hotp 7/28/10
          IF ( IS_OPOA ) THEN
             AD42(I,J,L,11) = AD42(I,J,L,11)      + 
-     &                   ( ( STT(I,J,L,id_OPOA1) +
-     &                       STT(I,J,L,id_OPOA2) ) * FACTOR )
+     &                   ( ( Spc(I,J,L,id_OPOA1) +
+     &                       Spc(I,J,L,id_OPOA2) ) * FACTOR )
          ENDIF
 
          !--------------------------------------------------------------
@@ -387,40 +403,40 @@
          ! OC [ugC/m3]
          IF ( IS_OC ) THEN
             AD42(I,J,L,12) = AD42(I,J,L,12)       + 
-     &                       ( STT(I,J,L,id_OCPI) + 
-     &                         STT(I,J,L,id_OCPO) ) * FACTOR
+     &                       ( Spc(I,J,L,id_OCPI) + 
+     &                         Spc(I,J,L,id_OCPO) ) * FACTOR
          ENDIF
 
          ! BC [ugC/m3]
          IF ( IS_BC ) THEN
             AD42(I,J,L,13) = AD42(I,J,L,13)       + 
-     &                       ( STT(I,J,L,id_BCPI) +
-     &                         STT(I,J,L,id_BCPO) ) * FACTOR 
+     &                       ( Spc(I,J,L,id_BCPI) +
+     &                         Spc(I,J,L,id_BCPO) ) * FACTOR 
          ENDIF
 
          ! SO4 [ug/m3]
          IF ( IS_SO4 ) THEN
             AD42(I,J,L,14) = AD42(I,J,L,14)      + 
-     &                       ( STT(I,J,L,id_SO4) * FACTOR )
+     &                       ( Spc(I,J,L,id_SO4) * FACTOR )
          ENDIF
 
          ! NH4 [ug/m3]
          IF ( IS_NH4 ) THEN
             AD42(I,J,L,15) = AD42(I,J,L,15)      + 
-     &                       ( STT(I,J,L,id_NH4) * FACTOR )
+     &                       ( Spc(I,J,L,id_NH4) * FACTOR )
          ENDIF
 
          ! NIT [ug/m3]
          IF ( IS_NIT ) THEN
             AD42(I,J,L,16) = AD42(I,J,L,16)      + 
-     &                       ( STT(I,J,L,id_NIT) * FACTOR )
+     &                       ( Spc(I,J,L,id_NIT) * FACTOR )
          ENDIF
 
          ! SAL [ug/m3]
          IF ( IS_SAL ) THEN
             AD42(I,J,L,17) = AD42(I,J,L,17)       + 
-     &                       ( STT(I,J,L,id_SALA) +
-     &                        STT(I,J,L,id_SALC) ) * FACTOR 
+     &                       ( Spc(I,J,L,id_SALA) +
+     &                        Spc(I,J,L,id_SALC) ) * FACTOR 
          ENDIF
 
          !--------------------------------------------------------------
@@ -432,12 +448,12 @@
 
             ! SOAG [ug total mass /m3]
             AD42(I,J,L,19) = AD42(I,J,L,19)        + 
-     &                      ( STT(I,J,L,id_SOAG) * 1.e+0_fp * FACTOR )
+     &                      ( Spc(I,J,L,id_SOAG) * 1.e+0_fp * FACTOR )
 
 
             ! SOAM [ug total mass /m3]
             AD42(I,J,L,20) = AD42(I,J,L,20)        + 
-     &                      ( STT(I,J,L,id_SOAM) * 1.e+0_fp * FACTOR )
+     &                      ( Spc(I,J,L,id_SOAM) * 1.e+0_fp * FACTOR )
 
          ENDIF
 
@@ -448,7 +464,7 @@
 
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE DIAG42
 !EOC

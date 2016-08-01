@@ -221,6 +221,7 @@
       LOGICAL, SAVE      :: IS_FULLCHEM, IS_NOy
       LOGICAL, SAVE      :: FIRST = .TRUE.
       LOGICAL            :: LINTERP
+      INTEGER            :: NA, nAdvect
       INTEGER            :: GMTRC, I, I0, J, J0, L, N, K, R, TMP, W,ISPC
       REAL(fp)           :: LT, Q(LLPAR), SCALEAODnm
       REAL(f8)           :: TAU
@@ -237,12 +238,26 @@
       REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL(fp), POINTER :: STT(:,:,:,:)
-!      REAL(fp), POINTER :: AD(:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! DIAG48 begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 
       ! Assume success
       RC            =  GIGC_SUCCESS
@@ -253,8 +268,7 @@
       TCVV          = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Initialize pointers
-      STT          => State_Chm%Tracers
-!      AD           => State_Met%AD
+      SPC          => State_Chm%Species
 
       ! Get grid offsets
       I0 = GET_XOFFSET( GLOBAL=.TRUE. )
@@ -332,8 +346,8 @@
             GMTRC    = N
 
             DO L = 1, K
-!               Q(L) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
-               Q(L) = STT(I,J,L,N) * TCVV(N)
+!               Q(L) = SPC(I,J,L,N) * TCVV(N) / AD(I,J,L)
+               Q(L) = SPC(I,J,L,N) * TCVV(N)
             ENDDO
 
          ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
@@ -365,84 +379,84 @@
 
 !               ! NO
 !               Q(L) = Q(L) + ( TCVV(id_NO)         * 
-!     &                         STT(I,J,L,id_NO)    / 
+!     &                         SPC(I,J,L,id_NO)    / 
 !     &                         AD(I,J,L) )
 !
 !               ! NO2
 !               Q(L) = Q(L) + ( TCVV(id_NO2)        * 
-!     &                         STT(I,J,L,id_NO2)   / 
+!     &                         SPC(I,J,L,id_NO2)   / 
 !     &                         AD(I,J,L) )
 !
 !               ! PAN
 !               Q(L) = Q(L) + ( TCVV(id_PAN)        * 
-!     &                         STT(I,J,L,id_PAN)   / 
+!     &                         SPC(I,J,L,id_PAN)   / 
 !     &                         AD(I,J,L) )
 !
 !               ! HNO3
 !               Q(L) = Q(L) + ( TCVV(id_HNO3)       *
-!     &                         STT(I,J,L,id_HNO3)  / 
+!     &                         SPC(I,J,L,id_HNO3)  / 
 !     &                         AD(I,J,L) )
 !            
 !               ! PMN
 !               Q(L) = Q(L) + ( TCVV(id_PMN)        *
-!     &                         STT(I,J,L,id_PMN)   / 
+!     &                         SPC(I,J,L,id_PMN)   / 
 !     &                         AD(I,J,L) )
 !
 !               ! PPN
 !               Q(L) = Q(L) + ( TCVV(id_PPN)        * 
-!     &                         STT(I,J,L,id_PPN)   / 
+!     &                         SPC(I,J,L,id_PPN)   / 
 !     &                         AD(I,J,L) )
 ! 
 !               ! R4N2
 !               Q(L) = Q(L) + ( TCVV(id_R4N2)       *
-!     &                         STT(I,J,L,id_R4N2)  / 
+!     &                         SPC(I,J,L,id_R4N2)  / 
 !     &                         AD(I,J,L) )
 !            
 !               ! N2O5
 !               Q(L) = Q(L) + ( 2d0 * TCVV(id_N2O5) *
-!     &                         STT(I,J,L,id_N2O5)  / 
+!     &                         SPC(I,J,L,id_N2O5)  / 
 !     &                         AD(I,J,L) )
 !                        
 !               ! HNO4
 !               Q(L) = Q(L) + ( TCVV(id_HNO4)       *
-!     &                         STT(I,J,L,id_HNO4)  / 
+!     &                         SPC(I,J,L,id_HNO4)  / 
 !     &                         AD(I,J,L) )
 
                ! NO
                Q(L) = Q(L) + ( TCVV(id_NO)         * 
-     &                         STT(I,J,L,id_NO) )
+     &                         SPC(I,J,L,id_NO) )
 
                ! NO2
                Q(L) = Q(L) + ( TCVV(id_NO2)        * 
-     &                         STT(I,J,L,id_NO2) )
+     &                         SPC(I,J,L,id_NO2) )
 
                ! PAN
                Q(L) = Q(L) + ( TCVV(id_PAN)        * 
-     &                         STT(I,J,L,id_PAN) )
+     &                         SPC(I,J,L,id_PAN) )
 
                ! HNO3
                Q(L) = Q(L) + ( TCVV(id_HNO3)       *
-     &                         STT(I,J,L,id_HNO3) )
+     &                         SPC(I,J,L,id_HNO3) )
             
                ! PMN
                Q(L) = Q(L) + ( TCVV(id_PMN)        *
-     &                         STT(I,J,L,id_PMN) )
+     &                         SPC(I,J,L,id_PMN) )
 
                ! PPN
                Q(L) = Q(L) + ( TCVV(id_PPN)        * 
-     &                         STT(I,J,L,id_PPN) )
+     &                         SPC(I,J,L,id_PPN) )
  
                ! R4N2
                Q(L) = Q(L) + ( TCVV(id_R4N2)       *
-     &                         STT(I,J,L,id_R4N2) )
+     &                         SPC(I,J,L,id_R4N2) )
             
                ! N2O5
                Q(L) = Q(L) + ( 2d0 * TCVV(id_N2O5) *
-     &                         STT(I,J,L,id_N2O5) )
+     &                         SPC(I,J,L,id_N2O5) )
                         
                ! HNO4
                Q(L) = Q(L) + ( TCVV(id_HNO4)       *
-     &                         STT(I,J,L,id_HNO4) )
+     &                         SPC(I,J,L,id_HNO4) )
             ENDDO
 
          ELSE IF ( N == 153 ) THEN 
@@ -518,9 +532,9 @@
             GMTRC    = 8
 
             DO L = 1, K
-!               Q(L) = ( STT(I,J,L,id_SALA) + STT(I,J,L,id_SALC) ) *
+!               Q(L) = ( SPC(I,J,L,id_SALA) + SPC(I,J,L,id_SALC) ) *
 !     &                  TCVV(id_SALA)      / AD(I,J,L) 
-               Q(L) = ( STT(I,J,L,id_SALA) + STT(I,J,L,id_SALC) ) *
+               Q(L) = ( SPC(I,J,L,id_SALA) + SPC(I,J,L,id_SALC) ) *
      &                  TCVV(id_SALA)
             ENDDO
 
@@ -903,10 +917,17 @@
       ENDIF
 
       ! Free pointers
-      NULLIFY( STT )
-!      NULLIFY( AD  )
+      Spc => NULL()
 
-      ! Return to calling program
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE DIAG48
 
 !------------------------------------------------------------------------------

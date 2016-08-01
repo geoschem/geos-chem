@@ -76,6 +76,7 @@ MODULE GIGC_State_Chm_Mod
      INTEGER,           POINTER :: Spec_Id    (:      ) ! Species ID # 
      CHARACTER(LEN=14), POINTER :: Spec_Name  (:      ) ! Species names
      REAL(fp),          POINTER :: Species    (:,:,:,:) ! Species [molec/cm3]
+     CHARACTER(LEN=20)          :: Spc_Units            ! Species units
 
      ! Aerosol quantities
      INTEGER                    :: nAero                ! # of Aerosol Types
@@ -335,6 +336,7 @@ CONTAINS
 !  18 May 2016 - R. Yantosca - Now populate the species mapping vectors
 !  30 Jun 2016 - M. Sulprizio- Remove nSpecies as an input argument. This is now
 !                              initialized as the size of SpcData.
+!  22 Jul 2016 - E. Lundgren - Initialize spc_units to ''
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -383,6 +385,7 @@ CONTAINS
     State_Chm%Spec_ID     => NULL()
     State_Chm%Spec_Name   => NULL()
     State_Chm%Species     => NULL()
+    State_Chm%Spc_Units   = ''
 
     ! Species database
     State_Chm%SpcData     => NULL()
@@ -523,9 +526,9 @@ CONTAINS
     ! Set up the species mapping vectors
     !=======================================================================
     IF ( am_I_Root ) THEN
-       WRITE( 6,'(/,a)' ) 'TRACER MENU (==> denotes SMVGEAR emitted species)'
+       WRITE( 6,'(/,a)' ) 'ADVECTED SPECIES MENU'
        WRITE( 6,'(  a)' ) REPEAT( '-', 48 )
-       WRITE( 6,'(  a)' ) '  # Tracer          g/mole'
+       WRITE( 6,'(  a)' ) '  # Species Name  g/mole'
     ENDIF
 
     ! Loop over all species
@@ -675,7 +678,7 @@ CONTAINS
     ENDIF 
 
     ! Format statement
-100 FORMAT( I3, 1x, A10, 6x, F7.2 )
+100 FORMAT( I3, 1x, A10, 3x, F7.2 )
 110 FORMAT( 5x, '===> ', f4.1, 1x, A6  )
 120 FORMAT( 5x, '---> ', f4.1, 1x, A4  )
 

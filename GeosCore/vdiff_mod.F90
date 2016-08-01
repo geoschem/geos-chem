@@ -1819,7 +1819,7 @@ contains
 !
 ! !INTERFACE:
 !
-  SUBROUTINE VDIFFDR( am_I_Root, as2, Input_Opt, State_Met, State_Chm )
+  SUBROUTINE VDIFFDR( am_I_Root, Input_Opt, State_Met, State_Chm )
 !
 ! !USES:
 ! 
@@ -1829,9 +1829,7 @@ contains
 #if defined( BPCH_DIAG )
     USE DIAG_MOD,           ONLY : AD44
 #endif
-    USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP, NTRAIND, DEPSAV
-!                                   SHIPO3DEP
-    USE DRYDEP_MOD,         ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
+    USE DRYDEP_MOD,         ONLY : DEPSAV
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
@@ -1847,7 +1845,7 @@ contains
                                    GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
     USE SPECIES_MOD,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
-#if defined( DEVEL )
+#if defined( USE_TEND )
     USE TENDENCIES_MOD
 #endif
 
@@ -1858,6 +1856,14 @@ contains
     USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 7/27/16)
+!@@@ Need to use DEPNAME, NUMDEP, NTRAIND until we remove family tracers
+!@@@ becuase these are kludged properly for ISOPNB/ISOPND, MACRN/MVNK species.
+!@@@ (bmy, 7/27/16)
+!@@@
+    USE DRYDEP_MOD,         ONLY : NUMDEP, NTRAIND
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     implicit none
 !
@@ -1874,19 +1880,19 @@ contains
 
     ! Chemistry State object
     TYPE(ChmState), INTENT(INOUT)         :: State_Chm
-
-    ! Advected species
-    REAL(fp),         intent(inout), TARGET :: as2(IIPAR,JJPAR,LLPAR,&
-                                                 Input_Opt%N_TRACERS) 
 !
 ! !REMARKS:
-!  Need to declare the Meteorology State object (State_MET) with
-!  INTENT(INOUT).  This is because VDIFF will modify the specific
-!  humidity field. (bmy, 11/21/12)
+!  (1) Need to declare the Meteorology State object (State_MET) with
+!      INTENT(INOUT).  This is because VDIFF will modify the specific
+!      humidity field. (bmy, 11/21/12)
 !                                                                            .
-!  VDIFF also archives drydep fluxes to the soil NOx emissions module
-!  (by calling routine SOIL_DRYDEP) and to the ND44 diagnostic.
-!
+!  (2) VDIFF also archives drydep fluxes to the soil NOx emissions module
+!      (by calling routine SOIL_DRYDEP) and to the ND44 diagnostic.
+!                                                                            .
+!  (3) As of July 2016, we assume that all of the advected species are listed
+!      first in the species database.  This is the easiest way to pass a slab
+!      to the TPCORE routine.  This may change in the future. (bmy, 7/13/16)
+
 ! !REVISION HISTORY:
 ! (1 ) Calls to vdiff and vdiffar are now done with full arrays as arguments.
 !       (ccc, 11/19/09)
@@ -1932,29 +1938,34 @@ contains
 !                              database field emMW_g (emitted species molec wt)
 !  16 Jun 2016 - K. Yu       - Now define species ID's with the IND_ function
 !  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!  13 Jul 2016 - R. Yantosca - Now use NA as loop index for advected species
+!                              and ND as loop index for drydep species
+!  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
+!  27 Jul 2016 - R. Yantosca - Bug fix: set nDrydep=0 if drydep is turned off
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    integer :: I, J, L, N, NN, D, trc_id
+    integer :: I, J, L, N, NN, D, trc_id, NA, nAdvect, ND, nDryDep
 
-!    REAL(fp)                :: SNOW_HT !cdh - obsolete
     REAL(fp)                :: FRAC_NO_HG0_DEP !jaf 
     LOGICAL                 :: ZERO_HG0_DEP !jaf 
 
     real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR)   :: pmid, rpdel, rpdeli, zm
     real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR+1) :: pint
-    real(fp), TARGET, dimension(IIPAR,JJPAR,Input_Opt%N_TRACERS) :: sflx
-    real(fp), TARGET, dimension(IIPAR,JJPAR,Input_Opt%N_TRACERS) :: eflx, dflx 
+    real(fp), TARGET, dimension(IIPAR,JJPAR,State_Chm%nAdvect) :: sflx
+    real(fp), TARGET, dimension(IIPAR,JJPAR,State_Chm%nAdvect) :: eflx, dflx 
                                                               ! surface flux
     real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR+1) :: cgs, kvh, kvm
     real(fp), TARGET, dimension(IIPAR,JJPAR)         :: pblh, tpert, qpert
     real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR)   :: thp   ! potential temp
     real(fp), TARGET, dimension(IIPAR,JJPAR)         :: shflx ! water vapor flux
     real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR)   :: t1
-    real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) :: as 
                                                          ! save tracer MR 
                                                          ! before vdiffdr
     real(fp) :: vtemp
@@ -1968,7 +1979,7 @@ contains
 
     ! Array to store a single level of the AS2 array,
     ! so as not to blow up the parallelization (ccc, 12/22.10)
-    REAL(fp), dimension(IIPAR, JJPAR, Input_Opt%N_TRACERS)  :: as2_scal
+    REAL(fp), dimension(IIPAR, JJPAR, State_Chm%nAdvect)  :: as2_scal
 
     ! Pointers 
     REAL(fp),  POINTER :: p_um1   (:,:,:  )
@@ -1994,8 +2005,7 @@ contains
     LOGICAL            :: IS_TAGCO,  IS_AEROSOL,  IS_RnPbBe, LDYNOCEAN
     LOGICAL            :: LGTMM,     LSOILNOX
     INTEGER            :: N_TRACERS, N_MEMBERS 
-    CHARACTER(LEN=255) :: TRACER_NAME (Input_Opt%N_TRACERS)
-    REAL(fp)           :: TCVV        (Input_Opt%N_TRACERS)
+    REAL(fp)           :: TCVV (State_Chm%nAdvect)
 
     ! HEMCO update
     LOGICAL            :: FND
@@ -2023,19 +2033,46 @@ contains
     INTEGER,           SAVE :: id_HNO3
 
     ! For pointing to the species database
-    TYPE(Species),  POINTER :: ThisSpc
+    TYPE(Species),  POINTER :: SpcInfo
     INTEGER                 :: Hg_Cat
 
     ! kyu codeathon
     !=================================================================
     ! vdiffdr begins here!
     !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR begins' )
 
+    ! NOTE: The prior behavior of the code assumed that NUMDEP=0 when
+    ! drydep was shut off.  NUMDEP=0 prevented the main drydep loops
+    ! from occurring, thus avoiding seg faults.  We now replicate the
+    ! same behavior here. (bmy, 7/27/16)
+    IF ( Input_Opt%LDRYD ) THEN
+       nDryDep = State_Chm%nDryDep
+    ELSE
+       nDryDep = 0
+    ENDIF
+
     ! Initialize pointers
-    ThisSpc => NULL()
+    SpcInfo => NULL()
 #if defined( NC_DIAG )
     Ptr3D   => NULL()
     Ptr2D   => NULL()
@@ -2073,10 +2110,10 @@ contains
     LDYNOCEAN    = Input_Opt%LDYNOCEAN
     LGTMM        = Input_Opt%LGTMM
     LSOILNOX     = Input_Opt%LSOILNOX
-    N_TRACERS    = Input_Opt%N_TRACERS
     N_MEMBERS    = Input_Opt%MAX_MEMB
-    TRACER_NAME  = Input_Opt%TRACER_NAME (1:N_TRACERS             )
-    TCVV         = Input_Opt%TCVV        (1:N_TRACERS             )
+
+    !%%% NOTE: TCVV can be removed soon (bmy, 7/13/16)
+    TCVV         = Input_Opt%TCVV(1:nAdvect)
 
     dtime = GET_TS_CONV()*60e+0_fp ! min -> second
     
@@ -2104,9 +2141,9 @@ contains
        FIRST = .FALSE.
     ENDIF
 
+#if defined( USE_TEND )
     ! Archive concentrations for tendencies calculations. Tracers array
     ! is already in v/v (ckeller, 7/15/2015).
-#if defined(DEVEL)
     CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, &
                       State_Chm, 'PBLMIX', .TRUE., RC )
 #endif
@@ -2170,14 +2207,20 @@ contains
 
     ! Define slice of AS2, so as not to blow up the parallelization
     ! (ccc, bmy, 12/20/10)
-    as2_scal = as2(:,:,1,:)
+    !
+    ! NOTE: For now, so as to avoid having to rewrite the internals
+    ! of the TPCORE routines, just point to 1:nAdvect entries of
+    ! State_Chm%Species.  This is OK for now, as of July 2016, all of
+    ! the advected species are listed first.  This may change in the
+    ! future, but we'll worry about that later. (bmy, 7/13/16)
+    as2_scal = State_Chm%Species(:,:,1,1:nAdvect)
 
 !$OMP PARALLEL DO                                                         &
 !$OMP DEFAULT( SHARED )                                                   &
-!$OMP PRIVATE( I,      J,               L,            N,       NN       ) &
+!$OMP PRIVATE( I,      J,               L,            N                 ) &
 !$OMP PRIVATE( WK1,    WK2,             PBL_TOP,      DEP_KG,  TOPMIX   ) &
-!$OMP PRIVATE( fnd,    emis,            dep                             ) &
-!$OMP PRIVATE( TMPFLX, FRAC_NO_HG0_DEP, ZERO_HG0_DEP, ThisSpc, Hg_Cat   )
+!$OMP PRIVATE( fnd,    emis,            dep,          NA,      ND       ) &
+!$OMP PRIVATE( TMPFLX, FRAC_NO_HG0_DEP, ZERO_HG0_DEP, SpcInfo, Hg_Cat   )
     do J = 1, JJPAR
     do I = 1, IIPAR
 
@@ -2199,31 +2242,25 @@ contains
        ! For more information, please see this wiki page:
        ! http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
        !----------------------------------------------------------------
-       DO N = 1, N_TRACERS
-
-!          ! Exclude dust (ckeller 3/5/15)
-!          IF ( NN == IDTDST1 .OR. &
-!               NN == IDTDST2 .OR. &
-!               NN == IDTDST3 .OR. &
-!               NN == IDTDST4       ) CYCLE
-
+       DO NA = 1, nAdvect
+       
           ! Add total emissions in the PBL to the EFLX array
           ! which tracks emission fluxes.  Units are [kg/m2/s].
           tmpflx = 0.0e+0_fp
           DO L = 1, TOPMIX
-             CALL GetHcoVal ( N, I, J, L, fnd, emis=emis )
+             CALL GetHcoVal ( NA, I, J, L, fnd, emis=emis )
              IF ( .NOT. fnd ) EXIT
              tmpflx = tmpflx + emis
           ENDDO
-          eflx(I,J,N) = eflx(I,J,N) + tmpflx
+          eflx(I,J,NA) = eflx(I,J,NA) + tmpflx
 
           ! Also add drydep frequencies calculated by HEMCO to the DFLX
           ! array. These values are stored in 1/s. They are added in the 
           ! same manner as the DEPSAV values from drydep_mod.F.
           ! DFLX will be converted to kg/m2/s lateron. (ckeller, 04/01/2014)
-          CALL GetHcoVal ( N, I, J, 1, fnd, dep=dep )
+          CALL GetHcoVal ( NA, I, J, 1, fnd, dep=dep )
           IF ( fnd ) THEN
-             dflx(I,J,N) = dflx(I,J,N) + ( dep * as2_scal(I,J,N) / TCVV(N) )
+             dflx(I,J,NA) = dflx(I,J,NA) + ( dep * as2_scal(I,J,NA) / TCVV(NA) )
           ENDIF
        ENDDO
        
@@ -2238,8 +2275,8 @@ contains
        ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
        !----------------------------------------------------------------
        IF ( IS_CH4 ) THEN
-          do N = 1, N_TRACERS
-             eflx(I,J,N) = CH4_EMIS(I,J,Input_Opt%ID_TRACER(N))
+          do NA = 1, nAdvect
+             eflx(I,J,NA) = CH4_EMIS(I,J,NA)
           enddo
        ENDIF
 
@@ -2250,8 +2287,8 @@ contains
        ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
        !----------------------------------------------------------------
        IF ( IS_Hg ) THEN
-          do N = 1, N_TRACERS
-             eflx(I,J,N) = HG_EMIS(I,J,N) 
+          do NA = 1, nAdvect
+             eflx(I,J,NA) = HG_EMIS(I,J,NA) 
           enddo
        ENDIF
 
@@ -2261,31 +2298,32 @@ contains
        ! The HEMCO drydep frequencies (from air-sea exchange and 
        ! PARANOX) were already added above.
        !----------------------------------------------------------------
-       do N = 1, NUMDEP ! NUMDEP includes all gases/aerosols
-          ! gases + aerosols for full chemistry 
-          NN   = NTRAIND(N)
-          if (NN == 0) CYCLE
 
-          ! Point to the Species Database entry for tracer NN
-          ThisSpc => State_Chm%SpcData(NN)%Info
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 7/27/16)
+!@@@ 
+!@@@
+!-----------------------------------------------------------------------------
+! Activate these lines once we remove family tracers (bmy, 7/27/16)
+!       ! Loop over only the drydep species
+!       ! If drydep is turned off, nDryDep=0 and the loop won't execute
+!       DO ND = 1, nDryDep
+!
+!          ! Get the species ID from the drydep ID
+!          N = State_Chm%Map_Drydep(ND)
+!-----------------------------------------------------------------------------
+! Remove this when family tracers are taken out (bmy, 7/27/16)
+       do ND = 1, NUMDEP 
+          
+          ! Species ID
+          N = NTRAIND(ND)
+!-----------------------------------------------------------------------------
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-!          ! Now include sea salt dry deposition (jaegle 5/11/11)
-!          IF ( NN == IDTDST1 .OR. &
-!               NN == IDTDST2 .OR. &
-!               NN == IDTDST3 .OR. &
-!               NN == IDTDST4       ) CYCLE
-
-!          IF (TRIM( DEPNAME(N) ) == 'DST1'.OR. &
-!              TRIM( DEPNAME(N) ) == 'DST2'.OR. &
-!              TRIM( DEPNAME(N) ) == 'DST3'.OR. &
-!              TRIM( DEPNAME(N) ) == 'DST4') CYCLE
-!              !TRIM( DEPNAME(N) ) == 'SALA'.OR. &
-!              !TRIM( DEPNAME(N) ) == 'SALC') CYCLE
-
-          ! adding the backward consistency with previous GEOS-Chem drydep 
-          ! calculation. (Lin, 06/04/2008) 
-          ! given that as2 is in v/v
-          !dflx(I,J,NN) = DEPSAV(I,J,N) * as2(I,J,1,NN) / TCVV(NN) 
+          IF ( N <= 0 ) CYCLE
+          
+          ! Point to the corresponding Species Database entry
+          SpcInfo => State_Chm%SpcData(N)%Info
           
           ! use mean concentration within the PBL for calculating drydep 
           ! fluxes
@@ -2293,35 +2331,26 @@ contains
              wk1 = 0.e+0_fp
              wk2 = 0.e+0_fp
              pbl_top = GET_PBL_MAX_L() ! the highest layer the PBL reaches, 
-             ! globally
+                                       ! globally
              do L = 1, pbl_top
-                wk1 = wk1 + as2(I,J,L,NN) * State_Met%AD(I,J,L)* &
-                      GET_FRAC_UNDER_PBLTOP(I,J,L)
-                wk2 = wk2 + State_Met%AD(I,J,L) * &
-                      GET_FRAC_UNDER_PBLTOP(I,J,L)
+                wk1 = wk1 + State_Chm%Species    (I,J,L,N) * & 
+                            State_Met%AD         (I,J,L  ) * &
+                            GET_FRAC_UNDER_PBLTOP(I,J,L  )
+
+                wk2 = wk2 + State_Met%AD         (I,J,L)   * &
+                            GET_FRAC_UNDER_PBLTOP(I,J,L)
              enddo
              ! since we only use the ratio of wk1 / wk2, there should not be
              ! a problem even if the PBL top is lower than the top of the 
              ! first (lowest) model layer
              ! given that as2 is in v/v
              ! Now add to existing dflx (ckeller, 10/16/2014).
-             dflx(I,J,NN) = dflx(I,J,NN) &
-                          + DEPSAV(I,J,N) * (wk1/(wk2+1.e-30_fp)) / TCVV(NN)
-
-             ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
-             ! when there is O3 destruction in subgrid ship plume 
-             ! parameterization. This is roughly equivalent to negative
-             ! emissions, which were used previously by PARANOX,
-             ! but caused instability in the chemical solver
-             ! (cdh, 3/21/2013)
-             ! Now done through HEMCO (ckeller, 5/19/14).
-!             IF (TRIM( DEPNAME(N) ) == 'O3') THEN
-!                dflx(I,J,NN) = dflx(I,J,NN) + SHIPO3DEP(I,J) * (wk1/(wk2+1.d-30)) / TCVV(NN)
-!             ENDIF
+             dflx(I,J,N) = dflx(I,J,N) &
+                         + DEPSAV(I,J,ND) * (wk1/(wk2+1.e-30_fp)) / TCVV(N)
 
              ! consistency with the standard GEOS-Chem setup (Lin, 07/14/08)
              if (drydep_back_cons) then 
-                dflx(I,J,NN) = dflx(I,J,NN) * (wk2+1.e-30_fp) / &
+                dflx(I,J,N) = dflx(I,J,N) * (wk2+1.e-30_fp) / &
                                State_Met%AD(I,J,1)         * &
                                State_Met%BXHEIGHT(I,J,1)   / &
                                GET_PBL_TOP_m(I,J)
@@ -2333,89 +2362,11 @@ contains
              ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
              ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
              ! Now add to existing dflx (ckeller, 10/16/2014).
-             dflx(I,J,NN) = dflx(I,J,NN) &
-                          + DEPSAV(I,J,N) * as2_scal(I,J,NN) / TCVV(NN)
+             dflx(I,J,N) = dflx(I,J,N) &
+                         + DEPSAV(I,J,ND) * as2_scal(I,J,N) / TCVV(N)
 
-             ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
-             ! when there is O3 destruction in subgrid ship plume 
-             ! parameterization. This is roughly equivalent to negative
-             ! emissions, which were used previously by PARANOX,
-             ! but caused instability in the chemical solver
-             ! (cdh, 3/21/2013)
-             ! Now done through HEMCO (ckeller, 5/19/14).
-!             IF ( (TRIM( DEPNAME(N) ) == 'O3') .and. (SHIPO3DEP(I,J) > 0e+0_fp) ) THEN
-!                dflx(I,J,NN) = dflx(I,J,NN) + SHIPO3DEP(I,J) * as2_scal(I,J,NN) / TCVV(NN)
-!             ENDIF
-
-             !------------------------------------------------------------------
-             !Prior to 25 Oct 2011, H Amos
-             !! If flag is set to treat Hg2 as half aerosol, half gas, then
-             !! use average deposition velocity (cdh, 9/01/09)
-             !IF ( LHG2HALFAEROSOL .AND. IS_HG2(NN) ) THEN
-             !
-             !   ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
-             !   ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
-             !   dflx(I,J,NN) =  &
-             !        ( DEPSAV(I,J,DRYHg2) +  DEPSAV(I,J,DRYHgP) ) / 2D0 * &
-             !        as2_scal(I,J,NN) / TCVV(NN) 
-             !   
-             !ENDIF
-             !
-!!$ No longer needed since Hg(II) is already partitioned between gas and aerosol. (cdh, 28-Mar-2013)
-!!$             IF ( IS_HG2(NN) ) THEN
-!!$
-!!$                IF ( LHG2HALFAEROSOL ) THEN
-!!$                   ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
-!!$                   ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
-!!$
-!!$                   ! partition Hg2 50/50 gas/particle
-!!$                   dflx(I,J,NN) =  &
-!!$                        ( DEPSAV(I,J,DRYHg2) +  DEPSAV(I,J,DRYHgP) ) / 2D0 * &
-!!$                        as2_scal(I,J,NN) / TCVV(NN) 
-!!$                ELSE
-!!$                   
-!!$                   ! temperature-dependent Hg2 partitioning
-!!$                   dflx(I,J,NN) = ( DEPSAV(I,J,DRYHg2)*Fg(I,J,1) + &
-!!$                                    DEPSAV(I,J,DRYHgP)*Fp(I,J,1) ) * &
-!!$                                    as2_scal(I,J,NN) / TCVV(NN) 
-!!$                ENDIF
-!!$                   
-!!$             ENDIF
-             !------------------------------------------------------------------
           endif
           
-!--jaf.start          
-          ! Restructure to use fractional land cover info available in
-          ! MERRA (jaf,4/26/11)
-!          ! Hg(0) exchange with the ocean is handled by ocean_mercury_mod
-!          ! so disable deposition over water here.
-!          ! LWI is exactly zero for water (includes some fresh water) 
-!          ! in GEOS-5. Note LWI is not exactly zero for earlier GEOS versions,
-!          ! but non-local PBL mixing is only defined for GEOS-5.
-!          ! ocean_mercury_mod defines ocean based on fraction 
-!          ! land, albedo and mixed layer depth. The difference with LWI is
-!          ! small. (cdh, 8/28/09) 
-!          IF ( IS_Hg .AND. IS_HG0(NN) .AND. LWI(I,J) == 0 ) THEN
-!             DFLX(I,J,NN) = 0D0
-!          ENDIF
-!
-!          ! CDH (9/11/09)
-!          ! Turn off Hg(0) deposition to snow and ice because we haven't yet
-!          ! included emission from these surfaces and most field studies
-!          ! suggest Hg(0) emissions exceed deposition during sunlit hours.
-!#if   defined( GEOS_5 ) || defined( MERRA )
-!          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-!          SNOW_HT = SNOMAS(I,J)
-!#else
-!          ! GEOS1-4 snow heigt (water equivalent) in mm
-!          SNOW_HT = SNOW(I,J)
-!#endif 
-!
-!          IF ( IS_Hg .AND. IS_HG0(NN) .AND. &
-!               ( IS_ICE(I,J) .OR. (IS_LAND(I,J) .AND. SNOW_HT > 10e+0_fp) ) ) THEN
-!             DFLX(I,J,NN) = 0D0
-!          ENDIF
-
           ! Hg(0) exchange with the ocean is handled by ocean_mercury_mod
           ! so disable deposition over water here.
           ! Turn off Hg(0) deposition to snow and ice because we haven't yet
@@ -2447,17 +2398,15 @@ contains
                             State_Met%SNOW(I,J)   > 10e+0_fp ))
 #endif
           
-          IF ( IS_Hg .AND. ThisSpc%Is_Hg0 ) THEN
+          IF ( IS_Hg .AND. SpcInfo%Is_Hg0 ) THEN
              IF ( ZERO_HG0_DEP ) THEN
-                DFLX(I,J,NN) = DFLX(I,J,NN) * &
+                DFLX(I,J,N) = DFLX(I,J,N) * &
                                MAX(1e+0_fp - FRAC_NO_HG0_DEP,0e+0_fp)
              ENDIF
           ENDIF
 
-!--jaf.end
-
           ! Free species database pointer
-          ThisSpc => NULL()
+          SpcInfo => NULL()
        enddo
 
        !----------------------------------------------------------------
@@ -2465,39 +2414,41 @@ contains
        ! (Jintai Lin, 06/21/08)
        !----------------------------------------------------------------
        IF ( IS_TAGOX ) THEN
-          do N = 2, N_TRACERS ! the first species, Ox, has been done above
+          do NA = 2, nAdvect ! the first species, Ox, has been done above
              if (pbl_mean_drydep) then
                 wk1 = 0.e+0_fp
                 wk2 = 0.e+0_fp
                 pbl_top = GET_PBL_MAX_L() ! the highest layer the PBL reaches,
                                           ! globally
                 do L = 1, pbl_top
-                   wk1 = wk1 + as2(I,J,L,N) * State_Met%AD(I,J,L) * &
-                               GET_FRAC_UNDER_PBLTOP(I,J,L)
-                   wk2 = wk2 + State_Met%AD(I,J,L) * &
-                               GET_FRAC_UNDER_PBLTOP(I,J,L)
+                   wk1 = wk1 + State_Chm%Species    (I,J,L,NA) * &
+                               State_Met%AD         (I,J,L   ) * &
+                               GET_FRAC_UNDER_PBLTOP(I,J,L   )
+
+                   wk2 = wk2 + State_Met%AD         (I,J,L   ) * &
+                               GET_FRAC_UNDER_PBLTOP(I,J,L   )
                 enddo
                 ! since we only use the ratio of wk1 / wk2, there should not be
                 ! a problem even if the PBL top is lower than the top of the 
                 ! first (lowest) model layer
                 ! given that as2 is in v/v
-                dflx(I,J,N) = DEPSAV(I,J,1) * (wk1/(wk2+1.e-30_fp)) / TCVV(1)
+                dflx(I,J,NA) = DEPSAV(I,J,1) * (wk1/(wk2+1.e-30_fp)) / TCVV(1)
 
                 ! Consistent with the standard GEOS-Chem setup.(Lin, 07/14/08) 
                 if (drydep_back_cons) then 
-                   dflx(I,J,N) = dflx(I,J,N) * (wk2+1.e-30_fp) / &
-                                 State_Met%AD(I,J,1)        * &
-                                 State_Met%BXHEIGHT(I,J,1)  / &
-                                 GET_PBL_TOP_m(I,J)
+                   dflx(I,J,NA) = dflx(I,J,NA) * (wk2+1.e-30_fp) / &
+                                  State_Met%AD(I,J,1)        * &
+                                  State_Met%BXHEIGHT(I,J,1)  / &
+                                  GET_PBL_TOP_m(I,J)
                 endif
              else 
                 ! only use the lowest model layer for calculating drydep fluxes
                 ! given that as2 is in v/v
-                ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
+                ! NOTE: Now use as2_scal(I,J,NA), instead of as2(I,J,1,NA) to 
                 ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
                 ! Now add to existing dflx (ckeller, 10/16/2014).
-                dflx(I,J,N) = dflx(I,J,N) &
-                            + DEPSAV(I,J,1) * as2_scal(I,J,N) / TCVV(1) 
+                dflx(I,J,NA) = dflx(I,J,NA) &
+                             + DEPSAV(I,J,1) * as2_scal(I,J,NA) / TCVV(1) 
              endif
           enddo
        endif
@@ -2531,32 +2482,45 @@ contains
        !----------------------------------------------------------------
        IF ( IS_Hg ) THEN
           
-          ! Loop over # of drydep species
-          DO D = 1, NUMDEP
-             
-             ! GEOS_Chem tracer number
-             N = NTRAIND( D )
- 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION
+!@@@ Restore old code until after family tracer are removed (bmy, 7/27/18)
+!----------------------------------------------------------------------------
+! Activate these after family tracer removal (bmy, 7/27/16)
+!          ! Loop over only the drydep species
+!          ! If drydep is turned off, nDryDep=0 and the loop won't execute
+!          DO ND = 1, nDryDep
+!
+!             ! Get the species ID from the drydep ID
+!             N = State_Chm%Map_DryDep(ND)
+!----------------------------------------------------------------------------
+! Remove this code after family tracers are taken out (bmy, 7/27/16)
+          DO ND = 1, NUMDEP
+
+             N = NTRAIND(ND)
+!----------------------------------------------------------------------------
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
              ! Point to the Species Database entry for tracer N
-             ThisSpc => State_Chm%SpcData(N)%Info
+             SpcInfo => State_Chm%SpcData(N)%Info
 
              ! Deposition mass, kg
              DEP_KG = dflx( I, J, N ) * GET_AREA_M2( I, J, 1 ) &
                     * GET_TS_CONV() * 60e+0_fp
 
-             IF ( ThisSpc%Is_Hg2 ) THEN
+             IF ( SpcInfo%Is_Hg2 ) THEN
 
                 ! Get the category number for this Hg2 tracer
-                Hg_Cat = ThisSpc%Hg_Cat
+                Hg_Cat = SpcInfo%Hg_Cat
 
                 ! Archive dry-deposited Hg2
                 CALL ADD_Hg2_DD      ( I, J, Hg_Cat, DEP_KG            )
                 CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_KG, State_Met )
 
-             ELSE IF ( ThisSpc%Is_HgP ) THEN 
+             ELSE IF ( SpcInfo%Is_HgP ) THEN 
 
                 ! Get the category number for this HgP tracer
-                Hg_Cat = ThisSpc%Hg_Cat
+                Hg_Cat = SpcInfo%Hg_Cat
 
                 ! Archive dry-deposited HgP
                 CALL ADD_HgP_DD      ( I, J, Hg_Cat, DEP_KG            )
@@ -2565,7 +2529,7 @@ contains
              ENDIF
 
              ! Free pointer
-             ThisSpc => NULL()
+             SpcInfo => NULL()
           ENDDO
        ENDIF
 
@@ -2574,11 +2538,11 @@ contains
 !$OMP END PARALLEL DO
 
 #if defined( DEBUG )
+    ! Print debug output for the advected species
     write(*,*) 'eflx and dflx values HEMCO [kg/m2/s]'
-    do N=1,N_TRACERS
-       write(*,*) 'eflx TRACER ', N, ': ', SUM(eflx(:,:,N))
-       write(*,*) 'dflx TRACER ', N, ': ', SUM(dflx(:,:,N))
-!       write(*,*) 'eflx TRACER ', N, ': ', MINVAL(eflx(:,:,N)), MAXVAL(eflx(:,:,N))
+    do NA = 1, nAdvect
+       write(*,*) 'eflx TRACER ', NA, ': ', SUM(eflx(:,:,NA))
+       write(*,*) 'dflx TRACER ', NA, ': ', SUM(dflx(:,:,NA))
     enddo
 #endif
 
@@ -2589,12 +2553,13 @@ contains
     ALLOCATE(Ptr3D(IIPAR,JJPAR,LLPAR))
     Ptr3D = 0.0_fp
 
-    DO N = 1, N_TRACERS
+    ! Loop over only the advected species
+    DO NA = 1, nAdvect
 
        ! Emission fluxes
-       IF ( ANY(eflx(:,:,N) > 0.0_fp ) ) THEN
-          Ptr3D(:,:,1) = eflx(:,:,N)
-          cID = GetHcoID ( TrcID=N )
+       IF ( ANY(eflx(:,:,NA) > 0.0_fp ) ) THEN
+          Ptr3D(:,:,1) = eflx(:,:,NA)
+          cID = GetHcoID ( TrcID=NA )
           IF ( cID > 0 ) THEN
              cID = 10000 + cID
              ! Total in kg
@@ -2636,35 +2601,32 @@ contains
     ! for aerosols -- 
     if (ND44 > 0 .or. LGTMM .or. LSOILNOX) then
 
-       do D = 1, NUMDEP
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION
+!@@@ Restore old code until after family tracer are removed (bmy, 7/27/18)
+!----------------------------------------------------------------------------
+! Activate these after family tracer removal (bmy, 7/27/16)
+!       ! Loop over only the drydep species
+!       ! If drydep is turned off, nDryDep=0 and the loop won't execute
+!       DO ND = 1, nDryDep       
+!
+!          ! Get the species ID from the drydep Id
+!          N = State_Chm%Map_DryDep(ND)
+!----------------------------------------------------------------------------
+! Remove this after family tracers are taken out (bmy, 7/27/16)
+       DO ND = 1, NUMDEP
 
-!          SELECT CASE ( NN )
-             ! non gases + aerosols for fully chemistry 
-             !CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', &
-             !       'SALC' )
-	     ! now include sea salt dry deposition (jaegle 5/11/11)
-!             CASE ( 'DST1', 'DST2', 'DST3', 'DST4')
-!             CASE ( IDTDST1, IDTDST2, IDTDST3, IDTDST4 )
-!                CYCLE
-!             CASE DEFAULT
+          ! Species ID
+          N = NTRAIND(ND)
+!----------------------------------------------------------------------------
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-          ! Locate position of each tracer in DEPSAV
-          ! (get tracer id)
-          ! NOTE: trc_id was previously NN and drydep id D
-          ! was previously N. This is changed for convention consistency
-          ! within subroutine (ewl, 1/25/16)
-          trc_id = NTRAIND( D )  
+          ! Skip if not a valid species
+          IF ( N <= 0 ) CYCLE 
 
           ! Point to the Species Database entry for this tracer
           ! NOTE: Assumes a 1:1 tracer index to species index mapping
-          ThisSpc => State_Chm%SpcData(trc_id)%Info
-
-          IF ( trc_id == 0 ) CYCLE 
-!          IF (NN == 0 .OR.       &
-!              NN == IDTDST1 .OR. & 
-!              NN == IDTDST2 .OR. &
-!              NN == IDTDST3 .OR. &
-!              NN == IDTDST4       ) CYCLE
+          SpcInfo => State_Chm%SpcData(N)%Info
 
 #if defined( BPCH_DIAG )
       !===============================================================
@@ -2676,8 +2638,8 @@ contains
              ! consider timestep difference between convection and emissions
              ! Calculate flux [molec/cm2/s]
              ! For bpch diagnostic output, save flux in global ADD 44 array
-	     AD44(:,:,D,1) = AD44(:,:,D,1) + dflx(:,:,trc_id)        &
-                             /  (ThisSpc%emMW_g * 1.e-3_fp) * AVO      &
+	     AD44(:,:,ND,1) = AD44(:,:,ND,1) + dflx(:,:,N)        &
+                             /  (SpcInfo%emMW_g * 1.e-3_fp) * AVO      &
                              * 1.e-4_fp * GET_TS_CONV() / GET_TS_EMIS() 
           ENDIF
 #endif
@@ -2689,8 +2651,8 @@ contains
 
              ! For netcdf output, save flux in local array before
              ! passing to HEMCO
-             DryDepFlux = dflx(:,:,trc_id)               &
-                          / (ThisSpc%emMW_g * 1.e-3_fp)  &
+             DryDepFlux = dflx(:,:,N)                    &
+                          / (SpcInfo%emMW_g * 1.e-3_fp)  &
                           * AVO * 1.e-4_fp * GET_TS_CONV() / GET_TS_EMIS()
              
              ! If this tracer is scheduled for output in 
@@ -2699,7 +2661,7 @@ contains
 
                 ! Update diagnostic container
                 DiagnName = 'DRYDEP_FLX_MIX_'                &
-                            // TRIM( Input_OPt%DEPNAME(D) )
+                            // TRIM( SpcInfo%Name )
                 Ptr2D => DryDepFlux
                 CALL Diagn_Update( am_I_Root,                           &
                                    cName   = TRIM( DiagnName),          &
@@ -2720,41 +2682,49 @@ contains
 
           ! If Soil NOx is turned on, then call SOIL_DRYDEP to
           ! archive dry deposition fluxes for nitrogen species
-          ! (SOIL_DRYDEP will exit if it can't find a match.)
+          ! (SOIL_DRYDEP will exit if it can't find a match.
+          !
+          ! Locate position of each tracer in DEPSAV
+          ! (get tracer id)
+          ! NOTE: trc_id was previously NN and drydep id D
+          ! was previously N. This is changed for convention consistency
+          ! within subroutine (ewl, 1/25/16)
 	  IF ( LSOILNOX ) THEN
              soilflux = 0e+0_fp
              DO J = 1, JJPAR
              DO I = 1, IIPAR
-                soilflux = dflx(I,J,trc_id) &
-	          / ( ThisSpc%emMW_g * 1.e-3_fp ) &
+                soilflux = dflx(I,J,N) &
+	          / ( SpcInfo%emMW_g * 1.e-3_fp ) &
                   * AVO * 1.e-4_fp &
                   * GET_TS_CONV() / GET_TS_EMIS()
           
-                CALL SOIL_DRYDEP ( I, J, 1, trc_id, soilflux)
+                CALL SOIL_DRYDEP ( I, J, 1, N, soilflux)
              ENDDO
              ENDDO
 	  ENDIF
-!          END SELECT
 
           ! Free species database pointer
-          ThisSpc => NULL()
+          SpcInfo => NULL()
 
        enddo ! D 
 
        ! Add ITS_A_TAGOX_SIM (Lin, 06/21/08)
        IF ( IS_TAGOX ) THEN
           ! The first species, Ox, has been done above
-          do N = 2, N_TRACERS 
+          do NA = 2, nAdvect
 
 #if defined( BPCH_DIAG )
 
              ! Convert : kg/m2/s -> molec/cm2/s
              ! Consider timestep difference between convection and emissions
-             AD44(:,:,N,1) = AD44(:,:,N,1) + dflx(:,:,N) &
+             AD44(:,:,NA,1) = AD44(:,:,NA,1) + dflx(:,:,NA) &
                        /  (State_Chm%SpcData(1)%Info%emMW_g * 1.e-3_fp) &
                        * AVO * 1.e-4_fp &
                        * GET_TS_CONV() / GET_TS_EMIS()
-             AD44(:,:,N,2) = AD44(:,:,1,2) ! drydep velocity
+
+             ! The drydep velocities [cm/s] for tagged O3 species
+             ! are the same as the drydep velocity for total O3
+             AD44(:,:,NA,2) = AD44(:,:,1,2)
 #endif
           enddo
        endif
@@ -2800,12 +2770,18 @@ contains
        p_kvm              => kvm            ( :, :, LLPAR+1:1:-1    )
        p_cgs              => cgs            ( :, :, LLPAR+1:1:-1    )
 
-       ! Tracer concentration fields
-       p_as2              => as2   ( :, :, LLPAR  :1:-1, : )
+       ! Species concentration fields
+       !
+       ! NOTE: For now, so as to avoid having to rewrite the internals
+       ! of the VDIFF routines, just point to 1:nAdvect entries of
+       ! State_Chm%Species.  This is OK for now, as of July 2016, all of
+       ! the advected species are listed first.  This may change in the
+       ! future, but we'll worry about that later. (bmy, 7/13/16)
+       p_as2              => State_Chm%Species( :, :, LLPAR:1:-1, 1:nAdvect )
 
        ! Convert v/v -> m/m (i.e., kg/kg)
-       DO N = 1, N_TRACERS
-          p_as2(:,:,:,N)  =  p_as2(:,:,:,N) / TCVV(N) 
+       DO NA = 1, nAdvect
+          p_as2(:,:,:,NA) =  p_as2(:,:,:,NA) / TCVV(NA) 
        ENDDO
 
        ! Convert g/kg -> kg/kg
@@ -2831,8 +2807,8 @@ contains
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
 
        ! Convert kg/kg -> v/v
-       DO N = 1, N_TRACERS
-          p_as2(:,:,:,N) = p_as2(:,:,:,N) * TCVV(N)
+       DO NA = 1, nAdvect
+          p_as2(:,:,:,NA) = p_as2(:,:,:,NA) * TCVV(NA)
        ENDDO
 
        ! Convert kg/kg -> g/kg
@@ -2867,11 +2843,16 @@ contains
        p_cgs    => cgs        ( :, :, LLPAR+1:1:-1   )
 
        ! INPUTS: Tracer concentration fields
-       p_as2    => as2        ( :, :, LLPAR:1:-1,  : )
+       ! NOTE: For now, so as to avoid having to rewrite the internals
+       ! of the VDIFF routines, just point to 1:nAdvect entries of
+       ! State_Chm%Species.  This is OK for now, as of July 2016, all of
+       ! the advected species are listed first.  This may change in the
+       ! future, but we'll worry about that later. (bmy, 7/13/16)
+       p_as2    => State_Chm%Species( :, :, LLPAR:1:-1, 1:nAdvect )
 
        ! Convert from v/v -> m/m (i.e., kg/kg)
-       do N = 1, N_TRACERS
-          p_as2(:,:,:,N) = p_as2(:,:,:,N) / TCVV(N) 
+       do NA = 1, nAdvect
+          p_as2(:,:,:,NA) = p_as2(:,:,:,NA) / TCVV(NA) 
        enddo
 
        !### Debug
@@ -2889,8 +2870,8 @@ contains
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after vdiffar' )
 
        ! Convert from m/m (i.e. kg/kg) -> v/v
-       do N = 1, N_TRACERS
-          p_as2(:,:,:,N) = p_as2(:,:,:,N) * TCVV(N) 
+       do NA = 1, nAdvect
+          p_as2(:,:,:,NA) = p_as2(:,:,:,NA) * TCVV(NA) 
        enddo
 
        ! Free pointers
@@ -2910,8 +2891,8 @@ contains
        CALL COMPUTE_PBL_HEIGHT( State_Met )
     endif
 
+#if defined( USE_TEND )
     ! Compute tendencies and write to diagnostics (ckeller, 7/15/2015)
-#if defined(DEVEL)
     CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, &
                       State_Chm, 'PBLMIX', .TRUE., dtime, RC )
 #endif
@@ -2919,6 +2900,18 @@ contains
 !      !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   END SUBROUTINE VDIFFDR
 !EOC
 !------------------------------------------------------------------------------
@@ -2982,18 +2975,19 @@ contains
 !  22 Aug 2014 - R. Yantosca - Renamed DO_TURBDAY to DO_VDIFF for clarity
 !  16 Nov 2015 - E. Lundgren - Update air quantities after VDIFFDR call
 !                              since specific humidity is updated
+!  13 Jul 2016 - R. Yantosca - Remove STT, we can point to State_Chm%Species
+!                              in the VDIFFDR routine directly
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    ! SAVEd scalars
     LOGICAL, SAVE :: FIRST = .TRUE.
 
-      ! Pointers
-    ! We need to define local arrays to hold corresponding values 
-    ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-    REAL(fp), POINTER :: STT(:,:,:,:)
+    ! Scalars
+    LOGICAL       :: prtDebug
 
     !=================================================================
     ! DO_PBL_MIX_2 begins here!
@@ -3002,9 +2996,8 @@ contains
     ! Assume success
     RC  =  GIGC_SUCCESS
 
-    ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
-    ! (mpayer, 12/6/12)
-    STT => State_Chm%Tracers
+    ! Set a flag if we should print debug output to the log file
+    prtDebug = ( Input_Opt%LPRT .and. am_I_Root )
 
     ! First-time initialization
     ! NOTE: Should really move this into the init stage
@@ -3014,10 +3007,6 @@ contains
        FIRST = .FALSE.
     ENDIF
 
-    ! Compute PBL height and related quantities
-    ! -> now done in main.F (ckeller, 3/5/15)
-!    CALL COMPUTE_PBL_HEIGHT( State_Met )
-
     ! Do mixing of tracers in the PBL (if necessary)
     IF ( DO_VDIFF ) THEN
 
@@ -3025,8 +3014,8 @@ contains
        ! prior to humidity update in vdiffdr (ewl, 10/28/15)
        State_Met%SPHU_prev = State_Met%SPHU
 
-       CALL VDIFFDR( am_I_Root, STT, Input_Opt, State_Met, State_Chm )
-       IF( LPRT .and. am_I_Root ) THEN
+       CALL VDIFFDR( am_I_Root, Input_Opt, State_Met, State_Chm )
+       IF( prtDebug ) THEN
           CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
        ENDIF
 
@@ -3037,11 +3026,11 @@ contains
        ! the model
        CALL AIRQNT( am_I_Root, Input_Opt, State_Met, State_Chm, &
                     RC, update_mixing_ratio=.TRUE. )
+       IF( prtDebug ) THEN
+          CALL DEBUG_MSG( '### DO_PBL_MIX_2: after AIRQNT' )
+       ENDIF
 
     ENDIF
-
-    ! Free pointer
-    NULLIFY( STT )
 
   END SUBROUTINE DO_PBL_MIX_2
 !EOC  

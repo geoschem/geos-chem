@@ -560,6 +560,8 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  16 Jun 2016 - M. Long     - Remove references to TRACERID_MOD and replace
 !                              with GIGC_STATE_CHM_MOD::IND_()
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -567,36 +569,47 @@
 ! !LOCAL VARIABLES:
 !
       ! SAVEd scalars
-      LOGICAL, SAVE     :: FIRSTCHEM = .TRUE.
-      INTEGER, SAVE     :: LASTMONTH = -99
+      LOGICAL, SAVE            :: FIRSTCHEM = .TRUE.
+      INTEGER, SAVE            :: LASTMONTH = -99
 
-      ! Non-SAVEd scalars
-      LOGICAL           :: IT_IS_AN_AEROSOL_SIM
-      LOGICAL           :: prtDebug
-      INTEGER           :: I, J, L, N, MONTH
-      REAL(fp)          :: DTCHEM
+      ! Scalars                
+      LOGICAL                  :: aIR
+      LOGICAL                  :: LCRYST
+      LOGICAL                  :: LPRT
+      LOGICAL                  :: LGRAVSTRAT
+      LOGICAL                  :: LDSTUP
+      LOGICAL                  :: IT_IS_AN_AEROSOL_SIM
+      LOGICAL                  :: prtDebug
+      INTEGER                  :: I, J, L, N, MONTH, NA, nAdvect
+      REAL(fp)                 :: DTCHEM
 
-      ! For fields from Input_Opt
-      LOGICAL           :: LCRYST
-      LOGICAL           :: LPRT
-      LOGICAL           :: LGRAVSTRAT
-      LOGICAL           :: LDSTUP
+      ! Strings
+      CHARACTER(LEN=255)       :: LOC = 'CHEMSULFATE (sulfate_mod.F)'
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER  :: STT(:,:,:,:)
-
-      ! For getting fields from HEMCO 
-      LOGICAL            :: aIR
-      CHARACTER(LEN=255) :: LOC = 'CHEMSULFATE (sulfate_mod.F)'
-
-      ! To get emission timestep
+      REAL(fp),        POINTER :: Spc(:,:,:,:)
       TYPE(HCO_STATE), POINTER :: HcoState
 
       !=================================================================
       ! CHEMSULFATE begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
       RC                   = GIGC_SUCCESS
@@ -612,7 +625,7 @@
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
 
       ! Initialize pointers
-      STT                  => State_Chm%Tracers
+      Spc                  => State_Chm%Species  ! Chemistry species [kg]
       HcoState             => NULL()
 
       ! Should we print debug output?
@@ -693,7 +706,7 @@
       ! SO4s [kg] gravitational settling
       IF ( id_SO4s > 0 ) THEN
          CALL GRAV_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                       STT(:,:,:,id_SO4s), 1,        RC )
+     &                       Spc(:,:,:,id_SO4s), 1,        RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4S' )
          ENDIF
@@ -702,7 +715,7 @@
       ! NITs [kg] gravitational settling
       IF ( id_NITs > 0 ) THEN 
          CALL GRAV_SETTLING( am_I_Root,          Input_Opt, State_Met, 
-     &                       STT(:,:,:,id_NITs), 2,         RC )
+     &                       Spc(:,:,:,id_NITs), 2,         RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
          ENDIF
@@ -713,7 +726,7 @@
          ! DUST_SO4 [kg] gravitational settling
          IF ( id_SO4d1 > 0 ) THEN
             CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
-     &                          State_Met, STT(:,:,:,id_SO4d1), 
+     &                          State_Met, Spc(:,:,:,id_SO4d1), 
      &                          3,         RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_SO4')
@@ -724,7 +737,7 @@
          ! DUST_SO4 [kg] gravitational settling
          IF ( id_SO4d2 > 0 ) THEN
             CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
-     &                          State_Met, STT(:,:,:,id_SO4d2), 
+     &                          State_Met, Spc(:,:,:,id_SO4d2), 
      &                          4,         RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_SO4')
@@ -735,7 +748,7 @@
          ! DUST_SO4 [kg] gravitational settling
          IF ( id_SO4d3 > 0 ) THEN
             CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
-     &                          State_Met, STT(:,:,:,id_SO4d3), 
+     &                          State_Met, Spc(:,:,:,id_SO4d3), 
      &                          5,         RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_SO4')
@@ -746,7 +759,7 @@
          ! DUST_SO4 [kg] gravitational settling
          IF ( id_SO4d4 > 0 ) THEN
             CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
-     &                          State_Met, STT(:,:,:,id_SO4d4), 
+     &                          State_Met, Spc(:,:,:,id_SO4d4), 
      &                          6,         RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_SO4')
@@ -757,7 +770,7 @@
          ! DUST_NIT [kg] gravitational settling
          IF ( id_NITd1 > 0 ) THEN
             CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
-     &                          State_Met, STT(:,:,:,id_NITd1), 
+     &                          State_Met, Spc(:,:,:,id_NITd1), 
      &                          7,         RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_NIT')
@@ -768,7 +781,7 @@
          ! DUST_NIT [kg] gravitational settling
          IF ( id_NITd2 > 0 ) THEN
             CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
-     &                          State_Met, STT(:,:,:,id_NITd2), 
+     &                          State_Met, Spc(:,:,:,id_NITd2), 
      &                          8,         RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_NIT')
@@ -779,7 +792,7 @@
          ! DUST_NIT [kg] gravitational settling
          IF ( id_NITd3 > 0 ) THEN
             CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
-     &                          State_Met, STT(:,:,:,id_NITd3), 
+     &                          State_Met, Spc(:,:,:,id_NITd3), 
      &                          9,         RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_NIT')
@@ -790,7 +803,7 @@
          ! DUST_NIT [kg] gravitational settling
          IF ( id_NITd4 > 0 ) THEN
             CALL GRAV_SETTLING( am_I_Root, Input_Opt,  
-     &                          State_Met, STT(:,:,:,id_NITd4), 
+     &                          State_Met, Spc(:,:,:,id_NITd4), 
      &                          10,        RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_NIT')
@@ -809,7 +822,17 @@
       ENDIF
 #endif
 
-      ! Convert all tracers in STT from [kg] -> [v/v]
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+      ! Convert all tracers in Spc from [kg] -> [v/v]
       CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,
      &                          State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
@@ -820,6 +843,18 @@
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
       ENDIF
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! For offline runs only ...
       IF ( IT_IS_AN_AEROSOL_SIM ) THEN
@@ -850,14 +885,14 @@
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2' )
       ENDIF
-
+      
       ! SO4
       ! CHEM_SO4 now includes the effect of dust chemistry  tdf 04/07/08
       CALL CHEM_SO4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4' )
       ENDIF
-d
+
 #if   defined( TOMAS )
       !-----------------------------------------------------------------
       ! For TOMAS microphysics:
@@ -887,7 +922,20 @@ d
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NIT' )
       ENDIF
 
-      ! Convert STT from [v/v] -> [kg]
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+      ! Convert Spc from [v/v] -> [kg]
       CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt, 
      &                          State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
@@ -897,7 +945,7 @@ d
       ENDIF
 
       ! Free pointer
-      STT => NULL()
+      Spc => NULL()
 
       ! We have already gone thru one chemistry iteration
       FIRSTCHEM = .FALSE. 
@@ -964,7 +1012,7 @@ d
       ! Pointers
       ! We need to define local arrays to hold corresponding values
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL*8, POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! EMISSSULFATETOMAS begins here!
@@ -988,15 +1036,15 @@ d
      &                   'Routine EMISSSULFATETOMAS in sulfate_mod.F')
          RETURN
       ENDIF 
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      STT => State_Chm%Tracers
+      
+      ! Point to chemical species array [kg]
+      Spc => State_Chm%Species
 
       IF (id_SF1 > 0 .and. id_NK1 > 0 ) THEN
 
       !!!  Get NH4 and aerosol water into the same array
          BINMASS(:,:,:,1:IBINS*(ICOMP-IDIAG)) =
-     &        STT(:,:,:,id_SF1:id_SF1+IBINS*(ICOMP-IDIAG) - 1)
+     &        Spc(:,:,:,id_SF1:id_SF1+IBINS*(ICOMP-IDIAG) - 1)
 
          IF ( SRTNH4 > 0 ) THEN
             TID = IBINS*(ICOMP-IDIAG) + 1
@@ -1009,11 +1057,11 @@ d
             DO J=1,JJPAR
             DO I=1,IIPAR
 
-               ! Take a slice of size IBINS from STT
-               MK_TEMP = STT(I,J,L,id_SF1:id_SF1-1+IBINS)
+               ! Take a slice of size IBINS from Spc
+               MK_TEMP = Spc(I,J,L,id_SF1:id_SF1-1+IBINS)
 
                ! Avoid array tmeporaries in subroutine call (bmy, 1/29/14)
-               CALL NH4BULKTOBIN( MK_TEMP, STT(I,J,L,id_NH4), TEMPNH4 )
+               CALL NH4BULKTOBIN( MK_TEMP, Spc(I,J,L,id_NH4), TEMPNH4 )
 
                BINMASS(I,J,L,TID:TID+IBINS-1) = TEMPNH4(1:IBINS)
             Enddo
@@ -1025,20 +1073,20 @@ d
 
          TID = IBINS*(ICOMP-1) +1
          BINMASS(:,:,:,TID:TID+IBINS-1) =
-     &           STT(:,:,:,id_AW1:id_AW1+IBINS-1)
+     &           Spc(:,:,:,id_AW1:id_AW1+IBINS-1)
 
       !IF ( id_SF1 > 0 ) THEN
-         CALL SRCSF30(  STT(:,:,:,id_NK1:id_NK1+IBINS-1),
+         CALL SRCSF30(  Spc(:,:,:,id_NK1:id_NK1+IBINS-1),
      &         BINMASS(:,:,:,:), am_I_Root, Input_Opt, State_Met, RC )
 
-         ! Return the aerosol mass after emission subroutine to STT
+         ! Return the aerosol mass after emission subroutine to Spc
          ! excluding the NH4 aerosol and aerosol water (win, 9/27/08)
-         STT(:,:,:,id_SF1:id_SF1+IBINS*(ICOMP-IDIAG)-1) =
+         Spc(:,:,:,id_SF1:id_SF1+IBINS*(ICOMP-IDIAG)-1) =
      &        BINMASS(:,:,:,1:IBINS*(ICOMP-IDIAG))
       ENDIF
 
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( Spc )
 
       ! Convert State_Chm%Tracers back to kg (ewl, 9/11/15)
       CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
@@ -2092,6 +2140,8 @@ d
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  24 Jun 2016 - R. Yantosca - Now Return if id_DMS < 0 (not == 0)
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2110,19 +2160,15 @@ d
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER           :: I,    J,    L
-      REAL(fp)          :: TK,   O2,   RK1,    RK2,    RK3,   F  
-      REAL(fp)          :: DMS,  DMS0, DMS_OH, DTCHEM, XOH,   XN3 
-      REAL(fp)          :: XX,   OH,   OH0,    XNO3,   XNO30, LOH
-      REAL(fp)          :: LNO3, BOXVL
-                        
-      ! For fields from Input_Opt
-      LOGICAL           :: IS_FULLCHEM
+      LOGICAL             :: IS_FULLCHEM
+      INTEGER             :: I,    J,    L
+      REAL(fp)            :: TK,   O2,   RK1,    RK2,    RK3,   F  
+      REAL(fp)            :: DMS,  DMS0, DMS_OH, DTCHEM, XOH,   XN3 
+      REAL(fp)            :: XX,   OH,   OH0,    XNO3,   XNO30, LOH
+      REAL(fp)            :: LNO3, BOXVL
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: Spc(:,:,:,:)
       
       !=================================================================
       ! CHEM_DMS begins here!
@@ -2135,9 +2181,8 @@ d
       ! Copy fields from INPUT_OPT to local variables for use below
       IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
 
-      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [v/v dry]
+      Spc         => State_Chm%Species
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM      = GET_TS_CHEM() * 60e+0_fp
@@ -2165,7 +2210,7 @@ d
 
          ! Get O2 [molec/cm3], DMS [v/v], OH [molec/cm3], NO3 [molec/cm3]
          O2     = State_Met%AIRDEN(I,J,L) * f * 0.21e+0_fp
-         DMS0   = STT(I,J,L,id_DMS)
+         DMS0   = Spc(I,J,L,id_DMS)
          OH     = GET_OH(  I, J, L, Input_Opt, State_Chm, State_Met )
          XNO3   = GET_NO3( I, J, L, Input_Opt, State_Chm, State_Met )
 
@@ -2229,7 +2274,7 @@ d
          ENDIF 
 
          ! Save DMS back to the tracer array
-         STT(I,J,L,id_DMS) = DMS
+         Spc(I,J,L,id_DMS) = DMS
 
          !==============================================================
          ! Save SO2 and MSA production from DMS oxidation 
@@ -2301,8 +2346,11 @@ d
          ! and NO3 [molec/cm3] back into State_Chm%Species
          !==============================================================
          IF ( IS_FULLCHEM ) THEN
-            State_Chm%Species(I,J,L,id_OH  ) = OH
-            State_Chm%Species(I,J,L,id_NO3 ) = XNO3
+! This may be problematic 
+!            State_Chm%Species(I,J,L,id_OH  ) = OH
+!            State_Chm%Species(I,J,L,id_NO3 ) = XNO3
+            Spc(I,J,L,id_OH  ) = OH
+            Spc(I,J,L,id_NO3 ) = XNO3
          ENDIF
       ENDDO
       ENDDO
@@ -2310,7 +2358,7 @@ d
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      STT => NULL()
+      Spc => NULL()
 
       END SUBROUTINE CHEM_DMS
 !EOC
@@ -2407,6 +2455,8 @@ d
 !  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
 !  23 Sep 2015 - R. Yantosca - Remove reference to obsolete DRYH2O2 flag
 !  24 Jun 2016 - R. Yantosca - Now return if id_H2O2 < 0 (not == 0)
+!  30 Jun 2016 - R. Yantosca - Remove instances of Spc.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOC
 !------------------------------------------------------------------------------
 !BOC
@@ -2417,22 +2467,23 @@ d
 !
 ! !LOCAL VARIABLES:
 !
-      ! Scalars
+      ! SAVEd Scalars
       LOGICAL            :: FIRST     = .TRUE.
       INTEGER, SAVE      :: LASTMONTH = -99
-      INTEGER            :: I, J, L, N_TRACERS
+
+      ! Scalars
+      INTEGER            :: I,     J,    L
       REAL(fp)           :: DT,    Koh,  DH2O2, M,    F ,   XTAU   
       REAL(fp)           :: H2O20, H2O2, ALPHA, FREQ, PHOTJ
+
+      ! Strings
       CHARACTER(LEN=255) :: FILENAME
 
       ! Arrays
       REAL*4             :: ARRAY(IIPAR,JJPAR,LLCHEM)
-      REAL(fp)           :: TCVV  (Input_Opt%N_TRACERS)
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: Spc(:,:,:,:)
 
       !=================================================================
       ! CHEM_H2O2 begins here!
@@ -2442,13 +2493,8 @@ d
       ! Assume success
       RC        = GIGC_SUCCESS
 
-      ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
-
-      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT    => State_Chm%Tracers
+      ! Point to chemical species array [v/v dry]
+      Spc       => State_Chm%Species
 
       ! Chemistry timestep [s]
       DT        = GET_TS_CHEM() * 60e+0_fp
@@ -2478,7 +2524,7 @@ d
          M     = State_Met%AIRDEN(I,J,L) * f  
 
          ! Initial H2O2 [v/v]
-         H2O20 = STT(I,J,L,id_H2O2)
+         H2O20 = Spc(I,J,L,id_H2O2)
 
          ! Loss frequenty due to OH oxidation [s-1]
          KOH   = A * EXP( -160.e+0_fp / State_Met%T(I,J,L) ) * 
@@ -2509,8 +2555,8 @@ d
          H2O2  = ( H2O20 / ALPHA + DH2O2 )
          IF ( H2O2 < SMALLNUM ) H2O2 = 0e+0_fp
 
-         ! Store final H2O2 in STT
-         STT(I,J,L,id_H2O2) = H2O2
+         ! Store final H2O2 in Spc
+         Spc(I,J,L,id_H2O2) = H2O2
 
       ENDDO
       ENDDO
@@ -2518,7 +2564,7 @@ d
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      STT => NULL()
+      Spc => NULL()
 
       END SUBROUTINE CHEM_H2O2
 !EOC
@@ -2677,7 +2723,7 @@ d
       LOGICAL               :: IS_FULLCHEM
       LOGICAL               :: LDSTUP
       INTEGER               :: I,      J,       L       !,      I1,   I2
-      INTEGER               :: II,     NSTEP,   N_TRACERS
+      INTEGER               :: II,     NSTEP
       INTEGER               :: BULK,   SIZE_RES 
       INTEGER               :: IBIN  ! tdf
       REAL(fp)              :: K0,     Ki,      KK,     M,    L1
@@ -2700,7 +2746,7 @@ d
       REAL(fp)              :: H2SO4_cd,  H2SO4_gas
 
       ! Arrays
-      REAL(fp)              :: TCVV  (Input_Opt%N_TRACERS)
+      REAL(fp)              :: TCVV(State_Chm%nAdvect)
       REAL(fp)              :: ALK_d   (NDSTBIN)  ! tdf 04/07/08
       REAL(fp)              :: ALKA_d  (NDSTBIN)  ! tdf 04/07/08
       REAL(fp)              :: PSO4_d  (NDSTBIN)  ! tdf 04/07/08
@@ -2715,12 +2761,10 @@ d
       ! (GET_DUST_ALK)
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER     :: Spc(:,:,:,:)
 
       ! For HEMCO update
-      LOGICAL, SAVE   :: FIRST = .TRUE.
+      LOGICAL, SAVE         :: FIRST = .TRUE.
 
       CHARACTER(LEN=255), PARAMETER :: LOC = 'CHEM_SO2 (sulfate_mod.F)'
 
@@ -2735,13 +2779,11 @@ d
       ! Copy fields from INPUT_OPT to local variables for use below
       IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
       IS_OFFLINE  = Input_Opt%ITS_AN_AEROSOL_SIM
-      N_TRACERS   = Input_Opt%N_TRACERS
-      TCVV        = Input_Opt%TCVV  (1:N_TRACERS)
+      TCVV        = Input_Opt%TCVV(1:State_Chm%nAdvect)
       LDSTUP      = Input_Opt%LDSTUP
 
-      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [v/v dry]
+      Spc         => State_Chm%Species
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM   = GET_TS_CHEM() * 60e+0_fp
@@ -2802,8 +2844,8 @@ d
          IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          ! Initial SO2, H2O2 and O3 [v/v]
-         SO20   = STT(I,J,L,id_SO2)         
-         H2O20  = STT(I,J,L,id_H2O2)
+         SO20   = Spc(I,J,L,id_SO2)         
+         H2O20  = Spc(I,J,L,id_H2O2)
          O3     = GET_O3( I, J, L, Input_Opt, State_Chm, State_Met )
 
          ! PATM  : Atmospheric pressure in atm
@@ -2920,6 +2962,8 @@ d
          IF ( LDSTUP ) THEN
 
             !==============================================================
+            ! %%% NOTE: THIS IS ONLY DONE FOR ACID UPTAKE SIMULATIONS %%%
+            !
             ! Update SO2 conc. after DUST chemistry (tdf, 04/07/08)
             !==============================================================
 
@@ -3123,22 +3167,22 @@ d
 	    ! Get sulfate concentration and convert from [v/v] to
             ! [moles/liter]
 	    ! Use a cloud scavenging ratio of 0.7 
-	    SO4nss  =  STT(I,J,L,id_SO4) * State_Met%AIRDEN(I,J,L) *
+	    SO4nss  =  Spc(I,J,L,id_SO4) * State_Met%AIRDEN(I,J,L) *
      &                 0.7e+0_fp / ( AIRMW * LWC )
 
 	    ! Get total ammonia (NH3 + NH4+) concentration [v/v]
 	    ! Use a cloud scavenging ratio of 0.7 for NH4+
-            TNH3     = ( STT(I,J,L,id_NH4) * 0.7e+0_fp ) + 
-     &                   STT(I,J,L,id_NH3)
+            TNH3     = ( Spc(I,J,L,id_NH4) * 0.7e+0_fp ) + 
+     &                   Spc(I,J,L,id_NH3)
 
 	    ! Get total nitrate (HNO3 + NIT) concentrations [v/v] 
      	    ! Use a cloud scavenging ratio of 0.7 for NIT
 	    IF ( IS_FULLCHEM ) THEN
-               TNO3 = STT(I,J,L,id_HNO3) + 
-     &              ( STT(I,J,L,id_NIT) * 0.7e+0_fp )
-	       GNO3 = STT(I,J,L,id_HNO3) !For Fahey & Pandis decision algorithm
+               TNO3 = Spc(I,J,L,id_HNO3) + 
+     &              ( Spc(I,J,L,id_NIT) * 0.7e+0_fp )
+	       GNO3 = Spc(I,J,L,id_HNO3) !For Fahey & Pandis decision algorithm
             ELSE IF ( IS_OFFLINE ) THEN
-               TANIT = STT(I,J,L,id_NIT) !aerosol nitrate [v/v]
+               TANIT = Spc(I,J,L,id_NIT) !aerosol nitrate [v/v]
 	       GNO3  = HNO3(I,J,L) - TANIT ! gas-phase nitric acid [v/v]
    	       ANIT  = TANIT * 0.7e+0_fp ! aerosol nitrate in the cloud drops [v/v]
 	       TNO3  = GNO3 + ANIT   ! total nitrate for cloud pH calculations
@@ -3231,20 +3275,20 @@ d
 #else
             ! For other simulations, Sum up the contributions from
             ! DST1 thru DST4 tracers into ALKdst. (bmy, 1/28/14)
-            ALKdst = ( STT(I,J,L,id_DST1) + STT(I,J,L,id_DST2) +
-     &                 STT(I,J,L,id_DST3) + STT(I,J,L,id_DST4) ) *
+            ALKdst = ( Spc(I,J,L,id_DST1) + Spc(I,J,L,id_DST2) +
+     &                 Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) *
      &                 1.e+9_fp * State_Met%AD(I,J,L) / TCVV(id_DST1) /
      &                 State_Met%AIRVOL(I,J,L)
 #endif
 
-            ALKss  = ( STT(I,J,L,id_SALA  ) + STT(I,J,L,id_SALC) ) *
+            ALKss  = ( Spc(I,J,L,id_SALA  ) + Spc(I,J,L,id_SALC) ) *
      &                 1.e+9_fp * State_Met%AD(I,J,L) / TCVV(id_SALA) /
      &                 State_Met%AIRVOL(I,J,L)
 
             ALKds = ALKdst + ALKss
 
             ! Get NH3 concentrations (v/v)
-            NH3 = STT(I,J,L,id_NH3) 
+            NH3 = Spc(I,J,L,id_NH3) 
 
             ! Initialize
             BULK = 0
@@ -3379,10 +3423,10 @@ d
                ! HET_DROP_CHEM [v/v]
                ! Note that it is better to use coarse sea salt alkalinity
                ! tracer if it is being transported (bec, 12/23/11)
-               SSCvv  = STT(I,J,L,id_SALC)
+               SSCvv  = Spc(I,J,L,id_SALC)
 
 	       ! Get sulfate concentrations for use in HET_DROP_CHEM [v/v]
-               aSO4  =  STT(I,J,L,id_SO4) 
+               aSO4  =  Spc(I,J,L,id_SO4) 
 
                ! This is to make sure HET_DROP_CHEM does not compute more
                ! sulfate then there is SO2
@@ -3427,8 +3471,8 @@ d
          ENDIF
 
          ! Store updated SO2, H2O2 back to the tracer arrays 
-         STT(I,J,L,id_SO2)  = SO2s( I,J,L)
-         STT(I,J,L,id_H2O2) = H2O2s(I,J,L)
+         Spc(I,J,L,id_SO2)  = SO2s( I,J,L)
+         Spc(I,J,L,id_H2O2) = H2O2s(I,J,L)
 
          ! SO2 chemical loss rate  = SO4 production rate [v/v/timestep]
 !         PSO4_SO2(I,J,L) = L1 + L2S + L3S + PSO4E
@@ -3522,7 +3566,7 @@ d
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      STT => NULL()
+      Spc => NULL()
 
       END SUBROUTINE CHEM_SO2
 !EOC
@@ -3627,6 +3671,8 @@ d
 !  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod since
 !                              XNUMOLAIR now defined in CMN_GTCM_MOD
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3640,7 +3686,6 @@ d
 !
       ! Scalars
       LOGICAL            :: IT_IS_A_FULLCHEM_SIM
-      INTEGER            :: N_TRACERS
       REAL(fp)           :: SO2_chem,    DTCHEM
       REAL(fp)           :: EQ_1_C,      EQ_2_C
       REAL(fp)           :: SO4E,        SO2_new,    SO4F
@@ -3662,10 +3707,10 @@ d
       REAL(fp)           :: HNO3_ss,     HNO3_kg
 
       ! Arrays
-      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)           :: TCVV(State_Chm%nAdvect)
 
       ! Pointers
-      REAL(fp), POINTER  :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: Spc(:,:,:,:)
       REAL(fp), POINTER  :: AD(:,:,:)
       REAL(fp), POINTER  :: AIRVOL(:,:,:)
 
@@ -3677,12 +3722,11 @@ d
       RC                   = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS            = Input_Opt%N_TRACERS
-      TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
+      TCVV                 = Input_Opt%TCVV(1:State_Chm%nAdvect)
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
 
       ! Initialize pointers
-      STT                 => State_Chm%Tracers
+      Spc                 => State_Chm%Species
       AD                  => State_Met%AD
       AIRVOL              => State_Met%AIRVOL
 
@@ -3699,7 +3743,7 @@ d
       IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
  	 ! Convert HNO3 [v/v] to [equivalents]
-         HNO3_vv = STT(I,J,L,id_HNO3)
+         HNO3_vv = Spc(I,J,L,id_HNO3)
 
          !tdf Note 28.97/63.0 = Mw(air)/Mw(HNO3)
          !    so RHS of HNO3_eq is  moles(HNO3) / gridbox
@@ -3923,7 +3967,7 @@ d
 
          ! Coupled sim: id_HNO3 is defined, so use it
          HNO3_ss = HNO3_SSC * 0.063 * TCVV(id_HNO3) / AD(I,J,L)
-         STT(I,J,L,id_HNO3) = MAX( HNO3_vv - HNO3_ss, MINDAT )
+         Spc(I,J,L,id_HNO3) = MAX( HNO3_vv - HNO3_ss, MINDAT )
 
       ELSE
 
@@ -3972,7 +4016,7 @@ d
       !------------------------------------------------------------------------
 
       ! Free pointers
-      STT    => NULL()
+      Spc    => NULL()
       AD     => NULL()
       AIRVOL => NULL()
 
@@ -4073,6 +4117,8 @@ d
 !  16 Sep 2013 - M. Sulprizio- Added ProTeX headers
 !  17 Sep 2013 - M. Sulprizio- Now pass Input_Opt, State_Met, State_Chm, and RC
 !                              as arguments
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4084,7 +4130,6 @@ d
 ! !LOCAL VARIABLES:
 !
       LOGICAL              :: IT_IS_A_FULLCHEM_SIM
-      INTEGER              :: N_TRACERS
       INTEGER              :: IBIN
       REAL(fp)             :: EQ1
       REAL(fp)             :: HNO3_gas
@@ -4112,10 +4157,10 @@ d
       REAL(fp)             :: EQ_BEG
 
       ! Arrays
-      REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)             :: TCVV(State_Chm%nAdvect)
 
       ! Pointers
-      REAL(fp), POINTER    :: STT(:,:,:,:)
+      REAL(fp), POINTER    :: Spc(:,:,:,:)
       REAL(fp), POINTER    :: AD(:,:,:)
       REAL(fp), POINTER    :: AIRVOL(:,:,:)
 
@@ -4126,12 +4171,11 @@ d
       ! Assume success
       RC                   = GIGC_SUCCESS
 
-      N_TRACERS            = Input_Opt%N_TRACERS
-      TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
+      TCVV                 = Input_Opt%TCVV(1:State_Chm%nAdvect)
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      STT                 => State_Chm%Tracers
+      ! Set pointers
+      Spc                 => State_Chm%Species   ! Chemical species [kg]
       AD                  => State_Met%AD
       AIRVOL              => State_Met%AIRVOL
 
@@ -4169,7 +4213,7 @@ d
          !tdf Note 28.97/63.0 = Mw(air)/Mw(HNO3)
          !    Hence, HNO3_eq =  1. * moles(HNO3) / gridbox
 
-         HNO3_vv = STT(I,J,L,id_HNO3)
+         HNO3_vv = Spc(I,J,L,id_HNO3)
          HNO3_eq = HNO3_vv * AD(I,J,L) /
      &             ( AIRMW / 63.e+0_fp ) / 63.e-3_fp
 
@@ -4503,7 +4547,7 @@ d
 
       ! HNO3 [v/v]
       IF ( id_HNO3 > 0 ) THEN
-         STT(I,J,L,id_HNO3) = MAX( HNO3_gas, MINDAT )
+         Spc(I,J,L,id_HNO3) = MAX( HNO3_gas, MINDAT )
       ENDIF
 
       DO IBIN = 1, NDSTBIN
@@ -4543,10 +4587,10 @@ d
       ! Update dust alkalinity
       ! NB Hardwired for 4 size bins                    tdf 04/08/08
 
-      STT(I,J,L,id_DAL1) = MAX( ALKA(1), MINDAT )
-      STT(I,J,L,id_DAL2) = MAX( ALKA(2), MINDAT )
-      STT(I,J,L,id_DAL3) = MAX( ALKA(3), MINDAT )
-      STT(I,J,L,id_DAL4) = MAX( ALKA(4), MINDAT )
+      Spc(I,J,L,id_DAL1) = MAX( ALKA(1), MINDAT )
+      Spc(I,J,L,id_DAL2) = MAX( ALKA(2), MINDAT )
+      Spc(I,J,L,id_DAL3) = MAX( ALKA(3), MINDAT )
+      Spc(I,J,L,id_DAL4) = MAX( ALKA(4), MINDAT )
 
       !------------------------------------------------------------------------
       ! DIAGNOSTIC -- leave commented out for now (bec, bmy, 4/13/05)
@@ -4555,7 +4599,7 @@ d
       !------------------------------------------------------------------------
 
       ! Free pointers
-      STT    => NULL()
+      Spc    => NULL()
       AD     => NULL()
       AIRVOL => NULL()
 
@@ -5835,6 +5879,8 @@ d
 !                              so we can greatly collapse this code
 !  23 Sep 2015 - R. Yantosca - Remove references to DRYSO4 and DRYSO4s
 !  24 Jun 2016 - R. Yantosca - Now return if id_SO4<0 or id_SO4s<0 (not == 0)
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5856,7 +5902,7 @@ d
       INTEGER           :: IDTRC(NDSTBIN)
 
       ! Pointers
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! CHEM_SO4 begins here!
@@ -5871,8 +5917,8 @@ d
       ! Copy fields from INPUT_OPT to local variables for use below
       LDSTUP    = Input_Opt%LDSTUP
 
-      ! Initialize pointers
-      STT      => State_Chm%Tracers
+      ! Point to chemical species array [kg]
+      Spc      => State_Chm%Species
 
       ! Loop over chemistry grid boxes
 !$OMP PARALLEL DO
@@ -5898,17 +5944,17 @@ d
          !==============================================================
 
          ! SO4 [v/v]
-         SO40  = STT(I,J,L,id_SO4)
+         SO40  = Spc(I,J,L,id_SO4)
          
          ! SO4 within coarse seasalt aerosol [v/v]
-         SO40s = STT(I,J,L,id_SO4s)
+         SO40s = Spc(I,J,L,id_SO4s)
 
          IF ( LDSTUP ) THEN
             ! Initial Sulfate w/in dust bins [v/v]   ! tdf 04/07/08
-            SO40d(1) = STT(I,J,L,id_SO4d1)
-            SO40d(2) = STT(I,J,L,id_SO4d2)
-            SO40d(3) = STT(I,J,L,id_SO4d3)
-            SO40d(4) = STT(I,J,L,id_SO4d4)
+            SO40d(1) = Spc(I,J,L,id_SO4d1)
+            SO40d(2) = Spc(I,J,L,id_SO4d2)
+            SO40d(3) = Spc(I,J,L,id_SO4d3)
+            SO40d(4) = Spc(I,J,L,id_SO4d4)
          ENDIF
 
          !==============================================================
@@ -5961,15 +6007,15 @@ d
          IF ( SO4s < SMALLNUM ) SO4s = 0e+0_fp
 
          ! Final concentrations [v/v]
-         STT(I,J,L,id_SO4)  = SO4
-         STT(I,J,L,id_SO4s) = SO4s
+         Spc(I,J,L,id_SO4)  = SO4
+         Spc(I,J,L,id_SO4s) = SO4s
 
          !tdf
          IF ( LDSTUP ) THEN
             DO IBIN = 1, NDSTBIN
                SO40_dust = SO4d(IBIN)
                IF ( SO40_dust < SMALLNUM ) SO40_dust = 0e+0_fp
-               STT(I,J,L,IDTRC(IBIN)) = SO40_dust ! dust sulfate
+               Spc(I,J,L,IDTRC(IBIN)) = SO40_dust ! dust sulfate
             ENDDO
          ENDIF    !tdf end of if ( LDSTUP) condition
 
@@ -5979,7 +6025,7 @@ d
 !$OMP END PARALLEL DO
 
       ! Free pointers
-      STT => NULL()
+      Spc => NULL()
 
       END SUBROUTINE CHEM_SO4
 !EOC
@@ -6219,6 +6265,8 @@ d
 !                              so we can greatly collapse this code
 !  23 Sep 2015 - R. Yantosca - Remove references to obsolete DRYMSA flag
 !  24 Jun 2016 - R. Yantosca - Now return if id_MSA < 0 (not == 0)
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6230,7 +6278,7 @@ d
       REAL(fp)          :: MSA0, MSA
 
       ! Pointers
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! CHEM_MSA begins here!
@@ -6240,9 +6288,8 @@ d
       ! Assume success
       RC  = GIGC_SUCCESS
 
-      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [v/v/ dry]
+      Spc => State_Chm%Species
 
       ! Loop over chemistry grid boxes
 !$OMP PARALLEL DO
@@ -6257,14 +6304,14 @@ d
          IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE      
 
          ! Initial MSA [v/v]
-         MSA0 = STT(I,J,L,id_MSA) 
+         MSA0 = Spc(I,J,L,id_MSA) 
 
          ! MSA production from DMS [v/v/timestep]
          MSA = MSA0 + PMSA_DMS(I,J,L)
 
          ! Final MSA [v/v]
          IF ( MSA < SMALLNUM ) MSA = 0e+0_fp
-         STT(I,J,L,id_MSA) = MSA
+         Spc(I,J,L,id_MSA) = MSA
 
       ENDDO
       ENDDO
@@ -6272,7 +6319,7 @@ d
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      STT => NULL()
+      Spc => NULL()
 
       END SUBROUTINE CHEM_MSA
 !EOC
@@ -6367,6 +6414,8 @@ d
 !                              so we can greatly collapse this code
 !  23 Sep 2015 - R. Yantosca - Remove reference to DRYNIT, DRYNITs
 !  24 Jun 2016 - R. Yantosca - Now return if id_NIT<0 or id_NITs<0 (not == 0)
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6384,12 +6433,12 @@ d
       REAL(fp)          :: NITd (NDSTBIN)  ! tdf 04/07/08
       REAL(fp)          :: NIT0d(NDSTBIN)  ! tdf 04/07/08
 
-      ! Following are index arrays to hold pointers to DEPVEL and STT
+      ! Following are index arrays to hold pointers to DEPVEL and Spc
       ! tdf 04/07/08
       INTEGER           :: IDTRC(NDSTBIN)
 
       ! Pointers
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! CHEM_NIT begins here!
@@ -6404,9 +6453,8 @@ d
       ! Copy fields from INPUT_OPT to local variables for use below
       LDSTUP    = Input_Opt%LDSTUP
 
-      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [v/v dry]
+      Spc => State_Chm%Species
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -6422,17 +6470,17 @@ d
          IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          ! Initial NITRATE [v/v]
-         NIT0  = STT(I,J,L,id_NIT)
+         NIT0  = Spc(I,J,L,id_NIT)
 
          ! Initial NITRATE w/in seasalt [v/v]
-         NIT0s = STT(I,J,L,id_NITs)
+         NIT0s = Spc(I,J,L,id_NITs)
 
          IF ( LDSTUP ) THEN
             ! Initial NITRATE w/in dust bins [v/v]   ! tdf 04/07/08
-            NIT0d(1) = STT(I,J,L,id_NITd1)
-            NIT0d(2) = STT(I,J,L,id_NITd2)
-            NIT0d(3) = STT(I,J,L,id_NITd3)
-            NIT0d(4) = STT(I,J,L,id_NITd4)
+            NIT0d(1) = Spc(I,J,L,id_NITd1)
+            NIT0d(2) = Spc(I,J,L,id_NITd2)
+            NIT0d(3) = Spc(I,J,L,id_NITd3)
+            NIT0d(4) = Spc(I,J,L,id_NITd4)
          ENDIF
 
          ! Initialize variables
@@ -6453,8 +6501,8 @@ d
             ! NIT prod from HNO3 uptake on fine sea-salt [v/v/timestep]
             NITs = NIT0s + PNITs(I,J,L)
 
-            ! Store final concentration in STT [v/v]
-            STT(I,J,L,id_NITs) = NITs
+            ! Store final concentration in Spc [v/v]
+            Spc(I,J,L,id_NITs) = NITs
             
          ENDIF
 
@@ -6465,7 +6513,7 @@ d
             ! NITd chemistry                              ! tdf 04/07/08
             !===========================================================
 
-            ! Assign pointers to STT arrays for loop over dust size bins
+            ! Assign pointers to Spc arrays for loop over dust size bins
             !tdf
             IDTRC(1) = id_NITd1
             IDTRC(2) = id_NITd2
@@ -6484,8 +6532,8 @@ d
                ! NIT prod from HNO3 uptake on dust [v/v/timestep]
                NITd(IBIN) = NIT0 + PNITd
 
-               ! Store final concentration in STT [v/v]
-               STT(I,J,L,IDTRC(IBIN)) = NITd(IBIN)
+               ! Store final concentration in Spc [v/v]
+               Spc(I,J,L,IDTRC(IBIN)) = NITd(IBIN)
 
             ENDDO
 
@@ -6497,7 +6545,7 @@ d
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      STT => NULL()
+      Spc => NULL()
 
       END SUBROUTINE CHEM_NIT
 !EOC
@@ -6767,6 +6815,10 @@ d
 
       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
+!%%% NOTE: we are not sure GET_NO3 is called for a full-chemistry
+!%%% simulation. It only seems to be called for CHEM_DMS, which
+!%%% is only called for the aerosol-only simulation
+
          !--------------------
          ! Coupled simulation
          !--------------------
@@ -6774,7 +6826,25 @@ d
          ! Take NO3 from State_Chm%Species [molec/cm3]
          ! NO3 is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-            NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO3)
+!----------------------------------------------------------------------------
+! Prior to 7/25/16:
+! State_Chm%Species is now already in v/v/ so convert to molec/cm3
+! following the algorithm for ITS_AN_AEROSOL_SIM
+!            NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO3)
+!----------------------------------------------------------------------------
+
+            ! Grid box volume [cm3]
+            BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
+
+            ! At night: Get NO3 [v/v] and convert it to [kg]
+            NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO3)    
+     &                    * State_Met%AD(I,J,L) 
+     &                    * ( 62e+0_fp/AIRMW ) 
+
+            ! Convert NO3 from [kg] to [molec/cm3]
+            NO3_MOLEC_CM3 = NO3_MOLEC_CM3  * XNUMOL_NO3 / BOXVL
+
+
          ELSE
             NO3_MOLEC_CM3 = 0e+0_fp
          ENDIF
@@ -6907,8 +6977,14 @@ d
          ! Get O3 from State_Chm%Species [molec/cm3] and convert it to [v/v]
          ! O3 is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-            O3_VV = ( State_Chm%Species(I,J,L,id_O3)  * 1e+6_fp   ) / 
-     &              ( State_Met%AIRDEN(I,J,L) * XNUMOLAIR )
+!----------------------------------------------------------------------------
+! Prior to 7/25/16:
+! NOTE: Formerly, State_Chm%Species had units of molec/cm3 but now at this
+! point the units are already in v/v.  So this unit conversion isn't needed.
+!            O3_VV = ( State_Chm%Species(I,J,L,id_O3)  * 1e+6_fp   ) / 
+!     &              ( State_Met%AIRDEN(I,J,L) * XNUMOLAIR )
+!----------------------------------------------------------------------------
+            O3_VV = State_Chm%Species(I,J,L,id_O3)
          ELSE
             O3_VV = 0e+0_fp
          ENDIF
@@ -7274,8 +7350,8 @@ d
       !! alkalinity [v/v] to [kg] use this when transporting alk
       !! or using Liao et al [2004] assumption of a continuous supply of
       ! alkalinity based on Laskin et al. [2003]
-      !ALK1 = STT(I,J,L,id_SALA) * State_Met%AD(I,J,L)/TCVV(id_SALA)
-      !ALK2 = STT(I,J,L,id_SALC) * State_Met%AD(I,J,L)/TCVV(id_SALC)
+      !ALK1 = Spc(I,J,L,id_SALA) * State_Met%AD(I,J,L)/TCVV(id_SALA)
+      !ALK2 = Spc(I,J,L,id_SALC) * State_Met%AD(I,J,L)/TCVV(id_SALC)
       !-----------------------------------------------------------------------
 
       ! Conversion from [m-3] --> [cm-3]

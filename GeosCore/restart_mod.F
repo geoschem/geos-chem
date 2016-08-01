@@ -40,11 +40,6 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      ! Logical indicator of whether non-advected species data is read 
-      ! from NetCDF file or if default values (previously from 
-      ! globchem.dat) are used instead.
-      LOGICAL, SAVE, PUBLIC :: NONADV_SPC_IN_RESTART
-
       ! Full path name of the advected tracer restart file (INPUT)
       CHARACTER(LEN=255)    :: INPUT_RESTART_FILE  
 
@@ -409,17 +404,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_RESTART( INFILE, OUTFILE )
+      SUBROUTINE SET_RESTART( INFILE )
 !
 ! !INPUT PARAMETERS: 
 !
-      CHARACTER(LEN=255) :: INFILE    ! A
-dvected tracer input  restart file
-      CHARACTER(LEN=255) :: OUTFILE   ! Advected tracer output restart file 
+      CHARACTER(LEN=255) :: INFILE    ! Advected tracer input  restart file
 ! 
 ! !REVISION HISTORY: 
 !  09 Jul 2004 - R. Yantosca - Initial version
 !  11 Jul 2011 - R. Yantosca - Added ProTeX headers
+!  27 Jul 2016 - M. Sulprizio- Remove OUTFILE as input argument. This is now
+!                              hardcoded.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -505,6 +500,10 @@ dvected tracer input  restart file
 !                              HgP_Id_List fields of State_Chm
 !  11 Jul 2016 - E. Lundgren - Remove tracers and read only species
 !  12 Jul 2016 - E. Lundgren - Rename from read_gc_restart_nc
+!  18 Jul 2016 - M. Sulprizio- Remove special handling of ISOPN, MMN, CFCX, and
+!                              HCFCX. Family tracers have been eliminated.
+!  25 Jul 2016 - E. Lundgren - Store whether species in rst file in species db
+!                              rather than module-level variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -517,14 +516,8 @@ dvected tracer input  restart file
       CHARACTER(LEN=60)    :: Prefix, Tracer
       REAL(fp)             :: Background_VV      ! background species conc
       REAL(fp)             :: CONV_FACTOR        ! convert mol/mol -> molec/cm3
-      LOGICAL              :: FOUND              ! variable in restart file
+      LOGICAL              :: FOUND              ! ocn Hg var in restart file
 
-      !*******************************************************************
-      ! TEMPORARY PENDING FAMILIES REMOVAL
-      LOGICAL              :: FAMILIES_SPC       ! families species
-      REAL(fp)             :: TRC_TO_SPC_FACTOR  ! tracer conc -> spc conc
-      !*******************************************************************
-      
       ! NetCDF file info
       INTEGER              :: fId                ! netCDF file ID
       INTEGER              :: NX, NY, NZ, NT     ! netCDF file dimensions
@@ -646,12 +639,12 @@ dvected tracer input  restart file
       WRITE( 6, 110 )
  110  FORMAT( /,'Min and Max of each species in file:' )
 
-      ! Assume non-advected species concentrations are stored in the
-      ! restart file until proven otherwise (ewl, 7/12,16)
-      NONADV_SPC_IN_RESTART = .TRUE.
-
       ! Initialize species to all zeroes
       State_Chm%Species = 0.e+0_fp
+
+      ! Initially set species units with the assumption that all species
+      ! are in the restart file
+      State_Chm%Spc_Units = 'molec/cm3'
 
       ! Loop over species
       DO N = 1, State_Chm%nSpecies
@@ -665,52 +658,13 @@ dvected tracer input  restart file
          ! Check if species data is in file
          ierr = Nf_Inq_Varid (fId, v_name, v_id)
          IF ( ierr /= NF_NOERR ) THEN
-            FOUND = .FALSE.
+            ThisSpc%Is_InRestart = .FALSE.
          ELSE
-            FOUND = .TRUE.
+            ThisSpc%Is_InRestart = .TRUE.
          ENDIF
-
-         !************************************************************
-         ! TEMPORARY CODE PENDING FAMILIES REMOVAL (ewl, 7/11/16)
-         ! If species is not in the restart file, check if is is part of 
-         ! a family.,If yes, then the legacy family tracer should be in
-         ! the initial restart file. Set the variable name to the family
-         ! tracer name and set a factor for converting tracer concentration
-         ! to species concentration (e.g. ISOPN * 0.5 for ISOPND and ISOPNB).
-         IF ( .NOT. FOUND ) THEN
-
-            SELECT CASE ( TRIM( ThisSpc%Name ) )
-            
-               CASE ('ISOPND', 'ISOPNB')
-                  v_name = 'SPC_ISOPN'
-                  TRC_TO_SPC_FACTOR = 0.5e+0_fp
-            
-               CASE ('MVKN', 'MACRN')
-                  v_name = 'SPC_ISOPN'
-                  TRC_TO_SPC_FACTOR = 0.5e+0_fp
-            
-               CASE( 'HCFC123', 'HCFC141b', 'HCFC142b' )
-                  v_name = 'SPC_HCFCX'
-                  TRC_TO_SPC_FACTOR = 1.0e+0_fp / 3.0e+0_fp
-            
-               CASE( 'CFC113', 'CFC114', 'CFC115' )
-                  v_name = 'SPC_CFCX'
-                  TRC_TO_SPC_FACTOR = 1.0e+0_fp / 3.0e+0_fp
-            
-               CASE DEFAULT
-                  TRC_TO_SPC_FACTOR = 1.0e+0_fp
-            
-            END SELECT
-   
-            IF ( TRC_TO_SPC_FACTOR > 1.0e+0_fp ) THEN
-               FAMILIES_SPC = .TRUE.
-            ENDIF
-
-         ENDIF
-         !************************************************************
 
          ! If data in file, read and convert to molec/cm2
-         IF ( FOUND .OR. FAMILIES_SPC ) THEN
+         IF ( ThisSpc%Is_InRestart ) THEN
 
             ! Initialize temporary array for this tracer and point to it
             ! use 1e-30 as min (hotp 2/25/09)
@@ -775,17 +729,6 @@ dvected tracer input  restart file
                State_Chm%Species(I,J,L,N) = 
      &                 Ptr3D(I,J,L) * CONV_FACTOR
                                     
-               !*********************************************************
-               ! TEMPORARY CODE PENDING FAMILIES REMOVAL
-               ! Adjust conversion factor to set family species
-               ! concentration equal to the tracer concentration divided 
-               ! by the number of species in the family. 
-               IF ( FAMILIES_SPC ) THEN
-                  State_Chm%Species(I,J,L,N) =
-     &                    State_Chm%Species(I,J,L,N) * TRC_TO_SPC_FACTOR
-               ENDIF
-               !*********************************************************
-          
                ! Make a small number if concentration is very low
                State_Chm%Species(I,J,L,N) = 
      &              MAX( State_Chm%Species(I,J,L,N), 1.0e-30_fp )
@@ -817,11 +760,6 @@ dvected tracer input  restart file
             ! from the legacy tracer restart file values rather than the
             ! default initial values. This will impact output values.
             !**********************************************************
-
-            ! Set module-level variable indicating non-advected species
-            ! are absent from the restart file and default background
-            ! values will be used (ewl, 7/12/16)
-            NONADV_SPC_IN_RESTART = .FALSE.
 
             ! If species data is not in the restart file, then assign
             ! default background values in units of [mol/mol].
@@ -894,6 +832,13 @@ dvected tracer input  restart file
             ! mol/mol here to preserve location of unit conversion
             ! in pre-FlexChem code. This is temporary to minimize
             ! differences with FlexChem.
+
+            ! Set State_Chm species units to reflect that conversion
+            ! to molec/cm3 is not yet complete. This will prevent
+            ! the incorrect application of unitconv_mod species unit 
+            ! conversions prior to the full conversions to molec/cm3
+            ! in init_flexchem (ewl, 7/22/16)
+            State_Chm%Spc_Units = 'some species in v/v'
 
             ! Free pointer
             ThisSpc => NULL()
@@ -1231,7 +1176,7 @@ dvected tracer input  restart file
 ! !LOCAL VARIABLES:
 !
       ! Local Variables      
-      INTEGER              :: I, J, L, M, N, HCRC
+      INTEGER              :: I, J, L, M, N, HCRC, NA, nAdvect
       INTEGER              :: GC_RST_Collection
       INTEGER              :: Tracer_id    ! id for ocean Hg tracers
       REAL(fp)             :: CONV_FACTOR  ! convert molec/cm3 -> mol/mol
@@ -1263,6 +1208,23 @@ dvected tracer input  restart file
       !=================================================================
       ! WRITE_GC_RESTART begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
       RC          = GIGC_SUCCESS
@@ -1694,6 +1656,19 @@ dvected tracer input  restart file
       IF ( Input_Opt%LPRT .AND. am_I_Root ) THEN 
          CALL DEBUG_MSG('### WRITE_GC_RESTART: wrote file')
       ENDIF
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       END SUBROUTINE WRITE_GC_RESTART
 !EOC

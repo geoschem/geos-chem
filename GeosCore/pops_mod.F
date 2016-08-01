@@ -420,6 +420,8 @@
 !  17 Sep 2014 - C. Keller   - Renamed EmisList_GetDataArr to HCO_GetPtr
 !  31 May 2016 - E. Lundgren - Replace Input_Opt%XNUMOL with AVO/(emMW_g*1e-3)
 !                              where emMW_g is emitted MW from species database
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -450,7 +452,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER           :: I, J, L
+      INTEGER           :: I,             J,             L
+      INTEGER           :: N,             NA,            nAdvect
       REAL(fp)          :: DTCHEM,        SUM_F
       REAL(fp)          :: KOA_T,         KBC_T
       REAL(fp)          :: KOC_BC_T,      KBC_OC_T
@@ -588,13 +591,25 @@
       REAL(fp)            :: DENOM
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: Spc(:,:,:,:)
 
       !=================================================================
       ! CHEM_POPGP begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -610,9 +625,8 @@
       LNLPBL    = Input_Opt%LNLPBL
       LGTMM     = Input_Opt%LGTMM
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to the chemical species array [kg]
+      Spc => State_Chm%Species
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
@@ -756,11 +770,11 @@
          ! GAS-PARTICLE PARTITIONING
          !==============================================================
 
-         OLD_POPG      = MAX( STT(I,J,L,id_POPG),     SMALLNUM ) ![kg]
-         OLD_POPP_OCPO = MAX( STT(I,J,L,id_POPPOCPO), SMALLNUM ) ![kg]
-         OLD_POPP_BCPO = MAX( STT(I,J,L,id_POPPBCPO), SMALLNUM ) ![kg]
-         OLD_POPP_OCPI = MAX( STT(I,J,L,id_POPPOCPI), SMALLNUM ) ![kg]
-         OLD_POPP_BCPI = MAX( STT(I,J,L,id_POPPBCPI), SMALLNUM ) ![kg]
+         OLD_POPG      = MAX( Spc(I,J,L,id_POPG),     SMALLNUM ) ![kg]
+         OLD_POPP_OCPO = MAX( Spc(I,J,L,id_POPPOCPO), SMALLNUM ) ![kg]
+         OLD_POPP_BCPO = MAX( Spc(I,J,L,id_POPPBCPO), SMALLNUM ) ![kg]
+         OLD_POPP_OCPI = MAX( Spc(I,J,L,id_POPPOCPI), SMALLNUM ) ![kg]
+         OLD_POPP_BCPI = MAX( Spc(I,J,L,id_POPPBCPI), SMALLNUM ) ![kg]
 
          ! Total POPs in box I,J,L 
          OLD_POP_T = OLD_POPG      +
@@ -921,8 +935,8 @@
          MPOP_BCPO = MPOP_BC * EXP( -FOLD )
 
          ! Hydrophilic particulate POP already existing
-         MPOP_OCPI = MAX( STT(I,J,L,id_POPPOCPI), SMALLNUM )  ![kg]
-         MPOP_BCPI = MAX( STT(I,J,L,id_POPPBCPI), SMALLNUM )  ![kg]
+         MPOP_OCPI = MAX( Spc(I,J,L,id_POPPOCPI), SMALLNUM )  ![kg]
+         MPOP_BCPI = MAX( Spc(I,J,L,id_POPPBCPI), SMALLNUM )  ![kg]
 
          ! Hydrophilic POP that used to be hydrophobic
          NEW_OCPI = MPOP_OC - MPOP_OCPO
@@ -1149,11 +1163,11 @@
          NEW_POPP_BCPI = MAX( NEW_POPP_BCPI, SMALLNUM )
 
          ! Archive new POPG and POPP values [kg]
-         STT(I,J,L,id_POPG)     = NEW_POPG
-         STT(I,J,L,id_POPPOCPO) = NEW_POPP_OCPO
-         STT(I,J,L,id_POPPBCPO) = NEW_POPP_BCPO
-         STT(I,J,L,id_POPPOCPI) = NEW_POPP_OCPI
-         STT(I,J,L,id_POPPBCPI) = NEW_POPP_BCPI
+         Spc(I,J,L,id_POPG)     = NEW_POPG
+         Spc(I,J,L,id_POPPOCPO) = NEW_POPP_OCPO
+         Spc(I,J,L,id_POPPBCPO) = NEW_POPP_BCPO
+         Spc(I,J,L,id_POPPOCPI) = NEW_POPP_OCPI
+         Spc(I,J,L,id_POPPBCPI) = NEW_POPP_BCPI
 
          ! Net oxidation [kg] (equal to gross ox for now)
          NET_OX      = MPOP_G    - NEW_POPG      - DEP_POPG   
@@ -1357,8 +1371,17 @@
       ENDDO
 
       ! Free pointer
-      STT => NULL()
+      Spc => NULL()
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CHEM_POPGP 
 !EOC
 !------------------------------------------------------------------------------

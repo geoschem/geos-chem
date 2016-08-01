@@ -308,6 +308,8 @@
 !  22 Jun 2016 - R. Yantosca - Rename IDTPASV to id_PASV.  Also move the 
 !                              initializations of the id_ flags before the
 !                              first mass conservation test.
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -322,6 +324,7 @@
 
       ! Scalars
       LOGICAL                  :: LINTERP
+      INTEGER                  :: NA,   nAdvect
       INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
       INTEGER                  :: N,    R,     H,    W, X, Y
       INTEGER                  :: NYMD, NHMS,  TS_DIAG
@@ -351,8 +354,7 @@
       REAL(fp)                 :: TCVV(Input_Opt%N_TRACERS)
  
       ! Pointers
-      REAL(fp), POINTER        :: STT(:,:,:,:)
-      REAL(fp), POINTER        :: AD(:,:,:)
+      REAL(fp), POINTER        :: Spc(:,:,:,:)
 
       ! For mass conservation tests
       LOGICAL                  :: DO_MASSCONS
@@ -360,6 +362,20 @@
       !=================================================================
       ! DIAG49 begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
       RC            =  GIGC_SUCCESS
@@ -417,10 +433,8 @@
          DO_DIAG_WRITE = .FALSE.
       ENDIF
 
-      ! Initialize pointers
-      STT          => State_Chm%Tracers
-      AD           => State_Met%AD
-
+      ! Point to
+      SPC => State_Chm%Species
 
       !=================================================================
       ! If it's a new day, open a new BPCH file and write file header
@@ -521,10 +535,10 @@
                !%%%  Archive output in kg (not v/v) for printout     %%%
                !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                IF ( DO_MASSCONS .or. id_PASV > 0 ) THEN
-                  Q(X,Y,K) = STT(I,J,L,N) * State_Met%AD(I,J,L)
+                  Q(X,Y,K) = SPC(I,J,L,N) * State_Met%AD(I,J,L)
                ELSE
                   ! Normal ND49 output, archive in v/v
-                  Q(X,Y,K) = STT(I,J,L,N) * TCVV(N)
+                  Q(X,Y,K) = SPC(I,J,L,N) * TCVV(N)
                ENDIF
                
             ENDDO
@@ -624,86 +638,41 @@
                ! Temp variable for accumulation
                TMP = 0e0_fp
             
-!               ! NO
-!               TMP = TMP + ( TCVV(id_NO)         *
-!     &                       STT(I,J,L,id_NO)    /
-!     &                       AD(I,J,L) )
-!
-!               ! NO2
-!               TMP = TMP + ( TCVV(id_NO2)        *
-!     &                       STT(I,J,L,id_NO2)   /
-!     &                       AD(I,J,L) )
-!
-!               ! PAN
-!               TMP = TMP + ( TCVV(id_PAN)        * 
-!     &                       STT(I,J,L,id_PAN)   / 
-!     &                       AD(I,J,L) )
-!
-!               ! HNO3
-!               TMP = TMP + ( TCVV(id_HNO3)       *
-!     &                       STT(I,J,L,id_HNO3)  / 
-!     &                       AD(I,J,L) )
-!            
-!               ! PMN
-!               TMP = TMP + ( TCVV(id_PMN)        *
-!     &                       STT(I,J,L,id_PMN)   / 
-!     &                       AD(I,J,L) )
-!
-!               ! PPN
-!               TMP = TMP + ( TCVV(id_PPN)        * 
-!     &                       STT(I,J,L,id_PPN)   / 
-!     &                       AD(I,J,L) )
-! 
-!               ! R4N2
-!               TMP = TMP + ( TCVV(id_R4N2)       *
-!     &                       STT(I,J,L,id_R4N2)  / 
-!     &                       AD(I,J,L) )
-!            
-!               ! N2O5
-!               TMP = TMP + ( 2e+0_fp * TCVV(id_N2O5) *
-!     &                       STT(I,J,L,id_N2O5)  / 
-!     &                       AD(I,J,L) )
-!                        
-!               ! HNO4
-!               TMP = TMP + ( TCVV(id_HNO4)       *
-!     &                       STT(I,J,L,id_HNO4)  / 
-!     &                       AD(I,J,L) )
-
                ! NO
                TMP = TMP + ( TCVV(id_NO)         *
-     &                       STT(I,J,L,id_NO) )
+     &                       SPC(I,J,L,id_NO) )
 
                ! NO2
                TMP = TMP + ( TCVV(id_NO2)        *
-     &                       STT(I,J,L,id_NO2) )  
+     &                       SPC(I,J,L,id_NO2) )  
 
                ! PAN
                TMP = TMP + ( TCVV(id_PAN)        * 
-     &                       STT(I,J,L,id_PAN) )
+     &                       SPC(I,J,L,id_PAN) )
 
                ! HNO3
                TMP = TMP + ( TCVV(id_HNO3)       *
-     &                       STT(I,J,L,id_HNO3) )
+     &                       SPC(I,J,L,id_HNO3) )
             
                ! PMN
                TMP = TMP + ( TCVV(id_PMN)        *
-     &                       STT(I,J,L,id_PMN) )
+     &                       SPC(I,J,L,id_PMN) )
 
                ! PPN
                TMP = TMP + ( TCVV(id_PPN)        * 
-     &                       STT(I,J,L,id_PPN) )
+     &                       SPC(I,J,L,id_PPN) )
  
                ! R4N2
                TMP = TMP + ( TCVV(id_R4N2)       *
-     &                       STT(I,J,L,id_R4N2) )
+     &                       SPC(I,J,L,id_R4N2) )
             
                ! N2O5
                TMP = TMP + ( 2e+0_fp * TCVV(id_N2O5) *
-     &                       STT(I,J,L,id_N2O5) )
+     &                       SPC(I,J,L,id_N2O5) )
                         
                ! HNO4
                TMP = TMP + ( TCVV(id_HNO4)       *
-     &                       STT(I,J,L,id_HNO4) )
+     &                       SPC(I,J,L,id_HNO4) )
 
                ! Save afternoon points
                Q(X,Y,K) = Q(X,Y,K) + TMP
@@ -854,9 +823,9 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-!               Q(X,Y,K) = ( STT(I,J,L,id_SALA) + STT(I,J,L,id_SALC) ) *
+!               Q(X,Y,K) = ( SPC(I,J,L,id_SALA) + SPC(I,J,L,id_SALC) ) *
 !     &                      TCVV(id_SALA)      / AD(I,J,L) 
-              Q(X,Y,K) = ( STT(I,J,L,id_SALA) + STT(I,J,L,id_SALC) ) *
+              Q(X,Y,K) = ( SPC(I,J,L,id_SALA) + SPC(I,J,L,id_SALC) ) *
      &                      TCVV(id_SALA)     
             ENDDO
             ENDDO
@@ -1604,9 +1573,17 @@
       ENDIF
 
       ! Free pointers
-      NULLIFY( STT )
-!      NULLIFY( AD  )
+      Spc => NULL()
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE DIAG49
 !EOC
 !------------------------------------------------------------------------------

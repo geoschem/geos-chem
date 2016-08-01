@@ -671,18 +671,12 @@
       CHARACTER(LEN=40)     :: UNIT     
       CHARACTER(LEN=40)     :: RESERVED
   
-      ! Pointers
-      TYPE(Species), POINTER :: ThisSpc
-
       !=================================================================
       ! READ_GTMM_RESTART begins here!
       !=================================================================
 
       ! Assume success
       RC = GIGC_SUCCESS
-
-      ! Initialize
-      ThisSpc => NULL()
 
       ! Find a free file LUN
       IU_FILE  = findFreeLUN()
@@ -987,6 +981,7 @@
 !  06 Aug 2015 - J. Fisher   - Add stored snow Hg reservoirs (orig. 29/11/11)
 !  25 Apr 2016 - R. Yantosca - Now handle all Hg indexing locally
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -997,7 +992,7 @@
       INTEGER                :: N, C
 
       ! Pointers
-      TYPE(Species), POINTER :: ThisSpc
+      TYPE(Species), POINTER :: SpcInfo
 
       !=================================================================
       ! INIT_DEPO_MERCURY begins here!
@@ -1034,28 +1029,28 @@
       DO N = 1, State_Chm%nSpecies
 
          ! Point to the Species Database entry for tracer # N
-         ThisSpc => State_Chm%SpcData(N)%Info
+         SpcInfo => State_Chm%SpcData(N)%Info
 
          ! Define local id_Hg0 and id_Hg2 flags
-         SELECT CASE( TRIM( ThisSpc%Name ) )
+         SELECT CASE( TRIM( SpcInfo%Name ) )
             CASE( 'Hg0' ) 
-               id_Hg0 = ThisSpc%ModelId
+               id_Hg0 = SpcInfo%ModelId
             CASE( 'Hg2' ) 
-               id_Hg2 = ThisSpc%ModelId
+               id_Hg2 = SpcInfo%ModelId
             CASE DEFAULT
                ! Do nothing
          END SELECT
 
          ! Store the Hg0 and Hg2 category numbers for each tracer
          ! for future lookup in READ_GTMM_RESTART (bmy, 4/26/16)
-         IF ( ThisSpc%Is_Hg0 ) THEN
-            Hg0_Cat(N) = ThisSpc%Hg_Cat
-         ELSE iF ( ThisSpc%Is_Hg2 ) THEN
-            Hg2_Cat(N) = ThisSpc%Hg_Cat
+         IF ( SpcInfo%Is_Hg0 ) THEN
+            Hg0_Cat(N) = SpcInfo%Hg_Cat
+         ELSE iF ( SpcInfo%Is_Hg2 ) THEN
+            Hg2_Cat(N) = SpcInfo%Hg_Cat
          ENDIF
 
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
       ENDDO
 
       !================================================================

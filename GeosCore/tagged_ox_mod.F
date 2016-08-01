@@ -31,7 +31,6 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
-      PUBLIC  :: ADD_STRAT_POX 
       PUBLIC  :: CHEM_TAGGED_OX 
       PUBLIC  :: CLEANUP_TAGGED_OX 
       PUBLIC  :: INIT_TAGGED_OX
@@ -107,6 +106,9 @@
 !  04 Mar 2015 - R. Yantosca - Declare pointer args to HCO_GetPtr with REAL(f4)
 !  16 Jun 2016 - M. Sulprizio- Replace IDTO3Strt from tracerid_mod.F with
 !                              a local definition (module variable id_O3Strat)
+!  12 Jul 2016 - R. Yantosca - Remove routine ADD_STRAT_POX, we now just
+!                              directly add into State_Chm%Species in 
+!                              strat_chm_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -150,67 +152,6 @@
 #endif
 
       CONTAINS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: add_strat_pox
-!
-! !DESCRIPTION: Subroutine ADD\_STRAT\_POX adds the stratospheric influx of 
-!  Ox to the stratospheric Ox tracer.  This is called from routine 
-!  Do\_Synoz, which is applied when the tracer array has units of [v/v].  
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE ADD_STRAT_POX( I, J, L, POx, State_Chm )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : IND_
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER,  INTENT(IN) :: I     ! GEOS-Chem grid box lon index
-      INTEGER,  INTENT(IN) :: J     ! GEOS-Chem grid box lat index
-      INTEGER,  INTENT(IN) :: L     ! GEOS-Chem grid box level index
-      REAL(fp), INTENT(IN) :: POx   ! P(Ox) in the stratosphere [v/v]
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-! 
-! !REMARKS:
-!  This routine is only called if you are using the Synoz stratospheric
-!  ozone chemistry.  Synoz is now obsolete and has been replaced by Linoz.
-!
-! !REVISION HISTORY:
-!  19 Aug 2003 - R. Yantosca - Initial version
-!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
-!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  10 Jun 2012 - L. Murray - Enable tagged Ox for Synoz.
-!  05 Nov 2013 - R. Yantosca - Rename IDTOxStrt to IDTO3Strt
-!  05 Nov 2013 - R. Yantosca - Remove STT pointer for simplicity
-!  20 Jun 2016 - R. Yantosca - Rename IDTO3Strt to id_O3Strat.  This is now
-!                              a module variable which is only defined at init.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      !=================================================================
-      ! GET_STRAT_POX begins here!
-      !=================================================================
-
-      State_Chm%Tracers(I,J,L,id_O3Strat) = 
-     &State_Chm%Tracers(I,J,L,id_O3Strat) + POx
-
-      END SUBROUTINE ADD_STRAT_POX
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -518,46 +459,55 @@
 !  15 Jun 2015 - R. Yantosca - Bug fix: PP doesn't have to be held PRIVATE
 !  15 Jun 2015 - R. Yantosca - Updated comments for removal of drydep
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! Scalars
-      LOGICAL, SAVE            :: FIRST   = .TRUE.
-      LOGICAL                  :: LSPLIT
-      INTEGER                  :: I,     J,       L,  N
-      INTEGER                  :: N_TRACERS
-      REAL(fp)                 :: BOXVL, DTCHEM,  DT, LL, PL
+      ! SAVEd scalars
+      LOGICAL, SAVE            :: FIRST = .TRUE.
 
+      ! Scalars
+      INTEGER                  :: I,     J,      L,  N,  NA, nAdvect
+      REAL(fp)                 :: BOXVL, DTCHEM, DT, LL, PL
 
       ! Arrays
       REAL(fp)                 :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
 
       ! Pointers
-      REAL(fp),        POINTER :: STT(:,:,:,:)
+      REAL(fp),        POINTER :: Spc(:,:,:,:)
       TYPE(HCO_STATE), POINTER :: HcoState
 
       ! Strings
       CHARACTER(LEN=255) :: LOC = 'CHEM_TAGGED_OX (tagged_ox_mod.F)'
-      CHARACTER(LEN=16)  :: STAMP
 
       !=================================================================
       ! CHEM_TAGGED_OX begins here!
       !=================================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
       RC        = GIGC_SUCCESS
 
-      ! Get fields from Input_Opt
-      LSPLIT    = Input_Opt%LSPLIT
-      N_TRACERS = Input_Opt%N_TRACERS
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT       => State_Chm%Tracers
-      HcoState  => NULL()
+      ! Pointers
+      Spc       => State_Chm%Species   ! Points to chemical species [kg]
+      HcoState  => NULL()              ! Points to the HEMCO state
 
       ! Chemistry timestep [s]
       DTCHEM    = GET_TS_CHEM() * 60e+0_fp
@@ -615,7 +565,12 @@
       ! altitude, as defined in GET_REGIONAL_POX.  If you are running
       ! the
       !=================================================================
-      DO N = 1, N_TRACERS
+
+      ! Loop over the # of advected species
+      DO NA = 1, nAdvect
+
+         ! Advected species ID
+         N = State_Chm%Map_Advect(NA)
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -641,7 +596,7 @@
             
             ! L(Ox) is now in [1/m3] (ckeller, 9/17/2014)
             IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
-               LL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL * DT
+               LL = Spc(I,J,L,N) * L24H(I,J,L) * BOXVL * DT
             ELSE
                LL = 0.0e+0_fp
             ENDIF 
@@ -659,15 +614,15 @@
                ENDIF
 
                ! Archive loss for all tracers [kg/s]
-               PL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL / TS_EMIS
-               AD65(I,J,L,N_TRACERS+N) = AD65(I,J,L,N_TRACERS+N) + PL
+               PL = Spc(I,J,L,N) * L24H(I,J,L) * BOXVL / TS_EMIS
+               AD65(I,J,L,nAdvect+N) = AD65(I,J,L,nAdvect+N) + PL
 
             ENDIF
 
             !===========================================================
             ! Apply chemical P(Ox) - L(Ox) to each tagged tracer
             !===========================================================
-            STT(I,J,L,N) = STT(I,J,L,N) + PP(I,J,L,N) - LL
+            Spc(I,J,L,N) = Spc(I,J,L,N) + PP(I,J,L,N) - LL
          ENDDO
          ENDDO
          ENDDO
@@ -675,9 +630,18 @@
       ENDDO
 
       ! Free pointer
-      STT      => NULL()
+      Spc      => NULL()
       HcoState => NULL()
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CHEM_TAGGED_OX
 !EOC
 !------------------------------------------------------------------------------

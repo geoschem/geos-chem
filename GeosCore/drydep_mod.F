@@ -47,10 +47,9 @@
       PUBLIC :: DEPSAV
       PUBLIC :: NUMDEP
       PUBLIC :: NTRAIND
-      PUBLIC :: DRYHg0, DRYHg2, DryHgP    !CDH
       PUBLIC :: IDEP,   IRGSS,  IRAC, IRCLS
       PUBLIC :: IRGSO,  IRLU,   IRI,  IRCLO, DRYCOEFF
-      PUBLIC :: NDVZIND ! MSL -> For MPI broadcasting in GIGC
+!      PUBLIC :: NDVZIND ! MSL -> For MPI broadcasting in GIGC
 !
 ! !REMARKS:
 !  References:
@@ -188,14 +187,14 @@
 !  01 Oct 2015 - R. Yantosca - Remove DVZ_MINVAL function
 !  01 Oct 2015 - R. Yantosca - Added PRIVATE flag ID_ACET
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
+!  13 Jul 2016 - R. Yantosca - Remove DRYHg0, DRYHg2, DRYHgP ID flags
+!  13 Jul 2016 - R. Yantosca - Also make NDVZIND a local variable for now
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      !REAL(f8), PARAMETER :: XCKMAN    = 0.4e+0_f8 ! Von Karman's constant
-                                                    ! Use global VON_KARMAN
       INTEGER,  PARAMETER :: NR_MAX    = 200       ! # of seasalt bins 
       INTEGER,  PARAMETER :: NDRYDTYPE = 11        ! # of drydep land types
 !
@@ -242,7 +241,7 @@
       ! Scalars
       INTEGER                        :: NUMDEP,   NWATER
       INTEGER                        :: DRYHg0,   DRYHg2,   DryHgP
-      INTEGER                        :: id_ACET,  id_ISOPN, id_MMN
+      INTEGER                        :: id_ACET
       INTEGER                        :: id_NK1
 
       ! Arrays for Baldocchi drydep polynomial coefficients
@@ -403,6 +402,9 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  17 May 2016 - M. Sulprizio- Remove IJLOOP and change dimension of arrays
 !                              from (MAXIJ) to (IIPAR,JJPAR)
+!  18 Jul 2016 - M. Sulprizio- Remove special handling for ISOPN and MVKN for
+!                              ND44 netCDF diagnostic. Family tracers have been
+!                              eliminated.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -445,10 +447,8 @@
 #if defined( NC_DIAG )
       ! Variables for netCDF diagnostics routines
       INTEGER           :: HCRC
-      LOGICAL           :: First_ISOPN
-      LOGICAL           :: First_MMN
       CHARACTER(LEN=30) :: DryDepName, DiagnName
-      REAL(fp), TARGET  :: SAVE_DEPVEL(IIPAR,JJPAR,Input_Opt%NUMDEP)
+      REAL(fp), TARGET  :: SAVE_DEPVEL(IIPAR,JJPAR,State_Chm%nDryDep)
       REAL(hp), POINTER :: Ptr2D(:,:)
 #endif
 
@@ -619,15 +619,8 @@
          ! Assume success
          HCRC = HCO_SUCCESS
 
-         ! Special cases if ISOPN or MMN since there are two 
-         ! corresponding dry deposition species each, ISOPND and 
-         ! ISOPNB for ISOPN, and MACRN and MAVKN for MMN. Therefore, 
-         ! track when ISOPN and MMN are first encountered (ewl, 1/20/16)
-         First_ISOPN = .TRUE.
-         First_MMN = .TRUE.
-
          ! Loop over all depositing species
-         DO D = 1, Input_Opt%NUMDEP
+         DO D = 1, NUMDEP
 
             ! Get the corresponding GEOS-Chem tracer number
             N = NTRAIND(D)
@@ -637,20 +630,8 @@
             IF ( ANY( Input_Opt%TINDEX(44,:) == N ) ) THEN
 
                ! Construct diagnostic name
-               IF ( N == id_ISOPN .AND. First_ISOPN ) THEN
-                  DryDepName = 'ISOPND'
-                  First_ISOPN = .FALSE.
-               ELSE IF ( N == id_ISOPN .AND. .NOT. First_ISOPN ) THEN
-                  DryDepName = 'ISOPNB'
-               ELSE IF ( N == id_MMN .AND. First_MMN ) THEN
-                  DryDepName = 'MACRN'
-                  First_MMN = .FALSE.
-               ELSE IF ( N == id_MMN .AND. .NOT. First_MMN ) THEN
-                  DryDepName = 'MAVKN'
-               ELSE
-                  DryDepName =  Input_Opt%TRACER_NAME(N)
-               ENDIF
-               DiagnName = 'DRYDEP_VEL_' // TRIM( DryDepName )
+               DryDepName =  Input_Opt%TRACER_NAME(N)
+               DiagnName  = 'DRYDEP_VEL_' // TRIM( DryDepName )
 
                ! Point to the proper slice of the DEPSAV array
                Ptr2D => SAVE_DEPVEL(:,:,D)
@@ -3991,6 +3972,8 @@
 !                              (EmMW_g) to define the XMW array
 !  20 Jun 2016 - R. Yantosca - Now define a couple of species ID flags here
 !                              as module variables on the first call
+!  18 Jul 2016 - M. Sulprizio- Remove special handling for ISOPN and MVKN.
+!                              Family tracers have been eliminated.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4116,7 +4099,7 @@
       !      uppercase.  Therefore, we overwrite the values from
       !      the species database with SO4S, NITS.
       !=================================================================
-      DO N = 1, Input_Opt%N_TRACERS
+      DO N = 1, State_Chm%nAdvect
 
          ! Point to the Nth species in the species database
          ThisSpc => State_Chm%SpcData(N)%Info
@@ -4124,183 +4107,82 @@
          ! Only proceed if the species dry deposits
          IF ( ThisSpc%Is_Drydep ) THEN
 
-            ! Test species name
-            SELECT CASE( TRIM( ThisSpc%Name ) )
-            
-               !-------------------------------------------------------
-               ! Special case: ISOPN family tracer
-               !-------------------------------------------------------
-               CASE( 'ISOPN' )  
+            ! Initialize dry deposition quantities
+            NUMDEP            = NUMDEP + 1
+            NTRAIND(NUMDEP)   = ThisSpc%ModelID
+            NDVZIND(NUMDEP)   = ThisSpc%DryDepID
+            DEPNAME(NUMDEP)   = TRIM( ThisSpc%Name )
+            HSTAR(NUMDEP)     = DBLE( ThisSpc%DD_Hstar_old   )
+            F0(NUMDEP)        = DBLE( ThisSpc%DD_F0          )
+            KOA(NUMDEP)       = DBLE( ThisSpc%DD_KOA         )
+            XMW(NUMDEP)       = DBLE( ThisSpc%MW_g * 1e-3_fp )
+            AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas       )
 
-                  ! First species; ISOPND
-                  NUMDEP          = NUMDEP + 1
-                  NTRAIND(NUMDEP) = ThisSpc%ModelID
-                  NDVZIND(NUMDEP) = ThisSpc%DryDepID
-                  DEPNAME(NUMDEP) = 'ISOPND'
-                  HSTAR(NUMDEP)   = DBLE( ThisSpc%DD_Hstar_old     )
-                  F0(NUMDEP)      = DBLE( ThisSpc%DD_F0            )
-                  XMW(NUMDEP)     = DBLE( ThisSpc%MW_g * 1e-3_fp   )
-                  AIROSOL(NUMDEP) = ( .not. ThisSpc%Is_Gas         )
-                  
-                  ! Second species: ISOPNB
-                  NUMDEP          = NUMDEP + 1
-                  NTRAIND(NUMDEP) = ThisSpc%ModelID
-                  NDVZIND(NUMDEP) = ThisSpc%DryDepID + 1
-                  DEPNAME(NUMDEP) = 'ISOPNB'
-                  HSTAR(NUMDEP)   = DBLE( ThisSpc%DD_Hstar_old     )
-                  F0(NUMDEP)      = DBLE( ThisSpc%DD_F0            )
-                  XMW(NUMDEP)     = DBLE( ThisSpc%MW_g * 1e-3_fp   )
-                  AIROSOL(NUMDEP) = ( .not. ThisSpc%Is_Gas         )
+            ! Only copy DENSITY if it's not a missing value
+            IF ( ThisSpc%Density > 0.0_fp ) THEN
+               A_DEN(NUMDEP)  = DBLE( ThisSpc%Density        )
+            ENDIF
 
-               !-------------------------------------------------------
-               ! Special case: MMN family tracer
-               !-------------------------------------------------------
-               CASE( 'MMN') 
+            ! Only copy RADIUS if it's not a missing value
+            IF ( ThisSpc%Radius > 0.0_fp ) THEN
+               A_RADI(NUMDEP) = DBLE( ThisSpc%Radius         )
+            ENDIF
 
-                  ! First species; MACRN
-                  NUMDEP            = NUMDEP + 1
-                  NTRAIND(NUMDEP)   = ThisSpc%ModelID
-                  NDVZIND(NUMDEP)   = ThisSpc%DryDepID
-                  DEPNAME(NUMDEP)   = 'MACRN'
-                  HSTAR(NUMDEP)     = DBLE( ThisSpc%DD_Hstar_old   )
-                  F0(NUMDEP)        = DBLE( ThisSpc%DD_F0          )
-                  XMW(NUMDEP)       = DBLE( ThisSpc%MW_g * 1e-3_fp )
-                  AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas       )
-                  
-                  ! Second species: MVKN
-                  NUMDEP            = NUMDEP + 1
-                  NTRAIND(NUMDEP)   = ThisSpc%ModelID
-                  NDVZIND(NUMDEP)   = ThisSpc%DryDepID + 1
-                  DEPNAME(NUMDEP)   = 'MVKN'
-                  HSTAR(NUMDEP)     = DBLE( ThisSpc%DD_Hstar_old   )
-                  F0(NUMDEP)        = DBLE( ThisSpc%DD_F0          )
-                  XMW(NUMDEP)       = DBLE( ThisSpc%MW_g * 1e-3_fp )
-                  AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas       )
+            !-----------------------------------------------------
+            ! Kludges to match behavior of older code
+            !-----------------------------------------------------
+            SELECT CASE ( TRIM( ThisSpc%Name ) ) 
 
-               !-------------------------------------------------------
-               ! All other tracers
-               !-------------------------------------------------------
-               CASE DEFAULT
-
-                  NUMDEP            = NUMDEP + 1
-                  NTRAIND(NUMDEP)   = ThisSpc%ModelID
-                  NDVZIND(NUMDEP)   = ThisSpc%DryDepID
-                  DEPNAME(NUMDEP)   = TRIM( ThisSpc%Name )
-                  HSTAR(NUMDEP)     = DBLE( ThisSpc%DD_Hstar_old   )
-                  F0(NUMDEP)        = DBLE( ThisSpc%DD_F0          )
-                  KOA(NUMDEP)       = DBLE( ThisSpc%DD_KOA         )
-                  XMW(NUMDEP)       = DBLE( ThisSpc%MW_g * 1e-3_fp )
-                  AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas       )
-
-                  ! Only copy DENSITY if it's not a missing value
-                  IF ( ThisSpc%Density > 0.0_fp ) THEN
-                     A_DEN(NUMDEP)  = DBLE( ThisSpc%Density        )
-                  ENDIF
-
-                  ! Only copy RADIUS if it's not a missing value
-                  IF ( ThisSpc%Radius > 0.0_fp ) THEN
-                     A_RADI(NUMDEP) = DBLE( ThisSpc%Radius         )
-                  ENDIF
-
-                  !-----------------------------------------------------
-                  ! Kludges to match behavior of older code
-                  !-----------------------------------------------------
-                  SELECT CASE ( TRIM( ThisSpc%Name ) ) 
-
-                     CASE( 'ACET' )
-                        ! Flag the species ID of ACET for use above.
-                        ID_ACET = ThisSpc%ModelId
+               CASE( 'ACET' )
+                  ! Flag the species ID of ACET for use above.
+                  ID_ACET = ThisSpc%ModelId
                         
-                     CASE( 'NITs', 'NITS' )
-                        ! DEPNAME for NITs has to be in all caps, for
-                        ! backwards compatibility with older code.
-                        DEPNAME(NUMDEP) = 'NITS' 
+               CASE( 'NITs', 'NITS' )
+                  ! DEPNAME for NITs has to be in all caps, for
+                  ! backwards compatibility with older code.
+                  DEPNAME(NUMDEP) = 'NITS' 
 
-                     CASE( 'N2O5' )
-                        ! %%%%% KLUDGE (bmy, 5/19/16) %%%%%%%%%%%%%%%%%%%%%%
-                        ! N2O5 uses the Vd of HNO3.  We will now explicitly 
-                        ! compute the Vd of N2O5 instead of assigning to N2O5 
-                        ! the Vd of HNO3 from the DVEL array.  This will 
-                        ! prevent duplicate indexing in State_Chm%Map_Drydep.
-                        !
-                        ! Make sure to set XMW to the MW of HNO3 (63 kg/mol)
-                        ! for the computation of Vd to work properly.
-                        XMW(NUMDEP) = 63.0e-3_fp
+               CASE( 'N2O5' )
+                  ! %%%%% KLUDGE (bmy, 5/19/16) %%%%%%%%%%%%%%%%%%%%%%
+                  ! N2O5 uses the Vd of HNO3.  We will now explicitly 
+                  ! compute the Vd of N2O5 instead of assigning to N2O5 
+                  ! the Vd of HNO3 from the DVEL array.  This will 
+                  ! prevent duplicate indexing in State_Chm%Map_Drydep.
+                  !
+                  ! Make sure to set XMW to the MW of HNO3 (63 kg/mol)
+                  ! for the computation of Vd to work properly.
+                  XMW(NUMDEP) = 63.0e-3_fp
 
-                     CASE(  'PMN', 'PPN', 'R4N2' )
-                        ! %%%%% KLUDGE (bmy, 5/19/16) %%%%%%%%%%%%%%%%%%%%%%
-                        ! PMN, PPN, and R4N2 all use the Vd of PAN.  We will 
-                        ! now compute the Vd of PMN, PPN, and R4N2 instead of 
-                        ! assigning to these species the the Vd of HNO3 from 
-                        ! the DVEL array.  This will prevent duplicate indexing
-                        ! in State_Chm%Map_Drydep.
-                        !
-                        ! Make sure to set XMW to the MW of PAN (121 kg/mol)
-                        ! for the computation of Vd to work properly.
-                        XMW(NUMDEP) = 121.0e-3_fp
+               CASE(  'PMN', 'PPN', 'R4N2' )
+                  ! %%%%% KLUDGE (bmy, 5/19/16) %%%%%%%%%%%%%%%%%%%%%%
+                  ! PMN, PPN, and R4N2 all use the Vd of PAN.  We will 
+                  ! now compute the Vd of PMN, PPN, and R4N2 instead of 
+                  ! assigning to these species the the Vd of HNO3 from 
+                  ! the DVEL array.  This will prevent duplicate indexing
+                  ! in State_Chm%Map_Drydep.
+                  !
+                  ! Make sure to set XMW to the MW of PAN (121 kg/mol)
+                  ! for the computation of Vd to work properly.
+                  XMW(NUMDEP) = 121.0e-3_fp
 
-                     CASE( 'SO4s', 'SO4S' )
-                        ! DEPNAME for SO4s has to be in all caps, for 
-                        ! backwards compatibility with older code
-                        DEPNAME(NUMDEP) = 'SO4S'
+               CASE( 'SO4s', 'SO4S' )
+                  ! DEPNAME for SO4s has to be in all caps, for 
+                  ! backwards compatibility with older code
+                  DEPNAME(NUMDEP) = 'SO4S'
 
-                     CASE DEFAULT
-                        ! Do nothing
-
-                  END SELECT
+               CASE DEFAULT
+                  ! Do nothing
 
             END SELECT
+
          ENDIF
             
          ! Free pointer
          ThisSpc => NULL()
       ENDDO
 
-      ! For netCDF diagnostics
-      id_ISOPN = Ind_('ISOPN')
-      id_MMN   = Ind_('MMN'  )
-
       ! For TOMAS 
       id_NK1   = Ind_('NK1'  )
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%%% NOTE: This can eventually be made local to mercury_mod.F (bmy, 9/21/15)   
-      !=================================================================
-      ! Additional variables required for mercury simultion
-      ! Locate the drydep species w/in the DEPSAV array
-      !=================================================================
-      IF ( IS_HG ) THEN
-
-         ! Initialize flags
-         ! add dry dep of Hg0
-         DRYHg0 = 0
-         DRYHg2 = 0
-         DRYHgP = 0
-         
-         ! If drydep is turned on ...
-         IF ( LDRYD ) THEN
-         
-            ! Loop over drydep species
-            DO N = 1, NUMDEP
-
-               ! Locate by DEPNAME
-               SELECT CASE ( TRIM( DEPNAME(N) ) )
-                  ! add dry dep of Hg(0)
-                  CASE( 'Hg0' )
-                     DRYHg0 = N
-                  CASE( 'Hg2' )
-                     DRYHg2 = N
-                  CASE( 'HgP' )
-                     DRYHgP = N
-                  CASE DEFAULT
-                     ! nothing
-                END SELECT
-             ENDDO
-
-          ENDIF
-
-      ENDIF
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       !=================================================================
       ! Allocate arrays
@@ -4320,27 +4202,9 @@
 
       ! SDE 2016-03-27: This is now called after Input_Opt has already
       ! been broadcast, so each CPU will do this independently anyway
-      Input_Opt%NUMDEP            = NUMDEP
-      Input_Opt%NDVZIND(1:NUMDEP) = NDVZIND(1:NUMDEP)
+!      Input_Opt%NUMDEP            = NUMDEP
       Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
       Input_Opt%NTRAIND(1:NUMDEP) = NTRAIND(1:NUMDEP)
-
-!      ! If we are not on the root CPU, don't pass variables to
-!      ! Input_Opt but check if local NUMDEP matches the value
-!      ! set in Input_Opt (ckeller, 1/14/2015).
-!      IF ( am_I_Root ) THEN
-!         Input_Opt%NUMDEP            = NUMDEP
-!         Input_Opt%NDVZIND(1:NUMDEP) = NDVZIND(1:NUMDEP)
-!         Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
-!         Input_Opt%NTRAIND(1:NUMDEP) = NTRAIND(1:NUMDEP)
-!
-!      ELSE
-!         IF ( Input_Opt%NUMDEP /= NUMDEP ) THEN
-!            WRITE(MSG,*) 'NUMDEP /= Input_Opt%NUMDEP: ', NUMDEP,
-!     &                   Input_Opt%NUMDEP
-!            CALL ERROR_STOP( MSG, 'INIT_DRYDEP (drydep_mod.F)' )
-!         ENDIF
-!      ENDIF
 
       !=================================================================
       ! Echo information to stdout
