@@ -2031,7 +2031,6 @@ contains
     LOGICAL,           SAVE :: FIRST = .TRUE.
     INTEGER,           SAVE :: id_O3
     INTEGER,           SAVE :: id_HNO3
-!  27 Jul 2016 - R. Yantosca -  
 
     ! For pointing to the species database
     TYPE(Species),  POINTER :: SpcInfo
