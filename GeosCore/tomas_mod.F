@@ -125,6 +125,9 @@
 !                              species ID from State_Chm%Map_Advect.
 !  18 Jul 2016 - R. Yantosca - Rename IDTxxxx species ID flags to id_XXXX;
 !                              also define species ID flags only in INIT_TOMAS
+!  02 Aug 2016 - M. Sulprizio- Move public array H2SO4RATE array here from
+!                              diag_pl_mod.F and rename to H2SO4_RATE to avoid
+!                              confusion with local variables
 !******************************************************************************
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -201,6 +204,9 @@
                              ! Tg/yr SOA correlated with anrtho CO 
                              ! (JKodros 6/3/15)               
       INTEGER :: lowRH = 1 !This is to match AW more with AERONET (JKODROS 6/15)
+
+      REAL(fp), ALLOCATABLE :: H2SO4_RATE(:,:,:) ! H2SO4 prod rate [kg s-1]
+
 !
 ! !PRIVATE TYPES:
 ! 
@@ -366,7 +372,6 @@
       ! References to F90 modules
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE DIAG_MOD,           ONLY : AD61,  AD61_INST
-      USE DIAG_PL_MOD,        ONLY : H2SO4RATE, FAM_NAME
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -514,7 +519,7 @@
 
          DO N = 1, Input_Opt%NFAM
             ! If family name 'PSO4' is found, then skip error-stop
-            IF ( FAM_NAME(N) == 'PSO4') GOTO 1            
+            IF ( Input_Opt%FAM_NAME(N) == 'PSO4') GOTO 1            
          ENDDO
          ! Family name 'PSO4' not found... exit with error message
          write(*,*)'-----------------------------------------------'
@@ -652,7 +657,7 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
          ! Give it the pseudo-steady state value instead later (win,9/30/08)
          !GC(SRTSO4) = Spc(I,J,L,id_H2SO4)
 
-         H2SO4rate_o = H2SO4RATE(I,J,L)  ! [kg s-1]
+         H2SO4rate_o = H2SO4_RATE(I,J,L)  ! [kg s-1]
 
 
                                 ! nitrogen and sulfur mass checks
@@ -6079,6 +6084,7 @@ c
 !******************************************************************************
 !
       ! References to F90 modules
+      USE CMN_SIZE_MOD             ! Size parameters
       USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -6190,6 +6196,10 @@ c         SRTH2O = ICOMP
       ALLOCATE( MOLWT( ICOMP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLWT [TOMAS]' )
       MOLWT(:) = 0e+0_fp
+
+      ALLOCATE( H2SO4_RATE( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2SO4_RATE' )
+      H2SO4_RATE = 0.0e+0_fp
 
       !=================================================================
       ! Calculate aerosol size bin boundaries (dry mass / particle)
@@ -10039,7 +10049,8 @@ c sensitivity       fn = 1.e-3 * fn ! 10^-3 tuner
       !=================================================================
       ! CLEANUP_TRACER begins here!
       !=================================================================
-      IF ( ALLOCATED( MOLWT       ) ) DEALLOCATE( MOLWT )
+      IF ( ALLOCATED( MOLWT       ) ) DEALLOCATE( MOLWT      )
+      IF ( ALLOCATED( H2SO4_RATE  ) ) DEALLOCATE( H2SO4_RATE )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_TOMAS 

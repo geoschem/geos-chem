@@ -43,9 +43,9 @@
 !      REAL(f4),          PUBLIC, ALLOCATABLE :: AD65  (:,:,:,:)
 !      REAL(fp),          PUBLIC, ALLOCATABLE :: FAM_PL(:,:,:,:)
 !      CHARACTER(LEN=14), PUBLIC, ALLOCATABLE :: FAM_NAME(:)
-#if   defined( TOMAS )
-      REAL(fp),          PUBLIC, ALLOCATABLE :: H2SO4RATE(:,:,:) 
-#endif
+!#if   defined( TOMAS )
+!      REAL(fp),          PUBLIC, ALLOCATABLE :: H2SO4RATE(:,:,:) 
+!#endif
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -1592,13 +1592,13 @@
 !         IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_PL' )
 !         FAM_PL = 0.0e+0_fp
 !      ENDIF
-
-#if   defined ( TOMAS )
-      ! Only allocate H2SO4RATE for a TOMAS simulation !(win, 7/709)
-      ALLOCATE( H2SO4RATE( IIPAR, JJPAR, LLTROP ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'H2SO4RATE' )
-      H2SO4RATE = 0.0e+0_fp
-#endif
+!
+!#if   defined ( TOMAS )
+!      ! Only allocate H2SO4RATE for a TOMAS simulation !(win, 7/709)
+!      ALLOCATE( H2SO4RATE( IIPAR, JJPAR, LLTROP ), STAT=RC )
+!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'H2SO4RATE' )
+!      H2SO4RATE = 0.0e+0_fp
+!#endif
 
       ! If we are saving out P(Ox), L(Ox) for the tagO3 simulation...
       IF ( DO_SAVE_O3 ) THEN
@@ -1653,9 +1653,9 @@
 !      IF ( ALLOCATED( FAM_PL    ) ) DEALLOCATE( FAM_PL    )
 !      IF ( ALLOCATED( FAM_TYPE  ) ) DEALLOCATE( FAM_TYPE  )
       IF ( ALLOCATED( PL24H     ) ) DEALLOCATE( PL24H     )
-#if   defined( TOMAS )
-      IF ( ALLOCATED( H2SO4RATE ) ) DEALLOCATE( H2SO4RATE )
-#endif
+!#if   defined( TOMAS )
+!      IF ( ALLOCATED( H2SO4RATE ) ) DEALLOCATE( H2SO4RATE )
+!#endif
 
       END SUBROUTINE CLEANUP_DIAG_PL
 !EOC

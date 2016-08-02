@@ -594,7 +594,7 @@ flex_chemdr.o               : flex_chemdr.F                                  \
                               fast_jx_mod.o           dust_mod.o             \
                               future_emissions_mod.o  flexchem_setup_mod.o   \
                               planeflight_mod.o       restart_mod.o          \
-                                          uvalbedo_mod.o
+                              tomas_mod.o             uvalbedo_mod.o
 
 flexchem_setup_mod.o        : flexchem_setup_mod.F90                         \
                               restart_mod.o           chemgrid_mod.o

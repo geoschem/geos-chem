@@ -51,6 +51,9 @@
       USE UCX_MOD,              ONLY : UCX_NOX
       USE UCX_MOD,              ONLY : UCX_H2SO4PHOT
 #endif
+#if   defined( TOMAS )
+      USE TOMAS_MOD,            ONLY : H2SO4_RATE
+#endif
 
       ! mje
       USE GCKPP_HETRATES,       ONLY : SET_HET
@@ -898,6 +901,24 @@
                      AD65(I,J,L,F) = AD65(I,J,L,F) + COEF*(LOSS(IND)/DT)
                   ENDIF
 
+#if   defined( TOMAS )
+                  !-------------------------------------------------------
+                  ! FOR TOMAS MICROPHYSICS:
+                  !
+                  ! Obtain P/L with a unit [kg S] for tracing 
+                  ! gas-phase sulfur species production (SO2, SO4, MSA)
+                  ! (win, 8/4/09)
+                  !-------------------------------------------------------
+
+                  ! Calculate H2SO4 production rate [kg s-1] in each
+                  ! time step (win, 8/4/09)
+                  IF ( Input_Opt%FAM_NAME(F) == 'PSO4' ) THEN 
+                     H2SO4_RATE(I,J,L) = PROD(IND) /
+     &                                   AVO * 98.e-3_fp * ! Hard-coded MW 
+     &                                   State_Met%AIRVOL(I,J,L) *
+     &                                   1e+6_fp   / DT
+                  ENDIF
+#endif
                ENDDO
 
             ENDDO
