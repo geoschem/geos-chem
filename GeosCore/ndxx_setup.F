@@ -890,21 +890,6 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD47' )
       ENDIF
 
-
-      !=================================================================
-      ! ND47(O3) or ND65 : 24-h averaged tropospheric diagnostic 
-      !=================================================================
-      IF ( ND47 > 0 .OR. ND65 > 0 ) THEN
-
-         ! NOTE: we assume that INIT_DIAG_PL has already been called
-         LMAX = MAX( LD47, LD65 )
-
-         ! Number of times in the troposphere 
-         ALLOCATE( CTO3_24h( IIPAR, JJPAR, LMAX ), STAT=AS )
-         IF ( AS > 0 ) CALL ALLOC_ERR( 'CTO3_24h' )
-
-      ENDIF
-
       !=================================================================
       ! ND52: gamma HO2
       !=================================================================
@@ -1082,6 +1067,34 @@
          LD64 = MIN( ND64, LLPAR+1 )
          ALLOCATE( AD64( IIPAR, JJPAR, LD64, PD64, 3 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD64' )
+      ENDIF
+
+      !=================================================================
+      ! ND65: Production & loss rates from KPP
+      !       --> Uses AD65 array (allocatable)
+      !=================================================================
+      IF ( ND65 > 0 ) THEN
+         IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+            LD65 = MIN( ND65, LLCHEM )
+         ELSE
+            LD65 = MIN( ND65, LLPAR  )
+         ENDIF
+         ALLOCATE( AD65( IIPAR, JJPAR, LD65, Input_Opt%NFAM ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD64' )
+      ENDIF
+
+      !=================================================================
+      ! ND65 or ND47(O3): 24-h averaged tropospheric diagnostic 
+      !=================================================================
+      IF ( ND65 > 0 .OR. ND47 > 0 ) THEN
+
+         ! Need both LD47 and LD65 set above
+         LMAX = MAX( LD47, LD65 )
+
+         ! Number of times in the troposphere 
+         ALLOCATE( CTO3_24h( IIPAR, JJPAR, LMAX ), STAT=AS )
+         IF ( AS > 0 ) CALL ALLOC_ERR( 'CTO3_24h' )
+
       ENDIF
 
       !=================================================================

@@ -6168,19 +6168,6 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:6' )
 
       !=================================================================
-      ! Error check: ND65 not available for KPP
-      !=================================================================
-
-      ! Temporarily turn off prod/loss diagnostic capability for
-      ! full-chemistry simulations. This should be restored for the
-      ! v11-01 release. (mps, 5/5/16)
-      IF ( DO_SAVE_PL .AND. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-         MSG = 'P/L families are incompatible with KPP. ' //
-     &         'Please change one option'
-         CALL ERROR_STOP( MSG, LOCATION )
-      ENDIF
-
-      !=================================================================
       ! Error check families for certain types of simulations
       !=================================================================
 

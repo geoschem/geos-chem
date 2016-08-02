@@ -22,6 +22,7 @@
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
       USE DAO_MOD
+      USE DIAG_MOD,             ONLY : AD65
       USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
       USE DUST_MOD
       USE ERROR_MOD
@@ -101,13 +102,15 @@
 !                              have been eliminated. Also simplify code to copy
 !                              to/from STT so that unit conversions to/from
 !                              molec/cm3 are done in the same step as the copy.
+!  02 Aug 2016 - M. Sulprizio- Connect production and loss rates from KPP to
+!                              ND65 diagnostic 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: I, J, L, N, MONTH, YEAR
+      INTEGER               :: I, J, L, N, F, M, MONTH, YEAR
       INTEGER               :: WAVELENGTH
       INTEGER               :: HCRC
       INTEGER               :: N_TRACERS
@@ -164,8 +167,12 @@
       REAL(fp)              :: SCF(3)
 
       ! For prod/loss diagnostic
-      REAL(fp)              :: PROD(NVAR), LOSS(NVAR)
+      REAL(fp)              :: PROD(NVAR)
+      REAL(fp)              :: LOSS(NVAR)
       REAL(fp)              :: deltaCheck(2,2) ! debug only
+      INTEGER               :: IND
+      INTEGER               :: COEF
+      CHARACTER(LEN=14)     :: NAME
 
       ! For testing only, may be removed later (mps, 4/26/16)
       LOGICAL               :: DO_HETCHEM
@@ -522,6 +529,7 @@
 !$OMP+PRIVATE  ( SCF,  SO4_FRAC, IERR,   RCNTRL,  AVERAGEVAR )
 !$OMP+PRIVATE  ( MASS, START,    FINISH, ISTATUS, RSTATE     )
 !$OMP+PRIVATE  ( PROD, LOSS,     DELTACHECK                  )
+!$OMP+PRIVATE  ( NAME, COEF,     IND,    F,       M          )
 !$OMP+REDUCTION( +:ITIM                                      )
 !$OMP+REDUCTION( +:RTIM                                      )
 !$OMP+REDUCTION( +:TOTSTEPS                                  )
@@ -863,14 +871,38 @@
 
          ENDDO
 
-         CALL Flux( C(FLUX_MAP(:)), PROD, LOSS)
-         ! NEED A CHUNK HERE THAT WILL WILL TAKE THE PROD & LOSS
-         ! VECTORS ABOVE AND PIPE OUTPUT FROM A SPECIFIC SET OF
-         ! SPECIES PER input.geos ND65
-         ! Prod and loss are in units of mcl/timestep
-         ! Convert to rate with the chemistry timestep (DT)
-         ! e.g. (PROD-LOSS)/DT
-         !------------------------------------------------------
+         !==============================================================
+         ! Prod/loss diagnostic
+         !==============================================================
+         IF ( Input_Opt%DO_SAVE_PL ) THEN
+
+            ! Obtain prod/loss rates from KPP [molec/cm3]
+            CALL Flux( C(FLUX_MAP(:)), PROD, LOSS)
+
+            ! Loop over # prod/loss families
+            DO F = 1, Input_Opt%NFAM
+
+               ! Loop over members in prod/loss families
+               DO M = 1, Input_Opt%FAM_NMEM(F)
+
+                  ! Get information about prod/loss species
+                  NAME = Input_Opt%FAM_MEMB(M,F) ! Species name
+                  COEF = Input_Opt%FAM_COEF(M,F) ! Species coefficient
+                  IND  = Ind_(TRIM(NAME),'K')    ! KPP species index
+
+                  ! Check if family type is prod or loss
+                  ! and add to AD65 array [molec/cm3/s]
+                  IF      ( Input_Opt%FAM_TYPE(F) == 'prod' ) THEN
+                     AD65(I,J,L,F) = AD65(I,J,L,F) + COEF*(PROD(IND)/DT)
+                  ELSE IF ( Input_Opt%FAM_TYPE(F) == 'loss' ) THEN
+                     AD65(I,J,L,F) = AD65(I,J,L,F) + COEF*(LOSS(IND)/DT)
+                  ENDIF
+
+               ENDDO
+
+            ENDDO
+
+         ENDIF
 
          !### Debug output, we can remove it later
          IF ( prtDebug ) THEN

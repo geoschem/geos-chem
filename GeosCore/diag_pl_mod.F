@@ -40,9 +40,9 @@
       INTEGER,           PUBLIC              :: TAGO3_PL_YEAR
 
       ! Arrays
-      REAL(f4),          PUBLIC, ALLOCATABLE :: AD65  (:,:,:,:)
-      REAL(fp),          PUBLIC, ALLOCATABLE :: FAM_PL(:,:,:,:)
-      CHARACTER(LEN=14), PUBLIC, ALLOCATABLE :: FAM_NAME(:)
+!      REAL(f4),          PUBLIC, ALLOCATABLE :: AD65  (:,:,:,:)
+!      REAL(fp),          PUBLIC, ALLOCATABLE :: FAM_PL(:,:,:,:)
+!      CHARACTER(LEN=14), PUBLIC, ALLOCATABLE :: FAM_NAME(:)
 #if   defined( TOMAS )
       REAL(fp),          PUBLIC, ALLOCATABLE :: H2SO4RATE(:,:,:) 
 #endif
@@ -103,13 +103,13 @@
       REAL(f8)                       :: TAUb, TAUe, TAU0, TAU1
       CHARACTER(LEN=255)             :: FILENAME
 
-      ! Arrays
-      INTEGER,           ALLOCATABLE :: FAM_NMEM(:      )
-      INTEGER,           ALLOCATABLE :: COUNT   (:,:,:  )
-      REAL(fp),          ALLOCATABLE :: FAM_COEF(:,:    )
+!      ! Arrays
+!      INTEGER,           ALLOCATABLE :: FAM_NMEM(:      )
+!      INTEGER,           ALLOCATABLE :: COUNT   (:,:,:  )
+!      REAL(fp),          ALLOCATABLE :: FAM_COEF(:,:    )
       REAL(fp),          ALLOCATABLE :: PL24H   (:,:,:,:)
-      CHARACTER(LEN=14), ALLOCATABLE :: FAM_TYPE(:      )
-      CHARACTER(LEN=14), ALLOCATABLE :: FAM_MEMB(:,:    )
+!      CHARACTER(LEN=14), ALLOCATABLE :: FAM_TYPE(:      )
+!      CHARACTER(LEN=14), ALLOCATABLE :: FAM_MEMB(:,:    )
 
       CONTAINS
 !EOC
@@ -1544,54 +1544,54 @@
          RETURN
       ENDIF
 
-      ! Define number of vertical levels to save
-      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-         LD65 = MIN( ND65, LLCHEM )
-      ELSE
-         LD65 = MIN( ND65, LLPAR  )
-      ENDIF
-
-      ! Copy fields from Input_Opt
-      NFAM       = Input_Opt%NFAM
-      DO_SAVE_O3 = Input_Opt%DO_SAVE_O3
-
-      !=================================================================
-      ! Allocate arrays
-      !=================================================================
-      ALLOCATE( AD65( IIPAR, JJPAR, LD65, NFAM ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'AD65' )
-      AD65 = 0.0e+0_f4
-
-      ALLOCATE( FAM_NMEM( MAXFAM ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_NMEM' )
-      FAM_NMEM = 0
-
-      ALLOCATE( FAM_COEF( MAXMEM, MAXFAM ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_COEF' )
-      FAM_COEF = 0.0e+0_fp
-
-      ALLOCATE( FAM_NAME( MAXFAM ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_NAME' )
-      FAM_NAME = ''
-
-      ALLOCATE( FAM_TYPE( MAXFAM ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_TYPE' )
-      FAM_TYPE = ''
-
-      ALLOCATE( FAM_MEMB( MAXMEM, MAXFAM ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_COEF' )
-      FAM_MEMB = ''
-
-      ALLOCATE( COUNT( IIPAR, JJPAR, LD65 ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'COUNT' )
-      COUNT = 0
-
-      ! Only allocate FAM_PL for a fullchem simulation
-      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-         ALLOCATE( FAM_PL( IIPAR, JJPAR, LD65, NFAM ), STAT=RC )
-         IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_PL' )
-         FAM_PL = 0.0e+0_fp
-      ENDIF
+!      ! Define number of vertical levels to save
+!      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+!         LD65 = MIN( ND65, LLCHEM )
+!      ELSE
+!         LD65 = MIN( ND65, LLPAR  )
+!      ENDIF
+!
+!      ! Copy fields from Input_Opt
+!      NFAM       = Input_Opt%NFAM
+!      DO_SAVE_O3 = Input_Opt%DO_SAVE_O3
+!
+!      !=================================================================
+!      ! Allocate arrays
+!      !=================================================================
+!      ALLOCATE( AD65( IIPAR, JJPAR, LD65, NFAM ), STAT=RC )
+!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'AD65' )
+!      AD65 = 0.0e+0_f4
+!
+!      ALLOCATE( FAM_NMEM( MAXFAM ), STAT=RC )
+!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_NMEM' )
+!      FAM_NMEM = 0
+!
+!      ALLOCATE( FAM_COEF( MAXMEM, MAXFAM ), STAT=RC )
+!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_COEF' )
+!      FAM_COEF = 0.0e+0_fp
+!
+!      ALLOCATE( FAM_NAME( MAXFAM ), STAT=RC )
+!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_NAME' )
+!      FAM_NAME = ''
+!
+!      ALLOCATE( FAM_TYPE( MAXFAM ), STAT=RC )
+!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_TYPE' )
+!      FAM_TYPE = ''
+!
+!      ALLOCATE( FAM_MEMB( MAXMEM, MAXFAM ), STAT=RC )
+!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_COEF' )
+!      FAM_MEMB = ''
+!
+!      ALLOCATE( COUNT( IIPAR, JJPAR, LD65 ), STAT=RC )
+!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'COUNT' )
+!      COUNT = 0
+!
+!      ! Only allocate FAM_PL for a fullchem simulation
+!      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+!         ALLOCATE( FAM_PL( IIPAR, JJPAR, LD65, NFAM ), STAT=RC )
+!         IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_PL' )
+!         FAM_PL = 0.0e+0_fp
+!      ENDIF
 
 #if   defined ( TOMAS )
       ! Only allocate H2SO4RATE for a TOMAS simulation !(win, 7/709)
@@ -1610,14 +1610,14 @@
 
       ENDIF
 
-      !=================================================================
-      ! Assign values from read from GEOS-CHEM input file
-      !=================================================================
-      FAM_NMEM(:)   = NMEM(:)
-      FAM_COEF(:,:) = COEF(:,:)
-      FAM_NAME(:)   = NAME(:)
-      FAM_TYPE(:)   = TYPE(:)
-      FAM_MEMB(:,:) = MEMB(:,:)      
+!      !=================================================================
+!      ! Assign values from read from GEOS-CHEM input file
+!      !=================================================================
+!      FAM_NMEM(:)   = NMEM(:)
+!      FAM_COEF(:,:) = COEF(:,:)
+!      FAM_NAME(:)   = NAME(:)
+!      FAM_TYPE(:)   = TYPE(:)
+!      FAM_MEMB(:,:) = MEMB(:,:)      
           
       END SUBROUTINE INIT_DIAG_PL
 !EOC
@@ -1645,13 +1645,13 @@
       !=================================================================
       ! CLEANUP_DIAG65 begins here!
       !=================================================================
-      IF ( ALLOCATED( AD65      ) ) DEALLOCATE( AD65      )
-      IF ( ALLOCATED( FAM_COEF  ) ) DEALLOCATE( FAM_COEF  )
-      IF ( ALLOCATED( FAM_NAME  ) ) DEALLOCATE( FAM_NAME  )
-      IF ( ALLOCATED( FAM_NMEM  ) ) DEALLOCATE( FAM_NMEM  )
-      IF ( ALLOCATED( FAM_MEMB  ) ) DEALLOCATE( FAM_MEMB  )
-      IF ( ALLOCATED( FAM_PL    ) ) DEALLOCATE( FAM_PL    )
-      IF ( ALLOCATED( FAM_TYPE  ) ) DEALLOCATE( FAM_TYPE  )
+!      IF ( ALLOCATED( AD65      ) ) DEALLOCATE( AD65      )
+!      IF ( ALLOCATED( FAM_COEF  ) ) DEALLOCATE( FAM_COEF  )
+!      IF ( ALLOCATED( FAM_NAME  ) ) DEALLOCATE( FAM_NAME  )
+!      IF ( ALLOCATED( FAM_NMEM  ) ) DEALLOCATE( FAM_NMEM  )
+!      IF ( ALLOCATED( FAM_MEMB  ) ) DEALLOCATE( FAM_MEMB  )
+!      IF ( ALLOCATED( FAM_PL    ) ) DEALLOCATE( FAM_PL    )
+!      IF ( ALLOCATED( FAM_TYPE  ) ) DEALLOCATE( FAM_TYPE  )
       IF ( ALLOCATED( PL24H     ) ) DEALLOCATE( PL24H     )
 #if   defined( TOMAS )
       IF ( ALLOCATED( H2SO4RATE ) ) DEALLOCATE( H2SO4RATE )

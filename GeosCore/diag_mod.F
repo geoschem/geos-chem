@@ -204,6 +204,9 @@
       ! For ND64 -- radiative flux from FAST-JX
       REAL*4,  ALLOCATABLE :: AD64(:,:,:,:,:)
 
+      ! For ND65 -- production/loss rates
+      REAL*4,  ALLOCATABLE :: AD65(:,:,:,:)
+
 #if defined( BPCH_DIAG )
       ! For ND66 -- I-6 fields diagnostic
       REAL*4,  ALLOCATABLE :: AD66(:,:,:,:)      
@@ -304,6 +307,7 @@
 !                              diagnostics are tracked by HEMCO
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
+!  02 Aug 2016 - M. Sulprizio- Move AD65 array here from diag_pl_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -414,6 +418,7 @@
       IF ( ALLOCATED( AD60        ) ) DEALLOCATE( AD60        )
 #endif
       IF ( ALLOCATED( AD64        ) ) DEALLOCATE( AD64        )
+      IF ( ALLOCATED( AD65        ) ) DEALLOCATE( AD65        )
 #if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
