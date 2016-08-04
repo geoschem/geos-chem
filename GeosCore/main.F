@@ -1538,7 +1538,9 @@
                PRINT *, "Before do_chemistry"
                PRINT *, " Current species units: ", State_Chm%Spc_Units
                PRINT *, " SPECIES #1:  ", State_Chm%Species(25,25,1,1)
-               PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+               IF ( ITS_A_FULLCHEM_SIM ) THEN
+                PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+               ENDIF
             ENDIF
             ! END DEBUGGING
 
@@ -1558,7 +1560,9 @@
                PRINT *, "After do_chemistry"
                PRINT *, " Current species units: ", State_Chm%Spc_Units
                PRINT *, " SPECIES #1:  ", State_Chm%Species(25,25,1,1)
-               PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+               IF ( ITS_A_FULLCHEM_SIM ) THEN
+                PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+               ENDIF
             ENDIF
             ! END DEBUGGING
 
