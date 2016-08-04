@@ -371,6 +371,8 @@
 !                              State_Chm to optionally update tracer units
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  04 Aug 2016 - R. Yantosca - Move temporary tracer removal code within the IF
+!                              block where we update tracer mixing ratio
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -419,13 +421,6 @@
 
       ! Number of advected species
       nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
@@ -805,6 +800,19 @@
          IF ( State_Chm%Trac_units == 'kg/kg dry' .or.
      &        State_Chm%Trac_units == 'v/v dry' ) THEN
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      DO NA = 1, nAdvect
+         N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
+         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, NA, N, SPHU_kgkg, SPHU_kgkg_prev )
@@ -836,13 +844,6 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE
-            MSG = 'Incorrect tracer units: ' 
-     &              // TRIM(State_Chm%Trac_Units)
-            LOC = 'DAO_MOD: AIRQNT'
-            CALL GIGC_Error( TRIM(MSG), RC, TRIM(LOC) )
-         ENDIF
-      ENDIF
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
@@ -855,6 +856,13 @@
          State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+         ELSE
+            MSG = 'Incorrect tracer units: ' 
+     &              // TRIM(State_Chm%Trac_Units)
+            LOC = 'DAO_MOD: AIRQNT'
+            CALL GIGC_Error( TRIM(MSG), RC, TRIM(LOC) )
+         ENDIF
+      ENDIF
 
       END SUBROUTINE AIRQNT
 !EOC
