@@ -157,6 +157,8 @@ MODULE Species_Mod
   REAL(f8), PARAMETER  :: MISSING_R8  = -999e+0_f8   ! 8-byte precision
   REAL(fp), PARAMETER  :: ZERO        =  0.0e+0_fp   ! Flexible precision
   REAL(f8), PARAMETER  :: ZERO_R8     =  0.0e+0_f8   ! 8-byte precision
+
+  REAL(fp), PARAMETER  :: MISSING_MW  = -1.0_fp      ! Missing MW values
 !
 ! !REMARKS:
 ! (1) The emission molecular weight is the molecular weight of the emitted 
@@ -191,6 +193,7 @@ MODULE Species_Mod
 !                              Is_FixedChem to type Species
 !  25 Jul 2016 - E. Lundgren - Add Is_InRestart to track which species are 
 !                              read in versus set to default background values
+!  04 Aug 2016 - R. Yantosca - Add parameter MISSING_MW = -1.0
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -588,6 +591,8 @@ CONTAINS
 !  18 Jul 2016 - M. Sulprizio- Remove special handling of ISOPN and MMN for
 !                              DryDepCount. Family tracers have been eliminated.
 !  25 Jul 2016 - E. Lundgren - Add optional argument Is_InRestart
+!  04 Aug 2016 - R. Yantosca - Now set missing molecular weights to -1, 
+!                              which seems to avoid numerical roundoff
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -649,7 +654,7 @@ CONTAINS
     IF ( PRESENT( MW_g ) ) THEN
        ThisSpc%MW_g = MW_g 
     ELSE
-       ThisSpc%MW_g = MISSING
+       ThisSpc%MW_g = MISSING_MW
     ENDIF
 
     !---------------------------------------------------------------------
@@ -662,7 +667,7 @@ CONTAINS
        IF ( PRESENT( MW_g ) ) THEN
           ThisSpc%EmMW_g = MW_g
        ELSE
-          ThisSpc%EmMW_g = MISSING
+          ThisSpc%EmMW_g = MISSING_MW
        ENDIF
     ENDIF
 
