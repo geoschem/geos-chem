@@ -420,7 +420,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: I, J, L, N
+    ! Scalars
+    INTEGER            :: I, J, L, N
+
+    ! Strings
     CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
@@ -428,7 +431,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC = GIGC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -529,15 +532,18 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: I, J, L, N
+    ! Scalars
+    INTEGER            :: I, J, L, N
+
+    ! Strings
     CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
-    ! Convert_KgKgTotal_to_KgKgDry begins here!
+    ! ConvertSpc_KgKgTotal_to_KgKgDry begins here!
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC = GIGC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -856,10 +862,12 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER                :: I, J, L, N
+    REAL(fp)               :: MW_g
+
+    ! Strings
     CHARACTER(LEN=255)     :: MSG, LOC
-    REAL(fp)               :: MolecRatio, MW_G
-    TYPE(Species), POINTER :: ThisSpc
     
     !====================================================================
     ! ConvertSpc_KgKgDry_to_VVDry begins here!
@@ -867,9 +875,6 @@ CONTAINS
 
     ! Assume success
     RC = GIGC_SUCCESS
-
-    ! Initialize pointer
-    ThisSpc => NULL()
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -905,17 +910,21 @@ CONTAINS
     !    = Species(I,J,L,N) [kg/kg] * ( AIRMW / MW_G(N) )
     !                   
     !====================================================================
- 
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( I, J, L, N, MW_G ) 
+    
+    ! Loop over all species
+    !$OMP PARALLEL DO                 &
+    !$OMP DEFAULT( SHARED           ) &
+    !$OMP PRIVATE( I, J, L, N, MW_g ) 
     DO N = 1, State_Chm%nSpecies
 
-       ! Get info about this species from the species database
-       ThisSpc => State_Chm%SpcData(N)%Info
-       MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio ! mol C / mol spc?
-       MW_G       = State_Chm%SpcData(N)%Info%emMW_g
+       ! (Emitted) molecular weight for the species [g]
+       ! NOTE: Non-advected species will have a MW of -1, which will
+       ! make the species concentration negative.  This can be used to
+       ! flag that the species should not be used.  The inverse unit
+       ! conversion will flip the sign back to positive (ewl, bmy, 8/4/16)
+       MW_g = State_Chm%SpcData(N)%Info%emMW_g
     
+       ! Loop over grid boxes and do unit conversion
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
@@ -924,10 +933,6 @@ CONTAINS
        ENDDO
        ENDDO
        ENDDO
-
-       ! Free pointer
-       ThisSpc => NULL()
-
     ENDDO
     !$OMP END PARALLEL DO
 
@@ -979,10 +984,12 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER                :: I, J, L, N
+    REAL(fp)               :: MW_g
+
+    ! Strings
     CHARACTER(LEN=255)     :: MSG, LOC
-    REAL(fp)               :: MolecRatio, MW_G
-    TYPE(Species), POINTER :: ThisSpc
 
     !====================================================================
     ! ConvertSpc_VVDry_to_KgKgDry begins here!
@@ -990,9 +997,6 @@ CONTAINS
 
     ! Assume success
     RC = GIGC_SUCCESS
-
-    ! Initialize pointer
-    ThisSpc => NULL()
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -1029,27 +1033,28 @@ CONTAINS
     !                   
     !==============================================================
 
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( I, J, L, N, MW_G ) 
+    ! Loop over all species
+    !$OMP PARALLEL DO                 &
+    !$OMP DEFAULT( SHARED           ) &
+    !$OMP PRIVATE( I, J, L, N, MW_g ) 
     DO N = 1, State_Chm%nSpecies
 
-       ! Get info about this species from the species database
-       ThisSpc => State_Chm%SpcData(N)%Info
-       MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio ! mol C / mol spc?
-       MW_G       = State_Chm%SpcData(N)%Info%emMW_g
+       ! (Emitted) molecular weight for the species [g]
+       ! NOTE: Non-advected species will have a MW of -1, which will
+       ! make the species concentration negative.  This can be used to
+       ! flag that the species should not be used.  The inverse unit
+       ! conversion will flip the sign back to positive (ewl, bmy, 8/4/16)
+       MW_g = State_Chm%SpcData(N)%Info%emMW_g
 
+       ! Loop over grid boxes and do the unit conversion
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
          State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)   &
-                                      / ( AIRMW / MW_G )
+                                    / ( AIRMW / MW_G )
        ENDDO
        ENDDO
        ENDDO
-
-       ! Free pointer
-       ThisSpc => NULL()
 
     ENDDO
     !$OMP END PARALLEL DO
@@ -1337,16 +1342,19 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER            :: I, J, L, N
-    CHARACTER(LEN=255) :: MSG, LOC
     REAL(fp)           :: SPHU_kgkg
+
+    ! Strings
+    CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
     ! ConvertSpc_KgKgDry_to_Kgm2 begins here!
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC = GIGC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -1376,8 +1384,8 @@ CONTAINS
     !     
     !====================================================================
 
-    !$OMP PARALLEL DO        &
-    !$OMP DEFAULT( SHARED  ) &
+    !$OMP PARALLEL DO                      &
+    !$OMP DEFAULT( SHARED                ) &
     !$OMP PRIVATE( I, J, L, N, SPHU_kgkg ) 
     DO N = 1, State_Chm%nSpecies
     DO L = 1, LLPAR
@@ -1449,16 +1457,19 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER            :: I, J, L, N
-    CHARACTER(LEN=255) :: MSG, LOC
     REAL(fp)           :: SPHU_kgkg
+
+    ! Strings
+    CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
     ! ConvertSpc_Kgm2_to_KgKgDry begins here!
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC = GIGC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -1488,8 +1499,8 @@ CONTAINS
     !     
     !====================================================================
 
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
+    !$OMP PARALLEL DO                      &
+    !$OMP DEFAULT( SHARED                ) &
     !$OMP PRIVATE( I, J, L, N, SPHU_kgkg ) 
     DO N = 1, State_Chm%nSpecies
     DO L = 1, LLPAR
@@ -1532,7 +1543,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Convert_VVDry_to_Kg( am_I_Root, Input_Opt,    &
-                                    State_Met, State_Chm, RC   ) 
+                                  State_Met, State_Chm, RC   ) 
 !
 ! !USES:
 !
@@ -1798,11 +1809,12 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                :: I, J, L, N
-    CHARACTER(LEN=255)     :: MSG, LOC
-    REAL(fp)               :: MW_G
-    TYPE(Species), POINTER :: ThisSpc
+    ! Scalars
+    INTEGER            :: I, J, L, N
+    REAL(fp)           :: MW_g
 
+    ! Strings
+    CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
     ! ConvertSpc_KgKgDry_to_Kg begins here!
@@ -1847,21 +1859,26 @@ CONTAINS
     !                   
     !====================================================================
 
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( I, J, L, N, MW_G ) 
+    ! Loop over all species
+    !$OMP PARALLEL DO                 &
+    !$OMP DEFAULT( SHARED           ) &
+    !$OMP PRIVATE( I, J, L, N, MW_g ) 
     DO N = 1, State_Chm%nSpecies
 
-       ! Get info about this species from the species database
-       ThisSpc    => State_Chm%SpcData(N)%Info
-       MW_G      = State_Chm%SpcData(N)%Info%emMW_g
+       ! (Emitted) molecular weight for the species [g]
+       ! NOTE: Non-advected species will have a MW of -1, which will
+       ! make the species concentration negative.  This can be used to
+       ! flag that the species should not be used.  The inverse unit
+       ! conversion will flip the sign back to positive (ewl, bmy, 8/4/16)
+       MW_g = State_Chm%SpcData(N)%Info%emMW_g
 
+       ! Loop over grid boxes and do the unit conversion
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
           State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)  &
                                        * State_Met%AD(I,J,L)       &
-                                       / ( AIRMW / MW_G )
+                                       / ( AIRMW / MW_g )
        ENDDO
        ENDDO
        ENDDO
@@ -1922,10 +1939,12 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                :: I, J, L, N
-    CHARACTER(LEN=255)     :: MSG, LOC
-    REAL(fp)               :: MW_G
-    TYPE(Species), POINTER :: ThisSpc
+    ! Scalars
+    INTEGER            :: I, J, L, N
+    REAL(fp)           :: MW_g
+
+    ! Strings
+    CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
     ! ConvertSpc_Kg_to_VVDry begins here!
@@ -1970,20 +1989,25 @@ CONTAINS
     !                   
     !====================================================================
 
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( I, J, L, N, MW_G ) 
+    ! Loop over all species
+    !$OMP PARALLEL DO                 &
+    !$OMP DEFAULT( SHARED           ) &
+    !$OMP PRIVATE( I, J, L, N, MW_g ) 
     DO N = 1, State_Chm%nSpecies
 
-       ! Get info about this species from the species database
-       ThisSpc    => State_Chm%SpcData(N)%Info
-       MW_G      = State_Chm%SpcData(N)%Info%emMW_g
+       ! (Emitted) molecular weight for the species [g]
+       ! NOTE: Non-advected species will have a MW of -1, which will
+       ! make the species concentration negative.  This can be used to
+       ! flag that the species should not be used.  The inverse unit
+       ! conversion will flip the sign back to positive (ewl, bmy, 8/4/16)
+       MW_g = State_Chm%SpcData(N)%Info%emMW_g
 
+       ! Loop over grid boxes and do the unit conversion
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
           State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)  &
-                                       *  ( AIRMW / MW_G )         &
+                                       *  ( AIRMW / MW_g )         &
                                        / State_Met%AD(I,J,L)
        ENDDO
        ENDDO
@@ -2266,7 +2290,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: I, J, L, N
+    ! Scalars
+    INTEGER            :: I, J, L, N
+
+    ! Strings
     CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
@@ -2375,7 +2402,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: I, J, L, N
+    ! Scalars
+    INTEGER            :: I, J, L, N
+
+    ! Strings
     CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
@@ -2427,7 +2457,7 @@ CONTAINS
     DO J = 1, JJPAR
     DO I = 1, IIPAR
        State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) &
-                                    / State_Met%AD(I,J,L)
+                                  / State_Met%AD(I,J,L)
     ENDDO
     ENDDO
     ENDDO
@@ -2701,7 +2731,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER            :: N
+
+    ! Strings
     CHARACTER(LEN=255) :: MSG, LOC
 
     !=================================================================
@@ -2709,7 +2742,7 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC = GIGC_SUCCESS
 
     !==============================================================
     !
@@ -2735,9 +2768,9 @@ CONTAINS
     !                   
     !==============================================================
 
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( N ) 
+    !$OMP PARALLEL DO        &
+    !$OMP DEFAULT( SHARED  ) &
+    !$OMP PRIVATE( N       ) 
     DO N = 1, State_Chm%nSpecies
        State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)  &
                                   * State_Met%ADMOIST(I,J,L)
@@ -2803,7 +2836,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: N
+    ! Scalars
+    INTEGER            :: N
+
+    ! Strings
     CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
@@ -2811,7 +2847,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC = GIGC_SUCCESS
 
     !====================================================================
     !
@@ -2837,9 +2873,9 @@ CONTAINS
     !                   
     !====================================================================
 
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( N ) 
+    !$OMP PARALLEL DO       &
+    !$OMP DEFAULT( SHARED ) &
+    !$OMP PRIVATE( N      ) 
     DO N = 1, State_Chm%nSpecies
        State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) &
                                   / State_Met%ADMOIST(I,J,L)
@@ -3028,8 +3064,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertSpc_Kg_to_Kgm2( am_I_Root, I, J, L,      &
-                                    State_Met, State_Chm, RC        )
+  SUBROUTINE ConvertSpc_Kg_to_Kgm2( am_I_Root, I, J, L,       &
+                                    State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -3067,7 +3103,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: N
+    ! Scalars
+    INTEGER            :: N
+
+    ! Strings
     CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
@@ -3075,14 +3114,14 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC = GIGC_SUCCESS
 
-    !$OMP PARALLEL DO        &
-    !$OMP DEFAULT( SHARED  ) &
-    !$OMP PRIVATE( N ) 
+    !$OMP PARALLEL DO       &
+    !$OMP DEFAULT( SHARED ) &
+    !$OMP PRIVATE( N      ) 
     DO N = 1, State_Chm%nSpecies
        State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)    &
-                                    / State_Met%AREA_M2(I,J,1)
+                                  / State_Met%AREA_M2(I,J,1)
     ENDDO
     !$OMP END PARALLEL DO
 
@@ -3102,8 +3141,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertSpc_Kgm2_to_Kg( am_I_Root, I, J, L,   &
-                                    State_Met, State_Chm, RC        )
+  SUBROUTINE ConvertSpc_Kgm2_to_Kg( am_I_Root, I, J, L,       &
+                                    State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -3141,7 +3180,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER            :: N
+
+    ! Strings
     CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
@@ -3149,14 +3191,14 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC = GIGC_SUCCESS
 
-    !$OMP PARALLEL DO        &
-    !$OMP DEFAULT( SHARED  ) &
-    !$OMP PRIVATE( N ) 
+    !$OMP PARALLEL DO       &
+    !$OMP DEFAULT( SHARED ) &
+    !$OMP PRIVATE( N      ) 
     DO N = 1, State_Chm%nSpecies
        State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)    &
-                                     * State_Met%AREA_M2(I,J,1)
+                                  * State_Met%AREA_M2(I,J,1)
     ENDDO
     !$OMP END PARALLEL DO
 
@@ -3208,20 +3250,19 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                :: I, J, L, N
-    CHARACTER(LEN=255)     :: MSG, LOC
-    REAL(fp)               :: MolecRatio, MW_KG
-    TYPE(Species), POINTER :: ThisSpc
+    ! Scalars
+    INTEGER            :: I, J, L, N
+    REAL(fp)           :: MolecRatio, MW_kg
 
+    ! Strings
+    CHARACTER(LEN=255) :: MSG, LOC
+\
     !====================================================================
     ! ConvertSpc_KgKgDry_to_MND begins here!
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
-
-    ! Initialize pointer
-    ThisSpc => NULL()
+    RC = GIGC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -3262,32 +3303,35 @@ CONTAINS
     !   (2) Use AD/AIRVOL instead of AIRDEN to preserve legacy method
     !====================================================================
 
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( I, J, L, N, MolecRatio, MW_KG )  
+    ! Loop over all species
+    !$OMP PARALLEL DO                              &
+    !$OMP DEFAULT( SHARED                        ) &
+    !$OMP PRIVATE( I, J, L, N, MolecRatio, MW_kg )  
     DO N = 1, State_Chm%nSpecies 
 
-       ! Get info about this species from the species database
-       ThisSpc    => State_Chm%SpcData(N)%Info
-       MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio ! mol C / mol spc
-       MW_KG      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
+       ! Moles C / moles species
+       MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
 
-       ! Loop over grid boxes
+       ! (Emitted) molecular weight for the species [kg]
+       ! NOTE: Non-advected species will have a MW of -1, which will
+       ! make the species concentration negative.  This can be used to
+       ! flag that the species should not be used.  The inverse unit
+       ! conversion will flip the sign back to positive (ewl, bmy, 8/4/16)
+       MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
+
+       ! Loop over grid boxes and do the unit conversion
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
           State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)           &
                                      * ( State_Met%AD(I,J,L) /              &
                                          State_Met%AIRVOL(I,J,L) )          &
-                                     * ( AVO / MW_KG )                      &
+                                     * ( AVO / MW_kg )                      &
                                      / ( 1e+6_fp * MolecRatio )  
 
        ENDDO
        ENDDO
        ENDDO
-
-       ! Free pointer
-       ThisSpc => NULL()
 
     ENDDO
     !$OMP END PARALLEL DO
@@ -3344,20 +3388,19 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                :: I, J, L, N
-    CHARACTER(LEN=255)     :: MSG, LOC
-    REAL(fp)               :: MolecRatio, MW_KG
-    TYPE(Species), POINTER :: ThisSpc
+    ! Scalars
+    INTEGER            :: I, J, L, N
+    REAL(fp)           :: MolecRatio, MW_kg
+
+    ! Strings
+    CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
     ! ConvertSpc_MND_to_KgKgDry begins here!
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
-
-    ! Initialize pointer
-    ThisSpc => NULL()
+    RC = GIGC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -3376,7 +3419,7 @@ CONTAINS
     !   molec species(N)   mol     kg species(N)      m3      1E6 cm3     
     !   ---------------- * ----- * -------------- * ------  * -------
     !       cm3            molec   mol species(N)   kg air      m3    
-
+    !
     !
     !   = # density / Avogadro's # * MW / air density * conversion factors
     !   
@@ -3402,31 +3445,34 @@ CONTAINS
     !
     !====================================================================
 
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( I, J, L, N, MolecRatio, MW_KG )  
+    ! Loop over species
+    !$OMP PARALLEL DO                              &
+    !$OMP DEFAULT( SHARED                        ) &
+    !$OMP PRIVATE( I, J, L, N, MolecRatio, MW_kg )  
     DO N = 1, State_Chm%nSpecies 
 
-       ! Get info about this species from the species database
-       ThisSpc => State_Chm%SpcData(N)%Info
-       MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio ! mol C / mol spc?
-       MW_KG      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
+       ! Moles C / moles species
+       MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
 
-       ! Loop over grid boxes
+       ! (Emitted) molecular weight for the species [kg]
+       ! NOTE: Non-advected species will have a MW of -1, which will
+       ! make the species concentration negative.  This can be used to
+       ! flag that the species should not be used.  The inverse unit
+       ! conversion will flip the sign back to positive (ewl, bmy, 8/4/16)
+       MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
+
+       ! Loop over grid boxes and do the unit conversion
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
           State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)           &
                                      * ( 1e+6_fp * MolecRatio )             &
-                                     / ( AVO / MW_KG )                      &
+                                     / ( AVO / MW_kg )                      &
                                      / ( State_Met%AD(I,J,L) /              &
                                          State_Met%AIRVOL(I,J,L) )              
        ENDDO
        ENDDO
        ENDDO
-
-       ! Free pointer
-       ThisSpc => NULL()
 
     ENDDO
     !$OMP END PARALLEL DO
@@ -3481,20 +3527,20 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                :: I, J, L, N
-    CHARACTER(LEN=255)     :: MSG, LOC
-    REAL(fp)               :: MolecRatio, MW_KG
-    TYPE(Species), POINTER :: ThisSpc
+    ! Scalars
+    INTEGER            :: I, J, L, N
+    REAL(fp)           :: MolecRatio, MW_kg
+
+    ! Strings
+    CHARACTER(LEN=255) :: MSG, LOC
+
 
     !====================================================================
     ! ConvertSpc_Kg_to_MND begins here!
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
-
-    ! Initialize pointer
-    ThisSpc => NULL()
+    RC = GIGC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -3534,30 +3580,33 @@ CONTAINS
     !                   
     !====================================================================
 
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( I, J, L, N, MolecRatio, MW_KG )  
+    ! Loop over all species
+    !$OMP PARALLEL DO                              &
+    !$OMP DEFAULT( SHARED                        ) &
+    !$OMP PRIVATE( I, J, L, N, MolecRatio, MW_kg )  
     DO N = 1, State_Chm%nSpecies 
 
-       ! Get info about this species from the species database
-       ThisSpc    => State_Chm%SpcData(N)%Info
-       MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio ! mol C / mol spc
-       MW_KG      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
+       ! Moles C / moles species
+       MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
 
-       ! Loop over grid boxes
+       ! (Emitted) molecular weight for the species [kg]
+       ! NOTE: Non-advected species will have a MW of -1, which will
+       ! make the species concentration negative.  This can be used to
+       ! flag that the species should not be used.  The inverse unit
+       ! conversion will flip the sign back to positive (ewl, bmy, 8/4/16)
+       MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
+
+       ! Loop over grid boxes and do the unit conversion
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
           State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)           &
                                      / State_Met%AIRVOL(I,J,L)              &
-                                     * ( AVO / MW_KG )                      &
+                                     * ( AVO / MW_kg )                      &
                                      / ( 1e+6_fp * MolecRatio )   
        ENDDO
        ENDDO
        ENDDO
-
-       ! Free pointer
-       ThisSpc => NULL()
 
     ENDDO
     !$OMP END PARALLEL DO
@@ -3613,20 +3662,19 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER                :: I, J, L, N
+    REAL(fp)               :: MolecRatio, MW_kg
+
+    ! Strings
     CHARACTER(LEN=255)     :: MSG, LOC
-    REAL(fp)               :: MolecRatio, MW_KG
-    TYPE(Species), POINTER :: ThisSpc
 
     !====================================================================
     ! ConvertSpc_MND_to_Kg begins here!
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
-
-    ! Initialize pointer
-    ThisSpc => NULL()
+    RC = GIGC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -3645,7 +3693,7 @@ CONTAINS
     !   molec species(N)   mol     kg species(N)    box m3    1E6 cm3     
     !   ---------------- * ----- * -------------- * ------  * -------
     !       cm3            molec   mol species(N)      1        m3    
-
+    !
     !
     !   = # density / Avogadro's # * MW / box volume * conversion factors
     !   
@@ -3670,30 +3718,33 @@ CONTAINS
     !
     !====================================================================
 
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( I, J, L, N, MolecRatio, MW_KG )  
+    ! Loop over all species
+    !$OMP PARALLEL DO                              &
+    !$OMP DEFAULT( SHARED                        ) &
+    !$OMP PRIVATE( I, J, L, N, MolecRatio, MW_kg )  
     DO N = 1, State_Chm%nSpecies 
 
-       ! Get info about this species from the species database
-       ThisSpc => State_Chm%SpcData(N)%Info
-       MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio ! mol C / mol spc?
-       MW_KG      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
+       ! Moles C / moles species
+       MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
 
-       ! Loop over grid boxes
+       ! (Emitted) molecular weight for the species [g]
+       ! NOTE: Non-advected species will have a MW of -1, which will
+       ! make the species concentration negative.  This can be used to
+       ! flag that the species should not be used.  The inverse unit
+       ! conversion will flip the sign back to positive (ewl, bmy, 8/4/16)
+       MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
+
+       ! Loop over grid boxes and do the unit conversion
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
           State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)           &
                                      * ( 1e+6_fp * MolecRatio )             &
-                                     / ( AVO / MW_KG )                      &
+                                     / ( AVO / MW_kg )                      &
                                      / State_Met%AIRVOL(I,J,L)              
        ENDDO
        ENDDO
        ENDDO
-
-       ! Free pointer
-       ThisSpc => NULL()
 
     ENDDO
     !$OMP END PARALLEL DO
