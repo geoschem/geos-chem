@@ -112,22 +112,20 @@ CONTAINS
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !  25 Jul 2016 - E. Lundgren - Add check that species was not in restart file
 !                              prior to v/v -> molec/cm3 conversion
+!  02 Aug 2016 - E. Lundgren - Move unit conversion of species background
+!                              values to restart_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: AS, D, I, J, L, N, N1, FOUND
+    INTEGER            :: AS, D, N, N1, FOUND
     INTEGER            :: cId, Collection
-    LOGICAL            :: FIRST
     CHARACTER(LEN=15)  :: OutOper,  WriteFreq
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'INIT_FLEXCHEM (flexchem_setup_mod.F90)' 
-
-    ! For species unit conversion code
-    REAL(fp)           :: CONV_FACTOR        ! [mol/mol] -> [molec/cm3]
 
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
@@ -139,23 +137,8 @@ CONTAINS
     ! Assume success
     RC = GIGC_SUCCESS
 
-    ! DEBUGGING (ewl)
-    IF ( Input_Opt%LPRT ) THEN
-       PRINT *, " "
-       PRINT *, "At start of init_flexchem"
-       PRINT *, " Current species units: ", State_Chm%Spc_Units
-       PRINT *, " SPECIES #1:  ", State_Chm%Species(25,25,1,1)
-       PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
-    ENDIF
-    ! END DEBUGGING
-
     ! Initialize pointer
     SpcInfo => NULL()
-
-    ! If debugging, initialize var for printing non-rst spc min/max to log 
-    IF ( am_I_Root .and. Input_Opt%LPRT) THEN
-       FIRST = .TRUE.
-    ENDIF
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -212,139 +195,6 @@ CONTAINS
 
     ENDDO
 
-    ! If species was not in the NetCDF restart file then convert the 
-    ! default background value set in restart_mod.F from [mol/mol] to 
-    ! [molec/cm3]. Otherwise, do nothing since concentrations for these 
-    ! species were converted to [molec/cm3] after being read in.
-    ! Note that advected species concentrations are now always read in 
-    ! from the restart file but non-advected species concentrations are
-    ! only read in if using a restart file output from a previous run.
-    ! (ewl, 7/12/16)
-    DO N = 1, State_Chm%nSpecies
-
-       ! Get info about this species from the species database
-       SpcInfo => State_Chm%SpcData(N)%Info
-
-       ! Skip non-KPP species
-       IF ( .not. SpcInfo%Is_Kpp ) CYCLE
-
-       ! Skip species that were in the restart file
-       IF ( SpcInfo%Is_InRestart ) CYCLE
-
-       !$OMP PARALLEL DO &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, CONV_FACTOR )
-       ! Loop over all chemistry grid boxes
-       DO L = 1, LLCHEM 
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
-
-          ! Set box-dependent unit conversion factor 
-          !CONV_FACTOR = State_Met%AIRNUMDEN(I,J,L)
-          CONV_FACTOR = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp / &
-                      ( State_Met%T(I,J,L) * ( BOLTZ * 1e+7_fp ) )
-
-          IF ( TRIM( SpcInfo%Name ) /= 'MOH' ) THEN
-
-             ! Convert units from [mol/mol] to [molec/cm3/box]
-             State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) * &
-                                          CONV_FACTOR
-
-          ELSE
-
-             !----------------------------------------------------
-             ! For methanol (MOH), now use different initial
-             ! background concentrations for different regions of
-             ! the atmosphere:
-             !
-             ! (a) 2.0 ppbv MOH -- continental boundary layer
-             ! (b) 0.9 ppbv MOH -- marine boundary layer
-             ! (c) 0.6 ppbv MOH -- free troposphere
-             !
-             ! The concentrations listed above are from Heikes et
-             ! al, "Atmospheric methanol budget and ocean
-             ! implication", _Global Biogeochem. Cycles_, 2002.
-             ! These represent the best estimates for the methanol
-             ! conc.'s in the troposphere based on various
-             ! measurements.
-             !
-             ! MOH is an inactive chemical species in GEOS-CHEM,
-             ! so these initial concentrations will never change.
-             ! However, MOH acts as a sink for OH, and therefore
-             ! will affect both the OH concentration and the
-             ! methylchloroform lifetime.
-             !
-             ! We specify the MOH concentration as ppbv, but then
-             ! we need to multiply by CONV_FACTOR in order to
-             ! convert to [molec/cm3].  (bdf, bmy, 2/22/02)
-             !----------------------------------------------------
-
-             ! Test for altitude (L < 9 is always in the trop)
-             IF ( L <= 9 ) THEN
-                ! Test for ocean/land boxes
-                IF ( State_Met%FRCLND(I,J) >= 0.5 ) THEN
-                   ! Continental boundary layer: 2 ppbv MOH
-                   State_Chm%Species(I,J,L,N) = 2.000e-9_fp * CONV_FACTOR
-                ELSE
-                   ! Marine boundary layer: 0.9 ppbv MOH
-                   State_Chm%Species(I,J,L,N) = 0.900e-9_fp * CONV_FACTOR
-                ENDIF
-             ELSE
-                ! Test for troposphere
-                IF ( ITS_IN_THE_TROP(I,J,L,State_Met) ) THEN
-                   ! Free troposphere: 0.6 ppbv MOH
-                   State_Chm%Species(I,J,L,N) = 0.600e-9_fp * CONV_FACTOR
-                ELSE
-                   ! Strat/mesosphere:
-                   State_Chm%Species(I,J,L,N) = 0.0e+0_fp
-                ENDIF
-             ENDIF
-          ENDIF
-
-          ! Make a small number if concentration is neg or zero
-          State_Chm%SPECIES(I,J,L,N) = &
-                     MAX( State_Chm%Species(I,J,L,N), 1d-99 )
-
-       ENDDO
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-
-       ! Print the min and max of each species in [molec/cm3/box]
-       ! after conversion if in debug mode (ewl, 3/1/16)
-       IF ( am_I_Root .and. Input_Opt%LPRT ) THEN
-
-          ! Write min/max value header to log if first species not in rst
-          IF ( FIRST ) THEN
-             WRITE(6,110)
-             FIRST = .FALSE.
-          ENDIF
-
-          ! Write min/max value to log
-          WRITE(6,120) N, &
-                       TRIM( SpcInfo%Name ), &
-                       MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ), &
-                       MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) ) 
-110       FORMAT('     - INIT_FLEXCHEM: converting species background', &
-                 ' from [mol mol-1] to [molec/cm3/box]', //, &
-                 'Initial value of each species after unit conversion ', &
-                 '[molec/cm3]:')
-
-120       FORMAT( 'Species ', i3, ', ', a9, ': Min = ', &
-                   es15.9, ', Max = ', es15.9 )
-       ENDIF
-
-       ! Free pointer
-       SpcInfo => NULL()
-
-    ENDDO ! State_Chm%nSpecies
-
-    ! Set species units
-    State_Chm%Spc_Units = 'molec/cm3'
-
-    ! Mark end of unit conversion in log
-    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-
 #if defined( DIAG_DEVEL )
 !------------------------------------------------------------------------------
 ! Initialize Diagnostics Per the new diagnostic package | M. Long 1-21-15
@@ -389,16 +239,6 @@ CONTAINS
           write(*,'(i,a3,a85)') D,' | ',EQN_NAMES(D)
        END DO
     ENDIF
-
-    ! DEBUGGING (ewl)
-    IF ( Input_Opt%LPRT ) THEN
-       PRINT *, " "
-       PRINT *, "At end of init_flexchem"
-       PRINT *, " Current species units: ", State_Chm%Spc_Units
-       PRINT *, " SPECIES #1:  ", State_Chm%Species(25,25,1,1)
-       PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
-    ENDIF
-    ! END DEBUGGING
 
     ! Return to calling program
     RETURN

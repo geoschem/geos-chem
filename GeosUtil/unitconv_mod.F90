@@ -909,7 +909,7 @@ CONTAINS
     !$OMP PARALLEL DO           &
     !$OMP DEFAULT( SHARED     ) &
     !$OMP PRIVATE( I, J, L, N, MW_G ) 
-    DO N = 1, State_Chm%nAdvect
+    DO N = 1, State_Chm%nSpecies
 
        ! Get info about this species from the species database
        ThisSpc => State_Chm%SpcData(N)%Info
@@ -1378,7 +1378,7 @@ CONTAINS
 
     !$OMP PARALLEL DO        &
     !$OMP DEFAULT( SHARED  ) &
-    !$OMP PRIVATE( I, J, L, SPHU_kgkg ) 
+    !$OMP PRIVATE( I, J, L, N, SPHU_kgkg ) 
     DO N = 1, State_Chm%nSpecies
     DO L = 1, LLPAR
     DO J = 1, JJPAR
@@ -1849,7 +1849,7 @@ CONTAINS
 
     !$OMP PARALLEL DO           &
     !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( I, J, L, MW_G ) 
+    !$OMP PRIVATE( I, J, L, N, MW_G ) 
     DO N = 1, State_Chm%nSpecies
 
        ! Get info about this species from the species database
@@ -3280,7 +3280,8 @@ CONTAINS
                                      * ( State_Met%AD(I,J,L) /              &
                                          State_Met%AIRVOL(I,J,L) )          &
                                      * ( AVO / MW_KG )                      &
-                                     / ( 1e+6_fp * MolecRatio )   
+                                     / ( 1e+6_fp * MolecRatio )  
+
        ENDDO
        ENDDO
        ENDDO

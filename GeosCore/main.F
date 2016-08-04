@@ -720,15 +720,6 @@
       !       *****  I N I T I A L   C O N D I T I O N S *****
       !=================================================================
 
-      ! DEBUGGING (ewl)
-      IF ( Input_Opt%LPRT ) THEN
-         PRINT *, "Before read_gc_restart"
-         PRINT *, " Current species units: ", State_Chm%Spc_Units
-         PRINT *, " SPECIES #1: ", State_Chm%Species(25,25,1,1)
-         PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
-      ENDIF
-      ! END DEBUGGING
-
       ! Read initial tracer conditions
       ! NOTE: Tracer concentrations are read in as [v/v dry air] and converted
       ! to kg/kg dry air (ewl, 9/18/15)
@@ -736,15 +727,22 @@
      &                      Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_GC_RESTART' )
 
-      ! DEBUGGING (ewl)
-      IF ( Input_Opt%LPRT ) THEN
-         PRINT *, " "
-         PRINT *, "After read_gc_restart"
-         PRINT *, " Current species units: ", State_Chm%Spc_Units
-         PRINT *, " SPECIES #1: ", State_Chm%Species(25,25,1,1)
-         PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
-      ENDIF
-      ! END DEBUGGING
+
+      !*****************************************************
+      ! TRACER REMOVAL (ewl, 8/2/16) - temporary!
+
+      ! Set tracer concentrations to advected species concentrations
+      ! following restart file read [kg/kg dry]
+      PRINT *, "State_Chm%nAdvect: ", State_Chm%nAdvect
+      State_Chm%Tracers(:,:,:,1:State_Chm%nAdvect) = 
+     &              State_Chm%Species(:,:,:,1:State_Chm%nAdvect)
+      State_Chm%Trac_Units = 'kg/kg dry'
+      
+      ! Convert species from kg/kg dry to molec/cm3 to preserve
+      ! how it is in legacy code           
+      CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
+     &                                State_Chm, RC )
+      !*****************************************************
 
       ! Initialize stratospheric routines
       IF ( LUCX ) THEN
@@ -1505,81 +1503,6 @@
 #endif
 
          ENDIF 
-
-!         !-------------------------------
-!         ! Test for emission timestep
-!         !-------------------------------
-!         IF ( ( .NOT. LNLPBL ) .AND. ITS_TIME_FOR_EMIS() ) THEN
-!
-!            ! Increment emission counter
-!            CALL SET_CT_EMIS( INCREMENT=.TRUE. )
-!
-!            !===========================================================
-!            !         ***** D R Y   D E P O S I T I O N *****
-!            !===========================================================
-!            IF ( LDRYD ) THEN
-!               CALL DO_DRYDEP
-!     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-!            ENDIF
-!
-!            !===========================================================
-!            !             ***** E M I S S I O N S *****
-!            !===========================================================
-!!            IF ( LEMIS ) THEN
-!               
-!#if defined( USE_TIMERS )
-!               CALL GEOS_Timer_Start ( "HEMCO", RC )
-!#endif
-!
-!               ! Call the HEMCO emissions modules
-!               ! Always call HEMCO, even if LEMIS is set to FALSE. 
-!               ! This is to make sure that HEMCO can still be used to read
-!               ! non-emission data such as stratospheric Bry fields. 
-!               ! (ckeller, 1/12/15).
-!               CALL EMISSIONS_RUN ( am_I_Root, Input_Opt, 
-!     &                              State_Met, State_Chm, RC )
-!
-!               ! Return upon error in HEMCO
-!               IF ( RC /= GIGC_SUCCESS ) THEN
-!                  CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
-!               ENDIF
-!
-!#if defined( USE_TIMERS )
-!               CALL GEOS_Timer_End ( "HEMCO", RC )
-!#endif
-!
-!               !### Debug
-!               IF ( prtDebug ) THEN 
-!                  CALL DEBUG_MSG( '### MAIN: a DO_EMISSIONS' )
-!               ENDIF
-!!            ENDIF
-
-             ! --> now set in EMISSIONS_RUN (ckeller, 3/4/15)
-!            IF ( ITS_A_FULLCHEM_SIM ) THEN
-!               !========================================================
-!               !jpp, 2/12/08: putting a call to SET_CH3Br
-!               !              which is in bromocarb_mod.f
-!               !       ***** Fix CH3Br Concentration in PBL *****
-!               ! Kludge: eventually I want to keep the concentration
-!               !         entirely fixed! Ask around on how to...
-!               !========================================================
-!               IF ( LEMIS .and. ( IDTCH3Br > 0 ) ) THEN
-!                  CALL SET_CH3Br( am_I_Root, Input_Opt, State_Met, 
-!     &                            .FALSE.,   State_Chm, RC         )
-!
-!               ENDIF
-!
-!               ! ----------------------------------------------------
-!               ! If selected in input.geos, then set the MBL
-!               ! concentration of BrO equal to 1 pptv during daytime.
-!               ! ----------------------------------------------------
-!               IF ( LEMIS .and. ( IDTBrO > 0 ) ) THEN
-!                  CALL SET_BrO( am_I_Root, Input_Opt, State_Met, 
-!     &                          .FALSE.,   State_Chm, RC  )
-!               ENDIF
-!            ENDIF
-!
-!         ENDIF
 
          !==============================================================
          !               ***** C H E M I S T R Y *****
