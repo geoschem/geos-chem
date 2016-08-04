@@ -1598,7 +1598,7 @@
                PRINT *, "After do_chemistry"
                PRINT *, " Current species units: ", State_Chm%Spc_Units
                PRINT *, " SPECIES #1:  ", State_Chm%Species(25,25,1,1)
-               IF ( ITS_A_FULLCHEM_SIM )
+               IF ( ITS_A_FULLCHEM_SIM ) THEN
                 PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
                ENDIF
             ENDIF
