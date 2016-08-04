@@ -390,6 +390,12 @@
       LOGICAL                  :: USE_OLSON_2001
       INTEGER                  :: N_TRACERS 
       !-----------------------------------------------------------------
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      INTEGER                :: NA
+      REAL(fpp), ALLOCATABLE :: Spc_temp(:,:,:,:)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
@@ -578,6 +584,11 @@
       id_CLOCK = Ind_('CLOCK','T')
       id_H2O   = Ind_('H2O'  ,'T')
       !-----------------------------------------------------------------
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      ALLOCATE( Spc_Temp( IIPAR, JJPAR, LLPAR, State_Chm%nAdvect ) )
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 #if   defined( RRTMG )
       ! Initialize surface rad fields
@@ -1265,6 +1276,20 @@
          !==============================================================
          IF ( ITS_TIME_FOR_DYN() ) THEN
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+            ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+            DO NA = 1, State_Chm%nAdvect
+               N                          = State_Chm%Map_Advect(NA)
+               Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
+               State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+            ENDDO
+            State_Chm%Spc_Units = 'kg/kg dry'
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_Start( "Transport", RC )
 #endif
@@ -1344,6 +1369,19 @@
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "Transport", RC )
 #endif
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+            DO NA = 1, State_Chm%nAdvect
+               N                          = State_Chm%Map_Advect(NA)
+               State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+               
+               ! Restore State_Chm%SPECIES to its original values
+               State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+            ENDDO
+            State_Chm%Spc_Units = 'molec/cm3'
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
          ENDIF
 
@@ -1538,7 +1576,9 @@
                PRINT *, "Before do_chemistry"
                PRINT *, " Current species units: ", State_Chm%Spc_Units
                PRINT *, " SPECIES #1:  ", State_Chm%Species(25,25,1,1)
-               PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+               IF ( ITS_A_FULLCHEM_SIM ) THEN
+                PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+               ENDIF
             ENDIF
             ! END DEBUGGING
 
@@ -1558,10 +1598,11 @@
                PRINT *, "After do_chemistry"
                PRINT *, " Current species units: ", State_Chm%Spc_Units
                PRINT *, " SPECIES #1:  ", State_Chm%Species(25,25,1,1)
-               PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+               IF ( ITS_A_FULLCHEM_SIM )
+                PRINT *, " SPECIES #70: ", State_Chm%Species(25,25,1,70)
+               ENDIF
             ENDIF
             ! END DEBUGGING
-
 
          ENDIF 
 

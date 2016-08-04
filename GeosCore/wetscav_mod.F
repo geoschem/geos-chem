@@ -5984,7 +5984,7 @@
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,2)
+!      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,2)
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
             
       !=====================================================================
@@ -6084,17 +6084,17 @@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@ We only have to copy the H2O2 and SO2 slots from TRACERS to SPECIES
 !@@@
-         IF ( id_H2O2 > 0 ) THEN
-            Spc_Temp(:,:,:,1) = State_Chm%Species(:,:,:,id_H2O2)
-            State_Chm%Species(:,:,:,id_H2O2) = 
-     &      State_Chm%Tracers(:,:,:,id_H2O2)
-         ENDIF
-
-         IF ( id_SO2 > 0 ) THEN
-            Spc_Temp(:,:,:,2) = State_Chm%Species(:,:,:,id_SO2)
-            State_Chm%Species(:,:,:,id_SO2) = 
-     &      State_Chm%Tracers(:,:,:,id_SO2)
-         ENDIF
+!         IF ( id_H2O2 > 0 ) THEN
+!            Spc_Temp(:,:,:,1) = State_Chm%Species(:,:,:,id_H2O2)
+!            State_Chm%Species(:,:,:,id_H2O2) = 
+!     &      State_Chm%Tracers(:,:,:,id_H2O2)
+!         ENDIF
+!
+!         IF ( id_SO2 > 0 ) THEN
+!            Spc_Temp(:,:,:,2) = State_Chm%Species(:,:,:,id_SO2)
+!            State_Chm%Species(:,:,:,id_SO2) = 
+!     &      State_Chm%Tracers(:,:,:,id_SO2)
+!         ENDIF
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
          ! Set H2O2s to the initial H2O2 from STT, so that we will have
@@ -6120,17 +6120,17 @@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@ We only have to copy the H2O2 and SO2 slots from SPECIES to TRACERS
 !@@@
-         IF ( id_H2O2 > 0 ) THEN
-            State_Chm%Tracers(:,:,:,id_H2O2) = 
-     &      State_Chm%Species(:,:,:,id_H2O2)
-            State_Chm%Species(:,:,:,id_H2O2) = Spc_Temp(:,:,:,1)
-         ENDIF
-
-         IF ( id_SO2 > 0 ) THEN
-            State_Chm%Tracers(:,:,:,id_SO2) = 
-     &      State_Chm%Species(:,:,:,id_SO2)
-            State_Chm%Species(:,:,:,id_SO2) = Spc_Temp(:,:,:,2)
-         ENDIF
+!         IF ( id_H2O2 > 0 ) THEN
+!            State_Chm%Tracers(:,:,:,id_H2O2) = 
+!     &      State_Chm%Species(:,:,:,id_H2O2)
+!            State_Chm%Species(:,:,:,id_H2O2) = Spc_Temp(:,:,:,1)
+!         ENDIF
+!
+!         IF ( id_SO2 > 0 ) THEN
+!            State_Chm%Tracers(:,:,:,id_SO2) = 
+!     &      State_Chm%Species(:,:,:,id_SO2)
+!            State_Chm%Species(:,:,:,id_SO2) = Spc_Temp(:,:,:,2)
+!         ENDIF
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
          ! Reset first-time flag

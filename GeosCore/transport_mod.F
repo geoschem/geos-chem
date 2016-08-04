@@ -349,6 +349,7 @@
 !  20 Jul 2016 - R. Yantosca - Add minor bug fixes for netCDF diagnostics
 !  20 Jul 2016 - R. Yantosca - Now replace NNPAR with State_Chm%nAdvect
 !  20 Jul 2016 - R. Yantosca - Now pass State_Chm to DiagnUpdate_Transport_Flux
+!  03 Aug 2016 - R. Yantosca - Removed temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -386,11 +387,6 @@
       REAL(fp),  POINTER :: p_MFLNS(:,:,:,:)
       REAL(fp),  POINTER :: p_MFLUP(:,:,:,:)
       REAL(fp),  POINTER :: p_Spc  (:,:,:,:)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !=================================================================
       ! GEOS4_GEOS5_GLOBAL_ADV begins here!
@@ -490,27 +486,15 @@
       p_MFLUP   => MASSFLUP_NC
 #endif
 
-      ! Convert tracer concentration from kg/kg dry air to 
-      ! kg/kg total  air before advection (ewl, 6/15/15)
-      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt, 
-     &                                   State_Met, State_Chm, RC )
+      ! Convert species concentration from kg/kg dry air to 
+      ! kg/kg total  air before advection (ewl, 6/15/15, 8/3/16)
+      CALL ConvertSpc_KgKgDry_to_KgKgTotal( am_I_Root, State_Met, 
+     &                                      State_Chm, RC         )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'GEOS4_GEOS5_GLOBAL_ADV in transport_mod.F')
          RETURN
       ENDIF 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Do the advection
       CALL TPCORE_FVDAS( D_DYN,    Re,       IIPAR,    JJPAR,
@@ -530,23 +514,11 @@
       ENDIF
 #endif
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ! Convert species concentration from kg/kg wet air to 
+      ! kg/kg dry air after advection (ewl, 6/15/15. 8/3/16)
+      CALL ConvertSpc_KgKgTotal_to_KgKgDry( am_I_Root, State_Met,
+     &                                      State_Chm, RC         ) 
 
-         ! Restore State_Chm%SPECIES to its original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-      ! Convert tracer concentration from kg/kg wet air to 
-      ! kg/kg dry air after advection (ewl, 6/15/15)
-      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt, 
-     &                                   State_Met, State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'GEOS4_GEOS5_GLOBAL_ADV in transport_mod.F')
@@ -572,7 +544,7 @@
       CALL SET_FLOATING_PRESSURE( P_TP2 )
 
       ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
-      ! Do not update tracer mixing ratio
+      ! Do not update species mixing ratio
       CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
      &             update_mixing_ratio=.FALSE. )
 
@@ -671,6 +643,7 @@
 !  20 Jul 2016 - R. Yantosca - Add minor bug fixes for netCDF diagnostics
 !  20 Jul 2016 - R. Yantosca - Now replace NNPAR with State_Chm%nAdvect
 !  20 Jul 2016 - R. Yantosca - Now pass State_Chm to DiagnUpdate_Transport_Flux
+!  03 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -709,11 +682,6 @@
       REAL(fp),  POINTER :: p_MFLNS(:,:,:,:)
       REAL(fp),  POINTER :: p_MFLUP(:,:,:,:)
       REAL(fp),  POINTER :: p_Spc  (:,:,:,:)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !=================================================================
       ! GCAP_GLOBAL_ADV begins here!
@@ -815,28 +783,15 @@
       p_MFLUP   => MASSFLUP_NC
 #endif
 
-      ! Convert tracer concentration from kg/kg dry air to 
-      ! kg/kg total air before advection (ewl, 6/15/15)
-      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
-     &                                   State_Met, State_Chm, RC )
+      ! Convert species concentration from kg/kg dry air to 
+      ! kg/kg total air before advection (ewl, 6/15/15, 8/3/16)
+      CALL ConvertSpc_KgKgDry_to_KgKgTotal( am_I_Root, State_Met, 
+     &                                      State_Chm, RC         )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'GCAP_GLOBAL_ADV in transport_mod.F')
          RETURN
       ENDIF 
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Do the advection
       CALL TPCORE_FVDAS( D_DYN,   Re,      IIPAR,   JJPAR,
@@ -856,21 +811,11 @@
       ENDIF
 #endif
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      ! Convert species concentration from kg/kg total air to 
+      ! kg/kg dry air after advection (ewl, 6/15/15, 8/3/16)
+      CALL ConvertSpc_KgKgTotal_to_KgKgDry( am_I_Root, State_Met, 
+     &                                      State_Chm, RC         ) 
 
-      ! Convert tracer concentration from kg/kg total air to 
-      ! kg/kg dry air after advection (ewl, 6/15/15)
-      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
-     &                                    State_Met, State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'GCAP_GLOBAL_ADV in transport_mod.F')
@@ -996,6 +941,7 @@
 !  20 Jul 2016 - R. Yantosca - Add minor bug fixes for netCDF diagnostics
 !  20 Jul 2016 - R. Yantosca - Now replace NNPAR with State_Chm%nAdvect
 !  20 Jul 2016 - R. Yantosca - Now pass State_Chm to DiagnUpdate_Transport_Flux
+!  03 Aug 2016 - R. Yantosca - Removed temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1039,11 +985,6 @@
       REAL(fp),  POINTER :: p_MFLNS (:,:,:,:)
       REAL(fp),  POINTER :: p_MFLUP (:,:,:,:)
       REAL(fp),  POINTER :: p_Spc   (:,:,:,:)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !=================================================================
       ! DO_FVDAS_WINDOW_TRANSPORT begins here!
@@ -1207,28 +1148,15 @@
 
       p_A_M2  => A_M2( J0_W1+1 : J0_W1+JM_W1                     )
 
-      ! Convert tracer concentration from kg/kg dry air to 
-      ! kg/kg moist air before advection (ewl, 6/15/15)
-      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
-     &                                   State_Met, State_Chm, RC )
+      ! Convert species concentration from kg/kg dry air to 
+      ! kg/kg moist air before advection (ewl, 6/15/15, 8/3/16)
+      CALL ConvertSpc_KgKgDry_to_KgKgTotal( am_I_Root, State_Met, 
+     &                                      State_Chm, RC         )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'DO_WINDOW_TRANSPORT in transport_mod.F')
          RETURN
       ENDIF 
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Do the advection
       CALL TPCORE_WINDOW( 
@@ -1248,23 +1176,10 @@
       ENDIF
 #endif
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-      ! Convert tracer concentration from kg/kg wet air to 
-      ! kg/kg dry air after advection (ewl, 6/15/15)
-      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
-     &                                   State_Met, State_Chm, RC ) 
+      ! Convert species concentration from kg/kg wet air to 
+      ! kg/kg dry air after advection (ewl, 6/15/15, 8/3/16)
+      CALL ConvertSpc_KgKgTotal_to_KgKgDry( am_I_Root, State_Met, 
+     &                                      State_Chm, RC         ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'DO_WINDOW_TRANSPORT in transport_mod.F')
