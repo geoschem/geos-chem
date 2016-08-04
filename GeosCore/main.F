@@ -720,9 +720,9 @@
       !       *****  I N I T I A L   C O N D I T I O N S *****
       !=================================================================
 
-      ! Read initial tracer conditions
-      ! NOTE: Tracer concentrations are read in as [v/v dry air] and converted
-      ! to kg/kg dry air (ewl, 9/18/15)
+      ! Read initial species conditions
+      ! NOTE: Species concentrations are read in as [v/v dry air] and converted
+      ! to kg/kg dry air (ewl, 8/4/16)
       CALL READ_GC_RESTART( am_I_Root, NYMDb,     NHMSb, 
      &                      Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_GC_RESTART' )
