@@ -441,6 +441,7 @@
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD               ! SAVEOH
       USE PHYSCONSTANTS            ! SCALE_HEIGHT, XNUMOLAIR
+      USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -502,6 +503,7 @@
 !                              remove AD pointer
 !  16 Jun 2016 - K. Yu       - Now define species ID's with the IND_ function
 !  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -531,11 +533,15 @@
 
       ! For fields from Input_Opt
       INTEGER           :: N_TRACERS
-      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
+      !REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER   :: STT(:,:,:,:)
 !      REAL(fp), POINTER   :: AD(:,:,:)
+      TYPE(Species), POINTER :: ThisSpc
+
+      ! Temp Variables
+      REAL(fp)          :: tempTCVV
 
       !=================================================================
       ! ACCUMULATE_DIAG51 begins here!
@@ -546,7 +552,10 @@
 
       ! Copy values from Input_Opt
       N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+      !TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+
+      ! Initialize pointers
+      ThisSpc => NULL()
 
       ! First-time setup
       IF ( FIRST ) THEN
@@ -678,11 +687,16 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( W, N, X, Y, K, I, J, L, TMP, H, R, SCALEAODnm, ISPC ) 
+!$OMP+PRIVATE( ThisSpc, tempTCVV )
 !$OMP+SCHEDULE( DYNAMIC )
          DO W = 1, ND51_N_TRACERS
 
          ! ND51 Tracer number
          N = ND51_TRACERS(W)
+
+         ThisSpc => State_Chm%SpcData(N)%Info
+         tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+         ThisSpc => NULL()
 
          ! Loop over levels
          DO K = 1, ND51_NL
@@ -708,7 +722,7 @@
 !     &                      ( STT(I,J,L,N) * TCVV(N) / 
 !     &                        AD(I,J,L)    * GOOD(I) )
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                      ( STT(I,J,L,N) * TCVV(N) * GOOD(I) )
+     &                      ( STT(I,J,L,N) * tempTCVV * GOOD(I) )
 
             ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
 
@@ -766,38 +780,57 @@
 !     &                       STT(I,J,L,id_HNO4)  / AD(I,J,L) )
 
                ! NO
-               TMP = TMP + ( TCVV(id_NO)         * GOOD(I) *
+               ThisSpc => State_Chm%SpcData(id_NO)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               TMP = TMP + ( tempTCVV         * GOOD(I) *
      &                       STT(I,J,L,id_NO)    )
 
                ! NO2
-               TMP = TMP + ( TCVV(id_NO2)        * GOOD(I) *
+               ThisSpc => State_Chm%SpcData(id_NO2)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               TMP = TMP + ( tempTCVV        * GOOD(I) *
      &                       STT(I,J,L,id_NO2)   )
                ! PAN
-               TMP = TMP + ( TCVV(id_PAN)        * GOOD(I) *
+               ThisSpc => State_Chm%SpcData(id_PAN)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               TMP = TMP + ( tempTCVV        * GOOD(I) *
      &                       STT(I,J,L,id_PAN)   )
 
                ! HNO3
-               TMP = TMP + ( TCVV(id_HNO3)       * GOOD(I) *
+               ThisSpc => State_Chm%SpcData(id_HNO3)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               TMP = TMP + ( tempTCVV       * GOOD(I) *
      &                       STT(I,J,L,id_HNO3)  )
             
                ! PMN
-               TMP = TMP + ( TCVV(id_PMN)        * GOOD(I) *
+               ThisSpc => State_Chm%SpcData(id_PMN)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               TMP = TMP + ( tempTCVV        * GOOD(I) *
      &                       STT(I,J,L,id_PMN)   )
 
                ! PPN
-               TMP = TMP + ( TCVV(id_PPN)        * GOOD(I) *
+               ThisSpc => State_Chm%SpcData(id_PPN)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               TMP = TMP + ( tempTCVV        * GOOD(I) *
      &                       STT(I,J,L,id_PPN)   )
  
                ! R4N2
-               TMP = TMP + ( TCVV(id_R4N2)       * GOOD(I) *
+               ThisSpc => State_Chm%SpcData(id_R4N2)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               TMP = TMP + ( tempTCVV       * GOOD(I) *
      &                       STT(I,J,L,id_R4N2)  )
             
                ! N2O5
-               TMP = TMP + ( 2e+0_fp * TCVV(id_N2O5) * GOOD(I) *
+               ThisSpc => State_Chm%SpcData(id_N2O5)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               TMP = TMP + ( 2e+0_fp * tempTCVV * GOOD(I) *
      &                       STT(I,J,L,id_N2O5)  )
                         
                ! HNO4
-               TMP = TMP + ( TCVV(id_HNO4)       * GOOD(I) *
+               ThisSpc => State_Chm%SpcData(id_HNO4)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               ThisSpc => NULL()
+               TMP = TMP + ( tempTCVV       * GOOD(I) *
      &                       STT(I,J,L,id_HNO4)  )
 
                ! Save afternoon points
@@ -855,10 +888,13 @@
 !     &                        STT(I,J,L,id_SALC) ) *
 !     &                        TCVV(id_SALA)        /
 !     &                        AD(I,J,L) * GOOD(I)
+               ThisSpc => State_Chm%SpcData(id_SALA)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               ThisSpc => NULL()
                Q(X,Y,K,W) = Q(X,Y,K,W) +
      &                      ( STT(I,J,L,id_SALA)   + 
      &                        STT(I,J,L,id_SALC) ) *
-     &                        TCVV(id_SALA) * GOOD(I)
+     &                        tempTCVV * GOOD(I)
 
             ELSE IF ( N == 159 ) THEN
 

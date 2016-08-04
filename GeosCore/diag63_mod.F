@@ -109,7 +109,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG63 ( am_I_Root, Input_Opt, RC )
+      SUBROUTINE DIAG63 ( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -131,9 +131,10 @@
       ! Connect to HEMCO diagnostics
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : IND_
+      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
       USE HCO_DIAGN_MOD
       USE HCO_ERROR_MOD
+      USE SPECIES_MOD,        ONLY : SPECIES
 !
 ! !INPUT ARGUMENTS
 !
@@ -142,6 +143,8 @@
 !
 ! !INPUT/OUTPUT ARGUMENTS
 !
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+
       INTEGER,        INTENT(INOUT)       :: RC
 !
 ! !REVISION HISTORY:
@@ -153,6 +156,8 @@
 !  26 Feb 2015 - E. Lundgren - Remove pressure_mod from use list (not used)
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  31 May 2016 - E. Lundgren - Use TCVV instead of XNUMOL for molecular wts
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV, now takes in
+!                              State_Chm due to being needed now.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -180,6 +185,12 @@
       ! Species ID flag
       INTEGER                       :: id_NO
 
+      ! Pointers
+      TYPE(Species), POINTER :: ThisSpc
+
+      ! Temp Variables
+      REAL(fp)          :: tempTCVV
+
 !
 ! !DEFINED PARAMETERS:
 !
@@ -192,6 +203,7 @@
 
       ! Initialize
       DiagnCnt => NULL()
+      ThisSpc  => NULL()
 
       !=================================================================
       ! If it's a new day, open a new BPCH file and write file header
@@ -260,6 +272,11 @@
          GMNL     = ND63_NL
          GMTRC    = W
 
+         ! TCVV Calculation
+         ThisSpc => State_Chm%SpcData(id_NO)%Info
+         tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+         ThisSpc => NULL()
+
          ! Pick variables to get diagnostics from HEMCO
          SELECT CASE ( W )
             CASE ( 1 ) 
@@ -276,19 +293,19 @@
                DiagnName = 'PARANOX_OX_PRODUCTION'
                UNIT      = 'molec/cm2/s'
                AF        = 0
-               FACTOR    = AVO * Input_Opt%TCVV(id_NO) / 
+               FACTOR    = AVO * tempTCVV / 
      &                     ( CM2PERM2 * AIRMW * 1.e-3_fp ) 
             CASE ( 4 ) 
                DiagnName = 'PARANOX_NOX_REMAINING'
                UNIT      = 'molec/cm2/s'
                AF        = 0
-               FACTOR    = AVO * Input_Opt%TCVV(id_NO) / 
+               FACTOR    = AVO * tempTCVV / 
      &                     ( CM2PERM2 * AIRMW * 1.e-3_fp ) 
             CASE ( 5 ) 
                DiagnName = 'SHIP_NO'
                UNIT      = 'molec/cm2/s'
                AF        = 1
-               FACTOR    = AVO * Input_Opt%TCVV(id_NO) /
+               FACTOR    = AVO * tempTCVV /
      &                     ( CM2PERM2 * AIRMW * 1.e-3_fp )  
             CASE DEFAULT
                MSG = 'Only 5 diagnostics expected!'

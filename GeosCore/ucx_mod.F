@@ -361,6 +361,8 @@
       USE GRID_MOD,           ONLY : GET_YMID
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR
+      USE PHYSCONSTANTS,      ONLY : AIRMW
+      USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -428,6 +430,7 @@
 !  21 Jun 2016 - R. Yantosca   - Add error checks to make sure that each
 !                                species ID flag has a valid value before
 !                                calling APPLY_2DRATIO routine
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -458,11 +461,15 @@
       LOGICAL            :: LSETNOYSTRAT
 !      LOGICAL            :: LBASICEMIS
       INTEGER            :: N_TRACERS
-      REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
+      !REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
       Real(fp)           :: MWTemp
 
       ! Pointers
       REAL(fp), POINTER    :: STT(:,:,:,:)
+      TYPE(Species), POINTER :: ThisSpc
+
+      ! Temp Variables
+      REAL(fp)          :: tempTCVV
 
       !=================================================================
       ! SET_INITIAL_MIXRATIOS begins here!
@@ -481,12 +488,14 @@
       LSETNOYSTRAT = Input_Opt%LSETNOYSTRAT
 !      LBASICEMIS   = Input_Opt%LBASICEMIS
       N_TRACERS    = Input_Opt%N_TRACERS
-      TCVV         = Input_Opt%TCVV(1:N_TRACERS)
+      !TCVV         = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Set module variable
 
       ! Initialize GEOS-Chem tracer array [kg/kg]
       STT => State_Chm%Tracers
+
+      ThisSpc => NULL()
 
       IF ( am_I_Root ) THEN
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -1032,7 +1041,10 @@
          ! Convert from [vv] to [kg CH4/kg air]
          ! (ewl, 3/16/15) 
          TRAC_IDX = id_CH4
-         MWTemp = TCVV(TRAC_IDX)
+         ThisSpc => State_Chm%SpcData(TRAC_IDX)%Info
+         tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+         ThisSpc => NULL()
+         MWTemp = tempTCVV
          C3090S = C3090S / MWTemp 
          C0030S = C0030S / MWTemp 
          C0030N = C0030N / MWTemp 
@@ -1179,6 +1191,8 @@
       USE TIME_MOD,           ONLY : GET_HOUR
       USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE TIME_MOD,           ONLY : GET_MINUTE
+      USE PHYSCONSTANTS,      ONLY : AIRMW
+      USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -1200,6 +1214,7 @@
 !                                Remove dependency on PRESSURE_MOD.
 !  16 Jun 2016 - S. D. Eastham - Remove references to tracerid_mod.F
 !  21 Jun 2016 - R. Yantosca   - Use the module variables for species ID flags
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1268,10 +1283,14 @@
       ! Local variables for quantities from Input_Opt
       LOGICAL            :: LPRT
       INTEGER            :: N_TRACERS
-      REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
+      !REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER    :: STT(:,:,:,:)
+      TYPE(Species), POINTER :: ThisSpc
+
+      ! Temp Variables
+      REAL(fp)          :: tempTCVV
 
       !=================================================================
       ! UCX_NOX begins here!
@@ -1280,7 +1299,10 @@
       ! Copy fields from INPUT_OPT
       LPRT      = Input_Opt%LPRT
       N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+      !TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+
+      ! Initialize pointers
+      ThisSpc => NULL()
 
       ! Initialize GEOS-Chem tracer array [kg]
       STT => State_Chm%Tracers
@@ -1353,7 +1375,7 @@
 !$OMP+PRIVATE( LOCALO1D, NO_ALPHA, NO_BETA,  NO_GAMMA      )
 !$OMP+PRIVATE( FRACNO2,  FRACNO3,  FRACNO,   FRACN         )
 !$OMP+PRIVATE( NOXRATE,  N2ORATE,  DNOX,     MESONOX_DELTA )
-!$OMP+PRIVATE( SOL_TEST, TMIN                              )
+!$OMP+PRIVATE( SOL_TEST, TMIN,     ThisSpc,  tempTCVV      )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1426,9 +1448,16 @@
          ! Add local NO2
          ! KGNOX = KGNOX + (STT(I,J,L,id_NO2)*TCVV(id_NO)/TCVV(id_NO2))
          KGN2O = STT(I,J,L,id_N2O)
-         LOCALNOX = KGNOX*TCVV(id_NO)*XAIR
-         LOCALN2O = KGN2O*TCVV(id_N2O)*XAIR
-         LOCALO3  = STT(I,J,L,id_O3)*TCVV(id_O3)*XAIR
+         ThisSpc => State_Chm%SpcData(id_NO)%Info
+         tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+         LOCALNOX = KGNOX*tempTCVV*XAIR
+         ThisSpc => State_Chm%SpcData(id_N2O)%Info
+         tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+         LOCALN2O = KGN2O*tempTCVV*XAIR
+         ThisSpc => State_Chm%SpcData(id_O3)%Info
+         tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+         ThisSpc => NULL()
+         LOCALO3  = STT(I,J,L,id_O3)*tempTCVV*XAIR
 
          ! Retrieve local O3P/O1D mixing ratios and relevant
          ! j-rates from interpolated 2D arrays
@@ -1486,7 +1515,10 @@
         
          ! Calculate fractional loss and apply to tracer
          ! Explicit Euler method (fast)
-         DNOX = NOXRATE * DTCHEM / (TCVV(id_NO)*XAIR)
+         ThisSpc => State_Chm%SpcData(id_NO)%Info
+         tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+         ThisSpc => NULL()
+         DNOX = NOXRATE * DTCHEM / (tempTCVV*XAIR)
          IF ((DNOX*-1e+0_fp).gt.KGNOX) THEN
             DNOX = -1e+0_fp*KGNOX
             KGNOX = 0e+0_fp
@@ -1502,7 +1534,11 @@
 
          MESONOX_DELTA = MESONOX_DELTA + DNOX
 
-         DN2O = N2ORATE * DTCHEM / (TCVV(id_N2O)*XAIR)
+         ThisSpc => State_Chm%SpcData(id_N2O)%Info
+         tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+         ThisSpc => NULL()
+
+         DN2O = N2ORATE * DTCHEM / (tempTCVV*XAIR)
          IF ((DN2O*-1e+0_fp).gt.KGN2O) THEN
             DN2O = -1e+0_fp*KGN2O
             KGN2O = 0e+0_fp
@@ -1888,6 +1924,8 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PHYSCONSTANTS,      ONLY : AIRMW
+      USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1915,6 +1953,7 @@
 !                                air pressure, with State_Met%PMID and
 !                                remove dependency on PRESSURE_MOD.
 !  19 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg
+!  25 Jul 2016 - M. Yannetti - Now takes in State_Chm instead of TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1939,10 +1978,14 @@
       ! Local variables for quantities from Input_Opt
       LOGICAL            :: LPRT
       INTEGER            :: N_TRACERS
-      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
+      !REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER  :: STT(:,:,:,:)
+      TYPE(Species), POINTER :: ThisSpc
+
+      ! Temp Variables
+      REAL(fp)          :: tempTCVV
 
       !=================================================================
       ! APPLY_2DTRAC begins here!
@@ -1951,10 +1994,13 @@
       ! Copy fields from INPUT_OPT
       LPRT      = Input_Opt%LPRT
       N_TRACERS = Input_Opt%N_TRACERS
-      TCVV = Input_Opt%TCVV(1:N_TRACERS)
+      !TCVV = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Initialize GEOS-Chem tracer array [kg/kg]
       STT => State_Chm%Tracers
+
+      ! Initialize pointers
+      ThisSpc => NULL()
 
       ! Filename
       TRAC_FILE = TRIM(AVG_FILE_ROOT)//TRIM(TRAC_SET )
@@ -2061,6 +2107,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,        J,       L,        VERTCOUNT, EXTRAP   )
 !$OMP+PRIVATE( SET_CELL, PCENTER, FOUNDLEV, TRACMR,    TRACMASS )
+!$OMP+PRIVATE( ThisSpc,  tempTCVV                               )
       DO J = 1,JJPAR
          DO I = 1,IIPAR
             ! Vertcount is the layer count for the input, where layer 1
@@ -2105,8 +2152,12 @@
                ! Send to STT (currently kg/box)
                IF (SET_CELL) THEN
 
+                  ThisSpc => State_Chm%SpcData(TRAC_IDX)%Info
+                  tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+                  ThisSpc => NULL()
+
                   ! Convert from [ppbv] to [kg/kg] (ewl, 3/19/15)
-                  TRACMASS = SCALEFAC * TRACMR / TCVV(TRAC_IDX)
+                  TRACMASS = SCALEFAC * TRACMR / tempTCVV
 
                   IF (TRAC_ADD) THEN
                      STT(I,J,L,TRAC_IDX) = STT(I,J,L,TRAC_IDX)+TRACMASS
@@ -2149,6 +2200,8 @@
       USE GIGC_State_Chm_Mod,     ONLY : ChmState
       USE GIGC_State_Met_Mod,     ONLY : MetState
       USE TIME_MOD,               ONLY : GET_MONTH
+      USE PHYSCONSTANTS,      ONLY : AIRMW
+      USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -2171,6 +2224,7 @@
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
 !  10 Sep 2015 - E. Lundgren   - Tracer units are now kg/kg dry air (prev v/v)
+!  25 Jul 2016 - M. Yannetti - Now takes in State_Chm instead of TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2185,10 +2239,14 @@
       ! Local variables for quantities from Input_Opt
       LOGICAL              :: LPRT
       INTEGER              :: N_TRACERS
-      REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
+      !REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER    :: STT(:,:,:,:)
+      TYPE(Species), POINTER :: ThisSpc
+
+      ! Temp Variables
+      REAL(fp)          :: tempTCVV
 
       !=================================================================
       ! EMISS_BASIC begins here!
@@ -2200,7 +2258,7 @@
       ! Copy fields from INPUT_OPT
       LPRT      = Input_Opt%LPRT
       N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+      !TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Check that tracer units are in kg/kg dry air (ewl, 9/10/15)
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
@@ -2209,6 +2267,9 @@
      &                    'Routine EMISS_BASIC in ucx_mod.F' )
          RETURN
       ENDIF
+
+      ! Initialize pointers
+      ThisSpc => NULL()
 
       ! Initialize GEOS-Chem tracer array [kg/kg dry]
       STT => State_Chm%Tracers
@@ -2231,6 +2292,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, N, N_EMITTED )
+!$OMP+PRIVATE( ThisSpc,  tempTCVV )
 !$OMP+SCHEDULE( DYNAMIC )
        DO N = 1, N_EMIT
 
@@ -2240,13 +2302,17 @@
           ! Convert units if the tracer is valied
           IF ( N_EMITTED /= 0 ) THEN
         
+             ThisSpc => State_Chm%SpcData(N_EMITTED)%Info
+             tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+             ThisSpc => NULL()
+
              ! Loop over surface grmid boxes
              DO J = 1, JJPAR
              DO I = 1, IIPAR
            
                 ! Set kg/kg dry air using vol/vol (ewl, 9/10/15)
                 STT(I,J,1,N_EMITTED) = GRID_EMIT(J,N)
-     &                               / TCVV(N_EMITTED)
+     &                               / tempTCVV
 
              ENDDO
              ENDDO

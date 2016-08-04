@@ -813,6 +813,7 @@ dvected tracer input  restart file
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
+            ! TCVVLOCK: replacing this TCVV causes UCX to have NaNs.
             State_Chm%Tracers(I,J,L,N) = Ptr3D(I,J,L) / 
      &                                   Input_Opt%TCVV(N) 
          ENDDO
@@ -1732,6 +1733,8 @@ dvected tracer input  restart file
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE OCEAN_MERCURY_MOD,  ONLY : MAKE_OCEAN_Hg_RESTART
+      USE PHYSCONSTANTS,      ONLY : AIRMW
+      USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1749,6 +1752,7 @@ dvected tracer input  restart file
 ! 
 ! !REVISION HISTORY: 
 !  09 Feb 2016 - E. Lundgren - Initial version
+!  25 Jul 2016 - M. Yannetti - Replaced TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1761,6 +1765,12 @@ dvected tracer input  restart file
      &                     (IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
       REAL(f4), POINTER :: TracerVV_ptr(:,:,:,:)
 
+      ! Pointers
+      TYPE(Species), POINTER :: ThisSpc
+
+      ! Temp Variables
+      REAL(fp)          :: tempTCVV
+
 
       !=================================================================
       ! WRITE_GC_RESTART begins here!
@@ -1769,11 +1779,17 @@ dvected tracer input  restart file
       ! Assume success
       RC = GIGC_SUCCESS
 
+      ! Initialize pointers
+      ThisSpc => NULL()
+
       ! Calculate tracer concentration in v/v dry air
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
+!$OMP+PRIVATE( I, J, L, N, ThisSpc, tempTCVV )
       DO N = 1, Input_Opt%N_TRACERS
+      ThisSpc => State_Chm%SpcData(N)%Info
+      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+      ThisSpc => NULL()
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1781,7 +1797,7 @@ dvected tracer input  restart file
           ! Convert from mass mixing ratio [kg/kg dry air] to 
           ! molar mixing ratio [v/v dry air]
           TracerVV(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) * 
-     &                         Input_Opt%TCVV(N)
+     &                         tempTCVV
          
       ENDDO
       ENDDO
@@ -2807,6 +2823,8 @@ dvected tracer input  restart file
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE PHYSCONSTANTS,      ONLY : AIRMW
+      USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2834,6 +2852,7 @@ dvected tracer input  restart file
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now pass State_Chm, Input_Opt as arguments
 !  17 Feb 2015 - E. Lundgren - Change units from kg to kg/kg
+!  25 Jul 2016 - M. Yannetti - Replaced TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2841,6 +2860,15 @@ dvected tracer input  restart file
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I, J, L, N
+
+      ! Pointers
+      TYPE(Species), POINTER :: ThisSpc
+
+      ! Temp Variables
+      REAL(fp)          :: tempTCVV
+
+      ! Initialize pointers
+      ThisSpc => NULL()
 
       !=================================================================
       ! COPY_STT begins here!
@@ -2852,16 +2880,20 @@ dvected tracer input  restart file
       ! Exit if N is out of range
       IF ( N < 1 .or. N > Input_Opt%N_TRACERS ) RETURN
 
+      ThisSpc => State_Chm%SpcData(N)%Info
+      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+      ThisSpc => NULL()
+
       ! Convert tracer concentration from [v/v dry] to [kg/kg dry] and 
       ! store in State_Chm%Tracers
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( I, J, L, tempTCVV )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         State_Chm%Tracers(I,J,L,N) = TRACER(I,J,L) / Input_Opt%TCVV(N) 
+         State_Chm%Tracers(I,J,L,N) = TRACER(I,J,L) / tempTCVV
 
       ENDDO
       ENDDO

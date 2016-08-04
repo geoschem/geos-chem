@@ -1845,7 +1845,7 @@
 
          ! Ship timeseries
          IF ( ITS_TIME_FOR_DIAG63() ) THEN
-            CALL DIAG63( am_I_Root, Input_Opt, RC )
+            CALL DIAG63( am_I_Root, Input_Opt, State_Chm, RC )
          ENDIF
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG63' )
 

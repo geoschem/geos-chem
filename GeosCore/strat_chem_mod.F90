@@ -191,7 +191,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE PHYSCONSTANTS,      ONLY : XNUMOLAIR
+    USE PHYSCONSTANTS,      ONLY : XNUMOLAIR, AIRMW
     USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
@@ -205,6 +205,7 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
     USE UNITCONV_MOD
+    USE SPECIES_MOD
 
     IMPLICIT NONE
 !
@@ -250,6 +251,7 @@ CONTAINS
 !  30 Sep 2015 - E. Lundgren - Now use UNITCONV_MOD for unit conversion
 !  16 Jun 2016 - M. Yannetti - Replaced TRACERID_MOD.\
 !  20 Jun 2016 - R. Yantosca - Now make species ID flags module variables
+!  18 Jul 2016 - M. Yannetti - Replaced TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -282,12 +284,16 @@ CONTAINS
     ! Arrays
     REAL(fp)          :: STT0  (IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
     REAL(fp)          :: BEFORE(IIPAR,JJPAR,LLPAR)
-    REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
+    !REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
 
     ! Pointers
     REAL(fp), POINTER :: STT(:,:,:,:)
     REAL(fp), POINTER :: AD(:,:,:)
     REAL(fp), POINTER :: T(:,:,:)
+    TYPE(Species), POINTER :: ThisSpc
+
+    ! Temp Variables
+    REAL(fp)          :: tempTCVV
 
     !===============================
     ! DO_STRAT_CHEM begins here!
@@ -304,7 +310,7 @@ CONTAINS
     IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
     IT_IS_A_TAGOX_SIM    = Input_Opt%ITS_A_TAGOX_SIM  
     IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
-    TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
+    !TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
 
     ! Replace TracerId Mod
 
@@ -312,6 +318,7 @@ CONTAINS
     STT                => State_Chm%Tracers
     AD                 => State_Met%AD
     T                  => State_Met%T
+    ThisSpc            => NULL()
 
     ! Set a flag for debug printing
     prtDebug             = ( LPRT .and. am_I_Root )
@@ -356,7 +363,7 @@ CONTAINS
 
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, N, NN, k, P, dt, M0 )
+       !$OMP PRIVATE( I, J, L, N, NN, k, P, dt, M0, ThisSpc, tempTCVV )
        DO J=1,JJPAR
           DO I=1,IIPAR
 
@@ -393,7 +400,10 @@ CONTAINS
                    IF ( .NOT. ASSOCIATED(PLVEC(N)%PROD) ) THEN
                       P = 0.0_fp 
                    ELSE
-                      P = PLVEC(N)%PROD(I,J,L) * AD(I,J,L) / TCVV(NN) 
+                      ThisSpc => State_Chm%SpcData(NN)%Info
+                      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+                      P = PLVEC(N)%PROD(I,J,L) * AD(I,J,L) / tempTCVV 
+                      ThisSpc => NULL()
                    ENDIF
 
                    M0 = STT(I,J,L,NN)                       ! initial mass [kg]
@@ -425,8 +435,12 @@ CONTAINS
        ! Make note of inital state for determining tendency later
        BEFORE = STT(:,:,:,id_O3 )
 
+       ThisSpc => State_Chm%SpcData(id_O3)%Info
+       tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+       ThisSpc => NULL()
+
        ! Put ozone in v/v
-       STT(:,:,:,id_O3) = STT(:,:,:,id_O3) * TCVV( id_O3 ) / AD
+       STT(:,:,:,id_O3) = STT(:,:,:,id_O3) * tempTCVV / AD
 
        ! Do Linoz or Synoz
        IF ( LLINOZ ) THEN
@@ -438,7 +452,7 @@ CONTAINS
        ENDIF
  
        ! Put ozone back to kg
-       STT(:,:,:,id_O3) = STT(:,:,:,id_O3) * AD / TCVV( id_O3 )
+       STT(:,:,:,id_O3) = STT(:,:,:,id_O3) * AD / tempTCVV
 
        ! Put tendency into diagnostic array [kg box-1]
        SCHEM_TEND(:,:,:,id_O3) = SCHEM_TEND(:,:,:,id_O3) + &
@@ -526,7 +540,7 @@ CONTAINS
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
        !$OMP PRIVATE( NN, BEFORE, I, J, L, BryTmp ) &
-       !$OMP PRIVATE( LCYCLE )
+       !$OMP PRIVATE( LCYCLE, ThisSpc, tempTCVV )
        DO NN=1,6
 
           IF ( GC_Bry_TrID(NN) > 0 ) THEN
@@ -554,20 +568,24 @@ CONTAINS
                 ENDIF
                 IF ( LCYCLE ) CYCLE
 
+                ThisSpc => State_Chm%SpcData(GC_Bry_TrID(NN))%Info
+                tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+                ThisSpc => NULL()
+
                 ! Now get Br data through HEMCO pointers (ckeller, 12/30/14).
                 IF ( State_Met%SUNCOS(I,J) > 0.e+0_fp ) THEN
                    ! daytime [ppt] -> [kg]
                    BryTmp = BrPtrDay(NN)%MR(I,J,L)   &
                           * 1.e-12_fp                & ! convert from [ppt]
                           * AD(I,J,L)                &
-                          / TCVV(GC_Bry_TrID(NN))
+                          / tempTCVV
 
                 ELSE
                    ! nighttime [ppt] -> [kg]
                    BryTmp = BrPtrNight(NN)%MR(I,J,L) &
                           * 1.e-12_fp                & ! convert from [ppt]
                           * AD(I,J,L)                &
-                          / TCVV(GC_Bry_TrID(NN))
+                          / tempTCVV
                 ENDIF
 
                 ! Special adjustment for G-C Br2 tracer, 

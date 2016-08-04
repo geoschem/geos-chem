@@ -176,6 +176,7 @@
       REAL(fp),  PARAMETER   :: XNUMOL_O3   = AVO / 48e-3_fp ! hard-coded MW
       REAL(fp),  PARAMETER   :: XNUMOL_NO3  = AVO / 62e-3_fp ! hard-coded MW
       REAL(fp),  PARAMETER   :: XNUMOL_H2O2 = AVO / 34e-3_fp ! hard-coded MW
+      ! HARDCODED_TCVV
       REAL(fp),  PARAMETER   :: TCVV_S      = AIRMW / 32e+0_fp ! hard-coded MW
       REAL(fp),  PARAMETER   :: TCVV_N      = AIRMW / 14e+0_fp ! tdf
       REAL(fp),  PARAMETER   :: SMALLNUM    = 1e-20_fp
@@ -560,6 +561,7 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  16 Jun 2016 - M. Long     - Remove references to TRACERID_MOD and replace
 !                              with GIGC_STATE_CHM_MOD::IND_()
+!  19 Jul 2016 - M. Yannetti - GRAV_SETTLING now takes in State_Chm.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -693,6 +695,7 @@
       ! SO4s [kg] gravitational settling
       IF ( id_SO4s > 0 ) THEN
          CALL GRAV_SETTLING( am_I_Root,          Input_Opt, State_Met,
+     &                       State_Chm,
      &                       STT(:,:,:,id_SO4s), 1,        RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4S' )
@@ -702,6 +705,7 @@
       ! NITs [kg] gravitational settling
       IF ( id_NITs > 0 ) THEN 
          CALL GRAV_SETTLING( am_I_Root,          Input_Opt, State_Met, 
+     &                       State_Chm,
      &                       STT(:,:,:,id_NITs), 2,         RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
@@ -712,8 +716,8 @@
          !tdf
          ! DUST_SO4 [kg] gravitational settling
          IF ( id_SO4d1 > 0 ) THEN
-            CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
-     &                          State_Met, STT(:,:,:,id_SO4d1), 
+            CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
+     &                          State_Chm, STT(:,:,:,id_SO4d1), 
      &                          3,         RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_SO4')
@@ -723,8 +727,8 @@
          !tdf
          ! DUST_SO4 [kg] gravitational settling
          IF ( id_SO4d2 > 0 ) THEN
-            CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
-     &                          State_Met, STT(:,:,:,id_SO4d2), 
+            CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
+     &                          State_Chm, STT(:,:,:,id_SO4d2), 
      &                          4,         RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_SO4')
@@ -734,8 +738,8 @@
          !tdf
          ! DUST_SO4 [kg] gravitational settling
          IF ( id_SO4d3 > 0 ) THEN
-            CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
-     &                          State_Met, STT(:,:,:,id_SO4d3), 
+            CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
+     &                          State_Chm, STT(:,:,:,id_SO4d3), 
      &                          5,         RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_SO4')
@@ -745,8 +749,8 @@
          !tdf
          ! DUST_SO4 [kg] gravitational settling
          IF ( id_SO4d4 > 0 ) THEN
-            CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
-     &                          State_Met, STT(:,:,:,id_SO4d4), 
+            CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
+     &                          State_Chm, STT(:,:,:,id_SO4d4), 
      &                          6,         RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_SO4')
@@ -756,8 +760,8 @@
          !tdf
          ! DUST_NIT [kg] gravitational settling
          IF ( id_NITd1 > 0 ) THEN
-            CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
-     &                          State_Met, STT(:,:,:,id_NITd1), 
+            CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
+     &                          State_Chm, STT(:,:,:,id_NITd1), 
      &                          7,         RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_NIT')
@@ -767,8 +771,8 @@
          !tdf
          ! DUST_NIT [kg] gravitational settling
          IF ( id_NITd2 > 0 ) THEN
-            CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
-     &                          State_Met, STT(:,:,:,id_NITd2), 
+            CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
+     &                          State_Chm, STT(:,:,:,id_NITd2), 
      &                          8,         RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_NIT')
@@ -778,8 +782,8 @@
          !tdf
          ! DUST_NIT [kg] gravitational settling
          IF ( id_NITd3 > 0 ) THEN
-            CALL GRAV_SETTLING( am_I_Root, Input_Opt, 
-     &                          State_Met, STT(:,:,:,id_NITd3), 
+            CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
+     &                          State_Chm, STT(:,:,:,id_NITd3), 
      &                          9,         RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_NIT')
@@ -789,8 +793,8 @@
          !tdf
          ! DUST_NIT [kg] gravitational settling
          IF ( id_NITd4 > 0 ) THEN
-            CALL GRAV_SETTLING( am_I_Root, Input_Opt,  
-     &                          State_Met, STT(:,:,:,id_NITd4), 
+            CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
+     &                          State_Chm, STT(:,:,:,id_NITd4), 
      &                          10,        RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_NIT')
@@ -1509,6 +1513,7 @@ d
 ! !INTERFACE:
 !
       SUBROUTINE GRAV_SETTLING( am_I_Root, Input_Opt, State_Met, 
+     &                          State_Chm,
      &                          TC,        N,         RC         )
 !
 ! !USES:
@@ -1524,6 +1529,8 @@ d
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE SPECIES_MOD,        ONLY : SPECIES
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
 #if defined( NC_DIAG )
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
@@ -1544,6 +1551,7 @@ d
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Tracer [kg]
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REMARKS:
 !  N=1 is SO4S; N=2 is NITS
@@ -1576,7 +1584,9 @@ d
 !                              remove dependency on pressure_mod.
 !  22 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostics
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  31 May 2016 - E. Lundgren - Remove usage of Input_Opt%XNUMOL
+!  31 May 2016 - E. Lundgren - Remove usage of Input_Opt%XNUMOLi
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV, now takes in
+!                              State_Chm due to being needed now.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1636,12 +1646,21 @@ d
       REAL(fp)               :: SALA_REDGE_um(2)
       REAL(fp)               :: SALC_REDGE_um(2)
 
+      ! Pointers
+      TYPE(Species), POINTER :: ThisSpc
+
+      ! Temp Variables
+      REAL(fp)          :: tempTCVV
+
       !=================================================================
       ! GRAV_SETTLING begins here!
       !=================================================================
 #if defined( NC_DIAG )
       Ptr2D => NULL()
 #endif
+
+      ! Initialize pointers
+      ThisSpc => NULL()
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LDSTUP = Input_Opt%LDSTUP
@@ -1755,7 +1774,7 @@ d
 !$OMP+PRIVATE( I,       J,     L,    VTS,  P,        TEMP, RHB,  RWET ) 
 !$OMP+PRIVATE( RATIO_R, RHO,   DP,   PDP,  CONST,    SLIP, VISC, TC0  )
 !$OMP+PRIVATE( DELZ,    DELZ1, TOT1, TOT2, AREA_CM2, FLUX             )
-!$OMP+PRIVATE( RHO1,    WTP                                           ) 
+!$OMP+PRIVATE( RHO1,    WTP,   ThisSpc,    tempTCVV                   ) 
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR       
@@ -1929,9 +1948,14 @@ d
             ! Surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
+            ! TCVV Calculation
+            ThisSpc => State_Chm%SpcData(IDTRC(N))%Info
+            tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+            ThisSpc => NULL()
+
             ! Convert sea salt/dust flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
-            FLUX     = FLUX * AVO / ( AIRMW / Input_Opt%TCVV(IDTRC(N))
+            FLUX     = FLUX * AVO / ( AIRMW / tempTCVV
      &                 * 1.e-3_fp ) / AREA_CM2 
 
 #if defined( BPCH_DIAG )   
@@ -2404,6 +2428,7 @@ d
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
 !  23 Sep 2015 - R. Yantosca - Remove reference to obsolete DRYH2O2 flag
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV.
 !EOC
 !------------------------------------------------------------------------------
 !BOC
@@ -2424,13 +2449,13 @@ d
 
       ! Arrays
       REAL*4             :: ARRAY(IIPAR,JJPAR,LLCHEM)
-      REAL(fp)           :: TCVV  (Input_Opt%N_TRACERS)
+      !REAL(fp)           :: TCVV  (Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: STT(:,:,:,:)
-
+      
       !=================================================================
       ! CHEM_H2O2 begins here!
       !=================================================================
@@ -2441,7 +2466,7 @@ d
 
       ! Copy fields from INPUT_OPT to local variables for use below
       N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
+      !TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
 
       ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -2556,6 +2581,7 @@ d
       USE WETSCAV_MOD,        ONLY : H2O2s
       USE WETSCAV_MOD,        ONLY : SO2s
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoDiagn
+      USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -2655,6 +2681,7 @@ d
 !                              Remove dependency on pressure_mod.
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !  23 Sep 2015 - R. Yantosca - Remove reference to obsolete DRYSO2 flag
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2696,7 +2723,7 @@ d
       REAL(fp)              :: H2SO4_cd,  H2SO4_gas
 
       ! Arrays
-      REAL(fp)              :: TCVV  (Input_Opt%N_TRACERS)
+      !REAL(fp)              :: TCVV  (Input_Opt%N_TRACERS)
       REAL(fp)              :: ALK_d   (NDSTBIN)  ! tdf 04/07/08
       REAL(fp)              :: ALKA_d  (NDSTBIN)  ! tdf 04/07/08
       REAL(fp)              :: PSO4_d  (NDSTBIN)  ! tdf 04/07/08
@@ -2714,6 +2741,11 @@ d
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: STT(:,:,:,:)
+      TYPE(Species), POINTER :: ThisSpc
+
+      ! Temp Variables
+      REAL(fp)          :: tempTCVV
+
 
       ! For HEMCO update
       LOGICAL, SAVE   :: FIRST = .TRUE.
@@ -2729,11 +2761,14 @@ d
       ! Assume success
       RC          = GIGC_SUCCESS
 
+      ! Initialize pointers
+      ThisSpc => NULL()
+
       ! Copy fields from INPUT_OPT to local variables for use below
       IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
       IS_OFFLINE  = Input_Opt%ITS_AN_AEROSOL_SIM
       N_TRACERS   = Input_Opt%N_TRACERS
-      TCVV        = Input_Opt%TCVV  (1:N_TRACERS)
+      !TCVV        = Input_Opt%TCVV  (1:N_TRACERS)
       LDSTUP      = Input_Opt%LDSTUP
 
       ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
@@ -2787,6 +2822,7 @@ d
 !$OMP+PRIVATE( ALK_d, KTS, KTN, PSO4_d, PH2SO4_d, PNIT_d, SO2_gas      ) !tdf
 !$OMP+PRIVATE( KTH, H2SO4_cd, H2SO4_gas, Ki                            ) !tdf
 !$OMP+PRIVATE( IBIN, PSO4d_tot, PH2SO4d_tot, PNITd_tot, ALKA_d         )
+!$OMP+PRIVATE( ThisSpc, tempTCVV                                       )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR 
       DO J = 1, JJPAR
@@ -3226,16 +3262,24 @@ d
             ! carry ALKdst.  Set ALKdst to zero here. (bmy, 1/28/14)
             ALKdst = 0e+0_fp
 #else
+
+            ThisSpc => State_Chm%SpcData(id_DST1)%Info
+            tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+
             ! For other simulations, Sum up the contributions from
             ! DST1 thru DST4 tracers into ALKdst. (bmy, 1/28/14)
             ALKdst = ( STT(I,J,L,id_DST1) + STT(I,J,L,id_DST2) +
      &                 STT(I,J,L,id_DST3) + STT(I,J,L,id_DST4) ) *
-     &                 1.e+9_fp * State_Met%AD(I,J,L) / TCVV(id_DST1) /
+     &                 1.e+9_fp * State_Met%AD(I,J,L) / tempTCVV /
      &                 State_Met%AIRVOL(I,J,L)
 #endif
 
+            ThisSpc => State_Chm%SpcData(id_SALA)%Info
+            tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+            ThisSpc => NULL()
+
             ALKss  = ( STT(I,J,L,id_SALA  ) + STT(I,J,L,id_SALC) ) *
-     &                 1.e+9_fp * State_Met%AD(I,J,L) / TCVV(id_SALA) /
+     &                 1.e+9_fp * State_Met%AD(I,J,L) / tempTCVV /
      &                 State_Met%AIRVOL(I,J,L)
 
             ALKds = ALKdst + ALKss
@@ -3387,7 +3431,7 @@ d
 
                CALL HET_DROP_CHEM( I,    J,   L,      LSTOT, SSCvv, 
      &                             aSO4, NH3, SO2_sr, H2O20, GNO3,  SR,
-     &                             Input_Opt, State_Met )
+     &                             Input_Opt, State_Met, State_Chm )
 
 	    ELSE
 		SR = 0.e+0_fp
@@ -3564,6 +3608,7 @@ d
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_MONTH 
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+      USE SPECIES_MOD,        ONLY : SPECIES
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3624,6 +3669,7 @@ d
 !  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod since
 !                              XNUMOLAIR now defined in CMN_GTCM_MOD
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3659,12 +3705,16 @@ d
       REAL(fp)           :: HNO3_ss,     HNO3_kg
 
       ! Arrays
-      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
+      !REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER  :: STT(:,:,:,:)
       REAL(fp), POINTER  :: AD(:,:,:)
       REAL(fp), POINTER  :: AIRVOL(:,:,:)
+      TYPE(Species), POINTER :: ThisSpc
+
+      ! Temp Variables
+      REAL(fp)          :: tempTCVV
 
       !=================================================================
       ! SEASALT_CHEM begins here!
@@ -3675,22 +3725,28 @@ d
 
       ! Copy fields from INPUT_OPT to local variables for use below
       N_TRACERS            = Input_Opt%N_TRACERS
-      TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
+      !TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
 
       ! Initialize pointers
       STT                 => State_Chm%Tracers
       AD                  => State_Met%AD
       AIRVOL              => State_Met%AIRVOL
+      ThisSpc             => NULL()
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
+
+
+      ThisSpc => State_Chm%SpcData(id_SO2)%Info
+      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+      ThisSpc => NULL()
 
       ! Convert SO2 [v/v] to  [eq/gridbox]
       !tdf Note 0.064 is Mw of SO2 in kg
       !    so RHS of SO2_eq is 2. * moles(SO2) / gridbox
       SO2_eq = ( 2.e+0_fp * SO2_cd  * AD(I,J,L) ) / 
-     &         ( TCVV(id_SO2) * 0.064e+0_fp )
+     &         ( tempTCVV * 0.064e+0_fp )
       SO2_eq = MAX( SO2_eq, MINDAT )
 
       IF ( IT_IS_A_FULLCHEM_SIM ) THEN
@@ -3724,7 +3780,7 @@ d
       F_SO2_A  = MAX( F_SO2_A, 1.e-32_fp )
 
       ! Convert to [eq/timestep] 
-      C_FLUX_A = 2.e+0_fp * F_SO2_A * AD(I,J,L) / TCVV(id_SO2) 
+      C_FLUX_A = 2.e+0_fp * F_SO2_A * AD(I,J,L) / tempTCVV 
      &         / 0.064e+0_fp
 
       ! Available flux of SO2 to coarse sea salt aerosols [v/v/timestep]
@@ -3733,7 +3789,7 @@ d
       F_SO2_C  = MAX( F_SO2_C, 1.0e-32_fp )
 
       ! Convert to [eq/timestep] 
-      C_FLUX_C = 2.e+0_fp * F_SO2_C * AD(I,J,L) / TCVV(id_SO2) 
+      C_FLUX_C = 2.e+0_fp * F_SO2_C * AD(I,J,L) / tempTCVV
      &         / 0.064e+0_fp
 
       ! Total flux of SO2 [v/v/timestep]
@@ -3888,16 +3944,24 @@ d
       !-------------------------------------------------------------------
 
       !Modified SO2 [eq] converted back to [v/v]
-      SO2_ss       = SO2_chem * 0.064 * TCVV(id_SO2) /
+      SO2_ss       = SO2_chem * 0.064 * tempTCVV /
      &               AD(I,J,L) / 2.0e+0_fp
       SO2_ss       = MAX( SO2_ss, MINDAT )
 
+      ThisSpc => State_Chm%SpcData(id_SO4)%Info
+      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+      ThisSpc => NULL()
+
       !SO4E produced converted from [eq/timestep] to [v/v/timestep] 
-      PSO4E        = SO4E * 0.096 * TCVV(id_SO4) /
+      PSO4E        = SO4E * 0.096 * tempTCVV /
      &               AD(I,J,L) / 2.0e+0_fp
 
+      ThisSpc => State_Chm%SpcData(id_SO4S)%Info
+      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+      ThisSpc => NULL()
+
       !SO4F produced converted from [eq/timestep] to [v/v/timestep] 
-      PSO4F        = SO4F * 0.096 * TCVV(id_SO4S) /
+      PSO4F        = SO4F * 0.096 * tempTCVV /
      &               AD(I,J,L) / 2.0e+0_fp
 
       ! Alkalinity titrated by HNO3
@@ -3918,8 +3982,12 @@ d
       ! HNO3 lost [eq/timestep] converted back to [v/v/timestep]
       IF ( id_HNO3 > 0 ) THEN
 
+         ThisSpc => State_Chm%SpcData(id_HNO3)%Info
+         tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+         ThisSpc => NULL()
+
          ! Coupled sim: id_HNO3 is defined, so use it
-         HNO3_ss = HNO3_SSC * 0.063 * TCVV(id_HNO3) / AD(I,J,L)
+         HNO3_ss = HNO3_SSC * 0.063 * tempTCVV / AD(I,J,L)
          STT(I,J,L,id_HNO3) = MAX( HNO3_vv - HNO3_ss, MINDAT )
 
       ELSE
@@ -3936,8 +4004,13 @@ d
      &                  ( HNO3_ss * State_Met%AD(I,J,L) / TCVV_N )
       ENDIF
 
+
+      ThisSpc => State_Chm%SpcData(id_NITS)%Info
+      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+      ThisSpc => NULL()
+
       ! NITS produced converted from [eq/timestep] to [v/v/timestep] 
-      PNITs(I,J,L) = HNO3_SSC * 0.063 * TCVV(id_NITS) / AD(I,J,L)
+      PNITs(I,J,L) = HNO3_SSC * 0.063 * tempTCVV / AD(I,J,L)
 	 
       ! Modified accum alkalinity 
       ALKA         = EQ1 - (SO4E + HNO3_SSA)
@@ -4010,6 +4083,7 @@ d
       !USE TRACERID_MOD
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,    GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+      USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4070,6 +4144,7 @@ d
 !  16 Sep 2013 - M. Sulprizio- Added ProTeX headers
 !  17 Sep 2013 - M. Sulprizio- Now pass Input_Opt, State_Met, State_Chm, and RC
 !                              as arguments
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4109,12 +4184,16 @@ d
       REAL(fp)             :: EQ_BEG
 
       ! Arrays
-      REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
+      !REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER    :: STT(:,:,:,:)
       REAL(fp), POINTER    :: AD(:,:,:)
       REAL(fp), POINTER    :: AIRVOL(:,:,:)
+      TYPE(Species), POINTER :: ThisSpc
+
+      ! Temp Variables
+      REAL(fp)          :: tempTCVV
 
       !=================================================================
       ! DUST_CHEM begins here!
@@ -4124,8 +4203,11 @@ d
       RC                   = GIGC_SUCCESS
 
       N_TRACERS            = Input_Opt%N_TRACERS
-      TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
+      !TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+
+      ! Initialize pointers
+      ThisSpc => NULL()
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       STT                 => State_Chm%Tracers
@@ -4141,8 +4223,12 @@ d
       !tdf Note 0.064D0 is Mw of SO2 in kg
       !    Hence, SO2_eq =  2 * moles(SO2) / gridbox
 
+      ThisSpc => State_Chm%SpcData(id_SO2)%Info
+      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+      ThisSpc => NULL()
+
       SO2_eq = ( 2.e+0_fp * SO2_cd * AD(I,J,L) ) /
-     &         ( TCVV(id_SO2) * 0.064e+0_fp )
+     &         ( tempTCVV * 0.064e+0_fp )
       SO2_eq = MAX( SO2_eq, MINDAT )
 
       !tdf 2/13/2K9
@@ -4205,7 +4291,7 @@ d
 
          ! Available flux of SO2 converted to [eq/timestep]
          S_FLUX_A = 2.e+0_fp * F_SO2_A * AD(I,J,L) /
-     &              TCVV(id_SO2) / 0.064e+0_fp
+     &              tempTCVV / 0.064e+0_fp
          S_FLUX (IBIN) = S_FLUX_A
 
          ! Total available flux of SO2 [v/v/timestep]
@@ -4366,6 +4452,10 @@ d
 
       SO2_new       = SO2_eq
 
+      ThisSpc => State_Chm%SpcData(id_SO4)%Info
+      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+      ThisSpc => NULL()
+
       ! Don't produce more SO4 than available ALK or SO2
       DO IBIN = 1, NDSTBIN
 
@@ -4381,8 +4471,10 @@ d
          ! Alkalinity titrated by S(IV) --> S(VI) [eq]
          TITR_SO2 (IBIN) =  SO4d
 
+
+
          !SO4d produced converted from [eq/timestep] to [v/v/timestep]
-         PSO4d (IBIN) = SO4d * 0.096e+0_fp * TCVV(id_SO4) /
+         PSO4d (IBIN) = SO4d * 0.096e+0_fp * tempTCVV /
      &                  AD(I,J,L) / 2.0e+0_fp
 
          ! tdf
@@ -4397,8 +4489,12 @@ d
 
       END DO
 
+      ThisSpc => State_Chm%SpcData(id_SO2)%Info
+      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+      ThisSpc => NULL()
+
       !Modified SO2 [eq] converted back to [v/v]
-      SO2_gas       = SO2_new * 0.064e+0_fp * TCVV(id_SO2) /
+      SO2_gas       = SO2_new * 0.064e+0_fp * tempTCVV /
      &                AD(I,J,L) / 2.0e+0_fp
       SO2_gas       = MAX( SO2_gas, MINDAT )
 
@@ -4407,6 +4503,10 @@ d
       !------------------------------------------------
 
       H2SO4_new   = H2SO4_eq
+
+      ThisSpc => State_Chm%SpcData(id_SO4)%Info
+      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+      ThisSpc => NULL()
 
       ! Don't produce more SO4 than available H2SO4
       ! Uptake not limited by alkalinity
@@ -4426,7 +4526,7 @@ d
          TITR_H2SO4 (IBIN) =  SO4d
 
          !SO4d produced converted from [eq/timestep] to [v/v/timestep]
-         PH2SO4d (IBIN) = SO4d * 0.096e+0_fp * TCVV(id_SO4) /
+         PH2SO4d (IBIN) = SO4d * 0.096e+0_fp * tempTCVV /
      &                    AD(I,J,L) / 2.0e+0_fp
 
          ! tdf
@@ -4458,6 +4558,10 @@ d
 
       HNO3_new    = HNO3_eq
 
+      ThisSpc => State_Chm%SpcData(id_NIT)%Info
+      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+      ThisSpc => NULL()
+
       ! Alkalinity titrated by HNO3 in dust
       DO IBIN = 1, NDSTBIN
 
@@ -4474,7 +4578,7 @@ d
          TITR_HNO3 (IBIN) = HNO3d
 
          ! NIT produced converted from [eq/timestep] to [v/v/timestep]
-         PNITd (IBIN) = HNO3d * 0.063e+0_fp * TCVV(id_NIT) / AD(I,J,L)
+         PNITd (IBIN) = HNO3d * 0.063e+0_fp * tempTCVV / AD(I,J,L)
 
          ! tdf
 !         if (I .eq. 1 .and. J .eq. 63 .and. L .eq. 6) then
@@ -4494,8 +4598,12 @@ d
       !IF ( ND09 > 0 ) AD09(I,J,L,3) = AD09(I,J,L,3) + TITR_HNO3
       !----------------------------------------------------------------------
 
+      ThisSpc => State_Chm%SpcData(id_HNO3)%Info
+      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+      ThisSpc => NULL()
+
       !Modified HNO3 [eq/timestep] converted back to [v/v/timestep]
-      HNO3_gas      = HNO3_new * 0.063e+0_fp * TCVV(id_HNO3) / AD(I,J,L)
+      HNO3_gas      = HNO3_new * 0.063e+0_fp * tempTCVV / AD(I,J,L)
       HNO3_gas      = MAX( HNO3_gas, MINDAT )
 
       ! HNO3 [v/v]
@@ -5559,14 +5667,17 @@ d
 !
       SUBROUTINE HET_DROP_CHEM( I,    J,    L,      LSTOT, SSCvv, 
      &                          aSO4, GNH3, SO2_sr, H2O20, GNO3, 
-     &                          SR,   Input_Opt,    State_Met    )
+     &                          SR,   Input_Opt,    State_Met, 
+     &                          State_Chm                        )
 !
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : IT_IS_FINITE, GEOS_CHEM_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5581,6 +5692,10 @@ d
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm     ! Chemistry State object
+!
 ! !OUTPUT PARAMETERS: 
 !
       REAL(fp),       INTENT(OUT) :: SR ! Sulfate production rate
@@ -5589,6 +5704,8 @@ d
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
 !  05 Sep 2013 - M. Sulprizio- Now pass met fields using the State_Met object
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV, now takes
+!                              State_Chm.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5620,6 +5737,10 @@ d
       REAL(fp), POINTER     :: AIRVOL(:,:,:)
       REAL(fp), POINTER     :: U(:,:,:)
       REAL(fp), POINTER     :: V(:,:,:)
+      TYPE(Species), POINTER :: ThisSpc
+
+      ! Temp Variables
+      REAL(fp)          :: tempTCVV
 
       !=================================================================
       ! HET_DROP_CHEM begins here!
@@ -5631,6 +5752,7 @@ d
       AIRVOL => State_Met%AIRVOL
       U      => State_Met%U
       V      => State_Met%V
+      ThisSpc => NULL()
 
       ! Convert gas phase concentrations from [v/v] to [pptv]
       NH3  = GNH3  * 1.0e+12_fp
@@ -5638,20 +5760,28 @@ d
       H2O2 = H2O20 * 1.0e12_fp
       HNO3 = GNO3 * 1.0e12_fp
 
+      ThisSpc => State_Chm%SpcData(id_SO4)%Info
+      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+      ThisSpc => NULL()
+
       ! Convert sulfate aerosol concentrations from [v/v] to [ug/m3]
       SO4 = ( aSO4                   * AD(I,J,L)     * 1.0e+9_fp ) / 
-     &      ( Input_Opt%TCVV(id_SO4) * AIRVOL(I,J,L) )
+     &      ( tempTCVV * AIRVOL(I,J,L) )
 
       ! Convert in cloud sulfate production rate from [v/v/timestep] to
       ! [ug/m3/timestep]
       B  = ( LSTOT                  * AD(I,J,L)     * 1.0e+9_fp ) / 
-     &     ( Input_Opt%TCVV(id_SO4) * AIRVOL(I,J,L) )
+     &     ( tempTCVV * AIRVOL(I,J,L) )
+
+      ThisSpc => State_Chm%SpcData(id_SALC)%Info
+      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+      ThisSpc => NULL()
 
       ! Convert coarse-mode aerosol concentrations from [v/v] to [#/cm3]
       ! based on equation in Hofmann, Science, 1990.
       ! First convert from [v/v] to [kg/m3 air]
       CNss = SSCvv                   * AD(I,J,L)     /
-     &     ( Input_Opt%TCVV(id_SALC) * AIRVOL(I,J,L) )
+     &     ( tempTCVV * AIRVOL(I,J,L) )
 
       ! Now convert from [kg/m3 air] to [#/cm3 air]
       ! Sea-salt
@@ -5725,8 +5855,12 @@ d
       ! ozone [ug/m3/timestep]
       SR = DSVI - B 
 
+      ThisSpc => State_Chm%SpcData(id_SO4)%Info
+      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+      ThisSpc => NULL()
+
       ! Convert SR from [ug/m3/timestep] to [v/v/timestep]
-      SR = SR * Input_Opt%TCVV(id_SO4) * 1.e-9_fp / AIRDEN(I,J,L)
+      SR = SR * tempTCVV * 1.e-9_fp / AIRDEN(I,J,L)
 	
       ! Don't allow SR to be negative
       SR = MAX( SR, 0.e+0_fp )
@@ -6009,6 +6143,7 @@ d
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TOMAS_MOD,          ONLY : AQOXID, GETACTBIN
       USE UNITCONV_MOD
+      USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -6040,6 +6175,7 @@ d
 !                              and RC arguments
 !  31 May 2013 - R. Yantosca - Now pass State_Chm to TOMAS routines
 !  30 Sep 2015 - E. Lundgren - Now use UNITCONV_MOD conversion routine
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6051,12 +6187,21 @@ d
       INTEGER           :: KMIN
       REAL(fp)          :: SO4OXID
 
+      ! Pointers
+      TYPE(Species), POINTER :: ThisSpc
+
+      ! Temp Variables
+      REAL(fp)          :: tempTCVV
+
       !=================================================================
       ! CHEM_SO4_AQ begins here!
       !=================================================================
  
       ! Assume success
       RC  = GIGC_SUCCESS
+
+      ! Initialize pointers
+      ThisSpc => NULL()
 
       ! Convert STT from [v/v] -> [kg] 
       CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt,
@@ -6067,10 +6212,14 @@ d
          RETURN
       ENDIF
 
+      ThisSpc => State_Chm%SpcData(id_SO4)%Info
+      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+      ThisSpc => NULL()
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-!$OMP+PRIVATE( KMIN, SO4OXID, BINACT1, BINACT2 )
+!$OMP+PRIVATE( KMIN, SO4OXID, BINACT1, BINACT2, tempTCVV )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -6080,7 +6229,7 @@ d
          IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L)
-     &               / Input_Opt%TCVV(id_SO4)
+     &               / tempTCVV
 
          IF ( SO4OXID > 0e+0_fp ) THEN
 ! JKodros (6/2/15 - Set activating bin based on which TOMAS bin length being used)

@@ -71,6 +71,8 @@ MODULE Tendencies_Mod
   USE GIGC_Input_Opt_Mod, ONLY : OptInput
   USE GIGC_State_Met_Mod, ONLY : MetState
   USE GIGC_State_Chm_Mod, ONLY : ChmState
+  USE PHYSCONSTANTS,      ONLY : AIRMW
+  USE SPECIES_MOD,        ONLY : Species
 
   IMPLICIT NONE
   PRIVATE
@@ -118,6 +120,7 @@ MODULE Tendencies_Mod
 ! !REVISION HISTORY:
 !  14 Jul 2015 - C. Keller   - Initial version. 
 !  26 Oct 2015 - C. Keller   - Now organize in linked list for more flexibility.
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -617,13 +620,22 @@ CONTAINS
     TYPE(TendClass), POINTER :: ThisTend => NULL()
     CHARACTER(LEN=255)       :: MSG
     CHARACTER(LEN=255)       :: LOC = 'TEND_STAGE1 (tendencies_mod.F)' 
-    
+   
+    ! Pointers
+    TYPE(Species), POINTER :: ThisSpc
+
+    ! Temporary
+    REAL(fp)          :: tempTCVV
+ 
     !=======================================================================
     ! TEND_STAGE1 begins here!
     !=======================================================================
 
     ! Assume successful return
     RC = GIGC_SUCCESS
+
+    ! Initialize Pointers
+    ThisSpc => NULL()
 
     ! Find tendency class
     CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, ThisTend=ThisTend )
@@ -642,8 +654,12 @@ CONTAINS
        IF ( IsInvv ) THEN
           Ptr3D = State_Chm%Tracers(:,:,:,I)
        ELSE
+         ! TCVV Calculation
+         ThisSpc => State_Chm%SpcData(I)%Info
+         tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+         ThisSpc => NULL()
           Ptr3D = State_Chm%Tracers(:,:,:,I) &
-                * Input_Opt%TCVV(I) / State_Met%AD(:,:,:)
+                * tempTCVV / State_Met%AD(:,:,:)
        ENDIF
 
        ! Cleanup
@@ -710,13 +726,23 @@ CONTAINS
     CHARACTER(LEN=63)        :: DiagnName
     CHARACTER(LEN=255)       :: MSG
     CHARACTER(LEN=255)       :: LOC = 'TEND_STAGE2 (tendencies_mod.F)' 
-   
+  
+    ! Pointers
+    TYPE(Species), POINTER :: ThisSpc
+
+    ! Temporary
+    REAL(fp)          :: tempTCVV
+ 
     !=======================================================================
     ! TEND_STAGE2 begins here!
     !=======================================================================
 
     ! Assume successful return
     RC = GIGC_SUCCESS
+
+    ! Initialize Pointers
+    ThisSpc => NULL()
+
 
     ! Find tendency class
     CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, ThisTend=ThisTend )
@@ -751,8 +777,12 @@ CONTAINS
           IF ( IsInvv ) THEN
              Tend = ( State_Chm%Tracers(:,:,:,I) - Ptr3D(:,:,:) ) / DT
           ELSE
+             ! TCVV Calculation
+             ThisSpc => State_Chm%SpcData(I)%Info
+             tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+             ThisSpc => NULL()
              Tend = ( ( State_Chm%Tracers(:,:,:,I)                &
-                      * Input_Opt%TCVV(I) / State_Met%AD(:,:,:) ) &
+                      * tempTCVV / State_Met%AD(:,:,:) ) &
                       - Ptr3D(:,:,:) ) / DT
           ENDIF
        ENDIF

@@ -59,6 +59,7 @@
 !  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -158,7 +159,7 @@
       REAL(fp)       :: DT_TEND
 
       ! Arrays
-      REAL(fp)         :: TCVV(Input_Opt%N_TRACERS)
+      !REAL(fp)         :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -174,7 +175,7 @@
 
       ! Get fields from the Input_OPt object
       N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+      !TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Pick the proper # of tracers
       N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
@@ -204,7 +205,7 @@
 #endif
 
          ! Do complete mixing of tracers in the PBL (if necessary)
-         CALL TURBDAY( N_TOT_TRC, STT, TCVV, 
+         CALL TURBDAY( N_TOT_TRC, STT, State_Chm, 
      &                 Input_Opt, State_Met )
 
          ! Archive tracer concentrations for tendencies (ckeller, 7/15/2015)
@@ -457,17 +458,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TURBDAY( NTRC, TC, TCVV, Input_Opt, State_Met )              
+      SUBROUTINE TURBDAY( NTRC, TC, State_Chm, Input_Opt, State_Met ) 
 !
 ! !USES:
 !
       USE DIAG_MOD,           ONLY : TURBFLUP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CONV
 
       USE CMN_SIZE_MOD             ! Size parameters    
       USE CMN_DIAG_MOD             ! ND15
+
+      USE PHYSCONSTANTS,      ONLY : AIRMW
+      USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS: 
 !
@@ -475,7 +480,7 @@
       INTEGER,        INTENT(IN)    :: NTRC             
 
       ! MW air (g/mol) / MW tracer (g/mol)     [ unitless ]
-      REAL(fp),         INTENT(IN)    :: TCVV(NTRC)
+      !REAL(fp),         INTENT(IN)    :: TCVV(NTRC)
 
       ! Meteorology State object
       TYPE(MetState), INTENT(IN)    :: State_Met
@@ -485,6 +490,7 @@
 !
       ! Tracer concentration [v/v]
       REAL(fp),         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NTRC) 
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REMARKS:
 !  Original subroutine by Dale Allen, Univ of MD.
@@ -549,6 +555,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  15 Jul 2015 - C. Keller   - Added tendencies module
+!  25 Jul 2016 - M. Yannetti - Now takes in State_Chm instead of TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -563,6 +570,10 @@
 
       ! Pointers
       REAL(fp), POINTER :: AD(:,:,:)
+      TYPE(Species), POINTER :: ThisSpc
+
+      ! Temp Variables
+      REAL(fp)          :: tempTCVV
 
       !=================================================================
       ! TURBDAY begins here!          
@@ -588,6 +599,7 @@
 
       ! Initialize pointers
       AD    => State_Met%AD
+      ThisSpc => NULL()
 
       ! Convection timestep [s]
       DTCONV = GET_TS_CONV() * 60e+0_fp
@@ -595,7 +607,7 @@
       ! Loop over Lat/Long grid boxes (I,J)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, AA, CC, CC_AA ) 
+!$OMP+PRIVATE( I, J, L, N, AA, CC, CC_AA, ThisSpc, tempTCVV ) 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
   
@@ -670,9 +682,12 @@
             ! mass change due to mixing in the boundary layer
             !=======================================================
             IF ( ND15 > 0 ) THEN
+               ThisSpc => State_Chm%SpcData(N)%Info
+               tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+               ThisSpc => NULL()
                DO L = 1, IMIX(I,J)
                   TURBFLUP(I,J,L,N) = TURBFLUP(I,J,L,N) +
-     &                 DTC(I,J,L,N) / ( TCVV(N) * DTCONV )
+     &                 DTC(I,J,L,N) / ( tempTCVV * DTCONV )
                ENDDO
             ENDIF
          ENDDO                  

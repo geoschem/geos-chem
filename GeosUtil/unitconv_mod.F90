@@ -25,6 +25,8 @@ MODULE UnitConv_Mod
   USE PRECISION_MOD         ! GEOS-Chem Flexible Precision (fp)
   USE GIGC_ErrCode_Mod
   USE ERROR_MOD
+  USE PHYSCONSTANTS,      ONLY : AIRMW
+  USE SPECIES_MOD,        ONLY : Species
                     
   IMPLICIT NONE
   PRIVATE
@@ -593,6 +595,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
 !  30 Sep 2015 - E. Lundgren - Remove N_TRACERS from arguments list
+!  25 Jul 2016 - M. Yannetti - Now takes in State_Chm instead of TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -601,13 +604,22 @@ CONTAINS
 !
     INTEGER :: I, J, L, N
     CHARACTER(LEN=255) :: MSG, LOC
-    
+   
+    ! Pointers
+    TYPE(Species), POINTER :: ThisSpc
+
+    ! Temp Variables
+    REAL(fp)          :: tempTCVV
+ 
     !====================================================================
     ! Convert_KgKgDry_to_VVDry begins here!
     !====================================================================
 
     ! Assume success
     RC        =  GIGC_SUCCESS
+
+    ! Initialize pointers
+    ThisSpc => NULL()
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -645,13 +657,16 @@ CONTAINS
  
     !$OMP PARALLEL DO           &
     !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( I, J, L, N ) 
+    !$OMP PRIVATE( I, J, L, N, ThisSpc, tempTCVV )
     DO N = 1, Input_Opt%N_TRACERS
+    ThisSpc => State_Chm%SpcData(N)%Info
+    tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+    ThisSpc => NULL()
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
        State_Chm%Tracers(I,J,L,N) = State_Chm%Tracers(I,J,L,N)  &
-                                  * Input_Opt%TCVV(N)
+                                  * tempTCVV
     ENDDO
     ENDDO
     ENDDO
@@ -684,6 +699,8 @@ CONTAINS
 !
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE PHYSCONSTANTS,      ONLY : AIRMW
+    USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS: 
 !
@@ -703,6 +720,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
 !  30 Sep 2015 - E. Lundgren - Remove N_TRACERS from arguments list
+!  25 Jul 2016 - M. Yannetti - Now takes in State_Chm instead of TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -712,12 +730,21 @@ CONTAINS
     INTEGER :: I, J, L, N
     CHARACTER(LEN=255) :: MSG, LOC
 
+    ! Pointers
+    TYPE(Species), POINTER :: ThisSpc
+
+    ! Temp Variables
+    REAL(fp)          :: tempTCVV
+
     !====================================================================
     ! Convert_VVDry_to_KgKgDry begins here!
     !=================================================================
 
-      ! Assume success
-      RC        =  GIGC_SUCCESS
+    ! Assume success
+    RC        =  GIGC_SUCCESS
+
+    ! Initialize pointers
+    ThisSpc => NULL()
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -755,13 +782,16 @@ CONTAINS
 
       !$OMP PARALLEL DO           &
       !$OMP DEFAULT( SHARED     ) &
-      !$OMP PRIVATE( I, J, L, N ) 
+      !$OMP PRIVATE( I, J, L, N, ThisSpc, tempTCVV ) 
       DO N = 1, Input_Opt%N_TRACERS
+      ThisSpc => State_Chm%SpcData(N)%Info
+      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+      ThisSpc => NULL()
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
         State_Chm%Tracers(I,J,L,N) = State_Chm%Tracers(I,J,L,N)   &
-                                        / Input_Opt%TCVV(N)
+                                        / tempTCVV
       ENDDO
       ENDDO
       ENDDO
@@ -1264,6 +1294,8 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE PHYSCONSTANTS,      ONLY : AIRMW
+    USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1286,6 +1318,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
+!  25 Jul 2016 - M. Yannetti - Now takes in State_Chm instead of TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1295,12 +1328,21 @@ CONTAINS
     INTEGER :: I, J, L, N
     CHARACTER(LEN=255) :: MSG, LOC
 
+    ! Pointers
+    TYPE(Species), POINTER :: ThisSpc
+
+    ! Temp Variables
+    REAL(fp)          :: tempTCVV
+
     !====================================================================
     ! Convert_KgKgDry_to_Kg begins here!
     !====================================================================
 
     ! Assume success
     RC        =  GIGC_SUCCESS
+
+    ! Initialize pointers
+    ThisSpc => NULL()
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -1339,14 +1381,17 @@ CONTAINS
 
     !$OMP PARALLEL DO           &
     !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( I, J, L, N ) 
+    !$OMP PRIVATE( I, J, L, N, ThisSpc, tempTCVV ) 
     DO N = 1, Input_Opt%N_TRACERS
+    ThisSpc => State_Chm%SpcData(N)%Info
+    tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+    ThisSpc => NULL()
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
        State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)  &
                                   * State_Met%AD(I,J,L)         &
-                                  / Input_Opt%TCVV(N)
+                                  / tempTCVV
     ENDDO
     ENDDO
     ENDDO
@@ -1380,6 +1425,8 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE PHYSCONSTANTS,      ONLY : AIRMW
+    USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1401,6 +1448,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
+!  25 Jul 2016 - M. Yannetti - Now takes in State_Chm instead of TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1411,12 +1459,21 @@ CONTAINS
     INTEGER :: N_TRACERS
     CHARACTER(LEN=255) :: MSG, LOC
 
+    ! Pointers
+    TYPE(Species), POINTER :: ThisSpc
+
+    ! Temp Variables
+    REAL(fp)          :: tempTCVV
+
     !====================================================================
     ! Convert_Kg_to_VVDry begins here!
     !====================================================================
 
     ! Assume success
     RC        =  GIGC_SUCCESS
+
+    ! Initialize pointers
+    ThisSpc => NULL()
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -1455,13 +1512,16 @@ CONTAINS
 
     !$OMP PARALLEL DO           &
     !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( I, J, L, N ) 
+    !$OMP PRIVATE( I, J, L, N, ThisSpc, tempTCVV ) 
     DO N = 1, Input_Opt%N_TRACERS
+    ThisSpc => State_Chm%SpcData(N)%Info
+    tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+    ThisSpc => NULL()
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
        State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)  &
-                                  * Input_Opt%TCVV(N)           &
+                                  * tempTCVV           &
                                   / State_Met%AD(I,J,L)
     ENDDO
     ENDDO

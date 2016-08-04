@@ -89,6 +89,8 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PHYSCONSTANTS,      ONLY : AIRMW
+      USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -121,6 +123,7 @@
 !  10 Sep 2015 - E. Lundgren - Modification for State_Chm%TRACERS units 
 !                              now in kg/kg dry air (previously kg/box)
 !  10 Sep 2015 - E. Lundgren - Remove passed argument 'unitflag'
+!  25 Jul 2016 - M. Yannetti - Replaced TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -142,8 +145,15 @@
 
       ! For values from Input_Opt
       INTEGER             :: N_TRACERS
-      REAL(fp)            :: TCVV(Input_Opt%N_TRACERS)
+!      REAL(fp)            :: TCVV(Input_Opt%N_TRACERS)
       REAL(fp),   POINTER :: STT(:,:,:,:)
+
+      ! Pointers
+      TYPE(Species), POINTER :: ThisSpc
+
+      ! Temp Variables
+      REAL(fp)          :: tempTCVV
+
 
       !===================================
       ! Initializing Variables
@@ -151,8 +161,11 @@
 
       ! Get fields from derived-type objects
       N_TRACERS  =  Input_Opt%N_TRACERS
-      TCVV       =  Input_Opt%TCVV(1:N_TRACERS)
+!      TCVV       =  Input_Opt%TCVV(1:N_TRACERS)
       STT        => State_Chm%TRACERS
+
+      ! Initialize pointers
+      ThisSpc => NULL()
 
       ! Zero
       LAT_MID    = 0e+0_fp
@@ -186,10 +199,14 @@
       ! SET_CH3Br begins here!
       !=================================================================
 
+      ThisSpc => State_Chm%SpcData(CH3Br_sel)%Info
+      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+      ThisSpc => NULL()
+
       ! Loop over grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, LAT_MID, CH3Br_conc )
+!$OMP+PRIVATE( I, J, L, LAT_MID, CH3Br_conc, tempTCVV )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -214,7 +231,7 @@
 
             ! Convert the [v/v] CH3Br conc units (dry air) to [kg/kg] 
             ! when setting tracer concentration (ewl, 9/10/15)
-            STT(I,J,L,CH3Br_sel) = CH3Br_conc / TCVV(CH3Br_sel)
+            STT(I,J,L,CH3Br_sel) = CH3Br_conc / tempTCVV
                
          ENDIF  ! end selection of PBL boxes
 
@@ -257,6 +274,8 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PHYSCONSTANTS,      ONLY : AIRMW
+      USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -290,6 +309,7 @@
 !  10 Sep 2015 - E. Lundgren - Modification for State_Chm%TRACERS units 
 !                              now in kg/kg dry air (previously kg/box)
 !  10 Sep 2015 - E. Lundgren - Remove passed argument 'unitflag'
+!  25 Jul 2016 - M. Yannetti - Replaced TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -301,8 +321,12 @@
       REAL(fp)          :: BrO_conc
 
       ! Pointers
-      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
+      !REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
       REAL(fp), POINTER :: STT(:,:,:,:)
+      TYPE(Species), POINTER :: ThisSpc
+
+      ! Temp Variables
+      REAL(fp)          :: tempTCVV
 
       !====================================================================
       ! SET_BrO begins here!
@@ -321,8 +345,9 @@
 
       ! Reference fields in derived-type objects
       N_TRACERS =  Input_Opt%N_TRACERS
-      TCVV      =  Input_Opt%TCVV(1:N_TRACERS)
+      !TCVV      =  Input_Opt%TCVV(1:N_TRACERS)
       STT       => State_Chm%TRACERS
+      ThisSpc   => NULL()
 
       ! ------------------------------------------------------
       ! Set the BrO concentration to 1 pptv inside the PBL.
@@ -353,6 +378,10 @@
          RETURN
       ENDIF
 
+      ThisSpc => State_Chm%SpcData(BrO_sel)%Info
+      tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+      ThisSpc => NULL()
+
       !=================================================================
       ! SET_BrO begins here!
       !=================================================================
@@ -360,7 +389,7 @@
       ! Loop over grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, BrO_conc )
+!$OMP+PRIVATE( I, J, L, BrO_conc, tempTCVV )
       DO J = 1, JJPAR
          lon_loop: DO I = 1, IIPAR
 
@@ -410,7 +439,7 @@
 ! new:
                   ! Convert the [v/v] BrO conc units (dry air) to [kg/kg] 
                   ! when setting tracer concentration (ewl, 9/10/15)
-                  STT(I,J,L,BrO_sel) = BrO_conc / TCVV(BrO_sel)
+                  STT(I,J,L,BrO_sel) = BrO_conc / tempTCVV
 ! end new (ewl)
 
                ENDIF            ! end selection of PBL boxes

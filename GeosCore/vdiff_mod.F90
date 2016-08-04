@@ -22,6 +22,7 @@ MODULE VDIFF_MOD
   USE VDIFF_PRE_MOD, ONLY : PCNST                  ! N_TRACERS
   USE VDIFF_PRE_MOD, ONLY : LPRT                   ! Debug print?
   USE VDIFF_PRE_MOD, ONLY : LTURB                  ! Do PBL mixing?
+  USE SPECIES_MOD,   ONLY : Species
 
   USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
@@ -138,6 +139,7 @@ MODULE VDIFF_MOD
 !  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  07 Jan 2016 - E. Lundgren - Replace hard-coded physical params w/ global and
 !                              remove unused parameters
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -212,8 +214,8 @@ contains
                     sflx,       thp_arg,   as2,        pblh_arg,    &
                     kvh_arg,    kvm_arg,   tpert_arg,  qpert_arg,   &
                     cgs_arg,    shp,       wvflx_arg,  plonl,       &
-                    Input_Opt,  State_Met, taux_arg,   tauy_arg,    &
-                    ustar_arg )
+                    Input_Opt,  State_Met, State_Chm,  taux_arg,    &
+                    tauy_arg,   ustar_arg )
 !
 ! !USES:
 !
@@ -221,6 +223,7 @@ contains
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE VDIFF_PRE_MOD,      ONLY : ND15
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
 
     implicit none
 !
@@ -251,6 +254,7 @@ contains
          as2(:,:,:,:),       &     ! moist, tracers after vert. diff
          shp(:,:,:),         &     ! specific humidity (kg/kg)
          thp_arg(:,:,:)            ! pot temp after vert. diffusion
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -382,6 +386,13 @@ contains
     real(fp) :: qp0(plonl,plev,pcnst) ! To store initial concentration values
                                     ! (as2)
 
+    ! Pointers
+    TYPE(Species), POINTER :: ThisSpc
+
+    ! Temporary
+    REAL(fp)          :: tempTCVV
+
+
     !=================================================================
     ! vdiff begins here!
     !=================================================================
@@ -389,6 +400,9 @@ contains
     !### Debug
     IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: vdiff begins' )
+
+    ! Initialize Pointers
+    ThisSpc => NULL()
 
     !Populate local variables with values from arguments.(ccc, 11/17/09)
     um1    = uwnd(:,lat,:)
@@ -771,6 +785,10 @@ contains
             termh, qp1, plonl )
 
        DO M = 1, pcnst
+        ! TCVV Calculation
+        ThisSpc => State_Chm%SpcData(M)%Info
+        tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+        ThisSpc => NULL()
        DO L = 1, plev 
        do I = 1, plonl
           ! Arrays in vdiff are upside-down
@@ -779,7 +797,7 @@ contains
           TURBFLUP(I,lat,k,M) = TURBFLUP(I,lat,k,M) &
                               + (qp1(I,L,M) - qp0(I,L,M)) &
                               * State_Met%AD(I,lat,k) &
-                              / ( Input_Opt%TCVV(M) * ztodt )
+                              / ( tempTCVV * ztodt )
        enddo
        enddo
        ENDDO
@@ -1996,7 +2014,7 @@ contains
     LOGICAL            :: LGTMM,     LSOILNOX
     INTEGER            :: N_TRACERS, N_MEMBERS 
     CHARACTER(LEN=255) :: TRACER_NAME (Input_Opt%N_TRACERS)
-    REAL(fp)           :: TCVV        (Input_Opt%N_TRACERS)
+    !REAL(fp)           :: TCVV        (Input_Opt%N_TRACERS)
 
     ! HEMCO update
     LOGICAL            :: FND
@@ -2026,6 +2044,9 @@ contains
     ! For pointing to the species database
     TYPE(Species),  POINTER :: ThisSpc
     INTEGER                 :: Hg_Cat
+
+    ! Temporary
+    REAL(fp)          :: tempTCVV
 
     ! kyu codeathon
     !=================================================================
@@ -2077,7 +2098,7 @@ contains
     N_TRACERS    = Input_Opt%N_TRACERS
     N_MEMBERS    = Input_Opt%MAX_MEMB
     TRACER_NAME  = Input_Opt%TRACER_NAME (1:N_TRACERS             )
-    TCVV         = Input_Opt%TCVV        (1:N_TRACERS             )
+    !TCVV         = Input_Opt%TCVV        (1:N_TRACERS             )
 
     dtime = GET_TS_CONV()*60e+0_fp ! min -> second
     
@@ -2177,7 +2198,7 @@ contains
 !$OMP DEFAULT( SHARED )                                                   &
 !$OMP PRIVATE( I,      J,               L,            N,       NN       ) &
 !$OMP PRIVATE( WK1,    WK2,             PBL_TOP,      DEP_KG,  TOPMIX   ) &
-!$OMP PRIVATE( fnd,    emis,            dep                             ) &
+!$OMP PRIVATE( fnd,    emis,            dep,          tempTCVV          ) &
 !$OMP PRIVATE( TMPFLX, FRAC_NO_HG0_DEP, ZERO_HG0_DEP, ThisSpc, Hg_Cat   )
     do J = 1, JJPAR
     do I = 1, IIPAR
@@ -2224,7 +2245,11 @@ contains
           ! DFLX will be converted to kg/m2/s lateron. (ckeller, 04/01/2014)
           CALL GetHcoVal ( N, I, J, 1, fnd, dep=dep )
           IF ( fnd ) THEN
-             dflx(I,J,N) = dflx(I,J,N) + ( dep * as2_scal(I,J,N) / TCVV(N) )
+             ! TCVV Calculation
+             ThisSpc => State_Chm%SpcData(N)%Info
+             tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+             ThisSpc => NULL()
+             dflx(I,J,N) = dflx(I,J,N) + ( dep * as2_scal(I,J,N) / tempTCVV )
           ENDIF
        ENDDO
        
@@ -2269,6 +2294,7 @@ contains
 
           ! Point to the Species Database entry for tracer NN
           ThisSpc => State_Chm%SpcData(NN)%Info
+          tempTCVV = ( AIRMW / ThisSpc%emMW_g )
 
 !          ! Now include sea salt dry deposition (jaegle 5/11/11)
 !          IF ( NN == IDTDST1 .OR. &
@@ -2307,7 +2333,7 @@ contains
              ! given that as2 is in v/v
              ! Now add to existing dflx (ckeller, 10/16/2014).
              dflx(I,J,NN) = dflx(I,J,NN) &
-                          + DEPSAV(I,J,N) * (wk1/(wk2+1.e-30_fp)) / TCVV(NN)
+                          + DEPSAV(I,J,N) * (wk1/(wk2+1.e-30_fp)) / tempTCVV
 
              ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
              ! when there is O3 destruction in subgrid ship plume 
@@ -2335,7 +2361,7 @@ contains
              ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
              ! Now add to existing dflx (ckeller, 10/16/2014).
              dflx(I,J,NN) = dflx(I,J,NN) &
-                          + DEPSAV(I,J,N) * as2_scal(I,J,NN) / TCVV(NN)
+                          + DEPSAV(I,J,N) * as2_scal(I,J,NN) / tempTCVV
 
              ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
              ! when there is O3 destruction in subgrid ship plume 
@@ -2478,11 +2504,16 @@ contains
                    wk2 = wk2 + State_Met%AD(I,J,L) * &
                                GET_FRAC_UNDER_PBLTOP(I,J,L)
                 enddo
+
+                ! TCVV Calculation
+                ThisSpc => State_Chm%SpcData(1)%Info
+                tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+                ThisSpc => NULL()
                 ! since we only use the ratio of wk1 / wk2, there should not be
                 ! a problem even if the PBL top is lower than the top of the 
                 ! first (lowest) model layer
                 ! given that as2 is in v/v
-                dflx(I,J,N) = DEPSAV(I,J,1) * (wk1/(wk2+1.e-30_fp)) / TCVV(1)
+                dflx(I,J,N) = DEPSAV(I,J,1) * (wk1/(wk2+1.e-30_fp)) / tempTCVV
 
                 ! Consistent with the standard GEOS-Chem setup.(Lin, 07/14/08) 
                 if (drydep_back_cons) then 
@@ -2498,7 +2529,7 @@ contains
                 ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
                 ! Now add to existing dflx (ckeller, 10/16/2014).
                 dflx(I,J,N) = dflx(I,J,N) &
-                            + DEPSAV(I,J,1) * as2_scal(I,J,N) / TCVV(1) 
+                            + DEPSAV(I,J,1) * as2_scal(I,J,N) / tempTCVV 
              endif
           enddo
        endif
@@ -2806,7 +2837,11 @@ contains
 
        ! Convert v/v -> m/m (i.e., kg/kg)
        DO N = 1, N_TRACERS
-          p_as2(:,:,:,N)  =  p_as2(:,:,:,N) / TCVV(N) 
+          ! TCVV Calculation
+          ThisSpc => State_Chm%SpcData(N)%Info
+          tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+          ThisSpc => NULL()
+          p_as2(:,:,:,N)  =  p_as2(:,:,:,N) / tempTCVV 
        ENDDO
 
        ! Convert g/kg -> kg/kg
@@ -2824,7 +2859,8 @@ contains
                       sflx,      p_thp,     p_as2,  pblh,      &
                       p_kvh,     p_kvm,     tpert,  qpert,     &
                       p_cgs,     p_shp,     shflx,  IIPAR,     &
-                      Input_Opt, State_Met, ustar_arg=p_ustar )
+                      Input_Opt, State_Met, State_Chm,         &
+                      ustar_arg=p_ustar )
        enddo
 !$OMP END PARALLEL DO
 
@@ -2833,7 +2869,11 @@ contains
 
        ! Convert kg/kg -> v/v
        DO N = 1, N_TRACERS
-          p_as2(:,:,:,N) = p_as2(:,:,:,N) * TCVV(N)
+          ! TCVV Calculation
+          ThisSpc => State_Chm%SpcData(N)%Info
+          tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+          ThisSpc => NULL()
+          p_as2(:,:,:,N) = p_as2(:,:,:,N) * tempTCVV
        ENDDO
 
        ! Convert kg/kg -> g/kg
@@ -2872,7 +2912,11 @@ contains
 
        ! Convert from v/v -> m/m (i.e., kg/kg)
        do N = 1, N_TRACERS
-          p_as2(:,:,:,N) = p_as2(:,:,:,N) / TCVV(N) 
+          ! TCVV Calculation
+          ThisSpc => State_Chm%SpcData(N)%Info
+          tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+          ThisSpc => NULL()
+          p_as2(:,:,:,N) = p_as2(:,:,:,N) / tempTCVV 
        enddo
 
        !### Debug
@@ -2891,7 +2935,11 @@ contains
 
        ! Convert from m/m (i.e. kg/kg) -> v/v
        do N = 1, N_TRACERS
-          p_as2(:,:,:,N) = p_as2(:,:,:,N) * TCVV(N) 
+          ! TCVV Calculation
+          ThisSpc => State_Chm%SpcData(N)%Info
+          tempTCVV = ( AIRMW / ThisSpc%emMW_g )
+          ThisSpc => NULL()
+          p_as2(:,:,:,N) = p_as2(:,:,:,N) * tempTCVV 
        enddo
 
        ! Free pointers
