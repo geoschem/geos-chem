@@ -1620,6 +1620,19 @@
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
          IF ( LWETD .and. ITS_TIME_FOR_DYN() ) THEN
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+            ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+            DO NA = 1, State_Chm%nAdvect
+               N                          = State_Chm%Map_Advect(NA)
+               Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
+               State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+            ENDDO
+            State_Chm%Spc_Units = 'kg/kg dry'
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_Start( "Wet deposition", RC )
@@ -1638,6 +1651,19 @@
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "Wet deposition", RC )
 #endif
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+            DO NA = 1, State_Chm%nAdvect
+               N                          = State_Chm%Map_Advect(NA)
+               State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+               
+               ! Restore State_Chm%SPECIES to its original values
+               State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+            ENDDO
+            State_Chm%Spc_Units = 'molec/cm3'
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
          ENDIF
 

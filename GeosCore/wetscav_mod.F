@@ -1669,19 +1669,6 @@
       ! Scalars
       REAL(fp)               :: Ki, SO2LOSS
 
-!      ! Pointers (add SAVE to make them THREADPRIVATE)
-!      REAL(fp),      POINTER, SAVE :: p_C_H2O  => NULL()
-!      REAL(fp),      POINTER, SAVE :: p_CLDICE => NULL()
-!      REAL(fp),      POINTER, SAVE :: p_CLDLIQ => NULL()
-!      REAL(fp),      POINTER, SAVE :: p_T      => NULL()
-!
-!      ! Objects
-!      TYPE(Species), POINTER, SAVE :: SpcInfo  => NULL()
-!
-!      ! Need to declare the pointers and objects THREADPRIVATE
-!      ! because RAINOUT is called from within a parallel loop
-!!$OMP THREADPRIVATE( p_C_H2O, p_CLDICE, p_CLDLIQ, p_T, SpcInfo )
-
       ! Pointers
       REAL(fp),      POINTER :: p_C_H2O
       REAL(fp),      POINTER :: p_CLDICE
@@ -2945,6 +2932,8 @@
 !                              species ID from State_Chm%Map_Advect.
 !  30 Jun 2016 - R. Yantosca - Replace STT with Spc and DSTT with DSpc
 !  05 Jul 2016 - R. Yantosca - Now replace IDWETD with State_Chm%Map_Wetdep
+!  05 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  05 Aug 2016 - R. Yantosca - Remove reference to Spc, it's not needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2957,7 +2946,6 @@
       LOGICAL                :: KIN
       INTEGER                :: I,     IDX,    J,         L
       INTEGER                :: N,     NW,     Hg_Cat
-      INTEGER                :: NA,    nAdvect
       REAL(fp)               :: Q,     QDOWN,  DT,        DT_OVER_TAU
       REAL(fp)               :: K,     K_MIN,  K_RAIN,    RAINFRAC
       REAL(fp)               :: F,     FTOP,   F_PRIME,   WASHFRAC
@@ -2975,54 +2963,28 @@
       CHARACTER(LEN=255)     :: ERRMSG
 
       ! Pointers
-      REAL(fp),      POINTER :: Spc(:,:,:,:)
       TYPE(Species), POINTER :: SpcInfo
 
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Is this a mercury simulation?
       IS_Hg = ( ITS_A_MERCURY_SIM )
 
       ! Initialize pointers
-      Spc     => NULL()
       SpcInfo => NULL()
 
-      ! Convert tracer concentration from mixing ratio (kg/kg dry air) to
+      ! Convert species concentration from mixing ratio (kg/kg dry air) to
       ! mass per unit area (kg/m2) for wet deposition since computation is
       ! done per column (ewl, 9/8/15)
-      CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,           
-     &                              State_Met, State_Chm, RC )   
+      CALL ConvertSpc_KgKgDry_to_Kgm2( am_I_Root, State_Met, 
+     &                                 State_Chm, RC         )   
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP in wetscav_mod.F')
          RETURN
       ENDIF  
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-      ! Point to chemical species array [kg/m2]
-      Spc => State_Chm%Species
 
       ! Dynamic timestep [s]
       DT  = GET_TS_DYN() * 60e+0_fp
@@ -3405,30 +3367,15 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      ! Convert species units back to mixing ratio (ewl, 9/8/15)
+      CALL ConvertSpc_Kgm2_to_KgKgDry( am_I_Root, State_Met, 
+     &                                 State_Chm, RC         )   
 
-         ! Restore State_Chm%SPECIES to its original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-      ! Convert tracer units back to mixing ratio (ewl, 9/8/15)
-      CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,           
-     &                               State_Met, State_Chm, RC )   
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP in wetscav_mod.F')
          RETURN
       ENDIF  
-
-      ! Free pointer
-      NULLIFY( Spc )
 
       END SUBROUTINE WETDEP
 !EOC
@@ -3610,6 +3557,8 @@
 !  30 Jun 2016 - R. Yantosca - Replace STT with Spc and DSTT with DSpc
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !  05 Jul 2016 - R. Yantosca - Now replace IDWETD with State_Chm%Map_Wetdep
+!  05 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  05 Aug 2016 - R. Yantosca - Remove reference to Spc, it's not needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3623,7 +3572,6 @@
       LOGICAL                :: IS_RAINOUT, IS_WASHOUT, IS_BOTH
       INTEGER                :: I,     IDX,    J,         L
       INTEGER                :: N,     NW,     Hg_Cat
-      INTEGER                :: NA,    nAdvect
       REAL(fp)               :: Q,     QDOWN,  DT,        DT_OVER_TAU
       REAL(fp)               :: K,     K_MIN,  K_RAIN,    RAINFRAC
       REAL(fp)               :: F,     FTOP,   F_PRIME,   WASHFRAC
@@ -3641,13 +3589,7 @@
       CHARACTER(LEN=255)     :: ERRMSG
 
       ! Pointers
-      REAL(fp),      POINTER :: Spc(:,:,:,:)
       TYPE(Species), POINTER :: SpcInfo
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
@@ -3657,35 +3599,18 @@
       IS_Hg = ITS_A_MERCURY_SIM
 
       ! Initialize pointers
-      Spc     => NULL()
       SpcInfo => NULL()
 
-      ! Convert tracer concentration from mixing ratio (kg/kg dry air) to
+      ! Convert species concentration from mixing ratio (kg/kg dry air) to
       ! mass per unit area (kg/m2) for wet deposition since computation is
       ! done per column (ewl, 9/8/15)
-      CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,
-     &                              State_Met, State_Chm, RC )
+      CALL ConvertSpc_KgKgDry_to_Kgm2( am_I_Root, State_Met, 
+     &                                 State_Chm, RC         )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP_MERRA in wetscav_mod.F')
          RETURN
       ENDIF  
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Dynamic timestep [s]
       DT  = GET_TS_DYN() * 60e+0_fp
@@ -4031,22 +3956,9 @@
       ENDDO	
 !$OMP END PARALLEL DO
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
       ! Convert tracer concentration back to kg/kg dry air (ewl, 9/8/15)
-      CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,
-     &                              State_Met, State_Chm, RC )
+      CALL ConvertSpc_Kgm2_to_KgKgDry( am_I_Root, State_Met, 
+     &                                 State_Chm, RC         )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP_MERRA in wetscav_mod.F')
@@ -5968,6 +5880,7 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  23 Jun 2016 - R. Yantosca - Remove reference to tracerid_mod.F
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT and State_Chm%TRACERS
+!  05 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5981,11 +5894,6 @@
       ! Pointers
       REAL(fp), POINTER :: PL
       REAL(fp), POINTER :: TK
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@
-!      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,2)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
             
       !=====================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
@@ -6080,22 +5988,6 @@
       ! arrays on each dynamic timestep.  (bmy, 9/22/15)
       !====================================================================
       IF ( FIRST ) THEN 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ We only have to copy the H2O2 and SO2 slots from TRACERS to SPECIES
-!@@@
-!         IF ( id_H2O2 > 0 ) THEN
-!            Spc_Temp(:,:,:,1) = State_Chm%Species(:,:,:,id_H2O2)
-!            State_Chm%Species(:,:,:,id_H2O2) = 
-!     &      State_Chm%Tracers(:,:,:,id_H2O2)
-!         ENDIF
-!
-!         IF ( id_SO2 > 0 ) THEN
-!            Spc_Temp(:,:,:,2) = State_Chm%Species(:,:,:,id_SO2)
-!            State_Chm%Species(:,:,:,id_SO2) = 
-!     &      State_Chm%Tracers(:,:,:,id_SO2)
-!         ENDIF
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
          ! Set H2O2s to the initial H2O2 from STT, so that we will have
          ! nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
@@ -6116,22 +6008,6 @@
             SO2s = State_Chm%Species(:,:,:,id_SO2)
      &           * Input_Opt%TCVV(id_SO2)
          ENDIF
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ We only have to copy the H2O2 and SO2 slots from SPECIES to TRACERS
-!@@@
-!         IF ( id_H2O2 > 0 ) THEN
-!            State_Chm%Tracers(:,:,:,id_H2O2) = 
-!     &      State_Chm%Species(:,:,:,id_H2O2)
-!            State_Chm%Species(:,:,:,id_H2O2) = Spc_Temp(:,:,:,1)
-!         ENDIF
-!
-!         IF ( id_SO2 > 0 ) THEN
-!            State_Chm%Tracers(:,:,:,id_SO2) = 
-!     &      State_Chm%Species(:,:,:,id_SO2)
-!            State_Chm%Species(:,:,:,id_SO2) = Spc_Temp(:,:,:,2)
-!         ENDIF
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
          ! Reset first-time flag
          FIRST = .FALSE.
