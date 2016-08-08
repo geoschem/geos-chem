@@ -194,6 +194,7 @@
 !  06 Jul 2016 - R. Yantosca - Use State_Chm%Map_WetDep to get species ID's
 !  07 Jul 2016 - R. Yantosca - Now dimension DIAG14 and DIAG38 for the #
 !                              of soluble species (State_Chm%nWetDep)
+!   8 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -205,26 +206,7 @@
       REAL(fp)          :: TCVV(State_Chm%nAdvect)
 #if defined( USE_TEND )
       REAL(fp)          :: DT_TEND
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Add temporary variables for tendencies testing
-!@@@
-      LOGICAL           :: FIRST = .TRUE.
-      INTEGER, SAVE     :: id_O3, id_CO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 #endif
-
-      ! Pointers
-      ! Define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. Units are 
-      ! initially kg/kg dry air but will be converted to
-      ! kg/kg total air for convection (ewl, 8/10/15)
-      REAL(fp), POINTER :: Spc(:,:,:,:)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !=================================================================
       ! MERRA or GEOS-FP met fields definitions
@@ -272,71 +254,25 @@
       !=================================================================
       ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-
-      ! Define ID flags for O3, CO 
-      IF ( FIRST ) THEN
-         id_O3 = Ind_('O3')
-         id_CO = Ind_('CO')
-         FIRST = .FALSE.
-      ENDIF
-      IF ( id_O3 > 0 ) THEN
-         Spc_Temp         (:,:,:,id_O3) = State_Chm%Species(:,:,:,id_O3)
-         State_Chm%Species(:,:,:,id_O3) = State_Chm%Tracers(:,:,:,id_O3)
-      ENDIF
-      IF ( id_CO > 0 ) THEN
-         Spc_Temp         (:,:,:,id_CO) = State_Chm%Species(:,:,:,id_CO)
-         State_Chm%Species(:,:,:,id_CO) = State_Chm%Tracers(:,:,:,id_CO)
-      ENDIF
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CONV', .TRUE., RC )
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-      IF ( id_O3 > 0 ) THEN         
-         State_Chm%Tracers(:,:,:,id_O3) = State_Chm%Species(:,:,:,id_O3)
-         State_Chm%Species(:,:,:,id_O3) = Spc_Temp         (:,:,:,id_O3)
-      ENDIF
-      IF ( id_CO > 0 ) THEN
-         State_Chm%Tracers(:,:,:,id_CO) = State_Chm%Species(:,:,:,id_CO)
-         State_Chm%Species(:,:,:,id_CO) = Spc_Temp         (:,:,:,id_CO)
-      ENDIF
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 #endif
  
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC      = GIGC_SUCCESS
 
-      ! Convert State_Chm%Tracers from [kg/kg dry air] to 
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      ! Convert State_Chm%Species from [kg/kg dry air] to 
       ! [kg/kg total air] prior to convection (ewl, 8/10/15)
-      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
-     &                                   State_Met, State_Chm, RC )
+      CALL ConvertSpc_KgKgDry_to_KgKgTotal( am_I_Root, State_Met, 
+     &                                      State_Chm, RC         )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'DO_CONVECTION in convection_mod.F')
          RETURN
       ENDIF  
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! For netCDF diagnostics, archive old species concentration. At the 
       ! moment, the new ND38 diagnostics only returns the total column 
@@ -347,7 +283,7 @@
 #if defined( NC_DIAG )
       IF ( Input_Opt%ND38 > 0 ) THEN
          ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
-         BEFORE = State_Chm%Tracers
+         BEFORE = State_Chm%Species
       ENDIF
 #endif
 
@@ -422,7 +358,7 @@
 
          ! Free pointer memory
          p_FSOL => NULL()
-         
+
       ENDDO
 
       !-----------------------------------------------------------------
@@ -547,7 +483,7 @@
 
                ! Loss rate [kg/kg total air per seconnd]
                TMP3D = ( BEFORE(:,:,:,trc_id) - 
-     &                 State_Chm%Tracers(:,:,:,trc_id)) / DTIME 
+     &                 State_Chm%Species(:,:,:,trc_id)) / DTIME 
 
                ! Convert to [kg/s]
                ! Now use moist air mass rather than dry air mass (ewl, 6/23/15)
@@ -579,23 +515,10 @@
       ENDIF
 #endif
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-      ! Convert tracer concentration from kg/kg total air to 
+      ! Convert species concentration from kg/kg total air to 
       ! kg/kg dry air after convection (ewl, 8/10/15)
-      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
-     &                                   State_Met, State_Chm, RC ) 
+      CALL ConvertSpc_KgKgTotal_to_KgKgDry( am_I_Root, State_Met, 
+     &                                      State_Chm, RC         ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'DO_CONVECTION in convection_mod.F')
@@ -607,35 +530,9 @@
       ! Calculate tendencies and write to diagnostics 
       ! (ckeller,7/15/2015)
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-      IF ( id_O3 > 0 ) THEN
-         Spc_Temp         (:,:,:,id_O3) = State_Chm%Species(:,:,:,id_O3)
-         State_Chm%Species(:,:,:,id_O3) = State_Chm%Tracers(:,:,:,id_O3)
-      ENDIF
-      IF ( id_CO > 0 ) THEN
-         Spc_Temp         (:,:,:,id_CO) = State_Chm%Species(:,:,:,id_CO)
-         State_Chm%Species(:,:,:,id_CO) = State_Chm%Tracers(:,:,:,id_CO)
-      ENDIF
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
       DT_TEND = GET_TS_CONV() * 60.0_fp
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CONV', .TRUE., DT_TEND, RC )
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-      IF ( id_O3 > 0 ) THEN
-         State_Chm%Tracers(:,:,:,id_O3) = State_Chm%Species(:,:,:,id_O3)
-         State_Chm%Species(:,:,:,id_O3) = Spc_Temp         (:,:,:,id_O3)
-      ENDIF
-      IF ( id_CO > 0 ) THEN
-         State_Chm%Tracers(:,:,:,id_CO) = State_Chm%Species(:,:,:,id_CO)
-         State_Chm%Species(:,:,:,id_CO) = Spc_Temp         (:,:,:,id_CO)
-      ENDIF
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 #endif
 
       END SUBROUTINE DO_CONVECTION
@@ -3001,7 +2898,7 @@
                      ! grid box (I,J,L+1) that will remain in the liquid
                      ! phase in grid box (I,J,L) and will NOT re-evaporate
                      ! [kg/m2/timestep]
- 1                   LOST    = T0_SUM - GAINED
+                     LOST    = T0_SUM - GAINED
 
                      ! Update tracer concentration (V. Shah, mps, 5/20/15)
                      ! [kg/kg]
