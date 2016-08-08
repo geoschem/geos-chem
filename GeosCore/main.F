@@ -1179,13 +1179,39 @@
          ! If we are not doing transport, then make sure that
          ! the floating pressure is set to PSC2 (bdf, bmy, 8/22/02)
          IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( State_Met%PSC2 )
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+            ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+            DO NA = 1, State_Chm%nAdvect
+               N                          = State_Chm%Map_Advect(NA)
+               Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
+               State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+            ENDDO
+            State_Chm%Spc_Units = 'kg/kg dry'
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
          ! Compute updated airmass quantities at each grid box 
          ! and update tracer concentration to conserve tracer mass
          ! (ewl, 10/28/15)
          CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
      &                update_mixing_ratio=.TRUE. )
-
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+            DO NA = 1, State_Chm%nAdvect
+               N                          = State_Chm%Map_Advect(NA)
+               State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+               
+               ! Restore State_Chm%SPECIES to its original values
+               State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+            ENDDO
+            State_Chm%Spc_Units = 'molec/cm3'
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ 
          ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant and,
          ! if LUCX=T and LSETH2O=F and LACTIVEH2O=T, update specific humidity 
          ! in the stratosphere
@@ -1490,6 +1516,19 @@
             !===========================================================
             !      ***** M I X E D   L A Y E R   M I X I N G *****
             !===========================================================
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+            ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+            DO NA = 1, State_Chm%nAdvect
+               N                          = State_Chm%Map_Advect(NA)
+               Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
+               State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+            ENDDO
+            State_Chm%Spc_Units = 'kg/kg dry'
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
             ! Note: mixing routine expects tracers in v/v
             ! DO_MIXING applies the tracer tendencies (dry deposition,
@@ -1518,21 +1557,7 @@
             !===========================================================
             !        ***** C L O U D   C O N V E C T I O N *****
             !===========================================================
-
             IF ( LCONV ) THEN
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-            ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-            DO NA = 1, State_Chm%nAdvect
-               N                          = State_Chm%Map_Advect(NA)
-               Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-               State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-            ENDDO
-            State_Chm%Spc_Units = 'kg/kg dry'
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
                ! Call the appropriate convection routine
                ! NOTE: Tracer concentration units are converted locally
@@ -1547,6 +1572,7 @@
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### MAIN: a CONVECTION' )
                ENDIF
+            ENDIF 
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
@@ -1560,8 +1586,6 @@
             ENDDO
             State_Chm%Spc_Units = 'molec/cm3'
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-            ENDIF 
 
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "Convection", RC )

@@ -150,6 +150,7 @@ CONTAINS
 !  30 Sep 2014 - E. Lundgren - Move unit conversion for DO_TEND to DO_TEND
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -167,8 +168,8 @@ CONTAINS
     RC = GIGC_SUCCESS
 
     ! Convert [kg/kg dry air] to [v/v dry air] for mixing (ewl, 8/12/15)
-    CALL Convert_KgKgDry_to_VVDry( am_I_Root, Input_Opt, &
-                                   State_Chm, RC )  
+     CALL ConvertSpc_KgKgDry_to_VVDry( am_I_Root, State_Chm, RC )  
+
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL GIGC_Error('Unit conversion error', RC, &
                        'DO_MIXING in mixing_mod.F')
@@ -221,8 +222,8 @@ CONTAINS
     ENDIF
 
     ! Convert tracer conc back to [kg/kg dry air] after mixing (ewl, 8/12/15)
-    CALL Convert_VVDry_to_KgKgDry( am_I_Root, Input_Opt, &
-                                   State_Chm, RC )
+    CALL ConvertSpc_VVDry_to_KgKgDry( am_I_Root, State_Chm, RC )
+
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL GIGC_Error('Unit conversion error', RC, &
                        'DO_MIXING in mixing_mod.F')
@@ -364,10 +365,6 @@ CONTAINS
     !=================================================================
     ! DO_TEND begins here!
     !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-    REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     ! Assume success
     RC = GIGC_SUCCESS
@@ -375,43 +372,25 @@ CONTAINS
     ! Special case that there is no dry deposition and emissions
     IF ( .NOT. Input_Opt%LDRYD .AND. .NOT. Input_Opt%LEMIS ) RETURN
 
-    ! Shadow variables
+    ! Initialize
     LSCHEM     = Input_Opt%LSCHEM
     LEMIS      = Input_Opt%LEMIS 
     LDRYD      = Input_Opt%LDRYD 
     PBL_DRYDEP = Input_Opt%PBL_DRYDEP
+    nAdvect    = State_Chm%nAdvect
 
     ! Initialize pointer
-    SpcInfo => NULL()
+    SpcInfo    => NULL()
 
-    ! DO_TEND previously operated in units of kg. The tracer arrays are in
+    ! DO_TEND previously operated in units of kg. The species arrays are in
     ! v/v for mixing, hence needed to convert before and after.
     ! CALL CONVERT_UNITS( 2, Input_Opt%N_TRACERS, Input_Opt%TCVV, &
     !                     State_Met%AD, State_Chm%Tracers ) 
-    ! Now use units kg/m2 as State_Chm%TRACERS units in DO_TEND to 
+    ! Now use units kg/m2 as State_Chm%SPECIES units in DO_TEND to 
     ! remove area-dependency (ewl, 9/30/15)
     ! v/v --> kg/m2
-    CALL Convert_VVDry_to_KgKgDry( am_I_Root, Input_Opt,  &
-                                   State_Chm, RC )
-
-    CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,   &
-                                  State_Met, State_Chm, RC )
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    CALL ConvertSpc_VVDry_to_KgKgDry( am_I_Root,            State_Chm, RC )
+    CALL ConvertSpc_KgKgDry_to_Kgm2 ( am_I_Root, State_Met, State_Chm, RC )
 
     ! Get time step [s]
     IF ( PRESENT(DT) ) THEN
@@ -852,24 +831,9 @@ CONTAINS
 
 #endif
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-    ! Convert State_Chm%TRACERS back: kg/m2 --> v/v (ewl, 9/30/15)
-    CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,   &
-                                  State_Met, State_Chm, RC )
-    CALL Convert_KgKgDry_to_VVDry( am_I_Root, Input_Opt,          &
-                                   State_Chm, RC )
+    ! Convert State_Chm%SPECIES back: kg/m2 --> v/v (ewl, 9/30/15)
+    CALL ConvertSpc_Kgm2_to_KgKgDry ( am_I_Root, State_Met, State_Chm, RC )
+    CALL ConvertSpc_KgKgDry_to_VVDry( am_I_Root,            State_Chm, RC )
 
   END SUBROUTINE DO_TEND 
 !EOC

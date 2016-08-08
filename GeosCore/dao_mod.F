@@ -373,6 +373,7 @@
 !                              species ID from State_Chm%Map_Advect.
 !  04 Aug 2016 - R. Yantosca - Move temporary tracer removal code within the IF
 !                              block where we update tracer mixing ratio
+!  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -412,19 +413,12 @@
       !=================================================================
       ! AIRQNT begins here! 
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+
+      ! Assume success
+      RC      = GIGC_SUCCESS
 
       ! Number of advected species
       nAdvect = State_Chm%nAdvect
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-      ! Assume success
-      RC = GIGC_SUCCESS
 
       !=============================================================
       ! Update air quantities
@@ -797,21 +791,8 @@
 
          ! The concentration update formula works only for dry mixing ratios
          ! (kg/kg or v/v) so check if units are correct
-         IF ( State_Chm%Trac_units == 'kg/kg dry' .or.
-     &        State_Chm%Trac_units == 'v/v dry' ) THEN
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+         IF ( State_Chm%Spc_units == 'kg/kg dry' .or.
+     &        State_Chm%Spc_units == 'v/v dry' ) THEN
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -844,18 +825,6 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
          ELSE
             MSG = 'Incorrect tracer units: ' 
      &              // TRIM(State_Chm%Trac_Units)
