@@ -628,7 +628,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : SET_XOFFSET, SET_YOFFSET
-      USE RESTART_MOD,        ONLY : SET_RESTART
       USE TIME_MOD,           ONLY : SET_BEGIN_TIME,   SET_END_TIME 
       USE TIME_MOD,           ONLY : SET_CURRENT_TIME, SET_DIAGb
       USE TIME_MOD,           ONLY : SET_NDIAGTIME,    GET_TAU
@@ -685,6 +684,8 @@
 !  27 Jul 2016 - M. Sulprizio- Remove LSVGLB and OUT_RST_FILE options. Restart
 !                              files are now always saved out and the output
 !                              restart file name is hardcoded in restart_mod.F.
+!  09 Aug 2016 - E. Lundgren - Remove call to routine set_restart; use input
+!                              rst filename directly in restart_mod.F.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1050,9 +1051,6 @@
       ! Set the start of the 1st diagnostic interval
       CALL SET_DIAGb( GET_TAU() )
      
-      ! Set input restart file name
-      CALL SET_RESTART( Input_Opt%IN_RST_FILE )
-
       ! Set global offsets for the horizontal grid
       CALL SET_XOFFSET( Input_Opt%NESTED_I0 )
       CALL SET_YOFFSET( Input_OPt%NESTED_J0 )

@@ -90,11 +90,10 @@ MODULE Diagnostics_Mod
 !
 ! !DEFINED PARAMETERS:
 !
-  ! Prefix of restart file. This file will hold all diagnostics that are 
-  ! written out at the end of a simulation (either because their output 
-  ! frequency is set to 'End' or the run finishes and these diagnostics
-  ! haven't reached the end of their output interval yet).
-  CHARACTER(LEN=31), PARAMETER :: RST = 'GEOSCHEM_Restart'
+  ! Prefix of diagnostics file. This file will hold all diagnostics that 
+  ! are written out at the end of a simulation (either because their
+  ! output frequency is set to 'End' or the run finishes and these
+  ! diagnostics haven't reached the end of their output interval yet).
   CHARACTER(LEN=31), PARAMETER :: DGN = 'GEOSCHEM_Diagnostics_Hrly'
 
   ! Toggle to enable species diagnostics. This will write out species 
