@@ -300,7 +300,8 @@ CONTAINS
             write(MSG,*) '   -->Hierarchy       : ', Dct%Hier
             CALL HCO_MSG(HcoState%Config%Err,MSG)
             IF ( nz == 0 ) THEN
-               write(MSG,*) '   -->2D emitted into : ', Dct%Dta%Lev2D
+               write(MSG,*) '   -->2D emitted into : ', Dct%Dta%EmisL1, &
+                            ' and ', Dct%Dta%EmisL2
                CALL HCO_MSG(HcoState%Config%Err,MSG)
             ENDIF
 

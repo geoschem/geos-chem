@@ -272,6 +272,8 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     CALL HCO_ArrInit ( HcoState%Grid%AREA_M2,    0, 0,    RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL HCO_ArrInit ( HcoState%Grid%PBLHEIGHT,  0, 0,    RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
     CALL HCO_ArrInit ( HcoState%Grid%BXHEIGHT_M, 0, 0, 0, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     CALL HCO_ArrInit ( HcoState%Grid%ZSFC,       0, 0,    RC )
@@ -374,6 +376,11 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%Field2Diagn = .FALSE.
 
+    CALL GetExtOpt ( HcoConfig, CoreNr, 'Vertical weights', &
+                     OptValBool=HcoState%Options%VertWeight, Found=Found, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. Found ) HcoState%Options%VertWeight = .TRUE.
+
     ! Make sure ESMF pointers are not dangling 
 #if defined(ESMF_)
     HcoState%GridComp => NULL()
@@ -468,6 +475,7 @@ CONTAINS
        CALL HCO_ArrCleanup( HcoState%Grid%PEDGE       )
        CALL HCO_ArrCleanup( HcoState%Grid%YSIN        )
        CALL HCO_ArrCleanup( HcoState%Grid%AREA_M2     )
+       CALL HCO_ArrCleanup( HcoState%Grid%PBLHEIGHT   )
        CALL HCO_ArrCleanup( HcoState%Grid%BXHEIGHT_M  )
        CALL HCO_ArrCleanup( HcoState%Grid%ZSFC        )
        CALL HCO_ArrCleanup( HcoState%Grid%PSFC        )

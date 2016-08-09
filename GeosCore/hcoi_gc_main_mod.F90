@@ -1503,9 +1503,12 @@ CONTAINS
 !
 ! !USES:
 !
+    USE HCOX_STATE_MOD,        ONLY : ExtDat_Set
     USE GIGC_State_Met_Mod,    ONLY : MetState
     USE HCO_GeoTools_MOD,      ONLY : HCO_CalcVertGrid
+    USE HCO_GeoTools_MOD,      ONLY : HCO_SetPBLm
     USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
+    USE PBL_MIX_MOD,           ONLY : GET_PBL_TOP_M
 !
 ! !INPUT PARAMETERS:
 !
@@ -1526,11 +1529,13 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
+    INTEGER             :: I, J
     REAL(hp), POINTER   :: PSFC    (:,:  ) => NULL()
     REAL(hp), POINTER   :: ZSFC    (:,:  ) => NULL()    
     REAL(hp), POINTER   :: TK      (:,:,:) => NULL()    
     REAL(hp), POINTER   :: BXHEIGHT(:,:,:) => NULL()    
     REAL(hp), POINTER   :: PEDGE   (:,:,:) => NULL()    
+    REAL(hp), POINTER   :: PBLM    (:,:  ) => NULL()    
 
     !=================================================================
     ! GridEdge_Set begins here
@@ -1548,6 +1553,23 @@ CONTAINS
     ! Calculate missing quantities
     CALL HCO_CalcVertGrid( am_I_Root, HcoState, PSFC,    &
                            ZSFC,  TK, BXHEIGHT, PEDGE, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Set PBL heights
+    ALLOCATE(PBLM(IIPAR,JJPAR))
+!$OMP PARALLEL DO                                                 &
+!$OMP DEFAULT( SHARED )                                           &
+!$OMP PRIVATE( I, J )
+    DO J=1,JJPAR
+    DO I=1,IIPAR
+       PBLM(I,J) = GET_PBL_TOP_m(I,J)
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO
+    CALL HCO_SetPBLm ( am_I_Root, HcoState, FldName='PBL_HEIGHT', &
+                       PBLM=PBLM, DefVal=1000.0_hp, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    DEALLOCATE(PBLM)
 
     ! Nullify local pointers
     ZSFC     => NULL()

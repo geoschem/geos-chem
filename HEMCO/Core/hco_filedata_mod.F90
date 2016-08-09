@@ -199,7 +199,10 @@ CONTAINS
     NewFDta%nt           = 0
     NewFDta%SpaceDim     = -1
     NewFDta%Levels       = 0
-    NewFDta%Lev2D        = 1
+    NewFDta%EmisL1       = 1.0_hp
+    NewFDta%EmisL2       = 1.0_hp
+    NewFDta%EmisL1Unit   = HCO_EMISL_LEV
+    NewFDta%EmisL2Unit   = HCO_EMISL_LEV
     NewFDta%OrigUnit     = ''
     NewFDta%ArbDimName   = 'none'
     NewFDta%ArbDimVal    = ''

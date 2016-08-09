@@ -800,7 +800,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE HcoClock_GetLocal ( HcoState,   I,     J, cYYYY, cMM, &
-                                 cDD, cH,    CWEEKDAY, RC           )
+                                 cDD, cH,    CWEEKDAY, RC, verb     )
 !
 ! !USES:
 !
@@ -819,6 +819,7 @@ CONTAINS
     INTEGER,  INTENT(  OUT), OPTIONAL :: cDD       ! Current day     
     REAL(hp), INTENT(  OUT), OPTIONAL :: cH        ! Current hour   
     INTEGER,  INTENT(  OUT), OPTIONAL :: cWEEKDAY  ! Current weekday
+    INTEGER,  INTENT(IN   ), OPTIONAL :: verb      ! verbose
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -898,6 +899,7 @@ CONTAINS
           IF ( OFFSET >= -12 .AND. OFFSET <= 13 ) THEN
              IX = 13 + OFFSET 
           ENDIF
+
        ENDIF
     ENDIF
 

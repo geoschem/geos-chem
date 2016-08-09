@@ -84,6 +84,9 @@ MODULE HCO_Calc_Mod
 !
   PRIVATE :: GET_CURRENT_EMISSIONS
   PRIVATE :: GetMaskVal 
+  PRIVATE :: GetDilFact
+  PRIVATE :: GetVertIndx
+  PRIVATE :: GetIdx
 !
 ! !PARAMETER
 !
@@ -772,6 +775,7 @@ CONTAINS
 
     ! Scalars
     REAL(sp)                :: TMPVAL, MaskScale
+    REAL(hp)                :: DilFact
     INTEGER                 :: tIDx, IDX
     INTEGER                 :: I, J, L, N
     INTEGER                 :: LowLL, UppLL, ScalLL, TmpLL
@@ -816,26 +820,13 @@ CONTAINS
     ! Set base emissions
     ! ----------------------------------------------------------------
 
-    ! Get vertical extension of base emission array.
-    ! Unlike the output array OUTARR_3D, the data containers do not
-    ! necessarily extent over the entire troposphere but only cover
-    ! the effectively filled vertical levels. For most inventories, 
-    ! this is only the first model level.
-    IF ( BaseDct%Dta%SpaceDim==3 ) THEN 
-       LowLL = 1
-       UppLL = SIZE(BaseDct%Dta%V3(1)%Val,3)
-    ELSE
-       LowLL = BaseDct%Dta%Lev2D 
-       UppLL = BaseDct%Dta%Lev2D
-    ENDIF
-
     ! Initialize ERROR. Will be set to 1 if error occurs below
     ERROR = 0
 
     ! Loop over all latitudes and longitudes
 !$OMP PARALLEL DO                                                      &
 !$OMP DEFAULT( SHARED )                                                &
-!$OMP PRIVATE( I, J, L, tIdx, TMPVAL                                 ) & 
+!$OMP PRIVATE( I, J, L, tIdx, TMPVAL, DilFact, LowLL, UppLL          ) & 
 !$OMP SCHEDULE( DYNAMIC )
     DO J = 1, nJ
     DO I = 1, nI
@@ -849,6 +840,13 @@ CONTAINS
           EXIT
        ENDIF
 
+       ! Get lower and upper vertical index
+       CALL GetVertIndx ( am_I_Root, HcoState, BaseDct, I, J, LowLL, UppLL, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ERROR = 1 ! Will cause error
+          EXIT
+       ENDIF 
+ 
        ! Loop over all levels
        DO L = LowLL, UppLL
 
@@ -869,7 +867,25 @@ CONTAINS
 
           ! Pass base value to output array
           ELSE
-             OUTARR_3D(I,J,L) = TMPVAL
+
+             ! Get dilution factor. Never dilute 3D emissions.
+             IF ( BaseDct%Dta%SpaceDim == 3 ) THEN
+                DilFact = 1.0
+
+             ! 2D dilution factor
+             ELSE
+                CALL GetDilFact ( am_I_Root, HcoState,    BaseDct%Dta%EmisL1, & 
+                                  BaseDct%Dta%EmisL1Unit, BaseDct%Dta%EmisL2,  &
+                                  BaseDct%Dta%EmisL2Unit, I, J, L, LowLL,  &
+                                  UppLL, DilFact, RC )
+                IF ( RC /= HCO_SUCCESS ) THEN
+                   ERROR = 1
+                   EXIT
+                ENDIF 
+             ENDIF 
+
+             ! Scale base emission by dilution factor
+             OUTARR_3D(I,J,L) = DilFact * TMPVAL
           ENDIF
        ENDDO !L
 
@@ -957,7 +973,7 @@ CONTAINS
        ! Loop over all latitudes and longitudes
 !$OMP PARALLEL DO                                                      &
 !$OMP DEFAULT( SHARED )                                                &
-!$OMP PRIVATE( I, J, tIdx, TMPVAL, L, tmpLL, MaskScale               ) & 
+!$OMP PRIVATE( I, J, tIdx, TMPVAL, L, LowLL, UppLL, tmpLL, MaskScale ) & 
 !$OMP SCHEDULE( DYNAMIC )
        DO J = 1, nJ
        DO I = 1, nI
@@ -996,7 +1012,6 @@ CONTAINS
              EXIT
           ENDIF
 
-          ! ------------------------------------------------------------ 
           ! Check if this is a mask. If so, add mask values to the MASK
           ! array. For now, we assume masks to be binary, i.e. 0 or 1.
           ! We may want to change that in future to also support values
@@ -1034,6 +1049,14 @@ CONTAINS
           ! vertical level closest to the corresponding vertical
           ! level of the base emission field
           ! ------------------------------------------------------------ 
+       
+          ! Get lower and upper vertical index
+          CALL GetVertIndx ( am_I_Root, HcoState, BaseDct, &
+                             I, J, LowLL, UppLL, RC )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ERROR = 1 ! Will cause error
+             EXIT
+          ENDIF 
 
           ! Loop over all vertical levels of the base field
           DO L = LowLL,UppLL
@@ -2039,5 +2062,330 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_MaskFld
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetVertIndx
+!
+! !DESCRIPTION: Subroutine GetVertIndx is a helper routine to get the vertical
+!  index range of the given data field.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetVertIndx ( am_I_Root, HcoState, Dct, I, J, LowLL, UppLL, RC )
+!
+! !USES:
+!
+    USE HCO_STATE_MOD,    ONLY : HCO_State
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,  INTENT(IN   )           :: am_I_Root   ! Root CPU?
+    TYPE(HCO_State), POINTER          :: HcoState    ! HEMCO state object
+    INTEGER,  INTENT(IN   )           :: I           ! lon index 
+    INTEGER,  INTENT(IN   )           :: J           ! lat index
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DataCont),  POINTER          :: Dct         ! Mask container 
+    INTEGER,  INTENT(INOUT)           :: LowLL       ! lower level index 
+    INTEGER,  INTENT(INOUT)           :: UppLL       ! upper level index 
+    INTEGER,  INTENT(INOUT)           :: RC
+!
+! !REVISION HISTORY:
+!  06 May 2016 - C. Keller   - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+
+    !=================================================================
+    ! GetVertIndx begins here
+    !=================================================================
+
+    ! Get vertical extension of base emission array.
+    ! Unlike the output array OUTARR_3D, the data containers do not
+    ! necessarily extent over the entire troposphere but only cover
+    ! the effectively filled vertical levels. For most inventories, 
+    ! this is only the first model level.
+    IF ( Dct%Dta%SpaceDim==3 ) THEN 
+       LowLL = 1
+       UppLL = SIZE(Dct%Dta%V3(1)%Val,3)
+
+    ! For 2D field, check if it shall be spread out over multiple 
+    ! levels. Possible to go from PBL to max. specified level.
+    ELSE
+       ! Lower level
+       CALL GetIdx( am_I_Root, HcoState, I, J, &
+          Dct%Dta%EmisL1, Dct%Dta%EmisL1Unit, LowLL, RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Upper level
+       CALL GetIdx( am_I_Root, HcoState, I, J, &
+          Dct%Dta%EmisL2, Dct%Dta%EmisL2Unit, UppLL, RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Upper level must not be lower than lower level
+       UppLL = MAX(LowLL, UppLL)
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE GetVertIndx
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetIdx
+!
+! !DESCRIPTION: Subroutine GetIdx is a helper routine to return the vertical 
+!  level index for a given altitude. The altitude can be provided in level
+!  coordinates, in units of meters or as the 'PBL mixing height'.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetIdx( am_I_Root, HcoState, I, J, alt, altu, lidx, RC ) 
+!
+! !USES:
+!
+    USE HCO_TYPES_MOD
+    USE HCO_STATE_MOD,   ONLY : HCO_STATE
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU? 
+    TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
+    INTEGER,         INTENT(IN   )  :: I, J           ! horizontal index 
+    INTEGER,         INTENT(IN   )  :: altu           ! altitude unit
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(  OUT)  :: lidx           ! level index 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(hp),        INTENT(INOUT)  :: alt            ! altitude
+    INTEGER,         INTENT(INOUT)  :: RC
+! 
+! !REVISION HISTORY:
+!  09 May 2016 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER                 :: L
+    REAL(hp)                :: altb, altt
+    CHARACTER(LEN=255)      :: MSG
+    CHARACTER(LEN=255)      :: LOC = 'GetIdx (hco_geotools_mod.F90)'
+
+    !=================================================================
+    ! HCO_GetVertIndx begins here
+    !=================================================================
+
+    ! Init
+    RC = HCO_SUCCESS
+
+    ! Simple case: data is already on level unit
+    IF ( altu == HCO_EMISL_LEV ) THEN
+       lidx = INT(alt)
+      
+    ELSEIF ( altu == HCO_EMISL_M .OR. altu == HCO_EMISL_PBL ) THEN
+   
+       ! Eventually get altitude from PBL height
+       IF ( altu == HCO_EMISL_PBL ) THEN
+          IF ( .NOT. ASSOCIATED(HcoState%Grid%PBLHEIGHT%Val) ) THEN
+             MSG = 'PBL field missing in HEMCO state'
+             CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          alt = HcoState%Grid%PBLHEIGHT%Val(I,J)
+       ENDIF
+
+       ! Special case of negative height
+       IF ( alt < 0.0_hp ) THEN
+          lidx = 1
+          RETURN
+       ENDIF
+
+       ! Error check
+       IF ( .NOT. ASSOCIATED(HcoState%Grid%BXHEIGHT_M%Val) ) THEN
+          MSG = 'Boxheight missing in HEMCO state'
+          CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       ! Loop over data until we are within desired level
+       altt = 0.0_hp 
+       altb = 0.0_hp
+       lidx = -1 
+       DO L = 1, HcoState%NZ
+          altt = altb + HcoState%Grid%BXHEIGHT_M%Val(I,J,L)
+          IF ( alt >= altb .AND. alt < altt ) THEN
+             lidx = L
+             RETURN
+          ENDIF
+          altb = altt
+       ENDDO
+
+       ! If altitude is above maximum level
+       IF ( lidx == -1 .AND. alt >= altt ) THEN
+          lidx = HcoState%NZ
+          WRITE(MSG,*)  'Level is above max. grid box level - use top level ', alt
+          CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, THISLOC=LOC, WARNLEV=2 )
+          RETURN
+       ENDIF
+
+    ELSE
+       MSG = 'Illegal altitude unit'
+       CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF 
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE GetIdx
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetDilFact
+!
+! !DESCRIPTION: Subroutine GetDilFact returns the vertical dilution factor,
+! that is the factor that is to be applied to distribute emissions into 
+! multiple vertical levels. If grid box height information are available,
+! these are used to compute the distribution factor. Otherwise, equal weight
+! is given to all vertical levels.
+!\\
+!\\
+! !TODO: Dilution factors are currently only weighted by grid box heights 
+! (if these information are available) but any pressure information are
+! ignored. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetDilFact ( am_I_Root, HcoState, EmisL1, EmisL1Unit, &
+                          EmisL2, EmisL2Unit, I, J, L, LowLL, UppLL, &
+                          DilFact, RC )
+!
+! !USES:
+!
+    USE HCO_STATE_MOD,    ONLY : HCO_State
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,  INTENT(IN   )           :: am_I_Root   ! Root CPU?
+    TYPE(HCO_State), POINTER          :: HcoState    ! HEMCO state object
+    INTEGER,  INTENT(IN   )           :: I           ! lon index 
+    INTEGER,  INTENT(IN   )           :: J           ! lat index
+    INTEGER,  INTENT(IN   )           :: L           ! lev index
+    INTEGER,  INTENT(IN   )           :: LowLL       ! lower level index 
+    INTEGER,  INTENT(IN   )           :: UppLL       ! upper level index 
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL(hp), INTENT(  OUT)           :: DilFact     ! Dilution factor 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(hp), INTENT(INOUT)           :: EmisL1 
+    INTEGER,  INTENT(INOUT)           :: EmisL1Unit 
+    REAL(hp), INTENT(INOUT)           :: EmisL2 
+    INTEGER,  INTENT(INOUT)           :: EmisL2Unit 
+    INTEGER,  INTENT(INOUT)           :: RC
+!
+! !REVISION HISTORY:
+!  06 May 2016 - C. Keller   - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER    :: L1
+    REAL(hp)   :: h1, h2, dh
+
+    !=================================================================
+    ! GetDilFact begins here
+    !=================================================================
+
+    ! Init
+    DilFact = 1.0_hp
+    RC = HCO_SUCCESS
+
+    ! Nothing to do if it's only one level
+    IF ( LowLL == UppLL ) RETURN 
+
+    ! Compute 'accurate' dilution factor if boxheights are available
+    IF ( HcoState%Options%VertWeight .AND. &
+         ASSOCIATED( HcoState%Grid%BXHEIGHT_M%Val ) ) THEN
+
+       ! Height of grid box of interest (in m)
+       dh = HcoState%Grid%BXHEIGHT_M%Val(I,J,L)
+
+       ! Get bottom height
+       h1 = 0.0_hp
+       IF ( LowLL > 1 ) THEN
+          DO L1=1,LowLL-1
+             h1 = h1 + HcoState%Grid%BXHEIGHT_M%Val(I,J,L1)
+          ENDDO 
+       ENDIF
+       ! Only use fraction of lowest level
+       IF ( L == LowLL ) THEN
+          IF ( EmisL1Unit == HCO_EMISL_M   .OR. & 
+               EmisL1Unit == HCO_EMISL_PBL       ) THEN
+             dh = h1 + HcoState%Grid%BXHEIGHT_M%Val(I,J,L) - EmisL1
+             h1 = EmisL1
+          ENDIF 
+       ENDIF
+
+       ! Get top height 
+       h2 = 0.0_hp
+       DO L1=1,UppLL
+          h2 = h2 + HcoState%Grid%BXHEIGHT_M%Val(I,J,L1)
+       ENDDO
+       ! Only use fraction of top level
+       IF ( L == UppLL ) THEN
+          IF ( EmisL2Unit == HCO_EMISL_M   .OR. & 
+               EmisL2Unit == HCO_EMISL_PBL       ) THEN
+             dh = h2 - HcoState%Grid%BXHEIGHT_M%Val(I,J,L) + EmisL2
+             h2 = EmisL2
+          ENDIF 
+       ENDIF
+
+       ! compute dilution factor: the new flux should emit the same mass per
+       ! volume, i.e. flux_total/column_total = flux_level/column_level
+       ! --> flux_level = fluxtotal * column_level / column_total. 
+       IF ( h2 > h1 ) THEN
+          DilFact = dh / ( h2 - h1 )
+       ELSE
+          DilFact = 1.0_hp
+       ENDIF
+
+    ! Approxiate dilution factor otherwise
+    ELSE
+
+       DilFact = 1.0_hp / REAL(UppLL-LowLL+1,hp)
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE GetDilFact
 !EOC
 END MODULE HCO_Calc_Mod

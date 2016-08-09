@@ -28,6 +28,8 @@ MODULE HCO_GeoTools_Mod
   PUBLIC :: HCO_GetSUNCOS
   PUBLIC :: HCO_GetHorzIJIndex
   PUBLIC :: HCO_CalcVertGrid
+  PUBLIC :: HCO_SetPBLm
+!  PUBLIC :: HCO_CalcPBLlev
 
   INTERFACE HCO_LandType
      MODULE PROCEDURE HCO_LandType_Dp
@@ -38,6 +40,11 @@ MODULE HCO_GeoTools_Mod
      MODULE PROCEDURE HCO_ValidateLon_Dp
      MODULE PROCEDURE HCO_ValidateLon_Sp
   END INTERFACE HCO_ValidateLon
+
+!  INTERFACE HCO_CalcPBLlev
+!     MODULE PROCEDURE HCO_CalcPBLlev2D
+!     MODULE PROCEDURE HCO_CalcPBLlev3D
+!  END INTERFACE HCO_CalcPBLlev
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -1227,5 +1234,290 @@ CONTAINS
 
   END SUBROUTINE HCO_CalcVertGrid
 !EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !SUBROUTINE: HCO_SetPBLm
+!
+! !DESCRIPTION: Subroutine HCO\_SetPBLm sets the HEMCO PBL mixing height in 
+! meters. It first tries to read it from field 'FldName' (from the HEMCO data
+! list), then to fill it from field 'PBLM', and then assigns the default value
+! 'DefVal' to it.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_SetPBLm ( am_I_Root, HcoState, FldName, PBLM, DefVal, RC )
+!
+! !USES
+!
+    USE HCO_Arr_Mod,      ONLY : HCO_ArrAssert
+    USE HCO_STATE_MOD,    ONLY : HCO_STATE
+    USE HCO_CALC_MOD,     ONLY : HCO_EvalFld
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )            :: am_I_Root   ! Root CPU? 
+    TYPE(HCO_State),  POINTER                  :: HcoState    ! HEMCO state object
+    CHARACTER(LEN=*), OPTIONAL, INTENT(IN   )  :: FldName     ! field name
+    REAL(hp),         OPTIONAL, POINTER        :: PBLM(:,:)   ! pbl mixing height  
+    REAL(hp),         OPTIONAL, INTENT(IN   )  :: DefVal      ! default value 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)  :: RC
+! 
+! !REVISION HISTORY:
+!  28 Sep 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER                       :: NX, NY
+    LOGICAL                       :: FOUND
+    CHARACTER(LEN=255)            :: MSG
+    CHARACTER(LEN=255)            :: LOC = 'HCO_SetPBLm (hco_geotools_mod.F90)'
+
+    !-------------------------------
+    ! HCO_SetPBLm begins here
+    !-------------------------------
+
+    ! Init
+    FOUND = .FALSE.
+
+    ! Try to read from file first 
+    IF ( PRESENT( FldName ) ) THEN
+       CALL HCO_EvalFld ( am_I_Root, HcoState, FldName, &
+          HcoState%Grid%PBLHEIGHT%Val, RC, FOUND=FOUND )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Verbose
+       IF ( am_I_Root .AND. HCO_IsVerb(HcoState%Config%Err,2) ) THEN
+          IF ( FOUND ) THEN
+             WRITE(MSG,*) 'HEMCO PBL heights obtained from field ',TRIM(FldName)
+             CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
+          ENDIF
+       ENDIF
+    ENDIF
+
+    ! Pass 2D field if available
+    IF ( .NOT. FOUND .AND. PRESENT(PBLM) ) THEN
+       IF ( ASSOCIATED(PBLM) ) THEN
+          NX = SIZE(PBLM,1)
+          NY = SIZE(PBLM,2)
+          IF ( NX /= HcoState%NX .OR. NY /= HcoState%NY ) THEN
+             WRITE(MSG,*) 'Wrong PBLM array size: ', NX, NY, &
+                          '; should be: ', HcoState%NX, HcoState%NY
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+             RETURN 
+          ENDIF
+
+          ! Make sure size is ok   
+          CALL HCO_ArrAssert( HcoState%Grid%PBLHEIGHT, HcoState%NX, HcoState%NY, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ! Pass data 
+          HcoState%Grid%PBLHEIGHT%Val = PBLM
+          FOUND                       = .TRUE.
+
+          ! Verbose
+          IF ( am_I_Root .AND. HCO_IsVerb(HcoState%Config%Err,2) ) THEN
+             WRITE(MSG,*) 'HEMCO PBL heights obtained from provided 2D field.'
+             CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
+          ENDIF
+       ENDIF
+    ENDIF
+
+    ! Finally, assign default value if field not yet set
+    IF ( .NOT. FOUND .AND. PRESENT(DefVal) ) THEN
+          ! Make sure size is ok   
+          CALL HCO_ArrAssert( HcoState%Grid%PBLHEIGHT, HcoState%NX, HcoState%NY, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ! Pass data 
+          HcoState%Grid%PBLHEIGHT%Val = DefVal
+          FOUND                       = .TRUE.
+
+          ! Verbose
+          IF ( am_I_Root .AND. HCO_IsVerb(HcoState%Config%Err,2) ) THEN
+             WRITE(MSG,*) 'HEMCO PBL heights uniformly set to ', DefVal 
+             CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
+          ENDIF
+    ENDIF
+
+    ! Error check
+    IF ( .NOT. FOUND ) THEN 
+       WRITE(MSG,*) 'Cannot set PBL height: a valid HEMCO data field, ', &
+          'an explicit 2D field or a default value must be provided!'
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+       RETURN 
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_SetPBLm
+!EOC
+!!------------------------------------------------------------------------------
+!!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !SUBROUTINE: HCO_CalcPBLlev3D
+!!
+!! !DESCRIPTION: 
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE HCO_CalcPBLlev3D ( am_I_Root, HcoState, PBLFRAC, RC )
+!!
+!! !USES
+!!
+!    USE HCO_Arr_Mod,      ONLY : HCO_ArrAssert
+!    USE HCO_STATE_MOD,    ONLY : HCO_STATE
+!!
+!! !INPUT PARAMETERS:
+!!
+!    LOGICAL,         INTENT(IN   )  :: am_I_Root       ! Root CPU? 
+!    TYPE(HCO_State), POINTER        :: HcoState        ! HEMCO state object
+!    REAL(hp),        POINTER        :: PBLFRAC(:,:,:)  ! planetary PBL fraction 
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!    INTEGER,         INTENT(INOUT)  :: RC
+!! 
+!! !REVISION HISTORY:
+!!  05 May 2016 - C. Keller - Initial version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!    INTEGER             :: I,  J,  L
+!    CHARACTER(LEN=255)  :: MSG
+!    CHARACTER(LEN=255)  :: LOC = 'HCO_CalcPBLlev3D (hco_geotools_mod.F90)' 
+!
+!    !-------------------------------
+!    ! HCO_CalcPBLlev3D begins here
+!    !-------------------------------
+!
+!    ! Check input array size
+!    IF ( SIZE(PBLFRAC,1) /= HcoState%NX .OR. &
+!         SIZE(PBLFRAC,2) /= HcoState%NY .OR. & 
+!         SIZE(PBLFRAC,3) /= HcoState%NZ        ) THEN
+!       WRITE(MSG,*) 'Input array PBLFRAC has wrong horiz. dimensions: ', &
+!                     SIZE(PBLFRAC,1),SIZE(PBLFRAC,2),SIZE(PBLFRAC,3)
+!       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+!       RETURN
+!    ENDIF
+!
+!    ! Make sure array is associated
+!    CALL HCO_ArrAssert( HcoState%Grid%PBL, HcoState%NX, HcoState%NY, RC ) 
+!    IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!    ! Initialize values
+!    HcoState%Grid%PBL%Val = 1.0
+!
+!!$OMP PARALLEL DO                                                      &
+!!$OMP DEFAULT( SHARED )                                                &
+!!$OMP PRIVATE( I, J, L )                                               &
+!!$OMP SCHEDULE( DYNAMIC )
+!    DO J = 1, HcoState%NY
+!    DO I = 1, HcoState%NX
+!       ! Search for first level where PBL fraction is zero
+!       DO L = 1, HcoState%NZ
+!          IF ( PBLFRAC(I,J,L) > 0.0_hp ) CYCLE
+!          HcoState%Grid%PBL%Val(I,J) = MAX(L-1,1)
+!          EXIT
+!       ENDDO
+!    ENDDO
+!    ENDDO
+!!$OMP END PARALLEL DO
+!
+!    ! Return w/ success
+!    RC = HCO_SUCCESS
+!
+!  END SUBROUTINE HCO_CalcPBLlev3D
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !SUBROUTINE: HCO_CalcPBLlev2D
+!!
+!! !DESCRIPTION: 
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE HCO_CalcPBLlev2D ( am_I_Root, HcoState, PBLlev, RC )
+!!
+!! !USES
+!!
+!    USE HCO_Arr_Mod,      ONLY : HCO_ArrAssert
+!    USE HCO_STATE_MOD,    ONLY : HCO_STATE
+!!
+!! !INPUT PARAMETERS:
+!!
+!    LOGICAL,         INTENT(IN   )  :: am_I_Root       ! Root CPU? 
+!    TYPE(HCO_State), POINTER        :: HcoState        ! HEMCO state object
+!    INTEGER,         POINTER        :: PBLlev(:,:)     ! planetary PBL lev 
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!    INTEGER,         INTENT(INOUT)  :: RC
+!! 
+!! !REVISION HISTORY:
+!!  05 May 2016 - C. Keller - Initial version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!    INTEGER             :: I,  J,  L
+!    CHARACTER(LEN=255)  :: MSG
+!    CHARACTER(LEN=255)  :: LOC = 'HCO_CalcPBLlev2D (hco_geotools_mod.F90)' 
+!
+!    !-------------------------------
+!    ! HCO_CalcPBLlev2D begins here
+!    !-------------------------------
+!
+!    ! Make sure array is associated
+!    CALL HCO_ArrAssert( HcoState%Grid%PBL, HcoState%NX, HcoState%NY, RC ) 
+!    IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!    ! Check input array size
+!    IF ( SIZE(PBLlev,1) /= HcoState%NX .OR. SIZE(PBLlev,2) /= HcoState%NY ) THEN
+!       WRITE(MSG,*) 'Input array PBLlev has wrong horiz. dimensions: ', &
+!              SIZE(PBLlev,1),SIZE(PBLlev,2)
+!       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+!       RETURN
+!    ENDIF
+!
+!    ! Set values from PBLlev
+!!$OMP PARALLEL DO                                                      &
+!!$OMP DEFAULT( SHARED )                                                &
+!!$OMP PRIVATE( I, J )                                                  &
+!!$OMP SCHEDULE( DYNAMIC )
+!    DO J = 1, HcoState%NY
+!    DO I = 1, HcoState%NX
+!       HcoState%Grid%PBL%Val(I,J) = MAX(PBLlev(I,J),1)
+!    ENDDO
+!    ENDDO
+!!$OMP END PARALLEL DO
+!
+!    ! Return w/ success
+!    RC = HCO_SUCCESS
+!
+!  END SUBROUTINE HCO_CalcPBLlev2D
+!!EOC
 END MODULE HCO_GeoTools_Mod
 !EOM

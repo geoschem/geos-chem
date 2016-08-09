@@ -60,6 +60,11 @@ MODULE HCO_TYPES_MOD
   INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_BASE = 1
   INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_SCAL = 2
   INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_MASK = 3
+
+  ! PBL level flag
+  INTEGER, PARAMETER, PUBLIC  :: HCO_EMISL_PBL = 0
+  INTEGER, PARAMETER, PUBLIC  :: HCO_EMISL_LEV = 1
+  INTEGER, PARAMETER, PUBLIC  :: HCO_EMISL_M   = 2
 !
 ! !PUBLIC TYPES:
 !
@@ -121,6 +126,9 @@ MODULE HCO_TYPES_MOD
                                 ! is a diagnostics with the same name and write
                                 ! field to that diagnostics? Defaults to yes in
                                 ! standalone mode and no in other setups.
+     LOGICAL  :: VertWeight     ! if spreading 2D fields across multiple vert.
+                                ! levels, weight vertical dilution factors based
+                                ! upon level depths?
   END TYPE HcoOpt
 
   !=========================================================================
@@ -151,6 +159,7 @@ MODULE HCO_TYPES_MOD
      TYPE(Arr2D_Hp), POINTER :: AREA_M2    ! grid box areas (m2)
      TYPE(Arr2D_Hp), POINTER :: ZSFC       ! surface geopotential height (m)**
      TYPE(Arr2D_Hp), POINTER :: PSFC       ! surface pressure (Pa) 
+     TYPE(Arr2D_Hp), POINTER :: PBLHEIGHT  ! PBL height in m 
      TYPE(Arr3D_Hp), POINTER :: BXHEIGHT_M ! grid box heights (m)** 
      TYPE(VertGrid), POINTER :: ZGRID      ! vertical grid description
   END TYPE HcoGrid
@@ -331,7 +340,11 @@ MODULE HCO_TYPES_MOD
      INTEGER                     :: Cover     ! data coverage
      INTEGER                     :: SpaceDim  ! space dimension: 1, 2 or 3 
      INTEGER                     :: Levels    ! vertical level handling 
-     INTEGER                     :: Lev2D     ! level to use for 2D data 
+!     INTEGER                     :: Lev2D     ! level to use for 2D data 
+     REAL(hp)                    :: EmisL1     ! emission level 1
+     REAL(hp)                    :: EmisL2     ! emission level 2
+     INTEGER                     :: EmisL1Unit ! emission level 1 unit
+     INTEGER                     :: EmisL2Unit ! emission level 2 unit
      INTEGER                     :: nt        ! time dimension: length of Arr
      INTEGER                     :: DeltaT    ! temp. resolution of array [h]
      LOGICAL                     :: IsLocTime ! local time? 

@@ -5676,46 +5676,52 @@
 ! !REVISION HISTORY:
 !  12 Feb 2015 - C. Keller   - Initial version
 !  26 Feb 2015 - E. Lundgren - Remove dependency on pressure_mod since not used. 
+!  27 Jun 2016 - C. Keller   - Use VUD_DEFINED instead of ESMF_ compiler switch.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL :: VUD_DEFINED
+
       !=================================================================
       ! GET_VUD begins here!
       !=================================================================
 
-#if defined(ESMF_)
+      ! Init
+      VUD_DEFINED = .FALSE.
+
       !=================================================================
       ! GEOS-5: Use vertical updraft velocity from GEOS-5. This array
       ! is stored in State_Met object UPDVVEL, in hPa/s. Convert to
       ! m/s here.
       !=================================================================
 
-      ! Convert VUD from hPa/s to m/s
-      IF ( State_Met%DELP(I,J,L) <= TINY_FP ) THEN
-         ! Something is weird if pressure is zero, so set vud to zero
-         VUD = 0.0_fp 
-      ELSE
-         ! We need the positive velocity, so use absolute values!
-         VUD = State_Met%UPDVVEL (I,J,L) 
-     &       * State_Met%BXHEIGHT(I,J,L) 
-     &       / State_Met%DELP    (I,J,L) 
+      IF ( ASSOCIATED( State_Met%UPDVVEL ) ) THEN
+
+         IF ( State_Met%DELP(I,J,L)    >  TINY_FP .AND. 
+     &        State_Met%UPDVVEL(I,J,L) >= 0.0_fp       ) THEN
+ 
+           ! We need the positive velocity, so use absolute values!
+            VUD = State_Met%UPDVVEL (I,J,L) 
+     &          * State_Met%BXHEIGHT(I,J,L) 
+     &          / State_Met%DELP    (I,J,L) 
+         ENDIF
       ENDIF
 
-#else
       !=================================================================
       ! Traditional GEOS-Chem:
       ! Compute Vud -- 5 m/s over oceans, 10 m/s over land (or ice?)
       ! Assume Vud is the same at all altitudes; the array can be 2-D
       !=================================================================
-      IF ( IS_WATER( I, J, State_Met ) ) THEN
-         VUD = 5e+0_fp
-      ELSE
-         VUD = 10e+0_fp
+      IF ( .NOT. VUD_DEFINED ) THEN
+         IF ( IS_WATER( I, J, State_Met ) ) THEN
+            VUD = 5e+0_fp
+         ELSE
+            VUD = 10e+0_fp
+         ENDIF
       ENDIF
-#endif     
 
       END FUNCTION GET_VUD
 !EOC

@@ -75,6 +75,7 @@ MODULE HCO_Config_Mod
   PRIVATE :: AddZeroScal 
   PRIVATE :: AddShadowFields
   PRIVATE :: ConfigInit 
+  PRIVATE :: ParseEmisL 
 !
 ! !REVISION HISTORY:
 !  18 Jun 2013 - C. Keller   -  Initialization
@@ -751,6 +752,12 @@ CONTAINS
           ! Set scale factor ID and data operator
           Lct%Dct%ScalID = Int1 
           Lct%Dct%Oper   = Int2
+
+          ! Make sure that negative scale factors are always read
+          IF ( Lct%Dct%ScalID < 0 ) THEN
+             CALL ScalID2List( HcoConfig%ScalIDList, Lct%Dct%ScalID, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN 
+          ENDIF
 
        ELSE
           CALL HCO_ERROR ( HcoConfig%Err, 'Invalid data type!', RC, THISLOC=LOC )
@@ -2583,7 +2590,8 @@ CONTAINS
           IF ( sameCont ) THEN
              IF ( ( tmpLct%Dct%Dta%SpaceDim /= Lct%Dct%Dta%SpaceDim ) .OR. &
                   ( tmpLct%Dct%Dta%Levels   /= Lct%Dct%Dta%Levels   ) .OR. &
-                  ( tmpLct%Dct%Dta%Lev2D    /= Lct%Dct%Dta%Lev2D    )       ) THEN 
+                  ( tmpLct%Dct%Dta%EmisL1   /= Lct%Dct%Dta%EmisL1   ) .OR. &
+                  ( tmpLct%Dct%Dta%EmisL2   /= Lct%Dct%Dta%EmisL2   ) ) THEN 
                 sameCont = .FALSE.
              ENDIF
           ENDIF
@@ -3788,9 +3796,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: idx
+    INTEGER            :: i, idx
     INTEGER            :: strLen
-    CHARACTER(LEN=255) :: str1, str2
+    CHARACTER(LEN=255) :: str1, str2, tmpstr
     CHARACTER(LEN=255) :: MSG    
     CHARACTER(LEN=255) :: LOC = 'ExtractSrcDim (hco_config_mod.F90)' 
 
@@ -3843,7 +3851,30 @@ CONTAINS
              RETURN
           ENDIF       
           Dta%SpaceDim = 2
-          READ(str1(4:strLen),*) Dta%Lev2D
+          ! Read levels to put emissions into:
+          i=4
+          IF ( str1(i:i) == '=' ) i = i + 1
+  
+          ! Reduce to data to be read
+          tmpstr = str1(i:strLen)
+
+          ! check if range of levels is provided, i.e. xyL=1:5
+          idx = INDEX( TRIM(tmpstr), ':' )
+         
+          ! if multiple levels are provided (e.g. xyL=1:5)
+          IF ( idx > 0 ) THEN
+
+             ! Check for PBL flag. It is possible to emit stuff 
+             ! from the PBL up to e.g. level 30 (xyL=PBL:30) 
+             CALL ParseEmisL( tmpstr(1:(idx-1)), Dta%EmisL1, Dta%EmisL1Unit )
+             CALL ParseEmisL( tmpstr((idx+1):LEN(tmpstr)), Dta%EmisL2, Dta%EmisL2Unit )
+
+          ! if only one level is provided (e.g. xyL=5) 
+          ELSE
+             CALL ParseEmisL( tmpstr, Dta%EmisL1, Dta%EmisL1Unit )
+             Dta%EmisL2     = Dta%EmisL1
+             Dta%EmisL2Unit = Dta%EmisL1Unit
+          ENDIF
        ELSE
 
           ! If we get to here, it's 3D data 
@@ -3940,5 +3971,61 @@ CONTAINS
     HcoConfig%Err            => NULL()
 
   END SUBROUTINE ConfigInit 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ParseEmisL 
+!
+! !DESCRIPTION: parses the emission level. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ParseEmisL ( str, EmisL, EmisUnit ) 
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),  INTENT(IN ) :: str
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(hp),          INTENT(OUT) :: EmisL 
+    INTEGER,           INTENT(OUT) :: EmisUnit
+!
+! !REVISION HISTORY:
+!  09 May 2016 - C. Keller: Intial version. 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER  :: idx
+
+    !======================================================================
+    ! ParseEmisL begins here! 
+    !======================================================================
+
+    ! Init
+    EmisUnit = HCO_EMISL_LEV
+
+    IF ( TRIM(str) == 'PBL' ) THEN
+      EmisL    = 0.0_hp
+      EmisUnit = HCO_EMISL_PBL
+    ELSE
+       ! check for elevation unit flag (e.g. 1000m)
+       idx = INDEX(TRIM(str),'m')
+       IF ( idx > 0 ) THEN
+          READ(str(1:(idx-1)),*) EmisL
+          EmisUnit = HCO_EMISL_M
+       ELSE
+          READ(str,*) EmisL
+       ENDIF
+    ENDIF
+
+  END SUBROUTINE ParseEmisL
 !EOC
 END MODULE HCO_Config_Mod
