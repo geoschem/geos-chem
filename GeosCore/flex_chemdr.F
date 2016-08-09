@@ -24,6 +24,7 @@
       USE DAO_MOD
       USE DIAG_MOD,             ONLY : AD65
       USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
+      USE DIAG20_MOD,           ONLY : DIAG20, O3_PROD, O3_LOSS
       USE DUST_MOD
       USE ERROR_MOD
       USE FAST_JX_MOD
@@ -926,6 +927,16 @@
 
             ENDDO
 
+            !-----------------------------------------------------------
+            ! Save out P(O3) and L(O3) from the fullchem simulation
+            ! for a future tagged O3 run
+            !-----------------------------------------------------------
+            IF ( Input_Opt%DO_SAVE_O3 ) THEN
+               IND =  Ind_('O3','K')
+               O3_PROD(I,J,L) = PROD(IND) / DT
+               O3_LOSS(I,J,L) = LOSS(IND) / DT
+            ENDIF
+
          ENDIF
 
          !### Debug output, we can remove it later
@@ -1043,6 +1054,18 @@
       !### Debug
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### FLEX_CHEMDR: after DO_DIAG_OH' )
+      ENDIF
+
+      !=================================================================
+      ! Save out P(O3) and L(O3) for a tagged O3 run
+      !=================================================================
+      IF ( Input_Opt%DO_SAVE_O3 ) THEN
+         CALL DIAG20( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+
+         !### Debug
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### FLEX_CHEMDR: after DIAG20' )
+         ENDIF
       ENDIF
 
 

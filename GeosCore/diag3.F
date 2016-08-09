@@ -44,7 +44,6 @@
       USE DIAG42_MOD                         ! For SOA diag
       USE DIAG53_MOD                         ! For POPs diag
       USE DIAG56_MOD                         ! For time in tropopause diag
-      USE DIAG_PL_MOD                        ! For prod/loss diagnostic
       USE DEPO_MERCURY_MOD                   ! For offline Hg simulation
       USE DRYDEP_MOD                         ! For dry deposition
       USE WETSCAV_MOD                        ! For wet deposition

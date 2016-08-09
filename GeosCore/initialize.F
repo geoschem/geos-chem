@@ -36,7 +36,6 @@
       USE DIAG42_MOD
       USE DIAG53_MOD
       USE DIAG56_MOD
-      USE DIAG_PL_MOD
 
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 

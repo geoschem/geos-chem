@@ -6017,7 +6017,6 @@
 ! !USES:
 !
       USE CHARPAK_MOD,        ONLY : ISDIGIT,         STRSPLIT
-      USE DIAG_PL_MOD,        ONLY : INIT_DIAG_PL
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
@@ -6069,18 +6068,6 @@
       !=================================================================
       ! READ_PROD_LOSS_MENU begins here!
       !=================================================================
-
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !% IMPORTANT: Prod/loss diagnostics currently unavailable               %
-      !%                                                                      %
-      !% As of v11-01g, the prod/loss diagnostics are unavailable because we  %
-      !% have removed the SMVGEAR solver for FlexChem. Mike Long has updated  %
-      !% KPP to reproduce the prod/loss functionality, but this still needs   %
-      !% to be connected to the GEOS-Chem diagnostics. We will restore the    %
-      !% prod/loss diagnotics when we complete conversion of GEOS-Chem        %
-      !% diagnostics from BPCH to netCDF format. This work should be done     %
-      !% prior to the v11-01 public release. (mps, 5/5/16)                    %
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Location string
       LOCATION = 'READ_PROD_LOSS_MENU ("input_mod.f")'
@@ -6264,15 +6251,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-
-      !=================================================================
-      ! Call setup routines from other F90 modules
-      !=================================================================
-
-      ! Pass variables to "diag_pl_mod.f" 
-      CALL INIT_DIAG_PL( am_I_Root, Input_Opt, DO_SAVE_PL, DO_SAVE_O3, 
-     &                   NFAM,      FAM_NAME,  FAM_TYPE,   FAM_NMEM,   
-     &                   FAM_MEMB,  FAM_COEF,  RC )
 
       END SUBROUTINE READ_PROD_LOSS_MENU
 !EOC
@@ -7734,6 +7712,7 @@
       USE Chemgrid_Mod,       ONLY : Init_Chemgrid
       USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
       USE Diag03_Mod,         ONLY : Init_Diag03
+      USE Diag20_Mod,         ONLY : Init_Diag20
       USE Diag_OH_Mod,        ONLY : Init_Diag_OH
       USE Drydep_Mod,         ONLY : Init_Drydep
       USE Dust_Mod,           ONLY : Init_Dust
@@ -7998,6 +7977,11 @@
 
       ! Initialize the Hg diagnostics (bpch)
       CALL Init_Diag03( State_Chm )
+
+      ! Initialize ND20 for tagged O3 simulation
+      IF ( Input_Opt%DO_SAVE_O3 ) THEN
+         CALL Init_Diag20( am_I_Root, Input_Opt, RC )
+      ENDIF
 
       ! Enable Mean OH (or CH3CCl3) diag for runs which need it
       CALL Init_Diag_OH( am_I_Root, Input_Opt, RC )
