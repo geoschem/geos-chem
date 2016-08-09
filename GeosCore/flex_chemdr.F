@@ -722,6 +722,9 @@
          ! Update KPP's rates
          !===========================================================
 
+         ! Reset prod/loss dummy species to zero
+         C(FLUX_MAP) = 0.
+
          ! VAR and FIX are chunks of array C (mps, 2/24/16)
          !
          ! NOTE: Because VAR and FIX are !$OMP+THREADPRIVATE, they
@@ -880,7 +883,7 @@
          IF ( Input_Opt%DO_SAVE_PL ) THEN
 
             ! Obtain prod/loss rates from KPP [molec/cm3]
-            CALL Flux( C(FLUX_MAP(:)), PROD, LOSS)
+            CALL Flux( C(FLUX_MAP), PROD, LOSS)
 
             ! Loop over # prod/loss families
             DO F = 1, Input_Opt%NFAM
