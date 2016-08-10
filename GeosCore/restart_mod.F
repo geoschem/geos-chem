@@ -20,7 +20,9 @@
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE inquireMod, ONLY : findFreeLUN
+      USE PhysConstants
       USE Precision_Mod
+      USE UnitConv_Mod
 
       IMPLICIT NONE
       PRIVATE
@@ -415,10 +417,8 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PHYSCONSTANTS,      ONLY : AIRMW
       USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : EXPAND_DATE
-      USE UnitConv_Mod
 
       ! For Hg simulation restart file
       USE OCEAN_MERCURY_MOD,  ONLY : Hg0aq, Hg2aq, HgPaq, Hgaq_tot
@@ -1105,7 +1105,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PHYSCONSTANTS,      ONLY : BOLTZ
       USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : EXPAND_DATE
 
@@ -1124,16 +1123,19 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      INTEGER,        INTENT(IN)  :: YYYYMMDD    ! YYYY/MM/DD GMT date
-      INTEGER,        INTENT(IN)  :: HHMMSS      ! hh:mm:ss GMT time
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      INTEGER,        INTENT(IN)    :: YYYYMMDD    ! YYYY/MM/DD GMT date
+      INTEGER,        INTENT(IN)    :: HHMMSS      ! hh:mm:ss GMT time
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC        ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  09 Feb 2016 - E. Lundgren - Initial version
@@ -1145,6 +1147,7 @@
 !                              HgP_Id_List fields of State_Chm
 !  11 Jul 2016 - E. Lundgren - Remove tracers and write only species
 !  12 Jul 2016 - E. Lundgren - Rename from write_gc_restart_nc
+!  10 Aug 2016 - E. Lundgren - Input species concentrations are now kg/kg dry
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1154,8 +1157,6 @@
       ! Local Variables      
       INTEGER              :: I, J, L, M, N, HCRC
       INTEGER              :: GC_RST_Collection
-      REAL(fp)             :: CONV_FACTOR  ! convert molec/cm3 -> mol/mol
-      REAL*4               :: SMALL_NUM
       REAL(fp)             :: MW_g
       CHARACTER(LEN=60)    :: ContainerName, Prefix
       CHARACTER(LEN=255)   :: MSG, FILENAME, LOC = 
@@ -1196,9 +1197,6 @@
       ! Set the GEOS-Chem restart collection ID
       GC_RST_Collection = Input_Opt%GC_RST_COLLECTION
 
-      ! Set minimum value of species concentration [molec/cm3/box]
-      SMALL_NUM = 1.e-30_sp
-
       !=================================================================
       ! If running Hg simulation, set Hg-specific local variables
       !=================================================================
@@ -1237,101 +1235,61 @@
       ! Populate species concentration restart containers
       !=================================================================
 
-      ! Print min/max species conc to log in [molec/cm3]
+      ! Print min/max species concentrations to log if debugging
       IF ( Input_Opt%LPRT ) THEN
+
+         ! Write header for min and max values in [molec/cm3]
          WRITE( 6, 130 )
  130     FORMAT( /, 'Min and Max of each species before unit ',
      &              'conversion [molec/cm3]:' )
+
+         ! Convert species back to molec/cm3
+         CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
+     &                                   State_Chm, RC )
+
+         ! Write min and max to log in loop over species
+         DO N = 1, State_Chm%nSpecies
+            ThisSpc => State_Chm%SpcData(N)%Info
+            WRITE(6,320) N, TRIM( ThisSpc%Name ), 
+     &                   MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ), 
+     &                   MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) ) 
+320         FORMAT( 'Species ', i3, ', ', a9, 
+     &              ': Min = ', es15.9, ', Max = ', es15.9 )
+            ThisSpc => NULL()
+         ENDDO
+
+         ! Convert species back to kg/kg dry
+         CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
+     &                                   State_Chm, RC )
+
+         ! Write header for min and max of values written to file [mol/mol]
+         IF ( Input_Opt%LPRT ) THEN
+            WRITE( 6, 150 )
+ 150        FORMAT( /, 'Min and Max of each species written to file',
+     &                 ' [mol/mol]:' )
+         ENDIF
+
       ENDIF
 
-      ! Initialize Temp3D to all zeros
+      ! Initialize temporary array to all zeros
       Temp3D = 0.e+0_sp
 
-      ! Populate Temp3D for all levels up to LLCHEM
+      ! For each species, populate the array for all levels with 
+      ! concentrations in [mol/mol]
       DO N = 1, State_Chm%nSpecies
 
          ! Get info about this species from the species database
          ThisSpc => State_Chm%SpcData(N)%Info
+         MW_g    = State_Chm%SpcData(N)%Info%emMW_g
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLCHEM
+         DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IF ( State_Chm%Species(I,J,L,N) >= SMALL_NUM ) THEN
-               Temp3D(I,J,L) = State_Chm%Species(I,J,L,N)
-            ELSE
-               Temp3D(I,J,L) = SMALL_NUM  
-            ENDIF
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
-         ! If debugging, print out species values up to LLCHEM.
-         ! Above this level, all values are zero.
-         IF ( Input_Opt%LPRT ) THEN
-            WRITE( 6, 140 ) N, TRIM( ThisSpc%Name ),
-     &                      MINVAL( Temp3D(:,:,1:LLCHEM) ), 
-     &                      MAXVAL( Temp3D(:,:,1:LLCHEM) )
- 140        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
-     &              '  Max = ', es15.9 )
-         ENDIF
-
-         ! Free pointer
-         ThisSpc => NULL()
-
-      ENDDO
-
-      ! Write header for post-conversion write to log (if debugging)
-      IF ( Input_Opt%LPRT ) THEN
-         WRITE( 6, 150 )
- 150     FORMAT( /, 'Min and Max of each species written to file',
-     &              ' [mol/mol]:' )
-      ENDIF
-
-      ! Convert species values locally to [mol/mol] for output
-      ! in NetCDF. Print min and max values to log.
-      DO N = 1, State_Chm%nSpecies
-      
-         ! Get info about this species from the species database
-         ThisSpc => State_Chm%SpcData(N)%Info
-         MW_g       = State_Chm%SpcData(N)%Info%emMW_g
-
-         ! Clear the species concentration array to all zeroes before
-         ! populating array up to LLCHEM
-         Temp3D(:,:,:) = 0.e+0_sp
-      
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, CONV_FACTOR )
-         DO L = 1, LLCHEM
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! NOTE: species is output to the binary-punch "spec_rst"
-            ! restart file as molec/cm3 but is output to the NetCDF
-            ! restart file as mol/mol. This results in small differences
-            ! in the initial molec/cm3 species values at the beginning
-            ! of the next run that uses the restart file. The difference
-            ! is due to the pressure-dependency of the unit conversion 
-            ! between molec/cm3 and mol/mol. 
-
-            ! Set box-dependent unit conversion factor to convert
-            ! from [molec/cm3] to [mol/mol]
-            CONV_FACTOR = State_Met%T(I,J,L) * BOLTZ * 1e+7_fp /
-     &                    ( State_Met%PMID_DRY(I,J,L) * 1000e+0_fp )
-
-            ! Store species conc in [mol/mol] in local array
-            IF ( State_Chm%Species(I,J,L,N) > SMALL_NUM ) THEN
-               Temp3D(I,J,L) = State_Chm%Species(I,J,L,N) *
-     &                         CONV_FACTOR
-            ELSE
-               Temp3D(I,J,L) = 1.0e-30_fp * CONV_FACTOR  
-            ENDIF
-
-
+            Temp3D(I,J,L) = State_Chm%Species(I,J,L,N) *
+     &                      AIRMW / MW_g
          ENDDO
          ENDDO
          ENDDO
@@ -1353,13 +1311,13 @@
          ! Free the pointer
          Ptr3D => NULL()
 
-         ! Print the min & max of each species written to file
+         ! Write min and max written to file if debugging
          IF ( Input_Opt%LPRT ) THEN
             WRITE( 6, 160 ) N, TRIM( ThisSpc%Name ),
      &                      MINVAL( Temp3D(:,:,1:LLCHEM) ), 
      &                      MAXVAL( Temp3D(:,:,1:LLCHEM) )
  160        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
-     &                 '  Max = ', es15.9 )
+     &              '  Max = ', es15.9 )
          ENDIF
          
          IF ( RC /= HCO_SUCCESS ) THEN

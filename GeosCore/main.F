@@ -739,7 +739,7 @@
       State_Chm%Trac_Units = 'kg/kg dry'
       
       ! Convert species from kg/kg dry to molec/cm3 to preserve
-      ! how it is in legacy code           
+      ! how it is in legacy code
       CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
      &                                State_Chm, RC )
       !*****************************************************
@@ -945,9 +945,24 @@
      &                        State_Met, RC )
             ENDIF
                
+            !*****************************************************
+            ! TRACER REMOVAL - ewl, 8/12/16
+            ! Convert species to kg/kg dry prior to writing to restart file
+            CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
+     &                                      State_Chm, RC )
+            
+            !*****************************************************
+
             ! Make atmospheric restart file
             CALL WRITE_GC_RESTART( am_I_Root, NYMD, NHMS, Input_Opt,
      &                             State_Chm, State_Met, RC )
+
+            !*****************************************************
+            ! TRACER REMOVAL - ewl, 8/12/16
+            ! Convert species back to molecules/cm3 until all tracers removed
+            CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
+     &                                      State_Chm, RC )
+            !*****************************************************
 
             !### Debug
             IF ( prtDebug ) THEN
