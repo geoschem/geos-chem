@@ -182,6 +182,9 @@
 !  09 Aug 2016 - M. Sulprizio- Move routine from diag_pl_mod.F to diag20_mod.F;
 !                              Obtain prod/loss rates from KPP via O3_PROD and
 !                              O3_LOSS arrays set in flex_chemdr.F
+!  10 Aug 2016 - M. Sulprizio- Remove State_Chm%Tracers from LOx calculation and
+!                              replace with State_chm%Species. Convert from
+!                              molec/cm3 to molec using BOXVL.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -197,12 +200,10 @@
       INTEGER           :: I, J, L, N
       REAL(fp)          :: P_Ox, L_Ox
       REAL(fp)          :: LT, O3_MW_G
+      REAL(fp)          :: BOXVL
 
       ! Strings
       CHARACTER(LEN=16) :: STAMP 
-
-      ! Pointers
-      REAL(fp), POINTER :: STT(:,:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -252,13 +253,9 @@
       IF ( am_I_Root ) WRITE( 6, 120 ) STAMP
  120  FORMAT( '     - DIAG20: Archiving P(Ox) & L(Ox) at ', a )
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, P_Ox, L_Ox, LT )
+!$OMP+PRIVATE( I, J, L, P_Ox, L_Ox, LT, BOXVL )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LD65
       DO J = 1, JJPAR
@@ -305,9 +302,11 @@
             ! Loss
             !-----------------------------------------------------------
 
-            ! Convert Ox mass from [kg] to [molec]
-            L_Ox           = STT(I,J,L,id_O3) * AVO / ( 1.e-3_fp *
-     &                       O3_MW_G )
+            ! Grid box volume [cm3]
+            BOXVL           = State_Met%AIRVOL(I,J,L) * 1e+6_fp
+
+            ! Convert Ox from [molec/cm3] to [molec]
+            L_Ox           = State_Chm%Species(I,J,L,id_O3) * BOXVL
 
             ! Divide L(Ox) [molec/cm3/s] by Ox mass [molec] 
             ! in order to get L(Ox) in [1/cm3/s]
@@ -325,9 +324,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-      ! Free pointer
-      NULLIFY( STT )
 
       !=================================================================
       ! Write data to disk and zero counters for next timestep
