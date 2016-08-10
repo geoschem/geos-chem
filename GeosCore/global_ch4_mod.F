@@ -946,6 +946,7 @@
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -983,29 +984,17 @@
       write(*,*)'Total tracer before chemistry: ',SUM(State_Chm%Tracers)
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC      = GIGC_SUCCESS
 
-      ! Copy values from Input_Opt
-      LSPLIT    = Input_Opt%LSPLIT
-      LCH4BUD   = Input_Opt%LCH4BUD
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
       ! Number of advected species
       nAdvect = State_Chm%nAdvect
 
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      ! Copy values from Input_Opt
+      LSPLIT  = Input_Opt%LSPLIT
+      LCH4BUD = Input_Opt%LCH4BUD
 
       ! Point to the chemical species 
-      Spc => State_Chm%Species
+      Spc     => State_Chm%Species
 
       !=================================================================
       ! (0) Calculate each box's air density [molec/cm3]
@@ -1172,15 +1161,6 @@
       ! Set FIRSTCHEM to FALSE
       FIRSTCHEM = .FALSE.
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CHEMCH4
 !EOC
 !------------------------------------------------------------------------------
@@ -1782,6 +1762,7 @@
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1806,21 +1787,6 @@
       !
       ! Initialize quantities 
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
 
       ! Scale factor for dynamic time steps
       SCALEDYN  = FLOAT( GET_CT_DYN() ) + 1e-20_fp
@@ -2220,15 +2186,6 @@
       TCH4(:,:,:,1      ) = TCH4(:,:,:,2)
       TCH4(:,:,:,2:N_CH4) = 0e+0_fp
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CH4_BUDGET
 !EOC
 !------------------------------------------------------------------------------

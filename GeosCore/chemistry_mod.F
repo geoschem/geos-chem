@@ -233,6 +233,7 @@
 !  17 Jun 2016 - R. Yantosca - Now reset first-time flag at end of routine
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.
 !  19 Jul 2016 - R. Yantosca - Now bracket DO_TEND calls with #ifdef USE_TEND
+!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -277,11 +278,6 @@
       INTEGER, SAVE     :: id_CO
       REAL(fp)          :: DT_TEND
 #endif
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,2)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
@@ -346,8 +342,8 @@
       !-----------------------------------------------------------------
 
       ! Convert tracer units from [kg/kg] to [kg] for chemistry (ewl, 8/12/15)
-      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
-     &                            State_Chm, RC ) 
+      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, 
+     &                               State_Chm, RC         ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'DO_CHEMISTRY in chemistry_mod.F')
@@ -358,34 +354,8 @@
       !=================================================================
       ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-      IF ( id_O3 > 0 ) THEN
-         Spc_Tmp          (:,:,:,1    ) = State_Chm%Species(:,:,:,id_O3)
-         State_Chm%Species(:,:,:,id_O3) = State_Chm%Tracers(:,:,:,id_O3)
-      ENDIF
-      IF ( id_CO > 0 ) THEN
-         Spc_Tmp          (:,:,:,2    ) = State_Chm%Species(:,:,:,id_CO)
-         State_Chm%Species(:,:,:,id_CO) = State_Chm%Tracers(:,:,:,id_CO)
-      ENDIF
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CHEM', .FALSE., RC )
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-      IF ( id_O3 > 0 ) THEN
-         State_Chm%Tracers(:,:,:,id_O3) = State_Chm%Species(:,:,:,id_O3)
-         State_Chm%Species(:,:,:,id_O3) = Spc_Tmp          (:,:,:,1    )
-      ENDIF
-      IF ( id_CO > 0 ) THEN
-         State_Chm%Tracers(:,:,:,id_CO) = State_Chm%Species(:,:,:,id_CO)
-         State_Chm%Species(:,:,:,id_CO) = Spc_Tmp          (:,:,:,2    )
-      ENDIF
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 #endif
 
       !=================================================================
@@ -740,8 +710,10 @@
       ! to [kg/kg dry air] at the end (not [v/v]). (ewl, 8/13/15)
       !-----------------------------------------------------------------
       ! Convert tracer units back to [kg/kg] after chemistry (ewl, 8/12/15)
-      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
-     &                            State_Chm, RC ) 
+!@@@      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
+!@@@     &                            State_Chm, RC ) 
+      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
+     &                               State_Chm, RC         ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'DO_CHEMISTRY in chemistry_mod.F')
@@ -753,18 +725,6 @@
       ! Calculate tendencies and write to diagnostics 
       ! (ckeller,7/15/2015)
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-      IF ( id_O3 > 0 ) THEN
-         Spc_Tmp          (:,:,:,1    ) = State_Chm%Species(:,:,:,id_O3)
-         State_Chm%Species(:,:,:,id_O3) = State_Chm%Tracers(:,:,:,id_O3)
-      ENDIF
-      IF ( id_CO > 0 ) THEN
-         Spc_Tmp          (:,:,:,2    ) = State_Chm%Species(:,:,:,id_CO)
-         State_Chm%Species(:,:,:,id_CO) = State_Chm%Tracers(:,:,:,id_CO)
-      ENDIF
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Chemistry timestep [s]
       DT_TEND = GET_TS_CHEM() * 60.0_fp
@@ -773,18 +733,6 @@
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CHEM', .FALSE., DT_TEND, RC )
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-      IF ( id_O3 > 0 ) THEN
-         State_Chm%Tracers(:,:,:,id_O3) = State_Chm%Species(:,:,:,id_O3)
-         State_Chm%Species(:,:,:,id_O3) = Spc_Tmp          (:,:,:,1    )
-      ENDIF
-      IF ( id_CO > 0 ) THEN
-         State_Chm%Tracers(:,:,:,id_CO) = State_Chm%Species(:,:,:,id_CO)
-         State_Chm%Species(:,:,:,id_CO) = Spc_Tmp          (:,:,:,2    )
-      ENDIF
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 #endif
 
       ! Reset first-time flag

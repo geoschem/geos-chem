@@ -149,6 +149,7 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  10 Aug 2016 - R. Yantosca - Removed temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -174,23 +175,12 @@
       !=================================================================
       ! CHEMC2H6 begins here! 
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
-      RC     = GIGC_SUCCESS
+      RC      = GIGC_SUCCESS
+
+      ! Nubmer of advected species
+      nAdvect = State_Chm%nAdvect
 
       IF ( FIRSTCHEM ) THEN
          FIRSTCHEM = .FALSE.  ! save for future use?
@@ -270,15 +260,6 @@
       ! Free pointer
       Spc => NULL()
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CHEMC2H6
 !EOC
 !------------------------------------------------------------------------------

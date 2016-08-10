@@ -255,6 +255,7 @@ CONTAINS
 !                              species ID from State_Chm%Map_Advect.
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !  12 Jul 2016 - R. Yantosca - Bug fix: ISBR2 should be held !$OMP PRIVATE
+!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -293,11 +294,6 @@ CONTAINS
     REAL(fp), POINTER :: Spc(:,:,:,:)
     REAL(fp), POINTER :: AD (:,:,:  )
     REAL(fp), POINTER :: T  (:,:,:  )
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     !=======================================================================
     ! DO_STRAT_CHEM begins here!
@@ -366,22 +362,6 @@ CONTAINS
     ! %%% in an array for SCHEM_TEND.
     !=======================================================================
     IF ( IT_IS_A_FULLCHEM_SIM ) THEN
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
        ! Initialize pointers
        Spc         => State_Chm%Species
@@ -642,19 +622,6 @@ CONTAINS
        AD  => NULL()
        T   => NULL()
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
     !======================================================================
     ! TAGGED O3 SIMULATION
     !
@@ -672,47 +639,23 @@ CONTAINS
           ! Get the species ID from the advected species ID
           N                          = State_Chm%Map_Advect(NA)
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-          State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
           ! Save initial conditions in Spc0 [kg]
           Spc0(:,:,:,NA)             = State_Chm%Species(:,:,:,N)
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-          State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
        ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
        ! Convert units from [kg] to [v/v dry air] for Linoz and Synoz
        ! (ewl, 10/05/15)
-       CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,     &
-                                 State_Met, State_Chm, errCode )
+       CALL ConvertSpc_Kg_to_VVDry( am_I_Root, State_Met, &
+                                    State_Chm, errCode      )
        IF ( errCode /= GIGC_SUCCESS ) THEN
           CALL GIGC_Error('Unit conversion error', errCode,    &
                           'DO_STRAT_CHEM in strat_chem_mod.F')
           RETURN
        ENDIF
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
+       ! Call either LINOZ or SYNOZ
+       ! NOTE: If you don't want either, comment this block out
        IF ( LLINOZ ) THEN
           CALL Do_Linoz( am_I_Root, Input_Opt,             &
                          State_Met, State_Chm, errCode )
@@ -721,36 +664,15 @@ CONTAINS
                          State_Met, State_Chm, errCode )
        ENDIF
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
        ! Convert units back to [kg] after Linoz and Synoz (ewl, 10/05/15)
-       CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt,     &
-                                 State_Met, State_Chm, errCode )
+       CALL ConvertSpc_VVDry_to_Kg( am_I_Root, State_Met,  &
+                                    State_Chm, errCode    )
        IF ( errCode /= GIGC_SUCCESS ) THEN
           CALL GIGC_Error('Unit conversion error', errCode,     &
                           'DO_STRAT_CHEM in strat_chem_mod.F')
           RETURN
        ENDIF
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
        ! Add to tropopause level aggregator for later determining STE flux
        TpauseL_CNT = TpauseL_CNT + 1e+0_fp
@@ -778,16 +700,6 @@ CONTAINS
           SCHEM_TEND(:,:,:,NA) = SCHEM_TEND(:,:,:,NA) + &
                ( State_Chm%Species(:,:,:,NN) - Spc0(:,:,:,NA) )
        ENDDO
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-       DO NA = 1, nAdvect
-          N                          = State_Chm%Map_Advect(NA)
-          State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-       ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     !======================================================================
     ! OTHER SIMULATIONS

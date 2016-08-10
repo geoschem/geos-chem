@@ -49,6 +49,7 @@
 !  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
+!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !******************************************************************************
 !
 !
@@ -148,9 +149,9 @@
       INTEGER, SAVE          :: LASTMONTH = -99
 
       ! scalars
-      INTEGER                :: I,    J,     L,    nAdvect, N,    NA
-      REAL(fp)               :: ARH,  ATEMP, AVOL, SO4,     ASO4, ANO3    
-      REAL(fp)               :: AH2O, ANH4,  GNH3, GNO3,    AHSO4   
+      INTEGER                :: I,    J,     L,    N
+      REAL(fp)               :: ARH,  ATEMP, AVOL, SO4,  ASO4, ANO3    
+      REAL(fp)               :: AH2O, ANH4,  GNH3, GNO3, AHSO4   
       CHARACTER(LEN=255)     :: X 
 !
 ! !INPUT PARAMETERS:
@@ -183,22 +184,6 @@
       !=================================================================
       ! DO_RPMARES begins here!
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-      !CODEATHON
 
       ! Assume success
       RC = GIGC_SUCCESS
@@ -332,15 +317,6 @@
       ! Free pointer
       Spc => NULL()
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE DO_RPMARES
 
 !------------------------------------------------------------------------------

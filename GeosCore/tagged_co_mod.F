@@ -337,18 +337,21 @@
 !@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
 !@@@ This can be removed later once State_Chm%Tracers is removed everywhere
 !@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
+!      ! Number of advected species
+!      nAdvect = State_Chm%nAdvect
+!
+!      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+!      DO NA = 1, nAdvect
+!         N                          = State_Chm%Map_Advect(NA)
+!         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+!      ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
       RC        = GIGC_SUCCESS
+
+      ! Number of advected species
+      nAdvect   = State_Chm%nAdvect
 
       ! Get fields from Input_Opt
       LSPLIT    = Input_Opt%LSPLIT
@@ -979,10 +982,10 @@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
 !@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      ENDDO
+!      DO NA = 1, nAdvect
+!        N                          = State_Chm%Map_Advect(NA)
+!         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+!      ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CHEM_TAGGED_CO
 !EOC
