@@ -1347,7 +1347,7 @@
       Input_Opt%ITS_A_CH3I_SIM         = ( Input_Opt%SIM_TYPE == 2  )
       Input_Opt%ITS_A_FULLCHEM_SIM     = ( Input_Opt%SIM_TYPE == 3  )
       Input_Opt%ITS_A_HCN_SIM          = ( Input_Opt%SIM_TYPE == 4  )
-      Input_Opt%ITS_A_TAGOX_SIM        = ( Input_Opt%SIM_TYPE == 6  )
+      Input_Opt%ITS_A_TAGO3_SIM        = ( Input_Opt%SIM_TYPE == 6  )
       Input_Opt%ITS_A_TAGCO_SIM        = ( Input_Opt%SIM_TYPE == 7  )
       Input_Opt%ITS_A_C2H6_SIM         = ( Input_Opt%SIM_TYPE == 8  )
       Input_Opt%ITS_A_CH4_SIM          = ( Input_Opt%SIM_TYPE == 9  )
@@ -1380,7 +1380,7 @@
       Input_Opt%ITS_A_SPECIALTY_SIM    =
      &     ( Input_Opt%ITS_A_CH3I_SIM      .or.
      &       Input_Opt%ITS_A_HCN_SIM       .or.
-     &       Input_Opt%ITS_A_TAGOX_SIM     .or.
+     &       Input_Opt%ITS_A_TAGO3_SIM     .or.
      &       Input_Opt%ITS_A_TAGCO_SIM     .or.
      &       Input_Opt%ITS_A_C2H6_SIM      .or.
      &       Input_Opt%ITS_A_CH4_SIM       .or.
@@ -1406,7 +1406,7 @@
          CASE( 5 )
             Input_Opt%SIM_NAME = ''
          CASE( 6 )
-            Input_Opt%SIM_NAME = 'Tagged Ox'
+            Input_Opt%SIM_NAME = 'Tagged O3'
          CASE( 7 )
             Input_Opt%SIM_NAME = 'Tagged CO'
          CASE( 8 ) 
@@ -3613,7 +3613,7 @@
       ! Turn off wetdep for simulations that don't need it
       IF ( Input_Opt%ITS_A_CH3I_SIM    ) Input_Opt%LWETD = .FALSE.
       IF ( Input_Opt%ITS_A_HCN_SIM     ) Input_Opt%LWETD = .FALSE.
-      IF ( Input_Opt%ITS_A_TAGOX_SIM   ) Input_Opt%LWETD = .FALSE.
+      IF ( Input_Opt%ITS_A_TAGO3_SIM   ) Input_Opt%LWETD = .FALSE.
       IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LWETD = .FALSE.
       IF ( Input_Opt%ITS_A_C2H6_SIM    ) Input_Opt%LWETD = .FALSE.
       IF ( Input_Opt%ITS_A_CH4_SIM     ) Input_Opt%LWETD = .FALSE.
@@ -4347,7 +4347,7 @@
       !--------------------------
 
       ! Number of tracers depends on simulation type
-      IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
+      IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
          N_TMP = Input_Opt%N_TRACERS 
       ELSE
          N_TMP = NUMDEP
@@ -6098,7 +6098,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:2' )
       READ( SUBSTRS(1:N), * ) ND65
 
-      ! Save P(O3) & L(O3) for tagged Ox run? (i.e. ND20 diagnostic)
+      ! Save P(O3) & L(O3) for tagged O3 run? (i.e. ND20 diagnostic)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:3' )
       READ( SUBSTRS(1:N), * ) DO_SAVE_O3
 
@@ -6158,10 +6158,10 @@
       ! Error check families for certain types of simulations
       !=================================================================
 
-      ! Tagged Ox
-      IF ( DO_SAVE_PL .and. Input_Opt%ITS_A_TAGOX_SIM ) THEN
+      ! Tagged O3
+      IF ( DO_SAVE_PL .and. Input_Opt%ITS_A_TAGO3_SIM ) THEN
          IF ( NFAM /= 2*Input_Opt%N_TRACERS ) THEN
-            MSG = 'Wrong number of P/L families for Tagged Ox!'
+            MSG = 'Wrong number of P/L families for Tagged O3!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ENDIF
@@ -6196,7 +6196,7 @@
          WRITE( 6, '(  a)' ) '---------------------------'      
          WRITE( 6, 100 ) 'Turn on prod & loss diag?   : ', DO_SAVE_PL
          WRITE( 6, 110 ) '# of levels for P/L diag    : ', ND65
-         WRITE( 6, 100 ) 'Save P(Ox), L(Ox) for TagOx?: ', DO_SAVE_O3
+         WRITE( 6, 100 ) 'Save P(Ox), L(Ox) for TagO3?: ', DO_SAVE_O3
       
          ! Loop over families
          DO F = 1, NFAM
@@ -7732,7 +7732,7 @@
       USE Seasalt_Mod,        ONLY : Init_SeaSalt
       USE Sulfate_Mod,        ONLY : Init_Sulfate
       USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
-      USE Tagged_Ox_Mod,      ONLY : Init_Tagged_Ox
+      USE Tagged_O3_Mod,      ONLY : Init_Tagged_O3
       USE Toms_Mod,           ONLY : Init_Toms
       USE Vdiff_Pre_Mod,      ONLY : Set_Vdiff_Values
       USE WetScav_Mod,        ONLY : Init_WetScav
@@ -7944,9 +7944,9 @@
          CALL Init_Tagged_CO( am_I_Root, Input_Opt, RC )
       ENDIF
 
-      ! Initialize "tagged_ox_mod.F"
-      IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
-         CALL Init_Tagged_Ox( am_I_Root, Input_Opt, RC )
+      ! Initialize "tagged_o3_mod.F"
+      IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
+         CALL Init_Tagged_O3( am_I_Root, Input_Opt, RC )
       ENDIF
 
       IF ( Input_Opt%ITS_A_POPS_SIM ) THEN

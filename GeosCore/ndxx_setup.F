@@ -221,7 +221,7 @@
       INTEGER :: IT_IS_A_CH3I_SIM
       INTEGER :: IT_IS_A_FULLCHEM_SIM
       INTEGER :: IT_IS_A_MERCURY_SIM
-      INTEGER :: IT_IS_A_TAGOX_SIM
+      INTEGER :: IT_IS_A_TAGO3_SIM
       INTEGER :: IT_IS_A_H2HD_SIM
       LOGICAL :: LDUST
       LOGICAL :: LCARB
@@ -244,7 +244,7 @@
       IT_IS_A_CH3I_SIM     = Input_Opt%ITS_A_CH3I_SIM
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
       IT_IS_A_MERCURY_SIM  = Input_Opt%ITS_A_MERCURY_SIM  
-      IT_IS_A_TAGOX_SIM    = Input_Opt%ITS_A_TAGOX_SIM 
+      IT_IS_A_TAGO3_SIM    = Input_Opt%ITS_A_TAGO3_SIM 
       IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
 
       ! Assume success

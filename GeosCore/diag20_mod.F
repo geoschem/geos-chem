@@ -6,7 +6,7 @@
 ! !MODULE: diag20_mod
 !
 ! !DESCRIPTION: Module DIAG20\_MOD contains variables and routines which are 
-!  used to compute the production and loss of Ox for use in the tagged O3
+!  used to compute the production and loss of O3 for use in the tagged O3
 !  simulation
 !\\
 !\\
@@ -137,10 +137,10 @@
 !      # of levels for ND65    : 47
 !      Save O3 P/L (ND20)?     : T
 !      Number of P/L families  : 2 (or more, if saving out other families)
-!      1st  chemical family    : POX: O3
-!      2nd  chemical family    : LOX: O3
+!      1st  chemical family    : PO3: O3
+!      2nd  chemical family    : LO3: O3
 !                                                                             .
-!  Now that we no longer use family tracers, the POX and LOX diagnostic
+!  Now that we no longer use family tracers, the PO3 and LO3 diagnostic
 !  families should just contain the O3 tracer.  Otherwise the loss rates may
 !  appear smaller than they should be.
 !
@@ -198,7 +198,7 @@
       ! Scalars
       LOGICAL           :: DO_WRITE
       INTEGER           :: I, J, L, N
-      REAL(fp)          :: P_Ox, L_Ox
+      REAL(fp)          :: P_O3, L_O3
       REAL(fp)          :: LT, O3_MW_G
       REAL(fp)          :: BOXVL
 
@@ -245,25 +245,25 @@
       O3_MW_G = State_Chm%SpcData(id_O3)%Info%emMW_g ! g/mol
 
       !=================================================================
-      ! Archive P(Ox) and L(Ox) over the course of an entire day
+      ! Archive P(O3) and L(O3) over the course of an entire day
       !=================================================================
 
       ! Echo info
       STAMP = TIMESTAMP_STRING()
       IF ( am_I_Root ) WRITE( 6, 120 ) STAMP
- 120  FORMAT( '     - DIAG20: Archiving P(Ox) & L(Ox) at ', a )
+ 120  FORMAT( '     - DIAG20: Archiving P(O3) & L(O3) at ', a )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, P_Ox, L_Ox, LT, BOXVL )
+!$OMP+PRIVATE( I, J, L, P_O3, L_O3, LT, BOXVL )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LD65
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Zero P(Ox), L(Ox) variables for safety's sake
-         P_Ox  = 0e+0_fp
-         L_Ox  = 0e+0_fp
+         ! Zero P(O3), L(O3) variables for safety's sake
+         P_O3  = 0e+0_fp
+         L_O3  = 0e+0_fp
 
          ! If this is a grid box where we have done chemistry, then ...
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
@@ -288,15 +288,15 @@
             ! Production
             !-----------------------------------------------------------
 
-            ! Convert P(Ox) from [molec/cm3/s] to [kg/cm3/s]
-            P_Ox           = O3_PROD(I,J,L) / AVO * 1.e-3_fp *
+            ! Convert P(O3) from [molec/cm3/s] to [kg/cm3/s]
+            P_O3           = O3_PROD(I,J,L) / AVO * 1.e-3_fp *
      &                       O3_MW_G
 
             ! Convert to [kg/m3/s], for HEMCO (bmy, 7/7/15)
-            P_Ox           = P_Ox * 1e+6_fp
+            P_O3           = P_O3 * 1e+6_fp
 
-            ! Store P(Ox) [kg/m3/s] in PL24H array
-            PL24H(I,J,L,1) = PL24H(I,J,L,1) + P_Ox
+            ! Store P(O3) [kg/m3/s] in PL24H array
+            PL24H(I,J,L,1) = PL24H(I,J,L,1) + P_O3
 
             !-----------------------------------------------------------
             ! Loss
@@ -305,18 +305,18 @@
             ! Grid box volume [cm3]
             BOXVL           = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
-            ! Convert Ox from [molec/cm3] to [molec]
-            L_Ox           = State_Chm%Species(I,J,L,id_O3) * BOXVL
+            ! Convert O3 from [molec/cm3] to [molec]
+            L_O3           = State_Chm%Species(I,J,L,id_O3) * BOXVL
 
-            ! Divide L(Ox) [molec/cm3/s] by Ox mass [molec] 
-            ! in order to get L(Ox) in [1/cm3/s]
-            L_Ox           = O3_LOSS(I,J,L) / L_Ox
+            ! Divide L(O3) [molec/cm3/s] by O3 mass [molec] 
+            ! in order to get L(O3) in [1/cm3/s]
+            L_O3           = O3_LOSS(I,J,L) / L_O3
 
             ! Convert to [1/m3/s], for HEMCO (bmy, 7/7/15)
-            L_Ox           = L_Ox * 1.e+6_fp
+            L_O3           = L_O3 * 1.e+6_fp
 
-            ! Store L(Ox) [1/m3/s] in PL24H array
-            PL24H(I,J,L,2) = PL24H(I,J,L,2) + L_Ox
+            ! Store L(O3) [1/m3/s] in PL24H array
+            PL24H(I,J,L,2) = PL24H(I,J,L,2) + L_O3
            
          ENDIF
  
@@ -362,7 +362,7 @@
          IF ( am_I_Root ) WRITE( 6, 110 ) TRIM( FILENAME )
  110     FORMAT( '     - DIAG20: Writing ', a )
 
-         ! Write P(Ox) and L(Ox) to disk
+         ! Write P(O3) and L(O3) to disk
          CALL WRITE20()
 
          ! Reset variables for the next diagnostic interval
@@ -468,7 +468,7 @@
       ! Zero for safety's sake
       ARRAY = 0e0
 
-      ! Cast P(Ox) to REAL*4
+      ! Cast P(O3) to REAL*4
       ARRAY(:,:,1:LD65) = PL24H(:,:,1:LD65,1)
 
       ! Now save out as kg/m3/s, compatible with HEMCO (bmy, 7/8/15)
@@ -488,7 +488,7 @@
       ! Zero for safety's sake
       ARRAY = 0e0
 
-      ! Cast L(Ox) to REAL*4
+      ! Cast L(O3) to REAL*4
       ARRAY(:,:,1:LD65) = PL24H(:,:,1:LD65,2)
 
       ! Now save out as 1/m3/s, compatible with HEMCO (bmy, 7/8/15)

@@ -452,7 +452,7 @@ chemistry_mod.o             : chemistry_mod.F                                \
                               pops_mod.o              rpmares_mod.o          \
                               RnPbBe_mod.o            seasalt_mod.o          \
                               strat_chem_mod.o        sulfate_mod.o          \
-                              tagged_co_mod.o         tagged_ox_mod.o        \
+                              tagged_co_mod.o         tagged_o3_mod.o        \
                               tomas_mod.o             flexchem_setup_mod.o
 
 cleanup.o                   : cleanup.F                                      \
@@ -684,7 +684,7 @@ input_mod.o                 : input_mod.F                                    \
                               sulfate_mod.o           tomas_mod.o            \
                               tpcore_bc_mod.o         get_ndep_mod.o         \
                               wetscav_mod.o           tagged_co_mod.o        \
-                              tagged_ox_mod.o         global_ch4_mod.o       \
+                              tagged_o3_mod.o         global_ch4_mod.o       \
                               c2h6_mod.o              gamap_mod.o            \
                               transport_mod.o
 
@@ -831,7 +831,7 @@ soil_nox_mod.o              : soil_nox_mod.F
 
 strat_chem_mod.o            : strat_chem_mod.F90                             \
                               chemgrid_mod.o          dao_mod.o              \
-                              linoz_mod.o             tagged_ox_mod.o
+                              linoz_mod.o             tagged_o3_mod.o
 
 sulfate_mod.o               : sulfate_mod.F                                  \
                               chemgrid_mod.o                                 \
@@ -847,7 +847,7 @@ tagged_co_mod.o             : tagged_co_mod.F                                \
                               chemgrid_mod.o          diag_mod.o             \
                               pbl_mix_mod.o           hcoi_gc_main_mod.o
 
-tagged_ox_mod.o             : tagged_ox_mod.F                                \
+tagged_o3_mod.o             : tagged_o3_mod.F                                \
                               chemgrid_mod.o          diag_mod.o             \
                               drydep_mod.o            hcoi_gc_main_mod.o     \
                               pbl_mix_mod.o

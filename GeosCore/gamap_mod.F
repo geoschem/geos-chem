@@ -6222,7 +6222,7 @@
       IF ( ND44 > 0 ) THEN
 
          ! Special handling for tagged simulations
-         IF ( Input_Opt%ITS_A_TAGOX_SIM   .or. 
+         IF ( Input_Opt%ITS_A_TAGO3_SIM   .or. 
      &        Input_Opt%ITS_A_MERCURY_SIM .or. 
      &        Input_Opt%ITS_A_H2HD_SIM  ) THEN
 
@@ -7137,8 +7137,8 @@
             MWT  (T,65) = 0e0
             SCALE(T,65) = 1e0
             
-            ! Unit for Tag Ox is kg/s, otherwise molec/cm3/s 
-            IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
+            ! Unit for Tag O3 is kg/s, otherwise molec/cm3/s 
+            IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
                UNIT(T,65) = 'kg/s'
             ELSE
                UNIT(T,65) = 'molec/cm3/s'

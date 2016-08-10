@@ -3,16 +3,16 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: tagged_ox_mod
+! !MODULE: tagged_o3_mod
 !
-! !DESCRIPTION: Module TAGGED\_OX\_MOD contains variables and routines to 
-!  perform a tagged Ox simulation.  P(Ox) and L(Ox) rates need to be archived 
-!  from a full chemistry simulation before you can run w/ Tagged Ox. 
+! !DESCRIPTION: Module TAGGED\_O3\_MOD contains variables and routines to 
+!  perform a tagged O3 simulation.  P(O3) and L(O3) rates need to be archived 
+!  from a full chemistry simulation before you can run w/ Tagged O3. 
 !\\
 !\\
 ! !INTERFACE: 
 !
-      MODULE TAGGED_OX_MOD
+      MODULE TAGGED_O3_MOD
 !
 ! !USES:
 !
@@ -31,13 +31,13 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
-      PUBLIC  :: CHEM_TAGGED_OX 
-      PUBLIC  :: CLEANUP_TAGGED_OX 
-      PUBLIC  :: INIT_TAGGED_OX
+      PUBLIC  :: CHEM_TAGGED_O3 
+      PUBLIC  :: CLEANUP_TAGGED_O3 
+      PUBLIC  :: INIT_TAGGED_O3
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 ! 
-      PRIVATE :: GET_REGIONAL_POX
+      PRIVATE :: GET_REGIONAL_PO3
 !
 ! !REMARKS:
 !  THE SIMPLE TAGGED O3 SIMULATION (default setting) HAS THESE TRACERS:
@@ -69,6 +69,8 @@
 !  (2) The name "tagged_ox_mod.F" is historical.  The Ox tracer in GEOS-Chem 
 !       has now been replaced with O3.  O3 usually makes up about 95% of Ox.
 !       The nomenclature "tagged Ox" is interchangeable with "tagged O3".
+!       As of Aug 2016, most uses of "tagged Ox" have been replaced with
+!       "tagged O3".
 !
 ! !REVISION HISTORY:
 !  20 Aug 2003 - A. Fiore    - Initial version  
@@ -109,6 +111,7 @@
 !  12 Jul 2016 - R. Yantosca - Remove routine ADD_STRAT_POX, we now just
 !                              directly add into State_Chm%Species in 
 !                              strat_chm_mod.F90
+!  10 Aug 2016 - M. Sulprizio- Rename from tagged_ox_mod.F to tagged_o3_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -158,16 +161,16 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_regional_pox
+! !IROUTINE: get_regional_po3
 !
-! !DESCRIPTION: Subroutine GET\_REGIONAL\_POX returns the P(Ox) for each of 
-!  the tagged Ox tracers. Tagged Ox tracers are defined by both geographic 
+! !DESCRIPTION: Subroutine GET\_REGIONAL\_PO3 returns the P(O3) for each of 
+!  the tagged O3 tracers. Tagged O3 tracers are defined by both geographic 
 !  location and altitude. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_REGIONAL_POX( I, J, L, PP, State_Met )
+      SUBROUTINE GET_REGIONAL_PO3( I, J, L, PP, State_Met )
 !
 ! !USES:
 !
@@ -190,7 +193,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      ! Array containing P(Ox) for each tagged tracer
+      ! Array containing P(O3) for each tagged tracer
       REAL(fp),  INTENT(OUT) :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
 ! 
 ! !REVISION HISTORY:
@@ -286,73 +289,73 @@
 #endif
 
       !=================================================================
-      ! Assign P(Ox) to tagged tracers by geographic/altitude regions
+      ! Assign P(O3) to tagged tracers by geographic/altitude regions
       !=================================================================
 
       ! Grid box volume [cm3]
       BOXVL = State_Met%AIRVOL(I,J,L) !* 1d6
 
-      ! P(Ox) [kg]
+      ! P(O3) [kg]
       ! P24H is in kg/m3 per emission time step (ckeller, 9/17/2014).
       PPROD = P24H(I,J,L) * BOXVL * ( GET_TS_CHEM()*60e+0_fp/TS_EMIS )
 
       !-----------------------
-      ! #1: Total P(Ox)
+      ! #1: Total P(O3)
       !-----------------------
       PP(I,J,L,1) = PPROD
 
 #if defined( USE_ALL_TAGO3_TRACERS )
 
       !-----------------------
-      ! #2: P(Ox) in UT
+      ! #2: P(O3) in UT
       !-----------------------
       IF ( ITS_IN_UT ) THEN
          PP(I,J,L,3) = PPROD
          
       !-----------------------
-      ! #3: P(Ox) in MT 
+      ! #3: P(O3) in MT 
       !-----------------------
       ELSE IF ( ITS_IN_MT ) THEN
          PP(I,J,L,4) = PPROD
                                 
       !-----------------------
-      ! #5: P(Ox) in Pac BL
+      ! #5: P(O3) in Pac BL
       !-----------------------
       ELSE IF ( ITS_IN_PAC .and. ITS_IN_PBL ) THEN
          PP(I,J,L,6) = PPROD
 
       !-----------------------
-      ! #6: P(Ox) in NAm BL
+      ! #6: P(O3) in NAm BL
       !-----------------------
       ELSE IF ( ITS_IN_NAM .and. ITS_IN_PBL ) THEN     
          PP(I,J,L,7) = PPROD
                   
       !-----------------------
-      ! #7: P(Ox) in Atl BL
+      ! #7: P(O3) in Atl BL
       !-----------------------
       ELSE IF ( ITS_IN_ATL .and. ITS_IN_PBL ) THEN
          PP(I,J,L,8) = PPROD  
          
       !-----------------------
-      ! #8: P(Ox) in Eur BL
+      ! #8: P(O3) in Eur BL
       !-----------------------
       ELSE IF ( ITS_IN_EUR .and. ITS_IN_PBL ) THEN
          PP(I,J,L,9) = PPROD
                   
       !-----------------------
-      ! #9: P(Ox) in NAfr BL
+      ! #9: P(O3) in NAfr BL
       !-----------------------
       ELSE IF ( ITS_IN_NAF .and. ITS_IN_PBL ) THEN
          PP(I,J,L,10) = PPROD
  
       !-----------------------
-      ! #10: P(Ox) in Asia BL
+      ! #10: P(O3) in Asia BL
       !-----------------------          
       ELSE IF ( ITS_IN_AS .and. ITS_IN_PBL ) THEN
          PP(I,J,L,11) = PPROD                   
 
       !-----------------------
-      ! #4: P(Ox) in R.O.W
+      ! #4: P(O3) in R.O.W
       !-----------------------
       ELSE 
          PP(I,J,L,5) = PPROD
@@ -360,7 +363,7 @@
       ENDIF
 
       !-------------------------
-      ! #13: P(Ox) in USA
+      ! #13: P(O3) in USA
       !-------------------------
       IF ( ITS_IN_USA ) THEN
          PP(I,J,L,13) = PPROD               
@@ -368,22 +371,22 @@
 
 #endif
 
-      END SUBROUTINE GET_REGIONAL_POX
+      END SUBROUTINE GET_REGIONAL_PO3
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: chem_tagged_ox 
+! !IROUTINE: chem_tagged_o3 
 !
-! !DESCRIPTION: Subroutine CHEM\_TAGGED\_OX performs chemistry for several 
-!  Ox tracers which are tagged by geographic and altitude regions. 
+! !DESCRIPTION: Subroutine CHEM\_TAGGED\_O3 performs chemistry for several 
+!  O3 tracers which are tagged by geographic and altitude regions. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_TAGGED_OX( am_I_Root, Input_Opt,
+      SUBROUTINE CHEM_TAGGED_O3( am_I_Root, Input_Opt,
      &                           State_Met, State_Chm, RC )
 !
 ! !USES:
@@ -482,10 +485,10 @@
       TYPE(HCO_STATE), POINTER :: HcoState
 
       ! Strings
-      CHARACTER(LEN=255) :: LOC = 'CHEM_TAGGED_OX (tagged_ox_mod.F)'
+      CHARACTER(LEN=255) :: LOC = 'CHEM_TAGGED_O3 (tagged_o3_mod.F)'
 
       !=================================================================
-      ! CHEM_TAGGED_OX begins here!
+      ! CHEM_TAGGED_O3 begins here!
       !=================================================================
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
@@ -553,16 +556,16 @@
       DT = DTCHEM / TS_EMIS
 
       !=================================================================
-      ! Tagged Ox chemistry contains the following terms:
+      ! Tagged O3 chemistry contains the following terms:
       !
-      !   New Ox = Old Ox + ( P(Ox,region) - L(Ox) )
+      !   New O3 = Old O3 + ( P(O3,region) - L(O3) )
       !
-      ! P(Ox) and L(Ox) are archived from a previous fullchem run using
-      ! the ND20 diagnostic.  P(Ox,region) is the P(Ox) for a specific
-      ! tagged Ox tracer, as computed by routine GET_REGIONAL_POX.
+      ! P(O3) and L(O3) are archived from a previous fullchem run using
+      ! the ND20 diagnostic.  P(O3,region) is the P(O3) for a specific
+      ! tagged O3 tracer, as computed by routine GET_REGIONAL_PO3.
       !
       ! Tagged O3 tracers are defined by both geographic location and
-      ! altitude, as defined in GET_REGIONAL_POX.  If you are running
+      ! altitude, as defined in GET_REGIONAL_PO3.  If you are running
       ! the
       !=================================================================
 
@@ -584,17 +587,17 @@
             BOXVL = State_Met%AIRVOL(I,J,L) !* 1d6
 
             !===========================================================
-            ! Get P(Ox) and L(Ox) for each tagged tracer in [kg/m3/s]
+            ! Get P(O3) and L(O3) for each tagged tracer in [kg/m3/s]
             !===========================================================
 
-            ! P(Ox) is a function of geographic & altitude location
+            ! P(O3) is a function of geographic & altitude location
             ! NOTE: We call this only when N==1 for optimal looping
             ! ALSO NOTE: PP is 4-D so it doesn't have to be PRIVATE.
             IF ( N == 1 ) THEN 
-               CALL GET_REGIONAL_POX( I, J, L, PP, State_Met )
+               CALL GET_REGIONAL_PO3( I, J, L, PP, State_Met )
             ENDIF
             
-            ! L(Ox) is now in [1/m3] (ckeller, 9/17/2014)
+            ! L(O3) is now in [1/m3] (ckeller, 9/17/2014)
             IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
                LL = Spc(I,J,L,N) * L24H(I,J,L) * BOXVL * DT
             ELSE
@@ -620,7 +623,7 @@
             ENDIF
 
             !===========================================================
-            ! Apply chemical P(Ox) - L(Ox) to each tagged tracer
+            ! Apply chemical P(O3) - L(O3) to each tagged tracer
             !===========================================================
             Spc(I,J,L,N) = Spc(I,J,L,N) + PP(I,J,L,N) - LL
          ENDDO
@@ -642,22 +645,22 @@
          State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-      END SUBROUTINE CHEM_TAGGED_OX
+      END SUBROUTINE CHEM_TAGGED_O3
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_tagged_ox
+! !IROUTINE: init_tagged_o3
 !
-! !DESCRIPTION: Subroutine INIT\_TAGGED\_OX allocates and zeroes all module
+! !DESCRIPTION: Subroutine INIT\_TAGGED\_O3 allocates and zeroes all module
 !  arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TAGGED_OX( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_TAGGED_O3( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -701,7 +704,7 @@
       INTEGER :: AS
 
       !=================================================================
-      ! INIT_TAGGED_OX begins here
+      ! INIT_TAGGED_O3 begins here
       !=================================================================
 
       ! Assume success
@@ -713,31 +716,31 @@
       ! Add error check to make sure O3Strt is defined (bmy, 6/20/16)
       IF ( id_O3Strat <= 0 ) THEN
          CALL ERROR_STOP( 'O3Strat is an undefined species!', 
-     &                    'INIT_TAGGED_OX (tagged_ox_mod.f)' )
+     &                    'INIT_TAGGED_O3 (tagged_o3_mod.f)' )
       ENDIF
 
 
       ! Safety valve
       IF ( Input_Opt%N_TRACERS > N_TAGGED ) THEN
-         CALL ERROR_STOP( 'NTRACE is too large for Tagged Ox!', 
-     &                    'INIT_TAGGED_OX (tagged_ox_mod.f)' )
+         CALL ERROR_STOP( 'NTRACE is too large for Tagged O3!', 
+     &                    'INIT_TAGGED_O3 (tagged_o3_mod.f)' )
       ENDIF
 
-      END SUBROUTINE INIT_TAGGED_OX
+      END SUBROUTINE INIT_TAGGED_O3
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_tagged_ox
+! !IROUTINE: cleanup_tagged_o3
 !
-! !DESCRIPTION:Subroutine CLEANUP\_TAGGED\_OX deallocates all module arrays. 
+! !DESCRIPTION:Subroutine CLEANUP\_TAGGED\_O3 deallocates all module arrays. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_TAGGED_OX()
+      SUBROUTINE CLEANUP_TAGGED_O3()
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Yantosca - Initial version
@@ -749,6 +752,6 @@
       IF ( ASSOCIATED( P24H ) ) P24H => NULL() 
       IF ( ASSOCIATED( L24H ) ) L24H => NULL()
 
-      END SUBROUTINE CLEANUP_TAGGED_OX
+      END SUBROUTINE CLEANUP_TAGGED_O3
 !EOC
-      END MODULE TAGGED_OX_MOD
+      END MODULE TAGGED_O3_MOD

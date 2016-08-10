@@ -2001,7 +2001,7 @@ contains
     REAL(fp),  POINTER :: p_as2   (:,:,:,:)
 
     ! For values from Input_Opt
-    LOGICAL            :: IS_CH4,    IS_FULLCHEM, IS_Hg,     IS_TAGOx
+    LOGICAL            :: IS_CH4,    IS_FULLCHEM, IS_Hg,     IS_TAGO3
     LOGICAL            :: IS_TAGCO,  IS_AEROSOL,  IS_RnPbBe, LDYNOCEAN
     LOGICAL            :: LGTMM,     LSOILNOX
     INTEGER            :: N_TRACERS, N_MEMBERS 
@@ -2105,7 +2105,7 @@ contains
     ! Copy values from Input_Opt (bmy, 8/1/13)
     IS_CH4       = Input_Opt%ITS_A_CH4_SIM
     IS_Hg        = Input_Opt%ITS_A_MERCURY_SIM
-    IS_TAGOX     = Input_Opt%ITS_A_TAGOX_SIM
+    IS_TAGO3     = Input_Opt%ITS_A_TAGO3_SIM
     IS_AEROSOL   = Input_Opt%ITS_AN_AEROSOL_SIM
     LDYNOCEAN    = Input_Opt%LDYNOCEAN
     LGTMM        = Input_Opt%LGTMM
@@ -2410,11 +2410,11 @@ contains
        enddo
 
        !----------------------------------------------------------------
-       ! Apply dry deposition frequencies for Tagged Ox simulation
+       ! Apply dry deposition frequencies for Tagged O3 simulation
        ! (Jintai Lin, 06/21/08)
        !----------------------------------------------------------------
-       IF ( IS_TAGOX ) THEN
-          do NA = 2, nAdvect ! the first species, Ox, has been done above
+       IF ( IS_TAGO3 ) THEN
+          do NA = 2, nAdvect ! the first species, O3, has been done above
              if (pbl_mean_drydep) then
                 wk1 = 0.e+0_fp
                 wk2 = 0.e+0_fp
@@ -2708,9 +2708,9 @@ contains
 
        enddo ! D 
 
-       ! Add ITS_A_TAGOX_SIM (Lin, 06/21/08)
-       IF ( IS_TAGOX ) THEN
-          ! The first species, Ox, has been done above
+       ! Add ITS_A_TAGO3_SIM (Lin, 06/21/08)
+       IF ( IS_TAGO3 ) THEN
+          ! The first species, O3, has been done above
           do NA = 2, nAdvect
 
 #if defined( BPCH_DIAG )
