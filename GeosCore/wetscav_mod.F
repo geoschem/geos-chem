@@ -2062,17 +2062,17 @@
       ! box. Otherwise, run will take too long (ewl, 9/22/15)
       UNITCHANGE_KGKG = .FALSE.
       UNITCHANGE_KGM2 = .FALSE.
-      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg total' ) THEN
+      IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/kg total' ) THEN
          UNITCHANGE_KGKG = .TRUE.
-         CALL Convert_KgKgTotal_to_Kg( am_I_Root, I, J, L, Input_Opt, 
-     &                                 State_Met, State_Chm, RC )
-      ELSE IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/m2' ) THEN
+         CALL ConvertSpc_KgKgTotal_to_Kg( am_I_Root, I, J, L, 
+     &                                    State_Met, State_Chm, RC )
+      ELSE IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
          UNITCHANGE_KGM2 = .TRUE.
-         CALL Convert_Kgm2_to_Kg( am_I_Root, I, J, L, Input_Opt, 
-     &                            State_Met, State_Chm, RC )
+         CALL ConvertSpc_Kgm2_to_Kg( am_I_Root, I, J, L, 
+     &                               State_Met, State_Chm, RC )
       ELSE
-         CALL ERROR_STOP('Incorrect initial tracer units:' // 
-     &                   State_Chm%Trac_Units, 
+         CALL ERROR_STOP('Incorrect initial species units:' // 
+     &                   State_Chm%Spc_Units, 
      &                   'Routine WASHOUT in wetscav_mod')
          RETURN
       ENDIF
@@ -2202,17 +2202,17 @@
       ! Convert State_Chm%Tracers units back to original units 
       ! if conversion occurred at start of WASHOUT (ewl, 5/12/15)
       IF ( UNITCHANGE_KGKG ) THEN
-         CALL Convert_Kg_to_KgKgTotal( am_I_Root, I, J, L, Input_Opt, 
-     &                                 State_Met, State_Chm, RC )
+         CALL ConvertSpc_Kg_to_KgKgTotal( am_I_Root, I, J, L,
+     &                                    State_Met, State_Chm, RC )
       ELSE IF ( UNITCHANGE_KGM2 ) THEN
-         CALL Convert_Kg_to_Kgm2( am_I_Root, I, J, L, Input_Opt, 
-     &                            State_Met, State_Chm, RC )
+         CALL ConvertSpc_Kg_to_Kgm2( am_I_Root, I, J, L,
+     &                               State_Met, State_Chm, RC )
       ENDIF
 
       ! Check that tracer units are as expected (ewl, 9/29/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg total' .AND.
-     &     TRIM( State_Chm%Trac_Units ) /= 'kg/m2' ) THEN
-         CALL ERROR_STOP('Incorrect final tracer units:' // 
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg total' .AND.
+     &     TRIM( State_Chm%Spc_Units ) /= 'kg/m2' ) THEN
+         CALL ERROR_STOP('Incorrect final species units:' // 
      &                    State_Chm%Trac_Units,  
      &                   'Routine WASHOUT in wetscav_mod')
       ENDIF

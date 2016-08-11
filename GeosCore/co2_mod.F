@@ -468,7 +468,7 @@
 !            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
 ! new
             ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
-            ! using method in Convert_Kgm2_to_KgKgDry in unitconv_mod
+            ! using method in ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod
             ! (ewl, 9/11/15)
             E_CO2  =  HcoState%Spc(IDff)%Emis%Val(I,J,1)
      &                * DTSRCE / ( State_Met%DELP(I,J,1) 
@@ -524,7 +524,7 @@
 !            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
 ! new
             ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
-            ! using method in Convert_Kgm2_to_KgKgDry in unitconv_mod
+            ! using method in ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod
             ! (ewl, 9/11/15)
             E_CO2  =  HcoState%Spc(IDoc)%Emis%Val(I,J,1)
      &                * DTSRCE / ( State_Met%DELP(I,J,1) 
@@ -567,7 +567,7 @@
 !            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2 
 ! new
             ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
-            ! using method in Convert_Kgm2_to_KgKgDry in unitconv_mod
+            ! using method in ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod
             ! (ewl, 9/11/15)
             E_CO2  =  HcoState%Spc(IDbal)%Emis%Val(I,J,1)
      &                * DTSRCE / ( State_Met%DELP(I,J,1) 
@@ -614,7 +614,7 @@
 !               E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2 
 ! new
                ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
-               ! using method in Convert_Kgm2_to_KgKgDry in unitconv_mod
+               ! using method in ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod
                ! (ewl, 9/11/15)
                E_CO2  =  HcoState%Spc(IDbb)%Emis%Val(I,J,1)
      &                   * DTSRCE / ( State_Met%DELP(I,J,1) 
@@ -661,7 +661,7 @@
 !               E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
 ! new
                ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
-               ! using method in Convert_Kgm2_to_KgKgDry in unitconv_mod
+               ! using method in ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod
                ! (ewl, 9/11/15)
                E_CO2  =  HcoState%Spc(IDbf)%Emis%Val(I,J,1)
      &                   * DTSRCE / ( State_Met%DELP(I,J,1) 
@@ -705,7 +705,7 @@
 !            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
 ! new
             ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
-            ! using method in Convert_Kgm2_to_KgKgDry in unitconv_mod
+            ! using method in ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod
             ! (ewl, 9/11/15)
             E_CO2  =  HcoState%Spc(IDnte)%Emis%Val(I,J,1)
      &                * DTSRCE / ( State_Met%DELP(I,J,1) 
@@ -748,7 +748,7 @@
 !            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
 ! new
             ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
-            ! using method in Convert_Kgm2_to_KgKgDry in unitconv_mod
+            ! using method in ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod
             ! (ewl, 9/11/15)
             E_CO2  =  HcoState%Spc(IDse)%Emis%Val(I,J,1)
      &                * DTSRCE / ( State_Met%DELP(I,J,1) 
@@ -803,7 +803,7 @@
 !               E_CO2 = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
 ! new
                ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
-               ! using method in Convert_Kgm2_to_KgKgDry in unitconv_mod
+               ! using method in ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod
                ! (ewl, 9/11/15)
                E_CO2  =  HcoState%Spc(IDav)%Emis%Val(I,J,L)
      &                   * DTSRCE / ( State_Met%DELP(I,J,L) 
@@ -900,7 +900,7 @@
 !            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
 ! new
             ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
-            ! using method in Convert_Kgm2_to_KgKgDry in unitconv_mod
+            ! using method in ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod
             ! (ewl, 9/11/15)
             E_CO2  =  HcoState%Spc(IDcorr)%Emis%Val(I,J,1)
      &                * DTSRCE / ( State_Met%DELP(I,J,1) 

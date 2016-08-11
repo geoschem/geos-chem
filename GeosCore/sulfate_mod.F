@@ -974,11 +974,11 @@
          FIRST  = .FALSE.
       ENDIF
 
-      ! Convert State_Chm%Tracers from [kg/kg dry air] to [kg] for TOMAS.
+      ! Convert State_Chm%Species from [kg/kg dry air] to [kg] for TOMAS.
       ! This will be removed once TOMAS uses mixing ratio instead of mass 
       ! as tracer units (ewl, 9/11/15)
-      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
-     &                            State_Chm, RC ) 
+      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,  
+     &                               State_Chm, RC         ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'Routine EMISSSULFATETOMAS in sulfate_mod.F')
@@ -1036,9 +1036,9 @@
       ! Free pointer
       NULLIFY( Spc )
 
-      ! Convert State_Chm%Tracers back to kg (ewl, 9/11/15)
-      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
-     &                             State_Chm, RC ) 
+      ! Convert State_Chm%Species back to kg (ewl, 9/11/15)
+      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
+     &                               State_Chm, RC         ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'Routine EMISSSULFATETOMAS in sulfate_mod.F')
@@ -6056,9 +6056,8 @@
       ! Assume success
       RC  = GIGC_SUCCESS
 
-      ! Convert STT from [v/v] -> [kg] 
-      CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt,
-     &                          State_Met, State_Chm, RC ) 
+      ! Convert Species from [v/v] -> [kg] 
+      CALL ConvertSpc_VVDry_to_Kg( am_I_Root, State_Met, State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'CHEM_SO4_AQ in sulfate_mod.F')
@@ -6118,9 +6117,8 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-       ! Convert STT from [kg] -> [v/v] 
-      CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,
-     &                          State_Met, State_Chm, RC ) 
+       ! Convert Species from [kg] -> [v/v] 
+      CALL ConvertSpc_Kg_to_VVDry( am_I_Root, State_Met, State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'CHEM_SO4_AQ in sulfate_mod.F')

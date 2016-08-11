@@ -469,9 +469,9 @@
       ! Pointers
       REAL(fp), POINTER  :: Spc (:,:,:,:)
 
-      ! TEMPOARY TRACER REMOVAL CODE (ewl, 7/7/16)
-      INTEGER         :: nAdvect, NA
-      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@      ! TEMPOARY TRACER REMOVAL CODE (ewl, 7/7/16)
+!@@@      INTEGER         :: nAdvect, NA
+!@@@      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
       !=================================================================
       ! SET_INITIAL_MIXRATIOS begins here!
@@ -483,16 +483,16 @@
       !@@@ development. This can be removed later once State_Chm%Tracers 
       !@@@ is removed everywhere
       !@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-      
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      ! Store incoming State_Chm%Species in a local variable for testing
-      DO NA = 1, nAdvect
-         N = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
+      !! Number of advected species
+      !nAdvect = State_Chm%nAdvect
+      !
+      !! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      !! Store incoming State_Chm%Species in a local variable for testing
+      !DO NA = 1, nAdvect
+      !   N = State_Chm%Map_Advect(NA)
+      !   Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
+      !   State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      !ENDDO
       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Copy fields from INPUT_OPT
@@ -1121,13 +1121,13 @@
       !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
       !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
       !@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
+      !DO NA = 1, nAdvect
+      !   N                          = State_Chm%Map_Advect(NA)
+      !   State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      !
+      !   ! Restore State_Chm%SPECIES to its original values
+      !   State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      !ENDDO
       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Free pointer
@@ -1252,6 +1252,7 @@
 !  16 Jun 2016 - S. D. Eastham - Remove references to tracerid_mod.F
 !  21 Jun 2016 - R. Yantosca   - Use the module variables for species ID flags
 !  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
+!  11 Aug 2016 - R. Yantosca   - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1324,9 +1325,9 @@
       ! Pointers
       REAL(fp), POINTER    :: Spc (:,:,:,:)
 
-      ! TEMPOARY TRACER REMOVAL CODE (ewl, 7/7/16)
-      INTEGER         :: nAdvect, NA, N
-      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@      ! TEMPOARY TRACER REMOVAL CODE (ewl, 7/7/16)
+!@@@      INTEGER         :: nAdvect, NA, N
+!@@@      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
       !=================================================================
       ! UCX_NOX begins here!
@@ -1338,16 +1339,16 @@
       !@@@ development. This can be removed later once State_Chm%Tracers 
       !@@@ is removed everywhere
       !@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-      
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      ! Store incoming State_Chm%Species in a local variable for testing
-      DO NA = 1, nAdvect
-         N = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
+      !! Number of advected species
+      !nAdvect = State_Chm%nAdvect
+      !
+      !! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      !! Store incoming State_Chm%Species in a local variable for testing
+      !DO NA = 1, nAdvect
+      !   N = State_Chm%Map_Advect(NA)
+      !   Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
+      !   State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      !ENDDO
       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Copy fields from INPUT_OPT
@@ -1609,13 +1610,13 @@
       !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
       !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
       !@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values for testing
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
+      !DO NA = 1, nAdvect
+      !   N                          = State_Chm%Map_Advect(NA)
+      !   State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      !
+      !   ! Restore State_Chm%SPECIES to its original values for testing
+      !   State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      !ENDDO
       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Free pointer
@@ -2256,6 +2257,8 @@
 !                                objects via the arg list
 !  10 Sep 2015 - E. Lundgren   - Tracer units are now kg/kg dry air (prev v/v)
 !  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
+!  11 Aug 2016 - R. Yantosca   - Remove temporary tracer-removal code
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2274,9 +2277,9 @@
       ! Pointers
       REAL(fp), POINTER     :: Spc (:,:,:,:)
 
-      ! TEMPOARY TRACER REMOVAL CODE (ewl, 7/7/16)
-      INTEGER         :: nAdvect, NA
-      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@      ! TEMPOARY TRACER REMOVAL CODE (ewl, 7/7/16)
+!@@@      INTEGER         :: nAdvect, NA
+!@@@      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
       !=================================================================
       ! EMISS_BASIC begins here!
@@ -2291,16 +2294,16 @@
       !@@@ development. This can be removed later once State_Chm%Tracers 
       !@@@ is removed everywhere
       !@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-      
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      ! Store incoming State_Chm%Species in a local variable for testing
-      DO NA = 1, nAdvect
-         N = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
+      !! Number of advected species
+      !nAdvect = State_Chm%nAdvect
+      !
+      !! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      !! Store incoming State_Chm%Species in a local variable for testing
+      !DO NA = 1, nAdvect
+      !   N = State_Chm%Map_Advect(NA)
+      !   Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
+      !   State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      !ENDDO
       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Copy fields from INPUT_OPT
@@ -2363,13 +2366,13 @@
       !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
       !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
       !@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
+      !DO NA = 1, nAdvect
+      !   N                          = State_Chm%Map_Advect(NA)
+      !   State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      !
+      !   ! Restore State_Chm%SPECIES to its original values
+      !   State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      !ENDDO
       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Free pointer
@@ -2875,10 +2878,6 @@
       REAL(fp), POINTER      :: Spc (:,:,:,:)
       REAL(f4), POINTER      :: STATE_PSC(:,:,:)
       REAL(fp), POINTER      :: WERADIUS(:,:,:,:)
-
-      ! TEMPORARY TRACER REMOVAL CODE (ewl, 7/7/16)
-      INTEGER         :: nAdvect, NA, N
-      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
       !=================================================================
       ! SETTLE_STRAT_AER begins here!
@@ -3724,6 +3723,7 @@
 !  16 Jun 2016 - S. D. Eastham - Remove references to tracerid_mod.F
 !  21 Jun 2016 - R. Yantosca   - Now use module variables for species ID flags
 !  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
+!  11 Aug 2016 - R. Yantosca   - Remove temporary tracer removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3827,34 +3827,12 @@
       REAL(fp), POINTER       :: KHETI_SLA(:,:,:,:)
       REAL(f4), POINTER       :: STATE_PSC(:,:,:)
 
-      ! TEMPORARY TRACER REMOVAL CODE (ewl, 7/7/16)
-      INTEGER         :: nAdvect, NA, N
-      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-
       !=================================================================
       ! CALC_STRAT_AER begins here!
       !=================================================================
 
       ! Assume success
       RC       = GIGC_SUCCESS
-
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
-      !@@@ Need to force State_Chm%Species = State_Chm%Tracers during 
-      !@@@ development. This can be removed later once State_Chm%Tracers 
-      !@@@ is removed everywhere
-      !@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-      
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      ! Store incoming State_Chm%Species in a local variable for testing
-      DO NA = 1, nAdvect
-         N = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Copy fields from INPUT_OPT
       LPRT        = Input_Opt%LPRT
@@ -4444,19 +4422,6 @@
          WRITE(6,'(a,1x,E12.4)') 'Local temperature (K)         : ',
      &                               D_TK                    
       ENDIF
-
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
-      !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-      !@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Free pointers
       NULLIFY( Spc, STATE_PSC, KHETI_SLA )
@@ -5740,6 +5705,7 @@
 !                                are updated using H2O tracer concentration
 !  28 Oct 2015 - E. Lundgren   - Tracer units are now kg/kg dry air
 !  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
+!  11 Aug 2016 - R. Yantosca   - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5774,9 +5740,9 @@
       ! Pointers
       REAL(fp), POINTER     :: Spc (:,:,:,:)
 
-      ! TEMPORARY TRACER REMOVAL CODE (ewl, 7/7/16)
-      INTEGER         :: nAdvect, NA, N
-      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@      ! TEMPORARY TRACER REMOVAL CODE (ewl, 7/7/16)
+!@@@      INTEGER         :: nAdvect, NA, N
+!@@@      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
       !=================================================================
       ! SET_H2O_TRAC begins here!
@@ -5791,21 +5757,21 @@
       !@@@ development. This can be removed later once State_Chm%Tracers 
       !@@@ is removed everywhere
       !@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-      
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-
-         ! Get tracer and species index for this advected species
-         N = State_Chm%Map_Advect(NA)
-
-         ! Store incoming State_Chm%Species in a local variable for testing
-         Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
-
-         ! Set advected species values equal to current tracer values
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
+      !! Number of advected species
+      !nAdvect = State_Chm%nAdvect
+      !
+      !! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      !DO NA = 1, nAdvect
+      !
+      !   ! Get tracer and species index for this advected species
+      !   N = State_Chm%Map_Advect(NA)
+      !
+      !   ! Store incoming State_Chm%Species in a local variable for testing
+      !   Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
+      !
+      !   ! Set advected species values equal to current tracer values
+      !   State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      !ENDDO
       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Copy fields from INPUT_OPT
@@ -5895,17 +5861,17 @@
       !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
       !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
       !@@@
-      DO NA = 1, nAdvect
-
-         ! Get tracer and species index for this advected species
-         N = State_Chm%Map_Advect(NA)
-
-         ! Set tracer values to new advected species values
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore advected species original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
+      !DO NA = 1, nAdvect
+      !
+      !   ! Get tracer and species index for this advected species
+      !   N = State_Chm%Map_Advect(NA)
+      !
+      !   ! Set tracer values to new advected species values
+      !   State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      !
+      !   ! Restore advected species original values
+      !   State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      !ENDDO
       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! If humidity was updated, update all moist-dependent air quantities
@@ -5992,9 +5958,9 @@
       ! Pointers
       REAL(fp), POINTER     :: Spc (:,:,:,:)
 
-      ! TEMPORARY TRACER REMOVAL CODE (ewl, 7/7/16)
-      INTEGER         :: nAdvect, NA, N
-      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@      ! TEMPORARY TRACER REMOVAL CODE (ewl, 7/7/16)
+!@@@      INTEGER         :: nAdvect, NA, N
+!@@@      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
       !=================================================================
       ! UCX_H2SO4PHOT begins here!
@@ -6011,17 +5977,17 @@
       !@@@ development. This can be removed later once State_Chm%Tracers 
       !@@@ is removed everywhere
       !@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-      
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      ! Store incoming State_Chm%Species in a local variable for testing
-      DO NA = 1, nAdvect
-         N = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !! Number of advected species
+      !nAdvect = State_Chm%nAdvect
+      !
+      !! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+      !! Store incoming State_Chm%Species in a local variable for testing
+      !DO NA = 1, nAdvect
+      !   N = State_Chm%Map_Advect(NA)
+      !   Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
+      !   State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+      !ENDDO
+      !!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Initialize GEOS-Chem tracer array [kg]
       Spc => State_Chm%Species
@@ -6067,21 +6033,19 @@
       !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
       !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
       !@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values for testing
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
+      !DO NA = 1, nAdvect
+      !   N                          = State_Chm%Map_Advect(NA)
+      !   State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+      !
+      !   ! Restore State_Chm%SPECIES to its original values for testing
+      !   State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+      !ENDDO
       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Free pointer
       NULLIFY( Spc )
 
-
       END SUBROUTINE UCX_H2SO4PHOT
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !

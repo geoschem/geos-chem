@@ -5465,8 +5465,8 @@ ccc
       ! Convert State_Chm%Tracers from [kg/kg dry air] to [kg] for TOMAS.
       ! This will be removed once TOMAS uses mixing ratio instead of mass 
       ! as tracer units (ewl, 9/11/15)
-      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
-     &                            State_Chm, RC ) 
+      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,  
+     &                               State_Chm, RC         ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error( 'Unit conversion error', RC, 
      &                    'Routine EMISSCARBONTOMAS in carbon_mod.F' )
@@ -5717,8 +5717,8 @@ ccc
       ENDIF  ! size resolved > 0
 
       ! Convert State_Chm%Tracers back to kg (ewl, 9/11/15)
-      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
-     &                             State_Chm, RC ) 
+      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
+     &                               State_Chm, RC         ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'Routine EMISSCARBONTOMAS in carbon_mod.F')
