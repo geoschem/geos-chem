@@ -36,7 +36,6 @@
       USE DIAG42_MOD
       USE DIAG53_MOD
       USE DIAG56_MOD
-      USE DIAG_PL_MOD
 
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
@@ -209,6 +208,7 @@
          IF ( ND58 > 0 ) AD58     = 0e0
          IF ( ND60 > 0 ) AD60     = 0e0
          IF ( ND64 > 0 ) AD64     = 0e0
+         IF ( ND65 > 0 ) AD65     = 0e0
 #if defined( BPCH_DIAG )
          IF ( ND66 > 0 ) AD66     = 0e0      ! netcdf MET diag group
          IF ( ND67 > 0 ) AD67     = 0e0      ! netcdf MET diag group
@@ -304,12 +304,6 @@
          ! For ND61 - 3-D process rate diagnostic
          IF ( ND61 > 0 ) AD61 = 0e0
 #endif
-
-         ! For ND65 -- Chemical production & loss (bmy, 12/5/00)
-         IF ( ND65 > 0 ) THEN
-            AD65  = 0e+0_fp
-            IF ( ALLOCATED( FAM_PL ) ) FAM_PL = 0e+0_fp      
-         ENDIF
 
          ! Echo output
          IF ( am_I_Root ) THEN

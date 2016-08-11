@@ -1345,7 +1345,7 @@
       Input_Opt%ITS_A_CH3I_SIM         = ( Input_Opt%SIM_TYPE == 2  )
       Input_Opt%ITS_A_FULLCHEM_SIM     = ( Input_Opt%SIM_TYPE == 3  )
       Input_Opt%ITS_A_HCN_SIM          = ( Input_Opt%SIM_TYPE == 4  )
-      Input_Opt%ITS_A_TAGOX_SIM        = ( Input_Opt%SIM_TYPE == 6  )
+      Input_Opt%ITS_A_TAGO3_SIM        = ( Input_Opt%SIM_TYPE == 6  )
       Input_Opt%ITS_A_TAGCO_SIM        = ( Input_Opt%SIM_TYPE == 7  )
       Input_Opt%ITS_A_C2H6_SIM         = ( Input_Opt%SIM_TYPE == 8  )
       Input_Opt%ITS_A_CH4_SIM          = ( Input_Opt%SIM_TYPE == 9  )
@@ -1378,7 +1378,7 @@
       Input_Opt%ITS_A_SPECIALTY_SIM    =
      &     ( Input_Opt%ITS_A_CH3I_SIM      .or.
      &       Input_Opt%ITS_A_HCN_SIM       .or.
-     &       Input_Opt%ITS_A_TAGOX_SIM     .or.
+     &       Input_Opt%ITS_A_TAGO3_SIM     .or.
      &       Input_Opt%ITS_A_TAGCO_SIM     .or.
      &       Input_Opt%ITS_A_C2H6_SIM      .or.
      &       Input_Opt%ITS_A_CH4_SIM       .or.
@@ -1404,7 +1404,7 @@
          CASE( 5 )
             Input_Opt%SIM_NAME = ''
          CASE( 6 )
-            Input_Opt%SIM_NAME = 'Tagged Ox'
+            Input_Opt%SIM_NAME = 'Tagged O3'
          CASE( 7 )
             Input_Opt%SIM_NAME = 'Tagged CO'
          CASE( 8 ) 
@@ -3611,7 +3611,7 @@
       ! Turn off wetdep for simulations that don't need it
       IF ( Input_Opt%ITS_A_CH3I_SIM    ) Input_Opt%LWETD = .FALSE.
       IF ( Input_Opt%ITS_A_HCN_SIM     ) Input_Opt%LWETD = .FALSE.
-      IF ( Input_Opt%ITS_A_TAGOX_SIM   ) Input_Opt%LWETD = .FALSE.
+      IF ( Input_Opt%ITS_A_TAGO3_SIM   ) Input_Opt%LWETD = .FALSE.
       IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LWETD = .FALSE.
       IF ( Input_Opt%ITS_A_C2H6_SIM    ) Input_Opt%LWETD = .FALSE.
       IF ( Input_Opt%ITS_A_CH4_SIM     ) Input_Opt%LWETD = .FALSE.
@@ -4345,7 +4345,7 @@
       !--------------------------
 
       ! Number of tracers depends on simulation type
-      IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
+      IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
          N_TMP = Input_Opt%N_TRACERS 
       ELSE
          N_TMP = NUMDEP
@@ -6015,7 +6015,6 @@
 ! !USES:
 !
       USE CHARPAK_MOD,        ONLY : ISDIGIT,         STRSPLIT
-      USE DIAG_PL_MOD,        ONLY : INIT_DIAG_PL
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
@@ -6068,18 +6067,6 @@
       ! READ_PROD_LOSS_MENU begins here!
       !=================================================================
 
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !% IMPORTANT: Prod/loss diagnostics currently unavailable               %
-      !%                                                                      %
-      !% As of v11-01g, the prod/loss diagnostics are unavailable because we  %
-      !% have removed the SMVGEAR solver for FlexChem. Mike Long has updated  %
-      !% KPP to reproduce the prod/loss functionality, but this still needs   %
-      !% to be connected to the GEOS-Chem diagnostics. We will restore the    %
-      !% prod/loss diagnotics when we complete conversion of GEOS-Chem        %
-      !% diagnostics from BPCH to netCDF format. This work should be done     %
-      !% prior to the v11-01 public release. (mps, 5/5/16)                    %
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
       ! Location string
       LOCATION = 'READ_PROD_LOSS_MENU ("input_mod.f")'
 
@@ -6109,7 +6096,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:2' )
       READ( SUBSTRS(1:N), * ) ND65
 
-      ! Save P(O3) & L(O3) for tagged Ox run? (i.e. ND20 diagnostic)
+      ! Save P(O3) & L(O3) for tagged O3 run? (i.e. ND20 diagnostic)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:3' )
       READ( SUBSTRS(1:N), * ) DO_SAVE_O3
 
@@ -6166,26 +6153,13 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:6' )
 
       !=================================================================
-      ! Error check: ND65 not available for KPP
-      !=================================================================
-
-      ! Temporarily turn off prod/loss diagnostic capability for
-      ! full-chemistry simulations. This should be restored for the
-      ! v11-01 release. (mps, 5/5/16)
-      IF ( DO_SAVE_PL .AND. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-         MSG = 'P/L families are incompatible with KPP. ' //
-     &         'Please change one option'
-         CALL ERROR_STOP( MSG, LOCATION )
-      ENDIF
-
-      !=================================================================
       ! Error check families for certain types of simulations
       !=================================================================
 
-      ! Tagged Ox
-      IF ( DO_SAVE_PL .and. Input_Opt%ITS_A_TAGOX_SIM ) THEN
+      ! Tagged O3
+      IF ( DO_SAVE_PL .and. Input_Opt%ITS_A_TAGO3_SIM ) THEN
          IF ( NFAM /= 2*Input_Opt%N_TRACERS ) THEN
-            MSG = 'Wrong number of P/L families for Tagged Ox!'
+            MSG = 'Wrong number of P/L families for Tagged O3!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ENDIF
@@ -6220,7 +6194,7 @@
          WRITE( 6, '(  a)' ) '---------------------------'      
          WRITE( 6, 100 ) 'Turn on prod & loss diag?   : ', DO_SAVE_PL
          WRITE( 6, 110 ) '# of levels for P/L diag    : ', ND65
-         WRITE( 6, 100 ) 'Save P(Ox), L(Ox) for TagOx?: ', DO_SAVE_O3
+         WRITE( 6, 100 ) 'Save P(Ox), L(Ox) for TagO3?: ', DO_SAVE_O3
       
          ! Loop over families
          DO F = 1, NFAM
@@ -6275,15 +6249,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-
-      !=================================================================
-      ! Call setup routines from other F90 modules
-      !=================================================================
-
-      ! Pass variables to "diag_pl_mod.f" 
-      CALL INIT_DIAG_PL( am_I_Root, Input_Opt, DO_SAVE_PL, DO_SAVE_O3, 
-     &                   NFAM,      FAM_NAME,  FAM_TYPE,   FAM_NMEM,   
-     &                   FAM_MEMB,  FAM_COEF,  RC )
 
       END SUBROUTINE READ_PROD_LOSS_MENU
 !EOC
@@ -7745,6 +7710,7 @@
       USE Chemgrid_Mod,       ONLY : Init_Chemgrid
       USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
       USE Diag03_Mod,         ONLY : Init_Diag03
+      USE Diag20_Mod,         ONLY : Init_Diag20
       USE Diag_OH_Mod,        ONLY : Init_Diag_OH
       USE Drydep_Mod,         ONLY : Init_Drydep
       USE Dust_Mod,           ONLY : Init_Dust
@@ -7764,7 +7730,7 @@
       USE Seasalt_Mod,        ONLY : Init_SeaSalt
       USE Sulfate_Mod,        ONLY : Init_Sulfate
       USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
-      USE Tagged_Ox_Mod,      ONLY : Init_Tagged_Ox
+      USE Tagged_O3_Mod,      ONLY : Init_Tagged_O3
       USE Toms_Mod,           ONLY : Init_Toms
       USE Vdiff_Pre_Mod,      ONLY : Set_Vdiff_Values
       USE WetScav_Mod,        ONLY : Init_WetScav
@@ -7976,9 +7942,9 @@
          CALL Init_Tagged_CO( am_I_Root, Input_Opt, RC )
       ENDIF
 
-      ! Initialize "tagged_ox_mod.F"
-      IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
-         CALL Init_Tagged_Ox( am_I_Root, Input_Opt, RC )
+      ! Initialize "tagged_o3_mod.F"
+      IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
+         CALL Init_Tagged_O3( am_I_Root, Input_Opt, RC )
       ENDIF
 
       IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
@@ -8009,6 +7975,11 @@
 
       ! Initialize the Hg diagnostics (bpch)
       CALL Init_Diag03( State_Chm )
+
+      ! Initialize ND20 for tagged O3 simulation
+      IF ( Input_Opt%DO_SAVE_O3 ) THEN
+         CALL Init_Diag20( am_I_Root, Input_Opt, RC )
+      ENDIF
 
       ! Enable Mean OH (or CH3CCl3) diag for runs which need it
       CALL Init_Diag_OH( am_I_Root, Input_Opt, RC )

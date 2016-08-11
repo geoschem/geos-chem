@@ -44,7 +44,6 @@
       USE DIAG42_MOD                         ! For SOA diag
       USE DIAG53_MOD                         ! For POPs diag
       USE DIAG56_MOD                         ! For time in tropopause diag
-      USE DIAG_PL_MOD                        ! For prod/loss diagnostic
       USE DEPO_MERCURY_MOD                   ! For offline Hg simulation
       USE DRYDEP_MOD                         ! For dry deposition
       USE WETSCAV_MOD                        ! For wet deposition
@@ -3943,7 +3942,7 @@
          CATEGORY = 'DRYD-FLX'
 
          ! # of drydep flux tracers
-         IF ( Input_Opt%ITS_A_TAGOX_SIM .or. 
+         IF ( Input_Opt%ITS_A_TAGO3_SIM .or. 
      &        Input_Opt%ITS_A_MERCURY_SIM ) THEN
             M = nAdvect
          ELSE
@@ -3982,10 +3981,10 @@
                UNIT = 'molec/cm2/s'
                NN   = NTRAIND(N)
  
-            ELSE IF ( Input_Opt%ITS_A_TAGOX_SIM .or. 
+            ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM .or. 
      &                Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
-               ! Tagged Ox or Tagged Hg
+               ! Tagged O3 or Tagged Hg
                UNIT = 'molec/cm2/s'
                NN   = N
   
@@ -4054,7 +4053,7 @@
          UNIT      = 'cm/s'
 
          ! # of drydep velocity tracers
-         IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
+         IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
             M = 1
          ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN  ! Ask Helen
             M = 2
@@ -5858,7 +5857,7 @@
                   ARRAY(:,:,L) = AD65(:,:,L,N)
                ENDDO
 
-            ELSE IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
+            ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
                NN          = N
                UNIT        = 'kg/s'
                

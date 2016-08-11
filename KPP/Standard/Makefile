@@ -47,6 +47,8 @@
 #  12 May 2016 - R. Yantosca - Added "firstpass" target to compile Precision,
 #                              Parameters, and Monitor modules first
 #  12 May 2016 - R. Yantosca - Updated comments and cosmetic changes
+#  13 Jul 2016 - M. Sulprizio- Remove gckpp_Hessian.o. Hessian is turned off
+#                              for the prod/loss functionality (M. Long).
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -122,9 +124,6 @@ gckpp_Function.o      : gckpp_Parameters.o
 
 gckpp_Global.o        : gckpp_Parameters.o
 
-gckpp_Hessian.o       : gckpp_Parameters.o      \
-                        gckpp_HessianSP.o
-
 gckpp_HetRates.o      : gckpp_HetRates.F90      \
                         gckpp_Global.o          \
                         gckpp_Parameters.o      \
@@ -155,7 +154,6 @@ gckpp_Model.o         : gckpp_Precision.o       \
                         gckpp_Integrator.o      \
                         gckpp_Rates.o           \
                         gckpp_Jacobian.o        \
-                        gckpp_Hessian.o         \
                         gckpp_Monitor.o         \
                         gckpp_Util.o            \
                         gckpp_LinearAlgebra.o   \
