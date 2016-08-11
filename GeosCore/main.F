@@ -732,14 +732,14 @@
       !=================================================================
 
       ! Read initial species conditions
-      ! NOTE: Species concentrations are read in as [v/v dry air] and converted
-      ! to kg/kg dry air (ewl, 8/4/16)
+      ! NOTE: Species concentrations are read in as [v/v dry air] 
+      ! and converted to [kg/kg dry air] (ewl, 8/4/16)
       CALL READ_GC_RESTART( am_I_Root, NYMDb,     NHMSb, 
      &                      Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_GC_RESTART' )
 
 
-      !*****************************************************
+      !*********************************************************************
       ! TRACER REMOVAL (ewl, 8/2/16) - temporary!
 
       ! Set tracer concentrations to advected species concentrations
@@ -748,20 +748,16 @@
       State_Chm%Tracers(:,:,:,1:State_Chm%nAdvect) = 
      &              State_Chm%Species(:,:,:,1:State_Chm%nAdvect)
       State_Chm%Trac_Units = 'kg/kg dry'
-      
-      ! Convert species from kg/kg dry to molec/cm3 to preserve
-      ! how it is in legacy code           
-      CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
-     &                                State_Chm, RC )
-      !*****************************************************
+      !*********************************************************************
 
       ! Initialize stratospheric routines
       IF ( LUCX ) THEN
 
+         ! Initialize the UCX module
          CALL INIT_UCX( am_I_Root, Input_Opt, State_Chm )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
 
-         ! Set simple initial tracer conditions
+         ! Set simple initial tracer conditions [kg/kg dry air]
          CALL SET_INITIAL_MIXRATIOS( am_I_Root, Input_Opt, State_Met,
      &                               State_Chm )
          IF ( prtDebug ) THEN
@@ -771,43 +767,32 @@
       ENDIF
 
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
-      ! NOTE: Tracer concentration units are converted locally to [v/v dry air]
-      ! for chemistry (ewl, 9/18/15)
+      ! NOTE: Species concentrations enter the subroutine in [kg/kg dry air]
+      ! and are converted locally [v/v dry air] for chemistry (ewl, 9/18/15)
       IF ( LSCHEM ) THEN
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-         ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-         DO NA = 1, State_Chm%nAdvect
-            N                          = State_Chm%Map_Advect(NA)
-            Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-            State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-         ENDDO
-         State_Chm%Spc_Units = 'kg/kg dry'
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
          CALL INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, 
      &                         State_Met, RC )
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-             DO NA = 1, State_Chm%nAdvect
-                N                          = State_Chm%Map_Advect(NA)
-                State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-               
-                ! Restore State_Chm%SPECIES to its original values
-                State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-             ENDDO
-             State_Chm%Spc_Units = 'molec/cm3'
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       ENDIF
 
-      ! Save initial tracer mixing ratios to disk for benchmark runs
+      ! Save initial tracer mixing ratios [kg/kg dry] to disk 
+      ! for Rn-Pb-Be and full-chem benchmark simulations
       IF ( LSTDRUN ) THEN 
          CALL STDRUN( Input_Opt, State_Chm, LBEGIN=.TRUE. )
       ENDIF
+ 
+      !***********************************************************************
+      ! TRACER REMOVAL (ewl, 8/2/16) - temporary!
+      !
+      ! NOTE: Moved this unit conversion down here to keep
+      ! State_Chm%Species in [kg/kg dry] for use by the
+      ! subroutines INIT_UCX, SET_INITIAL_MIXRATIOS,
+      ! and INIT_STRAT_CHEM (bmy, 8/11/16)
+
+      ! Convert species from [kg/kg dry] to [molec/cm3] to preserve
+      ! how it is in legacy code           
+      CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
+     &                                State_Chm, RC )
+      !***********************************************************************
 
 !-----------------------------------------------------------------------------
 ! TWO-WAY NESTING OPTION
@@ -2137,10 +2122,36 @@
 !      CALL Diagnostics_Write( am_I_Root, Input_Opt, .TRUE., RC )
 !#endif
 
-      ! For model benchmarking, save final masses of 
-      ! Rn,Pb,Be or Ox to a binary punch file 
+      ! For model benchmarking, save final concentrations of Rn,Pb,Be or Ox.
+      ! Species concentrations enter the subroutine in [kg/kg dry air].
       IF ( LSTDRUN ) THEN 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+            ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+            DO NA = 1, State_Chm%nAdvect
+               N                          = State_Chm%Map_Advect(NA)
+               Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
+               State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+            ENDDO
+            State_Chm%Spc_Units = 'kg/kg dry'
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
          CALL STDRUN( Input_Opt, State_Chm, LBEGIN=.FALSE. )
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+            DO NA = 1, State_Chm%nAdvect
+               N                          = State_Chm%Map_Advect(NA)
+               State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+               
+               ! Restore State_Chm%SPECIES to its original values
+               State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+            ENDDO
+            State_Chm%Spc_Units = 'molec/cm3'
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       ENDIF
 
 #if defined( USE_TIMERS )

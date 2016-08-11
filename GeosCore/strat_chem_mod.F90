@@ -1521,7 +1521,7 @@ CONTAINS
 
     ENDDO
 
-    ! Convert State_Chm%Species back to [kg/kg dry air]
+    ! Convert State_Chm%SPECIES back to [kg/kg dry air]
     CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL GIGC_Error('Unit conversion error', RC, &
