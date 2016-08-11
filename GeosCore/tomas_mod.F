@@ -246,6 +246,10 @@
 !******************************************************************************
 !
       ! References to F90 modules
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+      USE CMN_SIZE_MOD
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -268,6 +272,12 @@
       ! Strings
       CHARACTER(LEN=255) :: MSG, LOC
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       !=================================================================
       ! DO_TOMAS begins here
       !=================================================================
@@ -282,6 +292,7 @@
       ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
          State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -331,6 +342,9 @@
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
          State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE DO_TOMAS
@@ -659,6 +673,9 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
 
          H2SO4rate_o = H2SO4_RATE(I,J,L)  ! [kg s-1]
 
+         IF ( I == 10 .and. J == 10 .and. L == 10 ) THEN
+            Print*, 'Debug TOMAS: H2SO4RATE =', H2SO4rate_o
+         ENDIF
 
                                 ! nitrogen and sulfur mass checks
                                 ! get the total mass of N
@@ -3794,9 +3811,14 @@ Cjrp      endif
       REAL*4                   :: thresh
       CHARACTER(LEN=255)       :: MSG, LOC ! For tracer conc unit check (ewl)
 
-
       ! Pointers
       REAL(fp), POINTER   :: Spc(:,:,:,:)
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !=================================================================
       ! SOACOND begins here
@@ -3812,6 +3834,7 @@ Cjrp      endif
       ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
+         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
          State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -4020,6 +4043,9 @@ Cjrp      endif
       DO NA = 1, nAdvect
          N                          = State_Chm%Map_Advect(NA)
          State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+         ! Restore State_Chm%SPECIES to its original values
+         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE SOACOND
@@ -6948,6 +6974,12 @@ c       IF (LDUST30) MDUST = Spc(I,J,L,id_DUST1-1+BIN)
       ! Pointers
       REAL(fp), POINTER   :: Spc(:,:,:,:)
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@
+      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       !========================================================================
       ! AERO_DIADEN begins here!
       !========================================================================
@@ -6989,6 +7021,7 @@ c       IF (LDUST30) MDUST = Spc(I,J,L,id_DUST1-1+BIN)
          ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
          DO NA = 1, nAdvect
             N                          = State_Chm%Map_Advect(NA)
+            Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
             State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
          ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -7078,6 +7111,9 @@ C         IF ( LDUST30 ) MDUST = Spc(I,J,LEV,id_DUST1-1+BIN)
          DO NA = 1, nAdvect
             N                          = State_Chm%Map_Advect(NA)
             State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+            ! Restore State_Chm%SPECIES to its original values
+            State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
          ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 

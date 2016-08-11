@@ -897,6 +897,16 @@
                   COEF = Input_Opt%FAM_COEF(M,F) ! Species coefficient
                   IND  = Ind_(TRIM(NAME),'K')    ! KPP species index
 
+                  ! Skip prod/loss species if not found in KPP
+                  IF ( IND <= 0 ) THEN
+                     IF ( I == 1 .and. J == 1 .and. L == 1 ) THEN
+                        WRITE(*,'(a8,a66)') TRIM(NAME),
+     &                     ' NOT found in KPP. Skipping prod/loss' //
+     &                     ' diagnostic for this species.'
+                     ENDIF
+                     CYCLE
+                  ENDIF
+
                   ! Check if family type is prod or loss
                   ! and add to AD65 array [molec/cm3/s]
                   IF      ( Input_Opt%FAM_TYPE(F) == 'prod' ) THEN
