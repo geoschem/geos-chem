@@ -91,7 +91,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: ITS_A_CH3I_SIM
      LOGICAL                     :: ITS_A_FULLCHEM_SIM
      LOGICAL                     :: ITS_A_HCN_SIM
-     LOGICAL                     :: ITS_A_TAGOX_SIM
+     LOGICAL                     :: ITS_A_TAGO3_SIM
      LOGICAL                     :: ITS_A_TAGCO_SIM
      LOGICAL                     :: ITS_A_C2H6_SIM
      LOGICAL                     :: ITS_A_CH4_SIM
@@ -792,7 +792,7 @@ CONTAINS
     Input_Opt%ITS_A_CH3I_SIM         = .FALSE.
     Input_Opt%ITS_A_FULLCHEM_SIM     = .FALSE.
     Input_Opt%ITS_A_HCN_SIM          = .FALSE.
-    Input_Opt%ITS_A_TAGOX_SIM        = .FALSE.
+    Input_Opt%ITS_A_TAGO3_SIM        = .FALSE.
     Input_Opt%ITS_A_TAGCO_SIM        = .FALSE.
     Input_Opt%ITS_A_C2H6_SIM         = .FALSE.
     Input_Opt%ITS_A_CH4_SIM          = .FALSE.

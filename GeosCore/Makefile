@@ -158,6 +158,7 @@
 #  23 Jun 2016 - R. Yantosca - Remove references to tracerid_mod
 #  23 Jun 2016 - R. Yantosca - Remove references to GeosApm
 #  30 Jun 2016 - M. Sulprizio- Remove readchem.F, reader.F, jsparse.F, ksparse.F
+#  09 Aug 2016 - M. Sulprizio- Remove diag_pl_mod and add diag20_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -451,7 +452,7 @@ chemistry_mod.o             : chemistry_mod.F                                \
                               pops_mod.o              rpmares_mod.o          \
                               RnPbBe_mod.o            seasalt_mod.o          \
                               strat_chem_mod.o        sulfate_mod.o          \
-                              tagged_co_mod.o         tagged_ox_mod.o        \
+                              tagged_co_mod.o         tagged_o3_mod.o        \
                               tomas_mod.o             flexchem_setup_mod.o
 
 cleanup.o                   : cleanup.F                                      \
@@ -464,7 +465,7 @@ cleanup.o                   : cleanup.F                                      \
                               diag04_mod.o            diag41_mod.o           \
                               diag50_mod.o            diag51_mod.o           \
                               diag51b_mod.o           diag53_mod.o           \
-                              diag_oh_mod.o           diag_pl_mod.o          \
+                              diag_oh_mod.o           diag20_mod.o           \
                               drydep_mod.o            dust_mod.o             \
                               diagnostics_mod.o       emissions_mod.o        \
                               global_ch4_mod.o        wetscav_mod.o          \
@@ -511,10 +512,13 @@ diag3.o                     : diag3.F                                        \
                               diag_mod.o              diag03_mod.o           \
                               diag04_mod.o            diag41_mod.o           \
                               diag42_mod.o            diag53_mod.o           \
-                              diag56_mod.o            diag_pl_mod.o          \
-                              depo_mercury_mod.o      drydep_mod.o           \
-                              tomas_mod.o             wetscav_mod.o          \
-                              hcoi_gc_main_mod.o
+                              diag56_mod.o            depo_mercury_mod.o     \
+                              drydep_mod.o            hcoi_gc_main_mod.o     \
+                              tomas_mod.o             wetscav_mod.o
+
+diag20_mod.o                : diag20_mod.F                                   \
+                              chemgrid_mod.o          
+
 
 diag41_mod.o                : diag41_mod.F                                   \
                               pbl_mix_mod.o
@@ -559,9 +563,6 @@ diag_mod.o                  : diag_mod.F
 
 diag_oh_mod.o               : diag_oh_mod.F           chemgrid_mod.o
 
-diag_pl_mod.o               : diag_pl_mod.F                                  \
-                              chemgrid_mod.o          
-
 drydep_mod.o                : drydep_mod.F                                   \
                               dao_mod.o                                      \
                               diag_mod.o              get_ndep_mod.o         \
@@ -590,11 +591,11 @@ fast_jx_mod.o               : fast_jx_mod.F                                  \
 
 flex_chemdr.o               : flex_chemdr.F                                  \
                               aerosol_mod.o           dao_mod.o              \
-                              diag_oh_mod.o           diag_pl_mod.o          \
+                              diag_oh_mod.o           diag20_mod.o           \
                               fast_jx_mod.o           dust_mod.o             \
                               future_emissions_mod.o  flexchem_setup_mod.o   \
                               planeflight_mod.o       restart_mod.o          \
-                                          uvalbedo_mod.o
+                              tomas_mod.o             uvalbedo_mod.o
 
 flexchem_setup_mod.o        : flexchem_setup_mod.F90                         \
                               restart_mod.o           chemgrid_mod.o
@@ -611,8 +612,8 @@ gamap_mod.o                 : gamap_mod.F                                    \
                               diag50_mod.o            diag51_mod.o           \
                               diag51b_mod.o           diag53_mod.o           \
                               diag56_mod.o            diag63_mod.o           \
-                              diag_pl_mod.o  	      drydep_mod.o           \
-                              tomas_mod.o             wetscav_mod.o
+                              drydep_mod.o            tomas_mod.o            \
+                              wetscav_mod.o
 
 ifeq ($(COMPILER),sun)
 	$(F90) -O0 -c $<
@@ -660,7 +661,7 @@ initialize.o                : initialize.F                                   \
                               diag_mod.o              diag03_mod.o           \
                               diag04_mod.o            diag41_mod.o           \
                               diag42_mod.o            diag53_mod.o           \
-                              diag56_mod.o            diag_pl_mod.o
+                              diag56_mod.o
 
 input_mod.o                 : input_mod.F                                    \
                               aerosol_mod.o           benchmark_mod.o        \
@@ -672,7 +673,7 @@ input_mod.o                 : input_mod.F                                    \
                               diag50_mod.o            diag51_mod.o  	     \
                               diag51b_mod.o           diag56_mod.o  	     \
                               diag63_mod.o            diag_oh_mod.o          \
-                              diag_pl_mod.o           drydep_mod.o           \
+                              diag20_mod.o            drydep_mod.o           \
                               dust_mod.o              pops_mod.o             \
                               future_emissions_mod.o  gamap_mod.o            \
                               land_mercury_mod.o      co2_mod.o              \
@@ -683,7 +684,7 @@ input_mod.o                 : input_mod.F                                    \
                               sulfate_mod.o           tomas_mod.o            \
                               tpcore_bc_mod.o         get_ndep_mod.o         \
                               wetscav_mod.o           tagged_co_mod.o        \
-                              tagged_ox_mod.o         global_ch4_mod.o       \
+                              tagged_o3_mod.o         global_ch4_mod.o       \
                               c2h6_mod.o              gamap_mod.o            \
                               transport_mod.o
 
@@ -830,7 +831,7 @@ soil_nox_mod.o              : soil_nox_mod.F
 
 strat_chem_mod.o            : strat_chem_mod.F90                             \
                               chemgrid_mod.o          dao_mod.o              \
-                              linoz_mod.o             tagged_ox_mod.o
+                              linoz_mod.o             tagged_o3_mod.o
 
 sulfate_mod.o               : sulfate_mod.F                                  \
                               chemgrid_mod.o                                 \
@@ -844,13 +845,12 @@ sulfate_mod.o               : sulfate_mod.F                                  \
 
 tagged_co_mod.o             : tagged_co_mod.F                                \
                               chemgrid_mod.o          diag_mod.o             \
-                              diag_pl_mod.o           pbl_mix_mod.o          \
-                              hcoi_gc_main_mod.o
-
-tagged_ox_mod.o             : tagged_ox_mod.F                                \
-                              chemgrid_mod.o          diag_mod.o             \
-                              diag_pl_mod.o           drydep_mod.o           \
                               pbl_mix_mod.o           hcoi_gc_main_mod.o
+
+tagged_o3_mod.o             : tagged_o3_mod.F                                \
+                              chemgrid_mod.o          diag_mod.o             \
+                              drydep_mod.o            hcoi_gc_main_mod.o     \
+                              pbl_mix_mod.o
 
 tcorr.o                     : tcorr.F
 
@@ -902,8 +902,7 @@ wetscav_mod.o               : wetscav_mod.F                                  \
 
 tomas_mod.o                 : tomas_mod.F                                    \
                               chemgrid_mod.o          dao_mod.o              \
-                              diag_mod.o              diag_pl_mod.o          \
-                              YuIMN_Code.o 
+                              diag_mod.o              YuIMN_Code.o
 
 tomas_tpcore_mod.o          : tomas_tpcore_mod.F90                           \
                               tomas_mod.o             

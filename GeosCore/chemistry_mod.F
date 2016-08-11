@@ -107,7 +107,7 @@
       USE SULFATE_MOD,        ONLY : CHEMSULFATE
       USE STRAT_CHEM_MOD,     ONLY : DO_STRAT_CHEM
       USE TAGGED_CO_MOD,      ONLY : CHEM_TAGGED_CO
-      USE TAGGED_OX_MOD,      ONLY : CHEM_TAGGED_OX
+      USE TAGGED_O3_MOD,      ONLY : CHEM_TAGGED_O3
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE GIGC_State_Chm_Mod, only : IND_
@@ -253,7 +253,7 @@
       LOGICAL           :: IT_IS_A_MERCURY_SIM
       LOGICAL           :: IT_IS_A_RnPbBe_SIM
       LOGICAL           :: IT_IS_A_TAGCO_SIM
-      LOGICAL           :: IT_IS_A_TAGOX_SIM
+      LOGICAL           :: IT_IS_A_TAGO3_SIM
       LOGICAL           :: IT_IS_AN_AEROSOL_SIM
       LOGICAL           :: IT_IS_NOT_COPARAM_OR_CH4
       LOGICAL           :: IT_IS_A_POPS_SIM
@@ -310,7 +310,7 @@
       IT_IS_A_MERCURY_SIM      = Input_Opt%ITS_A_MERCURY_SIM
       IT_IS_A_RnPbBe_SIM       = Input_Opt%ITS_A_RnPbBe_SIM
       IT_IS_A_TAGCO_SIM        = Input_Opt%ITS_A_TAGCO_SIM
-      IT_IS_A_TAGOX_SIM        = Input_Opt%ITS_A_TAGOX_SIM
+      IT_IS_A_TAGO3_SIM        = Input_Opt%ITS_A_TAGO3_SIM
       IT_IS_A_POPS_SIM         = Input_Opt%ITS_A_POPS_SIM
       IT_IS_AN_AEROSOL_SIM     = Input_Opt%ITS_AN_AEROSOL_SIM
       IT_IS_NOT_COPARAM_OR_CH4 = Input_Opt%ITS_NOT_COPARAM_OR_CH4
@@ -657,8 +657,8 @@
          !---------------------------------
          ! Tagged O3
          !---------------------------------
-         ELSE IF ( IT_IS_A_TAGOX_SIM ) THEN 
-            CALL CHEM_TAGGED_OX
+         ELSE IF ( IT_IS_A_TAGO3_SIM ) THEN 
+            CALL CHEM_TAGGED_O3
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
             ! Call linearized stratospheric scheme

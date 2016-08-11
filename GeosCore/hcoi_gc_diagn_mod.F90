@@ -1537,7 +1537,7 @@ CONTAINS
     ! Exit if we are doing a specialty simulation w/o biomass
     IF ( Input_Opt%ITS_A_POPS_SIM   ) RETURN
     IF ( Input_Opt%ITS_A_RnPbBe_SIM ) RETURN
-    IF ( Input_Opt%ITS_A_TAGOX_SIM  ) RETURN
+    IF ( Input_Opt%ITS_A_TAGO3_SIM  ) RETURN
 
     ! First test if GFED is used.  If not, then test if FINN is used.
     ! If not, then use extension # 0 and the default biomass category.
@@ -2340,7 +2340,7 @@ CONTAINS
     ! Exit if we are doing a specialty simulation w/o biofuels
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) RETURN
     IF ( Input_Opt%ITS_A_POPS_SIM    ) RETURN
-    IF ( Input_Opt%ITS_A_TAGOX_SIM   ) RETURN
+    IF ( Input_Opt%ITS_A_TAGO3_SIM   ) RETURN
     IF ( Input_Opt%ITS_A_RnPbBe_SIM  ) RETURN
 
     ! Extension number
@@ -2561,7 +2561,7 @@ CONTAINS
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) RETURN
     IF ( Input_Opt%ITS_A_POPS_SIM    ) RETURN
     IF ( Input_Opt%ITS_A_RnPbBe_SIM  ) RETURN
-    IF ( Input_Opt%ITS_A_TAGOX_SIM   ) RETURN
+    IF ( Input_Opt%ITS_A_TAGO3_SIM   ) RETURN
 
     ! ND36 only: VOC's are only defined for fullchem (not tagged CO)
     IF ( ND36 > 0 .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
@@ -3015,7 +3015,7 @@ CONTAINS
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) RETURN
     IF ( Input_Opt%ITS_A_POPS_SIM    ) RETURN
     IF ( Input_Opt%ITS_A_RnPbBe_SIM  ) RETURN
-    IF ( Input_Opt%ITS_A_TAGOX_SIM   ) RETURN
+    IF ( Input_Opt%ITS_A_TAGO3_SIM   ) RETURN
 
     ! Extension and category #'s for MEGAN
     ExtNr = GetExtNr('MEGAN')

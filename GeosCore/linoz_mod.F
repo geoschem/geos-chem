@@ -346,20 +346,20 @@
       ! Current practice in the std GEOS-Chem is to call function
       ! GET_MAX_TPAUSE_LEVEL (from tropopause_mod.F) to return the
       ! highest possible tropopause level.  This is only required
-      ! when doing a tagged Ox simulation. (bmy, 3/18/13)
+      ! when doing a tagged O3 simulation. (bmy, 3/18/13)
       !-----------------------------------------------------------------
       L_OVERWRLD = GET_MAX_CHEMGRID_LEVEL()
 #endif
 
       !=================================================================
       ! Select the proper tracer number to store O3 into, depending on
-      ! whether this is a full chemistry run or a tagged Ox run.
-      ! If tagged Ox, tracer 2 should be the stratospheric tracer.  (dbj)
+      ! whether this is a full chemistry run or a tagged O3 run.
+      ! If tagged O3, tracer 2 should be the stratospheric tracer.  (dbj)
       !=================================================================
       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
          NUM_TRACER = 1
       ELSE
-         IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
+         IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
             IF ( nAdvect > 1 ) THEN
                NUM_TRACER = 2
             ELSE
@@ -441,18 +441,18 @@
             ! Current practice in the std GEOS-Chem is to call function
             ! GET_MAX_TPAUSE_LEVEL (from tropopause_mod.F) to return the
             ! highest possible tropopause level.  This is only required
-            ! when doing a tagged Ox simulation. (bmy, 3/18/13)
+            ! when doing a tagged O3 simulation. (bmy, 3/18/13)
             !-----------------------------------------------------------
 
             ! dbj: for now, set tagged stratospheric tracer to total 
             ! O3 in the overworld to avoid issues with spin ups
-            IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
+            IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
               Spc(I,J,(L_OVERWRLD+1):LLPAR,NTRACER) =
      &                Spc(I,J,(L_OVERWRLD+1):LLPAR,1)
             ENDIF
 #endif
            ! IF ( LPRT ) CALL DEBUG_MSG( '### LINOZ_CHEM3: at LM, LBOT')
-          ! IF (LPRT) CALL DEBUG_MSG('DONE TAGOX')
+          ! IF (LPRT) CALL DEBUG_MSG('DONE TAGO3')
 
             ! Loop over levels
             DO L = LM, LBOT, -1
