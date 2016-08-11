@@ -171,14 +171,14 @@
       REAL(fp)              :: MolecRatio, MW_kg
 
       ! Objects
-      TYPE(Species), POINTER :: ThisSpc
+      TYPE(Species), POINTER :: SpcInfo
 
       !=================================================================
       ! FLEX_CHEMDR begins here!
       !=================================================================
 
       ! Initialize pointer
-      ThisSpc => NULL()
+      SpcInfo => NULL()
 
       ! Turn heterogeneous chemistry and photolysis on/off here
       ! This is for testing only and may be removed later (mps, 4/26/16)
@@ -218,7 +218,7 @@
       TCVV      = Input_Opt%TCVV
 
       ! mje link the STT Pointer to the State_Chm%Tracers stucture
-      STT       => State_Chm%Tracers
+      STT       => State_Chm%Species
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
@@ -308,17 +308,17 @@
       DO N = 1, State_Chm%nSpecies
 
          ! Get info about this species from the species database
-         ThisSpc => State_Chm%SpcData(N)%Info
+         SpcInfo => State_Chm%SpcData(N)%Info
 
          ! isoprene oxidation counter species
-         IF ( TRIM( ThisSpc%Name ) == 'LISOPOH' .or.
-     &        TRIM( ThisSpc%Name ) == 'LISOPNO3' ) THEN
+         IF ( TRIM( SpcInfo%Name ) == 'LISOPOH' .or.
+     &        TRIM( SpcInfo%Name ) == 'LISOPNO3' ) THEN
                State_Chm%Species(:,:,:,N) = 0e+0_fp
          ENDIF
 
          ! aromatic oxidation counter species
          IF ( Input_Opt%LSOA .or. Input_Opt%LSVPOA ) THEN
-            SELECT CASE ( TRIM( ThisSpc%Name ) )
+            SELECT CASE ( TRIM( SpcInfo%Name ) )
                CASE ( 'LBRO2H', 'LBRO2N', 'LTRO2H', 'LTRO2N',
      &                'LXRO2H', 'LXRO2N', 'LNRO2H', 'LNRO2N' )
                   State_Chm%Species(:,:,:,N) = 0e+0_fp
@@ -328,12 +328,12 @@
          ! Temporary fix for CO2
          ! CO2 is a dead species and needs to be set to zero to 
          ! match the old SMVGEAR code (mps, 6/14/16)
-         IF ( TRIM( ThisSpc%Name ) == 'CO2' ) THEN
+         IF ( TRIM( SpcInfo%Name ) == 'CO2' ) THEN
             State_Chm%Species(:,:,:,N) = 0e+0_fp
          ENDIF
 
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
 
       ENDDO
       
@@ -383,19 +383,19 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg, ThisSpc )
+!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg, SpcInfo )
       DO N = 1, State_Chm%nSpecies
 
          ! Get info about this species from the species database
-         ThisSpc => State_Chm%SpcData(N)%Info
+         SpcInfo => State_Chm%SpcData(N)%Info
 
          ! Skip non-advected and non-KPP species
-         IF ( .not. This Spc%Is_Advected ) CYCLE
-         IF ( .not. ThisSpc%Is_Kpp       ) CYCLE
+!         IF ( .not. SpcInfo%Is_Advected ) CYCLE
+!         IF ( .not. SpcInfo%Is_Kpp      ) CYCLE
 
          ! Moles C per moles species
-         MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
-         MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
+         MolecRatio = SpcInfo%MolecRatio
+         MW_kg      = SpcInfo%emMW_g * 1.e-3_fp
 
          ! Loop over grid boxes
          DO L = 1, LLPAR
@@ -404,7 +404,8 @@
 
             ! Copy from STT to State_Chm%Species
             ! Convert from [kg] to [molec/cm3]
-            State_Chm%Species(I,J,L,N) = STT(I,J,L,N)
+!            State_Chm%Species(I,J,L,N) = STT(I,J,L,N)
+            State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)
      &                                 * ( AVO / MW_KG ) 
      &                                 / ( State_Met%AIRVOL(I,J,L) * 
      &                                     1e+6_fp                 *
@@ -415,11 +416,11 @@
          ENDDO
 
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
 
       ENDDO
 !$OMP END PARALLEL DO
-
+      
       !=================================================================
       ! Call photolysis routine to compute J-Values
       !=================================================================
@@ -906,19 +907,19 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg, ThisSpc )
+!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg, SpcInfo )
       DO N = 1, State_Chm%nSpecies
 
          ! Get info about this species from the species database
-         ThisSpc => State_Chm%SpcData(N)%Info
+         SpcInfo => State_Chm%SpcData(N)%Info
 
          ! Skip non-advected and non-KPP species
-         IF ( .not. This Spc%Is_Advected ) CYCLE
-         IF ( .not. ThisSpc%Is_Kpp       ) CYCLE
+         !IF ( .not. SpcInfo%Is_Advected ) CYCLE
+         !IF ( .not. SpcInfo%Is_Kpp      ) CYCLE
 
          ! Moles C per moles species
-         MolecRatio = State_Chm%SpcData(N)%Info%MolecRatio
-         MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
+         MolecRatio = SpcInfo%MolecRatio
+         MW_kg      = SpcInfo%emMW_g * 1.e-3_fp
          
          ! Loop over species
          DO L = 1, LLPAR
@@ -927,18 +928,18 @@
 
             ! Copy new tracer concentrations from State_Chm%Species to STT
             ! Convert from [molec/cm3] to [kg]
-            STT(I,J,L,N) = State_Chm%Species(I,J,L,N)
-     &                   / ( AVO / MW_kg ) 
-     &                   * ( State_Met%AIRVOL(I,J,L)  * 
-     &                       1e+6_fp                  *
-     &                       MolecRatio              ) 
+            State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)
+     &                                 / ( AVO / MW_kg ) 
+     &                                 * ( State_Met%AIRVOL(I,J,L)  * 
+     &                                     1e+6_fp                  *
+     &                                     MolecRatio              ) 
 
          ENDDO
          ENDDO
          ENDDO
 
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
 
       ENDDO
 !$OMP END PARALLEL DO

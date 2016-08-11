@@ -1679,6 +1679,10 @@
 !@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
 !@@@ This can be removed later once State_Chm%Tracers is removed everywhere
 !@@@
+            ! First put species into kg/kg/dry
+            CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
+     &                                      State_Chm, RC         )
+
             ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
             DO NA = 1, State_Chm%nAdvect
                N                          = State_Chm%Map_Advect(NA)
@@ -1742,6 +1746,11 @@
               State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
             ENDDO
             State_Chm%Spc_Units = 'molec/cm3'
+
+
+            ! First put species into kg/kg/dry
+            CALL ConvertSpc_KgKgDry_To_MND( am_I_Root, State_Met,
+     &                                      State_Chm, RC         )
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
          ENDIF 
