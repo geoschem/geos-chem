@@ -120,6 +120,8 @@
 !  17 Jun 2016 - R. Yantosca - Now only define species ID's on the first call
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -127,7 +129,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: I,       J,   L
-      INTEGER             :: nAdvect, N,   NA
       ! SOAupdate: Temporary variables for diagnostics (hotp 8/24/09)
       REAL(fp)            :: FACTOR, PRES
       REAL(fp)            :: TEMP6, TEMP7
@@ -162,27 +163,11 @@
       REAL(fp), PARAMETER :: STD_VOL_FAC = ATM * 1e-2_fp / 273.15e+0_fp
      
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !================================================================= 
       ! DIAG42 begins here! 
       !================================================================= 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! First-time setup
       IF ( FIRST ) THEN
