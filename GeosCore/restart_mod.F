@@ -39,8 +39,9 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      ! Prefix of GEOS-Chem restart filename (output only)
-      CHARACTER(LEN=255)    :: Output_GC_Rst_Prefix
+      ! Prefix of GEOS-Chem output restart filename
+      CHARACTER(LEN=255), PARAMETER :: Output_GC_Rst_Prefix = 
+     &                                 'GEOSChem_restart'
 !
 ! !REVISION HISTORY:
 !  25 Jun 2002 - R. Yantosca - Initial version
@@ -166,9 +167,6 @@
       ! Define collection variables
       GridAreas_ptr => AREA_M2(:,:,1)
       TS            =  GET_TS_CHEM() * 60.0_sp
-
-      ! Define GEOS-Chem restart file prefix
-      Output_GC_RST_Prefix = 'GEOSChem_restart'
 
       ! Create restart collection for GEOS-Chem.  This will keep the
       ! GEOS-Chem restart separate from other output.
@@ -396,9 +394,11 @@
 !
 ! !IROUTINE: read_gc_restart
 !
-! !DESCRIPTION: Subroutine READ\_GC\_RESTART initializes GEOS-Chem 
-!  concentrations of species from a restart file in NetCDF format. Default
-!  initial values are used for species missing from the restart file.
+! !DESCRIPTION: Subroutine READ\_GC\_RESTART reads species concentrations 
+!  [mol/mol] from the GEOS-Chem restart file and uses them to initialize 
+!  species concentrations in [kg/kg dry]. If species data are missing from
+!  the restart file, pre-configured background values are used. If using the
+!  mercury simulation, additional restart data are read from file.
 !\\
 !\\
 ! !INTERFACE:
@@ -462,6 +462,7 @@
 !  25 Jul 2016 - E. Lundgren - Store whether species in rst file in species db
 !                              rather than module-level variable
 !  03 Aug 2016 - E. Lundgren - Remove tracers; now only use species
+!  11 Aug 2016 - E. Lundgren - Move source of background values to spc database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -469,10 +470,11 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER              :: I, J, L, M, N      ! lon, lat, lev, indexes
-      CHARACTER(LEN=10)    :: UNIT
-      CHARACTER(LEN=60)    :: Prefix
-      REAL(fp)             :: Background_VV      ! background species conc
       LOGICAL              :: FOUND              ! ocn Hg var in restart file
+      CHARACTER(LEN=60)    :: Prefix             ! utility string
+      CHARACTER(LEN=255)   :: LOC                ! routine location
+      REAL(fp)             :: MW_g               ! species molecular weight
+      REAL(fp)             :: SMALL_NUM          ! small number threshold
 
       ! NetCDF file info
       INTEGER              :: fId                ! netCDF file ID
@@ -494,10 +496,6 @@
       REAL*4,  POINTER     :: Ptr2D(:,:  )
       REAL*4,  POINTER     :: Ptr3D(:,:,:)
 
-      ! Other
-      CHARACTER(LEN=255)   :: LOC
-      REAL(fp)             :: MW_g
-
       ! For Hg simulation
       INTEGER                   :: Num_Hg_Categories 
       INTEGER                   :: Total_Hg_Id
@@ -517,14 +515,17 @@
       ! Initialize pointers
       Ptr2D       => NULL()
       Ptr3D       => NULL()
-      Hg_Cat_Name => NULL()
       ThisSpc     => NULL()
+      Hg_Cat_Name => NULL()
 
       ! Name of this routine
-      LOC       = 'READ_GC_RESTART (restart_mod.F)'
+      LOC = 'READ_GC_RESTART (restart_mod.F)'
+
+      ! Set minimum value threshold for [mol/mol]
+      SMALL_NUM = 1.0e-30_fp
 
       ! Copy input filename to a local variable
-      nc_file   = TRIM( Input_Opt%IN_RST_FILE )
+      nc_file = TRIM( Input_Opt%IN_RST_FILE )
 
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
@@ -561,7 +562,7 @@
 
       ! Make sure the dimensions of the file are valid
       CALL Check_Rst_Dimensions( lon=NX, lat=NY, lev=NZ, time=NT,  
-     &                       time_expected=1, LOC=LOC )
+     &                           time_expected=1, LOC=LOC )
 
       ! Set 3D start and count indices for dims: lon, lat, time
       st3d   = (/ 1, 1, 1 /)
@@ -579,8 +580,17 @@
  100  FORMAT( 'READ_RESTART_FILE: Reading ', a )
             
       !=================================================================
-      ! Read species concentrations if present, else set to default vals
+      ! Read species concentrations from NetCDF or use default 
+      ! background [mol/mol]; store in State_Chm%Species in [kg/kg dry]
       !=================================================================
+
+      ! IMPORTANT NOTE: the unit conversion from mol/mol to kg/kg uses
+      ! the molecular weight stored in the species database which is
+      ! a meaningful value for advected species but is a bad value (-1)
+      ! for all others. Non-advected species should NOT be used when 
+      ! State_Chm%Species units are in mass mixing ratio. Current
+      ! units can be determined at any point by looking at 
+      ! State_Chm%Spc_Units. (ewl, 8/11/16)
 
       ! Print header for min/max concentration to log
       WRITE( 6, 110 )
@@ -592,14 +602,10 @@
       ! Loop over species
       DO N = 1, State_Chm%nSpecies
 
-         ! Get info about this species from the species databas
+         ! Get info about this species from the species database
          ThisSpc => State_Chm%SpcData(N)%Info
          MW_g    = State_Chm%SpcData(N)%Info%emMW_g
 
-         ! DEBUGGING (ewl)
-         PRINT *, "MW_g", MW_g
-         ! END DEBUGGING
-        
          ! Define variable name
          v_name = 'SPC_' // TRIM( ThisSpc%Name )
 
@@ -611,13 +617,12 @@
             ThisSpc%Is_InRestart = .TRUE.
          ENDIF
 
-         ! If data in file, read and convert to molec/cm3
+         ! If data is in file, read and convert to [kg/kg dry]
+         ! Otherwise, set to background value
          IF ( ThisSpc%Is_InRestart ) THEN
 
             ! Initialize temporary array for this species and point to it
-            ! use 1e-30 as min (hotp 2/25/09)
-            ! NOTE: the 1.0e-30 minimum is for [molec/cm3] in legacy
-            Temp3D = 1.0e-30_fp
+            Temp3D = 0.0e-0_fp
             Ptr3D => Temp3D
 
             ! Read variable from file and store in local array
@@ -632,17 +637,18 @@
      &                 '  Max = ',es15.9)
             ENDIF
 
-            ! Convert [mol/mol] to [kg/kg dry] to store in State_Met%Species
+            ! Convert file value [mol/mol] to [kg/kg dry] for storage
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
             DO L = 1, LLPAR
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-
-               ! Convert units from [mol/mol] to [kg/kg dry] (ewl, 8/2/16)
+               ! Apply minimum value threshold where input conc is very low
+               IF ( Ptr3D(I,J,L) < SMALL_NUM ) THEN
+                  Ptr3D(I,J,L) = SMALL_NUM
+               ENDIF
                State_Chm%Species(I,J,L,N) = Ptr3D(I,J,L) * MW_g / AIRMW
- 
             ENDDO
             ENDDO
             ENDDO
@@ -650,66 +656,15 @@
 
          ELSE
 
-            ! If species data is not in the restart file, then assign
-            ! default background values in units of [mol/mol] and
-            ! then convert to [kg/kg dry]
-            SELECT CASE ( TRIM( ThisSpc%Name ) )
-               CASE ('CH2O', 'H2O2', 'HNO2', 'HNO3', 'HNO4') 
-                  Background_VV = 4.0e-15_fp
-               CASE ('HO2', 'MO2', 'MP', 'N2O5', 'NO3', 'OH')
-                  Background_VV = 4.0e-15_fp
-               CASE ('CH4')
-                  Background_VV = 1.7e-06_fp
-               CASE ('CO')
-                  Background_VV = 1.0e-07_fp
-               CASE ('CO2')
-                  Background_VV = 3.55e-04_fp
-               CASE ('H2')
-                  Background_VV = 5.0e-07_fp
-               CASE ('H2O')
-                  Background_VV = 1.839e-02_fp
-               CASE ('M')
-                  Background_VV = 0.0e+0_fp
-               CASE ('N2')
-                  Background_VV = 7.808e-01_fp
-               CASE ('NO', 'NO2')
-                  Background_VV = 4.0e-13_fp
-               CASE ('N2O')
-                  Background_VV = 3.0e-07_fp
-               CASE ('EMISSION')
-                  Background_VV = 1.0e+0_fp
-               CASE ('H', 'O', 'N')
-                  Background_VV = 4.0e-20_fp
-               CASE ('O1D')
-                  IF ( Input_Opt%LUCX ) THEN
-                     Background_VV = 1.0e-15_fp ! benchmark and ucx sims
-                  ELSE
-                     Background_VV = 4.0e-22_fp
-                  ENDIF
-               CASE ('O2')
-                  Background_VV = 2.095e-01_fp
-               CASE ('O3')
-                  Background_VV = 2.0e-08_fp
-               CASE ('OCS')
-                  Background_VV = 9.0e-15_fp
-               CASE DEFAULT
-                  Background_VV = 1.0e-20_fp
-            END SELECT
-               
-            ! Set 'DRY' species to all zeroes
-            IF ( ThisSpc%Name(1:3) == 'DRY') THEN
-               Background_VV = 0.0e+0_fp
-            ENDIF
- 
             ! Print the background value of this species if debugging is on
             IF ( Input_Opt%LPRT ) THEN
                WRITE( 6, 190 ) N, TRIM( ThisSpc%Name ),
-     &                         Background_VV
+     &                         ThisSpc%BackgroundVV
  190           FORMAT('Species ', i3, ', ', a9, 
      &                ': Use background value = ', es15.9)
             ENDIF
 
-            ! Special handling for MOH            
+            ! Set species to the background value converted to [kg/kg dry] 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -719,14 +674,10 @@
             DO I = 1, IIPAR
 
                IF ( TRIM( ThisSpc%Name ) /= 'MOH' ) THEN
-
-                  ! Set Species to background mol/mol values converted 
-                  ! to kg/kg dry air (ewl, 8/2/16)
-                  State_Chm%Species(I,J,L,N) = Background_VV 
+                  State_Chm%Species(I,J,L,N) = ThisSpc%BackgroundVV 
      &                                         * MW_g / AIRMW
-                  
                ELSE
-
+                  ! Special handling for MOH:
                   !----------------------------------------------------
                   ! For methanol (MOH), use different initial
                   ! background concentrations for different regions of
@@ -774,7 +725,7 @@
      &                                               * MW_g / AIRMW
                      ELSE
                         ! Strat/mesosphere:
-                        State_Chm%Species(I,J,L,N) = 0.0e+0_fp
+                        State_Chm%Species(I,J,L,N) = SMALL_NUM
                      ENDIF
                   ENDIF
                ENDIF
@@ -783,9 +734,6 @@
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
-
-            ! Set all values above chemistry levels to zero
-            State_Chm%Species(:,:,LLCHEM+1:LLPAR,N) = 0.0e+0_fp
 
          ENDIF
 
@@ -797,38 +745,23 @@
       ! Set species units
       State_Chm%Spc_Units = 'kg/kg dry'
 
-      ! If in debug mode, print out species values in molec/cm3
+      ! If in debug mode, print out species min and max in [molec/cm3]
       IF ( am_I_Root .and. Input_Opt%LPRT ) THEN
-
-         ! Convert species to molec/cm3 for debug prints
-         CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
-     &                                   State_Chm, RC )
-
          PRINT *, " "
          PRINT *, "Species min and max in molec/cm3"
-
-         ! Loop over species
+         CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
+     &                                   State_Chm, RC )
          DO N = 1, State_Chm%nSpecies
-      
-            ! Get info about this species from the species database
             ThisSpc => State_Chm%SpcData(N)%Info
-
-            ! Write min/max value to log
             WRITE(6,320) N, TRIM( ThisSpc%Name ), 
      &                   MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ), 
      &                   MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) ) 
 320         FORMAT( 'Species ', i3, ', ', a9, 
      &              ': Min = ', es15.9, ', Max = ', es15.9 )
-
-            ! Free pointer
             ThisSpc => NULL()
-
          ENDDO
-
-         ! Convert species back to kg/kg dry after debug prints
          CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
      &                                   State_Chm, RC )
-
       ENDIF
 
       !=================================================================
@@ -1089,9 +1022,10 @@
 !
 ! !IROUTINE: write_gc_restart
 !
-! !DESCRIPTION: Subroutine WRITE\_GC\_RESTART creates restart files for 
-!  GEOS-Chem species [units: vol species /vol dry air] in NetCDF format.
-!  Additional output is included if running the mercury simulation.
+! !DESCRIPTION: Subroutine WRITE\_GC\_RESTART writes species concentrations 
+!  [mol/mol] to the GEOS-Chem restart file in NetCDF format. If using the
+!  mercury simulation, additional data such as ocean mercury values 
+!  are written to the restart file.
 !\\
 !\\
 ! !INTERFACE:
@@ -1158,6 +1092,7 @@
       INTEGER              :: I, J, L, M, N, HCRC
       INTEGER              :: GC_RST_Collection
       REAL(fp)             :: MW_g
+      REAL(fp)             :: SMALL_NUM
       CHARACTER(LEN=60)    :: ContainerName, Prefix
       CHARACTER(LEN=255)   :: MSG, FILENAME, LOC = 
      &                       'WRITE_GC_RESTART (restart_mod.F90)'
@@ -1197,6 +1132,9 @@
       ! Set the GEOS-Chem restart collection ID
       GC_RST_Collection = Input_Opt%GC_RST_COLLECTION
 
+      ! Set minimum value to write to file [mol/mol]
+      SMALL_NUM = 1.0e-30_fp
+
       !=================================================================
       ! If running Hg simulation, set Hg-specific local variables
       !=================================================================
@@ -1235,19 +1173,13 @@
       ! Populate species concentration restart containers
       !=================================================================
 
-      ! Print min/max species concentrations to log if debugging
+      ! Print min/max species concentrations in molec/cm3 to log if debugging
       IF ( Input_Opt%LPRT ) THEN
-
-         ! Write header for min and max values in [molec/cm3]
          WRITE( 6, 130 )
  130     FORMAT( /, 'Min and Max of each species before unit ',
      &              'conversion [molec/cm3]:' )
-
-         ! Convert species back to molec/cm3
          CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
      &                                   State_Chm, RC )
-
-         ! Write min and max to log in loop over species
          DO N = 1, State_Chm%nSpecies
             ThisSpc => State_Chm%SpcData(N)%Info
             WRITE(6,320) N, TRIM( ThisSpc%Name ), 
@@ -1257,12 +1189,10 @@
      &              ': Min = ', es15.9, ', Max = ', es15.9 )
             ThisSpc => NULL()
          ENDDO
-
-         ! Convert species back to kg/kg dry
          CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
      &                                   State_Chm, RC )
 
-         ! Write header for min and max of values written to file [mol/mol]
+         ! Write header for printing [mol/mol] concentrations later on
          IF ( Input_Opt%LPRT ) THEN
             WRITE( 6, 150 )
  150        FORMAT( /, 'Min and Max of each species written to file',
@@ -1274,7 +1204,7 @@
       ! Initialize temporary array to all zeros
       Temp3D = 0.e+0_sp
 
-      ! For each species, populate the array for all levels with 
+      ! For each species, populate the temporary array with 
       ! concentrations in [mol/mol]
       DO N = 1, State_Chm%nSpecies
 
@@ -1290,6 +1220,13 @@
          DO I = 1, IIPAR
             Temp3D(I,J,L) = State_Chm%Species(I,J,L,N) *
      &                      AIRMW / MW_g
+
+            ! Apply minimum value threshold where output concentration
+            ! is very low
+            IF ( Temp3D(I,J,L) < SMALL_NUM ) THEN
+               Temp3D(I,J,L) = SMALL_NUM
+            ENDIF
+
          ENDDO
          ENDDO
          ENDDO
@@ -1314,8 +1251,8 @@
          ! Write min and max written to file if debugging
          IF ( Input_Opt%LPRT ) THEN
             WRITE( 6, 160 ) N, TRIM( ThisSpc%Name ),
-     &                      MINVAL( Temp3D(:,:,1:LLCHEM) ), 
-     &                      MAXVAL( Temp3D(:,:,1:LLCHEM) )
+     &                      MINVAL( Temp3D(:,:,:) ), 
+     &                      MAXVAL( Temp3D(:,:,:) )
  160        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
      &              '  Max = ', es15.9 )
          ENDIF
