@@ -337,7 +337,7 @@ CONTAINS
           ! Check if this container holds data in the desired unit format,
           ! i.e. concentration data if UseConc is enabled, emission data
           ! otherwise.
-          IF ( UseConc /= Dct%Dta%IsConc ) THEN
+          IF ( UseConc .NEQV. Dct%Dta%IsConc ) THEN
              CALL ListCont_NextCont ( HcoState%EmisList, Lct, FLAG )
              CYCLE
           ENDIF 

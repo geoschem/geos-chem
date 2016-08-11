@@ -1500,7 +1500,8 @@ CONTAINS
        CALL HCO_SPEC2LOG( am_I_Root, HcoState, Cnt )
 
     ENDDO !I
-    CALL HCO_MSG(SEP1='-')
+
+    CALL HCO_MSG(HcoState%Config%Err,SEP1='-')
 
     ! Return w/ success
     RC = HCO_SUCCESS

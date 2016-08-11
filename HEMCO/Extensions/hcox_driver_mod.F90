@@ -625,7 +625,7 @@ CONTAINS
 #endif
        IF ( ExtState%DustGinoux    ) CALL HCOX_DustGinoux_Final()
        IF ( ExtState%SeaSalt       ) CALL HCOX_SeaSalt_Final()
-       IF ( ExtState%Megan         ) CALL HCOX_Megan_Final(am_I_Root,HcoState,ExtState,RC)
+       IF ( ExtState%Megan  > 0    ) CALL HCOX_Megan_Final(am_I_Root,HcoState,ExtState,RC)
        IF ( ExtState%GFED          ) CALL HCOX_GFED_Final()
        IF ( ExtState%SoilNOx > 0   ) CALL HCOX_SoilNox_Final(am_I_Root,HcoState,ExtState,RC)
        IF ( ExtState%FINN          ) CALL HcoX_FINN_Final

@@ -178,7 +178,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return if extension disabled 
-    IF ( .NOT. ExtState%Wetland_CH4 ) RETURN
+    IF ( ExtState%Wetland_CH4 <= 0 ) RETURN
 
     ! Get instance
     CALL InstGet ( ExtState%Wetland_CH4, Inst, RC )

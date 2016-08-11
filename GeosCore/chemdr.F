@@ -978,10 +978,10 @@
                DiagnName = 'SPECIES_CHEMTEND_' // TRIM(NAMEGAS(N)) 
                Ptr3D => TEND 
                CALL Diagn_Update( am_I_Root, HcoState,
-     &                            cName  = TRIM(DiagnName),
-     &                            Array3D= Ptr3D,
-     &                            COL    = Input_Opt%DIAG_COLLECTION,
-     &                            RC     = HCRC )
+     &                            cName     = TRIM(DiagnName),
+     &                            Array3D   = Ptr3D,
+     &                            COL       = Input_Opt%DIAG_COLLECTION,
+     &                            RC        = HCRC )
                Ptr3D => NULL()
             ENDDO
   
@@ -995,10 +995,10 @@
             DiagnName = 'CHEMBOX'
             Ptr3D => TEND 
             CALL Diagn_Update( am_I_Root, HcoState,
-     &                         cName  = TRIM(DiagnName),
-     &                         Array3D= Ptr3D,
-     &                         COL    = Input_Opt%DIAG_COLLECTION,
-     &                         RC     = HCRC )
+     &                         cName      = TRIM(DiagnName),
+     &                         Array3D    = Ptr3D,
+     &                         COL        = Input_Opt%DIAG_COLLECTION,
+     &                         RC         = HCRC )
             Ptr3D => NULL()
       ENDIF
 #endif

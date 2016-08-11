@@ -775,7 +775,7 @@ CONTAINS
 
        ! Update diagnostics array
        CALL Diagn_Update( am_I_Root, HcoState, cName=DiagnName, &
-               Array3D=Tend, COL=Input_Opt%DIAG_COLLECTION, RC=RC )
+               Array3D_SP=Tend, COL=Input_Opt%DIAG_COLLECTION, RC=RC )
                           
        IF ( RC /= HCO_SUCCESS ) THEN 
           WRITE(MSG,*) 'Error in updating diagnostics with ID ', cID

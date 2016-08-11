@@ -42,7 +42,6 @@ MODULE HCOIO_read_std_mod
   PRIVATE :: GetWeights 
   PRIVATE :: YMDh2hrs
   PRIVATE :: Normalize_Area 
-  PRIVATE :: GetSliceIdx
   PRIVATE :: SrcFile_Parse 
   PRIVATE :: SigmaMidToEdges
   PRIVATE :: CheckMissVal 
@@ -51,6 +50,7 @@ MODULE HCOIO_read_std_mod
   PRIVATE :: HCOIO_ReadCountryValues
   PRIVATE :: HCOIO_ReadFromConfig
   PRIVATE :: GetDataVals 
+  PRIVATE :: GetSliceIdx
   PRIVATE :: FillMaskBox 
 !
 ! !REVISION HISTORY:
@@ -1225,13 +1225,13 @@ CONTAINS
        IF ( Lct%Dct%Dta%SpaceDim == 3 .AND. ASSOCIATED(Lct%Dct%Dta%V3) ) THEN
           IF ( ASSOCIATED(Lct%Dct%Dta%V3(1)%Val) ) THEN
              CALL Diagn_Update ( am_I_Root, HcoState, cName=TRIM(Lct%Dct%cName), &
-                                 Array3D=Lct%Dct%Dta%V3(1)%Val, COL=-1, RC=RC )
+                                 Array3D_SP=Lct%Dct%Dta%V3(1)%Val, COL=-1, RC=RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
        ELSEIF ( Lct%Dct%Dta%SpaceDim == 2 .AND. ASSOCIATED(Lct%Dct%Dta%V2) ) THEN
           IF ( ASSOCIATED(Lct%Dct%Dta%V2(1)%Val) ) THEN
              CALL Diagn_Update ( am_I_Root, HcoState, cName=TRIM(Lct%Dct%cName), &
-                                 Array2D=Lct%Dct%Dta%V2(1)%Val, COL=-1, RC=RC )
+                                 Array2D_SP=Lct%Dct%Dta%V2(1)%Val, COL=-1, RC=RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
        ENDIF
@@ -2444,105 +2444,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GetSliceIdx 
-!
-! !DESCRIPTION: gets the time slice index to be used for data directly
-! read from the HEMCO configuration file. prefDt denotes the preferred
-! time attribute (year, month, or day). DtType is used to identify the 
-! time attribute type (1=year, 2=month, 3=day). The time slice index will 
-! be selected based upon those two variables. IDX is the selected time 
-! slice index. It will be set to -1 if the current simulation date
-! is outside of the specified time range and the time cycle attribute is 
-! not enabled for this field.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE GetSliceIdx ( HcoState, Lct, DtType, prefDt, IDX, RC ) 
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(HCO_State),  POINTER                 :: HcoState
-    TYPE(ListCont),   POINTER                 :: Lct
-    INTEGER,          INTENT(IN   )           :: DtType
-    INTEGER,          INTENT(IN   )           :: prefDt
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,          INTENT(INOUT)           :: IDX
-    INTEGER,          INTENT(INOUT)           :: RC 
-!
-! !REVISION HISTORY:
-!  13 Mar 2013 - C. Keller - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-! 
-! !LOCAL VARIABLES:
-!
-    INTEGER            :: lowDt, uppDt
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'GetSliceIdx (HCOIO_DataRead_Mod.F90)'
-
-    !=================================================================
-    ! GetSliceIdx begins here! 
-    !=================================================================
-
-    ! Init
-    RC = HCO_SUCCESS
-
-    ! Get upper and lower time range
-    IF ( DtType == 1 ) THEN
-       lowDt = Lct%Dct%Dta%ncYrs(1)
-       uppDt = Lct%Dct%Dta%ncYrs(2)
-    ELSEIF ( DtType == 2 ) THEN
-       lowDt = Lct%Dct%Dta%ncMts(1)
-       uppDt = Lct%Dct%Dta%ncMts(2)
-    ELSEIF ( DtType == 3 ) THEN
-       lowDt = Lct%Dct%Dta%ncDys(1)
-       uppDt = Lct%Dct%Dta%ncDys(2)
-    ELSE
-       WRITE(MSG,*) "DtType must be one of 1, 2, 3: ", DtType
-       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
-       RETURN 
-    ENDIF
-
-    ! Check for cycle flags:
-
-    ! Data cycle set to range or exact date: in these cases, the 
-    ! the preferred date will be equal to the current date, so 
-    ! check if the preferred date is indeed within the available 
-    ! range (lowDt, uppDt).
-    ! For data only to be used within the specified range, set 
-    ! index to -1. This will force the scale factors to be set to
-    ! zero!
-    IF ( prefDt < lowDt .OR. prefDt > uppDt ) THEN
-       IF ( ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) .OR.      &
-            ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE )     ) THEN 
-          IDX = -1
-          RETURN
-       ELSE
-          ! this here should never happen, since for a cycle flag of 1,
-          ! the preferred date should always be restricted to the range
-          ! of available time stamps.
-          MSG = 'preferred date is outside of range: ' // TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
-          RETURN 
-       ENDIF
-    ENDIF
-    
-    ! If the code makes it to here, prefDt is within the available data range
-    ! and we simply get the wanted index from the current index and the lowest
-    ! available index. 
-    IDX = prefDt - lowDt + 1
-
-  END SUBROUTINE GetSliceIdx
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: SrcFile_Parse
 !
 ! !DESCRIPTION: Routine SrcFile\_Parse parses the source file name ('ncFile')
@@ -3548,6 +3449,105 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE HCOIO_CloseAll
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetSliceIdx 
+!
+! !DESCRIPTION: gets the time slice index to be used for data directly
+! read from the HEMCO configuration file. prefDt denotes the preferred
+! time attribute (year, month, or day). DtType is used to identify the 
+! time attribute type (1=year, 2=month, 3=day). The time slice index will 
+! be selected based upon those two variables. IDX is the selected time 
+! slice index. It will be set to -1 if the current simulation date
+! is outside of the specified time range and the time cycle attribute is 
+! not enabled for this field.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetSliceIdx ( HcoState, Lct, DtType, prefDt, IDX, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(HCO_State),  POINTER                 :: HcoState
+    TYPE(ListCont),   POINTER                 :: Lct
+    INTEGER,          INTENT(IN   )           :: DtType
+    INTEGER,          INTENT(IN   )           :: prefDt
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: IDX
+    INTEGER,          INTENT(INOUT)           :: RC 
+!
+! !REVISION HISTORY:
+!  13 Mar 2013 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: lowDt, uppDt
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'GetSliceIdx (HCOIO_DataRead_Mod.F90)'
+
+    !=================================================================
+    ! GetSliceIdx begins here! 
+    !=================================================================
+
+    ! Init
+    RC = HCO_SUCCESS
+
+    ! Get upper and lower time range
+    IF ( DtType == 1 ) THEN
+       lowDt = Lct%Dct%Dta%ncYrs(1)
+       uppDt = Lct%Dct%Dta%ncYrs(2)
+    ELSEIF ( DtType == 2 ) THEN
+       lowDt = Lct%Dct%Dta%ncMts(1)
+       uppDt = Lct%Dct%Dta%ncMts(2)
+    ELSEIF ( DtType == 3 ) THEN
+       lowDt = Lct%Dct%Dta%ncDys(1)
+       uppDt = Lct%Dct%Dta%ncDys(2)
+    ELSE
+       WRITE(MSG,*) "DtType must be one of 1, 2, 3: ", DtType
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+       RETURN 
+    ENDIF
+
+    ! Check for cycle flags:
+
+    ! Data cycle set to range or exact date: in these cases, the 
+    ! the preferred date will be equal to the current date, so 
+    ! check if the preferred date is indeed within the available 
+    ! range (lowDt, uppDt).
+    ! For data only to be used within the specified range, set 
+    ! index to -1. This will force the scale factors to be set to
+    ! zero!
+    IF ( prefDt < lowDt .OR. prefDt > uppDt ) THEN
+       IF ( ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) .OR.      &
+            ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE )     ) THEN 
+          IDX = -1
+          RETURN
+       ELSE
+          ! this here should never happen, since for a cycle flag of 1,
+          ! the preferred date should always be restricted to the range
+          ! of available time stamps.
+          MSG = 'preferred date is outside of range: ' // TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+          RETURN 
+       ENDIF
+    ENDIF
+    
+    ! If the code makes it to here, prefDt is within the available data range
+    ! and we simply get the wanted index from the current index and the lowest
+    ! available index. 
+    IDX = prefDt - lowDt + 1
+
+  END SUBROUTINE GetSliceIdx
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

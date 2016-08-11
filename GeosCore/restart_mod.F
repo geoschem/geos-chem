@@ -1451,10 +1451,10 @@ dvected tracer input  restart file
  
          ! Populate with data
          CALL Diagn_Update( am_I_Root, HcoState, 
-     &                      cName   = TRIM( ContainerName ),
-     &                      COL     = GC_RST_Collection,
-     &                      Array3D = Ptr3D,             
-     &                      RC      = HCRC )
+     &                      cName      = TRIM( ContainerName ),
+     &                      COL        = GC_RST_Collection,
+     &                      Array3D_SP = Ptr3D,             
+     &                      RC         = HCRC )
       
          ! Print the min & max of each tracer written to file (if debug)
          IF ( Input_Opt%LPRT ) THEN
@@ -1601,10 +1601,10 @@ dvected tracer input  restart file
             
             ! Populate container
             CALL Diagn_Update( am_I_Root, HcoState, 
-     &                         cName   = TRIM( ContainerName ),
-     &                         COL     = GC_RST_Collection,
-     &                         Array3D = Ptr3D,             
-     &                         RC      = HCRC )
+     &                         cName      = TRIM( ContainerName ),
+     &                         COL        = GC_RST_Collection,
+     &                         Array3D_SP = Ptr3D,
+     &                         RC         = HCRC )
             
             ! Free the pointer
             Ptr3D => NULL()

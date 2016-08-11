@@ -290,7 +290,7 @@
       !=================================================================
 
       ! Return if extension disabled 
-      IF ( .NOT. ExtState%DustDead ) RETURN
+      IF ( ExtState%DustDead <= 0 ) RETURN
 
       ! Enter
       CALL HCO_ENTER( HcoState%Config%Err, 

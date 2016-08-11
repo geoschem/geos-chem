@@ -1023,7 +1023,7 @@ CONTAINS
        IF ( PRESENT(Arr3D) ) THEN
           CALL Diagn_Update( am_I_Root, HcoState, ExtNr=XT, Cat=CT, &
                              Hier=HR, HcoID=HcoID, AutoFill=1,      &
-                             Array3D=Arr3D, MinDiagnLev=MinDiagnLev, RC=RC )
+                             Array3D_DP=Arr3D, MinDiagnLev=MinDiagnLev, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN          
        ENDIF
 
@@ -1031,7 +1031,7 @@ CONTAINS
        IF ( PRESENT(Arr3Dsp) ) THEN
           CALL Diagn_Update( am_I_Root, HcoState, ExtNr=XT, Cat=CT, &
                              Hier=HR, HcoID=HcoID, AutoFill=1,      &
-                             Array3D=Arr3Dsp, MinDiagnLev=MinDiagnLev, RC=RC )
+                             Array3D_SP=Arr3Dsp, MinDiagnLev=MinDiagnLev, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN          
        ENDIF
 
@@ -1039,7 +1039,7 @@ CONTAINS
        IF ( PRESENT(Arr2D) ) THEN
           CALL Diagn_Update( am_I_Root, HcoState, ExtNr=XT, Cat=CT, &
                              Hier=HR, HcoID=HcoID, AutoFill=1,      &
-                             Array2D=Arr2D, MinDiagnLev=MinDiagnLev, RC=RC )
+                             Array2D_DP=Arr2D, MinDiagnLev=MinDiagnLev, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN          
        ENDIF
 
@@ -1047,7 +1047,7 @@ CONTAINS
        IF ( PRESENT(Arr2Dsp) ) THEN
           CALL Diagn_Update( am_I_Root, HcoState, ExtNr=XT, Cat=CT, &
                              Hier=HR, HcoID=HcoID, AutoFill=1,      &
-                             Array2D=Arr2Dsp, MinDiagnLev=MinDiagnLev, RC=RC )
+                             Array2D_SP=Arr2Dsp, MinDiagnLev=MinDiagnLev, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN          
        ENDIF
 

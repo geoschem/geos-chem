@@ -154,8 +154,7 @@ MODULE HCO_Diagn_Mod
   PRIVATE :: Diagn_UpdateDriver
 
   INTERFACE Diagn_Update
-     MODULE PROCEDURE Diagn_UpdateSP 
-     MODULE PROCEDURE Diagn_UpdateDP 
+     MODULE PROCEDURE Diagn_UpdateAll
   END INTERFACE
 !
 ! !REVISION HISTORY:
@@ -262,15 +261,15 @@ CONTAINS
        IF ( ASSOCIATED(HcoState%Spc(I)%Emis) ) THEN
           IF ( ASSOCIATED(HcoState%Spc(I)%Emis%Val) ) THEN
              Arr3D => HcoState%Spc(I)%Emis%Val
-             CALL Diagn_Update( am_I_Root, HcoState,  &
-                                ExtNr    = -1,        &
-                                Cat      = -1,        &
-                                Hier     = -1,        &
-                                HcoID    = I,         &
-                                AutoFill = 1,         &
-                                Array3D  = Arr3D,     &
-                                COL      = -1,        &
-                                RC       = RC          ) 
+             CALL Diagn_Update( am_I_Root, HcoState,    &
+                                ExtNr      = -1,        &
+                                Cat        = -1,        &
+                                Hier       = -1,        &
+                                HcoID      = I,         &
+                                AutoFill   = 1,         &
+                                Array3D    = Arr3D,     &
+                                COL        = -1,        &
+                                RC         = RC          ) 
              IF ( RC/= HCO_SUCCESS ) RETURN 
              Arr3D => NULL() 
           ENDIF
@@ -1127,85 +1126,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: Diagn_UpdateSp
-!
-! !DESCRIPTION: Subroutine Diagn\_UpdateSp is the wrapper routine to update 
-! the diagnostics for single precision arrays. It invokes the main diagnostics
-! update routine with the appropriate arguments. 
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Diagn_UpdateSP( am_I_Root, HcoState, cID,        cName,       &
-                           ExtNr,     Cat,        Hier,       HcoID,       &
-                           AutoFill,  Scalar,     Array2D,    Array3D,     &
-                           Total,     PosOnly,    COL,        MinDiagnLev, &
-                           RC                                               )
-!
-! !USES:
-!
-    USE HCO_State_Mod, ONLY : HCO_State
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   )           :: am_I_Root         ! Root CPU?
-    TYPE(HCO_State),  POINTER                 :: HcoState          ! HEMCO state obj
-    INTEGER,          INTENT(IN   ), OPTIONAL :: cID               ! Assigned 
-                                                                   !  container ID
-    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName             ! Diagnostics 
-                                                                   !  name
-    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr             ! Extension #
-    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat               ! Category 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier              ! Hierarchy 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID             ! HEMCO species
-                                                                   !  ID number 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill          ! 1=yes; 0=no; 
-                                                                   ! -1=either 
-    REAL(sp),         INTENT(IN   ), OPTIONAL :: Scalar            ! 1D scalar 
-    REAL(sp),         INTENT(IN   ), OPTIONAL :: Array2D   (:,:)   ! 2D array 
-    REAL(sp),         INTENT(IN   ), OPTIONAL :: Array3D   (:,:,:) ! 3D array 
-    REAL(sp),         INTENT(IN   ), OPTIONAL :: Total             ! Total 
-    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly           ! Use only vals
-                                                                   !  >= 0?
-    INTEGER,          INTENT(IN   ), OPTIONAL :: COL               ! Collection Nr.
-    INTEGER,          INTENT(IN   ), OPTIONAL :: MinDiagnLev       ! minimum diagn level 
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,          INTENT(INOUT)           :: RC                ! Return code 
-!
-! !REVISION HISTORY:
-!  20 Apr 2015 - C. Keller - Initialization
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    ! Call down to driver routine
-    CALL Diagn_UpdateDriver( am_I_Root, HcoState, & 
-                       cID = cID, & 
-                       cName = cName, & 
-                       ExtNr = ExtNr, & 
-                       Cat = Cat, & 
-                       Hier = Hier, & 
-                       HcoID = HcoID, & 
-                       AutoFill = AutoFill, & 
-                       Scalar_SP = Scalar, & 
-                       Array2D_SP = Array2D, & 
-                       Array3D_SP = Array3D, & 
-                       Total_SP   = Total,   & 
-                       PosOnly = PosOnly, & 
-                       COL = COL, & 
-                       MinDiagnLev = MinDiagnLev, & 
-                       RC = RC )
-
-  END SUBROUTINE Diagn_UpdateSp
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: Diagn_UpdateDp
+! !ROUTINE: Diagn_UpdateAll
 !
 ! !DESCRIPTION: Subroutine Diagn\_UpdateDp is the wrapper routine to update 
 ! the diagnostics for double precision arrays. It invokes the main diagnostics
@@ -1214,10 +1135,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_UpdateDP( am_I_Root, HcoState, cID,        cName,       &
+  SUBROUTINE Diagn_UpdateAll( am_I_Root, HcoState, cID,        cName,       &
                            ExtNr,     Cat,        Hier,       HcoID,       &
                            AutoFill,  Scalar,     Array2D,    Array3D,     &
-                           Total,     PosOnly,    COL,        MinDiagnLev, &
+                           Total,     Scalar_DP,  Array2D_DP, Array3D_DP, &
+                           Total_DP,  Scalar_SP,  Array2D_SP, Array3D_SP, &
+                           Total_SP,  PosOnly,    COL,        MinDiagnLev, &
                            RC                                               )
 !
 ! !USES:
@@ -1239,10 +1162,22 @@ CONTAINS
                                                                    !  ID number 
     INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill          ! 1=yes; 0=no; 
                                                                    ! -1=either 
-    REAL(dp),         INTENT(IN   ), OPTIONAL :: Scalar            ! 1D scalar 
-    REAL(dp),         INTENT(IN   ), OPTIONAL :: Array2D   (:,:)   ! 2D array 
-    REAL(dp),         INTENT(IN   ), OPTIONAL :: Array3D   (:,:,:) ! 3D array 
-    REAL(dp),         INTENT(IN   ), OPTIONAL :: Total             ! Total 
+
+    REAL(sp),         INTENT(IN   ), OPTIONAL :: Scalar_SP         ! 1D scalar 
+    REAL(sp),         INTENT(IN   ), OPTIONAL :: Array2D_SP(:,:)   ! 2D array 
+    REAL(sp),         INTENT(IN   ), OPTIONAL :: Array3D_SP(:,:,:) ! 3D array 
+    REAL(sp),         INTENT(IN   ), OPTIONAL :: Total_SP          ! Total 
+
+    REAL(dp),         INTENT(IN   ), OPTIONAL :: Scalar_DP            ! 1D scalar 
+    REAL(dp),         INTENT(IN   ), OPTIONAL :: Array2D_DP   (:,:)   ! 2D array 
+    REAL(dp),         INTENT(IN   ), OPTIONAL :: Array3D_DP   (:,:,:) ! 3D array 
+    REAL(dp),         INTENT(IN   ), OPTIONAL :: Total_DP             ! Total 
+
+    REAL(hp),         INTENT(IN   ), OPTIONAL :: Scalar               ! 1D scalar 
+    REAL(hp),         INTENT(IN   ), OPTIONAL :: Array2D      (:,:)   ! 2D array 
+    REAL(hp),         INTENT(IN   ), OPTIONAL :: Array3D      (:,:,:) ! 3D array 
+    REAL(hp),         INTENT(IN   ), OPTIONAL :: Total                ! Total 
+
     LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly           ! Use only vals
                                                                    !  >= 0?
     INTEGER,          INTENT(IN   ), OPTIONAL :: COL               ! Collection Nr.
@@ -1267,16 +1202,28 @@ CONTAINS
                        Hier = Hier, & 
                        HcoID = HcoID, & 
                        AutoFill = AutoFill, & 
-                       Scalar = Scalar, & 
-                       Array2D = Array2D, & 
-                       Array3D = Array3D, & 
-                       Total   = Total,   & 
+
+                       Scalar_HP = Scalar, & 
+                       Array2D_HP = Array2D, & 
+                       Array3D_HP = Array3D, & 
+                       Total_HP   = Total,   & 
+
+                       Scalar = Scalar_DP, & 
+                       Array2D = Array2D_DP, & 
+                       Array3D = Array3D_DP, & 
+                       Total   = Total_DP,   & 
+
+                       Scalar_SP = Scalar_SP, & 
+                       Array2D_SP = Array2D_SP, & 
+                       Array3D_SP = Array3D_SP, & 
+                       Total_SP   = Total_SP,   & 
+
                        PosOnly = PosOnly, & 
                        COL = COL, & 
                        MinDiagnLev = MinDiagnLev, & 
                        RC = RC )
 
-  END SUBROUTINE Diagn_UpdateDp
+  END SUBROUTINE Diagn_UpdateAll
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -1339,7 +1286,8 @@ CONTAINS
                                  ExtNr,     Cat,        Hier,       HcoID,       &
                                  AutoFill,  Scalar,     Array2D,    Array3D,     &
                                  Total,     Scalar_SP,  Array2D_SP, Array3D_SP,  &
-                                 Total_SP,  PosOnly,    COL,        MinDiagnLev, &
+                                 Total_SP,  Scalar_HP,  Array2D_HP, Array3D_HP, &
+                                 Total_HP,  PosOnly,    COL,        MinDiagnLev, &
                                  RC                                               )
 !
 ! !USES:
@@ -1367,6 +1315,10 @@ CONTAINS
     REAL(sp),         INTENT(IN   ), OPTIONAL, TARGET :: Array2D_SP(:,:)   ! 2D array 
     REAL(sp),         INTENT(IN   ), OPTIONAL, TARGET :: Array3D_SP(:,:,:) ! 3D array 
     REAL(sp),         INTENT(IN   ), OPTIONAL         :: Total_SP          ! Total 
+    REAL(hp),         INTENT(IN   ), OPTIONAL         :: Scalar_HP         ! 1D scalar 
+    REAL(hp),         INTENT(IN   ), OPTIONAL, TARGET :: Array2D_HP(:,:)   ! 2D array 
+    REAL(hp),         INTENT(IN   ), OPTIONAL, TARGET :: Array3D_HP(:,:,:) ! 3D array 
+    REAL(hp),         INTENT(IN   ), OPTIONAL         :: Total_HP          ! Total 
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: PosOnly           ! Use only vals
                                                                            ! >= 0?
     INTEGER,          INTENT(IN   ), OPTIONAL         :: COL               ! Collection Nr.
@@ -1598,6 +1550,14 @@ CONTAINS
              ! 3D array
              IF ( PRESENT(Array3D_SP) ) THEN
                 Arr3D => Array3D_SP
+             ELSEIF ( PRESENT(Array3D_HP) ) THEN
+                ALLOCATE( Arr3D(ThisColl%NX,ThisColl%NY,ThisColl%NZ),STAT=AS)
+                IF ( AS /= 0 ) THEN
+                   CALL HCO_ERROR( HcoState%Config%Err,&
+                                   'Allocation error Arr3D', RC, THISLOC=LOC )
+                   RETURN
+                ENDIF
+                Arr3D = Array3D_HP
              ELSEIF( PRESENT(Array3D) ) THEN
                 ALLOCATE( Arr3D(ThisColl%NX,ThisColl%NY,ThisColl%NZ),STAT=AS)
                 IF ( AS /= 0 ) THEN
@@ -1611,6 +1571,14 @@ CONTAINS
              ! 2D array 
              IF ( PRESENT(Array2D_SP) ) THEN
                 Arr2D => Array2D_SP
+             ELSEIF ( PRESENT(Array2D_HP) ) THEN
+                ALLOCATE( Arr2D(ThisColl%NX,ThisColl%NY),STAT=AS)
+                IF ( AS /= 0 ) THEN
+                   CALL HCO_ERROR( HcoState%Config%Err,&
+                                   'Allocation error Arr2D', RC, THISLOC=LOC )
+                   RETURN
+                ENDIF
+                Arr2D = Array2D_HP
              ELSEIF( PRESENT(Array2D) ) THEN
                 ALLOCATE( Arr2D(ThisColl%NX,ThisColl%NY),STAT=AS)
                 IF ( AS /= 0 ) THEN
@@ -1636,7 +1604,7 @@ CONTAINS
           IF ( ThisDiagn%SpaceDim == 3 ) THEN
       
              ! Make sure dimensions agree and diagnostics array is allocated
-             IF ( PRESENT(Array3D_SP) .OR. PRESENT(Array3D) ) THEN
+             IF ( PRESENT(Array3D_SP) .OR. PRESENT(Array3D) .OR. PRESENT(Array3D_HP) ) THEN
       
                 ! By default, write into single precision array 
                 CALL HCO_ArrAssert( ThisDiagn%Arr3D, ThisColl%NX,   &
@@ -1670,8 +1638,8 @@ CONTAINS
           !----------------------------------------------------------------------
           ELSEIF ( ThisDiagn%SpaceDim == 2 ) THEN
      
-             IF ( PRESENT(Array3D_SP) .OR. PRESENT(Array3D) .OR. & 
-                  PRESENT(Array2D_SP) .OR. PRESENT(Array2D)       ) THEN
+             IF ( PRESENT(Array3D_SP) .OR. PRESENT(Array3D) .OR. PRESENT(Array3D_HP) .OR. & 
+                  PRESENT(Array2D_SP) .OR. PRESENT(Array2D) .OR. PRESENT(Array2D_HP)      ) THEN
  
                 ! Make sure dimensions agree and diagnostics array is allocated
                 CALL HCO_ArrAssert( ThisDiagn%Arr2D, ThisColl%NX, &
@@ -1694,13 +1662,13 @@ CONTAINS
                 IsAssoc = .TRUE.
          
                 ! Convert 3D array to 2D if necessary - only use first level!!
-                IF ( PRESENT(Array2D) .OR. PRESENT(Array2D_SP) ) THEN
+                IF ( PRESENT(Array2D) .OR. PRESENT(Array2D_SP) .OR. PRESENT(Array2D_HP) ) THEN
                    IF ( .NOT. ASSOCIATED(Arr2D) ) THEN
                       IsAssoc = .FALSE.
                    ELSE
                       Tmp2D => Arr2D
                    ENDIF
-                ELSEIF ( PRESENT(Array3D) .OR. PRESENT(Array3D_SP) ) THEN
+                ELSEIF ( PRESENT(Array3D) .OR. PRESENT(Array3D_SP) .OR. PRESENT(Array3D_HP) ) THEN
                    IF ( .NOT. ASSOCIATED(Arr3D) ) THEN
                       IsAssoc = .FALSE.
                    ELSE
@@ -1770,7 +1738,7 @@ CONTAINS
           ELSEIF ( ThisDiagn%SpaceDim == 1 ) THEN
       
              ! Make sure dimensions agree and diagnostics array is allocated
-             IF ( PRESENT(Scalar_SP) .OR. PRESENT(Scalar) ) THEN
+             IF ( PRESENT(Scalar_SP) .OR. PRESENT(Scalar) .OR. PRESENT(Scalar_HP) ) THEN
    
                 ! Pass array to diagnostics: ignore existing data if counter 
                 ! is zero, add to it otherwise.
@@ -1799,6 +1767,9 @@ CONTAINS
           ENDIF
           IF ( PRESENT(Total_SP) ) THEN
              ThisDiagn%Total = ThisDiagn%Total + Total_SP
+          ENDIF
+          IF ( PRESENT(Total_HP) ) THEN
+             ThisDiagn%Total = ThisDiagn%Total + Total_HP
           ENDIF
       
           !----------------------------------------------------------------------
@@ -1838,11 +1809,15 @@ CONTAINS
     ! Cleanup
     IF (PRESENT(Array3D_SP) ) THEN
        Arr3D => NULL()
+    ELSEIF (PRESENT(Array3D_HP) ) THEN
+       IF ( ASSOCIATED(Arr3D) ) DEALLOCATE(Arr3D)
     ELSEIF (PRESENT(Array3D) ) THEN
        IF ( ASSOCIATED(Arr3D) ) DEALLOCATE(Arr3D)
     ENDIF
     IF (PRESENT(Array2D_SP) ) THEN
        Arr2D => NULL()
+    ELSEIF (PRESENT(Array2D_HP) ) THEN
+       IF ( ASSOCIATED(Arr2D) ) DEALLOCATE(Arr2D)
     ELSEIF (PRESENT(Array2D) ) THEN
        IF ( ASSOCIATED(Arr2D) ) DEALLOCATE(Arr2D)
     ENDIF
