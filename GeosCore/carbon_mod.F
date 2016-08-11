@@ -264,12 +264,6 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-!-----------------------------------------------------------------------------
-! Prior to 7/20/16:
-! These are rendered obsolete by HEMCO (bmy, 7/20/16)
-!     INTEGER               :: I1_NA,    J1_NA
-!     INTEGER               :: I2_NA,    J2_NA
-!-----------------------------------------------------------------------------
       ! Rate constant for RO2+NO and RO2+HO2
       ! k=Aexp(B/T) like globchem.dat (hotp 5/7/10)
       REAL(fp)              :: AARO2NO,  BBRO2NO
@@ -456,6 +450,7 @@
 !                              species flag is defined before using it
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -468,7 +463,6 @@
       LOGICAL            :: LSOA
       LOGICAL            :: LEMIS
       LOGICAL            :: LPRT
-      INTEGER            :: N, NA, nAdvect
 
       ! Pointers
       REAL(fp), POINTER  :: Spc(:,:,:,:)
@@ -480,23 +474,6 @@
       !=================================================================
       ! CHEMCARBON begins here!
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
       RC                   = GIGC_SUCCESS
@@ -723,18 +700,6 @@
    
       ENDIF
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CHEMCARBON
 !EOC
 !------------------------------------------------------------------------------

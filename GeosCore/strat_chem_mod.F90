@@ -1019,6 +1019,7 @@ CONTAINS
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1040,11 +1041,6 @@ CONTAINS
     ! Pointers
     REAL(fp),      POINTER :: Spc(:,:,:,:)
     TYPE(Species), POINTER :: SpcInfo
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! By simple mass balance, dStrat/dt = P - L - STE,
@@ -1059,7 +1055,10 @@ CONTAINS
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC      = GIGC_SUCCESS
+
+    ! Number of advected species
+    nAdvect = State_Chm%nAdvect
 
 #if defined( NESTED_NA ) || defined( NESTED_CH ) || defined( NESTED_EU )
     ! This method only works for a global domain.
@@ -1068,31 +1067,14 @@ CONTAINS
     RETURN
 #else
 
-    ! Convert State_Chm%TRACERS from [kg/kg dry air] to [kg] so that
+    ! Convert State_Chm%SPECIES from [kg/kg dry air] to [kg] so that
     ! units are consistently mixing ratio in main (ewl, 8/10/15)
-    CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  &
-                                State_Chm, RC )
+    CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL GIGC_Error('Unit conversion error', RC, &
                         'Calc_STE in strat_chem_mod.F')
        RETURN
     ENDIF  
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-    ! Number of advected species
-    nAdvect = State_Chm%nAdvect
-
-    ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-    DO NA = 1, nAdvect
-       N                          = State_Chm%Map_Advect(NA)
-       Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-       State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-    ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     ! Point to chemical species array [kg]
     Spc => State_Chm%Species
@@ -1172,7 +1154,7 @@ CONTAINS
                STE / (SpcInfo%emMW_g * 1.e-3_fp),             & ! mol/a-1
                SpcInfo%emMW_g,                                & ! g/mol
                STE * 1e-9_fp                                  ! Tg a-1
-       ENDIF
+       ENDIF 
     ENDDO
 
 120 FORMAT( 2x,a8,':',4x,e11.3,4x,f9.1,4x,f11.4 )
@@ -1200,21 +1182,11 @@ CONTAINS
        ! Reset MINIT for next STE period
        MInit(:,:,:,NA)  = Spc(:,:,:,N)
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-       State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-       ! Restore State_Chm%SPECIES to its original values
-       State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     ENDDO
 
-    ! Convert State_Chm%TRACERS from [kg] back to [kg/kg dry air] 
+    ! Convert State_Chm%SPECIESfrom [kg] back to [kg/kg dry air] 
     ! (ewl, 8/10/15)
-    CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  &
-                                State_Chm, RC )
+    CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL GIGC_Error('Unit conversion error', RC, &
                         'Calc_STE in strat_chem_mod.F')
@@ -1289,6 +1261,7 @@ CONTAINS
 !  20 Jun 2016 - R. Yantosca - Now save species ID flags as module variables
 !                              and only define them in the INIT phase.
 !  12 Jul 2016 - R. Yantosca - Now also store advected species ID's
+!  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1307,11 +1280,6 @@ CONTAINS
 
     ! Pointers
     TYPE(Species), POINTER :: SpcInfo
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     !=================================================================
     ! INIT_STRAT_CHEM begins here!
@@ -1531,12 +1499,11 @@ CONTAINS
     ALLOCATE( MInit( IIPAR, JJPAR, LLPAR, nAdvect ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'MInit' )
 
-    ! Convert State_Chm%TRACERS from [kg/kg dry air] to [kg] so
-    ! that initial state of atmosphere is in same units as
+    ! Convert State_Chm%SPECIES from [kg/kg dry air] to [kg] so
+    ! that initial state of atmosphere is in same units as 
     ! chemistry ([kg]), and then convert back after MInit is assigned 
     ! (ewl, 8/10/15)
-    CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  &
-                                State_Chm, RC )
+    CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL GIGC_Error('Unit conversion error', RC, &
                        'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
@@ -1549,31 +1516,13 @@ CONTAINS
        ! Get the species ID from the advected species ID
        N = State_Chm%Map_Advect(NA)
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-       ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-       Spc_temp                   = State_Chm%Species(:,:,:,N)
-       State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
        ! Save initial conditions in MINIT
        MInit(:,:,:,NA) = State_Chm%Species(:,:,:,N)
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-       State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-       State_Chm%Species(:,:,:,N) = Spc_temp
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     ENDDO
 
-    ! Convert State_Chm%TRACERS back to [kg/kg dry air]
-    CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  &
-                                State_Chm, RC )
+    ! Convert State_Chm%Species back to [kg/kg dry air]
+    CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL GIGC_Error('Unit conversion error', RC, &
                        'Routine INIT_STRAT_CHEM in strat_chem_mod.F')

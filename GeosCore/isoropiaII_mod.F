@@ -173,6 +173,7 @@
 !                               we don't want to do it on each loop iteration
 !  30 Jun 2016 - R. Yantosca  - Remove instances of STT.  Now get the advected
 !                               species ID from State_Chm%Map_Advect.
+!  10 Aug 2016 - R. Yantosca  - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -199,7 +200,6 @@
 
       ! Scalars
       INTEGER                  :: I,    J,    L,    N
-      INTEGER                  :: NA,   nAdvect
       REAL(fp)                 :: ANO3, GNO3
       REAL(f8)                 :: RHI,  TEMPI
       REAL(fp)                 :: TCA,  TMG,  TK,   HNO3_DEN
@@ -230,8 +230,6 @@
       LOGICAL                  :: LPRT
                   
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER        :: Spc(:,:,:,:)
 
       ! For getting fields from HEMCO 
@@ -240,24 +238,6 @@
       !=================================================================
       ! DO_ISOROPIAII begins here!
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-
-
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
       RC                   = GIGC_SUCCESS
@@ -617,18 +597,6 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### ISOROPIAII: a AERO_THERMO' )
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE DO_ISOROPIAII
 !EOC
 !------------------------------------------------------------------------------

@@ -774,8 +774,34 @@
       ! NOTE: Tracer concentration units are converted locally to [v/v dry air]
       ! for chemistry (ewl, 9/18/15)
       IF ( LSCHEM ) THEN
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+         ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+         DO NA = 1, State_Chm%nAdvect
+            N                          = State_Chm%Map_Advect(NA)
+            Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
+            State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+         ENDDO
+         State_Chm%Spc_Units = 'kg/kg dry'
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
          CALL INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, 
      &                         State_Met, RC )
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+             DO NA = 1, State_Chm%nAdvect
+                N                          = State_Chm%Map_Advect(NA)
+                State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+               
+                ! Restore State_Chm%SPECIES to its original values
+                State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+             ENDDO
+             State_Chm%Spc_Units = 'molec/cm3'
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       ENDIF
 
       ! Save initial tracer mixing ratios to disk for benchmark runs
@@ -952,8 +978,34 @@
             !===========================================================
             ! Determine and print STE fluxes (ltm, 06/10/12)
             IF ( LSCHEM ) THEN
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+             ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+             DO NA = 1, State_Chm%nAdvect
+                N                          = State_Chm%Map_Advect(NA)
+                Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
+                State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+             ENDDO
+             State_Chm%Spc_Units = 'kg/kg dry'
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
                CALL CALC_STE( am_I_Root, Input_Opt, State_Chm, 
      &                        State_Met, RC )
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+             DO NA = 1, State_Chm%nAdvect
+                N                          = State_Chm%Map_Advect(NA)
+                State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+               
+                ! Restore State_Chm%SPECIES to its original values
+                State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+             ENDDO
+             State_Chm%Spc_Units = 'molec/cm3'
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
             ENDIF
 
             ! Make atmospheric restart file
@@ -1752,9 +1804,34 @@
          ! diagnostic and only on a chemistry timestep.
          ! (skim, 02/05/11)
          IF ( ITS_TIME_FOR_CHEM() ) THEN
-
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
+!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
+!@@@
+            ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
+            DO NA = 1, State_Chm%nAdvect
+               N                          = State_Chm%Map_Advect(NA)
+               Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
+               State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
+            ENDDO
+            State_Chm%Spc_Units = 'kg/kg dry'
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
             CALL RECOMPUTE_OD
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
+!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
+!@@@
+            DO NA = 1, State_Chm%nAdvect
+               N                          = State_Chm%Map_Advect(NA)
+               State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
+               
+               ! Restore State_Chm%SPECIES to its original values
+               State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+            ENDDO
+            State_Chm%Spc_Units = 'molec/cm3'
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
          ENDIF
 

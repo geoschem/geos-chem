@@ -198,6 +198,7 @@
 !                              mixing ratio
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -228,7 +229,7 @@
       LOGICAL, SAVE       :: FIRST = .TRUE. 
 
       ! Non-SAVEd variables
-      INTEGER             :: I, J, L, N, K, NA, nAdvect
+      INTEGER             :: I, J, L, N, K
       LOGICAL             :: LCARB
       LOGICAL             :: LDUST
       LOGICAL             :: LSOA
@@ -243,58 +244,36 @@
       !=================================================================
       ! AEROSOL_CONC begins here!
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
 
       ! Assume success
       RC     = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LCARB     = Input_Opt%LCARB
-      LDUST     = Input_Opt%LDUST
-      LSOA      = Input_Opt%LSOA
-      LSSALT    = Input_Opt%LSSALT
-      LSULF     = Input_Opt%LSULF
+      LCARB  = Input_Opt%LCARB
+      LDUST  = Input_Opt%LDUST
+      LSOA   = Input_Opt%LSOA
+      LSSALT = Input_Opt%LSSALT
+      LSULF  = Input_Opt%LSULF
 
-      ! If tracer units are 'kg/kg dry', convert to [kg] for this routine.
+      ! If species units are 'kg/kg dry', convert to [kg] for this routine.
       ! Otherwise, if tracer units are not 'kg', throw an error to the 
       ! calling routine (ewl, 8/12/15)
       UNITCONVERSION = .FALSE.
-      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg dry' ) THEN
-         CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met, 
-     &                               State_Chm, RC )  
+      IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/kg dry' ) THEN
+         CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, 
+     &                                  State_Chm, RC         )  
          UNITCONVERSION = .TRUE.
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL GIGC_Error('Unit conversion error', RC, 
      &                      'AEROSOL_CONC in aerosol_mod.F')
             RETURN
          ENDIF
-      ELSE IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+      ELSE IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
          CALL GIGC_Error('Unexpected tracer units' // 
-     &                   State_Chm%Trac_Units, RC, 
+     &                   State_Chm%Spc_Units, RC, 
      &                   'AEROSOL_CONC in aerosol_mod')
          RETURN
       ENDIF
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Initialize pointers
       Spc    => State_Chm%Species
@@ -632,24 +611,11 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
       ! If units were originally 'kg/kg dry', convert [kg] back to mixing 
       ! ratio (ewl, 8/12/15)
       IF ( UNITCONVERSION ) THEN
-         CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met, 
-     &                               State_Chm, RC )  
+         CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, 
+     &                                  State_Chm, RC         )  
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL GIGC_Error('Unit conversion error', RC, 
      &                      'AEROSOL_CONC in aerosol_mod.F')

@@ -234,6 +234,7 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.
 !  19 Jul 2016 - R. Yantosca - Now bracket DO_TEND calls with #ifdef USE_TEND
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  11 Aug 2016 - R. Yantosca - Clean up calls to error subroutines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -241,47 +242,53 @@
 ! !LOCAL VARIABLES:
 ! 
       ! Scalars
-      INTEGER           :: N_TROP, N
-      INTEGER           :: MONTH
-      INTEGER           :: YEAR
-      INTEGER           :: WAVELENGTH
-      LOGICAL           :: IT_IS_A_C2H6_SIM
-      LOGICAL           :: IT_IS_A_CH3I_SIM
-      LOGICAL           :: IT_IS_A_CH4_SIM
-      LOGICAL           :: IT_IS_A_FULLCHEM_SIM
-      LOGICAL           :: IT_IS_A_H2HD_SIM
-      LOGICAL           :: IT_IS_A_HCN_SIM
-      LOGICAL           :: IT_IS_A_MERCURY_SIM
-      LOGICAL           :: IT_IS_A_RnPbBe_SIM
-      LOGICAL           :: IT_IS_A_TAGCO_SIM
-      LOGICAL           :: IT_IS_A_TAGOX_SIM
-      LOGICAL           :: IT_IS_AN_AEROSOL_SIM
-      LOGICAL           :: IT_IS_NOT_COPARAM_OR_CH4
-      LOGICAL           :: IT_IS_A_POPS_SIM
-      LOGICAL           :: LCARB
-      LOGICAL           :: LCHEM
-      LOGICAL           :: LCRYST
-      LOGICAL           :: LDUST
-      LOGICAL           :: LSCHEM
-      LOGICAL           :: LPRT
-      LOGICAL           :: LSSALT
-      LOGICAL           :: LSULF
-      LOGICAL           :: LSOA
-      LOGICAL           :: LNLPBL
+      INTEGER            :: N_TROP, N
+      INTEGER            :: MONTH
+      INTEGER            :: YEAR
+      INTEGER            :: WAVELENGTH
+      LOGICAL            :: IT_IS_A_C2H6_SIM
+      LOGICAL            :: IT_IS_A_CH3I_SIM
+      LOGICAL            :: IT_IS_A_CH4_SIM
+      LOGICAL            :: IT_IS_A_FULLCHEM_SIM
+      LOGICAL            :: IT_IS_A_H2HD_SIM
+      LOGICAL            :: IT_IS_A_HCN_SIM
+      LOGICAL            :: IT_IS_A_MERCURY_SIM
+      LOGICAL            :: IT_IS_A_RnPbBe_SIM
+      LOGICAL            :: IT_IS_A_TAGCO_SIM
+      LOGICAL            :: IT_IS_A_TAGOX_SIM
+      LOGICAL            :: IT_IS_AN_AEROSOL_SIM
+      LOGICAL            :: IT_IS_NOT_COPARAM_OR_CH4
+      LOGICAL            :: IT_IS_A_POPS_SIM
+      LOGICAL            :: LCARB
+      LOGICAL            :: LCHEM
+      LOGICAL            :: LCRYST
+      LOGICAL            :: LDUST
+      LOGICAL            :: LSCHEM
+      LOGICAL            :: LPRT
+      LOGICAL            :: LSSALT
+      LOGICAL            :: LSULF
+      LOGICAL            :: LSOA
+      LOGICAL            :: LNLPBL
 
       ! SAVEd scalars
-      LOGICAL, SAVE     :: FIRST = .TRUE.
-      INTEGER, SAVE     :: id_DST1
-      INTEGER, SAVE     :: id_NK1
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      INTEGER, SAVE      :: id_DST1
+      INTEGER, SAVE      :: id_NK1
 #if defined( USE_TEND )
-      INTEGER, SAVE     :: id_O3 
-      INTEGER, SAVE     :: id_CO
-      REAL(fp)          :: DT_TEND
+      INTEGER, SAVE      :: id_O3 
+      INTEGER, SAVE      :: id_CO
+      REAL(fp)           :: DT_TEND
 #endif
+
+      ! Strings
+      CHARACTER(LEN=255) :: MSG, LOC
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
       !=================================================================
+
+      ! Set the location for error messages
+      LOC = 'DO_CHEMISTRY (in module GeosCore/chemistry_mod.F)'
 
       ! Assume success
       RC                       = GIGC_SUCCESS
@@ -345,8 +352,8 @@
       CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, 
      &                               State_Chm, RC         ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                      'DO_CHEMISTRY in chemistry_mod.F')
+         MSG = 'Unit conversion error!'
+         CALL GIGC_Error( MSG, RC, LOC )
          RETURN
       ENDIF  
 
@@ -404,9 +411,9 @@
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
             ! Check units (ewl, 10/5/15)
-            IF (TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-               CALL ERROR_STOP('Incorrect tracer units after CHEMDR', 
-     &                      'DO_CHEMISTRY in chemistry_mod.F')
+            IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+               MSG = 'Incorrect species units after FLEX_CHEMDR!'
+               CALL ERROR_STOP( MSG, LOC )
             ENDIF  
 
 #if defined( USE_TIMERS )
@@ -424,10 +431,9 @@
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
                ! Check units (ewl, 10/5/15)
-               IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-                  CALL ERROR_STOP('Incorrect tracer units after'
-     &                             // ' DO_STRAT_CHEM', 
-     &                      'DO_CHEMISTRY in chemistry_mod.F')
+               IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+                  MSG = 'Incorrect species units after DO_STRAT_CHEM!'
+                  CALL ERROR_STOP( MSG, LOC )
                ENDIF  
 
 #if defined( USE_TIMERS )
@@ -460,10 +466,9 @@
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
                ! Check units (ewl, 10/5/15)
-               IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-                  CALL ERROR_STOP('Incorrect tracer units after'
-     &                             // ' CHEMSULFATE', 
-     &                      'DO_CHEMISTRY in chemistry_mod.F')
+               IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+                  MSG =  'Incorrect species units after CHEMSULFATE!'
+                  CALL ERROR_STOP( MSG, LOC )
                ENDIF  
 
                ! Do aerosol thermodynamic equilibrium
@@ -506,10 +511,9 @@
             ENDIF
 
             ! Check units (ewl, 10/5/15)
-            IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-               CALL ERROR_STOP('Incorrect tracer units after'
-     &                             // ' DO_TOMAS', 
-     &                      'DO_CHEMISTRY in chemistry_mod.F')
+            IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+               MSG = 'Incorrect species units after DO_TOMAS!' 
+               CALL ERROR_STOP( MSG, LOC )
             ENDIF  
 
 #endif
@@ -545,10 +549,9 @@
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
             ! Check units (ewl, 10/5/15)
-            IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-               CALL ERROR_STOP('Incorrect tracer units after'
-     &                             // ' AEROSOL_CONC', 
-     &                      'DO_CHEMISTRY in chemistry_mod.F')
+            IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+               MSG = 'Incorrect species units after AEROSOL_CONC!'             
+               CALL ERROR_STOP( MSG, LOC )
             ENDIF  
 
             ! Compute AOD's and surface areas at 999 nm
@@ -710,13 +713,11 @@
       ! to [kg/kg dry air] at the end (not [v/v]). (ewl, 8/13/15)
       !-----------------------------------------------------------------
       ! Convert tracer units back to [kg/kg] after chemistry (ewl, 8/12/15)
-!@@@      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
-!@@@     &                            State_Chm, RC ) 
       CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
      &                               State_Chm, RC         ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                      'DO_CHEMISTRY in chemistry_mod.F')
+         MSG = 'Unit conversion error!'
+         CALL GIGC_Error( MSG, RC, LOC )
          RETURN
       ENDIF  
 

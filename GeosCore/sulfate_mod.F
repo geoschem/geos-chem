@@ -562,6 +562,7 @@
 !                              with GIGC_STATE_CHM_MOD::IND_()
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -580,7 +581,7 @@
       LOGICAL                  :: LDSTUP
       LOGICAL                  :: IT_IS_AN_AEROSOL_SIM
       LOGICAL                  :: prtDebug
-      INTEGER                  :: I, J, L, N, MONTH, NA, nAdvect
+      INTEGER                  :: I, J, L, N, MONTH
       REAL(fp)                 :: DTCHEM
 
       ! Strings
@@ -593,23 +594,6 @@
       !=================================================================
       ! CHEMSULFATE begins here!
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
       RC                   = GIGC_SUCCESS
@@ -822,19 +806,10 @@
       ENDIF
 #endif
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      ENDDO
-!!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-      ! Convert all tracers in Spc from [kg] -> [v/v]
-      CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,
-     &                          State_Met, State_Chm, RC )
+      ! Convert State_Chm%SPECIES from [kg] -> [v/v dry]
+      CALL ConvertSpc_Kg_to_VVDry( am_I_Root, State_Met, 
+     &                             State_Chm, RC         )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'CHEM_SULFATE in sulfate_mod.F')
@@ -843,18 +818,6 @@
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
       ENDIF
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! For offline runs only ...
       IF ( IT_IS_AN_AEROSOL_SIM ) THEN
@@ -922,22 +885,9 @@
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NIT' )
       ENDIF
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-      ! Convert Spc from [v/v] -> [kg]
-      CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt, 
-     &                          State_Met, State_Chm, RC )
+      ! Convert Spc from [v/v dry] -> [kg]
+      CALL ConvertSpc_VVDry_to_Kg( am_I_Root, State_Met, 
+     &                             State_Chm, RC         )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'CHEM_SULFATE in sulfate_mod.F')
@@ -1010,8 +960,6 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       
       ! Pointers
-      ! We need to define local arrays to hold corresponding values
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: Spc(:,:,:,:)
 
       !=================================================================
