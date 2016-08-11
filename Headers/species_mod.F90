@@ -90,6 +90,9 @@ MODULE Species_Mod
      REAL(fp)           :: EmMW_g           ! Emitted molecular weight [g/mol]
      REAL(fp)           :: MolecRatio       ! Mol carbon / mol species [1    ] 
 
+     ! Default background concentration
+     REAL(fp)           :: BackgroundVV     ! Background conc [v/v]
+
      ! Density and radius
      REAL(fp)           :: Density          ! Density [kg/m3]
      REAL(fp)           :: Radius           ! Radius  [m]
@@ -159,6 +162,12 @@ MODULE Species_Mod
   REAL(f8), PARAMETER  :: ZERO_R8     =  0.0e+0_f8   ! 8-byte precision
 
   REAL(fp), PARAMETER  :: MISSING_MW  = -1.0_fp      ! Missing MW values
+
+  !=========================================================================
+  ! Missing species concentration value if not in restart file and special
+  ! background value not defined
+  !=========================================================================
+  REAL(fp), PARAMETER, PUBLIC :: MISSING_VV  = 1.0e-20_fp ! Missing spc conc
 !
 ! !REMARKS:
 ! (1) The emission molecular weight is the molecular weight of the emitted 
@@ -194,6 +203,8 @@ MODULE Species_Mod
 !  25 Jul 2016 - E. Lundgren - Add Is_InRestart to track which species are 
 !                              read in versus set to default background values
 !  04 Aug 2016 - R. Yantosca - Add parameter MISSING_MW = -1.0
+!  10 Aug 2016 - E. Lundgren - Add BackgroundVV field for default background 
+!                              and missing background concentration param [v/v]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -480,17 +491,18 @@ CONTAINS
   SUBROUTINE Spc_Create( am_I_Root,     ThisSpc,       ModelID,        &
                          DryDepID,      Name,          FullName,       &
                          MW_g,          EmMW_g,        MolecRatio,     &
-                         Henry_K0,      Henry_CR,      Henry_PKA,      &
-                         Density,       Radius,        DD_AeroDryDep,  &
-                         DD_DustDryDep, DD_DvzAerSnow, DD_DvzMinVal,   &
-                         DD_F0,         DD_KOA,        DD_HStar_Old,   &
-                         MP_SizeResAer, MP_SizeResNum, WD_RetFactor,   &
-                         WD_LiqAndGas,  WD_ConvFacI2G, WD_AerScavEff,  &
-                         WD_KcScaleFac, WD_RainoutEff, WD_CoarseAer,   &
-                         Is_Advected,   Is_Gas,        Is_Drydep,      &
-                         Is_Wetdep,     Is_Photolysis, Is_InRestart,   &
-                         Is_Hg0,        Is_Hg2,        Is_HgP,         &
-                         KppVarId,      KppFixId,      RC               )
+                         BackgroundVV,  Henry_K0,      Henry_CR,       &
+                         Henry_PKA,     Density,       Radius,         &
+                         DD_AeroDryDep, DD_DustDryDep, DD_DvzAerSnow,  &
+                         DD_DvzMinVal,  DD_F0,         DD_KOA,         &
+                         DD_HStar_Old,  MP_SizeResAer, MP_SizeResNum,  &
+                         WD_RetFactor,  WD_LiqAndGas,  WD_ConvFacI2G,  &
+                         WD_AerScavEff, WD_KcScaleFac, WD_RainoutEff,  &
+                         WD_CoarseAer,  Is_Advected,   Is_Gas,         &
+                         Is_Drydep,     Is_Wetdep,     Is_Photolysis,  &
+                         Is_InRestart,  Is_Hg0,        Is_Hg2,         &
+                         Is_HgP,        KppVarId,      KppFixId,       &
+                         RC                                           )
 !
 ! !USES:
 !
@@ -507,6 +519,7 @@ CONTAINS
     REAL(fp),         OPTIONAL    :: MW_g             ! Molecular weight [g]
     REAL(fp),         OPTIONAL    :: EmMW_g           ! Emissions mol. wt [g]
     REAL(fp),         OPTIONAL    :: MolecRatio       ! Molec ratio
+    REAL(fp),         OPTIONAL    :: BackgroundVV     ! Background conc [v/v]
     REAL(f8),         OPTIONAL    :: Henry_K0         ! Henry's law K0 [M/atm]
     REAL(f8),         OPTIONAL    :: Henry_CR         ! Henry's law CR [K]
     REAL(f8),         OPTIONAL    :: Henry_PKA        ! Henry's law pKa [1]
@@ -593,6 +606,7 @@ CONTAINS
 !  25 Jul 2016 - E. Lundgren - Add optional argument Is_InRestart
 !  04 Aug 2016 - R. Yantosca - Now set missing molecular weights to -1, 
 !                              which seems to avoid numerical roundoff
+!  10 Aug 2016 - E. Lundgren - Add default background concentration argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -929,6 +943,16 @@ CONTAINS
     ENDIF
 
     !---------------------------------------------------------------------
+    ! Is there a default background concentration for this species
+    ! [mol spc/mol dry air]? If not, use a default value.
+    !---------------------------------------------------------------------
+    IF ( PRESENT( BackgroundVV ) ) THEN 
+       ThisSpc%BackgroundVV = BackgroundVV
+    ELSE
+       ThisSpc%BackgroundVV = MISSING_VV
+    ENDIF
+
+    !---------------------------------------------------------------------
     ! Is it a variable species in the KPP chemical mechanism?
     ! (NOTE: Fixed species are appended at the end of this list)
     !---------------------------------------------------------------------
@@ -1165,13 +1189,14 @@ CONTAINS
        ! Print general info
        !-------------------------
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )  
-       WRITE( 6, 100 ) 'Species ID           ',  ThisSpc%ModelID
-       WRITE( 6, 110 ) 'Name                 ',  TRIM( ThisSpc%Name     )
-       WRITE( 6, 110 ) 'FullName             ',  TRIM( ThisSpc%FullName )
-       WRITE( 6, 120 ) 'Molecular weight [g] ',  ThisSpc%MW_g
-       WRITE( 6, 120 ) 'Emitted mol. wt [g]  ',  ThisSpc%EmMW_g
-       WRITE( 6, 120 ) 'Molecular ratio      ',  ThisSpc%MolecRatio
-       WRITE( 6, 130 ) 'Is it a gas?         ',  ThisSpc%Is_Gas
+       WRITE( 6, 100 ) 'Species ID            ',  ThisSpc%ModelID
+       WRITE( 6, 110 ) 'Name                  ',  TRIM( ThisSpc%Name     )
+       WRITE( 6, 110 ) 'FullName              ',  TRIM( ThisSpc%FullName )
+       WRITE( 6, 120 ) 'Molecular weight [g]  ',  ThisSpc%MW_g
+       WRITE( 6, 120 ) 'Emitted mol. wt [g]   ',  ThisSpc%EmMW_g
+       WRITE( 6, 120 ) 'Molecular ratio       ',  ThisSpc%MolecRatio
+       WRITE( 6, 130 ) 'Is it a gas?          ',  ThisSpc%Is_Gas
+       WRITE( 6, 130 ) 'Default bckgrnd [v/v] ',  ThisSpc%BackgroundVV
 
        !-------------------------
        ! Print density & radius

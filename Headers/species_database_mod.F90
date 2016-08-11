@@ -142,6 +142,7 @@ CONTAINS
 !                              defined here.
 !  18 Jul 2016 - M. Sulprizio- Remove family tracers ISOPN, MMN, CFCX, HCFCX
 !                              and replace with their constituents.
+!  11 Aug 2016 - E. Lundgren - Define special background conc for some species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -150,7 +151,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER             :: C,      N,   nSpecies
-    REAL(fp)            :: Radius, KOA, MW_g   
+    REAL(fp)            :: Radius, KOA, MW_g,    BackgroundVV   
     REAL(fp)            :: K0,     CR,  HStar
 
     ! Arrays
@@ -702,6 +703,7 @@ CONTAINS
                               Name          = 'CH2O',                       &
                               FullName      = 'Formaldehyde',               &
                               MW_g          = 30.0_fp,                      &
+                              BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
@@ -778,6 +780,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methane',                    &
                               MW_g          = 16.0_fp,                      &
+                              BackgroundVV  = 1.7e-06_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -978,7 +981,15 @@ CONTAINS
                    Name     = 'COacet'
                    FullName = 'CO produced from acetone oxidation'
              END SELECT
-                   
+
+             ! Set special default background for CO
+             SELECT CASE( TRIM( NameAllCaps ) )
+                CASE( 'CO'     ) 
+                   BackgroundVV = 1.0e-07_fp
+                CASE DEFAULT
+                   BackgroundVV = MISSING_VV
+             END SELECT
+                                
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -987,6 +998,7 @@ CONTAINS
                               Name          = Name,                         &
                               FullName      = FullName,                     &
                               MW_g          = 28.0_fp,                      &
+                              BackgroundVV  = BackgroundVV,                 &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -1225,6 +1237,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Water vapor',                &
                               MW_g          = 18.0_fp,                      &
+                              BackgroundVV  = 1.839e-02_fp,                 &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -1240,6 +1253,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Hydrogen peroxide',          &
                               MW_g          = 34.0_fp,                      &
+                              BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
@@ -1430,6 +1444,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrous acid',               &
                               MW_g          = 47.0_fp,                      &
+                              BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -1458,6 +1473,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitric acid',                &
                               MW_g          = 63.0_fp,                      &
+                              BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
@@ -1486,6 +1502,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Pernitric acid',             &
                               MW_g          = 79.0_fp,                      &
+                              BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -1938,6 +1955,7 @@ CONTAINS
                               Name          = 'MP',                         &
                               FullName      = 'Methyl hydro peroxide',      &
                               MW_g          = 48.0_fp,                      &
+                              BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -2125,6 +2143,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrous oxide',              &
                               MW_g          = 44.0_fp,                      &
+                              BackgroundVV  = 3.0e-07_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -2145,6 +2164,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Dinitrogen pentoxide',       &
                               MW_g          = 105.0_fp,                     &
+                              BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
@@ -2326,6 +2346,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrogen oxide',             &
                               MW_g          = 30.0_fp,                      &
+                              BackgroundVV  = 4.0e-13_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -2348,6 +2369,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrogen dioxide',           &
                               MW_g          = 46.0_fp,                      &
+                              BackgroundVV  = 4.0e-13_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
@@ -2371,6 +2393,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrate radical',            &
                               MW_g          = 62.0_fp,                      &
+                              BackgroundVV  = 4.0e-15_fp,                   &
                               MolecRatio    = 1.0_fp,                       &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2431,6 +2454,14 @@ CONTAINS
                    Name     = 'O3USA'
              END SELECT
 
+             ! Set special default background for O3
+             SELECT CASE( TRIM( NameAllCaps ) )
+                CASE( 'O3' ) 
+                   BackgroundVV = 2.0e-08_fp
+                CASE DEFAULT
+                   BackgroundVV = MISSING_VV
+             END SELECT
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -2439,6 +2470,7 @@ CONTAINS
                               Name          = Name,                         &
                               FullName      = FullName,                     &
                               MW_g          = 48.0_fp,                      &
+                              BackgroundVV  = BackgroundVV,                 &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
@@ -2566,6 +2598,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Carbonyl sulfide',           &
                               MW_g          = 60.0_fp,                      &
+                              BackgroundVV  = 9.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -3832,6 +3865,14 @@ CONTAINS
                    FullName = 'Carbon dioxide'
              END SELECT
 
+             ! Set special default background for CO2
+             SELECT CASE( TRIM( NameAllCaps ) )
+                CASE( 'CO2' ) 
+                   BackgroundVV = 3.55e-04_fp
+                CASE DEFAULT
+                   BackgroundVV = MISSING_VV
+             END SELECT
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -3840,6 +3881,7 @@ CONTAINS
                               Name          = Name,                         &
                               FullName      = FullName,                     &
                               MW_g          = 44.0_fp,                      &
+                              BackgroundVV  = BackgroundVV,                 &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -4284,6 +4326,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              BackgroundVV  = 2.095e-01_fp,                 &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -4518,6 +4561,94 @@ CONTAINS
                               Is_Photolysis = T,                            &
                               RC            = RC )
 
+          CASE( 'HO2' )
+                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
+                                 ThisSpc       = SpcData(N)%Info,           &
+                                 ModelID       = N,                         &
+                                 KppVarId      = KppVarId(N),               &
+                                 KppFixId      = KppFixId(N),               &
+                                 Name          = NameAllCaps,               &
+                                 BackgroundVV  = 4.0e-15_fp,                &
+                                 Is_Advected   = F,                         &
+                                 Is_Gas        = T,                         &
+                                 Is_Drydep     = F,                         &
+                                 Is_Wetdep     = F,                         &
+                                 RC            = RC )
+
+          CASE( 'MO2' )
+                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
+                                 ThisSpc       = SpcData(N)%Info,           &
+                                 ModelID       = N,                         &
+                                 KppVarId      = KppVarId(N),               &
+                                 KppFixId      = KppFixId(N),               &
+                                 Name          = NameAllCaps,               &
+                                 BackgroundVV  = 4.0e-15_fp,                &
+                                 Is_Advected   = F,                         &
+                                 Is_Gas        = T,                         &
+                                 Is_Drydep     = F,                         &
+                                 Is_Wetdep     = F,                         &
+                                 RC            = RC )
+
+          CASE( 'OH' )
+                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
+                                 ThisSpc       = SpcData(N)%Info,           &
+                                 ModelID       = N,                         &
+                                 KppVarId      = KppVarId(N),               &
+                                 KppFixId      = KppFixId(N),               &
+                                 Name          = NameAllCaps,               &
+                                 BackgroundVV  = 4.0e-15_fp,                &
+                                 Is_Advected   = F,                         &
+                                 Is_Gas        = T,                         &
+                                 Is_Drydep     = F,                         &
+                                 Is_Wetdep     = F,                         &
+                                 RC            = RC )
+
+          CASE( 'H2' )
+                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
+                                 ThisSpc       = SpcData(N)%Info,           &
+                                 ModelID       = N,                         &
+                                 KppVarId      = KppVarId(N),               &
+                                 KppFixId      = KppFixId(N),               &
+                                 Name          = NameAllCaps,               &
+                                 BackgroundVV  = 5.0e-07_fp,                &
+                                 Is_Advected   = F,                         &
+                                 Is_Gas        = T,                         &
+                                 Is_Drydep     = F,                         &
+                                 Is_Wetdep     = F,                         &
+                                 RC            = RC )
+
+          CASE( 'N' )
+                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
+                                 ThisSpc       = SpcData(N)%Info,           &
+                                 ModelID       = N,                         &
+                                 KppVarId      = KppVarId(N),               &
+                                 KppFixId      = KppFixId(N),               &
+                                 Name          = NameAllCaps,               &
+                                 BackgroundVV  = 4.0e-20_fp,                &
+                                 Is_Advected   = F,                         &
+                                 Is_Gas        = T,                         &
+                                 Is_Drydep     = F,                         &
+                                 Is_Wetdep     = F,                         &
+                                 RC            = RC )
+
+          CASE( 'O1D' )
+                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
+                                 ThisSpc       = SpcData(N)%Info,           &
+                                 ModelID       = N,                         &
+                                 KppVarId      = KppVarId(N),               &
+                                 KppFixId      = KppFixId(N),               &
+                                 Name          = NameAllCaps,               &
+#if defined( UCX )
+                                 BackgroundVV  = 1.0e-15_fp,                &
+#else
+                                 BackgroundVV  = 4.0e-22_fp,                &
+#endif
+                                 Is_Advected   = F,                         &
+                                 Is_Gas        = T,                         &
+                                 Is_Drydep     = F,                         &
+                                 Is_Wetdep     = F,                         &
+                                 RC            = RC )
+
           !==================================================================
           ! Special handling for species not found in the list above
           !==================================================================
@@ -4552,7 +4683,7 @@ CONTAINS
                 WRITE( 6, 100 ) TRIM( NameAllCaps )
                 WRITE( 6, 110 )
                 WRITE( 6, 120 )
-100             FORMAT( 'Species ', a, ' not found in the data base!'      )
+100             FORMAT( 'Species ', a, ' not found in the database!'       )
 110             FORMAT( 'Please add the information to the CASE statement' )
 120             FORMAT( 'in module Headers/species_database_mod.F90!'      )
                 RC = -1
