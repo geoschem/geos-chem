@@ -733,7 +733,6 @@
 
       ! Set tracer concentrations to advected species concentrations
       ! following restart file read [kg/kg dry]
-      PRINT *, "State_Chm%nAdvect: ", State_Chm%nAdvect
       State_Chm%Tracers(:,:,:,1:State_Chm%nAdvect) = 
      &              State_Chm%Species(:,:,:,1:State_Chm%nAdvect)
       State_Chm%Trac_Units = 'kg/kg dry'
