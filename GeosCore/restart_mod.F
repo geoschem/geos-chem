@@ -32,6 +32,7 @@
       PUBLIC  :: READ_GC_RESTART
       PUBLIC  :: WRITE_GC_RESTART
       PUBLIC  :: INIT_GC_RESTART
+      PUBLIC  :: COMPARE_TRC_SPC ! temporary for tracer removal debugging
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -594,7 +595,7 @@
 
       ! Print header for min/max concentration to log
       WRITE( 6, 110 )
- 110  FORMAT( /,'Min and Max of each species in file:' )
+ 110  FORMAT( /,'Min and Max of each species in file [mol/mol]:' )
 
       ! Initialize species to all zeroes
       State_Chm%Species = 0.e+0_fp
@@ -617,8 +618,12 @@
             ThisSpc%Is_InRestart = .TRUE.
          ENDIF
 
-         ! If data is in file, read and convert to [kg/kg dry]
-         ! Otherwise, set to background value
+         ! If data is in file, read in as [mol/mol] and convert to 
+         ! [kg/kg dry]. Otherwise, set to background value [mol/mol]
+         ! either stored in species database (advected species all levels and
+         ! non-advected species levels up to LLCHEM) or a small number
+         ! (non-advected species levels above LLCHEM) converted to 
+         ! [kg/kg dry]
          IF ( ThisSpc%Is_InRestart ) THEN
 
             ! Initialize temporary array for this species and point to it
@@ -656,28 +661,18 @@
 
          ELSE
 
-            ! Print the background value of this species if debugging is on
-            IF ( Input_Opt%LPRT ) THEN
-               WRITE( 6, 190 ) N, TRIM( ThisSpc%Name ),
-     &                         ThisSpc%BackgroundVV
- 190           FORMAT('Species ', i3, ', ', a9, 
-     &                ': Use background value = ', es15.9)
-            ENDIF
-
             ! Set species to the background value converted to [kg/kg dry] 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-            ! Loop over all chemistry grid boxes
-            DO L = 1, LLCHEM 
+            ! Loop over all grid boxes
+            DO L = 1, LLPAR 
             DO J = 1, JJPAR
             DO I = 1, IIPAR
+                  
+               ! Special handling for MOH
+               IF ( TRIM( ThisSpc%Name ) == 'MOH' ) THEN
 
-               IF ( TRIM( ThisSpc%Name ) /= 'MOH' ) THEN
-                  State_Chm%Species(I,J,L,N) = ThisSpc%BackgroundVV 
-     &                                         * MW_g / AIRMW
-               ELSE
-                  ! Special handling for MOH:
                   !----------------------------------------------------
                   ! For methanol (MOH), use different initial
                   ! background concentrations for different regions of
@@ -725,9 +720,43 @@
      &                                               * MW_g / AIRMW
                      ELSE
                         ! Strat/mesosphere:
-                        State_Chm%Species(I,J,L,N) = SMALL_NUM
+                        State_Chm%Species(I,J,L,N) = 
+     &                                     SMALL_NUM * MW_g / AIRMW
                      ENDIF
                   ENDIF
+
+                  ! Print to log if debugging is on
+                  IF ( Input_Opt%LPRT .AND. I == 1 .AND. J == 1 
+     &                 .AND. L == 1 ) THEN
+                     WRITE( 6, 130 ) N, TRIM( ThisSpc%Name )
+ 130                 FORMAT('Species ', i3, ', ', a9, 
+     &                   ': see READ_GC_RESTART for special MOH values')
+                  ENDIF
+
+               ! For non-advected species at levels above LLCHEM, use a 
+               ! small number for background
+               ELSEIF ( L > LLCHEM .AND. 
+     &                  ( .NOT. ThisSpc%Is_Advected ) ) THEN
+
+                  State_Chm%Species(I,J,L,N) = 
+     &                                SMALL_NUM * MW_g / AIRMW 
+
+               ! For all other cases except MOH, use the background value  
+               ! stored in the species database
+               ELSE
+
+                  State_Chm%Species(I,J,L,N) = ThisSpc%BackgroundVV 
+     &                                         * MW_g / AIRMW
+
+                  ! Print to log if debugging is on
+                  IF ( Input_Opt%LPRT .AND. I == 1 .AND. J == 1
+     &                 .AND. L == 1 ) THEN
+                     WRITE( 6, 140 ) N, TRIM( ThisSpc%Name ),
+     &                               ThisSpc%BackgroundVV
+ 140                 FORMAT('Species ', i3, ', ', a9, 
+     &                    ': Use background = ', es15.9)
+                  ENDIF
+
                ENDIF
 
             ENDDO
@@ -753,10 +782,10 @@
      &                                   State_Chm, RC )
          DO N = 1, State_Chm%nSpecies
             ThisSpc => State_Chm%SpcData(N)%Info
-            WRITE(6,320) N, TRIM( ThisSpc%Name ), 
-     &                   MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ), 
-     &                   MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) ) 
-320         FORMAT( 'Species ', i3, ', ', a9, 
+            WRITE(6,150) N, TRIM( ThisSpc%Name ), 
+     &                   MINVAL( State_Chm%Species(:,:,:,N) ), 
+     &                   MAXVAL( State_Chm%Species(:,:,:,N) ) 
+ 150        FORMAT( 'Species ', i3, ', ', a9, 
      &              ': Min = ', es15.9, ', Max = ', es15.9 )
             ThisSpc => NULL()
          ENDDO
@@ -770,8 +799,8 @@
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
          ! Print total mass to log
-         WRITE( 6, 200 )
- 200     FORMAT(/, 'Total mass of each ocean and snow Hg species:')
+         WRITE( 6, 160 )
+ 160     FORMAT(/, 'Total mass of each ocean and snow Hg species:')
 
          !--------------------------------------------------------------
          ! Total Hg in ocean
@@ -798,7 +827,7 @@
             ierr = Nf_Inq_Varid (fId, TRIM(v_name), v_id)
             IF ( ierr /= NF_NOERR ) THEN
                FOUND = .FALSE.
-               WRITE( 6, 210 ) TRIM( v_name )
+               WRITE( 6, 170 ) TRIM( v_name )
             ELSE
                FOUND = .TRUE.
                CALL NcRd( Ptr2D, fId, v_name, st3d, ct3d )
@@ -818,19 +847,19 @@
                CASE ( 1 )
                   Hg0aq(:,:,Total_Hg_Id) = Ptr2D
                   IF ( FOUND ) THEN
-                     WRITE( 6, 220 ) v_name, 
+                     WRITE( 6, 180 ) v_name, 
      &                               SUM( Hg0aq(:,:,Total_Hg_Id) ), 'kg'
                   ENDIF
                CASE ( 2 )
                   Hg2aq(:,:,Total_Hg_Id) = Ptr2D
                   IF ( FOUND ) THEN
-                     WRITE( 6, 220 ) v_name, 
+                     WRITE( 6, 180 ) v_name, 
      &                               SUM( Hg2aq(:,:,Total_Hg_Id) ), 'kg'
                   ENDIF
                CASE ( 3 )
                   HgPaq(:,:,Total_Hg_Id) = Ptr2D
                   IF ( FOUND ) THEN
-                     WRITE( 6, 220 ) v_name, 
+                     WRITE( 6, 180 ) v_name, 
      &                               SUM( HgPaq(:,:,Total_Hg_Id) ), 'kg'
                   ENDIF
             END SELECT
@@ -867,7 +896,7 @@
                   ierr = Nf_Inq_Varid (fId, v_name, v_id)
                   IF ( ierr /= NF_NOERR ) THEN
                      FOUND = .FALSE.
-                     WRITE( 6, 210 ) TRIM( v_name )
+                     WRITE( 6, 170 ) TRIM( v_name )
                   ELSE
                      FOUND = .TRUE.
                      CALL NcRd( Ptr2D, fId, v_name, st3d, ct3d )
@@ -878,19 +907,19 @@
                      CASE ( 1 )
                         Hg0aq(:,:,N) = Ptr2D
                         IF ( FOUND ) THEN
-                           WRITE( 6, 220 ) v_name, 
+                           WRITE( 6, 180 ) v_name, 
      &                                     SUM( Hg0aq(:,:,N) ), 'kg'
                         ENDIF
                      CASE ( 2 )
                         Hg2aq(:,:,N) = Ptr2D
                         IF ( FOUND ) THEN
-                           WRITE( 6, 220 ) v_name, 
+                           WRITE( 6, 180 ) v_name, 
      &                                     SUM( Hg2aq(:,:,N) ), 'kg'
                         ENDIF
                      CASE ( 3 )
                         HgPaq(:,:,N) = Ptr2D
                         IF ( FOUND ) THEN
-                           WRITE( 6, 220 ) v_name, 
+                           WRITE( 6, 180 ) v_name, 
      &                                     SUM( HgPaq(:,:,N) ), 'kg'
                         ENDIF
                   END SELECT
@@ -941,7 +970,7 @@
                ierr = Nf_Inq_Varid (fId, v_name, v_id)
                IF ( ierr /= NF_NOERR ) THEN
                   FOUND = .FALSE.
-                  WRITE( 6, 210 ) TRIM( v_name )
+                  WRITE( 6, 170 ) TRIM( v_name )
                ELSE
                   FOUND = .TRUE.
                   CALL NcRd( Ptr2D, fId, v_name, st3d, ct3d )
@@ -952,25 +981,25 @@
                   CASE ( 1 )
                      SNOW_HG_OC(:,:,N) = Ptr2D
                      IF ( FOUND ) THEN
-                        WRITE( 6, 220 ) v_name, 
+                        WRITE( 6, 180 ) v_name, 
      &                        SUM( SNOW_HG_OC(:,:,N) ), 'kg'
                      ENDIF
                   CASE ( 2 )
                      SNOW_HG_STORED_OC(:,:,N) = Ptr2D
                      IF ( FOUND ) THEN
-                        WRITE( 6, 220 ) v_name, 
+                        WRITE( 6, 180 ) v_name, 
      &                        SUM( SNOW_HG_STORED_OC(:,:,N) ), 'kg'
                      ENDIF
                   CASE ( 3 )
                      SNOW_HG_LN(:,:,N) = Ptr2D
                      IF ( FOUND ) THEN
-                        WRITE( 6, 220 ) v_name, 
+                        WRITE( 6, 180 ) v_name, 
      &                     SUM( SNOW_HG_LN(:,:,N) ), 'kg'
                      ENDIF
                   CASE ( 4 )
                      SNOW_HG_STORED_LN(:,:,N) = Ptr2D
                      IF ( FOUND ) THEN
-                        WRITE( 6, 220 ) v_name, 
+                        WRITE( 6, 180 ) v_name, 
      &                        SUM( SNOW_HG_STORED_LN(:,:,N) ), 'kg'
                      ENDIF
                END SELECT
@@ -982,14 +1011,14 @@
          ENDDO
 
          ! Format strings
- 210     FORMAT('Variable not found in restart file: ', a24)
- 220     FORMAT( a24, ':   ', es15.9, 1x, a4)
+ 170     FORMAT('Variable not found in restart file: ', a24)
+ 180     FORMAT( a24, ':   ', es15.9, 1x, a4)
 
          ! Print note that variables are initialized to zero if not 
          ! found (currently only happens in tagged Hg simulation)
          IF ( Input_Opt%LSPLIT ) THEN
-            WRITE( 6, 230 )
- 230        FORMAT( /, 'NOTE: all variables not found are initialized ',
+            WRITE( 6, 190 )
+ 190        FORMAT( /, 'NOTE: all variables not found are initialized ',
      &                 'to zero') 
          ENDIF
 
@@ -1166,8 +1195,8 @@
       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
       WRITE( 6, '(a,/)' ) 'R E S T A R T   F I L E   O U T P U T ' 
      &                   // '( NetCDF )'
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( 'WRITE_GC_RESTART: Writing ', a )
+      WRITE( 6, 200 ) TRIM( FILENAME )
+ 200  FORMAT( 'WRITE_GC_RESTART: Writing ', a )
       
       !=================================================================
       ! Populate species concentration restart containers
@@ -1175,17 +1204,17 @@
 
       ! Print min/max species concentrations in molec/cm3 to log if debugging
       IF ( Input_Opt%LPRT ) THEN
-         WRITE( 6, 130 )
- 130     FORMAT( /, 'Min and Max of each species before unit ',
+         WRITE( 6, 210 )
+ 210     FORMAT( /, 'Min and Max of each species before unit ',
      &              'conversion [molec/cm3]:' )
          CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
      &                                   State_Chm, RC )
          DO N = 1, State_Chm%nSpecies
             ThisSpc => State_Chm%SpcData(N)%Info
-            WRITE(6,320) N, TRIM( ThisSpc%Name ), 
+            WRITE(6,220) N, TRIM( ThisSpc%Name ), 
      &                   MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ), 
      &                   MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) ) 
-320         FORMAT( 'Species ', i3, ', ', a9, 
+ 220        FORMAT( 'Species ', i3, ', ', a9, 
      &              ': Min = ', es15.9, ', Max = ', es15.9 )
             ThisSpc => NULL()
          ENDDO
@@ -1194,8 +1223,8 @@
 
          ! Write header for printing [mol/mol] concentrations later on
          IF ( Input_Opt%LPRT ) THEN
-            WRITE( 6, 150 )
- 150        FORMAT( /, 'Min and Max of each species written to file',
+            WRITE( 6, 230 )
+ 230        FORMAT( /, 'Min and Max of each species written to file',
      &                 ' [mol/mol]:' )
          ENDIF
 
@@ -1250,10 +1279,10 @@
 
          ! Write min and max written to file if debugging
          IF ( Input_Opt%LPRT ) THEN
-            WRITE( 6, 160 ) N, TRIM( ThisSpc%Name ),
+            WRITE( 6, 240 ) N, TRIM( ThisSpc%Name ),
      &                      MINVAL( Temp3D(:,:,:) ), 
      &                      MAXVAL( Temp3D(:,:,:) )
- 160        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
+ 240        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
      &              '  Max = ', es15.9 )
          ENDIF
          
@@ -1274,8 +1303,8 @@
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
          ! Print total mass to log
-         WRITE( 6, 170 )
- 170     FORMAT( /, 'Total mass of each ocean and snow Hg species: ' ) 
+         WRITE( 6, 250 )
+ 250     FORMAT( /, 'Total mass of each ocean and snow Hg species: ' ) 
 
          !--------------------------------------------------------------
          ! Total Hg in ocean
@@ -1289,17 +1318,17 @@
                CASE ( 1 )
                   ContainerName = 'Ocean_Hg0' 
                   Temp2D        = Hg0aq(:,:,Total_Hg_Id)
-                  WRITE( 6, 180 ) ContainerName, 
+                  WRITE( 6, 260 ) ContainerName, 
      &                            SUM( Hg0aq(:,:,Total_Hg_Id) ), 'kg'
                CASE ( 2 )
                   ContainerName = 'Ocean_Hg2'
                   Temp2D        = Hg2aq(:,:,Total_Hg_Id)
-                  WRITE( 6, 180 ) ContainerName, 
+                  WRITE( 6, 260 ) ContainerName, 
      &                            SUM( Hg2aq(:,:,Total_Hg_Id) ), 'kg'
                CASE ( 3 )
                   ContainerName = 'Ocean_HgP' 
                   Temp2D        = HgPaq(:,:,Total_Hg_Id)
-                  WRITE( 6, 180 ) ContainerName, 
+                  WRITE( 6, 260 ) ContainerName, 
      &                            SUM( HgPaq(:,:,Total_Hg_Id) ), 'kg'
             END SELECT
             Ptr2D => Temp2D
@@ -1371,13 +1400,13 @@
                   ! Print total mass to log
                   SELECT CASE( M )
                      CASE ( 1 )
-                        WRITE( 6, 180 ) ContainerName, 
+                        WRITE( 6, 260 ) ContainerName, 
      &                            SUM( Hg0aq(:,:,N) ), 'kg'
                      CASE ( 2 )
-                        WRITE( 6, 180 ) ContainerName, 
+                        WRITE( 6, 260 ) ContainerName, 
      &                            SUM( Hg2aq(:,:,N) ), 'kg'
                      CASE ( 3 )
-                        WRITE( 6, 180 ) ContainerName, 
+                        WRITE( 6, 260 ) ContainerName, 
      &                            SUM( HgPaq(:,:,N) ), 'kg'
                   END SELECT
 
@@ -1437,16 +1466,16 @@
                ! Print total mass to log
                SELECT CASE( M )
                   CASE ( 1 )
-                     WRITE( 6, 180 ) ContainerName, 
+                     WRITE( 6, 260 ) ContainerName, 
      &                         SUM( SNOW_HG_OC(:,:,N) ), 'kg'
                   CASE ( 2 )
-                     WRITE( 6, 180 ) ContainerName, 
+                     WRITE( 6, 260 ) ContainerName, 
      &                         SUM( SNOW_HG_STORED_OC(:,:,N) ), 'kg'
                   CASE ( 3 )
-                     WRITE( 6, 180 ) ContainerName, 
+                     WRITE( 6, 260 ) ContainerName, 
      &                         SUM( SNOW_HG_LN(:,:,N) ), 'kg'
                   CASE ( 4 )
-                     WRITE( 6, 180 ) ContainerName, 
+                     WRITE( 6, 260 ) ContainerName, 
      &                         SUM( SNOW_HG_STORED_LN(:,:,N) ), 'kg'
                END SELECT
 
@@ -1454,7 +1483,7 @@
          ENDDO
 
          ! Format string for printing Hg masses to log
- 180     FORMAT( a24, ':   ', es15.9, 1x, a4)
+ 260     FORMAT( a24, ':   ', es15.9, 1x, a4)
 
          ! Free pointers for Hg indexing
          Hg_Cat_Name => NULL()
@@ -1580,5 +1609,147 @@
       ENDIF
 
       END SUBROUTINE Check_Rst_Dimensions
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: compare_trc_spc
+!
+! !DESCRIPTION: Subroutine COMPARE\_TRC\_SPC prints out tracer and 
+!  species values to log in kg/kg dry for advected species, and
+!  prints out non-advected species molec/cm3. This can only be used
+!  where tracers were kg/kg dry.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE COMPARE_TRC_SPC( am_I_Root, Input_Opt,
+     &                            State_Met, State_Chm, RC ) 
+!
+! !USES:
+!     
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Species_Mod,        ONLY : Species
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+      include "netcdf.inc"
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+!
+! !OUTPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(OUT)   :: RC         ! Success or failure?
+!
+! !REVISION HISTORY: 
+!
+!  08 Aug 2016 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER              :: I, J, L, N      ! lon, lat, lev, species
+      REAL(fp)             :: MW_g            ! species molecular weight
+      LOGICAL              :: INITIAL_SPC_MND
+
+      ! Objects
+      TYPE(Species),    POINTER :: ThisSpc
+
+      !=================================================================
+      ! COMPARE_TRC_SPC begins here!
+      !=================================================================
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
+      ! Only print to log if in debug mode
+      IF ( Input_Opt%LPRT ) THEN
+      
+         ! Write read message to log
+         WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+         WRITE( 6, '(a,/)' ) '*** Compare Tracers to Species *** '
+     &                       // '( tracer removal debugging )'
+               
+         ! Print header for min/max tracer and species [kg/kg dry]
+         WRITE( 6, 910 )
+ 910     FORMAT( /,'Min and Max of advected [kg/kg dry]:' )
+         
+         ! If species is in molec/cm3, convert to [kg/kg dry]
+         INITIAL_SPC_MND = .FALSE.
+         IF ( State_Chm%Spc_Units == 'molec/cm3' ) THEN
+            CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
+     &                                      State_Chm, RC )
+            INITIAL_SPC_MND = .TRUE.
+         ENDIF
+         
+         ! Loop over advected species
+         DO N = 1, State_Chm%nAdvect
+         
+            ! Get info about this species from the species database
+            ThisSpc => State_Chm%SpcData(N)%Info
+         
+            ! Print the min & max of each species in kg/kg dry
+            WRITE( 6, 920 ) N, TRIM( ThisSpc%Name ),
+     &                      MINVAL( State_Chm%Species(:,:,:,N) ),
+     &                      MAXVAL( State_Chm%Species(:,:,:,N) )
+ 920        FORMAT( 'Species ', i3, ', ', a8, ': Min = ', es15.9,
+     &              '  Max = ',es15.9)
+         
+            ! Print the min & max of each tracer for comparison
+            ! (Assume units are already kg/kg dry)
+            WRITE( 6, 930 ) N, TRIM( ThisSpc%Name ),
+     &                      MINVAL( State_Chm%Tracers(:,:,:,N) ),
+     &                      MAXVAL( State_Chm%Tracers(:,:,:,N) )
+ 930        FORMAT( 'Tracer  ', i3, ', ', a8, ': Min = ', es15.9,
+     &              '  Max = ',es15.9)
+         
+         ENDDO
+         
+         ! Convert species from kg/kg dry to molec/cm3 for next prints
+         CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
+     &                                   State_Chm, RC )
+         
+         ! Print header for min/max of all species in  [molec/cm3]
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )      
+         WRITE( 6, 940 )
+ 940     FORMAT( /,'Min and Max of all species [molec/cm3]:' )
+         
+         ! Loop over all species
+         DO N = 1, State_Chm%nSpecies
+         
+            ! Get info about this species from the species database
+            ThisSpc => State_Chm%SpcData(N)%Info
+         
+            ! Print the min & max of each species in molec/cm3
+            WRITE( 6, 950 ) N, TRIM( ThisSpc%Name ),
+     &                      MINVAL( State_Chm%Species(:,:,:,N) ),
+     &                      MAXVAL( State_Chm%Species(:,:,:,N) )
+ 950        FORMAT( 'Species ', i3, ', ', a8, ': Min = ', es15.9,
+     &              '  Max = ',es15.9)
+                  
+         ENDDO
+         WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+
+         ! If species were not initially molec/cm3, convert to kg/kg dry
+         IF ( .NOT. INITIAL_SPC_MND ) THEN
+            CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
+     &                                      State_Chm, RC )
+         ENDIF
+
+      ENDIF
+
+      END SUBROUTINE COMPARE_TRC_SPC
 !EOC
       END MODULE RESTART_MOD
