@@ -255,7 +255,7 @@
       LOGICAL            :: IT_IS_A_MERCURY_SIM
       LOGICAL            :: IT_IS_A_RnPbBe_SIM
       LOGICAL            :: IT_IS_A_TAGCO_SIM
-      LOGICAL            :: IT_IS_A_TAGOX_SIM
+      LOGICAL            :: IT_IS_A_TAGO3_SIM
       LOGICAL            :: IT_IS_AN_AEROSOL_SIM
       LOGICAL            :: IT_IS_NOT_COPARAM_OR_CH4
       LOGICAL            :: IT_IS_A_POPS_SIM
