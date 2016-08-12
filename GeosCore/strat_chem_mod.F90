@@ -268,7 +268,7 @@ CONTAINS
 
     ! Flags for simulation types
     LOGICAL           :: IT_IS_A_FULLCHEM_SIM
-    LOGICAL           :: IT_IS_A_TAGOX_SIM
+    LOGICAL           :: IT_IS_A_TAGO3_SIM
     LOGICAL           :: IT_IS_A_H2HD_SIM
 
     ! Scalars
@@ -307,7 +307,7 @@ CONTAINS
     LPRT                 = Input_Opt%LPRT
     LBRGCCM              = Input_Opt%LBRGCCM
     IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
-    IT_IS_A_TAGOX_SIM    = Input_Opt%ITS_A_TAGOX_SIM  
+    IT_IS_A_TAGO3_SIM    = Input_Opt%ITS_A_TAGO3_SIM  
     IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
     Spc                  => NULL()
     AD                   => NULL()
@@ -332,7 +332,7 @@ CONTAINS
     ! fields from disk. (bmy, 7/11/16)
     !======================-================================================
     IF ( FIRST ) THEN
-       IF ( .not. IT_IS_A_TAGOX_SIM ) THEN
+       IF ( .not. IT_IS_A_TAGO3_SIM ) THEN
 
           ! Get pointers to Bry fields via HEMCO
           CALL Set_BryPointers ( am_I_Root, Input_Opt,          &
@@ -628,7 +628,7 @@ CONTAINS
     ! Tagged O3 only makes use of Synoz or Linoz. We apply either to
     ! the total Ox tracer, and the stratospheric Ox tracer.
     !======================================================================
-    ELSE IF ( IT_IS_A_TAGOX_SIM ) THEN
+    ELSE IF ( IT_IS_A_TAGO3_SIM ) THEN
 
        ! Number of advected species
        nAdvect = State_Chm%nAdvect
@@ -1274,7 +1274,7 @@ CONTAINS
     ! Scalars
     INTEGER                :: AS, N, NN, NA, nAdvect
     LOGICAL                :: IT_IS_A_FULLCHEM_SIM
-    LOGICAL                :: IT_IS_A_TAGOX_SIM
+    LOGICAL                :: IT_IS_A_TAGO3_SIM
     LOGICAL                :: LLINOZ
     LOGICAL                :: LUCX
 
@@ -1306,7 +1306,7 @@ CONTAINS
     LLINOZ                   = Input_Opt%LLINOZ
     LUCX                     = Input_Opt%LUCX
     IT_IS_A_FULLCHEM_SIM     = Input_Opt%ITS_A_FULLCHEM_SIM
-    IT_IS_A_TAGOX_SIM        = Input_Opt%ITS_A_TAGOX_SIM
+    IT_IS_A_TAGO3_SIM        = Input_Opt%ITS_A_TAGO3_SIM
 
     ! Number of advected species
     nAdvect                  = State_Chm%nAdvect
@@ -1445,9 +1445,9 @@ CONTAINS
        ENDIF
 
     !===========!
-    ! Tagged Ox !
+    ! Tagged O3 !
     !===========!
-    ELSE IF ( IT_IS_A_TAGOX_SIM ) THEN
+    ELSE IF ( IT_IS_A_TAGO3_SIM ) THEN
        IF ( LLINOZ ) THEN
           IF ( am_I_Root ) THEN
              WRITE(6,*) 'Linoz ozone performed on: '
@@ -1999,8 +1999,8 @@ CONTAINS
              ! Store O3 flux in the proper tracer number
              Spc(I,J,L,id_O3) = Spc(I,J,L,id_O3) + PO3 
 
-             ! Store O3 flux for strat Ox tracer (Tagged Ox only)
-             IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
+             ! Store O3 flux for strat O3 tracer (Tagged O3 only)
+             IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
                 Spc(I,J,L,id_O3Strat) = Spc(I,J,L,id_O3Strat) + PO3
              ENDIF
 

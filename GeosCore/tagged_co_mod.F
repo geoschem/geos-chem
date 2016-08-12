@@ -164,7 +164,7 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRAT
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      USE DIAG_PL_MOD,        ONLY : AD65
+      USE DIAG_MOD,           ONLY : AD65
       USE ERROR_MOD,          ONLY : CHECK_VALUE
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod

@@ -6,9 +6,8 @@
 ! !MODULE: restart_mod
 !
 ! !DESCRIPTION: Module RESTART\_MOD contains variables and routines which 
-!  are used to read and write restart files for GEOS-Chem advected tracers
-!  in units of [v/v] mixing ratio, and chemical species in concentration 
-!  units of [molec/cm3]. [v/v] represents moles tracer per moles dry air.
+!  are used to read and write restart files for GEOS-Chem species in units
+!  of [v/v] dry mixing ratio, which represents mol species per mol dry air.
 !\\
 !\\
 ! !INTERFACE:
@@ -21,14 +20,15 @@
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE inquireMod, ONLY : findFreeLUN
+      USE PhysConstants
       USE Precision_Mod
+      USE UnitConv_Mod
 
       IMPLICIT NONE
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS
 !
-      PUBLIC  :: SET_RESTART           ! called from input_mod
       PUBLIC  :: READ_GC_RESTART
       PUBLIC  :: WRITE_GC_RESTART
       PUBLIC  :: INIT_GC_RESTART
@@ -36,16 +36,12 @@
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: CHECK_RST_DIMENSIONS
-      PRIVATE :: CONVERT_TRACER_TO_VV
 !
 ! !DEFINED PARAMETERS:
 !
-      ! Full path name of the advected tracer restart file (INPUT)
-      CHARACTER(LEN=255)    :: INPUT_RESTART_FILE  
-
-      ! Full path name of (w/ replaceable tokens) of the 
-      ! advected tracer restart file (OUTPUT)
-      CHARACTER(LEN=255)    :: OUTPUT_RESTART_FILE 
+      ! Prefix of GEOS-Chem output restart filename
+      CHARACTER(LEN=255), PARAMETER :: Output_GC_Rst_Prefix = 
+     &                                 'GEOSChem_restart'
 !
 ! !REVISION HISTORY:
 !  25 Jun 2002 - R. Yantosca - Initial version
@@ -77,6 +73,10 @@
 !  11 Jul 2016 - E. Lundgren - Store only species in restart files
 !  12 Jul 2016 - E. Lundgren - Remove bpch restart file format option and
 !                              associated routines
+!  09 Aug 2016 - E. Lundgren - Remove obsolete routines convert_tracer_to_vv
+!                              and set_restart and associated module vars;
+!                              replace all tracer language to species; rename 
+!                              OUTPUT_RESTART_FILE to OUTPUT_GC_RST_PREFIX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -91,8 +91,8 @@
 !
 ! !DESCRIPTION: Subroutine INIT\_GC\_RESTART initializes the GEOS-Chem
 !  restart file collection and populates it with containers. This collection
-!  includes restart data that traditionally would be found in three different 
-!  binary-punch format files: tracers, species, and ocean mercury.
+!  includes restart concentrations for each species as well as additional
+!  data if running the mercury simulation.
 !\\
 !\\
 ! !INTERFACE:
@@ -139,20 +139,19 @@
 ! !LOCAL VARIABLES:
 !
       ! Local Variables  
-      INTEGER            :: GC_RST_Collection, N, M, cID
-      INTEGER            :: DeltaYMD, DeltaHMS 
-      REAL(sp)           :: TS
-      REAL(fp), POINTER  :: GridAreas_ptr(:,:)
-      CHARACTER(LEN=60)  :: ContainerName, Prefix, Tracer
-      CHARACTER(LEN=255) :: MSG, LOC = 
-     &                      'INIT_GC_RESTART (restart_mod.F90)'
-
-      ! For Hg indexing 
-      INTEGER                   :: N_Hg_CATS
-      CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:) => NULL()
-
-      ! Objects
+      INTEGER                :: GC_RST_Collection, N, M, cID
+      INTEGER                :: DeltaYMD, DeltaHMS 
+      REAL(sp)               :: TS
+      REAL(fp), POINTER      :: GridAreas_ptr(:,:)
+      CHARACTER(LEN=60)      :: ContainerName, Prefix
+      CHARACTER(LEN=255)     :: MSG
+      CHARACTER(LEN=255)     :: LOC='INIT_GC_RESTART (restart_mod.F90)'
       TYPE(Species), POINTER :: ThisSpc
+
+      ! For Hg simulation
+      INTEGER                   :: Num_Hg_Categories
+      CHARACTER(LEN=60)         :: HgSpc
+      CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:)
 
       !=================================================================
       ! INIT_GC_RESTART begins here!
@@ -161,8 +160,9 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
-      ! Initialize pointer
-      ThisSpc => NULL()
+      ! Initialize pointers
+      ThisSpc       => NULL()
+      Hg_Cat_Name   => NULL()
 
       ! Define collection variables
       GridAreas_ptr => AREA_M2(:,:,1)
@@ -170,7 +170,6 @@
 
       ! Create restart collection for GEOS-Chem.  This will keep the
       ! GEOS-Chem restart separate from other output.
-      !
 #if defined ( ESMF_ )
       deltaYMD = 0 
       deltaHMS = 1
@@ -180,17 +179,17 @@
 #endif     
       ! Need to adjust this for restart file
       CALL DiagnCollection_Create( am_I_Root,                      
-     &                              NX           = IIPAR,           
-     &                              NY           = JJPAR,           
-     &                              NZ           = LLPAR,           
-     &                              TS           = TS,              
-     &                              AM2          = GridAreas_ptr,       
-     &                              COL          = GC_RST_Collection,    
-     &                              PREFIX       = 'GEOSChem_restart',     
-     &                              deltaYMD     = deltaYMD,       
-     &                              deltaHMS     = deltaHMS,       
-     &                              OutTimeStamp = HcoDiagnEnd,     
-     &                              RC           = RC                )
+     &                             NX           = IIPAR,           
+     &                             NY           = JJPAR,           
+     &                             NZ           = LLPAR,           
+     &                             TS           = TS,              
+     &                             AM2          = GridAreas_ptr,       
+     &                             COL          = GC_RST_Collection,    
+     &                             PREFIX       = Output_GC_RST_Prefix,     
+     &                             deltaYMD     = deltaYMD,       
+     &                             deltaHMS     = deltaHMS,       
+     &                             OutTimeStamp = HcoDiagnEnd,     
+     &                             RC           = RC                )
       IF ( RC /= HCO_SUCCESS ) THEN
          CALL ERROR_STOP( 'Error creating GEOS-Chem restart collection',
      &                    LOC ) 
@@ -203,15 +202,14 @@
       Input_Opt%GC_RST_COLLECTION = GC_RST_Collection
 
       !=================================================================
-      ! Now handle indexing of Hg tracers locally.  These variables
-      ! were in tracerid_mod.F, which will be removed (bmy, 4/26/16)
+      ! If running Hg simulation, set Hg-specific local variables
       !=================================================================
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
-         ! Now get the # of tagged Hg categories from State_Chm
-         N_Hg_CATS = State_Chm%N_Hg_CATS
+         ! Set the # of tagged Hg categories to State_Chm value
+         Num_Hg_Categories = State_Chm%N_Hg_CATS
 
-         ! Now get Hg category names from State_Chm
+         ! Point to Hg category names in State_Chm
          Hg_Cat_Name => State_Chm%Hg_Cat_Name
          
       ENDIF
@@ -266,15 +264,15 @@
          
             SELECT CASE( M )
                CASE ( 1 )
-                  Tracer = 'Hg0' 
+                  HgSpc = 'Hg0' 
                CASE ( 2 )
-                  Tracer = 'Hg2'
+                  HgSpc = 'Hg2'
                CASE ( 3 )
-                  Tracer = 'HgP' 
+                  HgSpc = 'HgP' 
             END SELECT
          
             ! Define container name and ID
-            ContainerName = 'Ocean_' // TRIM( Tracer )
+            ContainerName = 'Ocean_' // TRIM( HgSpc )
             cID = cID + 1
             
             ! Create container
@@ -309,7 +307,7 @@
             END SELECT
          
             ! Loop over all categories to include tagged Hg
-            DO N = 1, N_Hg_CATS
+            DO N = 1, Num_Hg_Categories
 
                ! Define container name and id
                IF ( N == 1 ) THEN
@@ -350,17 +348,17 @@
             DO M = 1, 3
                SELECT CASE( M )
                   CASE ( 1 )
-                     Tracer = 'Hg0' 
+                     HgSpc = 'Hg0' 
                   CASE ( 2 )
-                     Tracer = 'Hg2'
+                     HgSpc = 'Hg2'
                   CASE ( 3 )
-                     Tracer = 'HgP' 
+                     HgSpc = 'HgP' 
                END SELECT
             
-               DO N = 2, N_Hg_CATS
+               DO N = 2, Num_Hg_Categories
                
                   ! Define container name and ID
-                  ContainerName = 'Ocean_' // TRIM( TRACER         ) //
+                  ContainerName = 'Ocean_' // TRIM( HgSpc ) //
      &                            '_'      // TRIM( Hg_Cat_Name(N) )
                   cID = cId + 1
                
@@ -394,60 +392,19 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_restart
-!
-! !DESCRIPTION: Subroutine SET\_RESTART initializes the variables 
-!  INPUT\_RESTART\_FILE and OUTPUT\_RESTART\_FILE with the values read from 
-!  the \texttt{input.geos} file.  These specify the names of the input and
-!  output restart files for GEOS-Chem advected tracers.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SET_RESTART( INFILE )
-!
-! !INPUT PARAMETERS: 
-!
-      CHARACTER(LEN=255) :: INFILE    ! Advected tracer input  restart file
-! 
-! !REVISION HISTORY: 
-!  09 Jul 2004 - R. Yantosca - Initial version
-!  11 Jul 2011 - R. Yantosca - Added ProTeX headers
-!  27 Jul 2016 - M. Sulprizio- Remove OUTFILE as input argument. This is now
-!                              hardcoded.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! SET_RESTART begins here
-      !=================================================================
-      INPUT_RESTART_FILE  = INFILE
-
-      ! For GEOS-Chem netcdf restart file, use format that mirrors
-      ! HEMCO restart filename. NOTE: first part of this string is
-      ! also hard-coded when creating GEOS-Chem restart collection.
-      ! If one is changed, then the other must be changed as well.
-      OUTPUT_RESTART_FILE = "GEOSChem_restart.YYYYMMDDhhmm"
-
-      END SUBROUTINE SET_RESTART
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: read_gc_restart
 !
-! !DESCRIPTION: Subroutine READ\_GC\_RESTART initializes GEOS-Chem 
-!  concentrations of species from a restart file in NetCDF format. Default
-!  initial values are used for species missing from the restart file.
+! !DESCRIPTION: Subroutine READ\_GC\_RESTART reads species concentrations 
+!  [mol/mol] from the GEOS-Chem restart file and uses them to initialize 
+!  species concentrations in [kg/kg dry]. If species data are missing from
+!  the restart file, pre-configured background values are used. If using the
+!  mercury simulation, additional restart data are read from file.
 !\\
 !\\
 ! !INTERFACE:
 !
       SUBROUTINE READ_GC_RESTART( am_I_Root,  YYYYMMDD,  HHMMSS,
-     &                            Input_Opt, State_Met, State_Chm, 
-     &                            RC ) 
+     &                            Input_Opt, State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !     
@@ -460,10 +417,8 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PHYSCONSTANTS,      ONLY : AIRMW
       USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : EXPAND_DATE
-      USE UnitConv_Mod
 
       ! For Hg simulation restart file
       USE OCEAN_MERCURY_MOD,  ONLY : Hg0aq, Hg2aq, HgPaq, Hgaq_tot
@@ -507,6 +462,7 @@
 !  25 Jul 2016 - E. Lundgren - Store whether species in rst file in species db
 !                              rather than module-level variable
 !  03 Aug 2016 - E. Lundgren - Remove tracers; now only use species
+!  11 Aug 2016 - E. Lundgren - Move source of background values to spc database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -514,11 +470,11 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER              :: I, J, L, M, N      ! lon, lat, lev, indexes
-      INTEGER              :: Tracer_id          ! ocean Hg tracer ids
-      CHARACTER(LEN=10)    :: UNIT
-      CHARACTER(LEN=60)    :: Prefix, Tracer
-      REAL(fp)             :: Background_VV      ! background species conc
       LOGICAL              :: FOUND              ! ocn Hg var in restart file
+      CHARACTER(LEN=60)    :: Prefix             ! utility string
+      CHARACTER(LEN=255)   :: LOC                ! routine location
+      REAL(fp)             :: MW_g               ! species molecular weight
+      REAL(fp)             :: SMALL_NUM          ! small number threshold
 
       ! NetCDF file info
       INTEGER              :: fId                ! netCDF file ID
@@ -540,16 +496,10 @@
       REAL*4,  POINTER     :: Ptr2D(:,:  )
       REAL*4,  POINTER     :: Ptr3D(:,:,:)
 
-      ! Other
-      CHARACTER(LEN=255)   :: LOC
-      REAL(fp)             :: MW_g
-
-      ! For Hg species indexing (bmy, 4/26/16)
-      INTEGER                   :: N_Hg_CATS 
-      INTEGER                   :: Id_Hg_tot
-      INTEGER,          POINTER :: Hg0_Id_List(:)
-      INTEGER,          POINTER :: Hg2_Id_List(:)
-      INTEGER,          POINTER :: HgP_Id_List(:)
+      ! For Hg simulation
+      INTEGER                   :: Num_Hg_Categories 
+      INTEGER                   :: Total_Hg_Id
+      CHARACTER(LEN=60)         :: HgSpc
       CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:)
 
       ! Objects
@@ -565,40 +515,35 @@
       ! Initialize pointers
       Ptr2D       => NULL()
       Ptr3D       => NULL()
-      Hg0_Id_List => NULL()
-      Hg2_Id_List => NULL()
-      HgP_Id_List => NULL()
-      Hg_Cat_Name => NULL()
       ThisSpc     => NULL()
+      Hg_Cat_Name => NULL()
 
       ! Name of this routine
-      LOC       = 'READ_GC_RESTART (restart_mod.F)'
+      LOC = 'READ_GC_RESTART (restart_mod.F)'
+
+      ! Set minimum value threshold for [mol/mol]
+      SMALL_NUM = 1.0e-30_fp
 
       ! Copy input filename to a local variable
-      nc_file   = TRIM( INPUT_RESTART_FILE )
+      nc_file = TRIM( Input_Opt%IN_RST_FILE )
 
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
       !=================================================================
-      ! Now handle indexing for Hg species locally (bmy, 4/26/16)
-      ! These were formerly in tracerid_mod.F, which is being removed
+      ! If running Hg simulation, set Hg-specific local variables
       !=================================================================
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
-         ! Now get the # of tagHg categories from State_Chm
-         N_Hg_CATS   =  State_Chm%N_Hg_CATS
+         ! Set the # of tagHg categories from State_Chm
+         Num_Hg_Categories   =  State_Chm%N_Hg_CATS
 
-         ! Names for each of the Hg categories
+         ! Set variable storing names for each of the Hg categories
          Hg_Cat_Name => State_Chm%Hg_Cat_Name
     
-         ! Hg species index corresponding to a given Hg category number
-         Hg0_Id_List => State_Chm%Hg0_Id_List
-         Hg2_Id_List => State_Chm%Hg2_Id_List
-         HgP_Id_List => State_Chm%HgP_Id_List
-
-         ! ID_Hg_Tot is always the first category
-         Id_Hg_Tot   =  Hg0_Id_List(1)
+         ! Set Hg species index corresponding to a given Hg category number;
+         ! total is always the first category
+         Total_Hg_Id   =  State_Chm%Hg0_Id_List(1)
 
       ENDIF
 
@@ -617,7 +562,7 @@
 
       ! Make sure the dimensions of the file are valid
       CALL Check_Rst_Dimensions( lon=NX, lat=NY, lev=NZ, time=NT,  
-     &                       time_expected=1, LOC=LOC )
+     &                           time_expected=1, LOC=LOC )
 
       ! Set 3D start and count indices for dims: lon, lat, time
       st3d   = (/ 1, 1, 1 /)
@@ -635,8 +580,17 @@
  100  FORMAT( 'READ_RESTART_FILE: Reading ', a )
             
       !=================================================================
-      ! Read species concentrations if present, else set to default vals
+      ! Read species concentrations from NetCDF or use default 
+      ! background [mol/mol]; store in State_Chm%Species in [kg/kg dry]
       !=================================================================
+
+      ! IMPORTANT NOTE: the unit conversion from mol/mol to kg/kg uses
+      ! the molecular weight stored in the species database which is
+      ! a meaningful value for advected species but is a bad value (-1)
+      ! for all others. Non-advected species should NOT be used when 
+      ! State_Chm%Species units are in mass mixing ratio. Current
+      ! units can be determined at any point by looking at 
+      ! State_Chm%Spc_Units. (ewl, 8/11/16)
 
       ! Print header for min/max concentration to log
       WRITE( 6, 110 )
@@ -648,14 +602,10 @@
       ! Loop over species
       DO N = 1, State_Chm%nSpecies
 
-         ! Get info about this species from the species databas
+         ! Get info about this species from the species database
          ThisSpc => State_Chm%SpcData(N)%Info
          MW_g    = State_Chm%SpcData(N)%Info%emMW_g
 
-         ! DEBUGGING (ewl)
-         PRINT *, "MW_g", MW_g
-         ! END DEBUGGING
-        
          ! Define variable name
          v_name = 'SPC_' // TRIM( ThisSpc%Name )
 
@@ -667,13 +617,12 @@
             ThisSpc%Is_InRestart = .TRUE.
          ENDIF
 
-         ! If data in file, read and convert to molec/cm3
+         ! If data is in file, read and convert to [kg/kg dry]
+         ! Otherwise, set to background value
          IF ( ThisSpc%Is_InRestart ) THEN
 
-            ! Initialize temporary array for this tracer and point to it
-            ! use 1e-30 as min (hotp 2/25/09)
-            ! NOTE: the 1.0e-30 minimum is for [molec/cm3] in legacy
-            Temp3D = 1.0e-30_fp
+            ! Initialize temporary array for this species and point to it
+            Temp3D = 0.0e-0_fp
             Ptr3D => Temp3D
 
             ! Read variable from file and store in local array
@@ -688,19 +637,18 @@
      &                 '  Max = ',es15.9)
             ENDIF
 
-            ! Convert [mol/mol] to [kg/kg dry] to store in State_Met%Species
+            ! Convert file value [mol/mol] to [kg/kg dry] for storage
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-            ! Prior to 7/11/16: Loop over all chemistry grid boxes
-            ! Tracer removal update: Now loop over all boxes
             DO L = 1, LLPAR
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-
-               ! Convert units from [mol/mol] to [kg/kg dry] (ewl, 8/2/16)
+               ! Apply minimum value threshold where input conc is very low
+               IF ( Ptr3D(I,J,L) < SMALL_NUM ) THEN
+                  Ptr3D(I,J,L) = SMALL_NUM
+               ENDIF
                State_Chm%Species(I,J,L,N) = Ptr3D(I,J,L) * MW_g / AIRMW
- 
             ENDDO
             ENDDO
             ENDDO
@@ -708,66 +656,15 @@
 
          ELSE
 
-            ! If species data is not in the restart file, then assign
-            ! default background values in units of [mol/mol] and
-            ! then convert to [kg/kg dry]
-            SELECT CASE ( TRIM( ThisSpc%Name ) )
-               CASE ('CH2O', 'H2O2', 'HNO2', 'HNO3', 'HNO4') 
-                  Background_VV = 4.0e-15_fp
-               CASE ('HO2', 'MO2', 'MP', 'N2O5', 'NO3', 'OH')
-                  Background_VV = 4.0e-15_fp
-               CASE ('CH4')
-                  Background_VV = 1.7e-06_fp
-               CASE ('CO')
-                  Background_VV = 1.0e-07_fp
-               CASE ('CO2')
-                  Background_VV = 3.55e-04_fp
-               CASE ('H2')
-                  Background_VV = 5.0e-07_fp
-               CASE ('H2O')
-                  Background_VV = 1.839e-02_fp
-               CASE ('M')
-                  Background_VV = 0.0e+0_fp
-               CASE ('N2')
-                  Background_VV = 7.808e-01_fp
-               CASE ('NO', 'NO2')
-                  Background_VV = 4.0e-13_fp
-               CASE ('N2O')
-                  Background_VV = 3.0e-07_fp
-               CASE ('EMISSION')
-                  Background_VV = 1.0e+0_fp
-               CASE ('H', 'O', 'N')
-                  Background_VV = 4.0e-20_fp
-               CASE ('O1D')
-                  IF ( Input_Opt%LUCX ) THEN
-                     Background_VV = 1.0e-15_fp ! benchmark and ucx sims
-                  ELSE
-                     Background_VV = 4.0e-22_fp
-                  ENDIF
-               CASE ('O2')
-                  Background_VV = 2.095e-01_fp
-               CASE ('O3')
-                  Background_VV = 2.0e-08_fp
-               CASE ('OCS')
-                  Background_VV = 9.0e-15_fp
-               CASE DEFAULT
-                  Background_VV = 1.0e-20_fp
-            END SELECT
-               
-            ! Set 'DRY' species to all zeroes
-            IF ( ThisSpc%Name(1:3) == 'DRY') THEN
-               Background_VV = 0.0e+0_fp
-            ENDIF
- 
             ! Print the background value of this species if debugging is on
             IF ( Input_Opt%LPRT ) THEN
                WRITE( 6, 190 ) N, TRIM( ThisSpc%Name ),
-     &                         Background_VV
+     &                         ThisSpc%BackgroundVV
  190           FORMAT('Species ', i3, ', ', a9, 
      &                ': Use background value = ', es15.9)
             ENDIF
 
-            ! Special handling for MOH            
+            ! Set species to the background value converted to [kg/kg dry] 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -777,16 +674,12 @@
             DO I = 1, IIPAR
 
                IF ( TRIM( ThisSpc%Name ) /= 'MOH' ) THEN
-
-                  ! Set Species to background mol/mol values converted 
-                  ! to kg/kg dry air (ewl, 8/2/16)
-                  State_Chm%Species(I,J,L,N) = Background_VV 
+                  State_Chm%Species(I,J,L,N) = ThisSpc%BackgroundVV 
      &                                         * MW_g / AIRMW
-                  
                ELSE
-
+                  ! Special handling for MOH:
                   !----------------------------------------------------
-                  ! For methanol (MOH), now use different initial
+                  ! For methanol (MOH), use different initial
                   ! background concentrations for different regions of
                   ! the atmosphere:
                   !
@@ -832,7 +725,7 @@
      &                                               * MW_g / AIRMW
                      ELSE
                         ! Strat/mesosphere:
-                        State_Chm%Species(I,J,L,N) = 0.0e+0_fp
+                        State_Chm%Species(I,J,L,N) = SMALL_NUM
                      ENDIF
                   ENDIF
                ENDIF
@@ -841,9 +734,6 @@
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
-
-            ! Set all values above chemistry levels to zero
-            State_Chm%Species(:,:,LLCHEM+1:LLPAR,N) = 0.0e+0_fp
 
          ENDIF
 
@@ -855,38 +745,23 @@
       ! Set species units
       State_Chm%Spc_Units = 'kg/kg dry'
 
-      ! If in debug mode, print out species values in molec/cm3
+      ! If in debug mode, print out species min and max in [molec/cm3]
       IF ( am_I_Root .and. Input_Opt%LPRT ) THEN
-
-         ! Convert species to molec/cm3 for debug prints
-         CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
-     &                                   State_Chm, RC )
-
          PRINT *, " "
          PRINT *, "Species min and max in molec/cm3"
-
-         ! Loop over species
+         CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
+     &                                   State_Chm, RC )
          DO N = 1, State_Chm%nSpecies
-      
-            ! Get info about this species from the species database
             ThisSpc => State_Chm%SpcData(N)%Info
-
-            ! Write min/max value to log
             WRITE(6,320) N, TRIM( ThisSpc%Name ), 
      &                   MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ), 
      &                   MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) ) 
 320         FORMAT( 'Species ', i3, ', ', a9, 
      &              ': Min = ', es15.9, ', Max = ', es15.9 )
-
-            ! Free pointer
             ThisSpc => NULL()
-
          ENDDO
-
-         ! Convert species back to kg/kg dry after debug prints
          CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
      &                                   State_Chm, RC )
-
       ENDIF
 
       !=================================================================
@@ -896,7 +771,7 @@
 
          ! Print total mass to log
          WRITE( 6, 200 )
- 200     FORMAT(/, 'Total mass of each ocean and snow Hg tracer:')
+ 200     FORMAT(/, 'Total mass of each ocean and snow Hg species:')
 
          !--------------------------------------------------------------
          ! Total Hg in ocean
@@ -906,16 +781,13 @@
             ! Define variable name
             SELECT CASE( M )
                CASE ( 1 )
-                  Tracer = 'Hg0' 
-                  Tracer_id = Hg0_Id_List(1)
+                  HgSpc    = 'Hg0' 
                CASE ( 2 )
-                  Tracer = 'Hg2'
-                  Tracer_id = Hg2_Id_List(1)
+                  HgSpc    = 'Hg2'
                CASE ( 3 )
-                  Tracer = 'HgP' 
-                  Tracer_id = HgP_Id_List(1)
+                  HgSpc    = 'HgP' 
             END SELECT
-            v_name = 'Ocean_' // TRIM( Tracer )
+            v_name = 'Ocean_' // TRIM( HgSpc )
 
             ! Zero temporary array and set pointer
             Temp2D = 0.0d4 
@@ -944,22 +816,22 @@
             ! Assign ocean mercury data and write total mass to log file
             SELECT CASE( M )
                CASE ( 1 )
-                  Hg0aq(:,:,ID_Hg_tot) = Ptr2D
+                  Hg0aq(:,:,Total_Hg_Id) = Ptr2D
                   IF ( FOUND ) THEN
                      WRITE( 6, 220 ) v_name, 
-     &                               SUM( Hg0aq(:,:,ID_Hg_tot) ), 'kg'
+     &                               SUM( Hg0aq(:,:,Total_Hg_Id) ), 'kg'
                   ENDIF
                CASE ( 2 )
-                  Hg2aq(:,:,ID_Hg_tot) = Ptr2D
+                  Hg2aq(:,:,Total_Hg_Id) = Ptr2D
                   IF ( FOUND ) THEN
                      WRITE( 6, 220 ) v_name, 
-     &                               SUM( Hg2aq(:,:,ID_Hg_tot) ), 'kg'
+     &                               SUM( Hg2aq(:,:,Total_Hg_Id) ), 'kg'
                   ENDIF
                CASE ( 3 )
-                  HgPaq(:,:,ID_Hg_tot) = Ptr2D
+                  HgPaq(:,:,Total_Hg_Id) = Ptr2D
                   IF ( FOUND ) THEN
                      WRITE( 6, 220 ) v_name, 
-     &                               SUM( HgPaq(:,:,ID_Hg_tot) ), 'kg'
+     &                               SUM( HgPaq(:,:,Total_Hg_Id) ), 'kg'
                   ENDIF
             END SELECT
 
@@ -968,25 +840,22 @@
          ENDDO
 
          !--------------------------------------------------------------
-         ! Additional tagged ocean Hg tracers
+         ! Additional tagged ocean Hg species
          !--------------------------------------------------------------
          IF ( Input_Opt%LSPLIT ) THEN
             DO M = 1, 3
-               DO N = 2, N_Hg_CATS
+               DO N = 2, Num_Hg_Categories
 
                   ! Define variable name. Include appended region.
                   SELECT CASE( M )
                      CASE ( 1 )
-                        Tracer = 'Hg0' 
-                        Tracer_id = Hg0_Id_List(N)
+                        HgSpc = 'Hg0' 
                      CASE ( 2 )
-                        Tracer = 'Hg2'
-                        Tracer_id = Hg2_Id_List(N)
+                        HgSpc = 'Hg2'
                      CASE ( 3 )
-                        Tracer = 'HgP' 
-                        Tracer_id = HgP_Id_List(N)
+                        HgSpc = 'HgP' 
                   END SELECT
-                  v_name = 'Ocean_' // TRIM( Tracer         ) //
+                  v_name = 'Ocean_' // TRIM( HgSpc ) //
      &                     '_'      // TRIM( Hg_Cat_Name(N) )
 
                   ! Zero temporary array and set pointer
@@ -1031,7 +900,7 @@
                ENDDO
             ENDDO
 
-            ! Make sure tagged & total tracers sum up
+            ! Make sure tagged & total species sum up
             IF ( Input_Opt%USE_CHECKS ) THEN
                CALL CHECK_OCEAN_MERCURY( 'end of READ_GC_RESTART' )
             ENDIF
@@ -1041,7 +910,7 @@
          ! Hg snowpack on land and ocean
          !--------------------------------------------------------------
          DO M = 1, 4               
-            DO N = 1, N_Hg_CATS               
+            DO N = 1, Num_Hg_Categories               
 
                ! Define variable name prefix
                SELECT CASE( M )
@@ -1125,9 +994,6 @@
          ENDIF
 
          ! Free pointers for Hg indexing
-         Hg0_Id_List => NULL()
-         Hg2_Id_List => NULL()
-         HgP_Id_List => NULL()
          Hg_Cat_Name => NULL()
 
       ENDIF
@@ -1156,9 +1022,10 @@
 !
 ! !IROUTINE: write_gc_restart
 !
-! !DESCRIPTION: Subroutine WRITE\_GC\_RESTART creates restart files for 
-!  GEOS-Chem advected tracers [units: vol tracer /vol dry air] in NetCDF
-!  format.
+! !DESCRIPTION: Subroutine WRITE\_GC\_RESTART writes species concentrations 
+!  [mol/mol] to the GEOS-Chem restart file in NetCDF format. If using the
+!  mercury simulation, additional data such as ocean mercury values 
+!  are written to the restart file.
 !\\
 !\\
 ! !INTERFACE:
@@ -1172,7 +1039,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PHYSCONSTANTS,      ONLY : BOLTZ
       USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : EXPAND_DATE
 
@@ -1191,16 +1057,19 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      INTEGER,        INTENT(IN)  :: YYYYMMDD    ! YYYY/MM/DD GMT date
-      INTEGER,        INTENT(IN)  :: HHMMSS      ! hh:mm:ss GMT time
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      INTEGER,        INTENT(IN)    :: YYYYMMDD    ! YYYY/MM/DD GMT date
+      INTEGER,        INTENT(IN)    :: HHMMSS      ! hh:mm:ss GMT time
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC        ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  09 Feb 2016 - E. Lundgren - Initial version
@@ -1212,6 +1081,7 @@
 !                              HgP_Id_List fields of State_Chm
 !  11 Jul 2016 - E. Lundgren - Remove tracers and write only species
 !  12 Jul 2016 - E. Lundgren - Rename from write_gc_restart_nc
+!  10 Aug 2016 - E. Lundgren - Input species concentrations are now kg/kg dry
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1221,11 +1091,9 @@
       ! Local Variables      
       INTEGER              :: I, J, L, M, N, HCRC
       INTEGER              :: GC_RST_Collection
-      INTEGER              :: Tracer_id    ! id for ocean Hg tracers
-      REAL(fp)             :: CONV_FACTOR  ! convert molec/cm3 -> mol/mol
-      REAL*4               :: SMALL_NUM
       REAL(fp)             :: MW_g
-      CHARACTER(LEN=60)    :: ContainerName, Tracer, Prefix
+      REAL(fp)             :: SMALL_NUM
+      CHARACTER(LEN=60)    :: ContainerName, Prefix
       CHARACTER(LEN=255)   :: MSG, FILENAME, LOC = 
      &                       'WRITE_GC_RESTART (restart_mod.F90)'
 
@@ -1235,15 +1103,13 @@
       REAL*4,           POINTER :: Ptr3D(:,:,:)
       REAL*4,           POINTER :: Ptr2D(:,:  )
 
-      ! For indexing of Hg species
-      INTEGER                   :: N_Hg_CATS
-      INTEGER                   :: Id_Hg_tot
-      INTEGER,          POINTER :: Hg0_Id_List(:)
-      INTEGER,          POINTER :: Hg2_Id_List(:)
-      INTEGER,          POINTER :: HgP_Id_List(:)
+      ! For Hg simulation
+      INTEGER                   :: Num_Hg_Categories
+      INTEGER                   :: Total_Hg_Id
+      CHARACTER(LEN=60)         :: HgSpc
       CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:)
 
-      ! Pointer to HEMCO state (is this needed?)
+      ! Pointer to HEMCO state
       TYPE(HCO_STATE),  POINTER :: HcoState
 
       ! Objects
@@ -1259,9 +1125,6 @@
       ! Initialize pointers
       Ptr3D       => NULL()
       Ptr2D       => NULL()
-      Hg0_Id_List => NULL()
-      Hg2_Id_List => NULL()
-      HgP_Id_List => NULL()
       Hg_Cat_Name => NULL()
       HcoState    => NULL()
       ThisSpc     => NULL()
@@ -1269,27 +1132,23 @@
       ! Set the GEOS-Chem restart collection ID
       GC_RST_Collection = Input_Opt%GC_RST_COLLECTION
 
-      ! Set minimum value of species concentration [molec/cm3/box]
-      SMALL_NUM = 1.e-30_sp
+      ! Set minimum value to write to file [mol/mol]
+      SMALL_NUM = 1.0e-30_fp
 
       !=================================================================
-      ! Initialize local Hg indexing variables (bmy, 4/26/16)
+      ! If running Hg simulation, set Hg-specific local variables
       !=================================================================
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN 
          
-         ! Now get the # of tagHg categories from State_Chm
-         N_Hg_CATS   =  State_Chm%N_Hg_CATS
+         ! Set the # of tagged Hg categories to the State_Chm value
+         Num_Hg_Categories = State_Chm%N_Hg_CATS
 
-         ! Names for each of the Hg categories
+         ! Point to names for each of the Hg categories
          Hg_Cat_Name => State_Chm%Hg_Cat_Name
 
-         ! Hg species index corresponding to a given Hg category number
-         Hg0_Id_List => State_Chm%Hg0_Id_List
-         Hg2_Id_List => State_Chm%Hg2_Id_List
-         HgP_Id_List => State_Chm%HgP_Id_List
-
-         ! Total Hg is always the first category
-         ID_Hg_Tot   =  Hg0_Id_List(1)
+         ! Store Hg species index corresponding to a given Hg category
+         ! number; total is always the first category
+         Total_Hg_Id = State_Chm%Hg0_Id_List(1)  
 
       ENDIF
 
@@ -1297,8 +1156,8 @@
       ! Construct output restart filename
       !=================================================================
 
-      ! Copy the output restart file name into a local variable
-      FILENAME = TRIM( OUTPUT_RESTART_FILE )
+      ! Define output restart filename with date tokens
+      FILENAME = TRIM( Output_GC_RST_Prefix ) // '.YYYYMMDDhhmm'
 
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
@@ -1314,109 +1173,59 @@
       ! Populate species concentration restart containers
       !=================================================================
 
-      ! Print min/max species conc to log in [molec/cm3]
+      ! Print min/max species concentrations in molec/cm3 to log if debugging
       IF ( Input_Opt%LPRT ) THEN
          WRITE( 6, 130 )
  130     FORMAT( /, 'Min and Max of each species before unit ',
      &              'conversion [molec/cm3]:' )
+         CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
+     &                                   State_Chm, RC )
+         DO N = 1, State_Chm%nSpecies
+            ThisSpc => State_Chm%SpcData(N)%Info
+            WRITE(6,320) N, TRIM( ThisSpc%Name ), 
+     &                   MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ), 
+     &                   MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) ) 
+320         FORMAT( 'Species ', i3, ', ', a9, 
+     &              ': Min = ', es15.9, ', Max = ', es15.9 )
+            ThisSpc => NULL()
+         ENDDO
+         CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
+     &                                   State_Chm, RC )
+
+         ! Write header for printing [mol/mol] concentrations later on
+         IF ( Input_Opt%LPRT ) THEN
+            WRITE( 6, 150 )
+ 150        FORMAT( /, 'Min and Max of each species written to file',
+     &                 ' [mol/mol]:' )
+         ENDIF
+
       ENDIF
 
-      ! Initialize Temp3D to all zeros
+      ! Initialize temporary array to all zeros
       Temp3D = 0.e+0_sp
 
-      ! Populate Temp3D for all levels up to LLCHEM
+      ! For each species, populate the temporary array with 
+      ! concentrations in [mol/mol]
       DO N = 1, State_Chm%nSpecies
 
          ! Get info about this species from the species database
          ThisSpc => State_Chm%SpcData(N)%Info
+         MW_g    = State_Chm%SpcData(N)%Info%emMW_g
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLCHEM
+         DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IF ( State_Chm%Species(I,J,L,N) >= SMALL_NUM ) THEN
-               Temp3D(I,J,L) = State_Chm%Species(I,J,L,N)
-            ELSE
-               Temp3D(I,J,L) = SMALL_NUM  
+            Temp3D(I,J,L) = State_Chm%Species(I,J,L,N) *
+     &                      AIRMW / MW_g
+
+            ! Apply minimum value threshold where output concentration
+            ! is very low
+            IF ( Temp3D(I,J,L) < SMALL_NUM ) THEN
+               Temp3D(I,J,L) = SMALL_NUM
             ENDIF
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
-         ! If debugging, print out species values up to LLCHEM.
-         ! Above this level, all values are zero.
-         IF ( Input_Opt%LPRT ) THEN
-            WRITE( 6, 140 ) N, TRIM( ThisSpc%Name ),
-     &                      MINVAL( Temp3D(:,:,1:LLCHEM) ), 
-     &                      MAXVAL( Temp3D(:,:,1:LLCHEM) )
- 140        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
-     &              '  Max = ', es15.9 )
-         ENDIF
-
-         ! Free pointer
-         ThisSpc => NULL()
-
-      ENDDO
-
-      ! Write header for post-conversion write to log (if debugging)
-      IF ( Input_Opt%LPRT ) THEN
-         WRITE( 6, 150 )
- 150     FORMAT( /, 'Min and Max of each species written to file',
-     &              ' [mol/mol]:' )
-      ENDIF
-
-      ! Convert species values locally to [mol/mol] for output
-      ! in NetCDF. Print min and max values to log.
-      DO N = 1, State_Chm%nSpecies
-      
-         ! Remove check for ND65 prod/loss families pending work on ND65 
-         ! diagnostics and incorporation of FlexChem (ewl, 2/4/16)
-         !! If the species is included in the IFAM array, which denotes 
-         !! the index # of species in the CSPEC array that are "fake" ND65 
-         !! prod/loss families, then skip. 
-         !IF ( ANY( IFAM == N ) ) THEN
-         !   CYCLE
-         !ENDIF
-      
-         ! Get info about this species from the species database
-         ThisSpc => State_Chm%SpcData(N)%Info
-         MW_g       = State_Chm%SpcData(N)%Info%emMW_g
-
-         ! Clear the species concentration array to all zeroes before
-         ! populating array up to LLCHEM
-         Temp3D(:,:,:) = 0.e+0_sp
-      
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, CONV_FACTOR )
-         DO L = 1, LLCHEM
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! NOTE: species is output to the binary-punch "spec_rst"
-            ! restart file as molec/cm3 but is output to the NetCDF
-            ! restart file as mol/mol. This results in small differences
-            ! in the initial molec/cm3 species values at the beginning
-            ! of the next run that uses the restart file. The difference
-            ! is due to the pressure-dependency of the unit conversion 
-            ! between molec/cm3 and mol/mol. 
-
-            ! Set box-dependent unit conversion factor to convert
-            ! from [molec/cm3] to [mol/mol]
-            CONV_FACTOR = State_Met%T(I,J,L) * BOLTZ * 1e+7_fp /
-     &                    ( State_Met%PMID_DRY(I,J,L) * 1000e+0_fp )
-
-            ! Store species conc in [mol/mol] in local array
-            IF ( State_Chm%Species(I,J,L,N) > SMALL_NUM ) THEN
-               Temp3D(I,J,L) = State_Chm%Species(I,J,L,N) *
-     &                         CONV_FACTOR
-            ELSE
-               Temp3D(I,J,L) = 1.0e-30_fp * CONV_FACTOR  
-            ENDIF
-
 
          ENDDO
          ENDDO
@@ -1439,13 +1248,13 @@
          ! Free the pointer
          Ptr3D => NULL()
 
-         ! Print the min & max of each species written to file
+         ! Write min and max written to file if debugging
          IF ( Input_Opt%LPRT ) THEN
             WRITE( 6, 160 ) N, TRIM( ThisSpc%Name ),
-     &                      MINVAL( Temp3D(:,:,1:LLCHEM) ), 
-     &                      MAXVAL( Temp3D(:,:,1:LLCHEM) )
+     &                      MINVAL( Temp3D(:,:,:) ), 
+     &                      MAXVAL( Temp3D(:,:,:) )
  160        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
-     &                 '  Max = ', es15.9 )
+     &              '  Max = ', es15.9 )
          ENDIF
          
          IF ( RC /= HCO_SUCCESS ) THEN
@@ -1466,7 +1275,7 @@
 
          ! Print total mass to log
          WRITE( 6, 170 )
- 170     FORMAT( /, 'Total mass of each ocean and snow Hg tracer: ' ) 
+ 170     FORMAT( /, 'Total mass of each ocean and snow Hg species: ' ) 
 
          !--------------------------------------------------------------
          ! Total Hg in ocean
@@ -1479,68 +1288,62 @@
             SELECT CASE( M )
                CASE ( 1 )
                   ContainerName = 'Ocean_Hg0' 
-                  Tracer_id = Hg0_Id_List(1)
-                  Temp2D = Hg0aq(:,:,ID_Hg_tot)
+                  Temp2D        = Hg0aq(:,:,Total_Hg_Id)
                   WRITE( 6, 180 ) ContainerName, 
-     &                            SUM( Hg0aq(:,:,ID_Hg_tot) ), 'kg'
+     &                            SUM( Hg0aq(:,:,Total_Hg_Id) ), 'kg'
                CASE ( 2 )
                   ContainerName = 'Ocean_Hg2'
-                  Tracer_id = Hg2_Id_List(1)
-                  Temp2D = Hg2aq(:,:,ID_Hg_tot)
+                  Temp2D        = Hg2aq(:,:,Total_Hg_Id)
                   WRITE( 6, 180 ) ContainerName, 
-     &                            SUM( Hg2aq(:,:,ID_Hg_tot) ), 'kg'
+     &                            SUM( Hg2aq(:,:,Total_Hg_Id) ), 'kg'
                CASE ( 3 )
                   ContainerName = 'Ocean_HgP' 
-                  Tracer_id = HgP_Id_List(1)
-                  Temp2D = HgPaq(:,:,ID_Hg_tot)
+                  Temp2D        = HgPaq(:,:,Total_Hg_Id)
                   WRITE( 6, 180 ) ContainerName, 
-     &                            SUM( HgPaq(:,:,ID_Hg_tot) ), 'kg'
+     &                            SUM( HgPaq(:,:,Total_Hg_Id) ), 'kg'
             END SELECT
             Ptr2D => Temp2D
 
             ! Populate container with data
             CALL Diagn_Update( am_I_Root,                   
-     &                      cName   = TRIM( ContainerName ),
-     &                      COL     = GC_RST_Collection,
-     &                      Array2D = Ptr2D,             
-     &                      RC      = HCRC )
+     &                         cName   = TRIM( ContainerName ),
+     &                         COL     = GC_RST_Collection,
+     &                         Array2D = Ptr2D,             
+     &                         RC      = HCRC )
 
             ! Free the pointer
             Ptr2D => NULL()
 
             IF ( HCRC /= HCO_SUCCESS ) THEN
-               MSG = 'Cannot update restart tracer container: ' 
+               MSG = 'Cannot update restart species container: ' 
      &               // TRIM( ContainerName )
                CALL ERROR_STOP( MSG, LOC ) 
             ENDIF
          ENDDO
 
          !--------------------------------------------------------------
-         ! Additional tagged Hg tracers in ocean
+         ! Additional tagged Hg species in ocean
          !--------------------------------------------------------------
          IF ( Input_Opt%LSPLIT ) THEN
             DO M = 1, 3
-               DO N = 2, N_Hg_CATS
+               DO N = 2, Num_Hg_Categories
 
                   ! Define container name, point to data, and print 
                   ! total mass to log
                   Temp2D = 0.0d4
                   SELECT CASE( M )
                      CASE ( 1 )
-                        Tracer = 'Hg0' 
-                        Tracer_id = Hg0_Id_List(N)
-                        Temp2D = Hg0aq(:,:,N)
+                        HgSpc    = 'Hg0' 
+                        Temp2D   = Hg0aq(:,:,N)
                      CASE ( 2 )
-                        Tracer = 'Hg2'
-                        Tracer_id = Hg2_Id_List(N)
-                        Temp2D = Hg2aq(:,:,N)
+                        HgSpc    = 'Hg2'
+                        Temp2D   = Hg2aq(:,:,N)
                      CASE ( 3 )
-                        Tracer = 'HgP' 
-                        Tracer_id = HgP_Id_List(N)
-                        Temp2D = HgPaq(:,:,N)
+                        HgSpc    = 'HgP' 
+                        Temp2D   = HgPaq(:,:,N)
                   END SELECT
                   Ptr2D => Temp2D
-                  ContainerName = 'Ocean_' // Trim( Tracer         ) // 
+                  ContainerName = 'Ocean_' // Trim( HgSpc ) // 
      &                            '_'      // TRIM( Hg_Cat_Name(N) )
 
                   ! Populate container with data
@@ -1553,14 +1356,14 @@
                   ! Free the pointer
                   Ptr2D => NULL()
                   
-                  ! Make sure tagged & total tracers sum up
+                  ! Make sure tagged & total species sum up
                   IF ( Input_Opt%USE_CHECKS ) THEN
                      CALL CHECK_OCEAN_MERCURY(
      &                          'end of MAKE_OCEAN_Hg_RESTART' )
                   ENDIF
             
                   IF ( HCRC /= HCO_SUCCESS ) THEN
-                     MSG = 'Cannot update restart tracer container: ' 
+                     MSG = 'Cannot update restart species container: ' 
      &                     // TRIM( ContainerName )
                      CALL ERROR_STOP( MSG, LOC ) 
                   ENDIF
@@ -1586,7 +1389,7 @@
          ! Hg snowpack on land and ocean
          !--------------------------------------------------------------
          DO M = 1, 4               
-            DO N = 1, N_Hg_CATS
+            DO N = 1, Num_Hg_Categories
 
                ! Define data, point to it, and print total mass to log
                Temp2D = 0.0d4
@@ -1626,7 +1429,7 @@
                Ptr2D => NULL()
                
                IF ( HCRC /= HCO_SUCCESS ) THEN
-                  MSG = 'Cannot update restart tracer container: ' 
+                  MSG = 'Cannot update restart species container: ' 
      &                  // TRIM( ContainerName )
                   CALL ERROR_STOP( MSG, LOC ) 
                ENDIF
@@ -1655,9 +1458,6 @@
 
          ! Free pointers for Hg indexing
          Hg_Cat_Name => NULL()
-         Hg0_Id_List => NULL()
-         Hg2_Id_List => NULL() 
-         HgP_Id_List => NULL() 
 
       ENDIF
 
@@ -1687,81 +1487,6 @@
       ENDIF
 
       END SUBROUTINE WRITE_GC_RESTART
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: convert_tracer_to_vv
-!
-! !DESCRIPTION: Subroutine CONVERT\_TRACER\_TO\_VV converts the TRACER array 
-!  from its natural units (e.g. ppbv, ppmv) as read from the restart file to 
-!  v/v mixing ratio. It also writes tracer min and max mixing ratio to file.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CONVERT_TRACER_TO_VV( NTRACER, TRACER, UNIT )
-!
-! !USES:
-!
-      USE CHARPAK_MOD, ONLY : TRANUC
-!
-! !INPUT PARAMETERS: 
-!
-      ! Tracer number and units 
-      INTEGER,          INTENT(IN) :: NTRACER  
-      CHARACTER(LEN=*), INTENT(IN) :: UNIT
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      ! Array containing tracer concentrations
-      REAL*4,        INTENT(INOUT) :: TRACER(IIPAR,JJPAR,LLPAR)  
-! 
-! !REVISION HISTORY: 
-!  (1 ) Added to "restart_mod.f".  Can now also convert from ppm or ppmv
-!        to v/v mixing ratio. (bmy, 6/25/02)
-!  (2 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
-!        allocated memory before stopping the run. (bmy, 10/15/02)
-!  (3 ) Remove obsolete reference to CMN (bmy, 6/24/05)
-!  11 Jul 2011 - R. Yantosca - Added ProTeX headers
-!  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
-!  09 Feb 2016 - E. Lundgren - Move min/max log print to calling routines
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! CONVERT_TRACER_TO_VV begins here!
-      !=================================================================
-
-      ! Convert UNIT to uppercase
-      CALL TRANUC( UNIT )
-      
-      ! Convert from the current unit to v/v
-      SELECT CASE ( TRIM( UNIT ) )
-
-         CASE ( '', 'V/V', 'MOL MOL-1', 'MOL/MOL' )
-            ! Do nothing, TRACER is already in v/v
-
-         CASE ( 'PPM', 'PPMV', 'PPMC' ) 
-            TRACER = TRACER * 1d-6
-
-         CASE ( 'PPB', 'PPBV', 'PPBC' ) 
-            TRACER = TRACER * 1d-9
-
-         CASE ( 'PPT', 'PPTV', 'PPTC' )
-            TRACER = TRACER * 1d-12
-
-         CASE DEFAULT
-            WRITE( 6, '(a)' ) 'Incompatible units in punch file!'
-            WRITE( 6, '(a)' ) 'STOP in CONVERT_TRACER_TO_VV'
-            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-            CALL GEOS_CHEM_STOP
-
-      END SELECT
-
-      END SUBROUTINE CONVERT_TRACER_TO_VV
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

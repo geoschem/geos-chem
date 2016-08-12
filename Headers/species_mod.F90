@@ -64,9 +64,9 @@ MODULE Species_Mod
      INTEGER            :: AdvectID         ! Advection index
      INTEGER            :: DryDepID         ! Dry deposition index
      INTEGER            :: WetDepID         ! Wet deposition index
+     INTEGER            :: KppSpcID         ! KPP species index
      INTEGER            :: KppVarId         ! KPP variable species index
      INTEGER            :: KppFixId         ! KPP fixed spcecies index
-!    INTEGER            :: KppSpcID         ! KPP spcecies index per *_Parameters.F90
      INTEGER            :: PhotolID         ! Photolysis index
 
      ! Names
@@ -89,6 +89,9 @@ MODULE Species_Mod
      REAL(fp)           :: MW_g             ! Species molecular weight [g/mol]
      REAL(fp)           :: EmMW_g           ! Emitted molecular weight [g/mol]
      REAL(fp)           :: MolecRatio       ! Mol carbon / mol species [1    ] 
+
+     ! Default background concentration
+     REAL(fp)           :: BackgroundVV     ! Background conc [v/v]
 
      ! Density and radius
      REAL(fp)           :: Density          ! Density [kg/m3]
@@ -159,6 +162,12 @@ MODULE Species_Mod
   REAL(f8), PARAMETER  :: ZERO_R8     =  0.0e+0_f8   ! 8-byte precision
 
   REAL(fp), PARAMETER  :: MISSING_MW  = -1.0_fp      ! Missing MW values
+
+  !=========================================================================
+  ! Missing species concentration value if not in restart file and special
+  ! background value not defined
+  !=========================================================================
+  REAL(fp), PARAMETER, PUBLIC :: MISSING_VV  = 1.0e-20_fp ! Missing spc conc
 !
 ! !REMARKS:
 ! (1) The emission molecular weight is the molecular weight of the emitted 
@@ -193,7 +202,12 @@ MODULE Species_Mod
 !                              Is_FixedChem to type Species
 !  25 Jul 2016 - E. Lundgren - Add Is_InRestart to track which species are 
 !                              read in versus set to default background values
+!  02 Aug 2016 - M. Sulprizio- Remove function Get_KPPIndx, it is not used. 
+!                              KppSpcId is set in species_database_mod.F90 where
+!                              KppVarId and KppFixId are set.
 !  04 Aug 2016 - R. Yantosca - Add parameter MISSING_MW = -1.0
+!  10 Aug 2016 - E. Lundgren - Add BackgroundVV field for default background 
+!                              and missing background concentration param [v/v]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -480,17 +494,18 @@ CONTAINS
   SUBROUTINE Spc_Create( am_I_Root,     ThisSpc,       ModelID,        &
                          DryDepID,      Name,          FullName,       &
                          MW_g,          EmMW_g,        MolecRatio,     &
-                         Henry_K0,      Henry_CR,      Henry_PKA,      &
-                         Density,       Radius,        DD_AeroDryDep,  &
-                         DD_DustDryDep, DD_DvzAerSnow, DD_DvzMinVal,   &
-                         DD_F0,         DD_KOA,        DD_HStar_Old,   &
-                         MP_SizeResAer, MP_SizeResNum, WD_RetFactor,   &
-                         WD_LiqAndGas,  WD_ConvFacI2G, WD_AerScavEff,  &
-                         WD_KcScaleFac, WD_RainoutEff, WD_CoarseAer,   &
-                         Is_Advected,   Is_Gas,        Is_Drydep,      &
-                         Is_Wetdep,     Is_Photolysis, Is_InRestart,   &
-                         Is_Hg0,        Is_Hg2,        Is_HgP,         &
-                         KppVarId,      KppFixId,      RC               )
+                         BackgroundVV,  Henry_K0,      Henry_CR,       &
+                         Henry_PKA,     Density,       Radius,         &
+                         DD_AeroDryDep, DD_DustDryDep, DD_DvzAerSnow,  &
+                         DD_DvzMinVal,  DD_F0,         DD_KOA,         &
+                         DD_HStar_Old,  MP_SizeResAer, MP_SizeResNum,  &
+                         WD_RetFactor,  WD_LiqAndGas,  WD_ConvFacI2G,  &
+                         WD_AerScavEff, WD_KcScaleFac, WD_RainoutEff,  &
+                         WD_CoarseAer,  Is_Advected,   Is_Gas,         &
+                         Is_Drydep,     Is_Wetdep,     Is_Photolysis,  &
+                         Is_InRestart,  Is_Hg0,        Is_Hg2,         &
+                         Is_HgP,        KppSpcId,      KppVarId,       &
+                         KppFixId,      RC             )
 !
 ! !USES:
 !
@@ -507,6 +522,7 @@ CONTAINS
     REAL(fp),         OPTIONAL    :: MW_g             ! Molecular weight [g]
     REAL(fp),         OPTIONAL    :: EmMW_g           ! Emissions mol. wt [g]
     REAL(fp),         OPTIONAL    :: MolecRatio       ! Molec ratio
+    REAL(fp),         OPTIONAL    :: BackgroundVV     ! Background conc [v/v]
     REAL(f8),         OPTIONAL    :: Henry_K0         ! Henry's law K0 [M/atm]
     REAL(f8),         OPTIONAL    :: Henry_CR         ! Henry's law CR [K]
     REAL(f8),         OPTIONAL    :: Henry_PKA        ! Henry's law pKa [1]
@@ -549,8 +565,9 @@ CONTAINS
     LOGICAL,          OPTIONAL    :: Is_Hg0           ! Denotes Hg0 species
     LOGICAL,          OPTIONAL    :: Is_Hg2           ! Denotes Hg2 species
     LOGICAL,          OPTIONAL    :: Is_HgP           ! Denotes HgP species
+    INTEGER,          OPTIONAL    :: KppSpcId         ! KPP species ID
     INTEGER,          OPTIONAL    :: KppVarId         ! KPP variable species ID
-    INTEGER,          OPTIONAL    :: KppFixId         ! KPP fixed species Id
+    INTEGER,          OPTIONAL    :: KppFixId         ! KPP fixed species ID
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -591,8 +608,10 @@ CONTAINS
 !  18 Jul 2016 - M. Sulprizio- Remove special handling of ISOPN and MMN for
 !                              DryDepCount. Family tracers have been eliminated.
 !  25 Jul 2016 - E. Lundgren - Add optional argument Is_InRestart
+!  02 Aug 2016 - M. Sulprizio- Add optional argument KppSpcId
 !  04 Aug 2016 - R. Yantosca - Now set missing molecular weights to -1, 
 !                              which seems to avoid numerical roundoff
+!  10 Aug 2016 - E. Lundgren - Add default background concentration argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -929,13 +948,30 @@ CONTAINS
     ENDIF
 
     !---------------------------------------------------------------------
+    ! Is there a default background concentration for this species
+    ! [mol spc/mol dry air]? If not, use a default value.
+    !---------------------------------------------------------------------
+    IF ( PRESENT( BackgroundVV ) ) THEN 
+       ThisSpc%BackgroundVV = BackgroundVV
+    ELSE
+       ThisSpc%BackgroundVV = MISSING_VV
+    ENDIF
+
+    !---------------------------------------------------------------------
+    ! Is it a species in the KPP chemical mechanism?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( KppSpcId ) ) THEN 
+       KppSpcCount      = KppSpcCount + 1
+       ThisSpc%KppSpcId = KppSpcId
+    ELSE
+       ThisSpc%KppSpcId = MISSING_INT
+    ENDIF
+
+    !---------------------------------------------------------------------
     ! Is it a variable species in the KPP chemical mechanism?
-    ! (NOTE: Fixed species are appended at the end of this list)
     !---------------------------------------------------------------------
     IF ( PRESENT( KppVarId ) ) THEN 
-       KppSpcCount      = KppSpcCount + 1
        ThisSpc%KppVarId = KppVarId
-!TBD       ThisSpc%KppSpcId = get_KPPindx(name)
     ELSE
        ThisSpc%KppVarId = MISSING_INT
     ENDIF
@@ -945,7 +981,6 @@ CONTAINS
     !---------------------------------------------------------------------
     IF ( PRESENT( KppFixId ) ) THEN 
        ThisSpc%KppFixId = KppFixId
-!TBD       ThisSpc%KppSpcId = get_KPPindx(name)
     ELSE
        ThisSpc%KppFixId = MISSING_INT
     ENDIF
@@ -1165,13 +1200,14 @@ CONTAINS
        ! Print general info
        !-------------------------
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )  
-       WRITE( 6, 100 ) 'Species ID           ',  ThisSpc%ModelID
-       WRITE( 6, 110 ) 'Name                 ',  TRIM( ThisSpc%Name     )
-       WRITE( 6, 110 ) 'FullName             ',  TRIM( ThisSpc%FullName )
-       WRITE( 6, 120 ) 'Molecular weight [g] ',  ThisSpc%MW_g
-       WRITE( 6, 120 ) 'Emitted mol. wt [g]  ',  ThisSpc%EmMW_g
-       WRITE( 6, 120 ) 'Molecular ratio      ',  ThisSpc%MolecRatio
-       WRITE( 6, 130 ) 'Is it a gas?         ',  ThisSpc%Is_Gas
+       WRITE( 6, 100 ) 'Species ID            ',  ThisSpc%ModelID
+       WRITE( 6, 110 ) 'Name                  ',  TRIM( ThisSpc%Name     )
+       WRITE( 6, 110 ) 'FullName              ',  TRIM( ThisSpc%FullName )
+       WRITE( 6, 120 ) 'Molecular weight [g]  ',  ThisSpc%MW_g
+       WRITE( 6, 120 ) 'Emitted mol. wt [g]   ',  ThisSpc%EmMW_g
+       WRITE( 6, 120 ) 'Molecular ratio       ',  ThisSpc%MolecRatio
+       WRITE( 6, 130 ) 'Is it a gas?          ',  ThisSpc%Is_Gas
+       WRITE( 6, 130 ) 'Default bckgrnd [v/v] ',  ThisSpc%BackgroundVV
 
        !-------------------------
        ! Print density & radius
@@ -1214,7 +1250,11 @@ CONTAINS
        WRITE( 6, 130 ) 'Is it a KPP species? ',          ThisSpc%Is_Kpp
 
        IF ( ThisSpc%Is_Kpp ) THEN
-          WRITE( 6, 130 ) 'Is it a active spc?  ',       ThisSpc%Is_ActiveChem
+          IF ( ThisSpc%KppSpcId > 0 ) THEN
+             WRITE( 6, 100 )    ' -> ID in C   array  ', ThisSpc%KppSpcId
+          ENDIF
+
+          WRITE( 6, 130 ) 'Is it an active spc? ',       ThisSpc%Is_ActiveChem
           IF ( ThisSpc%KppVarId > 0 ) THEN
              WRITE( 6, 100 )    ' -> ID in VAR array  ', ThisSpc%KppVarId
           ENDIF
@@ -1223,10 +1263,6 @@ CONTAINS
           IF ( ThisSpc%KppFixId > 0 ) THEN
              WRITE( 6, 100 )    ' -> ID in FIX array  ', ThisSpc%KppFixId
           ENDIF
-
-!          IF ( ThisSpc%KppFixId > 0 ) THEN
-!             WRITE( 6, 100 )    ' -> ID in C   array  ', ThisSpc%KppSpcId
-!          ENDIF
        ENDIF
 
        !-------------------------
@@ -1348,61 +1384,6 @@ CONTAINS
     nHgPCats = HgPCount
     
   END SUBROUTINE Spc_GetNumSpecies
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_KPPindx 
-!
-! !DESCRIPTION: Function GET\_KPPINDX returns the index of a chemical species
-!               from KPP (e.g. O3 yields the value of ind_O3 from *Parameters.F90   
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION Get_KPPIndx( name ) RESULT( Indx )
-!
-! !USES:
-!
-    USE GCKPP_Monitor, ONLY : SPC_NAMES
-!
-! !INPUT PARAMETERS:
-!
-    CHARACTER(LEN=*), INTENT(IN) :: name         ! Species or tracer name
-!
-! !RETURN VALUE:
-!
-    INTEGER                      :: Indx         ! Index of this species 
-!
-! !REMARKS
-!
-! !REVISION HISTORY: 
-!  09 Jun 2016 - M. Long     - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER :: M
-
-    ! Initialize
-    Indx= -1
-
-    ! Loop over all species names
-    DO M = 1, SIZE( SPC_NAMES )
-
-       ! Return the index of the sought-for species
-       IF( TRIM( name ) == TRIM( SPC_NAMES(M) ) ) THEN
-          Indx = M
-          EXIT
-       ENDIF
-
-    ENDDO
-
-  END FUNCTION Get_KPPIndx
 !EOC
 END MODULE Species_Mod
 

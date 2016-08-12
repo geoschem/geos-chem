@@ -225,8 +225,8 @@ CONTAINS
 
              ELSEIF (flag(1:1) .eq. 'K' .or. flag(1:1) .eq. 'k') THEN
 
-                ! KPP main ID
-                !Indx = SpcDataLocal(N)%Info%KppSpcId
+                ! KPP species ID
+                Indx = SpcDataLocal(N)%Info%KppSpcId
                 RETURN
 
              ELSEIF (flag(1:1) .eq. 'V' .or. flag(1:1) .eq. 'v') THEN
@@ -575,7 +575,7 @@ CONTAINS
        ! Set up the mapping for SPECIES IN THE KPP MECHANISM
        !--------------------------------------------------------------------
        IF ( ThisSpc%Is_Kpp ) THEN
-          C                         = ThisSpc%KppVarId
+          C                         = ThisSpc%KppSpcId
           State_Chm%Map_KppSpc(C)   = ThisSpc%ModelId
        ENDIF
 

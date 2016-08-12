@@ -1,8 +1,10 @@
 #INTEGRATOR rosenbrock
 #LANGUAGE Fortran90
 #DRIVER none
-#HESSIAN on
+#HESSIAN off
+#MEX off
 #STOICMAT off 
+#FLUX on
 
 #INCLUDE globchem.spc
 #INCLUDE globchem.eqn

@@ -42,6 +42,7 @@ MODULE Species_Database_Mod
 !  
 ! !REVISION HISTORY:
 !  28 Aug 2015 - R. Yantosca - Initial version
+!  02 Aug 2016 - M. Sulprizio- Add KppSpcId to store all KPP species incices.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -49,6 +50,10 @@ MODULE Species_Database_Mod
   ! Work array to hold the list of species names, which combines the tracers
   ! from input.geos with the KPP species names (and removes duplicates)
   CHARACTER(LEN=31), ALLOCATABLE :: Species_Names(:)
+
+  ! Work array to hold the list of all KPP species indices 
+  ! (Non-KPP species are given missing values)
+  INTEGER,           ALLOCATABLE :: KppSpcId(:)
 
   ! Work array to hold the list of KPP fixed species indices 
   ! (Non-KPP species are given missing values)
@@ -142,6 +147,8 @@ CONTAINS
 !                              defined here.
 !  18 Jul 2016 - M. Sulprizio- Remove family tracers ISOPN, MMN, CFCX, HCFCX
 !                              and replace with their constituents.
+!  02 Aug 2016 - M. Sulprizio- Add KppSpcId as argument passed to Spc_Create
+!  11 Aug 2016 - E. Lundgren - Define special background conc for some species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -150,7 +157,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER             :: C,      N,   nSpecies
-    REAL(fp)            :: Radius, KOA, MW_g   
+    REAL(fp)            :: Radius, KOA, MW_g,    BackgroundVV   
     REAL(fp)            :: K0,     CR,  HStar
 
     ! Arrays
@@ -232,6 +239,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -259,6 +267,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -284,6 +293,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -316,6 +326,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -338,6 +349,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -390,6 +402,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -412,6 +425,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -429,6 +443,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'Br',                         &
@@ -448,6 +463,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'Br2',                        &
@@ -474,6 +490,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'BrCl',                       &
@@ -490,6 +507,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'BrNO2',                      &
@@ -506,6 +524,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'BrNO3',                      &
@@ -524,6 +543,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'BrO',                        &
@@ -540,6 +560,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -562,6 +583,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -583,6 +605,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CCl4',                       &
@@ -599,6 +622,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -615,6 +639,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -631,6 +656,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -647,6 +673,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -663,6 +690,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -679,6 +707,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CH2Br2',                     &
@@ -697,11 +726,13 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CH2O',                       &
                               FullName      = 'Formaldehyde',               &
                               MW_g          = 30.0_fp,                      &
+                              BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
@@ -723,6 +754,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CH3Br',                      &
@@ -741,6 +773,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CH3Cl',                      &
@@ -757,6 +790,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CH3CCl3',                    &
@@ -773,11 +807,13 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methane',                    &
                               MW_g          = 16.0_fp,                      &
+                              BackgroundVV  = 1.7e-06_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -788,6 +824,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CHBr3',                      &
@@ -804,6 +841,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'Cl',                         &
@@ -819,6 +857,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'Cl2',                        &
@@ -835,6 +874,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'Cl2O2',                      &
@@ -851,6 +891,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'ClNO2',                      &
@@ -866,6 +907,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'ClNO3',                      &
@@ -882,6 +924,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'ClO',                        &
@@ -907,6 +950,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = Name,                         &
@@ -978,15 +1022,25 @@ CONTAINS
                    Name     = 'COacet'
                    FullName = 'CO produced from acetone oxidation'
              END SELECT
-                   
+
+             ! Set special default background for CO
+             SELECT CASE( TRIM( NameAllCaps ) )
+                CASE( 'CO'     ) 
+                   BackgroundVV = 1.0e-07_fp
+                CASE DEFAULT
+                   BackgroundVV = MISSING_VV
+             END SELECT
+                                
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = Name,                         &
                               FullName      = FullName,                     &
                               MW_g          = 28.0_fp,                      &
+                              BackgroundVV  = BackgroundVV,                 &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -1001,6 +1055,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1038,6 +1093,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1081,6 +1137,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1125,6 +1182,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1170,6 +1228,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1194,6 +1253,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1220,11 +1280,13 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Water vapor',                &
                               MW_g          = 18.0_fp,                      &
+                              BackgroundVV  = 1.839e-02_fp,                 &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -1235,11 +1297,13 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Hydrogen peroxide',          &
                               MW_g          = 34.0_fp,                      &
+                              BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
@@ -1264,6 +1328,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1287,6 +1352,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1303,6 +1369,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1320,6 +1387,7 @@ CONTAINS
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               FullName      = 'H-2402',                     &
@@ -1336,6 +1404,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1353,6 +1422,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'HCFC141b',                   &
@@ -1370,6 +1440,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'HCFC142b',                   &
@@ -1386,6 +1457,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1402,6 +1474,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'HCl',                        &
@@ -1425,11 +1498,13 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrous acid',               &
                               MW_g          = 47.0_fp,                      &
+                              BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -1453,11 +1528,13 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitric acid',                &
                               MW_g          = 63.0_fp,                      &
+                              BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
@@ -1481,11 +1558,13 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Pernitric acid',             &
                               MW_g          = 79.0_fp,                      &
+                              BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -1501,6 +1580,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'HBr',                        &
@@ -1526,6 +1606,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'HOBr',                       &
@@ -1552,6 +1633,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'HOCl',                       &
@@ -1568,6 +1650,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1620,6 +1703,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1643,6 +1727,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1663,6 +1748,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1684,6 +1770,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1709,6 +1796,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1734,6 +1822,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1758,6 +1847,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1781,6 +1871,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1806,6 +1897,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1832,6 +1924,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1854,6 +1947,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1885,6 +1979,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1912,6 +2007,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1933,11 +2029,13 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'MP',                         &
                               FullName      = 'Methyl hydro peroxide',      &
                               MW_g          = 48.0_fp,                      &
+                              BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -1957,6 +2055,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -1987,6 +2086,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2010,6 +2110,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2034,6 +2135,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2055,6 +2157,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2078,6 +2181,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2103,6 +2207,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2120,11 +2225,13 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrous oxide',              &
                               MW_g          = 44.0_fp,                      &
+                              BackgroundVV  = 3.0e-07_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -2140,11 +2247,13 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Dinitrogen pentoxide',       &
                               MW_g          = 105.0_fp,                     &
+                              BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
@@ -2170,6 +2279,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2213,6 +2323,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2249,6 +2360,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2298,6 +2410,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'NITs',                       &
@@ -2321,11 +2434,13 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrogen oxide',             &
                               MW_g          = 30.0_fp,                      &
+                              BackgroundVV  = 4.0e-13_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -2343,11 +2458,13 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrogen dioxide',           &
                               MW_g          = 46.0_fp,                      &
+                              BackgroundVV  = 4.0e-13_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
@@ -2366,11 +2483,13 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrate radical',            &
                               MW_g          = 62.0_fp,                      &
+                              BackgroundVV  = 4.0e-15_fp,                   &
                               MolecRatio    = 1.0_fp,                       &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2431,14 +2550,24 @@ CONTAINS
                    Name     = 'O3USA'
              END SELECT
 
+             ! Set special default background for O3
+             SELECT CASE( TRIM( NameAllCaps ) )
+                CASE( 'O3' ) 
+                   BackgroundVV = 2.0e-08_fp
+                CASE DEFAULT
+                   BackgroundVV = MISSING_VV
+             END SELECT
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = Name,                         &
                               FullName      = FullName,                     &
                               MW_g          = 48.0_fp,                      &
+                              BackgroundVV  = BackgroundVV,                 &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
@@ -2483,6 +2612,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2515,6 +2645,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2539,6 +2670,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2561,11 +2693,13 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Carbonyl sulfide',           &
                               MW_g          = 60.0_fp,                      &
+                              BackgroundVV  = 9.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -2577,6 +2711,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2603,6 +2738,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2628,6 +2764,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2657,6 +2794,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2680,6 +2818,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2702,6 +2841,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2723,6 +2863,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2752,6 +2893,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2776,6 +2918,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2796,6 +2939,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2833,6 +2977,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2867,6 +3012,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2909,6 +3055,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -2950,6 +3097,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'SO4',                        &
@@ -3002,6 +3150,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'SO4s',                       &
@@ -3025,6 +3174,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -3052,6 +3202,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -3074,6 +3225,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -3094,6 +3246,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -3832,14 +3985,24 @@ CONTAINS
                    FullName = 'Carbon dioxide'
              END SELECT
 
+             ! Set special default background for CO2
+             SELECT CASE( TRIM( NameAllCaps ) )
+                CASE( 'CO2' ) 
+                   BackgroundVV = 3.55e-04_fp
+                CASE DEFAULT
+                   BackgroundVV = MISSING_VV
+             END SELECT
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = Name,                         &
                               FullName      = FullName,                     &
                               MW_g          = 44.0_fp,                      &
+                              BackgroundVV  = BackgroundVV,                 &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -4083,6 +4246,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -4284,6 +4448,8 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              BackgroundVV  = 2.095e-01_fp,                 &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -4298,6 +4464,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -4312,6 +4479,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -4326,6 +4494,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -4340,6 +4509,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -4354,6 +4524,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -4368,6 +4539,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -4382,6 +4554,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -4396,6 +4569,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -4410,6 +4584,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -4424,6 +4599,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -4438,6 +4614,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -4452,6 +4629,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -4466,6 +4644,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -4480,6 +4659,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -4494,6 +4674,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -4508,6 +4689,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
@@ -4518,13 +4700,107 @@ CONTAINS
                               Is_Photolysis = T,                            &
                               RC            = RC )
 
+          CASE( 'HO2' )
+                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
+                                 ThisSpc       = SpcData(N)%Info,           &
+                                 ModelID       = N,                         &
+                                 KppSpcId      = KppSpcId(N),               &
+                                 KppVarId      = KppVarId(N),               &
+                                 KppFixId      = KppFixId(N),               &
+                                 Name          = NameAllCaps,               &
+                                 BackgroundVV  = 4.0e-15_fp,                &
+                                 Is_Advected   = F,                         &
+                                 Is_Gas        = T,                         &
+                                 Is_Drydep     = F,                         &
+                                 Is_Wetdep     = F,                         &
+                                 RC            = RC )
+
+          CASE( 'MO2' )
+                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
+                                 ThisSpc       = SpcData(N)%Info,           &
+                                 ModelID       = N,                         &
+                                 KppSpcId      = KppSpcId(N),               &
+                                 KppVarId      = KppVarId(N),               &
+                                 KppFixId      = KppFixId(N),               &
+                                 Name          = NameAllCaps,               &
+                                 BackgroundVV  = 4.0e-15_fp,                &
+                                 Is_Advected   = F,                         &
+                                 Is_Gas        = T,                         &
+                                 Is_Drydep     = F,                         &
+                                 Is_Wetdep     = F,                         &
+                                 RC            = RC )
+
+          CASE( 'OH' )
+                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
+                                 ThisSpc       = SpcData(N)%Info,           &
+                                 ModelID       = N,                         &
+                                 KppSpcId      = KppSpcId(N),               &
+                                 KppVarId      = KppVarId(N),               &
+                                 KppFixId      = KppFixId(N),               &
+                                 Name          = NameAllCaps,               &
+                                 BackgroundVV  = 4.0e-15_fp,                &
+                                 Is_Advected   = F,                         &
+                                 Is_Gas        = T,                         &
+                                 Is_Drydep     = F,                         &
+                                 Is_Wetdep     = F,                         &
+                                 RC            = RC )
+
+          CASE( 'H2' )
+                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
+                                 ThisSpc       = SpcData(N)%Info,           &
+                                 ModelID       = N,                         &
+                                 KppSpcId      = KppSpcId(N),               &
+                                 KppVarId      = KppVarId(N),               &
+                                 KppFixId      = KppFixId(N),               &
+                                 Name          = NameAllCaps,               &
+                                 BackgroundVV  = 5.0e-07_fp,                &
+                                 Is_Advected   = F,                         &
+                                 Is_Gas        = T,                         &
+                                 Is_Drydep     = F,                         &
+                                 Is_Wetdep     = F,                         &
+                                 RC            = RC )
+
+          CASE( 'N' )
+                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
+                                 ThisSpc       = SpcData(N)%Info,           &
+                                 ModelID       = N,                         &
+                                 KppSpcId      = KppSpcId(N),               &
+                                 KppVarId      = KppVarId(N),               &
+                                 KppFixId      = KppFixId(N),               &
+                                 Name          = NameAllCaps,               &
+                                 BackgroundVV  = 4.0e-20_fp,                &
+                                 Is_Advected   = F,                         &
+                                 Is_Gas        = T,                         &
+                                 Is_Drydep     = F,                         &
+                                 Is_Wetdep     = F,                         &
+                                 RC            = RC )
+
+          CASE( 'O1D' )
+                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
+                                 ThisSpc       = SpcData(N)%Info,           &
+                                 ModelID       = N,                         &
+                                 KppSpcId      = KppSpcId(N),               &
+                                 KppVarId      = KppVarId(N),               &
+                                 KppFixId      = KppFixId(N),               &
+                                 Name          = NameAllCaps,               &
+#if defined( UCX )
+                                 BackgroundVV  = 1.0e-15_fp,                &
+#else
+                                 BackgroundVV  = 4.0e-22_fp,                &
+#endif
+                                 Is_Advected   = F,                         &
+                                 Is_Gas        = T,                         &
+                                 Is_Drydep     = F,                         &
+                                 Is_Wetdep     = F,                         &
+                                 RC            = RC )
+
           !==================================================================
           ! Special handling for species not found in the list above
           !==================================================================
           CASE DEFAULT
 
              ! Test if this is a non-advected chemical species
-             IF ( KppVarId(N) > 0 ) THEN 
+             IF ( KppSpcId(N) > 0 ) THEN 
                 
                 !------------------------------------------------------------
                 ! If this is a non-advected KPP chemical species, then just
@@ -4533,6 +4809,7 @@ CONTAINS
                 CALL Spc_Create( am_I_Root     = am_I_Root,                 &
                                  ThisSpc       = SpcData(N)%Info,           &
                                  ModelID       = N,                         &
+                                 KppSpcId      = KppSpcId(N),               &
                                  KppVarId      = KppVarId(N),               &
                                  KppFixId      = KppFixId(N),               &
                                  Name          = NameAllCaps,               &
@@ -4552,7 +4829,7 @@ CONTAINS
                 WRITE( 6, 100 ) TRIM( NameAllCaps )
                 WRITE( 6, 110 )
                 WRITE( 6, 120 )
-100             FORMAT( 'Species ', a, ' not found in the data base!'      )
+100             FORMAT( 'Species ', a, ' not found in the database!'       )
 110             FORMAT( 'Please add the information to the CASE statement' )
 120             FORMAT( 'in module Headers/species_database_mod.F90!'      )
                 RC = -1
@@ -4716,6 +4993,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  09 May 2016 - R. Yantosca - Initial version
+!  02 Aug 2016 - M. Sulprizio- Add KppSpcId; Also only set KppVarId if loop
+!                              indexis <= NVAR.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4789,12 +5068,17 @@ CONTAINS
        ! Now determine the KPP indices for each unique species name
        !--------------------------------------------------------------------
 
+       ! Work array to hold the list of all KPP species indices
+       ALLOCATE( KppSpcId( nSpecies ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       KppSpcId = MISSING_INT
+
        ! Work array to hold the list of KPP fixed species indices
        ALLOCATE( KppFixId( nSpecies ), STAT=RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
        KppFixId = MISSING_INT
        
-       ! Work array to hold the KPP variable species indices
+       ! Work array to hold the list of KPP variable species indices
        ALLOCATE( KppVarId( nSpecies ), STAT=RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
        KppVarId = MISSING_INT
@@ -4811,15 +5095,24 @@ CONTAINS
              ! KPP chemical mechanism:  1..NSPEC = [ 1..NVAR, 1..NFIX].
              IF ( Species_Names(S) == Spc_Names(K) ) THEN
                 
-                ! KPP variable species index (1..NSPEC).  These
-                ! are used to index species in the KPP "C" array
-                ! (as well as the "VAR" array).
-                KppVarId(S) = K
+                ! KPP species index (1..NSPEC).  These
+                ! are used to index species in the KPP "C" array.
+                ! These include both variable and fixed species.
+                KppSpcId(S) = K
 
-                ! KPP fixed species also have entries (1..NFIX).  These
-                ! are used to index species in the KPP "FIX" array.
-                IF ( K > NVAR ) THEN
+                IF ( K <= NVAR ) THEN
+
+                   ! KPP variable species index (1..NVAR).  These
+                   ! are used to index species in the KPP "C" array
+                   ! (as well as the "VAR" array).
+                   KppVarId(S) = K
+
+                ELSE
+
+                   ! KPP fixed species also have entries (1..NFIX).  These
+                   ! are used to index species in the KPP "FIX" array.
                    KppFixId(S) = K - NVAR
+
                 ENDIF
  
                 ! Skip to next species
@@ -4837,6 +5130,10 @@ CONTAINS
        ! Initialize the species names array from Input_Opt
        ALLOCATE( Species_Names( nSpecies ), STAT=RC ) 
        Species_Names = Input_Opt%Tracer_Name(1:nSpecies)
+
+       ! Set KppSpcId to missing value
+       ALLOCATE( KppSpcId( nSpecies ), STAT=RC )
+       KppSpcId = MISSING_INT
 
        ! Set KppFixId to missing value
        ALLOCATE( KppFixId( nSpecies ), STAT=RC )

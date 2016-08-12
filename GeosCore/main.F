@@ -744,11 +744,15 @@
 
       ! Set tracer concentrations to advected species concentrations
       ! following restart file read [kg/kg dry]
-      PRINT *, "State_Chm%nAdvect: ", State_Chm%nAdvect
       State_Chm%Tracers(:,:,:,1:State_Chm%nAdvect) = 
      &              State_Chm%Species(:,:,:,1:State_Chm%nAdvect)
       State_Chm%Trac_Units = 'kg/kg dry'
-      !*********************************************************************
+      
+      ! Convert species from kg/kg dry to molec/cm3 to preserve
+      ! how it is in legacy code
+      CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
+     &                                State_Chm, RC )
+      !*****************************************************
 
       ! Initialize stratospheric routines
       IF ( LUCX ) THEN
@@ -1012,16 +1016,32 @@
                 N                          = State_Chm%Map_Advect(NA)
                 State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
                
-                ! Restore State_Chm%SPECIES to its original values
-                State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-             ENDDO
-             State_Chm%Spc_Units = 'molec/cm3'
+! FT-Bob:
+!                ! Restore State_Chm%SPECIES to its original values
+!                State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
+!             ENDDO
+!             State_Chm%Spc_Units = 'molec/cm3'
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
             ENDIF
+
+            !*****************************************************
+            ! TRACER REMOVAL - ewl, 8/12/16
+            ! Convert species to kg/kg dry prior to writing to restart file
+            CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
+     &                                      State_Chm, RC )
+            
+            !*****************************************************
 
             ! Make atmospheric restart file
             CALL WRITE_GC_RESTART( am_I_Root, NYMD, NHMS, Input_Opt,
      &                             State_Chm, State_Met, RC )
+
+            !*****************************************************
+            ! TRACER REMOVAL - ewl, 8/12/16
+            ! Convert species back to molecules/cm3 until all tracers removed
+            CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
+     &                                      State_Chm, RC )
+            !*****************************************************
 
             !### Debug
             IF ( prtDebug ) THEN

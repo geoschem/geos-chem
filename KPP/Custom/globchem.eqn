@@ -373,7 +373,7 @@
 {285} HO2 = O2 :                                       HET(ind_HO2,1);
 {286} NO2 = 0.500HNO3 + 0.500HNO2 :                    HET(ind_NO2,1);
 {287} NO3 = HNO3 :                                     HET(ind_NO3,1);
-{288} N2O5 = 2.000HNO3 :                               HET(ind_N2O5,1);
+{288} N2O5 + H2O = 2.000HNO3 :                         HET(ind_N2O5,1);
 {289} DMS + OH = SO2 + MO2 + CH2O :                    GCARR(1.20E-11, 0.0E+00, -280.0);
 {290} DMS + OH = 0.750SO2 + 0.250MSA + MO2 :           GC_DMSOH(8.20E-39, 0.0E+00, 5376.0, 1.05E-5, 0.0, 3644.0);
 {291} DMS + NO3 = SO2 + HNO3 + MO2 + CH2O :            GCARR(1.90E-13, 0.0E+00, 530.0);

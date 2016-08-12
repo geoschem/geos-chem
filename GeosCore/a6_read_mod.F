@@ -1800,7 +1800,7 @@
  120     FORMAT( 'There are ', i2, ' fields but only ', i2 ,
      &           ' were found!' )
 
-         WRITE( 6, '(a)' ) '### STOP in A6_CHECK (dao_read_mod.f)'
+         WRITE( 6, '(a)' ) '### STOP in A6_CHECK (a6_read_mod.f)'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
          ! Deallocate arrays and stop (bmy, 10/15/02)
