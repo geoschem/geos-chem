@@ -371,16 +371,14 @@
 !                              State_Chm to optionally update tracer units
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
-!  04 Aug 2016 - R. Yantosca - Move temporary tracer removal code within the IF
-!                              block where we update tracer mixing ratio
-!  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  15 Aug 2016 - E. Lundgren - Update conc w/ RH for all species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER   :: I,         J,    L,      N,       NA,     nAdvect
+      INTEGER   :: I,         J,    L,      N
       REAL(fp)  :: PEdge_Top, Esat, Ev_mid, Ev_edge, Ev_mean  
       REAL(fp)  :: EsatA, EsatB, EsatC, EsatD
       REAL(fp)  :: AREA_M2, SPHU_kgkg, SPHU_kgkg_prev, AVGW_moist
@@ -416,9 +414,6 @@
 
       ! Assume success
       RC      = GIGC_SUCCESS
-
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
 
       !=============================================================
       ! Update air quantities
@@ -776,11 +771,11 @@
 !$OMP END PARALLEL DO
 
       !=============================================================
-      ! Update tracer concentrations with updated air quantities
+      ! Update species concentrations with updated air quantities
       ! if update mixing ratio flag indicates to do so
       !=============================================================  
 
-      ! Update the mixing ratio with new air quantities such that tracer
+      ! Update the mixing ratio with new air quantities such that species
       ! mass is conserved if (1) update_mixing_ratio flag is not passed, 
       ! or (2) update_mixing_ratio flag is passed as true.
       ! NOTE: The only places where mixing ratio is not currently updated
@@ -796,12 +791,8 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, NA, N, SPHU_kgkg, SPHU_kgkg_prev )
-            DO NA = 1, nAdvect
-
-               ! Get the species ID
-               N = State_Chm%Map_Advect(NA)
-
+!$OMP+PRIVATE( I, J, L, N, SPHU_kgkg, SPHU_kgkg_prev )
+            DO N = 1, State_Chm%nSpecies
             DO L = 1, LLPAR
             DO J = 1, JJPAR
             DO I = 1, IIPAR
@@ -827,7 +818,7 @@
 
          ELSE
             MSG = 'Incorrect tracer units: ' 
-     &              // TRIM(State_Chm%Trac_Units)
+     &              // TRIM(State_Chm%Spc_Units)
             LOC = 'DAO_MOD: AIRQNT'
             CALL GIGC_Error( TRIM(MSG), RC, TRIM(LOC) )
          ENDIF
