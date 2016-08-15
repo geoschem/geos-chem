@@ -752,6 +752,10 @@
       ! how it is in legacy code
 !      CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
 !     &                                State_Chm, RC )
+
+      ! Compare tracers and species (written to log file if ND70 is on)
+      CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                      State_Chm, 'post-restart read', RC )
       !*****************************************************
 
       ! Initialize stratospheric routines
@@ -796,6 +800,10 @@
       ! how it is in legacy code           
       CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
      &                                State_Chm, RC )
+
+      ! Compare tracers and species (written to log file if ND70 is on)
+      CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                      State_Chm, 'post-init_strat_chem', RC )
       !***********************************************************************
 
 !-----------------------------------------------------------------------------
@@ -888,6 +896,14 @@
          CALL FLUSH( 6 )
 #endif
 
+         !******************************************************************
+         ! TRACER REMOVAL - temporary!
+         !
+         ! Compare tracers and species (written to log file if ND70 is on)
+         CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                         State_Chm, 'start dynamic loop', RC )
+         !******************************************************************
+
          ! Compute & print time quantities at start of dyn step
          CALL SET_CURRENT_TIME
          CALL PRINT_CURRENT_TIME
@@ -956,6 +972,14 @@
             ! Write bpch file
             IF ( DO_DIAG_WRITE ) THEN
 
+               !***************************************************************
+               ! TRACER REMOVAL - temporary!
+               !
+               ! Compare tracers and species (written to log file if ND70 is on)
+               CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                               State_Chm, 'pre-diag3', RC )
+               !***************************************************************
+
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
@@ -988,6 +1012,13 @@
                ! Flush file units
                CALL CTM_FLUSH
 
+               !***************************************************************
+               ! TRACER REMOVAL - temporary!
+               !
+               ! Compare tracers and species (written to log file if ND70 is on)
+               CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                               State_Chm, 'post-diag3', RC )
+               !***************************************************************
             ENDIF
 
             !===========================================================
@@ -995,6 +1026,14 @@
             !===========================================================
             ! Determine and print STE fluxes (ltm, 06/10/12)
             IF ( LSCHEM ) THEN
+
+               !***************************************************************
+               ! TRACER REMOVAL - temporary!
+               !
+               ! Compare tracers and species (written to log file if ND70 is on)
+               CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                               State_Chm, 'pre-calc_ste', RC )
+               !***************************************************************
 
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
@@ -1026,6 +1065,14 @@
 !             State_Chm%Spc_Units = 'molec/cm3'
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
+               !***************************************************************
+               ! TRACER REMOVAL - temporary!
+               !
+               ! Compare tracers and species (written to log file if ND70 is on)
+               CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                               State_Chm, 'post-calc_ste', RC )
+               !***************************************************************
+
             ENDIF
 
             !*****************************************************
@@ -1033,7 +1080,7 @@
             ! Convert species to kg/kg dry prior to writing to restart file
             CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
      &                                      State_Chm, RC )
-            
+
             !*****************************************************
 
             ! Make atmospheric restart file
@@ -1267,6 +1314,14 @@
          ! the floating pressure is set to PSC2 (bdf, bmy, 8/22/02)
          IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( State_Met%PSC2 )
 
+         !***************************************************************
+         ! TRACER REMOVAL - temporary!
+         !
+         ! Compare tracers and species (written to log file if ND70 is on)
+         CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                         State_Chm, 'pre-airqnt', RC )
+         !***************************************************************
+
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
@@ -1300,6 +1355,14 @@
             State_Chm%Spc_Units = 'molec/cm3'
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
  
+         !***************************************************************
+         ! TRACER REMOVAL - temporary!
+         !
+         ! Compare tracers and species (written to log file if ND70 is on)
+         CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                         State_Chm, 'post-airqnt', RC )
+         !***************************************************************
+
          ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant and,
          ! if LUCX=T and LSETH2O=F and LACTIVEH2O=T, update specific humidity 
          ! in the stratosphere
@@ -1389,6 +1452,14 @@
          !              ***** T R A N S P O R T *****
          !==============================================================
          IF ( ITS_TIME_FOR_DYN() ) THEN
+
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'pre-transport', RC )
+            !***************************************************************
 
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
@@ -1496,6 +1567,14 @@
             ENDDO
             State_Chm%Spc_Units = 'molec/cm3'
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'post-transport', RC )
+            !***************************************************************
 
          ENDIF
 
@@ -1605,6 +1684,14 @@
             !      ***** M I X E D   L A Y E R   M I X I N G *****
             !===========================================================
 
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'pre-mixing', RC )
+            !***************************************************************
+
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
@@ -1676,6 +1763,14 @@
             State_Chm%Spc_Units = 'molec/cm3'
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'post-convection', RC )
+            !***************************************************************
+
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "Convection", RC )
 #endif
@@ -1700,6 +1795,14 @@
 
          ! Every chemistry timestep...
          IF ( ITS_TIME_FOR_CHEM() ) THEN
+
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'pre-chemistry', RC )
+            !***************************************************************
 
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
@@ -1774,11 +1877,18 @@
             ENDDO
             State_Chm%Spc_Units = 'molec/cm3'
 
-
             ! First put species into kg/kg/dry
             CALL ConvertSpc_KgKgDry_To_MND( am_I_Root, State_Met,
      &                                      State_Chm, RC         )
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'post-chemistry', RC )
+            !***************************************************************
 
          ENDIF 
 
@@ -1796,6 +1906,14 @@
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
          IF ( LWETD .and. ITS_TIME_FOR_DYN() ) THEN
+
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'pre-wetdep', RC )
+            !***************************************************************
 
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
@@ -1842,6 +1960,14 @@
             State_Chm%Spc_Units = 'molec/cm3'
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'post-wetdep', RC )
+            !***************************************************************
+
          ENDIF
 
          !==============================================================
@@ -1852,6 +1978,14 @@
          ! diagnostic and only on a chemistry timestep.
          ! (skim, 02/05/11)
          IF ( ITS_TIME_FOR_CHEM() ) THEN
+
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'pre-recompute_od', RC )
+            !***************************************************************
 
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
@@ -1881,6 +2015,14 @@
             ENDDO
             State_Chm%Spc_Units = 'molec/cm3'
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'post-recompute_od', RC )
+            !***************************************************************
 
          ENDIF
 
@@ -2022,6 +2164,14 @@
          !==============================================================
          IF ( ITS_TIME_FOR_DIAG() ) THEN
 
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'pre-diag1', RC )
+            !***************************************************************
+
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
@@ -2161,6 +2311,14 @@
             State_Chm%Spc_Units = 'molec/cm3'
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'post-diag archive', RC )
+            !***************************************************************
+
          ENDIF
 
 #if defined( USE_TIMERS )
@@ -2219,6 +2377,14 @@
       ! Species concentrations enter the subroutine in [kg/kg dry air].
       IF ( LSTDRUN ) THEN 
 
+         !***************************************************************
+         ! TRACER REMOVAL - temporary!
+         !
+         ! Compare tracers and species (written to log file if ND70 is on)
+         CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                         State_Chm, 'pre-stdrun', RC )
+         !***************************************************************
+
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
@@ -2246,6 +2412,14 @@
          ENDDO
          State_Chm%Spc_Units = 'molec/cm3'
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+         !***************************************************************
+         ! TRACER REMOVAL - temporary!
+         !
+         ! Compare tracers and species (written to log file if ND70 is on)
+         CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                         State_Chm, 'post-stdrun', RC )
+         !***************************************************************
 
       ENDIF
 
