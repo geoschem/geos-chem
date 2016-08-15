@@ -1626,7 +1626,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE COMPARE_TRC_SPC( am_I_Root, Input_Opt,
-     &                            State_Met, State_Chm, RC ) 
+     &                            State_Met, State_Chm, LOC, RC ) 
 !
 ! !USES:
 !     
@@ -1637,9 +1637,11 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      LOGICAL,            INTENT(IN) :: am_I_Root  ! Are we on the root CPU?
+      TYPE(OptInput),     INTENT(IN) :: Input_Opt   ! Input Options object
+      TYPE(MetState),     INTENT(IN) :: State_Met   ! Meteorology State object
+      CHARACTER(LEN=*),   INTENT(IN) :: LOC
+
 !
       include "netcdf.inc"
 !
@@ -1685,6 +1687,7 @@
          ! Print header for min/max tracer and species [kg/kg dry]
          WRITE( 6, 910 )
  910     FORMAT( /,'Min and Max of advected [kg/kg dry]:' )
+         WRITE( 6, 960 ) ADJUSTL( LOC )
          
          ! If species is in molec/cm3, convert to [kg/kg dry]
          INITIAL_SPC_MND = .FALSE.
@@ -1725,6 +1728,7 @@
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )      
          WRITE( 6, 940 )
  940     FORMAT( /,'Min and Max of all species [molec/cm3]:' )
+         WRITE( 6, 960 ) ADJUSTL( LOC )
          
          ! Loop over all species
          DO N = 1, State_Chm%nSpecies
@@ -1747,6 +1751,8 @@
             CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
      &                                      State_Chm, RC )
          ENDIF
+
+ 960     FORMAT( /, 'Location: ', a60 )
 
       ENDIF
 

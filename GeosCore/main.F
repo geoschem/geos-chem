@@ -741,6 +741,10 @@
       ! how it is in legacy code
       CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
      &                                State_Chm, RC )
+
+      ! Compare tracers and species (written to log file if ND70 is on)
+      CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                      State_Chm, 'post-restart read', RC )
       !*****************************************************
 
       ! Initialize stratospheric routines
@@ -770,6 +774,14 @@
       IF ( LSTDRUN ) THEN 
          CALL STDRUN( Input_Opt, State_Chm, LBEGIN=.TRUE. )
       ENDIF
+
+      !***********************************************************************
+      ! TRACER REMOVAL - temporary!
+
+      ! Compare tracers and species (written to log file if ND70 is on)
+      CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                      State_Chm, 'post-init_strat_chem', RC )
+      !***********************************************************************
 
 !-----------------------------------------------------------------------------
 ! TWO-WAY NESTING OPTION
@@ -861,6 +873,14 @@
          CALL FLUSH( 6 )
 #endif
 
+         !******************************************************************
+         ! TRACER REMOVAL - temporary!
+         !
+         ! Compare tracers and species (written to log file if ND70 is on)
+         CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                         State_Chm, 'start dynamic loop', RC )
+         !******************************************************************
+
          ! Compute & print time quantities at start of dyn step
          CALL SET_CURRENT_TIME
          CALL PRINT_CURRENT_TIME
@@ -928,11 +948,29 @@
 
             ! Write bpch file
             IF ( DO_DIAG_WRITE ) THEN
+
+               !***************************************************************
+               ! TRACER REMOVAL - temporary!
+               !
+               ! Compare tracers and species (written to log file if ND70 is on)
+               CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                               State_Chm, 'pre-diag3', RC )
+               !***************************************************************
+
                CALL DIAG3
      &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
                ! Flush file units
                CALL CTM_FLUSH
+
+               !***************************************************************
+               ! TRACER REMOVAL - temporary!
+               !
+               ! Compare tracers and species (written to log file if ND70 is on)
+               CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                               State_Chm, 'post-diag3', RC )
+               !***************************************************************
+
             ENDIF
 
             !===========================================================
@@ -940,8 +978,26 @@
             !===========================================================
             ! Determine and print STE fluxes (ltm, 06/10/12)
             IF ( LSCHEM ) THEN
+
+               !***************************************************************
+               ! TRACER REMOVAL - temporary!
+               !
+               ! Compare tracers and species (written to log file if ND70 is on)
+               CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                               State_Chm, 'pre-calc_ste', RC )
+               !***************************************************************
+
                CALL CALC_STE( am_I_Root, Input_Opt, State_Chm, 
      &                        State_Met, RC )
+
+               !***************************************************************
+               ! TRACER REMOVAL - temporary!
+               !
+               ! Compare tracers and species (written to log file if ND70 is on)
+               CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                               State_Chm, 'post-calc_ste', RC )
+               !***************************************************************
+
             ENDIF
                
             !*****************************************************
@@ -949,7 +1005,7 @@
             ! Convert species to kg/kg dry prior to writing to restart file
             CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
      &                                      State_Chm, RC )
-            
+
             !*****************************************************
 
             ! Make atmospheric restart file
@@ -1183,11 +1239,27 @@
          ! the floating pressure is set to PSC2 (bdf, bmy, 8/22/02)
          IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( State_Met%PSC2 )
 
+         !***************************************************************
+         ! TRACER REMOVAL - temporary!
+         !
+         ! Compare tracers and species (written to log file if ND70 is on)
+         CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                         State_Chm, 'pre-airqnt', RC )
+         !***************************************************************
+
          ! Compute updated airmass quantities at each grid box 
          ! and update tracer concentration to conserve tracer mass
          ! (ewl, 10/28/15)
          CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
      &                update_mixing_ratio=.TRUE. )
+
+         !***************************************************************
+         ! TRACER REMOVAL - temporary!
+         !
+         ! Compare tracers and species (written to log file if ND70 is on)
+         CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                         State_Chm, 'post-airqnt', RC )
+         !***************************************************************
 
          ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant and,
          ! if LUCX=T and LSETH2O=F and LACTIVEH2O=T, update specific humidity 
@@ -1279,6 +1351,15 @@
          !==============================================================
          IF ( ITS_TIME_FOR_DYN() ) THEN
 
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'pre-transport', RC )
+            !***************************************************************
+
+
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_Start( "Transport", RC )
 #endif
@@ -1358,6 +1439,14 @@
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "Transport", RC )
 #endif
+
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'post-transport', RC )
+            !***************************************************************
 
          ENDIF
 
@@ -1467,6 +1556,14 @@
             !      ***** M I X E D   L A Y E R   M I X I N G *****
             !===========================================================
 
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'pre-mixing', RC )
+            !***************************************************************
+
             ! Note: mixing routine expects tracers in v/v
             ! DO_MIXING applies the tracer tendencies (dry deposition,
             ! emission rates) to the tracer arrays and performs PBL
@@ -1496,7 +1593,7 @@
             !===========================================================
 
             IF ( LCONV ) THEN
-            
+
                ! Call the appropriate convection routine
                ! NOTE: Tracer concentration units are converted locally
                ! to [kg/kg total air] for convection (ewl, 9/18/15)
@@ -1511,6 +1608,14 @@
                   CALL DEBUG_MSG( '### MAIN: a CONVECTION' )
                ENDIF
             ENDIF 
+
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'post-convection', RC )
+            !***************************************************************
 
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "Convection", RC )
@@ -1536,6 +1641,14 @@
 
          ! Every chemistry timestep...
          IF ( ITS_TIME_FOR_CHEM() ) THEN
+
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'pre-chemistry', RC )
+            !***************************************************************
 
             ! Increment chemistry timestep counter
             CALL SET_CT_CHEM( INCREMENT=.TRUE. )
@@ -1580,6 +1693,13 @@
             ENDIF
             ! END DEBUGGING
 
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'post-chemistry', RC )
+            !***************************************************************
 
          ENDIF 
 
@@ -1597,6 +1717,14 @@
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
          IF ( LWETD .and. ITS_TIME_FOR_DYN() ) THEN
+
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'pre-wetdep', RC )
+            !***************************************************************
 
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_Start( "Wet deposition", RC )
@@ -1616,6 +1744,14 @@
             CALL GEOS_Timer_End( "Wet deposition", RC )
 #endif
 
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'post-wetdep', RC )
+            !***************************************************************
+
          ENDIF
 
          !==============================================================
@@ -1627,8 +1763,24 @@
          ! (skim, 02/05/11)
          IF ( ITS_TIME_FOR_CHEM() ) THEN
 
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'pre-recompute_od', RC )
+            !***************************************************************
+
             CALL RECOMPUTE_OD
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'post-recompute_od', RC )
+            !***************************************************************
 
          ENDIF
 
@@ -1770,6 +1922,14 @@
          !==============================================================
          IF ( ITS_TIME_FOR_DIAG() ) THEN
 
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'pre-diag1', RC )
+            !***************************************************************
+
             !### Debug
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: b DIAGNOSTICS' )
 
@@ -1880,6 +2040,15 @@
 !            CALL CHECK_STT( State_Chm, Input_Opt, 
 !     &                      'End of Dynamic Loop' )
 !#endif
+
+            !***************************************************************
+            ! TRACER REMOVAL - temporary!
+            !
+            ! Compare tracers and species (written to log file if ND70 is on)
+            CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, 'post-diag archive', RC )
+            !***************************************************************
+
          ENDIF
 
 #if defined( USE_TIMERS )
@@ -1937,7 +2106,25 @@
       ! For model benchmarking, save final masses of 
       ! Rn,Pb,Be or Ox to a binary punch file 
       IF ( LSTDRUN ) THEN 
+
+         !***************************************************************
+         ! TRACER REMOVAL - temporary!
+         !
+         ! Compare tracers and species (written to log file if ND70 is on)
+         CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                         State_Chm, 'pre-stdrun', RC )
+         !***************************************************************
+
          CALL STDRUN( Input_Opt, State_Chm, LBEGIN=.FALSE. )
+
+         !***************************************************************
+         ! TRACER REMOVAL - temporary!
+         !
+         ! Compare tracers and species (written to log file if ND70 is on)
+         CALL Compare_Trc_Spc( am_I_Root, Input_Opt, State_Met,
+     &                         State_Chm, 'post-stdrun', RC )
+         !***************************************************************
+
       ENDIF
 
 #if defined( USE_TIMERS )
