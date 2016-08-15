@@ -803,21 +803,22 @@
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
 !  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies
+!  15 Aug 2016 - E. Lundgren - Replace tracers with species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8,         POINTER       :: STT(:,:,:,:)
-      REAL*8,         POINTER       :: CSPEC_FULL(:,:,:,:)
-      INTEGER                       :: L, I, N_TRACERS
-      LOGICAL                       :: LPRT
+      REAL*8, POINTER :: SPC
+      INTEGER         :: L, I
+      LOGICAL         :: LPRT
 
-      STT        => State_Chm%Tracers
-      CSPEC_FULL => State_Chm%Species
-      N_TRACERS  =  Input_Opt%N_TRACERS
-      LPRT       =  ( am_I_Root .and. Input_Opt%LPRT )
+! NOTE: Species units are in kg/kg dry which may be incompatible with 
+! functionality prior to tracer removal. Validation needed by 3rd party
+! developers (ewl, 8/15/16)
+      SPC      => State_Chm%Species
+      LPRT     =  ( am_I_Root .and. Input_Opt%LPRT )
       IF ( am_I_Root ) THEN
          WRITE (*,*) "@@@@@@@@@@@@@@@@@@ EX_DUMP_FOR_GLOBAL"
       ENDIF
@@ -833,7 +834,7 @@
       DO L = 1,State_Chm%nSpecies
          CALL EX_REGRID_UP( IIPAR, JJPAR, 
      &                      IM_BC, JM_BC, LLPAR,
-     &                      CSPEC_FULL(:,:,:,L), TMP_WINDOW )
+     &                      SPC(:,:,:,L), TMP_WINDOW )
          CALL WRITE_3D_REAL8_ARRAY( IM_BC, JM_BC, LLPAR,
      &                              TMP_WINDOW )
       ENDDO
@@ -845,10 +846,10 @@
          WRITE (*,*) "@@@@@@@@@@@@@@@@@@ EX_REGRID_UP_TRACER --Editing"
       ENDIF
 
-      DO L = 1,N_TRACERS
+      DO L = 1, State_Chm%nAdvect
          CALL EX_REGRID_UP( IIPAR, JJPAR,
      &                      IM_BC, JM_BC, LLPAR,
-     &                      STT(:,:,:,L), TMP_WINDOW )
+     &                      SPC(:,:,:,L), TMP_WINDOW )
          CALL WRITE_3D_REAL8_ARRAY( IM_BC, JM_BC, LLPAR,
      &                              TMP_WINDOW )
       ENDDO
@@ -902,21 +903,21 @@
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
 !  24 Mar 2015 - E. Lundgren - Remove tracer_mod dependency since not used
 !  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies
+!  15 Aug 2016 - E. Lundgren - Replace tracers with species
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
+      REAL*8, POINTER :: SPC(:,:,:,:)
+      INTEGER         :: L
+      LOGICAL         :: LPRT
 
-
-      REAL*8,         POINTER       :: STT(:,:,:,:)
-      REAL*8,         POINTER       :: CSPEC_FULL(:,:,:,:)
-      INTEGER                       :: L, N_TRACERS
-      LOGICAL                       :: LPRT
-
-      STT        => State_Chm%Tracers
-      CSPEC_FULL => State_Chm%Species
-      N_TRACERS  = Input_Opt%N_TRACERS
+! NOTE: Species units are in kg/kg dry which may be incompatible with 
+! functionality prior to tracer removal. Validation needed by
+! 3rd party developers (ewl, 8/15/16)
+      SPC => State_Chm%Species
       LPRT       =  ( am_I_Root .and. Input_Opt%LPRT ) 
 
       IF ( LPRT ) THEN
@@ -929,10 +930,10 @@
           WRITE( 6, 100 ) TRIM(LOAD_CH_CSPEC_FNAME)
  100      FORMAT( '     - EXCHANGE: reading ', A )
          CALL OPEN_BIN_FILE_FOR_READ( TRIM(LOAD_CH_TRACER_FNAME) )
-         DO L = 1,N_TRACERS
+         DO L = 1,State_Chm%nAdvect
               CALL READ_3D_REAL8_ARRAY( IM_BC_CH, JM_BC_CH, LLPAR,
      &                             TMP_WINDOW_CH )
-              STT( I0_BC_CH + 2 : I0_BC_CH + IM_BC_CH-1,
+              SPC( I0_BC_CH + 2 : I0_BC_CH + IM_BC_CH-1,
      &             J0_BC_CH + 2 : J0_BC_CH + JM_BC_CH-1,
      &             LLPAR,L) =
      &        TMP_WINDOW_CH(2:IM_BC_CH-1,2:JM_BC_CH-1,LLPAR)
@@ -953,10 +954,10 @@
           WRITE( 6, 101 ) TRIM(LOAD_NA_CSPEC_FNAME)
  101      FORMAT( '     - EXCHANGE: reading ', A )
          CALL OPEN_BIN_FILE_FOR_READ( TRIM(LOAD_NA_TRACER_FNAME) )
-         DO L = 1,N_TRACERS
+         DO L = 1,State_Chm%nAdvect
               CALL READ_3D_REAL8_ARRAY( IM_BC_NA, JM_BC_NA, LLPAR,
      &                             TMP_WINDOW_NA )
-              STT( I0_BC_NA + 3 : I0_BC_NA + IM_BC_NA-2,
+              SPC( I0_BC_NA + 3 : I0_BC_NA + IM_BC_NA-2,
      &             J0_BC_NA + 3 : J0_BC_NA + JM_BC_NA-2,
      &             LLPAR,L) =
      &        TMP_WINDOW_NA(3:IM_BC_NA-2,3:JM_BC_NA-2,LLPAR)
@@ -977,10 +978,10 @@
           WRITE( 6, 102 ) TRIM(LOAD_EU_CSPEC_FNAME)
   102     FORMAT( '     - EXCHANGE: reading ', A )
          CALL OPEN_BIN_FILE_FOR_READ( TRIM(LOAD_EU_TRACER_FNAME) )
-         DO L = 1,N_TRACERS
+         DO L = 1,State_Chm%nAdvect
               CALL READ_3D_REAL8_ARRAY( IM_BC_EU, JM_BC_EU, LLPAR,
      &                             TMP_WINDOW_EU )
-              STT( I0_BC_EU + 2 : I0_BC_EU + IM_BC_EU-1,
+              SPC( I0_BC_EU + 2 : I0_BC_EU + IM_BC_EU-1,
      &             J0_BC_EU + 2 : J0_BC_EU + JM_BC_EU-1,
      &             LLPAR,L) =
      &        TMP_WINDOW_EU(2:IM_BC_EU-1,2:JM_BC_EU-1,LLPAR)
