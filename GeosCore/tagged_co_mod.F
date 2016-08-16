@@ -33,7 +33,7 @@
       PUBLIC  :: CLEANUP_TAGGED_CO
 !
 ! !REMARKS:
-!  Tagged CO Tracers (you can modify these as needs be!)
+!  Tagged CO Species (you can modify these as needs be!)
 !  ============================================================================
 !  (1 ) Total CO
 !  (2 ) CO from North American fossil fuel 
@@ -151,7 +151,7 @@
 ! !IROUTINE: chem_tagged_co
 !
 ! !DESCRIPTION: Subroutine CHEM\_TAGGED\_CO performs CO chemistry on 
-!  geographically "tagged" CO tracers.  Loss is via reaction with OH. 
+!  geographically "tagged" CO species.  Loss is via reaction with OH. 
 !\\
 !\\
 ! !INTERFACE:
@@ -332,20 +332,6 @@
       !=================================================================
       ! CHEM_TAGGED_CO begins here!
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-!      ! Number of advected species
-!      nAdvect = State_Chm%nAdvect
-!
-!      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-!      DO NA = 1, nAdvect
-!         N                          = State_Chm%Map_Advect(NA)
-!         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-!      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -368,7 +354,7 @@
       HcoState  => NULL()
 
       ! Get the molecular weight of CO [kg/mol] from the species database
-      ! (All tagged tracers are CO, so we can use the value for tracer #1)
+      ! (All tagged species are CO, so we can use the value for species #1)
       FMOL_CO   =  State_Chm%SpcData(1)%Info%MW_g * 1.0e-3_fp
 
       ! Compute diurnal cycle for OH every day (check for new day inside
@@ -412,7 +398,7 @@
       !=================================================================
       ! Read emissions from HEMCO into SUMACETCO, SUMISOPCO, SUMMONOCO
       ! arrays.  These are needed to update the chemically-produced
-      ! tagged CO tracers: COch4, COisop, COacet, etc. (bmy, 6/1/16)
+      ! tagged CO species: COch4, COisop, COacet, etc. (bmy, 6/1/16)
       !
       ! NOTE: HEMCO returns 3-D emissions, so we will sum in the
       ! vertical because the code expects SUMACETCO, SUMISOPCO, and
@@ -756,16 +742,16 @@
          ENDIF
 
          !==============================================================
-         ! (1e) Add production of CO into the following tagged tracers:
+         ! (1e) Add production of CO into the following tagged species:
          !
-         ! (a) Tracer #12: CO produced from CH4
-         ! (b) Tracer #14: CO produced from ISOPRENE
-         ! (c) Tracer #15: CO produced from MONOTERPENES
-         ! (d) Tracer #16: CO produced from METHANOL (CH3OH)
-         ! (e) Tracer #17: CO produced from ACETONE
+         ! (a) Species #12: CO produced from CH4
+         ! (b) Species #14: CO produced from ISOPRENE
+         ! (c) Species #15: CO produced from MONOTERPENES
+         ! (d) Species #16: CO produced from METHANOL (CH3OH)
+         ! (e) Species #17: CO produced from ACETONE
          !
          ! %%% NOTE: If you are modifying the tagged CO simulation, 
-         ! %%% and your simulation has less than 12 tracers, then 
+         ! %%% and your simulation has less than 12 species, then 
          ! %%% then comment out this section.  If you don't you can
          ! %%% get an array-out-of-bounds error (bmy, 6/11/08)
          !==============================================================
@@ -800,7 +786,7 @@
             ERR_MSG = 'STOP at tagged_co_mod:6'
             CALL CHECK_VALUE( CO_OH, ERR_LOC, ERR_VAR, ERR_MSG )
 
-            ! Handle strat loss by OH for regional CO tracers
+            ! Handle strat loss by OH for regional CO species
             IF ( LSPLIT ) THEN
 
                ! Loop over regional CO species
@@ -824,7 +810,7 @@
                   CALL CHECK_VALUE( Spc(I,J,L,N), ERR_LOC,
      &                              ERR_VAR,      ERR_MSG )
 
-                  ! ND65 diagnostic -- loss of CO by OH for "tagged" tracers
+                  ! ND65 diagnostic -- loss of CO by OH for "tagged" species
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
                      AD65(I,J,L,N) = AD65(I,J,L,N) +
      &                               ( CORATE * Spc(I,J,L,N) * STTCO)
@@ -833,7 +819,7 @@
             ENDIF
 
             ! CO_OH above is just the fraction of CO lost by OH.  Here
-            ! we multiply it by GCO (the initial value of STT in molec/cm3)
+            ! we multiply it by GCO (the initial value of Spc in molec/cm3)
             ! to convert it to an amount of CO lost by OH [molec/cm3]
             ! (bmy, 2/19/02)
             CO_OH = GCO * CO_OH
@@ -892,10 +878,10 @@
             ! Now use OH_MOLEC_CM3, which includes a diurnal cycle.
             CO_OH = KRATE * GCO * OH_MOLEC_CM3 * DTCHEM
 
-            ! Handle trop loss by OH for regional CO tracers
+            ! Handle trop loss by OH for regional CO species
             IF ( LSPLIT ) THEN
 
-               ! Loop over regional CO tracers
+               ! Loop over regional CO species
                DO NA = 2, nAdvect
 
                   ! Advected species ID
@@ -912,7 +898,7 @@
                   CALL CHECK_VALUE( Spc(I,J,L,N), ERR_LOC,
      &                              ERR_VAR,      ERR_MSG )
 
-                  ! ND65 diagnostic -- loss of CO by OH for "tagged" tracers
+                  ! ND65 diagnostic -- loss of CO by OH for "tagged" species
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
                      AD65(I,J,L,N) = AD65(I,J,L,N) + 
      &                   ( KRATE * OH_MOLEC_CM3 * Spc(I,J,L,N) * STTCO )
@@ -924,7 +910,7 @@
          
          !==============================================================
          ! Save the total chemical production from various sources
-         ! into the total CO tracer STT(I,J,L,1)
+         ! into the total CO species Spc(I,J,L,1)
          !==============================================================
 
          ! GCO is the total CO before chemistry was applied [molec CO/cm3]
@@ -932,7 +918,8 @@
          GCO = GCO + CO_CH4   + CO_MONO + CO_ACET + 
      &               CO_CH3OH + CO_ISOP - CO_OH
 
-         ! Convert net CO from [molec CO/cm3] to [kg] and store in STT
+         ! Convert net CO from [molec CO/cm3] to [kg] and store in
+         ! State_Chm%Species
          Spc(I,J,L,1) = GCO / STTCO
 
          !==============================================================
@@ -978,15 +965,6 @@
       Ptr2D    => NULL()
       HcoState => NULL()
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-!      DO NA = 1, nAdvect
-!        N                          = State_Chm%Map_Advect(NA)
-!         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-!      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CHEM_TAGGED_CO
 !EOC
 !------------------------------------------------------------------------------
