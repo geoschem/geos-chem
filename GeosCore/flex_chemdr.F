@@ -108,6 +108,9 @@
 !                              molec/cm3 are done in the same step as the copy.
 !  02 Aug 2016 - M. Sulprizio- Connect production and loss rates from KPP to
 !                              ND65 diagnostic 
+!  16 Aug 2016 - E. Lundgren - Remove all references to tracers, including
+!                              STT and Input_Opt%N_TRACERS, and use routines in
+!                              unitconv_mod.F for species kg <-> molec/cm3 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -117,7 +120,6 @@
       INTEGER               :: I, J, L, N, F, M, MONTH, YEAR
       INTEGER               :: WAVELENGTH
       INTEGER               :: HCRC
-      INTEGER               :: N_TRACERS
       LOGICAL               :: prtDebug
       LOGICAL               :: LDUST
       CHARACTER(LEN=155)    :: DiagnName
@@ -150,12 +152,6 @@
       INTEGER               :: ICNTRL(20)
       INTEGER               :: ISTATUS(20)
 
-      ! mje Array to hold the molecular mass of the species
-      REAL(fp)              :: TCVV(Input_Opt%N_TRACERS)
-
-      ! mje STT holds the concentrations of Tracers
-      REAL(fp), POINTER     :: STT(:,:,:,:)
-
       ! mje Array for bug checking
       REAL(fp)              :: AverageVAR(NSPEC)
       REAL(fp)              :: Mass, Start, Finish, rtim, itim
@@ -181,9 +177,6 @@
       ! For testing only, may be removed later (mps, 4/26/16)
       LOGICAL               :: DO_HETCHEM
       LOGICAL               :: DO_PHOTCHEM
-
-      ! For the species database
-      REAL(fp)              :: MolecRatio, MW_kg
 
       ! Objects
       TYPE(Species), POINTER :: SpcInfo
@@ -226,15 +219,6 @@
       MONTH     = GET_MONTH()
       YEAR      = GET_YEAR()
 
-      ! mje Copy Number of tracers (advected species) into N_TRACERS
-      N_TRACERS = Input_Opt%N_TRACERS
-
-      ! mje Copy the molecular mass of the Tracers into TCVV
-      TCVV      = Input_Opt%TCVV
-
-      ! mje link the STT Pointer to the State_Chm%Tracers stucture
-      STT       => State_Chm%Species
-
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
@@ -255,14 +239,14 @@
          !---------------------------------
          ! Set global concentration of CH4
          !---------------------------------
-         ! Set tracer index (CODEATHON, mps, 6/16/16)
+         ! Set species index (mps, 6/16/16)
          ! Need to pass 'T' for now because CH4 can be an active or
          ! inactive species. In the future, we should define whether
          ! a species is active or inactive the species database and check
          ! for that here.
          id_CH4 = IND_('CH4', 'T')
 
-         ! Check that CH4 is not a defined tracer
+         ! Check that CH4 is not a defined species
          ! NOTE: ind_CH4 is from gckpp_Monitor.F90
          IF ( id_CH4 <= 0 .and. ind_CH4 > 0 .and. 
      &      ( CH4_YEAR /= YEAR ) ) THEN
@@ -381,7 +365,7 @@
       ELSE
 #if !defined( TOMAS )
          ! Don't read dust emissions from disk when using TOMAS,
-         ! because TOMAS uses a different set of dust tracers than the 
+         ! because TOMAS uses a different set of dust species than the 
          ! std code (win, bmy, 1/25/10)
          CALL RDUST_OFFLINE( am_I_Root, Input_Opt, State_Met, State_Chm,
      &                       MONTH,     YEAR,      WAVELENGTH, RC )
@@ -393,48 +377,10 @@
          CALL DEBUG_MSG( '### FLEX_CHEMDR: after RDUST' )
       ENDIF
 
-      !=================================================================
-      ! Copy STT to State_Chm%Species
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg, SpcInfo )
-      DO N = 1, State_Chm%nSpecies
-
-         ! Get info about this species from the species database
-         SpcInfo => State_Chm%SpcData(N)%Info
-
-         ! Skip non-advected and non-KPP species
-!         IF ( .not. SpcInfo%Is_Advected ) CYCLE
-!         IF ( .not. SpcInfo%Is_Kpp      ) CYCLE
-
-         ! Moles C per moles species
-         MolecRatio = SpcInfo%MolecRatio
-         MW_kg      = SpcInfo%emMW_g * 1.e-3_fp
-
-         ! Loop over grid boxes
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! Copy from STT to State_Chm%Species
-            ! Convert from [kg] to [molec/cm3]
-!            State_Chm%Species(I,J,L,N) = STT(I,J,L,N)
-            State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)
-     &                                 * ( AVO / MW_KG ) 
-     &                                 / ( State_Met%AIRVOL(I,J,L) * 
-     &                                     1e+6_fp                 *
-     &                                     MolecRatio              )
-
-         ENDDO
-         ENDDO
-         ENDDO
-
-         ! Free pointer
-         SpcInfo => NULL()
-
-      ENDDO
-!$OMP END PARALLEL DO
+      !================================================================
+      ! Convert species from [kg] to [molec/cm3] (ewl, 8/16/16)
+      !================================================================
+      CALL ConvertSpc_Kg_to_MND( am_I_Root, State_Met, State_Chm, RC )
       
       !=================================================================
       ! Call photolysis routine to compute J-Values
@@ -831,29 +777,6 @@
          ! Save rate constants in global array
          GLOB_RCONST(I,J,L,:) = RCONST(:)
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% FOR DIAGNOSTIC PURPOSES ONLY, WE CAN REMOVE THIS LATER
-!#if defined( DEVEL )
-!         !=============================================================
-!         ! mje some simple diagnostics to check that things make sense
-!         ! mje these can be removed once we are happy with everything
-!         !=============================================================
-!
-!         ! NOTE: We need to zero these here within the OpenMP loop
-!         ! and declare these as !$OMP+PRIVATE. (bmy, 3/28/16)
-!         AVERAGEVAR = 0.0_fp
-!         MASS       = 0.0_fp
-!
-!         ! mje some simple diagnostics to check that things make sense
-!         ! mje these can be removed once we are happy with everything
-!         DO N=1,NSPEC
-!            AVERAGEVAR(N)=AVERAGEVAR(N)+
-!     &                    C(N)*State_Met%AD(I,J,L)
-!         ENDDO
-!         MASS=MASS+State_Met%AD(I,J,L)
-!#endif
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
          !==============================================================
          ! Check we have no negative values and copy the concentrations
          ! calculated from the C array back into State_Chm%Species
@@ -980,57 +903,10 @@
       write(*,'(a,I9)') 'Flex LU Decompos.  : ', totnumLU
 #endif
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% FOR DIAGNOSTIC PURPOSES ONLY, WE CAN REMOVE THIS LATER
-!#if defined( DEVEL )
-!      ! mje write out tropospheric mass weighted averages
-!      DO N=1,NSPEC
-!         WRITE (6,*) SPC_NAMES(N), AVERAGEVAR(N)/MASS
-!      ENDDO	
-!#endif
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-      !=================================================================
-      ! Copy updated tracer concentrations back into STT
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, MolecRatio, MW_kg, SpcInfo )
-      DO N = 1, State_Chm%nSpecies
-
-         ! Get info about this species from the species database
-         SpcInfo => State_Chm%SpcData(N)%Info
-
-         ! Skip non-advected and non-KPP species
-         !IF ( .not. SpcInfo%Is_Advected ) CYCLE
-         !IF ( .not. SpcInfo%Is_Kpp      ) CYCLE
-
-         ! Moles C per moles species
-         MolecRatio = SpcInfo%MolecRatio
-         MW_kg      = SpcInfo%emMW_g * 1.e-3_fp
-         
-         ! Loop over species
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! Copy new tracer concentrations from State_Chm%Species to STT
-            ! Convert from [molec/cm3] to [kg]
-            State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)
-     &                                 / ( AVO / MW_kg ) 
-     &                                 * ( State_Met%AIRVOL(I,J,L)  * 
-     &                                     1e+6_fp                  *
-     &                                     MolecRatio              ) 
-
-         ENDDO
-         ENDDO
-         ENDDO
-
-         ! Free pointer
-         SpcInfo => NULL()
-
-      ENDDO
-!$OMP END PARALLEL DO
+      !================================================================
+      ! Convert species from [molec/cm3] to [kg] (ewl, 8/16/16)
+      !================================================================
+      CALL ConvertSpc_MND_to_Kg( am_I_Root, State_Met, State_Chm, RC )
 
 #if defined( UCX )
       ! If using stratospheric chemistry, applying high-altitude
@@ -1078,125 +954,6 @@
             CALL DEBUG_MSG( '### FLEX_CHEMDR: after DIAG20' )
          ENDIF
       ENDIF
-
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% FOR DIAGNOSTIC PURPOSES ONLY, WE CAN REMOVE THIS LATER
-#if defined( DEVEL )
-      ! mje  STT currently in kg / grid box convert to v/v
-      CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,
-     &                          State_Met, State_Chm, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                   'CHEM_SULFATE in sulfate_mod.F')
-         RETURN
-      ENDIF
-
-      DO N=1,N_TRACERS
-
-            ! Construct diagnostic name
-            DiagnName = TRIM( Input_Opt%TRACER_NAME(N) )
-            
-            ! Update the deposition velocity diagostics 
-            CALL Diagn_Update( am_I_Root,
-     &                         cName   = TRIM( DiagnName ),
-     &                         Array3D = STT(:,:,:,N),
-     &                         COL     = Input_Opt%DIAG_COLLECTION,
-     &                         RC      = HCRC )
-
-            ! Stop with error if the diagnostics were unsuccessful
-            IF ( HCRC /= HCO_SUCCESS ) THEN
-               CALL ERROR_STOP( 'Cannot update tracer 
-     &                           concentration diagnostics',
-     &                          'Flex_Chemdr')
-            ENDIF
-      ENDDO
-
-      ! mje convert the STT array from v/v to kg / grid box
-      CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt, 
-     &                          State_Met, State_Chm, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                   'CHEM_SULFATE in sulfate_mod.F')
-         RETURN
-      ENDIF
-
-      DO N=1,NSPEC
-
-            ! Construct diagnostic name
-            DiagnName = 'SPC_'//TRIM( SPC_NAMES(N) )
-            
-            ! Update the deposition velocity diagostics 
-            CALL Diagn_Update( am_I_Root,
-     &                 cName   = TRIM( DiagnName ),
-     &                 Array2D = State_Chm%Species(:,:,1,CSPECTOKPP(N)),
-     &                 COL     = Input_Opt%DIAG_COLLECTION,
-     &                 RC      = HCRC )
-
-            ! Stop wieth error if the diagnostics were unsuccessful
-            IF ( HCRC /= HCO_SUCCESS ) THEN
-               CALL ERROR_STOP( 'Cannot update tracer 
-     &                           concentration diagnostics',
-     &                          'Flex_Chemdr')
-            ENDIF
-      ENDDO
-
-      ! Write out Rate values
-      DO N=1,NREACT
-         ! Construct diagnostic name
-         write(DiagnName,'(a)')
-     &        'RR_' // TRIM( ADJUSTL(EQN_NAMES(N)) )
-            
-         ! Update the diagostics 
-         CALL Diagn_Update( am_I_Root,
-     &        cName   = TRIM( DiagnName ),
-     &        Array2D = GLOB_RCONST(:,:,1,N),
-     &        COL     = Input_Opt%DIAG_COLLECTION,
-     &        RC      = HCRC )
-
-         ! Stop wieth error if the diagnostics were unsuccessful
-         IF ( HCRC /= HCO_SUCCESS ) THEN
-            CALL ERROR_STOP( 'Cannot update tracer 
-     &           concentration diagnostics',
-     &          'Flex_Chemdr')
-         ENDIF
-      ENDDO
-
-      ! Update the diagostics 
-      CALL Diagn_Update( am_I_Root,
-     &     cName   = TRIM( 'T' ),
-     &     Array3D = State_Met%T(:,:,:),
-     &     COL     = Input_Opt%DIAG_COLLECTION,
-     &     RC      = HCRC )
-
-      ! Stop with error if the diagnostics were unsuccessful
-      IF ( HCRC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'Cannot update temperature diagnostic',
-     &        'Flex_Chemdr')
-      ENDIF
-
-      CALL Diagn_Update( am_I_Root,
-     &     cName   = TRIM( 'STK_N2O5' ),
-     &     Array3D = SCOEFF(:,:,:,1),
-     &     COL     = Input_Opt%DIAG_COLLECTION,
-     &     RC      = HCRC )
-
-      CALL Diagn_Update( am_I_Root,
-     &     cName   = TRIM( 'STK_HBr' ),
-     &     Array3D = SCOEFF(:,:,:,2),
-     &     COL     = Input_Opt%DIAG_COLLECTION,
-     &     RC      = HCRC )
-
-      CALL Diagn_Update( am_I_Root,
-     &     cName   = TRIM( 'STK_HBrICE' ),
-     &     Array3D = SCOEFF(:,:,:,3),
-     &     COL     = Input_Opt%DIAG_COLLECTION,
-     &     RC      = HCRC )
-#endif
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-      ! mje set rid of the pointers created
-      NULLIFY (STT)
 
       ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step
       FIRSTCHEM = .FALSE.
