@@ -3739,9 +3739,9 @@ CONTAINS
        DO J = 1, JJPAR
        DO I = 1, IIPAR
           State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)           &
+                                     / ( AVO / MW_kg )                      &
                                      * (  State_Met%AIRVOL(I,J,L)           &
-                                          * 1e+6_fp * MolecRatio )          &
-                                     / ( AVO / MW_kg )
+                                          * 1e+6_fp * MolecRatio )          
        ENDDO
        ENDDO
        ENDDO
