@@ -21,29 +21,34 @@
       !-----------------------------------------------------------------
       ! Parameters to define floating-point variables
       !-----------------------------------------------------------------
-      USE PRECISION_MOD, ONLY : fpp => fp  ! Flexible precision
-      USE PRECISION_MOD, ONLY : f4         ! 4-byte floating point
-      USE PRECISION_MOD, ONLY : f8         ! 8-byte floating point
+      USE PRECISION_MOD,   ONLY : fpp => fp  ! Flexible precision
+      USE PRECISION_MOD,   ONLY : f4         ! 4-byte floating point
+      USE PRECISION_MOD,   ONLY : f8         ! 8-byte floating point
 
       !-----------------------------------------------------------------
       ! Basic GEOS-Chem modules
       !-----------------------------------------------------------------
       USE CMN_SIZE_MOD          ! Size parameters
-      USE PHYSCONSTANTS         ! Physical constants
+      USE ErrCode_Mod           ! Error codes for success or failure
       USE ERROR_MOD             ! For error checking
       USE FILE_MOD              ! For file I/O
+      USE GEOS_TIMERS_MOD       ! For GEOS-Chem timers (optional)
+      USE GC_Environment_Mod    ! For allocating derived type objects
       USE GRID_MOD              ! For defining the lons/lats/areas of the grid
+      USE Input_Opt_Mod         ! Derived type for Input Options 
       USE INPUT_MOD             ! For reading settings from "input.geos"
       USE MAPPING_MOD           ! For regridding MODIS LAI
       USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
+      USE PhysConstants         ! Physical constants
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
+      USE REGRID_A2A_MOD        ! For horizontal regridding
       USE RESTART_MOD           ! For restart file I/O
+      USE State_Chm_Mod         ! Derived type for Chemistry State object
+      USE State_Met_Mod         ! Derived type for Meteorology State object
       USE TIME_MOD              ! For computing date & time 
       USE TRACER_MOD            ! For error-checking the tracer array
-      USE REGRID_A2A_MOD        ! For horizontal regridding
-      USE UNITCONV_MOD          ! For gas concentration unit conversion
-      USE GEOS_TIMERS_MOD       ! For GEOS-Chem timers (optional)
-      USE GIGC_State_Chm_Mod, ONLY : IND_
+      USE UnitConv_Mod          ! For gas concentration unit conversion
+
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules
       !-----------------------------------------------------------------
@@ -79,26 +84,26 @@
       USE DIAG51b_MOD           ! For ND51b (satellite timeseries) diag
       USE DIAG63_MOD            ! For ND63  (PARANOX timeseries  ) diag
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
-      USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
       USE DIAGNOSTICS_MOD       ! NetCDF diagnostics module (C. Keller)
+      USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
 
       !-----------------------------------------------------------------
       ! GEOS-Chem dynamics modules
       !-----------------------------------------------------------------
+      USE CHEMGRID_MOD          ! For the dynamic tropopause
       USE CONVECTION_MOD        ! For deep cloud convection
       USE LINOZ_MOD             ! For LINOX linear strat chemistry
       USE PBL_MIX_MOD           ! To compute PBL height 
       USE TPCORE_BC_MOD         ! For nested-grid boundary conditions
       USE TRANSPORT_MOD         ! Driver routines for advection
-      USE CHEMGRID_MOD          ! For the dynamic tropopause
       USE VDIFF_MOD             ! For non-local PBL mixing (J. Lin)
 
       !-----------------------------------------------------------------
       ! GEOS-Chem emissions modules
       !-----------------------------------------------------------------
-      USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
       USE EMISSIONS_MOD         ! For interfacing with HEMCO emissions
       USE MIXING_MOD            ! performs tracer mixing
+      USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
 
       !-----------------------------------------------------------------
       ! GEOS-Chem met field I/O modules
@@ -139,15 +144,6 @@
       USE rrtmg_sw_init,  ONLY : rrtmg_sw_ini
 
 #endif
-
-      !-----------------------------------------------------------------
-      ! Modules for the Grid-Independent GEOS-Chem (aka "GIGC")
-      !-----------------------------------------------------------------
-      USE GIGC_ErrCode_Mod      ! Error codes for success or failure
-      USE GIGC_Environment_Mod  ! For allocating objects
-      USE GIGC_Input_Opt_Mod    ! Derived type for Input Options 
-      USE GIGC_State_Chm_Mod    ! Derived type for Chemistry State object    
-      USE GIGC_State_Met_Mod    ! Derived type for Meteorology State object
 
       IMPLICIT NONE
 !
@@ -324,11 +320,11 @@
       TYPE(MapWeight), POINTER :: mapping(:,:)
 
       !-----------------------------------------------------------------
-      ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
+      ! %%%% REPLICATING GCHP FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
       !
       ! We must declare the Chemistry State (State_Chm), Meteorology
       ! State (State_Met), and Input Options (Input_Opt) objects
-      ! for use with the Grid-Independent GEOS-Chem code. 
+      ! for use with the GEOS-Chem High Performance code. 
       !
       TYPE(OptInput)           :: Input_Opt   ! Input Options object
       TYPE(ChmState)           :: State_Chm   ! Chemistry State object
@@ -416,11 +412,11 @@
 #endif
 
       !-----------------------------------------------------------------
-      ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
+      ! %%%% REPLICATING GCHP FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
       !
       ! Assume a successful return until otherwise
       !
-      RC                      = GIGC_SUCCESS
+      RC                      = GC_SUCCESS
       !
       ! Define NI, NJ, NL dimensions for use below
       !
@@ -443,15 +439,15 @@
       Input_Opt%LINOZ_NFIELDS = 7
       Input_Opt%RootCPU       = .true.
       !
-      ! Call the routine GIGC_Allocate_All (located in module file
-      ! GeosCore/gigc_environment_mod.F90) to allocate all lat/lon
+      ! Call the routine GC_Allocate_All (located in module file
+      ! GeosCore/gc_environment_mod.F90) to allocate all lat/lon
       ! allocatable arrays used by GEOS-Chem, as well as the Input 
       ! Options object.  The IIPAR and JJPAR dimensions are not 
       ! declared as PARAMETERs, but are module variables that are 
       ! initialized in this call.
       !
-      CALL GIGC_Allocate_All( am_I_root, Input_Opt, RC )
-      IF ( RC /= GIGC_SUCCESS ) GOTO 9999
+      CALL GC_Allocate_All( am_I_root, Input_Opt, RC )
+      IF ( RC /= GC_SUCCESS ) GOTO 9999
       !-----------------------------------------------------------------
       
       ! Display current grid resolution and data set type
@@ -557,7 +553,7 @@
       ! Initialize Input_Opt, State_Chem, State_Met, objects. 
       ! (bmy, 3/4/13)
       !
-      CALL GIGC_Init_All
+      CALL GC_Init_All
      &   ( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
       !
       ! Also allocate arrays in GEOS-Chem modules that have not yet
@@ -565,7 +561,7 @@
       ! SULFATE_MOD).  This removes the init calls from the run stage,
       ! which is required when connecting to the GEOS-5 GCM w/ ESMF.
       ! (bmy, 3/4/13)
-      CALL GIGC_Init_Extra( am_I_Root, Input_Opt, State_Chm, RC )
+      CALL GC_Init_Extra( am_I_Root, Input_Opt, State_Chm, RC )
       !
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
       ! to the State_Met%AREA_M2 field. (bmy, 8/22/14)
@@ -701,7 +697,7 @@
      &                     State_Met, State_Chm, RC )
 
       ! Stop the run if the HEMCO init sequence dies w/ an error
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP( 'Error in EMISSIONS_INIT!', 'main.F' )
       ENDIF
 
@@ -1403,7 +1399,7 @@
             IF ( LTRAN ) THEN 
                CALL DO_TRANSPORT
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-               IF ( RC /= GIGC_SUCCESS ) THEN
+               IF ( RC /= GC_SUCCESS ) THEN
                   CALL ERROR_STOP('Error in DO_TRANSPORT!', 'main.F')
                ENDIF
 
@@ -1489,7 +1485,7 @@
 
                CALL DO_DRYDEP( am_I_Root, Input_Opt, 
      &                         State_Met, State_Chm, RC )
-               IF ( RC /= GIGC_SUCCESS ) THEN
+               IF ( RC /= GC_SUCCESS ) THEN
                   CALL ERROR_STOP('Error in DO_DRYDEP!', 'main.F')
                ENDIF
 
@@ -1525,7 +1521,7 @@
      &                          State_Chm, ITS_TIME_FOR_EMIS(), 2, RC )
 
             ! Stop the run if the HEMCO run sequence dies w/ an error
-            IF ( RC /= GIGC_SUCCESS ) THEN
+            IF ( RC /= GC_SUCCESS ) THEN
                CALL ERROR_STOP( 'Error in EMISSIONS_RUN after drydep!',
      &                          'main.F' )
             ENDIF
@@ -1578,11 +1574,11 @@
             ! be updated to use [kg/kg total air] (ewl, 9/18/15)
             CALL DO_MIXING ( am_I_Root, Input_Opt, 
      &                       State_Met, State_Chm, RC )
-            IF ( RC /= GIGC_SUCCESS ) THEN
+            IF ( RC /= GC_SUCCESS ) THEN
                CALL ERROR_STOP('Error in DO_MIXING!', 'main.F')
             ENDIF
 
-            IF ( RC /= GIGC_SUCCESS ) THEN
+            IF ( RC /= GC_SUCCESS ) THEN
                CALL ERROR_STOP( 'Error in MIX_TRACERS!', 'main.F' )
             ENDIF
 
@@ -1599,7 +1595,7 @@
                ! to [kg/kg total air] for convection (ewl, 9/18/15)
                CALL DO_CONVECTION
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-               IF ( RC /= GIGC_SUCCESS ) THEN
+               IF ( RC /= GC_SUCCESS ) THEN
                   CALL ERROR_STOP('Error in DO_CONVECTION!', 'main.F')
                ENDIF
 
@@ -1677,7 +1673,7 @@
             ! once FlexChem is implemented (ewl, 9/18/15)
             CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
      &                         State_Chm, State_Met, RC ) 
-            IF ( RC /= GIGC_SUCCESS ) THEN
+            IF ( RC /= GC_SUCCESS ) THEN
                CALL ERROR_STOP('Error in DO_CHEMISTRY!', 'main.F')
             ENDIF
 
@@ -1736,7 +1732,7 @@
             ! along the column (ewl, 9/18/15)
             CALL DO_WETDEP
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-            IF ( RC /= GIGC_SUCCESS ) THEN
+            IF ( RC /= GC_SUCCESS ) THEN
                CALL ERROR_STOP('Error in DO_WETDEP!', 'main.F')
             ENDIF
 
@@ -1840,7 +1836,7 @@
                ENDDO
 
                ! Stop the run if DO_RRTMG_RAD_TRANSFER returns an error
-               IF ( RC /= GIGC_SUCCESS ) THEN
+               IF ( RC /= GC_SUCCESS ) THEN
                   CALL ERROR_STOP('Error in DO_RRTMG_RAD_TRANSFER!',
      &                            'main.F')
                ENDIF
@@ -2136,15 +2132,15 @@
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )
 
       ! Deallocate fields of the Input Options object
-      CALL Cleanup_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )
+      CALL Cleanup_Input_Opt( am_I_Root, Input_Opt, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup Input_Opt' )
 
       ! Deallocate fields of the Chemistry State object
-      CALL Cleanup_GIGC_State_Chm( am_I_Root, State_Chm, RC )
+      CALL Cleanup_State_Chm( am_I_Root, State_Chm, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup State_Chm' )
 
       ! Deallocate fields of the Meteorology State object
-      CALL Cleanup_GIGC_State_Met( am_I_Root, State_Met, RC )
+      CALL Cleanup_State_Met( am_I_Root, State_Met, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup State_met' )
 
       ! Deallocate dynamic module arrays
@@ -3032,7 +3028,7 @@
       !================================================================
 
       ! Assume success
-      RC  = GIGC_SUCCESS
+      RC  = GC_SUCCESS
 
       ! Directory where netCDF ifles are found
       DIR = TRIM( Input_Opt%DATA_DIR ) // 'HEMCO/MAP_A2A/v2014-07/'

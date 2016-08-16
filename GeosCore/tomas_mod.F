@@ -180,7 +180,7 @@
       REAL(fp) :: AVGMASS(IBINS)       ! Average mass per particle
                                        ! mid-range of size bin
                                        ! [kg/no.]
-      REAL(fp) :: cosmic_ions(72,46,9) !careful, this is not GIGC safe!
+      REAL(fp) :: cosmic_ions(72,46,9) !careful, this is not GCHP safe!
                                        ! [ion pairs kg^-1 s^-1]
 
 !      DATA AVGMASS/ 1.4142d-21, 
@@ -250,11 +250,11 @@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
       USE CMN_SIZE_MOD
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 
       ! Arguments
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
@@ -299,13 +299,13 @@
 
 
       ! Assume success
-      RC    = GIGC_SUCCESS
+      RC    = GC_SUCCESS
 
       ! Check that tracer units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
          MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
          LOC = 'Routine DO_TOMAS in tomas_mod.F'
-         CALL GIGC_Error( MSG, RC, LOC )
+         CALL GC_Error( MSG, RC, LOC )
       ENDIF
 
       ! Do TOMAS aerosol microphysics
@@ -385,14 +385,14 @@
 !
       ! References to F90 modules
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE DIAG_MOD,           ONLY : AD61,  AD61_INST
-      USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND60, ND61,  LD61
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE DIAG_MOD,           ONLY : AD61,  AD61_INST
+      USE ErrCode_Mod
+      USE ERROR_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
      
       ! Arguments
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
@@ -489,7 +489,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
       
       ! Check that tracer units are in [kg]. While tracer units
       ! are now generally [kg/kg] in GEOS-Chem, they are converted to 
@@ -498,7 +498,7 @@
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
          MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
          LOC = 'Routine AEROPHYS in tomas_mod.F'
-         CALL GIGC_Error( MSG, RC, LOC )
+         CALL GC_Error( MSG, RC, LOC )
       ENDIF
       
       ! Point to chemical species array [kg]
@@ -3441,15 +3441,15 @@ Cjrp      endif
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput          
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE UNITCONV_MOD
-      USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND60
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+      USE ErrCode_Mod
+      USE ERROR_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput          
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE UnitConv_Mod
 
       ! Arguments
       LOGICAL,        INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
@@ -3489,7 +3489,7 @@ Cjrp      endif
       !=================================================================
 
       ! Assume success
-      RC                =  GIGC_SUCCESS
+      RC                =  GC_SUCCESS
 
       ! Check that tracer units are in [kg] (ewl, 8/13/15)
       ! Convert tracer concentration units to [kg] if not necessary.
@@ -3771,11 +3771,11 @@ Cjrp      endif
 !******************************************************************************
 !
       ! Reference to F90 modules
-      USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : ChmState
 
       ! Arguments
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
@@ -3841,7 +3841,7 @@ Cjrp      endif
 
 
       ! Assume success
-      RC                =  GIGC_SUCCESS
+      RC                =  GC_SUCCESS
 
       ! Check that tracer units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
@@ -5909,14 +5909,13 @@ c
 !*****************************************************************************
 !
       ! References to F90 modules
+      USE CMN_DIAG_MOD      ! ND60
+      USE CMN_SIZE_MOD      ! Size parameters
       USE DIAG_MOD,    ONLY :  AD60_COND, AD60_COAG, AD60_NUCL
       USE DIAG_MOD,    ONLY :  AD60_AQOX, AD60_ERROR, AD60_SOA
       USE DIAG_MOD,    ONLY :  AD61,      AD61_INST  
       USE ERROR_MOD,   ONLY :  IT_IS_NAN
       USE TIME_MOD,    ONLY : GET_TS_CHEM
-
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_DIAG_MOD      ! ND60
 
       ! Arguments
       INTEGER               :: PTYPE,    I,      J,      L 
@@ -6111,11 +6110,11 @@ c
 !
       ! References to F90 modules
       USE CMN_SIZE_MOD             ! Size parameters
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLUN
+      USE State_Chm_Mod,      ONLY : ChmState, IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -6140,7 +6139,7 @@ c
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Define species indices here, these are now saved as
       ! module variables (bmy, 6/20/16)
@@ -6415,8 +6414,8 @@ c         SRTH2O = ICOMP
       ! Reference to F90 modules
       USE CMN_SIZE_MOD      ! Size parameters
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
-      USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State object
+      USE State_Chm_Mod,      ONLY : ChmState, IND_
+      USE State_Met_Mod,      ONLY : MetState          ! Met State object
 
       ! Arguments
       INTEGER,        INTENT(IN)    :: I, J, L, N
@@ -6568,9 +6567,9 @@ c         SRTH2O = ICOMP
 
       ! Reference to F90 modules
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : ChmState
 
       ! Arguments
       INTEGER,        INTENT(IN)    :: I, J, L, N
@@ -6596,7 +6595,7 @@ c         SRTH2O = ICOMP
       !=================================================================
 
       ! Assume success
-      RC                =  GIGC_SUCCESS
+      RC                =  GC_SUCCESS
 
       ! Check that tracer units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
@@ -6778,10 +6777,10 @@ c       IF (LDUST30) MDUST = Spc(I,J,L,id_DUST1-1+BIN)
 !
       ! Reference to F90 modules
       USE CMN_SIZE_MOD          ! Size parameters
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 
 ! Arguments
       INTEGER,        INTENT(IN)    :: I, J, L, BIN
@@ -6803,7 +6802,7 @@ c       IF (LDUST30) MDUST = Spc(I,J,L,id_DUST1-1+BIN)
       !========================================================================
 
       ! Assume success
-      RC                =  GIGC_SUCCESS
+      RC                =  GC_SUCCESS
 
       ! Point to chemical species array [kg]
       Spc => State_Chm%Species
@@ -6941,12 +6940,12 @@ c       IF (LDUST30) MDUST = Spc(I,J,L,id_DUST1-1+BIN)
 !******************************************************************************
 
       USE CMN_SIZE_MOD             ! Size parameters
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_ErrCode_Mod
-      USE UNITCONV_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE UnitConv_Mod
 
       IMPLICIT NONE
 
@@ -6985,7 +6984,7 @@ c       IF (LDUST30) MDUST = Spc(I,J,L,id_DUST1-1+BIN)
       !========================================================================
 
       ! Assume success
-      RC                =  GIGC_SUCCESS
+      RC                =  GC_SUCCESS
 
       ! If tracer units are [kg/kg dry], convert to [kg] for this routine.
       ! Otherwise, if tracer units are not [kg] then throw an error to the 
@@ -6996,13 +6995,13 @@ c       IF (LDUST30) MDUST = Spc(I,J,L,id_DUST1-1+BIN)
          CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met, 
      &                               State_Chm, RC ) 
          UNITCONV = .TRUE.
-         IF ( RC /= GIGC_SUCCESS ) THEN
-            CALL GIGC_Error('Unit conversion error', RC, 
+         IF ( RC /= GC_SUCCESS ) THEN
+            CALL GC_Error('Unit conversion error', RC, 
      &                      'Routine AERO_DIADEN in tomas_mod.F')
             RETURN
          ENDIF 
       ELSE IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         CALL GIGC_Error('Incorrect tracer units for TOMAS: ' // 
+         CALL GC_Error('Incorrect tracer units for TOMAS: ' // 
      &                   TRIM( State_Chm%Trac_Units ), RC, 
      &                   'Routine AERO_DIADEN in tomas_mod.F')
          RETURN
@@ -7030,7 +7029,7 @@ c       IF (LDUST30) MDUST = Spc(I,J,L,id_DUST1-1+BIN)
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
          MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
          LOC = 'Routine AERO_DIADEN in tomas_mod.F'
-         CALL GIGC_Error( MSG, RC, LOC )
+         CALL GC_Error( MSG, RC, LOC )
       ENDIF
 
       ! Point to the chemical species array [kg]
@@ -7101,7 +7100,7 @@ C         IF ( LDUST30 ) MDUST = Spc(I,J,LEV,id_DUST1-1+BIN)
          MSG = 'Incorrect tracer units at end of AERO_DIADEN: '
      &           // TRIM(State_Chm%Trac_Units)
          LOC = 'Routine AERO_DIADEN in tomas_mod.F'
-         CALL GIGC_Error( MSG, RC, LOC )
+         CALL GC_Error( MSG, RC, LOC )
       ENDIF
 
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -7122,8 +7121,8 @@ C         IF ( LDUST30 ) MDUST = Spc(I,J,LEV,id_DUST1-1+BIN)
       IF ( UNITCONV ) THEN
          CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met, 
      &                            State_Chm, RC )  
-         IF ( RC /= GIGC_SUCCESS ) THEN
-            CALL GIGC_Error('Unit conversion error', RC, 
+         IF ( RC /= GC_SUCCESS ) THEN
+            CALL GC_Error('Unit conversion error', RC, 
      &                      'Routine AERO_DIADEN in tomas_mod.F')
             RETURN
          ENDIF 
@@ -7162,12 +7161,12 @@ C         IF ( LDUST30 ) MDUST = Spc(I,J,LEV,id_DUST1-1+BIN)
       ! References to F90 modules
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND60
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE UNITCONV_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE UnitConv_Mod
 
       ! Arguments
       INTEGER                         :: II, JJ, LL
@@ -7206,7 +7205,7 @@ C         IF ( LDUST30 ) MDUST = Spc(I,J,LEV,id_DUST1-1+BIN)
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Copy values from Input_Opt
       LPRT      = Input_Opt%LPRT
@@ -8692,12 +8691,12 @@ Cpja Perform some numerical checks on dmdt_int
 !                              derived type object
 !*****************************************************************************
 
-      USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND60
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE ErrCode_Mod
+      USE ERROR_MOD
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 
       implicit none
 
@@ -8734,7 +8733,7 @@ Cpja Perform some numerical checks on dmdt_int
       !=================================================================
 
       ! Assume success
-      RC                =  GIGC_SUCCESS
+      RC                =  GC_SUCCESS
 
       ! Point to chemical species array [kg]
       Spc => State_Chm%Species

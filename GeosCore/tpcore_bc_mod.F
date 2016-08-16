@@ -273,11 +273,11 @@
 !
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_WRITE
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_READ
+      USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
       USE inquireMod,    ONLY : findFreeLUN
       USE TIME_MOD,      ONLY : EXPAND_DATE,  GET_NYMD
       USE TIME_MOD,      ONLY : ITS_A_NEW_DAY
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
@@ -327,7 +327,7 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Only open file if it's a new day
       IF ( ITS_A_NEW_DAY(.TRUE.) ) THEN
@@ -480,12 +480,12 @@
 !
       USE BPCH2_MOD
       USE CMN_SIZE_MOD 
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_NYMD,  GET_NHMS
       USE TIME_MOD,           ONLY : GET_TAU,   TIMESTAMP_STRING
-      USE UNITCONV_MOD
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -576,7 +576,7 @@
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Copy values from Input_Opt
       LWINDO_CU = Input_Opt%LWINDO_CU
@@ -808,9 +808,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -868,7 +868,7 @@
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
-      RC         =  GIGC_SUCCESS
+      RC         =  GC_SUCCESS
 
       ! Copy values from Input_Opt
       LWINDO2x25 = Input_Opt%LWINDO2x25
@@ -1027,8 +1027,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD  
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1065,7 +1065,7 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Copy values from Input_Opt
       LWINDO_NA = Input_Opt%LWINDO_NA
@@ -1117,10 +1117,10 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD 
+      USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TAU, TIMESTAMP_STRING
 !
 ! !INPUT PARAMETERS:
@@ -1178,7 +1178,7 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       IF ( ITS_TIME_FOR_BC() ) THEN
 
@@ -1780,11 +1780,11 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
       USE GRID_MOD,           ONLY : ITS_A_NESTED_GRID
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2168,7 +2168,7 @@
       MAP1x1 = 0
 
       ! Return 
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE INIT_TPCORE_BC
 !EOC

@@ -3,16 +3,15 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: gigc_errcode_mod.F90
+! !MODULE: errcode_mod.F90
 !
-! !DESCRIPTION: Module GIGC\_ERRCODE\_MOD contains the error codes (i.e. that
-!  report success or failure) returned by routines of the Grid-Independent
-!  GEOS-Chem (aka "GIGC").
+! !DESCRIPTION: Module ERRCODE\_MOD contains the error codes (i.e. that
+!  report success or failure) returned by GEOS-Chem routines.
 !\\
 !\\
 ! !INTERFACE: 
 !
-MODULE GIGC_ErrCode_Mod
+MODULE ErrCode_Mod
 !
 ! !USES:
 !
@@ -21,8 +20,8 @@ MODULE GIGC_ErrCode_Mod
 !
 ! !DEFINED PARAMETERS: 
 !
-  INTEGER, PUBLIC, PARAMETER :: GIGC_SUCCESS =  0   ! Routine returns success
-  INTEGER, PUBLIC, PARAMETER :: GIGC_FAILURE = -1   ! Routine returns failure
+  INTEGER, PUBLIC, PARAMETER :: GC_SUCCESS =  0   ! Routine returns success
+  INTEGER, PUBLIC, PARAMETER :: GC_FAILURE = -1   ! Routine returns failure
 !
 ! !REMARKS:
 !  The error codes are returned by routines at various levels of the 
@@ -30,8 +29,11 @@ MODULE GIGC_ErrCode_Mod
 !
 ! !REVISION HISTORY: 
 !  19 Oct 2012 - R. Yantosca - Initial version
+!  16 Aug 2016 - M. Sulprizio- Rename from gigc_errcode_mod.F90 to
+!                              errcode_mod.F90. The "gigc" nomenclature is
+!                              no longer used.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-END MODULE GIGC_ErrCode_Mod
+END MODULE ErrCode_Mod
 !EOC

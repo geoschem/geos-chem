@@ -20,6 +20,9 @@
       USE CARBON_MOD,              ONLY : CLEANUP_CARBON
       USE CHEMGRID_MOD,            ONLY : CLEANUP_CHEMGRID
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
+      USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
+      USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
+      USE CMN_SIZE_Mod,            ONLY : Cleanup_CMN_SIZE
       USE DIAG_MOD,                ONLY : CLEANUP_DIAG
       USE DIAG03_MOD,              ONLY : CLEANUP_DIAG03
       USE DIAG04_MOD,              ONLY : CLEANUP_DIAG04
@@ -37,6 +40,7 @@
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GRID_MOD,                ONLY : CLEANUP_GRID
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
+      USE Input_Opt_Mod,           ONLY : OptInput
       USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
       USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
       USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
@@ -49,6 +53,7 @@
       USE PJC_PFIX_MOD,            ONLY : CLEANUP_PJC_PFIX
       USE PLANEFLIGHT_MOD,         ONLY : CLEANUP_PLANEFLIGHT
       USE PRESSURE_MOD,            ONLY : CLEANUP_PRESSURE
+      USE Regrid_A2A_Mod,          ONLY : Cleanup_Map_A2a
       USE SEASALT_MOD,             ONLY : CLEANUP_SEASALT
       USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
       USE STRAT_CHEM_MOD,          ONLY : CLEANUP_STRAT_CHEM
@@ -59,19 +64,13 @@
       USE TOMS_MOD,                ONLY : CLEANUP_TOMS
       USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
       USE TPCORE_WINDOW_MOD,       ONLY : EXIT_TPCORE_WINDOW
-      USE UCX_MOD,                 ONLY : CLEANUP_UCX
-      USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
-
 #if ! defined( ESMF_ )
       USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
 #endif
-      USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
-      USE CMN_SIZE_Mod,            ONLY : Cleanup_CMN_SIZE
+      USE UCX_MOD,                 ONLY : CLEANUP_UCX
       USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
-      USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
-      USE GIGC_Input_Opt_Mod,      ONLY : OptInput
-      USE Regrid_A2A_Mod,          ONLY : Cleanup_Map_A2a
-      
+      USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
+
       ! HEMCO
 !#if !defined(ESMF_) 
       USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL

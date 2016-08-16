@@ -16,7 +16,7 @@
 ! !USES:
 !
       USE PRECISION_MOD
-      USE PHYSCONSTANTS, ONLY : AVO
+      USE PhysConstants, ONLY : AVO
 
       IMPLICIT NONE
       PRIVATE
@@ -108,12 +108,12 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE Error_Mod,          ONLY : Error_Stop
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
 
 ! !INPUT PARAMETERS:
@@ -190,7 +190,7 @@
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
-      RC     = GIGC_SUCCESS
+      RC     = GC_SUCCESS
 
       IF ( FIRSTCHEM ) THEN
          FIRSTCHEM = .FALSE.  ! save for future use?
@@ -216,7 +216,7 @@
 
          ! Get a pointer to the HEMCO data structure (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,  RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
+         IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
          ENDIF
 
@@ -300,7 +300,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_State_Chm_Mod, ONLY :  IND_
+      USE State_Chm_Mod,      ONLY :  IND_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -345,9 +345,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -359,7 +359,7 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?! 
 !
 ! !REMARKS:
-!  This routine is now called from GIGC_INIT_EXTRA (in GeosCore/input_mod.F).
+!  This routine is now called from GC_INIT_EXTRA (in GeosCore/input_mod.F).
 !
 ! !REVISION HISTORY:
 !  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
@@ -376,7 +376,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Allocate NGASC2H6 array
       ALLOCATE( NGASC2H6( IIPAR, JJPAR ), STAT=RC )

@@ -92,12 +92,10 @@
       USE CMN_SIZE_MOD        
       USE DUST_MOD,           ONLY : CHEMDUST
       USE DUST_MOD,           ONLY : RDUST_ONLINE
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_CH4_MOD,     ONLY : CHEMCH4
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE ISOROPIAII_MOD,     ONLY : DO_ISOROPIAII
       USE MERCURY_MOD,        ONLY : CHEMMERCURY
       USE POPS_MOD,           ONLY : CHEMPOPS
@@ -105,16 +103,17 @@
       USE RPMARES_MOD,        ONLY : DO_RPMARES
       USE SEASALT_MOD,        ONLY : CHEMSEASALT
       USE SULFATE_MOD,        ONLY : CHEMSULFATE
+      USE State_Chm_Mod,      ONLY : ChmState, IND_
+      USE State_Met_Mod,      ONLY : MetState
       USE STRAT_CHEM_MOD,     ONLY : DO_STRAT_CHEM
       USE TAGGED_CO_MOD,      ONLY : CHEM_TAGGED_CO
       USE TAGGED_O3_MOD,      ONLY : CHEM_TAGGED_O3
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE GIGC_State_Chm_Mod, only : IND_
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
-      USE UNITCONV_MOD
+      USE UnitConv_Mod
 #if defined (UCX )
       USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
       USE UCX_MOD,            ONLY : READ_PSC_FILE
@@ -288,7 +287,7 @@
       !=================================================================
 
       ! Assume success
-      RC                       = GIGC_SUCCESS
+      RC                       = GC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LCARB                    = Input_Opt%LCARB                        
@@ -348,8 +347,8 @@
       ! Convert tracer units from [kg/kg] to [kg] for chemistry (ewl, 8/12/15)
       CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
      &                            State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
      &                      'DO_CHEMISTRY in chemistry_mod.F')
          RETURN
       ENDIF  
@@ -418,7 +417,7 @@
             ! Now call READ_PSC_FILE on every time step to accomodate 
             ! replay simulations in GEOS-5 (ckeller, 5/8/15)
             CALL READ_PSC_FILE( am_I_Root, State_Chm, RC )
-            IF ( RC /= GIGC_SUCCESS ) RETURN
+            IF ( RC /= GC_SUCCESS ) RETURN
 
             !### DEBUG PRINTOUT, we can remove it later
             write(*,'(a,e12.4)') '<> CH4: ',
@@ -532,7 +531,7 @@
             IF ( id_NK1 > 0 ) THEN 
                CALL DO_TOMAS
      &             ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-               IF ( RC /= GIGC_SUCCESS ) RETURN
+               IF ( RC /= GC_SUCCESS ) RETURN
             ENDIF
 
             ! Check units (ewl, 10/5/15)
@@ -557,7 +556,7 @@
             ! step (ckeller, 5/8/15). 
 #if defined( UCX )
             CALL WRITE_STATE_PSC( am_I_Root, State_Chm, RC )
-            IF ( RC /= GIGC_SUCCESS ) RETURN
+            IF ( RC /= GC_SUCCESS ) RETURN
 #endif
  
          !---------------------------------
@@ -742,8 +741,8 @@
       ! Convert tracer units back to [kg/kg] after chemistry (ewl, 8/12/15)
       CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
      &                            State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
      &                      'DO_CHEMISTRY in chemistry_mod.F')
          RETURN
       ENDIF  
@@ -816,11 +815,11 @@
       USE AEROSOL_MOD,        ONLY : SOILDUST
       USE DUST_MOD,           ONLY : RDUST_ONLINE
       USE DUST_MOD,           ONLY : RDUST_OFFLINE
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR
 !
@@ -868,7 +867,7 @@
       YEAR                 = GET_YEAR()
 
       ! Assume success
-      RC                   = GIGC_SUCCESS
+      RC                   = GC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LCARB                = Input_Opt%LCARB 
@@ -959,11 +958,11 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE CMN_SIZE_MOD,       ONLY : LLTROP
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ErrCode_Mod
       USE FAST_JX_MOD,        ONLY : INIT_FJX
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -993,7 +992,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       IF ( FIRST ) THEN
 

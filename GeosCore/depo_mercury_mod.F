@@ -283,8 +283,8 @@
 !
       USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
       USE DIAG03_MOD,         ONLY : AD03, ND03
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE SPECIES_MOD,        ONLY : Species
+      USE Species_Mod,        ONLY : Species
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -487,13 +487,13 @@
 ! !USES:
 !
       USE BPCH2_MOD
-      USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE TIME_MOD,      ONLY : GET_CT_DYN, GET_CT_CHEM
-      USE inquireMod,    ONLY : findFreeLUN
-      USE CMN_SIZE_MOD                 ! Size parameters
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE CMN_SIZE_MOD              ! Size parameters
+      USE ErrCode_Mod
+      USE GRID_MOD,            ONLY : GET_XOFFSET, GET_YOFFSET
+      USE Input_Opt_Mod,       ONLY : OptInput
+      USE inquireMod,          ONLY : findFreeLUN
+      USE TIME_MOD,            ONLY : EXPAND_DATE
+      USE TIME_MOD,            ONLY : GET_CT_DYN, GET_CT_CHEM
 !
 ! !INPUT PARAMETERS: 
 !
@@ -532,7 +532,7 @@
       !=================================================================
     
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Initialize values
       IFIRST    = GET_XOFFSET( GLOBAL=.TRUE. ) + 1
@@ -620,16 +620,16 @@
 ! 
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_READ
-      USE ERROR_MOD,     ONLY : DEBUG_MSG
-      USE FILE_MOD,      ONLY : IOERROR
-      USE inquireMod,    ONLY : findFreeLun
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE Species_Mod,        ONLY : Species
+      USE BPCH2_MOD,            ONLY : OPEN_BPCH2_FOR_READ
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
+      USE ERROR_MOD,            ONLY : DEBUG_MSG
+      USE FILE_MOD,             ONLY : IOERROR
+      USE Input_Opt_Mod,        ONLY : OptInput
+      USE inquireMod,           ONLY : findFreeLun
+      USE Species_Mod,          ONLY : Species
+      USE State_Chm_Mod,        ONLY : ChmState
+      USE TIME_MOD,             ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS:
 !
@@ -639,7 +639,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        I    NTENT(OUT)   :: RC          ! Success or failure?!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?!
       REAL(fp), DIMENSION(IIPAR, JJPAR)   :: Hg0dryGEOS
       REAL(fp), DIMENSION(IIPAR, JJPAR)   :: HgIIdryGEOS
       REAL(fp), DIMENSION(IIPAR, JJPAR)   :: HgIIwetGEOS     
@@ -676,7 +676,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Find a free file LUN
       IU_FILE  = findFreeLUN()
@@ -955,11 +955,11 @@
 ! !USES
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !

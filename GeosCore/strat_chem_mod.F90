@@ -192,20 +192,20 @@ CONTAINS
 !
 ! !USES:
 !
-    USE PHYSCONSTANTS,      ONLY : XNUMOLAIR
     USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE CMN_SIZE_MOD
+    USE ErrCode_Mod
     USE ERROR_MOD
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE LINOZ_MOD,          ONLY : DO_LINOZ
+    USE PhysConstants,      ONLY : XNUMOLAIR
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-    USE UNITCONV_MOD
+    USE UnitConv_Mod
 
     IMPLICIT NONE
 !
@@ -304,7 +304,7 @@ CONTAINS
     !=======================================================================
 
     ! Assume Success
-    errCode              = GIGC_SUCCESS
+    errCode              = GC_SUCCESS
 
     ! Initialize
     LLINOZ               = Input_Opt%LLINOZ
@@ -341,12 +341,12 @@ CONTAINS
           ! Get pointers to Bry fields via HEMCO
           CALL Set_BryPointers ( am_I_Root, Input_Opt,          &
                                  State_Chm, State_Met, errCode )
-          IF ( errCode /= GIGC_SUCCESS ) RETURN
+          IF ( errCode /= GC_SUCCESS ) RETURN
 
           ! Get pointers to prod/loss fields via HEMCO
           CALL Set_PLVEC ( am_I_Root, Input_Opt,                &
                            State_Chm, State_Met, errCode )
-          IF ( errCode /= GIGC_SUCCESS ) RETURN
+          IF ( errCode /= GC_SUCCESS ) RETURN
        ENDIF
     ENDIF
 
@@ -695,8 +695,8 @@ CONTAINS
        ! (ewl, 10/05/15)
        CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,     &
                                  State_Met, State_Chm, errCode )
-       IF ( errCode /= GIGC_SUCCESS ) THEN
-          CALL GIGC_Error('Unit conversion error', errCode,    &
+       IF ( errCode /= GC_SUCCESS ) THEN
+          CALL GC_Error('Unit conversion error', errCode,    &
                           'DO_STRAT_CHEM in strat_chem_mod.F')
           RETURN
        ENDIF
@@ -734,8 +734,8 @@ CONTAINS
        ! Convert units back to [kg] after Linoz and Synoz (ewl, 10/05/15)
        CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt,     &
                                  State_Met, State_Chm, errCode )
-       IF ( errCode /= GIGC_SUCCESS ) THEN
-          CALL GIGC_Error('Unit conversion error', errCode,     &
+       IF ( errCode /= GC_SUCCESS ) THEN
+          CALL GC_Error('Unit conversion error', errCode,     &
                           'DO_STRAT_CHEM in strat_chem_mod.F')
           RETURN
        ENDIF
@@ -836,12 +836,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 
     IMPLICIT NONE
 !
@@ -912,7 +912,7 @@ CONTAINS
     ENDDO !N
 
     ! Return w/ success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
   END SUBROUTINE Set_BryPointers 
 !EOC
@@ -934,12 +934,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 
     IMPLICIT NONE
 !
@@ -974,7 +974,7 @@ CONTAINS
     !=================================================================
 
     ! Assume error until success
-    RC = GIGC_FAILURE
+    RC = GC_FAILURE
 
     ! Construct error message
     ERR = 'Cannot get pointer from HEMCO! GMI prod/loss data is '  // &
@@ -1042,7 +1042,7 @@ CONTAINS
     ENDIF
 
     ! Return w/ success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
   END SUBROUTINE Set_PLVEC
 !EOC
@@ -1065,14 +1065,14 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_MOD
-    USE ERROR_MOD,          ONLY : GIGC_ERROR
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE ErrCode_Mod
+    USE ERROR_MOD,          ONLY : GC_Error
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,   ONLY : GET_TAU, GET_NYMD, GET_NHMS, EXPAND_DATE
-    USE UNITCONV_MOD
+    USE UnitConv_Mod
 
     IMPLICIT NONE
 !
@@ -1147,7 +1147,7 @@ CONTAINS
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
 #if defined( NESTED_NA ) || defined( NESTED_CH ) || defined( NESTED_EU )
     ! This method only works for a global domain.
@@ -1160,8 +1160,8 @@ CONTAINS
     ! units are consistently mixing ratio in main (ewl, 8/10/15)
     CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  &
                                 State_Chm, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL GIGC_Error('Unit conversion error', RC, &
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
                         'Calc_STE in strat_chem_mod.F')
        RETURN
     ENDIF  
@@ -1303,8 +1303,8 @@ CONTAINS
     ! (ewl, 8/10/15)
     CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  &
                                 State_Chm, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL GIGC_Error('Unit conversion error', RC, &
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
                         'Calc_STE in strat_chem_mod.F')
        RETURN
     ENDIF  
@@ -1333,18 +1333,18 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_MOD
-    USE ERROR_MOD,          ONLY : ALLOC_ERR, GIGC_ERROR
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE ErrCode_Mod
+    USE ERROR_MOD,          ONLY : ALLOC_ERR, GC_Error
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : IND_
+    USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TAU
     USE TIME_MOD,           ONLY : GET_NYMD
     USE TIME_MOD,           ONLY : GET_NHMS
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE GIGC_State_Chm_Mod, ONLY : IND_
-    USE Species_Mod,        ONLY : Species
-    USE UNITCONV_MOD
+    USE UnitConv_Mod
 
     IMPLICIT NONE
 !
@@ -1406,7 +1406,7 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC                       = GIGC_SUCCESS
+    RC                       = GC_SUCCESS
 
     ! TRACERID_MOD Replacement
     id_Br                    = IND_('Br'     )
@@ -1625,8 +1625,8 @@ CONTAINS
     ! (ewl, 8/10/15)
     CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  &
                                 State_Chm, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL GIGC_Error('Unit conversion error', RC, &
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
                        'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
        RETURN
     ENDIF 
@@ -1662,8 +1662,8 @@ CONTAINS
     ! Convert State_Chm%TRACERS back to [kg/kg dry air]
     CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  &
                                 State_Chm, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL GIGC_Error('Unit conversion error', RC, &
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
                        'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
        RETURN
     ENDIF 
@@ -1750,14 +1750,14 @@ CONTAINS
 ! !USES:
 !
     USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
-    USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_YEAR
     USE CMN_SIZE_MOD
-    USE PHYSCONSTANTS
+    USE ErrCode_Mod
+    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE PhysConstants
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
+    USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_YEAR
 
     IMPLICIT NONE
 !
@@ -1963,7 +1963,7 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Chemical timestep [s]
     ! Originally, Synoz was in transport code, and used dynamic dT.

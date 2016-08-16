@@ -77,8 +77,8 @@
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE ERROR_MOD,          ONLY : IT_IS_FINITE
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -237,8 +237,8 @@
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE ERROR_MOD,          ONLY : IT_IS_FINITE
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !

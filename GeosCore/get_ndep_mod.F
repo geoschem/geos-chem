@@ -98,7 +98,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Chm_Mod, only : IND_
+      USE State_Chm_Mod,      only : IND_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -145,7 +145,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Chm_Mod, Only : IND_
+      USE State_Chm_Mod,      Only : IND_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -223,8 +223,8 @@
 ! !USES:
 !
       USE CMN_SIZE_Mod
-      USE GIGC_ErrCode_Mod
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
+      USE ErrCode_Mod
+      USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -258,10 +258,10 @@
 
       ! Allocate arrays
       ALLOCATE( WET_TOTN     ( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GC_SUCCESS ) RETURN
 
       ALLOCATE( DRY_TOTN     ( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GC_SUCCESS ) RETURN
 
       ! Zero arrays
       WET_TOTN      = 0e+0_fp
@@ -285,7 +285,7 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -302,7 +302,7 @@
 !------------------------------------------------------------------------------
 !BOC
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
       
       ! Deallocate arrays
       IF ( ALLOCATED( DRY_TOTN      ) ) DEALLOCATE( DRY_TOTN      )

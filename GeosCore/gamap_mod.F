@@ -16,11 +16,10 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD                    ! Dimensions of arrays
-      USE CMN_DIAG_MOD                    ! Diagnostic parameters
-      USE inquireMod, ONLY : findFreeLUN
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE CMN_SIZE_MOD        ! Dimensions of arrays
+      USE CMN_DIAG_MOD        ! Diagnostic parameters
+      USE inquireMod,    ONLY : findFreeLUN
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -163,9 +162,9 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : SYSTEM_TIMESTAMP
 !
 ! !INPUT PARAMETERS:
@@ -193,7 +192,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Allocate and initialize variables
       CALL INIT_GAMAP( am_I_Root, Input_Opt, State_Chm, RC )
@@ -330,10 +329,10 @@
 !
 ! !USES:
 !
+      USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -371,7 +370,7 @@
       !=================================================================
 
       ! Assume success
-      RC      =  GIGC_SUCCESS
+      RC      =  GC_SUCCESS
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
@@ -1749,10 +1748,10 @@
       USE DIAG56_MOD,         ONLY : ND56
       USE DIAG63_MOD,         ONLY:  DO_SAVE_DIAG63
       USE DRYDEP_MOD,         ONLY : DEPNAME,     NUMDEP,    NTRAIND
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState, IND_
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
 #endif
@@ -1854,7 +1853,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Initialization
       DUM = 1.0
@@ -7584,12 +7583,8 @@
 !
 ! !USES:
 !
+      USE ErrCode_Mod
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE TIME_MOD,    ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
       USE HDF_MOD,     ONLY : INIT_HDF
       USE HDF_MOD,     ONLY : HDFCATEGORY
       USE HDF_MOD,     ONLY : HDFDESCRIPT
@@ -7599,7 +7594,11 @@
       USE HDF_MOD,     ONLY : HDFMOLC
       USE HDF_MOD,     ONLY : HDFMWT
       USE HDF_MOD,     ONLY : HDFSCALE
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod, ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE TIME_MOD,    ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
 !
 ! !INPUT PARAMETERS:
 !

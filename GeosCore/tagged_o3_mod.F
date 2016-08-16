@@ -175,13 +175,12 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_XMID,  GET_YMID
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-
-      USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND44, ND65, LD65
-      USE PHYSCONSTANTS            ! SCALE_HEIGHT
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE GRID_MOD,           ONLY : GET_XMID,  GET_YMID
+      USE PhysConstants            ! SCALE_HEIGHT
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
 !
@@ -395,16 +394,16 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD65
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
-      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
 
       IMPLICIT NONE
 !
@@ -506,7 +505,7 @@
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Pointers
       Spc       => State_Chm%Species   ! Points to chemical species [kg]
@@ -529,12 +528,12 @@
 
          ! Get pointer to O3 production
          CALL HCO_GetPtr ( am_I_Root, 'O3_PROD', P24H, RC )
-         IF ( RC /= GIGC_SUCCESS ) 
+         IF ( RC /= GC_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to O3_PROD', LOC )
 
          ! Get pointer to O3 loss
          CALL HCO_GetPtr ( am_I_Root, 'O3_LOSS', L24H, RC )
-         IF ( RC /= GIGC_SUCCESS ) 
+         IF ( RC /= GC_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to O3_LOSS', LOC )
 
          ! Get emissions timestep (seconds)
@@ -666,11 +665,11 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -682,7 +681,7 @@
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  This routine is now called from GIGC_INIT_EXTRA in GeosCore/input_mod.F.
+!  This routine is now called from GC_INIT_EXTRA in GeosCore/input_mod.F.
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Yantosca - Initial version
@@ -708,7 +707,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Initialize tracer index (CODEATHON, mps, 6/16/16)
       id_O3Strat = IND_('O3Strat')

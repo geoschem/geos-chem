@@ -16,17 +16,17 @@
 ! !USES:
 !
       ! Modules from Headers directory
-      USE PHYSCONSTANTS,      ONLY : AVO     ! Avogadro's #
-      USE CMN_SIZE_MOD                       ! Size parameters
-      USE CMN_O3_MOD                         ! FMOL
       USE CMN_DIAG_MOD                       ! Diagnostic switches & arrays
       USE CMN_FJX_MOD                        ! Fast-JX flux diagnostics
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
+      USE CMN_O3_MOD                         ! FMOL
+      USE CMN_SIZE_MOD                       ! Size parameters
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : AVO     ! Avogadro's #
       USE PRECISION_MOD                      ! For GEOS-Chem Precision (fp)
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
 
       ! Modules from GeosUtil directory
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -402,7 +402,7 @@
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
-      RC         = GIGC_SUCCESS
+      RC         = GC_SUCCESS
 
       ! Initialize
       SpcInfo    => NULL()

@@ -3,12 +3,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: gigc_environment_mod
+! !MODULE: gc_environment_mod
 !
-! !DESCRIPTION: Module GIGC\_ENVIRONMENT\_MOD establishes the runtime 
-!  environment for the Grid-Independent GEOS-Chem (aka "GIGC") model.  It is 
-!  designed to receive model parameter and geophysical environment information 
-!  and allocate memory based upon it.
+! !DESCRIPTION: Module GC\_ENVIRONMENT\_MOD establishes the runtime 
+!  environment for the GEOS-Chem.  It is designed to receive model parameter
+!  and geophysical environment information and allocate memory based upon it.
 !\\
 !\\
 !  It provides routines to do the following:
@@ -21,7 +20,7 @@
 !
 ! !INTERFACE: 
 !
-MODULE GIGC_Environment_Mod
+MODULE GC_Environment_Mod
 !
 ! !USES
 !        
@@ -30,8 +29,8 @@ MODULE GIGC_Environment_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: GIGC_Allocate_All
-  PUBLIC  :: GIGC_Init_All
+  PUBLIC  :: GC_Allocate_All
+  PUBLIC  :: GC_Init_All
 !
 ! !REMARKS:
 !  For consistency, we should probably move the met state initialization
@@ -46,6 +45,9 @@ MODULE GIGC_Environment_Mod
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  28 Aug 2015 - R. Yantosca - Remove Get_nSchm_nSchmBry; stratospheric 
 !                              chemistry fields are now read by HEMCO
+!  16 Aug 2016 - M. Sulprizio- Rename from gigc_environment_mod.F90 to 
+!                              gc_environment_mod.F90. The "gigc" nomenclature
+!                              is no longer used.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -56,22 +58,22 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gigc_allocate_all
+! !IROUTINE: gc_allocate_all
 !
-! !DESCRIPTION: Subroutine GIGC\_ALLOCATE\_ALL allocates all LAT/LON 
+! !DESCRIPTION: Subroutine GC\_ALLOCATE\_ALL allocates all LAT/LON 
 !  ALLOCATABLE arrays for global use by the GEOS-Chem either as a standalone 
 !  program or module.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Allocate_All( am_I_Root,       Input_Opt,       &
-                                RC,              value_I_LO,      &
-                                value_J_LO,      value_I_HI,      &
-                                value_J_HI,      value_IM,        &
-                                value_JM,        value_LM,        &
-                                value_IM_WORLD,  value_JM_WORLD,  &
-                                value_LM_WORLD )
+  SUBROUTINE GC_Allocate_All( am_I_Root,       Input_Opt,       &
+                              RC,              value_I_LO,      &
+                              value_J_LO,      value_I_HI,      &
+                              value_J_HI,      value_IM,        &
+                              value_JM,        value_LM,        &
+                              value_IM_WORLD,  value_JM_WORLD,  &
+                              value_LM_WORLD )
 !
 ! !USES:
 !
@@ -79,8 +81,8 @@ CONTAINS
     USE CMN_FJX_MOD,        ONLY : Init_CMN_FJX
     USE CMN_O3_Mod,         ONLY : Init_CMN_O3
     USE CMN_SIZE_Mod,       ONLY : Init_CMN_SIZE
-    USE GIGC_ErrCode_Mod  
-    USE GIGC_Input_Opt_Mod
+    USE ErrCode_Mod  
+    USE Input_Opt_Mod
     USE VDIFF_PRE_Mod,      ONLY : Init_Vdiff_Pre
 
     IMPLICIT NONE
@@ -137,8 +139,8 @@ CONTAINS
 !BOC
 
     ! Initialize fields of the Input Options object
-    CALL Set_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
+    CALL Set_Input_Opt( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
        WRITE( 6, '(a)' ) 'ERROR initializing Input_Opt'
        RETURN
     ENDIF
@@ -171,7 +173,7 @@ CONTAINS
                         RC             = RC              )
 
     ! Exit upon error
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
 
 #else
     !-----------------------------------------------------------------------
@@ -185,49 +187,49 @@ CONTAINS
 
     ! Set dimensions in CMN_SIZE
     CALL Init_CMN_SIZE( am_I_Root, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
 
 #endif
 
     ! Set dimensions in CMN_DEP_mod.F and allocate arrays
     CALL Init_CMN_DIAG( am_I_Root, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     CALL Init_CMN_O3( am_I_Root, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     CALL Init_VDIFF_PRE( am_I_Root, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     CALL Init_CMN_FJX( am_I_Root, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
           
-  END SUBROUTINE GIGC_Allocate_All
+  END SUBROUTINE GC_Allocate_All
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gigc_init_all
+! !IROUTINE: gc_init_all
 !
-! !DESCRIPTION: Subroutine GIGC\_INIT\_ALL initializes the top-level data 
+! !DESCRIPTION: Subroutine GC\_INIT\_ALL initializes the top-level data 
 !  structures that are either passed to/from GC or between GC components 
 !  (emis->transport->chem->etc)
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Init_All( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+  SUBROUTINE GC_Init_All( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
 !
 ! !USES:
 !
     USE CMN_Size_Mod,       ONLY : IIPAR, JJPAR, LLPAR
     USE CMN_SIZE_Mod,       ONLY : NDUST, NAER
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod
-    USE GIGC_State_Chm_Mod
-    USE GIGC_State_Met_Mod
+    USE ErrCode_Mod
+    USE Input_Opt_Mod
+    USE State_Chm_Mod
+    USE State_Met_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -287,33 +289,33 @@ CONTAINS
     !=======================================================================
     ! Initialize object for met fields
     !=======================================================================
-    CALL Init_GIGC_State_Met( am_I_Root  = am_I_Root,   &
-                              IM         = IIPAR,       &
-                              JM         = JJPAR,       &
-                              LM         = LLPAR,       &
-                              State_Met  = State_Met,   &
-                              RC         = RC          )
+    CALL Init_State_Met( am_I_Root  = am_I_Root,   &
+                         IM         = IIPAR,       &
+                         JM         = JJPAR,       &
+                         LM         = LLPAR,       &
+                         State_Met  = State_Met,   &
+                         RC         = RC          )
 
     ! Return upon error
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !=======================================================================
     ! Initialize object for chemical state
     !=======================================================================
 
     ! Initialize chemistry state
-    CALL Init_GIGC_State_Chm(  am_I_Root  = am_I_Root,  &  ! Root CPU (Y/N)?
-                               IM         = IIPAR,      &  ! # of lons
-                               JM         = JJPAR,      &  ! # of lats
-                               LM         = LLPAR,      &  ! # of levels
-                               nAerosol   = NDUST+NAER, &  ! # of aerosol types
-                               Input_Opt  = Input_Opt,  &  ! Input Options
-                               State_Chm  = State_Chm,  &  ! Chemistry State
-                               RC         = RC         )   ! Success or failure
+    CALL Init_State_Chm(  am_I_Root  = am_I_Root,  &  ! Root CPU (Y/N)?
+                          IM         = IIPAR,      &  ! # of lons
+                          JM         = JJPAR,      &  ! # of lats
+                          LM         = LLPAR,      &  ! # of levels
+                          nAerosol   = NDUST+NAER, &  ! # of aerosol types
+                          Input_Opt  = Input_Opt,  &  ! Input Options
+                          State_Chm  = State_Chm,  &  ! Chemistry State
+                          RC         = RC         )   ! Success or failure
     
     ! Return upon error
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
 
-  END SUBROUTINE GIGC_Init_All
+  END SUBROUTINE GC_Init_All
 !EOC
-END MODULE GIGC_Environment_Mod
+END MODULE GC_Environment_Mod

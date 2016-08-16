@@ -16,10 +16,10 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD, ONLY : IIPAR,JJPAR,LLPAR, NDUST, NAER
       USE CMN_FJX_MOD,  ONLY : RTODAER, RTSSAER, RTASYMAER,
      &                         WVAA, SPECMASK, LSPECRADMENU,
      &                         NSPECRADMENU
+      USE CMN_SIZE_MOD, ONLY : IIPAR,JJPAR,LLPAR, NDUST, NAER
       USE DIAG_MOD,     ONLY : AD72 !RAD OUTPUT DIAGNOSTIC ARRAY
       USE OMP_LIB
       USE PARRRTM,      ONLY : NBNDLW
@@ -117,14 +117,14 @@
       !-----------------------------------------------------------------
       ! Modules from GeosRad
       !-----------------------------------------------------------------
+      USE MCICA_SUBCOL_GEN_LW, ONLY : MCICA_SUBCOL_LW
+      USE MCICA_SUBCOL_GEN_SW, ONLY : MCICA_SUBCOL_SW
       USE PARKIND,             ONLY : IM=>KIND_IM, RB=>KIND_RB
       USE RRLW_CON,            ONLY : GASCON, AVOGAD
       USE PARRRTM,             ONLY : NBNDLW, NGPTLW
       USE PARRRSW,             ONLY : NBNDSW, NGPTSW,NAEREC
       USE RRTMG_LW_RAD,        ONLY : RRTMG_LW
       USE RRTMG_SW_RAD,        ONLY : RRTMG_SW
-      USE MCICA_SUBCOL_GEN_LW, ONLY : MCICA_SUBCOL_LW
-      USE MCICA_SUBCOL_GEN_SW, ONLY : MCICA_SUBCOL_SW
 
       !-----------------------------------------------------------------
       ! GEOS-Chem modules
@@ -138,19 +138,19 @@
       USE CMN_FJX_MOD,         ONLY : ACOEF_RTWV, BCOEF_RTWV, CCOEF_RTWV 
       USE CMN_FJX_MOD,         ONLY : WVAA,       NWVAA
       USE CMN_FJX_MOD,         ONLY : NWVAA0
-      USE PHYSCONSTANTS,       ONLY : AIRMW, PI, AVO
       USE DIAG_MOD,            ONLY : AD72
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,  ONLY : OptInput
-      USE GIGC_State_Met_Mod,  ONLY : MetState
-      USE GIGC_State_Chm_Mod,  ONLY : ChmState
-      USE GIGC_State_Chm_Mod,  ONLY : IND_    ! kyu codeathon
       USE GRID_MOD,            ONLY : GET_YMID
+      USE Input_Opt_Mod,       ONLY : OptInput
+      USE PhysConstants,       ONLY : AIRMW, PI, AVO
       USE PRESSURE_MOD,        ONLY : GET_PCENTER,      GET_PEDGE
+      USE State_Chm_Mod,       ONLY : ChmState
+      USE State_Chm_Mod,       ONLY : IND_    ! kyu codeathon
+      USE State_Met_Mod,       ONLY : MetState
       USE TIME_MOD,            ONLY : GET_DAY_OF_YEAR, GET_HOUR
       USE TOMS_MOD,            ONLY : GET_OVERHEAD_O3
-      USE UNITCONV_MOD
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -497,13 +497,13 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Convert tracer units to [kg] for RRTMG (ewl, 8/12/15)
       CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
      &                            State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC,     
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC,     
      &                   'DO_RRTMG_RAD_TRANSFER')
          RETURN
       ENDIF
@@ -1642,8 +1642,8 @@
       ! Convert tracer units back to [kg/kg] after RRTMG (ewl, 8/12/15)
       CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
      &                            State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC,     
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC,     
      &                   'DO_RRTMG_RAD_TRANSFER')
          RETURN
       ENDIF
@@ -1676,7 +1676,7 @@
 ! !USES:
 !
       USE CMN_FJX_MOD,   ONLY :  SPECMASK,NSPECRAD,NASPECRAD,
-     &                          LSPECRADMENU,NSPECRADMENU
+     &                           LSPECRADMENU,NSPECRADMENU
 !
 ! !INPUT PARAMETERS:
 !
@@ -1798,7 +1798,7 @@
       USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD             ! SIZE PARAMETERS
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE JULDAY_MOD,         ONLY : JULDAY, CALDATE
       USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH 
       USE TIME_MOD,           ONLY : GET_DAY,  GET_DAY_OF_YEAR  
@@ -2005,7 +2005,7 @@
       USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD             ! SIZE PARAMETERS
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH
       USE TIME_MOD,           ONLY : GET_DAY,  GET_DAY_OF_YEAR
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D

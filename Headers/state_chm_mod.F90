@@ -3,11 +3,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: gigc_state_chm_mod
+! !MODULE: state_chm_mod
 !
-! !DESCRIPTION: Module GIGC\_STATE\_CHM\_MOD contains the derived type
-!  used to define the Chemistry State object for the Grid-Independent 
-!  GEOS-Chem implementation (abbreviated "GIGC").
+! !DESCRIPTION: Module STATE\_CHM\_MOD contains the derived type
+!  used to define the Chemistry State object for GEOS-Chem.
 !\\
 !\\
 !  This module also contains the routines that allocate and deallocate memory 
@@ -18,7 +17,7 @@
 !\\
 ! !INTERFACE: 
 !
-MODULE GIGC_State_Chm_Mod
+MODULE State_Chm_Mod
 !
 ! USES:
 !
@@ -32,8 +31,8 @@ MODULE GIGC_State_Chm_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: Ind_
-  PUBLIC :: Init_GIGC_State_Chm
-  PUBLIC :: Cleanup_GIGC_State_Chm
+  PUBLIC :: Init_State_Chm
+  PUBLIC :: Cleanup_State_Chm
 !
 ! !PRIVATE DATA MEMBERS:
 !
@@ -134,6 +133,9 @@ MODULE GIGC_State_Chm_Mod
 !                              database.
 !  22 Jun 2016 - R. Yantosca - Rename Id_Hg0 to Hg0_Id_List, Id_Hg2 to
 !                              Hg2_Id_List, and Id_HgP to HgP_Id_List
+!  16 Aug 2016 - M. Sulprizio- Rename from gigc_state_chm_mod.F90 to
+!                              state_chm_mod.F90. The "gigc" nomenclature is
+!                              no longer used.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -271,22 +273,22 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_gigc_state_chm
+! !IROUTINE: init_state_chm
 !
-! !DESCRIPTION: Routine INIT\_GIGC\_STATE\_CHM allocates and initializes the 
+! !DESCRIPTION: Routine INIT\_STATE\_CHM allocates and initializes the 
 !  pointer fields of the chemistry state object.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_GIGC_State_Chm( am_I_Root, IM,        JM,         &   
+  SUBROUTINE Init_State_Chm( am_I_Root, IM,        JM,         &   
                                   LM,        Input_Opt, State_Chm,  &
                                   nAerosol,  RC         )
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,        ONLY : OptInput
     USE Species_Mod,          ONLY : Species
     USE Species_Mod,          ONLY : Spc_GetNumSpecies
     USE Species_Database_Mod, ONLY : Init_Species_Database
@@ -351,7 +353,7 @@ CONTAINS
     TYPE(Species), POINTER :: ThisSpc
 
     ! Assume success until otherwise
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     !=====================================================================
     ! Initialization
@@ -440,19 +442,19 @@ CONTAINS
     !=====================================================================
 
     ALLOCATE( State_Chm%Map_Advect(             State_Chm%nAdvect  ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Map_Advect = 0
 
     ALLOCATE( State_Chm%Map_Drydep(             State_Chm%nDryDep  ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Map_DryDep = 0
 
     ALLOCATE( State_Chm%Map_KppSpc(             State_Chm%nKppSpc  ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Map_KppSpc = 0
 
     ALLOCATE( State_Chm%Map_WetDep(             State_Chm%nWetDep  ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Map_WetDep = 0
 
     !=====================================================================
@@ -461,15 +463,15 @@ CONTAINS
     !=====================================================================
 
     ALLOCATE( State_Chm%Trac_Id   (             State_Chm%nAdvect+1), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Trac_Id = 0
 
     ALLOCATE( State_Chm%Trac_Name (             State_Chm%nAdvect+1), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Trac_name = ''
 
     ALLOCATE( State_Chm%Tracers   ( IM, JM, LM, State_Chm%nAdvect+1), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Tracers = 0e+0_fp
 
     !=====================================================================
@@ -477,15 +479,15 @@ CONTAINS
     !=====================================================================
 
     ALLOCATE( State_Chm%Spec_Id   (             State_Chm%nSpecies ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Spec_Id = 0
 
     ALLOCATE( State_Chm%Spec_Name (             State_Chm%nSpecies ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Spec_Name = ''
 
     ALLOCATE( State_Chm%Species   ( IM, JM, LM, State_Chm%nSpecies ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Species = 0e+0_fp
 
     !=====================================================================
@@ -495,19 +497,19 @@ CONTAINS
     State_Chm%nAero = nAerosol
 
     ALLOCATE( State_Chm%AeroArea   ( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%AeroArea = 0e+0_fp
 
     ALLOCATE( State_Chm%AeroRadi   ( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%AeroRadi = 0e+0_fp
 
     ALLOCATE( State_Chm%WetAeroArea( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%WetAeroArea = 0e+0_fp
 
     ALLOCATE( State_Chm%WetAeroRadi( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%WetAeroRadi = 0e+0_fp
 
     !=====================================================================
@@ -515,11 +517,11 @@ CONTAINS
     !=====================================================================
 
     ALLOCATE( State_Chm%STATE_PSC ( IM, JM, LM                     ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%STATE_PSC = 0.0_f4
 
     ALLOCATE( State_Chm%KHETI_SLA ( IM, JM, LM, 11                 ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%KHETI_SLA = 0.0_fp
 
     !=======================================================================
@@ -603,29 +605,29 @@ CONTAINS
        IF ( N_Hg0_CATS == N_Hg2_CATS .and. N_Hg0_CATS == N_HgP_CATS ) THEN
           State_Chm%N_Hg_CATS = N_Hg0_CATS
        ELSE
-          RC = GIGC_FAILURE
+          RC = GC_FAILURE
           PRINT*, '### Inconsistent number of Hg categories!'
           RETURN
        ENDIF
 
        ! Index array: Hg0 species # <--> Hg0 category #
        ALLOCATE( State_Chm%Hg0_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Hg0_Id_List = 0
 
        ! Index array: Hg2 species # <--> Hg0 category #
        ALLOCATE( State_Chm%Hg2_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Hg2_Id_List = 0
 
        ! Index array: HgP species # <--> Hg0 category #
        ALLOCATE( State_Chm%HgP_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%HgP_Id_List = 0
 
        ! Hg category names
        ALLOCATE( State_Chm%Hg_Cat_Name( State_Chm%N_Hg_CATS ), STAT=RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Hg_Cat_Name = ''
 
        ! Loop over all species
@@ -682,26 +684,26 @@ CONTAINS
 110 FORMAT( 5x, '===> ', f4.1, 1x, A6  )
 120 FORMAT( 5x, '---> ', f4.1, 1x, A4  )
 
-  END SUBROUTINE Init_GIGC_State_Chm
+  END SUBROUTINE Init_State_Chm
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_gigc_state_chm
+! !IROUTINE: cleanup_state_chm
 !
-! !DESCRIPTION: Routine CLEANUP\_GIGC\_STATE\_CHM deallocates the fields 
+! !DESCRIPTION: Routine CLEANUP\_STATE\_CHM deallocates all fields 
 !  of the chemistry state object.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_GIGC_State_Chm( am_I_Root, State_Chm, RC )
+  SUBROUTINE Cleanup_State_Chm( am_I_Root, State_Chm, RC )
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod 
+    USE ErrCode_Mod 
     USE Species_Database_Mod, ONLY : Cleanup_Species_Database
 !
 ! !INPUT PARAMETERS:
@@ -733,7 +735,7 @@ CONTAINS
 !BOC
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     !======================================================================
     ! Deallocate fields
@@ -821,6 +823,6 @@ CONTAINS
     ! Deallocate the species database object field
     CALL Cleanup_Species_Database( am_I_Root, State_Chm%SpcData, RC )
 
-  END SUBROUTINE Cleanup_GIGC_State_Chm
+  END SUBROUTINE Cleanup_State_Chm
 !EOC
-END MODULE GIGC_State_Chm_Mod
+END MODULE State_Chm_Mod

@@ -15,9 +15,8 @@
 !
 ! !USES:
 !
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-
-      USE inquireMod, ONLY : findFreeLUN ! (ewl, 6/16/15)
+      USE inquireMod,    ONLY : findFreeLUN ! (ewl, 6/16/15)
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -215,29 +214,27 @@
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
-      USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
+      USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
+      USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
+      USE CMN_O3_MOD	           ! SAVEOH
+      USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : IND_
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET,        GET_YOFFSET
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLun
+      USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
+      USE PhysConstants            ! XTRA2, XNUMOLAIR
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
+      USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : IND_
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD,           GET_NHMS
       USE TIME_MOD,           ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
       USE TIME_MOD,           ONLY : GET_TAU,            GET_HOUR
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE SPECIES_MOD,        ONLY : Species
-
-      USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
-      USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE CMN_O3_MOD	           ! SAVEOH
-      USE PHYSCONSTANTS            ! XTRA2, XNUMOLAIR
-
 !
 ! !INPUT PARAMETERS:
 !
@@ -378,7 +375,7 @@
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
-      RC            =  GIGC_SUCCESS
+      RC            =  GC_SUCCESS
 
       ! Copy values from Input_Opt
       LSOILNOX      = Input_Opt%LSOILNOX
@@ -1655,9 +1652,9 @@
 !
 ! !USES:
 !
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,  ONLY : GET_ELAPSED_MIN
       USE TIME_MOD,  ONLY : GET_TS_DIAG
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 !
 ! !RETURN VALUE:
 !
@@ -1770,14 +1767,14 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD, ONLY : GET_MODELNAME
-      USE BPCH2_MOD, ONLY : GET_HALFPOLAR
-      USE GRID_MOD,  ONLY : GET_XOFFSET
-      USE GRID_MOD,  ONLY : GET_YOFFSET
-      USE GRID_MOD,  ONLY : ITS_A_NESTED_GRID
-      USE ERROR_MOD, ONLY : ERROR_STOP
+      USE BPCH2_MOD,    ONLY : GET_MODELNAME
+      USE BPCH2_MOD,    ONLY : GET_HALFPOLAR
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE GRID_MOD,     ONLY : GET_XOFFSET
+      USE GRID_MOD,     ONLY : GET_YOFFSET
+      USE GRID_MOD,     ONLY : ITS_A_NESTED_GRID
 
-      USE CMN_SIZE_MOD ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !

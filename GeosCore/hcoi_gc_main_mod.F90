@@ -27,8 +27,8 @@ MODULE HCOI_GC_Main_Mod
 ! !USES:
 !
   USE HCO_Error_Mod
-  USE HCOX_State_Mod, ONLY : Ext_State 
   USE HCO_State_Mod,  ONLY : HCO_State
+  USE HCOX_State_Mod, ONLY : Ext_State 
   USE Precision_Mod
 
   IMPLICIT NONE
@@ -153,14 +153,14 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Chm_Mod, ONLY : Ind_
+    USE ErrCode_Mod
+    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : Ind_
     USE TIME_MOD,           ONLY : GET_TS_EMIS, GET_TS_DYN
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE ERROR_MOD,          ONLY : ERROR_STOP
 #if defined( TOMAS ) 
     USE TOMAS_MOD,          ONLY : IBINS
     USE TOMAS_MOD,          ONLY : Xk
@@ -427,7 +427,7 @@ CONTAINS
     ! connected.
     !-----------------------------------------------------------------
     CALL ExtState_InitTargets( am_I_Root, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
     ! Define diagnostics
@@ -449,7 +449,7 @@ CONTAINS
     !=================================================================
 
     ! Leave w/ success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     END SUBROUTINE HCOI_GC_INIT 
 !EOC
@@ -470,11 +470,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
+    USE ErrCode_Mod
     USE ERROR_MOD,             ONLY : ERROR_STOP
-    USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-    USE GIGC_State_Met_Mod,    ONLY : MetState
-    USE GIGC_State_Chm_Mod,    ONLY : ChmState
+    USE GET_NDEP_MOD,          ONLY : RESET_DEP_N ! For soilnox
+    USE Input_Opt_Mod,         ONLY : OptInput
+    USE State_Met_Mod,         ONLY : MetState
+    USE State_Chm_Mod,         ONLY : ChmState
 
     ! HEMCO routines 
     USE HCO_CLOCK_MOD,         ONLY : HcoClock_Get
@@ -483,9 +484,6 @@ CONTAINS
     USE HCO_FLUXARR_MOD,       ONLY : HCO_FluxarrReset 
     USE HCO_DRIVER_MOD,        ONLY : HCO_RUN
     USE HCOX_DRIVER_MOD,       ONLY : HCOX_RUN
-
-    ! For soilnox
-    USE GET_NDEP_MOD,          ONLY : RESET_DEP_N
 !
 ! !INPUT PARAMETERS:
 !
@@ -619,13 +617,13 @@ CONTAINS
        ! connected.
        !-----------------------------------------------------------------
        CALL ExtState_SetFields( am_I_Root, State_Met, State_Chm, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP('ExtState_SetFields', LOC )
           RETURN 
        ENDIF 
    
        CALL ExtState_UpdateFields( am_I_Root, State_Met, RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
    
        !=======================================================================
        ! Run HCO extensions. Emissions will be added to corresponding
@@ -663,7 +661,7 @@ CONTAINS
  
     ! We are now back in GEOS-Chem environment, hence set 
     ! return flag accordingly! 
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
   END SUBROUTINE HCOI_GC_Run
 !EOC
@@ -685,9 +683,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE Error_Mod,           ONLY : Error_Stop
     USE CMN_SIZE_Mod,        ONLY : IIPAR, JJPAR, LLPAR
+    USE ErrCode_Mod
+    USE Error_Mod,           ONLY : Error_Stop
     USE HCO_Driver_Mod,      ONLY : HCO_Final
     USE HCO_Diagn_Mod,       ONLY : DiagnCollection_Cleanup
     USE HCO_State_Mod,       ONLY : HcoState_Final
@@ -758,10 +756,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
+    USE ErrCode_Mod
     USE Error_Mod,           ONLY : Error_Stop
-    USE GIGC_Input_Opt_Mod,  ONLY : OptInput
     USE HCOIO_Diagn_Mod,     ONLY : HcoDiagn_Write 
+    USE Input_Opt_Mod,       ONLY : OptInput
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -803,7 +801,7 @@ CONTAINS
     ENDIF
 
     ! Return w/ success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
   END SUBROUTINE HCOI_GC_WriteDiagn
 !EOC
@@ -888,9 +886,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE ERROR_MOD,          ONLY : ERROR_STOP
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
+    USE ErrCode_Mod
+    USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_ARR_MOD,        ONLY : HCO_ArrAssert
 !
 ! !INPUT PARAMETERS:
@@ -923,7 +921,7 @@ CONTAINS
     !=================================================================
 
     ! Init
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! ----------------------------------------------------------------
     ! HCO_SZAFACT is not defined in Met_State.  Hence need to 
@@ -1000,7 +998,7 @@ CONTAINS
     ENDIF
 
     ! Leave with success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
   END SUBROUTINE ExtState_InitTargets
 !EOC
@@ -1045,10 +1043,10 @@ CONTAINS
 !
     USE HCOX_STATE_MOD,        ONLY : ExtDat_Set
 
-    USE GIGC_ErrCode_Mod
+    USE ErrCode_Mod
     USE ERROR_MOD,             ONLY : ERROR_STOP
-    USE GIGC_State_Met_Mod,    ONLY : MetState
-    USE GIGC_State_Chm_Mod,    ONLY : ChmState
+    USE State_Met_Mod,         ONLY : MetState
+    USE State_Chm_Mod,         ONLY : ChmState
 
     ! For SoilNox
     USE Drydep_Mod,            ONLY : DRYCOEFF
@@ -1114,7 +1112,7 @@ CONTAINS
     !=================================================================
 
     ! Init
-    RC = GIGC_FAILURE
+    RC = GC_FAILURE
 
     ! ----------------------------------------------------------------
     ! Pointers to local module arrays 
@@ -1438,7 +1436,7 @@ CONTAINS
     FIRST = .FALSE.
 
     ! Leave with success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
   END SUBROUTINE ExtState_SetFields
 !EOC
@@ -1461,13 +1459,13 @@ CONTAINS
 ! !USES:
 !
     USE CMN_FJX_MOD,           ONLY : ZPJ
-    USE GIGC_ErrCode_Mod
-    USE ERROR_MOD,             ONLY : ERROR_STOP
-    USE GIGC_State_Met_Mod,    ONLY : MetState
     USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
-    USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
+    USE ErrCode_Mod
+    USE ERROR_MOD,             ONLY : ERROR_STOP
     USE FAST_JX_MOD,           ONLY : RXN_NO2, RXN_O3_1, RXN_O3_2a
     USE HCO_GeoTools_Mod,      ONLY : HCO_GetSUNCOS
+    USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
+    USE State_Met_Mod,         ONLY : MetState
 #if defined(ESMF_) 
     USE HCOI_ESMF_MOD,         ONLY : HCO_SetExtState_ESMF
 #endif
@@ -1508,7 +1506,7 @@ CONTAINS
     !=================================================================
 
     ! Init
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! TROPP: convert from hPa to Pa
     IF ( ExtState%TROPP%DoUse ) THEN
@@ -1613,8 +1611,8 @@ CONTAINS
 !
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
     USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE GIGC_State_Met_Mod, ONLY : MetState
     USE HCO_GeoTools_MOD,   ONLY : HCO_CalcVertGrid
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1731,11 +1729,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Chm_Mod,    ONLY : ChmState
-    USE GIGC_Input_Opt_Mod,    ONLY : OptInput
     USE HCO_LogFile_Mod,       ONLY : HCO_SPEC2LOG
+    USE Input_Opt_Mod,         ONLY : OptInput
     USE Species_Mod,           ONLY : Species
     USE Species_Mod,           ONLY : Spc_GetIndx
+    USE State_Chm_Mod,         ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -2069,7 +2067,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod, ONLY : MetState
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
     USE GRID_MOD,           ONLY : XMID,  YMID
     USE GRID_MOD,           ONLY : XEDGE, YEDGE, YSIN
@@ -2077,6 +2074,7 @@ CONTAINS
     USE HCO_ARR_MOD,        ONLY : HCO_ArrInit
     USE HCO_VERTGRID_MOD,   ONLY : HCO_VertGrid_Define
     USE PRESSURE_MOD,       ONLY : GET_AP, GET_BP
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT ARGUMENTS:
 !
@@ -2451,12 +2449,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE ERROR_MOD,          ONLY : ERROR_STOP
-
     USE HCO_ExtList_Mod,    ONLY : GetExtNr,  SetExtNr
     USE HCO_ExtList_Mod,    ONLY : GetExtOpt, AddExtOpt 
     USE HCO_ExtList_Mod,    ONLY : CoreNr 
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2778,7 +2775,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE State_Met_Mod,      ONLY : MetState
     USE Time_Mod,           ONLY : Get_TS_Chem
 !
 ! !INPUT PARAMETERS:
@@ -2839,12 +2836,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
-    USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
-    USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
-
-    USE CMN_SIZE_MOD  ! Size parameters
-    USE PHYSCONSTANTS
+    USE CMN_SIZE_MOD        ! Size parameters
+    USE GRID_MOD,      ONLY : GET_XMID,    GET_YMID_R
+    USE PhysConstants
+    USE TIME_MOD,      ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+    USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
 !
 ! !REMARKS:
 !  Moved here from the obsolete global_oh_mod.F.

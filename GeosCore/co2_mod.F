@@ -71,9 +71,9 @@
 !     
 ! !USES:
 !     
-      USE PHYSCONSTANTS    ! Physical parameters
-      USE inquireMod, ONLY : findFreeLUN
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE PhysConstants       ! Physical constants
+      USE inquireMod,    ONLY : findFreeLUN
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE 
@@ -151,17 +151,17 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE DIAG04_MOD,         ONLY : AD04, ND04
       USE DIAG04_MOD,         ONLY : AD04_plane,    AD04_chem
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
       USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -277,7 +277,7 @@
 
 
       ! Return success
-      RC          = GIGC_SUCCESS
+      RC          = GC_SUCCESS
 
       ! Copy values from Input_Opt
       LFOSSIL     = Input_Opt%LFOSSIL
@@ -431,7 +431,7 @@
       ! This is now listed in the NON-EMISSIONS DATA section of
       ! the HEMCO configuration file. (bmy, 4/17/15)
       CALL HCO_GetPtr( am_I_Root, 'CO2_COPROD', CO2_COPROD, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'CO2 production not defined', LOC )
       ENDIF
 
@@ -1559,9 +1559,9 @@
 !
       ! References to F90 modules
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1602,7 +1602,7 @@
       !=================================================================
 
       ! Return success
-      RC          = GIGC_SUCCESS
+      RC          = GC_SUCCESS
 
       ! Exit if we have already intialized 
       IF ( IS_INIT ) RETURN

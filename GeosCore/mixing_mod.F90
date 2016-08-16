@@ -52,12 +52,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Chm_Mod,      ONLY : ChmState
     USE VDIFF_MOD,          ONLY : DO_PBL_MIX_2
 !
 ! !INPUT PARAMETERS:
@@ -87,7 +87,7 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
    
     ! ------------------------------------------------------------------
     ! Initialize PBL mixing scheme
@@ -118,14 +118,14 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE ERROR_MOD,          ONLY : GIGC_ERROR
+    USE ErrCode_Mod
+    USE ERROR_MOD,          ONLY : GC_Error
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE UnitConv_Mod
     USE VDIFF_MOD,          ONLY : DO_PBL_MIX_2
-    USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -164,13 +164,13 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Convert [kg/kg dry air] to [v/v dry air] for mixing (ewl, 8/12/15)
     CALL Convert_KgKgDry_to_VVDry( am_I_Root, Input_Opt, &
                                    State_Chm, RC )  
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL GIGC_Error('Unit conversion error', RC, &
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
                        'DO_MIXING in mixing_mod.F')
        RETURN
     ENDIF  
@@ -223,8 +223,8 @@ CONTAINS
     ! Convert tracer conc back to [kg/kg dry air] after mixing (ewl, 8/12/15)
     CALL Convert_VVDry_to_KgKgDry( am_I_Root, Input_Opt, &
                                    State_Chm, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL GIGC_Error('Unit conversion error', RC, &
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
                        'DO_MIXING in mixing_mod.F')
        RETURN
     ENDIF  
@@ -249,23 +249,23 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ERROR_MOD,          ONLY : ERROR_STOP, SAFE_DIV
     USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
     USE CMN_DIAG_MOD,       ONLY : ND44
     USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR,   LLPAR
     USE DRYDEP_MOD,         ONLY : DEPSAV
+    USE ErrCode_Mod
+    USE ERROR_MOD,          ONLY : ERROR_STOP, SAFE_DIV
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal, GetHcoDiagn
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-    USE PHYSCONSTANTS,      ONLY : AVO
+    USE PhysConstants,      ONLY : AVO
     USE Species_Mod,        ONLY : Species
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Chm_Mod,      ONLY : ChmState
     USE TIME_MOD,           ONLY : GET_TS_DYN
-    USE GIGC_State_Chm_Mod, ONLY : IND_
-    USE UNITCONV_MOD
+    USE State_Chm_Mod,      ONLY : IND_
+    USE UnitConv_Mod
 #if defined( BPCH_DIAG )
     USE DIAG_MOD,           ONLY : AD44
 #endif
@@ -370,7 +370,7 @@ CONTAINS
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Special case that there is no dry deposition and emissions
     IF ( .NOT. Input_Opt%LDRYD .AND. .NOT. Input_Opt%LEMIS ) RETURN

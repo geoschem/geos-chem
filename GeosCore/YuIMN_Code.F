@@ -249,8 +249,8 @@ C
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -293,7 +293,7 @@ C (10) S    : VALUES AT POINTS IN SURFACE AREA DIMENSION
         CHARACTER(LEN=255) :: FNAME
         
         ! Assume success
-        RC       = GIGC_SUCCESS
+        RC       = GC_SUCCESS
 
         ! Data directory path in shared disk space where files live
         DATA_DIR = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'TOMAS_201402/'

@@ -15,9 +15,9 @@ MODULE Diagnostics_Mod
 ! !USES:
 !
   USE CMN_SIZE_Mod
+  USE ErrCode_Mod
   USE Error_Mod,          ONLY : Error_Stop
   USE HCO_Error_Mod
-  USE GIGC_ErrCode_Mod
   USE Precision_Mod
 
   IMPLICIT NONE
@@ -143,12 +143,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Chm_Mod, ONLY : Ind_
     USE GRID_MOD,           ONLY : AREA_M2
     USE HCO_DIAGN_MOD
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : Ind_
     USE TIME_MOD,           ONLY : GET_TS_CHEM
 #if defined( USE_TEND )
     USE TENDENCIES_MOD,     ONLY : TEND_INIT
@@ -201,7 +201,7 @@ CONTAINS
     !=======================================================================
 
     ! Assume successful return
-    RC      =  GIGC_SUCCESS
+    RC      =  GC_SUCCESS
 
     ! Store number of advected tracers here for use further down
     nAdvect =  State_Chm%nAdvect
@@ -270,7 +270,7 @@ CONTAINS
 !   ! Sulfate prod/loss diagnostic (ND05)
 !   IF ( Input_Opt%ND05 > 0 ) THEN
 !      CALL DiagnInit_Sulfate_ProdLoss( am_I_Root, Input_Opt, RC )
-!      IF ( RC /= GIGC_SUCCESS ) THEN
+!      IF ( RC /= GC_SUCCESS ) THEN
 !         CALL ERROR_STOP( 'Error in DiagnInit_Sulfate_ProdLoss', LOC ) 
 !      ENDIF
 !   ENDIF
@@ -278,7 +278,7 @@ CONTAINS
 !   ! Carbon sources diagnostic (ND07)
 !   IF ( Input_Opt%ND07 > 0 ) THEN
 !      CALL DiagnInit_Carbon_Sources( am_I_Root, Input_Opt, RC )
-!      IF ( RC /= GIGC_SUCCESS ) THEN
+!      IF ( RC /= GC_SUCCESS ) THEN
 !         CALL ERROR_STOP( 'Error in DiagnInit_Carbon_Sources', LOC ) 
 !      ENDIF
 !   ENDIF
@@ -286,7 +286,7 @@ CONTAINS
 !   ! Cloud properties (ND21)
 !   IF ( Input_Opt%ND21 > 0 ) THEN
 !      CALL DiagnInit_Cloud_Properties( am_I_Root, Input_Opt, RC )
-!      IF ( RC /= GIGC_SUCCESS ) THEN
+!      IF ( RC /= GC_SUCCESS ) THEN
 !         CALL ERROR_STOP( 'Error in DiagnInit_Cloud_Properties', LOC ) 
 !      ENDIF
 !   ENDIF
@@ -294,7 +294,7 @@ CONTAINS
 !   ! Photolysis rates diagnostic (ND22)
 !   IF ( Input_Opt%ND22 > 0 ) THEN
 !      CALL DiagnInit_Photolysis_Rates( am_I_Root, Input_Opt, RC )
-!      IF ( RC /= GIGC_SUCCESS ) THEN
+!      IF ( RC /= GC_SUCCESS ) THEN
 !         CALL ERROR_STOP( 'Error in DiagnInit_Photolysis_Rates', LOC ) 
 !      ENDIF
 !   ENDIF
@@ -303,7 +303,7 @@ CONTAINS
     ! For now, use ND24 as indicator of whether to turn on diag group
     IF ( Input_Opt%ND24 > 0 ) THEN
        CALL DiagnInit_Transport_Flux( am_I_Root, Input_Opt, State_Chm, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_Transport_Flux', LOC ) 
        ENDIF
     ENDIF
@@ -312,7 +312,7 @@ CONTAINS
     ! Assume both ND38 and ND39 are on if ND38 is on
     IF ( Input_Opt%ND38 > 0 ) THEN
        CALL DiagnInit_WetScav( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_WetScav', LOC ) 
        ENDIF
     ENDIF
@@ -320,7 +320,7 @@ CONTAINS
     ! Drydep diagnostic (ND44)
     IF ( Input_Opt%ND44 > 0 ) THEN
        CALL DiagnInit_DryDep( am_I_Root, Input_Opt, State_Chm, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_DryDep', LOC ) 
        ENDIF
     ENDIF
@@ -328,7 +328,7 @@ CONTAINS
     ! Tracer concentration diagnostics (ND45)
     IF ( Input_Opt%ND45 > 0 ) THEN
        CALL DiagnInit_Tracer_Conc( am_I_Root, Input_Opt, State_Chm, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_Tracer_Conc', LOC ) 
        ENDIF
     ENDIF
@@ -337,7 +337,7 @@ CONTAINS
     ! For now, use ND68 as indicator for entire diagnostic group
     IF ( Input_Opt%ND68 > 0 ) THEN
        CALL DiagnInit_Met( am_I_Root, Input_Opt, State_Met, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_Met', LOC )
        ENDIF
     ENDIF
@@ -345,7 +345,7 @@ CONTAINS
     ! Pb emissions diagnostic (ND01)
     IF ( Input_Opt%ND01 > 0 ) THEN
        CALL DiagnInit_Pb_Emiss( am_I_Root, Input_Opt, State_Chm, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_Pb_Emiss', LOC ) 
        ENDIF
     ENDIF
@@ -353,7 +353,7 @@ CONTAINS
     ! Rn/Pb/Be decay diagnostic (ND02)
     IF ( Input_Opt%ND02 > 0 ) THEN
        CALL DiagnInit_Rn_Decay( am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_Rn_Decay', LOC ) 
        ENDIF
     ENDIF
@@ -361,7 +361,7 @@ CONTAINS
     ! Boundary layer fraction diagnostic (ND12)
     IF ( Input_Opt%ND12 > 0 ) THEN
        CALL DiagnInit_BL_Frac( am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_BL_Frac', LOC ) 
        ENDIF
     ENDIF
@@ -369,7 +369,7 @@ CONTAINS
     ! Cloud convection mass flux diagnostic (ND14)
     IF ( Input_Opt%ND14 > 0 ) THEN
        CALL DiagnInit_CldConv_Flx( am_I_Root, Input_Opt, State_Chm, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_CldConv_Flx', LOC ) 
        ENDIF
     ENDIF
@@ -377,7 +377,7 @@ CONTAINS
     ! Boundary-layer mixing mass flux diagnostic (ND15)
     IF ( Input_Opt%ND15 > 0 ) THEN
        CALL DiagnInit_BLMix_Flx( am_I_Root, Input_Opt, State_Chm, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_BLMix_Flx', LOC ) 
        ENDIF
     ENDIF
@@ -385,7 +385,7 @@ CONTAINS
     ! Areal fraction of precip diagnostic (ND16)
     IF ( Input_Opt%ND16 > 0 ) THEN
        CALL DiagnInit_Precip_Frac( am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_Precip_Frac', LOC ) 
        ENDIF
     ENDIF
@@ -393,7 +393,7 @@ CONTAINS
     ! Rainout fraction diagnostic (ND17)
     IF ( Input_Opt%ND17 > 0 ) THEN
        CALL DiagnInit_Rain_Frac( am_I_Root, Input_Opt, State_Chm, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_Rain_Frac', LOC ) 
        ENDIF
     ENDIF
@@ -401,7 +401,7 @@ CONTAINS
     ! Washout fraction diagnostic (ND18)
     IF ( Input_Opt%ND18 > 0 ) THEN
        CALL DiagnInit_Wash_Frac( am_I_Root, Input_Opt, State_Chm, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_Wash_Frac', LOC ) 
        ENDIF
     ENDIF
@@ -409,7 +409,7 @@ CONTAINS
     ! CH4 loss diagnostic (ND19)
     IF ( Input_Opt%ND19 > 0 ) THEN
        CALL DiagnInit_CH4_Loss(am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_CH4_Loss', LOC ) 
        ENDIF
     ENDIF
@@ -418,7 +418,7 @@ CONTAINS
     ! Land map diagnostic (ND30)
     IF ( Input_Opt%ND30 > 0 ) THEN
        CALL DiagnInit_LandMap( am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_LandMap', LOC ) 
        ENDIF
     ENDIF
@@ -431,7 +431,7 @@ CONTAINS
 !    ! UCX diagnostics
 !    IF ( Input_Opt%LUCX ) THEN
 !       CALL DiagnInit_UCX( am_I_Root, Input_Opt, State_Chm, RC )
-!       IF ( RC /= GIGC_SUCCESS ) THEN
+!       IF ( RC /= GC_SUCCESS ) THEN
 !          CALL ERROR_STOP( 'Error in DiagnInit_UCX', LOC ) 
 !       ENDIF
 !    ENDIF
@@ -439,14 +439,14 @@ CONTAINS
     !! Houly-maximum tracer mixing ratio (IJ-MAX) at surface (ND71)
     !IF ( Input_Opt%ND71 > 0 ) THEN
     !   CALL DiagnInit_HrlyMax_SurfConc( am_I_Root, Input_Opt, RC )
-    !   IF ( RC /= GIGC_SUCCESS ) THEN
+    !   IF ( RC /= GC_SUCCESS ) THEN
     !      CALL ERROR_STOP( 'Error in DiagnInit_HrlyMax_SurfConc', LOC )
     !   ENDIF
     !ENDIF
 
 #if defined( DIAG_DEVEL )
     CALL DiagnInit_Dobson( am_I_Root, Input_Opt, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
+    IF ( RC /= GC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DiagnInit_Dobson', LOC ) 
     ENDIF
 #endif
@@ -454,7 +454,7 @@ CONTAINS
 #if defined( USE_TEND )
     ! Initialize tendencies
     CALL Tend_Init( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
+    IF ( RC /= GC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in Tendencies_Init', LOC ) 
     ENDIF
 #endif
@@ -465,7 +465,7 @@ CONTAINS
     ! container ids start at 10000 for routine TotalsToLogFile (ewl, 1/20/16)
     IF ( .FALSE. ) THEN
        CALL DiagnInit_Tracer_Emis( am_I_Root, Input_Opt, State_Met, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_Tracer_Emis', LOC ) 
        ENDIF
     ENDIF
@@ -474,18 +474,18 @@ CONTAINS
 #if defined( DIAG_DEVEL )
     ! KPP diagnostics
     CALL DiagnInit_KPP_Rates( am_I_Root, Input_Opt, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
+    IF ( RC /= GC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DiagnInit_KPP_Rates', LOC ) 
     ENDIF
 
     CALL DiagnInit_KPP_Spec( am_I_Root, Input_Opt, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
+    IF ( RC /= GC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DiagnInit_KPP_Spec', LOC ) 
     ENDIF
 #endif
 
     ! Leave with success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
   END SUBROUTINE Diagnostics_Init
 !EOC
@@ -506,7 +506,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE Input_Opt_Mod,      ONLY : OptInput
 #if defined( USE_TEND )
     USE TENDENCIES_MOD,     ONLY : TEND_CLEANUP
 #endif
@@ -536,7 +536,7 @@ CONTAINS
 #endif
 
     ! Return with success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
   END SUBROUTINE Diagnostics_Final
 !EOC
@@ -558,10 +558,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -604,7 +604,7 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     ! For now, use ND24 for entire transport diagnostic group
@@ -688,11 +688,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species   
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -733,7 +733,7 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     ! Use same output frequency and operations as for tracer concentrations.
@@ -826,10 +826,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -872,7 +872,7 @@ CONTAINS
     !=======================================================================
 
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -955,10 +955,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -997,7 +997,7 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Initialize pointer
     SpcInfo => NULL()
@@ -1105,10 +1105,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE PHYSCONSTANTS,      ONLY : XNUMOLAIR
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE PhysConstants,      ONLY : XNUMOLAIR
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1144,7 +1144,7 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -1360,10 +1360,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Chm_Mod, ONLY : Ind_
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -1404,7 +1404,7 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Pb210 species Id
     id_Pb      = Ind_('PB')
@@ -1460,8 +1460,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1504,7 +1504,7 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -1565,9 +1565,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1597,7 +1596,7 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -1648,10 +1647,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1691,7 +1690,7 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -1761,10 +1760,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1806,7 +1805,7 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -1875,9 +1874,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1907,7 +1905,7 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -1974,10 +1972,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -2020,7 +2018,7 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -2107,10 +2105,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -2152,7 +2150,7 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC         = GIGC_SUCCESS
+    RC         = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -2238,9 +2236,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2270,7 +2267,7 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -2320,8 +2317,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2351,7 +2348,7 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -2402,10 +2399,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Update
-    USE PHYSCONSTANTS,      ONLY : XNUMOLAIR, SCALE_HEIGHT
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE PhysConstants,      ONLY : XNUMOLAIR, SCALE_HEIGHT
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -2441,7 +2438,7 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Initialize pointers
     Ptr2D => NULL()
@@ -2687,10 +2684,10 @@ CONTAINS
 !
 ! !USES:
 !
-   USE GIGC_Input_Opt_Mod, ONLY : OptInput    
-   USE GIGC_State_Chm_Mod, ONLY : ChmState
    USE HCO_Diagn_Mod,      ONLY : Diagn_Update
+   USE Input_Opt_Mod,      ONLY : OptInput    
    USE Species_Mod,        ONLY : Species
+   USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -2746,7 +2743,7 @@ CONTAINS
    !=================================================================
    
     ! Assume successful return
-    RC        =  GIGC_SUCCESS
+    RC        =  GC_SUCCESS
 
     ! Get number of levels for transport diagnostics
     NumLevels =  Input_Opt%LD24
@@ -2835,13 +2832,13 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Chm_Mod, ONLY : IND_
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : IND_
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -2884,7 +2881,7 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     ! Use same output frequency and operations as for tracer concentrations.
@@ -2974,9 +2971,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : IND_
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -3007,7 +3004,7 @@ CONTAINS
     !=======================================================================
 
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Nothing to do if O3 is not a tracer
     IF ( IND_('O3') <= 0 ) RETURN
@@ -3062,16 +3059,16 @@ CONTAINS
 !
 ! !USES:
 !
-    USE PHYSCONSTANTS,      ONLY : AIRMW, AVO,   g0
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Chm_Mod, ONLY : IND_
+    USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE HCO_Diagn_Mod,      ONLY : Diagn_Update
     USE HCO_Diagn_Mod,      ONLY : DiagnCont
     USE HCO_Diagn_Mod,      ONLY : DiagnCont_Find
-    USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE PhysConstants,      ONLY : AIRMW, AVO,   g0
     USE PRESSURE_MOD,       ONLY : GET_PEDGE
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : IND_
 !
 ! !INPUT PARAMETERS:
 !
@@ -3115,7 +3112,7 @@ CONTAINS
     !=======================================================================
 
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Initialize
     DgnPtr => NULL()
@@ -3189,7 +3186,7 @@ CONTAINS
     ENDIF
 
     ! Return w/ success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
    
   END SUBROUTINE CalcDobsonColumn
 !EOC
@@ -3215,8 +3212,8 @@ CONTAINS
 !
     USE gckpp_Parameters
     USE gckpp_Monitor
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -3247,7 +3244,7 @@ CONTAINS
     !=======================================================================
 
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -3359,7 +3356,7 @@ CONTAINS
 !
     USE gckpp_Parameters
     USE gckpp_Monitor
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
 !
 ! !INPUT PARAMETERS:
@@ -3391,7 +3388,7 @@ CONTAINS
     !=======================================================================
 
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -3445,10 +3442,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_TotalGet
-    USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH 
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH 
 !
 ! !INPUT PARAMETERS:
 !
@@ -3475,7 +3472,7 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Don't do anything if not root
     IF ( .NOT. Am_I_Root ) RETURN
@@ -3562,11 +3559,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_STATE_MOD,      ONLY : HCO_STATE
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_WriteDiagn 
     USE HCOIO_Diagn_Mod,    ONLY : HCOIO_Diagn_WriteOut
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -3600,7 +3597,7 @@ CONTAINS
 
     ! Write HEMCO diagnostics
     CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, RESTART, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Write netCDF GEOS-Chem diagnostics
 #if defined( NC_DIAG )
@@ -3614,7 +3611,7 @@ CONTAINS
     ! Eventually write out emission totals to GEOS-Chem logfile
     !-----------------------------------------------------------------------
     CALL TotalsToLogfile( am_I_Root, Input_Opt, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN 
+    IF ( RC /= GC_SUCCESS ) THEN 
        CALL ERROR_STOP ('Error in TotalsToLogfile', LOC ) 
     ENDIF
 
@@ -3651,7 +3648,7 @@ CONTAINS
 #endif
 
     ! Leave w/ success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
   END SUBROUTINE Diagnostics_Write
 !EOC
@@ -3676,9 +3673,9 @@ CONTAINS
 !! !USES:
 !!
 !    USE Error_Mod,          ONLY : Error_Stop
-!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
 !    USE HCO_Error_Mod
+!    USE Input_Opt_Mod,      ONLY : OptInput
 !!
 !! !INPUT PARAMETERS:
 !!
@@ -3708,7 +3705,7 @@ CONTAINS
 !    !=======================================================================
 !      
 !    ! Assume successful return
-!    RC = GIGC_SUCCESS
+!    RC = GC_SUCCESS
 !
 !    ! Get diagnostic parameters from the Input_Opt object
 !    Collection = Input_Opt%DIAG_COLLECTION
@@ -3766,9 +3763,9 @@ CONTAINS
 !! !USES:
 !!
 !    USE Error_Mod,          ONLY : Error_Stop
-!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
 !    USE HCO_Error_Mod
+!    USE Input_Opt_Mod,      ONLY : OptInput
 !!
 !! !INPUT PARAMETERS:
 !!
@@ -3798,7 +3795,7 @@ CONTAINS
 !    !=======================================================================
 !      
 !    ! Assume successful return
-!    RC = GIGC_SUCCESS
+!    RC = GC_SUCCESS
 !
 !    ! Get diagnostic parameters from the Input_Opt object
 !    Collection = Input_Opt%DIAG_COLLECTION
@@ -3858,9 +3855,9 @@ CONTAINS
 !! !USES:
 !!
 !    USE Error_Mod,          ONLY : Error_Stop
-!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
 !    USE HCO_Error_Mod
+!    USE Input_Opt_Mod,      ONLY : OptInput
 !    USE TRACERID_MOD,        ONLY : ??? 
 !!
 !! !INPUT PARAMETERS:
@@ -3893,7 +3890,7 @@ CONTAINS
 !    !=======================================================================
 !      
 !    ! Assume successful return
-!    RC = GIGC_SUCCESS
+!    RC = GC_SUCCESS
 !
 !    ! Get diagnostic parameters from the Input_Opt object
 !    Collection = Input_Opt%DIAG_COLLECTION
@@ -3955,8 +3952,8 @@ CONTAINS
 !!
 !! !USES:
 !!
-!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+!    USE Input_Opt_Mod,      ONLY : OptInput
 !!
 !! !INPUT PARAMETERS:
 !!
@@ -3986,7 +3983,7 @@ CONTAINS
 !    !=======================================================================
 !      
 !    ! Assume successful return
-!    RC = GIGC_SUCCESS
+!    RC = GC_SUCCESS
 !
 !    ! Get diagnostic parameters from the Input_Opt object
 !    Collection = Input_Opt%DIAG_COLLECTION
@@ -4087,9 +4084,9 @@ CONTAINS
 !! !USES:
 !!
 !    USE Error_Mod,          ONLY : Error_Stop
-!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
 !    USE HCO_Error_Mod
+!    USE Input_Opt_Mod,      ONLY : OptInput
 !!
 !! !INPUT PARAMETERS:
 !!
@@ -4119,7 +4116,7 @@ CONTAINS
 !    !=======================================================================
 !      
 !    ! Assume successful return
-!    RC = GIGC_SUCCESS
+!    RC = GC_SUCCESS
 !
 !    ! Get diagnostic parameters from the Input_Opt object
 !    Collection = Input_Opt%DIAG_COLLECTION
@@ -4175,8 +4172,8 @@ CONTAINS
 !!
 !! !USES:
 !!
-!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+!    USE Input_Opt_Mod,      ONLY : OptInput
 !!
 !! !INPUT PARAMETERS:
 !!
@@ -4206,7 +4203,7 @@ CONTAINS
 !    !=======================================================================
 !
 !    ! Assume successful return
-!    RC = GIGC_SUCCESS
+!    RC = GC_SUCCESS
 !
 !    ! Get diagnostic parameters from the Input_Opt object
 !    Collection = Input_Opt%DIAG_COLLECTION

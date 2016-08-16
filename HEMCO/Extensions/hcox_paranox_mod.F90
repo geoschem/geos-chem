@@ -2173,14 +2173,6 @@ CONTAINS
 !
 ! !USES:
 !
-!      USE TRACERID_MOD,       ONLY : IDO3,   IDNO,  IDNO2
-!      USE TIME_MOD,           ONLY : GET_LOCALTIME
-!      USE ERROR_MOD,          ONLY : ERROR_STOP, SAFE_DIV
-!      USE COMODE_MOD,         ONLY : CSPEC, JLOP
-!      USE COMODE_LOOP_MOD,    ONLY : NCS, NAMEGAS, JPHOTRAT, NRATES
-!      USE COMODE_LOOP_MOD,    ONLY : IRM, IH2O
-!      USE GIGC_State_Met_Mod, ONLY : MetState
-!      USE CMN_SIZE_MOD
    USE HCO_STATE_MOD,        ONLY : HCO_State
    USE HCOX_STATE_MOD,       ONLY : Ext_State
 !

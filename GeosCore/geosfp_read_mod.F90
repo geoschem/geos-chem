@@ -23,7 +23,6 @@ MODULE GeosFp_Read_Mod
 
   ! GEOS-Chem modules
   USE CMN_SIZE_MOD                        ! Size parameters
-  USE PHYSCONSTANTS                       ! Physical constants
 #if defined( BPCH_DIAG )
   USE CMN_DIAG_MOD                        ! Diagnostic arrays & counters
   USE DIAG_MOD,      ONLY : AD21          ! Array for ND21 diagnostic  
@@ -31,6 +30,7 @@ MODULE GeosFp_Read_Mod
   USE DIAG_MOD,      ONLY : AD67          ! Array for ND67 diagnostic
 #endif
   USE ERROR_MOD,     ONLY : ERROR_STOP    ! Stop w/ error message
+  USE PhysConstants                       ! Physical constants
   USE TIME_MOD                            ! Date & time routines
   USE TRANSFER_MOD                        ! Routines for casting 
 
@@ -261,8 +261,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -416,8 +416,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -875,8 +875,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -958,8 +958,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1149,8 +1149,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput  
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput  
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1346,8 +1346,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1517,8 +1517,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1714,8 +1714,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1946,8 +1946,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 

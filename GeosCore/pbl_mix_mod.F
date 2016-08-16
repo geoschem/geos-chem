@@ -117,10 +117,10 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CONV
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
@@ -190,7 +190,7 @@
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -252,11 +252,10 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_State_Met_Mod, ONLY : MetState
-
       USE CMN_SIZE_MOD             ! Size parameters
-      USE PHYSCONSTANTS            ! Scale height
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE PhysConstants            ! Scale height
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -479,10 +478,10 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : TURBFLUP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CONV
 !
 ! !INPUT PARAMETERS: 
@@ -589,7 +588,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! First-time initialization
       IF ( FIRST .and. Input_Opt%RootCPU ) THEN
@@ -996,8 +995,8 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ALLOC_ERR
       USE CMN_SIZE_MOD
+      USE ERROR_MOD, ONLY : ALLOC_ERR
 ! 
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version

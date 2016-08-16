@@ -57,13 +57,13 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Chm_Mod, ONLY : Ind_
+    USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_INIT
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -89,7 +89,7 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC       = GIGC_SUCCESS
+    RC       = GC_SUCCESS
 
     ! Define species ID flags for use in routines below
     id_BrO   = IND_('BrO'  )
@@ -98,7 +98,7 @@ CONTAINS
 
     ! Initialize the HEMCO environment for this GEOS-Chem run.
     CALL HCOI_GC_Init( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
-    IF ( RC/=GIGC_SUCCESS ) RETURN 
+    IF ( RC/=GC_SUCCESS ) RETURN 
 
   END SUBROUTINE EMISSIONS_INIT
 !EOC
@@ -120,21 +120,21 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE ERROR_MOD,          ONLY : GIGC_ERROR
-    USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_RUN
+    USE BROMOCARB_MOD,      ONLY : SET_BRO
+    USE BROMOCARB_MOD,      ONLY : SET_CH3BR
     USE CARBON_MOD,         ONLY : EMISSCARBON
+    USE CO2_MOD,            ONLY : EMISSCO2
+    USE ErrCode_Mod
+    USE ERROR_MOD,          ONLY : GC_Error
+    USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
+    USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_RUN
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Chm_Mod,      ONLY : ChmState
 #if defined ( TOMAS )
     USE CARBON_MOD,         ONLY : EMISSCARBONTOMAS !jkodros
     USE SULFATE_MOD,        ONLY : EMISSSULFATETOMAS !jkodros
 #endif
-    USE CO2_MOD,            ONLY : EMISSCO2
-    USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
-    USE BROMOCARB_MOD,      ONLY : SET_BRO
-    USE BROMOCARB_MOD,      ONLY : SET_CH3BR
 
     ! Use old mercury code for now (ckeller, 09/23/2014)
     USE MERCURY_MOD,        ONLY : EMISSMERCURY
@@ -147,7 +147,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    LOGICAL,          INTENT(IN   )  :: EmisTime   ! Emissions in this time step? 
+    LOGICAL,          INTENT(IN   )  :: EmisTime   ! Emissions in this time step
     INTEGER,          INTENT(IN   )  :: Phase      ! Run phase
  
 !
@@ -174,13 +174,13 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Run HEMCO. Phase 1 will only update the HEMCO clock and the 
     ! HEMCO data list, phase 2 will perform the emission calculations.
     CALL HCOI_GC_RUN( am_I_Root, Input_Opt, State_Met, State_Chm, & 
                       EmisTime,  Phase,     RC                     ) 
-    IF ( RC /= GIGC_SUCCESS ) RETURN 
+    IF ( RC /= GC_SUCCESS ) RETURN 
 
     ! The following only needs to be done in phase 2
     IF ( Phase /= 1 ) THEN 
@@ -190,7 +190,7 @@ CONTAINS
        ! species array in carbon, as well as to ensure that POA emissions
        ! are correctly treated.
        CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN 
+       IF ( RC /= GC_SUCCESS ) RETURN 
 
     ! Call TOMAS emission routines (JKodros 6/2/15)
 #if defined ( TOMAS )
@@ -204,7 +204,7 @@ CONTAINS
        ! thus need to be added explicitly, which is done in EMISSCO2.
        IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
           CALL EMISSCO2( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-          IF ( RC /= GIGC_SUCCESS ) RETURN 
+          IF ( RC /= GC_SUCCESS ) RETURN 
        ENDIF
    
        ! For CH4 simulation or if CH4 is defined, call EMISSCH4. 
@@ -216,7 +216,7 @@ CONTAINS
        IF ( Input_Opt%ITS_A_CH4_SIM .OR.            &
           ( id_CH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
           CALL EMISSCH4( am_I_Root, Input_Opt, State_Met, RC )
-          IF ( RC /= GIGC_SUCCESS ) RETURN 
+          IF ( RC /= GC_SUCCESS ) RETURN 
        ENDIF
    
        ! For UCX, use Seb's routines for stratospheric species for now.
@@ -259,7 +259,7 @@ CONTAINS
     ENDIF ! Phase/=1  
     
     ! Return w/ success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
    
    END SUBROUTINE EMISSIONS_RUN
 !EOC

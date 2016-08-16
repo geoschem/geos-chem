@@ -113,27 +113,24 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,    ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
-      USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
-      USE inquireMod,   ONLY : findFreeLUN
-      USE TIME_MOD,     ONLY : EXPAND_DATE
-      USE TIME_MOD,     ONLY : GET_NYMD,           GET_NHMS
-      USE TIME_MOD,     ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
-      USE TIME_MOD,     ONLY : GET_TAU,            GET_HOUR
-      USE TIME_MOD,     ONLY : ITS_A_NEW_DAY,      TIMESTAMP_STRING
-      USE TIME_MOD,     ONLY : GET_TAUb
-      USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE ERROR_MOD,    ONLY : SAFE_DIV, ERROR_STOP
-
-      USE CMN_O3_MOD	     ! Pure O3, SAVENO2
-      USE PHYSCONSTANTS
-
-      ! Connect to HEMCO diagnostics
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : IND_
+      USE BPCH2_MOD,     ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
+      USE CMN_O3_MOD	      ! Pure O3, SAVENO2
+      USE ErrCode_Mod
+      USE ERROR_MOD,     ONLY : SAFE_DIV, ERROR_STOP
+      USE GRID_MOD,      ONLY : GET_XOFFSET,        GET_YOFFSET
       USE HCO_DIAGN_MOD
       USE HCO_ERROR_MOD
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE inquireMod,    ONLY : findFreeLUN
+      USE PhysConstants
+      USE PBL_MIX_MOD,   ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
+      USE State_Chm_Mod, ONLY : IND_
+      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE TIME_MOD,      ONLY : GET_NYMD,           GET_NHMS
+      USE TIME_MOD,      ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
+      USE TIME_MOD,      ONLY : GET_TAU,            GET_HOUR
+      USE TIME_MOD,      ONLY : ITS_A_NEW_DAY,      TIMESTAMP_STRING
+      USE TIME_MOD,      ONLY : GET_TAUb
 !
 ! !INPUT ARGUMENTS
 !
@@ -347,7 +344,7 @@
 
       ! Return w/ success
       DiagnCnt => NULL()
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE DIAG63
 !EOC
@@ -420,9 +417,9 @@
 !
 ! !USES:
 !
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,  ONLY : GET_ELAPSED_MIN
       USE TIME_MOD,  ONLY : GET_TS_DIAG
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 !
 ! !RETURN VALUE:
 !
@@ -534,14 +531,13 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD, ONLY : GET_MODELNAME
-      USE BPCH2_MOD, ONLY : GET_HALFPOLAR
-      USE GRID_MOD,  ONLY : GET_XOFFSET
-      USE GRID_MOD,  ONLY : GET_YOFFSET
-      USE GRID_MOD,  ONLY : ITS_A_NESTED_GRID
-      USE ERROR_MOD, ONLY : ERROR_STOP
-
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE BPCH2_MOD,   ONLY : GET_MODELNAME
+      USE BPCH2_MOD,   ONLY : GET_HALFPOLAR
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE GRID_MOD,    ONLY : GET_XOFFSET
+      USE GRID_MOD,    ONLY : GET_YOFFSET
+      USE GRID_MOD,    ONLY : ITS_A_NESTED_GRID
+      USE ERROR_MOD,   ONLY : ERROR_STOP
 !
 ! !INPUT PARAMETERS: 
 !

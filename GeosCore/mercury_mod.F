@@ -17,7 +17,6 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS             ! physical parameters
       USE DEPO_MERCURY_MOD , ONLY : ADD_HG2_SNOWPACK
       USE DEPO_MERCURY_MOD , ONLY : LHGSNOW
       USE OCEAN_MERCURY_MOD, ONLY : LDYNSEASALT
@@ -37,8 +36,8 @@
       USE OCEAN_MERCURY_MOD, ONLY : LNEI2005
       USE OCEAN_MERCURY_MOD, ONLY : LInPlume    
       USE OCEAN_MERCURY_MOD, ONLY : LOCEANCOEF
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE PhysConstants           ! Physical constants
+      USE PRECISION_MOD           ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -353,18 +352,18 @@
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SS,  LD03
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SSR, ND03 
       USE DIAG03_MOD,         ONLY : AD03_Br
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE GLOBAL_BR_MOD,      ONLY : GET_GLOBAL_BR
       USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
@@ -652,7 +651,7 @@
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Copy values from Input_Opt
       LDYNOCEAN = Input_Opt%LDYNOCEAN
@@ -701,13 +700,13 @@
 
          ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,   RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
+         IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
          ENDIF
 
          ! Get a pointer to the monthly mean O3 from HEMCO (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root, 'GLOBAL_O3', O3,  RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
+         IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_O3', LOC )
          ENDIF
 
@@ -717,7 +716,7 @@
          ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
          IF ( LRED_JNO2 ) THEN
             CALL HCO_GetPtr( am_I_Root, 'JNO2', JNO2,  RC )
-            IF ( RC /= GIGC_SUCCESS ) THEN
+            IF ( RC /= GC_SUCCESS ) THEN
                CALL ERROR_STOP ( 'Cannot get pointer to JNO2', LOC )
             ENDIF
          ENDIF
@@ -1560,18 +1559,18 @@
 !
       USE CMN_SIZE_MOD
       USE DEPO_MERCURY_MOD,   ONLY : RESET_HG_DEP_ARRAYS
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XMID, GET_YMID
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE LAND_MERCURY_MOD,   ONLY : LAND_MERCURY_FLUX, VEGEMIS
       USE LAND_MERCURY_MOD,   ONLY : SOILEMIS, BIOMASSHG
       USE LAND_MERCURY_MOD,   ONLY : SNOWPACK_MERCURY_FLUX
       USE OCEAN_MERCURY_MOD,  ONLY : OCEAN_MERCURY_FLUX
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE UNITCONV_MOD
+      USE UnitConv_Mod
 
       ! Added for GTMM (ccc, 11/19/09)
       USE LAND_MERCURY_MOD,   ONLY : GTMM_DR
@@ -1631,7 +1630,7 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
       
       ! Copy fields from Input_Opt
       LDYNOCEAN = Input_Opt%LDYNOCEAN
@@ -1645,8 +1644,8 @@
       ! NOTE: This is temporary until mercury code is in [kg/kg dry air]
       CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
      &                            State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
      &                   'Routine EMISSIONS_RUN in emissions_mod.F')
          RETURN
       ENDIF                         
@@ -1807,8 +1806,8 @@
       !  (ewl, 8/12/15)
       CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
      &                            State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
      &                   'Routine EMISSMERCURY in mercury_mod.F')
          RETURN
       ENDIF  
@@ -1834,10 +1833,10 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ErrCode_Mod
       USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
 !
 ! !INPUT PARAMETERS:
@@ -1935,11 +1934,11 @@
 !
       USE CMN_SIZE_MOD
       USE DIAG03_MOD,         ONLY : AD03, ND03, AD03_nat
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
 !
 ! !INPUT PARAMETERS:
@@ -1983,7 +1982,7 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Copy values from Input_Opt
       LSPLIT    = Input_Opt%LSPLIT
@@ -2708,17 +2707,13 @@
 !
       USE CMN_SIZE_MOD
       USE DIAG03_MOD,         ONLY : AD03, ND03
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
-      USE TIME_MOD,           ONLY : GET_TS_EMIS
-
-      ! Testing only
-      USE GRID_MOD, ONLY : GET_AREA_M2
- 
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_EMIS 
 !
 ! !INPUT PARAMETERS:
 !
@@ -2759,7 +2754,7 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS      
+      RC        = GC_SUCCESS      
 
       ! Copy values from Input_Opt
       LSPLIT    = Input_Opt%LSPLIT
@@ -2922,12 +2917,12 @@
 !
       USE CMN_SIZE_MOD
       USE DIAG03_MOD,         ONLY : AD03, ND03
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS 
 !
 ! !INPUT PARAMETERS:
@@ -2968,7 +2963,7 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS      
+      RC        = GC_SUCCESS      
 
       ! Copy values from Input_Opt
       LSPLIT    = Input_Opt%LSPLIT
@@ -3129,16 +3124,14 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-
-      ! HEMCO update
       USE HCO_ERROR_MOD
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoDiagn 
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -3210,7 +3203,7 @@
       !=================================================================
 
       ! Assume success
-      RC             = GIGC_SUCCESS
+      RC             = GC_SUCCESS
 
       ! Initialize pointers
       Ptr2D          => NULL()  
@@ -3417,7 +3410,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3502,7 +3495,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3564,7 +3557,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -3641,12 +3634,12 @@
       USE DAO_MOD,            ONLY : IS_WATER
       USE DIAG03_MOD,         ONLY : AD03_Br,   LD03,     ND03
       USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_BR_MOD,      ONLY : BR_MERGE,  BR_TROP
       USE GLOBAL_BR_MOD,      ONLY : BR_STRAT,  J_BRO
       USE GLOBAL_BR_MOD,      ONLY : BRO_MERGE, BRO_TROP, BRO_STRAT
       USE GRID_MOD,           ONLY : GET_YMID
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_LOCALTIME 
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
       USE TIME_MOD,           ONLY : GET_MONTH
@@ -4135,8 +4128,8 @@
 !
       USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD,            ONLY : IS_WATER
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_M
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4244,10 +4237,10 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS
       USE CMN_SIZE_MOD
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID_R
+      USE PhysConstants
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR 
 !
 ! !INPUT PARAMETERS: 
@@ -4360,12 +4353,12 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : SAFE_DIV  , GEOS_CHEM_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE OCEAN_MERCURY_MOD,  ONLY : Fg
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -4411,7 +4404,7 @@
       !=================================================================
 
       ! Assume success
-      RC  =  GIGC_SUCCESS 
+      RC  =  GC_SUCCESS 
 
       ! Point to the chemical species array [kg]
       Spc => State_Chm%Species
@@ -4527,11 +4520,11 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
 
       IMPLICIT NONE
@@ -4582,7 +4575,7 @@
       
       ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
       CALL HCO_GetPtr( am_I_Root, 'CFPP_NEI2005_Hg2', E_ELEC_Hg2, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 
      &      'Cannot get pointer to CFPP_NEI2005_Hg2!', LOC )
       ENDIF
@@ -4626,11 +4619,11 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -4681,7 +4674,7 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Return if we have already allocated arrays
       IF ( IS_INIT ) RETURN

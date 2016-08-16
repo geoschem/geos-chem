@@ -18,13 +18,12 @@ MODULE VDIFF_MOD
   USE CMN_DIAG_MOD,  ONLY : ND15,  ND44            ! Diagnostics
   USE CMN_SIZE_MOD,  ONLY : IIPAR, JJPAR, LLPAR    ! Grid dimensions
   USE CMN_SIZE_MOD,  ONLY : plev  => LLPAR         ! # of levels
-  USE PHYSCONSTANTS                                ! Physical constants
   USE ERROR_MOD,     ONLY : DEBUG_MSG              ! Routine for debug output
+  USE PhysConstants                                ! Physical constants
+  USE PRECISION_MOD                                ! For GEOS-Chem Precision(fp)
   USE VDIFF_PRE_MOD, ONLY : PCNST                  ! N_TRACERS
   USE VDIFF_PRE_MOD, ONLY : LPRT                   ! Debug print?
   USE VDIFF_PRE_MOD, ONLY : LTURB                  ! Do PBL mixing?
-
-  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
   IMPLICIT NONE
   PRIVATE
@@ -219,8 +218,8 @@ contains
 ! !USES:
 !
     USE DIAG_MOD,           ONLY : TURBFLUP
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 
     implicit none
 !
@@ -1704,8 +1703,8 @@ contains
 !
 ! !USES:
 ! 
-    USE PRESSURE_MOD, ONLY : GET_AP, GET_BP
     USE ERROR_MOD,    ONLY : ALLOC_ERR
+    USE PRESSURE_MOD, ONLY : GET_AP, GET_BP
     
     implicit none
 !
@@ -1831,19 +1830,19 @@ contains
 #endif
     USE DRYDEP_MOD,         ONLY : DEPSAV
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Chm_Mod, ONLY : IND_   ! kyu codeathon
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
     USE GRID_MOD,           ONLY : GET_AREA_M2
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE MERCURY_MOD,        ONLY : HG_EMIS
     USE OCEAN_MERCURY_MOD,  ONLY : Fg !hma
     USE OCEAN_MERCURY_MOD,  ONLY : OMMFP => Fp
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
     USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_m, COMPUTE_PBL_HEIGHT, &
                                    GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
-    USE SPECIES_MOD,        ONLY : Species
+    USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : IND_
+    USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
 #if defined( USE_TEND )
     USE TENDENCIES_MOD
@@ -2934,15 +2933,15 @@ contains
 !
 ! !USES:
 !
+    USE DAO_MOD,            ONLY : AIRQNT
     USE ERROR_MOD,          ONLY : DEBUG_MSG
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE PBL_MIX_MOD,        ONLY : INIT_PBL_MIX
     USE PBL_MIX_MOD,        ONLY : COMPUTE_PBL_HEIGHT
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
-    USE DAO_MOD,            ONLY : AIRQNT
 
     IMPLICIT NONE
 !
@@ -2994,7 +2993,7 @@ contains
     !=================================================================
     
     ! Assume success
-    RC  =  GIGC_SUCCESS
+    RC  =  GC_SUCCESS
 
     ! Set a flag if we should print debug output to the log file
     prtDebug = ( Input_Opt%LPRT .and. am_I_Root )

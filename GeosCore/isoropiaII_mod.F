@@ -19,8 +19,7 @@
 !
 ! !USES:
 !
-      USE HCO_ERROR_MOD  ! For real precisions (hp)
-
+      USE HCO_ERROR_MOD    ! For real precisions (hp)
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -124,15 +123,15 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
-      USE CMN_SIZE_MOD
+      USE CMN_SIZE_MOD 
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState, IND_
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
 !
@@ -260,7 +259,7 @@
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
-      RC                   = GIGC_SUCCESS
+      RC                   = GC_SUCCESS
 
       ! am I root? 
       aIR                  = am_I_Root
@@ -316,7 +315,7 @@
 
                ! Offline simulation: get HNO3 from HEMCO (mps, 9/23/14)
                CALL HCO_GetPtr( aIR, 'GLOBAL_HNO3', HNO3, RC )
-               IF ( RC /= GIGC_SUCCESS ) 
+               IF ( RC /= GC_SUCCESS ) 
      &         CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_HNO3', X )
 
             ELSE
@@ -740,9 +739,9 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS,      ONLY : AIRMW
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : AIRMW
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
 !
 ! !INPUT PARAMETERS: 
@@ -845,7 +844,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -895,8 +894,8 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD      ! Size parameters
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE CMN_SIZE_MOD                   ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  06 Jul 2007 - H. O. T. Pye - Initial version

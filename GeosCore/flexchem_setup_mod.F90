@@ -14,10 +14,10 @@ MODULE FLEXCHEM_SETUP_MOD
 !
 ! !USES:
 !
-  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-  USE GIGC_Input_Opt_Mod, ONLY : OptInput
-  USE GIGC_State_Chm_Mod, ONLY : ChmState
-  USE GIGC_State_Met_Mod, ONLY : MetState
+  USE Input_Opt_Mod,      ONLY : OptInput
+  USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
+  USE State_Chm_Mod,      ONLY : ChmState
+  USE State_Met_Mod,      ONLY : MetState
 
   IMPLICIT NONE
   PRIVATE
@@ -68,17 +68,17 @@ CONTAINS
 !
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE CMN_SIZE_MOD
-    USE PHYSCONSTANTS,      ONLY : BOLTZ
+    USE PhysConstants,      ONLY : BOLTZ
+    USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE HCO_DIAGN_MOD,      ONLY : Diagn_Create
-    USE HCO_ERROR_MOD
-    USE GIGC_ErrCode_Mod
-    USE GIGC_State_Chm_Mod, ONLY : IND_
-    USE GIGC_State_Met_Mod, ONLY : MetState
     USE gckpp_Global,       ONLY : NSPEC, NREACT
     USE gckpp_Monitor,      ONLY : SPC_NAMES, EQN_NAMES
+    USE HCO_DIAGN_MOD,      ONLY : Diagn_Create
+    USE HCO_ERROR_MOD
     USE PRECISION_MOD
     USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : IND_
+    USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_NYMD, GET_NHMS
 !
 ! !INPUT PARAMETERS:
@@ -135,7 +135,7 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Initialize pointer
     SpcInfo => NULL()
@@ -149,11 +149,11 @@ CONTAINS
 100 FORMAT( '     - INIT_FLEXCHEM: Allocating arrays for FLEX_CHEMISTRY' )
 
     ALLOCATE( CSPECTOKPP(NSPEC), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     CSPECTOKPP = 0
 
     ALLOCATE( HSAVE_KPP( IIPAR, JJPAR, LLCHEM ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     HSAVE_KPP = 0.d0
 
     ! Loop over GEOS-Chem species

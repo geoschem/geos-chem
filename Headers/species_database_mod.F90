@@ -82,8 +82,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
     USE Species_Mod
 !
 ! !INPUT PARAMETERS: 
@@ -207,7 +207,7 @@ CONTAINS
 
     ! Initialize the species vector
     CALL SpcData_Init( am_I_Root, nSpecies, SpcData, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
+    IF ( RC /= GC_SUCCESS ) THEN
        PRINT*, '### Could not initialize species vector!'
        CALL EXIT( -999 )
     ENDIF
@@ -4839,7 +4839,7 @@ CONTAINS
        END SELECT
 
        ! Error
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           PRINT*, '### Could not initialize species vector!'
           CALL EXIT( -999 ) 
        ENDIF
@@ -4870,7 +4870,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
+    USE ErrCode_Mod
     USE Species_Mod
 !
 ! !INPUT PARAMETERS: 
@@ -4896,7 +4896,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Deallocate the species database object
     CALL SpcData_Cleanup( SpcData )
@@ -4930,7 +4930,7 @@ CONTAINS
 !  Keep a private shadow copy of this routine here so as not to 
 !  incur a dependency with GeosUtil/charpak_mod.F.  This lets us
 !  keep species_datbase_mod.F90 in the Headers/ folder together
-!  with gigc_state_chm_mod.F90 and species_mod.F90.
+!  with state_chm_mod.F90 and species_mod.F90.
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
@@ -4971,8 +4971,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
     USE GcKpp_Monitor,      ONLY : Spc_Names
     USE GcKpp_Parameters,   ONLY : NFIX, NSPEC, NVAR
 !
@@ -5017,7 +5017,7 @@ CONTAINS
     !=======================================================================
 
     ! Assume success
-    RC       = GIGC_SUCCESS
+    RC       = GC_SUCCESS
 
     ! Number of Advected Tracers listed in input.geos
     nTracers = Input_Opt%N_TRACERS
@@ -5035,7 +5035,7 @@ CONTAINS
        ! advected tracers listed in input.geos as well as all of the
        ! KPP species names (listed in SPC_NAMES of gckpp_Monitor.F90)
        ALLOCATE( Tmp( nTracers + NSPEC ), STAT=RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
        Tmp = ''
 
        !--------------------------------------------------------------------
@@ -5070,17 +5070,17 @@ CONTAINS
 
        ! Work array to hold the list of all KPP species indices
        ALLOCATE( KppSpcId( nSpecies ), STAT=RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
        KppSpcId = MISSING_INT
 
        ! Work array to hold the list of KPP fixed species indices
        ALLOCATE( KppFixId( nSpecies ), STAT=RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
        KppFixId = MISSING_INT
        
        ! Work array to hold the list of KPP variable species indices
        ALLOCATE( KppVarId( nSpecies ), STAT=RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
        KppVarId = MISSING_INT
 
        ! Loop through the list of unique species names

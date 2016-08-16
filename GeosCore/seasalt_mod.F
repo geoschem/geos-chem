@@ -163,11 +163,11 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -239,7 +239,7 @@
 
 
       ! Assume success
-      RC       = GIGC_SUCCESS
+      RC       = GC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LPRT     = Input_Opt%LPRT
@@ -338,19 +338,19 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44
 #endif
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
 #if defined( NC_DIAG )
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
@@ -480,7 +480,7 @@
 #endif
 
       ! Assume success
-      RC            = GIGC_SUCCESS
+      RC            = GC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
       SALA_REDGE_um = Input_Opt%SALA_REDGE_um 
@@ -858,9 +858,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -904,7 +904,7 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Initialize
       KOC       = 1.e+0_fp / ( 86400e+0_fp * OC_LIFE )
@@ -984,9 +984,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -1024,7 +1024,7 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Set pointer to GEOS-Chem tracer array [kg]
       Spc      => State_Chm%Species
@@ -1087,12 +1087,12 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -1135,7 +1135,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Return if we have already allocated arrays
       IF ( IS_INIT ) RETURN
@@ -1251,9 +1251,9 @@
       USE DIAG_MOD,           ONLY : AD59_NUMB, AD59_SALT
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TOMAS_MOD,          ONLY : IBINS, Xk
 !

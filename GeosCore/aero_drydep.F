@@ -20,25 +20,23 @@
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE PHYSCONSTANTS,      ONLY : g0
       USE DIAG_MOD,           ONLY : AD44
       USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, NTRAIND 
       USE DUST_MOD,           ONLY : SETTLEDUST   
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : IND_
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : g0
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PRECISION_MOD
+      USE State_Chm_Mod,      ONLY : ChmState, IND_
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TOMAS_MOD
-
-      USE CMN_SIZE_MOD
-      USE CMN_DIAG_MOD
-      USE PRECISION_MOD
 
       IMPLICIT NONE
 !
@@ -133,13 +131,13 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Check that tracer units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
          MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
          LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
-         CALL GIGC_Error( MSG, RC, LOC )
+         CALL GC_Error( MSG, RC, LOC )
       ENDIF
 
       ! First-time setup
@@ -233,7 +231,7 @@ cdbg      print *, dryd(:)
       ! SIZ_DIA [=] m  and SIZ_DEN [=] kg/m3
       CALL AERO_DIADEN( am_I_Root, 1,       Input_Opt, State_Met,
      &                  State_Chm, SIZ_DIA, SIZ_DEN,   RC         )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP('CALL AERO_DIADEN',
      &                   'AERO_DRYDEP in aero_drydep.F')
       ENDIF
@@ -559,7 +557,7 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
          MSG = 'Incorrect tracer units at end of routine: ' 
      &            // TRIM(State_Chm%Trac_Units)
          LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
-         CALL GIGC_Error( MSG, RC, LOC )
+         CALL GC_Error( MSG, RC, LOC )
       ENDIF
 
       ! Return to calling program

@@ -15,9 +15,8 @@
 !
 ! !USES:
 !
-      USE inquireMod, ONLY : findFreeLUN
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE inquireMod,    ONLY : findFreeLUN
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -96,7 +95,7 @@
       USE BPCH2_MOD,          ONLY : GET_RES_EXT
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -257,7 +256,7 @@
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR, FILE_EXISTS
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -465,8 +464,8 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -556,8 +555,8 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -761,11 +760,10 @@
       USE DIAG_MOD,           ONLY : AD67
 #endif
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_I6
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
-
 !
 ! !INPUT PARAMETERS: 
 !

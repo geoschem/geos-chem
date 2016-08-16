@@ -26,26 +26,26 @@
       USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
       USE DIAG20_MOD,           ONLY : DIAG20, O3_PROD, O3_LOSS
       USE DUST_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD
       USE FAST_JX_MOD
       USE FLEXCHEM_SETUP_MOD,   ONLY : CSPECTOKPP, HSAVE_KPP
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
-      USE GIGC_State_Chm_Mod,   ONLY : ChmState
-      USE GIGC_State_Chm_Mod,   ONLY : IND_
-      USE GIGC_State_Met_Mod,   ONLY : MetState
       USE GRID_MOD,             ONLY : GET_YMID
       USE HCO_DIAGN_MOD,        ONLY : Diagn_Update
       USE HCO_ERROR_MOD,        ONLY : HCO_SUCCESS
-      USE PHYSCONSTANTS,        ONLY : AVO
+      USE Input_Opt_Mod,        ONLY : OptInput
+      USE PhysConstants,        ONLY : AVO
       USE PRECISION_MOD
       USE PRESSURE_MOD        
       USE Species_Mod,          ONLY : Species
+      USE State_Chm_Mod,        ONLY : ChmState
+      USE State_Chm_Mod,        ONLY : IND_
+      USE State_Met_Mod,        ONLY : MetState
       USE TIME_MOD,             ONLY : GET_TS_CHEM
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : GET_YEAR
-      USE UNITCONV_MOD
+      USE UnitConv_Mod
 #if defined( UCX )
       USE UCX_MOD,              ONLY : CALC_STRAT_AER
       USE UCX_MOD,              ONLY : SO4_PHOTFRAC
@@ -1085,8 +1085,8 @@
       ! mje  STT currently in kg / grid box convert to v/v
       CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,
      &                          State_Met, State_Chm, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
      &                   'CHEM_SULFATE in sulfate_mod.F')
          RETURN
       ENDIF
@@ -1114,8 +1114,8 @@
       ! mje convert the STT array from v/v to kg / grid box
       CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt, 
      &                          State_Met, State_Chm, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
      &                   'CHEM_SULFATE in sulfate_mod.F')
          RETURN
       ENDIF

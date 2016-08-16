@@ -26,13 +26,13 @@
       USE DIAG63_MOD,         ONLY : DO_SAVE_DIAG63
       USE DIAG_OH_MOD,        ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,         ONLY : NUMDEP
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR,   ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : IND_  ! kyu codeathon
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PLANEFLIGHT_MOD,    ONLY : SETUP_PLANEFLIGHT
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : IND_  ! kyu codeathon
+      USE State_Met_Mod,      ONLY : MetState
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, IDIAG   !(win, 7/9/09)
 #endif
@@ -248,7 +248,7 @@
       IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
 
       ! Assume success
-      RC                   = GIGC_SUCCESS
+      RC                   = GC_SUCCESS
 
       !=================================================================
       ! Initialize some multi-level variables       

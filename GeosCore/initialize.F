@@ -23,10 +23,9 @@
       ! Modules from Headers subdirectory
       USE CMN_SIZE_MOD          
       USE CMN_DIAG_MOD
-      USE ERROR_MOD
-      USE TIME_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE PRECISION_MOD
 
       ! Modules from GeosCore subdirectory
       USE DIAG_MOD
@@ -36,8 +35,8 @@
       USE DIAG42_MOD
       USE DIAG53_MOD
       USE DIAG56_MOD
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE ERROR_MOD
+      USE TIME_MOD
 
       IMPLICIT NONE
 !

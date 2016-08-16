@@ -15,8 +15,8 @@
 !
 ! !USES:
 !
-      USE PRECISION_MOD                ! For GEOS-Chem Precision (fp, f4, f8)
       USE ERROR_MOD, ONLY : DEBUG_MSG  ! Routine for debug output
+      USE PRECISION_MOD                ! For GEOS-Chem Precision (fp, f4, f8)
 
       IMPLICIT NONE
       PRIVATE
@@ -125,10 +125,10 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
@@ -172,7 +172,7 @@
       !=================================================================
 
       ! Assume success
-      RC    = GIGC_SUCCESS
+      RC    = GC_SUCCESS
 
       ! Current month
       MONTH = GET_MONTH()
@@ -212,14 +212,13 @@
 !
       USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL 
       USE CHEMGRID_MOD,       ONLY : GET_MAX_CHEMGRID_LEVEL
-      USE PHYSCONSTANTS,      ONLY : AIRMW, AVO ! Physical params
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ErrCode_Mod
       USE GRID_MOD,           ONLY : GET_AREA_CM2   
-      !USE TRACERID_MOD        ! CODEATHON                  
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : AIRMW, AVO
+      USE State_Chm_Mod,      ONLY : ChmState, IND_
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -309,7 +308,7 @@
       LPRT       = ( Input_Opt%LPRT .and. am_I_Root )
 
       ! Assume success
-      RC         = GIGC_SUCCESS
+      RC         = GC_SUCCESS
 
       ! Dimensions
       IM         = IIPAR
@@ -560,11 +559,11 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
       USE GRID_MOD,           ONLY : GET_YMID 
-      USE TIME_MOD,           ONLY : GET_MONTH
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PRESSURE_MOD
+      USE TIME_MOD,           ONLY : GET_MONTH
 !
 ! !INPUT PARAMETERS:
 !
@@ -814,8 +813,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -907,7 +906,7 @@
       !=================================================================
 
       ! Assume success
-      RC         = GIGC_SUCCESS
+      RC         = GC_SUCCESS
 
       ! Now make NX a local variable, since we already pass
       ! its value via the Input_Opt object (bmy, 3/13/18)
@@ -1093,9 +1092,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE InquireMod,         ONLY : findFreeLun
 !
 ! !INPUT PARAMETERS:
@@ -1149,7 +1148,7 @@
       !=================================================================
 
       ! Assume success
-      RC             = GIGC_SUCCESS
+      RC             = GC_SUCCESS
 
       ! Get fields from Input_Opt
       NFIELDS_LINOZ  = Input_Opt%LINOZ_NFIELDS
@@ -1325,9 +1324,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD 
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1349,7 +1348,7 @@
 !------------------------------------------------------------------------------
 !BOC
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Allocate TLSTT array
       ALLOCATE( TLSTT( IIPAR, 

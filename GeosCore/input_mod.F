@@ -16,9 +16,8 @@
 !
 ! !USES:
 !
-      USE inquireMod, ONLY : findFreeLUN
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE inquireMod,    ONLY : findFreeLUN
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -27,7 +26,7 @@
 !  
       PUBLIC  :: INITIALIZE_GEOS_GRID
       PUBLIC  :: READ_INPUT_FILE
-      PUBLIC  :: GIGC_Init_Extra
+      PUBLIC  :: GC_Init_Extra
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -192,10 +191,10 @@
 !
       USE CMN_SIZE_MOD
       USE CHARPAK_MOD,        ONLY : STRREPL
+      USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
       USE GAMAP_MOD,          ONLY : DO_GAMAP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE SEASALT_MOD,        ONLY : INIT_SEASALT
 !
 ! !INPUT PARAMETERS:
@@ -268,7 +267,7 @@
       IU_GEOS  = findFreeLUN()
 
       ! Assume success
-      RC       = GIGC_SUCCESS
+      RC       = GC_SUCCESS
 
       ! Open file
       OPEN( IU_GEOS, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
@@ -625,9 +624,9 @@
 ! !USES:
 !     
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
       USE GRID_MOD,           ONLY : SET_XOFFSET, SET_YOFFSET
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_BEGIN_TIME,   SET_END_TIME 
       USE TIME_MOD,           ONLY : SET_CURRENT_TIME, SET_DIAGb
       USE TIME_MOD,           ONLY : SET_NDIAGTIME,    GET_TAU
@@ -950,7 +949,7 @@
       Input_Opt%ITS_A_NESTED_GRID = .TRUE.
 #endif
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -1084,9 +1083,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : COMPUTE_GRID
       USE GRID_MOD,           ONLY : INIT_GRID
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1280,11 +1279,11 @@
 ! !USES:
 !
       USE CHARPAK_MOD,        ONLY : ISDIGIT
+      USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1441,7 +1440,7 @@
       IF ( Input_Opt%N_TRACERS > Input_Opt%MAX_TRCS ) THEN
          CALL ERROR_STOP( 'Error: N_TRACERS > MAX_TRCS!', 
      &                    'read_adv_spec_menu (input_mod.f)' )
-         RC = GIGC_FAILURE
+         RC = GC_FAILURE
          RETURN
       ENDIF
 
@@ -1492,7 +1491,7 @@
       CT1 = CT1 + 1
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE READ_ADVECTED_SPECIES_MENU
 !EOC
@@ -1513,9 +1512,9 @@
 !
 ! !USES:
 !
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE UCX_MOD,            ONLY : T_NAT_SUPERCOOL, P_ICE_SUPERSAT
 !
 ! !INPUT PARAMETERS:
@@ -1532,7 +1531,7 @@
 ! 
 ! !REMARKS:
 !  Move error checks that depend on species indices to the subroutine
-!  DO_ERROR_CHECKS.  This is now called from GIGC_INIT_EXTRA, after the
+!  DO_ERROR_CHECKS.  This is now called from GC_INIT_EXTRA, after the
 !  initialization of the species database.
 !
 ! !REVISION HISTORY: 
@@ -1740,7 +1739,7 @@
       Input_Opt%LSTRATOD           = LSTRATOD
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -1805,9 +1804,9 @@
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
       USE TOMAS_MOD,          ONLY : INIT_TOMAS
 !
 ! !INPUT PARAMETERS:
@@ -1978,9 +1977,9 @@
 !
       USE CMN_O3_MOD 
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_HISTYR
       USE UCX_MOD,            ONLY : CFCYEAR
 !
@@ -2319,7 +2318,7 @@
       Input_Opt%LFUTURECFC     = LFUTURECFC
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Initialization
@@ -2386,11 +2385,11 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE CMN_SIZE_MOD
       USE CMN_O3_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE CMN_SIZE_MOD
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2522,7 +2521,7 @@
       Input_Opt%LPLANETAG   = LPLANETAG
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -2571,9 +2570,9 @@
 !
 ! !USES:
 !
+      USE ErrCode_Mod
       USE FUTURE_EMISSIONS_MOD, ONLY : DO_FUTURE_EMISSIONS
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE Input_Opt_Mod,        ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2645,7 +2644,7 @@
       Input_Opt%FUTURE_SCEN = FUTURE_SCEN
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -2694,9 +2693,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP 
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_CHEM
 !
 ! !INPUT PARAMETERS:
@@ -2896,7 +2895,7 @@
       Input_Opt%LO3FJX        = LO3FJX
 
       ! Return success
-      RC                      = GIGC_SUCCESS
+      RC                      = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -2944,9 +2943,9 @@
 ! !USES:
 !
       USE CMN_FJX_MOD              ! Fast-JX flux diagnostics
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_RAD
 !
 ! !INPUT PARAMETERS:
@@ -3089,7 +3088,7 @@
       Input_Opt%TS_RAD     = TS_RAD
 
       ! Return success
-      RC                   = GIGC_SUCCESS
+      RC                   = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -3137,9 +3136,9 @@
 !
 ! !USES:
 !
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 #if !defined( ESMF_ )
       USE TRANSPORT_MOD,      ONLY : SET_TRANSPORT
 #endif
@@ -3318,7 +3317,7 @@
 #endif
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -3348,7 +3347,7 @@
 #endif
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE READ_TRANSPORT_MENU
 !EOC
@@ -3369,10 +3368,10 @@
 !
 ! !USES:
 !
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FVDAS_CONVECT_MOD,  ONLY : INIT_FVDAS_CONVECT
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -3487,7 +3486,7 @@
 
       ! Return success
     
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -3525,9 +3524,9 @@
 !
 ! !USES:
 !
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -3639,7 +3638,7 @@
       ENDIF 
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -3680,8 +3679,8 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -3733,7 +3732,7 @@
       Input_Opt%GAMAP_TRACERINFO = TRACERINFO
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -3765,13 +3764,12 @@
       SUBROUTINE READ_OUTPUT_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
-!
-      USE FILE_MOD, ONLY : IOERROR
-      
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE CMN_DIAG_MOD   ! NJDAY
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      
+      USE CMN_DIAG_MOD         ! NJDAY
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE ErrCode_Mod
+      USE FILE_MOD,       ONLY : IOERROR
+      USE Input_Opt_Mod,  ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -3818,7 +3816,7 @@
       Input_Opt%NJDAY = NJDAY
       
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -3883,22 +3881,22 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE
-      USE DIAG03_MOD,   ONLY : ND03,      PD03
-      USE DIAG03_MOD,   ONLY : PD03_PL    !eds 9/9/10
-      USE DIAG04_MOD,   ONLY : ND04,      PD04,      INIT_DIAG04
-      USE DIAG41_MOD,   ONLY : ND41,      PD41,      INIT_DIAG41
-      USE DIAG42_MOD,   ONLY : ND42,      PD42,      INIT_DIAG42
-      USE DIAG53_MOD,   ONLY : ND53,      PD53,      INIT_DIAG53
-      USE DIAG56_MOD,   ONLY : ND56,      PD56,      INIT_DIAG56
-      USE DRYDEP_MOD,   ONLY : NUMDEP
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE FILE_MOD,     ONLY : IU_BPCH
-      USE TIME_MOD,     ONLY : GET_NYMDb, GET_NHMSb, EXPAND_DATE
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! NDxx flags, TINDEX, TCOUNT, TMAX
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_WRITE
+      USE CMN_DIAG_MOD        ! NDxx flags, TINDEX, TCOUNT, TMAX
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE DIAG03_MOD,    ONLY : ND03,      PD03
+      USE DIAG03_MOD,    ONLY : PD03_PL    !eds 9/9/10
+      USE DIAG04_MOD,    ONLY : ND04,      PD04,      INIT_DIAG04
+      USE DIAG41_MOD,    ONLY : ND41,      PD41,      INIT_DIAG41
+      USE DIAG42_MOD,    ONLY : ND42,      PD42,      INIT_DIAG42
+      USE DIAG53_MOD,    ONLY : ND53,      PD53,      INIT_DIAG53
+      USE DIAG56_MOD,    ONLY : ND56,      PD56,      INIT_DIAG56
+      USE DRYDEP_MOD,    ONLY : NUMDEP
+      USE ErrCode_Mod
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE FILE_MOD,      ONLY : IU_BPCH
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,      ONLY : GET_NYMDb, GET_NHMSb, EXPAND_DATE
 !
 ! !INPUT PARAMETERS:
 !
@@ -4655,7 +4653,7 @@
       ENDDO
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Call other setup routines
@@ -4700,9 +4698,8 @@
 #if   defined( TOMAS )
       USE CHARPAK_MOD, ONLY : TXTEXT   ! (win, 7/14/09)
 #endif
-
-      USE CMN_SIZE_MOD                              ! Size parameters
       USE CMN_DIAG_MOD                              ! TMAX, TINDEX
+      USE CMN_SIZE_MOD                              ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4886,13 +4883,13 @@
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD          ! ND40
+      USE CMN_SIZE_MOD          ! MAXFAM
+      USE ErrCode_Mod
       USE ERROR_MOD,       ONLY : ERROR_STOP
+      USE Input_Opt_Mod,   ONLY : OptInput
       USE PLANEFLIGHT_MOD, ONLY : SET_PLANEFLIGHT
 
-      USE CMN_SIZE_MOD                   ! MAXFAM
-      USE CMN_DIAG_MOD                   ! ND40
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -4964,7 +4961,7 @@
       Input_Opt%PF_OFILE = OFILE
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -5008,9 +5005,9 @@
 ! !USES:
 !
       USE DIAG48_MOD, ONLY : INIT_DIAG48, ND48_MAX_STATIONS
+      USE ErrCode_Mod
       USE ERROR_MOD,  ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -5104,7 +5101,7 @@
       Input_Opt%ND48_NARR(1:N_STA) = NARR(1:N_STA)
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -5156,9 +5153,9 @@
 !
       USE CMN_SIZE_MOD
       USE DIAG49_MOD,         ONLY : INIT_DIAG49
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -5285,7 +5282,7 @@
       Input_Opt%ND49_LMAX              = LMAX
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -5338,9 +5335,9 @@
 ! !USES:
 !
       USE DIAG50_MOD,         ONLY : INIT_DIAG50
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -5450,7 +5447,7 @@
       Input_Opt%ND50_LMAX              = LMAX
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -5501,12 +5498,12 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE DIAG51_MOD,         ONLY : INIT_DIAG51
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -5628,7 +5625,7 @@
       Input_Opt%ND51_LMAX              = LMAX
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -5683,12 +5680,12 @@
 !
 ! !USES:
 !
-      USE DIAG51b_MOD,        ONLY : INIT_DIAG51b
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE CMN_SIZE_MOD
+      USE DIAG51b_MOD,        ONLY : INIT_DIAG51b
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -5807,7 +5804,7 @@
       Input_Opt%ND51b_LMAX               = LMAX
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -5862,11 +5859,11 @@
 !
 ! !USES:
 !
-      USE DIAG63_MOD,         ONLY : INIT_DIAG63
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE DIAG63_MOD,         ONLY : INIT_DIAG63
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -5964,7 +5961,7 @@
       Input_Opt%ND63_JMAX            = JMAX
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -6014,12 +6011,12 @@
 !
 ! !USES:
 !
-      USE CHARPAK_MOD,        ONLY : ISDIGIT,         STRSPLIT
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE CMN_SIZE_MOD
+      USE CHARPAK_MOD,        ONLY : ISDIGIT,         STRSPLIT
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -6248,7 +6245,7 @@
       ENDDO
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE READ_PROD_LOSS_MENU
 !EOC
@@ -6270,8 +6267,8 @@
 ! !USES:
 !
       USE CHARPAK_MOD,   ONLY : STRSQUEEZE
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -6346,7 +6343,7 @@
       Input_Opt%SPACE = ' '
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -6392,8 +6389,8 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TPCORE_BC_MOD,      ONLY : INIT_TPCORE_BC
 !
 ! !INPUT PARAMETERS:
@@ -6527,7 +6524,7 @@
       Input_Opt%NESTED_J0E = J0E
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -6578,8 +6575,8 @@
 ! !USES:
 !
       USE BENCHMARK_MOD,      ONLY : INITIAL_FILE, FINAL_FILE
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -6637,7 +6634,7 @@
       Input_Opt%STDRUN_FINAL_FILE = FINAL_FILE
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -6675,9 +6672,8 @@
 !
 ! !USES:
 !
-      ! References to F90 modules
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -6800,7 +6796,7 @@
     
       !=================================================================
       ! Copy to Input Options object
-      ! NOTE: Hg modules will be initialized from GIGC_INIT_EXTRA
+      ! NOTE: Hg modules will be initialized from GC_INIT_EXTRA
       !=================================================================
       Input_Opt%ANTHRO_Hg_YEAR = ANTHRO_Hg_YEAR
       Input_Opt%HG_SCENARIO    = HG_SCENARIO
@@ -6813,7 +6809,7 @@
       Input_Opt%LKRedUV        = LKRedUV
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE READ_MERCURY_MENU
 !EOC
@@ -6835,9 +6831,9 @@
 !
 ! !USES:
 !
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -6983,7 +6979,7 @@
       Input_Opt%LOTNAT  = LOTNAT 
 
       ! Return success
-      RC = GIGC_SUCCESS         
+      RC = GC_SUCCESS         
 
       END SUBROUTINE READ_CH4_MENU
 !EOC
@@ -7005,8 +7001,8 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,        ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -7140,7 +7136,7 @@
       Input_Opt%POP_DEL_Hw     = POP_DEL_Hw
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE READ_POPS_MENU
 !EOC
@@ -7162,8 +7158,8 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE GRID_MOD,           ONLY : ITS_A_NESTED_GRID 
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMDb
@@ -7211,7 +7207,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Get starting & ending dates
       NYMDb = GET_NYMDb()
@@ -7360,7 +7356,7 @@
 !
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : FILE_EXISTS
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -7426,7 +7422,7 @@
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_TIMESTEPS
 !
 ! !INPUT PARAMETERS:
@@ -7633,9 +7629,8 @@
 !
 ! !USES:
 !
-
-      USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,  ONLY : ERROR_STOP
       USE JULDAY_MOD, ONLY : JULDAY
       USE TIME_MOD,   ONLY : GET_NYMDe, ITS_A_LEAPYEAR, YMD_EXTRACT
@@ -7690,16 +7685,16 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gigc_init_extra
+! !IROUTINE: gc_init_extra
 !
-! !DESCRIPTION: Suborutine GIGC\_INIT\_EXTRA initializes other GEOS-Chem 
-!  modules that have not been initialized in either GIGC\_Allocate\_All or
-!  GIGC\_Init\_all.
+! !DESCRIPTION: Suborutine GC\_INIT\_EXTRA initializes other GEOS-Chem 
+!  modules that have not been initialized in either GC\_Allocate\_All or
+!  GC\_Init\_all.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GIGC_Init_Extra( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE GC_Init_Extra( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -7714,13 +7709,12 @@
       USE Diag_OH_Mod,        ONLY : Init_Diag_OH
       USE Drydep_Mod,         ONLY : Init_Drydep
       USE Dust_Mod,           ONLY : Init_Dust
+      USE ErrCode_Mod
       USE Error_Mod,          ONLY : Debug_Msg
       USE Gamap_Mod,          ONLY : Do_Gamap
       USE Get_Ndep_Mod,       ONLY : Init_Get_Ndep
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE Global_CH4_Mod,     ONLY : Init_Global_CH4
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Linoz_Mod,          ONLY : Init_Linoz
       USE Land_Mercury_Mod,   ONLY : Init_Land_Mercury
       USE Mercury_Mod,        ONLY : Init_Mercury
@@ -7728,6 +7722,7 @@
       USE Ocean_Mercury_Mod,  ONLY : Init_Ocean_Mercury
       USE POPs_Mod,           ONLY : Init_POPs
       USE Seasalt_Mod,        ONLY : Init_SeaSalt
+      USE State_Chm_Mod,      ONLY : ChmState
       USE Sulfate_Mod,        ONLY : Init_Sulfate
       USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
       USE Tagged_O3_Mod,      ONLY : Init_Tagged_O3
@@ -7749,12 +7744,12 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  Several of the INIT routines now called within GIGC_Init_Extra had 
+!  Several of the INIT routines now called within GC_Init_Extra had 
 !  originally been called from the Run method.  We now gather these INIT
 !  routines here so that they may be called from the Initialization method.
 !  This is necessary when connecting GEOS-Chem to the GEOS-5 GCM via ESMF.
 !                                                                             .
-!  GIGC_Init_Extra should be called after the call to DO_DRYDEP, since
+!  GC_Init_Extra should be called after the call to DO_DRYDEP, since
 !  these routines depend on dry deposition parameters being set up first.
 !
 ! !REVISION HISTORY: 
@@ -7784,6 +7779,8 @@
 !  25 Apr 2016 - R. Yantosca - Now call INIT_DIAG03 here
 !  25 Apr 2016 - R. Yantosca - Now initialize all mercury modules from here
 !  23 Jun 2016 - R. Yantosca - Now call INIT_DIAG_OH from here
+!  16 Aug 2016 - M. Sulprizio- Rename from GIGC_Init_Extra to GC_Init_Extra.
+!                              The "gigc" nomenclature is no longer used.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7793,11 +7790,11 @@
       LOGICAL :: prtDebug
 
       !=================================================================
-      ! GIGC_Init_Extra begins here!
+      ! GC_Init_Extra begins here!
       !=================================================================
 
       ! Assume success
-      RC       = GIGC_SUCCESS
+      RC       = GC_SUCCESS
 
       ! Set a flag for debugging
       prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
@@ -7851,7 +7848,7 @@
 
       ! Initialize the MODIS leaf area index module
       CALL Init_Modis_LAI( am_I_Root, Input_Opt, RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GC_SUCCESS ) RETURN
 
       ! Call SET_VDIFF_VALUES so that we can pass several values from 
       ! Input_Opt to the vdiff_mod.F90.  This replaces the funcitionality
@@ -7861,33 +7858,33 @@
 
       ! Initialize the GET_NDEP_MOD for soil NOx deposition (bmy, 6/17/16)
       CALL Init_Get_Ndep( am_I_Root, RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GC_SUCCESS ) RETURN
 
       ! Initialize "carbon_mod.F"
       IF ( Input_Opt%LCARB ) THEN
          CALL Init_Carbon( am_I_Root, Input_Opt, RC )
-         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( RC /= GC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_CARBON' )
       ENDIF
     
       ! Initialize "dust_mod.F"
       IF ( Input_Opt%LDUST ) then
          CALL Init_Dust( am_I_Root, Input_Opt, State_Chm, RC )
-         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( RC /= GC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_DUST' )
       ENDIF
 
       ! Initialize "seasalt_mod.F
       IF ( Input_Opt%LSSALT ) THEN
          CALL Init_Seasalt( am_I_Root, Input_Opt, State_Chm, RC )
-         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( RC /= GC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_SEASALT' )
       ENDIF
 
       ! Initialize "sulfate_mod.F"
       IF ( Input_Opt%LSULF ) THEN
          CALL Init_Sulfate( am_I_Root, Input_Opt, State_Chm, RC )
-         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( RC /= GC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_SULFATE' )
       ENDIF
 
@@ -7895,7 +7892,7 @@
       IF ( Input_Opt%LSULF .or. Input_Opt%LCARB   .or. 
      &     Input_Opt%LDUST .or. Input_Opt%LSSALT) THEN
          CALL Init_Aerosol( am_I_Root, Input_Opt, RC )
-         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( RC /= GC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_AEROSOL' )
       ENDIF
 
@@ -7987,7 +7984,7 @@
       ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
       CALL Do_Gamap( am_I_Root, Input_Opt, State_Chm, RC )
 
-      END SUBROUTINE GIGC_Init_Extra
+      END SUBROUTINE GC_Init_Extra
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -8007,10 +8004,10 @@
 !
 ! !USES:
 !
+      USE ErrCode_Mod
       USE Error_Mod,          ONLY : Error_Stop
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -8029,7 +8026,7 @@
 !  read in from disk.  However, in order to use the IND_() function to look
 !  up given species indices, we need to call this after the Species Database
 !  (which is in State_Chm) is initialized.  Therefore, we have now moved these
-!  error checks to this routine, which is now called from GIGC_Init_Extra.
+!  error checks to this routine, which is now called from GC_Init_Extra.
 !                                                                             .
 !  The IND_() function now defines all species ID's.  It returns -1 if
 !  a species cannot be found.  The prior behavior was to return 0 if a 
@@ -8056,7 +8053,7 @@
       !=================================================================
 
       ! Assume success
-      RC       = GIGC_SUCCESS
+      RC       = GC_SUCCESS
 
       ! Define location string
       LOCATION = 'DO_ERROR_CHECKS (in GeosCore/input_mod.F)'

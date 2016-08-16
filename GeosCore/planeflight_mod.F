@@ -16,9 +16,8 @@
 !
 ! !USES:
 !
-      USE inquireMod, ONLY : findFreeLUN
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE inquireMod,    ONLY : findFreeLUN
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -205,11 +204,11 @@
 !
 ! !USES:
 !
+      USE ErrCode_Mod
       USE FILE_MOD,           ONLY : FILE_EXISTS
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput 
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput 
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD
       USE TIME_MOD,           ONLY : GET_NHMS
@@ -405,13 +404,13 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD                   ! Size parameters
+      USE ErrCode_Mod
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
       USE FILE_MOD,   ONLY : IOERROR
-      USE CMN_SIZE_MOD                   ! Size parameters
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -467,7 +466,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Get fields from Input_Opt
       N_TRACERS   = Input_Opt%N_TRACERS
@@ -767,10 +766,10 @@
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : GET_TAU0
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -948,11 +947,11 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1069,11 +1068,11 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1182,11 +1181,11 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1296,18 +1295,18 @@
       USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_SIZE_MOD
-      USE PHYSCONSTANTS,      ONLY : CONSVAP
 #if   defined( TOMAS )
       USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
 #endif
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TIME_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE OCEAN_MERCURY_MOD,  ONLY : Fg !eds 10/27/11
       USE OCEAN_MERCURY_MOD,  ONLY : OMMFp => Fp
+      USE PhysConstants,      ONLY : CONSVAP
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -1359,7 +1358,7 @@
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met object
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
-!  21 Apr 2016 - M. Sulprizio- Get CONSVAP from PHYSCONSTANTS instead of
+!  21 Apr 2016 - M. Sulprizio- Get CONSVAP from PhysConstants instead of
 !                              computing locally
 !  17 May 2016 - M. Sulprizio- Remove PCHEM, IJLOOP and use IS_FULLCHEM instead
 !EOP
@@ -1400,7 +1399,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Get fields from Input_Opt
       IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
@@ -1911,8 +1910,8 @@
       USE CMN_SIZE_MOD
       USE GRID_MOD,           ONLY : GET_XOFFSET
       USE GRID_MOD,           ONLY : GET_YOFFSET
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2258,10 +2257,10 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD    ! Size Parameters
       USE ERROR_MOD, ONLY : ALLOC_ERR
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
       USE FILE_MOD,  ONLY : IOERROR
-      USE CMN_SIZE_MOD    ! Size Parameters
 !
 ! !INPUT PARAMETERS:
 !

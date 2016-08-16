@@ -127,17 +127,17 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE GRID_MOD,           ONLY : ITS_A_NESTED_GRID
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TPCORE_BC_MOD,      ONLY : INIT_TPCORE_BC
       USE TIME_MOD,           ONLY : GET_TS_DYN
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
-      USE UNITCONV_MOD
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -276,26 +276,26 @@
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD             ! NDxx flags
+      USE CMN_SIZE_MOD             ! Size parameters        
+      USE DAO_MOD,            ONLY : AIRQNT
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
 #elif defined( NC_DIAG )
       USE DIAGNOSTICS_MOD,    ONLY : DIAGNUPDATE_TRANSPORT_FLUX
 #endif
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
+      USE PhysConstants            ! Physical constants
       USE PJC_PFIX_MOD,       ONLY : DO_PJC_PFIX
       USE PRESSURE_MOD,       ONLY : SET_FLOATING_PRESSURE
-      USE DAO_MOD,            ONLY : AIRQNT
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
-      USE UNITCONV_MOD
-      USE CMN_SIZE_MOD             ! Size parameters        
-      USE CMN_DIAG_MOD             ! NDxx flags
-      USE PHYSCONSTANTS            ! Physical constants
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -397,7 +397,7 @@
       !=================================================================
 
       ! Assume success
-      RC          =  GIGC_SUCCESS
+      RC          =  GC_SUCCESS
 
       ! Initialize
       LFILL       =  Input_Opt%LFILL
@@ -494,8 +494,8 @@
       ! kg/kg total  air before advection (ewl, 6/15/15)
       CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt, 
      &                                   State_Met, State_Chm, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
      &                   'GEOS4_GEOS5_GLOBAL_ADV in transport_mod.F')
          RETURN
       ENDIF 
@@ -547,8 +547,8 @@
       ! kg/kg dry air after advection (ewl, 6/15/15)
       CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt, 
      &                                   State_Met, State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
      &                   'GEOS4_GEOS5_GLOBAL_ADV in transport_mod.F')
          RETURN
       ENDIF 
@@ -599,25 +599,25 @@
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD             ! NDxx flags
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE DAO_MOD,            ONLY : AIRQNT
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
 #elif defined( NC_DIAG )
       USE DIAGNOSTICS_MOD,    ONLY : DIAGNUPDATE_TRANSPORT_FLUX
 #endif
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE PhysConstants            ! Physical constants
       USE PJC_PFIX_MOD,       ONLY : DO_PJC_PFIX
       USE PRESSURE_MOD,       ONLY : SET_FLOATING_PRESSURE
-      USE DAO_MOD,            ONLY : AIRQNT
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
-      USE UNITCONV_MOD
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! NDxx flags
-      USE PHYSCONSTANTS            ! Physical constants
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -720,7 +720,7 @@
       !=================================================================
 
       ! Assume success
-      RC          =  GIGC_SUCCESS
+      RC          =  GC_SUCCESS
 
       ! Initialize
       LFILL       =  Input_Opt%LFILL
@@ -819,8 +819,8 @@
       ! kg/kg total air before advection (ewl, 6/15/15)
       CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
      &                                   State_Met, State_Chm, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
      &                   'GCAP_GLOBAL_ADV in transport_mod.F')
          RETURN
       ENDIF 
@@ -871,8 +871,8 @@
       ! kg/kg dry air after advection (ewl, 6/15/15)
       CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
      &                                    State_Met, State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
      &                   'GCAP_GLOBAL_ADV in transport_mod.F')
          RETURN
       ENDIF 
@@ -924,30 +924,29 @@
 !
 ! !USES:
 !
-      ! References to F90 modules
+      USE CMN_DIAG_MOD               ! NDxx flags
+      USE CMN_SIZE_MOD               ! Size parameters
+      USE DAO_MOD,              ONLY : AIRQNT
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,             ONLY : MASSFLEW, MASSFLNS, MASSFLUP
 #elif defined( NC_DIAG )
       USE DIAGNOSTICS_MOD,      ONLY : DIAGNUPDATE_TRANSPORT_FLUX
 #endif
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
-      USE GIGC_State_Chm_Mod,   ONLY : ChmState
-      USE GIGC_State_Met_Mod,   ONLY : MetState
       USE GRID_MOD,             ONLY : GET_XOFFSET,   GET_YOFFSET
+      USE Input_Opt_Mod,        ONLY : OptInput
+      USE State_Chm_Mod,        ONLY : ChmState
+      USE State_Met_Mod,        ONLY : MetState
+      USE PhysConstants              ! Physical constants
       USE PJC_PFIX_WINDOW_MOD,  ONLY : DO_PJC_PFIX_WINDOW
       USE PRESSURE_MOD,         ONLY : SET_FLOATING_PRESSURE
-      USE DAO_MOD,              ONLY : AIRQNT
       USE TIME_MOD,             ONLY : GET_TS_DYN
       USE TPCORE_BC_MOD,        ONLY : I0_W, J0_W, I1_W, J1_W
       USE TPCORE_BC_MOD,        ONLY : I2_W, J2_W, IM_W, JM_W, IGZD
       USE TPCORE_BC_MOD,        ONLY : DO_WINDOW_TPCORE_BC 
       USE TPCORE_WINDOW_MOD,    ONLY : TPCORE_WINDOW
-      USE UNITCONV_MOD
-      USE CMN_SIZE_MOD               ! Size parameters
-      USE CMN_DIAG_MOD               ! NDxx flags
-      USE PHYSCONSTANTS              ! Physical constants
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -1050,7 +1049,7 @@
       !=================================================================
 
       ! Assume success
-      RC          =  GIGC_SUCCESS
+      RC          =  GC_SUCCESS
 
       ! Copy values from Input_Opt
       LFILL       =  Input_Opt%LFILL
@@ -1211,8 +1210,8 @@
       ! kg/kg moist air before advection (ewl, 6/15/15)
       CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
      &                                   State_Met, State_Chm, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
      &                   'DO_WINDOW_TRANSPORT in transport_mod.F')
          RETURN
       ENDIF 
@@ -1265,8 +1264,8 @@
       ! kg/kg dry air after advection (ewl, 6/15/15)
       CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
      &                                   State_Met, State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
      &                   'DO_WINDOW_TRANSPORT in transport_mod.F')
          RETURN
       ENDIF 
@@ -1352,16 +1351,15 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_AREA_M2, GET_YMID_R
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants            ! Re
       USE PRESSURE_MOD,       ONLY : GET_AP,      GET_BP
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD,   ONLY : INIT_TPCORE
-
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE PHYSCONSTANTS        ! Re
 !
 ! !INPUT PARAMETERS:
 !
@@ -1409,7 +1407,7 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Copy values from Input_Opt
       LTRAN     = Input_Opt%LTRAN
@@ -1497,11 +1495,13 @@
 !
 ! !USES:    
 !
-      USE ERROR_MOD,               ONLY : ALLOC_ERR, GIGC_ERROR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,      ONLY : OptInput
+      USE CMN_SIZE_MOD                  ! Size parameters
+      USE ErrCode_Mod
+      USE ERROR_MOD,               ONLY : ALLOC_ERR, GC_Error
       USE GRID_MOD,                ONLY : GET_AREA_M2
       USE GRID_MOD,                ONLY : GET_YMID_R_W
+      USE Input_Opt_Mod,           ONLY : OptInput
+      USE PhysConstants                 ! Re
       USE PRESSURE_MOD,            ONLY : GET_AP, GET_BP
       USE TIME_MOD,                ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD,        ONLY : INIT_TPCORE
@@ -1509,10 +1509,6 @@
       USE TPCORE_BC_MOD,           ONLY : I2_W, J2_W, IM_W, JM_W
       USE TPCORE_BC_MOD,           ONLY : IGZD, INIT_TPCORE_BC
       USE TPCORE_WINDOW_MOD,       ONLY : INIT_WINDOW
-
-      USE CMN_SIZE_MOD                  ! Size parameters
-      USE PHYSCONSTANTS                 ! Re
-
 !
 ! !INPUT PARAMETERS:
 !
@@ -1556,7 +1552,7 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Copy values from Input_Opt
       LTRAN     = Input_Opt%LTRAN

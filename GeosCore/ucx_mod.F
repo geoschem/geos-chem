@@ -17,10 +17,11 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS        ! Physical parameters
-      USE inquireMod,   ONLY : findFreeLUN
-      USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE CMN_SIZE_MOD
+      USE ERROR_MOD,     ONLY : DEBUG_MSG
+      USE inquireMod,    ONLY : findFreeLUN
+      USE PhysConstants       ! Physical constants
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
 !#if !defined(ESMF_)
       ! NcdfUtil modules for netCDF I/O
@@ -29,8 +30,6 @@
       USE m_netcdf_io_read                    ! netCDF data reads
       USE m_netcdf_io_close                   ! netCDF close
 !#endif
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 !#if !defined(ESMF_)
@@ -360,10 +359,10 @@
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : ALLOC_ERR,ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR
 !
@@ -1219,10 +1218,10 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR
       USE TIME_MOD,           ONLY : GET_MONTH
@@ -1646,8 +1645,8 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1970,9 +1969,9 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2227,11 +2226,11 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,              ONLY : GIGC_Error
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,     ONLY : OptInput     
-      USE GIGC_State_Chm_Mod,     ONLY : ChmState
-      USE GIGC_State_Met_Mod,     ONLY : MetState
+      USE ErrCode_Mod
+      USE ERROR_MOD,              ONLY : GC_Error
+      USE Input_Opt_Mod,          ONLY : OptInput     
+      USE State_Chm_Mod,          ONLY : ChmState
+      USE State_Met_Mod,          ONLY : MetState
       USE TIME_MOD,               ONLY : GET_MONTH
 !
 ! !INPUT PARAMETERS:
@@ -2283,7 +2282,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
@@ -2309,7 +2308,7 @@
 
       ! Check that tracer units are in kg/kg dry air (ewl, 9/10/15)
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
-         CALL GIGC_Error( 'Incorrect tracer units: ' //
+         CALL GC_Error( 'Incorrect tracer units: ' //
      &                    State_Chm%Trac_Units, RC, 
      &                    'Routine EMISS_BASIC in ucx_mod.F' )
          RETURN
@@ -2396,8 +2395,8 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_YMID
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2766,14 +2765,14 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND44
       USE CMN_FJX_MOD,        ONLY : RAA, IND999
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : IT_IS_NAN,ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
@@ -2885,7 +2884,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Copy fields from INPUT_OPT
       LPRT        = Input_Opt%LPRT
@@ -3487,9 +3486,9 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -3683,15 +3682,14 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : IS_SAFE_DIV
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      !USE GRID_MOD,           ONLY : GET_YEDGE
       USE GRID_MOD,           ONLY : GET_YMID
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -3836,7 +3834,7 @@
       !=================================================================
 
       ! Assume success
-      RC       = GIGC_SUCCESS
+      RC       = GC_SUCCESS
 
       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
@@ -5520,8 +5518,7 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD
       USE HCO_RESTART_MOD,    ONLY : HCO_RestartGet
@@ -5529,6 +5526,7 @@
       USE HCO_CLOCK_MOD,      ONLY : HcoClock_First 
       USE HCO_CLOCK_MOD,      ONLY : HcoClock_Rewind
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5568,7 +5566,7 @@
       !=================================================================
 
       ! Assume success until otherwise 
-      RC = GIGC_SUCCESS 
+      RC = GC_SUCCESS 
  
       ! Initialize
       HcoState => NULL()
@@ -5629,7 +5627,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -5701,13 +5699,13 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CMN_SIZE_MOD
-      USE ERROR_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE DAO_MOD,            ONLY : AIRQNT
-      USE GIGC_ErrCode_Mod
-      USE UNITCONV_MOD 
+      USE ErrCode_Mod
+      USE ERROR_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE UnitConv_Mod 
 !
 ! !INPUT PARAMETERS:
 !      
@@ -5783,7 +5781,7 @@
       !=================================================================
 
       ! Assume success
-      RC  = GIGC_SUCCESS   
+      RC  = GC_SUCCESS   
 
       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
@@ -5815,7 +5813,7 @@
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
          MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
          LOC = 'UCX_MOD: SET_H2O_TRAC'
-         CALL GIGC_Error( TRIM(MSG), RC, TRIM(LOC) )
+         CALL GC_Error( TRIM(MSG), RC, TRIM(LOC) )
       ENDIF
 
       ! Initialize GEOS-Chem tracer array [kg/kg dry]
@@ -5941,11 +5939,11 @@
 !
       USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
       USE CMN_FJX_MOD,        ONLY : ZPJ
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE FAST_JX_MOD,        ONLY : RXN_H2SO4
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -6102,7 +6100,7 @@
 ! !USES:
 !
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE Input_Opt_Mod,        ONLY : OptInput
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : GET_YEAR
 !
@@ -6223,9 +6221,9 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -6321,10 +6319,10 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -6588,10 +6586,10 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -6815,10 +6813,10 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : IS_SAFE_DIV
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : IND_
       USE GRID_MOD,           ONLY : GET_YEDGE
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : IND_
       USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS:
@@ -7362,14 +7360,14 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_RESTART_MOD,    ONLY : HCO_RestartDefine
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
       USE HCO_ERROR_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -7409,7 +7407,7 @@
       ENDIF
 
       ! Return w/ success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE DIAGINIT_UCX
 !EOC
@@ -7435,12 +7433,12 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_State_Chm_Mod,   ONLY : ChmState
+      USE ErrCode_Mod
       USE HCO_ERROR_MOD
       USE HCO_RESTART_MOD,      ONLY : HCO_RestartWrite
       USE HCO_STATE_MOD,        ONLY : HCO_STATE
       USE HCOI_GC_MAIN_MOD,     ONLY : GetHcoState
+      USE State_Chm_Mod,        ONLY : ChmState
 ! 
 ! !INPUT ARGUMENTS:
 !
@@ -7480,12 +7478,12 @@
 
       ! Error check
       IF ( RC /= HCO_SUCCESS ) THEN
-         RC = GIGC_FAILURE
+         RC = GC_FAILURE
          RETURN
       ENDIF
 
       ! Return w/ success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE WRITE_STATE_PSC 
 !EOC

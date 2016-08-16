@@ -16,8 +16,8 @@
 ! 
 ! !USES:
 !
-      USE GIGC_Errcode_Mod
-      USE PHYSCONSTANTS    ! Physical parameters
+      USE ErrCode_Mod
+      USE PhysConstants    ! Physical constants
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -96,17 +96,17 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : CONVFLUP
-      USE ERROR_MOD,          ONLY : GIGC_ERROR
-      USE UNITCONV_MOD
+      USE ERROR_MOD,          ONLY : GC_Error
+      USE UnitConv_Mod
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD38
 #endif
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TIME_MOD,           ONLY : GET_TS_CONV
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
@@ -120,7 +120,7 @@
 #endif
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
+      USE State_Chm_Mod,      ONLY : Ind_
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -310,14 +310,14 @@
 #endif
  
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Convert State_Chm%Tracers from [kg/kg dry air] to 
       ! [kg/kg total air] prior to convection (ewl, 8/10/15)
       CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
      &                                   State_Met, State_Chm, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
      &                   'DO_CONVECTION in convection_mod.F')
          RETURN
       ENDIF  
@@ -362,7 +362,7 @@
       !=================================================================
 
       ! Assume success
-      RC =  GIGC_SUCCESS
+      RC =  GC_SUCCESS
 
       ! Call GCAP driver routine
       CALL DO_GCAP_CONVECT
@@ -375,7 +375,7 @@
       !=================================================================
 
       ! Assume success
-      RC =  GIGC_SUCCESS
+      RC =  GC_SUCCESS
 
       ! Call GEOS-4 driver routine
       CALL DO_GEOS4_CONVECT
@@ -388,7 +388,7 @@
       !=================================================================
 
       ! Assume success
-      RC =  GIGC_SUCCESS
+      RC =  GC_SUCCESS
 
       ! Call the S-J Lin convection routine for GEOS-5
       CALL NFCLDMX( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -400,7 +400,7 @@
       !=================================================================
 
       ! Initialize
-      RC        =  GIGC_SUCCESS                   ! Assume success
+      RC        =  GC_SUCCESS                   ! Assume success
       DO_ND14   = ( Input_Opt%ND14 > 0 )          ! Should we use ND14 diat?
       DO_ND38   = ( Input_Opt%ND38 > 0 )          ! Should we use ND38 diag?
       TS_DYN    = GET_TS_DYN()                    ! Dynamic timestep [min]
@@ -476,7 +476,7 @@
      &                             RC         = RC         )
 
          ! Stop if error is encountered
-         IF ( RC /= GIGC_SUCCESS ) THEN
+         IF ( RC /= GC_SUCCESS ) THEN
             CALL GEOS_CHEM_STOP
          ENDIF
 
@@ -596,8 +596,8 @@
       ! kg/kg dry air after convection (ewl, 8/10/15)
       CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
      &                                   State_Met, State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
      &                   'DO_CONVECTION in convection_mod.F')
          RETURN
       ENDIF  
@@ -662,12 +662,12 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD37
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE FVDAS_CONVECT_MOD,  ONLY : INIT_FVDAS_CONVECT, FVDAS_CONVECT
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CONV
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
 !
@@ -753,7 +753,7 @@
       !=================================================================
       
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Initialize
       LPRT      = Input_Opt%LPRT
@@ -956,12 +956,12 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD37
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GCAP_CONVECT_MOD,   ONLY : GCAP_CONVECT
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CONV
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
 !
@@ -1042,7 +1042,7 @@
       
       ! Initialize
       ! Assume success
-      RC       = GIGC_SUCCESS
+      RC       = GC_SUCCESS
       LPRT     = Input_Opt%LPRT
       nAdvect  = State_Chm%nAdvect
       GAINMASS = 0e+0_fp
@@ -1253,13 +1253,13 @@
       USE DIAG_MOD,           ONLY : AD38
 #endif
       USE DIAG_MOD,           ONLY : CONVFLUP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ErrCode_Mod
       USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PRESSURE_MOD,       ONLY : GET_BP
-      USE SPECIES_MOD,        ONLY : Species
+      USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CONV
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
       USE ERROR_MOD,          ONLY : ALLOC_ERR
@@ -1515,7 +1515,7 @@
       !=================================================================
 
       ! Assume success
-      RC                = GIGC_SUCCESS
+      RC                = GC_SUCCESS
 
       ! Copy values from Input_Opt
       ITS_A_MERCURY_SIM = Input_Opt%ITS_A_MERCURY_SIM
@@ -2197,9 +2197,9 @@
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE ERROR_MOD,          ONLY : IT_IS_FINITE
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  ! hma Nov 3, debug
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE Species_Mod,        ONLY : Species
       USE WETSCAV_MOD,        ONLY : H2O2s_3D => H2O2s ! [v/v]
       USE WETSCAV_MOD,        ONLY : SO2s_3D  => SO2s  ! [v/v]
@@ -2809,7 +2809,7 @@
                      WRITE( 6, 255 ) K, IC, Q(K,IC) 
  250                 FORMAT( 'NaN encountered in DO_MERRA_CONVECTION!' )
  255                 FORMAT( 'K, IC, Q(K,IC): ', 2i4, 1x, es13.6 )
-                     RC = GIGC_FAILURE
+                     RC = GC_FAILURE
                      RETURN
                   ENDIF
 
@@ -3165,7 +3165,7 @@
       NULLIFY( Q        )
 
       ! Set error code to success
-      RC                      = GIGC_SUCCESS
+      RC                      = GC_SUCCESS
 
       END SUBROUTINE DO_MERRA_CONVECTION
 !EOC

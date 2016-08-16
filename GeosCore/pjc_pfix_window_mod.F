@@ -193,7 +193,7 @@
 !******************************************************************************
 !
       USE CMN_SIZE_MOD    ! Size parameters
-      USE PHYSCONSTANTS   ! Physical constants
+      USE PhysConstants   ! Physical constants
 
       IMPLICIT NONE
 
@@ -396,7 +396,7 @@
 !******************************************************************************
 !
       USE CMN_SIZE_MOD
-      USE PHYSCONSTANTS
+      USE PhysConstants
 
       implicit none
 
@@ -1168,7 +1168,7 @@ c     --------------------------------------
 !******************************************************************************
 !
       USE CMN_SIZE_MOD ! Size parameters
-      USE PHYSCONSTANTS! Re, PI
+      USE PhysConstants! Re, PI
  
       implicit none
 
@@ -1361,7 +1361,7 @@ c     --------------------------------------
 !******************************************************************************
 !
       USE CMN_SIZE_MOD ! Size parameters
-      USE PHYSCONSTANTS! Re, Pi
+      USE PhysConstants! Re, Pi
 
       implicit none
 
@@ -1722,7 +1722,7 @@ c     --------------------------------------
       USE PRESSURE_MOD, ONLY : GET_AP,      GET_BP
 
       USE CMN_SIZE_MOD  ! Size parameters
-      USE PHYSCONSTANTS ! Re, PI, etc...
+      USE PhysConstants ! Re, PI, etc...
 
       ! Local variables
       INTEGER :: AS, I, J, L

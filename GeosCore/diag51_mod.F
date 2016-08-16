@@ -279,10 +279,10 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -318,7 +318,7 @@
       !=================================================================
 
       ! Assume success
-      RC =  GIGC_SUCCESS      
+      RC =  GC_SUCCESS      
 
       ! Construct array of where local times are between HR1, HR2
       CALL GET_LOCAL_TIME
@@ -353,10 +353,9 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD   ! Size parameters
       USE TIME_MOD, ONLY : GET_LOCALTIME
       USE TIME_MOD, ONLY : GET_TS_DYN
-
-      USE CMN_SIZE_MOD   ! Size parameters
 ! 
 ! !REMARKS:
 !  For now use GET_LOCALTIME( I, 1, 1 ) which will be independent of J and L
@@ -426,21 +425,20 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : IND_   !kyu codeathon
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,   GET_PBL_TOP_m
-      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM 
-      USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
-      USE TIME_MOD,           ONLY : GET_TS_DIAG, GET_TS_EMIS
-
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD               ! SAVEOH
-      USE PHYSCONSTANTS            ! SCALE_HEIGHT, XNUMOLAIR
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
+      USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,   GET_PBL_TOP_m
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : IND_   !kyu codeathon
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM 
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
+      USE TIME_MOD,           ONLY : GET_TS_DIAG, GET_TS_EMIS
 !
 ! !INPUT PARAMETERS:
 !
@@ -556,7 +554,7 @@
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Copy values from Input_Opt
       TCVV      = Input_Opt%TCVV(1:nAdvect)
@@ -1206,6 +1204,7 @@
 !
 ! !USES:
 !
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,  ONLY : GET_HOUR
       USE TIME_MOD,  ONLY : GET_MINUTE
       USE TIME_MOD,  ONLY : GET_TAU
@@ -1213,7 +1212,6 @@
       USE TIME_MOD,  ONLY : GET_TAUe
       USE TIME_MOD,  ONLY : GET_TS_DYN
       USE TIME_MOD,  ONLY : GET_TS_DIAG
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1298,11 +1296,12 @@
 !
       USE BPCH2_MOD,          ONLY : BPCH2
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
+      USE CMN_SIZE_MOD             ! Size Parameters
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLUN
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD_DIAG    
       USE TIME_MOD,           ONLY : GET_NHMS
@@ -1318,8 +1317,6 @@
       USE HDF5,               ONLY : HID_T
       INTEGER(HID_T)              :: IU_ND51_HDF
 #endif
-
-      USE CMN_SIZE_MOD   ! Size Parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -1388,7 +1385,7 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Copy values from Input_Opt
       LND51_HDF = Input_Opt%LND51_HDF
@@ -2069,15 +2066,15 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,  ONLY : GET_MODELNAME
-      USE BPCH2_MOD,  ONLY : GET_HALFPOLAR
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE ERROR_MOD,  ONLY : ERROR_STOP
-      USE GRID_MOD,   ONLY : GET_XOFFSET
-      USE GRID_MOD,   ONLY : GET_YOFFSET
-      USE GRID_MOD,   ONLY : ITS_A_NESTED_GRID
-      USE TIME_MOD,   ONLY : GET_TAUb
+      USE BPCH2_MOD,    ONLY : GET_MODELNAME
+      USE BPCH2_MOD,    ONLY : GET_HALFPOLAR
       USE CMN_SIZE_MOD
+      USE ERROR_MOD,    ONLY : ALLOC_ERR
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE GRID_MOD,     ONLY : GET_XOFFSET
+      USE GRID_MOD,     ONLY : GET_YOFFSET
+      USE GRID_MOD,     ONLY : ITS_A_NESTED_GRID
+      USE TIME_MOD,     ONLY : GET_TAUb
 !
 ! !INPUT PARAMETERS: 
 !

@@ -619,6 +619,9 @@ ifeq ($(COMPILER),sun)
 	$(F90) -O0 -c $<
 endif
 
+gc_environment_mod.o        : gc_environment_mod.F90                         \
+                              vdiff_pre_mod.o
+
 gcap_convect_mod.o          : gcap_convect_mod.F                             \
                               diag_mod.o
 
@@ -632,9 +635,6 @@ get_global_ch4.o            : get_global_ch4.F                               \
                               future_emissions_mod.o
 
 get_ndep_mod.o              : get_ndep_mod.F                              
-
-gigc_environment_mod.o      : gigc_environment_mod.F90                       \
-			      vdiff_pre_mod.o
 
 global_br_mod.o             : global_br_mod.F                                \
                               chemgrid_mod.o          ocean_mercury_mod.o
@@ -711,7 +711,7 @@ main.o                      : main.F                                         \
                               diag_oh_mod.o           dao_mod.o              \
                               depo_mercury_mod.o      drydep_mod.o           \
                               toms_mod.o              gcap_read_mod.o        \
-                              geosfp_read_mod.o       gigc_environment_mod.o \
+                              geosfp_read_mod.o       gc_environment_mod.o   \
                               global_ch4_mod.o        i6_read_mod.o          \
                               input_mod.o             linoz_mod.o            \
                               mapping_mod.o           toms_mod.o             \

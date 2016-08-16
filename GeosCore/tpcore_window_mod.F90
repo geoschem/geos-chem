@@ -467,7 +467,7 @@ CONTAINS
 !----------------------------------------------------------------------------
 
 ! Uses:
-    USE PHYSCONSTANTS  ! Physical constants g0_100 and AIRMW
+    USE PhysConstants  ! Physical constants g0_100 and AIRMW
 
  implicit none
 
@@ -1367,7 +1367,7 @@ CONTAINS
                 AREA_M2, ND24, ND25, DT )
 
 ! Uses:
-    USE PHYSCONSTANTS  ! Physical constants g0_100
+    USE PhysConstants  ! Physical constants g0_100
 
  implicit none
 

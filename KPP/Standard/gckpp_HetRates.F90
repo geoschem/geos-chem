@@ -24,10 +24,10 @@ MODULE GCKPP_HETRATES
   USE gckpp_Precision
   USE gckpp_Parameters
   USE gckpp_Global,       ONLY : HET
-  USE GIGC_State_Chm_Mod, ONLY : ChmState
-  USE GIGC_State_Chm_Mod, ONLY : IND_
-  USE GIGC_State_Met_Mod, ONLY : MetState
-  USE GIGC_Input_Opt_Mod, ONLY : OptInput
+  USE State_Chm_Mod,      ONLY : ChmState
+  USE State_Chm_Mod,      ONLY : IND_
+  USE State_Met_Mod,      ONLY : MetState
+  USE Input_Opt_Mod,      ONLY : OptInput
   USE PhysConstants,      ONLY : AVO
   USE Precision_Mod,      ONLY : fp
 
@@ -1554,7 +1554,7 @@ MODULE GCKPP_HETRATES
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1793,7 +1793,7 @@ MODULE GCKPP_HETRATES
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !

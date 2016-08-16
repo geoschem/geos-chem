@@ -29,10 +29,9 @@ MODULE Modis_Lai_Mod
 !
   USE CMN_SIZE_Mod                                ! Size parameters
   USE Error_Mod                                   ! Error checking routines
+  USE PRECISION_MOD                               ! For GEOS-Chem Precision (fp)
   USE Mapping_Mod                                 ! Mapping weights & areas
   USE Time_Mod                                    ! EXPAND_DATE
-
-  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
   IMPLICIT NONE
   PRIVATE
@@ -208,9 +207,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput 
-   
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,      ONLY : OptInput 
 !
 ! !INPUT PARAMETERS:
 !
@@ -244,7 +242,7 @@ CONTAINS
     LOGICAL              :: ReadLAI         ! T = read LAI, F = read CHLR
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Set filename template for LAI
     IF ( Input_Opt%USE_OLSON_2001 ) THEN
@@ -298,8 +296,8 @@ CONTAINS
     USE m_netcdf_io_read                         ! netCDF read
     USE m_netcdf_io_readattr                     ! netCDF attribute reads
     USE m_netcdf_io_close                        ! netCDF file close
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput 
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,      ONLY : OptInput 
    
 #   include "netcdf.inc"                         ! netCDF settings & parameters
 !
@@ -360,7 +358,7 @@ CONTAINS
     !======================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Assign pointers etc. based on whether reading LAI or CHLR
     IF ( ReadLAI ) THEN
@@ -565,9 +563,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -613,7 +611,7 @@ CONTAINS
     LOGICAL             :: ComputeLAI       ! T = compute LAI, F = compute CHLR
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Always compute LAI
     ComputeLAI = .true.
@@ -656,9 +654,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -718,7 +716,7 @@ CONTAINS
     !======================================================================
     
     ! Assume success
-    RC                = GIGC_SUCCESS
+    RC                = GC_SUCCESS
 
     ! Assign pointers and precision based on whether computing LAI or CHLR
     IF ( ComputeLAI ) THEN
@@ -1064,8 +1062,8 @@ CONTAINS
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !

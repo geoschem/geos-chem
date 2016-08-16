@@ -22,10 +22,10 @@ MODULE UnitConv_Mod
 !
   ! GEOS-Chem Modules
   USE CMN_SIZE_MOD          ! Size parameters
-  USE PRECISION_MOD         ! GEOS-Chem Flexible Precision (fp)
-  USE PHYSCONSTANTS
-  USE GIGC_ErrCode_Mod
+  USE ErrCode_Mod
   USE ERROR_MOD
+  USE PHYSCONSTANTS
+  USE PRECISION_MOD         ! GEOS-Chem Flexible Precision (fp)
                     
   IMPLICIT NONE
   PRIVATE
@@ -172,9 +172,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -208,7 +208,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC        =  GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -216,7 +216,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
        LOC = 'Routine Convert_KgKgDry_to_KgKgTotal in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
     ENDIF
 
     !====================================================================
@@ -282,9 +282,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -318,7 +318,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC        =  GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -326,7 +326,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg total' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
        LOC = 'Routine Convert_KgKgTotal_to_KgKgDry in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -394,8 +394,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -431,7 +431,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -439,7 +439,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Spc_Units )
        LOC = 'Routine ConvertSpc_KgKgDry_to_KgKgTotal in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
     ENDIF
 
     !====================================================================
@@ -506,8 +506,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -543,7 +543,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -551,7 +551,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg total' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Spc_Units )
        LOC = 'Routine ConvertSpc_KgKgTotal_to_KgKgDry in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -618,8 +618,8 @@ CONTAINS
 !
 ! USES: 
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -653,7 +653,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC        =  GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -661,7 +661,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
        LOC = 'Routine Convert_KgKgDry_to_VVDry in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -728,8 +728,8 @@ CONTAINS
 !
 ! USES: 
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -763,7 +763,7 @@ CONTAINS
     !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -771,7 +771,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Trac_Units ) /= 'v/v dry' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
        LOC = 'Routine Convert_VVDry_to_KgKgDry in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -837,8 +837,8 @@ CONTAINS
 !
 ! USES: 
 !
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -874,7 +874,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -882,7 +882,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Spc_Units )
        LOC = 'Routine ConvertSpc_KgKgDry_to_VVDry in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -959,8 +959,8 @@ CONTAINS
 !
 ! USES: 
 !
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -996,7 +996,7 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -1004,7 +1004,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Spc_Units ) /= 'v/v dry' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Spc_Units )
        LOC = 'Routine ConvertSpc_VVDry_to_KgKgDry in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -1083,9 +1083,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1122,7 +1122,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC        =  GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -1130,7 +1130,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
        LOC = 'Routine Convert_KgKgDry_to_Kgm2 in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -1199,9 +1199,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1237,7 +1237,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC        =  GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -1245,7 +1245,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/m2' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
        LOC = 'Routine Convert_Kgm2_to_KgKgDry in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -1315,8 +1315,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1354,7 +1354,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -1362,7 +1362,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Spc_Units )
        LOC = 'Routine ConvertSpc_KgKgDry_to_Kgm2 in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -1431,8 +1431,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1469,7 +1469,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -1477,7 +1477,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/m2' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Spc_Units )
        LOC = 'Routine ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -1547,9 +1547,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1586,7 +1586,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC        =  GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -1594,7 +1594,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Trac_Units ) /= 'v/v dry' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
        LOC = 'Routine Convert_VVDry_to_Kg in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -1663,9 +1663,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1702,7 +1702,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC        =  GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -1710,7 +1710,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
        LOC = 'Routine Convert_Kg_to_VVDry in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -1779,9 +1779,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1821,7 +1821,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -1829,7 +1829,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Spc_Units ) /= 'v/v dry' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Spc_Units )
        LOC = 'Routine ConvertSpc_VVDry_to_Kg in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -1910,9 +1910,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1951,7 +1951,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -1959,7 +1959,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Spc_Units )
        LOC = 'Routine ConvertSpc_Kg_to_VVDry in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -2040,9 +2040,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2077,7 +2077,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC        =  GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -2085,7 +2085,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
        LOC = 'Routine Convert_KgKgDry_to_Kg in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -2152,9 +2152,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2188,7 +2188,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC        =  GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -2196,7 +2196,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
        LOC = 'Routine Convert_Kg_to_KgKgDry in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -2263,8 +2263,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2301,7 +2301,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -2309,7 +2309,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Spc_Units )
        LOC = 'Routine ConvertSpc_KgKgDry_to_Kg in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -2376,8 +2376,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2413,7 +2413,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -2421,7 +2421,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Spc_Units )
        LOC = 'Routine ConvertSpc_Kg_to_KgKgDry in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -2490,9 +2490,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2535,7 +2535,7 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC        =  GC_SUCCESS
 
     !==============================================================
     !
@@ -2594,9 +2594,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2639,7 +2639,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC        =  GC_SUCCESS
 
     !====================================================================
     !
@@ -2697,8 +2697,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2742,7 +2742,7 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     !==============================================================
     !
@@ -2802,8 +2802,8 @@ CONTAINS
 ! !USES:
 !
  
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2847,7 +2847,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     !====================================================================
     !
@@ -2903,10 +2903,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE PHYSCONSTANTS
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE PhysConstants
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2948,7 +2948,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC        =  GC_SUCCESS
 
     !====================================================================
     !
@@ -2986,10 +2986,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE PHYSCONSTANTS
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE PhysConstants
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3031,7 +3031,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC        =  GIGC_SUCCESS
+    RC        =  GC_SUCCESS
 
     !====================================================================
     !
@@ -3069,9 +3069,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE PHYSCONSTANTS
+    USE PhysConstants
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3114,7 +3114,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
@@ -3146,9 +3146,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE PHYSCONSTANTS
+    USE PhysConstants
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3191,7 +3191,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
@@ -3223,9 +3223,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState    
     USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState    
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3256,13 +3256,13 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=255) :: MSG, LOC
-\
+
     !====================================================================
     ! ConvertSpc_KgKgDry_to_MND begins here!
     !====================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -3270,7 +3270,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Spc_Units )
        LOC = 'Routine ConvertSpc_KgKgDry_to_MND in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -3361,9 +3361,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3400,7 +3400,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -3408,7 +3408,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Spc_Units ) /= 'molec/cm3' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Spc_Units )
        LOC = 'Routine ConvertSpc_MND_to_KgKgDry in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -3500,9 +3500,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3540,7 +3540,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -3548,7 +3548,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Spc_Units )
        LOC = 'Routine ConvertSpc_KgKgDry_to_MND in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -3635,9 +3635,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3674,7 +3674,7 @@ CONTAINS
     !====================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
@@ -3682,7 +3682,7 @@ CONTAINS
     IF ( TRIM( State_Chm%Spc_Units ) /= 'molec/cm3' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Spc_Units )
        LOC = 'Routine ConvertSpc_MND_to_KgKgDry in unitconv_mod.F90'
-       CALL GIGC_Error( MSG, RC, LOC )
+       CALL GC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 

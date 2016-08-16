@@ -102,12 +102,12 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AVO
+      USE State_Chm_Mod,      ONLY : ChmState, IND_
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE,   GET_NYMD
       USE TIME_MOD,           ONLY : GET_TAU,       GET_TAUb 
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY, TIMESTAMP_STRING
@@ -216,7 +216,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -393,11 +393,10 @@
 !
       USE BPCH2_MOD,  ONLY : BPCH2,         GET_HALFPOLAR
       USE BPCH2_MOD,  ONLY : GET_MODELNAME, OPEN_BPCH2_FOR_WRITE
-      USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
-      USE inquireMod, ONLY : findFreeLUN
-
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! LD65
+      USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
+      USE inquireMod, ONLY : findFreeLUN
 ! 
 ! !REMARKS:
 !  WRITE20 assumes that ND65 (P-L diagnostics) have been turned on.
@@ -602,9 +601,9 @@
 !
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !

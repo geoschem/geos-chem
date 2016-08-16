@@ -17,7 +17,6 @@
 ! !USES:
 !
       USE CMN_FJX_MOD
-
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -99,14 +98,14 @@
       USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
       USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
       USE CMN_SIZE_MOD,       ONLY : NDUST
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP, ALLOC_ERR
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
       USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
       USE TOMS_MOD,           ONLY : GET_OVERHEAD_O3
@@ -270,7 +269,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Copy fields from INPUT_OPT
       LPRT = ( am_I_Root .and. Input_Opt%LPRT )
@@ -1667,10 +1666,10 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !USES:
 !
-      USE inquireMod,         ONLY : findFreeLUN
       USE CMN_DIAG_MOD,       ONLY : ND64
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE inquireMod,         ONLY : findFreeLUN
 !
 ! !INPUT PARAMETERS:
 !
@@ -1702,7 +1701,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       IF ( am_I_Root) THEN
          write(6,*) ' Initializing Fast-JX v7.0 standalone CTM code.'
@@ -2073,7 +2072,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 ! !USES:
 !
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2204,7 +2203,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 ! !USES:
 !
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       IMPLICIT NONE
 
 !
@@ -2613,8 +2612,8 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ERROR_STOP
       USE CHARPAK_MOD, ONLY : CSTRIP
+      USE ERROR_MOD,   ONLY : ERROR_STOP
 !
 ! !INPUT PARAMETERS:
 !
@@ -2851,7 +2850,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS,ONLY : PI
+      USE PhysConstants,ONLY : PI
 !
 ! !INPUT PARAMETERS:
 !
@@ -2921,7 +2920,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !
       USE CMN_DIAG_MOD,       ONLY : LD22, LD64, ND22, ND64
       USE DIAG_MOD,           ONLY : AD22, AD64, LTJV
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -4166,8 +4165,8 @@ C---Always does PL(2) = P[1]
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS,      ONLY : AIRMW, AVO, g0, BOLTZ ! Physical parameters
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : AIRMW, AVO, g0, BOLTZ
 !
 ! !INPUT PARAMETERS:
 !
@@ -4545,8 +4544,8 @@ c  Ensure all 'AN_' types are valid selections
       USE m_netcdf_io_read
       USE m_netcdf_io_readattr
       USE m_netcdf_io_close
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -4594,7 +4593,7 @@ c  Ensure all 'AN_' types are valid selections
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=========================================================================
       ! Open and read data from the netCDF file
@@ -4700,7 +4699,7 @@ c  Ensure all 'AN_' types are valid selections
 !
       USE CMN_DIAG_MOD,       ONLY : LD22, ND22
       USE DIAG_MOD,           ONLY : AD22, LTJV
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
       USE Precision_Mod,      ONLY : fp
 !     
 ! !INPUT PARAMETERS:
@@ -4741,7 +4740,7 @@ c  Ensure all 'AN_' types are valid selections
       !==============================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
 #if defined( UCX )
       !==============================================================

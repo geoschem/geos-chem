@@ -84,16 +84,14 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS,      ONLY : ATM
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : IND_   !codeathon, kyu
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      ! NO branching ratio diagnostic (hotp 5/24/10)
-      USE CARBON_MOD,         ONLY : BETANOSAVE
-
+      USE CARBON_MOD,         ONLY : BETANOSAVE ! NO branching ratio diagnostic
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! NDxx flags
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : ATM
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : IND_
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -520,17 +518,15 @@
       USE BPCH2_MOD,          ONLY : BPCH2
       USE BPCH2_MOD,          ONLY : GET_MODELNAME
       USE BPCH2_MOD,          ONLY : GET_HALFPOLAR
-      !USE DIAG_MOD,          ONLY : CTOTH
+      USE CMN_DIAG_MOD             ! TINDEX
+      USE CMN_SIZE_MOD             ! Size parameters
       USE FILE_MOD,           ONLY : IU_BPCH
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_XOFFSET
       USE GRID_MOD,           ONLY : GET_YOFFSET
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : GET_CT_DIAG
       USE TIME_MOD,           ONLY : GET_DIAGb
       USE TIME_MOD,           ONLY : GET_DIAGe
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! TINDEX
 !
 ! !INPUT PARAMETERS:
 !
@@ -651,10 +647,10 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE CMN_SIZE_MOD   
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE Input_Opt_Mod,      ONLY : OptInput
 
 !
 ! !INPUT PARAMETERS:
