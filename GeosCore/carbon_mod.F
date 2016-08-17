@@ -235,7 +235,7 @@
 
       REAL(fp), PARAMETER   :: SMALLNUM   = 1e-20_fp
 
-      ! Indicate number of parent HC based on simulation tracers
+      ! Indicate number of parent HC based on simulation species
       ! (hotp 8/24/09)
       !INTEGER, SAVE        :: MAXSIMHC
       ! Now loop over number of semivolatiles (hotp 5/13/10)
@@ -347,7 +347,7 @@
       REAL(f4), POINTER     :: OH(:,:,:)  => NULL()
       REAL(f4), POINTER     :: NO3(:,:,:) => NULL()
 
-      ! Species ID flags (formerly in tracerid_mod.F)
+      ! Species ID flags
       INTEGER :: id_ASOG1,   id_ASOG2,  id_ASOG3,  id_ASOA1,  id_ASOA2
       INTEGER :: id_ASOA3,   id_ASOAN,  id_AW1,    id_BCPI,   id_BCPO 
       INTEGER :: id_BENZ,    id_ECIL1,  id_ECOB1,  id_GLYX,   id_HO2  
@@ -490,7 +490,7 @@
       ! Do we have to print debug output?
       prtDebug             = ( LPRT .and. am_I_Root )
 
-      ! Point to chemcial species array [kg]
+      ! Point to chemical species array [kg]
       Spc                  => State_Chm%Species
 
       ! First-time initialization
@@ -562,7 +562,7 @@
       ENDIF
 
       !=================================================================
-      ! Do chemistry for carbon aerosol tracers 
+      ! Do chemistry for carbon aerosol species 
       !=================================================================
 
       ! Chemistry for hydrophobic BC
@@ -786,7 +786,7 @@
       BCCONV    = 0e+0_fp
 
       !=================================================================
-      ! For tracers with dry deposition, the loss rate of dry dep is 
+      ! For species with dry deposition, the loss rate of dry dep is 
       ! combined in chem loss term.
       !
       ! Conversion from hydrophobic to hydrophilic:  
@@ -831,7 +831,7 @@
              AD07_BC(I,J,L) = AD07_BC(I,J,L) + BCCONV(I,J,L)
          ENDIF
 
-         ! Store new concentration back into tracer array
+         ! Store new concentration back into species array
          TC(I,J,L) = CNEW
       ENDDO
       ENDDO
@@ -931,7 +931,7 @@
          ! Prevent underflow condition
          IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
 
-         ! Save new concentration of H-philic IC in tracer array
+         ! Save new concentration of H-philic IC in species array
          TC(I,J,L) = CNEW
 
       ENDDO
@@ -1026,7 +1026,7 @@
       OCCONV    = 0e+0_fp
 
       !=================================================================
-      ! For tracers with dry deposition, the loss rate of dry dep is 
+      ! For species with dry deposition, the loss rate of dry dep is 
       ! combined in chem loss term.
       !
       ! Conversion from hydrophobic to hydrophilic:  
@@ -1070,7 +1070,7 @@
             AD07_OC(I,J,L) = AD07_OC(I,J,L) + OCCONV(I,J,L) 
          ENDIF
 
-         ! Store modified OC concentration back in tracer array
+         ! Store modified OC concentration back in species array
          TC(I,J,L) = CNEW
 
       ENDDO
@@ -1171,7 +1171,7 @@
          ! Prevent underflow condition
          IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
 
-         ! Store modified concentration back in tracer array [kg]
+         ! Store modified concentration back in species array [kg]
          TC(I,J,L) = CNEW
 
       ENDDO
@@ -1583,7 +1583,7 @@
                               !  heteorogeneous chem takes place
 
       ! Pointers
-      REAL(fp), POINTER :: Spc(:,:,:,:)      ! GEOS-Chem tracer array [kg]
+      REAL(fp), POINTER :: Spc(:,:,:,:)      ! GEOS-Chem species array [kg]
       REAL(fp), POINTER :: WERADIUS(:,:,:,:) ! Wet Aerosol Radius [cm]
       REAL(fp), POINTER :: WTAREA(:,:,:,:)   ! Wet Aerosol Area [cm2/cm3]
 
@@ -1815,8 +1815,8 @@
 !  O-SVOC/OPOA    OH                OPOA/G1-2
 !  NAP            OH, (+NO,HO2)     ASOAN, ASOA/G1-3
 !                                                                             .
-!  Tracers that must be defined in input.geos (in addition to standard
-!  full chem tracers) (34 additional):
+!  Species that must be defined in input.geos (in addition to standard
+!  full chem species) (34 additional):
 !  TSOA1      TSOG1      ISOA1      ISOG1      ASOA1      ASOG1
 !  TSOA2      TSOG2      ISOA2      ISOG2      ASOA2      ASOG2
 !  TSOA3      TSOG3      ISOA3      ISOG3      ASOA3      ASOG3
@@ -1856,8 +1856,8 @@
 !  TOLU           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
 !  XYLE           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
 !                                                                             .
-!  Tracers that must be defined in input.geos (in addition to standard
-!  full chem tracers) (25 additional):
+!  Species that must be defined in input.geos (in addition to standard
+!  full chem species) (25 additional):
 !  TSOA1      TSOG1      ISOA1      ISOG1      ASOA1      ASOG1
 !  TSOA2      TSOG2      ISOA2      ISOG2      ASOA2      ASOG2
 !  TSOA3      TSOG3      ISOA3      ISOG3      ASOA3      ASOG3
@@ -2109,7 +2109,7 @@
          CALL SOA_PARA( RTEMP, KO3, KOH, KNO3, KOM,
      &                  I,     J,   L,   KRO2NO, KRO2HO2, State_Met )
 
-         ! Partition mass of gas & aerosol tracers 
+         ! Partition mass of gas & aerosol species 
          ! according to 5 VOC classes & 3 oxidants
          CALL SOA_PARTITION( I, J, L, GM0, AM0, State_Chm )
 
@@ -4026,7 +4026,7 @@
 ! !IROUTINE: soa_partition
 !
 ! !DESCRIPTION: Subroutine SOA\_PARTITION partitions the mass of gas and
-!  aerosol tracers according to five Hydrocarbon species and three oxidants.
+!  aerosol species according to five Hydrocarbon species and three oxidants.
 !  (rjp, bmy, 7/7/04, 5/22/06)
 !\\
 !\\
@@ -4329,7 +4329,7 @@
       ENDIF
 
       !-----------------------------
-      ! Update tracers [kg]
+      ! Update species [kg]
       !-----------------------------
       ! gas phase
       Spc(I,J,L,id_TSOG1) = MAX( GM0(1,JSV), 1e-32_fp )
@@ -4407,7 +4407,7 @@
       ENDIF
 
       !-----------------------------
-      ! Update tracers [kg]
+      ! Update species [kg]
       !-----------------------------
       ! gas phase
       Spc(I,J,L,id_ISOG1) = MAX( GM0(1,JSV), 1e-32_fp )
@@ -4498,10 +4498,10 @@
       ENDIF
 
       !-----------------------------
-      ! Update tracers [kg]
+      ! Update species [kg]
       !-----------------------------
       ! APROD and GPROD are no longer used, but GM0 and AM0
-      ! need to be saved to tracer arrays (hotp 5/13/10)
+      ! need to be saved to species arrays (hotp 5/13/10)
       ! HIGH NOX  ! update dims (hotp 5/22/10)
       !NOX = NHIGHNOX
       ! gas phase
@@ -4573,7 +4573,7 @@
          ENDIF
 
          !---------------------------
-         ! Update tracers [kg]
+         ! Update species [kg]
          !---------------------------
          ! gas phase
          Spc(I,J,L,id_POG1) = MAX( GM0(1,JSV), 1.e-32_fp )
@@ -4640,7 +4640,7 @@
          ENDIF
 
          !---------------------------
-         ! Update tracers [kg]
+         ! Update species [kg]
          !---------------------------
          ! gas phase
          Spc(I,J,L,id_OPOG1) = MAX( GM0(1,JSV), 1.e-32_fp )
@@ -5181,7 +5181,7 @@ ccc
 ! emissions need be specified in the HEMCO configuration file. In the original
 ! code, the emissions were calculated by scaling anthropogenic, biofuel and
 ! biomass burning OC emissions. The same behavior can be achieved in HEMCO
-! by assigning the desired SVOC tracer name to the given source type, e.g.:
+! by assigning the desired SVOC species name to the given source type, e.g.:
 !
 ! 0 BOND\_ANTH\_POG1 Bond\_fossil.nc OC 2000/1-12/1/0 C xy kg/m2/s POG1 74 1 1
 !
@@ -5430,11 +5430,10 @@ ccc
       CHARACTER(LEN=255)       :: LOC='EMISSCARBONTOMAS (carbon_mod.F)'
       LOGICAL                  :: LPRT
 
-      ! For fields from Input_Opt
-      INTEGER                  :: N_TRACERS
       ! Pointers
       TYPE(HCO_State), POINTER :: HcoState
       REAL(f4),        POINTER :: Ptr2D(:,:)
+
       !=================================================================
       ! EMISSCARBONTOMAS begins here!
       !=================================================================
@@ -5462,9 +5461,9 @@ ccc
       ! Grid box aarea
       AREA = HcoState%Grid%AREA_M2%Val(:,:)
 
-      ! Convert State_Chm%Tracers from [kg/kg dry air] to [kg] for TOMAS.
+      ! Convert State_Chm%Species from [kg/kg dry air] to [kg] for TOMAS.
       ! This will be removed once TOMAS uses mixing ratio instead of mass 
-      ! as tracer units (ewl, 9/11/15)
+      ! as species units (ewl, 9/11/15)
       CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,  
      &                               State_Chm, RC         ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
@@ -5716,7 +5715,7 @@ ccc
 
       ENDIF  ! size resolved > 0
 
-      ! Convert State_Chm%Tracers back to kg (ewl, 9/11/15)
+      ! Convert State_Chm%Species back to kg (ewl, 9/11/15)
       CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
      &                               State_Chm, RC         ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
@@ -5736,7 +5735,7 @@ ccc
 !
 ! !IROUTINE: emithigh2
 !
-! !DESCRIPTION: Subroutine EMITHIGH2 mixes tracer completely from the surface
+! !DESCRIPTION: Subroutine EMITHIGH2 mixes species completely from the surface
 !  to the PBL top. This is a copy of subroutine EMITHIGH modified to work with
 !  30-bin EC and OC mass and also aerosol number.  (win, 9/4/07)
 !\\
@@ -6511,7 +6510,7 @@ ccc
                ARO2CARB = 6e+0_fp * 12e+0_fp / 
      &                    ( 6e+0_fp * 12e+0_fp + 6e+0_fp )
 
-               ! Tracer index of the parent aromatic
+               ! Species index of the parent aromatic
                IDTAROM = id_BENZ
 
             ! Toluene
@@ -6537,7 +6536,7 @@ ccc
                ARO2CARB = 7e+0_fp * 12e+0_fp / 
      &                    ( 7e+0_fp * 12e+0_fp + 8e+0_fp )
 
-               ! Tracer index of the parent aromatic
+               ! Species index of the parent aromatic
                IDTAROM = id_TOLU
 
             ! XYLENE
@@ -6564,7 +6563,7 @@ ccc
                ARO2CARB = 8e+0_fp * 12e+0_fp / 
      &                    ( 8e+0_fp * 12e+0_fp + 10e+0_fp ) 
 
-               ! Tracer index of the parent aromatic
+               ! Species index of the parent aromatic
                IDTAROM = id_XYLE
 
             ! NAPHTHALENE (IVOC surrogate) (hotp 7/22/09)
@@ -6586,7 +6585,7 @@ ccc
                ARO2CARB = 12e+0_fp * 10e+0_fp / 
      &                    ( 12e+0_fp * 10e+0_fp + 8e+0_fp )
 
-               ! Tracer index of the parent aromatic
+               ! Species index of the parent aromatic
                IDTAROM = id_NAP
 
             ELSE
@@ -6611,7 +6610,7 @@ ccc
             !   kg C of ARO2 / atom C = kg C of AROM / atom C
             !-----------------------------------------------------------
 
-            ! Now get the tracer coefficient from the species database
+            ! Now get the species coefficient from the species database
             ! instead of from Input_Opt (bmy, 5/17/16)
             MolecRatio = State_Chm%SpcData(IDTAROM)%Info%MolecRatio
             AROM_MW_G  = State_Chm%SpcData(IDTAROM)%Info%emMW_g
@@ -7007,7 +7006,7 @@ ccc
       ! SOAG_CLOUD begins here!
       !=================================================================
       
-      ! Point to chemical species array
+      ! Point to chemical species array [kg]
       Spc => State_Chm%Species
 
       ! DTCHEM is the chemistry timestep in seconds
@@ -7470,7 +7469,7 @@ ccc
       ! CHECK_EQLB starts here
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Point to chemical species array [kg]
       Spc => State_Chm%Species
 
       ! Calculate mass of absorbing organic medium 
@@ -8789,7 +8788,7 @@ ccc
       ! Assume success
       RC = GIGC_SUCCESS
 
-      ! Define species ID's (formerly in tracerid_mod.F)
+      ! Define species IDs
       id_ASOG1    = IND_('ASOG1'   )
       id_ASOG2    = IND_('ASOG2'   )
       id_ASOG3    = IND_('ASOG3'   )

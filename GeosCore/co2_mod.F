@@ -91,10 +91,10 @@
       PRIVATE :: DEF_FOSSIL_CO2_REGIONS_F
 !
 ! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%   BUYER BEWARE! Tagged CO2 tracers only work for 2 x 2.5 grid!   %%%
-!  %%%   Someone will have to make this more general later on...        %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  WARNING! Tagged CO2 simulation only work for 2 x 2.5 grid! %%%
+!  %%%  Someone will have to make this more general later on...    %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !                                                                             .
 ! !REVISION HISTORY:
 !  16 Aug 2005 - P. Suntharalingam - Initial version
@@ -260,21 +260,6 @@
       !=================================================================
       ! EMISSCO2 begins here!
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-!      ! Number of advected species
-!     nAdvect = State_Chm%nAdvect
-!
-!      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-!      DO NA = 1, nAdvect
-!         N                          = State_Chm%Map_Advect(NA)
-!         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-!      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
 
       ! Return success
       RC          = GIGC_SUCCESS
@@ -308,12 +293,12 @@
       DTSRCE = HcoState%TS_EMIS
 
       !=================================================================
-      ! Tracer ID setup and error checks (first-time only)
+      ! Species ID setup and error checks (first-time only)
       !=================================================================
       IF ( FIRST ) THEN 
 
          !--------------------------------------------------------------
-         ! Query HEMCO for all of the tracer IDs
+         ! Query HEMCO for all of the species IDs
          !--------------------------------------------------------------
          IDff   = HCO_GetHcoID( 'CO2ff',   HcoState )
          IDoc   = HCO_GetHcoID( 'CO2oc',   HcoState )
@@ -327,7 +312,7 @@
          IDcorr = HCO_GetHcoID( 'CO2corr', HcoState )
 
          !--------------------------------------------------------------
-         ! Add error checks.  Check to see that the tracer index
+         ! Add error checks.  Check to see that the species index
          ! and the corresponding field in the HEMCO state are defined.
          ! Move this outside the parallel loop to avoid problems when
          ! exiting while w/in a parallel region. (bmy, 4/17/15)
@@ -399,7 +384,7 @@
          ENDIF
 
          !--------------------------------------------------------------
-         ! Also test if the biofuel & biomass tracers are on
+         ! Also test if the biofuel & biomass species are on
          ! (i.e. if the pointers in the HEMCO state are associated).
          ! We can do this just once, outside of the parallel loop
          !--------------------------------------------------------------
@@ -476,10 +461,10 @@
      &                - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
 ! end new (ewl)
 
-            ! Add to Tracer #1: Total CO2 [kg/kg]
+            ! Add to Species #1: Total CO2 [kg/kg]
             Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
 
-	     ! Add to Tracer #2: Fossil CO2 [kg/kg]
+	     ! Add to Species #2: Fossil CO2 [kg/kg]
             IF ( nAdvect > 1 ) THEN
                Spc(I,J,1,2)   = Spc(I,J,1,2) + E_CO2
 
@@ -490,7 +475,7 @@
                ENDIF
             ENDIF
 
-	     ! Add to Tracer #12: Background with Fossil CO2 [kg/kg]
+	     ! Add to Species #12: Background with Fossil CO2 [kg/kg]
             IF ( LFFBKGRD ) THEN
                Spc(I,J,1,12)   = Spc(I,J,1,12) + E_CO2
             ENDIF
@@ -532,10 +517,10 @@
      &                - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
 ! end new (ewl)
 
-            ! Add to Tracer #1: Total CO2 [kg/kg]
+            ! Add to Species #1: Total CO2 [kg/kg]
             Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
 
-            ! Add to Tracer #3: Ocean CO2 [kg/kg]
+            ! Add to Species #3: Ocean CO2 [kg/kg]
             IF ( nAdvect > 2 ) THEN
                Spc(I,J,1,3)   = Spc(I,J,1,3) + E_CO2   
 
@@ -575,10 +560,10 @@
      &                - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
 ! end new (ewl)
  
-            ! Add to Tracer #1 -- total CO2 [kg/kg]
+            ! Add to Species #1 -- total CO2 [kg/kg]
             Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
 
-            ! Add to Tracer #4 -- Bal Bio CO2 [kg/kg]
+            ! Add to Species #4 -- Bal Bio CO2 [kg/kg]
             IF ( nAdvect > 3 ) THEN
                Spc(I,J,1,4)   = Spc(I,J,1,4) + E_CO2
                 
@@ -621,10 +606,10 @@
      &                   * G0_100 * ( 1.0e+0_fp
      &                   - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
 ! end new (ewl)   
-               ! Add to Tracer #1: Total CO2 [kg/kg]
+               ! Add to Species #1: Total CO2 [kg/kg]
                Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
                
-               ! Add to Tracer #5: Biomass burning CO2 [kg/kg]
+               ! Add to Species #5: Biomass burning CO2 [kg/kg]
                IF ( nAdvect > 4 ) THEN
                   Spc(I,J,1,5)   = Spc(I,J,1,5) + E_CO2
    
@@ -669,10 +654,10 @@
      &                   - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
 ! end new (ewl)
    
-               ! Add to Tracer #1: Total CO2 [kg/kg]
+               ! Add to Species #1: Total CO2 [kg/kg]
                Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
    
-               ! Add to Tracer #6: Biofuel CO2 [kg/kg]
+               ! Add to Species #6: Biofuel CO2 [kg/kg]
                IF (nAdvect > 5) THEN
                   Spc(I,J,1,6)   = Spc(I,J,1,6) + E_CO2
    
@@ -713,10 +698,10 @@
      &                - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
 ! end new (ewl)
 
-            ! Add to Tracer #1: Total CO2 [kg CO2]
+            ! Add to Species #1: Total CO2 [kg CO2]
             Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
 
-            ! Add to Tracer #7: Net Terr exchange CO2 [kg]
+            ! Add to Species #7: Net Terr exchange CO2 [kg]
             IF ( nAdvect > 6 ) THEN
                Spc(I,J,1,7)   = Spc(I,J,1,7) + E_CO2
 
@@ -756,20 +741,20 @@
      &                - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
 ! end new (ewl)
 
-            ! Add to Tracer #1: Total CO2 [kg/kg]
+            ! Add to Species #1: Total CO2 [kg/kg]
             Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
 
-            ! Add to Tracer #8: Ship CO2 [kg/kg]
+            ! Add to Species #8: Ship CO2 [kg/kg]
             IF (nAdvect > 7) THEN
                Spc(I,J,1,8)   = Spc(I,J,1,8) + E_CO2
  
-              	! Tagged tracer for global ship emissions
+              	! Tagged species for global ship emissions
                IF ( LSHIPTAG ) THEN
                   Spc(I,J,1,53) = Spc(I,J,1,53) + E_CO2
                ENDIF
             ENDIF
 
-	   ! Add to Tracer #12: Background with Fossil CO2 [kg/kg]
+	   ! Add to Species #12: Background with Fossil CO2 [kg/kg]
            !-------------------------------------------
 	   !IF ( LFFBKGRD ) THEN
            !   Spc(I,J,1,12)   = Spc(I,J,1,12) + E_CO2
@@ -811,20 +796,20 @@
      &                   - State_Met%SPHU(I,J,L) * 1.0e-3_fp ) )        
 ! end new (ewl)
 
-               ! Add to Tracer #1: Total CO2 [kg/kg]
+               ! Add to Species #1: Total CO2 [kg/kg]
                Spc(I,J,L,1)   = Spc(I,J,L,1) + E_CO2
 
-               ! Add to Tracer #9: Aviation CO2 [kg/kg]
+               ! Add to Species #9: Aviation CO2 [kg/kg]
                IF ( nAdvect > 8 ) THEN
                   Spc(I,J,L,9) = Spc(I,J,L,9) + E_CO2
  
-              	  ! Tagged tracer for global aviation emissions
+              	  ! Tagged species for global aviation emissions
                   IF ( LPLANETAG ) THEN
                      Spc(I,J,L,54) = Spc(I,J,L,54) + E_CO2
                   ENDIF
                ENDIF
 	
-	      ! Add to Tracer #12: Background with Fossil CO2 [kg]
+	      ! Add to Species #12: Background with Fossil CO2 [kg]
               !-------------------------------------------
 	      !IF (LFFBKGRD) THEN
 	      !   Spc(I,J,L,12)   = Spc(I,J,L,12) + E_CO2
@@ -868,10 +853,10 @@
      &                   - State_Met%SPHU(I,J,L) * 1.0e-3_fp ) )        
 ! end new (ewl)
 
-               ! Add to Tracer #1: Total CO2 [kg/kg]
+               ! Add to Species #1: Total CO2 [kg/kg]
                Spc(I,J,L,1)   = Spc(I,J,L,1) + E_CO2
 
-               ! Add to Tracer #10: Chemical Source of CO2 [kg/kg]
+               ! Add to Species #10: Chemical Source of CO2 [kg/kg]
                IF (nAdvect > 9) THEN
                   Spc(I,J,L,10)   = Spc(I,J,L,10) + E_CO2
                ENDIF
@@ -908,10 +893,10 @@
      &                - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
 ! end new (ewl)
 
-            ! Subtract from Tracer #1: Total CO2 [kg/kg]
+            ! Subtract from Species #1: Total CO2 [kg/kg]
             Spc(I,J,1,1)   = Spc(I,J,1,1) - E_CO2
 
-            ! Subtract from Tracer #11: Chem Source Surf Correction [kg/kg]
+            ! Subtract from Species #11: Chem Source Surf Correction [kg/kg]
             IF ( nAdvect > 10 ) THEN
                Spc(I,J,1,11)   = Spc(I,J,1,11) - E_CO2
             ENDIF
@@ -922,9 +907,9 @@
          ! #12: Background CO2
          !-------------------------------------------
          ! Background CO2 without fossil fuels is obtained by setting 
-         ! tracer 12 in the restart file, equal to tracer 1 at the start of 
+         ! species 12 in the restart file, equal to species 1 at the start of 
          ! a run.  No sources or sinks (chemical or surface) act on this 
-         ! tracer if LFFBKGRD == FALSE, it is simply the advected intial CO2.
+         ! species if LFFBKGRD == FALSE, it is simply the advected intial CO2.
 	 ! To include fossil fuels in the background, see the first loop.
 
       ENDDO
@@ -936,15 +921,6 @@
       Spc        => NULL()
       CO2_COPROD => NULL()
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-!      DO NA = 1, nAdvect
-!         N                          = State_Chm%Map_Advect(NA)
-!         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-!      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE EMISSCO2 
 !EOC
 !------------------------------------------------------------------------------
@@ -972,10 +948,10 @@
       INTEGER, INTENT(OUT)   :: REGION(IIPAR,JJPAR)
 !
 ! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%   BUYER BEWARE! Tagged CO2 tracers only work for 2 x 2.5 grid!   %%%
-!  %%%   Someone will have to make this more general later on...        %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%! 
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  WARNING! Tagged CO2 simulation only work for 2 x 2.5 grid!  %%%
+!  %%%  Someone will have to make this more general later on...     %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! 
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
@@ -1048,119 +1024,119 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 !-----------------------------------------------------------------------
-         ! Tracer #13 -- Canadian Tundra       
+         ! Species #13 -- Canadian Tundra       
          IF (LAND_REG(I,J) == 1 .and. I > 5 .and. I <= 60) THEN
             REGION(I,J) = 13
 !----------------------------------------------------------------------
-         ! Tracer #14 -- NA Boreal Forest                 
+         ! Species #14 -- NA Boreal Forest                 
          ELSE IF (LAND_REG(I,J) == 2 .and. I <= 60) THEN
             REGION(I,J) = 14
 !-----------------------------------------------------------------------
-         ! Tracer #15 -- Western US/Mexico                 
+         ! Species #15 -- Western US/Mexico                 
          ELSE IF (LAND_REG(I,J) == 3 .and. I <= 60) THEN
             REGION(I,J) = 15
 !-----------------------------------------------------------------------
-         ! Tracer #16 -- Central NA Agricultural  
+         ! Species #16 -- Central NA Agricultural  
          ELSE IF (LAND_REG(I,J) == 4 .and. I <= 60) THEN
             REGION(I,J) = 16
 !-----------------------------------------------------------------------      
-         ! Tracer #17 -- NA Mixed Forest 
+         ! Species #17 -- NA Mixed Forest 
          ELSE IF (LAND_REG(I,J) == 5 .and. I <= 60) THEN
             REGION(I,J) = 17
 !-----------------------------------------------------------------------      
-         ! Tracer #18 -- Central America and Caribbean
+         ! Species #18 -- Central America and Caribbean
          ELSE IF (LAND_REG(I,J) == 6 .and. I <= 60) THEN
             REGION(I,J) = 18
 !-----------------------------------------------------------------------      
-         ! Tracer #19 -- SA Tropical Rain Forest 
+         ! Species #19 -- SA Tropical Rain Forest 
          ELSE IF (LAND_REG(I,J) == 7 .and. I <= 60) THEN
             REGION(I,J) = 19
 !-----------------------------------------------------------------------      
-         ! Tracer #20 -- SA Coast and Mountains
+         ! Species #20 -- SA Coast and Mountains
          ELSE IF (LAND_REG(I,J) == 8 .and. I <= 60) THEN
             REGION(I,J) = 20
 !-----------------------------------------------------------------------      
-         ! Tracer #21 -- SA Wooded Grasslands
+         ! Species #21 -- SA Wooded Grasslands
          ELSE IF (LAND_REG(I,J) == 9 .and. I <= 60) THEN
             REGION(I,J) = 21
 !-----------------------------------------------------------------------      
-         ! Tracer #22 -- Eurasian Tundra
+         ! Species #22 -- Eurasian Tundra
          ELSE IF (LAND_REG(I,J) == 1 .and. (I>60 .or. I<=5)) THEN
             REGION(I,J) = 22
 !-----------------------------------------------------------------------      
-         ! Tracer #23 -- Eurasian Boreal Coniferous Forest
+         ! Species #23 -- Eurasian Boreal Coniferous Forest
          ELSE IF (LAND_REG(I,J) == 2 .and. I > 60 .and. J > 65) THEN
             REGION(I,J) = 23
 !-----------------------------------------------------------------------      
-         ! Tracer #24 -- Eurasian Boreal Deciduous Forest
+         ! Species #24 -- Eurasian Boreal Deciduous Forest
          ELSE IF (LAND_REG(I,J) == 5 .and. I > 60 .and. J > 65) THEN
             REGION(I,J) = 24
 !-----------------------------------------------------------------------      
-         ! Tracer #25 -- South and Central Europe
+         ! Species #25 -- South and Central Europe
          ELSE IF (LAND_REG(I,J) == 6 .and. I > 60 .and. I <100) THEN
             REGION(I,J) = 25
 !-----------------------------------------------------------------------      
-         ! Tracer #26 -- Central Asian Grasslands
+         ! Species #26 -- Central Asian Grasslands
          ELSE IF (LAND_REG(I,J) == 4 .and. I > 60 .and. J > 46) THEN
             REGION(I,J) = 26
 !-----------------------------------------------------------------------      
-         ! Tracer #27 -- Central Asian Desert
+         ! Species #27 -- Central Asian Desert
          ELSE IF (LAND_REG(I,J) == 8 .and. I >100 .and. I <118) THEN
             REGION(I,J) = 27
 !-----------------------------------------------------------------------      
-         ! Tracer #28 -- East Asia Mainland
+         ! Species #28 -- East Asia Mainland
          ELSE IF (LAND_REG(I,J) == 3 .and. I > 100) THEN
             REGION(I,J) = 28
 !-----------------------------------------------------------------------      
-         ! Tracer #29 -- Japan
+         ! Species #29 -- Japan
          ELSE IF (LAND_REG(I,J) == 9 .and. I > 100) THEN
             REGION(I,J) = 29
 !-----------------------------------------------------------------------      
-         ! Tracer #30 -- Northern African Desert
+         ! Species #30 -- Northern African Desert
          ELSE IF (LAND_REG(I,J) == 8 .and. I > 60 .and. I <100) THEN
             REGION(I,J) = 30
 !-----------------------------------------------------------------------      
-         ! Tracer #31 -- Northern Africa Grasslands
+         ! Species #31 -- Northern Africa Grasslands
          ELSE IF (LAND_REG(I,J) == 3 .and. I > 60 .and. I <100) THEN
             REGION(I,J) = 31
 !-----------------------------------------------------------------------      
-         ! Tracer #32 -- Africa Tropical Forest
+         ! Species #32 -- Africa Tropical Forest
          ELSE IF (LAND_REG(I,J) == 7 .and. I > 60 .and. I <100) THEN
             REGION(I,J) = 32
 !-----------------------------------------------------------------------      
-         ! Tracer #33 -- Southern Africa Grasslands 
+         ! Species #33 -- Southern Africa Grasslands 
          ELSE IF (LAND_REG(I,J) == 4 .and. I > 60 .and. J < 50) THEN
             REGION(I,J) = 33
 !-----------------------------------------------------------------------      
-         ! Tracer #34 -- Southern African Desert
+         ! Species #34 -- Southern African Desert
          ELSE IF (LAND_REG(I,J) == 9 .and. I > 60 .and. I <100) THEN
             REGION(I,J) = 34
 !-----------------------------------------------------------------------      
-         ! Tracer #35 -- Middle East
+         ! Species #35 -- Middle East
          ELSE IF (LAND_REG(I,J) == 2 .and. J > 40 .and. J < 65) THEN
             REGION(I,J) = 35
 !-----------------------------------------------------------------------      
-         ! Tracer #36 -- India and bordering countries
+         ! Species #36 -- India and bordering countries
          ELSE IF (LAND_REG(I,J) == 5 .and. I > 60 .and. J < 65) THEN
             REGION(I,J) = 36
 !-----------------------------------------------------------------------      
-         ! Tracer #37 -- Maritime Asia (Indonesia, Malaysia, New Guinea, etc.)
+         ! Species #37 -- Maritime Asia (Indonesia, Malaysia, New Guinea, etc.)
          ELSE IF (LAND_REG(I,J) == 7 .and. I > 100) THEN
             REGION(I,J) = 37
 !-----------------------------------------------------------------------      
-         ! Tracer #38 -- Australian Forest/Grassland
+         ! Species #38 -- Australian Forest/Grassland
          ELSE IF (LAND_REG(I,J) == 6 .and. I > 100) THEN
             REGION(I,J) = 38
 !-----------------------------------------------------------------------      
-         ! Tracer #39 -- Australian Desert
+         ! Species #39 -- Australian Desert
          ELSE IF (LAND_REG(I,J) == 8 .and. I >116 .and. J < 46) THEN
             REGION(I,J) = 39
 !-----------------------------------------------------------------------      
-         ! Tracer #40 -- New Zealand
+         ! Species #40 -- New Zealand
          ELSE IF (LAND_REG(I,J) == 2 .and. I > 120) THEN
             REGION(I,J) = 40
 !-----------------------------------------------------------------------      
-         ! Tracer #52 -- CO2 from everywhere else (Remote Islands & Ice Caps)
+         ! Species #52 -- CO2 from everywhere else (Remote Islands & Ice Caps)
          ELSE
             REGION(I,J) = 52
 !-----------------------------------------------------------------------      
@@ -1195,10 +1171,10 @@
       INTEGER, INTENT(OUT)  :: REGION(IIPAR,JJPAR)
 !
 ! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%   BUYER BEWARE! Tagged CO2 tracers only work for 2 x 2.5 grid!   %%%
-!  %%%   Someone will have to make this more general later on...        %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%! 
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  WARNING! Tagged CO2 simulation only work for 2 x 2.5 grid!  %%%
+!  %%%  Someone will have to make this more general later on...     %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! 
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
@@ -1268,11 +1244,11 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 !-----------------------------------------------------------------------
-         ! Tracer #41 -- Arctic Ocean       
+         ! Species #41 -- Arctic Ocean       
          IF       (OCEAN_REG(I,J) == 5 .and. J > 60) THEN
             REGION(I,J) = 41
 !-----------------------------------------------------------------------
-         ! Tracer #42 -- North Pacific                 
+         ! Species #42 -- North Pacific                 
          ELSE IF  (OCEAN_REG(I,J) == 1) THEN
             REGION(I,J) = 42
 !-----------------------------------------------------------------------
@@ -1280,39 +1256,39 @@
          ELSE IF  (OCEAN_REG(I,J) == 2) THEN
             REGION(I,J) = 43
 !-----------------------------------------------------------------------
-         ! Tracer #44 -- Tropical East Pacific 
+         ! Species #44 -- Tropical East Pacific 
          ELSE IF  (OCEAN_REG(I,J) == 3) THEN
             REGION(I,J) = 44
 !-----------------------------------------------------------------------      
-         ! Tracer #45-- South Pacific 
+         ! Species #45-- South Pacific 
          ELSE IF  (OCEAN_REG(I,J) == 4) THEN
             REGION(I,J) = 45
 !-----------------------------------------------------------------------      
-         ! Tracer #46 -- North Atlantic
+         ! Species #46 -- North Atlantic
          ELSE IF  (OCEAN_REG(I,J) == 6 .and. J > 45) THEN
             REGION(I,J) = 46
 !-----------------------------------------------------------------------      
-         ! Tracer #47 -- Tropical Atlantic
+         ! Species #47 -- Tropical Atlantic
          ELSE IF  (OCEAN_REG(I,J) == 7) THEN
             REGION(I,J) = 47
 !-----------------------------------------------------------------------      
-         ! Tracer #48 -- South Atlantic
+         ! Species #48 -- South Atlantic
          ELSE IF  (OCEAN_REG(I,J) == 8) THEN
             REGION(I,J) = 48
 !-----------------------------------------------------------------------      
-         ! Tracer #49 -- Tropical Indian Ocean
+         ! Species #49 -- Tropical Indian Ocean
          ELSE IF  (OCEAN_REG(I,J) == 5 .and. J < 60) THEN
             REGION(I,J) = 49
 !-----------------------------------------------------------------------      
-         ! Tracer #50 -- Southern Indian Ocean
+         ! Species #50 -- Southern Indian Ocean
          ELSE IF  (OCEAN_REG(I,J) == 6 .and. J < 45) THEN
             REGION(I,J) = 50
 !-----------------------------------------------------------------------      
-         ! Tracer #51 -- Southern (Antacrtic) Ocean
+         ! Species #51 -- Southern (Antacrtic) Ocean
          ELSE IF  (OCEAN_REG(I,J) == 9) THEN
             REGION(I,J) = 51
 !-----------------------------------------------------------------------      
-         ! Tracer #52 -- CO2 from everywhere else (Remote Islands & Ice Caps)
+         ! Species #52 -- CO2 from everywhere else (Remote Islands & Ice Caps)
          ELSE
             REGION(I,J) = 52
 !-----------------------------------------------------------------------      
@@ -1347,10 +1323,10 @@
       INTEGER, INTENT(OUT)   :: REGION(IIPAR,JJPAR)
 !
 ! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%   BUYER BEWARE! Tagged CO2 tracers only work for 2 x 2.5 grid!   %%%
-!  %%%   Someone will have to make this more general later on...        %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%! 
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  WARNING! Tagged CO2 simulation only work for 2 x 2.5 grid!  %%%
+!  %%%  Someone will have to make this more general later on...     %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! 
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
@@ -1418,119 +1394,119 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 !-----------------------------------------------------------------------
-         ! Tracer #13 -- Canadian Tundra       
+         ! Species #13 -- Canadian Tundra       
          IF (REG_CODE(I,J) == 1 .and. I > 5 .and. I <= 60) THEN
             REGION(I,J) = 13
 !-----------------------------------------------------------------------
-         ! Tracer #14 -- NA Boreal Forest                 
+         ! Species #14 -- NA Boreal Forest                 
          ELSE IF (REG_CODE(I,J) == 2 .and. I <= 60) THEN
             REGION(I,J) = 14
 !-----------------------------------------------------------------------
-         ! Tracer #15 -- Western US/Mexico                 
+         ! Species #15 -- Western US/Mexico                 
          ELSE IF (REG_CODE(I,J) == 3 .and. I <= 60) THEN
             REGION(I,J) = 15
 !-----------------------------------------------------------------------
-         ! Tracer #16 -- Central NA Agricultural  
+         ! Species #16 -- Central NA Agricultural  
          ELSE IF (REG_CODE(I,J) == 4 .and. I <= 60) THEN
             REGION(I,J) = 16
 !-----------------------------------------------------------------------      
-         ! Tracer #17 -- NA Mixed Forest 
+         ! Species #17 -- NA Mixed Forest 
          ELSE IF (REG_CODE(I,J) == 5 .and. I <= 60) THEN
             REGION(I,J) = 17
 !-----------------------------------------------------------------------      
-         ! Tracer #18 -- Central America and Caribbean
+         ! Species #18 -- Central America and Caribbean
          ELSE IF (REG_CODE(I,J) == 6 .and. I <= 60) THEN
             REGION(I,J) = 18
 !-----------------------------------------------------------------------      
-         ! Tracer #19 -- SA Tropical Rain Forest 
+         ! Species #19 -- SA Tropical Rain Forest 
          ELSE IF (REG_CODE(I,J) == 7 .and. I <= 60) THEN
             REGION(I,J) = 19
 !-----------------------------------------------------------------------      
-         ! Tracer #20 -- SA Coast and Mountains
+         ! Species #20 -- SA Coast and Mountains
          ELSE IF (REG_CODE(I,J) == 8 .and. I <= 60) THEN
             REGION(I,J) = 20
 !-----------------------------------------------------------------------      
-         ! Tracer #21 -- SA Wooded Grasslands
+         ! Species #21 -- SA Wooded Grasslands
          ELSE IF (REG_CODE(I,J) == 9 .and. I <= 60) THEN
             REGION(I,J) = 21
 !-----------------------------------------------------------------------      
-         ! Tracer #22 -- Eurasian Tundra
+         ! Species #22 -- Eurasian Tundra
          ELSE IF (REG_CODE(I,J) == 1 .and. (I>60 .or. I<=5)) THEN
             REGION(I,J) = 22
 !-----------------------------------------------------------------------      
-         ! Tracer #23 -- Eurasian Boreal Coniferous Forest
+         ! Species #23 -- Eurasian Boreal Coniferous Forest
          ELSE IF (REG_CODE(I,J) == 2 .and. I > 60 .and. J > 55) THEN
             REGION(I,J) = 23
 !-----------------------------------------------------------------------      
-         ! Tracer #24 -- Eurasian Boreal Deciduous Forest
+         ! Species #24 -- Eurasian Boreal Deciduous Forest
          ELSE IF (REG_CODE(I,J) == 5 .and. I > 60 .and. J > 64) THEN
             REGION(I,J) = 24
 !-----------------------------------------------------------------------      
-         ! Tracer #25 -- South and Central Europe
+         ! Species #25 -- South and Central Europe
          ELSE IF (REG_CODE(I,J) == 6 .and. I > 60 .and. I <100) THEN
             REGION(I,J) = 25
 !-----------------------------------------------------------------------      
-         ! Tracer #26 -- Central Asian Grasslands
+         ! Species #26 -- Central Asian Grasslands
          ELSE IF (REG_CODE(I,J) == 4 .and. I > 60 .and. J > 46) THEN
             REGION(I,J) = 26
 !-----------------------------------------------------------------------      
-         ! Tracer #27 -- Central Asian Desert
+         ! Species #27 -- Central Asian Desert
          ELSE IF (REG_CODE(I,J) == 8 .and. I >100 .and. I <118) THEN
             REGION(I,J) = 27
 !-----------------------------------------------------------------------      
-         ! Tracer #28 -- East Asia Mainland
+         ! Species #28 -- East Asia Mainland
          ELSE IF (REG_CODE(I,J) == 3 .and. I > 100) THEN
             REGION(I,J) = 28
 !-----------------------------------------------------------------------      
-         ! Tracer #29 -- Japan
+         ! Species #29 -- Japan
          ELSE IF (REG_CODE(I,J) == 9 .and. I > 100) THEN
             REGION(I,J) = 29
 !-----------------------------------------------------------------------      
-         ! Tracer #30 -- Northern African Desert
+         ! Species #30 -- Northern African Desert
          ELSE IF (REG_CODE(I,J) == 8 .and. I > 60 .and. I <100) THEN
             REGION(I,J) = 30
 !-----------------------------------------------------------------------      
-         ! Tracer #31 -- Northern Africa Grasslands
+         ! Species #31 -- Northern Africa Grasslands
          ELSE IF (REG_CODE(I,J) == 3 .and. I > 60 .and. I <100) THEN
             REGION(I,J) = 31
 !-----------------------------------------------------------------------      
-         ! Tracer #32 -- Africa Tropical Forest
+         ! Species #32 -- Africa Tropical Forest
          ELSE IF (REG_CODE(I,J) == 7 .and. I > 60 .and. I <100) THEN
             REGION(I,J) = 32
 !-----------------------------------------------------------------------      
-         ! Tracer #33 -- Southern Africa Grasslands 
+         ! Species #33 -- Southern Africa Grasslands 
          ELSE IF (REG_CODE(I,J) == 4 .and. I > 60 .and. J < 50) THEN
             REGION(I,J) = 33
 !-----------------------------------------------------------------------      
-         ! Tracer #34 -- Southern African Desert
+         ! Species #34 -- Southern African Desert
          ELSE IF (REG_CODE(I,J) == 9 .and. I > 60 .and. I <100) THEN
             REGION(I,J) = 34
 !-----------------------------------------------------------------------      
-         ! Tracer #35 -- Middle East
+         ! Species #35 -- Middle East
          ELSE IF (REG_CODE(I,J) == 2 .and. J > 40 .and. J < 60) THEN
             REGION(I,J) = 35
 !-----------------------------------------------------------------------      
-         ! Tracer #36 -- India and bordering countries
+         ! Species #36 -- India and bordering countries
          ELSE IF (REG_CODE(I,J) == 5 .and. I > 60 .and. J < 64) THEN
             REGION(I,J) = 36
 !-----------------------------------------------------------------------
-         ! Tracer #37 -- Maritime Asia (Indonesia, Malaysia, New Guinea, etc.)
+         ! Species #37 -- Maritime Asia (Indonesia, Malaysia, New Guinea, etc.)
          ELSE IF (REG_CODE(I,J) == 7 .and. I > 100) THEN
             REGION(I,J) = 37
 !-----------------------------------------------------------------------      
-         ! Tracer #38 -- Australian Forest/Grassland
+         ! Species #38 -- Australian Forest/Grassland
          ELSE IF (REG_CODE(I,J) == 6 .and. I > 100) THEN
             REGION(I,J) = 38
 !-----------------------------------------------------------------------      
-         ! Tracer #39 -- Australian Desert
+         ! Species #39 -- Australian Desert
          ELSE IF (REG_CODE(I,J) == 8 .and. I > 116 .and. J <45) THEN
             REGION(I,J) = 39
 !-----------------------------------------------------------------------      
-         ! Tracer #40 -- New Zealand
+         ! Species #40 -- New Zealand
          ELSE IF (REG_CODE(I,J) == 2 .and. I > 120) THEN
             REGION(I,J) = 40
 !-----------------------------------------------------------------------      
-         ! Tracer #52 -- CO2 from everywhere else (Remote Islands & Ice Caps)
+         ! Species #52 -- CO2 from everywhere else (Remote Islands & Ice Caps)
          ELSE
             REGION(I,J) = 52
 !-----------------------------------------------------------------------      

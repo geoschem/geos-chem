@@ -142,11 +142,6 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REMARKS:
-!  (1) State_Chm%TRACERS needs to enter this routine w/ units of [kg].
-!  (2) State_Chm%SPECIES needs to enter this routine w/ units of [molec/cm3].
-!  (3) As of 25 Oct 2012, we have not replaced the met-field arrays from
-!       dao_mod.F with the fields in State_Met.  This will be done in a
-!       piecemeal fashion so as not to disrupt the existing G-C workflow.
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -331,24 +326,15 @@
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
-      ! NOTE (pre-8/14/15): State_Chm%TRACERS needs to enter this routine
-      ! with units of [kg].  If we are calling this routine from the 
-      ! traditional "main.F" driver, then the tracers are already in
-      ! [kg] and no further unit conversion is necessary.  If on the
-      ! other hand we are calling this routine from the ESMF interface,
-      ! then we need to convert State_Chm%TRACERS from [v/v] to [kg]
-      ! in the calling routine GIGC_Do_Chem (in ESMF/gigc_chemdr.F90).
-      ! (bmy, 4/4/13) 
-      !
-      ! (post-8/14/15) Now DO_CHEMISTRY is passed tracer concentration in 
+      ! DO_CHEMISTRY is passed species concentration in 
       ! units of kg/kg and must be converted to kg at the start of the
       ! routine. Units are then converted back to kg/kg at the end. To work
       ! in an ESMF environment, GIGC_Do_Chem (in ESMF/gigc_chemdr.F90)
-      ! will need to be updated to convert State_Chm%TRACERS from [v/v]
+      ! will need to be updated to convert State_Chm%Species from [v/v]
       ! to [kg/kg dry air]. (ewl, 8/13/15)
       !-----------------------------------------------------------------
 
-      ! Convert tracer units from [kg/kg] to [kg] for chemistry (ewl, 8/12/15)
+      ! Convert species units from [kg/kg] to [kg] for chemistry (ewl, 8/12/15)
       CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, 
      &                               State_Chm, RC         ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
@@ -359,7 +345,7 @@
 
 #if defined( USE_TEND )
       !=================================================================
-      ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
+      ! Archive species concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CHEM', .FALSE., RC )
@@ -376,17 +362,13 @@
          !---------------------------------
          IF ( IT_IS_A_FULLCHEM_SIM ) THEN 
 
-            ! MSL - Flexchem
-            ! Initialize photochemistry & tracer->species mapping
-            ! For FULLCHEM, INPHOT was previously done in chemdr, 
-            ! but chemdr is gone.
+            ! Initialize FlexChem
             IF (FIRST) THEN
                CALL INIT_FLEXCHEM( Input_Opt, State_Met, State_Chm,
      &              am_I_Root, RC )
                IF ( LPRT .and. am_I_Root ) 
      &              CALL DEBUG_MSG( '### MAIN: a INIT_FLEXCHEM' )
             ENDIF
-            ! MSL ----------
 
 #if defined( UCX )
             ! We need to get the STATE_PSC from the HEMCO restart file.
@@ -398,8 +380,9 @@
             IF ( RC /= GIGC_SUCCESS ) RETURN
 
             !### DEBUG PRINTOUT, we can remove it later
-            write(*,'(a,e12.4)') '<> CH4: ',
-     &           state_chm%tracers(10,10,10,69)
+            IF ( LPRT .and. am_I_Root )
+     &           WRITE(*,'(a,e12.4)') '<> CH4: ',
+     &           State_Chm%Species(10,10,10,69)
 
 #endif
 #if defined( USE_TIMERS )
@@ -695,24 +678,14 @@
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
-      ! ALSO NOTE: State_Chm%TRACERS needs to leave this routine with
-      ! units of [kg].  If we are calling this routine from the 
-      ! traditional "main.F" driver, then the tracers are already in
-      ! [kg] and no further unit conversion is necessary.  If on the
-      ! other hand we are calling this routine from the ESMF interface,
-      ! then we need to convert State_Chm%TRACERS from [kg] to [v/v]
-      ! in the calling routine GIGC_Do_Chem (in ESMF/gigc_chemdr.F90).
-      ! (bmy, 4/4/13) 
-      !
-      !
-      ! Now DO_CHEMISTRY is passed tracer concentration in units of 
+      ! DO_CHEMISTRY is passed species concentration in units of 
       ! kg/kg and is converted to kg at the start of the routine.
       ! Units are then converted back to kg/kg at the end. To work in
       ! an ESMF environment, GIGC_Do_Chem (in ESMF/gigc_chemdr.F90)
-      ! will need to be updated to convert State_Chm%TRACERS from [kg]
+      ! will need to be updated to convert State_Chm%Species from [kg]
       ! to [kg/kg dry air] at the end (not [v/v]). (ewl, 8/13/15)
       !-----------------------------------------------------------------
-      ! Convert tracer units back to [kg/kg] after chemistry (ewl, 8/12/15)
+      ! Convert species units back to [kg/kg] after chemistry (ewl, 8/12/15)
       CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
      &                               State_Chm, RC         ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
@@ -834,10 +807,10 @@
       ! First make sure chemistry is turned on
       IF ( LCHEM ) THEN
 
-         ! Then make sure that the simulations use aerosol tracers
+         ! Then make sure that the simulations use aerosol species
          IF ( IT_IS_A_FULLCHEM_SIM .or. IT_IS_AN_AEROSOL_SIM ) THEN
 
-            ! And then make sure that the aersol tracers are defined
+            ! And then make sure that the aersol species are defined
             IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
                ! Skip this section if all of these are turned off

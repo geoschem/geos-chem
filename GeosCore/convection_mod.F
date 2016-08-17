@@ -233,12 +233,15 @@
 
 #if defined ( NC_DIAG )
       ! For netCDF diagnostics
-      INTEGER                :: trc_id, D, HCRC
+      INTEGER                :: ND, D, HCRC
       CHARACTER(LEN=60)      :: DiagnName
       REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
       REAL(fp), POINTER      :: TMP3D(:,:,:)
       REAL(fp), POINTER      :: TMP2D(:,:  )
       REAL(fp)               :: DTIME
+
+      ! Objects
+      TYPE(Species), POINTER :: SpcInfo
 #endif
 
       !=================================================================
@@ -252,7 +255,7 @@
 
 #if defined( USE_TEND )
       !=================================================================
-      ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
+      ! Archive species concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CONV', .TRUE., RC )
@@ -279,10 +282,10 @@
       ! loss due to convection. For these values, we don't need to 
       ! write the diagnostics within the convection schemes but can
       ! simply take the difference between the original and updated 
-      ! tracer field column.
+      ! species field column.
 #if defined( NC_DIAG )
       IF ( Input_Opt%ND38 > 0 ) THEN
-         ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
+         ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,State_Chm%nSpecies) )
          BEFORE = State_Chm%Species
       ENDIF
 #endif
@@ -343,7 +346,7 @@
       DT        = DBLE( TS_DYN )                  ! Dynamic timestep [min]
       FSOL      = 0e+0_fp                         ! Zero the FSOL array
 
-      ! Loop over advected tracers
+      ! Loop over advected species
       DO NA = 1, nAdvect
          
          ! Species ID
@@ -352,7 +355,7 @@
          ! Now point to a 3D slice of the FSOL array
          p_FSOL => FSOL(:,:,:,NA)
 
-         ! Fraction of soluble tracer
+         ! Fraction of soluble species
          CALL COMPUTE_F( am_I_Root, N, p_FSOL, ISOL(NA), 
      &                   Input_Opt, State_Met, State_Chm, RC ) 
 
@@ -473,17 +476,20 @@
          ALLOCATE(TMP3D(IIPAR,JJPAR,LLPAR), TMP2D(IIPAR,JJPAR) )
         
          ! Loop over the number of wet-depositing species
-         DO D = 1, State_Chm%nWetDep
+         DO ND = 1, State_Chm%nWetDep
 
             ! Get the species ID from the wetdep ID
-            trc_id = State_Chm%Map_WetDep(D)
+            D = State_Chm%Map_WetDep(ND)
 
-            ! Is this a tracer selected for this diagnostics type?
-            IF ( ANY( Input_Opt%TINDEX(38,:) == trc_id ) ) THEN
+            ! Get information for this species from the species database
+            SpcInfo => State_Chm%SpcData(D)%Info
+
+            ! Is this a species selected for this diagnostics type?
+            IF ( ANY( Input_Opt%TINDEX(38,:) == D ) ) THEN
 
                ! Loss rate [kg/kg total air per seconnd]
-               TMP3D = ( BEFORE(:,:,:,trc_id) - 
-     &                 State_Chm%Species(:,:,:,trc_id)) / DTIME 
+               TMP3D = ( BEFORE(:,:,:,D) - 
+     &                 State_Chm%Species(:,:,:,D)) / DTIME 
 
                ! Convert to [kg/s]
                ! Now use moist air mass rather than dry air mass (ewl, 6/23/15)
@@ -494,7 +500,7 @@
 
                ! Update diagnostics based on name
                DiagnName = 'WETSCAV_CONVLOSS_' 
-     &                     // TRIM( Input_Opt%TRACER_NAME( trc_id ) )
+     &                     // TRIM( SpcInfo%Name )
 
                CALL Diagn_Update ( am_I_Root,
      &                             cName   = TRIM( DiagnName ),
@@ -508,6 +514,10 @@
      &               'DO_CONVECTION (convection_mod.F)' )
                ENDIF
             ENDIF
+
+            ! Free pointer
+            SpcInfo => NULL()
+
          ENDDO
 
          ! Cleanup
@@ -678,7 +688,7 @@
 
       !=================================================================
       ! Before calling convection, compute the fraction of insoluble
-      ! tracer (Finsoluble) lost in updrafts.  Finsoluble = 1-Fsoluble.
+      ! species (Finsoluble) lost in updrafts.  Finsoluble = 1-Fsoluble.
       !=================================================================
 
       ! Loop over only the advected species
@@ -691,8 +701,8 @@
          ! Point to array slice of F
          p_FSOL => F(:,:,:,NA)
 
-         ! Get fraction of tracer scavenged and the soluble tracer 
-         ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
+         ! Get fraction of species scavenged and the soluble species 
+         ! index (ISOL). For non-soluble species, F=0 and ISOL=0.
          CALL COMPUTE_F( am_I_Root, NA,        p_FSOL,    ISOL, 
      &                   Input_Opt, State_Met, State_Chm, RC ) 
          
@@ -707,7 +717,7 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            ! ND37 diagnostic: store fraction of tracer 
+            ! ND37 diagnostic: store fraction of species 
             ! lost in moist convective updrafts ("MC-FRC-$")
             IF ( ND37 > 0 .and. ISOL > 0 .and. L <= LD37 ) THEN
                AD37(I,J,L,ISOL) = AD37(I,J,L,ISOL) + F(I,J,L,NA) 
@@ -960,7 +970,7 @@
 
       !=================================================================
       ! Before calling convection, compute the fraction of insoluble
-      ! tracer (Finsoluble) lost in updrafts.  Finsoluble = 1-Fsoluble.
+      ! species (Finsoluble) lost in updrafts.  Finsoluble = 1-Fsoluble.
       !=================================================================
 
       ! Loop over only the advected species
@@ -973,8 +983,8 @@
          ! Point to 3D slice of F
          p_FSOL => F(:,:,:,NA)
 
-         ! Get fraction of tracer scavenged and the soluble tracer 
-         ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
+         ! Get fraction of species scavenged and the soluble species 
+         ! index (ISOL). For non-soluble species, F=0 and ISOL=0.
          CALL COMPUTE_F( am_I_Root, NA,        p_FSOL,    ISOL, 
      &                   Input_Opt, State_Met, State_Chm, RC    ) 
          
@@ -994,7 +1004,7 @@
             IF ( State_Met%PMID( I, J, L ) > 700e+0_fp ) 
      &            F(I,J,L,NA) = 0e+0_fp
 
-            ! ND37 diagnostic: store fraction of tracer 
+            ! ND37 diagnostic: store fraction of species 
             ! lost in moist convective updrafts ("MC-FRC-$")
             IF ( ND37 > 0 .and. ISOL > 0 .and. L <= LD37 ) THEN
                AD37(I,J,L,ISOL) = AD37(I,J,L,ISOL) + F(I,J,L,NA) 
@@ -1125,7 +1135,7 @@
 !
 ! !DESCRIPTION: Subroutine NFCLDMX is S-J Lin's cumulus transport module for 
 !  3D GSFC-CTM, modified for the GEOS-Chem model.  The "NF" stands for "no 
-!  flipping", and denotes that you don't have to flip the tracer array Q in 
+!  flipping", and denotes that you don't have to flip the species array Q in 
 !  the main program before passing it to NFCLDMX.
 !\\
 !\\
@@ -1182,7 +1192,7 @@
 
 ! !REMARKS:
 !  (1) The "NF" stands for "no flipping", and denotes that you don't have to 
-!  flip the tracer array Q in the main program before passing it to NFCLDMX.
+!  flip the species array Q in the main program before passing it to NFCLDMX.
 !  (bmy, 2/12/97, 1/31/08)
 !
 !  (2) This version has been customized to work with GEOS-5 met fields.
@@ -1274,7 +1284,7 @@
 !                     based on the GMI algorithm
 !                                                                             .
 !                     02 May 2000
-!                     Added parallel loop over tracers! 
+!                     Added parallel loop over species! 
 ! 
 ! !REVISION HISTORY: 
 !  12 Feb 1997 - M. Prather  - Initial version
@@ -1363,7 +1373,7 @@
 
       REAL(fp), ALLOCATABLE, SAVE :: DSIG(:)
 
-      ! F is the fraction of tracer lost to wet scavenging in updrafts
+      ! F is the fraction of species lost to wet scavenging in updrafts
       REAL(fp), TARGET         :: F(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
       ! Local Work arrays
@@ -1383,7 +1393,7 @@
       ! ISOL is the wet deposition ID from the species database
       INTEGER                  :: ISOL
 
-      ! QC_PRES and QC_SCAV are the amounts of tracer 
+      ! QC_PRES and QC_SCAV are the amounts of species 
       ! preserved against and lost to wet scavenging
       REAL(fp)                 :: QC_PRES, QC_SCAV 
 
@@ -1533,17 +1543,17 @@
       !=================================================================
       ! (1)  S c a v e n g i n g   i n   C l o u d   U p d r a f t s
       !
-      ! Call COMPUTE_F to compute the fraction of tracer scavenged
+      ! Call COMPUTE_F to compute the fraction of species scavenged
       ! in convective cloud updrafts.  COMPUTE_F works for both full
       ! chemistry (NSRCX == 3) and Rn-Pb-Be chemistry (NSRCX == 1)
-      ! simulations.  It is best to compute the fraction of tracer
+      ! simulations.  It is best to compute the fraction of species
       ! scavenged at this point, outside the internal time step loop.
       ! This will avoid having to repeat the entire calculation of F
       ! for NS times.
       !
-      ! ISOL, which is returned from COMPUTE_F, is the tracer index
+      ! ISOL, which is returned from COMPUTE_F, is the species index
       ! used for diagnostic arrays AD37 and AD38.  ISOL = 0 for all
-      ! non-soluble tracers.
+      ! non-soluble species.
       !
       ! NOTE: We now move this into a separate parallel loop so as to
       ! ensure that TOMAS simulations result in identical results
@@ -1564,7 +1574,7 @@
          ! Point to 3D slice of F
          p_FSOL => F(:,:,:,NA)
 
-         ! Compute the fraction of tracer IC scavenged in updrafts
+         ! Compute the fraction of species IC scavenged in updrafts
          ! NOTE: ISOL is the wetdep Id from the species DB (bmy, 7/7/16)
          CALL COMPUTE_F( am_I_Root, IC, p_FSOL, ISOL, 
      &                   Input_Opt, State_Met, State_Chm, RC ) 
@@ -1572,7 +1582,7 @@
          ! Free pointer memory
          p_FSOL => NULL()
 
-         ! ND37 diagnostic -- store F only for soluble tracers
+         ! ND37 diagnostic -- store F only for soluble species
          IF ( ND37 > 0 .and. ISOL > 0 ) THEN
             DO K = 1, LD37
             DO J = 1, JJPAR
@@ -1588,7 +1598,7 @@
       !=================================================================
       ! (2)  A d v e c t e d   S p e c i e s   L o o p 
       !
-      ! We now parallelize over tracers, since tracers are independent 
+      ! We now parallelize over species, since species are independent 
       ! of each other.  The parallel loop only takes effect if you 
       ! compile with the f90 "-mp" switch.  Otherwise the compiler will 
       ! interpret the parallel-processing directives as comments, and 
@@ -1597,9 +1607,9 @@
       ! The following types of quantities must be held local for 
       ! parallelization:
       ! (1) Loop counters ( I, IC, ISTEP, J, K )
-      ! (2) Scalars that are assigned values inside the tracer loop: 
+      ! (2) Scalars that are assigned values inside the species loop: 
       !     ( CMOUT, DELQ, ENTRN, ISOL, QC_PRES, etc. )
-      ! (3) Arrays independent of tracer ( F, MB, QB, QC )
+      ! (3) Arrays independent of species ( F, MB, QB, QC )
       !=================================================================
 
       ! Loop over only the advected species
@@ -1614,7 +1624,7 @@
          ! Get the species ID from the advected species ID
          IC      =  State_Chm%Map_Advect(NA)
 
-         ! Point to the Species Database entry for this tracer
+         ! Point to the Species Database entry for this species
          SpcInfo => State_Chm%SpcData(IC)%Info
 
          ! Also get wetdep ID that corresponds to IC
@@ -1673,7 +1683,7 @@
                   MB(I,J) = BMASS(I,J,1) + BMASS(I,J,2)
 
 !=============================================================================
-!         Total mass of tracer below cloud base (i.e. MB  * QB ) +   
+!         Total mass of species below cloud base (i.e. MB  * QB ) +   
 !         Subsidence into cloud base from above (i.e. SDT * C(2) * Q(3) ) 
 !  QC =  -----------------------------------------------------------------
 !             Total air mass below cloud base (i.e. MB + C(2)*Q(3) )
@@ -1738,8 +1748,8 @@
 !    QC(I,J) =  -------------------------------------------
 !                      CLDMAS(I,J,K) + DTRN(I,J,K)
 !
-!            =   tracer mass coming in from below      (i.e. level K-1) + 
-!                tracer mass coming in from this level (i.e. level K)
+!            =   species mass coming in from below      (i.e. level K-1) + 
+!                species mass coming in from this level (i.e. level K)
 !               -----------------------------------------------------------
 !                             total mass coming into cloud
 !
@@ -1785,10 +1795,10 @@
 !  The cumulus transport above the cloud base is done as follows:
 !     C_k-1  = cloud air mass flux from level k-1 to level k
 !     C_k    = cloud air mass flux from level k   to level k+1
-!     QC_k-1 = mixing ratio of tracer INSIDE CLOUD at level k-1
-!     QC_k   = mixing ratio of tracer INSIDE CLOUD at level k
-!     Q_k    = mixing ratio of tracer in level k
-!     Q_k+1  = mixing ratio of tracer in level k+1
+!     QC_k-1 = mixing ratio of species INSIDE CLOUD at level k-1
+!     QC_k   = mixing ratio of species INSIDE CLOUD at level k
+!     Q_k    = mixing ratio of species in level k
+!     Q_k+1  = mixing ratio of species in level k+1
 !                                
 !                       |                    |
 !      k+1     ^        |       Cloud        |3)      C_k * Q_k+1
@@ -1807,17 +1817,17 @@
 !
 !  There are 4 terms that contribute to mass flow in and out of level k:
 !
-!  1) C_k-1 * QC_PRES = tracer convected from level k-1 to level k 
-!  2) C_k   * QC_k    = tracer convected from level k   to level k+1 
-!  3) C_k   * Q_k+1   = tracer subsiding from level k+1 to level k 
-!  4) C_k-1 * Q_k     = tracer subsiding from level k   to level k-1 
+!  1) C_k-1 * QC_PRES = species convected from level k-1 to level k 
+!  2) C_k   * QC_k    = species convected from level k   to level k+1 
+!  3) C_k   * Q_k+1   = species subsiding from level k+1 to level k 
+!  4) C_k-1 * Q_k     = species subsiding from level k   to level k-1 
 !
-!  Therefore the change in tracer concentration is given by
+!  Therefore the change in species concentration is given by
 !     DELQ = (Term 1) - (Term 2) + (Term 3) - (Term 4)
 !
 !  and Q(I,J,K,IC) = Q(I,J,K,IC) + DELQ.  
 !
-!  The term T0 is the amount of tracer that is scavenged out of the box.
+!  The term T0 is the amount of species that is scavenged out of the box.
 !  Compute that term here for the ND38 diagnostic below. (bmy, 1/27/03)
 !==============================================================================
                   T0   =  CLDMAS(I,J,K-1) * QC_SCAV   
@@ -1845,7 +1855,7 @@
                   ! from the ground.
                   !
                   ! DTCSUM(I,J,K,IC) is the flux (kg/box/sec) in 
-                  ! the box (I,J), for the tracer IC going out of 
+                  ! the box (I,J), for the species IC going out of 
                   ! the top of the layer K to the layer above (K+1) 
                   ! (bey, 11/10/99).      
                   !=====================================================
@@ -1856,7 +1866,7 @@
 
 #if defined( BPCH_DIAG )
                   !=====================================================
-                  ! ND38 Diagnostic: loss of soluble tracer to wet
+                  ! ND38 Diagnostic: loss of soluble species to wet
                   ! scavenging in cloud updrafts [kg/s].  We must 
                   ! divide by DNS, the # of internal timesteps.
                   !=====================================================
@@ -1891,14 +1901,14 @@
                   !=====================================================
                   IF ( ITS_A_MERCURY_SIM ) THEN
 !$OMP CRITICAL
-                     ! Is it a Hg2 tracer?
+                     ! Is it a Hg2 species?
                      IF ( SpcInfo%Is_Hg2 ) THEN
 
                         ! Wet scavenged Hg(II) in [kg/s], converted
                         ! to [kg] by multiplying by NDT
                         WET_Hg2 = T0 * AREA_M2 / DNS * NDT
                         
-                        ! Category # for this Hg2 tracer
+                        ! Category # for this Hg2 species
                         Hg_Cat  = SpcInfo%Hg_Cat
 
                         ! Pass to "ocean_mercury_mod.f"
@@ -1907,14 +1917,14 @@
      &                                                       State_Met )
                      ENDIF
 
-                     ! Is it a HgP tracer?
+                     ! Is it a HgP species?
                      IF ( SpcInfo%Is_HgP ) THEN 
 
                         ! Wet scavenged Hg(P) in [kg/s], converted 
                         ! to [kg] by multiplying by NDT
                         WET_HgP = T0 * AREA_M2 / DNS * NDT
 
-                        ! Category # for this Hg2 tracer
+                        ! Category # for this Hg2 species
                         Hg_Cat  = SpcInfo%Hg_Cat
 
                         ! Pass to "ocean_mercury_mod.f"
@@ -1931,7 +1941,7 @@
 ! array (which is 2-D) from within a 3-D parallel loop, and (2) possible 
 ! numerical roundoff when casting the REAL*8 value to REAL*4.  
 !
-! The results of the simulation in the tracer restart files are identical,
+! The results of the simulation in the species restart files are identical,
 ! so technically, the GEOS-5 Hg simulations pass the unit test. 
 !
 ! It is probably not possible to avoid the numerical differences in slot #4
@@ -1971,13 +1981,13 @@
                      !--------------------------------------------------
                      IF ( CLDMAS(I,J,K) > TINY ) THEN 
 
-                        ! Tracer convected from K -> K+1 
+                        ! Species convected from K -> K+1 
                         T2   = -CLDMAS(I,J,K  ) * QC(I,J)
 
-                        ! Tracer subsiding from K+1 -> K 
+                        ! Species subsiding from K+1 -> K 
                         T3   =  CLDMAS(I,J,K  ) * Q (I,J,K+1,IC)
 
-                        ! Change in tracer concentration
+                        ! Change in species concentration
                         DELQ = ( SDT / BMASS(I,J,K) ) * (T2 + T3)
 
                         ! If DELQ > Q then do not make Q negative!!!
@@ -1985,7 +1995,7 @@
                             DELQ = -Q(I,J,K,IC)
                         ENDIF
   
-                        ! Add change in tracer to Q array
+                        ! Add change in species to Q array
                         Q(I,J,K,IC) = Q(I,J,K,IC) + DELQ
 
                      ENDIF
@@ -2111,7 +2121,7 @@
       TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
       INTEGER,        INTENT(IN)    :: I, J       ! Lon & lat indices
       REAL(fp),       INTENT(IN)    :: AREA_M2    ! Surface area [m2]
-      REAL(fp),       INTENT(IN)    :: F(:,:)     ! Fraction of soluble tracer
+      REAL(fp),       INTENT(IN)    :: F(:,:)     ! Fraction of soluble species
                                                   !  for updraft scavenging 
                                                   !  [unitless].  Computed by
                                                   !  routine  COMPUTE_F.
@@ -2299,7 +2309,7 @@
 
 #endif
         
-      ! # of levels and # of tracers
+      ! # of levels and # of species
       NLAY     = LLPAR
       NC       = State_Chm%nAdvect
 
@@ -2396,8 +2406,8 @@
          DO ISTEP = 1, NS
 
             ! Initialize
-            QC     = 0e+0_fp    ! [kg tracer/kg total air]                  
-            T0_SUM = 0e+0_fp    ! [kg tracer/m2/timestep]
+            QC     = 0e+0_fp    ! [kg species/kg total air]                  
+            T0_SUM = 0e+0_fp    ! [kg species/m2/timestep]
 
             !----------------------------------------------------------
             ! B e l o w   C l o u d   B a s e   (K < CLDBASE) 
@@ -2422,7 +2432,7 @@
 
                   ! Calculate QB_NUM, the numerator for QB. QB is the 
                   ! weighted average mixing ratio below the cloud base.
-                  ! QB_NUM is equal to the grid box tracer concentrations 
+                  ! QB_NUM is equal to the grid box species concentrations 
                   ! [kg/kg total air] weighted by the adjacent level pressure 
                   ! differences and summed over all levels up to just 
                   ! below the cloud base (ewl, 6/22/15)           
@@ -2438,7 +2448,7 @@
                   ! Compute QC, the mixing ratio of the air that moved
                   ! in cumulus transport up to the next level [kg/kg]
                   !
-                  !        Total mass of tracer below cloud base  +   
+                  !        Total mass of species below cloud base  +   
                   !        Subsidence into cloud base from above  
                   ! QC =  --------------------------------------------
                   !            Total air mass below cloud base 
@@ -2447,7 +2457,7 @@
      &                           Q(CLDBASE,IC)    * SDT  ) /
      &                 ( MB    + CMFMC(CLDBASE-1) * SDT  ) 
 
-                  ! Copy QC to all levels of the tracer array Q
+                  ! Copy QC to all levels of the species array Q
                   ! that are below the cloud base level [kg/kg]
                   Q(1:CLDBASE-1,IC) = QC
 
@@ -2457,7 +2467,7 @@
                   ! %%% Negligible cloud mass flux %%% 
                   !-----------------------------------------------------
 
-                  ! When CMFMC is negligible, then set QC to the tracer
+                  ! When CMFMC is negligible, then set QC to the species
                   ! concentration at the cloud base level [kg/kg]
                   QC = Q(CLDBASE,IC)
    
@@ -2467,7 +2477,7 @@
                
                !-----------------------------------------------------
                ! If the cloud base happens at level 1, then just
-               ! set QC to the tracer concentration at the surface 
+               ! set QC to the species concentration at the surface 
                ! level [kg/kg]
                !-----------------------------------------------------
                QC = Q(CLDBASE,IC) 
@@ -2502,13 +2512,13 @@
                   !------------------------------------------------------------
                   ! (3.1)  M a s s   B a l a n c e   i n   C l o u d
                   !
-                  ! F(K,NA) = fraction of tracer IC in level K that is 
+                  ! F(K,NA) = fraction of species IC in level K that is 
                   !           available for wet-scavenging by cloud updrafts.  
                   !
                   ! If ENTRN > 0 then compute the new value of QC:
                   !
-                  !      tracer mass from below      (i.e. level K-1) + 
-                  !      tracer mass from this level (i.e. level K)
+                  !      species mass from below      (i.e. level K-1) + 
+                  !      species mass from this level (i.e. level K)
                   !  = -----------------------------------------------------
                   !             total mass coming into cloud
                   !
@@ -2533,15 +2543,15 @@
                   QC_PRES = QC * ( 1e+0_fp - F(K,NA) )
 
                   ! Amount of QC lost to scavenging [kg/kg]
-                  ! QC_SCAV = 0 for non-soluble tracer
+                  ! QC_SCAV = 0 for non-soluble species
 !                  QC_SCAV = QC * F(K,IC)
                   QC_SCAV = QC * F(K,NA)
 
-                  ! - - - - - - - - FOR SOLUBLE TRACERS ONLY - - - - - - - - - 
+                  ! - - - - - - - - FOR SOLUBLE SPECIES ONLY - - - - - - - - - 
                   IF ( QC_SCAV > 0e+0_fp ) THEN 
 
                      ! The fraction ALPHA is the fraction of raindrops that 
-                     ! will re-evaporate soluble tracer while falling from 
+                     ! will re-evaporate soluble species while falling from 
                      ! grid box K+1 down to grid box K.  Avoid div-by-zero.
 
                      ! Initialize 
@@ -2574,7 +2584,7 @@
                               ALPHA = 1e+0_fp 
                            ENDIF
 
-                           ! We assume that 1/2 of the soluble tracer w/in 
+                           ! We assume that 1/2 of the soluble species w/in 
                            ! the raindrops actually gets resuspended into 
                            ! the atmosphere
                            ALPHA2   = ALPHA * 0.5e+0_fp
@@ -2615,21 +2625,21 @@
                   !
                   !  C_k-1   = cloud air mass flux from level k-1 to level k
                   !  C_k     = cloud air mass flux from level k   to level k+1
-                  !  QC_k-1  = mixing ratio of tracer INSIDE CLOUD at level k-1
-                  !  QC_k    = mixing ratio of tracer INSIDE CLOUD at level k
-                  !  Q_k     = mixing ratio of tracer in level k
-                  !  Q_k+1   = mixing ratio of tracer in level k+1
+                  !  QC_k-1  = mixing ratio of species INSIDE CLOUD at level k-1
+                  !  QC_k    = mixing ratio of species INSIDE CLOUD at level k
+                  !  Q_k     = mixing ratio of species in level k
+                  !  Q_k+1   = mixing ratio of species in level k+1
                   ! 
                   ! For convenience we denote:
                   !
-                  !  QC_SCAV = Amount of tracer wet-scavenged in updrafts
+                  !  QC_SCAV = Amount of species wet-scavenged in updrafts
                   !          = QC_k-1 * F(k,IC)    [kg/kg]
                   !
-                  !  QC_PRES = Amount of tracer preserved against
+                  !  QC_PRES = Amount of species preserved against
                   !            wet-scavenging in updrafts [kg/kg]
                   !          = QC_k-1 * ( 1 - F(k,IC) )   
                   !
-                  ! Where F(k,IC) is the fraction of tracer IC in level k
+                  ! Where F(k,IC) is the fraction of species IC in level k
                   ! that is available for wet-scavenging by cloud updrafts.
                   ! F(k,IC) is computed by routine COMPUTE_UPDRAFT_FSOL
                   ! and passed to this routine as an argument.
@@ -2660,22 +2670,22 @@
                   ! There are 4 terms that contribute to mass flow in 
                   ! and out of level k:
                   !
-                  ! 1) C_k-1 * QC_PRES = tracer convected from k-1 to k 
-                  ! 2) C_k   * QC_k    = tracer convected from k   to k+1 
-                  ! 3) C_k   * Q_k+1   = tracer subsiding from k+1 to k 
-                  ! 4) C_k-1 * Q_k     = tracer subsiding from k   to k-1 
+                  ! 1) C_k-1 * QC_PRES = species convected from k-1 to k 
+                  ! 2) C_k   * QC_k    = species convected from k   to k+1 
+                  ! 3) C_k   * Q_k+1   = species subsiding from k+1 to k 
+                  ! 4) C_k-1 * Q_k     = species subsiding from k   to k-1 
                   !
-                  ! Therefore the change in tracer concentration is given by
+                  ! Therefore the change in species concentration is given by
                   !
                   !    DELQ = (Term 1) - (Term 2) + (Term 3) - (Term 4)
                   !
                   ! and Q(K,IC) = Q(K,IC) + DELQ.  
                   !
-                  ! The term T0 is the amount of tracer that is scavenged 
+                  ! The term T0 is the amount of species that is scavenged 
                   ! out of the box.
                   !
                   ! Units of T0, T1, T2, T3, T4, and TSUM are
-                  ! [kg/m2/s * kg tracer / kg total air]
+                  ! [kg/m2/s * kg species / kg total air]
                   !------------------------------------------------------------
                   T0      =  CMFMC_BELOW * QC_SCAV      
                   T1      =  CMFMC_BELOW * QC_PRES       
@@ -2692,7 +2702,7 @@
                      DELQ = -Q(K,IC)
                   ENDIF
 
-                  ! Increment the tracer array [kg/kg]
+                  ! Increment the species array [kg/kg]
                   Q(K,IC) = Q(K,IC) + DELQ
 
                   ! check for infinity
@@ -2710,8 +2720,8 @@
                      RETURN
                   ENDIF
 
-                  ! Pass T0_SUM in units of [kg tracer/m2/timestep].
-                  ! Converting kg total air to kg tracer requires use
+                  ! Pass T0_SUM in units of [kg species/m2/timestep].
+                  ! Converting kg total air to kg species requires use
                   ! of the molecular weight of air including moisture
                   ! (ewl, 6/5/15)
                   T0_SUM = T0_SUM + T0 * SDT
@@ -2720,7 +2730,7 @@
                   ! (3.3)  N D 1 4   D i a g n o s t i c
                   !
                   ! Archive upward mass flux due to wet convection  
-                  ! [kg/sec] in the box (I,J), for the tracer IC going out 
+                  ! [kg/sec] in the box (I,J), for the species IC going out 
                   ! of the top of the layer K to the layer above (K+1)  
                   ! (bey, 11/10/99). We must divide by DNS, the # of internal 
                   ! timesteps so that the sum represents the average loss rate 
@@ -2734,7 +2744,7 @@
                   !------------------------------------------------------------
                   ! (3.4)  N D 3 8   D i a g n o s t i c
                   !
-                  ! Archive the loss of soluble tracer to wet scavenging in 
+                  ! Archive the loss of soluble species to wet scavenging in 
                   ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
                   ! internal timesteps so that the sum represents the
                   ! average loss rate across all internal timesteps.
@@ -2757,7 +2767,7 @@
                   !------------------------------------------------------------
 
                   ! If there is no cloud mass flux coming from below, set
-                  ! QC to the tracer concentration at this level [kg/kg]
+                  ! QC to the species concentration at this level [kg/kg]
                   QC = Q(K,IC)
                   
                   ! Bug fix for the cloud base layer, which is not necessarily
@@ -2767,15 +2777,15 @@
                   ! in the above section.  (swu, 08/13/2007)
                   IF ( CMFMC(K) > TINYNUM ) THEN 
 
-                     ! Tracer convected from K -> K+1 
-                     ! [kg/m2/s * kg tracer/kg total air]
+                     ! Species convected from K -> K+1 
+                     ! [kg/m2/s * kg species/kg total air]
                      T2   = -CMFMC(K) * QC
 
-                     ! Tracer subsiding from K+1 -> K [kg/m2/s]
-                     ! [kg/m2/s * kg tracer/kg total air]
+                     ! Species subsiding from K+1 -> K [kg/m2/s]
+                     ! [kg/m2/s * kg species/kg total air]
                      T3   =  CMFMC(K) * Q(K+1,IC)
 
-                     ! Change in tracer concentration [kg/kg]
+                     ! Change in species concentration [kg/kg]
                      DELQ = ( SDT / BMASS(K) ) * (T2 + T3)
 
                      ! If DELQ > Q then do not make Q negative!!!
@@ -2783,7 +2793,7 @@
                         DELQ = -Q(K,IC)
                      ENDIF
   
-                     ! Add change in tracer to Q array [kg/kg]
+                     ! Add change in species to Q array [kg/kg]
                      Q(K,IC) = Q(K,IC) + DELQ
 
                   ENDIF
@@ -2811,7 +2821,7 @@
                ! Check if...
                ! (1) there is precip coming into box (I,J,K) from (I,J,K+1)
                ! (2) there is re-evaporation happening in grid box (I,J,K)
-               ! (3) there is tracer to re-evaporate
+               ! (3) there is species to re-evaporate
                IF ( PDOWN(K+1)  > 0 .and.   
      &              REEVAPCN(K) > 0 .and. 
      &              T0_SUM      > 0        ) THEN
@@ -2828,7 +2838,7 @@
                   K_RAIN   = LS_K_RAIN( QDOWN )
                   F_WASHOUT= LS_F_PRIME( QDOWN, K_RAIN ) 
 
-                  ! Call WASHOUT to compute the fraction of tracer lost
+                  ! Call WASHOUT to compute the fraction of species lost
                   ! to washout in grid box (I,J,K)
                   CALL WASHOUT( am_I_Root, I, J, K, IC, BXHEIGHT(K), 
      &                          T(K),      QDOWN,    SDT,   
@@ -2836,11 +2846,11 @@
      &                          WASHFRAC,  AER,      Input_Opt,
      &                          State_Met, State_Chm, RC         )
 
-                  ! Check if the tracer is an aerosol or not
+                  ! Check if the species is an aerosol or not
                   IF ( AER == .TRUE. ) THEN
  
                      !---------------------------------------------------------
-                     ! Washout of aerosol tracers
+                     ! Washout of aerosol species
                      ! This is modeled as a kinetic process
                      !---------------------------------------------------------
 
@@ -2886,7 +2896,7 @@
                      ! GAINED is the rained out aerosol coming down from 
                      ! grid box (I,J,L+1) that will evaporate and re-enter 
                      ! the atmosphere in the gas phase in grid box (I,J,L)
-                     ! [kg tracer/m2/timestep]
+                     ! [kg species/m2/timestep]
                      GAINED  = T0_SUM * ALPHA2
 
                      ! Amount of aerosol lost to washout in grid box [kg/m2]
@@ -2900,52 +2910,52 @@
                      ! [kg/m2/timestep]
                      LOST    = T0_SUM - GAINED
 
-                     ! Update tracer concentration (V. Shah, mps, 5/20/15)
+                     ! Update species concentration (V. Shah, mps, 5/20/15)
                      ! [kg/kg]
                      Q(K,IC) = Q(K,IC) - WETLOSS / BMASS(K) 
 
                      ! Update T0_SUM, the total amount of scavenged
-                     ! tracer that will be passed to the grid box below
+                     ! species that will be passed to the grid box below
                      ! [kg/m2/timestep]
                      T0_SUM = T0_SUM + WETLOSS  
 
                   ELSE
 
                      !---------------------------------------------------------
-                     ! Washout of non-aerosol tracers
+                     ! Washout of non-aerosol species
                      ! This is modeled as an equilibrium process
                      !---------------------------------------------------------
 
-                     ! MASS_NOWASH is the amount of non-aerosol tracer in 
+                     ! MASS_NOWASH is the amount of non-aerosol species in 
                      ! grid box (I,J,L) that is NOT available for washout.
                      ! Calculate in units of [kg/kg]
                      MASS_NOWASH = ( 1e+0_fp - F_WASHOUT ) * Q(K,IC)
 
-                     ! MASS_WASH is the total amount of non-aerosol tracer
+                     ! MASS_WASH is the total amount of non-aerosol species
                      ! that is available for washout in grid box (I,J,L).
                      ! It consists of the mass in the precipitating
                      ! part of box (I,J,L), plus the previously rained-out
-                     ! tracer coming down from grid box (I,J,L+1).
+                     ! species coming down from grid box (I,J,L+1).
                      ! (Eq. 15, Jacob et al, 2000)
-                     ! Units are [kg tracer/m2/timestep]
+                     ! Units are [kg species/m2/timestep]
                      MASS_WASH = ( F_WASHOUT * Q(K,IC) ) * BMASS(K)
      &                            + T0_SUM
 
-                     ! WETLOSS is the amount of tracer mass in 
+                     ! WETLOSS is the amount of species mass in 
                      ! grid box (I,J,L) that is lost to washout.
                      ! (Eq. 16, Jacob et al, 2000)
-                     ! [kg tracer/m2/timestep]
+                     ! [kg species/m2/timestep]
                      WETLOSS     = MASS_WASH * WASHFRAC - T0_SUM
                      
-                     ! The tracer left in grid box (I,J,L) is what was
+                     ! The species left in grid box (I,J,L) is what was
                      ! originally in the non-precipitating fraction 
                      ! of the box, plus MASS_WASH, less WETLOSS. 
                      ! [kg/kg]
                      Q(K,IC) = Q(K,IC) - WETLOSS / BMASS(K) 
                      
-                     ! Update T0_SUM, the total scavenged tracer
+                     ! Update T0_SUM, the total scavenged species
                      ! that will be passed to the grid box below
-                     ! [kg tracer/m2/timestep]
+                     ! [kg species/m2/timestep]
                      T0_SUM      = T0_SUM + WETLOSS
 
                   ENDIF
@@ -2954,7 +2964,7 @@
                   ! N D 1 4   D i a g n o s t i c
                   !
                   ! Archive upward mass flux due to wet convection.  
-                  ! [kg/sec] in the box (I,J), for the tracer IC going 
+                  ! [kg/sec] in the box (I,J), for the species IC going 
                   ! out of the top of the layer K to the layer above (K+1)  
                   ! (bey, 11/10/99). We must divide by DNS, the # of internal 
                   ! timesteps so that the sum represents the average loss 
@@ -2968,7 +2978,7 @@
                   !------------------------------------------------------------
                   !  N D 3 8   D i a g n o s t i c
                   !
-                  ! Archive the loss of soluble tracer to wet scavenging in 
+                  ! Archive the loss of soluble species to wet scavenging in 
                   ! cloud updrafts [kg/s].  We must divide by NDT, the # of 
                   ! seconds in the convective timestep, equal to DNS * SDT, 
                   ! in order to make diag38 represent the average loss rate 
