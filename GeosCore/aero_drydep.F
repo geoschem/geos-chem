@@ -143,7 +143,7 @@
       ! First-time setup
       IF ( FIRST ) THEN
 
-         ! Look up species ID's
+         ! Define species ID flags
          id_H2SO4 = IND_('H2SO4')
          id_NK1   = IND_('NK1'  )
 
@@ -440,7 +440,6 @@ c     &           'FLUX  AD44'
          DO JC = 1, ICOMP-IDIAG+1
          DO BIN = 1, IBINS
             X = 0d0
-            ! ID = IDTNK1 - 1 + BIN + (( JC-1 )* IBINS) CODEATHON
             ID = id_NK1 - 1 + BIN + (( JC-1 )* IBINS)
 
 ! ******************************************************************************
@@ -512,7 +511,6 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
 ! (ckeller, 3/5/15)
          !Dry deposit H2SO4 gas (win, 5/24/06)
          Y0 = Spc(I,J,L,id_H2SO4)
-         !Y0 = Spc(I,J,L,IDTH2SO4) CODEATHON
          RKT = DEPSAV(I,J,H2SO4ID)* GET_FRAC_UNDER_PBLTOP( I, J, L)
          Y = Y0 * EXP(-RKT)
 ! ******************************************************************************
@@ -528,7 +526,7 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
             ! Convert from [kg/timestep] to [molec/cm2/s] 
             ! Store in AD44
             FLUX = Y0 - Y
-            FLUX = FLUX * State_Chm%SpcData(id_H2SO4)%Info%emMW_g * !CODEATHON
+            FLUX = FLUX * State_Chm%SpcData(id_H2SO4)%Info%emMW_g *
      &             1.e-3_fp / AREA_CM2 / DTCHEM
 
             AD44(I,J,H2SO4ID,1) = AD44(I,J,H2SO4ID,1) + FLUX   
@@ -537,7 +535,7 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
 #endif
 
          !Swap final H2SO4 back into Spc array
-         Spc(I,J,L,id_H2SO4) = Y   !CODEATHON      
+         Spc(I,J,L,id_H2SO4) = Y
 
       ENDDO
       ENDDO

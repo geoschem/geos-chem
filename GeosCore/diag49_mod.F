@@ -186,7 +186,6 @@
       INTEGER            :: IU_ND49
 
       ! Species ID flags
-      ! Local tracer ID flags
       INTEGER            :: id_HNO3, id_HNO4, id_N2O5, id_NO
       INTEGER            :: id_PAN,  id_PMN,  id_PPN,  id_O3
       INTEGER            :: id_R4N2, id_SALA, id_SALC, id_NO2
@@ -394,13 +393,19 @@
       !----------------------------------------
       IF ( FIRST ) THEN
 
-         ! tracer id indices kyu codeathon
-         id_HNO3 = IND_('HNO3'); id_HNO4 = IND_('HNO4')
-         id_N2O5 = IND_('N2O5'); id_NO   = IND_('NO')
-         id_PAN  = IND_('PAN');  id_PMN  = IND_('PMN')
-         id_PPN  = IND_('PPN');  id_O3   = IND_('O3')
-         id_R4N2 = IND_('R4N2'); id_SALA = IND_('SALA')
-         id_SALC = IND_('SALC'); id_NO2  = IND_('NO2')
+         ! Define species ID flags
+         id_HNO3 = IND_('HNO3')
+         id_HNO4 = IND_('HNO4')
+         id_N2O5 = IND_('N2O5')
+         id_NO   = IND_('NO'  )
+         id_PAN  = IND_('PAN' )
+         id_PMN  = IND_('PMN' )
+         id_PPN  = IND_('PPN' )
+         id_O3   = IND_('O3'  )
+         id_R4N2 = IND_('R4N2')
+         id_SALA = IND_('SALA')
+         id_SALC = IND_('SALC')
+         id_NO2  = IND_('NO2' )
          id_PASV = IND_('PASV') 
 
          ! Set logical flags on the first timestep

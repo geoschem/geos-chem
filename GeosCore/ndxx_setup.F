@@ -31,7 +31,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PLANEFLIGHT_MOD,    ONLY : SETUP_PLANEFLIGHT
       USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : IND_  ! kyu codeathon
+      USE State_Chm_Mod,      ONLY : IND_
       USE State_Met_Mod,      ONLY : MetState
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, IDIAG   !(win, 7/9/09)

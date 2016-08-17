@@ -125,7 +125,7 @@
       ! SAVEd variables
       LOGICAL, SAVE         :: FIRSTCHEM = .TRUE.
       INTEGER, SAVE         :: CH4_YEAR  = -1
-      INTEGER, SAVE         :: id_CH4    = -1  ! (CODEATHON, mps, 6/16/16)
+      INTEGER, SAVE         :: id_CH4    = -1
 
       ! For grid-box latitude
       REAL(fp)              :: YLAT
@@ -255,15 +255,11 @@
          !---------------------------------
          ! Set global concentration of CH4
          !---------------------------------
-         ! Set tracer index (CODEATHON, mps, 6/16/16)
-         ! Need to pass 'T' for now because CH4 can be an active or
-         ! inactive species. In the future, we should define whether
-         ! a species is active or inactive the species database and check
-         ! for that here.
+         ! Define tracer ID flag
          id_CH4 = IND_('CH4', 'T')
 
-         ! Check that CH4 is not a defined tracer
-         ! NOTE: ind_CH4 is from gckpp_Monitor.F90
+         ! Check that CH4 is not an advected species
+         ! Check that CH4 is a KPP species (ind_CH4 is from gckpp_Monitor.F90)
          IF ( id_CH4 <= 0 .and. ind_CH4 > 0 .and. 
      &      ( CH4_YEAR /= YEAR ) ) THEN
 

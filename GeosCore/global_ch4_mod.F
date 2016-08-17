@@ -134,7 +134,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Tracer ID flag (CODEATHON, mps, 6/16/16)
+      ! Species ID flag
       INTEGER               :: id_CH4
 
       ! Various arrays      
@@ -2614,7 +2614,7 @@
       ! Assume Success
       RC = GC_SUCCESS
 
-      ! Initialize tracer index (CODEATHON, mps, 6/16/16)
+      ! Define species ID flag
       id_CH4 = IND_('CH4')
 
       ! Make sure CH4 is a defined species (bmy, 6/20/16)

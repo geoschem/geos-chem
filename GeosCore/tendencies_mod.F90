@@ -161,7 +161,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  26 Oct 2015 - C. Keller   - Initial version 
-!  16 Jun 2016 - J. Kaiser   - Move tracer IDS to variable names CODEATHON
+!  16 Jun 2016 - J. Kaiser   - Move tracer IDS to variable names
 !  20 Jun 2016 - R. Yantosca - Renamed IDTCO, IDTO3 to id_CO and id_O3
 !  19 Jul 2016 - R. Yantosca - Activate more tendency classes
 !EOP
@@ -170,7 +170,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! Species Id flags
+    ! Species ID flags
     INTEGER            :: id_CO
     INTEGER            :: id_O3
 
@@ -190,7 +190,7 @@ CONTAINS
     ! Assume successful return
     RC = GC_SUCCESS
 
-    ! Define species ID's (add more as necessary)
+    ! Define species ID flags
     id_CO = Ind_('CO')
     id_O3 = Ind_('O3') 
        

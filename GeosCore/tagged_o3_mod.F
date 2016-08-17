@@ -709,7 +709,7 @@
       ! Assume success
       RC = GC_SUCCESS
 
-      ! Initialize tracer index (CODEATHON, mps, 6/16/16)
+      ! Define species ID flag
       id_O3Strat = IND_('O3Strat')
 
       ! Add error check to make sure O3Strt is defined (bmy, 6/20/16)

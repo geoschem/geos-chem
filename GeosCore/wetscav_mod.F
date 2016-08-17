@@ -163,8 +163,7 @@
 !  22 Sep 2015 - R. Yantosca - Re-introduce GET_WETDEP_NSOL routine
 !  25 Sep 2015 - R. Yantosca - Use species database to collapse down routines
 !                              COMPUTE_F, RAINOUT, WASHOUT
-!  16 Jun 2016 - L. Hu       - First-ever GEOS-Chem Code-A-Thon:
-!                              replaced IDTXXX with IND_('XXX')
+!  16 Jun 2016 - L. Hu       - Replaced IDTXXX with IND_('XXX')
 !  20 Jun 2016 - R. Yantosca - Now define species ID's only in the INIT phase
 !  20 Jun 2016 - R. Yantosca - Renamed species ID's IDTxxxx to id_XXXX
 !  06 Jul 2016 - R. Yantosca - Removed GET_WETDEP_NSOL and GET_WETDEP_IDWETD,

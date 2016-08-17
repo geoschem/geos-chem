@@ -130,8 +130,7 @@
       REAL(fp)            :: FACTOR, PRES
       REAL(fp)            :: TEMP6, TEMP7
 
-      ! 
-      ! codeathon kyu
+      ! Species ID flags
       LOGICAL, SAVE       :: FIRST = .TRUE.
       INTEGER, SAVE       :: id_OCPI,  id_OCPO
       INTEGER, SAVE       :: id_SOAG,  id_SOAM
@@ -185,20 +184,32 @@
       ! First-time setup
       IF ( FIRST ) THEN
 
-         ! kyu codeathon: make indices
-         id_OCPI  = IND_('OCPI');  id_OCPO  = IND_('OCPO')
-         id_SOAG  = IND_('SOAG');  id_SOAM  = IND_('SOAM')
-         id_SO4   = IND_('SO4');   id_NIT   = IND_('NIT'); 
-         id_NH4   = IND_('NH4')
-         id_SALA  = IND_('SALA');  id_SALC  = IND_('SALC')
-         id_BCPI  = IND_('BCPI');  id_BCPO  = IND_('BCPO')
-         id_POA1  = IND_('POA1');  id_POA2  = IND_('POA2')
-         id_OPOA1 = IND_('OPOA1'); id_OPOA2 = IND_('OPOA2')
-         id_ASOAN = IND_('ASOAN'); id_ASOA1 = IND_('ASOA1')
-         id_ASOA2 = IND_('ASOA2'); id_ASOA3 = IND_('ASOA3')
-         id_TSOA1 = IND_('TSOA1'); id_TSOA1 = IND_('TSOA2')
-         id_TSOA3 = IND_('TSOA3'); id_TSOA0 = IND_('TSOA0')
-         id_ISOA1 = IND_('ISOA1'); id_ISOA2 = IND_('ISOA2') 
+         ! Define species ID flags
+         id_OCPI  = IND_('OCPI' )
+         id_OCPO  = IND_('OCPO' )
+         id_SOAG  = IND_('SOAG' )
+         id_SOAM  = IND_('SOAM' )
+         id_SO4   = IND_('SO4'  )
+         id_NIT   = IND_('NIT'  )
+         id_NH4   = IND_('NH4'  )
+         id_SALA  = IND_('SALA' )
+         id_SALC  = IND_('SALC' )
+         id_BCPI  = IND_('BCPI' )
+         id_BCPO  = IND_('BCPO' )
+         id_POA1  = IND_('POA1' )
+         id_POA2  = IND_('POA2' )
+         id_OPOA1 = IND_('OPOA1')
+         id_OPOA2 = IND_('OPOA2')
+         id_ASOAN = IND_('ASOAN')
+         id_ASOA1 = IND_('ASOA1')
+         id_ASOA2 = IND_('ASOA2')
+         id_ASOA3 = IND_('ASOA3')
+         id_TSOA1 = IND_('TSOA1')
+         id_TSOA1 = IND_('TSOA2')
+         id_TSOA3 = IND_('TSOA3')
+         id_TSOA0 = IND_('TSOA0')
+         id_ISOA1 = IND_('ISOA1')
+         id_ISOA2 = IND_('ISOA2') 
          id_ISOA3 = IND_('ISOA3')
 
          ! Reset first-time flag

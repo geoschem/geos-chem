@@ -70,7 +70,7 @@
 !  20 Jun 2014 - R. Yantosca - Remove obsolete emissions code; we now use HEMCO
 !  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  01 Apr 2015 - R. Yantosca - Remove obsolete DUSTMIX, DRY_DEPOSITION routines
-!  16 Jun 2016 - J. Kaiser   - Move tracerIDs into variable names CODEATHON
+!  16 Jun 2016 - J. Kaiser   - Move tracerIDs into variable names
 !  20 Jun 2016 - R. Yantosca - Rename IDT* species ID's to id_*
 !  20 Jun 2016 - R. Yantosca - Now only define species ID's in the INIT phase
 !EOP

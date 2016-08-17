@@ -2035,7 +2035,6 @@ contains
     TYPE(Species),  POINTER :: SpcInfo
     INTEGER                 :: Hg_Cat
 
-    ! kyu codeathon
     !=================================================================
     ! vdiffdr begins here!
     !=================================================================
@@ -2121,7 +2120,7 @@ contains
     ! First-time setup
     IF ( FIRST ) THEN
 
-       ! Get species indices (kyu)
+       ! Get species IDs
        id_O3   = IND_('O3'  ) 
        id_HNO3 = IND_('HNO3')
 

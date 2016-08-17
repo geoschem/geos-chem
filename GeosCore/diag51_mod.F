@@ -434,7 +434,7 @@
       USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,   GET_PBL_TOP_m
       USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : IND_   !kyu codeathon
+      USE State_Chm_Mod,      ONLY : IND_
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM 
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
@@ -527,8 +527,6 @@
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER           :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
 
-      ! indices for tracers, kyu codeathon
-
       ! For fields from Input_Opt
       REAL(fp)          :: TCVV(State_Chm%nAdvect)
 
@@ -562,13 +560,19 @@
       ! First-time setup
       IF ( FIRST ) THEN
 
-         ! Get tracer numbers, kyu codeathon
-         id_HNO3 = IND_('HNO3'); id_HNO4 = IND_('HNO4')
-         id_N2O5 = IND_('N2O5'); id_NO   = IND_('NO')
-         id_PAN  = IND_('PAN');  id_PMN  = IND_('PMN')
-         id_PPN  = IND_('PPN');  id_O3   = IND_('O3')
-         id_R4N2 = IND_('R4N2'); id_SALA = IND_('SALA')
-         id_SALC = IND_('SALC'); id_NO2  = IND_('NO2')
+         ! Define species ID flags
+         id_HNO3 = IND_('HNO3')
+         id_HNO4 = IND_('HNO4')
+         id_N2O5 = IND_('N2O5')
+         id_NO   = IND_('NO'  )
+         id_PAN  = IND_('PAN' )
+         id_PMN  = IND_('PMN' )
+         id_PPN  = IND_('PPN' )
+         id_O3   = IND_('O3'  )
+         id_R4N2 = IND_('R4N2')
+         id_SALA = IND_('SALA')
+         id_SALC = IND_('SALC')
+         id_NO2  = IND_('NO2' )
 
 
          ! Set logical flags on first call

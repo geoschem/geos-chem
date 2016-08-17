@@ -198,8 +198,6 @@
       ENDDO
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-      !CODEATHON
-
       ! Assume success
       RC = GC_SUCCESS
 
@@ -212,7 +210,7 @@
       ! Initialize on first call
       IF ( FIRST ) THEN
 
-         ! Get species ID's
+         ! Define species ID flags
          id_SO4  = IND_('SO4','T')
          id_NH3  = IND_('NH3','T')
          id_NH4  = IND_('NH4','T')

@@ -555,13 +555,19 @@
       ! First-time setup
       IF ( FIRST ) THEN
 
-         ! tracer id indices
-         id_HNO3 = IND_('HNO3'); id_HNO4 = IND_('HNO4')
-         id_N2O5 = IND_('N2O5'); id_NO   = IND_('NO')
-         id_PAN  = IND_('PAN');  id_PMN  = IND_('PMN')
-         id_PPN  = IND_('PPN');  id_O3   = IND_('O3')
-         id_R4N2 = IND_('R4N2'); id_SALA = IND_('SALA')
-         id_SALC = IND_('SALC'); id_NO2  = IND_('NO2')
+         ! Define species ID flags
+         id_HNO3 = IND_('HNO3')
+         id_HNO4 = IND_('HNO4')
+         id_N2O5 = IND_('N2O5')
+         id_NO   = IND_('NO')
+         id_PAN  = IND_('PAN')
+         id_PMN  = IND_('PMN')
+         id_PPN  = IND_('PPN')
+         id_O3   = IND_('O3')
+         id_R4N2 = IND_('R4N2')
+         id_SALA = IND_('SALA')
+         id_SALC = IND_('SALC')
+         id_NO2  = IND_('NO2')
 
          ! Set logical flags on first call
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )

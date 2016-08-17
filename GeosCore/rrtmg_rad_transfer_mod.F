@@ -146,7 +146,7 @@
       USE PhysConstants,       ONLY : AIRMW, PI, AVO
       USE PRESSURE_MOD,        ONLY : GET_PCENTER,      GET_PEDGE
       USE State_Chm_Mod,       ONLY : ChmState
-      USE State_Chm_Mod,       ONLY : IND_    ! kyu codeathon
+      USE State_Chm_Mod,       ONLY : IND_
       USE State_Met_Mod,       ONLY : MetState
       USE TIME_MOD,            ONLY : GET_DAY_OF_YEAR, GET_HOUR
       USE TOMS_MOD,            ONLY : GET_OVERHEAD_O3
@@ -591,7 +591,7 @@
       ! First-time setup
       IF ( FIRST ) THEN
 
-         ! Get tracer ids kyu codeathon
+         ! Define species ID flags
          id_O3     = IND_('O3')
          id_CH4    = IND_('CH4')
          id_N2O    = IND_('N2O')

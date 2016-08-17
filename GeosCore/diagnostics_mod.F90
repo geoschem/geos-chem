@@ -1406,7 +1406,7 @@ CONTAINS
     ! Assume successful return
     RC = GC_SUCCESS
 
-    ! Pb210 species Id
+    ! Pb210 species ID
     id_Pb      = Ind_('PB')
 
     ! Get diagnostic parameters from the Input_Opt object
@@ -3858,7 +3858,6 @@ CONTAINS
 !    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
 !    USE HCO_Error_Mod
 !    USE Input_Opt_Mod,      ONLY : OptInput
-!    USE TRACERID_MOD,        ONLY : ??? 
 !!
 !! !INPUT PARAMETERS:
 !!
