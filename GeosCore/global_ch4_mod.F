@@ -134,7 +134,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Tracer ID flag (CODEATHON, mps, 6/16/16)
+      ! Species ID flag
       INTEGER               :: id_CH4
 
       ! Various arrays      
@@ -461,14 +461,14 @@
 
       ! =================================================================
       ! --> All emission calculations are now done through HEMCO
-      ! HEMCO stores emissions of all tracers internally in the HEMCO
+      ! HEMCO stores emissions of all species internally in the HEMCO
       ! state object. Here, we pass these emissions into module array 
-      ! CH4_EMIS. These values are then either added to the tracers 
+      ! CH4_EMIS. These values are then either added to the species 
       ! array (full mixing scheme) or used later on in vdiff_mod.F90 if 
       ! the non-local PBL mixing scheme is used.
       ! The CH4_EMIS array is mostly used for backwards compatibility
       ! (especially the diagnostics). It is also used to ensure that 
-      ! in a multi-tracer simulation, tracer 1 (total CH4) is properly
+      ! in a multi-species simulation, species 1 (total CH4) is properly
       ! defined. 
       !                                              (ckeller, 9/12/2013)
       ! =================================================================
@@ -634,8 +634,8 @@
       ! =================================================================
       ! Modify the chemical species array with emissions rates. 
       ! (kjw, 5/29/09)
-      ! There are 12 tracers in the multi-tracer run.
-      ! One tracer for total CH4 and one for each emission category.
+      ! There are 12 species in the multi-species run.
+      ! One species for total CH4 and one for each emission category.
       !
       !  1. Total CH4
       !  2. Gas and Oil 
@@ -981,7 +981,7 @@
       WRITE( 6, '(a)' ) '% --- ENTERING CHEMCH4! ---'
 
       ! testing only
-      write(*,*)'Total tracer before chemistry: ',SUM(State_Chm%Tracers)
+      write(*,*)'Total species before chemistry: ',SUM(State_Chm%Species)
 
       ! Assume success
       RC      = GIGC_SUCCESS
@@ -1072,7 +1072,7 @@
       CALL CH4_OHSAVE( State_Met, State_Chm )
 
       !=================================================================
-      ! (5) If multi-CH4 tracers, we store the CH4 total conc. to
+      ! (5) If multi-CH4 species, we store the CH4 total conc. to
       !     distribute the sink after the chemistry. (ccc, 2/10/09)
       !================================================================= 
       IF ( LSPLIT ) THEN
@@ -1103,7 +1103,7 @@
 
       !=================================================================
       ! (8) distribute the chemistry sink from total CH4 to other CH4 
-      !     tracers. (ccc, 2/10/09)
+      !     species. (ccc, 2/10/09)
       !=================================================================
       IF ( LSPLIT ) THEN
          CALL CH4_DISTRIB( PREVCH4, Input_Opt, State_Chm )
@@ -1153,7 +1153,7 @@
       call flush(6)
 
       ! testing only
-      write(*,*)'Total tracer after chemistry: ',SUM(State_Chm%Tracers)
+      write(*,*)'Total species after chemistry: ',SUM(State_Chm%Species)
 
       ! Free pointer
       Spc => NULL()
@@ -2219,7 +2219,7 @@
       INTEGER, INTENT(IN) :: I1, I2 ! Min/max longitude indices of TCH4 to sum
       INTEGER, INTENT(IN) :: J1, J2 ! Min/max latitude  indices of TCH4 to sum 
       INTEGER, INTENT(IN) :: L1, L2 ! Min/max altitude  indices of TCH4 to sum
-      INTEGER, INTENT(IN) :: K1, K2 ! Min/max tracer    indices of TCH4 to sum
+      INTEGER, INTENT(IN) :: K1, K2 ! Min/max species   indices of TCH4 to sum
       INTEGER, INTENT(IN) :: UPDOWN ! Sum in trop (=1) or in strat (=0)
 
       ! Also need to pass the State_Met for the CHEMGRID functons
@@ -2321,7 +2321,7 @@
 ! !IROUTINE: ch4_distrib
 !
 ! !DESCRIPTION: Subroutine CH4\_DISTRIB allocates the chemistry sink to
-!  different emission tracers. (ccc, 10/2/09)
+!  different emission species. (ccc, 10/2/09)
 !\\
 !\\
 ! !INTERFACE:
@@ -2421,7 +2421,7 @@
 !
       INTEGER,        INTENT(IN) :: I           ! GEOS-Chem longitude index
       INTEGER,        INTENT(IN) :: J           ! GEOS-Chem latitude index
-      INTEGER,        INTENT(IN) :: N           ! GEOS-Chem tracer index
+      INTEGER,        INTENT(IN) :: N           ! GEOS-Chem species index
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options!
 !
 ! !RETURN VALUE:
@@ -2479,7 +2479,7 @@
 !
       INTEGER,        INTENT(IN) :: I           ! GEOS-Chem longitude index
       INTEGER,        INTENT(IN) :: J           ! GEOS-Chem latitude index
-      INTEGER,        INTENT(IN) :: N           ! GEOS-Chem tracer index
+      INTEGER,        INTENT(IN) :: N           ! GEOS-Chem species index
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options!
 !
 ! !RETURN VALUE:
@@ -2574,7 +2574,7 @@
       ! Assume Success
       RC = GIGC_SUCCESS
 
-      ! Initialize tracer index (CODEATHON, mps, 6/16/16)
+      ! Initialize species ID
       id_CH4 = IND_('CH4')
 
       ! Make sure CH4 is a defined species (bmy, 6/20/16)

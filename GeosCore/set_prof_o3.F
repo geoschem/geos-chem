@@ -231,7 +231,7 @@
       ! Updated with UCX
       ! Since we now have stratospheric ozone calculated online, use
       ! this instead of archived profiles for all chemistry-grid cells
-      ! The variable O3_CTM is obtained from State_Met%Tracers, and will be 0
+      ! The variable O3_CTM is obtained from State_Met%Species, and will be 0
       ! outside the chemgrid (in which case we use climatology)
 
       ! Scale monthly O3 profile to the daily O3 profile (if available)

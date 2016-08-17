@@ -22,10 +22,9 @@
       PRIVATE
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% If you want to the EXTENDED SIMULATION with all 13 tagged O3 tracers, 
+!%%% If you want to the EXTENDED SIMULATION with all 13 tagged O3 species, 
 !%%% then uncomment this #ifdef statement. (bmy, 4/11/14)
-!%%% tracers. (bmy, 4/11/14)
-!#define USE_ALL_TAGO3_TRACERS 1
+!#define USE_ALL_TAGO3_SPECIES 1
 !%%%
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
@@ -40,12 +39,12 @@
       PRIVATE :: GET_REGIONAL_PO3
 !
 ! !REMARKS:
-!  THE SIMPLE TAGGED O3 SIMULATION (default setting) HAS THESE TRACERS:
+!  THE SIMPLE TAGGED O3 SIMULATION (default setting) HAS THESE ADVECTED SPECIES:
 !  ----------------------------------------------------------------------------
 !  (1 ) O3      : Total O3
 !  (2 ) O3Strt  : Stratospheric O3
 !                                                                             .
-!  THE EXTENDED TAGGED O3 SIMULATION HAS THESE TRACERS:
+!  THE EXTENDED TAGGED O3 SIMULATION HAS THESE ADVECTED SPECIES:
 !  ----------------------------------------------------------------------------
 !  (1 ) O3      : Total O3
 !  (2 ) O3Strt  : O3 from the Stratosphere      (tropopause - atm top   )
@@ -63,10 +62,10 @@
 !                                                                             .
 !  NOTES:
 !  ----------------------------------------------------------------------------
-!  (1) The stratospheric O3 tracer must be tracer #2.  This is due to how
+!  (1) The stratospheric O3 species must be species #2.  This is due to how
 !       the Linoz stratospheric O3 chemistry scheme is written.  We have
-!       accordingly reorganized the tracer numbers below.
-!  (2) The name "tagged_ox_mod.F" is historical.  The Ox tracer in GEOS-Chem 
+!       accordingly reorganized the species numbers below.
+!  (2) The name "tagged_ox_mod.F" is historical.  The Ox species in GEOS-Chem 
 !       has now been replaced with O3.  O3 usually makes up about 95% of Ox.
 !       The nomenclature "tagged Ox" is interchangeable with "tagged O3".
 !       As of Aug 2016, most uses of "tagged Ox" have been replaced with
@@ -95,7 +94,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 or LLTROP_FIX
 !                              everywhere (hyl, bmy, 11/3/11)
-!  11 Apr 2014 - R. Yantosca - Add #ifdef USE_ALL_TAGO3_TRACERS to select
+!  11 Apr 2014 - R. Yantosca - Add #ifdef USE_ALL_TAGO3_SPECIES to select
 !                              between the simple and extended simulations
 !  11 Apr 2014 - R. Yantosca - Updated comments
 !  11 Apr 2014 - R. Yantosca - Now make the O3Strt tracer #2 for both the
@@ -126,7 +125,7 @@
       ! Emission timestep (will be imported from HEMCO)
       REAL(fp)                     :: TS_EMIS
 
-      ! Species ID flags (formerly in tracerid_mod.F)
+      ! Species ID flags
       INTEGER                      :: id_O3Strat
 !
 ! !DEFINED PARAMETERS:
@@ -134,22 +133,22 @@
       ! To convert m3 to cm3
       REAL(fp), PARAMETER          :: CM3PERM3 = 1.0e+6_fp
 
-#if defined( USE_ALL_TAGO3_TRACERS )
+#if defined( USE_ALL_TAGO3_SPECIES )
 
       !-----------------------------------------------------------------
-      ! EXTENDED SIMULATION : Total, strat, and regional O3 tracers
+      ! EXTENDED SIMULATION : Total, strat, and regional O3 species
       !-----------------------------------------------------------------
-      INTEGER,  PARAMETER, PRIVATE :: N_TAGGED = 13   ! # of tracers
+      INTEGER,  PARAMETER, PRIVATE :: N_TAGGED = 13   ! # of species
       INTEGER,  PARAMETER, PRIVATE :: N_STRAT  = 2    ! Stratospheric O3
 
 #else
 
       !-----------------------------------------------------------------
-      ! SIMPLE SIMULATION: Total and strat O3 tracers only
+      ! SIMPLE SIMULATION: Total and strat O3 species only
       !
       ! %%% THIS IS THE DEFAULT %%%
       !-----------------------------------------------------------------
-      INTEGER,  PARAMETER, PRIVATE :: N_TAGGED = 2    ! # of tracers
+      INTEGER,  PARAMETER, PRIVATE :: N_TAGGED = 2    ! # of species
       INTEGER,  PARAMETER, PRIVATE :: N_STRAT  = 2    ! Stratospheric O3
 
 #endif
@@ -164,7 +163,7 @@
 ! !IROUTINE: get_regional_po3
 !
 ! !DESCRIPTION: Subroutine GET\_REGIONAL\_PO3 returns the P(O3) for each of 
-!  the tagged O3 tracers. Tagged O3 tracers are defined by both geographic 
+!  the tagged O3 species. Tagged O3 species are defined by both geographic 
 !  location and altitude. 
 !\\
 !\\
@@ -193,7 +192,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      ! Array containing P(O3) for each tagged tracer
+      ! Array containing P(O3) for each tagged species
       REAL(fp),  INTENT(OUT) :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
 ! 
 ! !REVISION HISTORY:
@@ -261,10 +260,10 @@
       MTTOP  = 27
 #endif
 
-#if defined( USE_ALL_TAGO3_TRACERS )
+#if defined( USE_ALL_TAGO3_SPECIES )
 
       !=================================================================
-      ! For the simulation with all tagged O3 tracers: find the 
+      ! For the simulation with all tagged O3 species: find the 
       ! regions corresponding to this particular longitude & latitude
       !=================================================================
 
@@ -289,7 +288,7 @@
 #endif
 
       !=================================================================
-      ! Assign P(O3) to tagged tracers by geographic/altitude regions
+      ! Assign P(O3) to tagged species by geographic/altitude regions
       !=================================================================
 
       ! Grid box volume [cm3]
@@ -304,7 +303,7 @@
       !-----------------------
       PP(I,J,L,1) = PPROD
 
-#if defined( USE_ALL_TAGO3_TRACERS )
+#if defined( USE_ALL_TAGO3_SPECIES )
 
       !-----------------------
       ! #2: P(O3) in UT
@@ -381,7 +380,7 @@
 ! !IROUTINE: chem_tagged_o3 
 !
 ! !DESCRIPTION: Subroutine CHEM\_TAGGED\_O3 performs chemistry for several 
-!  O3 tracers which are tagged by geographic and altitude regions. 
+!  O3 species which are tagged by geographic and altitude regions. 
 !\\
 !\\
 ! !INTERFACE:
@@ -490,20 +489,6 @@
       !=================================================================
       ! CHEM_TAGGED_O3 begins here!
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-!      ! Number of advected species
-!      nAdvect = State_Chm%nAdvect
-!
-!      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-!      DO NA = 1, nAdvect
-!         N                          = State_Chm%Map_Advect(NA)
-!         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-!      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
       RC        =  GIGC_SUCCESS
@@ -565,9 +550,9 @@
       !
       ! P(O3) and L(O3) are archived from a previous fullchem run using
       ! the ND20 diagnostic.  P(O3,region) is the P(O3) for a specific
-      ! tagged O3 tracer, as computed by routine GET_REGIONAL_PO3.
+      ! tagged O3 species, as computed by routine GET_REGIONAL_PO3.
       !
-      ! Tagged O3 tracers are defined by both geographic location and
+      ! Tagged O3 species are defined by both geographic location and
       ! altitude, as defined in GET_REGIONAL_PO3.  If you are running
       ! the
       !=================================================================
@@ -590,7 +575,7 @@
             BOXVL = State_Met%AIRVOL(I,J,L) !* 1d6
 
             !===========================================================
-            ! Get P(O3) and L(O3) for each tagged tracer in [kg/m3/s]
+            ! Get P(O3) and L(O3) for each tagged species in [kg/m3/s]
             !===========================================================
 
             ! P(O3) is a function of geographic & altitude location
@@ -619,14 +604,14 @@
                   AD65(I,J,L,N) = AD65(I,J,L,N) + PL
                ENDIF
 
-               ! Archive loss for all tracers [kg/s]
+               ! Archive loss for all species [kg/s]
                PL = Spc(I,J,L,N) * L24H(I,J,L) * BOXVL / TS_EMIS
                AD65(I,J,L,nAdvect+N) = AD65(I,J,L,nAdvect+N) + PL
 
             ENDIF
 
             !===========================================================
-            ! Apply chemical P(O3) - L(O3) to each tagged tracer
+            ! Apply chemical P(O3) - L(O3) to each tagged species
             !===========================================================
             Spc(I,J,L,N) = Spc(I,J,L,N) + PP(I,J,L,N) - LL
          ENDDO
@@ -639,15 +624,6 @@
       Spc      => NULL()
       HcoState => NULL()
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-!      DO NA = 1, nAdvect
-!         N                          = State_Chm%Map_Advect(NA)
-!         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-!      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE CHEM_TAGGED_O3
 !EOC
 !------------------------------------------------------------------------------
@@ -663,7 +639,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TAGGED_O3( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_TAGGED_O3( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -672,6 +648,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : Ind_
+      USE GIGC_State_Chm_Mod, ONLY : State_Chm
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
 !
@@ -679,6 +656,7 @@
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -713,7 +691,7 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
-      ! Initialize tracer index (CODEATHON, mps, 6/16/16)
+      ! Initialize species index
       id_O3Strat = IND_('O3Strat')
 
       ! Add error check to make sure O3Strt is defined (bmy, 6/20/16)
@@ -724,8 +702,8 @@
 
 
       ! Safety valve
-      IF ( Input_Opt%N_TRACERS > N_TAGGED ) THEN
-         CALL ERROR_STOP( 'NTRACE is too large for Tagged O3!', 
+      IF ( State_Chm%nAdvect > N_TAGGED ) THEN
+         CALL ERROR_STOP( 'nAdvected is too large for Tagged O3!', 
      &                    'INIT_TAGGED_O3 (tagged_o3_mod.f)' )
       ENDIF
 

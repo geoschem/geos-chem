@@ -262,7 +262,7 @@
       ! Local variables for quantities from Input_Opt
       LOGICAL       :: LPRT
 
-      ! Species ID flags (formerly from tracerid_mod.F)
+      ! Species ID flags
       INTEGER, SAVE :: id_O3
 
       !=================================================================
@@ -3082,14 +3082,14 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
        ! Clunky fix to accomodate RRTMG and UCX (DAR 01/2015)
        ! Using a combination of old optics LUT format and
        ! new optics format (greater spectral resolution and range
-       ! for RRTMG). Clouds, non-tracer aerosols and strat aerosols 
+       ! for RRTMG). Clouds, non-species aerosols and strat aerosols 
        ! are not incorporated into the new LUT so must still use the
        ! old LUT for these.
 
        ! Don't bother on extraneous level - leave as zero
        do L = 1,L_
           DO KMIE=1,5
-             ! Clouds and non-tracer aerosols
+             ! Clouds and non-species aerosols
              DO M=1,3
                 IF (AERX_COL(M,L).gt.0e+0_fp) THEN
                    IDXAER=MIEDX(M)
@@ -3335,7 +3335,7 @@ C-----------------------------------------------------------------------
          IF ( LTJV(ILON,ILAT) > 0 ) THEN
 
             DO L = 1, LD22
-               ! AD22 tracers 5, 6, and 15 (J-values for O3 and O2)
+               ! AD22 IDs 5, 6, and 15 (J-values for O3 and O2)
                ! are handled in routine PHOTRATE_ADJ
                ! Hardcode ZPJ indices based on valued from FJX_j2j.dat
                ! for now (mps, 3/15/16)
@@ -4410,7 +4410,7 @@ C---Always does PL(2) = P[1]
       ! Updated with UCX
       ! Since we now have stratospheric ozone calculated online, use
       ! this instead of archived profiles for all chemistry-grid cells
-      ! The variable O3_CTM is obtained from State_Met%Tracers, and will be 0
+      ! The variable O3_CTM is obtained from State_Met%Species, and will be 0
       ! outside the chemgrid (in which case we use climatology)
 
       ! Scale monthly O3 profile to the daily O3 profile (if available)
