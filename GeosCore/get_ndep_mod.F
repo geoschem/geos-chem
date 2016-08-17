@@ -98,7 +98,7 @@
 !
 ! !USES:
 !
-      USE State_Chm_Mod,      only : IND_
+      USE State_Chm_Mod,      only : Ind_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -145,7 +145,7 @@
 !
 ! !USES:
 !
-      USE State_Chm_Mod,      Only : IND_
+      USE State_Chm_Mod,      Only : Ind_
 !
 ! !INPUT PARAMETERS: 
 !

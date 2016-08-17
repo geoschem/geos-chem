@@ -1841,7 +1841,7 @@ contains
                                    GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Chm_Mod,      ONLY : IND_
+    USE State_Chm_Mod,      ONLY : Ind_
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
 #if defined( USE_TEND )
@@ -1935,7 +1935,7 @@ contains
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  26 May 2016 - E. Lundgren - Replace input_opt TRACER_MW_KG with species
 !                              database field emMW_g (emitted species molec wt)
-!  16 Jun 2016 - K. Yu       - Now define species ID's with the IND_ function
+!  16 Jun 2016 - K. Yu       - Now define species ID's with the Ind_ function
 !  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
@@ -2121,8 +2121,8 @@ contains
     IF ( FIRST ) THEN
 
        ! Get species IDs
-       id_O3   = IND_('O3'  ) 
-       id_HNO3 = IND_('HNO3')
+       id_O3   = Ind_('O3'  ) 
+       id_HNO3 = Ind_('HNO3')
 
        ! On first call, get pointers to the PARANOX loss fluxes. These are
        ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and 

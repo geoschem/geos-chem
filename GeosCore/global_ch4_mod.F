@@ -2576,7 +2576,7 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : IND_
+      USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -2615,7 +2615,7 @@
       RC = GC_SUCCESS
 
       ! Define species ID flag
-      id_CH4 = IND_('CH4')
+      id_CH4 = Ind_('CH4')
 
       ! Make sure CH4 is a defined species (bmy, 6/20/16)
       IF ( id_CH4 <= 0 ) THEN

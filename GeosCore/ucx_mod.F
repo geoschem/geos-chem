@@ -6816,7 +6816,7 @@
       USE GRID_MOD,           ONLY : GET_YEDGE
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : IND_
+      USE State_Chm_Mod,      ONLY : Ind_
       USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS:
@@ -6930,7 +6930,7 @@
       id_ClOO    = Ind_('ClOO'      )
       id_H1211   = Ind_('H1211'     )
       id_H1301   = Ind_('H1301'     )
-      id_H2      = Ind_('H2',    'T') ! Need advected species index for H2
+      id_H2      = Ind_('H2',    'A') ! Need advected species index for H2
       id_H2402   = Ind_('H2402'     )
       id_H2O     = Ind_('H2O'       )
       id_HBr     = Ind_('HBr'       )

@@ -142,7 +142,7 @@ CONTAINS
 !
 ! !USES:
 !
-     USE State_Chm_Mod,      ONLY : IND_
+     USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !

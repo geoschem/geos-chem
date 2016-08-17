@@ -264,7 +264,7 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
     USE TIME_MOD,           ONLY : GET_TS_DYN
-    USE State_Chm_Mod,      ONLY : IND_
+    USE State_Chm_Mod,      ONLY : Ind_
     USE UnitConv_Mod
 #if defined( BPCH_DIAG )
     USE DIAG_MOD,           ONLY : AD44
@@ -424,23 +424,23 @@ CONTAINS
     IF ( FIRST ) THEN
 
        ! Define species indices on the first call
-       id_MACR = IND_('MACR' )
-       id_RCHO = IND_('RCHO' )
-       id_ACET = IND_('ACET' )
-       id_ALD2 = IND_('ALD2' )
-       id_ALK4 = IND_('ALK4' ) 
-       id_C2H6 = IND_('C2H6' )
-       id_C3H8 = IND_('C3H8' )
-       id_CH2O = IND_('CH2O' )
-       id_PRPE = IND_('PRPE' )
-       id_O3   = IND_('O3'   )
-       id_HNO3 = IND_('HNO3' )
-       id_BrO  = IND_('BrO'  )
-       id_Br2  = IND_('Br2'  )
-       id_Br   = IND_('Br'   )
-       id_HOBr = IND_('HOBr' )
-       id_HBr  = IND_('HBr'  )
-       id_BrNO3= IND_('BrNO3')
+       id_MACR = Ind_('MACR' )
+       id_RCHO = Ind_('RCHO' )
+       id_ACET = Ind_('ACET' )
+       id_ALD2 = Ind_('ALD2' )
+       id_ALK4 = Ind_('ALK4' ) 
+       id_C2H6 = Ind_('C2H6' )
+       id_C3H8 = Ind_('C3H8' )
+       id_CH2O = Ind_('CH2O' )
+       id_PRPE = Ind_('PRPE' )
+       id_O3   = Ind_('O3'   )
+       id_HNO3 = Ind_('HNO3' )
+       id_BrO  = Ind_('BrO'  )
+       id_Br2  = Ind_('Br2'  )
+       id_Br   = Ind_('Br'   )
+       id_HOBr = Ind_('HOBr' )
+       id_HBr  = Ind_('HBr'  )
+       id_BrNO3= Ind_('BrNO3')
 
        ! On first call, get pointers to the PARANOX loss fluxes. These are
        ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and 

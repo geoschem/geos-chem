@@ -33,7 +33,8 @@
       USE PhysConstants,      ONLY : g0
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PRECISION_MOD
-      USE State_Chm_Mod,      ONLY : ChmState, IND_
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TOMAS_MOD
@@ -144,8 +145,8 @@
       IF ( FIRST ) THEN
 
          ! Define species ID flags
-         id_H2SO4 = IND_('H2SO4')
-         id_NK1   = IND_('NK1'  )
+         id_H2SO4 = Ind_('H2SO4')
+         id_NK1   = Ind_('NK1'  )
 
          ! Make sure species are defined
          IF ( id_H2SO4 < 0 ) THEN

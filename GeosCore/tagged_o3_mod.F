@@ -710,7 +710,7 @@
       RC = GC_SUCCESS
 
       ! Define species ID flag
-      id_O3Strat = IND_('O3Strat')
+      id_O3Strat = Ind_('O3Strat')
 
       ! Add error check to make sure O3Strt is defined (bmy, 6/20/16)
       IF ( id_O3Strat <= 0 ) THEN

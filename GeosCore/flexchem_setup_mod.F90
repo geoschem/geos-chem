@@ -77,7 +77,7 @@ CONTAINS
     USE HCO_ERROR_MOD
     USE PRECISION_MOD
     USE Species_Mod,        ONLY : Species
-    USE State_Chm_Mod,      ONLY : IND_
+    USE State_Chm_Mod,      ONLY : Ind_
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_NYMD, GET_NHMS
 !

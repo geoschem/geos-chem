@@ -1564,7 +1564,7 @@
 !                              restart file. These options are now handled
 !                              by HEMCO.
 !  08 Jul 2015 - E. Lundgren - Added LMPOA option for marine organic aerosols
-!  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the Ind_ function
 !  22 Jun 2016 - R. Yantosca - Move error checks to DO_ERROR_CHECKS routine
 !------------------------------------------------------------------------------
 !BOC
@@ -1830,10 +1830,10 @@
 !  we no longer need to read the microphysics menu, but we still need to
 !  apply some error checks and then call INIT_TOMAS. (bmy, 4/23/13)
 !                                                                             .
-!  The IND_() function now defines all species ID's.  It returns -1 if
+!  The Ind_() function now defines all species ID's.  It returns -1 if
 !  a species cannot be found.  The prior behavior was to return 0 if a 
 !  species wasn't found.  Therefore, in order to preserve the logic of the
-!  error checks, we must force any -1's returned by IND_() to 0's in
+!  error checks, we must force any -1's returned by Ind_() to 0's in
 !  this subroutine.
 !
 ! !REVISION HISTORY: 
@@ -1881,9 +1881,9 @@
 !                              running with the traditional driver main.F
 !  23 Apr 2013 - R. Yantosca - Renamed to INIT_TOMAS_MICROPHYS
 !  30 Jan 2014 - R. Yantosca - INIT_TOMAS accepts am_I_Root, Input_Opt, RC
-!  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function 
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the Ind_ function 
 !  16 Jun 2016 - E. Lundgren - INIT_TOMAS now accepts State_Chm
-!  22 Jun 2016 - R. Yantosca - Force -1's returned by IND_() to zeroes,
+!  22 Jun 2016 - R. Yantosca - Force -1's returned by Ind_() to zeroes,
 !                              in order to preserve the program logic
 !EOP
 !------------------------------------------------------------------------------
@@ -1912,14 +1912,14 @@
       ENDIF
 
       ! Halt with error if none of the TOMAS aerosol species are defined
-      I = MAX( IND_('NK1'  ), 0 )
-     &  + MAX( IND_('SF1'  ), 0 ) 
-     &  + MAX( IND_('SS1'  ), 0 )
-     &  + MAX( IND_('ECOB1'), 0 ) 
-     &  + MAX( IND_('ECIL1'), 0 )  
-     &  + MAX( IND_('OCOB1'), 0 ) 
-     &  + MAX( IND_('OCIL1'), 0 )
-     &  + MAX( IND_('DUST1'), 0 )
+      I = MAX( Ind_('NK1'  ), 0 )
+     &  + MAX( Ind_('SF1'  ), 0 ) 
+     &  + MAX( Ind_('SS1'  ), 0 )
+     &  + MAX( Ind_('ECOB1'), 0 ) 
+     &  + MAX( Ind_('ECIL1'), 0 )  
+     &  + MAX( Ind_('OCOB1'), 0 ) 
+     &  + MAX( Ind_('OCIL1'), 0 )
+     &  + MAX( Ind_('DUST1'), 0 )
 
       IF ( I == 0 ) THEN 
          MSG = 'None of the TOMAS aerosols are defined!'
@@ -1927,16 +1927,16 @@
       ENDIF
       
       ! Halt with error if sulfate aerosols are not defined
-      IF( IND_('SF1') > 0 .and. ( .not. Input_Opt%LSULF ) ) THEN
+      IF( Ind_('SF1') > 0 .and. ( .not. Input_Opt%LSULF ) ) THEN
          MSG = 'Need LSULF on for TOMAS-Sulfate to work (for now)'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
       ! Halt with error if carbonaceous aerosols are not defined
-      I = MAX( IND_('ECOB1'), 0 ) 
-     &  + MAX( IND_('ECIL1'), 0 ) 
-     &  + MAX( IND_('OCOB1'), 0 ) 
-     &  + MAX( IND_('OCIL1'), 0 )
+      I = MAX( Ind_('ECOB1'), 0 ) 
+     &  + MAX( Ind_('ECIL1'), 0 ) 
+     &  + MAX( Ind_('OCOB1'), 0 ) 
+     &  + MAX( Ind_('OCIL1'), 0 )
 
       IF ( I > 0 .and. (.not. Input_Opt%LCARB ) ) THEN
          MSG = 'Need LCARB on for TOMAS-carb to work (for now)'
@@ -1945,7 +1945,7 @@
 
       ! Halt with error if dust aerosols are turned on.
       ! TOMAS defines its own dust aerosol tracers.
-!      IF ( IND_('DUST1') > 0 .AND. Input_Opt%LDUST ) THEN
+!      IF ( Ind_('DUST1') > 0 .AND. Input_Opt%LDUST ) THEN
 !         MSG = 'Need to turn off LDUST for TOMAS Dust to work'
 !         CALL ERROR_STOP( MSG, LOCATION )
 !      ENDIF
@@ -1996,8 +1996,8 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REMARKS:
-!  The IND_() function now defines all species ID's.  It returns -1 if
-!  a species cannot be found.  Therefore now test for IND_() > 0  for a
+!  The Ind_() function now defines all species ID's.  It returns -1 if
+!  a species cannot be found.  Therefore now test for Ind_() > 0  for a
 !  valid species.
 !
 ! !REVISION HISTORY: 
@@ -2073,7 +2073,7 @@
 !  04 Sep 2014 - R. Yantosca - Bug fix: Now use Input_Opt%OTDLOC since we have
 !                              now removed logical_mod.F
 !  24 Jun 2015 - R. Yantosca - Now always turn off emissions for mass cons test
-!  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function 
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the Ind_ function 
 !  22 Jun 2016 - R. Yantosca - Move some error checks to DO_ERROR_CHECKS
 !EOP
 !------------------------------------------------------------------------------
@@ -8023,15 +8023,15 @@
 !
 ! !REMARKS:
 !  These error checks were originally called when the various menus were
-!  read in from disk.  However, in order to use the IND_() function to look
+!  read in from disk.  However, in order to use the Ind_() function to look
 !  up given species indices, we need to call this after the Species Database
 !  (which is in State_Chm) is initialized.  Therefore, we have now moved these
 !  error checks to this routine, which is now called from GC_Init_Extra.
 !                                                                             .
-!  The IND_() function now defines all species ID's.  It returns -1 if
+!  The Ind_() function now defines all species ID's.  It returns -1 if
 !  a species cannot be found.  The prior behavior was to return 0 if a 
 !  species wasn't found.  Therefore, in order to preserve the logic of the
-!  error checks, we must force any -1's returned by IND_() to 0's in
+!  error checks, we must force any -1's returned by Ind_() to 0's in
 !  this subroutine.
 !
 ! !REVISION HISTORY:
@@ -8061,8 +8061,8 @@
       !=================================================================
       ! Error check SEASALT AEROSOLS
       !=================================================================
-      I = MAX( IND_('SALA'), 0 ) 
-     &  + MAX( IND_('SALC'), 0 )
+      I = MAX( Ind_('SALA'), 0 ) 
+     &  + MAX( Ind_('SALC'), 0 )
 
       IF ( Input_Opt%LSSALT ) THEN
          IF ( I == 0 ) THEN
@@ -8079,8 +8079,8 @@
       !=================================================================
       ! Error check MARINE ORGANIC AEROSOLS
       !=================================================================
-      I = MAX( IND_('MOPO'), 0 )  
-     &  + MAX( IND_('MOPI'), 0 )
+      I = MAX( Ind_('MOPO'), 0 )  
+     &  + MAX( Ind_('MOPI'), 0 )
 
       IF ( Input_Opt%LMPOA ) THEN
          IF ( .not. Input_Opt%LSSALT ) THEN
@@ -8101,14 +8101,14 @@
       !=================================================================
       ! Error check SULFUR AEROSOLS
       !=================================================================
-      I = MAX( IND_('DMS' ), 0 )
-     &  + MAX( IND_('SO2' ), 0 )
-     &  + MAX( IND_('SO4' ), 0 )
-     &  + MAX( IND_('SO4s'), 0 )
-     &  + MAX( IND_('MSA' ), 0 )
-     &  + MAX( IND_('NH3' ), 0 )
-     &  + MAX( IND_('NH4' ), 0 )
-     &  + MAX( IND_('NITs'), 0 ) 
+      I = MAX( Ind_('DMS' ), 0 )
+     &  + MAX( Ind_('SO2' ), 0 )
+     &  + MAX( Ind_('SO4' ), 0 )
+     &  + MAX( Ind_('SO4s'), 0 )
+     &  + MAX( Ind_('MSA' ), 0 )
+     &  + MAX( Ind_('NH3' ), 0 )
+     &  + MAX( Ind_('NH4' ), 0 )
+     &  + MAX( Ind_('NITs'), 0 ) 
 
       IF ( Input_Opt%LSULF ) THEN
 
@@ -8138,11 +8138,11 @@
       !=================================================================
       ! Error check CRYST /AQ AEROSOLS
       !=================================================================
-      I = MAX( IND_('AS'   ), 0 )
-     &  + MAX( IND_('AHS'  ), 0 )
-     &  + MAX( IND_('LET'  ), 0 )
-     &  + MAX( IND_('NH4aq'), 0 )
-     &  + MAX( IND_('SO4aq'), 0 )
+      I = MAX( Ind_('AS'   ), 0 )
+     &  + MAX( Ind_('AHS'  ), 0 )
+     &  + MAX( Ind_('LET'  ), 0 )
+     &  + MAX( Ind_('NH4aq'), 0 )
+     &  + MAX( Ind_('SO4aq'), 0 )
 
       IF ( Input_Opt%LCRYST ) THEN
          IF ( I == 0 ) THEN
@@ -8161,11 +8161,11 @@
       !=================================================================
 
       ! SOAupdate: Add POA (hotp 10/11/09)
-      I = MAX( IND_('BCPO'), 0 )
-     &  + MAX( IND_('BCPI'), 0 )
-     &  + MAX( IND_('OCPO'), 0 )
-     &  + MAX( IND_('OCPI'), 0 )
-     &  + MAX( IND_('POA1'), 0 )
+      I = MAX( Ind_('BCPO'), 0 )
+     &  + MAX( Ind_('BCPI'), 0 )
+     &  + MAX( Ind_('OCPO'), 0 )
+     &  + MAX( Ind_('OCPI'), 0 )
+     &  + MAX( Ind_('POA1'), 0 )
 
       IF ( Input_Opt%LCARB ) THEN
          IF ( I == 0 ) THEN
@@ -8188,10 +8188,10 @@
       ! OCPI and OCPO are the non-volatile POA tracers
       ! POA (along w/ POG, OPOA, and OPOG) are the semivol POA tracers
       ! You can't have both!
-      I = MAX( IND_('OCPI'), 0 )  
-     &  + MAX( IND_('OCPO'), 0 )
+      I = MAX( Ind_('OCPI'), 0 )  
+     &  + MAX( Ind_('OCPO'), 0 )
 
-      IF ( IND_('POA1') > 0 ) THEN
+      IF ( Ind_('POA1') > 0 ) THEN
          IF ( I > 0 ) THEN
             MSG = 'Semivolatile POA tracer is defined in addition to
      &             Nonvolatile POA'
@@ -8212,21 +8212,21 @@
       !   POA POG OPOA OPOG SOA BTX NAP (semivol + orig trad + IVOC )
       ! NAP emissions are set in input.geos
       ! LSVPOA is just a check (doesn't do anything hotp 7/21/10)
-      I = MAX( IND_('POA1' ), 0 )
-     &  + MAX( IND_('POA2' ), 0 )
-     &  + MAX( IND_('POG1' ), 0 )
-     &  + MAX( IND_('POG2' ), 0 )
-     &  + MAX( IND_('OPOA1'), 0 )
-     &  + MAX( IND_('OPOA2'), 0 )
-     &  + MAX( IND_('OPOG1'), 0 )
-     &  + MAX( IND_('OPOG2'), 0 )
+      I = MAX( Ind_('POA1' ), 0 )
+     &  + MAX( Ind_('POA2' ), 0 )
+     &  + MAX( Ind_('POG1' ), 0 )
+     &  + MAX( Ind_('POG2' ), 0 )
+     &  + MAX( Ind_('OPOA1'), 0 )
+     &  + MAX( Ind_('OPOA2'), 0 )
+     &  + MAX( Ind_('OPOG1'), 0 )
+     &  + MAX( Ind_('OPOG2'), 0 )
 
       IF ( Input_Opt%LSVPOA ) THEN
          IF ( I < 8 ) THEN
             MSG = 'Not enough semivolatile POA tracers!'
                      CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
-         IF ( IND_('NAP','T') < 0 ) THEN
+         IF ( Ind_('NAP','A') < 0 ) THEN
             MSG = 'Semivolatile POA requires IVOCs/NAP!'
                      CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
@@ -8237,24 +8237,24 @@
       !=================================================================
 
       ! SOAupdate: update for new mtp (hotp 5/24/10)
-      I = MAX( IND_('MTPA' ), 0 )
-     &  + MAX( IND_('LIMO' ), 0 )
-     &  + MAX( IND_('MTPO' ), 0 )
-     &  + MAX( IND_('BENZ' ), 0 )
-     &  + MAX( IND_('TOLU' ), 0 )
-     &  + MAX( IND_('XYLE' ), 0 )
-     &  + MAX( IND_('TSOA1'), 0 )
-     &  + MAX( IND_('TSOA2'), 0 )
-     &  + MAX( IND_('TSOA3'), 0 )
-     &  + MAX( IND_('ISOA1'), 0 )
-     &  + MAX( IND_('ISOA2'), 0 )
-     &  + MAX( IND_('ISOA3'), 0 )
-     &  + MAX( IND_('ASOA1'), 0 )
-     &  + MAX( IND_('ASOA2'), 0 )
-     &  + MAX( IND_('ASOA3'), 0 )
-     &  + MAX( IND_('ASOAN'), 0 )
-     &  + MAX( IND_('SOAG' ), 0 )
-     &  + MAX( IND_('SOAM' ), 0 )
+      I = MAX( Ind_('MTPA' ), 0 )
+     &  + MAX( Ind_('LIMO' ), 0 )
+     &  + MAX( Ind_('MTPO' ), 0 )
+     &  + MAX( Ind_('BENZ' ), 0 )
+     &  + MAX( Ind_('TOLU' ), 0 )
+     &  + MAX( Ind_('XYLE' ), 0 )
+     &  + MAX( Ind_('TSOA1'), 0 )
+     &  + MAX( Ind_('TSOA2'), 0 )
+     &  + MAX( Ind_('TSOA3'), 0 )
+     &  + MAX( Ind_('ISOA1'), 0 )
+     &  + MAX( Ind_('ISOA2'), 0 )
+     &  + MAX( Ind_('ISOA3'), 0 )
+     &  + MAX( Ind_('ASOA1'), 0 )
+     &  + MAX( Ind_('ASOA2'), 0 )
+     &  + MAX( Ind_('ASOA3'), 0 )
+     &  + MAX( Ind_('ASOAN'), 0 )
+     &  + MAX( Ind_('SOAG' ), 0 )
+     &  + MAX( Ind_('SOAM' ), 0 )
 
       IF ( Input_Opt%LSOA ) THEN
          IF ( I == 0 ) THEN
@@ -8275,13 +8275,13 @@
 ! JKODROS - Uncomment this if the dust fixes are back working. 
 #if defined( TOMAS )
       ! For TOMAS only: If DUST1 is present, the other dust tracers are too
-      I = MAX( IND_('DUST1'), 0 )
+      I = MAX( Ind_('DUST1'), 0 )
 #else
       ! Non-TOMAS simulations: Need all DST1-DST4 tracers
-      I = MAX( IND_('DST1'), 0 )
-     &  + MAX( IND_('DST2'), 0 )
-     &  + MAX( IND_('DST3'), 0 )
-     &  + MAX( IND_('DST4'), 0 )
+      I = MAX( Ind_('DST1'), 0 )
+     &  + MAX( Ind_('DST2'), 0 )
+     &  + MAX( Ind_('DST3'), 0 )
+     &  + MAX( Ind_('DST4'), 0 )
 #endif
 
       IF ( Input_Opt%LDUST ) THEN
@@ -8301,18 +8301,18 @@
       !             DUST SULFATE    AEROSOLS
       !             DUST ALKALINITY AEROSOLS
       !=================================================================
-      I = MAX( IND_('NITd1'  ), 0 ) 
-     &  + MAX( IND_('NITd2'  ), 0 ) 
-     &  + MAX( IND_('NITd3'  ), 0 )
-     &  + MAX( IND_('NITd4'  ), 0 ) 
-     &  + MAX( IND_('SO4d1'  ), 0 ) 
-     &  + MAX( IND_('SO4d2'  ), 0 )
-     &  + MAX( IND_('SO4d3'  ), 0 ) 
-     &  + MAX( IND_('SO4d4'  ), 0 ) 
-     &  + MAX( IND_('DSTAL1' ), 0 )
-     &  + MAX( IND_('DSTAL2' ), 0 ) 
-     &  + MAX( IND_('DSTAL3' ), 0 ) 
-     &  + MAX( IND_('DSTAL4' ), 0 )
+      I = MAX( Ind_('NITd1'  ), 0 ) 
+     &  + MAX( Ind_('NITd2'  ), 0 ) 
+     &  + MAX( Ind_('NITd3'  ), 0 )
+     &  + MAX( Ind_('NITd4'  ), 0 ) 
+     &  + MAX( Ind_('SO4d1'  ), 0 ) 
+     &  + MAX( Ind_('SO4d2'  ), 0 )
+     &  + MAX( Ind_('SO4d3'  ), 0 ) 
+     &  + MAX( Ind_('SO4d4'  ), 0 ) 
+     &  + MAX( Ind_('DSTAL1' ), 0 )
+     &  + MAX( Ind_('DSTAL2' ), 0 ) 
+     &  + MAX( Ind_('DSTAL3' ), 0 ) 
+     &  + MAX( Ind_('DSTAL4' ), 0 )
 
       IF ( Input_Opt%LDSTUP ) THEN
          IF ( I < 12 ) THEN
@@ -8329,8 +8329,8 @@
       !=================================================================
       ! Error check SEASALT AEROSOLS
       !=================================================================
-      I = MAX( IND_('SALA'), 0 ) 
-     &  + MAX( IND_('SALC'), 0 )
+      I = MAX( Ind_('SALA'), 0 ) 
+     &  + MAX( Ind_('SALC'), 0 )
 
       IF ( Input_Opt%LSSALT ) THEN
          IF ( I == 0 ) THEN
@@ -8349,9 +8349,9 @@
       ! Error check CFC emissions
       !=================================================================
       IF ( Input_Opt%LCFCEMIS .or. Input_Opt%LSETCFC ) THEN
-         IF ( IND_('CFC113') < 0 .or.
-     &        IND_('CFC114') < 0 .or. 
-     &        IND_('CFC115') < 0) THEN
+         IF ( Ind_('CFC113') < 0 .or.
+     &        Ind_('CFC114') < 0 .or. 
+     &        Ind_('CFC115') < 0) THEN
             Input_Opt%LCFCEMIS = .FALSE.
             Input_Opt%LSETCFC  = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
@@ -8366,7 +8366,7 @@
       ! Error check N2O emissions
       !=================================================================
       IF ( Input_Opt%LN2OEMIS .or. Input_Opt%LSETN2O ) THEN
-         IF ( IND_('N2O') < 0 ) THEN
+         IF ( Ind_('N2O') < 0 ) THEN
             Input_Opt%LN2OEMIS = .FALSE.
             Input_Opt%LSETN2O  = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
@@ -8382,7 +8382,7 @@
       !=================================================================
 #if defined( UCX )
       IF ( Input_Opt%LSETH2O ) THEN
-         IF (IND_('H2O') < 0 ) THEN
+         IF (Ind_('H2O') < 0 ) THEN
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
      &            // 'H2O is set but H2O tracer is undefined.'
@@ -8398,7 +8398,7 @@
       ! Error check halogen emissions
       !=================================================================
       IF ( Input_Opt%LCLEMIS .or. Input_Opt%LSETCL) THEN
-         IF ( IND_('Cl') < 0 ) THEN
+         IF ( Ind_('Cl') < 0 ) THEN
             Input_Opt%LCLEMIS = .FALSE.
             Input_Opt%LSETCL  = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
@@ -8411,7 +8411,7 @@
 
       IF ( Input_Opt%LBREMIS     .or. Input_Opt%LSETBR    .or. 
      &     Input_Opt%LSETBRSTRAT .or. Input_Opt%LBRGCCM ) THEN
-         IF ( IND_('Br2') < 0 ) THEN
+         IF ( Ind_('Br2') < 0 ) THEN
             Input_Opt%LBREMIS     = .FALSE.
             Input_Opt%LSETBR      = .FALSE.
             Input_Opt%LSETBRSTRAT = .FALSE.
@@ -8428,7 +8428,7 @@
       ! Error check OCS emissions
       !=================================================================
       IF ( Input_Opt%LOCSEMIS .or. Input_Opt%LSETOCS ) THEN
-         IF ( IND_('OCS') < 0 ) THEN
+         IF ( Ind_('OCS') < 0 ) THEN
             Input_Opt%LOCSEMIS = .FALSE.
             Input_Opt%LSETOCS  = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
@@ -8451,7 +8451,7 @@
       IF ( Input_Opt%LCH4EMIS   .or. 
      &     Input_Opt%LSETCH4    .or. 
      &     Input_Opt%LCH4SBC  ) THEN
-         IF ( IND_('CH4') < 0 ) THEN
+         IF ( Ind_('CH4') < 0 ) THEN
             Input_Opt%LCH4EMIS = .FALSE.
             Input_Opt%LSETCH4  = .FALSE.
             Input_Opt%LCH4SBC  = .FALSE.

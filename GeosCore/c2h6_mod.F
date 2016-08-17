@@ -300,7 +300,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE State_Chm_Mod,      ONLY :  IND_
+      USE State_Chm_Mod,      ONLY :  Ind_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -321,7 +321,7 @@
       !  GET_C2H6_ANTHRO begins here
       !=================================================================
 
-      IF ( N == IND_('C2H6') ) THEN
+      IF ( N == Ind_('C2H6') ) THEN
          C2H6_ANTHRO = NGASC2H6(I,J)
       ENDIF
 

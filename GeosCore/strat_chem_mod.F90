@@ -1338,7 +1338,7 @@ CONTAINS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Chm_Mod,      ONLY : IND_
+    USE State_Chm_Mod,      ONLY : Ind_
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TAU
     USE TIME_MOD,           ONLY : GET_NYMD
@@ -1409,17 +1409,17 @@ CONTAINS
     RC                       = GC_SUCCESS
 
     ! TRACERID_MOD Replacement
-    id_Br                    = IND_('Br'     )
-    id_Br2                   = IND_('Br2'    )
-    id_BrNO3                 = IND_('BrNO3'  ) 
-    id_BrO                   = IND_('BrO'    )
-    id_CHBr3                 = IND_('CHBr3'  )
-    id_CH2Br2                = IND_('CH2Br2' ) 
-    id_CH3Br                 = IND_('CH3Br'  )
-    id_HOBr                  = IND_('HOBr'   )
-    id_HBr                   = IND_('HBr'    )
-    id_O3                    = IND_('O3'     )
-    id_O3Strat               = IND_('O3Strat')   
+    id_Br                    = Ind_('Br'     )
+    id_Br2                   = Ind_('Br2'    )
+    id_BrNO3                 = Ind_('BrNO3'  ) 
+    id_BrO                   = Ind_('BrO'    )
+    id_CHBr3                 = Ind_('CHBr3'  )
+    id_CH2Br2                = Ind_('CH2Br2' ) 
+    id_CH3Br                 = Ind_('CH3Br'  )
+    id_HOBr                  = Ind_('HOBr'   )
+    id_HBr                   = Ind_('HBr'    )
+    id_O3                    = Ind_('O3'     )
+    id_O3Strat               = Ind_('O3Strat')   
 
 
     ! Save fields from the Input_Opt object to local variables

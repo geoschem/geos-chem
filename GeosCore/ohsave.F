@@ -19,7 +19,7 @@
       USE CMN_O3_MOD,         ONLY : SAVEOH, SAVEHO2, SAVEO1D, SAVEO3P
       USE CMN_SIZE_MOD
       USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      only : IND_
+      USE State_Chm_Mod,      ONLY : Ind_
       USE State_Met_Mod,      ONLY : MetState
       USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
 
@@ -91,10 +91,10 @@
       IF ( FIRST ) THEN 
 
          ! Only define species Id's on the first call (bmy, 6/20/16)
-         id_OH  = IND_('OH' )
-         id_HO2 = IND_('HO2')
-         id_O1D = IND_('O1D')
-         id_O3P = IND_('O'  )
+         id_OH  = Ind_('OH' )
+         id_HO2 = Ind_('HO2')
+         id_O1D = Ind_('O1D')
+         id_O3P = Ind_('O'  )
 
          ! Set logicals to denote if each species is defined
          ok_OH  = ( id_OH  > 0 )

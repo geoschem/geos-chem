@@ -570,9 +570,9 @@
       ! completely removed for grid-independence (ewl, 9/10/15)
       State_Met%AREA_M2 =  AREA_M2
 
-      ! Define species ID flags for use below
-      id_CLOCK = Ind_('CLOCK','T')
-      id_H2O   = Ind_('H2O'  ,'T')
+      ! Define advected species ID flags for use below
+      id_CLOCK = Ind_('CLOCK','A')
+      id_H2O   = Ind_('H2O'  ,'A')
       !-----------------------------------------------------------------
 
 #if   defined( RRTMG )

@@ -31,7 +31,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PLANEFLIGHT_MOD,    ONLY : SETUP_PLANEFLIGHT
       USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : IND_
+      USE State_Chm_Mod,      ONLY : Ind_
       USE State_Met_Mod,      ONLY : MetState
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, IDIAG   !(win, 7/9/09)
@@ -834,7 +834,7 @@
          ! add space in diag array for TOMAS aerosol mass (win, 7/14/09)
          ! Now use State_Chm%nDryDep for # dry depositing species
          ! (ewl, 10/14/15)
-         IF ( IND_('NK1') > 1 ) THEN
+         IF ( Ind_('NK1') > 1 ) THEN
             NMAX = State_Chm%nDryDep + ( ICOMP - IDIAG )* IBINS
          ELSE
             NMAX = State_Chm%nDryDep

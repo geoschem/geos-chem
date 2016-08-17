@@ -163,7 +163,7 @@
 !  22 Sep 2015 - R. Yantosca - Re-introduce GET_WETDEP_NSOL routine
 !  25 Sep 2015 - R. Yantosca - Use species database to collapse down routines
 !                              COMPUTE_F, RAINOUT, WASHOUT
-!  16 Jun 2016 - L. Hu       - Replaced IDTXXX with IND_('XXX')
+!  16 Jun 2016 - L. Hu       - Replaced IDTXXX with Ind_('XXX')
 !  20 Jun 2016 - R. Yantosca - Now define species ID's only in the INIT phase
 !  20 Jun 2016 - R. Yantosca - Renamed species ID's IDTxxxx to id_XXXX
 !  06 Jul 2016 - R. Yantosca - Removed GET_WETDEP_NSOL and GET_WETDEP_IDWETD,
@@ -5739,12 +5739,12 @@
 
       ! Define species ID flags, regardless of whether or not wet scavenging 
       ! is turned on.  These were formerly defined in tracerid_mod.F.
-      id_NK1   = IND_('NK1'  )
-      id_SF1   = IND_('SF1'  )
-      id_DUST1 = IND_('DUST1')
-      id_SO2   = IND_('SO2'  )
-      id_SO4   = IND_('SO4'  )
-      id_H2O2  = IND_('H2O2' )
+      id_NK1   = Ind_('NK1'  )
+      id_SF1   = Ind_('SF1'  )
+      id_DUST1 = Ind_('DUST1')
+      id_SO2   = Ind_('SO2'  )
+      id_SO4   = Ind_('SO4'  )
+      id_H2O2  = Ind_('H2O2' )
 
       !-----------------------------------------------------------------
       ! Allocate H2O2s and SO2s for wet deposition 

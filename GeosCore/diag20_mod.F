@@ -106,7 +106,8 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AVO
-      USE State_Chm_Mod,      ONLY : ChmState, IND_
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE,   GET_NYMD
       USE TIME_MOD,           ONLY : GET_TAU,       GET_TAUb 
@@ -222,11 +223,11 @@
       IF ( FIRST ) THEN
 
          ! Get the species ID of O3
-         id_O3 = IND_('O3')
+         id_O3 = Ind_('O3')
 
          ! Error check
          IF ( id_O3 <= 0 ) THEN
-            CALL ERROR_STOP( 'IND_("O3") <= 0 !', 
+            CALL ERROR_STOP( 'Ind_("O3") <= 0 !', 
      &                       'DIAG20 ("diag20_mod.f")' )
          ENDIF
 

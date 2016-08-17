@@ -815,9 +815,9 @@ CONTAINS
        RETURN
     ENDIF
     
-    ! Define species ID's
-    id_POA1 = IND_('POA1','T')
-    id_POG1 = IND_('POG1','T')
+    ! Define advected species ID's
+    id_POA1 = Ind_('POA1','A')
+    id_POG1 = Ind_('POG1','A')
 
     ! Define diagnostics
     IF ( ND07 > 0 .AND. Input_Opt%LCARB ) THEN
@@ -1482,7 +1482,7 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HCO_GetHcoID
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : IND_
+    USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -1818,7 +1818,7 @@ CONTAINS
           !----------------------------------------
           ! %%%%% FOR POA SIMULATION %%%%%
           !----------------------------------------
-          IF ( IND_('POA1','T') > 0 ) THEN
+          IF ( Ind_('POA1','A') > 0 ) THEN
 
              ! HEMCO species ID
              HcoID = GetHemcoId( 'POA1', HcoState, LOC, RC )
@@ -4061,7 +4061,7 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HCO_GetHcoID
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : IND_
+    USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -4107,7 +4107,7 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! Exit if the CH4 simulation is not selected
-    IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. IND_('CH4','T') > 0 ) ) RETURN
+    IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. Ind_('CH4','A') > 0 ) ) RETURN
 
     ! Get default HEMCO species ID for CH4 
     id_CH4 = HCO_GetHcoID( 'CH4', HcoState )

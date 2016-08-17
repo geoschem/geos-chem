@@ -135,7 +135,7 @@
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : IND_ 
+      USE State_Chm_Mod,      ONLY : Ind_ 
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,    GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
@@ -210,12 +210,12 @@
       ! Initialize on first call
       IF ( FIRST ) THEN
 
-         ! Define species ID flags
-         id_SO4  = IND_('SO4','T')
-         id_NH3  = IND_('NH3','T')
-         id_NH4  = IND_('NH4','T')
-         id_NIT  = IND_('NIT','T')
-         id_HNO3 = IND_('HNO3','T')
+         ! Define advected species ID flags
+         id_SO4  = Ind_('SO4', 'A')
+         id_NH3  = Ind_('NH3', 'A')
+         id_NH4  = Ind_('NH4', 'A')
+         id_NIT  = Ind_('NIT', 'A')
+         id_HNO3 = Ind_('HNO3','A')
       
          IF ( id_SO4 == 0 ) CALL ERROR_STOP( 'id_SO4 is undefined!', X )
          IF ( id_NH3 == 0 ) CALL ERROR_STOP( 'id_NH3 is undefined!', X )

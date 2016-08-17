@@ -146,7 +146,7 @@
       USE PhysConstants,       ONLY : AIRMW, PI, AVO
       USE PRESSURE_MOD,        ONLY : GET_PCENTER,      GET_PEDGE
       USE State_Chm_Mod,       ONLY : ChmState
-      USE State_Chm_Mod,       ONLY : IND_
+      USE State_Chm_Mod,       ONLY : Ind_
       USE State_Met_Mod,       ONLY : MetState
       USE TIME_MOD,            ONLY : GET_DAY_OF_YEAR, GET_HOUR
       USE TOMS_MOD,            ONLY : GET_OVERHEAD_O3
@@ -203,7 +203,7 @@
 !                              arrays from IIPAR*JJPAR to IIPAR,JJPAR
 !  31 May 2016 - E. Lundgren - Replace Input_Opt%TRACER_MW_G with emMW_g from
 !                              species database (emitted species g/mol)
-!  16 Jun 2016 - K. Yu       - Now define species ID's with the IND_ function
+!  16 Jun 2016 - K. Yu       - Now define species ID's with the Ind_ function
 !  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
 !  27 Jun 2016 - R. Yantosca - Bug fix: replace a couple of leftover IDO3
 !                              variables with the new id_O3 species ID
@@ -592,13 +592,13 @@
       IF ( FIRST ) THEN
 
          ! Define species ID flags
-         id_O3     = IND_('O3')
-         id_CH4    = IND_('CH4')
-         id_N2O    = IND_('N2O')
-         id_CFC11  = IND_('CFC11')
-         id_CFC12  = IND_('CFC12')
-         id_CCL4   = IND_('CCL4')
-         id_HCFC22 = IND_('HCFC22')
+         id_O3     = Ind_('O3')
+         id_CH4    = Ind_('CH4')
+         id_N2O    = Ind_('N2O')
+         id_CFC11  = Ind_('CFC11')
+         id_CFC12  = Ind_('CFC12')
+         id_CCL4   = Ind_('CCL4')
+         id_HCFC22 = Ind_('HCFC22')
 
          ! Reset first-time flag
          FIRST = .FALSE.

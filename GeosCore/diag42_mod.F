@@ -90,7 +90,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : ATM
       USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : IND_
+      USE State_Chm_Mod,      ONLY : Ind_
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -114,7 +114,7 @@
 !  26 Feb 2015 - E. Lundgren - Remove dependency on pressure_mod (not used)
 !  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
 !  06 Jan 2016 - E. Lundgren - Use global physical parameter ATM
-!  16 Jun 2016 - K. Yu       - Now define species ID's with the IND_ function
+!  16 Jun 2016 - K. Yu       - Now define species ID's with the Ind_ function
 !  17 Jun 2016 - R. Yantosca - Now only define species ID's on the first call
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
@@ -185,32 +185,32 @@
       IF ( FIRST ) THEN
 
          ! Define species ID flags
-         id_OCPI  = IND_('OCPI' )
-         id_OCPO  = IND_('OCPO' )
-         id_SOAG  = IND_('SOAG' )
-         id_SOAM  = IND_('SOAM' )
-         id_SO4   = IND_('SO4'  )
-         id_NIT   = IND_('NIT'  )
-         id_NH4   = IND_('NH4'  )
-         id_SALA  = IND_('SALA' )
-         id_SALC  = IND_('SALC' )
-         id_BCPI  = IND_('BCPI' )
-         id_BCPO  = IND_('BCPO' )
-         id_POA1  = IND_('POA1' )
-         id_POA2  = IND_('POA2' )
-         id_OPOA1 = IND_('OPOA1')
-         id_OPOA2 = IND_('OPOA2')
-         id_ASOAN = IND_('ASOAN')
-         id_ASOA1 = IND_('ASOA1')
-         id_ASOA2 = IND_('ASOA2')
-         id_ASOA3 = IND_('ASOA3')
-         id_TSOA1 = IND_('TSOA1')
-         id_TSOA1 = IND_('TSOA2')
-         id_TSOA3 = IND_('TSOA3')
-         id_TSOA0 = IND_('TSOA0')
-         id_ISOA1 = IND_('ISOA1')
-         id_ISOA2 = IND_('ISOA2') 
-         id_ISOA3 = IND_('ISOA3')
+         id_OCPI  = Ind_('OCPI' )
+         id_OCPO  = Ind_('OCPO' )
+         id_SOAG  = Ind_('SOAG' )
+         id_SOAM  = Ind_('SOAM' )
+         id_SO4   = Ind_('SO4'  )
+         id_NIT   = Ind_('NIT'  )
+         id_NH4   = Ind_('NH4'  )
+         id_SALA  = Ind_('SALA' )
+         id_SALC  = Ind_('SALC' )
+         id_BCPI  = Ind_('BCPI' )
+         id_BCPO  = Ind_('BCPO' )
+         id_POA1  = Ind_('POA1' )
+         id_POA2  = Ind_('POA2' )
+         id_OPOA1 = Ind_('OPOA1')
+         id_OPOA2 = Ind_('OPOA2')
+         id_ASOAN = Ind_('ASOAN')
+         id_ASOA1 = Ind_('ASOA1')
+         id_ASOA2 = Ind_('ASOA2')
+         id_ASOA3 = Ind_('ASOA3')
+         id_TSOA1 = Ind_('TSOA1')
+         id_TSOA1 = Ind_('TSOA2')
+         id_TSOA3 = Ind_('TSOA3')
+         id_TSOA0 = Ind_('TSOA0')
+         id_ISOA1 = Ind_('ISOA1')
+         id_ISOA2 = Ind_('ISOA2') 
+         id_ISOA3 = Ind_('ISOA3')
 
          ! Reset first-time flag
          FIRST = .FALSE.

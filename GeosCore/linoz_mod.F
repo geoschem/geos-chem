@@ -217,7 +217,8 @@
       USE GRID_MOD,           ONLY : GET_AREA_CM2   
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AIRMW, AVO
-      USE State_Chm_Mod,      ONLY : ChmState, IND_
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:

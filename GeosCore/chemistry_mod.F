@@ -103,7 +103,8 @@
       USE RPMARES_MOD,        ONLY : DO_RPMARES
       USE SEASALT_MOD,        ONLY : CHEMSEASALT
       USE SULFATE_MOD,        ONLY : CHEMSULFATE
-      USE State_Chm_Mod,      ONLY : ChmState, IND_
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
       USE State_Met_Mod,      ONLY : MetState
       USE STRAT_CHEM_MOD,     ONLY : DO_STRAT_CHEM
       USE TAGGED_CO_MOD,      ONLY : CHEM_TAGGED_CO

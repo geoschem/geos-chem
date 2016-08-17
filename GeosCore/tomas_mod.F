@@ -6114,7 +6114,8 @@ c
       USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLUN
-      USE State_Chm_Mod,      ONLY : ChmState, IND_
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -6143,20 +6144,20 @@ c
 
       ! Define species indices here, these are now saved as
       ! module variables (bmy, 6/20/16)
-      id_NK1   = IND_('NK1'  )
-      id_H2SO4 = IND_('H2SO4')
-      id_AW1   = IND_('AW1'  )
-      id_SF1   = IND_('SF1'  )
-      id_SO4   = IND_('SO4'  )
-      id_NH3   = IND_('NH3'  )
-      id_NH4   = IND_('NH4'  )
-      id_SF1   = IND_('SF1'  )
-      id_SS1   = IND_('SS1'  )
-      id_ECIL1 = IND_('ECIL1')
-      id_ECOB1 = IND_('ECOB1')
-      id_OCIL1 = IND_('OCIL1')
-      id_OCOB1 = IND_('OCOB1')
-      id_DUST1 = IND_('DUST1')
+      id_NK1   = Ind_('NK1'  )
+      id_H2SO4 = Ind_('H2SO4')
+      id_AW1   = Ind_('AW1'  )
+      id_SF1   = Ind_('SF1'  )
+      id_SO4   = Ind_('SO4'  )
+      id_NH3   = Ind_('NH3'  )
+      id_NH4   = Ind_('NH4'  )
+      id_SF1   = Ind_('SF1'  )
+      id_SS1   = Ind_('SS1'  )
+      id_ECIL1 = Ind_('ECIL1')
+      id_ECOB1 = Ind_('ECOB1')
+      id_OCIL1 = Ind_('OCIL1')
+      id_OCOB1 = Ind_('OCOB1')
+      id_DUST1 = Ind_('DUST1')
 
       ! Now read large TOMAS input files from a common disk directory
       ! (bmy, 1/30/14)
@@ -6414,7 +6415,8 @@ c         SRTH2O = ICOMP
       ! Reference to F90 modules
       USE CMN_SIZE_MOD      ! Size parameters
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE State_Chm_Mod,      ONLY : ChmState, IND_
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
       USE State_Met_Mod,      ONLY : MetState          ! Met State object
 
       ! Arguments

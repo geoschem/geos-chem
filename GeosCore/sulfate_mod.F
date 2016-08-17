@@ -489,7 +489,7 @@
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : IND_
+      USE State_Chm_Mod,      ONLY : Ind_
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -560,7 +560,7 @@
 !  30 Sep 2015 - E. Lundgren - Now use UNITCONV_MOD conversion routines
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  16 Jun 2016 - M. Long     - Remove references to TRACERID_MOD and replace
-!                              with GIGC_STATE_CHM_MOD::IND_()
+!                              with GIGC_STATE_CHM_MOD::Ind_()
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !EOP
@@ -7532,7 +7532,7 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  21 Jun 2016 - R. Yantosca - Reorder the IND_ declaration statements a bit
+!  21 Jun 2016 - R. Yantosca - Reorder the Ind_ declaration statements a bit
 !  24 Jun 2016 - R. Yantosca - Add error checks for dust uptake species
 !EOP
 !------------------------------------------------------------------------------

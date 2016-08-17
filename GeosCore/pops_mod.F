@@ -1860,7 +1860,7 @@
 !                              we can take advantage of the species database
 !  02 May 2016 - R. Yantosca - Now make id_POP* flags as module variables
 !                              instead of getting them from tracerid_mod.F
-!  22 Jun 2016 - R. Yantosca - Now use IND_() to define species & drydep ID's
+!  22 Jun 2016 - R. Yantosca - Now use Ind_() to define species & drydep ID's
 !  22 Jun 2016 - R. Yantosca - Rename IDT* flags to id* and DRY* to dd_*
 !EOP
 !------------------------------------------------------------------------------

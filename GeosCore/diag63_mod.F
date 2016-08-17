@@ -124,7 +124,7 @@
       USE inquireMod,    ONLY : findFreeLUN
       USE PhysConstants
       USE PBL_MIX_MOD,   ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE State_Chm_Mod, ONLY : IND_
+      USE State_Chm_Mod, ONLY : Ind_
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE TIME_MOD,      ONLY : GET_NYMD,           GET_NHMS
       USE TIME_MOD,      ONLY : GET_NYMD_DIAG,      GET_TS_DIAG

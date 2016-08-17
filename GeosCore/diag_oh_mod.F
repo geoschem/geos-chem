@@ -408,7 +408,7 @@
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  23 Jun 2014 - R. Yantosca - Removed reference to logical_mod.F
 !  23 Jun 2014 - R. Yantosca - Removed reference to tracer_mod.F
-!  23 Jun 2016 - R. Yantosca - Now use IND_() function for species ID's
+!  23 Jun 2016 - R. Yantosca - Now use Ind_() function for species ID's
 !  23 Jun 2016 - R. Yantosca - Now define species ID for OH in the INIT phase
 !  23 Jun 2016 - R. Yantosca - Bug fix: exit unless it's a fullchem or CH4 sim
 !EOP

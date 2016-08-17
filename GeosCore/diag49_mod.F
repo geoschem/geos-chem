@@ -226,7 +226,7 @@
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : IND_
+      USE State_Chm_Mod,      ONLY : Ind_
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD,           GET_NHMS
@@ -298,7 +298,7 @@
 !  24 Jun 2015 - E. Lundgren - Add code to print out mass conservation output,
 !                              blocked off by #if defined( MASSCONS )
 !  17 Nov 2015 - E. Lundgren - Bug fix in masscons kg calculation: use AD
-!  16 Jun 2016 - K. Yu       - Now define species ID's with the IND_ function
+!  16 Jun 2016 - K. Yu       - Now define species ID's with the Ind_ function
 !  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
 !  22 Jun 2016 - R. Yantosca - Now make species ID's module variables
 !  22 Jun 2016 - R. Yantosca - Rename IDTPASV to id_PASV.  Also move the 
@@ -394,19 +394,19 @@
       IF ( FIRST ) THEN
 
          ! Define species ID flags
-         id_HNO3 = IND_('HNO3')
-         id_HNO4 = IND_('HNO4')
-         id_N2O5 = IND_('N2O5')
-         id_NO   = IND_('NO'  )
-         id_PAN  = IND_('PAN' )
-         id_PMN  = IND_('PMN' )
-         id_PPN  = IND_('PPN' )
-         id_O3   = IND_('O3'  )
-         id_R4N2 = IND_('R4N2')
-         id_SALA = IND_('SALA')
-         id_SALC = IND_('SALC')
-         id_NO2  = IND_('NO2' )
-         id_PASV = IND_('PASV') 
+         id_HNO3 = Ind_('HNO3')
+         id_HNO4 = Ind_('HNO4')
+         id_N2O5 = Ind_('N2O5')
+         id_NO   = Ind_('NO'  )
+         id_PAN  = Ind_('PAN' )
+         id_PMN  = Ind_('PMN' )
+         id_PPN  = Ind_('PPN' )
+         id_O3   = Ind_('O3'  )
+         id_R4N2 = Ind_('R4N2')
+         id_SALA = Ind_('SALA')
+         id_SALC = Ind_('SALC')
+         id_NO2  = Ind_('NO2' )
+         id_PASV = Ind_('PASV') 
 
          ! Set logical flags on the first timestep
          IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )

@@ -92,9 +92,9 @@ CONTAINS
     RC       = GC_SUCCESS
 
     ! Define species ID flags for use in routines below
-    id_BrO   = IND_('BrO'  )
-    id_CH4   = IND_('CH4'  )
-    id_CH3Br = IND_('CH3Br')    
+    id_BrO   = Ind_('BrO'  )
+    id_CH4   = Ind_('CH4'  )
+    id_CH3Br = Ind_('CH3Br')    
 
     ! Initialize the HEMCO environment for this GEOS-Chem run.
     CALL HCOI_GC_Init( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 

@@ -40,7 +40,7 @@
       USE PRESSURE_MOD        
       USE Species_Mod,          ONLY : Species
       USE State_Chm_Mod,        ONLY : ChmState
-      USE State_Chm_Mod,        ONLY : IND_
+      USE State_Chm_Mod,        ONLY : Ind_
       USE State_Met_Mod,        ONLY : MetState
       USE TIME_MOD,             ONLY : GET_TS_CHEM
       USE TIME_MOD,             ONLY : GET_MONTH
@@ -255,8 +255,8 @@
          !---------------------------------
          ! Set global concentration of CH4
          !---------------------------------
-         ! Define tracer ID flag
-         id_CH4 = IND_('CH4', 'T')
+         ! Define advected species ID flag
+         id_CH4 = Ind_('CH4','A')
 
          ! Check that CH4 is not an advected species
          ! Check that CH4 is a KPP species (ind_CH4 is from gckpp_Monitor.F90)
@@ -702,7 +702,7 @@
             ELSE
                C(ind_CH4) = C3090N * 1e-9_dp * NUMDEN
             ENDIF
-         ENDIF   ! id_CH4, IND_CH4
+         ENDIF
 
          !### Debug printout, we can remove it later
          IF ( prtDebug ) THEN
@@ -866,7 +866,7 @@
 
             !### Debug output, we can remove it later
             IF ( prtDebug ) THEN
-               IF (I.eq.10.and.J.eq.10.and.L.eq.10.and.N.eq.IND_OH) THEN
+               IF (I.eq.10.and.J.eq.10.and.L.eq.10.and.N.eq.ind_OH) THEN
                   write(*,'(a9,2es13.6)') 'SPC_OH : ',c(N),
      &                 State_Chm%Species(I,J,L,CSPECTOKPP(N))
                ENDIF
@@ -891,7 +891,7 @@
                   ! Get information about prod/loss species
                   NAME = Input_Opt%FAM_MEMB(M,F) ! Species name
                   COEF = Input_Opt%FAM_COEF(M,F) ! Species coefficient
-                  IND  = Ind_(TRIM(NAME),'K')    ! KPP species index
+                  IND  = Ind_(TRIM(NAME),'K')    ! KPP species ID
 
                   ! Skip prod/loss species if not found in KPP
                   IF ( IND <= 0 ) THEN

@@ -434,7 +434,7 @@
       USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,   GET_PBL_TOP_m
       USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : IND_
+      USE State_Chm_Mod,      ONLY : Ind_
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM 
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
@@ -498,7 +498,7 @@
 !  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod
 !  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg and
 !                              remove AD pointer
-!  16 Jun 2016 - K. Yu       - Now define species ID's with the IND_ function
+!  16 Jun 2016 - K. Yu       - Now define species ID's with the Ind_ function
 !  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
@@ -561,18 +561,18 @@
       IF ( FIRST ) THEN
 
          ! Define species ID flags
-         id_HNO3 = IND_('HNO3')
-         id_HNO4 = IND_('HNO4')
-         id_N2O5 = IND_('N2O5')
-         id_NO   = IND_('NO'  )
-         id_PAN  = IND_('PAN' )
-         id_PMN  = IND_('PMN' )
-         id_PPN  = IND_('PPN' )
-         id_O3   = IND_('O3'  )
-         id_R4N2 = IND_('R4N2')
-         id_SALA = IND_('SALA')
-         id_SALC = IND_('SALC')
-         id_NO2  = IND_('NO2' )
+         id_HNO3 = Ind_('HNO3')
+         id_HNO4 = Ind_('HNO4')
+         id_N2O5 = Ind_('N2O5')
+         id_NO   = Ind_('NO'  )
+         id_PAN  = Ind_('PAN' )
+         id_PMN  = Ind_('PMN' )
+         id_PPN  = Ind_('PPN' )
+         id_O3   = Ind_('O3'  )
+         id_R4N2 = Ind_('R4N2')
+         id_SALA = Ind_('SALA')
+         id_SALC = Ind_('SALC')
+         id_NO2  = Ind_('NO2' )
 
 
          ! Set logical flags on first call

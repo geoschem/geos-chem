@@ -153,7 +153,7 @@
 !  31 May 2016 - E. Lundgren - Remove usage of TCVV; replace with AIRMW/emMW_g
 !  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
 !                              NAMEGAS with ThisSpc%Name from species database
-!  22 Jun 2016 - R. Yantosca - Now use IND_() to define id_PASV species ID
+!  22 Jun 2016 - R. Yantosca - Now use Ind_() to define id_PASV species ID
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo

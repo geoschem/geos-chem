@@ -148,13 +148,13 @@ CONTAINS
 !
 ! !IROUTINE: ind_
 !
-! !DESCRIPTION: Function IND\_ returns the index of an advected tracer or 
+! !DESCRIPTION: Function IND\_ returns the index of an advected species or 
 !  chemical species contained in the chemistry state object by name.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION ind_( name, flag ) RESULT( Indx )
+  FUNCTION Ind_( name, flag ) RESULT( Indx )
 !
 ! !USES:
 !
@@ -162,7 +162,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*),           INTENT(IN) :: name  ! Species or tracer name
+    CHARACTER(LEN=*),           INTENT(IN) :: name  ! Species name
     CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: flag
 !
 ! !RETURN VALUE:
@@ -174,6 +174,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  07 Oct 2016 - M. Long     - Initial version
 !  15 Jun 2016 - M. Sulprizio- Make species name uppercase before computing hash
+!  17 Aug 2016 - M. Sulprizio- Tracer flag 'T' is now advected species flag 'A'
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -219,9 +220,9 @@ CONTAINS
                 Indx = SpcDataLocal(N)%Info%ModelID
                 RETURN
 
-             ELSEIF (flag(1:1) .eq. 'T' .or. flag(1:1) .eq. 't') THEN
+             ELSEIF (flag(1:1) .eq. 'A' .or. flag(1:1) .eq. 'a') THEN
 
-                ! Tracer flag
+                ! Advected species flag
                 Indx = SpcDataLocal(N)%Info%AdvectID
                 RETURN
 

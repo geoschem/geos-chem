@@ -173,7 +173,7 @@ CONTAINS
 !  25 Mar 2015 - C. Keller   - Moved UCX initialization to UCX_mod.F
 !  06 Nov 2015 - C. Keller   - Added argument OutTimeStamp
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  22 Jun 2016 - R. Yantosca - Now use IND_() to define id_Rn, id_Pb, id_Be7
+!  22 Jun 2016 - R. Yantosca - Now use Ind_() to define id_Rn, id_Pb, id_Be7
 !  22 Jun 2016 - R. Yantosca - Remove reference to Species type
 !  01 Jul 2016 - R. Yantosca - Pass State_Chm to several other routines
 !  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
@@ -1380,7 +1380,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  21 Jan 2015 - E. Lundgren - Initial version
-!  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the Ind_ function
 !  01 Jul 2016 - R. Yantosca - Remove reference to Input_Opt%TRACER_NAME
 !  19 Jul 2016 - R. Yantosca - Now pass State_Chm as an argument
 !EOP
@@ -1407,7 +1407,7 @@ CONTAINS
     RC = GC_SUCCESS
 
     ! Pb210 species ID
-    id_Pb      = Ind_('PB')
+    id_Pb      = Ind_('Pb')
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -2837,7 +2837,7 @@ CONTAINS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Chm_Mod,      ONLY : IND_
+    USE State_Chm_Mod,      ONLY : Ind_
     USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -2854,7 +2854,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  05 Mar 2015 - C. Keller   - Initial version
-!  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function 
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the Ind_ function 
 !  01 Jul 2016 - R. Yantosca - Use State_Chm%nAdvect to replace N_TRACERS
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
@@ -2901,21 +2901,21 @@ CONTAINS
        ID = GetHcoID( TrcId = N )
  
        ! Restrict diagnostics to these species
-       IF ( N /= IND_('NO'   ) .AND. N /= IND_('CO'    ) .AND. &
-            N /= IND_('ALK4' ) .AND. N /= IND_('ISOP'  ) .AND. &
-            N /= IND_('HNO3' ) .AND. N /= IND_('ACET'  ) .AND. &
-            N /= IND_('MEK'  ) .AND. N /= IND_('ALD2'  ) .AND. &
-            N /= IND_('PRPE' ) .AND. N /= IND_('C3H8'  ) .AND. &
-            N /= IND_('C2H6' ) .AND. N /= IND_('DMS'   ) .AND. &
-            N /= IND_('SO2'  ) .AND. N /= IND_('SO4'   ) .AND. &
-            N /= IND_('NH3'  ) .AND. N /= IND_('BCPI'  ) .AND. &
-            N /= IND_('OCPI' ) .AND. N /= IND_('BCPO'  ) .AND. &
-            N /= IND_('OCPO' ) .AND. N /= IND_('DST1'  ) .AND. &
-            N /= IND_('DST2' ) .AND. N /= IND_('DST3'  ) .AND. &
-            N /= IND_('DST4' ) .AND. N /= IND_('SALA'  ) .AND. &
-            N /= IND_('SALC' ) .AND. N /= IND_('Br2'   ) .AND. &
-            N /= IND_('BrO'  ) .AND. N /= IND_('CH2Br2') .AND. &
-            N /= IND_('CH3Br') .AND. N /= IND_('O3'    )        ) THEN
+       IF ( N /= Ind_('NO'   ) .AND. N /= Ind_('CO'    ) .AND. &
+            N /= Ind_('ALK4' ) .AND. N /= Ind_('ISOP'  ) .AND. &
+            N /= Ind_('HNO3' ) .AND. N /= Ind_('ACET'  ) .AND. &
+            N /= Ind_('MEK'  ) .AND. N /= Ind_('ALD2'  ) .AND. &
+            N /= Ind_('PRPE' ) .AND. N /= Ind_('C3H8'  ) .AND. &
+            N /= Ind_('C2H6' ) .AND. N /= Ind_('DMS'   ) .AND. &
+            N /= Ind_('SO2'  ) .AND. N /= Ind_('SO4'   ) .AND. &
+            N /= Ind_('NH3'  ) .AND. N /= Ind_('BCPI'  ) .AND. &
+            N /= Ind_('OCPI' ) .AND. N /= Ind_('BCPO'  ) .AND. &
+            N /= Ind_('OCPO' ) .AND. N /= Ind_('DST1'  ) .AND. &
+            N /= Ind_('DST2' ) .AND. N /= Ind_('DST3'  ) .AND. &
+            N /= Ind_('DST4' ) .AND. N /= Ind_('SALA'  ) .AND. &
+            N /= Ind_('SALC' ) .AND. N /= Ind_('Br2'   ) .AND. &
+            N /= Ind_('BrO'  ) .AND. N /= Ind_('CH2Br2') .AND. &
+            N /= Ind_('CH3Br') .AND. N /= Ind_('O3'    )        ) THEN
           ID = -1
        ENDIF
  
@@ -2973,7 +2973,7 @@ CONTAINS
 !
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
     USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : IND_
+    USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -2986,7 +2986,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  07 Jul 2015 - C. Keller   - Initial version 
-!  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function 
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the Ind_ function 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3007,7 +3007,7 @@ CONTAINS
     RC = GC_SUCCESS
 
     ! Nothing to do if O3 is not a tracer
-    IF ( IND_('O3') <= 0 ) RETURN
+    IF ( Ind_('O3') <= 0 ) RETURN
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -3068,7 +3068,7 @@ CONTAINS
     USE PRESSURE_MOD,       ONLY : GET_PEDGE
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Chm_Mod,      ONLY : IND_
+    USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -3084,7 +3084,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  07 Jul 2015 - C. Keller   - Initial version 
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function 
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the Ind_ function 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3116,7 +3116,7 @@ CONTAINS
 
     ! Initialize
     DgnPtr => NULL()
-    id_O3  = IND_('O3')
+    id_O3  = Ind_('O3')
 
     ! Nothing to do if O3 is not a tracer
     IF ( id_O3 <= 0 ) RETURN
