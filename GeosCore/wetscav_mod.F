@@ -6,7 +6,7 @@
 ! !MODULE: wetscav_mod
 !     
 ! !DESCRIPTION: Module WETSCAV\_MOD contains routines and variables used in 
-!  the wet scavenging of tracer in cloud updrafts, rainout, and washout. 
+!  the wet scavenging of species in cloud updrafts, rainout, and washout. 
 !\\   
 !\\   
 ! !INTERFACE: 
@@ -210,7 +210,7 @@
       LOGICAL                       :: ITS_A_MERCURY_SIM
       LOGICAL                       :: ITS_A_POPS_SIM
 
-      ! Species ID flags (formerly in tracerid_mod.F)
+      ! Species ID flags
       INTEGER                       :: id_DUST1
       INTEGER                       :: id_H2O2
       INTEGER                       :: id_NK1
@@ -308,12 +308,15 @@
 
       ! For netCDF diagnostics
 #if defined( NC_DIAG )
-      INTEGER                :: N, L, cID, HCRC
+      INTEGER                :: N, NW, L, cID, HCRC
       CHARACTER(LEN=60)      :: DiagnName
       REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
       REAL(fp), POINTER      :: TMP3D(:,:,:)
       REAL(fp), POINTER      :: TMP2D(:,:  )
       REAL(fp)               :: DT
+
+      ! Objects
+      TYPE(Species), POINTER :: SpcInfo
 #endif
 
       !=================================================================
@@ -342,7 +345,7 @@
 
 #if defined( USE_TEND )
       !=================================================================
-      ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
+      ! Archive species concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'WETD', .FALSE., RC )
@@ -353,8 +356,8 @@
       ! For netCDF diagnostics, mirror old species
       !=================================================================
       IF ( Input_Opt%ND39 > 0 ) THEN
-         ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
-         BEFORE = State_Chm%Tracers
+         ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,State_Chm%nSpecies) )
+         BEFORE = State_Chm%Species
       ENDIF
 #endif
 
@@ -440,15 +443,21 @@
          ! Allocate temporary pointer
          ALLOCATE(TMP3D(IIPAR,JJPAR,LLPAR),TMP2D(IIPAR,JJPAR))
         
-         ! Loop over all tracers
-         DO N = 1, Input_Opt%N_TRACERS
+         ! Loop over all wetdep species
+         DO NW = 1, State_Chm%nWetDep
 
-            ! Is this a tracer selected for wetscav diagnostics?
+            ! Get species ID from wetdep ID
+            N       =  State_Chm%Map_WetDep(NW)
+
+            ! Get information for this species from the species database
+            SpcInfo => State_Chm%SpcData(N)%Info
+
+            ! Is this a species selected for wetscav diagnostics?
             IF ( ANY( Input_Opt%TINDEX(38,:) == N ) ) THEN
 
                ! Convert [kg/kg/s] to [kg/m2/s] so that the vertical
                ! sum makes physical sense (ewl, 8/14/15)
-               TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Tracers(:,:,:,N) )
+               TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Species(:,:,:,N) )
      &                 * State_Met%DELP * 1.e+2_fp 
      &                 * ( 1.e+0_fp - 1.e-3_fp * State_Met%SPHU ) 
      &                 / ( G0_100 * DT )
@@ -462,7 +471,7 @@
 
                ! Update diagnostics using diagnostic name
                DiagnName = 'WETSCAV_DEPLOSS_' 
-     &                     // TRIM( Input_Opt%TRACER_NAME(N) )
+     &                     // TRIM( SpcInfo%Name )
 
                CALL Diagn_Update ( am_I_Root,
      &                             cName   = DiagnName,
@@ -476,6 +485,10 @@
      &               'DO_WETDEP (wetscav_mod.F)' )
                ENDIF
             ENDIF
+
+            ! Free pointer
+            SpcInfo => NULL()
+
          ENDDO
 
          ! Cleanup
@@ -896,8 +909,8 @@
 ! !IROUTINE: compute_l2g
 !
 ! !DESCRIPTION: Subroutine COMPUTE\_L2G computes the ratio L2G = Cliq / Cgas, 
-!  which is the mixing ratio of tracer in the liquid phase, divided by the 
-!  mixing ratio of tracer in the gas phase.
+!  which is the mixing ratio of species in the liquid phase, divided by the 
+!  mixing ratio of species in the gas phase.
 !\\
 !\\
 ! !INTERFACE:
@@ -923,7 +936,7 @@
 !
 ! !REMARKS:
 !  The ratio Cliq / Cgas is obtained via Henry's law.  The appropriate 
-!  values of Kstar298 and H298_R must be supplied for each tracer.  
+!  values of Kstar298 and H298_R must be supplied for each species.  
 !  (cf Jacob et al 2000, p. 3)
 ! 
 ! !REVISION HISTORY: 
@@ -974,7 +987,7 @@
 ! !IROUTINE: compute_f 
 !
 ! !DESCRIPTION: Subroutine COMPUTE\_F computes F, the fraction of soluble 
-!  tracer lost by scavenging in convective cloud updrafts.
+!  species lost by scavenging in convective cloud updrafts.
 !\\
 !\\
 ! !INTERFACE:
@@ -1009,7 +1022,7 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: ISOL       ! Index for ND38 diag
-      REAL(fp),       INTENT(OUT)   :: F(:,:,:)   ! Soluble fraction of tracer
+      REAL(fp),       INTENT(OUT)   :: F(:,:,:)   ! Soluble fraction of species
       INTEGER,        INTENT(OUT)   :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY: 
@@ -1265,7 +1278,7 @@
       ELSE IF ( SpcInfo%MP_SizeResAer ) THEN
 
 #if defined( TOMAS )
-         ! Get the fraction of tracer scavenged in updrafts
+         ! Get the fraction of species scavenged in updrafts
          ! NOTE: The surface layer F(:,:,1) will be returned
          ! as zero, to shut off scavenging at the surface
          CALL F_AEROSOL( KC, KcScale, State_Met, F )
@@ -1290,7 +1303,7 @@
       ELSE IF ( SpcInfo%MP_SizeResNum ) THEN
 
 #if defined( TOMAS )
-         ! Get the fraction of tracer scavenged in updrafts
+         ! Get the fraction of species scavenged in updrafts
          ! NOTE: The surface layer F(:,:,1) will be returned
          ! as zero, to shut off scavenging at the surface
          CALL F_AEROSOL( KC, KcScale, State_Met, F )
@@ -1316,7 +1329,7 @@
       !-----------------------------------------------------------
       ELSE
 
-         ! Get the fraction of tracer scavenged in updrafts
+         ! Get the fraction of species scavenged in updrafts
          ! NOTE: The surface layer F(:,:,1) will be returned
          ! as zero, to shut off scavenging at the surface
          CALL F_AEROSOL( KC, KcScale, State_Met, F )
@@ -1346,7 +1359,7 @@
 !
 ! !IROUTINE: compute_ki
 !
-! !DESCRIPTION: Subroutine COMPUTE\_Ki computes the loss of tracer
+! !DESCRIPTION: Subroutine COMPUTE\_Ki computes the loss of species
 !  by scavenging according to Jacob et al 2000, eq. 1.
 !\\
 !\\
@@ -1507,7 +1520,7 @@
       !=================================================================
       ! F_AEROSOL begins here!
       !
-      ! Aerosol tracers are 100% in the cloud condensate phase, so 
+      ! Aerosol species are 100% in the cloud condensate phase, so 
       ! we set K = Kc, and compute F accordingly (cf Jacob et al 2000 )    
       !=================================================================
 
@@ -1556,7 +1569,7 @@
 ! !IROUTINE: rainout
 !
 ! !DESCRIPTION: Subroutine RAINOUT computes RAINFRAC, the fraction of soluble 
-!  tracer lost to rainout events in precipitation.
+!  species lost to rainout events in precipitation.
 !\\
 !\\
 ! !INTERFACE:
@@ -1579,7 +1592,7 @@
       INTEGER,        INTENT(IN)  :: I          ! Longitude index
       INTEGER,        INTENT(IN)  :: J          ! Latitude index
       INTEGER,        INTENT(IN)  :: L          ! Level index
-      INTEGER,        INTENT(IN)  :: N          ! Tracer number
+      INTEGER,        INTENT(IN)  :: N          ! Species number
       REAL(fp),       INTENT(IN)  :: K_RAIN     ! Rainout rate constant [1/s]
       REAL(fp),       INTENT(IN)  :: DT         ! Timestep for rainout event [s]
       REAL(fp),       INTENT(IN)  :: F          ! Fraction of grid box that is
@@ -1593,7 +1606,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),       INTENT(OUT) :: RAINFRAC   ! Fraction of tracer lost 
+      REAL(fp),       INTENT(OUT) :: RAINFRAC   ! Fraction of species lost 
                                                 !  to rainout [unitless]
 ! 
 ! !REVISION HISTORY: 
@@ -1845,7 +1858,7 @@
 !
 ! !IROUTINE: get_rainfrac
 !
-! !DESCRIPTION: Function GET\_RAINFRAC computes the fraction of tracer 
+! !DESCRIPTION: Function GET\_RAINFRAC computes the fraction of species 
 !  lost to rainout according to Jacob et al 2000.
 !\\
 !\\
@@ -1862,7 +1875,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)             :: RAINFRAC   ! Fraction of tracer lost to rainout
+      REAL(fp)             :: RAINFRAC   ! Fraction of species lost to rainout
 !
 ! !REVISION HISTORY: 
 !  08 Nov 2002 - R. Yantosca - Initial version
@@ -1890,7 +1903,7 @@
 ! !IROUTINE: washout
 !
 ! !DESCRIPTION: Subroutine WASHOUT computes WASHFRAC, the fraction of 
-!  soluble tracer lost to washout events in precipitation.
+!  soluble species lost to washout events in precipitation.
 !\\
 !\\
 ! !INTERFACE:
@@ -1921,7 +1934,7 @@
       INTEGER,        INTENT(IN)    :: I          ! Longitude index
       INTEGER,        INTENT(IN)    :: J          ! Latitude index
       INTEGER,        INTENT(IN)    :: L          ! Level index
-      INTEGER,        INTENT(IN)    :: N          ! Tracer number
+      INTEGER,        INTENT(IN)    :: N          ! Species number
       REAL(fp),       INTENT(IN)    :: BXHEIGHT   ! Grid box height [m]
       REAL(fp),       INTENT(IN)    :: TK         ! Temperature [K]
       REAL(fp),       INTENT(IN)    :: PP         ! Precip rate thru bottom 
@@ -1946,7 +1959,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),       INTENT(OUT)   :: WASHFRAC   ! Fraction of tracer lost
+      REAL(fp),       INTENT(OUT)   :: WASHFRAC   ! Fraction of species lost
                                                   !  to washout [1]
       LOGICAL,        INTENT(OUT)   :: KIN        ! =T washout is a 
                                                   !    kinetic process
@@ -2046,7 +2059,7 @@
       ! WASHOUT begins here!
       !
       ! Call either WASHFRAC_FINE_AEROSOL, WASHFRAC_COARSE_AEROSOL,
-      ! or WASHFRAC_LIQ_GAS to compute the fraction of tracer lost to 
+      ! or WASHFRAC_LIQ_GAS to compute the fraction of species lost to 
       ! washout according to Jacob et al 2000
       !=================================================================
 
@@ -2054,7 +2067,7 @@
       RC      =  GIGC_SUCCESS
 
 #if defined( TOMAS )
-      ! Convert tracer concentration units to [kg] if not already
+      ! Convert species concentration units to [kg] if not already
       ! since TOMAS functions and routines expect [kg]. Units are
       ! kg/kg total air if WASHOUT is called from convection and are
       ! kg/m2 is called from DO_WASHOUT_ONLY. Since WASHOUT is called
@@ -2199,7 +2212,7 @@
       ENDIF
 
 #if defined( TOMAS )
-      ! Convert State_Chm%Tracers units back to original units 
+      ! Convert State_Chm%Species units back to original units 
       ! if conversion occurred at start of WASHOUT (ewl, 5/12/15)
       IF ( UNITCHANGE_KGKG ) THEN
          CALL ConvertSpc_Kg_to_KgKgTotal( am_I_Root, I, J, L,
@@ -2209,11 +2222,11 @@
      &                               State_Met, State_Chm, RC )
       ENDIF
 
-      ! Check that tracer units are as expected (ewl, 9/29/15)
+      ! Check that species units are as expected (ewl, 9/29/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg total' .AND.
      &     TRIM( State_Chm%Spc_Units ) /= 'kg/m2' ) THEN
          CALL ERROR_STOP('Incorrect final species units:' // 
-     &                    State_Chm%Trac_Units,  
+     &                    State_Chm%Spc_Units,  
      &                   'Routine WASHOUT in wetscav_mod')
       ENDIF
 #endif
@@ -2231,7 +2244,7 @@
 ! !IROUTINE: washfrac_fine_aerosol
 !
 ! !DESCRIPTION: Function WASHFRAC\_FINE\_AEROSOL returns the fraction of
-!  soluble aerosol tracer lost to washout.
+!  soluble aerosol species lost to washout.
 !\\
 !\\
 ! !INTERFACE:
@@ -2253,7 +2266,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)             :: WASHFRAC  ! Fraction of soluble tracer
+      REAL(fp)             :: WASHFRAC  ! Fraction of soluble species
                                         !  lost to washout [1]
 ! 
 ! !REVISION HISTORY: 
@@ -2321,7 +2334,7 @@
 ! !IROUTINE: washfrac_coarse_aerosol
 !
 ! !DESCRIPTION: Function WASHFRAC\_COARSE\_AEROSOL returns the fraction of 
-!  soluble aerosol tracer lost to washout.
+!  soluble aerosol species lost to washout.
 !\\
 !\\
 ! !INTERFACE:
@@ -2343,7 +2356,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)             :: WASHFRAC   ! Fraction of soluble tracer 
+      REAL(fp)             :: WASHFRAC   ! Fraction of soluble species 
                                          !  lost to washout
 ! 
 ! !REVISION HISTORY: 
@@ -2404,7 +2417,7 @@
 ! !IROUTINE: washfrac_size_aerosol
 !
 ! !DESCRIPTION: Subroutine WASHFRAC\_SIZE\_AEROSOL retrieves fraction of 
-!  soluble aerosol tracer lost to washout. Size resolved version for TOMAS.
+!  soluble aerosol species lost to washout. Size resolved version for TOMAS.
 !\\
 !\\
 ! !INTERFACE:
@@ -2434,7 +2447,7 @@
       INTEGER,        INTENT(IN)    :: I          ! Longitude index
       INTEGER,        INTENT(IN)    :: J          ! Latitude index
       INTEGER,        INTENT(IN)    :: L          ! Level index
-      INTEGER,        INTENT(IN)    :: N          ! Tracer index
+      INTEGER,        INTENT(IN)    :: N          ! Species index
 
       TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
 !
@@ -2444,7 +2457,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),       INTENT(OUT)   :: WASHFRAC   ! Fraction of tracer 
+      REAL(fp),       INTENT(OUT)   :: WASHFRAC   ! Fraction of species 
                                                   !  lost to washout [1]
       INTEGER,        INTENT(OUT)   :: RC         ! Success or failure?
 ! 
@@ -2476,8 +2489,8 @@
          !-------------
 
 !--------------------------------------------------------------
-!!sfarina - This contruct assumes tracers are dealt with sequentially,
-!!          but wetdep parallelizes over tracers
+!!sfarina - This contruct assumes species are dealt with sequentially,
+!!          but wetdep parallelizes over species
 !!          It could be possible to calculated the lookup table and save
 !!          in an I,J,L,BIN array but for now we will calculate redundantly.
 !         ! For aerosol number, get Dp and calculate scavr 
@@ -2527,7 +2540,7 @@
 ! !IROUTINE: washfrac_hno3
 !
 ! !DESCRIPTION: Function WASHFRAC\_HNO3 returns the fraction of HNO3 
-!               tracer lost to washout.
+!               species lost to washout.
 !\\
 !\\
 ! !INTERFACE:
@@ -2548,7 +2561,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)             :: WASHFRAC  ! Fraction of soluble tracer 
+      REAL(fp)             :: WASHFRAC  ! Fraction of soluble species 
 
 ! 
 ! !REVISION HISTORY: 
@@ -2604,7 +2617,7 @@
 ! !IROUTINE: washfrac_liq_gas
 !!
 ! !DESCRIPTION: Subroutine WASHFRAC\_LIQ\_GAS returns the fraction of soluble 
-!  liquid/gas phase tracer lost to washout.
+!  liquid/gas phase species lost to washout.
 !\\
 !\\
 ! !INTERFACE:
@@ -2627,7 +2640,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp), INTENT(OUT) :: WASHFRAC  ! Fraction of tracer lost to washout
+      REAL(fp), INTENT(OUT) :: WASHFRAC  ! Fraction of species lost to washout
       LOGICAL,  INTENT(OUT) :: KIN       ! T = washout is a kinetic process
                                          ! F = washout is an equilibrium process
 !
@@ -2712,8 +2725,8 @@
 !
 ! !IROUTINE: wetdep
 !
-! !DESCRIPTION: Subroutine WETDEP computes the downward mass flux of tracer 
-!  due to washout and rainout of aerosols and soluble tracers in a column.  
+! !DESCRIPTION: Subroutine WETDEP computes the downward mass flux of species 
+!  due to washout and rainout of aerosols and soluble species in a column.  
 !  The timestep is the dynamic timestep.
 !\\
 !\\
@@ -2851,7 +2864,7 @@
 !       L + W  = condensed water content in cloud 
 !              = 2.0e-6 [cm3 H2O/cm3 air]
 !                                                                             .
-!  K_RAIN and F' are needed to compute the fraction of tracer in grid box 
+!  K_RAIN and F' are needed to compute the fraction of species in grid box 
 !  (I,J,L=LLPAR) lost to rainout.  This is done in module routine RAINOUT.
 !                                                                             .
 !  Washout:
@@ -2956,7 +2969,7 @@
 
       ! Arrays
       ! DSTT is the accumulator array of rained-out 
-      ! soluble tracer for a given (I,J) column
+      ! soluble species for a given (I,J) column
       REAL(fp)               :: DSpc(NSOL,LLPAR,IIPAR,JJPAR)
 
       ! Strings
@@ -3134,7 +3147,7 @@
 !%%%
             ! The following block implements Qiaoqiao's changes
             ! Calculate the fractional areas subjected to rainout and
-            ! washout. If PDOWN = 0, then all dissolved tracer returns
+            ! washout. If PDOWN = 0, then all dissolved species returns
             ! to the atmosphere. (cdh, 7/13/10)
             IF ( PDOWN(L,I,J) > 0e+0_fp ) THEN
                F_RAINOUT = F_PRIME
@@ -3242,7 +3255,7 @@
             ! then  set F, the effective area of precipitation in grid 
             ! box (I,J,L), to zero.
             !
-            ! Also, all of the previously rained-out tracer that is now 
+            ! Also, all of the previously rained-out species that is now 
             ! coming down from grid box (I,J,L+1) will evaporate and 
             ! re-enter the atmosphere in the gas phase in grid box 
             ! (I,J,L).  This is called "resuspension".
@@ -3270,7 +3283,7 @@
          !==============================================================
          ! (7)  W a s h o u t   i n   L e v e l   1
          !
-         ! Assume all of the tracer precipitating down from grid box 
+         ! Assume all of the species precipitating down from grid box 
          ! (I,J,L=2) to grid box (I,J,L=1) gets washed out in grid box 
          ! (I,J,L=1).
          !==============================================================
@@ -3322,7 +3335,7 @@
          !==============================================================
          IF ( IS_Hg ) THEN
 
-            ! Loop over soluble tracers and/or aerosol tracers
+            ! Loop over soluble species and/or aerosol species
             DO NW = 1, State_Chm%nWetDep
 
                ! Get species ID from wetdep ID
@@ -3331,13 +3344,13 @@
                ! Amount of Hg deposited out of the column
                DEP_HG = DSpc(NW,1,I,J)
 
-               ! Point to the Species Database entry for tracer N
+               ! Point to the Species Database entry for species N
                SpcInfo => State_Chm%SpcData(N)%Info
 
                ! Check if it is a gaseous Hg2 tag
                IF ( SpcInfo%Is_Hg2 ) THEN
                   
-                  ! Get the category # for this Hg2 tracer
+                  ! Get the category # for this Hg2 species
                   Hg_Cat = SpcInfo%Hg_Cat
                   
                   ! Archive wet-deposited Hg2
@@ -3348,7 +3361,7 @@
                ! Check if it is a HgP tag
                ELSE IF ( SpcInfo%Is_HgP ) THEN 
                                     
-                  ! Get the category # for this HgP tracer
+                  ! Get the category # for this HgP species
                   Hg_Cat = SpcInfo%Hg_Cat
 
                   ! Archive wet-deposited HgP
@@ -3387,7 +3400,7 @@
 ! !IROUTINE: wetdep_merra
 !
 ! !DESCRIPTION: Subroutine WETDEP_MERRA computes the downward mass flux of 
-!  tracer due to washout and rainout of aerosols and soluble tracers in a 
+!  species due to washout and rainout of aerosols and soluble species in a 
 !  column.  This subroutine implements a new algorithm in which the 
 !  precipitation fields come directly from the MERRA archive.
 !\\
@@ -3525,7 +3538,7 @@
 !       L + W  = condensed water content in cloud 
 !              = 2.0e-6 [cm3 H2O/cm3 air]
 !                                                                             .
-!  K_RAIN and F' are needed to compute the fraction of tracer in grid box 
+!  K_RAIN and F' are needed to compute the fraction of species in grid box 
 !  (I,J,L=LLPAR) lost to rainout.  This is done in module routine RAINOUT.
 !                                                                             .
 !  Washout:
@@ -3582,7 +3595,7 @@
 
       ! Arrays
       ! DSpc is the accumulator array of rained-out 
-      ! soluble tracer for a given (I,J) column
+      ! soluble species for a given (I,J) column
       REAL(fp)               :: DSpc(NSOL,LLPAR,IIPAR,JJPAR)
  
       ! Strings
@@ -3733,7 +3746,7 @@
 
             ! The following block implements Qiaoqiao's changes
             ! Calculate the fractional areas subjected to rainout and
-            ! washout. If PDOWN = 0, then all dissolved tracer returns
+            ! washout. If PDOWN = 0, then all dissolved species returns
             ! to the atmosphere. (cdh, 7/13/10)
             IF ( PDOWN(L,I,J) > 0e+0_fp ) THEN
                F_RAINOUT = F_PRIME
@@ -3830,7 +3843,7 @@
             ! then  set F, the effective area of precipitation in grid 
             ! box (I,J,L), to zero.
             !
-            ! Also, all of the previously rained-out tracer that is now 
+            ! Also, all of the previously rained-out species that is now 
             ! coming down from grid box (I,J,L+1) will evaporate and 
             ! re-enter the atmosphere in the gas phase in grid box 
             ! (I,J,L).  This is called "resuspension".
@@ -3910,8 +3923,8 @@
          !==============================================================
          IF ( IS_Hg ) THEN
 
-            ! Loop over soluble tracers and/or aerosol tracers
-            DO NW = 1, State_Chm%NWetDep
+            ! Loop over soluble species and/or aerosol species
+            DO NW = 1, State_Chm%nWetDep
 
                ! Get the species index from the wetdep index
                N       = State_Chm%Map_WetDep(NW)
@@ -3919,13 +3932,13 @@
                ! Amount of Hg wet-deposited out of the column
                DEP_HG  = DSpc(NW,1,I,J)
 
-               ! Point to the Species Database entry for tracer N
+               ! Point to the Species Database entry for species N
                SpcInfo => State_Chm%SpcData(N)%Info
 
                ! Check if it is a gaseous Hg2 tag
                IF ( SpcInfo%Is_Hg2 ) THEN
                   
-                  ! Get the category # for this Hg2 tracer
+                  ! Get the category # for this Hg2 species
                   Hg_Cat = SpcInfo%Hg_Cat
 
                   ! Archive wet-deposited Hg2
@@ -3936,7 +3949,7 @@
                ! Check if it is a HgP tag
                ELSE IF ( SpcInfo%Is_HgP ) THEN
                   
-                  ! Get the category # for this HgP tracer
+                  ! Get the category # for this HgP species
                   Hg_Cat = SpcInfo%Hg_Cat
 
                   ! Archive wet-deposited HgP
@@ -3956,7 +3969,7 @@
       ENDDO	
 !$OMP END PARALLEL DO
 
-      ! Convert tracer concentration back to kg/kg dry air (ewl, 9/8/15)
+      ! Convert species concentration back to kg/kg dry air (ewl, 9/8/15)
       CALL ConvertSpc_Kgm2_to_KgKgDry( am_I_Root, State_Met, 
      &                                 State_Chm, RC         )
       IF ( RC /= GIGC_SUCCESS ) THEN
@@ -4127,7 +4140,7 @@
 !
 ! !IROUTINE: do_rainout_only
 !
-! !DESCRIPTION: Subroutine DO\_RAINOUT\_ONLY removes tracer by rainout.
+! !DESCRIPTION: Subroutine DO\_RAINOUT\_ONLY removes species by rainout.
 !\\
 !\\
 ! !INTERFACE:
@@ -4258,7 +4271,7 @@
          N = State_Chm%Map_WetDep(NW)
                   
          ! Call subroutine RAINOUT to comptue the fraction
-         ! of tracer lost to rainout in grid box (I,J,L) 
+         ! of species lost to rainout in grid box (I,J,L) 
          CALL RAINOUT( I, J, L, N, K_RAIN, DT, F_RAINOUT, RAINFRAC,
      &                 Input_Opt, State_Met, State_Chm )
 
@@ -4281,7 +4294,7 @@
              ENDIF
           ENDIF
 #endif
-         ! WETLOSS is the amount of tracer in grid box per unit area
+         ! WETLOSS is the amount of species in grid box per unit area
          ! (I,J,L) that is lost to rainout [kg/m2]
          WETLOSS = Spc(I,J,L,N) * RAINFRAC
 
@@ -4290,26 +4303,26 @@
 
          IF ( L == LLPAR ) THEN
            
-            ! DSpc is an accumulator array for rained-out tracers.  
-            ! The tracers in DSpc are in the liquid phase and will 
+            ! DSpc is an accumulator array for rained-out species.  
+            ! The species in DSpc are in the liquid phase and will 
             ! precipitate to the levels below until a washout occurs.
             ! Initialize DSpc at (I,J,L=LLPAR) with WETLOSS.
             DSpc(NW,L,I,J) = WETLOSS
 
          ELSE
                                  
-            ! Add to DSpc the tracer lost to rainout in grid box        
-            ! (I,J,L) plus the tracer lost to rainout from grid box 
+            ! Add to DSpc the species lost to rainout in grid box        
+            ! (I,J,L) plus the species lost to rainout from grid box 
             ! (I,J,L+1), which has by now precipitated down into 
             ! grid box (I,J,L).  DSpc will continue to accumulate 
-            ! rained out tracer in this manner until a washout 
+            ! rained out species in this manner until a washout 
             ! event occurs.
             DSpc(NW,L,I,J) = DSpc(NW,L+1,I,J) + WETLOSS
 
          ENDIF
 
          !--------------------------------------------------------------
-         ! Archive diagnostics for each tracer
+         ! Archive diagnostics for each species
          !--------------------------------------------------------------
 
          ! ND17 diagnostic...rainout fractions [unitless]
@@ -4372,7 +4385,7 @@
 !
 ! !IROUTINE: do_washout_only
 !
-! !DESCRIPTION: Subroutine DO\_WASHOUT\_ONLY removes tracer by washout.
+! !DESCRIPTION: Subroutine DO\_WASHOUT\_ONLY removes species by washout.
 !\\
 !\\
 !  The modifications for the MERRA met fields require calling this same 
@@ -4541,7 +4554,7 @@
       REAL(fp)           :: TK,        TF  
 
       ! Pointers
-      ! We need to define local array to hold tracer concentraiton values 
+      ! We need to define local array to hold species concentraiton values 
       ! from the Chemistry State (State_Chm) object [kg/m2] (ewl, 9/29/15)
       REAL(fp), POINTER  :: Spc(:,:,:,:)
 
@@ -4598,7 +4611,7 @@
          LOST        = 0e+0_fp
 
          ! Call WASHOUT to compute the fraction of 
-         ! tracer lost to washout in grid box (I,J,L)
+         ! species lost to washout in grid box (I,J,L)
          CALL WASHOUT( am_I_Root, I, J, L, N,
      &                 State_Met%BXHEIGHT(I,J,L), 
      &                 TK,        QDOWN,        DT,   
@@ -4614,8 +4627,8 @@
          ! Check if WASHFRAC = NaN or WASHFRAC < 0.1 %
          ! 
          ! If WASHFRAC = NaN, then DSpc = NaN and SAFETY trips because 
-         ! tracer concentrations must be finite.WASHFRAC = NaN when F = 0. 
-         ! When less than 0.1% of a soluble tracer is available for washout
+         ! species concentrations must be finite.WASHFRAC = NaN when F = 0. 
+         ! When less than 0.1% of a soluble species is available for washout
          ! DSpc < 0 and SAFETY trips.  (Helen Amos, 20100928)
          IF ( IT_IS_NAN( WASHFRAC ) ) THEN
             CYCLE
@@ -4642,7 +4655,7 @@
          ENDIF
                   
          !--------------------------------------------------------------
-         ! Washout of aerosol tracers -- 
+         ! Washout of aerosol species -- 
          ! this is modeled as a kinetic process
          !--------------------------------------------------------------
 
@@ -4723,17 +4736,17 @@
 # endif
                ENDIF
 
-               ! ***NOTE*** Tracer concentration units are currently in
+               ! ***NOTE*** Species concentration units are currently in
                ! [kg/m2] which is incompatible with TOMAS. Units are
                ! therefore converted to [kg] locally within AQOXID.
                ! GAINED is now [kg/m2] ans so is multiplied
                ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
-               IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/m2' ) THEN
+               IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
                   REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp
      &                        * State_Met%AREA_M2(I,J,1)
                ELSE
-                  MSG = 'Unexpected tracer units: ' 
-     &                            // TRIM( State_Chm%Trac_Units )
+                  MSG = 'Unexpected species units: ' 
+     &                            // TRIM( State_Chm%Spc_Units )
                   LOC = 'Routine DO_WASHOUT_ONLY in wetscav_mod.F'
                   CALL ERROR_STOP( MSG, LOC )
                ENDIF
@@ -4752,8 +4765,8 @@
             ! phase in grid box (I,J,L) and will NOT re-evaporate.
             LOST = DSpc(NW,L+1,I,J) - GAINED
 
-            ! Add the washed out tracer from grid box (I,J,L) to 
-            ! DSpc.  Also add the amount of tracer coming down
+            ! Add the washed out species from grid box (I,J,L) to 
+            ! DSpc.  Also add the amount of species coming down
             ! from grid box (I,J,L+1) that does NOT re-evaporate.
             IF ( F_RAINOUT > 0e+0_fp ) THEN 
                DSpc(NW,L,I,J) = DSpc(NW,L,  I,J) + WETLOSS
@@ -4768,29 +4781,29 @@
             ENDIF
 
          !--------------------------------------------------------------
-         ! Washout of non-aerosol tracers
+         ! Washout of non-aerosol species
          ! This is modeled as an equilibrium process
          !--------------------------------------------------------------
          ELSE
                   
-            ! MASS_NOWASH is the amount of non-aerosol tracer in 
+            ! MASS_NOWASH is the amount of non-aerosol species in 
             ! grid box (I,J,L) that is NOT available for washout.
             MASS_NOWASH = ( 1e+0_fp - F_WASHOUT ) * Spc(I,J,L,N)
                
-            ! MASS_WASH is the total amount of non-aerosol tracer
+            ! MASS_WASH is the total amount of non-aerosol species
             ! that is available for washout in grid box (I,J,L).
             ! It consists of the mass in the precipitating
             ! part of box (I,J,L), plus the previously rained-out
-            ! tracer coming down from grid box (I,J,L+1).
+            ! species coming down from grid box (I,J,L+1).
             ! (Eq. 15, Jacob et al, 2000).
             MASS_WASH = ( F_WASHOUT*Spc(I,J,L,N) ) + DSpc(NW,L+1,I,J)
 
-            ! WETLOSS is the amount of tracer mass in 
+            ! WETLOSS is the amount of species mass in 
             ! grid box (I,J,L) that is lost to washout.
             ! (Eq. 16, Jacob et al, 2000)
             WETLOSS = ( MASS_WASH - DSpc(NW,L+1,I,J) ) * WASHFRAC
 
-            ! The tracer left in grid box (I,J,L) is what was
+            ! The species left in grid box (I,J,L) is what was
             ! in originally in the non-precipitating fraction 
             ! of the box, plus MASS_WASH, less WETLOSS. 
             Spc(I,J,L,N) = Spc(I,J,L,N) - WETLOSS  
@@ -4867,7 +4880,7 @@
 ! !IROUTINE: do_complete_reevap
 !
 ! !DESCRIPTION: Subroutine DO\_COMPLETE\_REEVAP re-evaporates all of the
-!  soluble tracer back into the atmosphere.
+!  soluble species back into the atmosphere.
 !\\
 !\\
 ! !INTERFACE:
@@ -4967,11 +4980,11 @@
          ! Get the species ID from the wetdep ID
          N = State_Chm%Map_WetDep(NW)
 
-         ! WETLOSS is the amount of tracer in grid box (I,J,L) per area
+         ! WETLOSS is the amount of species in grid box (I,J,L) per area
          ! that is lost to rainout. (qli, bmy, 10/29/02)
          WETLOSS = -DSpc(NW,L+1,I,J)
 
-         ! All of the rained-out tracer coming from grid box
+         ! All of the rained-out species coming from grid box
          ! (I,J,L+1) goes back into the gas phase at (I,J,L)
          ! In evap, SO2 comes back as SO4 (rjp, bmy, 3/23/03)
          IF ( N == id_SO2 ) THEN
@@ -5021,19 +5034,19 @@
 # endif
                         ENDIF
 
-               ! ***NOTE*** Tracer concentration units are currently in
+               ! ***NOTE*** Species concentration units are currently in
                ! [kg/m2] which is incompatible with TOMAS. Units are
                ! therefore converted to [kg] locally within AQOXID.
                ! WETLOSS is now [kg/m2] and so is multiplied
                ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
-                        IF ( TRIM( State_Chm%Trac_Units ) .eq.
+                        IF ( TRIM( State_Chm%Spc_Units ) .eq.
      &                                          'kg/m2' ) THEN
                            REEVAPSO2 =  - ( WETLOSS * 96e+0_fp 
      &                                  / 64e+0_fp )
      &                                  * State_Met%AREA_M2(I,J,1)
                         ELSE
-                           MSG = 'Unexpected tracer units: ' 
-     &                            // TRIM(State_Chm%Trac_Units)
+                           MSG = 'Unexpected species units: ' 
+     &                            // TRIM(State_Chm%Spc_Units)
                            LOC = 'Routine DO_COMPLETE_REEVAP' 
      &                           // 'in wetscav_mod.F'
                            CALL ERROR_STOP( MSG, LOC )
@@ -5113,7 +5126,7 @@
 !
 ! !IROUTINE: do_washout_at_sfc
 !
-! !DESCRIPTION: Subroutine DO\_WASHOUT_AT\_SFC washes out the tracer 
+! !DESCRIPTION: Subroutine DO\_WASHOUT_AT\_SFC washes out the species 
 !  at the surface.
 !\\
 !\\
@@ -5173,7 +5186,7 @@
       INTEGER,          INTENT(OUT)   :: RC            ! Success or failure?
 !
 ! !REMARKS:
-!  Assume all of the tracer precipitating down from grid box (I,J,L=2) to 
+!  Assume all of the species precipitating down from grid box (I,J,L=2) to 
 !  grid box (I,J,L=1) gets washed out in grid box (I,J,L=1).
 !                                                                             .
 !  The modifications for the MERRA met fields require calling this same 
@@ -5235,7 +5248,7 @@
          ! Get species ID from wetdep ID
          N = State_Chm%Map_WetDep(NW)
 
-         ! Call WASHOUT to compute the fraction of tracer 
+         ! Call WASHOUT to compute the fraction of species 
          ! in grid box (I,J,L) that is lost to washout.  
          CALL WASHOUT( am_I_Root, I, J, L, N,
      &                 State_Met%BXHEIGHT(I,J,L), 
@@ -5297,12 +5310,12 @@
          !-----------------------------------------------------
          ! Dirty kludge to prevent wet deposition from removing 
          ! stuff from stratospheric boxes -- this can cause 
-         ! negative tracer (rvm, bmy, 6/21/00)
+         ! negative species (rvm, bmy, 6/21/00)
          !
          IF ( Spc(I,J,L,N) < 0e+0_fp .and. L > 23 ) THEN
              WRITE ( 6, 101 ) I, J, L, N, 7
  101         FORMAT( 'WETDEP - Spc < 0 at ', 3i4, 
-     &               ' for tracer ', i4, 'in area ', i4 )
+     &               ' for species ', i4, 'in area ', i4 )
              PRINT*, 'Spc:', Spc(I,J,:,N)
              Spc(I,J,L,N) = 0e+0_fp
          ENDIF
@@ -5351,7 +5364,7 @@
 ! !IROUTINE: safety
 !
 ! !DESCRIPTION: Subroutine SAFETY stops the run with debug output and an 
-!  error message if negative tracers are found. 
+!  error message if negative species are found. 
 !\\
 !\\
 ! !INTERFACE:
@@ -5409,7 +5422,7 @@
 
       ! Write error message and stop the run
       WRITE ( 6, 100 ) I, J, L, N, TRIM( A )
- 100  FORMAT( 'WETDEP: ERROR at ', 3i4, ' for tracer ', i4, 
+ 100  FORMAT( 'WETDEP: ERROR at ', 3i4, ' for species ', i4, 
      &        ' in area ', a )
 
       PRINT*, 'LS          : ', LS
@@ -5538,7 +5551,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                   :: F          ! Fraction of tracer scavenged
+      REAL(fp)                   :: F          ! Fraction of species scavenged
                                                !  out of the updraft [1]
 ! 
 ! !REVISION HISTORY:
@@ -5651,8 +5664,7 @@
       ! Actual number of wet-depositing species
       NSOL = 0
 
-      ! Define species ID flags, regardless of whether or not wet scavenging 
-      ! is turned on.  These were formerly defined in tracerid_mod.F.
+      ! Define species ID flags
       id_NK1   = IND_('NK1'  )
       id_SF1   = IND_('SF1'  )
       id_DUST1 = IND_('DUST1')
@@ -5677,7 +5689,7 @@
       !-----------------------------------------------------------------
       IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
 
-         ! Tracer numbers of all wet-depositing species
+         ! IDs of all wet-depositing species
          ALLOCATE( IDWETD( State_Chm%nWetDep ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'IDWETD' )
          IDWETD = 0
@@ -5728,11 +5740,11 @@
       IF ( am_I_Root .and. NSOL > 0 ) THEN
 
          ! Title
-         LINE = 'INIT_WETSCAV: List of soluble tracers: '
+         LINE = 'INIT_WETSCAV: List of soluble species: '
          WRITE( 6, '(/,a,/)' ) TRIM( LINE )
 
          ! 1st line
-         LINE = '  #             Name  Tracer Mol Wt ' // 
+         LINE = '  #             Name  Species Mol Wt ' // 
      &          ' Henry K0  Henry CR  Henry pKa'
          WRITE( 6, '(a)'     ) TRIM( LINE )
 
@@ -5746,7 +5758,7 @@
          ! Loop over all wet-depositing species
          DO N_WD = 1, NSOL
 
-            ! GEt the corresponding advected tracer ID
+            ! GEt the corresponding advected species ID
             N = IDWETD(N_WD)
 
             ! Get physical parameters from the species database object
@@ -5976,7 +5988,7 @@
 
       !====================================================================
       ! We need to initialize the H2O2s and SO2s arrays to the values
-      ! of State_Chm%Tracers for H2O2 and SO2.  This only needs to be
+      ! of State_Chm%Species for H2O2 and SO2.  This only needs to be
       ! done the first time this routine is called (which happens after
       ! the restart file is read from disk).
       !
@@ -5991,7 +6003,7 @@
 
          ! Set H2O2s to the initial H2O2 from STT, so that we will have
          ! nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
-         ! While State_Chm%TRACERS are now in units of [kg/kg dry air] for
+         ! While State_Chm%Species are now in units of [kg/kg dry air] for
          ! call to SETUP_WETSCAV, store H2O2s in legacy units [v/v dry air] 
          ! for now for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
          IF ( id_H2O2 > 0 ) THEN
@@ -6001,7 +6013,7 @@
 
          ! Set SO2s to the initial SO2 from STT, so that we will have
          ! nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
-         ! While State_Chm%TRACERS are now in units of [kg/kg dry air] for 
+         ! While State_Chm%Species are now in units of [kg/kg dry air] for 
          ! call to SETUP_WETSCAV, store SO2s in units [v/v dry air] for now 
          ! for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
          IF ( id_SO2 > 0 ) THEN

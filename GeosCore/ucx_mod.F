@@ -160,9 +160,9 @@
       !
       ! Scalars
       !
-      ! TRAC_IDX           : Tracer index for output
-      ! N_EMIT             : Number of tracers to emit
-      ! MAX_EMIT           : Limit on tracer emission count
+      ! TRAC_IDX           : Species index for output
+      ! N_EMIT             : Number of species to emit
+      ! MAX_EMIT           : Limit on species emission count
       ! SFC_MONTH          : Current month
       ! OFFSETYEAR         : Number of year-ends since simulation start
       ! MONTH_STR_INT      : Current month
@@ -178,14 +178,14 @@
       ! ISR_N2O5           : N2O5 MW (inverse sqrt) (kg/kmol)^-0.5
       ! ISR_HOCl           : HOCl MW (inverse sqrt) (kg/kmol)^-0.5
       ! ISR_HOBr           : HOBr MW (inverse sqrt) (kg/kmol)^-0.5
-      ! CLOCKMR            : Current base MR for the clock tracer
+      ! CLOCKMR            : Current base MR for the clock species
       !
       ! Arrays
       !
       ! UCX_MR             : AER 2D mixing ratios (v/v)
       ! UCX_PLEVS          : Pressure levels of 2D data (hPa)
       ! UCX_LATS           : Latitude edges of 2D data (deg)
-      ! IDT_EMIT           : IDs of emitted tracers
+      ! IDT_EMIT           : IDs of emitted species
       ! GRID_EMIT          : Surface CFC mixing ratios
       ! SFC_MONTH          : Month of last read-in
       ! RAD_AER            : Strat. aerosol radius (cm)
@@ -203,12 +203,12 @@
       !
       ! TRAC_FILE          : Input filename
       ! MONTH_STR          : Current month
-      ! TRAC_SET           : Tracer name to be overwritten
-      ! TRAC_EMIT          ! Tracer names for emission
+      ! TRAC_SET           : Species name to be overwritten
+      ! TRAC_EMIT          ! Species names for emission
       !
       ! Logicals
       ! 
-      ! TRAC_ADD            : Add to (rather than overwrite) tracer
+      ! TRAC_ADD            : Add to (rather than overwrite) species
       ! STRAT2DCH4          : Use 2D estimates of stratospheric CH4?
       ! 
       !=================================================================
@@ -316,7 +316,7 @@
       INTEGER                     :: JJNOXCOEFF
 
       !=================================================================
-      ! Species ID flags (formerly located in tracerid_mod.F).
+      ! Species ID flags
       ! These are now defined in INIT_UCX and used where needed.
       ! (sde, bmy, 6/21/16)
       !=================================================================
@@ -348,7 +348,7 @@
 ! !IROUTINE: set_initial_mixratios
 !
 ! !DESCRIPTION: Subroutine SET\_INITIAL\_MIXRATIOS is a public interface.
-!  Concentrations of tracers are read from 2D estimates made using the
+!  Concentrations of species are read from 2D estimates made using the
 !  AER 2D model.
 !\\
 !\\
@@ -378,7 +378,7 @@
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REMARKS:
-!  Concentrations of each of the following tracers are read from
+!  Concentrations of each of the following species are read from
 !  2D estimates made using the AER 2D model:
 !                                                                             .
 !     (# ) TRC                 = Constituents         < Controlled by
@@ -469,31 +469,9 @@
       ! Pointers
       REAL(fp), POINTER  :: Spc (:,:,:,:)
 
-!@@@      ! TEMPOARY TRACER REMOVAL CODE (ewl, 7/7/16)
-!@@@      INTEGER         :: nAdvect, NA
-!@@@      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-
       !=================================================================
       ! SET_INITIAL_MIXRATIOS begins here!
       !=================================================================
-
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
-      !@@@ Need to force State_Chm%Species = State_Chm%Tracers during 
-      !@@@ development. This can be removed later once State_Chm%Tracers 
-      !@@@ is removed everywhere
-      !@@@
-      !! Number of advected species
-      !nAdvect = State_Chm%nAdvect
-      !
-      !! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      !! Store incoming State_Chm%Species in a local variable for testing
-      !DO NA = 1, nAdvect
-      !   N = State_Chm%Map_Advect(NA)
-      !   Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
-      !   State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      !ENDDO
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Copy fields from INPUT_OPT
       LPRT         = ( Input_Opt%LPRT .and. am_I_Root )
@@ -511,7 +489,7 @@
 
       ! Set module variable
 
-      ! Initialize GEOS-Chem tracer array [kg/kg]
+      ! Initialize GEOS-Chem species array [kg/kg]
       Spc => State_Chm%Species
 
       IF ( am_I_Root ) THEN
@@ -1117,19 +1095,6 @@
          ENDIF
       ENDIF
 
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
-      !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-      !@@@
-      !DO NA = 1, nAdvect
-      !   N                          = State_Chm%Map_Advect(NA)
-      !   State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      !
-      !   ! Restore State_Chm%SPECIES to its original values
-      !   State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      !ENDDO
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
       ! Free pointer
       NULLIFY( Spc )
  
@@ -1325,37 +1290,15 @@
       ! Pointers
       REAL(fp), POINTER    :: Spc (:,:,:,:)
 
-!@@@      ! TEMPOARY TRACER REMOVAL CODE (ewl, 7/7/16)
-!@@@      INTEGER         :: nAdvect, NA, N
-!@@@      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-
       !=================================================================
       ! UCX_NOX begins here!
       !=================================================================
-
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
-      !@@@ Need to force State_Chm%Species = State_Chm%Tracers during 
-      !@@@ development. This can be removed later once State_Chm%Tracers 
-      !@@@ is removed everywhere
-      !@@@
-      !! Number of advected species
-      !nAdvect = State_Chm%nAdvect
-      !
-      !! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      !! Store incoming State_Chm%Species in a local variable for testing
-      !DO NA = 1, nAdvect
-      !   N = State_Chm%Map_Advect(NA)
-      !   Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
-      !   State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      !ENDDO
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Copy fields from INPUT_OPT
       LPRT      = Input_Opt%LPRT
       TCVV      = Input_Opt%TCVV(1:Input_Opt%N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Initialize GEOS-Chem species array [kg]
       Spc => State_Chm%Species
 
       ! Retrieve monthly mean data if necessary
@@ -1557,7 +1500,7 @@
          N2ORATE = (RRATE(7)*FRACN*FRACNO2*LOCALNOX*LOCALNOX) - 
      &   ((RRATE(k_JN2O)+((RRATE(10)+RRATE(11))*LOCALO1D))*LOCALN2O)
         
-         ! Calculate fractional loss and apply to tracer
+         ! Calculate fractional loss and apply to species
          ! Explicit Euler method (fast)
          DNOX = NOXRATE * DTCHEM / (TCVV(id_NO)*XAIR)
          IF ((DNOX*-1e+0_fp).gt.KGNOX) THEN
@@ -1605,19 +1548,6 @@
      &       MESON2O_DELTA, ' kg'
          CALL DEBUG_MSG(TRIM(DBGMSG))
       ENDIF
-
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
-      !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-      !@@@
-      !DO NA = 1, nAdvect
-      !   N                          = State_Chm%Map_Advect(NA)
-      !   State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      !
-      !   ! Restore State_Chm%SPECIES to its original values for testing
-      !   State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      !ENDDO
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Free pointer
       NULLIFY( Spc )
@@ -2277,10 +2207,6 @@
       ! Pointers
       REAL(fp), POINTER     :: Spc (:,:,:,:)
 
-!@@@      ! TEMPOARY TRACER REMOVAL CODE (ewl, 7/7/16)
-!@@@      INTEGER         :: nAdvect, NA
-!@@@      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-
       !=================================================================
       ! EMISS_BASIC begins here!
       !=================================================================
@@ -2288,37 +2214,19 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
-      !@@@ Need to force State_Chm%Species = State_Chm%Tracers during 
-      !@@@ development. This can be removed later once State_Chm%Tracers 
-      !@@@ is removed everywhere
-      !@@@
-      !! Number of advected species
-      !nAdvect = State_Chm%nAdvect
-      !
-      !! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      !! Store incoming State_Chm%Species in a local variable for testing
-      !DO NA = 1, nAdvect
-      !   N = State_Chm%Map_Advect(NA)
-      !   Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
-      !   State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      !ENDDO
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
       ! Copy fields from INPUT_OPT
       LPRT      = Input_Opt%LPRT
       TCVV      = Input_Opt%TCVV(1:Input_Opt%N_TRACERS)
 
-      ! Check that tracer units are in kg/kg dry air (ewl, 9/10/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
-         CALL GIGC_Error( 'Incorrect tracer units: ' //
-     &                    State_Chm%Trac_Units, RC, 
+      ! Check that species units are in kg/kg dry air (ewl, 9/10/15)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
+         CALL GIGC_Error( 'Incorrect species units: ' //
+     &                    State_Chm%Spc_Units, RC, 
      &                    'Routine EMISS_BASIC in ucx_mod.F' )
          RETURN
       ENDIF
 
-      ! Initialize GEOS-Chem tracer array [kg/kg dry]
+      ! Initialize GEOS-Chem species array [kg/kg dry]
       Spc => State_Chm%Species
 
        ! If not correct hour block and day read in new fields
@@ -2342,10 +2250,10 @@
 !$OMP+SCHEDULE( DYNAMIC )
        DO N = 1, N_EMIT
 
-          ! Get the tracer # of the emitted species
+          ! Get the species # of the emitted species
           N_EMITTED = IDT_EMIT(N)
 
-          ! Convert units if the tracer is valied
+          ! Convert units if the species is valied
           IF ( N_EMITTED /= 0 ) THEN
         
              ! Loop over surface grmid boxes
@@ -2361,19 +2269,6 @@
           ENDIF
       ENDDO
 !$OMP END PARALLEL DO
-
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
-      !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-      !@@@
-      !DO NA = 1, nAdvect
-      !   N                          = State_Chm%Map_Advect(NA)
-      !   State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      !
-      !   ! Restore State_Chm%SPECIES to its original values
-      !   State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      !ENDDO
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Free pointer
       NULLIFY( Spc )
@@ -2502,7 +2397,7 @@
          ! Determine which line needs to be read in
          TARG_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + SFC_MONTH
 
-         ! Loop over tracer IDs pegged for emissions
+         ! Loop over species IDs pegged for emissions
          DO N=1,N_EMIT
             LOCAL_NAME = TRIM(TRAC_EMIT(N))
             SELECT CASE (LOCAL_NAME)
@@ -3093,7 +2988,7 @@
          ! Only want to sediment fraction of species currently
          ! in the aerosol
          DO K = 1,7
-            ! Only process transported tracers
+            ! Only process transported species
             IDTCURRENT = AERFRACIND(K)
             IF (IDTCURRENT.ne.0) THEN
                ! Calculate local phase partitioning
@@ -3550,7 +3445,7 @@
       ! Copy fields from species database
       SO4_MW_G    = State_Chm%SpcData(id_SO4)%Info%emMW_g ! g/mol
 
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Initialize GEOS-Chem species array [kg]
       Spc => State_Chm%Species
 
       IF (FIRST) THEN
@@ -3845,7 +3740,7 @@
       HNO3_MW_G = State_Chm%SpcData(id_HNO3)%Info%emMW_g  ! g/mol
       H2O_MW_G  = State_Chm%SpcData(id_H2O)%Info%emMW_g   ! g/mol
 
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Initialize GEOS-Chem species array [kg]
       Spc => State_Chm%Species
 
       ! Initialize sticking coefficients for PSC reactions on SLA
@@ -5582,7 +5477,7 @@
 !
 ! !IROUTINE: set_clock_trac
 !
-! !DESCRIPTION: Subroutine SET\_CLOCK\_TRAC sets the clock tracer mixing 
+! !DESCRIPTION: Subroutine SET\_CLOCK\_TRAC sets the clock species mixing 
 !  ratio within the bottom five grid levels, increasing by a fixed rate of
 !  0.5 ppbv/day
 !\\
@@ -5614,7 +5509,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER           :: I,J,L,LCLOCK
+      INTEGER             :: I,J,L,LCLOCK
       REAL(fp), PARAMETER :: INCRATE = 0.5e-9_fp ! vv/day increase
       
       !=================================================================
@@ -5622,7 +5517,7 @@
       !=================================================================
 
       IF (CLOCKMR.lt.TINY(1e+0_fp)) THEN
-         ! Reset clock tracer everywhere
+         ! Reset clock species everywhere
          LCLOCK = LLPAR
       ELSE
          ! Only set bottom 5 levels
@@ -5635,7 +5530,7 @@
       DO L=1,LCLOCK
       DO J=1,JJPAR
       DO I=1,IIPAR
-         State_Chm%Tracers(I,J,L,id_CLOCK) = CLOCKMR
+         State_Chm%Species(I,J,L,id_CLOCK) = CLOCKMR
       ENDDO ! L
       ENDDO ! I
       ENDDO ! J
@@ -5653,7 +5548,7 @@
 !
 ! !IROUTINE: set_h2o_trac
 !
-! !DESCRIPTION: Subroutine SET\_H2O\_TRAC sets the H2O tracer throughout 
+! !DESCRIPTION: Subroutine SET\_H2O\_TRAC sets the H2O species throughout 
 !  the selected domain (either troposphere only or the full grid).
 !\\
 !\\
@@ -5740,10 +5635,6 @@
       ! Pointers
       REAL(fp), POINTER     :: Spc (:,:,:,:)
 
-!@@@      ! TEMPORARY TRACER REMOVAL CODE (ewl, 7/7/16)
-!@@@      INTEGER         :: nAdvect, NA, N
-!@@@      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-
       !=================================================================
       ! SET_H2O_TRAC begins here!
       !=================================================================
@@ -5751,45 +5642,22 @@
       ! Assume success
       RC  = GIGC_SUCCESS   
 
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
-      !@@@ Need to force State_Chm%Species = State_Chm%Tracers during 
-      !@@@ development. This can be removed later once State_Chm%Tracers 
-      !@@@ is removed everywhere
-      !@@@
-      !! Number of advected species
-      !nAdvect = State_Chm%nAdvect
-      !
-      !! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      !DO NA = 1, nAdvect
-      !
-      !   ! Get tracer and species index for this advected species
-      !   N = State_Chm%Map_Advect(NA)
-      !
-      !   ! Store incoming State_Chm%Species in a local variable for testing
-      !   Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
-      !
-      !   ! Set advected species values equal to current tracer values
-      !   State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      !ENDDO
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
       ! Copy fields from INPUT_OPT
       LACTIVEH2O = Input_Opt%LACTIVEH2O
 
-      ! Check that tracer concentration units are as expected
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
-         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+      ! Check that species concentration units are as expected
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
+         MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
          LOC = 'UCX_MOD: SET_H2O_TRAC'
          CALL GIGC_Error( TRIM(MSG), RC, TRIM(LOC) )
       ENDIF
 
-      ! Initialize GEOS-Chem tracer array [kg/kg dry]
+      ! Initialize GEOS-Chem species array [kg/kg dry]
       Spc => State_Chm%Species
 
       ! If specific humidity will be updated, set previous humidity to
       ! to current humidity prior to change. This is used to preserve
-      ! tracer mass in mixing ratio update following moisture change
+      ! species mass in mixing ratio update following moisture change
       ! (ewl, 10/29/15)
       IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
          State_Met%SPHU_prev = State_Met%SPHU
@@ -5809,7 +5677,7 @@
 
          IF ( READ_SPHU ) THEN
             
-            ! Set H2O tracer concentration [kg/kg dry] using SPHU 
+            ! Set H2O species concentration [kg/kg dry] using SPHU 
             ! (ewl, 11/4/15)
             Spc(I,J,L,id_H2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
      &                          ( State_Met%ADMOIST(I,J,L)
@@ -5857,25 +5725,8 @@
       ENDDO ! J
 !$OMP END PARALLEL DO
 
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
-      !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-      !@@@
-      !DO NA = 1, nAdvect
-      !
-      !   ! Get tracer and species index for this advected species
-      !   N = State_Chm%Map_Advect(NA)
-      !
-      !   ! Set tracer values to new advected species values
-      !   State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      !
-      !   ! Restore advected species original values
-      !   State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      !ENDDO
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
       ! If humidity was updated, update all moist-dependent air quantities
-      ! and tracer mixing ratio with the new moisture content (ewl, 4/29/15) 
+      ! and species mixing ratio with the new moisture content (ewl, 4/29/15) 
       IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
          CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
      &                update_mixing_ratio=.TRUE. )
@@ -5958,10 +5809,6 @@
       ! Pointers
       REAL(fp), POINTER     :: Spc (:,:,:,:)
 
-!@@@      ! TEMPORARY TRACER REMOVAL CODE (ewl, 7/7/16)
-!@@@      INTEGER         :: nAdvect, NA, N
-!@@@      REAL(fp)        :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-
       !=================================================================
       ! UCX_H2SO4PHOT begins here!
       !=================================================================
@@ -5971,25 +5818,7 @@
       SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%emMW_g ! g/mol
       RELWT    = SO2_MW_G / SO4_MW_G
 
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
-      !@@@ Need to force State_Chm%Species = State_Chm%Tracers during 
-      !@@@ development. This can be removed later once State_Chm%Tracers 
-      !@@@ is removed everywhere
-      !@@@
-      !! Number of advected species
-      !nAdvect = State_Chm%nAdvect
-      !
-      !! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      !! Store incoming State_Chm%Species in a local variable for testing
-      !DO NA = 1, nAdvect
-      !   N = State_Chm%Map_Advect(NA)
-      !   Spc_temp(:,:,:,NA) = State_Chm%Species(:,:,:,N)
-      !   State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      !ENDDO
-      !!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Initialize GEOS-Chem species array [kg]
       Spc => State_Chm%Species
 
       ! Allow for the possibility of variable timestep
@@ -6028,19 +5857,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-      !@@@ REMOVE TRACERS MODIFICATION (ewl, 7/7/16)
-      !@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-      !@@@
-      !DO NA = 1, nAdvect
-      !   N                          = State_Chm%Map_Advect(NA)
-      !   State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      !
-      !   ! Restore State_Chm%SPECIES to its original values for testing
-      !   State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      !ENDDO
-      !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Free pointer
       NULLIFY( Spc )
@@ -6865,9 +6681,7 @@
       ! Set module variable doPrint for use in internal functions
       doPrint      = LPRT .AND. am_I_Root
 
-      ! Initialize species ID flags.  These were formerly stored in 
-      ! tracerid_mod.F but are now declared as module variables. 
-      ! (sde, bmy, 6/21/16)
+      ! Initialize species ID flags
       id_BCPI    = Ind_('BCPI'      )
       id_Br      = Ind_('Br'        )
       id_Br2     = Ind_('Br2'       )
@@ -7062,7 +6876,7 @@
       ! radius (m)
       SLA_VR = (0.357e-6_fp)*(10.e+0_fp**(12.e+0_fp*0.249))
 
-      ! Set clock tracer mixing ratio to zero
+      ! Set clock species mixing ratio to zero
       CLOCKMR = 0e+0_fp
 
       ! Set "current" month to impossible value
@@ -7072,7 +6886,7 @@
          CFCYEAR = GET_YEAR()
       ENDIF
 
-      ! Determine which tracers are to be emitted
+      ! Determine which species are to be emitted
       N_EMIT = 0
       IDT_EMIT = 0
 
@@ -7179,7 +6993,7 @@
          GRID_EMIT = 0e+0_fp
       ENDIF
 
-      ! Clear other tracer names for safety
+      ! Clear other species names for safety
       DO N=(N_EMIT+1),MAX_EMIT
          TRAC_EMIT(N) = ''
          IDT_EMIT(N) = 0
@@ -7215,7 +7029,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RHO_AER' )
       RHO_AER = 0e+0_fp
             
-      ! Mass fraction of tracers contained in liquid aerosol
+      ! Mass fraction of species contained in liquid aerosol
       ! Indices: 1 - SO4
       !          2 - HNO3
       !          3 - HCl
