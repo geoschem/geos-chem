@@ -1505,12 +1505,12 @@
       USE CMN_SIZE_MOD
       USE CHEMGRID_MOD,       ONLY : GET_MIN_TPAUSE_LEVEL
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+      USE ERROR_MOD,          ONLY : CHECK_SPC
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : CHECK_STT
 
 ! !INPUT PARAMETERS:
 !
@@ -1684,10 +1684,9 @@
 
 !      FIRSTCHEM = .FALSE.
 
-!%%% Comment out during removal of State_Chm%TRACERS
-!%%%      ! Check Spc for negatives and NaN
-!%%%      CALL CHECK_STT( State_Chm, Input_Opt,
-!%%%     &                'IN global_ch4_mod.F: CH4_STRAT' )
+      ! Check Spc for negatives and NaN
+      CALL CHECK_SPC( State_Chm, Input_Opt,
+     &                'IN global_ch4_mod.F: CH4_STRAT' )
 
       ! Free pointer
       Spc => NULL()

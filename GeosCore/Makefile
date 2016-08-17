@@ -641,8 +641,7 @@ global_br_mod.o             : global_br_mod.F                                \
 
 global_ch4_mod.o            : global_ch4_mod.F                               \
                               diag_mod.o              diag_oh_mod.o          \
-                              vdiff_pre_mod.o         hcoi_gc_main_mod.o     \
-                              tracer_mod.o
+                              vdiff_pre_mod.o         hcoi_gc_main_mod.o
 
 hcoi_gc_diagn_mod.o         : hcoi_gc_diagn_mod.F90                          \
                               hcoi_gc_diagn_include.H                        \
@@ -720,7 +719,7 @@ main.o                      : main.F                                         \
                               merra_i6_mod.o          modis_lai_mod.o        \
                               ocean_mercury_mod.o     olson_landmap_mod.o    \
                               pbl_mix_mod.o           planeflight_mod.o      \
-                              restart_mod.o           tracer_mod.o           \
+                              restart_mod.o                                  \
                               strat_chem_mod.o        transport_mod.o        \
                               tpcore_bc_mod.o         uvalbedo_mod.o         \
                               ucx_mod.o               vdiff_mod.o            \
@@ -864,8 +863,6 @@ tpcore_window_mod.o         : tpcore_window_mod.F90
 ifeq ($(PRECISION),8)
 	$(F90) -c $(FREEFORM) $(R8) $<
 endif
-
-tracer_mod.o                : tracer_mod.F
 
 transport_mod.o             : transport_mod.F                                \
                               diag_mod.o              diagnostics_mod.o      \

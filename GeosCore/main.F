@@ -39,7 +39,6 @@
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
       USE RESTART_MOD           ! For restart file I/O
       USE TIME_MOD              ! For computing date & time 
-      USE TRACER_MOD            ! For error-checking the tracer array
       USE REGRID_A2A_MOD        ! For horizontal regridding
       USE UNITCONV_MOD          ! For gas concentration unit conversion
       USE GEOS_TIMERS_MOD       ! For GEOS-Chem timers (optional)
@@ -1678,7 +1677,7 @@
 
          ! Check State_Chm tracers (yxw)   
 #if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125 )
-         CALL CHECK_STT_NESTED( State_Chm, Input_Opt,
+         CALL CHECK_SPC_NESTED( State_Chm, Input_Opt,
      &                          'after chemistry' )
 #endif 
 
@@ -2007,17 +2006,16 @@
          ! saved. (ccc, 5/13/09)
          IF ( ITS_TIME_FOR_DIAG() ) THEN
 
-!%%% COMMENT OUT CHECK_STT WHILE REPLACING STATE_CHM%TRACERS
-!         ! Sometimes tracers in the stratosphere can be negative at 
-!         ! the nested-grid domain edges. Force them to be zero before
-!         ! CHECK_STT (yxw)
-!#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125)
-!            CALL CHECK_STT_NESTED( State_Chm, Input_Opt,
-!     &                             'End of Dynamic Loop' )
-!#else
-!            CALL CHECK_STT( State_Chm, Input_Opt, 
-!     &                      'End of Dynamic Loop' )
-!#endif
+         ! Sometimes tracers in the stratosphere can be negative at 
+         ! the nested-grid domain edges. Force them to be zero before
+         ! CHECK_SPC. (yxw)
+#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125)
+            CALL CHECK_SPC_NESTED( State_Chm, Input_Opt,
+     &                             'End of Dynamic Loop' )
+#else
+            CALL CHECK_SPC( State_Chm, Input_Opt, 
+     &                      'End of Dynamic Loop' )
+#endif
 
 !!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 ! TRACER REMOVAL - temporary!
