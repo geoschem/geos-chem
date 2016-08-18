@@ -210,7 +210,7 @@
 !
 ! !PRIVATE TYPES:
 ! 
-      ! Species ID flags, formerly in tracerid_mod.F
+      ! Species ID flags
       INTEGER, PRIVATE :: id_AW1
       INTEGER, PRIVATE :: id_DUST1
       INTEGER, PRIVATE :: id_ECIL1
@@ -246,10 +246,6 @@
 !******************************************************************************
 !
       ! References to F90 modules
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-      USE CMN_SIZE_MOD
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -267,43 +263,21 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: N,   NA,  nAdvect
+      INTEGER            :: N
 
       ! Strings
       CHARACTER(LEN=255) :: MSG, LOC
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
       !=================================================================
       ! DO_TOMAS begins here
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
 
       ! Assume success
       RC    = GIGC_SUCCESS
 
-      ! Check that tracer units are in [kg] (ewl, 8/13/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+      ! Check that species units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine DO_TOMAS in tomas_mod.F'
          CALL GIGC_Error( MSG, RC, LOC )
       ENDIF
@@ -334,19 +308,6 @@
      &              Input_Opt, State_Met, State_Chm, 
      &              'Before exiting DO_TOMAS', RC )
 
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE DO_TOMAS
 
 !------------------------------------------------------------------------------
@@ -408,7 +369,7 @@
       REAL(fp)            :: QSAT     !used in RH calculation
       INTEGER             :: TRACNUM
       REAL(fp)            :: FRAC
-      CHARACTER(LEN=255)  :: MSG, LOC ! tracer conc unit check
+      CHARACTER(LEN=255)  :: MSG, LOC ! species unit check
 
       ! Arguments for CHECK_VALUE; avoids array temporaries (bmy, 1/28/14)
       CHARACTER(LEN=255) :: ERR_VAR
@@ -491,12 +452,12 @@
       ! Assume success
       RC = GIGC_SUCCESS
       
-      ! Check that tracer units are in [kg]. While tracer units
+      ! Check that species units are in [kg]. While species units
       ! are now generally [kg/kg] in GEOS-Chem, they are converted to 
       ! kg for TOMAS elsewhere in tomas_mod prior to calling this subroutine 
       ! (ewl, 8/13/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine AEROPHYS in tomas_mod.F'
          CALL GIGC_Error( MSG, RC, LOC )
       ENDIF
@@ -525,11 +486,12 @@
       ! First-time setup
       if (firsttime) then
 
+         !====================================================================
          ! Make sure there is access to the H2SO4 production rate array
          ! H2SO4RATE, which saves the H2SO4 production rate for EACH chemistry
-         ! timestep from the ND65 fake-family tracer.  The family has to be set
-         ! with at leaste one family with the family name PSO4 with SO4 as its 
-         ! one member. (win, 9/30/08)     
+         ! timestep.  The prod/loss family has to be set with at least one
+         ! with the family name PSO4 and SO4 as its one member. (win, 9/30/08)
+         !====================================================================
 
          DO N = 1, Input_Opt%NFAM
             ! If family name 'PSO4' is found, then skip error-stop
@@ -994,12 +956,12 @@ c     &        Spc(I,J,L,id_NH3)-GC(SRTNH4)
          ! Calculate NH3 gas lost to aerosol phase as NH4 
          NH3_to_NH4 = Spc(I,J,L,id_NH3)-GC(SRTNH4)
 
-         ! Update the bulk NH4 aerosol tracer 
+         ! Update the bulk NH4 aerosol species
          if ( NH3_to_NH4 > 0e+0_fp ) 
      &        Spc(I,J,L,id_NH4) = Spc(I,J,L,id_NH4) + 
      &                            NH3_to_NH4/17.e+0_fp*18.e+0_fp
 
-         ! Update NH3 gas tracer (win, 10/6/08)
+         ! Update NH3 gas species (win, 10/6/08)
          ! plus tiny amount CEPS in case zero causes some problem
          Spc(I,J,L,id_NH3)   = GC(SRTNH4) + CEPS !MUST CHECK THIS!! (win,9/26/08)
 
@@ -3491,21 +3453,21 @@ Cjrp      endif
       ! Assume success
       RC                =  GIGC_SUCCESS
 
-      ! Check that tracer units are in [kg] (ewl, 8/13/15)
-      ! Convert tracer concentration units to [kg] if not necessary.
+      ! Check that species units are in [kg] (ewl, 8/13/15)
+      ! Convert species concentration units to [kg] if not necessary.
       ! Units are [kg/m2] if AQOXID is called from wet deposition
       ! and are [kg] if called from sulfate_mod since chemistry is
       ! still in [kg]. Since AQOXID is called within an (I,J,L) loop, 
       ! only convert units for a single grid box. Otherwise, run will 
       ! take too long (ewl, 9/30/15)
       UNITCHANGE_KGM2 = .FALSE.
-      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/m2' ) THEN
+      IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
          UNITCHANGE_KGM2 = .TRUE.
-         CALL Convert_Kgm2_to_Kg( am_I_Root, I, J, L, Input_Opt, 
-     &                            State_Met, State_Chm, RC )
-      ELSE IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         MSG = 'Incorrect initial tracer units: ' 
-     &           // TRIM(State_Chm%Trac_Units)
+         CALL ConvertSpc_Kgm2_to_Kg( am_I_Root, I, J, L,
+     &                               State_Met, State_Chm, RC )
+      ELSE IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect initial species units: ' 
+     &           // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine AQOXID in tomas_mod.F'
          CALL ERROR_STOP( MSG, LOC )
       ENDIF
@@ -3727,18 +3689,18 @@ Cjrp      endif
       ! Free pointer memory
       Spc => NULL()
 
-      ! Convert State_Chm%Tracers units back to original units 
+      ! Convert State_Chm%Species units back to original units 
       ! if conversion occurred at start of AQOXID (ewl, 9/30/15)
       IF ( UNITCHANGE_KGM2 ) THEN
-         CALL Convert_Kg_to_Kgm2( am_I_Root, I, J, L, Input_Opt, 
-     &                            State_Met, State_Chm, RC )
+         CALL ConvertSpc_Kg_to_Kgm2( am_I_Root, I, J, L,
+     &                               State_Met, State_Chm, RC )
       ENDIF
 
-      ! Check that tracer units are as expected (ewl, 9/29/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' .AND.
-     &     TRIM( State_Chm%Trac_Units ) /= 'kg/m2' ) THEN
-         CALL ERROR_STOP('Incorrect final tracer units:' // 
-     &                    State_Chm%Trac_Units,  
+      ! Check that species units are as expected (ewl, 9/29/15)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' .AND.
+     &     TRIM( State_Chm%Spc_Units ) /= 'kg/m2' ) THEN
+         CALL ERROR_STOP('Incorrect final species units:' // 
+     &                    State_Chm%Spc_Units,  
      &                   'Routine AQOXID in wetscav_mod')
       ENDIF
                
@@ -3797,7 +3759,7 @@ Cjrp      endif
       REAL(fp)                 :: M_NH4
       REAL(fp)                 :: CS, sinkfrac(IBINS)
       REAL(fp)                 :: partfrac(IBINS),avgfrac(IBINS)
-      INTEGER                  :: K, MPNUM, JC, TRACNUM, N, NA, nAdvect
+      INTEGER                  :: K, MPNUM, JC, TRACNUM
       LOGICAL                  :: PDBG, negvalue ! negvalue added for xSOA
                                                  ! (JKodros, 6/2/15)
       PARAMETER   (PI = 3.141592654e+0_fp)
@@ -3809,43 +3771,21 @@ Cjrp      endif
       REAL(fp)                 :: Gc(ICOMP - 1)
       REAL(fp)                 :: Gcd(ICOMP - 1)
       REAL*4                   :: thresh
-      CHARACTER(LEN=255)       :: MSG, LOC ! For tracer conc unit check (ewl)
+      CHARACTER(LEN=255)       :: MSG, LOC ! For species unit check (ewl)
 
       ! Pointers
       REAL(fp), POINTER   :: Spc(:,:,:,:)
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
       !=================================================================
       ! SOACOND begins here
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
 
       ! Assume success
       RC                =  GIGC_SUCCESS
 
-      ! Check that tracer units are in [kg] (ewl, 8/13/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+      ! Check that species units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine SOACOND in tomas_mod.F'
          CALL ERROR_STOP( MSG, LOC )
       ENDIF
@@ -4036,18 +3976,6 @@ Cjrp      endif
       ! Free pointer memory
       Spc => NULL()
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE SOACOND
       
 !------------------------------------------------------------------------------
@@ -5939,7 +5867,7 @@ c
       ! AERODIAG begins here!
       !=================================================================
 
-      ! PTYPE = 7 is for ND61  --- NOW use for Nucleation at tracer NK1 
+      ! PTYPE = 7 is for ND61  --- NOW use for Nucleation at species NK1 
       !  Note: This is created to look at 3-D rate for a selected process
       !        Right now (5/21/08) I created this to watch NUCLEATION rate
       !        We can't afford to save all 30-bin and all mass component
@@ -6393,7 +6321,7 @@ c         SRTH2O = ICOMP
 !
 !  Variable comments:
 !  I, J, L          : Grid box index
-!  N                : Tracer ID 
+!  N                : Species ID 
 !  LS               : True = Large-scale (stratiform) precip, False = convectiv
 !  FRACTION         : Scavenging fraction of the given grid box
 !  SOLFRAC          : Soluble mass fraction of the aerosol popultion of the 
@@ -6401,9 +6329,7 @@ c         SRTH2O = ICOMP
 !
 ! !REMARKS:
 !  This routine is called from the convection routines (via wetscav_mod.F
-!  routines COMPUTE_F and DO_RAINOUT_ONLY.  We have already converted
-!  State_Chm%TRACERS to State_Chm%Species there, so no need to do the
-!  copying within GETFRACTION. (bmy, 7/18/16)
+!  routines COMPUTE_F and DO_RAINOUT_ONLY. (bmy, 7/18/16)
 !
 ! !REVISION HISTORY:
 !  Now pass State_Chm instead of STT array, and pass State_Met to enable
@@ -6445,17 +6371,17 @@ c         SRTH2O = ICOMP
 
       ! Determine factor used to convert Spc to units of [kg] locally
       ! (ewl, 9/29/15)
-      IF ( TRIM( State_Chm%Trac_Units ) == 'kg/m2' ) THEN
+      IF ( TRIM( State_Chm%Spc_Units ) == 'kg/m2' ) THEN
          UNITFACTOR = State_Met%AREA_M2( I, J, 1 )
-      ELSE IF (  TRIM( State_Chm%Trac_Units ) == 'kg/kg total' ) THEN
+      ELSE IF (  TRIM( State_Chm%Spc_Units ) == 'kg/kg total' ) THEN
          UNITFACTOR = State_Met%ADMOIST( I, J, L )
       ELSE 
-         MSG = 'Unexpected tracer units: ' // TRIM(State_Chm%Trac_Units)
+         MSG = 'Unexpected species units: ' // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine GETFRACTION in tomas_mod.F'      
          CALL ERROR_STOP( MSG, LOC )
       ENDIF 
          
-      ! Initialize GEOS-Chem tracer array from Chemistry State object.
+      ! Point to chemical species array
       ! Units are now [kg/m2] in wet deposition and [kg/kg total air] in 
       ! convection (ewl, 9/29/15)
       Spc => State_Chm%Species
@@ -6550,7 +6476,7 @@ c         SRTH2O = ICOMP
 !
 !  Variable comments:
 !  I, J, L          : Grid box index
-!  N                : Tracer ID 
+!  N                : Species ID 
 !  LS               : True = Large-scale (stratiform) precip, False = convectiv
 !  FRACTION         : Scavenging fraction of the given grid box
 !  SOLFRAC          : Soluble mass fraction of the aerosol popultion of the 
@@ -6558,9 +6484,7 @@ c         SRTH2O = ICOMP
 !
 ! !REMARKS:
 !  This routine is called from the convection routines (via wetscav_mod.F
-!  routines COMPUTE_F and DO_RAINOUT_ONLY.  We have already converted
-!  State_Chm%TRACERS to State_Chm%Species there, so no need to do the
-!  copying within GETFRACTION. (bmy, 7/18/16)
+!  routines COMPUTE_F and DO_RAINOUT_ONLY. (bmy, 7/18/16)
 !
 ! !REVISION HISTORY
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
@@ -6586,7 +6510,7 @@ c         SRTH2O = ICOMP
       INTEGER                ::  ISO4, INACL, IOCIL
       INTEGER                ::  BIN
       INTEGER                ::  OFFSET
-      CHARACTER(LEN=255)     :: MSG, LOC ! For tracer conc unit check (ewl)
+      CHARACTER(LEN=255)     :: MSG, LOC ! For species unit check (ewl)
 
       ! Pointers
       REAL(fp), POINTER   :: Spc(:,:,:,:)
@@ -6598,9 +6522,9 @@ c         SRTH2O = ICOMP
       ! Assume success
       RC                =  GIGC_SUCCESS
 
-      ! Check that tracer units are in [kg] (ewl, 8/13/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+      ! Check that species units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine GETACTBIN in tomas_mod.F'
          CALL ERROR_STOP( MSG, LOC )
       ENDIF
@@ -6763,9 +6687,7 @@ c       IF (LDUST30) MDUST = Spc(I,J,L,id_DUST1-1+BIN)
 !
 ! !REMARKS:
 !  This routine is called from the convection routines (via wetscav_mod.F
-!  routines COMPUTE_F and DO_RAINOUT_ONLY.  We have already converted
-!  State_Chm%TRACERS to State_Chm%Species there, so no need to do the
-!  copying within GETFRACTION. (bmy, 7/18/16)
+!  routines COMPUTE_F and DO_RAINOUT_ONLY. (bmy, 7/18/16)
 !
 !  NOTES:
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
@@ -6793,7 +6715,7 @@ c       IF (LDUST30) MDUST = Spc(I,J,L,id_DUST1-1+BIN)
       REAL(fp)               :: RHE
       REAL(fp)               :: SO4MASS, NACLMASS, OCILMASS
       REAL(fp)               :: WRSO4, WRNACL, WROCIL
-      CHARACTER(LEN=255)     :: MSG, LOC ! For tracer conc unit check (ewl)
+      CHARACTER(LEN=255)     :: MSG, LOC ! For species unit check (ewl)
 
       ! Pointers
       REAL(fp), POINTER   :: Spc(:,:,:,:)
@@ -6974,12 +6896,6 @@ c       IF (LDUST30) MDUST = Spc(I,J,L,id_DUST1-1+BIN)
       ! Pointers
       REAL(fp), POINTER   :: Spc(:,:,:,:)
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
       !========================================================================
       ! AERO_DIADEN begins here!
       !========================================================================
@@ -6987,48 +6903,32 @@ c       IF (LDUST30) MDUST = Spc(I,J,L,id_DUST1-1+BIN)
       ! Assume success
       RC                =  GIGC_SUCCESS
 
-      ! If tracer units are [kg/kg dry], convert to [kg] for this routine.
-      ! Otherwise, if tracer units are not [kg] then throw an error to the 
+      ! If species units are [kg/kg dry], convert to [kg] for this routine.
+      ! Otherwise, if species units are not [kg] then throw an error to the 
       ! calling routine (ewl, 8/12/15)
-      ! NOTE: For complete area-independence, tracer units will need to be 
+      ! NOTE: For complete area-independence, species units will need to be 
       !       mixing ratio or mass per unit area in TOMAS
-      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg dry' ) THEN
-         CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met, 
-     &                               State_Chm, RC ) 
+      IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/kg dry' ) THEN
+         CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, 
+     &                                  State_Chm, RC ) 
          UNITCONV = .TRUE.
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL GIGC_Error('Unit conversion error', RC, 
      &                      'Routine AERO_DIADEN in tomas_mod.F')
             RETURN
          ENDIF 
-      ELSE IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         CALL GIGC_Error('Incorrect tracer units for TOMAS: ' // 
-     &                   TRIM( State_Chm%Trac_Units ), RC, 
+      ELSE IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+         CALL GIGC_Error('Incorrect species units for TOMAS: ' // 
+     &                   TRIM( State_Chm%Spc_Units ), RC, 
      &                   'Routine AERO_DIADEN in tomas_mod.F')
          RETURN
       ELSE
          UNITCONV = .FALSE.
       ENDIF
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-         ! Number of advected species
-         nAdvect = State_Chm%nAdvect
-
-         ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-         DO NA = 1, nAdvect
-            N                          = State_Chm%Map_Advect(NA)
-            Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-            State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-         ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-      ! Check that tracer units are in [kg] (ewl, 8/13/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+      ! Check that species units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine AERO_DIADEN in tomas_mod.F'
          CALL GIGC_Error( MSG, RC, LOC )
       ENDIF
@@ -7096,32 +6996,19 @@ C         IF ( LDUST30 ) MDUST = Spc(I,J,LEV,id_DUST1-1+BIN)
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Check that tracer units are in [kg] (ewl, 8/13/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         MSG = 'Incorrect tracer units at end of AERO_DIADEN: '
-     &           // TRIM(State_Chm%Trac_Units)
+      ! Check that species units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect species units at end of AERO_DIADEN: '
+     &           // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine AERO_DIADEN in tomas_mod.F'
          CALL GIGC_Error( MSG, RC, LOC )
       ENDIF
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-         DO NA = 1, nAdvect
-            N                          = State_Chm%Map_Advect(NA)
-            State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-            ! Restore State_Chm%SPECIES to its original values
-            State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-         ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
       ! If units were originally [kg/kg dry], convert [kg] back to mixing 
       ! ratio (ewl, 8/12/15)
       IF ( UNITCONV ) THEN
-         CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met, 
-     &                            State_Chm, RC )  
+         CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, 
+     &                                  State_Chm, RC )  
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL GIGC_Error('Unit conversion error', RC, 
      &                      'Routine AERO_DIADEN in tomas_mod.F')
@@ -7145,7 +7032,7 @@ C         IF ( LDUST30 ) MDUST = Spc(I,J,LEV,id_DUST1-1+BIN)
 !  aerosol mass and number inconsistencies. (win, 7/24/07)
 !  Variables
 !  I, J, L    (INTEGER )  : Grid box
-!  UNITS       (CHARACTER) : Current unit of STT tracer array
+!  UNITS       (CHARACTER) : Current unit of species array
 !  LOCATION   (CHARACTER) : Location of calling program / subroutine
 !
 !  NOTES:
@@ -7181,7 +7068,7 @@ C         IF ( LDUST30 ) MDUST = Spc(I,J,LEV,id_DUST1-1+BIN)
       INTEGER                :: I, J, L
       INTEGER                :: I1, I2, J1, J2, L1, L2
       INTEGER                :: K, JC, NKID, TRACNUM, MPNUM
-      CHARACTER(LEN=255)     :: MSG, LOC ! For tracer conc unit check (ewl)
+      CHARACTER(LEN=255)     :: MSG, LOC ! For species unit check (ewl)
       LOGICAL                :: ERRORSWITCH
                                ! Make ERRORSWITCH = .TRUE. to get full print 
                                ! for debugging
@@ -7216,9 +7103,9 @@ C         IF ( LDUST30 ) MDUST = Spc(I,J,LEV,id_DUST1-1+BIN)
 
       ERRORSWITCH = .FALSE.
 
-      ! Check that tracer units are in [kg] (ewl, 8/13/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+      ! Check that species units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine CHECKMN in tomas_mod.F'
          CALL ERROR_STOP( MSG, LOC )
       ENDIF
@@ -7260,12 +7147,12 @@ C         IF ( LDUST30 ) MDUST = Spc(I,J,LEV,id_DUST1-1+BIN)
             TRACNUM = id_NK1 - 1 + K
             ! Check for nan
             IF ( IT_IS_NAN( Spc(I,J,L,TRACNUM) ) ) 
-     &           print *, 'Found NaN at',I, J, L,'Tracer',TRACNUM
+     &           print *, 'Found NaN at',I, J, L,'Species',TRACNUM
             NK(K) = Spc(I,J,L,TRACNUM)
             DO JC = 1, ICOMP-IDIAG
                TRACNUM = id_NK1 - 1 + K + IBINS*JC
                IF ( IT_IS_NAN( Spc(I,J,L,TRACNUM) ) ) 
-     &              print *, 'Found NaN at',I, J, L,'Tracer',TRACNUM
+     &              print *, 'Found NaN at',I, J, L,'Species',TRACNUM
                MK(K,JC) = Spc(I,J,L,TRACNUM)
             ENDDO
             MK(K,SRTH2O) = Spc(I,J,L,id_AW1-1+K)
@@ -7338,7 +7225,7 @@ C     &      call debugprint( NK, MK, i,j,l,LOCATION)
 !  Subroutine MNFIX examines the mass and number distrubution and determine if
 !  any bins have an average mass outside their normal range.  This can happen 
 !  because some process, e.g. advection, seems to treat the mass and number
-!  tracers inconsistently.  If any bins are out of range, I shift some mass 
+!  species inconsistently.  If any bins are out of range, I shift some mass 
 !  and number to a new bin in a way that conserves both. 
 !  (win, 7/23/07)
 !  ORiginally written by Peter Adams, September 2000
@@ -8683,7 +8570,7 @@ Cpja Perform some numerical checks on dmdt_int
 !  (1 ) I  (INTEGER) : Grid location
 !  (2 ) J  (INTEGER) : Grid location
 !  (3 ) L  (INTEGER) : Grid location
-!  (4 ) N  (INTEGER) : Tracer index
+!  (4 ) N  (INTEGER) : Species index
 !
 !  NOTES: 
 !  (1 ) Each component mass has a unit of kg/grid box
@@ -8717,7 +8604,7 @@ Cpja Perform some numerical checks on dmdt_int
       REAL(fp)                :: DENSITY !density (kg/m3) of current size bin
       REAL(fp)                :: TOTALMASS !(kg)
       REAL(fp)                :: MCONC, NCONC  
-      CHARACTER(LEN=255)      :: MSG, LOC ! For tracer conc unit check (ewl)
+      CHARACTER(LEN=255)      :: MSG, LOC ! For species unit check (ewl)
 
 !      real(fp), external :: aerodens
 
@@ -8744,7 +8631,7 @@ Cpja Perform some numerical checks on dmdt_int
       !-------------------------------------------------------------
       NUMBIN = MOD(N-id_NK1+1,IBINS)
       IF (NUMBIN==0) NUMBIN = IBINS
-      ID = id_NK1-1+NUMBIN   !ID = tracer ID of number at current bin
+      ID = id_NK1-1+NUMBIN   !ID = Species ID of number at current bin
 
       !-------------------------------------------------------------
       ! Calculate aerosol water in case it has not been initialized elsewhere 
@@ -8765,7 +8652,7 @@ Cpja Perform some numerical checks on dmdt_int
             Spc(I,J,L,ID) = 0e+0_fp
          ELSE
             PRINT *,'#### GETDP: negative NK at',I,J,L,'bin',NUMBIN
-            PRINT *,'Tracer',N,'Spc=',Spc(I,J,L,ID)
+            PRINT *,'Species',N,'Spc=',Spc(I,J,L,ID)
             CALL ERROR_STOP('Negative NK', 'GETDP:1')
          ENDIF
       ENDIF
@@ -8779,7 +8666,7 @@ Cpja Perform some numerical checks on dmdt_int
                Spc(I,J,L,ID+JC*IBINS) = 0e+0_fp
             ELSE
                PRINT *,'#### GETDP: negative mass at',I,J,L,'bin',NUMBIN
-               PRINT *,'Tracer',N,'Spc=',Spc(I,J,L,ID+JC*IBINS)
+               PRINT *,'Species',N,'Spc=',Spc(I,J,L,ID+JC*IBINS)
                CALL ERROR_STOP('Negative mass','GETDP:2')
             ENDIF  
          ENDIF
@@ -10083,7 +9970,7 @@ c sensitivity       fn = 1.e-3 * fn ! 10^-3 tuner
 !******************************************************************************
 !
       !=================================================================
-      ! CLEANUP_TRACER begins here!
+      ! CLEANUP_TOMAS begins here!
       !=================================================================
       IF ( ALLOCATED( MOLWT       ) ) DEALLOCATE( MOLWT      )
       IF ( ALLOCATED( H2SO4_RATE  ) ) DEALLOCATE( H2SO4_RATE )

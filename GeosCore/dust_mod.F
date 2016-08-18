@@ -196,7 +196,7 @@
       ! Execute on first call only
       IF ( FIRST ) THEN
  
-         ! Stop w/ error if dust tracer flags are undefined
+         ! Stop w/ error if dust species flags are undefined
          ! NOTE: Ind_() returns -1 for species not found, so for the
          ! algorithm below to work, we need to make sure all id's are
          ! not less than zero (bmy, 7/5/16)
@@ -206,7 +206,7 @@
      &        MAX( id_DST4, 0 ) == 0 ) THEN 
             IF ( LDUST ) THEN 
                CALL ERROR_STOP( 
-     &              'LDUST=T but dust tracers are undefined!',
+     &              'LDUST=T but dust species are undefined!',
      &              'EMISSDUST ("dust_mod.f")' )
             ENDIF
          ENDIF
@@ -219,7 +219,7 @@
       ! Do dust settling & deposition
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Point to chemical species array [kg]
       Spc => State_Chm%Species
 
       !-------------------------------------------------------------
@@ -334,7 +334,7 @@
       LOGICAL, SAVE     :: FIRST = .TRUE.
 
       ! Non-SAVEd scalars
-      INTEGER           :: N, BIN, I, J, L, NN, IDISP, NA, nAdvect
+      INTEGER           :: N, BIN, I, J, L, NN, IDISP
       REAL(fp)          :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
       REAL(fp)          :: DIF, FLUXN, FLUXD
       REAL(fp)          :: DT_SETTL, AREA_CM2
@@ -347,37 +347,16 @@
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
       !=================================================================
       ! SETTLEDUST begins here!
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Assume success
       RC        = GIGC_SUCCESS
 
-      ! Check that tracer units are in [kg] (ewl, 8/13/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+      ! Check that species units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine SETTLEDUST in dust_mod.F'
          CALL GIGC_Error( MSG, RC, LOC )
       ENDIF
@@ -479,18 +458,6 @@
       ! Free pointer memory
       Spc => NULL()
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE SETTLEDUST
 !EOC
 !------------------------------------------------------------------------------
@@ -572,36 +539,15 @@
       LOGICAL           :: LDUST
       LOGICAL           :: LPRT
       LOGICAL           :: LINTERP 
-      INTEGER           :: I, J, K, N, NA, nAdvect
+      INTEGER           :: I, J, K
       REAL(fp)          :: MEMIS, MINIT(IIPAR,JJPAR,1,IBINS)
 
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
       !=================================================================
       ! EMISSDUST begins here!
       !=================================================================
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         Spc_temp(:,:,:,NA)         = State_Chm%Species(:,:,:,N)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
      
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -618,7 +564,7 @@
          IF ( id_DUST1 == 0 ) THEN
             IF ( LDUST ) THEN 
                CALL ERROR_STOP( 
-     &              'LDUST=T but dust tracers are undefined!',
+     &              'LDUST=T but dust species are undefined!',
      &              'EMISSDUST ("dust_mod.f")' )
             ENDIF
          ENDIF
@@ -677,18 +623,6 @@
       ! Free pointers
       Spc => NULL()
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-         ! Restore State_Chm%SPECIES to its original values
-         State_Chm%Species(:,:,:,N) = Spc_temp(:,:,:,NA)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE EMISSDUST
 !EOC
 #endif
@@ -700,7 +634,7 @@
 ! !IROUTINE: dry_settling 
 !
 ! !DESCRIPTION: Subroutine DRY\_SETTLING computes the dry settling of 
-!  dust tracers.
+!  dust species.
 !\\
 !\\
 ! !INTERFACE:
@@ -732,7 +666,7 @@
       LOGICAL,        INTENT(IN)   :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)   :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)   :: State_Met   ! Meteorology State object
-      INTEGER,        INTENT(IN)   :: INDEX       ! Tracer index
+      INTEGER,        INTENT(IN)   :: INDEX       ! Species index
       INTEGER,        INTENT(IN)   :: IDISP       ! Displacement index for IIDEP
 
 !
@@ -768,7 +702,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: I, J, L, N, N_TRACERS
+      INTEGER               :: I, J, L, N
       REAL(fp)              :: DT_SETTL, DELZ,  DELZ1
       REAL(fp)              :: REFF,     DEN,   CONST   
       REAL(fp)              :: NUM,      LAMDA, FLUX
@@ -822,7 +756,6 @@
 #if defined( NC_DIAG )
       Ptr2D     => NULL()
 #endif
-      N_TRACERS = Input_Opt%N_TRACERS
 
       ! Dust settling timestep [s]
       DT_SETTL  = GET_TS_CHEM() * 60e+0_fp
@@ -971,7 +904,6 @@
       !========================================================
       IF ( ND44 > 0 ) THEN
 
-
          ! Loop over dust bins
          DO N = 1, NDSTBIN
 
@@ -979,10 +911,10 @@
 !            drydep_id = Input_Opt%IDISP+N
             drydep_id = IDISP + N
 
-            ! Get tracer id
+            ! Get dry deposition species ID
             trc_id = Input_Opt%NTRAIND( drydep_id )
          
-            ! If this tracer number NN is scheduled for output in input.geos, 
+            ! If this species number NN is scheduled for output in input.geos, 
             ! then archive the latest depvel data into the diagnostic structure
             IF ( ANY( Input_Opt%TINDEX(44,:) == trc_id ) ) THEN
          
@@ -2042,7 +1974,7 @@
       TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Initialize pointers
-      Spc      => State_Chm%Tracers  ! GEOS-Chem tracer array [kg]
+      Spc      => State_Chm%Species  ! GEOS-Chem species array [v/v dry]
       ERADIUS  => State_Chm%AeroRadi ! Aerosol Radius [cm]
       TAREA    => State_Chm%AeroArea ! Aerosol Area [cm2/cm3]
 
@@ -2059,7 +1991,7 @@
       ! Air density [kg/m3]
       AIR_DENS = State_Met%AD(I,J,L) / State_Met%AIRVOL(I,J,L) 
 
-      ! Retrieve Dust Alkalinity [v/v] from Spc array
+      ! Retrieve Dust Alkalinity [v/v dry from Spc array
       ALK_d(1) = Spc(I,J,L,id_DAL1)
       ALK_d(2) = Spc(I,J,L,id_DAL2)
       ALK_d(3) = Spc(I,J,L,id_DAL3)
@@ -2538,7 +2470,7 @@
       IF ( Input_Opt%LDSTUP ) THEN
          IF ( id_DAL1 < 0 .or. id_DAL2 < 0   .or.  
      &        id_DAL3 < 0 .or. id_DAL4 < 0 ) THEN
-            CALL ERROR_STOP( 'Dust uptake tracers are undefined!', 
+            CALL ERROR_STOP( 'Dust uptake species are undefined!', 
      &                       'INIT_DUST (GeosCore/dust_mod.F'      )
          ENDIF
       ENDIF
@@ -2557,7 +2489,7 @@
          Input_Opt%IDDEP(4) = dd_DST4
 
          IF ( LDSTUP  ) THEN
-            ! Include dust alkalinity tracers                  tdf 04/10/08
+            ! Include dust alkalinity species                  tdf 04/10/08
             Input_Opt%IDDEP(5) = dd_DAL1
             Input_Opt%IDDEP(6) = dd_DAL2
             Input_Opt%IDDEP(7) = dd_DAL3
