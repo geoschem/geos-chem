@@ -441,6 +441,7 @@
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD               ! SAVEOH
       USE PHYSCONSTANTS            ! SCALE_HEIGHT, XNUMOLAIR
+      USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -502,6 +503,7 @@
 !                              remove AD pointer
 !  16 Jun 2016 - K. Yu       - Now define species ID's with the IND_ function
 !  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
+!  22 Jun 2016 - M. Yannetti - Replace TCVV with spec db and physical const
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !EOP
@@ -531,9 +533,6 @@
 
       ! indices for tracers, kyu codeathon
 
-      ! For fields from Input_Opt
-      REAL(fp)          :: TCVV(State_Chm%nAdvect)
-
       ! Pointers
       REAL(fp), POINTER   :: Spc(:,:,:,:)
 
@@ -557,9 +556,6 @@
 
       ! Assume success
       RC        =  GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
-      TCVV      = Input_Opt%TCVV(1:nAdvect)
 
       ! First-time setup
       IF ( FIRST ) THEN
@@ -718,7 +714,9 @@
 
                ! Archive afternoon points
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                      ( Spc(I,J,L,N) * TCVV(N) * GOOD(I) )
+!LL     &                      ( Spc(I,J,L,N) * TCVV(N) * GOOD(I) )
+     &                      ( Spc(I,J,L,N) * (AIRMW 
+     &                 / State_Chm%SpcData(N)%Info%emMW_g ) * GOOD(I) )
 
             ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
 
@@ -741,39 +739,48 @@
                TMP = 0e+0_fp
             
                ! NO
-               TMP = TMP + ( TCVV(id_NO)         * GOOD(I) *
-     &                       Spc(I,J,L,id_NO)    )
+               TMP = TMP + ( ( AIRMW 
+     &                       / State_Chm%SpcData(id_NO)%Info%emMW_g )        
+     &                       * GOOD(I) * Spc(I,J,L,id_NO)    )
 
                ! NO2
-               TMP = TMP + ( TCVV(id_NO2)        * GOOD(I) *
-     &                       Spc(I,J,L,id_NO2)   )
+               TMP = TMP + ( ( AIRMW 
+     &                        / State_Chm%SpcData(id_NO2)%Info%emMW_g )        
+     &                       * GOOD(I) * Spc(I,J,L,id_NO2)   )
                ! PAN
-               TMP = TMP + ( TCVV(id_PAN)        * GOOD(I) *
-     &                       Spc(I,J,L,id_PAN)   )
+               TMP = TMP + ( ( AIRMW 
+     &                        / State_Chm%SpcData(id_PAN)%Info%emMW_g )       
+     &                       * GOOD(I) * Spc(I,J,L,id_PAN)   )
 
                ! HNO3
-               TMP = TMP + ( TCVV(id_HNO3)       * GOOD(I) *
-     &                       Spc(I,J,L,id_HNO3)  )
+               TMP = TMP + ( ( AIRMW 
+     &                        / State_Chm%SpcData(id_HNO3)%Info%emMW_g )       
+     &                       * GOOD(I) * Spc(I,J,L,id_HNO3)  )
             
                ! PMN
-               TMP = TMP + ( TCVV(id_PMN)        * GOOD(I) *
-     &                       Spc(I,J,L,id_PMN)   )
+               TMP = TMP + ( ( AIRMW 
+     &                        / State_Chm%SpcData(id_PMN)%Info%emMW_g )        
+     &                       * GOOD(I) * Spc(I,J,L,id_PMN)   )
 
                ! PPN
-               TMP = TMP + ( TCVV(id_PPN)        * GOOD(I) *
-     &                       Spc(I,J,L,id_PPN)   )
+               TMP = TMP + ( ( AIRMW 
+     &                        / State_Chm%SpcData(id_PPN)%Info%emMW_g )       
+     &                       * GOOD(I) * Spc(I,J,L,id_PPN)   )
  
                ! R4N2
-               TMP = TMP + ( TCVV(id_R4N2)       * GOOD(I) *
-     &                       Spc(I,J,L,id_R4N2)  )
+               TMP = TMP + ( ( AIRMW 
+     &                        / State_Chm%SpcData(id_R4N2)%Info%emMW_g )      
+     &                       * GOOD(I) * Spc(I,J,L,id_R4N2)  )
             
                ! N2O5
-               TMP = TMP + ( 2e+0_fp * TCVV(id_N2O5) * GOOD(I) *
-     &                       Spc(I,J,L,id_N2O5)  )
+               TMP = TMP + ( 2e+0_fp * ( AIRMW 
+     &                        / State_Chm%SpcData(id_N2O5)%Info%emMW_g ) 
+     &                       * GOOD(I) * Spc(I,J,L,id_N2O5)  )
                         
                ! HNO4
-               TMP = TMP + ( TCVV(id_HNO4)       * GOOD(I) *
-     &                       Spc(I,J,L,id_HNO4)  )
+               TMP = TMP + ( ( AIRMW 
+     &                        / State_Chm%SpcData(id_HNO4)%Info%emMW_g )      
+     &                       * GOOD(I) * Spc(I,J,L,id_HNO4)  )
 
                ! Save afternoon points
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
@@ -825,15 +832,17 @@
                !--------------------------------------
                ! TOTAL SEASALT TRACER [v/v]
                !--------------------------------------
-!               Q(X,Y,K,W) = Q(X,Y,K,W) +
-!     &                      ( Spc(I,J,L,id_SALA)   + 
-!     &                        Spc(I,J,L,id_SALC) ) *
-!     &                        TCVV(id_SALA)        /
-!     &                        AD(I,J,L) * GOOD(I)
+!LL               Q(X,Y,K,W) = Q(X,Y,K,W) +
+!LL     &                      ( Spc(I,J,L,id_SALA)   + 
+!LL     &                        Spc(I,J,L,id_SALC) ) *
+!LL     &                        TCVV(id_SALA)        /
+!LL     &                        AD(I,J,L) * GOOD(I)
                Q(X,Y,K,W) = Q(X,Y,K,W) +
      &                      ( Spc(I,J,L,id_SALA)   + 
      &                        Spc(I,J,L,id_SALC) ) *
-     &                        TCVV(id_SALA) * GOOD(I)
+     &                        ( AIRMW 
+     &                        / State_Chm%SpcData(id_SALA)%Info%emMW_g ) 
+     &                          * GOOD(I)
 
             ELSE IF ( N == 159 ) THEN
 

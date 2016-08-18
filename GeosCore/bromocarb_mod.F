@@ -93,6 +93,8 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PHYSCONSTANTS,      ONLY : AIRMW
+      USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -127,6 +129,7 @@
 !  10 Sep 2015 - E. Lundgren - Remove passed argument 'unitflag'
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  25 Jul 2016 - M. Yannetti - Replaced TCVV with MW from spec db and phys const
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -233,7 +236,9 @@
 
             ! Convert the [v/v] CH3Br conc units (dry air) to [kg/kg] 
             ! when setting tracer concentration (ewl, 9/10/15)
-            Spc(I,J,L,id_CH3Br) = CH3Br_conc / Input_Opt%TCVV(id_CH3Br)
+!LL            Spc(I,J,L,id_CH3Br) = CH3Br_conc / Input_Opt%TCVV(id_CH3Br)
+            Spc(I,J,L,id_CH3Br) = CH3Br_conc / ( AIRMW / 
+     &                         State_Chm%SpcData(id_CH3Br)%Info%emMW_g )
                
          ENDIF  ! end selection of PBL boxes
 
@@ -287,6 +292,8 @@
       USE GIGC_State_Chm_Mod, ONLY : Ind_
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PHYSCONSTANTS,      ONLY : AIRMW
+      USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -322,6 +329,7 @@
 !  10 Sep 2015 - E. Lundgren - Remove passed argument 'unitflag'
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  25 Jul 2016 - M. Yannetti - Replaced TCVV with MW from spec db and phys const
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -438,26 +446,11 @@
             DO L = 1, LLPAR
                IF ( GET_FRAC_UNDER_PBLTOP( I, J, L ) > 0d0 ) THEN
 
-! old:
-!                  ! Make sure we're using the correct units
-!                  IF ( unit_flag ) THEN
-!                     ! If the flag is true, then Spc has been
-!                     ! converted from kg/box to v/v mixing ratio.
-!                     ! so we must supply v/v
-!                     Spc(I,J,L,BrO_sel) = BrO_conc
-!                  ELSE
-!                     ! Now convert the [v/v] units to [kg]
-!                     ! as in convert_units subroutine in dao_mod.f
-!                     Spc(I,J,L,BrO_sel) = BrO_conc * 
-!     &                                    State_Met%AD(I,J,L) /
-!     &                                    TCVV(BrO_sel)
-!                  ENDIF
-!
-! new:
                   ! Convert the [v/v] BrO conc units (dry air) to [kg/kg] 
                   ! when setting tracer concentration (ewl, 9/10/15)
-                  Spc(I,J,L,id_BrO) = BrO_conc / Input_Opt%TCVV(id_BrO)
-! end new (ewl)
+!LL                  Spc(I,J,L,id_BrO) = BrO_conc / Input_Opt%TCVV(id_BrO)
+                  Spc(I,J,L,id_BrO) = BrO_conc / ( AIRMW 
+     &                       / State_Chm%SpcData(id_BrO)%Info%emMW_g )
 
                ENDIF            ! end selection of PBL boxes
 

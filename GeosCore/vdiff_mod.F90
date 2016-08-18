@@ -23,6 +23,7 @@ MODULE VDIFF_MOD
   USE VDIFF_PRE_MOD, ONLY : PCNST                  ! N_TRACERS
   USE VDIFF_PRE_MOD, ONLY : LPRT                   ! Debug print?
   USE VDIFF_PRE_MOD, ONLY : LTURB                  ! Do PBL mixing?
+  USE SPECIES_MOD,   ONLY : Species
 
   USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
@@ -139,6 +140,7 @@ MODULE VDIFF_MOD
 !  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  07 Jan 2016 - E. Lundgren - Replace hard-coded physical params w/ global and
 !                              remove unused parameters
+!  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -213,14 +215,15 @@ contains
                     sflx,       thp_arg,   as2,        pblh_arg,    &
                     kvh_arg,    kvm_arg,   tpert_arg,  qpert_arg,   &
                     cgs_arg,    shp,       wvflx_arg,  plonl,       &
-                    Input_Opt,  State_Met, taux_arg,   tauy_arg,    &
-                    ustar_arg )
+                    Input_Opt,  State_Met, State_Chm,  taux_arg,    &
+                    tauy_arg,   ustar_arg )
 !
 ! !USES:
 !
     USE DIAG_MOD,           ONLY : TURBFLUP
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
 
     implicit none
 !
@@ -251,6 +254,7 @@ contains
          as2(:,:,:,:),       &     ! moist, tracers after vert. diff
          shp(:,:,:),         &     ! specific humidity (kg/kg)
          thp_arg(:,:,:)            ! pot temp after vert. diffusion
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -295,6 +299,8 @@ contains
 !                              derived type object
 !  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
+!  04 Aug 2016 - M. Yannetti - Now pass State_Chm as argument; replace TCVV 
+!                              with species db MW and phys constant 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -779,7 +785,9 @@ contains
           TURBFLUP(I,lat,k,M) = TURBFLUP(I,lat,k,M) &
                               + (qp1(I,L,M) - qp0(I,L,M)) &
                               * State_Met%AD(I,lat,k) &
-                              / ( Input_Opt%TCVV(M) * ztodt )
+                              / ( ( AIRMW /           &
+                                    State_Chm%SpcData(M)%Info%emMW_g ) &
+                                  * ztodt )
        enddo
        enddo
        ENDDO
@@ -1945,6 +1953,7 @@ contains
 !                              and ND as loop index for drydep species
 !  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
 !  27 Jul 2016 - R. Yantosca - Bug fix: set nDrydep=0 if drydep is turned off
+!  04 Aug 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2004,8 +2013,7 @@ contains
     LOGICAL            :: IS_CH4,    IS_FULLCHEM, IS_Hg,     IS_TAGO3
     LOGICAL            :: IS_TAGCO,  IS_AEROSOL,  IS_RnPbBe, LDYNOCEAN
     LOGICAL            :: LGTMM,     LSOILNOX
-    INTEGER            :: N_TRACERS, N_MEMBERS 
-    REAL(fp)           :: TCVV (State_Chm%nAdvect)
+    INTEGER            :: N_MEMBERS 
 
     ! HEMCO update
     LOGICAL            :: FND
@@ -2111,9 +2119,6 @@ contains
     LGTMM        = Input_Opt%LGTMM
     LSOILNOX     = Input_Opt%LSOILNOX
     N_MEMBERS    = Input_Opt%MAX_MEMB
-
-    !%%% NOTE: TCVV can be removed soon (bmy, 7/13/16)
-    TCVV         = Input_Opt%TCVV(1:nAdvect)
 
     dtime = GET_TS_CONV()*60e+0_fp ! min -> second
     
@@ -2260,7 +2265,11 @@ contains
           ! DFLX will be converted to kg/m2/s lateron. (ckeller, 04/01/2014)
           CALL GetHcoVal ( NA, I, J, 1, fnd, dep=dep )
           IF ( fnd ) THEN
-             dflx(I,J,NA) = dflx(I,J,NA) + ( dep * as2_scal(I,J,NA) / TCVV(NA) )
+!LL             dflx(I,J,NA) = dflx(I,J,NA) + ( dep * as2_scal(I,J,NA) &
+!LL                            / TCVV(NA) )
+             dflx(I,J,NA) = dflx(I,J,NA) + ( dep * as2_scal(I,J,NA)  &
+                            / ( AIRMW                                &
+                                / State_Chm%SpcData(NA)%Info%emMW_g ) )
           ENDIF
        ENDDO
        
@@ -2345,8 +2354,12 @@ contains
              ! first (lowest) model layer
              ! given that as2 is in v/v
              ! Now add to existing dflx (ckeller, 10/16/2014).
-             dflx(I,J,N) = dflx(I,J,N) &
-                         + DEPSAV(I,J,ND) * (wk1/(wk2+1.e-30_fp)) / TCVV(N)
+!LL             dflx(I,J,N) = dflx(I,J,N) &
+!LL                         + DEPSAV(I,J,ND) * (wk1/(wk2+1.e-30_fp)) / TCVV(N)
+             dflx(I,J,NN) = dflx(I,J,NN) &
+                          + DEPSAV(I,J,N) * (wk1/(wk2+1.e-30_fp))  &
+                          / ( AIRMW / SpcInfo%emMW_g )
+
 
              ! consistency with the standard GEOS-Chem setup (Lin, 07/14/08)
              if (drydep_back_cons) then 
@@ -2362,9 +2375,11 @@ contains
              ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
              ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
              ! Now add to existing dflx (ckeller, 10/16/2014).
+!LL             dflx(I,J,N) = dflx(I,J,N) &
+!LL                         + DEPSAV(I,J,ND) * as2_scal(I,J,N) / TCVV(N)
              dflx(I,J,N) = dflx(I,J,N) &
-                         + DEPSAV(I,J,ND) * as2_scal(I,J,N) / TCVV(N)
-
+                         + DEPSAV(I,J,ND) * as2_scal(I,J,N) /   &
+                         ( AIRMW / SpcInfo%emMW_g )
           endif
           
           ! Hg(0) exchange with the ocean is handled by ocean_mercury_mod
@@ -2428,11 +2443,15 @@ contains
                    wk2 = wk2 + State_Met%AD         (I,J,L   ) * &
                                GET_FRAC_UNDER_PBLTOP(I,J,L   )
                 enddo
+
                 ! since we only use the ratio of wk1 / wk2, there should not be
                 ! a problem even if the PBL top is lower than the top of the 
                 ! first (lowest) model layer
                 ! given that as2 is in v/v
-                dflx(I,J,NA) = DEPSAV(I,J,1) * (wk1/(wk2+1.e-30_fp)) / TCVV(1)
+!LL                dflx(I,J,NA) = DEPSAV(I,J,1) * (wk1/(wk2+1.e-30_fp)) &
+!LL                               / TCVV(1)
+                dflx(I,J,NA) = DEPSAV(I,J,1) * (wk1/(wk2+1.e-30_fp)) &
+                               / (AIRMW / State_Chm%SpcData(1)%Info%emMW_g )
 
                 ! Consistent with the standard GEOS-Chem setup.(Lin, 07/14/08) 
                 if (drydep_back_cons) then 
@@ -2447,8 +2466,11 @@ contains
                 ! NOTE: Now use as2_scal(I,J,NA), instead of as2(I,J,1,NA) to 
                 ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
                 ! Now add to existing dflx (ckeller, 10/16/2014).
+!LL                dflx(I,J,NA) = dflx(I,J,NA) &
+!LL                             + DEPSAV(I,J,1) * as2_scal(I,J,NA) / TCVV(1) 
                 dflx(I,J,NA) = dflx(I,J,NA) &
-                             + DEPSAV(I,J,1) * as2_scal(I,J,NA) / TCVV(1) 
+                             + DEPSAV(I,J,1) * as2_scal(I,J,NA)  &
+                             / ( AIRMW / State_Chm%SpcData(1)%Info%emMW_g )
              endif
           enddo
        endif
@@ -2781,7 +2803,9 @@ contains
 
        ! Convert v/v -> m/m (i.e., kg/kg)
        DO NA = 1, nAdvect
-          p_as2(:,:,:,NA) =  p_as2(:,:,:,NA) / TCVV(NA) 
+!LL          p_as2(:,:,:,NA) =  p_as2(:,:,:,NA) / TCVV(NA) 
+          p_as2(:,:,:,NA) =  p_as2(:,:,:,NA) / ( AIRMW       &
+                             / State_Chm%SpcData(NA)%Info%emMW_g ) 
        ENDDO
 
        ! Convert g/kg -> kg/kg
@@ -2799,7 +2823,8 @@ contains
                       sflx,      p_thp,     p_as2,  pblh,      &
                       p_kvh,     p_kvm,     tpert,  qpert,     &
                       p_cgs,     p_shp,     shflx,  IIPAR,     &
-                      Input_Opt, State_Met, ustar_arg=p_ustar )
+                      Input_Opt, State_Met, State_Chm,         &
+                      ustar_arg=p_ustar )
        enddo
 !$OMP END PARALLEL DO
 
@@ -2808,7 +2833,9 @@ contains
 
        ! Convert kg/kg -> v/v
        DO NA = 1, nAdvect
-          p_as2(:,:,:,NA) = p_as2(:,:,:,NA) * TCVV(NA)
+!LL          p_as2(:,:,:,NA) = p_as2(:,:,:,NA) * TCVV(NA)
+          p_as2(:,:,:,NA) = p_as2(:,:,:,NA) * ( AIRMW          &
+                            / State_Chm%SpcData(NA)%Info%emMW_g )
        ENDDO
 
        ! Convert kg/kg -> g/kg
@@ -2852,7 +2879,9 @@ contains
 
        ! Convert from v/v -> m/m (i.e., kg/kg)
        do NA = 1, nAdvect
-          p_as2(:,:,:,NA) = p_as2(:,:,:,NA) / TCVV(NA) 
+!LL          p_as2(:,:,:,NA) = p_as2(:,:,:,NA) / TCVV(NA) 
+          p_as2(:,:,:,NA) = p_as2(:,:,:,NA) / ( AIRMW           &
+                            / State_Chm%SpcData(NA)%Info%emMW_g )
        enddo
 
        !### Debug
@@ -2871,7 +2900,9 @@ contains
 
        ! Convert from m/m (i.e. kg/kg) -> v/v
        do NA = 1, nAdvect
-          p_as2(:,:,:,NA) = p_as2(:,:,:,NA) * TCVV(NA) 
+!LL          p_as2(:,:,:,NA) = p_as2(:,:,:,NA) * TCVV(NA) 
+          p_as2(:,:,:,NA) = p_as2(:,:,:,NA) * ( AIRMW /       &
+                            State_Chm%SpcData(NA)%Info%emMW_g ) 
        enddo
 
        ! Free pointers

@@ -150,9 +150,6 @@
       INTEGER               :: ICNTRL(20)
       INTEGER               :: ISTATUS(20)
 
-      ! mje Array to hold the molecular mass of the species
-      REAL(fp)              :: TCVV(Input_Opt%N_TRACERS)
-
       ! mje STT holds the concentrations of Tracers
       REAL(fp), POINTER     :: STT(:,:,:,:)
 
@@ -228,9 +225,6 @@
 
       ! mje Copy Number of tracers (advected species) into N_TRACERS
       N_TRACERS = Input_Opt%N_TRACERS
-
-      ! mje Copy the molecular mass of the Tracers into TCVV
-      TCVV      = Input_Opt%TCVV
 
       ! mje link the STT Pointer to the State_Chm%Tracers stucture
       STT       => State_Chm%Tracers

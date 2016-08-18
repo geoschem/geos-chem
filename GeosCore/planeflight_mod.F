@@ -1308,6 +1308,8 @@
       USE TIME_MOD
       USE OCEAN_MERCURY_MOD,  ONLY : Fg !eds 10/27/11
       USE OCEAN_MERCURY_MOD,  ONLY : OMMFp => Fp
+      USE SPECIES_MOD,        ONLY : Species
+      USE PHYSCONSTANTS
 !
 ! !INPUT PARAMETERS:
 !
@@ -1362,6 +1364,7 @@
 !  21 Apr 2016 - M. Sulprizio- Get CONSVAP from PHYSCONSTANTS instead of
 !                              computing locally
 !  17 May 2016 - M. Sulprizio- Remove PCHEM, IJLOOP and use IS_FULLCHEM instead
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV with spec db
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1385,7 +1388,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER      :: STT(:,:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1843,7 +1846,8 @@
                      STT => State_Chm%Tracers
                      
                      ! Convert from [kg/kg] --> [v/v] (ewl, 8/11/15)
-                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N)
+                     VARI(V) = STT(I,J,L,N) * ( AIRMW / 
+     &                         State_Chm%SpcData(N)%Info%emMW_g )
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
 

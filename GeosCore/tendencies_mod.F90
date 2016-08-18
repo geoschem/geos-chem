@@ -637,6 +637,8 @@ CONTAINS
 !
 ! !USES:
 !
+    USE PHYSCONSTANTS,      ONLY : AIRMW
+    USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -654,6 +656,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  14 Jul 2015 - C. Keller   - Initial version 
 !  26 Oct 2015 - C. Keller   - Update to include tendency classes
+!  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !  19 Jul 2016 - R. Yantosca - Don't nullify local pointers in declarations
 !  19 Jul 2016 - R. Yantosca - Now use State_Chm%Species
 !EOP
@@ -673,7 +676,7 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255)       :: MSG
     CHARACTER(LEN=255)       :: LOC = 'TEND_STAGE1 (tendencies_mod.F)' 
-    
+   
     !=======================================================================
     ! TEND_STAGE1 begins here!
     !=======================================================================
@@ -702,8 +705,11 @@ CONTAINS
        IF ( IsInvv ) THEN
           Ptr3D = State_Chm%Species(:,:,:,I)
        ELSE
+!LL          Ptr3D = State_Chm%Species(:,:,:,I) &
+!LL                * Input_Opt%TCVV(I) / State_Met%AD(:,:,:)
           Ptr3D = State_Chm%Species(:,:,:,I) &
-                * Input_Opt%TCVV(I) / State_Met%AD(:,:,:)
+                * ( AIRMW / State_Chm%SpcData(I)%Info%emMW_g )               &
+                / State_Met%AD(:,:,:)
        ENDIF
 
        ! Cleanup
@@ -738,6 +744,9 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_MOD,      ONLY : IIPAR, JJPAR, LLPAR
+    USE PHYSCONSTANTS,      ONLY : AIRMW
+    USE SPECIES_MOD,        ONLY : Species
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -756,6 +765,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  14 Jul 2015 - C. Keller   - Initial version 
 !  26 Oct 2015 - C. Keller   - Update to include tendency classes
+!  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !  19 Jul 2016 - R. Yantosca - Don't nullify local pointers in declarations
 !  19 Jul 2016 - R. Yantosca - Now use State_Chm%Species
 !EOP
@@ -780,7 +790,7 @@ CONTAINS
     CHARACTER(LEN=63)        :: DiagnName
     CHARACTER(LEN=255)       :: MSG
     CHARACTER(LEN=255)       :: LOC = 'TEND_STAGE2 (tendencies_mod.F)' 
-   
+  
     !=======================================================================
     ! TEND_STAGE2 begins here!
     !=======================================================================
@@ -825,8 +835,12 @@ CONTAINS
           IF ( IsInvv ) THEN
              Tend = ( State_Chm%Species(:,:,:,I) - Ptr3D(:,:,:) ) / DT
           ELSE
-             Tend = ( ( State_Chm%Species(:,:,:,I)                &
-                      * Input_Opt%TCVV(I) / State_Met%AD(:,:,:) ) &
+!LL             Tend = ( ( State_Chm%Species(:,:,:,I)                &
+!LL                      * Input_Opt%TCVV(I) / State_Met%AD(:,:,:) ) &
+!LL                      - Ptr3D(:,:,:) ) / DT
+             Tend = ( ( State_Chm%Species(:,:,:,I)                   &
+                      * ( AIRMW / State_Chm%SpcData(I)%Info%emMW_g ) &
+                      / State_Met%AD(:,:,:) ) &
                       - Ptr3D(:,:,:) ) / DT
           ENDIF
        ENDIF

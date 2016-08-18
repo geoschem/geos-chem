@@ -483,6 +483,9 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE PHYSCONSTANTS,      ONLY : AIRMW
+      USE SPECIES_MOD,        ONLY : Species
       USE TIME_MOD,           ONLY : GET_TS_CONV
 !
 ! !INPUT PARAMETERS: 
@@ -564,6 +567,7 @@
 !  15 Jul 2015 - C. Keller   - Added tendencies module
 !  06 Jul 2016 - R. Yantosca - Now pass State_Chm and am_I_Root as args
 !                              so that we can loop over advected species   
+!  25 Jul 2016 - M. Yannetti - Now takes in State_Chm to access spec db
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -700,7 +704,9 @@
             IF ( ND15 > 0 ) THEN
                DO L = 1, IMIX(I,J)
                   TURBFLUP(I,J,L,N) = TURBFLUP(I,J,L,N) +
-     &                 DTC(I,J,L,N) / ( Input_Opt%TCVV(N) * DTCONV )
+!LL     &                 DTC(I,J,L,N) / ( Input_Opt%TCVV(N) * DTCONV )
+     &                 DTC(I,J,L,N) / ( ( AIRMW 
+     &                 / State_Chm%SpcData(N)%Info%emMW_g ) * DTCONV )
                ENDDO
             ENDIF
          ENDDO                  

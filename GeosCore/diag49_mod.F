@@ -16,7 +16,8 @@
 ! !USES:
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-
+      USE PHYSCONSTANTS
+      USE Species_Mod,        ONLY : Species
       USE inquireMod, ONLY : findFreeLUN ! (ewl, 6/16/15)
 
       IMPLICIT NONE
@@ -133,6 +134,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  22 Jun 2016 - M. Yannetti - Replace TCVV with spec db and physical const
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -351,7 +353,6 @@
       LOGICAL                  :: LSOILNOX
       LOGICAL                  :: DO_DIAG_WRITE
       INTEGER                  :: N_TRACERS
-      REAL(fp)                 :: TCVV(Input_Opt%N_TRACERS)
  
       ! Pointers
       REAL(fp), POINTER        :: Spc(:,:,:,:)
@@ -384,7 +385,6 @@
       LSOILNOX      = Input_Opt%LSOILNOX
       DO_DIAG_WRITE = Input_Opt%DO_DIAG_WRITE
       N_TRACERS     = Input_Opt%N_TRACERS
-      TCVV          = Input_Opt%TCVV(1:N_TRACERS)
 
 #if defined( MASSCONS )
       DO_MASSCONS   = .TRUE.
@@ -538,7 +538,8 @@
                   Q(X,Y,K) = SPC(I,J,L,N) * State_Met%AD(I,J,L)
                ELSE
                   ! Normal ND49 output, archive in v/v
-                  Q(X,Y,K) = SPC(I,J,L,N) * TCVV(N)
+                  Q(X,Y,K) = SPC(I,J,L,N) * ( AIRMW 
+     &                       / State_Chm%SpcData(N)%Info%emMW_g )
                ENDIF
                
             ENDDO
@@ -639,40 +640,49 @@
                TMP = 0e0_fp
             
                ! NO
-               TMP = TMP + ( TCVV(id_NO)         *
-     &                       SPC(I,J,L,id_NO) )
+               TMP = TMP + ( ( AIRMW 
+     &               / State_Chm%SpcData(id_NO)%Info%emMW_g )      
+     &               * SPC(I,J,L,id_NO) )
 
                ! NO2
-               TMP = TMP + ( TCVV(id_NO2)        *
-     &                       SPC(I,J,L,id_NO2) )  
+               TMP = TMP + ( ( AIRMW 
+     &               / State_Chm%SpcData(id_NO2)%Info%emMW_g )      
+     &               * SPC(I,J,L,id_NO2) )  
 
                ! PAN
-               TMP = TMP + ( TCVV(id_PAN)        * 
-     &                       SPC(I,J,L,id_PAN) )
+               TMP = TMP + ( ( AIRMW 
+     &               / State_Chm%SpcData(id_PAN)%Info%emMW_g )       
+     &               * SPC(I,J,L,id_PAN) )
 
                ! HNO3
-               TMP = TMP + ( TCVV(id_HNO3)       *
-     &                       SPC(I,J,L,id_HNO3) )
+               TMP = TMP + ( ( AIRMW
+     &               / State_Chm%SpcData(id_HNO3)%Info%emMW_g )     
+     &               * SPC(I,J,L,id_HNO3) )
             
                ! PMN
-               TMP = TMP + ( TCVV(id_PMN)        *
-     &                       SPC(I,J,L,id_PMN) )
+               TMP = TMP + ( ( AIRMW 
+     &               / State_Chm%SpcData(id_PMN)%Info%emMW_g )      
+     &               * SPC(I,J,L,id_PMN) )
 
                ! PPN
-               TMP = TMP + ( TCVV(id_PPN)        * 
-     &                       SPC(I,J,L,id_PPN) )
+               TMP = TMP + ( ( AIRMW 
+     &               / State_Chm%SpcData(id_PPN)%Info%emMW_g )      
+     &               * SPC(I,J,L,id_PPN) )
  
                ! R4N2
-               TMP = TMP + ( TCVV(id_R4N2)       *
-     &                       SPC(I,J,L,id_R4N2) )
+               TMP = TMP + ( ( AIRMW 
+     &               / State_Chm%SpcData(id_R4N2)%Info%emMW_g )     
+     &               * SPC(I,J,L,id_R4N2) )
             
                ! N2O5
-               TMP = TMP + ( 2e+0_fp * TCVV(id_N2O5) *
-     &                       SPC(I,J,L,id_N2O5) )
+               TMP = TMP + ( ( 2e+0_fp * AIRMW 
+     &               / State_Chm%SpcData(id_N2O5)%Info%emMW_g ) 
+     &               * SPC(I,J,L,id_N2O5) )
                         
                ! HNO4
-               TMP = TMP + ( TCVV(id_HNO4)       *
-     &                       SPC(I,J,L,id_HNO4) )
+               TMP = TMP + ( ( AIRMW 
+     &               / State_Chm%SpcData(id_HNO4)%Info%emMW_g )     
+     &               * SPC(I,J,L,id_HNO4) )
 
                ! Save afternoon points
                Q(X,Y,K) = Q(X,Y,K) + TMP
@@ -826,7 +836,8 @@
 !               Q(X,Y,K) = ( SPC(I,J,L,id_SALA) + SPC(I,J,L,id_SALC) ) *
 !     &                      TCVV(id_SALA)      / AD(I,J,L) 
               Q(X,Y,K) = ( SPC(I,J,L,id_SALA) + SPC(I,J,L,id_SALC) ) *
-     &                      TCVV(id_SALA)     
+     &                     ( AIRMW
+     &                       / State_Chm%SpcData(id_SALA)%Info%emMW_g )     
             ENDDO
             ENDDO
             ENDDO

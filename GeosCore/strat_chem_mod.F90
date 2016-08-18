@@ -192,7 +192,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE PHYSCONSTANTS,      ONLY : XNUMOLAIR
+    USE PHYSCONSTANTS,      ONLY : XNUMOLAIR, AIRMW
     USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
@@ -206,6 +206,7 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
     USE UNITCONV_MOD
+    USE SPECIES_MOD
 
     IMPLICIT NONE
 !
@@ -255,6 +256,7 @@ CONTAINS
 !                              species ID from State_Chm%Map_Advect.
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !  12 Jul 2016 - R. Yantosca - Bug fix: ISBR2 should be held !$OMP PRIVATE
+!  18 Jul 2016 - M. Yannetti - Replaced TCVV with spec db and phys constant
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -438,7 +440,9 @@ CONTAINS
                    IF ( .NOT. ASSOCIATED(PLVEC(N)%PROD) ) THEN
                       P = 0.0_fp 
                    ELSE
-                      P = PLVEC(N)%PROD(I,J,L) * AD(I,J,L) / Input_Opt%TCVV(NN) 
+!LL                      P = PLVEC(N)%PROD(I,J,L) * AD(I,J,L) / Input_Opt%TCVV(NN) 
+                      P = PLVEC(N)%PROD(I,J,L) * AD(I,J,L) / ( AIRMW / &
+                          State_Chm%SpcData(NN)%Info%emMW_g )
                    ENDIF
 
                    ! Initial mass [kg]
@@ -473,7 +477,9 @@ CONTAINS
        BEFORE = Spc(:,:,:,id_O3)
 
        ! Put ozone in [v/v] for Linoz or Synoz
-       Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * Input_Opt%TCVV( id_O3 ) / AD
+!LL       Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * Input_Opt%TCVV( id_O3 ) / AD
+       Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * ( AIRMW  &
+                          / State_Chm%SpcData(id_O3)%Info%emMW_g ) / AD
 
        ! Do Linoz or Synoz
        IF ( LLINOZ ) THEN
@@ -485,7 +491,9 @@ CONTAINS
        ENDIF
  
        ! Put ozone back to [kg]
-       Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * AD / Input_Opt%TCVV( id_O3 )
+!LL       Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * AD / Input_Opt%TCVV( id_O3 )
+       Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * AD / ( AIRMW  &
+                          / State_Chm%SpcData(id_O3)%Info%emMW_g )
 
        ! Put tendency into diagnostic array [kg box-1]
        SCHEM_TEND(:,:,:,id_O3) = SCHEM_TEND(:,:,:,id_O3) + &
@@ -606,14 +614,18 @@ CONTAINS
                    BryTmp = BrPtrDay(NN)%MR(I,J,L)   &
                           * 1.e-12_fp                & ! convert from [ppt]
                           * AD(I,J,L)                &
-                          / Input_Opt%TCVV(GC_Bry_TrID(NN))
+!LL                          / Input_Opt%TCVV(GC_Bry_TrID(NN))
+                          / ( AIRMW                  &
+                          / State_Chm%SpcData(GC_Bry_TrID(NN))%Info%emMW_g )
 
                 ELSE
                    ! nighttime [ppt] -> [kg]
                    BryTmp = BrPtrNight(NN)%MR(I,J,L) &
                           * 1.e-12_fp                & ! convert from [ppt]
                           * AD(I,J,L)                &
-                          / Input_Opt%TCVV(GC_Bry_TrID(NN))
+!LL                          / Input_Opt%TCVV(GC_Bry_TrID(NN))
+                          /  ( AIRMW                 & 
+                          / State_Chm%SpcData(GC_Bry_TrID(NN))%Info%emMW_g )
                 ENDIF
 
                 ! Special adjustment for G-C Br2 tracer, 

@@ -353,7 +353,8 @@
       ! For netCDF diagnostics, mirror old species
       !=================================================================
       IF ( Input_Opt%ND39 > 0 ) THEN
-         ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
+!LL         ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
+         ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect) )
          BEFORE = State_Chm%Tracers
       ENDIF
 #endif
@@ -5907,6 +5908,8 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE PhysConstants
+      USE Species_Mod,        ONLY : Species
       USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
@@ -5968,6 +5971,7 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  23 Jun 2016 - R. Yantosca - Remove reference to tracerid_mod.F
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT and State_Chm%TRACERS
+!  04 Jul 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5981,6 +5985,8 @@
       ! Pointers
       REAL(fp), POINTER :: PL
       REAL(fp), POINTER :: TK
+!LL      TYPE(Species), POINTER :: ThisSpc
+
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
 !@@@
@@ -5994,6 +6000,7 @@
       ! Initialize
       PL => NULL()
       TK => NULL()
+!LL      ThisSpc => NULL()
 
       ! Only do computation if wetdep or convection is turned on
       IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
@@ -6103,8 +6110,10 @@
          ! call to SETUP_WETSCAV, store H2O2s in legacy units [v/v dry air] 
          ! for now for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
          IF ( id_H2O2 > 0 ) THEN
-            H2O2s = State_Chm%Species(:,:,:,id_H2O2)
-     &            * Input_Opt%TCVV(id_H2O2)
+!LL            H2O2s = State_Chm%Species(:,:,:,id_H2O2)
+!LL     &            * Input_Opt%TCVV(id_H2O2)
+            H2O2s = State_Chm%Tracers(:,:,:,id_H2O2)
+     &            * ( AIRMW / State_Chm%SpcData(id_H2O2)%Info%emMW_g )
          ENDIF
 
          ! Set SO2s to the initial SO2 from STT, so that we will have
@@ -6113,8 +6122,10 @@
          ! call to SETUP_WETSCAV, store SO2s in units [v/v dry air] for now 
          ! for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
          IF ( id_SO2 > 0 ) THEN
-            SO2s = State_Chm%Species(:,:,:,id_SO2)
-     &           * Input_Opt%TCVV(id_SO2)
+!LL            SO2s = State_Chm%Species(:,:,:,id_SO2)
+!LL     &           * Input_Opt%TCVV(id_SO2)
+            SO2s = State_Chm%Tracers(:,:,:,id_SO2)
+     &           * ( AIRMW / State_Chm%SpcData(id_SO2)%Info%emMW_g )
          ENDIF
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)

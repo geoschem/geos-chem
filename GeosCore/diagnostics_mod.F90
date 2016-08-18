@@ -3072,6 +3072,7 @@ CONTAINS
     USE HCO_Diagn_Mod,      ONLY : DiagnCont_Find
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE PRESSURE_MOD,       ONLY : GET_PEDGE
+    USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -3088,6 +3089,7 @@ CONTAINS
 !  07 Jul 2015 - C. Keller   - Initial version 
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  16 Jun 2016 - K. Travis   - Now define species ID's with the IND_ function 
+!  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3099,7 +3101,7 @@ CONTAINS
     INTEGER                  :: I, J, L, id_O3
 
     REAL(fp)                 :: constant
-    REAL(fp)                 :: DP, O3vv, DU
+    REAL(fp)                 :: DP, O3vv, DU, MW_O3
     REAL(fp)                 :: TROPO3(IIPAR,JJPAR)
     REAL(fp)                 :: TOTO3 (IIPAR,JJPAR)
 
@@ -3109,7 +3111,7 @@ CONTAINS
 
     CHARACTER(LEN=255)       :: MSG
     CHARACTER(LEN=255)       :: LOC = 'CalcDobsonColumn (diagnostics_mod.F)' 
-    
+
     !=======================================================================
     ! CalcDobsonColumn begins here!
     !=======================================================================
@@ -3120,6 +3122,8 @@ CONTAINS
     ! Initialize
     DgnPtr => NULL()
     id_O3  = IND_('O3')
+    MW_O3 = State_Chm%SpcData(id_O3)%Info%emMW_g
+
 
     ! Nothing to do if O3 is not a tracer
     IF ( id_O3 <= 0 ) RETURN
@@ -3159,7 +3163,8 @@ CONTAINS
        DP = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
 
        ! Ozone in v/v
-       O3vv = State_Chm%Tracers(I,J,L,id_O3) * Input_Opt%TCVV(id_O3) &
+       O3vv = State_Chm%Tracers(I,J,L,id_O3) &
+            * (AIRMW / MW_O3) &
             / State_Met%AD(I,J,L)
 
        ! Calculate O3 in DU for this grid box 
