@@ -17,9 +17,8 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS             ! physical parameters
-      USE DEPO_MERCURY_MOD , ONLY : ADD_HG2_SNOWPACK
-      USE DEPO_MERCURY_MOD , ONLY : LHGSNOW
+      USE DEPO_MERCURY_MOD,  ONLY : ADD_HG2_SNOWPACK
+      USE DEPO_MERCURY_MOD,  ONLY : LHGSNOW
       USE OCEAN_MERCURY_MOD, ONLY : LDYNSEASALT
       USE OCEAN_MERCURY_MOD, ONLY : LGCAPEMIS
       USE OCEAN_MERCURY_MOD, ONLY : LPOLARBR
@@ -37,8 +36,8 @@
       USE OCEAN_MERCURY_MOD, ONLY : LNEI2005
       USE OCEAN_MERCURY_MOD, ONLY : LInPlume    
       USE OCEAN_MERCURY_MOD, ONLY : LOCEANCOEF
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE PHYSCONSTANTS           ! Physical parameters
+      USE PRECISION_MOD           ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -77,11 +76,11 @@
 !  (2 ) Hg(II) a.k.a. Hg2  : Divalent    mercury
 !  (3 ) HgP                : Particulate mercury
 !                                                                             .
-!  Mercury Tracers (1-3 are always defined; 4-87 are defined for tagged runs)
+!  Mercury Species (1-3 are always defined; 4-87 are defined for tagged runs)
 !  ============================================================================
-!  (1 ) Hg(0)              : Hg(0)  - total tracer
-!  (2 ) Hg(II)             : Hg(II) - total tracer 
-!  (3 ) HgP                : HgP    - total tracer
+!  (1 ) Hg(0)              : Hg(0)  - total species
+!  (2 ) Hg(II)             : Hg(II) - total species 
+!  (3 ) HgP                : HgP    - total species
 !  ------------------------+---------------------------------------------------
 !  (4 ) Hg0_can            : Hg(0) - Canadian Anthropogenic
 !  (5 ) Hg0_usa            : Hg(0) - USA Anthropogenic
@@ -282,13 +281,7 @@
       REAL(f4), POINTER :: OH  (:,:,:) => NULL()
       REAL(f4), POINTER :: JNO2(:,:,:) => NULL()
 
-      !-----------------------------------------------------------------
-      ! Now keep local Hg tracer indexing variables instead of getting
-      ! them from tracerid_mod.f.  The tracerid_mod.f module is going
-      ! to be removed for the FlexChem implementation. (bmy, 4/26/16)
-      !-----------------------------------------------------------------
-
-      ! Scalars for Hg indexing
+      ! Hg species IDs
       INTEGER           :: N_Hg_CATS
       INTEGER           :: id_Hg0,     id_Hg2,     id_HgP
       INTEGER           :: ID_Hg_tot,  ID_Hg_can,  ID_Hg_usa
@@ -711,7 +704,7 @@
       ENDIF
       
       !=================================================================
-      ! Perform chemistry on Hg tracers 
+      ! Perform chemistry on Hg species 
       !=================================================================
       
       ! Chemistry timestep [s]
@@ -1194,7 +1187,7 @@
             !==============================================================
             IF ( ND03 > 0 .AND. L <= LD03 ) THEN 
 
-               ! Store chemistry diagnostics only for total tracer
+               ! Store chemistry diagnostics only for total species
                IF ( Hg0_Id_List(N) == ID_HG_TOT) THEN
 
                   ! Net oxidation [kg]
@@ -1593,7 +1586,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE   :: FIRST = .TRUE. 
-      INTEGER         :: THISMONTH, I, J, N, NA, nAdvect
+      INTEGER         :: THISMONTH, I, J
 
       ! For fields from Input_Opt
       LOGICAL         :: LDYNOCEAN
@@ -1618,29 +1611,15 @@
       LEMIS     = Input_Opt%LEMIS
       LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
 
-      ! Convert tracer units to [kg] for EMISSMERCURY (ewl, 8/12/15)
+      ! Convert species units to [kg] for EMISSMERCURY (ewl, 8/12/15)
       ! NOTE: This is temporary until mercury code is in [kg/kg dry air]
-      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
-     &                            State_Chm, RC ) 
+      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,  
+     &                               State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'Routine EMISSIONS_RUN in emissions_mod.F')
          RETURN
       ENDIF                         
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -1758,32 +1737,22 @@
       ! EMIS_SAVE is now HG_EMIS (ckeller, 10/21/2014)
       IF ( LNLPBL ) HG_EMIS = 0.0e+0_fp
 
-      ! Add Hg(0) source into State_Chm%TRACERS [kg]
+      ! Add Hg(0) source into State_Chm%Species [kg]
       CALL SRCHg0( am_I_Root, Input_Opt, State_Chm, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg0' )
 
-      ! Add Hg(II) source into State_Chm%TRACERS [kg]
+      ! Add Hg(II) source into State_Chm%Species [kg]
       CALL SRCHg2( am_I_Root, Input_Opt, State_Chm, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg2' )
 
-      ! Add HgP source into State_Chm%TRACERS [kg]
+      ! Add HgP source into State_Chm%Species [kg]
       CALL SRCHgP( am_I_Root, Input_Opt, State_Chm, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHgP' )
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       
-      ! Convert tracer units back to [kg/kg] after mercury emissions
+      ! Convert species units back to [kg/kg] after mercury emissions
       !  (ewl, 8/12/15)
-      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
-     &                            State_Chm, RC ) 
+      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
+     &                               State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'Routine EMISSMERCURY in mercury_mod.F')
@@ -1819,7 +1788,7 @@
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,        INTENT(IN)    :: I, J, L, ID ! Grid boxes + tracer #
+      INTEGER,        INTENT(IN)    :: I, J, L, ID ! Grid boxes + species #
       REAL(fp),       INTENT(IN)    :: E_Hg        ! Hg emissions 
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
@@ -2041,14 +2010,14 @@
             F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
 
             !-----------------
-            ! Total Hg tracer
+            ! Total Hg species
             !-----------------
             N    = Hg0_Id_List(ID_Hg_tot)
             E_Hg = F_OF_PBL * T_Hg * DTSRCE
             CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
             !-----------------
-            ! Tagged tracers
+            ! Tagged species
             !-----------------
             IF ( LSPLIT ) THEN 
 
@@ -4646,7 +4615,7 @@
       LOGICAL                :: LDRYD
       LOGICAL                :: LNLPBL
       LOGICAL                :: LGTMM
-      INTEGER                :: N_TRACERS
+      INTEGER                :: nAdvect
       INTEGER                :: AS, N
       CHARACTER(LEN=255)     :: LOCATION
 
@@ -4669,15 +4638,10 @@
       LGTMM          = Input_Opt%LGTMM            ! Use GTMM model?
       LNLPBL         = Input_Opt%LNLPBL           ! Use non-local PBL?
       LSPLIT         = Input_Opt%LSPLIT           ! Tagged simulation?
-      N_TRACERS      = Input_Opt%N_TRACERS        ! # of Hg tracers
+      nAdvect        = State_Chm%nAdvect          ! # of Hg advected species
 
       ! Location string for ERROR_STOP
       LOCATION       = 'DEFINE_TAGGED_Hg ("mercury_mod.f")'
-
-      !=================================================================
-      ! Now handle Hg indexing locally (bmy, 4/26/16)
-      ! These were all in tracerid_mod.F, which is being removed
-      !=================================================================
 
       ! Store the # of tagged Hg categories in a module variable
       N_Hg_CATS   = State_Chm%N_Hg_CATS
@@ -4687,10 +4651,10 @@
       Hg2_Id_List => State_Chm%Hg2_Id_List
       HgP_Id_List => State_Chm%HgP_Id_List
 
-      ! Locate various tracer flags
+      ! Locate various species flags
       DO N = 1, State_Chm%nSpecies
          
-         ! Point to the species database entry for tracer # N
+         ! Point to the species database entry for species # N
          SpcInfo => State_Chm%SpcData(N)%Info
 
          SELECT CASE( TRIM( SpcInfo%Name ) )
@@ -5063,11 +5027,11 @@
       HG2_SEASALT_LOSSRATE = 0e+0_fp
 
       !=================================================================
-      ! Allocate & initialize arrays for tagged tracer indices
+      ! Allocate & initialize arrays for tagged species indices
       !=================================================================
       IF ( LSPLIT ) THEN
 
-         ! Tracer indices for tagged anthro regions
+         ! Species indices for tagged anthro regions
          ALLOCATE( AN_Hg0( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AN_Hg0' )
          AN_Hg0 = 0e+0_fp
@@ -5083,7 +5047,7 @@
       ENDIF
 
       ! HG_EMIS is needed for non-local PBL mixing 
-      ALLOCATE ( HG_EMIS( IIPAR, JJPAR, N_TRACERS ), STAT=AS )
+      ALLOCATE ( HG_EMIS( IIPAR, JJPAR, nAdvect ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG_EMIS' )
       HG_EMIS = 0e+0_fp
 
