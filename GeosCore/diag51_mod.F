@@ -77,7 +77,7 @@
 !
 !  ND51 tracer numbers:
 !  ============================================================================
-!  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v        ]
+!  1 - N_TRACERS : GEOS-CHEM transported species            [v/v        ]
 !  151           : OH concentration                         [molec/cm3  ]
 !  152           : NOy concentration                        [v/v        ]
 !  153           : Relative Humidity                        [%          ]
@@ -85,7 +85,7 @@
 !  155           : Column optical depths                    [unitless   ]
 !  156           : Cloud top heights                        [hPa        ]
 !  157           : Air density                              [molec/cm3  ]
-!  158           : Total seasalt tracer concentration       [unitless   ]
+!  158           : Total seasalt species concentration      [unitless   ]
 !  159           : PBL heights                              [m          ]
 !  160           : PBL heights                              [levels     ]
 !  161           : Grid box heights                         [m          ]
@@ -414,7 +414,7 @@
 !
 ! !IROUTINE: accumulate_diag51
 !
-! !DESCRIPTION: Subroutine ACCUMULATE\_DIAG51 accumulates tracers into the 
+! !DESCRIPTION: Subroutine ACCUMULATE\_DIAG51 accumulates species into the 
 !  Q array. 
 !\\
 !\\
@@ -530,8 +530,6 @@
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER           :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
 
-      ! indices for tracers, kyu codeathon
-
       ! For fields from Input_Opt
       REAL(fp)          :: TCVV(State_Chm%nAdvect)
 
@@ -599,7 +597,7 @@
  100  FORMAT( '     - DIAG51: Accumulation at ', a )
       
       !=================================================================
-      ! Archive tracers into accumulating array Q 
+      ! Archive species into accumulating array Q 
       !=================================================================
 
       ! Archive counter array of good points 
@@ -675,7 +673,7 @@
          ENDIF      
 
          ! Initialize pointers
-         Spc => State_Chm%Tracers
+         Spc => State_Chm%Species
 !         AD  => State_Met%AD
 
 !$OMP PARALLEL DO 
@@ -703,7 +701,7 @@
             IF ( N <= nAdvect ) THEN
 
                !--------------------------------------
-               ! GEOS-CHEM tracers [v/v]
+               ! GEOS-CHEM species [v/v]
                !--------------------------------------
 
                ! Archive afternoon points
@@ -813,7 +811,7 @@
             ELSE IF ( N == 158 .and. IS_SEASALT ) THEN
 
                !--------------------------------------
-               ! TOTAL SEASALT TRACER [v/v]
+               ! TOTAL SEASALT SPECIES [v/v]
                !--------------------------------------
 !               Q(X,Y,K,W) = Q(X,Y,K,W) +
 !     &                      ( Spc(I,J,L,id_SALA)   + 
@@ -1362,7 +1360,6 @@
 
       ! For fields from Input_Opt
       LOGICAL             :: LND51_HDF
-      INTEGER             :: N_TRACERS
 
       !=================================================================
       ! WRITE_DIAG51 begins here!
@@ -1407,7 +1404,7 @@
       TAU1 = TAU_W
     
       !=================================================================
-      ! Compute time-average of tracers between local time limits
+      ! Compute time-average of species between local time limits
       !=================================================================
 
       ! Echo info
@@ -1430,7 +1427,7 @@
 
             CASE( 91, 92, 76, 77 )
                !--------------------------------------------------------
-               ! Avoid div by zero for tracers which are archived each
+               ! Avoid div by zero for species which are archived each
                ! chem timestep and only available in the troposphere
                !--------------------------------------------------------
                IF ( COUNT_CHEM3D(X,Y,K) > 0 ) THEN
@@ -1442,7 +1439,7 @@
             CASE( 84:89, 115:121 )
 
                !--------------------------------------------------------
-               ! Avoid division by zero for tracers which are archived 
+               ! Avoid division by zero for species which are archived 
                ! on each chem timestep (at trop & strat levels)
                !--------------------------------------------------------
                IF ( GOOD_CT_CHEM(X) > 0 ) THEN
@@ -1454,7 +1451,7 @@
             CASE( 105:114 )
 
                !--------------------------------------------------------
-               ! Avoid division by zero for tracers which are archived 
+               ! Avoid division by zero for species which are archived 
                ! on each EMISSION timestep (at SURFACE)      (mpb,2009)
                !--------------------------------------------------------
                IF ( GOOD_CT_EMIS(X) > 0 ) THEN
@@ -1466,7 +1463,7 @@
             CASE DEFAULT
 
                !--------------------------------------------------------
-               ! Avoid division by zero for all other tracers
+               ! Avoid division by zero for all other species
                !--------------------------------------------------------
                IF ( GOOD_CT(X) > 0 ) THEN
                   Q(X,Y,K,W) = Q(X,Y,K,W) / GOOD_CT(X) 
@@ -1483,7 +1480,7 @@
 !$OMP END PARALLEL DO
       
       !=================================================================
-      ! Write each tracer from "timeseries.dat" to the timeseries file
+      ! Write each species from "timeseries.dat" to the timeseries file
       !=================================================================
       DO W = 1, ND51_N_TRACERS
 
@@ -1494,7 +1491,7 @@
          IF ( N <= nAdvect ) THEN
 
             !---------------------
-            ! GEOS-CHEM tracers
+            ! GEOS-CHEM species
             !---------------------
             CATEGORY = 'IJ-AVG-$'
             UNIT     = ''              ! Let GAMAP pick unit
@@ -1973,7 +1970,7 @@
       ! Set STARTING TAU for the next bpch write
       TAU0 = TAU_W
 
-      ! Zero accumulating array for tracer
+      ! Zero accumulating array for species
       Q            = 0e+0_fp
 
       ! Zero counter arrays

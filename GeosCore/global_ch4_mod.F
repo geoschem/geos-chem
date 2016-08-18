@@ -981,7 +981,8 @@
       WRITE( 6, '(a)' ) '% --- ENTERING CHEMCH4! ---'
 
       ! testing only
-      write(*,*)'Total species before chemistry: ',SUM(State_Chm%Species)
+      WRITE(*,*) 'Total species before chemistry: ',
+     &            SUM(State_Chm%Species)
 
       ! Assume success
       RC      = GIGC_SUCCESS

@@ -7944,7 +7944,7 @@
 
       ! Initialize "tagged_o3_mod.F"
       IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
-         CALL Init_Tagged_O3( am_I_Root, Input_Opt, RC )
+         CALL Init_Tagged_O3( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
 
       IF ( Input_Opt%ITS_A_POPS_SIM ) THEN

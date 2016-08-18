@@ -930,7 +930,8 @@
          ! Write HEMCO diagnostics as well as new GEOS-Chem diagnostics
          ! (the latter is currently only defined in development mode)
          ! (ckeller, 4/1/15). 
-         CALL Diagnostics_Write( am_I_Root, Input_Opt, .FALSE., RC)
+         CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
+     &                           .FALSE.,   RC)
 
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_End( "HEMCO", RC )
@@ -1016,7 +1017,8 @@
 
             ! Force the output of a HEMCO restart file. 
             ! (ckeller, 4/1/15)
-            CALL Diagnostics_Write( am_I_Root, Input_Opt, .TRUE., RC)
+            CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
+     &                              .TRUE.,    RC)
 
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "HEMCO", RC )
@@ -1992,7 +1994,8 @@
 !         ! Write diagnostic data to the GEOS-Chem diagnostics netCDF file.
 !         ! Each diagnostic has a specified averaging period specified 
 !         ! in Input_Opt. (ckeller, bmy, 1/15/15)
-!         CALL Diagnostics_Write( am_I_Root, Input_Opt, .FALSE., RC )
+!         CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
+!     &                           .FALSE.,    RC )
 !#endif
 
          !### After diagnostics
@@ -2080,7 +2083,8 @@
 !      ! Write diagnostic data to the GEOS-Chem restart netCDF file.
 !      ! Each diagnostic has a specified averaging period specified 
 !      ! in Input_Opt. (ckeller, bmy, 1/15/15)
-!      CALL Diagnostics_Write( am_I_Root, Input_Opt, .TRUE., RC )
+!      CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
+!     &                        .FALSE.,   RC )
 !#endif
 
       ! For model benchmarking, save final concentrations of Rn,Pb,Be or Ox.

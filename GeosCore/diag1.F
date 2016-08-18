@@ -178,7 +178,6 @@
 
       ! For fields from Input_Opt
       LOGICAL            :: ITS_A_FULLCHEM_SIM
-      INTEGER            :: N_TRACERS
 
       ! For netCDF diagnostics via HEMCO
       REAL(fp), TARGET   :: Landmap(IIPAR, JJPAR)
@@ -237,22 +236,21 @@
             ! Species ID
             N = State_Chm%Map_Advect(NA)
 
-            ! Get info about this tracer from the database
-            ! NOTE: Assumes 1:1 mapping of tracer and species indexes
+            ! Get info about this species from the database
             SpcInfo => State_Chm%SpcData(N)%Info
             
             DO L = 1, LLPAR
             DO J = 1, JJPAR
             DO I = 1, IIPAR
 
-               ! Tracer conc. in v/v dry air
+               ! Species conc. in v/v dry air
                Spc_VV(I,J,L,NA) = 
      &              MAX( State_Chm%Species(I,J,L,N) * 
      &                   AIRMW / SpcInfo%emMW_g, 0e+0_fp )
 
                IF ( N == id_PASV ) THEN
 
-                  ! Also express tracer conc. in v/v total air (mps, 11/18/15)
+                  ! Also express species conc in v/v total air (mps, 11/18/15)
                   Spc_VV(I,J,L,NA+1) =
      &               MAX( State_Chm%Species(I,J,L,N) *
      &                  ( 1.0e+0_fp - State_Met%SPHU(I,J,L) * 1.e-3_fp ) 
@@ -261,7 +259,7 @@
      &                    0e+0_fp )
 
 
-                  ! Also express tracer conc. in kg/kg total air (mps, 11/18/15)
+                  ! Also express species conc in kg/kg total air (mps, 11/18/15)
                   Spc_VV(I,J,L,NA+2) =
      &                 MAX( State_Chm%Species(I,J,L,N) *
      &                 ( 1.0e+0_fp - State_Met%SPHU(I,J,L) * 1.e-3_fp ),
@@ -297,7 +295,7 @@
             ! Reactive gaseous mercury, RGM
             IF ( id_Hg2 > 0 ) THEN
                AD03_RGM(I,J,L) = AD03_RGM(I,J,L) +
-     &              State_Chm%Tracers(I,J,L,id_Hg2) * AIRMW /
+     &              State_Chm%Species(I,J,L,id_Hg2) * AIRMW /
      &              State_Chm%SpcData(id_Hg2)%Info%emMW_g * 
      &              1e+12_fp
             ENDIF
@@ -305,7 +303,7 @@
             ! Reactive particulate mercury, PBM
             IF ( id_HgP > 0 ) THEN
                AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
-     &              State_Chm%Tracers(I,J,L,id_HgP) * AIRMW /
+     &              State_Chm%Species(I,J,L,id_HgP) * AIRMW /
      &              State_Chm%SpcData(id_HgP)%Info%emMW_g *
      &              1e+12_fp
             ENDIF
@@ -354,7 +352,7 @@
       ENDIF
 #endif
       !================================================================= 
-      ! ND33: Atmospheric column sum of tracer [kg]
+      ! ND33: Atmospheric column sum of species [kg]
       !=================================================================  
       IF ( ND33 > 0 ) THEN   
 
@@ -402,7 +400,7 @@
 
 #if defined( BPCH_DIAG )
       !================================================================= 
-      ! ND45: Tracer (V/V) at level 1 to level LD45, averaged over 
+      ! ND45: Species (V/V) at level 1 to level LD45, averaged over 
       !       the time period OTH_HR1 to OTH_HR2.  
       !
       !  NOTES: 
@@ -430,11 +428,11 @@
 
                IF ( N == id_PASV ) THEN
 
-                  ! Also save passive tracer in v/v total air (mps, 11/18/15)
+                  ! Also save passive species in v/v total air (mps, 11/18/15)
                   AD45(I,J,L,NA+1) = AD45  (I,J,L,NA+1) + 
      &                               Spc_VV(I,J,L,NA+1) * LTOTH(I,J)
 
-                  ! Also save passive tracer in kg/kg total air (mps, 11/18/15)
+                  ! Also save passive species in kg/kg total air (mps, 11/18/15)
                   AD45(I,J,L,NA+2) = AD45  (I,J,L,NA+2) + 
      &                               Spc_VV(I,J,L,NA+2) * LTOTH(I,J)
 
@@ -449,7 +447,7 @@
 #endif
 
       !================================================================= 
-      ! ND47: Tracer (V/V) at level 1 to level LD45, 
+      ! ND47: Species (V/V) at level 1 to level LD45, 
       ! averaged from 0-24 hours
       !
       !  (1 ) Added parallel loop over tracers (bmy, 5/4/00)
@@ -472,11 +470,11 @@
 
                IF ( N == id_PASV ) THEN
 
-                  ! Also save passive tracer in v/v total air (mps, 11/18/15)
+                  ! Also save passive species in v/v total air (mps, 11/18/15)
                   AD47(I,J,L,NA+1) = AD47(I,J,L,NA+1) 
      &                             + Spc_VV(I,J,L,NA+1)
 
-                  ! Also save passive tracer in kg/kg total air (mps, 11/18/15)
+                  ! Also save passive species in kg/kg total air (mps, 11/18/15)
                   AD47(I,J,L,NA+2) = AD47(I,J,L,NA+2)
      &                             + Spc_VV(I,J,L,NA+2)
 
@@ -606,7 +604,7 @@
 #endif
       
       !================================================================= 
-      ! ND71: Tracer (V/V) at level 1, daily maximum hourly avg.
+      ! ND71: Species (V/V) at level 1, daily maximum hourly avg.
       !================================================================= 
       IF ( ND71 > 0 ) THEN
 
@@ -712,26 +710,34 @@
       ENDIF
 
       !=================================================================
-      ! ND45: Tracer concentrations (netCDF diagnostic structure)
+      ! ND45: Species concentrations (netCDF diagnostic structure)
       !=================================================================
       IF ( Input_Opt%ND45 > 0 ) THEN
 
-         ! Loop over all tracers
-         DO N = 1, Input_Opt%N_TRACERS
+         ! Loop over all species
+         DO N = 1, State_Chm%nSpecies
 
-            ! If this tracer number NN is scheduled for output in input.geos,
-            ! then archive the latest concentration into the diagnostic structure
+            ! Entry in the species database
+            SpcInfo => State_Chm%SpcData(N)%Info
+
+            ! Only save out chemical species if DiagnSpec option is on
+            IF ( .not. DiagnSpec .and. .not. SpcInfo%Is_Advected ) THEN
+               CYCLE
+            ENDIF
+
+            ! If this species number NN is scheduled for output in input.geos,
+            ! then archive the latest concentration into the diagnostic
+            ! structure
             IF ( ANY( Input_Opt%TINDEX(45,:) == N ) ) THEN
 
                IF ( N == id_PASV ) THEN
 
                   !-------------------------------------
-                  ! Passive tracer in v/v dry air
+                  ! Passive species in v/v dry air
                   !-------------------------------------
 
                   ! Construct diagnostic name
-                  DiagnName = 'TRACER_CONC_' // 
-     &                         TRIM( Input_Opt%TRACER_NAME(N) ) //
+                  DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name ) //
      &                        '_VVDry'
 
                   ! Point to the proper slice of the DEPSAV array
@@ -744,12 +750,11 @@
      &                               RC      = RC )
 
                   !-------------------------------------
-                  ! Passive tracer in v/v total air
+                  ! Passive species in v/v total air
                   !-------------------------------------
 
                   ! Construct diagnostic name
-                  DiagnName = 'TRACER_CONC_' // 
-     &                         TRIM( Input_Opt%TRACER_NAME(N) ) //
+                  DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name ) //
      &                        '_VVTotal'
 
                   ! Point to the proper slice of the DEPSAV array
@@ -762,12 +767,11 @@
      &                               RC      = RC )
 
                   !-------------------------------------
-                  ! Passive tracer in kg/kg total air
+                  ! Passive species in kg/kg total air
                   !-------------------------------------
 
                   ! Construct diagnostic name
-                  DiagnName = 'TRACER_CONC_' // 
-     &                         TRIM( Input_Opt%TRACER_NAME(N) ) //
+                  DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name ) //
      &                        '_KgKgTotal'
 
                   ! Point to the proper slice of the DEPSAV array
@@ -782,8 +786,7 @@
                ELSE
 
                   ! Construct diagnostic name
-                  DiagnName = 'TRACER_CONC_' // 
-     &                         TRIM( Input_Opt%TRACER_NAME(N) )
+                  DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name )
 
                   ! Point to the proper slice of the DEPSAV array
                   Ptr3D => Spc_VV(:,:,:,N)
@@ -802,46 +805,16 @@
                ! STOP wieth error if the diagnostics were unsuccessful
                IF ( RC /= HCO_SUCCESS ) THEN
                   CALL ERROR_STOP(
-     &                 'Cannot update TRACER_CONC diag diagnostics',
+     &                 'Cannot update SPECIES_CONC diag diagnostics',
      &                 'DIAG1 (diag1.F)')
                ENDIF
             ENDIF
+
+            ! Free pointer
+            SpcInfo => NULL()
+
          ENDDO
 
-         IF ( DiagnSpec ) THEN
-
-            ! Loop over all species
-            DO N = 1, State_Chm%nSpecies
-
-               ! Get info about this species from the species database
-               SpcInfo => State_Chm%SpcData(N)%Info
-   
-               ! Construct diagnostic name
-               IF ( TRIM( SpcInfo%Name ) == '' ) CYCLE
-               DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name ) 
-         
-               ! Get value in #/cm3
-               Ptr3D => State_Chm%Species(:,:,:,N)
-   
-               ! Update the deposition velocity diagostics
-               CALL Diagn_Update( am_I_Root,
-     &                            cName   = TRIM( DiagnName ),
-     &                            Array3D = Ptr3D,
-     &                            RC      = RC )
-   
-               ! Free the pointers
-               Ptr3D   => NULL()
-               SpcInfo => NULL()
-
-               ! STOP wieth error if the diagnostics were unsuccessful
-               IF ( RC /= HCO_SUCCESS ) THEN
-                  CALL ERROR_STOP(
-     &                    'Cannot update SPECIES_CONC diag diagnostics',
-     &                    'DIAG1 (diag1.F)')
-               ENDIF
-            ENDDO
-   
-         ENDIF ! DiagnSpec
       ENDIF !ND45
    
 

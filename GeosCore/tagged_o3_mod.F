@@ -648,7 +648,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : Ind_
-      USE GIGC_State_Chm_Mod, ONLY : State_Chm
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
 !
