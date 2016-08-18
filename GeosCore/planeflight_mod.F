@@ -394,7 +394,7 @@
 ! !IROUTINE: read_variables
 !
 ! !DESCRIPTION: Subroutine READ\_VARIABLES reads the list of variables 
-!  (chemical species, rxn rates, GMAO met fields, or GEOS-Chem tracers) to be
+!  (chemical species, rxn rates, GMAO met fields, or GEOS-Chem species) to be
 !  printed out and sorts the information into the appropriate module variables.
 !\\
 !\\
@@ -456,11 +456,11 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL             :: IS_FULLCHEM
-      INTEGER             :: M, N, NUM, R, IK, IOS, N_TRACERS
+      INTEGER             :: M, N, NUM, R, IK, IOS, nAdvect
       CHARACTER(LEN=255)  :: LINE
 
       ! Objects
-      TYPE(Species), POINTER :: ThisSpc
+      TYPE(Species), POINTER :: SpcInfo
 
       !=================================================================
       ! READ_VARIABLES begins here!
@@ -470,11 +470,13 @@
       RC = GIGC_SUCCESS
 
       ! Get fields from Input_Opt
-      N_TRACERS   = Input_Opt%N_TRACERS
       IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
 
+      ! Number of advected species
+      nAdvect     = State_Chm%nAdvect
+
       ! Initialize pointer
-      ThisSpc => NULL()
+      SpcInfo => NULL()
 
       ! Read four lines of header
       DO N = 1, 4 
@@ -528,7 +530,7 @@
                READ( LINE(5:14), '(i10)' ) NUM
 
                ! Make sure the tracer # is valid!
-               IF ( NUM < 0 .or. NUM > N_TRACERS ) THEN                   
+               IF ( NUM < 0 .or. NUM > nAdvect ) THEN                   
                   IF ( am_I_Root ) THEN
                      WRITE( 6, 100 ) TRIM( LINE )
  100                 FORMAT( 'TRACER ', i4, ' is out of range!' )
@@ -553,7 +555,7 @@
                READ( LINE(5:14), '(i10)' ) NUM
 
                ! Make sure the tracer # is valid!
-               IF ( NUM < 0 .or. NUM > N_TRACERS ) THEN                   
+               IF ( NUM < 0 .or. NUM > nAdvect ) THEN                   
                   WRITE( 6, 100 ) TRIM( LINE )
                   WRITE( 6, '(a)' ) 'STOP in SETUP_PLANEFLIGHT!'
                   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -707,15 +709,15 @@
                   DO M = 1, State_Chm%nSpecies
 
                      ! Get info about this species from the species database
-                     ThisSpc => State_Chm%SpcData(M)%Info
+                     SpcInfo => State_Chm%SpcData(M)%Info
 
-                     IF ( TRIM( ThisSpc%Name ) == TRIM( LINE ) ) THEN
+                     IF ( TRIM( SpcInfo%Name ) == TRIM( LINE ) ) THEN
                         PVAR(N) = M
                         EXIT
                      ENDIF
 
                      ! Free pointer
-                     ThisSpc => NULL()
+                     SpcInfo => NULL()
 
                   ENDDO
 
@@ -987,7 +989,7 @@
       INTEGER :: M
 
       ! Objects
-      TYPE(Species), POINTER :: ThisSpc
+      TYPE(Species), POINTER :: SpcInfo
 
       !=================================================================
       ! RO2_SETUP begins here!
@@ -995,7 +997,7 @@
     
       ! Initialize 
       NPRO2   =  0
-      ThisSpc => NULL()
+      SpcInfo => NULL()
 
       ! We only need to proceed for full-chemistry simulations
       IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
@@ -1006,12 +1008,12 @@
       DO M = 1, State_Chm%nSpecies
 
          ! Get info about this species from the species database
-         ThisSpc => State_Chm%SpcData(M)%Info
+         SpcInfo => State_Chm%SpcData(M)%Info
 
          ! If we have found an RO2 compoent, add its species # to
          ! the PRO2 global array, and increment counter
          ! NOTE: PO3 was a bug, that should have been PO2 (tmf, 2/10/09) 
-         SELECT CASE( TRIM( ThisSpc%Name ) )
+         SELECT CASE( TRIM( SpcInfo%Name ) )
 
             CASE ( 'HO2',  'MO2',  'A3O2', 'ATO2', 'B3O2', 
      &             'ETO2', 'GCO3', 'IAO2', 'KO2',  'MAO3', 
@@ -1031,7 +1033,7 @@
          END SELECT
 
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
 
       ENDDO
 
@@ -1101,7 +1103,7 @@
       INTEGER :: M
 
       ! Objects
-      TYPE(Species), POINTER :: ThisSpc
+      TYPE(Species), POINTER :: SpcInfo
 
       !=================================================================
       ! NOY_SETUP begins here!
@@ -1109,7 +1111,7 @@
     
       ! Initialize 
       NPNOY   =  0
-      ThisSpc => NULL()
+      SpcInfo => NULL()
 
       ! We only need to proceed for full-chemistry simulations
       IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
@@ -1120,9 +1122,9 @@
       DO M = 1, State_Chm%nSpecies
 
          ! Get info about this species from the species database
-         ThisSpc => State_Chm%SpcData(M)%Info
+         SpcInfo => State_Chm%SpcData(M)%Info
 
-         SELECT CASE( TRIM( ThisSpc%Name ) )
+         SELECT CASE( TRIM( SpcInfo%Name ) )
 
            CASE ( 'NO', 'NO2', 'NO3', 'HNO2', 'HNO4', 'HNO3',
      &            'PAN', 'PYPAN', 'PMN', 'PPN')
@@ -1144,7 +1146,7 @@
          END SELECT
 
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
 
       ENDDO
 
@@ -1214,7 +1216,7 @@
       INTEGER :: M
 
       ! Objects
-      TYPE(Species), POINTER :: ThisSpc
+      TYPE(Species), POINTER :: SpcInfo
 
       !=================================================================
       ! AN_SETUP begins here!
@@ -1222,7 +1224,7 @@
     
       ! Initialize 
       NPAN    =  0
-      ThisSpc => NULL()
+      SpcInfo => NULL()
 
       ! We only need to proceed for full-chemistry simulations
       IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
@@ -1233,11 +1235,11 @@
       DO M = 1, State_Chm%nSpecies
 
          ! Get info about this species from the species database
-         ThisSpc => State_Chm%SpcData(M)%Info
+         SpcInfo => State_Chm%SpcData(M)%Info
 
          ! If we have found an AN component, add its species # to
          ! the AN global array, and increment counter
-         SELECT CASE( TRIM( ThisSpc%Name ) )
+         SELECT CASE( TRIM( SpcInfo%Name ) )
 
            CASE ( 'ISOPNB', 'ISOPND', 'MVKN',  'MACRN',
      &            'ISN2',   'MNO3',   'ISNO3', 'R4N2',
@@ -1252,7 +1254,7 @@
          END SELECT
 
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
 
       ENDDO
 
@@ -1383,9 +1385,7 @@
       INTEGER             :: YEAR, MONTH, DAY, HOUR, MINUTE 
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: Spc(:,:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1831,24 +1831,22 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                   !--------------------------
-                  ! GEOS-CHEM tracers [v/v]
+                  ! GEOS-CHEM species [v/v]
                   !--------------------------
                   CASE( 100000:199999 )
 
                      ! Remove offset from PVAR
                      N = PVAR(V) - 100000
 
-                     ! Initialize GEOS-Chem tracer array [kg] from
-                     ! Chemistry State object (mpayer, 12/6/12)
-                     STT => State_Chm%Tracers
+                     Spc => State_Chm%Species
                      
                      ! Convert from [kg/kg] --> [v/v] (ewl, 8/11/15)
-                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N)
+                     VARI(V) = Spc(I,J,L,N) * Input_Opt%TCVV(N)
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
 
                      ! Free pointer
-                     NULLIFY( STT )
+                     NULLIFY( Spc )
 
 #if   defined( TOMAS )
                   !-------------------------------
