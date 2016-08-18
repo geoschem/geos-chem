@@ -228,8 +228,6 @@
       INTEGER                :: ITIMEVALS(8)
       INTEGER                :: IDIAGOUT     ! INDEX OF SPECIES OPTICS FOR OUTPUT     
       REAL*8                 :: OLDSECS, NEWSECS
-
-      INTEGER                :: nAdvect, NA
       
       ! SAVEd scalars
       LOGICAL, SAVE          :: FIRST = .TRUE.
@@ -499,28 +497,14 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
-      ! Convert tracer units to [kg] for RRTMG (ewl, 8/12/15)
-      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
-     &                            State_Chm, RC ) 
+      ! Convert species units to [kg] for RRTMG (ewl, 8/12/15)
+      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,  
+     &                               State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC,     
      &                   'DO_RRTMG_RAD_TRANSFER')
          RETURN
       ENDIF
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
-      ! Force State_Chm%SPECIES = State_Chm%TRACERS for testing  
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Species(:,:,:,N) = State_Chm%Tracers(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !=================================================================
       ! PREPARE INPUTS FOR RAD_DRIVER
@@ -591,7 +575,7 @@
       ! First-time setup
       IF ( FIRST ) THEN
 
-         ! Get tracer ids kyu codeathon
+         ! Get species IDs
          id_O3     = IND_('O3')
          id_CH4    = IND_('CH4')
          id_N2O    = IND_('N2O')
@@ -1629,19 +1613,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-      DO NA = 1, nAdvect
-         N                          = State_Chm%Map_Advect(NA)
-         State_Chm%Tracers(:,:,:,N) = State_Chm%Species(:,:,:,N)
-      ENDDO
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-      ! Convert tracer units back to [kg/kg] after RRTMG (ewl, 8/12/15)
-      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
-     &                            State_Chm, RC ) 
+      ! Convert species units back to [kg/kg] after RRTMG (ewl, 8/12/15)
+      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
+     &                               State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC,     
      &                   'DO_RRTMG_RAD_TRANSFER')

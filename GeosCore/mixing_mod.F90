@@ -176,13 +176,8 @@ CONTAINS
        RETURN
     ENDIF  
 
-    !%%%% NOTE: Copy State_Chm%Tracers to State_Chm%Species and
-    !%%%% vice versa in each of the routines DO_PBL_MIX_2,
-    !%%%% DO_TEND, and DO_PBL_MIX.  This should preserve the
-    !%%%% unit conversion.
-
     ! ------------------------------------------------------------------
-    ! Do non-local PBL mixing. This will apply the tracer tendencies
+    ! Do non-local PBL mixing. This will apply the species tendencies
     ! (emission fluxes and dry deposition rates) below the PBL.
     ! This is done for all species with defined emissions / dry
     ! deposition rates, including dust.
@@ -201,7 +196,7 @@ CONTAINS
     ! Apply tendencies. This will apply dry deposition rates and 
     ! emission fluxes below the PBL if it has not yet been done
     ! via the non-local PBL mixing. It also adds the emissions above 
-    ! the PBL to the tracer array. Emissions of some species may be 
+    ! the PBL to the species array. Emissions of some species may be 
     ! capped at the tropopause to avoid build-up in stratosphere.
     ! ------------------------------------------------------------------
 
@@ -210,7 +205,7 @@ CONTAINS
                    State_Chm, OnlyAbovePBL, RC          )
 
     ! ------------------------------------------------------------------
-    ! Do full pbl mixing. This fully mixes the updated tracer 
+    ! Do full pbl mixing. This fully mixes the updated species 
     ! concentrations within the PBL. 
     ! 
     ! Now also archive concentrations and calculate turbulence 
@@ -221,7 +216,7 @@ CONTAINS
                         State_Met, State_Chm,       RC )
     ENDIF
 
-    ! Convert tracer conc back to [kg/kg dry air] after mixing (ewl, 8/12/15)
+    ! Convert species conc back to [kg/kg dry air] after mixing (ewl, 8/12/15)
     CALL ConvertSpc_VVDry_to_KgKgDry( am_I_Root, State_Chm, RC )
 
     IF ( RC /= GIGC_SUCCESS ) THEN
@@ -239,8 +234,8 @@ CONTAINS
 !
 ! !IROUTINE: DO_TEND 
 !
-! !DESCRIPTION: Subroutine DO\_TEND adds the tracer tendencies (dry deposition
-!  and emissions) to the tracer array.
+! !DESCRIPTION: Subroutine DO\_TEND adds the species tendencies (dry deposition
+!  and emissions) to the species array.
 !\\
 !\\
 ! !INTERFACE:
@@ -384,8 +379,6 @@ CONTAINS
 
     ! DO_TEND previously operated in units of kg. The species arrays are in
     ! v/v for mixing, hence needed to convert before and after.
-    ! CALL CONVERT_UNITS( 2, Input_Opt%N_TRACERS, Input_Opt%TCVV, &
-    !                     State_Met%AD, State_Chm%Tracers ) 
     ! Now use units kg/m2 as State_Chm%SPECIES units in DO_TEND to 
     ! remove area-dependency (ewl, 9/30/15)
     ! v/v --> kg/m2
@@ -452,7 +445,7 @@ CONTAINS
                       State_Chm, 'FLUX',    .FALSE.,  RC )
 #endif
 
-    ! Do for every tracer and grid box
+    ! Do for every advected species and grid box
 !$OMP PARALLEL DO                                                    &
 !$OMP DEFAULT ( SHARED )                                             &
 !$OMP PRIVATE( I, J, L, L1, L2, N, D, PBL_TOP, FND, TMP, DRYDEPID  ) &
@@ -465,7 +458,6 @@ CONTAINS
        N = State_Chm%Map_Advect(NA)
 
        ! Get info about this species from the species database
-       ! NOTE: This assumes a 1:1 tracer index to species index mapping
        SpcInfo => State_Chm%SpcData(N)%Info
 
        !----------------------------------------------------------------
@@ -713,12 +705,12 @@ CONTAINS
                    ! Flux: [kg/m2] = [kg m-2 s-1 ] x [s]
                    FLUX = TMP * TS
 
-                   ! Add to tracer array
+                   ! Add to species array
                    State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) & 
                                               + FLUX 
 
 #if defined( NC_DIAG )
-                   ! Update new tracer emissions diagnostics
+                   ! Update new species emissions diagnostics
                    EMIS(I,J,L,N) = TMP                 ! kg/m2/s
                    TOTFLUX(N)    = TOTFLUX(N) + FLUX   ! kg/m2/s
 #endif
@@ -758,12 +750,12 @@ CONTAINS
           ! Get the species ID from the drydep ID
           trc_id = State_Chm%Map_DryDep(D)
       
-          ! If this tracer number is scheduled for output in input.geos, 
+          ! If this species number is scheduled for output in input.geos, 
           ! then archive the latest depvel data into the diagnostic structure
           IF ( ANY( Input_Opt%TINDEX(44,:) == trc_id ) ) THEN
        
              ! Define diagnostic name
-             DiagnName = 'DRYDEP_FLX_MIX_' // TRIM( Input_OPt%DEPNAME(D) )
+             DiagnName = 'DRYDEP_FLX_MIX_' // TRIM( Input_Opt%DEPNAME(D) )
 
              ! Point to data
              Ptr2D => DryDepFlux(:,:,D)
@@ -788,7 +780,7 @@ CONTAINS
        ENDDO
     ENDIF
 
-    ! For now, always output tracer emissions diagnostic since there
+    ! For now, always output species emissions diagnostic since there
     ! is no logical switch for it in Input_Mod, nor an entry in input.geos
     DO NA = 1, nAdvect
 
@@ -798,14 +790,17 @@ CONTAINS
        ! Skip if there are no emissions
        IF ( TOTFLUX(N) == 0.0_fp ) CYCLE
 
-       ! Only if HEMCO tracer is defined
+       ! Only if HEMCO species is defined
        ! NOTE: For other netcdf diagnostics we look at Input_Opt%TINDEX
-       ! to see which tracers are turned on for the diagnostic
+       ! to see which speciess are turned on for the diagnostic
        cID = GetHcoID( TrcID=N )
        IF ( cID > 0 ) THEN 
 
+          ! Entry in the species database
+          SpcInfo => State_Chm%SpcData(N)%Info
+
           ! Define diagnostics name
-          DiagnName = 'TRACER_EMIS_' // TRIM( Input_Opt%TRACER_NAME(N) )
+          DiagnName = 'SPECIES_EMIS_' // TRIM( SpcInfo%Name )
 
           ! Point to species slice 
           Ptr3D => EMIS(:,:,:,N)
@@ -818,8 +813,9 @@ CONTAINS
                              COL     = Input_Opt%DIAG_COLLECTION, &
                              RC      = HCRC                        )
 
-          ! Free pointer
-          Ptr3D => NULL()
+          ! Free pointers
+          Ptr3D   => NULL()
+          SpcInfo => NULL()
 
           ! Error check
           IF ( HCRC /= HCO_SUCCESS ) THEN

@@ -145,17 +145,12 @@
       LOGICAL             :: FIRST = .TRUE.
 
       ! Scalars
-      INTEGER             :: I,  J,  L,  N, NA, nAdvect
+      INTEGER             :: I,  J,  L
       REAL(fp)            :: CH3Br_conc
       REAL(fp)            :: LAT_MID
 
       ! Pointers
       REAL(fp),   POINTER :: Spc(:,:,:,:)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@
-      REAL(fp)            :: Spc_temp(IIPAR,JJPAR,LLPAR)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !=================================================================
       ! Initialization
@@ -176,23 +171,13 @@
          RETURN 
       ENDIF
 
-      ! Check that tracer units are in kg/kg dry air (ewl, 9/10/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
-         CALL GIGC_Error( 'Incorrect tracer units: ' //
-     &                    State_Chm%Trac_Units, RC, 
+      ! Check that species units are in kg/kg dry air (ewl, 9/10/15)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
+         CALL GIGC_Error( 'Incorrect species units: ' //
+     &                    State_Chm%Spc_Units, RC, 
      &                    'Routine SET_CH3Br in bromocarb_mod.F' )
          RETURN
       ENDIF
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ We only need to copy the id_CH3Br slot from TRACERS to SPECIES
-!@@@
-      Spc_Temp = State_Chm%Species(:,:,:,id_CH3Br)
-
-      State_Chm%Species(:,:,:,id_CH3Br) = 
-     &State_Chm%Tracers(:,:,:,id_CH3Br)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       ! Point to the chemical species array [kg/kg dry air]
       Spc        => State_Chm%Species
@@ -232,7 +217,7 @@
             ENDIF
 
             ! Convert the [v/v] CH3Br conc units (dry air) to [kg/kg] 
-            ! when setting tracer concentration (ewl, 9/10/15)
+            ! when setting species concentration (ewl, 9/10/15)
             Spc(I,J,L,id_CH3Br) = CH3Br_conc / Input_Opt%TCVV(id_CH3Br)
                
          ENDIF  ! end selection of PBL boxes
@@ -245,16 +230,6 @@
       ! Free pointer
       Spc => NULL()
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ We only need to copy the CH3Br slot from SPECIES TO TRACERS
-!@@@
-      State_Chm%Tracers(:,:,:,id_CH3Br) = 
-     &State_Chm%Species(:,:,:,id_CH3Br)
-
-      ! Restore State_Chm%SPECIES to its original values
-      State_Chm%Species(:,:,:,id_CH3Br) = Spc_temp
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE SET_CH3Br
 !EOC
 !------------------------------------------------------------------------------
@@ -337,11 +312,6 @@
 
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@
-      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
       !====================================================================
       ! SET_BrO begins here!
@@ -373,14 +343,6 @@
          RETURN
       ENDIF
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ We only need to copy the id_BrO slot from TRACERS to SPECIES
-!@@@
-      Spc_temp                        = State_Chm%Species(:,:,:,id_BrO)
-      State_Chm%Species(:,:,:,id_BrO) = State_Chm%Tracers(:,:,:,id_BrO)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
       ! Point to the chemical species array [kg/kg dry air]
       ! Reference fields in derived-type objects
       Spc => State_Chm%Species
@@ -391,10 +353,10 @@
       BrO_conc = 1.0e-12_fp
 
 
-      ! Check that tracer units are in kg/kg dry air (ewl, 9/10/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
-         CALL GIGC_Error( 'Incorrect tracer units: ' //
-     &                    State_Chm%Trac_Units, RC, 
+      ! Check that species units are in kg/kg dry air (ewl, 9/10/15)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
+         CALL GIGC_Error( 'Incorrect species units: ' //
+     &                    State_Chm%Spc_Units, RC, 
      &                    'Routine SET_BrO in bromocarb_mod.F' )
          RETURN
       ENDIF
@@ -455,7 +417,7 @@
 !
 ! new:
                   ! Convert the [v/v] BrO conc units (dry air) to [kg/kg] 
-                  ! when setting tracer concentration (ewl, 9/10/15)
+                  ! when setting species concentration (ewl, 9/10/15)
                   Spc(I,J,L,id_BrO) = BrO_conc / Input_Opt%TCVV(id_BrO)
 ! end new (ewl)
 
@@ -469,13 +431,6 @@
       ! Free pointer
       Spc => NULL()
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ We only need to copy the BrO slot from SPECIES TO TRACERS
-!@@@
-      State_Chm%Tracers(:,:,:,id_BrO) = State_Chm%Species(:,:,:,id_BrO)
-      State_Chm%Species(:,:,:,id_BrO) = Spc_temp
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       END SUBROUTINE SET_BRO
 !EOC
       END MODULE BROMOCARB_MOD
