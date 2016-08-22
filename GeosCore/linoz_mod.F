@@ -477,9 +477,9 @@
 !LL     &                 2.687e+16_fp
                   dcolo3(i,j,l) = (Spc(i,j,l,NTRACER) *
      &                 State_Met%AD(I,J,L) / ( AIRMW 
-     &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g ) 
+     &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )) 
      &                 / GET_AREA_CM2(I,J,L) * AVO / (AIRMW / ( AIRMW 
-     &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g) )
+     &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )
      &                 *1e-3_fp) / 2.687e+16_fp
                   colo3(i,j,l) = dcolo3(i,j,l)*0.5
                else

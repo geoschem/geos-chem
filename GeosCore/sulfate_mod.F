@@ -3748,7 +3748,6 @@
       MW_SO2  = State_Chm%SpcData(id_SO2)%Info%emMW_g
       MW_SO4  = State_Chm%SpcData(id_SO4)%Info%emMW_g
       MW_SO4S = State_Chm%SpcData(id_SO4S)%Info%emMW_g
-      MW_HNO3 = State_Chm%SpcData(id_HNO3)%Info%emMW_g
       MW_NITS = State_Chm%SpcData(id_NITS)%Info%emMW_g
 
       ! Uncomment if transporting salinity/alkalinity as needed
@@ -3769,6 +3768,9 @@
       SO2_eq = MAX( SO2_eq, MINDAT )
 
       IF ( IT_IS_A_FULLCHEM_SIM ) THEN
+
+         ! Set molecular weights for fullchem sim species 
+         MW_HNO3 = State_Chm%SpcData(id_HNO3)%Info%emMW_g
 
  	 ! Convert HNO3 [v/v] to [equivalents]
          HNO3_vv = Spc(I,J,L,id_HNO3)
