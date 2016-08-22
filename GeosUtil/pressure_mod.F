@@ -281,6 +281,7 @@
          ! Set the floating pressures to PTOP plus the most recently
          ! interpolated instantaneous pressures
          PFLT_DRY(I,J) = State_Met%PSC2_DRY(I,J) + PTOP
+         PFLT_WET(I,J) = State_Met%PSC2_WET(I,J) + PTOP
 #else
          !-------------------------------------------------------
          ! GEOS-4, GEOS-5, GEOS-FP, MERRA, and MERRA-2 met fields
