@@ -5248,13 +5248,13 @@ ccc
       ENDIF
  
       ! Get HEMCO ID of species POG1 and POG2
-      HCOPOG1 = GetHcoID( TrcID=id_POG1 )
+      HCOPOG1 = GetHcoID( SpcID=id_POG1 )
       IF ( HCOPOG1 > 0 ) THEN
          IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG1)%Emis%Val) ) THEN
             HCOPOG1 = -1
          ENDIF
       ENDIF
-      HCOPOG2 = GetHcoID( TrcID=id_POG2 )
+      HCOPOG2 = GetHcoID( SpcID=id_POG2 )
       IF ( HCOPOG2 > 0 ) THEN
          IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG2)%Emis%Val) ) THEN
             HCOPOG2 = -1

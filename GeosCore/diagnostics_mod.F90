@@ -2859,7 +2859,7 @@ CONTAINS
        SpcInfo => State_Chm%SpcData(N)%Info
        
        ! HEMCO ID
-       ID = GetHcoID( TrcId = N )
+       ID = GetHcoID( SpcId = N )
  
        ! Restrict diagnostics to these species
        IF ( N /= IND_('NO'   ) .AND. N /= IND_('CO'    ) .AND. &
@@ -3470,7 +3470,7 @@ CONTAINS
           SpcInfo => State_Chm%SpcData(N)%Info
 
           ! Only if it's a HEMCO species...
-          cId = GetHcoID( TrcId=N )
+          cId = GetHcoID( SpcId=N )
           IF ( cId <= 0 ) CYCLE
           
           ! Define diagnostics ID

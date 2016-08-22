@@ -581,7 +581,7 @@ CONTAINS
     ! Set HCO options 
     !=======================================================================
 
-    ! Range of tracers and emission categories.
+    ! Range of species and emission categories.
     ! Set Extension number ExtNr to 0, indicating that the core
     ! module shall be executed. 
     HcoState%Options%SpcMin = 1 
@@ -1063,10 +1063,6 @@ CONTAINS
 #if defined(ESMF_)
     USE HCOI_ESMF_MOD,         ONLY : HCO_SetExtState_ESMF
 #endif
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-    USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !
 ! !INPUT PARAMETERS:
 !
@@ -1099,15 +1095,6 @@ CONTAINS
     LOGICAL, SAVE      :: FIRST = .TRUE.
     INTEGER            :: HCRC
     CHARACTER(LEN=255) :: LOC = 'ExtState_SetFields (hcoi_gc_main_mod.F90)'
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-!@@@ NOTE: PUT THIS ON HOLD FOR NOW.  USING SPECIES SEEMS TO MESS UP THE 
-!@@@ HEMCO POINTERS BECAUSE SPECIES ARE IN THE WRONG UNITS (bmy, 7/22/16)
-!      REAL(fp) :: Spc_temp(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     !=================================================================
     ! ExtState_SetFields begins here
@@ -1311,91 +1298,34 @@ CONTAINS
            'AIRDEN', HCRC,      FIRST,    State_Met%AIRDEN  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
  
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to force State_Chm%Species = State_Chm%Tracers during development
-!@@@ This can be removed later once State_Chm%Tracers is removed everywhere
-!@@@
-!@@@ NOTE: PUT THIS ON HOLD FOR NOW.  USING SPECIES SEEMS TO MESS UP THE 
-!@@@ HEMCO POINTERS BECAUSE SPECIES ARE IN THE WRONG UNITS (bmy, 7/22/16)
-!    IF ( id_O3 > 0 ) THEN
-!       Spc_Temp         (:,:,:,id_O3  ) = State_Chm%Species(:,:,:,id_O3  )
-!       State_Chm%Species(:,:,:,id_O3  ) = State_Chm%Tracers(:,:,:,id_O3  )
-!    ENDIF
-!    IF ( id_NO2 > 0 ) THEN
-!       Spc_Temp         (:,:,:,id_NO2 ) = State_Chm%Species(:,:,:,id_NO2 )
-!       State_Chm%Species(:,:,:,id_NO2 ) = State_Chm%Tracers(:,:,:,id_NO2 )
-!    ENDIF
-!    IF ( id_NO > 0 ) THEN
-!       Spc_Temp         (:,:,:,id_NO  ) = State_Chm%Species(:,:,:,id_NO  )
-!       State_Chm%Species(:,:,:,id_NO  ) = State_Chm%Tracers(:,:,:,id_NO  )
-!    ENDIF
-!    IF ( id_HNO3 > 0 ) THEN
-!       Spc_Temp         (:,:,:,id_HNO3) = State_Chm%Species(:,:,:,id_HNO3)
-!       State_Chm%Species(:,:,:,id_HNO3) = State_Chm%Tracers(:,:,:,id_HNO3)
-!    ENDIF
-!    IF ( id_POPG > 0 ) THEN
-!       Spc_Temp         (:,:,:,id_POPG) = State_Chm%Species(:,:,:,id_POPG)
-!       State_Chm%Species(:,:,:,id_POPG) = State_Chm%Tracers(:,:,:,id_POPG)
-!    ENDIF
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
     ! ----------------------------------------------------------------
-    ! Tracer fields
+    ! Species concentrations
     ! ----------------------------------------------------------------
     IF ( id_O3 > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%O3, &
-            'HEMCO_O3', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_O3))
+            'HEMCO_O3', HCRC,      FIRST,    State_Chm%Species(:,:,:,id_O3))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( id_NO2 > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%NO2, &
-           'HEMCO_NO2', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_NO2))
+           'HEMCO_NO2', HCRC,      FIRST,    State_Chm%Species(:,:,:,id_NO2))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( id_NO > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%NO, &
-            'HEMCO_NO', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_NO))
+            'HEMCO_NO', HCRC,      FIRST,    State_Chm%Species(:,:,:,id_NO))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( id_HNO3 > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%HNO3, &
-          'HEMCO_HNO3', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_HNO3))
+          'HEMCO_HNO3', HCRC,      FIRST,    State_Chm%Species(:,:,:,id_HNO3))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( id_POPG > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%POPG, &
-          'HEMCO_POPG', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,id_POPG))
+          'HEMCO_POPG', HCRC,      FIRST,    State_Chm%Species(:,:,:,id_POPG))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 6/30/16)
-!@@@ Need to restore State_Chm%TRACERS = State_Chm%SPECIES for testing 
-!@@@
-!@@@ NOTE: PUT THIS ON HOLD FOR NOW.  USING SPECIES SEEMS TO MESS UP THE 
-!@@@ HEMCO POINTERS BECAUSE SPECIES ARE IN THE WRONG UNITS (bmy, 7/22/16)
-!    IF ( id_O3 > 0 ) THEN
-!       State_Chm%Tracers(:,:,:,id_O3  ) = State_Chm%Species(:,:,:,id_O3  )
-!       State_Chm%Species(:,:,:,id_O3  ) = Spc_temp         (:,:,:,id_O3  )
-!    ENDIF
-!    IF ( id_NO2 > 0 ) THEN
-!       State_Chm%Tracers(:,:,:,id_NO2 ) = State_Chm%Species(:,:,:,id_NO2 )
-!       State_Chm%Species(:,:,:,id_NO2) = Spc_temp          (:,:,:,id_NO2 )
-!    ENDIF
-!    IF ( id_NO > 0 ) THEN
-!       State_Chm%Tracers(:,:,:,id_NO  ) = State_Chm%Species(:,:,:,id_NO  )
-!       State_Chm%Species(:,:,:,id_NO  ) = Spc_temp         (:,:,:,id_NO  )
-!    ENDIF
-!    IF ( id_HNO3 > 0 ) THEN
-!       State_Chm%Tracers(:,:,:,id_HNO3) = State_Chm%Species(:,:,:,id_HNO3)
-!       State_Chm%Species(:,:,:,id_HNO3) = Spc_temp         (:,:,:,id_HNO3)
-!    ENDIF
-!    IF ( id_POPG > 0 ) THEN
-!       State_Chm%Tracers(:,:,:,id_POPG) = State_Chm%Species(:,:,:,id_POPG)
-!       State_Chm%Species(:,:,:,id_POPG) = Spc_temp         (:,:,:,id_POPG)
-!    ENDIF
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     ! ----------------------------------------------------------------
     ! Deposition parameter
@@ -1713,8 +1643,8 @@ CONTAINS
 ! !IROUTINE: SetHcoSpecies 
 !
 ! !DESCRIPTION: Subroutine SetHcoSpecies defines the HEMCO species. These 
-! are typically just the GEOS-Chem tracers. Some additional species may be 
-! manually added, e.g. SESQ (which is not a tracer) or individual CO2 tracers
+! are typically just the GEOS-Chem species. Some additional species may be 
+! manually added, e.g. SESQ (which is not a species) or individual CO2 species
 ! per emission source (for CO2 specialty sim). 
 !\\
 !\\
@@ -1754,8 +1684,8 @@ CONTAINS
 !  (1) We now get physical parameters for species from the species database,
 !       which is part of the State_Chm object.  
 !  (2) In the future, it will be easier to specify non-advected species
-!       like SESQ and the CO2 regional tracers from the species database.
-!       The species database flags if a tracer is advected or not.
+!       like SESQ and the CO2 regional species from the species database.
+!       The species database flags if a species is advected or not.
 !
 ! !REVISION HISTORY:
 !  06 Mar 2015 - C. Keller   - Initial Version
@@ -1782,7 +1712,7 @@ CONTAINS
     CHARACTER(LEN=255)     :: LOC = 'SetHcoSpecies (hcoi_gc_main_mod.F90)'
 
     ! Pointers
-    TYPE(Species), POINTER :: ThisSpc
+    TYPE(Species), POINTER :: SpcInfo
 
     !=================================================================
     ! SetHcoSpecies begins here
@@ -1802,7 +1732,7 @@ CONTAINS
          Input_Opt%ITS_A_TAGCO_SIM    ) THEN
 
        ! Get number of model species
-       nSpc = Input_Opt%N_TRACERS
+       nSpc = State_Chm%nAdvect
   
        !%%%%% FOR SOA SIMULATIONS %%%%%
        ! Check for SESQ: SESQ is not transported due to its short lifetime,
@@ -1815,7 +1745,7 @@ CONTAINS
        ENDIF
 
        !%%%%% FOR THE TAGGED CO SIMULATION %%%%%
-       ! Add 3 extra tracers (ISOP, ACET, MONX) for tagged CO 
+       ! Add 3 extra species (ISOP, ACET, MONX) for tagged CO 
        IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
           nSpc = nSpc + 3 
        ENDIF
@@ -1836,42 +1766,42 @@ CONTAINS
              RETURN
           ENDIF
 
-          DO N = 1, Input_Opt%N_TRACERS
+          DO N = 1, State_Chm%nAdvect
 
              ! Get info for this species from the species database
-             ThisSpc => State_Chm%SpcData(N)%Info
+             SpcInfo => State_Chm%SpcData(N)%Info
 
              ! Model ID and species name 
-             HcoState%Spc(N)%ModID      = ThisSpc%ModelID
-             HcoState%Spc(N)%SpcName    = TRIM( ThisSpc%Name )
+             HcoState%Spc(N)%ModID      = SpcInfo%ModelID
+             HcoState%Spc(N)%SpcName    = TRIM( SpcInfo%Name )
              
              ! Actual molecular weight of species [g/mol]
-             HcoState%Spc(N)%MW_g       = ThisSpc%MW_g
+             HcoState%Spc(N)%MW_g       = SpcInfo%MW_g
              
              ! Emitted molecular weight of species [g/mol].  
              ! Some hydrocarbon species (like ISOP) are emitted and 
              ! transported as a number of equivalent carbon atoms.
              ! For these species, the emitted molecular weight will 
              ! be 12.0 (the weight of 1 carbon atom).
-             HcoState%Spc(N)%EmMW_g     = ThisSpc%EmMw_g
+             HcoState%Spc(N)%EmMW_g     = SpcInfo%EmMw_g
 
              ! Emitted molecules per molecules of species [1].  
              ! For most species, this will be 1.0.  For hydrocarbon 
              ! species (like ISOP) that are emitted and transported
              ! as equivalent carbon atoms, this will be be the number
              ! of moles carbon per mole species.
-             HcoState%Spc(N)%MolecRatio = ThisSpc%MolecRatio
+             HcoState%Spc(N)%MolecRatio = SpcInfo%MolecRatio
    
              ! Set Henry's law coefficients
-             HcoState%Spc(N)%HenryK0    = ThisSpc%Henry_K0   ! [M/atm]
-             HcoState%Spc(N)%HenryCR    = ThisSpc%Henry_CR   ! [K    ]
-             HcoState%Spc(N)%HenryPKA   = ThisSpc%Henry_pKa  ! [1    ]
+             HcoState%Spc(N)%HenryK0    = SpcInfo%Henry_K0   ! [M/atm]
+             HcoState%Spc(N)%HenryCR    = SpcInfo%Henry_CR   ! [K    ]
+             HcoState%Spc(N)%HenryPKA   = SpcInfo%Henry_pKa  ! [1    ]
 
              ! Write to logfile
              IF ( am_I_Root ) CALL HCO_SPEC2LOG( am_I_Root, HcoState, N )
 
              ! Free pointer memory
-             ThisSpc => NULL()
+             SpcInfo => NULL()
           ENDDO      
 
           !------------------------------------------------------------------
@@ -1906,7 +1836,7 @@ CONTAINS
              DO L = 1, 3
                 
                 ! ISOP, ACET, MONX follow the regular tagged CO species
-                M = Input_Opt%N_TRACERS + L
+                M = State_Chm%nAdvect + L
 
                 ! Get the species name
                 SELECT CASE( L )
@@ -1940,13 +1870,13 @@ CONTAINS
     !-----------------------------------------------------------------
     ! CO2 specialty simulation 
     ! For the CO2 specialty simulation, define here all tagged 
-    ! tracer. This will let HEMCO calculate emissions for each
-    ! tagged tracer individually. The emissions will be passed
+    ! species. This will let HEMCO calculate emissions for each
+    ! tagged species individually. The emissions will be passed
     ! to the CO2 arrays in co2_mod.F 
     !-----------------------------------------------------------------
     ELSEIF ( Input_Opt%ITS_A_CO2_SIM ) THEN
 
-       ! There are up to 11 tracers
+       ! There are up to 11 species
        nSpc = 11 
    
        ! Set species
@@ -1962,7 +1892,7 @@ CONTAINS
           ! Get info about the total CO2 species (i.e. N=1) from the 
           ! species database object.  All tagged CO2 species will
           ! have the same properties as the total CO2 species.
-          ThisSpc => State_Chm%SpcData(1)%Info
+          SpcInfo => State_Chm%SpcData(1)%Info
  
           ! Assign variables
           DO N = 1, nSpec 
@@ -2006,23 +1936,18 @@ CONTAINS
              HcoState%Spc(N)%SpcName    = TRIM( ThisName )
    
              ! Molecular weights of species & emitted species.
-             ! NOTE: Use Input_Opt%Tracer_MW_G to replicate the 
+             ! NOTE: Use the species database emMW_g to replicate the 
              ! prior behavior.  The MW's of the tagged species in 
              ! the prior code all have MW_g = 0 and EmMW_g = 0.
              ! Ask Christoph about this. (bmy, 9/1/15)
-             !HcoState%Spc(N)%MW_g       = Input_Opt%Tracer_MW_G(N) ! [g/mol]
-             !HcoState%Spc(N)%EmMW_g     = Input_Opt%Tracer_MW_G(N) ! [g/mol]
-
-             ! Now use the species database emMW_g which is equivalent to 
-             ! Input_Opt%Tracer_MW_G (ewl, 5/31/16)
-             HcoState%Spc(N)%MW_g       = ThisSpc%emMW_g            ! [g/mol]
-             HcoState%Spc(N)%EmMW_g     = ThisSpc%emMW_g            ! [g/mol]
-             HcoState%Spc(N)%MolecRatio = ThisSpc%MolecRatio        ! [1    ]
+             HcoState%Spc(N)%MW_g       = SpcInfo%emMW_g           ! [g/mol]
+             HcoState%Spc(N)%EmMW_g     = SpcInfo%emMW_g           ! [g/mol]
+             HcoState%Spc(N)%MolecRatio = SpcInfo%MolecRatio       ! [1    ]
  
              ! Set Henry coefficients
-             HcoState%Spc(N)%HenryK0    = ThisSpc%Henry_K0         ! [M/atm]
-             HcoState%Spc(N)%HenryCR    = ThisSpc%Henry_CR         ! [K    ]
-             HcoState%Spc(N)%HenryPKA   = ThisSpc%Henry_PKA        ! [1    ]
+             HcoState%Spc(N)%HenryK0    = SpcInfo%Henry_K0         ! [M/atm]
+             HcoState%Spc(N)%HenryCR    = SpcInfo%Henry_CR         ! [K    ]
+             HcoState%Spc(N)%HenryPKA   = SpcInfo%Henry_PKA        ! [1    ]
 
              ! Write to logfile
              IF ( am_I_Root ) CALL HCO_SPEC2LOG( am_I_Root, HcoState, N )
@@ -2031,7 +1956,7 @@ CONTAINS
           IF ( am_I_Root ) CALL HCO_MSG(SEP1='-')
 
           ! Free pointer
-          ThisSpc => NULL()
+          SpcInfo => NULL()
 
        ENDIF ! Phase = 2
 
@@ -2193,23 +2118,23 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine GetHcoVal is a wrapper routine to return an 
 ! emission (kg/m2/s) or deposition (1/s) value from the HEMCO state object
-! for a given GEOS-Chem tracer at position I, J, L.
+! for a given GEOS-Chem species at position I, J, L.
 ! A value of zero is returned if no HEMCO species is defined for the given
-! tracer, and the output parameter Found is set to false.
+! species, and the output parameter Found is set to false.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetHcoVal ( TrcID, I, J, L, Found, Emis, Dep ) 
+  SUBROUTINE GetHcoVal ( SpcID, I, J, L, Found, Emis, Dep ) 
 !
 ! !INPUT ARGUMENTS:
 !
-    INTEGER,            INTENT(IN   )  :: TrcID   ! GEOS-Chem tracer ID
+    INTEGER,            INTENT(IN   )  :: SpcID   ! GEOS-Chem species ID
     INTEGER,            INTENT(IN   )  :: I, J, L ! Position 
 !
 ! !OUTPUT ARGUMENTS:
 !
-    LOGICAL,            INTENT(  OUT)  :: FOUND   ! Was this tracer ID found?
+    LOGICAL,            INTENT(  OUT)  :: FOUND   ! Was this species ID found?
     REAL(hp), OPTIONAL, INTENT(  OUT)  :: Emis    ! Emissions  [kg/m2/s]
     REAL(hp), OPTIONAL, INTENT(  OUT)  :: Dep     ! Deposition [1/s] 
 !
@@ -2230,10 +2155,10 @@ CONTAINS
     IF ( PRESENT(Emis) ) Emis = 0.0_hp
     IF ( PRESENT(Dep ) ) Dep  = 0.0_hp
 
-    ! Define tracer ID to be used. 
-    HcoID = TrcID 
+    ! Define species ID to be used. 
+    HcoID = SpcID 
 
-!    ! HEMCO species ID corresponding to this GEOS-Chem tracer
+!    ! HEMCO species ID corresponding to this GEOS-Chem species
 !    IF ( tID > 0 ) HcoID = M2HID(tID)%ID
 
     ! If HEMCO species exists, get value from HEMCO state
@@ -2262,12 +2187,12 @@ CONTAINS
 ! !IROUTINE: GetHcoID
 !
 ! !DESCRIPTION: Function GetHcoID is a convenience wrapper function to
-! return the HEMCO ID by name or by GC tracer ID.
+! return the HEMCO ID by name or by GC species ID.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION GetHcoID( name, TrcID ) RESULT ( HcoID )
+  FUNCTION GetHcoID( name, SpcID ) RESULT ( HcoID )
 !
 ! !USES:
 !
@@ -2275,8 +2200,8 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: Name  ! Tracer name 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: TrcID ! Tracer ID 
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: Name  ! Species name 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: SpcID ! Species ID 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2293,10 +2218,10 @@ CONTAINS
     ! Init
     HcoID = -1
 
-    ! To get HEMCO ID by tracer ID
-    IF ( PRESENT(TrcID) ) THEN
-!       IF ( TrcID > 0 ) HcoID = M2HID(TrcID)%ID
-       IF ( TrcID > 0 ) HcoID = TrcID 
+    ! To get HEMCO ID by species ID
+    IF ( PRESENT(SpcID) ) THEN
+!       IF ( SpcID > 0 ) HcoID = M2HID(SpcID)%ID
+       IF ( SpcID > 0 ) HcoID = SpcID 
     ENDIF
     IF ( PRESENT(name) ) THEN
        HcoID = HCO_GetHcoID( name, HcoState )

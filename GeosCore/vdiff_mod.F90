@@ -2546,7 +2546,7 @@ contains
        ! Emission fluxes
        IF ( ANY(eflx(:,:,NA) > 0.0_fp ) ) THEN
           Ptr3D(:,:,1) = eflx(:,:,NA)
-          cID = GetHcoID ( TrcID=NA )
+          cID = GetHcoID ( SpcID=NA )
           IF ( cID > 0 ) THEN
              cID = 10000 + cID
              ! Total in kg

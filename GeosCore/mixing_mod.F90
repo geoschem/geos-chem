@@ -793,7 +793,7 @@ CONTAINS
        ! Only if HEMCO species is defined
        ! NOTE: For other netcdf diagnostics we look at Input_Opt%TINDEX
        ! to see which speciess are turned on for the diagnostic
-       cID = GetHcoID( TrcID=N )
+       cID = GetHcoID( SpcID=N )
        IF ( cID > 0 ) THEN 
 
           ! Entry in the species database
