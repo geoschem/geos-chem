@@ -7,7 +7,7 @@
 # !ROUTINE: ProTeX v. 2.00 - Translates DAO Prologues to LaTeX
 #
 # !INTERFACE:
-#         protex [-hbgACFS] ] [+-nlsxf] [src_file(s)]
+#         protex [-hbgpACFS] ] [+-nlsxf] [src_file(s)]
 #
 # !DESCRIPTION:
 #         Perl filter to produce a \LaTeX compatible document 
@@ -22,6 +22,7 @@
 # \begin{tabular}{|c|l|} \hline \hline
 #   -h   & Help mode: list command line options   \\ \hline
 #   -b   & Bare mode, meaning no preamble, etc.  \\ \hline
+#   -p   & Suppress printing 'Routine/function prologues' in Table of Contents" \\ \hline
 #   -i   & internal mode: omit prologues marked !BOPI  \\ \hline
 #   -g   & Use GEOS style. Implies -n unless overidden.
 #   +/-n & New Page for each subsection (wastes paper) \\ \hline
@@ -94,7 +95,13 @@
 #                          Makefiles.
 #  11 Sep 2013 - R. Yantosca - Added support for NCL scripts (with ; comments)
 #  06 Dec 2013 - R. Yantosca - Added support for F77 code (C comment lines)
-#  12 Dec 2013 - R. Yantosca - For NCL scripts, now call subsections "Library" 
+#  12 Dec 2013 - R. Yantosca - For NCL scripts, now call subsections "Library"
+#  12 Aug 2016 - R. Yantosca - Added -p to suppress printing of the text
+#                              "Routine/function prologues" in the table
+#                              of contents 
+#  12 Aug 2016 - R. Yantosca - ProTeX now recognizes "BOS" and "EOS" tags,
+#                              which can be used to increment the chapter
+#                              count.
 #EOP
 #----------------------------------------------------------------------------
 
@@ -106,7 +113,7 @@
 
 # Set valid options lists
 # -----------------------
-  $GlobOptions = 'hbg';    # Global options (i.e for all files)
+  $GlobOptions = 'hbgp';   # Global options (i.e for all files)
   $LangOptions = 'ACFSN7'; # Options for setting programming languages
   $SwOptions   = 'flinsx'; # Options that can change for each input 
                            #   file
@@ -175,7 +182,8 @@ Arg:
             "!CALLING SEQUENCE:",
             "!AUTHOR:",
             "!CALLED FROM:",
-            "!LOCAL VARIABLES:" );
+            "!LOCAL VARIABLES:",
+            "!SECTION:" );       # Bob Yantosca added !SECTION: (12 Aug 2016)
 
 # Initialize these for clarity
 # ----------------------------
@@ -188,6 +196,7 @@ Arg:
   $begdoc = 0;            # has \begin{document} been written?
   $inspec = 0;            # are we processing state specs
   $initem = 0;            # are we processing state specs item
+  $newSection = 0;        # Adding a new section? (Bob Yantosca (12 Aug 2016)
 
 # Initial LaTeX stuff
 # -------------------
@@ -224,6 +233,8 @@ ARG:
         $eoc_string = '!EOC';
         $boe_string = '!BOE';
         $eoe_string = '!EOE';
+        $bos_string = '!BOS';
+        $eos_string = '!EOS';
 #}#   end if
 
      if ( $opt_A ) {            # ADA
@@ -238,6 +249,8 @@ ARG:
         $eoc_string = '--EOC';
         $boe_string = '--BOE';
         $eoe_string = '--EOE';
+        $bos_string = '--BOS';
+        $eos_string = '--EOS';
 }#   end if
 
      if ( $opt_C ) {
@@ -252,6 +265,8 @@ ARG:
         $eoc_string = '//EOC';
         $boe_string = '//BOE';
         $eoe_string = '//EOE';
+        $bos_string = '//BOS';
+        $eos_string = '//EOS';
 }#   end if
 
      if ( $opt_S ) {            # Script
@@ -266,11 +281,14 @@ ARG:
         $eoc_string = '#EOC';
         $boe_string = '#BOE';
         $eoe_string = '#EOE';
+        $bos_string = '#BOS';
+        $eos_string = '#EOS';
 }#   end if
 
      if ( $opt_N ) {            # NCL scripts
         $comment_string = ';';  # -----------
-        $boi_string = ';BOI';        $eoi_string = ';EOI';
+        $boi_string = ';BOI';        
+        $eoi_string = ';EOI';
         $bop_string = ';BOP';
         $eop_string = ';EOP';
         $bopi_string = ';BOPI'; 
@@ -279,6 +297,8 @@ ARG:
         $eoc_string = ';EOC';
         $boe_string = ';BOE';
         $eoe_string = ';EOE';
+        $bos_string = ';BOS';
+        $eos_string = ';EOS';
 }#   end if
 
 
@@ -294,6 +314,8 @@ ARG:
         $eoc_string = 'CEOC';
         $boe_string = 'CBOE';
         $eoe_string = 'CEOE';
+        $bos_string = 'CBOS';
+        $eos_string = 'CEOS';
 }#   end if
 
 
@@ -427,6 +449,74 @@ LINE:
            next LINE;
 }#      end if
 
+###############################################################################
+### Modification added by Bob Yantosca (12 Aug 2016)
+### This code will update the chapter count if a !SECTION: tag is encountered.
+### 
+
+#       Handle optional section (increments the count,
+#       e.g items go from 1.1, 1.2 to 2.1, 2.2 etc.
+#       -----------------------------------------------
+        if ($Fld[1] eq $bos_string) {
+           print ' ';
+           $newSection = 1;
+           next LINE;
+}#      end if
+
+        if ($Fld[2] eq '!SECTION:') {
+           if ( $newSection ) {
+              &do_beg();
+              print ' ';
+              print '%..............................................';
+              shift @Fld;
+              shift @Fld;
+	      if($opt_g) {
+		  print "\\part{\\Large @Fld}";}
+	      else{
+		  print "\\section{@Fld}";
+}#            end if
+              next LINE;
+}#         end if
+}#      end if
+
+
+#       Description: what follows will be regular LaTeX (no verbatim)
+#       -------------------------------------------------------------
+        if ($Fld[2] eq '!DESCRIPTION:') {
+           if ($newSection) {
+              if ($verb) {
+                 printf "\\end{verbatim}";
+                 printf "\n{\\sf \\bf DESCRIPTION:\\\\ }\n\n";
+                 $verb = 0; }
+              else {                          # probably never occurs
+}#            end if
+              if ($opt_x) {
+                 printf "\\begin{verbatim} ";
+                 $verb = 1;
+                 $first_verb = 1; }
+              else {
+                 for ($i = 3; $i <= $#Fld; $i++) {
+                    printf '%s ', $Fld[$i];
+}#               end for
+}#            end if
+              ### print " ";
+              $have_desc = 1;
+              next LINE;
+}#         end if
+}#      end if
+
+
+#       End of introduction
+#       -------------------
+        if ($Fld[1] eq $eos_string) {
+           print ' ';
+           print '%/////////////////////////////////////////////////////////////';
+           $newSection = 0;
+           next LINE;
+}#      end if
+
+###############################################################################
+
 #       Beginning of prologue
 #       ---------------------
         if ($Fld[1] eq $bop_string) {
@@ -440,7 +530,8 @@ LINE:
               print "\\mbox{}\\hrulefill\\ ";
               print " ";}
            else {
-                 unless($opt_b || $opt_g) { 
+#                 unless($opt_b || $opt_g ) { 
+                 unless($opt_b || $opt_g || $opt_p) { 
 			 print "\\section{Routine/Function Prologues} \\label{app:ProLogues}";
 		     }
 }#         end if
@@ -469,7 +560,7 @@ LINE:
                  print "\\mbox{}\\hrulefill\\";
                  print " ";}
               else {
-                 unless($opt_b || $opt_g) { 
+                 unless($opt_b || $opt_g || $opt_p) { 
 			 print "\\section{Routine/Function Prologues} \\label{app:ProLogues}";
 		     }
 }#            endif              
@@ -514,13 +605,13 @@ LINE:
               if($opt_g) {
 		  printf "\\section [%s] {Module  %s }\n\n", $_,$_;}
 	      else {
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#%%% Hack added by Bob Yantosca to customize the text for the !MODULE tag
-#%%% depending on the type of input file (shell script, NCL script, Fortran).
-#%%% This will show up in the table of contents and the header text at the
-#%%% top of each page.  You can further customize this as needed.
-#%%% (bmy, 12/12/13)
-#%%%
+###############################################################################
+### Modification added by Bob Yantosca (12 Dec 2013)
+### This customizes the text for the !MODULE tag depending on the type of 
+### input file (shell script, NCL script, Fortran).
+### This will show up in the table of contents and the header text at the
+### top of each page.  You can further customize this as needed.
+###
 		#-----------------------------------------------------------
                 # Shell scripts: call subsections "Module interface"
                 #-----------------------------------------------------------
@@ -545,7 +636,7 @@ LINE:
 		  unless($opt_f) {printf "\\subsection{Fortran:  Module Interface %s (Source File: %s)}\n\n", $_, $FileBaseName;}
 		  else           {printf "\\subsection{Fortran:  Module Interface %s }\n\n", $_;}
 		}
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+###############################################################################
 	      } # endif
 
               $have_name = 1;
@@ -1062,6 +1153,7 @@ sub print_help {
     print " Options:";
     print "     -h   Help mode: list command line options";
     print "     -b   Bare mode, meaning no preamble, etc."; 
+    print "     -p   Suppress printing 'Routine/function prologues' in Table of Contents";
     print "     +-n  New Page for each subsection (wastes paper)";
     print "     +-l  Listing mode, default is prologues only";
     print "     +-s  Shut-up mode, i.e., ignore any code from BOC to EOC";
