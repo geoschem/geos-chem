@@ -1617,7 +1617,7 @@
 !
 ! !IROUTINE: compare_trc_spc
 !
-! !DESCRIPTION: Subroutine COMPARE\_TRC\_SPC prints out tracer and 
+! !DESCRIPTION: Subroutine COMPARE\_TRC\_SPC prints out
 !  species values to log in kg/kg dry for advected species, and
 !  prints out non-advected species molec/cm3. This can only be used
 !  where tracers were kg/kg dry.
@@ -1708,14 +1708,6 @@
      &                      MINVAL( State_Chm%Species(:,:,:,N) ),
      &                      MAXVAL( State_Chm%Species(:,:,:,N) )
  920        FORMAT( 'Species ', i3, ', ', a8, ': Min = ', es15.9,
-     &              '  Max = ',es15.9)
-         
-            ! Print the min & max of each tracer for comparison
-            ! (Assume units are already kg/kg dry)
-            WRITE( 6, 930 ) N, TRIM( SpcInfo%Name ),
-     &                      MINVAL( State_Chm%Tracers(:,:,:,N) ),
-     &                      MAXVAL( State_Chm%Tracers(:,:,:,N) )
- 930        FORMAT( 'Tracer  ', i3, ', ', a8, ': Min = ', es15.9,
      &              '  Max = ',es15.9)
          
          ENDDO
