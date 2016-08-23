@@ -224,9 +224,9 @@ MODULE GCKPP_HETRATES
       NATSURFACE    = .FALSE.
 
 #if defined( UCX )
-      !-----------------------------
+      !--------------------------------------------------------------------
       ! Initialize for UCX
-      !-----------------------------
+      !--------------------------------------------------------------------
 
       ! Zero variables for UCX
       EDUCTCONC     = 0.0_fp
@@ -237,27 +237,26 @@ MODULE GCKPP_HETRATES
       KHETI_SLA     = SC%KHETI_SLA(I,J,L,:)
 #endif
 
+      !--------------------------------------------------------------------
       ! Calculate RH. Not clear why the result of this calc is 
       ! slightly different than SM%RH
+      !--------------------------------------------------------------------
       RELHUM        = SM%AVGW(I,J,L) * SM%AIRNUMDEN(I,J,L)
       CONSEXP       = 17.2693882e+0_fp * (SM%T(I,J,L) - 273.16e+0_fp) / &
                       (SM%T(I,J,L) - 35.86e+0_fp)
       VPRESH2O      = CONSVAP * EXP(CONSEXP) / SM%T(I,J,L) 
       RELHUM        = RELHUM / VPRESH2O 
 
-      ! Get tracer concentrations [kg]
-      IND = IND_( 'NIT', 'T' )
+      !--------------------------------------------------------------------
+      ! Get species concentrations [molec/cm3]
+      !--------------------------------------------------------------------
+      IND = IND_( 'NIT' )
       IF (IND .le. 0) THEN
-         TRC_NIT    = 0.0e+0_fp
          SPC_NIT    = 0.0e+0_fp
       ELSE
-         TRC_NIT    = SC%Tracers(I,J,L,IND)
-         SPC_NIT    = TRC_NIT * 1e-6_fp * AVO /                     &
-                      ( SC%SpcData(IND)%Info%emMW_g * 1.e-3_fp ) /  &
-                      SM%AIRVOL(I,J,L)
+         SPC_NIT    = SC%Species(I,J,L,IND)
       ENDIF
 
-      ! Get species concentrations [molec/cm3]
       IND = IND_( 'SO4' )
       IF (IND .le. 0) THEN
          SPC_SO4    = 0.0e+0_fp
@@ -280,7 +279,6 @@ MODULE GCKPP_HETRATES
       ENDIF
 
 #if defined( UCX )
-      ! Get species concentrations [molec/cm3]
       IND = IND_( 'N2O5' )
       IF (IND .le. 0) THEN
          SPC_N2O5   = 0.0e+0_fp
@@ -323,7 +321,9 @@ MODULE GCKPP_HETRATES
          SPC_HOCl   = SC%Species(I,J,L,IND)
       ENDIF
 
+      !--------------------------------------------------------------------
       ! Set PSC educt concentrations (SDE 04/24/13)
+      !--------------------------------------------------------------------
       PSCEDUCTCONC( 1,1) = SPC_N2O5
       PSCEDUCTCONC( 1,2) = SPC_H2O
 
@@ -397,18 +397,18 @@ MODULE GCKPP_HETRATES
                       IO, SM, SC )
 #endif
 
-      ! ----------------------------------------------
+      !--------------------------------------------------------------------
       !  Calculate rate for cloud heterogeneous
       !  chemistry (jpp, 2/28/2011)
-      ! ----------------------------------------------
+      !--------------------------------------------------------------------
       IF ( .not. PSCBOX ) THEN
          cld_brno3_rc = CLD1K_BrNO3(I,J,L,XDENA,QLIQ, SM )
       END IF
 
-      ! ----------------------------------------------
+      !--------------------------------------------------------------------
       !  Calculate rates for HOBr + HBr + ice --> Br2
       !  for cold and mixed clouds. (jpp, 6/16/2011)
-      ! ----------------------------------------------
+      !--------------------------------------------------------------------
       IF ( .not. PSCBOX ) THEN
          DUMMY = 0.0e+0_fp
          CALL cldice_hbrhobr_rxn( I,J,L,XDENA,QICE,SPC_HBr,SPC_HOBr, &
@@ -423,9 +423,9 @@ MODULE GCKPP_HETRATES
       ! Zero the HET array
       HET = 0.0_dp
 
-      !----------------------------------------------------------------
+      !--------------------------------------------------------------------
       ! Calculate and pass het rates to the KPP rate array
-      !----------------------------------------------------------------
+      !--------------------------------------------------------------------
       HET(ind_HO2,  1) = HETHO2(        3.30E1_fp, 2E-1_fp)
       HET(ind_NO2,  1) = HETNO2(        4.60E1_fp, 1E-4_fp)
       HET(ind_NO3,  1) = HETNO3(        6.20E1_fp, 1E-1_fp)
@@ -446,10 +446,10 @@ MODULE GCKPP_HETRATES
       HET(ind_HOBr, 3) = HETHOBr_PSC(   0.97E2_fp, 0E+0_fp)
 #endif
 
-      !----------------------------------------------------------------
+      !--------------------------------------------------------------------
       ! Kludging the rates to be equal to one another to avoid having
       ! to keep setting equality in solver. (jpp, 5/10/2011)
-      !----------------------------------------------------------------
+      !--------------------------------------------------------------------
       IF ( ( HET(ind_HBr,1) > 0 ) .and. ( HET(ind_HOBr,1) > 0 ) ) THEN
 
          ! select the min of the two rates
@@ -489,10 +489,10 @@ MODULE GCKPP_HETRATES
          ENDIF
       ENDIF
 
-      !----------------------------------------------------------------
+      !--------------------------------------------------------------------
       ! SDE 05/30/13: Limit rates to prevent solver failure for PSC
       ! het. chem.
-      !----------------------------------------------------------------
+      !--------------------------------------------------------------------
 #if defined( UCX )
       DO PSCIDX=1,10
 
