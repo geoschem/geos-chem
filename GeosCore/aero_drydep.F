@@ -9,7 +9,7 @@
 ! !DESCRIPTION: Subroutine AERO\_DRYDEP removes size-resolved aerosol number 
 !  and mass by dry deposition.  The deposition velocities are calcualted from 
 !  drydep_mod.f and only aerosol number NK1-NK30 are really treated as dry 
-!  depositing tracers while each of the mass species are depositing accordingly
+!  depositing species while each of the mass species are depositing accordingly
 !  with number.
 !\\
 !\\
@@ -135,9 +135,9 @@
       ! Assume success
       RC        = GIGC_SUCCESS
 
-      ! Check that tracer units are in [kg] (ewl, 8/13/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+      ! Check that species units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
          CALL GIGC_Error( MSG, RC, LOC )
       ENDIF
@@ -177,11 +177,11 @@
       BXHEIGHT => State_Met%BXHEIGHT
       T        => State_Met%T
 
-      ! First identify if the size-resolved aerosol tracers have their
+      ! First identify if the size-resolved aerosol species have their
       ! deposition velocity calculated.
-      ! dryd is an array that keeps the drydep tracer ID.  So if the 
+      ! dryd is an array that keeps the drydep species ID.  So if the 
       ! aerosol component has dryd = 0, that means it was not included 
-      ! as a dry depositting tracer.
+      ! as a dry depositting species.
       IF(FIRST) THEN
       DRYD = 0
       DO BIN = 1, IBINS
@@ -190,7 +190,7 @@
             IF ( BIN == 1 .and. NTRAIND(N)==id_H2SO4 ) H2SO4ID = N
 cdbg            print *, 'DRYDEP Species:',N
             IF ( NTRAIND(N) == ( id_NK1-1+BIN ) )THEN
-cdbg               print *,'Match tracer:',IDTNK1-1+bin,'Bin',bin
+cdbg               print *,'Match species:',IDTNK1-1+bin,'Bin',bin
                DRYD( BIN ) = N
                GOTO 100
             ENDIF            
@@ -554,10 +554,10 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
       BXHEIGHT => NULL()
       T        => NULL()
 
-      ! Check that tracer units are still in [kg] (ewl, 8/13/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         MSG = 'Incorrect tracer units at end of routine: ' 
-     &            // TRIM(State_Chm%Trac_Units)
+      ! Check that species units are still in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect species units at end of routine: ' 
+     &            // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
          CALL GIGC_Error( MSG, RC, LOC )
       ENDIF
