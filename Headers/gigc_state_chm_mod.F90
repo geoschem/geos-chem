@@ -277,6 +277,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE GCKPP_Parameters,     ONLY : NSPEC
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod,   ONLY : OptInput
     USE Species_Mod,          ONLY : Species
@@ -428,7 +429,7 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Chm%Map_DryDep = 0
 
-    ALLOCATE( State_Chm%Map_KppSpc(             State_Chm%nKppSpc  ), STAT=RC )
+    ALLOCATE( State_Chm%Map_KppSpc(             NSPEC              ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Chm%Map_KppSpc = 0
 

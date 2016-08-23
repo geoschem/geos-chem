@@ -5006,6 +5006,7 @@ CONTAINS
 
     ! Arrays
     CHARACTER(LEN=15), ALLOCATABLE :: Tmp(:)
+    CHARACTER(LEN=15)              :: SpcName
 !
 ! !DEFINED PARAMETERS:
 !
@@ -5048,13 +5049,20 @@ CONTAINS
           Tmp(S) = Input_Opt%Tracer_Name(S)
        ENDDO
        
-       ! Next, add to the TMP array those KPP species that aren't already 
-       ! listed as advected tracers.  nSpecies is the # of unique species.
+       ! Loop over KPP species
        DO K = 1, NSPEC
+
+          ! Skip dummy RR species for prod/loss diagnostic (mps, 8/23/16)
+          SpcName = ADJUSTL( Spc_Names(K) )
+          IF ( SpcName(1:2) == 'RR' ) CYCLE
+
+          ! Next, add to the TMP array those KPP species that aren't already 
+          ! listed as advected tracers.  nSpecies is the # of unique species.
           IF ( .not. ANY( Input_Opt%Tracer_Name == Spc_Names(K) ) ) THEN
              nSpecies      = nSpecies + 1
              Tmp(nSpecies) = Spc_Names(K)
           ENDIF
+
        ENDDO
           
        ! Allocate the species names array precisely of length nSpecies
@@ -5088,6 +5096,10 @@ CONTAINS
 
           ! Loop through the list of KPP species (stored in SPC_NAMES)
           DO K = 1, NSPEC
+
+             ! Skip dummy RR species for prod/loss diagnostic (mps, 8/23/16)
+             SpcName = ADJUSTL( Spc_Names(K) )
+             IF ( SpcName(1:2) == 'RR' ) CYCLE
 
              ! Test the unique species names (stored in SPECIES_NAMES)
              ! against the list of KPP species (in SPC_NAMES).  The K 
