@@ -95,7 +95,7 @@
 !                              FlexChem has rendered the routine obsolete.
 !  31 May 2016 - E. Lundgren - Use species database MW instead of XNUMOL
 !  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with ThisSpc%Name from species database
+!                              NAMEGAS with SpcInfo%Name from species database
 !  14 Jun 2016 - M. Sulprizio- Replace loops over N_TRACERS with loops over
 !                              State_Chm%nSpecies and add checks for Is_Advected
 !                              and Is_Kpp to avoid introducing numerical noise

@@ -7496,18 +7496,12 @@
       ! Scalars
       INTEGER :: AS, I, J, N
 
-      ! Objects
-      TYPE(Species), POINTER :: ThisSpc
-
       !=================================================================
       ! INIT_SULFATE begins here!
       !=================================================================
 
       ! Assume success
       RC = GIGC_SUCCESS
-
-      ! Initialize pointer
-      ThisSpc => NULL()
 
       ! Allocate arrays
       ALLOCATE( SSTEMP( IIPAR, JJPAR ), STAT=AS )

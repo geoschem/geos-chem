@@ -1847,7 +1847,7 @@
       INTEGER                 :: SPC_INDEX
 
       ! Objects
-      TYPE(Species), POINTER  :: ThisSpc
+      TYPE(Species), POINTER  :: SpcInfo
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
@@ -1858,7 +1858,7 @@
 
       ! Initialization
       DUM = 1.0
-      ThisSpc => NULL()
+      SpcInfo => NULL()
 
       ! Set a flag if any timeseries diagnostics are turned on
       DO_TIMESERIES = ( DO_SAVE_DIAG48 .or. DO_SAVE_DIAG49 .or.
@@ -1878,15 +1878,15 @@
 
          ! Set pointer to this species information
          ! NOTE: requires 1:1 tracer index to species index mapping
-         ThisSpc => State_Chm%SpcData(T)%Info
+         SpcInfo => State_Chm%SpcData(T)%Info
 
          ! Store quantities for each tracer
-         NAME (T,45) = ThisSpc%Name
+         NAME (T,45) = SpcInfo%Name
          FNAME(T,45) = TRIM( NAME(T,45) ) // ' tracer'
-         MOLC (T,45) = ThisSpc%MolecRatio
+         MOLC (T,45) = SpcInfo%MolecRatio
          SCALE(T,45) = 1.0e+9
          INDEX(T,45) = T   !changed from N (phs, 3/19/03)
-         MWT  (T,45) = ThisSpc%emMW_g * 1.e-3_fp
+         MWT  (T,45) = SpcInfo%emMW_g * 1.e-3_fp
 
          ! Special handling for hydrocarbons
          IF ( MOLC(T,45) > 1 ) THEN
@@ -1919,7 +1919,7 @@
          ENDIF
 
          ! For passive tracer (mps, 11/18/15)
-         IF ( TRIM( ThisSpc%Name ) == 'PASV' ) THEN
+         IF ( TRIM( SpcInfo%Name ) == 'PASV' ) THEN
 
             ! Set units for first passive tracer unit, conc in dry air
             UNIT (T,  45) = 'ppbv dry air'
@@ -2165,7 +2165,7 @@
 
             ! Set pointer to this species information
             ! NOTE: requires 1:1 tracer index to species index mapping
-            ThisSpc => State_Chm%SpcData(N)%Info
+            SpcInfo => State_Chm%SpcData(N)%Info
          
             T = N + PD03 + PD03_PL
 
@@ -2174,7 +2174,7 @@
             MOLC (T,03) = 1
             MWT  (T,03) = 201e-3 ! hard-coded MW
             SCALE(T,03) = 1e0
-            NAME (T,03) = ThisSpc%Name 
+            NAME (T,03) = SpcInfo%Name 
 
 !--- Keep HgP for tracer 3 in the ocean now on. (ccc, 7/20/10)
 !                  ! Tracer 3 should be "HgC" instead of "HgP"
@@ -4841,14 +4841,14 @@
 
          ! Loop over tracers: HCN-PL-$
          DO T = 1, NTRAC(09)-6
-            ThisSpc     => State_Chm%SpcData(T)%Info
-            NAME (T,09) = ThisSpc%Name
-            FNAME(T,09) = TRIM( ThisSpc%Name ) 
+            SpcInfo     => State_Chm%SpcData(T)%Info
+            NAME (T,09) = SpcInfo%Name
+            FNAME(T,09) = TRIM( SpcInfo%Name ) 
      &                    // ' lost via OH rxn'
             UNIT (T,09) = 'kg'
             INDEX(T,09) = T + ( SPACING * 38 )
             MOLC (T,09) = 1
-            MWT  (T,09) = ThisSpc%emMW_g * 1.e-3_fp
+            MWT  (T,09) = SpcInfo%emMW_g * 1.e-3_fp
             SCALE(T,09) = 1e0
          ENDDO
 
@@ -5128,15 +5128,15 @@
             T = State_Chm%Map_WetDep(N)
 
             ! Point to this tracer's information
-            ThisSpc     => State_Chm%SpcData(T)%Info
+            SpcInfo     => State_Chm%SpcData(T)%Info
 
             ! Define quantities
-            NAME (N,17) = 'Ff_' // TRIM( ThisSpc%Name )
-            FNAME(N,17) = 'F/f ratio for ' // TRIM( ThisSpc%Name )
+            NAME (N,17) = 'Ff_' // TRIM( SpcInfo%Name )
+            FNAME(N,17) = 'F/f ratio for ' // TRIM( SpcInfo%Name )
             UNIT (N,17) = 'unitless'
             INDEX(N,17) = T + ( SPACING * 29 )
-            MWT  (N,17) = ThisSpc%emMW_g * 1.e-3_fp
-            MOLC (N,17) = ThisSpc%MolecRatio
+            MWT  (N,17) = SpcInfo%emMW_g * 1.e-3_fp
+            MOLC (N,17) = SpcInfo%MolecRatio
             SCALE(N,17) = 1e0
          ENDDO
       ENDIF
@@ -6235,12 +6235,12 @@
 
             ! Drydep flux (all tracers)
             DO T = 1, Input_Opt%N_TRACERS
-               ThisSpc     => State_Chm%SpcData(T)%Info
-               NAME (T,44)  = TRIM( ThisSpc%Name ) // 'df'        
-               FNAME(T,44)  = TRIM( ThisSpc%Name ) // ' drydep flux'
+               SpcInfo     => State_Chm%SpcData(T)%Info
+               NAME (T,44)  = TRIM( SpcInfo%Name ) // 'df'        
+               FNAME(T,44)  = TRIM( SpcInfo%Name ) // ' drydep flux'
                UNIT (T,44)  = 'molec/cm2/s'
-               MWT  (T,44)  = ThisSpc%emMW_g * 1.e-3_fp
-               MOLC (T,44)  = ThisSpc%MolecRatio
+               MWT  (T,44)  = SpcInfo%emMW_g * 1.e-3_fp
+               MOLC (T,44)  = SpcInfo%MolecRatio
                SCALE(T,44)  = 1.0e0
                INDEX(T,44)  = T + ( SPACING * 36 )
                NTRAC(44)    = NTRAC(44) + 1
@@ -6249,14 +6249,14 @@
             ! Drydep velocity (only deposited species)
             DO N = 1, NUMDEP
                T            = NTRAIND(N)
-               ThisSpc     => State_Chm%SpcData(T)%Info
+               SpcInfo     => State_Chm%SpcData(T)%Info
                NN           = N + Input_Opt%N_TRACERS
                NAME (NN,44) = TRIM( DEPNAME(N) ) // 'dv'        
                FNAME(NN,44) = TRIM( DEPNAME(N) ) // 
      &                        ' drydep velocity'
                UNIT (NN,44) = 'cm/s'
-               MWT  (NN,44) = ThisSpc%emMW_g * 1.e-3_fp
-               MOLC (NN,44) = ThisSpc%MolecRatio
+               MWT  (NN,44) = SpcInfo%emMW_g * 1.e-3_fp
+               MOLC (NN,44) = SpcInfo%MolecRatio
                SCALE(NN,44) = 1.0e0
                INDEX(NN,44) = T + ( SPACING * 37 )
                NTRAC(44)    = NTRAC(44) + 1
@@ -6278,13 +6278,13 @@
                   ! Drydep flux
                   !-----------------------------------------------
                   T             = NTRAIND(N)         
-                  ThisSpc       => State_Chm%SpcData(T)%Info
+                  SpcInfo       => State_Chm%SpcData(T)%Info
                   NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                            'df'
                   FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                           ' drydep flux'
-                  MWT  (N,44)   = ThisSpc%emMW_g * 1.e-3_fp
-                  MOLC (N,44)   = ThisSpc%MolecRatio
+                  MWT  (N,44)   = SpcInfo%emMW_g * 1.e-3_fp
+                  MOLC (N,44)   = SpcInfo%MolecRatio
                   SCALE(N,44)   = 1.0e0
                   INDEX(N,44)   = T + ( SPACING * 36 )
                   NTRAC(44)     = NTRAC(44) + 1
@@ -6303,8 +6303,8 @@
                   NAME (NN,44)  = TRIM( DEPNAME(N) ) // 'dv'        
                   FNAME(NN,44)  = TRIM( DEPNAME(N) ) // 
      &                            ' drydep velocity'
-                  MWT  (NN,44)  = ThisSpc%emMW_g * 1.e-3_fp
-                  MOLC (NN,44)  = ThisSpc%MolecRatio
+                  MWT  (NN,44)  = SpcInfo%emMW_g * 1.e-3_fp
+                  MOLC (NN,44)  = SpcInfo%MolecRatio
                   UNIT (NN,44)  = 'cm/s'                     
                   SCALE(NN,44)  = 1.0e0
                   INDEX(NN,44)  = T + ( SPACING * 37 )
@@ -6316,14 +6316,14 @@
                   ! Drydep flux: TOMAS aerosol tracers
                   !-----------------------------------------------
                   T = id_NK1 + IBINS - 1 + ( N - NUMDEP )
-                  ThisSpc       => State_Chm%SpcData(T)%Info
+                  SpcInfo       => State_Chm%SpcData(T)%Info
 
                   ! Drydep flux (extended deposited species)
-                  NAME (N,44)  = TRIM( ThisSpc%Name ) // 'df'
-                  FNAME(N,44)  = TRIM( ThisSpc%Name ) // ' drydep flux'
+                  NAME (N,44)  = TRIM( SpcInfo%Name ) // 'df'
+                  FNAME(N,44)  = TRIM( SpcInfo%Name ) // ' drydep flux'
                   UNIT (N,44)  = 'molec/cm2/s'
-                  MWT  (N,44)  = ThisSpc%emMW_g * 1.e-3_fp
-                  MOLC (N,44)  = ThisSpc%MolecRatio
+                  MWT  (N,44)  = SpcInfo%emMW_g * 1.e-3_fp
+                  MOLC (N,44)  = SpcInfo%MolecRatio
                   SCALE(N,44)  = 1.0e0
                   INDEX(N,44)  = T + ( SPACING * 36 )
                   NTRAC(44)    = NTRAC(44) + 1
@@ -6332,11 +6332,11 @@
                   ! Drydep velocity all other G-C tracers
                   !-----------------------------------------------
                   NN            = N + NUMDEP + (ICOMP-IDIAG)* IBINS
-                  NAME (NN,44)  = TRIM( ThisSpc%Name ) // 'dv'        
-                  FNAME(NN,44)  = TRIM( ThisSpc%Name ) // 
+                  NAME (NN,44)  = TRIM( SpcInfo%Name ) // 'dv'        
+                  FNAME(NN,44)  = TRIM( SpcInfo%Name ) // 
      &                            ' drydep velocity'
-                  MWT  (NN,44)  = ThisSpc%emMW_g * 1.e-3_fp
-                  MOLC (NN,44)  = ThisSpc%MolecRatio
+                  MWT  (NN,44)  = SpcInfo%emMW_g * 1.e-3_fp
+                  MOLC (NN,44)  = SpcInfo%MolecRatio
                   UNIT (NN,44)  = 'cm/s'                     
                   SCALE(NN,44)  = 1.0e0
                   INDEX(NN,44)  = T + ( SPACING * 37 )
@@ -6356,13 +6356,13 @@
                ! Drydep flux
                !--------------------------------------------------
                T             = NTRAIND(N)
-               ThisSpc       => State_Chm%SpcData(T)%Info
+               SpcInfo       => State_Chm%SpcData(T)%Info
                NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                         'df'
                FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
      &                        ' drydep flux'
-               MWT  (N,44)   = ThisSpc%emMW_g * 1.e-3_fp
-               MOLC (N,44)   = ThisSpc%MolecRatio
+               MWT  (N,44)   = SpcInfo%emMW_g * 1.e-3_fp
+               MOLC (N,44)   = SpcInfo%MolecRatio
                SCALE(N,44)   = 1.0e0
                INDEX(N,44)   = T + ( SPACING * 36 )
                NTRAC(44)     = NTRAC(44) + 1
@@ -6379,8 +6379,8 @@
                NAME (NN,44)  = TRIM( DEPNAME(N) ) // 'dv'        
                FNAME(NN,44)  = TRIM( DEPNAME(N) ) // 
      &                         ' drydep velocity'
-               MWT  (NN,44)  = ThisSpc%emMW_g * 1.e-3_fp
-               MOLC (NN,44)  = ThisSpc%MolecRatio
+               MWT  (NN,44)  = SpcInfo%emMW_g * 1.e-3_fp
+               MOLC (NN,44)  = SpcInfo%MolecRatio
                UNIT (NN,44)  = 'cm/s'                     
                SCALE(NN,44)  = 1.0e0
                INDEX(NN,44)  = T + ( SPACING * 37 )
@@ -6964,7 +6964,7 @@
 
             ! Set pointer to this species information
             ! NOTE: requires 1:1 tracer index to species index mapping
-            ThisSpc => State_Chm%SpcData(T)%Info
+            SpcInfo => State_Chm%SpcData(T)%Info
 
             IF ( ( T .ge. id_NK1 )       .and. 
      &           ( T .lt. id_NK1+IBINS )      ) THEN
@@ -6974,7 +6974,7 @@
             ENDIF
 
             ! Define the rest of the quantities
-            NAME (T,60) = ThisSpc%Name
+            NAME (T,60) = SpcInfo%Name
             FNAME(T,60) = 'Rates from ND60 TOMAS diagnostic'
             INDEX(T,60) = T + ( SPACING * 6 )
             MOLC (T,60) = 1
@@ -7563,7 +7563,7 @@
 #endif
 
       ! Nullify pointer
-      ThisSpc  => NULL()
+      SpcInfo  => NULL()
 
       END SUBROUTINE INIT_TRACERINFO
 !EOC
@@ -7643,7 +7643,6 @@
 !
       INTEGER                :: AS, NYMDb, NHMSb
       INTEGER                :: MAXTRACER_HG, N
-      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! INIT_GAMAP begins here!

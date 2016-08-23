@@ -861,7 +861,7 @@
       REAL(fp)                     :: DCONDT(IIPAR,LLPAR)   
 
       ! Pointers
-      TYPE(Species), POINTER       :: ThisSpc
+      TYPE(Species), POINTER       :: SpcInfo
 
       !=================================================================
       ! CONVTRAN begins here!
@@ -872,7 +872,7 @@
      &            Input_Opt%LDYNOCEAN               )
 
       ! Initialize 
-      ThisSpc => NULL()
+      SpcInfo => NULL()
 
       ! A small number
       SMALL   = 1.e-36_fp
@@ -897,7 +897,7 @@
       DO M = 1, NTRACE
 
          ! Point to the Species Database entry for tracer #M
-         ThisSpc => State_Chm%SpcData(M)%Info
+         SpcInfo => State_Chm%SpcData(M)%Info
 
          ! Gather up the tracer and set tend to zero
          DO K = 1,    LLPAR
@@ -1240,7 +1240,7 @@
                IF ( IS_Hg ) THEN
 
                   ! ... and if this is one of the Hg2 tracers
-                  if ( ThisSpc%Is_Hg2 ) THEN
+                  if ( SpcInfo%Is_Hg2 ) THEN
 
                      ! GEOS-CHEM lon & lat indices
                      II      = IDEEP(I)
@@ -1255,7 +1255,7 @@
      &                          * AREA_M2 * g0_100 / DELT 
 
                      ! Category # for this Hg2 species
-                     Hg_Cat = ThisSpc%Hg_Cat
+                     Hg_Cat = SpcInfo%Hg_Cat
 
                      ! Pass to "ocean_mercury_mod.f"
                      CALL ADD_Hg2_WD      ( II, J, Hg_Cat, WET_Hg2   )
@@ -1263,7 +1263,7 @@
      &                                                     State_Met )
                   ENDIF
                   !eck/eds
-                  IF ( ThisSpc%Is_HgP ) THEN
+                  IF ( SpcInfo%Is_HgP ) THEN
 
                      ! GEOS-CHEM lon & lat indices
                      II      = IDEEP(I)
@@ -1278,7 +1278,7 @@
      &                          * AREA_M2 * g0_100 / DELT 
 
                      ! Category # for this Hg2 species
-                     Hg_Cat = ThisSpc%Hg_Cat
+                     Hg_Cat = SpcInfo%Hg_Cat
 
                      ! Pass to "ocean_mercury_mod.f"
                      CALL ADD_HgP_WD      ( II, J, Hg_Cat, WET_HgP   )
@@ -1354,7 +1354,7 @@
          ENDDO    
 
          ! Free pointer to species database
-         ThisSpc => NULL()
+         SpcInfo => NULL()
 
       ENDDO  !M ; End of tracer loop
 

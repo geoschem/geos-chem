@@ -448,7 +448,7 @@
 !                              running with the traditional driver main.F
 !  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  20 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with ThisSpc%Name from species database
+!                              NAMEGAS with SpcInfo%Name from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -979,7 +979,7 @@
 !  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !  20 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with ThisSpc%Name from species database
+!                              NAMEGAS with SpcInfo%Name from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1093,7 +1093,7 @@
 !  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !  20 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with ThisSpc%Name from species database
+!                              NAMEGAS with SpcInfo%Name from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1206,7 +1206,7 @@
 !  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !  20 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with ThisSpc%Name from species database
+!                              NAMEGAS with SpcInfo%Name from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -102,14 +102,13 @@ CONTAINS
 !                              to populate Tracer_Name, Tracer_Id, Species_Name,
 !                              and Species_ID fields in State_Chm
 !  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with ThisSpc%Name from species database
+!                              NAMEGAS with SpcInfo%Name from species database
 !  06 Jun 2016 - M. Sulprizio- Replace Get_Indx with Spc_GetIndx to use the
 !                              fast-species lookup from the species database
 !  06 Jun 2016 - M. Sulprizio- Remove calls to Register_Tracer and
 !                              Register_Species; these routines were made
 !                              obsolete by the species database
 !  14 Jun 2016 - M. Sulprizio- Replace Spc_GetIndx with Ind_ (M. Long)
-!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !  25 Jul 2016 - E. Lundgren - Add check that species was not in restart file
 !                              prior to v/v -> molec/cm3 conversion
 !  02 Aug 2016 - E. Lundgren - Move unit conversion of species background

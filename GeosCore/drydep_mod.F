@@ -453,7 +453,7 @@
 #endif
 
       ! Objects
-      TYPE(Species), POINTER :: ThisSpc
+      TYPE(Species), POINTER :: SpcInfo
 
       !=================================================================
       ! DO_DRYDEP begins here!
@@ -463,7 +463,7 @@
       RC = GIGC_SUCCESS
 
       ! Initialize
-      ThisSpc => NULL()
+      SpcInfo => NULL()
       
 #if defined( NC_DIAG )
       ! Initialize
@@ -495,7 +495,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, ThisSpc )
+!$OMP+PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -517,7 +517,7 @@
             N      =  NTRAIND(D)
 
             ! Get info about this species from the database
-            ThisSpc => State_Chm%SpcData(N)%Info
+            SpcInfo => State_Chm%SpcData(N)%Info
 
             ! Index of drydep species in the DVEL array 
             ! as passed back from subroutine DEPVEL
@@ -534,20 +534,20 @@
                !-------------------------------------
                ! %%% SURFACE IS SNOW OR ICE %%%
                !-------------------------------------
-               IF ( ThisSpc%DD_DvzAerSnow > 0.0_fp ) THEN
+               IF ( SpcInfo%DD_DvzAerSnow > 0.0_fp ) THEN
 
                   ! For most aerosol tracers (basically everything
                   ! except sea salt and dust species), we just set
                   ! the deposition velocity over snow to a fixed value.
                   ! (Modification by Jenny Fisher, dated 8/1/11)
-                  DVZ = DBLE( ThisSpc%DD_DvzAerSnow )
+                  DVZ = DBLE( SpcInfo%DD_DvzAerSnow )
 
                ELSE
                   
                   ! Otherwise, enforce a minimum drydep velocity over snow
                   ! (cf. the GOCART model).  NOTE: In practice this will 
                   ! only apply to the species SO2, SO4, MSA, NH3, NH4, NIT.
-                  DVZ = MAX( DVZ, DBLE( ThisSpc%DD_DvzMinVal(1) ) )
+                  DVZ = MAX( DVZ, DBLE( SpcInfo%DD_DvzMinVal(1) ) )
 
                ENDIF
 
@@ -560,7 +560,7 @@
                ! Enforce a minimum drydep velocity over land (cf. the 
                ! GOCART model).  NOTE: In practice this will only apply 
                ! to the species SO2, SO4, MSA, NH3, NH4, NIT.
-               DVZ = MAX( DVZ, DBLE( ThisSpc%DD_DvzMinVal(2) ) ) 
+               DVZ = MAX( DVZ, DBLE( SpcInfo%DD_DvzMinVal(2) ) ) 
 
             ENDIF
 
@@ -604,7 +604,7 @@
 #endif
 
             ! Free pointer
-            ThisSpc => NULL()
+            SpcInfo => NULL()
          ENDDO
       ENDDO
       ENDDO
@@ -1173,7 +1173,7 @@
 
       ! For the species database
       INTEGER                :: SpcId
-      TYPE(Species), POINTER :: ThisSpc
+      TYPE(Species), POINTER :: SpcInfo
 
       !=================================================================
       ! DEPVEL begins here!
@@ -1195,7 +1195,7 @@
       IUSE    => State_Met%IUSE
       XLAI    => State_Met%XLAI
       IDEP    => Input_Opt%IDEP
-      ThisSpc => NULL()
+      SpcInfo => NULL()
 
       ! Is this a POPs simmulation?
       IS_POPS = Input_Opt%ITS_A_POPS_SIM  ! clf, 1/3/2011
@@ -1267,7 +1267,7 @@
 !$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
 !$OMP+PRIVATE( C1X,    VK,     I,      J,      IW             )
 !$OMP+PRIVATE( DIAM,   DEN,    XLAI_FP, SUNCOS_FP, CFRAC_FP   )
-!$OMP+PRIVATe( SpcId,  ThisSpc                                )
+!$OMP+PRIVATe( SpcId,  SpcInfo                                )
 #if defined( TOMAS )
 !$OMP+PRIVATE( BIN                                            )
 #endif
@@ -1519,9 +1519,9 @@
 
                ! Get information about this species from the database
                SpcId   =  NTRAIND(K)
-               ThisSpc => State_Chm%SpcData(SpcId)%Info
+               SpcInfo => State_Chm%SpcData(SpcId)%Info
 
-               IF ( ThisSpc%DD_AeroDryDep ) THEN
+               IF ( SpcInfo%DD_AeroDryDep ) THEN
 
                   !=====================================================
                   ! Use size-resolved dry deposition calculations for 
@@ -1539,7 +1539,7 @@
      &                                          W10(I,J), 
      &                                          Input_Opt )
 
-               ELSE IF ( ThisSpc%DD_DustDryDep ) THEN
+               ELSE IF ( SpcInfo%DD_DustDryDep ) THEN
 
                   !=====================================================
                   ! Use size-resolved dry deposition calculations for 
@@ -1617,7 +1617,7 @@
                ENDIF
 
                ! Free pointer
-               ThisSpc => NULL()
+               SpcInfo => NULL()
 
  160        CONTINUE
 !*
@@ -3988,7 +3988,7 @@
       CHARACTER(LEN=255)     :: MSG
 
       ! Objects
-      TYPE(Species), POINTER :: ThisSpc 
+      TYPE(Species), POINTER :: SpcInfo 
 
       !=================================================================
       ! INIT_DRYDEP begins here!
@@ -4102,40 +4102,40 @@
       DO N = 1, State_Chm%nAdvect
 
          ! Point to the Nth species in the species database
-         ThisSpc => State_Chm%SpcData(N)%Info
+         SpcInfo => State_Chm%SpcData(N)%Info
 
          ! Only proceed if the species dry deposits
-         IF ( ThisSpc%Is_Drydep ) THEN
+         IF ( SpcInfo%Is_Drydep ) THEN
 
             ! Initialize dry deposition quantities
             NUMDEP            = NUMDEP + 1
-            NTRAIND(NUMDEP)   = ThisSpc%ModelID
-            NDVZIND(NUMDEP)   = ThisSpc%DryDepID
-            DEPNAME(NUMDEP)   = TRIM( ThisSpc%Name )
-            HSTAR(NUMDEP)     = DBLE( ThisSpc%DD_Hstar_old   )
-            F0(NUMDEP)        = DBLE( ThisSpc%DD_F0          )
-            KOA(NUMDEP)       = DBLE( ThisSpc%DD_KOA         )
-            XMW(NUMDEP)       = DBLE( ThisSpc%MW_g * 1e-3_fp )
-            AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas       )
+            NTRAIND(NUMDEP)   = SpcInfo%ModelID
+            NDVZIND(NUMDEP)   = SpcInfo%DryDepID
+            DEPNAME(NUMDEP)   = TRIM( SpcInfo%Name )
+            HSTAR(NUMDEP)     = DBLE( SpcInfo%DD_Hstar_old   )
+            F0(NUMDEP)        = DBLE( SpcInfo%DD_F0          )
+            KOA(NUMDEP)       = DBLE( SpcInfo%DD_KOA         )
+            XMW(NUMDEP)       = DBLE( SpcInfo%MW_g * 1e-3_fp )
+            AIROSOL(NUMDEP)   = ( .not. SpcInfo%Is_Gas       )
 
             ! Only copy DENSITY if it's not a missing value
-            IF ( ThisSpc%Density > 0.0_fp ) THEN
-               A_DEN(NUMDEP)  = DBLE( ThisSpc%Density        )
+            IF ( SpcInfo%Density > 0.0_fp ) THEN
+               A_DEN(NUMDEP)  = DBLE( SpcInfo%Density        )
             ENDIF
 
             ! Only copy RADIUS if it's not a missing value
-            IF ( ThisSpc%Radius > 0.0_fp ) THEN
-               A_RADI(NUMDEP) = DBLE( ThisSpc%Radius         )
+            IF ( SpcInfo%Radius > 0.0_fp ) THEN
+               A_RADI(NUMDEP) = DBLE( SpcInfo%Radius         )
             ENDIF
 
             !-----------------------------------------------------
             ! Kludges to match behavior of older code
             !-----------------------------------------------------
-            SELECT CASE ( TRIM( ThisSpc%Name ) ) 
+            SELECT CASE ( TRIM( SpcInfo%Name ) ) 
 
                CASE( 'ACET' )
                   ! Flag the species ID of ACET for use above.
-                  ID_ACET = ThisSpc%ModelId
+                  ID_ACET = SpcInfo%ModelId
                         
                CASE( 'NITs', 'NITS' )
                   ! DEPNAME for NITs has to be in all caps, for
@@ -4178,7 +4178,7 @@
          ENDIF
             
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
       ENDDO
 
       ! For TOMAS 

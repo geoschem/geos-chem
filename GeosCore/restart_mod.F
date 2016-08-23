@@ -130,7 +130,7 @@
 !  20 Apr 2016 - E. Lundgren - Implement ocean and snow Hg variables
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with ThisSpc%Name from species database
+!                              NAMEGAS with SpcInfo%Name from species database
 !  11 Jul 2016 - E. Lundgren - Remove tracer container; now only use species
 !  12 Jul 2016 - E. Lundgren - Rename routine from init_gc_restart_nc
 !EOP
@@ -147,7 +147,7 @@
       CHARACTER(LEN=60)      :: ContainerName, Prefix
       CHARACTER(LEN=255)     :: MSG
       CHARACTER(LEN=255)     :: LOC='INIT_GC_RESTART (restart_mod.F90)'
-      TYPE(Species), POINTER :: ThisSpc
+      TYPE(Species), POINTER :: SpcInfo
 
       ! For Hg simulation
       INTEGER                   :: Num_Hg_Categories
@@ -162,7 +162,7 @@
       RC = GIGC_SUCCESS
 
       ! Initialize pointers
-      ThisSpc       => NULL()
+      SpcInfo       => NULL()
       Hg_Cat_Name   => NULL()
 
       ! Define collection variables
@@ -226,10 +226,10 @@
       DO N = 1 , State_Chm%nSpecies
       
          ! Get info about this species from the species database
-         ThisSpc => State_Chm%SpcData(N)%Info
+         SpcInfo => State_Chm%SpcData(N)%Info
 
          ! Define container name and ID
-         ContainerName = 'SPC_' // TRIM( ThisSpc%Name )
+         ContainerName = 'SPC_' // TRIM( SpcInfo%Name )
          cID = cID + 1
 
          ! Create container
@@ -243,7 +243,7 @@
      &                      RC        = RC )
 
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
          
          IF ( RC /= HCO_SUCCESS ) THEN
             MSG = 'Cannot create restart species container: ' 
@@ -453,7 +453,7 @@
 !  31 May 2016 - E. Lundgren - Replace Input_Opt%TRACER_MW_G with species
 !                              database field emMW_g (emitted species g/mol)
 !  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with ThisSpc%Name from species database
+!                              NAMEGAS with SpcInfo%Name from species database
 !  22 Jun 2016 - R. Yantosca - Now refer to Hg0_Id_List, Hg2_Id_List, and
 !                              HgP_Id_List fields of State_Chm
 !  11 Jul 2016 - E. Lundgren - Remove tracers and read only species
@@ -504,7 +504,7 @@
       CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:)
 
       ! Objects
-      TYPE(Species),    POINTER :: ThisSpc
+      TYPE(Species),    POINTER :: SpcInfo
 
       !=================================================================
       ! READ_GC_RESTART begins here!
@@ -516,7 +516,7 @@
       ! Initialize pointers
       Ptr2D       => NULL()
       Ptr3D       => NULL()
-      ThisSpc     => NULL()
+      SpcInfo     => NULL()
       Hg_Cat_Name => NULL()
 
       ! Name of this routine
@@ -604,18 +604,18 @@
       DO N = 1, State_Chm%nSpecies
 
          ! Get info about this species from the species database
-         ThisSpc => State_Chm%SpcData(N)%Info
+         SpcInfo => State_Chm%SpcData(N)%Info
          MW_g    = State_Chm%SpcData(N)%Info%emMW_g
 
          ! Define variable name
-         v_name = 'SPC_' // TRIM( ThisSpc%Name )
+         v_name = 'SPC_' // TRIM( SpcInfo%Name )
 
          ! Check if species data is in file
          ierr = Nf_Inq_Varid (fId, v_name, v_id)
          IF ( ierr /= NF_NOERR ) THEN
-            ThisSpc%Is_InRestart = .FALSE.
+            SpcInfo%Is_InRestart = .FALSE.
          ELSE
-            ThisSpc%Is_InRestart = .TRUE.
+            SpcInfo%Is_InRestart = .TRUE.
          ENDIF
 
          ! If data is in file, read in as [mol/mol] and convert to 
@@ -624,7 +624,7 @@
          ! non-advected species levels up to LLCHEM) or a small number
          ! (non-advected species levels above LLCHEM) converted to 
          ! [kg/kg dry]
-         IF ( ThisSpc%Is_InRestart ) THEN
+         IF ( SpcInfo%Is_InRestart ) THEN
 
             ! Initialize temporary array for this species and point to it
             Temp3D = 0.0e-0_fp
@@ -636,7 +636,7 @@
             ! Print the min & max of each species as it is read from 
             ! the restart file in mol/mol
             IF ( Input_Opt%LPRT ) THEN
-               WRITE( 6, 120 ) N, TRIM( ThisSpc%Name ),
+               WRITE( 6, 120 ) N, TRIM( SpcInfo%Name ),
      &                         MINVAL( Ptr3D ), MAXVAL( Ptr3D )
  120           FORMAT( 'Species ', i3, ', ', a8, ': Min = ', es15.9,
      &                 '  Max = ',es15.9)
@@ -671,7 +671,7 @@
             DO I = 1, IIPAR
                   
                ! Special handling for MOH
-               IF ( TRIM( ThisSpc%Name ) == 'MOH' ) THEN
+               IF ( TRIM( SpcInfo%Name ) == 'MOH' ) THEN
 
                   !----------------------------------------------------
                   ! For methanol (MOH), use different initial
@@ -728,7 +728,7 @@
                   ! Print to log if debugging is on
                   IF ( Input_Opt%LPRT .AND. I == 1 .AND. J == 1 
      &                 .AND. L == 1 ) THEN
-                     WRITE( 6, 130 ) N, TRIM( ThisSpc%Name )
+                     WRITE( 6, 130 ) N, TRIM( SpcInfo%Name )
  130                 FORMAT('Species ', i3, ', ', a9, 
      &                   ': see READ_GC_RESTART for special MOH values')
                   ENDIF
@@ -736,7 +736,7 @@
                ! For non-advected species at levels above LLCHEM, use a 
                ! small number for background
                ELSEIF ( L > LLCHEM .AND. 
-     &                  ( .NOT. ThisSpc%Is_Advected ) ) THEN
+     &                  ( .NOT. SpcInfo%Is_Advected ) ) THEN
 
                   State_Chm%Species(I,J,L,N) = 
      &                                SMALL_NUM * MW_g / AIRMW 
@@ -745,14 +745,14 @@
                ! stored in the species database
                ELSE
 
-                  State_Chm%Species(I,J,L,N) = ThisSpc%BackgroundVV 
+                  State_Chm%Species(I,J,L,N) = SpcInfo%BackgroundVV 
      &                                         * MW_g / AIRMW
 
                   ! Print to log if debugging is on
                   IF ( Input_Opt%LPRT .AND. I == 1 .AND. J == 1
      &                 .AND. L == 1 ) THEN
-                     WRITE( 6, 140 ) N, TRIM( ThisSpc%Name ),
-     &                               ThisSpc%BackgroundVV
+                     WRITE( 6, 140 ) N, TRIM( SpcInfo%Name ),
+     &                               SpcInfo%BackgroundVV
  140                 FORMAT('Species ', i3, ', ', a9, 
      &                    ': Use background = ', es15.9)
                   ENDIF
@@ -767,7 +767,7 @@
          ENDIF
 
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
 
       ENDDO
 
@@ -781,13 +781,13 @@
          CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
      &                                   State_Chm, RC )
          DO N = 1, State_Chm%nSpecies
-            ThisSpc => State_Chm%SpcData(N)%Info
-            WRITE(6,150) N, TRIM( ThisSpc%Name ), 
+            SpcInfo => State_Chm%SpcData(N)%Info
+            WRITE(6,150) N, TRIM( SpcInfo%Name ), 
      &                   MINVAL( State_Chm%Species(:,:,:,N) ), 
      &                   MAXVAL( State_Chm%Species(:,:,:,N) ) 
  150        FORMAT( 'Species ', i3, ', ', a9, 
      &              ': Min = ', es15.9, ', Max = ', es15.9 )
-            ThisSpc => NULL()
+            SpcInfo => NULL()
          ENDDO
          CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
      &                                   State_Chm, RC )
@@ -1105,7 +1105,7 @@
 !  20 Apr 2016 - E. Lundgren - Implement ocean and snow Hg variables
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with ThisSpc%Name from species database
+!                              NAMEGAS with SpcInfo%Name from species database
 !  22 Jun 2016 - R. Yantosca - Now refer to Hg0_Id_List, Hg2_Id_List, and
 !                              HgP_Id_List fields of State_Chm
 !  11 Jul 2016 - E. Lundgren - Remove tracers and write only species
@@ -1142,7 +1142,7 @@
       TYPE(HCO_STATE),  POINTER :: HcoState
 
       ! Objects
-      TYPE(Species),    POINTER :: ThisSpc
+      TYPE(Species),    POINTER :: SpcInfo
 
       !=================================================================
       ! WRITE_GC_RESTART begins here!
@@ -1156,7 +1156,7 @@
       Ptr2D       => NULL()
       Hg_Cat_Name => NULL()
       HcoState    => NULL()
-      ThisSpc     => NULL()
+      SpcInfo     => NULL()
 
       ! Set the GEOS-Chem restart collection ID
       GC_RST_Collection = Input_Opt%GC_RST_COLLECTION
@@ -1210,13 +1210,13 @@
          CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
      &                                   State_Chm, RC )
          DO N = 1, State_Chm%nSpecies
-            ThisSpc => State_Chm%SpcData(N)%Info
-            WRITE(6,220) N, TRIM( ThisSpc%Name ), 
+            SpcInfo => State_Chm%SpcData(N)%Info
+            WRITE(6,220) N, TRIM( SpcInfo%Name ), 
      &                   MINVAL( State_Chm%Species(:,:,1:LLCHEM,N) ), 
      &                   MAXVAL( State_Chm%Species(:,:,1:LLCHEM,N) ) 
  220        FORMAT( 'Species ', i3, ', ', a9, 
      &              ': Min = ', es15.9, ', Max = ', es15.9 )
-            ThisSpc => NULL()
+            SpcInfo => NULL()
          ENDDO
          CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
      &                                   State_Chm, RC )
@@ -1238,7 +1238,7 @@
       DO N = 1, State_Chm%nSpecies
 
          ! Get info about this species from the species database
-         ThisSpc => State_Chm%SpcData(N)%Info
+         SpcInfo => State_Chm%SpcData(N)%Info
          MW_g    = State_Chm%SpcData(N)%Info%emMW_g
 
 !$OMP PARALLEL DO
@@ -1265,7 +1265,7 @@
          Ptr3D => Temp3D
          
          ! Define container name
-         ContainerName = 'SPC_' // TRIM( ThisSpc%Name )
+         ContainerName = 'SPC_' // TRIM( SpcInfo%Name )
          
          ! Populate container
          CALL Diagn_Update( am_I_Root,                   
@@ -1279,7 +1279,7 @@
 
          ! Write min and max written to file if debugging
          IF ( Input_Opt%LPRT ) THEN
-            WRITE( 6, 240 ) N, TRIM( ThisSpc%Name ),
+            WRITE( 6, 240 ) N, TRIM( SpcInfo%Name ),
      &                      MINVAL( Temp3D(:,:,:) ), 
      &                      MAXVAL( Temp3D(:,:,:) )
  240        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
@@ -1293,7 +1293,7 @@
          ENDIF  
 
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
 
       ENDDO
 
@@ -1667,7 +1667,7 @@
       LOGICAL              :: INITIAL_SPC_MND
 
       ! Objects
-      TYPE(Species),    POINTER :: ThisSpc
+      TYPE(Species),    POINTER :: SpcInfo
 
       !=================================================================
       ! COMPARE_TRC_SPC begins here!
@@ -1701,10 +1701,10 @@
          DO N = 1, State_Chm%nAdvect
          
             ! Get info about this species from the species database
-            ThisSpc => State_Chm%SpcData(N)%Info
+            SpcInfo => State_Chm%SpcData(N)%Info
          
             ! Print the min & max of each species in kg/kg dry
-            WRITE( 6, 920 ) N, TRIM( ThisSpc%Name ),
+            WRITE( 6, 920 ) N, TRIM( SpcInfo%Name ),
      &                      MINVAL( State_Chm%Species(:,:,:,N) ),
      &                      MAXVAL( State_Chm%Species(:,:,:,N) )
  920        FORMAT( 'Species ', i3, ', ', a8, ': Min = ', es15.9,
@@ -1712,7 +1712,7 @@
          
             ! Print the min & max of each tracer for comparison
             ! (Assume units are already kg/kg dry)
-            WRITE( 6, 930 ) N, TRIM( ThisSpc%Name ),
+            WRITE( 6, 930 ) N, TRIM( SpcInfo%Name ),
      &                      MINVAL( State_Chm%Tracers(:,:,:,N) ),
      &                      MAXVAL( State_Chm%Tracers(:,:,:,N) )
  930        FORMAT( 'Tracer  ', i3, ', ', a8, ': Min = ', es15.9,
@@ -1734,10 +1734,10 @@
          DO N = 1, State_Chm%nSpecies
          
             ! Get info about this species from the species database
-            ThisSpc => State_Chm%SpcData(N)%Info
+            SpcInfo => State_Chm%SpcData(N)%Info
          
             ! Print the min & max of each species in molec/cm3
-            WRITE( 6, 950 ) N, TRIM( ThisSpc%Name ),
+            WRITE( 6, 950 ) N, TRIM( SpcInfo%Name ),
      &                      MINVAL( State_Chm%Species(:,:,:,N) ),
      &                      MAXVAL( State_Chm%Species(:,:,:,N) )
  950        FORMAT( 'Species ', i3, ', ', a8, ': Min = ', es15.9,

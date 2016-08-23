@@ -3450,7 +3450,7 @@
 
       ! For Hg indexing (bmy, 4/26/16)
       INTEGER                  :: N
-      TYPE(Species), POINTER   :: ThisSpc
+      TYPE(Species), POINTER   :: SpcInfo
       
       ! For riverflow and NPP interannual scaling (jaf, 3/26/12)
       INTEGER                  :: THISYEAR, THISYEARINDEX
@@ -3495,32 +3495,32 @@
       DO N = 1, State_Chm%nSpecies
 
          ! Point to the Species Database entry for tracer # N
-         ThisSpc => State_Chm%SpcData(N)%Info 
+         SpcInfo => State_Chm%SpcData(N)%Info 
 
          ! Save ocean Hg categories into module variable indices
-         SELECT CASE( TRIM( ThisSpc%Name ) )
+         SELECT CASE( TRIM( SpcInfo%Name ) )
             CASE( 'Hg0'     ) 
-               ID_Hg_tot = ThisSpc%Hg_Cat
+               ID_Hg_tot = SpcInfo%Hg_Cat
             CASE( 'Hg0_atl' ) 
-               ID_Hg_atl = ThisSpc%Hg_Cat
+               ID_Hg_atl = SpcInfo%Hg_Cat
             CASE( 'Hg0_nat' )
-               ID_Hg_nat = ThisSpc%Hg_Cat
+               ID_Hg_nat = SpcInfo%Hg_Cat
             CASE( 'Hg0_sat' )
-               ID_Hg_sat = ThisSpc%Hg_Cat
+               ID_Hg_sat = SpcInfo%Hg_Cat
             CASE( 'Hg0_npa' )
-               ID_Hg_npa = ThisSpc%Hg_Cat
+               ID_Hg_npa = SpcInfo%Hg_Cat
             CASE( 'Hg0_arc' )
-               ID_Hg_arc = ThisSpc%Hg_Cat
+               ID_Hg_arc = SpcInfo%Hg_Cat
             CASE( 'Hg0_ant' )
-               ID_Hg_ant = ThisSpc%Hg_Cat
+               ID_Hg_ant = SpcInfo%Hg_Cat
             CASE( 'Hg0_ocn' )
-               ID_Hg_ocn = ThisSpc%Hg_Cat
+               ID_Hg_ocn = SpcInfo%Hg_Cat
             CASE DEFAULT
                ! Do nothing
          END SELECT
 
          ! Free pointer
-         ThisSpc => NULL()
+         SpcInfo => NULL()
       ENDDO
 
       !-----------------------------------------------------------------

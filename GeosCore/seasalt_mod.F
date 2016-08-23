@@ -1099,7 +1099,7 @@
       INTEGER                :: AS, N
 
       ! Objects
-      TYPE(Species), POINTER :: ThisSpc
+      TYPE(Species), POINTER :: SpcInfo
 
       !=================================================================
       ! INIT_SEASALT begins here!
@@ -1120,7 +1120,7 @@
       id_SS1  = Ind_('SS1' )
 
       ! Initialize pointer
-      ThisSpc => NULL()
+      SpcInfo => NULL()
 
       ALLOCATE( SALT_V( NR_MAX ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SALT_V' )
@@ -1141,22 +1141,22 @@
          DO N = 1, State_Chm%nSpecies
             
             ! Get info about this species from the species database
-            ThisSpc => State_Chm%SpcData(N)%Info
+            SpcInfo => State_Chm%SpcData(N)%Info
 
             ! Assign parameters to each species
-            SELECT CASE ( TRIM( ThisSpc%Name ) )
+            SELECT CASE ( TRIM( SpcInfo%Name ) )
                CASE ( 'SALA' )
-                  IDDEP(1)  = ThisSpc%DryDepID
-                  SS_DEN(1) = ThisSpc%Density
+                  IDDEP(1)  = SpcInfo%DryDepID
+                  SS_DEN(1) = SpcInfo%Density
                CASE ( 'SALC' )
-                  IDDEP(2)  = ThisSpc%DryDepID
-                  SS_DEN(2) = ThisSpc%Density
+                  IDDEP(2)  = SpcInfo%DryDepID
+                  SS_DEN(2) = SpcInfo%Density
                CASE DEFAULT
                   ! Nothing
             END SELECT        
 
             ! Free pointer
-            ThisSpc => NULL()
+            SpcInfo => NULL()
          ENDDO
       ENDIF
 

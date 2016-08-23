@@ -2387,7 +2387,7 @@
 #endif
 
       ! Objects
-      TYPE(Species), POINTER :: ThisSpc
+      TYPE(Species), POINTER :: SpcInfo
 
       !=================================================================
       ! INIT_DUST begins here!
@@ -2397,7 +2397,7 @@
       RC      = GIGC_SUCCESS
 
       ! Initialize
-      ThisSpc => NULL()
+      SpcInfo => NULL()
       LDEAD   = Input_Opt%LDEAD
       LDSTUP  = Input_Opt%LDSTUP
 
@@ -2417,37 +2417,37 @@
       dd_DST1                  =  Ind_('DST1','D')
 
       IF ( id_DST1 > 0 ) THEN
-         ThisSpc               => State_Chm%SpcData(id_DST1)%Info
-         Input_Opt%DUSTDEN (1) =  ThisSpc%Density
-         Input_Opt%DUSTREFF(1) =  ThisSpc%Radius
-         ThisSpc               => NULL()
+         SpcInfo               => State_Chm%SpcData(id_DST1)%Info
+         Input_Opt%DUSTDEN (1) =  SpcInfo%Density
+         Input_Opt%DUSTREFF(1) =  SpcInfo%Radius
+         SpcInfo               => NULL()
       ENDIF
 
       id_DST2                  =  Ind_('DST2'    )
       dd_DST2                  =  Ind_('DST2','D')
       IF ( id_DST2 > 0 ) THEN
-         ThisSpc               => State_Chm%SpcData(id_DST2)%Info
-         Input_Opt%DUSTDEN (2) =  ThisSpc%Density
-         Input_Opt%DUSTREFF(2) =  ThisSpc%Radius
-         ThisSpc               => NULL()
+         SpcInfo               => State_Chm%SpcData(id_DST2)%Info
+         Input_Opt%DUSTDEN (2) =  SpcInfo%Density
+         Input_Opt%DUSTREFF(2) =  SpcInfo%Radius
+         SpcInfo               => NULL()
       ENDIF
 
       id_DST3                  =  Ind_('DST3'    )
       dd_DST3                  =  Ind_('DST3','D')
       IF ( id_DST3 > 0 ) THEN
-         ThisSpc               => State_Chm%SpcData(id_DST3)%Info
-         Input_Opt%DUSTDEN (3) =  ThisSpc%Density
-         Input_Opt%DUSTREFF(3) =  ThisSpc%Radius
-         ThisSpc               => NULL()
+         SpcInfo               => State_Chm%SpcData(id_DST3)%Info
+         Input_Opt%DUSTDEN (3) =  SpcInfo%Density
+         Input_Opt%DUSTREFF(3) =  SpcInfo%Radius
+         SpcInfo               => NULL()
       ENDIF
 
       id_DST4                  =  Ind_('DST4'    )
       dd_DST4                  =  Ind_('DST4','D')
       IF ( id_DST4 > 0 ) THEN
-         ThisSpc               => State_Chm%SpcData(id_DST4)%Info
-         Input_Opt%DUSTDEN (4) =  ThisSpc%Density
-         Input_Opt%DUSTREFF(4) =  ThisSpc%Radius
-         ThisSpc               => NULL()
+         SpcInfo               => State_Chm%SpcData(id_DST4)%Info
+         Input_Opt%DUSTDEN (4) =  SpcInfo%Density
+         Input_Opt%DUSTREFF(4) =  SpcInfo%Radius
+         SpcInfo               => NULL()
       ENDIF
 
       !-----------------------------------------------------------------
