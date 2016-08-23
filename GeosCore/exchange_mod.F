@@ -262,9 +262,9 @@
 
       IF ( IS_EXCHANGE ) THEN
 
-         ! Convert tracer units from [kg/kg dry] to [kg] (ewl, 8/13/15)
-         CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt,            
-     &                                     State_Met, State_Chm, RC )
+         ! Convert species units from [kg/kg dry] to [kg] (ewl, 8/13/15)
+         CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,
+     &                                  State_Chm, RC )
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL GIGC_Error('Unit conversion error', RC, 
      &                   'EXCHANGE_GLOBAL_POST in exchange_mod.F')
@@ -290,9 +290,9 @@
      &  ( am_I_Root, Input_Opt,State_Met, State_Chm, RC, 3 )
 # endif
 
-         ! Convert tracer units back to kg/kg (ewl, 8/13/15)
-         CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt,            
-     &                               State_Met, State_Chm, RC )
+         ! Convert species units back to kg/kg (ewl, 8/13/15)
+         CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,
+     &                                  State_Chm, RC )
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL GIGC_Error('Unit conversion error', RC, 
      &                   'EXCHANGE_GLOBAL_POST in exchange_mod.F')
@@ -393,9 +393,9 @@
 !
       WRITE (*,*) "@@@@@@@@@@@@@@ EXCHANGE_NESTED_POST"
 
-      ! Convert tracer units from [kg/kg dry] to [kg] (ewl, 8/13/15)
-      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt,            
-     &                            State_Met, State_Chm, RC )
+      ! Convert species units from [kg/kg dry] to [kg] (ewl, 8/13/15)
+      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,
+     &                               State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'EXCHANGE_NESTED_POST in exchange_mod.F')
@@ -410,9 +410,9 @@
      &        (am_I_Root, Input_Opt,State_Met, State_Chm,RC)
 
 
-      ! Convert tracer units back to kg/kg (ewl, 8/13/15)
-      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt,            
-     &                            State_Met, State_Chm, RC )
+      ! Convert species units back to kg/kg (ewl, 8/13/15)
+      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,
+     &                               State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                   'EXCHANGE_NESTED_POST in exchange_mod.F')
@@ -814,9 +814,11 @@
       INTEGER         :: L, I
       LOGICAL         :: LPRT
 
-! NOTE: Species units are in kg/kg dry which may be incompatible with 
-! functionality prior to tracer removal. Validation needed by 3rd party
-! developers (ewl, 8/15/16)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! NOTE: Species units are in kg/kg dry which may be incompatible with 
+      ! functionality prior to tracer removal. Validation needed by 3rd party
+      ! developers (ewl, 8/15/16)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       SPC      => State_Chm%Species
       LPRT     =  ( am_I_Root .and. Input_Opt%LPRT )
       IF ( am_I_Root ) THEN
@@ -914,9 +916,11 @@
       INTEGER         :: L
       LOGICAL         :: LPRT
 
-! NOTE: Species units are in kg/kg dry which may be incompatible with 
-! functionality prior to tracer removal. Validation needed by
-! 3rd party developers (ewl, 8/15/16)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! NOTE: Species units are in kg/kg dry which may be incompatible with 
+      ! functionality prior to tracer removal. Validation needed by
+      ! 3rd party developers (ewl, 8/15/16)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       SPC => State_Chm%Species
       LPRT       =  ( am_I_Root .and. Input_Opt%LPRT ) 
 
