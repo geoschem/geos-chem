@@ -1729,7 +1729,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TPCORE_BC( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_TPCORE_BC( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -1737,6 +1737,7 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
       USE GRID_MOD,           ONLY : ITS_A_NESTED_GRID
 !
@@ -1744,6 +1745,7 @@
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1778,7 +1780,7 @@
       LOGICAL :: LWINDO,    LWINDO_NA,  LWINDO_CU
       LOGICAL :: LWINDO_EU, LWINDO_CH,  LWINDO2x25
       LOGICAL :: LWINDO_SE
-      INTEGER :: N_TRACERS
+      INTEGER :: nAdvect
 
       !=================================================================
       ! INIT_TPCORE_BC begins here!
@@ -1792,7 +1794,9 @@
       LWINDO_CH  = Input_Opt%LWINDO_CH
       LWINDO_SE  = Input_Opt%LWINDO_SE
       LWINDO2x25 = Input_Opt%LWINDO2x25
-      N_TRACERS  = Input_Opt%N_TRACERS
+
+      ! Number of advected species
+      nAdvect    = State_Chm%nAdvect
 
       ! Timestep for BC's [min]
       TS_BC      = Input_Opt%NESTED_TS
@@ -2044,31 +2048,28 @@
       
       ! Boundary condition array for CUSTOM NESTED REGION
       IF ( LWINDO_CU ) THEN
-         ALLOCATE( BC_CU( IM_BC, JM_BC, LLPAR, N_TRACERS ), STAT=AS )
+         ALLOCATE( BC_CU( IM_BC, JM_BC, LLPAR, nAdvect ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_CU' )
          BC_CU = 0e+0_fp
       ENDIF
 
       ! Boundary condition array for NESTED CHINA/SE ASIA REGION
       IF ( LWINDO_CH ) THEN
-         ALLOCATE( BC_CH( IM_BC_CH, JM_BC_CH, 
-     &                    LLPAR,    N_TRACERS ), STAT=AS )
+         ALLOCATE( BC_CH( IM_BC_CH, JM_BC_CH, LLPAR, nAdvect ), STAT=AS)
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_CH' )
          BC_CH = 0e+0_fp
       ENDIF
 
       ! Boundary condition array for NESTED N. AMERICA REGION
       IF ( LWINDO_NA ) THEN
-         ALLOCATE( BC_NA( IM_BC_NA, JM_BC_NA, 
-     &                    LLPAR, N_TRACERS ), STAT=AS )
+         ALLOCATE( BC_NA( IM_BC_NA, JM_BC_NA, LLPAR, nAdvect ), STAT=AS)
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_NA' )
          BC_NA = 0e+0_fp
       ENDIF
 
       ! Boundary condition array for NESTED EUROPE REGION
       IF ( LWINDO_EU ) THEN
-         ALLOCATE( BC_EU( IM_BC_EU, JM_BC_EU, 
-     &                    LLPAR,    N_TRACERS ), STAT=AS )
+         ALLOCATE( BC_EU( IM_BC_EU, JM_BC_EU, LLPAR, nAdvect ), STAT=AS)
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_EU' )
          BC_EU = 0e+0_fp
       ENDIF
@@ -2113,7 +2114,7 @@
 
 #endif
 
-      ALLOCATE( BC( IM_BC, JM_BC, LLPAR, N_TRACERS ), STAT=AS )
+      ALLOCATE( BC( IM_BC, JM_BC, LLPAR, nAdvect ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC' )
       BC = 0e+0_fp
 

@@ -6394,7 +6394,6 @@
 !
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TPCORE_BC_MOD,      ONLY : INIT_TPCORE_BC
 !
 ! !INPUT PARAMETERS:
 !
@@ -6550,13 +6549,6 @@
  110  FORMAT( A, A   )
  120  FORMAT( A, 2I5 )
  130  FORMAT( A, 4I5 )
-    
-      !=================================================================
-      ! Call setup routines from other F90 modules
-      !=================================================================
-
-      ! Pass values to "tpcore_bc_mod.f"
-      CALL INIT_TPCORE_BC( am_I_Root, Input_Opt, RC )
 
       END SUBROUTINE READ_NESTED_GRID_MENU
 !EOC
@@ -7732,6 +7724,7 @@
       USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
       USE Tagged_O3_Mod,      ONLY : Init_Tagged_O3
       USE Toms_Mod,           ONLY : Init_Toms
+      USE TPCORE_BC_Mod,      ONLY : Init_TPCORE_BC
       USE Vdiff_Pre_Mod,      ONLY : Set_Vdiff_Values
       USE WetScav_Mod,        ONLY : Init_WetScav
 !
@@ -7857,7 +7850,7 @@
       ! Input_Opt to the vdiff_mod.F90.  This replaces the funcitionality
       ! of logical_mod.F and tracer_mod.F..  This has to be called
       ! after the input.geos file has been read from disk.
-      CALL Set_Vdiff_Values( am_I_Root, Input_Opt, RC )
+      CALL Set_Vdiff_Values( am_I_Root, Input_Opt, State_Chm, RC )
 
       ! Initialize the GET_NDEP_MOD for soil NOx deposition (bmy, 6/17/16)
       CALL Init_Get_Ndep( am_I_Root, RC )
@@ -7965,8 +7958,11 @@
      &                              State_Chm, RC )    
 #endif
 
+      ! Initialize tpcore_bc for nested grid simulations
+      CALL INIT_TPCORE_BC( am_I_Root, Input_Opt, State_Chm, RC )
+
       !=================================================================
-      ! Call setup routines for certain GEOS-Chem diangostics
+      ! Call setup routines for certain GEOS-Chem diagnostics
       ! This allows us to use the species database object.
       !=================================================================
 

@@ -194,44 +194,6 @@ CONTAINS
 
     ENDDO
 
-#if defined( DIAG_DEVEL )
-!------------------------------------------------------------------------------
-! Initialize Diagnostics Per the new diagnostic package | M. Long 1-21-15
-!------------------------------------------------------------------------------
-    
-    DO D = 1, Input_Opt%N_TRACERS
-         
-       !-----------------------------------------------------------
-       ! Create containers for tracer concentration
-       !-----------------------------------------------------------
-
-       ! Diagnostic name
-       DiagnName = TRIM( Input_Opt%TRACER_NAME(D) )
-       
-       ! Create container
-       CALL Diagn_Create( am_I_Root,                     &
-                          Col       = Collection,        & 
-                          cName     = TRIM( DiagnName ), &
-                          AutoFill  = 0,                 &
-                          ExtNr     = -1,                &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = -1,                &
-                          SpaceDim  =  3,                &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'cm-3',            &
-                          OutOper   = TRIM( OutOper   ), &
-                          OkIfExist = .TRUE.,            &
-                          RC        = RC )
-            
-       IF ( RC /= HCO_SUCCESS ) THEN
-          write(*,*) 'Collection: ', collection, RC, trim(writefreq),trim(outoper)
-          MSG = ': Cannot create diagnostics: ' // TRIM(DiagnName)
-          CALL ERROR_STOP( MSG, LOC ) 
-       ENDIF
-    ENDDO
-#endif
-
     IF (am_I_Root) THEN
        write(*,'(a)') ' KPP Reaction Reference '
        DO D = 1,NREACT

@@ -156,7 +156,6 @@
 ! !LOCAL VARIABLES:
 !
       ! For fields from Input_Opt
-      INTEGER :: N_TRACERS
       LOGICAL :: LGTMM
       LOGICAL :: LNLPBL
       LOGICAL :: LPRT  
@@ -174,7 +173,6 @@
       RC        = GIGC_SUCCESS
       
       ! Get fields from Input_Opt
-      N_TRACERS = Input_Opt%N_TRACERS
       LPRT      = Input_Opt%LPRT
       LGTMM     = Input_Opt%LGTMM
       LNLPBL    = Input_Opt%LNLPBL
@@ -584,7 +582,6 @@
       REAL(fp)            :: BK  ! molec/cm3
 
       ! For fields from Input_Opt
-      INTEGER             :: N_TRACERS
       LOGICAL             :: LNLPBL
       LOGICAL             :: LGTMM
 
@@ -608,7 +605,6 @@
       K_POPG_OH = Input_Opt%POP_K_POPG_OH
       AK        = Input_Opt%POP_K_POPP_O3A
       BK        = Input_Opt%POP_K_POPP_O3B
-      N_TRACERS = Input_Opt%N_TRACERS
       LNLPBL    = Input_Opt%LNLPBL
       LGTMM     = Input_Opt%LGTMM
 

@@ -1081,7 +1081,6 @@
 
       ! For values from Input_Opt
       LOGICAL              :: LSPLIT
-      INTEGER              :: N_TRACERS
       LOGICAL              :: LArcticRiv,  LKRedUV
 
       ! Pointers
@@ -2626,7 +2625,6 @@
 
       ! For fields from Input_Opt
       LOGICAL               :: LSPLIT
-      INTEGER               :: N_TRACERS
 
       !=================================================================
       ! MLD_ADJUSTMENT begins here!
@@ -2634,7 +2632,6 @@
 
       ! Copy values from Input_Opt
       LSPLIT       = Input_Opt%LSPLIT
-      N_TRACERS    = Input_Opt%N_TRACERS
 
       ! Loop limit for use below
       IF ( LSPLIT ) THEN

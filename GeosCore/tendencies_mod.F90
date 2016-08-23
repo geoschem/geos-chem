@@ -29,7 +29,7 @@
 ! of the tendencies (i.e. in tend\_init):
 !
 !    ! Create new class
-!    CALL Tend_CreateClass( am_I_Root, Input_Opt, 'PROCESS', RC )
+!    CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'PROCESS', RC )
 !    IF ( RC /= GIGC_SUCCESS ) RETURN
 !
 ! The second step is to assign the tracers of interest to this tendency class:
@@ -201,22 +201,22 @@ CONTAINS
        ! Define tendency classes (add more as you wish)
        !--------------------------------------------------------------------
 
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'ADV' ,   RC )
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'ADV' ,   RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
 
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'CHEM',   RC )
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'CHEM',   RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
 
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'CONV',   RC )
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'CONV',   RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
 
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'FLUX',   RC )
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'FLUX',   RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
 
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'PBLMIX', RC )
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'PBLMIX', RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
 
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, 'WETD',   RC )
+       CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'WETD',   RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
 
        !--------------------------------------------------------------------
@@ -270,7 +270,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tend_CreateClass ( am_I_Root, Input_Opt, TendName, RC ) 
+  SUBROUTINE Tend_CreateClass ( am_I_Root, Input_Opt, State_Chm, TendName, RC ) 
 !
 ! !USES:
 !
@@ -278,8 +278,9 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   ) :: am_I_Root  ! Are we on the root CPU?
-    TYPE(OptInput),   INTENT(IN   ) :: Input_Opt  ! Input opts
-    CHARACTER(LEN=*), INTENT(IN   ) :: TendName   ! tendency class name
+    TYPE(OptInput),   INTENT(IN   ) :: Input_Opt  ! Input Options object
+    TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! Chemistry State object
+    CHARACTER(LEN=*), INTENT(IN   ) :: TendName   ! Tendency class name
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -311,9 +312,9 @@ CONTAINS
 
     IF ( .NOT. FOUND ) THEN 
 
-       ! Eventually set local # of tracers variable
+       ! Eventually set local # of advected species
        IF ( nSpc <= 0 ) THEN
-          nSpc = Input_Opt%N_TRACERS
+          nSpc = State_Chm%nAdvect
        ENDIF
 
        ! Initialize class
@@ -556,7 +557,7 @@ CONTAINS
     IF ( .NOT. FOUND .AND. PRESENT( CreateClass ) ) THEN
        IF ( CreateClass ) THEN
           ! Create class
-          CALL Tend_CreateClass( am_I_Root, Input_Opt, TendName, RC )
+          CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, TendName, RC )
           IF ( RC /= GIGC_SUCCESS ) RETURN
           ! Get pointer to class object 
           CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, ThisTend=ThisTend ) 

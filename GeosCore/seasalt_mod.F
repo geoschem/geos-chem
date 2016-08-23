@@ -377,7 +377,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                  :: I,      J,     L,        N_TRACERS
+      INTEGER                  :: I,      J,     L
       REAL(fp)                 :: DELZ,   DELZ1, REFF,     DEN
       REAL(fp)                 :: P,      DP,    PDP,      TEMP        
       REAL(fp)                 :: CONST,  SLIP,  VISC,     FAC1
@@ -456,7 +456,6 @@
       ! Copy fields from INPUT_OPT to local variables for use below
       SALA_REDGE_um = Input_Opt%SALA_REDGE_um 
       SALC_REDGE_um = Input_Opt%SALC_REDGE_um
-      N_TRACERS     = Input_Opt%N_TRACERS
 
       ! Chemistry timestep [s]
       DTCHEM        = GET_TS_CHEM() * 60e+0_fp

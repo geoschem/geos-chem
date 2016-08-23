@@ -387,7 +387,6 @@
       LOGICAL                  :: LWETD
       LOGICAL                  :: LWINDO
       LOGICAL                  :: USE_OLSON_2001
-      INTEGER                  :: N_TRACERS 
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
@@ -525,7 +524,6 @@
       LWETD               =  Input_Opt%LWETD
       LWINDO              =  Input_Opt%LWINDO
       USE_OLSON_2001      =  Input_Opt%USE_OLSON_2001
-      N_TRACERS           =  Input_Opt%N_TRACERS  
 
       ! Set a flag to denote if we should print ND70 debug output
       prtDebug            = ( LPRT .and. am_I_Root )

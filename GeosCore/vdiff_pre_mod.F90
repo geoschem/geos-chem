@@ -136,25 +136,27 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_pcnst
+! !IROUTINE: set_vdiff_values
 !
-! !DESCRIPTION: Subroutine SET\_PCNST initializes the PCNST value, which
-!  is the number of tracers.  This is needed in vdiff\_mod.F90.
+! !DESCRIPTION: Subroutine SET\_VDIFF\_VALUES initializes the PCNST value, which
+!  is the number of advected species.  This is needed in vdiff\_mod.F90.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_VDIFF_VALUES( am_I_Root, Input_Opt, RC )
+  SUBROUTINE Set_VDIFF_VALUES( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+    TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -177,8 +179,8 @@ CONTAINS
     ! now that logical_mod.F and tracer_mod.F have been retired.
     !=====================================================================
 
-    ! Number of tracers
-    PCNST = Input_Opt%N_TRACERS
+    ! Number of advected species
+    PCNST = State_Chm%nAdvect
 
     ! Debug print?
     LPRT  = ( Input_Opt%LPRT .and. am_I_Root )

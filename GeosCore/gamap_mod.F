@@ -1838,7 +1838,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: N, NN, NYMDb, NHMSb, T, T0, T1, nDryDep
+      INTEGER :: N, NN, NYMDb, NHMSb, T, T0, T1
+      INTEGER :: nAdvect, nDryDep
       LOGICAL :: DO_TIMESERIES
 
       REAL(fp),      SAVE     :: POP_XMW
@@ -1868,13 +1869,16 @@
       ! Save the # of tagHg categories in a local variable
       N_Hg_CATS = State_Chm%N_Hg_CATS
 
+      ! Number of advected species
+      nAdvect   = State_Chm%nAdvect
+
       ! Number of drydep species
       nDryDep   = State_Chm%nDryDep
 
       !----------------------------------
       ! General tracer information
       !----------------------------------
-      DO T = 1, Input_Opt%N_TRACERS
+      DO T = 1, nAdvect
 
          ! Set pointer to this species information
          ! NOTE: requires 1:1 tracer index to species index mapping
@@ -1948,9 +1952,9 @@
 
       ! Number of ND45 tracers 
       IF ( id_PASV > 0 ) THEN
-         NTRAC(45) = Input_Opt%N_TRACERS+2
+         NTRAC(45) = nAdvect+2
       ELSE
-         NTRAC(45) = Input_Opt%N_TRACERS
+         NTRAC(45) = nAdvect
       ENDIF
 
       !-------------------------------------
@@ -2161,7 +2165,7 @@
          ENDDO
 
          ! Loop over tracers for OCEAN-HG
-         DO N = 1, Input_Opt%N_TRACERS
+         DO N = 1, nAdvect
 
             ! Set pointer to this species information
             ! NOTE: requires 1:1 tracer index to species index mapping
@@ -2189,7 +2193,7 @@
          ! Loop over tracers for SNOW-HG
          DO N = 1, 1
          
-            T = N + PD03 + PD03_PL + Input_Opt%N_TRACERS
+            T = N + PD03 + PD03_PL + nAdvect
 
             ! Define quantities
             UNIT (T,03) = 'kg'
@@ -2205,7 +2209,7 @@
          ! Loop over tracers for SNOW-HGN (jaf, 6/17/11)
          DO N = 1, 1
 
-            T = N + PD03 + PD03_PL + Input_Opt%N_TRACERS + 1
+            T = N + PD03 + PD03_PL + nAdvect + 1
 
             ! Define quantities
             UNIT (T,03) = 'kg'
@@ -2221,7 +2225,7 @@
          ! Loop over tracers for SNOW-HG-LN
          DO N = 1, 1
 
-            T = N + PD03 + PD03_PL + Input_Opt%N_TRACERS + 2
+            T = N + PD03 + PD03_PL + nAdvect + 2
 
             ! Define quantities
             UNIT (T,03) = 'kg'
@@ -2237,7 +2241,7 @@
          ! Loop over tracers for SNOW-HGN-LN
          DO N = 1, 1
 
-            T = N + PD03 + PD03_PL + Input_Opt%N_TRACERS + 3
+            T = N + PD03 + PD03_PL + nAdvect + 3
 
             ! Define quantities
             UNIT (T,03) = 'kg'
@@ -4837,7 +4841,7 @@
       IF ( ND09 > 0 ) THEN
          
          ! Number of tracers
-         NTRAC(09) = Input_Opt%N_TRACERS + 6
+         NTRAC(09) = nAdvect + 6
 
          ! Loop over tracers: HCN-PL-$
          DO T = 1, NTRAC(09)-6
@@ -4856,33 +4860,33 @@
          DO T = NTRAC(09)-6+1, NTRAC(09)
 
             ! Get tracer number, C number, scale factor, unit
-            INDEX(T,09) = ( T - Input_Opt%N_TRACERS ) + ( SPACING * 39 )
+            INDEX(T,09) = ( T - nAdvect ) + ( SPACING * 39 )
             MOLC (T,09) = 1
             SCALE(T,09) = 1e0
             UNIT (T,09) = 'molec/cm2/s'
               
             ! Get name, longname, unit, mwt
-            IF ( T == Input_Opt%N_TRACERS+1 ) THEN
+            IF ( T == nAdvect+1 ) THEN
                NAME (T,09) = 'HCNbb'
                FNAME(T,09) = 'HCN biomass emissions'
                MWT  (T,09) = 27d-3  ! hard-coded MW
-            ELSE IF ( T == Input_Opt%N_TRACERS+2 ) THEN
+            ELSE IF ( T == nAdvect+2 ) THEN
                NAME (T,09) = 'CH3CNbb'
                FNAME(T,09) = 'CH3CN biomass emissions'
                MWT  (T,09) = 41d-3  ! hard-coded MW
-            ELSE IF ( T == Input_Opt%N_TRACERS+3 ) THEN
+            ELSE IF ( T == nAdvect+3 ) THEN
                NAME (T,09) = 'HCNdf'
                FNAME(T,09) = 'HCN domestic FF emiss'
                MWT  (T,09) = 27d-3  ! hard-coded MW
-            ELSE IF ( T == Input_Opt%N_TRACERS+4 ) THEN
+            ELSE IF ( T == nAdvect+4 ) THEN
                NAME (T,09) = 'CH3CNdf'
                FNAME(T,09) = 'CH3CN domestic FF emiss'
                MWT  (T,09) = 41d-3  ! hard-coded MW
-            ELSE IF ( T == Input_Opt%N_TRACERS+5 ) THEN
+            ELSE IF ( T == nAdvect+5 ) THEN
                NAME (T,09) = 'HCNoc'
                FNAME(T,09) = 'HCN ocean uptake'
                MWT  (T,09) = 27d-3  ! hard-coded MW
-            ELSE IF ( T == Input_Opt%N_TRACERS+6 ) THEN
+            ELSE IF ( T == nAdvect+6 ) THEN
                NAME (T,09) = 'CH3CNoc'
                FNAME(T,09) = 'CH3CN ocean uptake'
                MWT  (T,09) = 41d-3  ! hard-coded MW
@@ -6234,7 +6238,7 @@
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             ! Drydep flux (all tracers)
-            DO T = 1, Input_Opt%N_TRACERS
+            DO T = 1, nAdvect
                SpcInfo     => State_Chm%SpcData(T)%Info
                NAME (T,44)  = TRIM( SpcInfo%Name ) // 'df'        
                FNAME(T,44)  = TRIM( SpcInfo%Name ) // ' drydep flux'
@@ -6250,7 +6254,7 @@
             DO N = 1, NUMDEP
                T            = NTRAIND(N)
                SpcInfo     => State_Chm%SpcData(T)%Info
-               NN           = N + Input_Opt%N_TRACERS
+               NN           = N + nAdvect
                NAME (NN,44) = TRIM( DEPNAME(N) ) // 'dv'        
                FNAME(NN,44) = TRIM( DEPNAME(N) ) // 
      &                        ' drydep velocity'
