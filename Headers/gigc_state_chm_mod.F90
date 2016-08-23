@@ -62,16 +62,6 @@ MODULE GIGC_State_Chm_Mod
      ! Physical properties & indices for each species
      TYPE(SpcPtr),      POINTER :: SpcData    (:      ) ! GC Species database
 
-     ! Advected tracers
-     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-     !%%%  NOTE: The TRACER fields will be removed soon (bmy, 5/18/16)  %%%
-     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-     INTEGER,           POINTER :: Trac_Id    (:      ) ! Tracer ID #'s
-     CHARACTER(LEN=14), POINTER :: Trac_Name  (:      ) ! Tracer names
-     REAL(fp),          POINTER :: Tracers    (:,:,:,:) ! Tracer conc 
-                                                        ! [kg trcr/kg dry air]
-     CHARACTER(LEN=20)          :: Trac_Units           ! Tracer units
-
      ! Chemical species
      INTEGER,           POINTER :: Spec_Id    (:      ) ! Species ID # 
      CHARACTER(LEN=14), POINTER :: Spec_Name  (:      ) ! Species names
@@ -134,6 +124,8 @@ MODULE GIGC_State_Chm_Mod
 !                              database.
 !  22 Jun 2016 - R. Yantosca - Rename Id_Hg0 to Hg0_Id_List, Id_Hg2 to
 !                              Hg2_Id_List, and Id_HgP to HgP_Id_List
+!  23 Aug 2016 - M. Sulprizio- Remove tracer fields from State_Chm. These are
+!                              now entirely replaced with the species fields.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -146,7 +138,7 @@ CONTAINS
 !
 ! !IROUTINE: ind_
 !
-! !DESCRIPTION: Function IND\_ returns the index of an advected tracer or 
+! !DESCRIPTION: Function IND\_ returns the index of an advected species or 
 !  chemical species contained in the chemistry state object by name.
 !\\
 !\\
@@ -160,7 +152,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*),           INTENT(IN) :: name  ! Species or tracer name
+    CHARACTER(LEN=*),           INTENT(IN) :: name  ! Species or species name
     CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: flag
 !
 ! !RETURN VALUE:
@@ -370,17 +362,6 @@ CONTAINS
     State_Chm%Map_KppSpc  => NULL()
     State_Chm%Map_WetDep  => NULL()
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%%  NOTE: These will evenually be removed, since we will consolidate
-!%%%  all species into State_Chm%Species
-!%%%
-    ! Advected tracers
-    State_Chm%Trac_ID     => NULL()
-    State_Chm%Trac_Name   => NULL()
-    State_Chm%Tracers     => NULL()
-    State_Chm%Trac_Units  = ''
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
     ! Chemical species
     State_Chm%Spec_ID     => NULL()
     State_Chm%Spec_Name   => NULL()
@@ -454,23 +435,6 @@ CONTAINS
     ALLOCATE( State_Chm%Map_WetDep(             State_Chm%nWetDep  ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Chm%Map_WetDep = 0
-
-    !=====================================================================
-    ! Allocate and initialize advected tracer fields
-    ! %%%% NOTE: THESE WILL BE REMOVED SOON (bmy, 5/18/16) %%%%
-    !=====================================================================
-
-    ALLOCATE( State_Chm%Trac_Id   (             State_Chm%nAdvect+1), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Chm%Trac_Id = 0
-
-    ALLOCATE( State_Chm%Trac_Name (             State_Chm%nAdvect+1), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Chm%Trac_name = ''
-
-    ALLOCATE( State_Chm%Tracers   ( IM, JM, LM, State_Chm%nAdvect+1), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Chm%Tracers = 0e+0_fp
 
     !=====================================================================
     ! Allocate and initialize chemical species fields
@@ -754,24 +718,12 @@ CONTAINS
        DEALLOCATE( State_Chm%Map_WetDep )
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%Trac_Id ) ) THEN
-       DEALLOCATE( State_Chm%Trac_Id )
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%Trac_Name ) ) THEN
-       DEALLOCATE( State_Chm%Trac_Name  )
-    ENDIF
-
     IF ( ASSOCIATED( State_Chm%Spec_Id  ) ) THEN
        DEALLOCATE( State_Chm%Spec_Id )
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Spec_Name ) ) THEN
        DEALLOCATE( State_Chm%Spec_Name  )
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%Tracers ) ) THEN
-       DEALLOCATE( State_Chm%Tracers )
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Species ) ) THEN
