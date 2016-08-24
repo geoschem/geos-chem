@@ -83,7 +83,6 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      INTEGER                     :: N_TRACERS
      CHARACTER(LEN=255), POINTER :: TRACER_NAME(:) 
-     REAL(fp),           POINTER :: TCVV(:)
      INTEGER                     :: SIM_TYPE
      CHARACTER(LEN=255)          :: SIM_NAME
      LOGICAL                     :: LSPLIT
@@ -783,11 +782,9 @@ CONTAINS
     ! TRACER MENU fields
     !----------------------------------------
     ALLOCATE( Input_Opt%TRACER_NAME   ( MAX_TRCS           ), STAT=RC )
-    ALLOCATE( Input_Opt%TCVV          ( MAX_TRCS           ), STAT=RC )
 
     Input_Opt%N_TRACERS              = 0
     Input_Opt%TRACER_NAME            = ''
-    Input_Opt%TCVV                   = 0e+0_fp
     Input_Opt%SIM_TYPE               = 0
     Input_Opt%SIM_NAME               = ''
     Input_Opt%LSPLIT                 = .FALSE.
@@ -1431,10 +1428,6 @@ CONTAINS
     !======================================================================
     IF ( ASSOCIATED( Input_Opt%TRACER_NAME ) ) THEN
        DEALLOCATE( Input_Opt%TRACER_NAME )
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%TCVV ) ) THEN
-       DEALLOCATE( Input_Opt%TCVV )
     ENDIF
 
     IF ( ASSOCIATED( Input_Opt%SALA_REDGE_um ) ) THEN

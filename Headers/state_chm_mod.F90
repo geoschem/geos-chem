@@ -514,16 +514,6 @@ CONTAINS
           C                         = ThisSpc%AdvectId
           State_Chm%Map_Advect(C)   = ThisSpc%ModelId
           
-          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-          !%%% For now, store TCVV in Input_Opt. Note that this is
-          !%%% going to be removed imminently, with AIRMW / ThisSpc%emMW_g
-          !%%% used directly instead (ewl, 5/31/16)
-
-          ! Ratio of MW dry air / MW tracer
-          Input_Opt%TCVV(N)         = AIRMW / ThisSpc%emMW_g
-
-          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
           ! Print to screen
           IF ( am_I_Root ) THEN
              WRITE( 6, 100 ) ThisSpc%ModelId, ThisSpc%Name, ThisSpc%MW_g
