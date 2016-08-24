@@ -203,7 +203,6 @@
 !
       ! Scalars
       INTEGER           :: N, NA, nAdvect, NW
-      REAL(fp)          :: TCVV(State_Chm%nAdvect)
 #if defined( USE_TEND )
       REAL(fp)          :: DT_TEND
 #endif

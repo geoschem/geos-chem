@@ -5831,6 +5831,8 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE PhysConstants
+      USE Species_Mod,        ONLY : Species
       USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
@@ -5892,6 +5894,7 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  23 Jun 2016 - R. Yantosca - Remove reference to tracerid_mod.F
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT and State_Chm%TRACERS
+!  04 Jul 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !  05 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
@@ -6001,24 +6004,24 @@
       !====================================================================
       IF ( FIRST ) THEN 
 
-         ! Set H2O2s to the initial H2O2 from STT, so that we will have
-         ! nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
+         ! Set H2O2s to the initial H2O2 from the species array, so that we will
+         ! have nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
          ! While State_Chm%Species are now in units of [kg/kg dry air] for
          ! call to SETUP_WETSCAV, store H2O2s in legacy units [v/v dry air] 
          ! for now for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
          IF ( id_H2O2 > 0 ) THEN
             H2O2s = State_Chm%Species(:,:,:,id_H2O2)
-     &            * Input_Opt%TCVV(id_H2O2)
+     &            * ( AIRMW / State_Chm%SpcData(id_H2O2)%Info%emMW_g )
          ENDIF
 
-         ! Set SO2s to the initial SO2 from STT, so that we will have
-         ! nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
+         ! Set SO2s to the initial SO2 from the species array, so that we will
+         ! have nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
          ! While State_Chm%Species are now in units of [kg/kg dry air] for 
          ! call to SETUP_WETSCAV, store SO2s in units [v/v dry air] for now 
          ! for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
          IF ( id_SO2 > 0 ) THEN
             SO2s = State_Chm%Species(:,:,:,id_SO2)
-     &           * Input_Opt%TCVV(id_SO2)
+     &           * ( AIRMW / State_Chm%SpcData(id_SO2)%Info%emMW_g )
          ENDIF
 
          ! Reset first-time flag

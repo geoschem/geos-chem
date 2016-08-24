@@ -1310,6 +1310,8 @@
       USE TIME_MOD
       USE OCEAN_MERCURY_MOD,  ONLY : Fg !eds 10/27/11
       USE OCEAN_MERCURY_MOD,  ONLY : OMMFp => Fp
+      USE SPECIES_MOD,        ONLY : Species
+      USE PHYSCONSTANTS
 !
 ! !INPUT PARAMETERS:
 !
@@ -1364,6 +1366,7 @@
 !  21 Apr 2016 - M. Sulprizio- Get CONSVAP from PHYSCONSTANTS instead of
 !                              computing locally
 !  17 May 2016 - M. Sulprizio- Remove PCHEM, IJLOOP and use IS_FULLCHEM instead
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV with spec db
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1841,7 +1844,8 @@
                      Spc => State_Chm%Species
                      
                      ! Convert from [kg/kg] --> [v/v] (ewl, 8/11/15)
-                     VARI(V) = Spc(I,J,L,N) * Input_Opt%TCVV(N)
+                     VARI(V) = Spc(I,J,L,N) * ( AIRMW / 
+     &                         State_Chm%SpcData(N)%Info%emMW_g )
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
 

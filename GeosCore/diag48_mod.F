@@ -29,7 +29,7 @@
 !  (9 ) tracerid_mod.f : Module w/ pointers to tracers & emissions
 !
 !  ND48 tracer numbers:
-!  ============================================================================
+!  ==============================================h=============================
 !  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v      ]
 !  151           : OH concentration                         [molec/cm3]
 !  152           : NOy concentration                        [v/v      ]
@@ -181,6 +181,7 @@
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod since
 !                              XNUMOLAIR now defined in CMN_GTCM_MOD
+!  22 Jun 2016 - M. Yannetti - Replace TCVV with spec db and physical const
 !******************************************************************************
 !
       ! References to F90 modules
@@ -200,6 +201,7 @@
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD               ! SAVEOH, XNUMOLAIR
       USE PHYSCONSTANTS            ! SCALE_HEIGHT, XNUMOLAIR
+      USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -235,7 +237,6 @@
       ! For fields from Input_Opt
       LOGICAL            :: DO_DIAG_WRITE
       INTEGER            :: N_TRACERS
-      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
@@ -253,7 +254,6 @@
       ! Copy values from Input_Opt
       DO_DIAG_WRITE = Input_Opt%DO_DIAG_WRITE
       N_TRACERS     = Input_Opt%N_TRACERS
-      TCVV          = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Initialize pointers
       SPC          => State_Chm%Species
@@ -334,8 +334,8 @@
             GMTRC    = N
 
             DO L = 1, K
-!               Q(L) = SPC(I,J,L,N) * TCVV(N) / AD(I,J,L)
-               Q(L) = SPC(I,J,L,N) * TCVV(N)
+               Q(L) = SPC(I,J,L,N) * ( AIRMW / 
+     &                State_Chm%SpcData(N)%Info%emMW_g )
             ENDDO
 
          ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
@@ -365,86 +365,50 @@
                ! Initialize
                Q(L) = 0e+0_fp
 
-!               ! NO
-!               Q(L) = Q(L) + ( TCVV(id_NO)         * 
-!     &                         SPC(I,J,L,id_NO)    / 
-!     &                         AD(I,J,L) )
-!
-!               ! NO2
-!               Q(L) = Q(L) + ( TCVV(id_NO2)        * 
-!     &                         SPC(I,J,L,id_NO2)   / 
-!     &                         AD(I,J,L) )
-!
-!               ! PAN
-!               Q(L) = Q(L) + ( TCVV(id_PAN)        * 
-!     &                         SPC(I,J,L,id_PAN)   / 
-!     &                         AD(I,J,L) )
-!
-!               ! HNO3
-!               Q(L) = Q(L) + ( TCVV(id_HNO3)       *
-!     &                         SPC(I,J,L,id_HNO3)  / 
-!     &                         AD(I,J,L) )
-!            
-!               ! PMN
-!               Q(L) = Q(L) + ( TCVV(id_PMN)        *
-!     &                         SPC(I,J,L,id_PMN)   / 
-!     &                         AD(I,J,L) )
-!
-!               ! PPN
-!               Q(L) = Q(L) + ( TCVV(id_PPN)        * 
-!     &                         SPC(I,J,L,id_PPN)   / 
-!     &                         AD(I,J,L) )
-! 
-!               ! R4N2
-!               Q(L) = Q(L) + ( TCVV(id_R4N2)       *
-!     &                         SPC(I,J,L,id_R4N2)  / 
-!     &                         AD(I,J,L) )
-!            
-!               ! N2O5
-!               Q(L) = Q(L) + ( 2d0 * TCVV(id_N2O5) *
-!     &                         SPC(I,J,L,id_N2O5)  / 
-!     &                         AD(I,J,L) )
-!                        
-!               ! HNO4
-!               Q(L) = Q(L) + ( TCVV(id_HNO4)       *
-!     &                         SPC(I,J,L,id_HNO4)  / 
-!     &                         AD(I,J,L) )
-
                ! NO
-               Q(L) = Q(L) + ( TCVV(id_NO)         * 
-     &                         SPC(I,J,L,id_NO) )
+               Q(L) = Q(L) + ( ( AIRMW 
+     &                / State_Chm%SpcData(id_NO)%Info%emMW_g )
+     &                         * SPC(I,J,L,id_NO) )
 
                ! NO2
-               Q(L) = Q(L) + ( TCVV(id_NO2)        * 
-     &                         SPC(I,J,L,id_NO2) )
+               Q(L) = Q(L) + ( ( AIRMW 
+     &                 / State_Chm%SpcData(id_NO2)%Info%emMW_g )         
+     &                         * SPC(I,J,L,id_NO2) )
 
                ! PAN
-               Q(L) = Q(L) + ( TCVV(id_PAN)        * 
-     &                         SPC(I,J,L,id_PAN) )
+               Q(L) = Q(L) + ( ( AIRMW 
+     &                 / State_Chm%SpcData(id_PAN)%Info%emMW_g )         
+     &                         * SPC(I,J,L,id_PAN) )
 
                ! HNO3
-               Q(L) = Q(L) + ( TCVV(id_HNO3)       *
-     &                         SPC(I,J,L,id_HNO3) )
+               Q(L) = Q(L) + ( ( AIRMW 
+     &                 / State_Chm%SpcData(id_HNO3)%Info%emMW_g )       
+     &                         * SPC(I,J,L,id_HNO3) )
             
                ! PMN
-               Q(L) = Q(L) + ( TCVV(id_PMN)        *
-     &                         SPC(I,J,L,id_PMN) )
+               Q(L) = Q(L) + ( ( AIRMW 
+     &                 / State_Chm%SpcData(id_PMN)%Info%emMW_g )        
+     &                         * SPC(I,J,L,id_PMN) )
 
                ! PPN
-               Q(L) = Q(L) + ( TCVV(id_PPN)        * 
-     &                         SPC(I,J,L,id_PPN) )
+               Q(L) = Q(L) + ( ( AIRMW 
+     &                 / State_Chm%SpcData(id_PPN)%Info%emMW_g )         
+     &                         * SPC(I,J,L,id_PPN) )
  
                ! R4N2
-               Q(L) = Q(L) + ( TCVV(id_R4N2)       *
-     &                         SPC(I,J,L,id_R4N2) )
+               Q(L) = Q(L) + ( ( AIRMW 
+     &                 / State_Chm%SpcData(id_R4N2)%Info%emMW_g )       
+     &                         * SPC(I,J,L,id_R4N2) )
             
                ! N2O5
-               Q(L) = Q(L) + ( 2d0 * TCVV(id_N2O5) *
-     &                         SPC(I,J,L,id_N2O5) )
+               Q(L) = Q(L) + ( 2d0 * ( AIRMW 
+     &                 / State_Chm%SpcData(id_N2O5)%Info%emMW_g ) 
+     &                         * SPC(I,J,L,id_N2O5) )
                         
                ! HNO4
-               Q(L) = Q(L) + ( TCVV(id_HNO4)       *
-     &                         SPC(I,J,L,id_HNO4) )
+               Q(L) = Q(L) + ( ( AIRMW 
+     &                 / State_Chm%SpcData(id_HNO4)%Info%emMW_g )       
+     &                         * SPC(I,J,L,id_HNO4) )
             ENDDO
 
          ELSE IF ( N == 153 ) THEN 
@@ -520,10 +484,8 @@
             GMTRC    = 8
 
             DO L = 1, K
-!               Q(L) = ( SPC(I,J,L,id_SALA) + SPC(I,J,L,id_SALC) ) *
-!     &                  TCVV(id_SALA)      / AD(I,J,L) 
                Q(L) = ( SPC(I,J,L,id_SALA) + SPC(I,J,L,id_SALC) ) *
-     &                  TCVV(id_SALA)
+     &                  (AIRMW / State_Chm%SpcData(id_SALA)%Info%emMW_g)
             ENDDO
 
          ELSE IF ( N == 159 ) THEN

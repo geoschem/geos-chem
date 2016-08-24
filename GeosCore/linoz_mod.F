@@ -219,6 +219,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2   
+      USE Species_Mod,        ONLY : Species 
       !USE TRACERID_MOD        ! CODEATHON                  
 !
 ! !INPUT PARAMETERS:
@@ -267,6 +268,7 @@
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !  16 Jun 2016 - R. Silvern  - Now define species ID of O3 with Ind_ function
 !  17 Jun 2016 - R. Yantosca - Only look up species ID of O3 on first call
+!  22 Jun 2016 - M. Yannetti - Replace TCVV with spc db and physical constant
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  11 Jul 2016 - R. Yantosca - Bug fix: SPC now points to State_Chm%Species
@@ -288,7 +290,6 @@
       REAL(fp) :: DCOLO3  (IIPAR,JJPAR,LLPAR                    )
       REAL(fp) :: COLO3   (IIPAR,JJPAR,LLPAR                    )
       REAL(fp) :: OUT_DATA(IIPAR,JJPAR,LLPAR                    )
-      REAL(fp) :: TCVV    (                  Input_Opt%N_TRACERS)
 
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
@@ -300,7 +301,7 @@
       ! SAVED scalars
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER, SAVE :: id_O3
-      
+
       !=================================================================
       ! LINOZ_CHEM3 begins here!
       !=================================================================
@@ -316,9 +317,6 @@
       JM         = JJPAR
       LM         = LLPAR
       nAdvect    = State_Chm%nAdvect
-
-      ! NOTE: TCVV can be removed soon!
-      TCVV       = Input_Opt%TCVV(1:nAdvect)
 
       ! Point to chemical species array [v/v dry air]
       Spc        => State_Chm%Species
@@ -404,9 +402,9 @@
          !END IF
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,       J,     LBOT,   LPOS,   L    )
-!$OMP+PRIVATE( CLIMPML, DERO3, CLIMO3, DERCO3, DCO3 )
-!$OMP+PRIVATE( DERTMP,  DTMP,  SSO3,   DMASS        )
+!$OMP+PRIVATE( I,       J,     LBOT,   LPOS,   L      )
+!$OMP+PRIVATE( CLIMPML, DERO3, CLIMO3, DERCO3, DCO3   )
+!$OMP+PRIVATE( DERTMP,  DTMP,  SSO3,   DMASS )
          DO J = 1, JM
          DO I = 1, IM
 
@@ -473,17 +471,19 @@
                ! bdf Spc is in v/v, make conversion to DU
                if (l.eq.lm) then !top model layer
                   dcolo3(i,j,l) = (Spc(i,j,l,NTRACER) *
-     &                 State_Met%AD(I,J,L) /
-     &                 TCVV(NTRACER))      / GET_AREA_CM2(I,J,L) *
-     &                 AVO / (AIRMW/TCVV(NTRACER)*1e-3_fp) / 
-     &                 2.687e+16_fp
+     &                 State_Met%AD(I,J,L) / ( AIRMW 
+     &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )) 
+     &                 / GET_AREA_CM2(I,J,L) * AVO / (AIRMW / ( AIRMW 
+     &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )
+     &                 *1e-3_fp) / 2.687e+16_fp
                   colo3(i,j,l) = dcolo3(i,j,l)*0.5
                else
                   dcolo3(i,j,l) = (Spc(i,j,l,NTRACER) * 
-     &                 State_Met%AD(I,J,L) / 
-     &                 TCVV(NTRACER))      / GET_AREA_CM2(I,J,L) *
-     &                 AVO / (AIRMW/TCVV(NTRACER)*1e-3_fp) / 
-     &                 2.687e+16_fp
+     &                 State_Met%AD(I,J,L) / ( AIRMW 
+     &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )) 
+     &                 / GET_AREA_CM2(I,J,L) * AVO / (AIRMW / ( AIRMW 
+     &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )
+     &                 *1e-3_fp) / 2.687e+16_fp
                   colo3(i,j,l) = colo3(i,j,l+1) +
      &                 (dcolo3(i,j,l)+dcolo3(i,j,l+1))*0.5
                endif

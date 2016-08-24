@@ -366,6 +366,7 @@
       USE GRID_MOD,           ONLY : GET_YMID
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR
+      USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -433,7 +434,8 @@
 !  21 Jun 2016 - R. Yantosca   - Add error checks to make sure that each
 !                                species ID flag has a valid value before
 !                                calling APPLY_2DRATIO routine
-!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with specie pointer
+!  22 Jun 2016 - M. Yannetti   - Replace TCVV with spc db MW and phys constant
+!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -450,6 +452,7 @@
       REAL(fp)           :: SCALEFAC
       INTEGER            :: FUTURE_LINE
       INTEGER            :: BASIS_LINE
+      REAL(fp)           :: MW_g
 
       ! Local variables for quantities from Input_Opt
       LOGICAL            :: LPRT
@@ -463,7 +466,6 @@
       LOGICAL            :: LSETBRSTRAT
       LOGICAL            :: LSETNOYSTRAT
 !      LOGICAL            :: LBASICEMIS
-      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
       Real(fp)           :: MWTemp
 
       ! Pointers
@@ -485,7 +487,6 @@
       LSETBRSTRAT  = Input_Opt%LSETBRSTRAT
       LSETNOYSTRAT = Input_Opt%LSETNOYSTRAT
 !      LBASICEMIS   = Input_Opt%LBASICEMIS
-      TCVV         = Input_Opt%TCVV(1:Input_Opt%N_TRACERS)
 
       ! Set module variable
 
@@ -1048,11 +1049,11 @@
          ! Convert from [vv] to [kg CH4/kg air]
          ! (ewl, 3/16/15) 
          TRAC_IDX = id_CH4
-         MWTemp = TCVV(TRAC_IDX)
-         C3090S = C3090S / MWTemp 
-         C0030S = C0030S / MWTemp 
-         C0030N = C0030N / MWTemp 
-         C3090N = C3090N / MWTemp 
+         MW_g = State_Chm%SpcData(TRAC_IDX)%Info%emMW_g 
+         C3090S = C3090S / ( AIRMW / MW_g )
+         C0030S = C0030S / ( AIRMW / MW_g )
+         C0030N = C0030N / ( AIRMW / MW_g )
+         C3090N = C3090N / ( AIRMW / MW_g )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1195,6 +1196,7 @@
       USE TIME_MOD,           ONLY : GET_HOUR
       USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE TIME_MOD,           ONLY : GET_MINUTE
+      USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -1216,6 +1218,7 @@
 !                                Remove dependency on PRESSURE_MOD.
 !  16 Jun 2016 - S. D. Eastham - Remove references to tracerid_mod.F
 !  21 Jun 2016 - R. Yantosca   - Use the module variables for species ID flags
+!  22 Jun 2016 - M. Yannetti   - Replace TCVV with spc db MW and phys constant
 !  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !  11 Aug 2016 - R. Yantosca   - Remove temporary tracer-removal code
 !EOP
@@ -1285,7 +1288,6 @@
 
       ! Local variables for quantities from Input_Opt
       LOGICAL              :: LPRT
-      REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER    :: Spc (:,:,:,:)
@@ -1296,7 +1298,6 @@
 
       ! Copy fields from INPUT_OPT
       LPRT      = Input_Opt%LPRT
-      TCVV      = Input_Opt%TCVV(1:Input_Opt%N_TRACERS)
 
       ! Initialize GEOS-Chem species array [kg]
       Spc => State_Chm%Species
@@ -1440,11 +1441,17 @@
          ! Calculate local NOx, N2O and O3 number density
          KGNOX = Spc(I,J,L,id_NO)
          ! Add local NO2
-         ! KGNOX = KGNOX + (Spc(I,J,L,id_NO2)*TCVV(id_NO)/TCVV(id_NO2))
+         ! KGNOX = KGNOX + ( Spc(I,J,L,id_NO2) *
+         ! & ( AIRMW / State_Chm%SpcData(id_NO)%Info%emMW_g ) / 
+         ! & ( AIRMW / State_Chm%SpcData(id_NO2)%Info%emMW_g ) )
+
          KGN2O = Spc(I,J,L,id_N2O)
-         LOCALNOX = KGNOX*TCVV(id_NO)*XAIR
-         LOCALN2O = KGN2O*TCVV(id_N2O)*XAIR
-         LOCALO3  = Spc(I,J,L,id_O3)*TCVV(id_O3)*XAIR
+         LOCALNOX = KGNOX *  ( AIRMW /  
+     &              State_Chm%SpcData(id_NO)%Info%emMW_g ) * XAIR
+         LOCALN2O = KGN2O * ( AIRMW / 
+     &              State_Chm%SpcData(id_N2O)%Info%emMW_g ) * XAIR
+         LOCALO3  = Spc(I,J,L,id_O3) *  ( AIRMW / 
+     &              State_Chm%SpcData(id_O3)%Info%emMW_g ) * XAIR
 
          ! Retrieve local O3P/O1D mixing ratios and relevant
          ! j-rates from interpolated 2D arrays
@@ -1502,7 +1509,8 @@
         
          ! Calculate fractional loss and apply to species
          ! Explicit Euler method (fast)
-         DNOX = NOXRATE * DTCHEM / (TCVV(id_NO)*XAIR)
+         DNOX = NOXRATE * DTCHEM / ( ( AIRMW / 
+     &          State_Chm%SpcData(id_NO)%Info%emMW_g) * XAIR )
          IF ((DNOX*-1e+0_fp).gt.KGNOX) THEN
             DNOX = -1e+0_fp*KGNOX
             KGNOX = 0e+0_fp
@@ -1512,13 +1520,17 @@
             LOCALNOX = LOCALNOX + (NOXRATE*DTCHEM)
          ENDIF
          ! Separate into NO and NO2...
-         !Spc(I,J,L,id_NO)  = (LOCALNOX*(FRACN  +FRACNO ))/(TCVV(id_NO)*XAIR)
-         !Spc(I,J,L,id_NO2) = (LOCALNOX*(FRACNO3+FRACNO2))/(TCVV(id_NO)*XAIR)
+         !Spc(I,J,L,id_NO)  = (LOCALNOX*(FRACN  +FRACNO ))/(AIRMW/
+         ! &                   State_Chm%SpcData(id_NO)%Info%emMW_g) *XAIR)
+         !Spc(I,J,L,id_NO2) = (LOCALNOX*(FRACNO3+FRACNO2))/(AIRMW/
+         ! &                   State_Chm%SpcData(id_NO)%Info%emMW_g)*XAIR)
+         ! NOTE: should id_NO be id_NO2 in latter equation above?
          Spc(I,J,L,id_NO) = KGNOX
 
          MESONOX_DELTA = MESONOX_DELTA + DNOX
 
-         DN2O = N2ORATE * DTCHEM / (TCVV(id_N2O)*XAIR)
+         DN2O = N2ORATE * DTCHEM / ( AIRMW / 
+     &          State_Chm%SpcData(id_N2O)%Info%emMW_g * XAIR )
          IF ((DN2O*-1e+0_fp).gt.KGN2O) THEN
             DN2O = -1e+0_fp*KGN2O
             KGN2O = 0e+0_fp
@@ -1904,6 +1916,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1931,6 +1944,8 @@
 !                                air pressure, with State_Met%PMID and
 !                                remove dependency on PRESSURE_MOD.
 !  19 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg
+!  25 Jul 2016 - M. Yannetti   - Pass State_Chem as argument to access spc db;
+!                                Replace TCVV with spc db MW and phys constant
 !  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !EOP
 !------------------------------------------------------------------------------
@@ -1955,7 +1970,6 @@
 
       ! Local variables for quantities from Input_Opt
       LOGICAL            :: LPRT
-      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER  :: Spc(:,:,:,:)
@@ -1966,7 +1980,6 @@
 
       ! Copy fields from INPUT_OPT
       LPRT      = Input_Opt%LPRT
-      TCVV = Input_Opt%TCVV(1:Input_Opt%N_TRACERS)
 
       ! Initialize GEOS-Chem species array [kg/kg]
       Spc => State_Chm%Species
@@ -2121,7 +2134,8 @@
                IF (SET_CELL) THEN
 
                   ! Convert from [ppbv] to [kg/kg] (ewl, 3/19/15)
-                  TRACMASS = SCALEFAC * TRACMR / TCVV(TRAC_IDX)
+                  TRACMASS = SCALEFAC * TRACMR / ( AIRMW / 
+     &                       State_Chm%SpcData(TRAC_IDX)%Info%emMW_g )
 
                   IF (TRAC_ADD) THEN
                      Spc(I,J,L,TRAC_IDX) = Spc(I,J,L,TRAC_IDX)+TRACMASS
@@ -2164,6 +2178,7 @@
       USE GIGC_State_Chm_Mod,     ONLY : ChmState
       USE GIGC_State_Met_Mod,     ONLY : MetState
       USE TIME_MOD,               ONLY : GET_MONTH
+      USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -2186,6 +2201,8 @@
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
 !  10 Sep 2015 - E. Lundgren   - Tracer units are now kg/kg dry air (prev v/v)
+!  25 Jul 2016 - M. Yannetti   - Pass State_Chm as arg for spc db access;
+!                                Replace TCVV with spc db MW and phys constant
 !  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !  11 Aug 2016 - R. Yantosca   - Remove temporary tracer-removal code
 
@@ -2202,7 +2219,6 @@
 
       ! Local variables for quantities from Input_Opt
       LOGICAL              :: LPRT
-      REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER     :: Spc (:,:,:,:)
@@ -2216,7 +2232,6 @@
 
       ! Copy fields from INPUT_OPT
       LPRT      = Input_Opt%LPRT
-      TCVV      = Input_Opt%TCVV(1:Input_Opt%N_TRACERS)
 
       ! Check that species units are in kg/kg dry air (ewl, 9/10/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
@@ -2255,14 +2270,15 @@
 
           ! Convert units if the species is valied
           IF ( N_EMITTED /= 0 ) THEN
-        
+
              ! Loop over surface grmid boxes
              DO J = 1, JJPAR
              DO I = 1, IIPAR
            
                 ! Set kg/kg dry air using vol/vol (ewl, 9/10/15)
                 Spc(I,J,1,N_EMITTED) = GRID_EMIT(J,N)
-     &                               / TCVV(N_EMITTED)
+     &                        / ( AIRMW /
+     &                        State_Chm%SpcData(N_EMITTED)%Info%emMW_g ) 
 
              ENDDO
              ENDDO
