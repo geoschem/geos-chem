@@ -29,7 +29,7 @@
       USE ErrCode_Mod
       USE ERROR_MOD
       USE FAST_JX_MOD
-      USE FLEXCHEM_SETUP_MOD,   ONLY : CSPECTOKPP, HSAVE_KPP
+      USE FLEXCHEM_SETUP_MOD,   ONLY : HSAVE_KPP
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
       USE GRID_MOD,             ONLY : GET_YMID
       USE HCO_DIAGN_MOD,        ONLY : Diagn_Update
@@ -111,13 +111,15 @@
 !  16 Aug 2016 - E. Lundgren - Remove all references to tracers, including
 !                              STT and Input_Opt%N_TRACERS, and use routines in
 !                              unitconv_mod.F for species kg <-> molec/cm3 
+!  24 Aug 2016 - M. Sulprizio- Replace CSPECTOKPP with State_Chm%Map_KppSpc
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: I, J, L, N, F, M, MONTH, YEAR
+      INTEGER               :: I, J, L, N, F, M, SpcID
+      INTEGER               :: MONTH, YEAR
       INTEGER               :: WAVELENGTH
       INTEGER               :: HCRC
       LOGICAL               :: prtDebug
@@ -609,14 +611,19 @@
          !===========================================================
          ! Initialize species concentrations
          !===========================================================
-         ! mje Set up the initial conditions of the variable species
-         ! mje The Integrator works in # cm-3
+         ! Loop over KPP Species
          DO N=1,NSPEC
-            IF ( CSPECTOKPP(N) .eq. 0) THEN
-               C(N)=0d0
+
+            ! GEOS-Chem species ID
+            SpcID = State_Chm%Map_KppSpc(N)
+
+            ! Initialize KPP species concentration array
+            IF ( SpcID .eq. 0) THEN
+               C(N) = 0d0
             ELSE
-               C(N)=State_Chm%Species(I,J,L,CSPECTOKPP(N))
+               C(N) = State_Chm%Species(I,J,L,SpcID)
             ENDIF
+
          ENDDO
 
          C(ind_ACTA)  = 0.0_dp
@@ -777,22 +784,26 @@
          ! Check we have no negative values and copy the concentrations
          ! calculated from the C array back into State_Chm%Species
          !==============================================================
+         ! Loop over KPP species
          DO N = 1, NSPEC
 
-            ! Skip if this is not a KPP species
-            IF ( CSPECTOKPP(N) .eq. 0 ) CYCLE
+            ! GEOS-Chem species ID
+            SpcID = State_Chm%Map_KppSpc(N)
+
+            ! Skip if this is not a GEOS-Chem species
+            IF ( SpcID .eq. 0 ) CYCLE
 
             ! Set negative concentrations to zero
             C(N) = MAX( C(N), 0.0E0_dp )
 
-            ! Copy concentrations back into State_Chm%SPECIES
-            State_Chm%Species(I,J,L,CSPECTOKPP(N)) = real(C(N),kind=fp)
+            ! Copy concentrations back into State_Chm%Species
+            State_Chm%Species(I,J,L,SpcID) = REAL( C(N), kind=fp )
 
             !### Debug output, we can remove it later
             IF ( prtDebug ) THEN
                IF (I.eq.10.and.J.eq.10.and.L.eq.10.and.N.eq.ind_OH) THEN
-                  write(*,'(a9,2es13.6)') 'SPC_OH : ',c(N),
-     &                 State_Chm%Species(I,J,L,CSPECTOKPP(N))
+                  write(*,'(a9,2es13.6)') 'SPC_OH : ',
+     &                C(N), State_Chm%Species(I,J,L,SpcID)
                ENDIF
             ENDIF
 

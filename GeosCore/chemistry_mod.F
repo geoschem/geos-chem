@@ -364,8 +364,7 @@
 
             ! Initialize FlexChem
             IF (FIRST) THEN
-               CALL INIT_FLEXCHEM( Input_Opt, State_Met, State_Chm,
-     &              am_I_Root, RC )
+               CALL INIT_FLEXCHEM( am_I_Root, RC )
                IF ( LPRT .and. am_I_Root ) 
      &              CALL DEBUG_MSG( '### MAIN: a INIT_FLEXCHEM' )
             ENDIF

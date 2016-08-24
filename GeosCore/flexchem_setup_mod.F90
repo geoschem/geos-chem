@@ -14,17 +14,13 @@ MODULE FLEXCHEM_SETUP_MOD
 !
 ! !USES:
 !
-  USE Input_Opt_Mod,      ONLY : OptInput
   USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
-  USE State_Chm_Mod,      ONLY : ChmState
-  USE State_Met_Mod,      ONLY : MetState
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: CSPECTOKPP
   PUBLIC :: INIT_FLEXCHEM
   PUBLIC :: HSAVE_KPP
 !    
@@ -41,9 +37,6 @@ MODULE FLEXCHEM_SETUP_MOD
 !
 ! !PRIVATE TYPES:
 !
-  ! Index arrays
-  INTEGER,   ALLOCATABLE :: CSPECTOKPP(:)
-
   ! Save the H value for the Rosenbrock solver
   REAL(fp),  ALLOCATABLE :: HSAVE_KPP(:,:,:) 
 
@@ -62,30 +55,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !  
-  SUBROUTINE INIT_FLEXCHEM( Input_Opt, State_Met, State_Chm, am_I_Root, RC)  
+  SUBROUTINE INIT_FLEXCHEM( am_I_Root, RC)  
 !
 ! !USES:
 !
-    USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE CMN_SIZE_MOD
-    USE PhysConstants,      ONLY : BOLTZ
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE gckpp_Global,       ONLY : NSPEC, NREACT
-    USE gckpp_Monitor,      ONLY : SPC_NAMES, EQN_NAMES
-    USE HCO_DIAGN_MOD,      ONLY : Diagn_Create
-    USE HCO_ERROR_MOD
-    USE PRECISION_MOD
-    USE Species_Mod,        ONLY : Species
-    USE State_Chm_Mod,      ONLY : Ind_
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_NYMD, GET_NHMS
+    USE gckpp_Global,       ONLY : NREACT
+    USE gckpp_Monitor,      ONLY : EQN_NAMES
 !
 ! !INPUT PARAMETERS:
 !    
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
-    TYPE(MetState), INTENT(IN)    :: State_Met ! Met State object
     LOGICAL,        INTENT(IN)    :: am_I_Root ! Is this the root CPU?
 !
 ! !OUTPUT PARAMETERS:
@@ -113,21 +93,15 @@ CONTAINS
 !                              prior to v/v -> molec/cm3 conversion
 !  02 Aug 2016 - E. Lundgren - Move unit conversion of species background
 !                              values to restart_mod
+!  24 Aug 2016 - M. Sulprizio- Remove CSPECTOKPP array. State_Chm%Map_KppSpc is
+!                              now used instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: AS, D, N, N1, FOUND
-    INTEGER            :: cId, Collection
-    CHARACTER(LEN=15)  :: OutOper,  WriteFreq
-    CHARACTER(LEN=60)  :: DiagnName
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'INIT_FLEXCHEM (flexchem_setup_mod.F90)' 
-
-    ! Objects
-    TYPE(Species), POINTER :: SpcInfo
+    INTEGER            :: D
 
     !=================================================================
     ! INIT_FLEXCHEM begins here!
@@ -136,63 +110,12 @@ CONTAINS
     ! Assume success
     RC = GC_SUCCESS
 
-    ! Initialize pointer
-    SpcInfo => NULL()
-
-    ! Get diagnostic parameters from the Input_Opt object
-    Collection = Input_Opt%DIAG_COLLECTION
-    OutOper    = 'Instantaneous'
-    WriteFreq  = 'Always'
-
     IF ( am_I_Root ) WRITE( 6, 100 )
 100 FORMAT( '     - INIT_FLEXCHEM: Allocating arrays for FLEX_CHEMISTRY' )
-
-    ALLOCATE( CSPECTOKPP(NSPEC), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    CSPECTOKPP = 0
 
     ALLOCATE( HSAVE_KPP( IIPAR, JJPAR, LLCHEM ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     HSAVE_KPP = 0.d0
-
-    ! Loop over GEOS-Chem species
-    DO N = 1, State_Chm%nSpecies
-
-       ! Initialize
-       FOUND=0
-
-       ! Get info about this species from the species database
-       SpcInfo => State_Chm%SpcData(N)%Info
-
-       ! Loop over KPP species
-       DO N1 = 1, NSPEC
-
-          ! Create vector to map
-          ! State_Chm%Species order defined in species_database_mod.F90
-          ! to KPP order defined in gckpp_Parameters.F90
-          IF ( ADJUSTL( TRIM( SPC_NAMES(N1) ) ) == &
-               ADJUSTL( TRIM( SpcInfo%Name  ) ) ) THEN
-             CSPECTOKPP(N1)=N
-             FOUND=1
-             EXIT
-          ENDIF
-
-       ENDDO
-
-       ! Print info to log
-       IF (FOUND .NE. 1) THEN
-          WRITE (6,'(a8,a17)') TRIM( SpcInfo%Name ),   &
-             ' NOT found in KPP'
-       ENDIF
-       IF (FOUND .EQ. 1) THEN
-          WRITE (6,'(a8,a29,I4)') TRIM( SpcInfo%Name ), &
-             ' was found in KPP with index ', N1
-       ENDIF
-
-       ! Free pointer
-       SpcInfo => NULL()
-
-    ENDDO
 
     IF (am_I_Root) THEN
        write(*,'(a)') ' KPP Reaction Reference '
