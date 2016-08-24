@@ -445,7 +445,7 @@
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD 
-      USE PHYSCONSTANTS    ! Universal parameters
+      USE PhysConstants    ! Universal parameters
   
       ! Arguments
       INTEGER, INTENT(IN)      :: J

@@ -131,15 +131,15 @@
 !      
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_ 
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,    GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE GIGC_State_Chm_Mod, ONLY : IND_ 
 !
 ! !LOCAL VARIABLES:
 !
@@ -186,7 +186,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! am I root? 
       aIR = am_I_Root
@@ -197,12 +197,12 @@
       ! Initialize on first call
       IF ( FIRST ) THEN
 
-         ! Get species ID's
-         id_SO4  = IND_('SO4','T')
-         id_NH3  = IND_('NH3','T')
-         id_NH4  = IND_('NH4','T')
-         id_NIT  = IND_('NIT','T')
-         id_HNO3 = IND_('HNO3','T')
+         ! Define advected species ID flags
+         id_SO4  = Ind_('SO4', 'A')
+         id_NH3  = Ind_('NH3', 'A')
+         id_NH4  = Ind_('NH4', 'A')
+         id_NIT  = Ind_('NIT', 'A')
+         id_HNO3 = Ind_('HNO3','A')
       
          IF ( id_SO4 == 0 ) CALL ERROR_STOP( 'id_SO4 is undefined!', X )
          IF ( id_NH3 == 0 ) CALL ERROR_STOP( 'id_NH3 is undefined!', X )
@@ -224,7 +224,7 @@
 
                ! Offline simulation: get HNO3 from HEMCO (mps, 9/23/14)
                CALL HCO_GetPtr( aIR, 'GLOBAL_HNO3', HNO3, RC )
-               IF ( RC /= GIGC_SUCCESS ) 
+               IF ( RC /= GC_SUCCESS ) 
      &         CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_HNO3', X )
 
             ELSE
@@ -344,8 +344,8 @@
 !******************************************************************************
 !
 ! References to F90 modules
-      USE PHYSCONSTANTS,      ONLY : AIRMW
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PhysConstants,      ONLY : AIRMW
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
 
       ! Arguments
@@ -1964,9 +1964,8 @@
 !******************************************************************************
 !
       ! F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
       USE CMN_SIZE_MOD
+      USE ERROR_MOD, ONLY : ALLOC_ERR
 
       ! Local variables
       INTEGER :: AS

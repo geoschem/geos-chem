@@ -17,9 +17,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE inquireMod, ONLY : findFreeLUN
+      USE inquireMod,    ONLY : findFreeLUN
       USE PhysConstants
       USE Precision_Mod
       USE UnitConv_Mod
@@ -103,14 +103,13 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : AREA_M2
-      USE Species_Mod,        ONLY : Species
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-
       USE HCO_Error_Mod
       USE HCO_Diagn_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
 !
@@ -159,7 +158,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Initialize pointers
       SpcInfo       => NULL()
@@ -415,10 +414,10 @@
       USE m_netcdf_io_get_dimlen                   ! netCDF get dimensions
       USE m_netcdf_io_close                        ! netCDF file close
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE
 
       ! For Hg simulation restart file
@@ -511,7 +510,7 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Initialize pointers
       Ptr2D       => NULL()
@@ -1065,10 +1064,10 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE
 
       ! HEMCO
@@ -1149,7 +1148,7 @@
       !=================================================================
 
       ! Assume success
-      RC          = GIGC_SUCCESS
+      RC          = GC_SUCCESS
 
       ! Initialize pointers
       Ptr3D       => NULL()
@@ -1630,10 +1629,10 @@
 !
 ! !USES:
 !     
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1674,7 +1673,7 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Only print to log if in debug mode
       IF ( Input_Opt%LPRT ) THEN

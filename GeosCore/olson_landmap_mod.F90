@@ -18,12 +18,11 @@ MODULE Olson_LandMap_Mod
 !
 ! !USES:
 !
-  USE PHYSCONSTANTS                     ! Physical constants
   USE CMN_SIZE_MOD                      ! Size parameters
   USE ERROR_MOD                         ! Error checking routines
   USE GRID_MOD                          ! Horizontal grid definition
   USE MAPPING_MOD                       ! Mapping weights & areas
-
+  USE PhysConstants                     ! Physical constants
   USE PRECISION_MOD                     ! For GEOS-Chem Precision (fp)
 
   IMPLICIT NONE
@@ -193,7 +192,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -572,8 +571,8 @@ CONTAINS
 ! !USES:
 !
 
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE m_netcdf_io_open
     USE m_netcdf_io_read
     USE m_netcdf_io_readattr

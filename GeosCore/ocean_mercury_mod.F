@@ -136,8 +136,7 @@
 !                              routines. Now use netcdf in restart_mod.F.
 !******************************************************************************
 !
-      USE inquireMod, ONLY : findFreeLUN
-
+      USE inquireMod,    ONLY : findFreeLUN
       USE PRECISION_MOD, ONLY : fpp => fp   ! For GEOS-Chem Precision (fpp)
       USE PRECISION_MOD, ONLY : f4          !  Rename to avoid conflicts
       USE PRECISION_MOD, ONLY : f8
@@ -396,16 +395,16 @@
 !
 ! !USES:
 !     
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE DIAG03_MOD,         ONLY : ND03                
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : SET_Hg2_DIAG        
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
-      USE CMN_SIZE_MOD
-      USE CMN_DIAG_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -450,7 +449,7 @@
      &     'READ_HG2_PARTITIONING (ocean_mercury_mod.F)'
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Initialize pointers
       ARRAYso4  => NULL() ! so4
@@ -484,7 +483,7 @@
       ! Read SO4 from HEMCO
       !---------------------------
       CALL HCO_GetPtr( am_I_Root, 'AERO_SO4', ARRAYso4, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_SO4', LOC )
       ENDIF
 
@@ -495,7 +494,7 @@
       ! Read NH4 from HEMCO
       !---------------------------
       CALL HCO_GetPtr( am_I_Root, 'AERO_NH4', ARRAYnh4, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_SO4', LOC )
       ENDIF
 
@@ -506,7 +505,7 @@
       ! Read NIT from HEMCO
       !---------------------------
       CALL HCO_GetPtr( am_I_Root, 'AERO_NIT', ARRAYnit, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_SO4', LOC )
       ENDIF
       
@@ -519,13 +518,13 @@
 
       ! BCPI
       CALL HCO_GetPtr( am_I_Root, 'AERO_BCPI', ARRAYbcpi, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_BCPI', LOC )
       ENDIF
 
       ! BCPO
       CALL HCO_GetPtr( am_I_Root, 'AERO_BCPO', ARRAYbcpo, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_BCPO', LOC )
       ENDIF
 
@@ -544,13 +543,13 @@
 
       ! OCPI
       CALL HCO_GetPtr( am_I_Root, 'AERO_OCPI', ARRAYocpi, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_OCPI', LOC )
       ENDIF
 
       ! OCPO
       CALL HCO_GetPtr( am_I_Root, 'AERO_OCPO', ARRAYocpo, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_OCPO', LOC )
       ENDIF
 
@@ -567,7 +566,7 @@
       ! Read DST1 from HEMCO
       !---------------------------
       CALL HCO_GetPtr( am_I_Root, 'AERO_DST1', ARRAYdst1, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_DST1', LOC )
       ENDIF
 
@@ -680,13 +679,13 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_ICE,  IS_LAND
       USE DIAG03_MOD,         ONLY : AD03,    ND03 
       USE DEPO_MERCURY_MOD,   ONLY : LHGSNOW
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC,  SNOW_HG_STORED_OC
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_LN,  SNOW_HG_STORED_LN
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE CMN_SIZE_MOD
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -975,18 +974,18 @@
 !******************************************************************************
 !
       ! References to F90 modules
+      USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD,            ONLY : IS_WATER, IS_ICE
       USE DEPO_MERCURY_MOD,   ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
       USE DIAG03_MOD,         ONLY : AD03, ND03, AD03_RIV
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2, GET_XMID, GET_YMID 
-      USE TIME_MOD
-      USE CMN_SIZE_MOD             ! Size parameters
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr 
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -1150,20 +1149,20 @@
 
          ! TOMS O3 columns [dobsons]
          CALL HCO_GetPtr( am_I_Root, 'TOMS_O3_COL', TOMS, RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
+         IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to TOMS_O3_COL', LOC )
          ENDIF
    
          ! TOMS O3 columns, present-day [dobsons]
          CALL HCO_GetPtr( am_I_Root, 'TOMS_O3_PD', TOMS_PD, RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
+         IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to TOMSPD_O3_COL', 
      &                        LOC )
          ENDIF
    
          ! TOMS O3 columns, long-term [dobsons]
          CALL HCO_GetPtr( am_I_Root, 'TOMS_O3_LT', TOMS_LT, RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
+         IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to TOMSLT_O3_COL', 
      &                        LOC )
          ENDIF
@@ -2315,12 +2314,12 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE Error_Mod,          ONLY : Error_Stop
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
-      USE TIME_MOD,	      ONLY : ITS_A_LEAPYEAR
       USE GRID_MOD,           ONLY : GET_XMID, GET_YMID 
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE TIME_MOD,	      ONLY : ITS_A_LEAPYEAR
 !
 ! !INPUT PARAMETERS:
 !
@@ -2365,7 +2364,7 @@
       !=================================================================
      
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Get the last month (jaf, 12/8/11)
       IF ( THISMONTH == 1 ) THEN
@@ -2395,7 +2394,7 @@
       ! Mixed layer depth [cm]
       !-----------------------------------------------------------------
       CALL HCO_GetPtr( am_I_Root, 'OCEAN_MLD', MLD, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_MLD', LOC )
       ENDIF
 
@@ -2406,7 +2405,7 @@
       ! Chl from Modis [kg/m3] --> [mg/m3]
       !-----------------------------------------------------------------
       CALL HCO_GetPtr( am_I_Root, 'OCEAN_CHLA', CHL, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_CHLA', LOC )
       ENDIF
 
@@ -2417,7 +2416,7 @@
       ! Arctic Chl from Jin et al 2012 [mg/m3]
       !-----------------------------------------------------------------
       CALL HCO_GetPtr( am_I_Root, 'OCEAN_CHLA_A', CHL_A, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_ACHLA', LOC )
       ENDIF
 
@@ -2425,7 +2424,7 @@
       ! Net primary productivity [kg/m2] -> [mg/m2]
       !-----------------------------------------------------------------
       CALL HCO_GetPtr( am_I_Root, 'OCEAN_NPP', NPP, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_NPP', LOC )
       ENDIF
 
@@ -2436,7 +2435,7 @@
       ! Arctic Net primary productivity [mg/m2/day]
       !-----------------------------------------------------------------
       CALL HCO_GetPtr( am_I_Root, 'OCEAN_NPP_A', NPP_A, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_ANPP', LOC )
       ENDIF
 
@@ -2444,7 +2443,7 @@
       ! Ekman upwelling velocity [m/s]
       !-----------------------------------------------------------------
       CALL HCO_GetPtr( am_I_Root, 'OCEAN_EKMAN_V', UPVEL, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_EKMAN_V', LOC )
       ENDIF
 
@@ -2452,7 +2451,7 @@
       ! MLD tendency, first half of month [cm/s]
       !-----------------------------------------------------------------
       CALL HCO_GetPtr( am_I_Root, 'OCEAN_dMLD1', dMLD1, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to dMLD1', LOC )
       ENDIF
 
@@ -2463,7 +2462,7 @@
       ! MLD tendency, second half of month [cm/s]
       !-----------------------------------------------------------------
       CALL HCO_GetPtr( am_I_Root, 'OCEAN_dMLD2', dMLD2, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to dMLD2', LOC )
       ENDIF
 
@@ -2604,11 +2603,11 @@
 !******************************************************************************
 !
       ! Reference to fortran90 modules
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_M2, GET_XMID, GET_YMID
       USE CMN_SIZE_MOD             ! Size parameters
+      USE GRID_MOD,           ONLY : GET_AREA_M2, GET_XMID, GET_YMID
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       
       ! Arguments
       INTEGER,        INTENT(IN)  :: I, J 
@@ -2920,9 +2919,9 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE GIGC_State_Chm_Mod,  ONLY : ChmState
-      USE ERROR_MOD,           ONLY : ERROR_STOP
       USE CMN_SIZE_MOD              ! Size parameters
+      USE ERROR_MOD,           ONLY : ERROR_STOP
+      USE State_Chm_Mod,       ONLY : ChmState
 
       ! Arguments as Input
       CHARACTER(LEN=*), INTENT(IN)    :: LOC
@@ -3113,8 +3112,8 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,           ONLY : ERROR_STOP
       USE CMN_SIZE_MOD              ! Size parameters
+      USE ERROR_MOD,           ONLY : ERROR_STOP
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: LOC
@@ -3220,8 +3219,8 @@
 !******************************************************************************
 !
       USE CMN_SIZE_MOD
-      USE ERROR_MOD,           ONLY : ERROR_STOP
       USE DEPO_MERCURY_MOD,    ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
+      USE ERROR_MOD,           ONLY : ERROR_STOP
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: LOC
@@ -3333,8 +3332,8 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,           ONLY : ERROR_STOP
       USE CMN_SIZE_MOD              ! Size parameters
+      USE ERROR_MOD,           ONLY : ERROR_STOP
 
       ! Arguments
       REAL(fpp),        INTENT(IN) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)       
@@ -3437,12 +3436,12 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE FILE_MOD,           ONLY : IOERROR,   IU_FILE
-      USE SPECIES_MOD,        ONLY : Species
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_YEAR,  EXPAND_DATE
 
       ! For Hg indexing (bmy, 4/26/16)

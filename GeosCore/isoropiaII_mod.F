@@ -19,8 +19,7 @@
 !
 ! !USES:
 !
-      USE HCO_ERROR_MOD  ! For real precisions (hp)
-
+      USE HCO_ERROR_MOD    ! For real precisions (hp)
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -124,15 +123,16 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
-      USE CMN_SIZE_MOD
+      USE CMN_SIZE_MOD 
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
 !
@@ -168,7 +168,7 @@
 !                               derived type object
 !  25 Mar 2013 - M. Payer     - Now pass State_Chm object via the arg list
 !  23 Sep 2014 - M. Sulprizio - Now get HNO3 for offline aerosol sim from HEMCO
-!  16 Jun 2016 - K. Travis    - Now define species ID's with the IND_ function 
+!  16 Jun 2016 - K. Travis    - Now define species ID's with the Ind_ function 
 !  17 Jun 2016 - R. Yantosca  - Now only define species ID's on the first call;
 !                               we don't want to do it on each loop iteration
 !  30 Jun 2016 - R. Yantosca  - Remove instances of STT.  Now get the advected
@@ -240,7 +240,7 @@
       !=================================================================
 
       ! Assume success
-      RC                   = GIGC_SUCCESS
+      RC                   = GC_SUCCESS
 
       ! am I root? 
       aIR                  = am_I_Root
@@ -257,12 +257,12 @@
       IF ( FIRST ) THEN
 
          ! Make sure certain tracers are defined
-         id_HNO3 = IND_('HNO3') 
-         id_NH3  = IND_('NH3' )
-         id_NH4  = IND_('NH4' )
-         id_NIT  = IND_('NIT' )
-         id_SALA = IND_('SALA')
-         id_SO4  = IND_('SO4' )
+         id_HNO3 = Ind_('HNO3') 
+         id_NH3  = Ind_('NH3' )
+         id_NH4  = Ind_('NH4' )
+         id_NIT  = Ind_('NIT' )
+         id_SALA = Ind_('SALA')
+         id_SO4  = Ind_('SO4' )
 
          ! Make sure certain tracers are defined
          IF ( id_SO4 <= 0 ) THEN
@@ -296,7 +296,7 @@
 
                ! Offline simulation: get HNO3 from HEMCO (mps, 9/23/14)
                CALL HCO_GetPtr( aIR, 'GLOBAL_HNO3', HNO3, RC )
-               IF ( RC /= GIGC_SUCCESS ) 
+               IF ( RC /= GC_SUCCESS ) 
      &         CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_HNO3', X )
 
             ELSE
@@ -708,9 +708,9 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS,      ONLY : AIRMW
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : AIRMW
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
 !
 ! !INPUT PARAMETERS: 
@@ -813,7 +813,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -863,8 +863,8 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD      ! Size parameters
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE CMN_SIZE_MOD                   ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  06 Jul 2007 - H. O. T. Pye - Initial version

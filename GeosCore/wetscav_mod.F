@@ -163,8 +163,7 @@
 !  22 Sep 2015 - R. Yantosca - Re-introduce GET_WETDEP_NSOL routine
 !  25 Sep 2015 - R. Yantosca - Use species database to collapse down routines
 !                              COMPUTE_F, RAINOUT, WASHOUT
-!  16 Jun 2016 - L. Hu       - First-ever GEOS-Chem Code-A-Thon:
-!                              replaced IDTXXX with IND_('XXX')
+!  16 Jun 2016 - L. Hu       - Replaced IDTXXX with Ind_('XXX')
 !  20 Jun 2016 - R. Yantosca - Now define species ID's only in the INIT phase
 !  20 Jun 2016 - R. Yantosca - Renamed species ID's IDTxxxx to id_XXXX
 !  06 Jul 2016 - R. Yantosca - Removed GET_WETDEP_NSOL and GET_WETDEP_IDWETD,
@@ -239,17 +238,17 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE PHYSCONSTANTS
+      USE ErrCode_Mod
       USE ERROR_MOD 
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
       USE TIME_MOD,           ONLY : GET_TS_DYN
-      USE UNITCONV_MOD
+      USE UnitConv_Mod
 #if defined( NC_DIAG )
       USE HCO_ERROR_MOD
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
@@ -324,7 +323,7 @@
       !=================================================================
 
       ! Assume success
-      RC                =  GIGC_SUCCESS
+      RC                =  GC_SUCCESS
 
 #if defined( NC_DIAG )
       ! Initialize pointers
@@ -527,7 +526,7 @@
 !
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -998,12 +997,12 @@
 ! !USES:
 !
       USE CMN_Size_Mod
+      USE ErrCode_Mod
       USE Error_Mod
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 #if defined( TOMAS )
       USE Tomas_Mod,          ONLY : GetFraction
 #endif
@@ -1148,7 +1147,7 @@
       !=================================================================
 
       ! Assume success
-      RC         =  GIGC_SUCCESS
+      RC         =  GC_SUCCESS
 
       ! Initialize
       F          =  0.0_fp
@@ -1478,7 +1477,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_State_Met_Mod, ONLY: MetState
+      USE State_Met_Mod,      ONLY: MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1582,10 +1581,10 @@
 !
       USE CMN_Size_Mod
       USE Error_Mod,          ONLY : Error_Stop
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1915,17 +1914,16 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
-
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 #if defined( TOMAS )
-      USE TOMAS_MOD,          ONLY : IBINS,    ICOMP
       USE ERROR_MOD
-      USE UNITCONV_MOD
+      USE TOMAS_MOD,          ONLY : IBINS,    ICOMP
+      USE UnitConv_Mod
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -2064,7 +2062,7 @@
       !=================================================================
 
       ! Assume success
-      RC      =  GIGC_SUCCESS
+      RC      =  GC_SUCCESS
 
 #if defined( TOMAS )
       ! Convert species concentration units to [kg] if not already
@@ -2429,10 +2427,10 @@
 !
 ! !USES:
 !
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TOMAS_MOD,          ONLY : IBINS, GETDP, STRATSCAV
 !
 ! !INPUT PARAMETERS:
@@ -2739,16 +2737,16 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
+      USE ErrCode_Mod
+      USE ERROR_MOD
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE SPECIES_MOD,        ONLY : Species
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE UnitConv_Mod
 !
@@ -2993,9 +2991,9 @@
       ! done per column (ewl, 9/8/15)
       CALL ConvertSpc_KgKgDry_to_Kgm2( am_I_Root, State_Met, 
      &                                 State_Chm, RC         )   
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                      'WETDEP in wetscav_mod.F')
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
+     &                 'WETDEP in wetscav_mod.F')
          RETURN
       ENDIF  
 
@@ -3383,10 +3381,9 @@
       ! Convert species units back to mixing ratio (ewl, 9/8/15)
       CALL ConvertSpc_Kgm2_to_KgKgDry( am_I_Root, State_Met, 
      &                                 State_Chm, RC         )   
-
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                      'WETDEP in wetscav_mod.F')
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
+     &                 'WETDEP in wetscav_mod.F')
          RETURN
       ENDIF  
 
@@ -3414,17 +3411,17 @@
 !
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      USE ERROR_MOD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ErrCode_Mod
+      USE ERROR_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_DYN
-      USE SPECIES_MOD,        ONLY : Species
-      USE UNITCONV_MOD
+      USE Species_Mod,        ONLY : Species
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3619,9 +3616,9 @@
       ! done per column (ewl, 9/8/15)
       CALL ConvertSpc_KgKgDry_to_Kgm2( am_I_Root, State_Met, 
      &                                 State_Chm, RC         )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                      'WETDEP_MERRA in wetscav_mod.F')
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
+     &                 'WETDEP_MERRA in wetscav_mod.F')
          RETURN
       ENDIF  
 
@@ -3972,9 +3969,9 @@
       ! Convert species concentration back to kg/kg dry air (ewl, 9/8/15)
       CALL ConvertSpc_Kgm2_to_KgKgDry( am_I_Root, State_Met, 
      &                                 State_Chm, RC         )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                      'WETDEP_MERRA in wetscav_mod.F')
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
+     &                 'WETDEP_MERRA in wetscav_mod.F')
          RETURN
       ENDIF  
 
@@ -4164,9 +4161,9 @@
       USE DIAG_MOD,           ONLY : CT17              ! ND17 diag counter
       USE ERROR_MOD,          ONLY : IT_IS_NAN         ! Test for NaN
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput          ! Input options type
-      USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State type
-      USE GIGC_State_Chm_Mod, ONLY : ChmState          ! Chemistry State type
+      USE Input_Opt_Mod,      ONLY : OptInput          ! Input options type
+      USE State_Chm_Mod,      ONLY : ChmState          ! Chemistry State type
+      USE State_Met_Mod,      ONLY : MetState          ! Met State type
 #if defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID
       USE TOMAS_MOD,          ONLY : GETFRACTION
@@ -4406,7 +4403,6 @@
 !
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
       USE CMN_SIZE_MOD                                 ! Size parameters
-      USE GIGC_ErrCode_Mod
       USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
       USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
       USE DIAG_MOD,           ONLY : AD18              ! ND18 diag array
@@ -4416,11 +4412,12 @@
       USE DIAG_MOD,           ONLY : CT16              ! ND16 diag counter
       USE DIAG_MOD,           ONLY : CT17              ! ND17 diag counter
       USE DIAG_MOD,           ONLY : CT18              ! ND18 diag counter
+      USE ErrCode_Mod
       USE ERROR_MOD
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput          ! Input options
-      USE GIGC_State_Chm_Mod, ONLY : ChmState          ! Chemistry State object
-      USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State object
+      USE Input_Opt_Mod,      ONLY : OptInput          ! Input options
+      USE State_Chm_Mod,      ONLY : ChmState          ! Chemistry State object
+      USE State_Met_Mod,      ONLY : MetState          ! Met State object
 #if defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID
       USE DIAG_MOD,           ONLY : AD05
@@ -4570,7 +4567,7 @@
       !=================================================================
 
       ! Assume success
-      RC  =  GIGC_SUCCESS
+      RC  =  GC_SUCCESS
 
       ! Point to the chemical species array [kg/m2]
       Spc => State_Chm%Species
@@ -4905,9 +4902,9 @@
       USE DIAG_MOD,           ONLY : CT18              ! ND18 diag counter
       USE ERROR_MOD
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 #if defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID
       USE DIAG_MOD,           ONLY : AD05
@@ -5142,7 +5139,6 @@
 !
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
       USE CMN_SIZE_MOD                                 ! Size parameters
-      USE GIGC_ErrCode_Mod
       USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
       USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
       USE DIAG_MOD,           ONLY : AD18              ! ND18 diag array
@@ -5152,11 +5148,12 @@
       USE DIAG_MOD,           ONLY : CT16              ! ND16 diag counter
       USE DIAG_MOD,           ONLY : CT17              ! ND17 diag counter
       USE DIAG_MOD,           ONLY : CT18              ! ND18 diag counter
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : IT_IS_NAN         ! Test for NaN
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput          ! Input options
-      USE GIGC_State_Chm_Mod, ONLY : ChmState          ! Chm State object
-      USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State object
+      USE Input_Opt_Mod,      ONLY : OptInput          ! Input options
+      USE State_Chm_Mod,      ONLY : ChmState          ! Chm State object
+      USE State_Met_Mod,      ONLY : MetState          ! Met State object
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -5221,7 +5218,7 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Point to the chemical species array [kg/m2]
       Spc => State_Chm%Species
@@ -5465,8 +5462,8 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE DAO_MOD,            ONLY : IS_WATER
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5540,8 +5537,8 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE DAO_MOD,            ONLY : IS_WATER
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5606,12 +5603,12 @@
 ! !USES:
 !
       USE CMN_Size_Mod
+      USE ErrCode_Mod
       USE Error_Mod
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -5665,12 +5662,12 @@
       NSOL = 0
 
       ! Define species ID flags
-      id_NK1   = IND_('NK1'  )
-      id_SF1   = IND_('SF1'  )
-      id_DUST1 = IND_('DUST1')
-      id_SO2   = IND_('SO2'  )
-      id_SO4   = IND_('SO4'  )
-      id_H2O2  = IND_('H2O2' )
+      id_NK1   = Ind_('NK1'  )
+      id_SF1   = Ind_('SF1'  )
+      id_DUST1 = Ind_('DUST1')
+      id_SO2   = Ind_('SO2'  )
+      id_SO4   = Ind_('SO4'  )
+      id_H2O2  = Ind_('H2O2' )
 
       !-----------------------------------------------------------------
       ! Allocate H2O2s and SO2s for wet deposition 
@@ -5826,13 +5823,12 @@
 ! !USES:
 !
       USE CMN_Size_Mod
+      USE ErrCode_Mod
       USE Error_Mod,          ONLY : Alloc_Err
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE PhysConstants
-      USE Species_Mod,        ONLY : Species
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : AIRMW
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:

@@ -218,9 +218,8 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD    ! Size parameters
       USE ERROR_MOD, ONLY : CHECK_VALUE
-
-      USE CMN_SIZE_MOD  ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -488,10 +487,8 @@
 !
 ! !USES:
 !
-      ! References to F90 modules
+      USE CMN_SIZE_MOD    ! LLPAR, PTOP
       USE ERROR_MOD, ONLY : ALLOC_ERR
-
-      USE CMN_SIZE_MOD  ! LLPAR, PTOP
 !
 ! !INPUT PARAMETERS:
 !
@@ -1036,8 +1033,8 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ErrCode_Mod
+      USE State_Met_Mod,      ONLY : MetState
 !     
 ! !INPUT PARAMETERS: 
 !
@@ -1064,7 +1061,7 @@
       EXTERNAL_PEDGE = State_Met%PEDGE
 
       ! Return successfully
-      RC             = GIGC_SUCCESS
+      RC             = GC_SUCCESS
       
       END SUBROUTINE Accept_External_Pedge
 !EOC

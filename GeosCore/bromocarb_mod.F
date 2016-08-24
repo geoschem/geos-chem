@@ -84,16 +84,15 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PHYSCONSTANTS,      ONLY : AIRMW
-      USE SPECIES_MOD,        ONLY : Species
+      USE PhysConstants,      ONLY : AIRMW
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -175,9 +174,9 @@
 
       ! Check that species units are in kg/kg dry air (ewl, 9/10/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
-         CALL GIGC_Error( 'Incorrect species units: ' //
-     &                    State_Chm%Spc_Units, RC, 
-     &                    'Routine SET_CH3Br in bromocarb_mod.F' )
+         CALL GC_Error( 'Incorrect species units: ' //
+     &                  State_Chm%Spc_Units, RC, 
+     &                  'Routine SET_CH3Br in bromocarb_mod.F' )
          RETURN
       ENDIF
 
@@ -258,15 +257,14 @@
 !
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_WATER
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PHYSCONSTANTS,      ONLY : AIRMW
-      USE SPECIES_MOD,        ONLY : Species
+      USE PhysConstants,      ONLY : AIRMW
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -324,7 +322,7 @@
       !====================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Get the species ID for BrO only on the first call
       IF ( FIRST ) THEN
@@ -358,12 +356,11 @@
       ! ------------------------------------------------------
       BrO_conc = 1.0e-12_fp
 
-
       ! Check that species units are in kg/kg dry air (ewl, 9/10/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
-         CALL GIGC_Error( 'Incorrect species units: ' //
-     &                    State_Chm%Spc_Units, RC, 
-     &                    'Routine SET_BrO in bromocarb_mod.F' )
+         CALL GC_Error( 'Incorrect species units: ' //
+     &                  State_Chm%Spc_Units, RC, 
+     &                  'Routine SET_BrO in bromocarb_mod.F' )
          RETURN
       ENDIF
 

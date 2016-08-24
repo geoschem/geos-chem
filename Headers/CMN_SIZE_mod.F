@@ -784,7 +784,7 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS: 
 ! 
@@ -967,16 +967,16 @@
 
       ! Delta-longitudes [degrees]
       ALLOCATE( DLON( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GC_SUCCESS ) RETURN
       DLON = 0e+0_fpp
 
       ! Delta-latitudes [degrees]
       ALLOCATE( DLAT( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GC_SUCCESS ) RETURN
       DLON = 0e+0_fpp
 
       ! Return w/ success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
       
       END SUBROUTINE Init_CMN_SIZE
 !EOC
@@ -996,7 +996,7 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1016,7 +1016,7 @@
       IF ( ALLOCATED( DLAT ) ) DEALLOCATE( DLAT )
 
       ! Return successfully
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE Cleanup_CMN_SIZE
 !EOC

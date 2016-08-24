@@ -20,25 +20,24 @@
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE PHYSCONSTANTS,      ONLY : g0
       USE DIAG_MOD,           ONLY : AD44
       USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, NTRAIND 
       USE DUST_MOD,           ONLY : SETTLEDUST   
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : IND_
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : g0
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PRECISION_MOD
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TOMAS_MOD
-
-      USE CMN_SIZE_MOD
-      USE CMN_DIAG_MOD
-      USE PRECISION_MOD
 
       IMPLICIT NONE
 !
@@ -133,21 +132,21 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Check that species units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
          MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
-         CALL GIGC_Error( MSG, RC, LOC )
+         CALL GC_Error( MSG, RC, LOC )
       ENDIF
 
       ! First-time setup
       IF ( FIRST ) THEN
 
-         ! Look up species ID's
-         id_H2SO4 = IND_('H2SO4')
-         id_NK1   = IND_('NK1'  )
+         ! Define species ID flags
+         id_H2SO4 = Ind_('H2SO4')
+         id_NK1   = Ind_('NK1'  )
 
          ! Make sure species are defined
          IF ( id_H2SO4 < 0 ) THEN
@@ -233,7 +232,7 @@ cdbg      print *, dryd(:)
       ! SIZ_DIA [=] m  and SIZ_DEN [=] kg/m3
       CALL AERO_DIADEN( am_I_Root, 1,       Input_Opt, State_Met,
      &                  State_Chm, SIZ_DIA, SIZ_DEN,   RC         )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP('CALL AERO_DIADEN',
      &                   'AERO_DRYDEP in aero_drydep.F')
       ENDIF
@@ -442,7 +441,6 @@ c     &           'FLUX  AD44'
          DO JC = 1, ICOMP-IDIAG+1
          DO BIN = 1, IBINS
             X = 0d0
-            ! ID = IDTNK1 - 1 + BIN + (( JC-1 )* IBINS) CODEATHON
             ID = id_NK1 - 1 + BIN + (( JC-1 )* IBINS)
 
 ! ******************************************************************************
@@ -514,7 +512,6 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
 ! (ckeller, 3/5/15)
          !Dry deposit H2SO4 gas (win, 5/24/06)
          Y0 = Spc(I,J,L,id_H2SO4)
-         !Y0 = Spc(I,J,L,IDTH2SO4) CODEATHON
          RKT = DEPSAV(I,J,H2SO4ID)* GET_FRAC_UNDER_PBLTOP( I, J, L)
          Y = Y0 * EXP(-RKT)
 ! ******************************************************************************
@@ -530,7 +527,7 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
             ! Convert from [kg/timestep] to [molec/cm2/s] 
             ! Store in AD44
             FLUX = Y0 - Y
-            FLUX = FLUX * State_Chm%SpcData(id_H2SO4)%Info%emMW_g * !CODEATHON
+            FLUX = FLUX * State_Chm%SpcData(id_H2SO4)%Info%emMW_g *
      &             1.e-3_fp / AREA_CM2 / DTCHEM
 
             AD44(I,J,H2SO4ID,1) = AD44(I,J,H2SO4ID,1) + FLUX   
@@ -539,7 +536,7 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
 #endif
 
          !Swap final H2SO4 back into Spc array
-         Spc(I,J,L,id_H2SO4) = Y   !CODEATHON      
+         Spc(I,J,L,id_H2SO4) = Y
 
       ENDDO
       ENDDO
@@ -559,7 +556,7 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
          MSG = 'Incorrect species units at end of routine: ' 
      &            // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
-         CALL GIGC_Error( MSG, RC, LOC )
+         CALL GC_Error( MSG, RC, LOC )
       ENDIF
 
       ! Return to calling program

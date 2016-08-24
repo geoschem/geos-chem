@@ -180,11 +180,11 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -244,20 +244,18 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : IND_  !kyu codeathon
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L, GET_PBL_TOP_m
-      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
-      USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
-
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD               ! SAVEOH
-      USE PHYSCONSTANTS            ! SCALE_HEIGHT, XNUMOLAIR
-      USE SPECIES_MOD,        ONLY : SPECIES
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L, GET_PBL_TOP_m
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
 !
 ! !INPUT PARAMETERS:
 !
@@ -313,7 +311,7 @@
 !  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod
 !  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
 !  17 May 2016 - M. Sulprizio- Add IS_CHEM logical for incrementing COUNT_CHEM3D
-!  16 Jun 2016 - K. Yu       - Now define species ID's with the IND_ function
+!  16 Jun 2016 - K. Yu       - Now define species ID's with the Ind_ function
 !  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
 !  22 Jun 2016 - M. Yannetti - Replace TCVV with spec db and physical const
 !  28 Jun 2016 - M. Sulprizio- Replace NPVERT with LLPAR to remove dependence
@@ -355,7 +353,7 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Number of advected species
       nAdvect = State_Chm%nAdvect
@@ -366,13 +364,19 @@
       ! First-time setup
       IF ( FIRST ) THEN
 
-         ! get tracer id indices kyu codeathon
-         id_HNO3 = IND_('HNO3'); id_HNO4 = IND_('HNO4')
-         id_N2O5 = IND_('N2O5'); id_NO   = IND_('NO')
-         id_PAN  = IND_('PAN');  id_PMN  = IND_('PMN')
-         id_PPN  = IND_('PPN');  id_O3   = IND_('O3')
-         id_R4N2 = IND_('R4N2'); id_SALA = IND_('SALA')
-         id_SALC = IND_('SALC'); id_NO2  = IND_('NO2')
+         ! Define species ID flags
+         id_HNO3 = Ind_('HNO3')
+         id_HNO4 = Ind_('HNO4')
+         id_N2O5 = Ind_('N2O5')
+         id_NO   = Ind_('NO'  )
+         id_PAN  = Ind_('PAN' )
+         id_PMN  = Ind_('PMN' )
+         id_PPN  = Ind_('PPN' )
+         id_O3   = Ind_('O3'  )
+         id_R4N2 = Ind_('R4N2')
+         id_SALA = Ind_('SALA')
+         id_SALC = Ind_('SALC')
+         id_NO2  = Ind_('NO2' )
 
          ! Set logical flags
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
@@ -942,13 +946,14 @@
       USE BPCH2_MOD,          ONLY : GET_MODELNAME
       USE BPCH2_MOD,          ONLY : GET_HALFPOLAR
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
+      USE CMN_SIZE_MOD             ! Size Parameters
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_XOFFSET
       USE GRID_MOD,           ONLY : GET_YOFFSET
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLUN
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD_DIAG
       USE TIME_MOD,           ONLY : GET_NHMS
@@ -964,8 +969,6 @@
       USE HDF5,               ONLY : HID_T
       INTEGER(HID_T)              :: IU_ND50_HDF
 #endif
-
-      USE CMN_SIZE_MOD  ! Size Parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -1030,7 +1033,7 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Nubmer of advected species
       nAdvect   = State_Chm%nAdvect
@@ -1493,16 +1496,15 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,  ONLY : GET_MODELNAME
-      USE BPCH2_MOD,  ONLY : GET_HALFPOLAR
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE ERROR_MOD,  ONLY : ERROR_STOP
-      USE GRID_MOD,   ONLY : GET_XOFFSET
-      USE GRID_MOD,   ONLY : GET_YOFFSET
-      USE GRID_MOD,   ONLY : ITS_A_NESTED_GRID
-      USE TIME_MOD,   ONLY : GET_TAUb
-  
+      USE BPCH2_MOD,    ONLY : GET_MODELNAME
+      USE BPCH2_MOD,    ONLY : GET_HALFPOLAR
       USE CMN_SIZE_MOD
+      USE ERROR_MOD,    ONLY : ALLOC_ERR
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE GRID_MOD,     ONLY : GET_XOFFSET
+      USE GRID_MOD,     ONLY : GET_YOFFSET
+      USE GRID_MOD,     ONLY : ITS_A_NESTED_GRID
+      USE TIME_MOD,     ONLY : GET_TAUb
 !
 ! !INPUT PARAMETERS: 
 !

@@ -63,7 +63,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
+    USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -87,7 +87,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
       
   END SUBROUTINE Init_VDIFF_PRE
 !EOC
@@ -107,7 +107,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
+    USE ErrCode_Mod
 
     IMPLICIT NONE
 !
@@ -127,7 +127,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
   END SUBROUTINE Cleanup_VDIFF_PRE
 !EOC
@@ -148,9 +148,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -171,7 +171,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
     ! Assume success
-    RC    = GIGC_SUCCESS
+    RC    = GC_SUCCESS
 
     !=====================================================================
     ! The following fields of Input_Opt have to be set in module

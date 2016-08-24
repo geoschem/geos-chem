@@ -15,9 +15,9 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS,ONLY : AVO, AIRMW
-      USE HCO_ERROR_MOD    ! For HEMCO error reporting
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
+      USE HCO_ERROR_MOD       ! For HEMCO error reporting
+      USE PhysConstants, ONLY : AVO, AIRMW
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp, f4, f8)
 
       IMPLICIT NONE
       PRIVATE
@@ -175,12 +175,11 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD             ! Size parameters
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_DYN, GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
-
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -344,16 +343,14 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE DIAG_MOD,           ONLY : AD58
-
-      ! HEMCO update
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState, GetHcoDiagn
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -436,7 +433,7 @@
       !=================================================================
 
       ! Assume success
-      RC                  = GIGC_SUCCESS
+      RC                  = GC_SUCCESS
 
       ! Get nested-grid offsets
       I0                  = GET_XOFFSET()
@@ -870,15 +867,14 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD43
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN, IT_IS_FINITE
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_DAY,   GET_MONTH
-
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_DAY,   GET_MONTH
 !
 ! !INPUT PARAMETERS:
 !
@@ -985,7 +981,7 @@
      &            SUM(State_Chm%Species)
 
       ! Assume success
-      RC      = GIGC_SUCCESS
+      RC      = GC_SUCCESS
 
       ! Number of advected species
       nAdvect = State_Chm%nAdvect
@@ -1186,10 +1182,10 @@
       USE CMN_SIZE_MOD
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE DIAG_MOD,           ONLY : AD19   	      
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR
       USE TIME_MOD,           ONLY : GET_MONTH
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1346,9 +1342,9 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE DIAG_OH_MOD,        ONLY : DO_DIAG_OH_CH4
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
 !
 ! !INPUT PARAMETERS:
@@ -1506,11 +1502,11 @@
       USE CMN_SIZE_MOD
       USE CHEMGRID_MOD,       ONLY : GET_MIN_TPAUSE_LEVEL
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : CHECK_SPC
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
 
 ! !INPUT PARAMETERS:
@@ -1575,7 +1571,7 @@
       !=================================================================
 
       ! Assume success
-      RC                  =  GIGC_SUCCESS
+      RC                  =  GC_SUCCESS
 
       ! Copy fields from INPUT_OPT
       LUCX                =  Input_Opt%LUCX
@@ -1717,11 +1713,11 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_MONTH,   GET_YEAR
       USE TIME_MOD,           ONLY : GET_DIAGb,   GET_CT_DYN
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2213,7 +2209,7 @@
       USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_CHEMGRID
       USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
-      USE GIGC_State_Met_Mod
+      USE State_Met_Mod,     ONLY : State_Met
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2332,9 +2328,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE ERROR_MOD,          ONLY : SAFE_DIV
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
    
       IMPLICIT NONE
 !
@@ -2416,7 +2412,7 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2474,7 +2470,7 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2533,11 +2529,11 @@
 !
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : IND_
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -2549,7 +2545,7 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  This routine is called from GIGC_INIT_EXTRA (in GeosCore/input_mod.f)
+!  This routine is called from GC_INIT_EXTRA (in GeosCore/input_mod.f)
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
@@ -2573,10 +2569,10 @@
       !=================================================================
 
       ! Assume Success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
-      ! Initialize species ID
-      id_CH4 = IND_('CH4')
+      ! Define species ID flag
+      id_CH4 = Ind_('CH4')
 
       ! Make sure CH4 is a defined species (bmy, 6/20/16)
       IF ( id_CH4 <= 0 ) THEN

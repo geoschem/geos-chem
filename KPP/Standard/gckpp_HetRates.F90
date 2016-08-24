@@ -24,10 +24,10 @@ MODULE GCKPP_HETRATES
   USE gckpp_Precision
   USE gckpp_Parameters
   USE gckpp_Global,       ONLY : HET
-  USE GIGC_State_Chm_Mod, ONLY : ChmState
-  USE GIGC_State_Chm_Mod, ONLY : IND_
-  USE GIGC_State_Met_Mod, ONLY : MetState
-  USE GIGC_Input_Opt_Mod, ONLY : OptInput
+  USE State_Chm_Mod,      ONLY : ChmState
+  USE State_Chm_Mod,      ONLY : Ind_
+  USE State_Met_Mod,      ONLY : MetState
+  USE Input_Opt_Mod,      ONLY : OptInput
   USE PhysConstants,      ONLY : AVO
   USE Precision_Mod,      ONLY : fp
 
@@ -250,28 +250,28 @@ MODULE GCKPP_HETRATES
       !--------------------------------------------------------------------
       ! Get species concentrations [molec/cm3]
       !--------------------------------------------------------------------
-      IND = IND_( 'NIT' )
+      IND = Ind_( 'NIT' )
       IF (IND .le. 0) THEN
          SPC_NIT    = 0.0e+0_fp
       ELSE
          SPC_NIT    = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND = IND_( 'SO4' )
+      IND = Ind_('SO4')
       IF (IND .le. 0) THEN
          SPC_SO4    = 0.0e+0_fp
       ELSE
          SPC_SO4    = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND = IND_( 'HBr' )
+      IND = Ind_('HBr')
       IF (IND .le. 0) THEN
          SPC_HBr    = 0.0e+0_fp
       ELSE
          SPC_HBr    = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND = IND_( 'HOBr' )
+      IND = Ind_('HOBr')
       IF (IND .le. 0) THEN
          SPC_HOBr   = 0.0e+0_fp
       ELSE
@@ -279,42 +279,42 @@ MODULE GCKPP_HETRATES
       ENDIF
 
 #if defined( UCX )
-      IND = IND_( 'N2O5' )
+      IND = Ind_('N2O5')
       IF (IND .le. 0) THEN
          SPC_N2O5   = 0.0e+0_fp
       ELSE
          SPC_N2O5   = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND = IND_( 'H2O' )
+      IND = Ind_('H2O')
       IF (IND .le. 0) THEN
          SPC_H2O    = 0.0e+0_fp
       ELSE
          SPC_H2O    = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND = IND_( 'HCl' )
+      IND = Ind_('HCl')
       IF (IND .le. 0) THEN
          SPC_HCl    = 0.0e+0_fp
       ELSE
          SPC_HCl    = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND = IND_( 'ClNO3' )
+      IND = Ind_('ClNO3')
       IF (IND .le. 0) THEN
          SPC_ClNO3  = 0.0e+0_fp
       ELSE
          SPC_ClNO3  = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND = IND_( 'BrNO3' )
+      IND = Ind_('BrNO3')
       IF (IND .le. 0) THEN
          SPC_BrNO3  = 0.0e+0_fp
       ELSE
          SPC_BrNO3  = SC%Species(I,J,L,IND)
       ENDIF
 
-      IND = IND_( 'HOCl' )
+      IND = Ind_('HOCl')
       IF (IND .le. 0) THEN
          SPC_HOCl   = 0.0e+0_fp
       ELSE
@@ -1554,7 +1554,7 @@ MODULE GCKPP_HETRATES
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1793,7 +1793,7 @@ MODULE GCKPP_HETRATES
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !

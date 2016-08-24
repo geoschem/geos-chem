@@ -15,7 +15,7 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS
+      USE PhysConstants
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -165,12 +165,9 @@
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD65
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : CHECK_VALUE
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID      
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE HCO_Error_Mod
@@ -178,6 +175,9 @@
       USE HCOI_GC_Main_Mod,   ONLY : GetHcoId
       USE HCOI_GC_Main_Mod,   ONLY : GetHcoState
       USE HCOI_GC_Main_Mod,   ONLY : GetHcoDiagn 
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
@@ -334,7 +334,7 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Number of advected species
       nAdvect   = State_Chm%nAdvect
@@ -375,19 +375,19 @@
          
          ! Get a pointer to the OH field from the HEMCO list (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,   RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
+         IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
          ENDIF
 
          ! Get pointer to strat P(CO) from GMI
          CALL HCO_GetPtr( am_I_Root, 'GMI_PROD_CO', GMI_PROD_CO, RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
+         IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GMI_PROD_CO', LOC )
          ENDIF
 
          ! Get pointer to strat L(CO) from GMI
          CALL HCO_GetPtr( am_I_Root, 'GMI_LOSS_CO', GMI_LOSS_CO, RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
+         IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GMI_LOSS_CO', LOC )
          ENDIF
             
@@ -1203,12 +1203,12 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : Alloc_Err
-      USE GIGC_ErrCode_MOd
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE HCO_STATE_MOD,      ONLY : Hco_State
       USE HCO_EmisList_Mod,   ONLY : Hco_GetPtr
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1251,7 +1251,7 @@
       !=================================================================
 
       ! Assume success until otherwise known
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Allocate SUMISOPCO -- array for CO from isoprene
       ALLOCATE( SUMISOPCO( IIPAR, JJPAR ), STAT=AS )

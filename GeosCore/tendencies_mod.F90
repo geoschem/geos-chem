@@ -30,15 +30,15 @@
 !
 !    ! Create new class
 !    CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'PROCESS', RC )
-!    IF ( RC /= GIGC_SUCCESS ) RETURN
+!    IF ( RC /= GC_SUCCESS ) RETURN
 !
 ! The second step is to assign the tracers of interest to this tendency class:
 !
 !    ! Add species to classes
 !    CALL Tend_Add ( am_I_Root, Input_Opt, 'PROCESS', id_O3, RC )
-!    IF ( RC /= GIGC_SUCCESS ) RETURN
+!    IF ( RC /= GC_SUCCESS ) RETURN
 !    CALL Tend_Add ( am_I_Root, Input_Opt, 'PROCESS', id_CO, RC )
-!    IF ( RC /= GIGC_SUCCESS ) RETURN
+!    IF ( RC /= GC_SUCCESS ) RETURN
 !
 ! The last step then involves the definition of the entry and exit points of
 ! the tendencies, e.g. the interval in between the tendencies shall be 
@@ -63,14 +63,14 @@ MODULE Tendencies_Mod
 !
 ! !USES:
 !
-  USE Precision_Mod
+  USE ErrCode_Mod
+  USE Error_Mod,          ONLY : Error_Stop
   USE HCO_Error_Mod
   USE HCO_Diagn_Mod
-  USE GIGC_ErrCode_Mod
-  USE Error_Mod,          ONLY : Error_Stop
-  USE GIGC_Input_Opt_Mod, ONLY : OptInput
-  USE GIGC_State_Met_Mod, ONLY : MetState
-  USE GIGC_State_Chm_Mod, ONLY : ChmState
+  USE Input_Opt_Mod,      ONLY : OptInput
+  USE Precision_Mod
+  USE State_Chm_Mod,      ONLY : ChmState
+  USE State_Met_Mod,      ONLY : MetState
 
   IMPLICIT NONE
   PRIVATE
@@ -142,7 +142,7 @@ CONTAINS
 !
 ! !USES:
 !
-     USE GIGC_State_Chm_Mod, ONLY : IND_
+     USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -161,7 +161,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  26 Oct 2015 - C. Keller   - Initial version 
-!  16 Jun 2016 - J. Kaiser   - Move tracer IDS to variable names CODEATHON
+!  16 Jun 2016 - J. Kaiser   - Move tracer IDS to variable names
 !  20 Jun 2016 - R. Yantosca - Renamed IDTCO, IDTO3 to id_CO and id_O3
 !  19 Jul 2016 - R. Yantosca - Activate more tendency classes
 !EOP
@@ -170,7 +170,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! Species Id flags
+    ! Species ID flags
     INTEGER            :: id_CO
     INTEGER            :: id_O3
 
@@ -188,9 +188,9 @@ CONTAINS
     !=======================================================================
 
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
-    ! Define species ID's (add more as necessary)
+    ! Define species ID flags
     id_CO = Ind_('CO')
     id_O3 = Ind_('O3') 
        
@@ -202,57 +202,57 @@ CONTAINS
        !--------------------------------------------------------------------
 
        CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'ADV' ,   RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'CHEM',   RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'CONV',   RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'FLUX',   RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'PBLMIX', RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'WETD',   RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        !--------------------------------------------------------------------
        ! Activate tendency computations for O3 (add more as you wish)
        !--------------------------------------------------------------------
 
        CALL Tend_Add ( am_I_Root, Input_Opt, 'ADV',    id_O3, RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM',   id_O3, RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        CALL Tend_Add ( am_I_Root, Input_Opt, 'CONV',   id_O3, RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        CALL Tend_Add ( am_I_Root, Input_Opt, 'DRYD',   id_O3, RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        CALL Tend_Add ( am_I_Root, Input_Opt, 'PBLMIX', id_O3, RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        !--------------------------------------------------------------------
        ! Activate tendency computations for CO (add more as you wish)
        !--------------------------------------------------------------------
 
        CALL Tend_Add ( am_I_Root, Input_Opt, 'ADV',    id_CO, RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM',   id_CO, RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        CALL Tend_Add ( am_I_Root, Input_Opt, 'CONV',   id_CO, RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        CALL Tend_Add ( am_I_Root, Input_Opt, 'PBLMIX', id_CO, RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
 
     ENDIF ! test toggle
 
@@ -304,11 +304,11 @@ CONTAINS
     !=======================================================================
 
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
     
     ! Check if class already exists
     CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     IF ( .NOT. FOUND ) THEN 
 
@@ -384,7 +384,7 @@ CONTAINS
     !=======================================================================
 
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Init
     FOUND   = .FALSE.
@@ -542,7 +542,7 @@ CONTAINS
     !=======================================================================
 
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Initialize
     ThisTend => NULL()
@@ -556,11 +556,15 @@ CONTAINS
     ! Eventually create this class if it does not exist yet
     IF ( .NOT. FOUND .AND. PRESENT( CreateClass ) ) THEN
        IF ( CreateClass ) THEN
+
           ! Create class
           CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, TendName, RC )
-          IF ( RC /= GIGC_SUCCESS ) RETURN
+          IF ( RC /= GC_SUCCESS ) RETURN
+
           ! Get pointer to class object 
-          CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, ThisTend=ThisTend ) 
+          CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, &
+                               ThisTend=ThisTend ) 
+
        ENDIF
     ENDIF
 
@@ -639,7 +643,6 @@ CONTAINS
 ! !USES:
 !
     USE PHYSCONSTANTS,      ONLY : AIRMW
-    USE SPECIES_MOD,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -683,7 +686,7 @@ CONTAINS
     !=======================================================================
 
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Initialize
     Ptr3D    => NULL()
@@ -743,8 +746,7 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_MOD,      ONLY : IIPAR, JJPAR, LLPAR
-    USE PHYSCONSTANTS,      ONLY : AIRMW
-    USE SPECIES_MOD,        ONLY : Species
+    USE PHYSCONSTANTS,     ONLY : AIRMW
 
 !
 ! !INPUT PARAMETERS:
@@ -795,7 +797,7 @@ CONTAINS
     !=======================================================================
 
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Initialize
     Ptr3d    => NULL()
@@ -847,7 +849,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) THEN 
           WRITE(MSG,*) 'Error in updating diagnostics with ID ', cID
           CALL ERROR_STOP ( MSG, LOC )
-          RC = GIGC_FAILURE
+          RC = GC_FAILURE
           RETURN
        ENDIF
 
@@ -924,7 +926,7 @@ CONTAINS
     !=======================================================================
 
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Init
     ThisTend => NULL()

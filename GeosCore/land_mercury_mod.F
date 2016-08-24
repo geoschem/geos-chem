@@ -76,11 +76,11 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
       USE DEPO_MERCURY_MOD,   ONLY : WD_HGP, WD_HG2, DD_HGP, DD_HG2
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -238,15 +238,13 @@
 !     
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-
-      ! HEMCO update
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoDiagn
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
-      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -368,14 +366,14 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_LAND
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ErrCode_Mod
       USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TIME_MOD,           ONLY : GET_TS_EMIS
-      USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -445,7 +443,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! No emissions through transpiration if we use Bess' GCAP emissions
       ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
@@ -473,14 +471,13 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD,            ONLY : IS_LAND
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE MODIS_LAI_MOD,      ONLY : ISOLAI  => GC_LAI
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TIME_MOD,           ONLY : GET_TS_EMIS
-
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -705,10 +702,10 @@
 !
 ! !USES:
 !
-      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC, SNOW_HG_LN
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE CMN_SIZE_MOD             ! Size parameters
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC, SNOW_HG_LN
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
 !
 ! !INPUT PARAMETERS: 
 !
@@ -909,19 +906,18 @@
 ! !USES:
 !
       USE BPCH2_MOD
+      USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD,            ONLY : IS_LAND
       USE DEPO_MERCURY_MOD,   ONLY : CHECK_DIMENSIONS
       USE DEPO_MERCURY_MOD,   ONLY : WD_Hg2, WD_HgP, DD_HgP, DD_Hg2
       USE DEPO_MERCURY_MOD,   ONLY : READ_GTMM_RESTART
+      USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLun
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE, YMD_EXTRACT
       USE TIME_MOD,           ONLY : GET_NYMD, GET_NHMS
-    
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -994,7 +990,7 @@
       !=================================================================
 
       ! Assume success
-      RC         = GIGC_SUCCESS
+      RC         = GC_SUCCESS
 
       ! Initialise arrays
       NYMD       = GET_NYMD()
@@ -1156,10 +1152,10 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !

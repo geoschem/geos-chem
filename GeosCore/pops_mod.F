@@ -15,8 +15,8 @@
 ! 
 ! !USES:
 !
+      USE PhysConstants    ! For physical constants
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
-      USE PHYSCONSTANTS    ! For physical constants
 
       IMPLICIT NONE
       PRIVATE
@@ -118,13 +118,13 @@
 !
       USE CMN_SIZE_MOD
       USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -170,7 +170,7 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
       
       ! Get fields from Input_Opt
       LPRT      = Input_Opt%LPRT
@@ -190,19 +190,19 @@
       IF ( FIRST ) THEN
 
          CALL HCO_GetPtr( aIR, 'GLOBAL_OC', C_OC, RC )
-         IF ( RC /= GIGC_SUCCESS ) 
+         IF ( RC /= GC_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OC', LOC )
 
          CALL HCO_GetPtr( aIR, 'GLOBAL_BC', C_BC, RC )
-         IF ( RC /= GIGC_SUCCESS ) 
+         IF ( RC /= GC_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_BC', LOC )
 
          CALL HCO_GetPtr( aIR, 'GLOBAL_OH', OH,   RC )
-         IF ( RC /= GIGC_SUCCESS ) 
+         IF ( RC /= GC_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
 
          CALL HCO_GetPtr( aIR, 'GLOBAL_O3', O3,   RC )
-         IF ( RC /= GIGC_SUCCESS ) 
+         IF ( RC /= GC_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_O3', LOC )
 
          FIRST = .FALSE.
@@ -373,14 +373,14 @@
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE DIAG53_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -427,7 +427,7 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      ! Now use RSTARG (8.31450e+0_fp) in PHYSCONSTANTS (ewl, 1/4/16)
+      ! Now use RSTARG (8.31450e+0_fp) in PhysConstants (ewl, 1/4/16)
 !      ! R = universal gas constant for adjusting KOA for temp: 8.3145 [J/mol/K]
 !      REAL(fp), PARAMETER :: R          = 8.31e+0_fp  
 
@@ -596,7 +596,7 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Copy values from Input_Opt
       DEL_H     = Input_Opt%POP_DEL_H
@@ -707,7 +707,7 @@
          ! Get monthly mean O3 concentrations
          ! O3 is in v/v (from HEMCO), convert to molec/cm3 (mps, 9/10/14)
          ! Now use State_Met%AIRDEN (dry air density in [kg/m3])
-         ! and use parameters from PHYSCONSTANTS (ewl, 1/4/16)
+         ! and use parameters from PhysConstants (ewl, 1/4/16)
 !         C_O3  = O3(I,J,L) * ( 6.022e+23_fp / 28.97e-3_fp ) * 
 !     &           State_Met%AD(I,J,L)    /  BOXVL
          C_O3  = O3(I,J,L) * ( AVO / ( AIRMW * 1.e-3_fp ) ) * 
@@ -766,7 +766,7 @@
 
          ! Define temperature-dependent partition coefficients
          ! NOTE: State_Met%T is in units of [K]
-         ! Use parameters from PHYSCONSTANTS (ewl, 1/4/16)
+         ! Use parameters from PhysConstants (ewl, 1/4/16)
 !         KOA_T = KOA_298 * EXP((-DEL_H/R) * ((1e+0_fp/TK) - 
          KOA_T = KOA_298 * EXP( ( -DEL_H / RSTARG ) * 
      &                      ( ( 1e+0_fp / State_Met%T(I,J,L) ) - 
@@ -1588,10 +1588,9 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-
       USE CMN_SIZE_MOD             ! Size parameters
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1662,11 +1661,10 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD   ! Size parameters
       USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
       USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
       USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
-
-      USE CMN_SIZE_MOD   ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  20 Sep 2010 - N.E. Selin  - Initial Version for POPS_MOD
@@ -1807,13 +1805,12 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
-      USE Species_Mod,        Only : Species
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -1836,7 +1833,7 @@
 !                              we can take advantage of the species database
 !  02 May 2016 - R. Yantosca - Now make id_POP* flags as module variables
 !                              instead of getting them from tracerid_mod.F
-!  22 Jun 2016 - R. Yantosca - Now use IND_() to define species & drydep ID's
+!  22 Jun 2016 - R. Yantosca - Now use Ind_() to define species & drydep ID's
 !  22 Jun 2016 - R. Yantosca - Rename IDT* flags to id* and DRY* to dd_*
 !EOP
 !------------------------------------------------------------------------------
@@ -1852,7 +1849,7 @@
       !=================================================================
 
       ! Assume success
-      RC    = GIGC_SUCCESS
+      RC    = GC_SUCCESS
       
       !=================================================================
       ! Allocate and initialize arrays

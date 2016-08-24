@@ -17,9 +17,9 @@ MODULE Grid_Mod
 ! 
 ! !USES:
 !
-  USE PHYSCONSTANTS    ! Physical constants
   USE Error_Mod        ! Error-handling routines
   USE Precision_Mod    ! For GEOS-Chem Precision (fp)
+  USE PhysConstants    ! Physical constants
 
   IMPLICIT NONE
   PRIVATE
@@ -112,7 +112,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
+    USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -154,7 +154,7 @@ CONTAINS
   !======================================================================
 
   ! Assume success
-  RC = GIGC_SUCCESS
+  RC = GC_SUCCESS
 
   ! Compute the GEOS-Chem grid specifications
   Call DoGridComputation( am_I_Root,                                     &
@@ -187,7 +187,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
+    USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -646,7 +646,7 @@ CONTAINS
     ENDDO
 
     ! Return successfully
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     !======================================================================
     ! Echo info to stdout
@@ -695,7 +695,7 @@ CONTAINS
 !
 ! USES
 !
-    USE GIGC_ErrCode_Mod
+    USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -739,7 +739,7 @@ CONTAINS
     IF ( NX /= NI .OR. NY /= NJ ) THEN
        WRITE(MSG,*) 'Grid dimension mismatch: ',NX,'/=',NI,' and/or ',NY,'/=',NJ
        CALL ERROR_STOP ( MSG, 'SetGridFromCtr (grid_mod.F90)' )
-       RC = GIGC_FAILURE
+       RC = GC_FAILURE
        RETURN
     ENDIF
 
@@ -791,7 +791,7 @@ CONTAINS
     ENDDO 
 
     ! Return w/ success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
   END SUBROUTINE SetGridFromCtr
 !EOC
@@ -1469,8 +1469,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1504,7 +1504,7 @@ CONTAINS
     !======================================================================
 
     ! Assume success
-    RC        = GIGC_SUCCESS
+    RC        = GC_SUCCESS
 
     ! IS_NESTED is now a local shadow variable (bmy, 4/1/15)
     IS_NESTED = Input_Opt%ITS_A_NESTED_GRID

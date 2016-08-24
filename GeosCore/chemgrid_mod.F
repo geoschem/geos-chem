@@ -102,7 +102,7 @@
 !
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -168,9 +168,9 @@
 !
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE m_netcdf_io_open
       USE m_netcdf_io_read
       USE m_netcdf_io_readattr
@@ -252,7 +252,7 @@
       !=================================================================
       
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Open and read data from the netCDF file
@@ -536,7 +536,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -591,7 +591,7 @@
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 
       USE CMN_SIZE_MOD             ! Size parameters
 !
@@ -695,7 +695,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -764,7 +764,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -815,7 +815,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -909,7 +909,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
       USE CMN_SIZE_MOD,       Only : LLCHEM
 !
 ! !INPUT PARAMETERS: 
@@ -964,7 +964,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1016,9 +1016,9 @@
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD55
 #endif
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState    
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState    
 #if defined( NC_DIAG )
       USE Error_Mod,          ONLY : Error_Stop
       USE HCO_Diagn_Mod,      ONLY : Diagn_Update
@@ -1119,7 +1119,7 @@
       !=======================================================================
 
       ! Assume successful return
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Exit if diagnostic is not turned on
 #if defined( BPCH_DIAG )
@@ -1314,9 +1314,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1344,7 +1344,7 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Shadow Input_Opt%LVARTROP in a module variable
       LVARTROP = Input_Opt%LVARTROP

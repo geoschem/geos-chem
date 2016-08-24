@@ -19,7 +19,7 @@
 ! !USES:
 !
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCENARIO
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE Input_Opt_Mod,        ONLY : OptInput
       USE PRECISION_MOD 
 
       IMPLICIT NONE

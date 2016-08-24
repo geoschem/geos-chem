@@ -83,9 +83,8 @@
 !                              remove AD pointer
 !******************************************************************************
 !
-      USE inquireMod, ONLY : findFreeLUN
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE inquireMod,    ONLY : findFreeLUN
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 
@@ -186,22 +185,20 @@
 !
       ! References to F90 modules
       USE BPCH2_MOD,          ONLY : BPCH2
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_XOFFSET,        GET_YOFFSET
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE TIME_MOD,           ONLY : GET_LOCALTIME,      GET_NYMD
-      USE TIME_MOD,           ONLY : GET_NHMS,           GET_TAU
-      USE TIME_MOD,           ONLY : EXPAND_DATE,        ITS_A_NEW_DAY
-
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD               ! SAVEOH, XNUMOLAIR
-      USE PHYSCONSTANTS            ! SCALE_HEIGHT, XNUMOLAIR
-      USE Species_Mod,        ONLY : Species
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GRID_MOD,           ONLY : GET_XOFFSET,        GET_YOFFSET
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
+      USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_LOCALTIME,      GET_NYMD
+      USE TIME_MOD,           ONLY : GET_NHMS,           GET_TAU
+      USE TIME_MOD,           ONLY : EXPAND_DATE,        ITS_A_NEW_DAY
 !
 ! !INPUT PARAMETERS:
 !
@@ -246,7 +243,7 @@
       !=================================================================
 
       ! Assume success
-      RC            =  GIGC_SUCCESS
+      RC            =  GC_SUCCESS
 
       ! Number of advected species
       nAdvect       = State_Chm%nAdvect
@@ -945,8 +942,8 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE TIME_MOD, ONLY : GET_ELAPSED_MIN, GET_TS_DIAG
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
+      USE TIME_MOD,  ONLY : GET_ELAPSED_MIN, GET_TS_DIAG
 
       ! Local variables
       LOGICAL :: ITS_TIME
@@ -1011,11 +1008,11 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD, ONLY : GET_MODELNAME, GET_HALFPOLAR
-      USE ERROR_MOD, ONLY : ALLOC_ERR, ERROR_STOP
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
+      USE BPCH2_MOD,             ONLY : GET_MODELNAME, GET_HALFPOLAR
+      USE CMN_SIZE_MOD                ! Size parameters
+      USE ERROR_MOD,             ONLY : ALLOC_ERR, ERROR_STOP
+      USE State_Chm_Mod,         ONLY : Ind_
 
-      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       LOGICAL,            INTENT(IN) :: DO_ND48

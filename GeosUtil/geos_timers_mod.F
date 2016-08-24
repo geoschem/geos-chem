@@ -15,7 +15,7 @@
 !
 ! !USES:
 ! 
-      USE GIGC_Errcode_Mod
+      USE Errcode_Mod
 
       IMPLICIT NONE
       PRIVATE
@@ -178,7 +178,7 @@
 
       ! First it is important to check if timers are enabled.
       IF (.not. DoTimers) THEN       ! Assume False for optimization.
-         RC = GIGC_SUCCESS
+         RC = GC_SUCCESS
          RETURN                      ! If no timers, do nothing.
       ENDIF
 
@@ -200,7 +200,7 @@
          !PRINT*, TimerName, "timer added at slot ", TimerCurrentSize
 
          ! Success.
-         RC = GIGC_SUCCESS
+         RC = GC_SUCCESS
 
       ELSE                                             ! There's not room.
 
@@ -209,7 +209,7 @@
          PRINT*,"    TimerMaxSize     = ", TimerMaxSize
 
          ! Failure
-         RC = GIGC_FAILURE
+         RC = GC_FAILURE
 
       ENDIF
 
@@ -255,7 +255,7 @@
 
       ! First it is important to check if timers are enabled.
       IF (.not. DoTimers) THEN       ! Assume False for optimization.
-         RC = GIGC_SUCCESS
+         RC = GC_SUCCESS
          RETURN                      ! If no timers, do nothing.
       ENDIF
 
@@ -266,14 +266,14 @@
 
       IF (TimerLoc .eq. 0) THEN
          PRINT*, "** WARNING: Timer not found: ", TimerName
-         RC = GIGC_FAILURE
+         RC = GC_FAILURE
          RETURN
       ENDIF
 
       ! Now we do some minor error checking
       IF ( (SavedTimers(TimerLoc)%ENABLED) .eq. .true.) THEN
          PRINT*, "** WARNING: Timer already running: ", TimerName
-         RC = GIGC_FAILURE
+         RC = GC_FAILURE
          RETURN
       ENDIF
       
@@ -294,7 +294,7 @@
       SavedTimers(TimerLoc)%START_TIME = TheTime
 
       ! Success.
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE GEOS_Timer_Start
 !EOC
@@ -338,7 +338,7 @@
 
       ! First it is important to check if timers are enabled.
       IF (.not. DoTimers) THEN       ! Assume False for optimization.
-         RC = GIGC_SUCCESS
+         RC = GC_SUCCESS
          RETURN                      ! If no timers, do nothing.
       ENDIF
 
@@ -348,14 +348,14 @@
 
       IF (TimerLoc .eq. 0) THEN
          PRINT*, "** WARNING: Timer not found: ", TimerName
-         RC = GIGC_FAILURE
+         RC = GC_FAILURE
          RETURN
       ENDIF
 
       ! Now we do some minor error checking
       IF ( (SavedTimers(TimerLoc)%ENABLED) .eq. .false.) THEN
          PRINT*, "** WARNING: Timer not running: ", TimerName
-         RC = GIGC_FAILURE
+         RC = GC_FAILURE
          RETURN
       ENDIF
 
@@ -390,7 +390,7 @@
      &   (SavedTimers(TimerLoc)%TOTAL_TIME) + Diff
 
       ! Success.
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE GEOS_Timer_End
 !EOC
@@ -434,7 +434,7 @@
 
       ! First it is important to check if timers are enabled.
       IF (.not. DoTimers) THEN       ! Assume False for optimization.
-         RC = GIGC_SUCCESS
+         RC = GC_SUCCESS
          RETURN                      ! If no timers, do nothing.
       ENDIF
 
@@ -444,14 +444,14 @@
 
       IF (TimerLoc .eq. 0) THEN
          PRINT*, "** WARNING: Timer not found: ", TimerName
-         RC = GIGC_FAILURE
+         RC = GC_FAILURE
          RETURN
       ENDIF      
 
       CALL GEOS_Timer_PrintNum( TimerLoc, am_I_Root )
 
       ! Success.
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE GEOS_Timer_Print
 !EOC
@@ -494,12 +494,12 @@
 
       ! First it is important to check if timers are enabled.
       IF (.not. DoTimers) THEN       ! Assume False for optimization.
-         RC = GIGC_SUCCESS
+         RC = GC_SUCCESS
          RETURN                      ! If no timers, do nothing.
       ENDIF
 
       IF(TimerCurrentSize < 1) THEN  ! Return 0 if it's empty
-         RC = GIGC_FAILURE
+         RC = GC_FAILURE
          RETURN
       ENDIF
 
@@ -519,7 +519,7 @@
       ENDDO
 
       ! Success.
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE GEOS_Timer_PrintAll
 !EOC
@@ -557,12 +557,12 @@
 
       ! First it is important to check if timers are enabled.
       IF (.not. DoTimers) THEN       ! Assume False for optimization.
-         RC = GIGC_SUCCESS
+         RC = GC_SUCCESS
          RETURN                      ! If no timers, do nothing.
       ENDIF
 
       IF(TimerCurrentSize < 1) THEN  ! Return 0 if it's empty
-         RC = GIGC_FAILURE
+         RC = GC_FAILURE
          RETURN
       ENDIF
 
@@ -578,7 +578,7 @@
       ENDDO
 
       ! Success.
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE GEOS_Timer_StopAll
 !EOC

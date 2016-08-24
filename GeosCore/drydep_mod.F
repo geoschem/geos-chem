@@ -17,7 +17,6 @@
 !
       USE CMN_SIZE_MOD                          ! Size parameters
       USE CMN_DIAG_MOD                          ! Diag counters & flags
-      USE PHYSCONSTANTS                         ! Physical constants
       USE DAO_MOD                               ! Met field subroutines
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
@@ -29,7 +28,8 @@
 #if   defined( TOMAS )
       USE TOMAS_MOD                             ! For TOMAS microphysics
 #endif
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE PhysConstants                         ! Physical constants
+      USE PRECISION_MOD                         ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -49,7 +49,7 @@
       PUBLIC :: NTRAIND
       PUBLIC :: IDEP,   IRGSS,  IRAC, IRCLS
       PUBLIC :: IRGSO,  IRLU,   IRI,  IRCLO, DRYCOEFF
-!      PUBLIC :: NDVZIND ! MSL -> For MPI broadcasting in GIGC
+!      PUBLIC :: NDVZIND ! MSL -> For MPI broadcasting in GCHP
 !
 ! !REMARKS:
 !  References:
@@ -306,14 +306,14 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ErrCode_Mod
       USE HCO_ERROR_MOD
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-      USE UNITCONV_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -460,7 +460,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Initialize
       SpcInfo => NULL()
@@ -684,7 +684,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -887,13 +887,12 @@
 ! !USES:
 !
       USE Drydep_Toolbox_Mod, ONLY : BioFit
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE DRYDEP_TOOLBOX_MOD, ONLY : BIOFIT
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1180,7 +1179,7 @@
       !=================================================================
 
       ! Assume success
-      RC                =  GIGC_SUCCESS
+      RC                =  GC_SUCCESS
 
       ! Error check: PBL_DRYDEP must not be used together with non-local
       ! PBL mixing. 
@@ -1247,7 +1246,7 @@
       IF ( id_NK1 > 0 ) THEN
          CALL AERO_DIADEN( am_I_Root, 1,       Input_Opt, State_Met,
      &                     State_Chm, SIZ_DIA, SIZ_DEN,   RC        )
-         IF ( RC /= GIGC_SUCCESS ) THEN
+         IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP('CALL AERO_DIADEN',
      &                      'DEPVEL in drydep_mod.F')
          ENDIF
@@ -2091,8 +2090,8 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
 
       ! Modules for netCDF read
       USE m_netcdf_io_open
@@ -2569,7 +2568,7 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3052,7 +3051,7 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -3886,11 +3885,11 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -3995,7 +3994,7 @@
       !=================================================================
       
       ! Assume success
-      RC      = GIGC_SUCCESS
+      RC      = GC_SUCCESS
      
       ! Is this a mercury simulation?
       IS_Hg   = Input_Opt%ITS_A_MERCURY_SIM

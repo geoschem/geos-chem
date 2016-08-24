@@ -77,8 +77,8 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -219,8 +219,8 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -257,7 +257,7 @@
       LPRT = ( Input_Opt%LPRT .and. am_I_Root )
 
       ! Assume success
-      RC         = GIGC_SUCCESS
+      RC         = GC_SUCCESS
 
       ! Return if this diagnostic is turned off
       IF ( .not. DO_SAVE_OH ) RETURN
@@ -387,11 +387,11 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT VARIABLES:
 !
@@ -408,7 +408,7 @@
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  23 Jun 2014 - R. Yantosca - Removed reference to logical_mod.F
 !  23 Jun 2014 - R. Yantosca - Removed reference to tracer_mod.F
-!  23 Jun 2016 - R. Yantosca - Now use IND_() function for species ID's
+!  23 Jun 2016 - R. Yantosca - Now use Ind_() function for species ID's
 !  23 Jun 2016 - R. Yantosca - Now define species ID for OH in the INIT phase
 !  23 Jun 2016 - R. Yantosca - Bug fix: exit unless it's a fullchem or CH4 sim
 !EOP

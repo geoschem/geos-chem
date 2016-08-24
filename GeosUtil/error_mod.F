@@ -14,10 +14,9 @@
 ! 
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -30,7 +29,7 @@
       PUBLIC  :: ALLOC_ERR
       PUBLIC  :: CHECK_VALUE
       PUBLIC  :: DEBUG_MSG
-      PUBLIC  :: GIGC_ERROR
+      PUBLIC  :: GC_ERROR
       PUBLIC  :: ERROR_STOP
       PUBLIC  :: GEOS_CHEM_STOP
       PUBLIC  :: IS_SAFE_DIV
@@ -554,16 +553,16 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GIGC_Error
+! !IROUTINE: GC_Error
 !
-! !DESCRIPTION: Subroutine GIGC\_Error prints an error message and sets RC to 
-! GIGC\_FAILURE. Note that this routine does not stop a run, but it will cause 
-! a stop at a higher level if you add a catch for RC /= GIGC\_SUCCESS. 
+! !DESCRIPTION: Subroutine GC\_Error prints an error message and sets RC to 
+!  GC\_FAILURE. Note that this routine does not stop a run, but it will cause 
+!  a stop at a higher level if you add a catch for RC /= GC\_SUCCESS. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GIGC_Error( ErrMsg, RC, ThisLoc )
+      SUBROUTINE GC_Error( ErrMsg, RC, ThisLoc )
 !
 ! !INPUT PARAMETERS:
 !
@@ -576,13 +575,14 @@
 !
 ! !REVISION HISTORY:
 !  13 Aug 2015 - E. Lundgren - Initial version, based on C. Keller's HCO_ERROR
+!  16 Aug 2016 - M. Sulprizio- Rename from GIGC_ERROR to GC_ERROR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       CHARACTER(LEN=255) :: MSG
 
       !======================================================================
-      ! GIGC_ERROR begins here 
+      ! GC_ERROR begins here 
       !======================================================================
 
       ! Print error message to log
@@ -596,9 +596,9 @@
       ENDIF
       
       ! Return with error
-      RC = GIGC_FAILURE 
+      RC = GC_FAILURE 
 
-      END SUBROUTINE GIGC_Error
+      END SUBROUTINE GC_Error
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -660,8 +660,8 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE GEOS_TIMERS_MOD
 #if defined( ESMF_ )
       !-----------------------------------------------------------------
@@ -1287,8 +1287,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1424,8 +1424,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1565,7 +1565,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Assume success
-      RC               =  GIGC_SUCCESS
+      RC               =  GC_SUCCESS
 
       ! Store a shadow copy of am_I_Root
       SHADOW_am_I_Root =  am_I_Root

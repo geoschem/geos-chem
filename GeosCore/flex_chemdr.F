@@ -26,26 +26,26 @@
       USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
       USE DIAG20_MOD,           ONLY : DIAG20, O3_PROD, O3_LOSS
       USE DUST_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD
       USE FAST_JX_MOD
       USE FLEXCHEM_SETUP_MOD,   ONLY : CSPECTOKPP, HSAVE_KPP
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
-      USE GIGC_State_Chm_Mod,   ONLY : ChmState
-      USE GIGC_State_Chm_Mod,   ONLY : IND_
-      USE GIGC_State_Met_Mod,   ONLY : MetState
       USE GRID_MOD,             ONLY : GET_YMID
       USE HCO_DIAGN_MOD,        ONLY : Diagn_Update
       USE HCO_ERROR_MOD,        ONLY : HCO_SUCCESS
-      USE PHYSCONSTANTS,        ONLY : AVO
+      USE Input_Opt_Mod,        ONLY : OptInput
+      USE PhysConstants,        ONLY : AVO
       USE PRECISION_MOD
       USE PRESSURE_MOD        
       USE Species_Mod,          ONLY : Species
+      USE State_Chm_Mod,        ONLY : ChmState
+      USE State_Chm_Mod,        ONLY : Ind_
+      USE State_Met_Mod,        ONLY : MetState
       USE TIME_MOD,             ONLY : GET_TS_CHEM
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : GET_YEAR
-      USE UNITCONV_MOD
+      USE UnitConv_Mod
 #if defined( UCX )
       USE UCX_MOD,              ONLY : CALC_STRAT_AER
       USE UCX_MOD,              ONLY : SO4_PHOTFRAC
@@ -127,7 +127,7 @@
       ! SAVEd variables
       LOGICAL, SAVE         :: FIRSTCHEM = .TRUE.
       INTEGER, SAVE         :: CH4_YEAR  = -1
-      INTEGER, SAVE         :: id_CH4    = -1  ! (CODEATHON, mps, 6/16/16)
+      INTEGER, SAVE         :: id_CH4    = -1
 
       ! For grid-box latitude
       REAL(fp)              :: YLAT
@@ -239,15 +239,11 @@
          !---------------------------------
          ! Set global concentration of CH4
          !---------------------------------
-         ! Set species index (mps, 6/16/16)
-         ! Need to pass 'T' for now because CH4 can be an active or
-         ! inactive species. In the future, we should define whether
-         ! a species is active or inactive the species database and check
-         ! for that here.
-         id_CH4 = IND_('CH4', 'T')
+         ! Define advected species ID flag
+         id_CH4 = Ind_('CH4','A')
 
-         ! Check that CH4 is not a defined species
-         ! NOTE: ind_CH4 is from gckpp_Monitor.F90
+         ! Check that CH4 is not an advected species
+         ! Check that CH4 is a KPP species (ind_CH4 is from gckpp_Monitor.F90)
          IF ( id_CH4 <= 0 .and. ind_CH4 > 0 .and. 
      &      ( CH4_YEAR /= YEAR ) ) THEN
 
@@ -653,7 +649,7 @@
             ELSE
                C(ind_CH4) = C3090N * 1e-9_dp * NUMDEN
             ENDIF
-         ENDIF   ! id_CH4, IND_CH4
+         ENDIF
 
          !### Debug printout, we can remove it later
          IF ( prtDebug ) THEN
@@ -794,7 +790,7 @@
 
             !### Debug output, we can remove it later
             IF ( prtDebug ) THEN
-               IF (I.eq.10.and.J.eq.10.and.L.eq.10.and.N.eq.IND_OH) THEN
+               IF (I.eq.10.and.J.eq.10.and.L.eq.10.and.N.eq.ind_OH) THEN
                   write(*,'(a9,2es13.6)') 'SPC_OH : ',c(N),
      &                 State_Chm%Species(I,J,L,CSPECTOKPP(N))
                ENDIF
@@ -819,7 +815,7 @@
                   ! Get information about prod/loss species
                   NAME = Input_Opt%FAM_MEMB(M,F) ! Species name
                   COEF = Input_Opt%FAM_COEF(M,F) ! Species coefficient
-                  IND  = Ind_(TRIM(NAME),'K')    ! KPP species index
+                  IND  = Ind_(TRIM(NAME),'K')    ! KPP species ID
 
                   ! Skip prod/loss species if not found in KPP
                   IF ( IND <= 0 ) THEN

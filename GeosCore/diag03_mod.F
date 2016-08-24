@@ -157,19 +157,19 @@
       USE BPCH2_MOD,          ONLY : BPCH2
       USE BPCH2_MOD,          ONLY : GET_MODELNAME
       USE BPCH2_MOD,          ONLY : GET_HALFPOLAR
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IU_BPCH
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_XOFFSET
       USE GRID_MOD,           ONLY : GET_YOFFSET
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_CT_EMIS
       USE TIME_MOD,           ONLY : GET_DIAGb
       USE TIME_MOD,           ONLY : GET_DIAGe
       USE TIME_MOD,           ONLY : GET_CT_CHEM  
       USE TIME_MOD,           ONLY : GET_CT_DIAG, GET_Hg2_DIAG !H Amos, 20100218
-      USE CMN_SIZE_MOD
-      USE CMN_DIAG_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -266,7 +266,7 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Exit if ND03 is turned off
       IF ( ND03 == 0 ) RETURN
@@ -961,7 +961,7 @@
 !
       USE CMN_SIZE_MOD 
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !

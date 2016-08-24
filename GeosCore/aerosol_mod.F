@@ -144,13 +144,13 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
       USE UCX_MOD,            ONLY : KG_STRAT_AER
-      USE UNITCONV_MOD
+      USE UnitConv_Mod
 #if   defined( TOMAS ) 
       USE TOMAS_MOD,          ONLY : IBINS
 #endif
@@ -246,7 +246,7 @@
       !=================================================================
 
       ! Assume success
-      RC     = GIGC_SUCCESS
+      RC     = GC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LCARB  = Input_Opt%LCARB
@@ -263,15 +263,15 @@
          CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, 
      &                                  State_Chm, RC         )  
          UNITCONVERSION = .TRUE.
-         IF ( RC /= GIGC_SUCCESS ) THEN
-            CALL GIGC_Error('Unit conversion error', RC, 
-     &                      'AEROSOL_CONC in aerosol_mod.F')
+         IF ( RC /= GC_SUCCESS ) THEN
+            CALL GC_Error('Unit conversion error', RC, 
+     &                    'AEROSOL_CONC in aerosol_mod.F')
             RETURN
          ENDIF
       ELSE IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-         CALL GIGC_Error('Unexpected tracer units' // 
-     &                   State_Chm%Spc_Units, RC, 
-     &                   'AEROSOL_CONC in aerosol_mod')
+         CALL GC_Error('Unexpected species units' // 
+     &                 State_Chm%Spc_Units, RC, 
+     &                 'AEROSOL_CONC in aerosol_mod')
          RETURN
       ENDIF
 
@@ -616,9 +616,9 @@
       IF ( UNITCONVERSION ) THEN
          CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, 
      &                                  State_Chm, RC         )  
-         IF ( RC /= GIGC_SUCCESS ) THEN
-            CALL GIGC_Error('Unit conversion error', RC, 
-     &                      'AEROSOL_CONC in aerosol_mod.F')
+         IF ( RC /= GC_SUCCESS ) THEN
+            CALL GC_Error('Unit conversion error', RC, 
+     &                    'AEROSOL_CONC in aerosol_mod.F')
             RETURN
          ENDIF
       ENDIF
@@ -652,16 +652,16 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+      USE CMN_DIAG_MOD
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
-      USE CMN_DIAG_MOD
-      USE PHYSCONSTANTS,      ONLY : CONSVAP
       USE DIAG_MOD,           ONLY : AD21
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : CONSVAP
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE TIME_MOD,           ONLY : SYSTEM_TIMESTAMP
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
@@ -856,7 +856,7 @@
 !
 
       ! Assume success
-      RC                   = GIGC_SUCCESS
+      RC                   = GC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LCARB                = Input_Opt%LCARB
@@ -1673,10 +1673,10 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -1705,7 +1705,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Add tracer ID flags as module variables (bmy, 6/16/16)
       id_BCPI  = Ind_('BCPI' )

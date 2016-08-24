@@ -15,7 +15,7 @@
 !
 ! !USES:
 !
-      USE inquireMod, ONLY : findFreeLUN
+      USE inquireMod,    ONLY : findFreeLUN
       USE PRECISION_MOD
 
       IMPLICIT NONE
@@ -97,7 +97,7 @@
       USE BPCH2_MOD,          ONLY : GET_RES_EXT
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -339,7 +339,7 @@
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR, FILE_EXISTS
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -493,8 +493,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -845,7 +845,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE PHYSCONSTANTS
+      USE PhysConstants
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD21
@@ -853,7 +853,7 @@
       USE DIAG_MOD,           ONLY : AD67
 #endif
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_A6
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D_Lp1

@@ -4,15 +4,15 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: gigc_input_opt_mod
+! !MODULE: input_opt_mod
 !
-! !DESCRIPTION: Module GIGC\_INPUT\_OPT\_MOD contains the derived type
-!  for GEOS-Chem options and logical switches.
+! !DESCRIPTION: Module INPUT\_OPT\_MOD contains the derived type for GEOS-Chem
+!  options and logical switches.
 !\\
 !\\
 ! !INTERFACE:
 !
-MODULE GIGC_Input_Opt_Mod
+MODULE Input_Opt_Mod
 !
 ! !USES:
 !
@@ -23,8 +23,8 @@ MODULE GIGC_Input_Opt_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: Set_GIGC_Input_Opt
-  PUBLIC :: Cleanup_GIGC_Input_Opt
+  PUBLIC :: Set_Input_Opt
+  PUBLIC :: Cleanup_Input_Opt
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -635,6 +635,9 @@ MODULE GIGC_Input_Opt_Mod
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
 !  13 Jul 2016 - R. Yantosca - Remove some unused drydep fields
+!  16 Aug 2016 - M. Sulprizio- Rename from gigc_input_opt_mod.F90 to
+!                              input_opt_mod.F90. The "gigc" nomenclature is
+!                              no longer used.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -645,19 +648,19 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_gigc_input_opt
+! !IROUTINE: set_input_opt
 !
-! !DESCRIPTION: Subroutine INIT\_GIGC\_INPUT\_OPT intializes all GEOS-Chem
+! !DESCRIPTION: Subroutine SET\_INPUT\_OPT intializes all GEOS-Chem
 !  options carried in Input Options derived type object.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )
+  SUBROUTINE Set_Input_Opt( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
+    USE ErrCode_Mod
     USE CMN_SIZE_Mod,     ONLY : NDSTBIN, NVEGTYPE
 !
 ! !INPUT PARAMETERS: 
@@ -729,7 +732,7 @@ CONTAINS
     INTEGER :: MAX_DIAG, MAX_TRCS, MAX_MEMB, MAX_FAMS, MAX_DEP
 
     ! Assume success
-    RC                               = GIGC_SUCCESS
+    RC                               = GC_SUCCESS
 
     !----------------------------------------
     ! General Runtime & Distributed Comp Info
@@ -1374,26 +1377,26 @@ CONTAINS
     !----------------------------------------
     Input_Opt%USE_O3_FROM_MET        = .FALSE.
 
-  END SUBROUTINE Set_GIGC_Input_Opt
+  END SUBROUTINE Set_Input_Opt
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_gigc_input_opt
+! !IROUTINE: cleanup_input_opt
 !
-! !DESCRIPTION: Subroutine CLEANUP\_GIGC\_INPUT\_OPT deallocates all 
+! !DESCRIPTION: Subroutine CLEANUP\_INPUT\_OPT deallocates all 
 !  allocatable fields of the Input Options object.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )
+  SUBROUTINE Cleanup_Input_Opt( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
+    USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -1421,7 +1424,7 @@ CONTAINS
 !BOC
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     !======================================================================
     ! Deallocate fields of the Input Options object
@@ -1538,6 +1541,6 @@ CONTAINS
        DEALLOCATE( Input_Opt%LINOZ_TPARM )
     ENDIF
 
-  END SUBROUTINE Cleanup_GIGC_Input_Opt
+  END SUBROUTINE Cleanup_Input_Opt
 !EOC
-END MODULE GIGC_Input_Opt_Mod
+END MODULE Input_Opt_Mod

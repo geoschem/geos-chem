@@ -16,11 +16,10 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD                    ! Dimensions of arrays
-      USE CMN_DIAG_MOD                    ! Diagnostic parameters
-      USE inquireMod, ONLY : findFreeLUN
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE CMN_SIZE_MOD        ! Dimensions of arrays
+      USE CMN_DIAG_MOD        ! Diagnostic parameters
+      USE inquireMod,    ONLY : findFreeLUN
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -163,9 +162,9 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : SYSTEM_TIMESTAMP
 !
 ! !INPUT PARAMETERS:
@@ -193,7 +192,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Allocate and initialize variables
       CALL INIT_GAMAP( am_I_Root, Input_Opt, State_Chm, RC )
@@ -330,10 +329,10 @@
 !
 ! !USES:
 !
+      USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -371,7 +370,7 @@
       !=================================================================
 
       ! Assume success
-      RC      =  GIGC_SUCCESS
+      RC      =  GC_SUCCESS
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
@@ -1749,10 +1748,11 @@
       USE DIAG56_MOD,         ONLY : ND56
       USE DIAG63_MOD,         ONLY:  DO_SAVE_DIAG63
       USE DRYDEP_MOD,         ONLY : DEPNAME,     NUMDEP,    NTRAIND
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState, IND_
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
 #endif
@@ -1855,7 +1855,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Initialization
       DUM = 1.0
@@ -7588,22 +7588,21 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE TIME_MOD,    ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
-      USE HDF_MOD,     ONLY : INIT_HDF
-      USE HDF_MOD,     ONLY : HDFCATEGORY
-      USE HDF_MOD,     ONLY : HDFDESCRIPT
-      USE HDF_MOD,     ONLY : HDFNAME
-      USE HDF_MOD,     ONLY : HDFFNAME
-      USE HDF_MOD,     ONLY : HDFUNIT
-      USE HDF_MOD,     ONLY : HDFMOLC
-      USE HDF_MOD,     ONLY : HDFMWT
-      USE HDF_MOD,     ONLY : HDFSCALE
-      USE Species_Mod, ONLY : Species
+      USE ErrCode_Mod
+      USE ERROR_MOD,     ONLY : ALLOC_ERR
+      USE HDF_MOD,       ONLY : INIT_HDF
+      USE HDF_MOD,       ONLY : HDFCATEGORY
+      USE HDF_MOD,       ONLY : HDFDESCRIPT
+      USE HDF_MOD,       ONLY : HDFNAME
+      USE HDF_MOD,       ONLY : HDFFNAME
+      USE HDF_MOD,       ONLY : HDFUNIT
+      USE HDF_MOD,       ONLY : HDFMOLC
+      USE HDF_MOD,       ONLY : HDFMWT
+      USE HDF_MOD,       ONLY : HDFSCALE
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE State_Chm_Mod, ONLY : ChmState
+      USE State_Chm_Mod, ONLY : Ind_
+      USE TIME_MOD,      ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
 !
 ! !INPUT PARAMETERS:
 !
@@ -7667,46 +7666,46 @@
       !=================================================================
       ! Define species ID flags (formerly in tracerid_mod.F)
       !=================================================================
-      id_ACET  = IND_('ACET' )
-      id_ALD2  = IND_('ALD2' )
-      id_ALK4  = IND_('ALK4' ) 
-      id_ASOA1 = IND_('ASOA1')
+      id_ACET  = Ind_('ACET' )
+      id_ALD2  = Ind_('ALD2' )
+      id_ALK4  = Ind_('ALK4' ) 
+      id_ASOA1 = Ind_('ASOA1')
       id_BCPI  = Ind_('BCPI' )
       id_BCPO  = Ind_('BCPO' )
-      id_BENZ  = IND_('BENZ' )
-      id_C2H2  = IND_('C2H2' )
-      id_C2H4  = IND_('C2H4' )
+      id_BENZ  = Ind_('BENZ' )
+      id_C2H2  = Ind_('C2H2' )
+      id_C2H4  = Ind_('C2H4' )
       id_C2H6  = Ind_('C2H6' )
-      id_C3H8  = IND_('C3H8' )
-      id_CH2O  = IND_('CH2O' )
-      id_CH4   = IND_('CH4'  )
-      id_CO    = IND_('CO'   )
-      id_GLYC  = IND_('GLYC' )
-      id_GLYX  = IND_('GLYX' )
-      id_HAC   = IND_('HAC'  )
-      id_ISOA1 = IND_('ISOA1')
-      id_LIMO  = IND_('LIMO' )
-      id_MEK   = IND_('MEK'  ) 
-      id_MGLY  = IND_('MGLY' )
-      id_MTPA  = IND_('MTPA' )
-      id_MTPO  = IND_('MTPO' )
-      id_NAP   = IND_('NAP'  )
-      id_NH3   = IND_('NH3'  )
-      id_NK1   = IND_('NK1'  )
-      id_NO    = IND_('NO'   )
+      id_C3H8  = Ind_('C3H8' )
+      id_CH2O  = Ind_('CH2O' )
+      id_CH4   = Ind_('CH4'  )
+      id_CO    = Ind_('CO'   )
+      id_GLYC  = Ind_('GLYC' )
+      id_GLYX  = Ind_('GLYX' )
+      id_HAC   = Ind_('HAC'  )
+      id_ISOA1 = Ind_('ISOA1')
+      id_LIMO  = Ind_('LIMO' )
+      id_MEK   = Ind_('MEK'  ) 
+      id_MGLY  = Ind_('MGLY' )
+      id_MTPA  = Ind_('MTPA' )
+      id_MTPO  = Ind_('MTPO' )
+      id_NAP   = Ind_('NAP'  )
+      id_NH3   = Ind_('NH3'  )
+      id_NK1   = Ind_('NK1'  )
+      id_NO    = Ind_('NO'   )
       id_OCPI  = Ind_('OCPI' )
       id_OCPO  = Ind_('OCPO' )
-      id_OPOA1 = IND_('OPOA1')
-      id_OPOG1 = IND_('OPOG1')
+      id_OPOA1 = Ind_('OPOA1')
+      id_OPOG1 = Ind_('OPOG1')
       id_PASV  = Ind_('PASV' )
       id_POA1  = Ind_('POA1' )
-      id_PRPE  = IND_('PRPE' )
-      id_SOAG  = IND_('SOAG' )
-      id_SOAM  = IND_('SOAM' )
-      id_SO2   = IND_('SO2'  )
-      id_TSOA1 = IND_('TSOA1')
-      id_TOLU  = IND_('TOLU' )
-      id_XYLE  = IND_('XYLE' )
+      id_PRPE  = Ind_('PRPE' )
+      id_SOAG  = Ind_('SOAG' )
+      id_SOAM  = Ind_('SOAM' )
+      id_SO2   = Ind_('SO2'  )
+      id_TSOA1 = Ind_('TSOA1')
+      id_TOLU  = Ind_('TOLU' )
+      id_XYLE  = Ind_('XYLE' )
 
       !=================================================================
       ! Allocate module arrays

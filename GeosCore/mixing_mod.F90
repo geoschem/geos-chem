@@ -52,12 +52,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Chm_Mod,      ONLY : ChmState
     USE VDIFF_MOD,          ONLY : DO_PBL_MIX_2
 !
 ! !INPUT PARAMETERS:
@@ -87,7 +87,7 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
    
     ! ------------------------------------------------------------------
     ! Initialize PBL mixing scheme
@@ -118,14 +118,14 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE ERROR_MOD,          ONLY : GIGC_ERROR
+    USE ErrCode_Mod
+    USE ERROR_MOD,          ONLY : GC_Error
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE UnitConv_Mod
     USE VDIFF_MOD,          ONLY : DO_PBL_MIX_2
-    USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -165,14 +165,14 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Convert [kg/kg dry air] to [v/v dry air] for mixing (ewl, 8/12/15)
      CALL ConvertSpc_KgKgDry_to_VVDry( am_I_Root, State_Chm, RC )  
 
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL GIGC_Error('Unit conversion error', RC, &
-                       'DO_MIXING in mixing_mod.F')
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
+                     'DO_MIXING in mixing_mod.F')
        RETURN
     ENDIF  
 
@@ -219,9 +219,9 @@ CONTAINS
     ! Convert species conc back to [kg/kg dry air] after mixing (ewl, 8/12/15)
     CALL ConvertSpc_VVDry_to_KgKgDry( am_I_Root, State_Chm, RC )
 
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL GIGC_Error('Unit conversion error', RC, &
-                       'DO_MIXING in mixing_mod.F')
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
+                     'DO_MIXING in mixing_mod.F')
        RETURN
     ENDIF  
 
@@ -245,23 +245,23 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ERROR_MOD,          ONLY : ERROR_STOP, SAFE_DIV
     USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
     USE CMN_DIAG_MOD,       ONLY : ND44
     USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR,   LLPAR
     USE DRYDEP_MOD,         ONLY : DEPSAV
+    USE ErrCode_Mod
+    USE ERROR_MOD,          ONLY : ERROR_STOP, SAFE_DIV
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal, GetHcoDiagn
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-    USE PHYSCONSTANTS,      ONLY : AVO
+    USE PhysConstants,      ONLY : AVO
     USE Species_Mod,        ONLY : Species
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Chm_Mod,      ONLY : ChmState
     USE TIME_MOD,           ONLY : GET_TS_DYN
-    USE GIGC_State_Chm_Mod, ONLY : IND_
-    USE UNITCONV_MOD
+    USE State_Chm_Mod,      ONLY : Ind_
+    USE UnitConv_Mod
 #if defined( BPCH_DIAG )
     USE DIAG_MOD,           ONLY : AD44
 #endif
@@ -362,7 +362,7 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Special case that there is no dry deposition and emissions
     IF ( .NOT. Input_Opt%LDRYD .AND. .NOT. Input_Opt%LEMIS ) RETURN
@@ -396,23 +396,23 @@ CONTAINS
     IF ( FIRST ) THEN
 
        ! Define species indices on the first call
-       id_MACR = IND_('MACR' )
-       id_RCHO = IND_('RCHO' )
-       id_ACET = IND_('ACET' )
-       id_ALD2 = IND_('ALD2' )
-       id_ALK4 = IND_('ALK4' ) 
-       id_C2H6 = IND_('C2H6' )
-       id_C3H8 = IND_('C3H8' )
-       id_CH2O = IND_('CH2O' )
-       id_PRPE = IND_('PRPE' )
-       id_O3   = IND_('O3'   )
-       id_HNO3 = IND_('HNO3' )
-       id_BrO  = IND_('BrO'  )
-       id_Br2  = IND_('Br2'  )
-       id_Br   = IND_('Br'   )
-       id_HOBr = IND_('HOBr' )
-       id_HBr  = IND_('HBr'  )
-       id_BrNO3= IND_('BrNO3')
+       id_MACR = Ind_('MACR' )
+       id_RCHO = Ind_('RCHO' )
+       id_ACET = Ind_('ACET' )
+       id_ALD2 = Ind_('ALD2' )
+       id_ALK4 = Ind_('ALK4' ) 
+       id_C2H6 = Ind_('C2H6' )
+       id_C3H8 = Ind_('C3H8' )
+       id_CH2O = Ind_('CH2O' )
+       id_PRPE = Ind_('PRPE' )
+       id_O3   = Ind_('O3'   )
+       id_HNO3 = Ind_('HNO3' )
+       id_BrO  = Ind_('BrO'  )
+       id_Br2  = Ind_('Br2'  )
+       id_Br   = Ind_('Br'   )
+       id_HOBr = Ind_('HOBr' )
+       id_HBr  = Ind_('HBr'  )
+       id_BrNO3= Ind_('BrNO3')
 
        ! On first call, get pointers to the PARANOX loss fluxes. These are
        ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and 

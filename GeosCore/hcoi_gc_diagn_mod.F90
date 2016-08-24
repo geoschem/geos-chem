@@ -35,16 +35,14 @@
 MODULE HCOI_GC_Diagn_Mod
 !
 ! !USES:
-!
-  USE HCO_Error_Mod
-  USE HCO_Diagn_Mod
- 
-  ! GEOS-Chem diagnostic switches and arrays
+! 
   USE CMN_SIZE_Mod
   USE CMN_DIAG_Mod
   USE DIAG_Mod
   USE DIAG53_Mod
   USE DIAG56_Mod
+  USE HCO_Diagn_Mod
+  USE HCO_Error_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -99,12 +97,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE HCO_ExtList_Mod,    ONLY : GetExtOpt
     USE HCO_State_Mod,      ONLY : HCO_GetHcoID
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
-    USE HCO_ExtList_Mod,    ONLY : GetExtOpt
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -472,10 +470,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -598,10 +596,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -768,11 +766,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
-    USE GIGC_State_Chm_Mod, only : Ind_
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      only : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -817,9 +815,9 @@ CONTAINS
        RETURN
     ENDIF
     
-    ! Define species ID's
-    id_POA1 = IND_('POA1','T')
-    id_POG1 = IND_('POG1','T')
+    ! Define advected species ID's
+    id_POA1 = Ind_('POA1','A')
+    id_POG1 = Ind_('POG1','A')
 
     ! Define diagnostics
     IF ( ND07 > 0 .AND. Input_Opt%LCARB ) THEN
@@ -902,10 +900,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1041,10 +1039,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1146,10 +1144,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1479,12 +1477,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCO_State_Mod,      ONLY : HCO_GetHcoID
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
-    USE GIGC_State_Chm_Mod, ONLY : IND_
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -1820,7 +1818,7 @@ CONTAINS
           !----------------------------------------
           ! %%%%% FOR POA SIMULATION %%%%%
           !----------------------------------------
-          IF ( IND_('POA1','T') > 0 ) THEN
+          IF ( Ind_('POA1','A') > 0 ) THEN
 
              ! HEMCO species ID
              HcoID = GetHemcoId( 'POA1', HcoState, LOC, RC )
@@ -2082,11 +2080,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE HCO_State_Mod,      ONLY : HCO_State
-    USE HCOX_State_Mod,     ONLY : Ext_State
     USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_ExtList_Mod,    ONLY : GetExtOpt
+    USE HCO_State_Mod,      ONLY : HCO_State
+    USE HCOX_State_Mod,     ONLY : Ext_State
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2290,11 +2288,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE HCO_State_Mod,      ONLY : HCO_State
-    USE HCOX_State_Mod,     ONLY : Ext_State
     USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE HCO_State_Mod,      ONLY : HCO_State
     USE HCO_State_Mod,      ONLY : HCO_GetHcoId
+    USE HCOX_State_Mod,     ONLY : Ext_State
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2493,10 +2491,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2947,16 +2945,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE HCO_ExtList_Mod,    ONLY : GetExtOpt
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCO_State_Mod,      ONLY : HCO_GetHcoId
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
-    USE HCO_ExtList_Mod,    ONLY : GetExtOpt
-    
-    ! CODEATHON - This isn't needed
-    !USE TRACERID_MOD,       ONLY : IDTPOA1
-    ! CODEATHON
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -3514,10 +3508,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -3678,10 +3672,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -3862,10 +3856,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -4062,12 +4056,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCO_State_Mod,      ONLY : HCO_GetHcoID
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
-    USE GIGC_State_Chm_Mod, ONLY : IND_
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -4113,7 +4107,7 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! Exit if the CH4 simulation is not selected
-    IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. IND_('CH4','T') > 0 ) ) RETURN
+    IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. Ind_('CH4','A') > 0 ) ) RETURN
 
     ! Get default HEMCO species ID for CH4 
     id_CH4 = HCO_GetHcoID( 'CH4', HcoState )
@@ -4495,10 +4489,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -4682,12 +4676,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCO_State_Mod,      ONLY : HCO_GetHcoID
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
-
+    USE Input_Opt_Mod,      ONLY : OptInput
+!
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
@@ -5109,8 +5103,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_State_Mod, ONLY : HCO_GetHcoID
     USE HCO_State_Mod, ONLY : HCO_State
+    USE HCO_State_Mod, ONLY : HCO_GetHcoID
 !
 ! !INPUT PARAMETERS: 
 !

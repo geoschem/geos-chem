@@ -122,11 +122,11 @@
       USE DIAG_MOD,           ONLY : AD01
       USE DIAG_MOD,           ONLY : AD02
 #endif
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
@@ -172,7 +172,7 @@
 !  04 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp) 
 !  12 Dec 2014 - M. Yannetti - Changed Hemco REAL*8 to REAL(hp)
 !   2 May 2016 - R. Yantosca - Now define IDTRn, IDTPb, IDTBe locally
-!  22 Jun 2016 - R. Yantosca - Now use IND_() to define species ID's
+!  22 Jun 2016 - R. Yantosca - Now use Ind_() to define species ID's
 !  22 Jun 2016 - R. Yantosca - Rename species ID's to id_Rn, id_Pb, id_Be7
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
@@ -225,7 +225,7 @@
       !=================================================================
 
       ! Assume success
-      RC     =  GIGC_SUCCESS
+      RC     =  GC_SUCCESS
 
       ! Chemistry timestep [s]
       DTCHEM =  GET_TS_CHEM() * 60e+0_fp

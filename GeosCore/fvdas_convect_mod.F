@@ -56,8 +56,8 @@
 !  06 Jan 2016 - E. Lundgren - Use global parameter g0 instead of local GRAV
 !******************************************************************************
 !
-      USE PHYSCONSTANTS, ONLY : g0
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE PhysConstants, ONLY : g0
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       
@@ -108,8 +108,8 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -238,9 +238,9 @@
 ! !USES
 !
       USE CMN_SIZE_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -802,21 +802,20 @@
 !******************************************************************************
 !
       ! References to F90 modules
+      USE CMN_DIAG_MOD             ! ND38, LD38, ND14, LD14
+      USE CMN_SIZE_MOD             ! Size parameters
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD, ADD_HgP_WD !eck/eds
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK !CDH
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD38
 #endif
       USE DIAG_MOD,           ONLY : CONVFLUP 
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE SPECIES_MOD,        ONLY : Species
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND38, LD38, ND14, LD14
-      USE PHYSCONSTANTS            ! Universal constants
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants            ! Universal constants
+      USE Species_Mod,        ONLY : Species
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
 
       ! Arguments
       INTEGER,        INTENT(IN)    :: J

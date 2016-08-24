@@ -17,9 +17,8 @@
 !
 ! !USES:
 !
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-      USE PHYSCONSTANTS,      ONLY : AIRMW
-      USE Species_Mod,        ONLY : Species
+      USE PhysConstants, ONLY : AIRMW
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -282,10 +281,10 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -352,10 +351,9 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD   ! Size parameters
       USE TIME_MOD, ONLY : GET_LOCALTIME
       USE TIME_MOD, ONLY : GET_TS_DYN
-
-      USE CMN_SIZE_MOD   ! Size parameters
 ! 
 ! !REMARKS:
 !  For now use GET_LOCALTIME( I, 1, 1 ) which will be independent of J and L
@@ -425,21 +423,20 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : IND_   !kyu codeathon
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,    GET_PBL_TOP_m
-      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN,  GET_TS_CHEM 
-      USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
-      USE TIME_MOD,           ONLY : GET_TS_DIAG,      GET_TS_EMIS
-
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD               ! SAVEOH
-      USE PHYSCONSTANTS            ! SCALE_HEIGHT, XNUMOLAIR
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
+      USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,    GET_PBL_TOP_m
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN,  GET_TS_CHEM 
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
+      USE TIME_MOD,           ONLY : GET_TS_DIAG,      GET_TS_EMIS
 !
 ! !INPUT PARAMETERS:
 !
@@ -499,7 +496,7 @@
 !  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod
 !  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg and
 !                              remove AD pointer
-!  16 Jun 2016 - K. Yu       - Now define species ID's with the IND_ function
+!  16 Jun 2016 - K. Yu       - Now define species ID's with the Ind_ function
 !  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
@@ -536,7 +533,7 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Number of advected species
       nAdvect   =  State_Chm%nAdvect
@@ -544,13 +541,19 @@
       ! First-time setup
       IF ( FIRST ) THEN
 
-         ! tracer id indices
-         id_HNO3 = IND_('HNO3'); id_HNO4 = IND_('HNO4')
-         id_N2O5 = IND_('N2O5'); id_NO   = IND_('NO')
-         id_PAN  = IND_('PAN');  id_PMN  = IND_('PMN')
-         id_PPN  = IND_('PPN');  id_O3   = IND_('O3')
-         id_R4N2 = IND_('R4N2'); id_SALA = IND_('SALA')
-         id_SALC = IND_('SALC'); id_NO2  = IND_('NO2')
+         ! Define species ID flags
+         id_HNO3 = Ind_('HNO3')
+         id_HNO4 = Ind_('HNO4')
+         id_N2O5 = Ind_('N2O5')
+         id_NO   = Ind_('NO')
+         id_PAN  = Ind_('PAN')
+         id_PMN  = Ind_('PMN')
+         id_PPN  = Ind_('PPN')
+         id_O3   = Ind_('O3')
+         id_R4N2 = Ind_('R4N2')
+         id_SALA = Ind_('SALA')
+         id_SALC = Ind_('SALC')
+         id_NO2  = Ind_('NO2')
 
          ! Set logical flags on first call
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
@@ -1187,6 +1190,7 @@
 !
 ! !USES:
 !
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,  ONLY : GET_HOUR
       USE TIME_MOD,  ONLY : GET_MINUTE
       USE TIME_MOD,  ONLY : GET_TAU
@@ -1194,7 +1198,6 @@
       USE TIME_MOD,  ONLY : GET_TAUe
       USE TIME_MOD,  ONLY : GET_TS_DYN
       USE TIME_MOD,  ONLY : GET_TS_DIAG
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1279,11 +1282,12 @@
 !
       USE BPCH2_MOD,          ONLY : BPCH2
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
+      USE CMN_SIZE_MOD             ! Size Parameters
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLUN
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD_DIAG    
       USE TIME_MOD,           ONLY : GET_NHMS
@@ -1299,8 +1303,6 @@
       USE HDF5,               ONLY : HID_T
       INTEGER(HID_T)              :: IU_ND51b_HDF
 #endif
-
-      USE CMN_SIZE_MOD   ! Size Parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -1376,7 +1378,7 @@
       !=================================================================
 
       ! Assume success
-      RC         =  GIGC_SUCCESS
+      RC         =  GC_SUCCESS
 
       ! Copy values from Input_Opt
       LND51b_HDF = Input_Opt%LND51b_HDF
@@ -2055,16 +2057,15 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,  ONLY : GET_MODELNAME
-      USE BPCH2_MOD,  ONLY : GET_HALFPOLAR
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE ERROR_MOD,  ONLY : ERROR_STOP
-      USE GRID_MOD,   ONLY : GET_XOFFSET
-      USE GRID_MOD,   ONLY : GET_YOFFSET
-      USE GRID_MOD,   ONLY : ITS_A_NESTED_GRID
-      USE TIME_MOD,   ONLY : GET_TAUb
-  
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE BPCH2_MOD,    ONLY : GET_MODELNAME
+      USE BPCH2_MOD,    ONLY : GET_HALFPOLAR
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE ERROR_MOD,    ONLY : ALLOC_ERR
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE GRID_MOD,     ONLY : GET_XOFFSET
+      USE GRID_MOD,     ONLY : GET_YOFFSET
+      USE GRID_MOD,     ONLY : ITS_A_NESTED_GRID
+      USE TIME_MOD,     ONLY : GET_TAUb
 !
 ! !INPUT PARAMETERS: 
 !

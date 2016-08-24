@@ -4112,8 +4112,8 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_DIAG_MOD  ! NJDAY
+      USE CMN_SIZE_MOD  ! Size parameters
 !
 ! !RETURN VALUE:
 !
@@ -5241,7 +5241,7 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
       USE JULDAY_MOD,       ONLY : JULDAY
       USE JULDAY_MOD,       ONLY : CALDATE
 !
@@ -5366,7 +5366,7 @@
       DAY_OF_WEEK = INT( B )
 
       ! Return successfully
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE Accept_External_Date_Time
 !EOC

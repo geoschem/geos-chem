@@ -16,9 +16,8 @@
 !
 ! !USES:
 ! 
-      USE inquireMod, ONLY : findFreeLUN
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE inquireMod,    ONLY : findFreeLUN
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE 
@@ -71,10 +70,10 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
       USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -213,11 +212,11 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,          ONLY : GET_RES_EXT
       USE CMN_SIZE_MOD
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR, FILE_EXISTS
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS:
@@ -337,8 +336,8 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -448,18 +447,18 @@
 ! !USES:
 !
 #if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD                                     ! ND67
+      USE CMN_DIAG_MOD       ! ND67
       USE DIAG_MOD,     ONLY : AD67
 #endif
       USE CMN_SIZE_MOD
       USE FILE_MOD,     ONLY : IOERROR
+      USE PhysConstants      ! g0
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
-      USE PHYSCONSTANTS                                    ! g0
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)            :: NYMD               ! YYYYMMDD date
-      INTEGER, INTENT(IN)            :: NHMS               ! hhmmss time
+      INTEGER,   INTENT(IN)            :: NYMD               ! YYYYMMDD date
+      INTEGER,   INTENT(IN)            :: NHMS               ! hhmmss time
 !
 ! !OUTPUT PARAMETERS:
 !

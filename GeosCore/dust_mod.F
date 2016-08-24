@@ -15,9 +15,8 @@
 !
 ! !USES:
 !
-      USE inquireMod, ONLY : findFreeLUN
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-      USE Species_Mod,        ONLY : Species
+      USE inquireMod,    ONLY : findFreeLUN
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -71,7 +70,7 @@
 !  20 Jun 2014 - R. Yantosca - Remove obsolete emissions code; we now use HEMCO
 !  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  01 Apr 2015 - R. Yantosca - Remove obsolete DUSTMIX, DRY_DEPOSITION routines
-!  16 Jun 2016 - J. Kaiser   - Move tracerIDs into variable names CODEATHON
+!  16 Jun 2016 - J. Kaiser   - Move tracerIDs into variable names
 !  20 Jun 2016 - R. Yantosca - Rename IDT* species ID's to id_*
 !  20 Jun 2016 - R. Yantosca - Now only define species ID's in the INIT phase
 !EOP
@@ -116,12 +115,12 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -184,7 +183,7 @@
       !=================================================================
 
       ! Assume success
-      RC    = GIGC_SUCCESS
+      RC    = GC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LDRYD  = Input_Opt%LDRYD
@@ -283,22 +282,21 @@
 !
 ! !USES:
 ! 
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND44
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE DRYDEP_MOD,         ONLY : NUMDEP, NTRAIND
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AVO
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TOMAS_MOD,          ONLY : IBINS, Xk, SRTDUST
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND44
 !
 ! !INPUT PARAMETERS:
 !
@@ -353,13 +351,13 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Check that species units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
          MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine SETTLEDUST in dust_mod.F'
-         CALL GIGC_Error( MSG, RC, LOC )
+         CALL GC_Error( MSG, RC, LOC )
       ENDIF
 
       ! Point to chemical species array [kg]
@@ -483,16 +481,16 @@
 !
       USE CMN_DIAG_MOD             ! ND59
       USE CMN_SIZE_MOD             ! Size parameters
+      USE DIAG_MOD,           ONLY : AD59_DUST, AD59_NUMB  !(win, 7/17/09)
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TOMAS_MOD,          ONLY : IBINS, XK             !(win, 7/17/09)
-      USE DIAG_MOD,           ONLY : AD59_DUST, AD59_NUMB  !(win, 7/17/09)
 !
 ! !INPUT PARAMETERS:
 !
@@ -552,7 +550,7 @@
       !=================================================================
      
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Initialize
       LDEAD     =  Input_Opt%LDEAD
@@ -642,7 +640,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE DRY_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &          State_Chm, TC, RC, INDEX,     IDISP )
+     &                         State_Chm, TC, RC, INDEX, IDISP )
 !
 ! !USES:
 !
@@ -651,12 +649,12 @@
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44
 #endif
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ErrCode_Mod
       USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE Species_Mod,        ONLY : Species
 #if defined( NC_DIAG )
@@ -759,7 +757,7 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Initialize pointers
       ThisSpc     => NULL()
@@ -990,11 +988,11 @@
       USE CMN_DIAG_MOD
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE DIAG_MOD,           ONLY : AD21
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 !
 ! !INPUT PARAMETERS: 
@@ -1068,7 +1066,7 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Initialize pointers
       ERADIUS   => State_Chm%AeroRadi     ! Aerosol Radius     [cm]
@@ -1382,11 +1380,11 @@
       USE CMN_FJX_MOD
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD21
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
       IMPLICIT NONE
@@ -1522,7 +1520,7 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
  
       ! Initialize pointers
       ERADIUS   => State_Chm%AeroRadi     ! Aerosol Radius     [cm]
@@ -1868,12 +1866,12 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS,      ONLY : PI, AIRMW
       USE CMN_SIZE_MOD             ! Size parameters
       USE ERROR_MOD,          ONLY : IT_IS_NAN
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : PI, AIRMW
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -2353,15 +2351,15 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS,      ONLY : PI, AIRMW
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : PI, AIRMW
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS, Xk
 #endif
@@ -2417,7 +2415,7 @@
       !=================================================================
 
       ! Assume success
-      RC      = GIGC_SUCCESS
+      RC      = GC_SUCCESS
 
       ! Initialize
       SpcInfo => NULL()
@@ -2594,7 +2592,7 @@
 #endif 
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) || defined( TOMAS )
-      ! EXPERIMENTAL: For archiving the dust source for GIGC
+      ! EXPERIMENTAL: For archiving the dust source for GCHP
       ALLOCATE( SRCE_FUNC(IIPAR,JJPAR,3), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )
       SRCE_FUNC = 0.e+0_fp

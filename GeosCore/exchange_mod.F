@@ -220,15 +220,15 @@
 !
 ! !USES:
 !
-      USE TPCORE_BC_MOD
+      USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE ERROR_MOD,          ONLY : GIGC_Error
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE UNITCONV_MOD
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : GC_Error
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE TPCORE_BC_MOD
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -265,9 +265,9 @@
          ! Convert species units from [kg/kg dry] to [kg] (ewl, 8/13/15)
          CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,
      &                                  State_Chm, RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
-            CALL GIGC_Error('Unit conversion error', RC, 
-     &                   'EXCHANGE_GLOBAL_POST in exchange_mod.F')
+         IF ( RC /= GC_SUCCESS ) THEN
+            CALL GC_Error('Unit conversion error', RC, 
+     &                    'EXCHANGE_GLOBAL_POST in exchange_mod.F')
             RETURN
          ENDIF 
 
@@ -293,9 +293,9 @@
          ! Convert species units back to kg/kg (ewl, 8/13/15)
          CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,
      &                                  State_Chm, RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
-            CALL GIGC_Error('Unit conversion error', RC, 
-     &                   'EXCHANGE_GLOBAL_POST in exchange_mod.F')
+         IF ( RC /= GC_SUCCESS ) THEN
+            CALL GC_Error('Unit conversion error', RC, 
+     &                    'EXCHANGE_GLOBAL_POST in exchange_mod.F')
             RETURN
          ENDIF 
 
@@ -353,14 +353,14 @@
 !
 ! !USES:
 !
-      USE DAO_MOD
       USE CMN_SIZE_MOD          ! Size parameters
-      USE ERROR_MOD,          ONLY : GIGC_Error
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE UNITCONV_MOD
+      USE DAO_MOD
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : GC_Error
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -396,9 +396,9 @@
       ! Convert species units from [kg/kg dry] to [kg] (ewl, 8/13/15)
       CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,
      &                               State_Chm, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                   'EXCHANGE_NESTED_POST in exchange_mod.F')
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
+     &                 'EXCHANGE_NESTED_POST in exchange_mod.F')
          RETURN
       ENDIF 
 
@@ -409,13 +409,12 @@
       CALL EX_DUMP_FOR_GLOBAL
      &        (am_I_Root, Input_Opt,State_Met, State_Chm,RC)
 
-
       ! Convert species units back to kg/kg (ewl, 8/13/15)
       CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,
      &                               State_Chm, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                   'EXCHANGE_NESTED_POST in exchange_mod.F')
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
+     &                 'EXCHANGE_NESTED_POST in exchange_mod.F')
          RETURN
       ENDIF 
 
@@ -476,8 +475,8 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD
       USE CMN_SIZE_MOD          ! Size parameters
+      USE ERROR_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -780,11 +779,11 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD
       USE CMN_SIZE_MOD             ! Size parameters
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ERROR_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -878,11 +877,11 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD
       USE CMN_SIZE_MOD             ! Size parameters
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ERROR_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1064,11 +1063,11 @@
 !
 ! !USES:
 !
-      USE DAO_MOD
       USE CMN_SIZE_MOD             ! Size parameters
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE DAO_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !

@@ -269,7 +269,7 @@
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%%  NOTE: THIS MODULE IS DEPRECATED.  MANY OF THE QUANTITIES STORED  %%%
 !  %%%  in CMN_DIAG_MOD ARE NOW INCLUDED IN THE INPUT OPTIONS OBJECT,    %%%
-!  %%%  BASED ON THE DERIVED TYPE IN Headers/gigc_input_opt_mod.F90.     %%%
+!  %%%  BASED ON THE DERIVED TYPE IN Headers/input_opt_mod.F90.          %%%
 !  %%%  (bmy, 11/19/12)                                                  %%%
 !  %%%                                                                   %%%
 !  %%%  ALSO NOTE: IN GEOS-CHEM v11-01, WE WILL BE RETIRING THE BPCH     %%%
@@ -347,7 +347,7 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -363,7 +363,7 @@
 !------------------------------------------------------------------------------
 !BOC
       ! Assume success
-      RC   = GIGC_SUCCESS
+      RC   = GC_SUCCESS
 
       ! Set PD65 (for backwards compatibility, for now)
       PD65 = LLPAR*MAXFAM 

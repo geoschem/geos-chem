@@ -17,7 +17,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD           ! Size parameters
-      USE PHYSCONSTANTS          ! Physical constants
+      USE PhysConstants          ! Physical constants
       USE PRECISION_MOD          ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -259,16 +259,16 @@
 !
 ! !USES:
 !
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
-      USE GIGC_State_Met_Mod,   ONLY : MetState
-      USE GIGC_State_Chm_Mod,   ONLY : ChmState
       USE GRID_MOD,             ONLY : GET_AREA_M2
+      USE Input_Opt_Mod,        ONLY : OptInput
+      USE State_Met_Mod,        ONLY : MetState
+      USE State_Chm_Mod,        ONLY : ChmState
       USE PRESSURE_MOD    
 
       ! Temporary fix for calculating air density (mps, 12/23/15)
-      USE PHYSCONSTANTS,        ONLY : AIRMW, AVO
+      USE PhysConstants,        ONLY : AIRMW, AVO
 !
 ! !INPUT PARAMETERS:
 !
@@ -413,7 +413,7 @@
       !=================================================================
 
       ! Assume success
-      RC      = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=============================================================
       ! Update air quantities
@@ -820,7 +820,7 @@
             MSG = 'Incorrect tracer units: ' 
      &              // TRIM(State_Chm%Spc_Units)
             LOC = 'DAO_MOD: AIRQNT'
-            CALL GIGC_Error( TRIM(MSG), RC, TRIM(LOC) )
+            CALL GC_Error( TRIM(MSG), RC, TRIM(LOC) )
          ENDIF
       ENDIF
 
@@ -844,9 +844,9 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YEDGE
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1176,7 +1176,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS: 
@@ -1262,7 +1262,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS: 
@@ -1348,7 +1348,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS: 
@@ -1415,7 +1415,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1559,7 +1559,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1656,10 +1656,10 @@
 !
 ! USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE JULDAY_MOD,         ONLY : JULDAY
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR
       USE TIME_MOD,           ONLY : GET_DAY
       USE TIME_MOD,           ONLY : GET_GMT
@@ -1704,7 +1704,7 @@
       !=================================================================
 
       ! Assume success
-      RC     = GIGC_SUCCESS
+      RC     = GC_SUCCESS
 
       ! Current time
       DOY    = GET_DAY_OF_YEAR()                       ! Current day of year
@@ -1759,8 +1759,8 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID_R
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MINUTE
       USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -1968,7 +1968,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod,   ONLY : MetState
+      USE State_Met_Mod,        ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !

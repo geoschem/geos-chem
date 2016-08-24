@@ -16,9 +16,9 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS
-      USE HCO_ERROR_MOD                    ! For HEMCO error reporting
-      USE PRECISION_MOD                    ! For GEOS-Chem Precisions
+      USE HCO_ERROR_MOD     ! For HEMCO error reporting
+      USE PhysConstants     ! Physical constants
+      USE PRECISION_MOD     ! For GEOS-Chem Precisions
 
       IMPLICIT NONE
       PRIVATE
@@ -200,7 +200,7 @@
 !  05 Jan 2016 - E. Lundgren - Use global physical parameters (AIRMW and AVO)
 !  14 Jan 2016 - M. Sulprizio- POAEMISS(:,:,:,1) now represents POG1 and
 !                              POAEMISS(:,:,:,2) now represents POG2
-!  17 Jun 2016 - J.D.Maaasakkers - Now use IND_ to define species ID's  
+!  17 Jun 2016 - J.D.Maaasakkers - Now use Ind_ to define species ID's  
 !  17 Jun 2016 - R. Yantosca - Now declare all species ID's as module
 !                              variables, and initialize them at startup
 !  28 Jun 2016 - M. Sulprizio- Add species ID's for L*RO2N/H and LISOP* to
@@ -389,13 +389,13 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD 
+      USE ErrCode_Mod 
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS                       !(win, 1/25/10)
@@ -445,7 +445,7 @@
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !  23 Sep 2014 - M. Sulprizio- Get OH, NO3, and O3 fields for offline aerosol
 !                              simulation from HEMCO
-!  16 Jun 2016 - J.D.Maasakkers- Now define species ID's with IND_ function
+!  16 Jun 2016 - J.D.Maasakkers- Now define species ID's with Ind_ function
 !  23 Jun 2016 - R. Yantosca - Add more error checks to make sure each id_*
 !                              species flag is defined before using it
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
@@ -476,7 +476,7 @@
       !=================================================================
 
       ! Assume success
-      RC                   = GIGC_SUCCESS
+      RC                   = GC_SUCCESS
 
       ! am I root? 
       aIR                  = am_I_Root
@@ -524,15 +524,15 @@
             IF ( LSOA ) THEN
                ! Get offline oxidant fields from HEMCO (mps, 9/23/14)
                CALL HCO_GetPtr( aIR, 'GLOBAL_OH',  OH,  RC )
-               IF ( RC /= GIGC_SUCCESS )
+               IF ( RC /= GC_SUCCESS )
      &         CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_OH',  LOC)
 
                CALL HCO_GetPtr( aIR, 'GLOBAL_NO3', NO3, RC )
-               IF ( RC /= GIGC_SUCCESS )
+               IF ( RC /= GC_SUCCESS )
      &         CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_NO3', LOC)
 
                CALL HCO_GetPtr( aIR, 'O3',         O3,  RC )
-               IF ( RC /= GIGC_SUCCESS )
+               IF ( RC /= GC_SUCCESS )
      &         CALL ERROR_STOP( 'Cannot get pointer to O3',         LOC)
             ENDIF
 
@@ -722,8 +722,8 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07_BC 
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
@@ -778,7 +778,7 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Initialize
       KBC       = 1.e+0_fp / ( 86400e+0_fp * BC_LIFE )
@@ -859,8 +859,8 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -909,7 +909,7 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -966,8 +966,8 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07_OC 
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -1018,7 +1018,7 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Initialize
       KOC       = 1.e+0_fp / ( 86400e+0_fp * OC_LIFE )
@@ -1099,8 +1099,8 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -1149,7 +1149,7 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1272,11 +1272,11 @@
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07_SOAGM
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
 !
 ! !INPUT PARAMETERS:
@@ -1352,7 +1352,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Initialize pointers
       Spc      => State_Chm%Species     ! Chemical species array [kg]
@@ -1375,7 +1375,7 @@
       !=================================================================
       ! Loop over grid boxes
       !
-      !%%% NOTE: NEED TO REPLACE LLCHEM WITH LLPAR FOR GIGC
+      !%%% NOTE: NEED TO REPLACE LLCHEM WITH LLPAR FOR GCHP
       !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
       !=================================================================
       DO L = 1, LLCHEM
@@ -1510,11 +1510,11 @@
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07_SOAGM
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
 !
 ! !INPUT PARAMETERS:
@@ -1592,7 +1592,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Initialize pointers
       Spc      => State_Chm%Species     ! Chemical species array [kg]
@@ -1615,7 +1615,7 @@
       !=================================================================
       ! Loop over grid boxes
       !
-      !%%% NOTE: NEED TO REPLACE LLCHEM WITH LLPAR FOR GIGC
+      !%%% NOTE: NEED TO REPLACE LLCHEM WITH LLPAR FOR GCHP
       !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
       !=================================================================
       DO L = 1, LLCHEM
@@ -1751,11 +1751,11 @@
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07_HC
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM,      GET_MONTH
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_BPCH
 !
@@ -2070,7 +2070,7 @@
       JSVPOA  = IDSV(PARENTPOA)
       JSVOPOA = IDSV(PARENTOPOA)
 
-      !%%% NOTE: NEED TO REPLACE LLCHEM WITH LLPAR FOR GIGC
+      !%%% NOTE: NEED TO REPLACE LLCHEM WITH LLPAR FOR GCHP
       !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
 
       ! For parallel do:
@@ -2862,7 +2862,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -3203,7 +3203,7 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -3593,10 +3593,10 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07_HC
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
 !
 ! !INPUT PARAMETERS: 
@@ -3679,7 +3679,7 @@
       !=================================================================
 
       ! Assume success
-      RC      = GIGC_SUCCESS
+      RC      = GC_SUCCESS
 
       ! Point to chemical species array [kg]
       Spc     => State_Chm%Species
@@ -4041,7 +4041,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4200,7 +4200,7 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07_HC 
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4681,10 +4681,10 @@
       USE DIAG_MOD,           ONLY : AD59_OCIL,   AD59_OCOB
       USE DIAG_MOD,           ONLY : AD59_NUMB
       USE ERROR_MOD,          ONLY : IT_IS_NAN
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TOMAS_MOD,          ONLY : IBINS,    AVGMASS,  ICOMP,   IDIAG
       USE TOMAS_MOD,          ONLY : SRTECIL,  SRTECOB,  SRTOCIL
       USE TOMAS_MOD,          ONLY : SRTOCOB,  SRTSO4,   SRTNH4
@@ -5155,15 +5155,15 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-      USE GIGC_State_Met_Mod,    ONLY : MetState
+      USE ErrCode_Mod
       USE GRID_MOD,              ONLY : GET_AREA_M2
       USE HCOI_GC_MAIN_MOD,      ONLY : GetHcoState, GetHcoID, GetHcoVal
       USE HCO_STATE_MOD,         ONLY : HCO_STATE
       USE HCO_ERROR_MOD
+      USE Input_Opt_Mod,         ONLY : OptInput
       USE PBL_MIX_MOD,           ONLY : GET_PBL_MAX_L
       USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL
+      USE State_Met_Mod,         ONLY : MetState
       USE TIME_MOD,              ONLY : GET_TS_EMIS
 !
 ! !INPUT PARAMETERS:
@@ -5225,7 +5225,7 @@ ccc
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
       
       ! Initialize
       POAEMISS =  0e+0_fp
@@ -5345,13 +5345,13 @@ ccc
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE UNITCONV_MOD
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE UnitConv_Mod
 !
 ! TOMAS DIAGNs:
 !
@@ -5439,7 +5439,7 @@ ccc
       !=================================================================
 
       ! Assume success
-      RC                  = GIGC_SUCCESS
+      RC                  = GC_SUCCESS
 
       ! Get nested-grid offsets
       I0                  = GET_XOFFSET()
@@ -5466,9 +5466,9 @@ ccc
       ! as species units (ewl, 9/11/15)
       CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,  
      &                               State_Chm, RC         ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error( 'Unit conversion error', RC, 
-     &                    'Routine EMISSCARBONTOMAS in carbon_mod.F' )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( 'Unit conversion error', RC, 
+     &                  'Routine EMISSCARBONTOMAS in carbon_mod.F' )
          RETURN
       ENDIF 
 
@@ -5718,9 +5718,9 @@ ccc
       ! Convert State_Chm%Species back to kg (ewl, 9/11/15)
       CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
      &                               State_Chm, RC         ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                   'Routine EMISSCARBONTOMAS in carbon_mod.F')
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
+     &                 'Routine EMISSCARBONTOMAS in carbon_mod.F')
          RETURN
       ENDIF  
 
@@ -5748,9 +5748,9 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TOMAS_MOD,          ONLY : IBINS
 !
 ! !INPUT PARAMETERS: 
@@ -6021,9 +6021,9 @@ ccc
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -6135,9 +6135,9 @@ ccc
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6283,9 +6283,9 @@ ccc
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -6427,10 +6427,10 @@ ccc
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AVO
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6670,10 +6670,10 @@ ccc
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AVO
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6778,7 +6778,7 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -6932,8 +6932,8 @@ ccc
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_LAND 
       USE DIAG_MOD,           ONLY : AD07_SOAGM
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
@@ -7173,8 +7173,8 @@ ccc
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_LAND
       USE DIAG_MOD,           ONLY : AD07_SOAGM
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
@@ -7407,7 +7407,7 @@ ccc
 !
 ! !USES:
 !
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -7764,7 +7764,7 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -7898,9 +7898,9 @@ ccc
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRAT
       USE CMN_SIZE_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -8433,9 +8433,9 @@ ccc
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -8529,9 +8529,9 @@ ccc
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -8610,11 +8610,11 @@ ccc
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AVO
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -8727,10 +8727,10 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : IND_
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : Ind_
 !-----------------------------------------------------------------------------
 ! Prior to 7/20/16:
 ! HEMCO has now rendered this code obsolete (bmy, 7/20/16)
@@ -8786,7 +8786,7 @@ ccc
       !=================================================================
       
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Define species IDs
       id_ASOG1    = IND_('ASOG1'   )

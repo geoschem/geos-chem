@@ -18,6 +18,9 @@
 !
       ! References to F90 modules
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
+      USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_ICE, IS_WATER, IS_LAND
       USE DIAG_MOD,           ONLY : AD33, AD35, AD54 
       USE DIAG_MOD,           ONLY : AD47
@@ -29,31 +32,26 @@
       USE DIAG_MOD,           ONLY : AD71_DAY,   AD71_HR
       USE DIAG_MOD,           ONLY : AD71_LDAY,  AD71_LHR
       USE DIAG_MOD,           ONLY : AD71_COUNT, AD71_HRCT
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Chm_Mod, ONLY : Ind_
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE Species_Mod,        ONLY : Species
-      USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
       USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
-
-      ! For ND71
-      USE TIME_MOD,           ONLY : GET_DAY
-      USE TIME_MOD,           ONLY : GET_HOUR
-      USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE CMN_SIZE_MOD
-      USE CMN_DIAG_MOD
-      USE PHYSCONSTANTS
-      USE PRECISION_MOD
-      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-      USE HCO_ERROR_MOD
-      USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
 #if defined( NC_DIAG ) 
       USE DIAGNOSTICS_MOD,    ONLY : DiagnSpec, DiagnUpdate_Met
 #endif
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : SAFE_DIV
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+      USE HCO_ERROR_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants
+      USE PRECISION_MOD
+      USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
+      USE TIME_MOD,           ONLY : GET_DAY
+      USE TIME_MOD,           ONLY : GET_HOUR
 
       IMPLICIT NONE
 !
@@ -155,7 +153,7 @@
 !  31 May 2016 - E. Lundgren - Remove usage of TCVV; replace with AIRMW/emMW_g
 !  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
 !                              NAMEGAS with ThisSpc%Name from species database
-!  22 Jun 2016 - R. Yantosca - Now use IND_() to define id_PASV species ID
+!  22 Jun 2016 - R. Yantosca - Now use Ind_() to define id_PASV species ID
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
@@ -201,7 +199,7 @@
       !=================================================================
       
       ! Assume success
-      RC                 =  GIGC_SUCCESS
+      RC                 =  GC_SUCCESS
 
       ! Initialize
       Ptr3D              => NULL()
