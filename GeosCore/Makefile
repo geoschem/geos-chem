@@ -453,7 +453,7 @@ chemistry_mod.o             : chemistry_mod.F                                \
                               RnPbBe_mod.o            seasalt_mod.o          \
                               strat_chem_mod.o        sulfate_mod.o          \
                               tagged_co_mod.o         tagged_o3_mod.o        \
-                              tomas_mod.o             flexchem_setup_mod.o
+                              tomas_mod.o             flexchem_mod.o
 
 cleanup.o                   : cleanup.F                                      \
                               aerosol_mod.o                                  \
@@ -479,7 +479,7 @@ cleanup.o                   : cleanup.F                                      \
                               transport_mod.o         ucx_mod.o              \
                               uvalbedo_mod.o          tpcore_fvdas_mod.o     \
                               geosfp_read_mod.o       merra2_read_mod.o      \
-                              tpcore_window_mod.o                            \
+                              tpcore_window_mod.o     flexchem_mod.o         \
                               toms_mod.o              rrtmg_rad_transfer_mod.o
 
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
@@ -589,16 +589,12 @@ fast_jx_mod.o               : fast_jx_mod.F                                  \
                               chemgrid_mod.o          dao_mod.o              \
                               toms_mod.o              
 
-flex_chemdr.o               : flex_chemdr.F                                  \
-                              aerosol_mod.o           dao_mod.o              \
-                              diag_oh_mod.o           diag20_mod.o           \
-                              fast_jx_mod.o           dust_mod.o             \
-                              future_emissions_mod.o  flexchem_setup_mod.o   \
-                              planeflight_mod.o       restart_mod.o          \
-                              tomas_mod.o             uvalbedo_mod.o
-
-flexchem_setup_mod.o        : flexchem_setup_mod.F90                         \
-                              restart_mod.o           chemgrid_mod.o
+flexchem_mod.o              : flexchem_mod.F90                               \
+                              aerosol_mod.o           chemgrid_mod.o         \
+                              diag_mod.o              diag_oh_mod.o          \
+                              diag20_mod.o            dust_mod.o             \
+                              fast_jx_mod.o           future_emissions_mod.o \
+                              tomas_mod.o
 
 future_emissions_mod.o      : future_emissions_mod.F
 

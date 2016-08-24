@@ -94,6 +94,7 @@
       USE DUST_MOD,           ONLY : RDUST_ONLINE
       USE ErrCode_Mod
       USE ERROR_MOD
+      USE FlexChem_Mod,       ONLY : Do_FlexChem
       USE GLOBAL_CH4_MOD,     ONLY : CHEMCH4
       USE Input_Opt_Mod,      ONLY : OptInput
       USE ISOROPIAII_MOD,     ONLY : DO_ISOROPIAII
@@ -123,9 +124,6 @@
 #if defined( TOMAS )
       USE TOMAS_MOD,          ONLY : DO_TOMAS  !(win, 7/14/09)
 #endif
-
-      USE FLEXCHEM_SETUP_MOD    ! For initializing KPP/KPPA chem. routines
-
 !
 ! !INPUT PARAMETERS:
 !
@@ -362,13 +360,6 @@
          !---------------------------------
          IF ( IT_IS_A_FULLCHEM_SIM ) THEN 
 
-            ! Initialize FlexChem
-            IF (FIRST) THEN
-               CALL INIT_FLEXCHEM( am_I_Root, RC )
-               IF ( LPRT .and. am_I_Root ) 
-     &              CALL DEBUG_MSG( '### MAIN: a INIT_FLEXCHEM' )
-            ENDIF
-
 #if defined( UCX )
             ! We need to get the STATE_PSC from the HEMCO restart file.
             ! NOTE: Do this before calling CHEMDR to avoid reading this
@@ -389,7 +380,7 @@
 #endif
 
             ! Call gas-phase chemistry
-            CALL FLEX_CHEMDR
+            CALL Do_FlexChem
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
             ! Check units (ewl, 10/5/15)
@@ -883,6 +874,7 @@
       USE CMN_SIZE_MOD,       ONLY : LLTROP
       USE ErrCode_Mod
       USE FAST_JX_MOD,        ONLY : INIT_FJX
+      USE FlexChem_Mod,       ONLY : Init_FlexChem
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
 !
@@ -918,8 +910,11 @@
 
       IF ( FIRST ) THEN
 
-         ! Init photolysis
-         CALL INIT_FJX(        am_I_Root, Input_Opt,  RC           )
+         ! Initialize FlexChem
+         CALL Init_FlexChem( am_I_Root, Input_Opt, RC )
+
+         ! Initialize Fast-JX photolysis
+         CALL INIT_FJX(      am_I_Root, Input_Opt, RC )
          
          ! Adjust first flag
          FIRST = .FALSE.
