@@ -18,8 +18,8 @@
 !    PRPE, C3H8, CH2O, C2H6, HNO4, MP
 !  
 !  The updated code includes at least all of these, and many more. The code
-!  is flexible enough to automatically apply the rate to any new tracers
-!  for future simulations that share the name in tracer\_mod with the
+!  is flexible enough to automatically apply the rate to any new species
+!  for future simulations that share the name in species\_mod with the
 !  GMI name.  (See Documentation on wiki).
 !
 !  The prod rates and loss frequencies are now read via HEMCO. They are 
@@ -94,7 +94,7 @@ MODULE Strat_Chem_Mod
 !
 ! !DEFINED PARAMETERS:
 !
-  ! Tracer index of Bry species in input files
+  ! Species index of Bry species in input files
   ! 1:6 = (Br2, Br, BrO, HOBr, HBr, BrNO3) for both
   INTEGER,           PARAMETER :: br_nos(6)   = (/ 44, 45, 46, 47, 48, 50 /)
 
@@ -129,7 +129,7 @@ MODULE Strat_Chem_Mod
   TYPE(PL_Pointers), POINTER :: PLVEC(:) => NULL()
 
   ! Toggle to specify whether or not production/loss rates must be provided
-  ! for every strat chem tracer. If set to TRUE, the code will return with
+  ! for every strat chem species. If set to TRUE, the code will return with
   ! an error if the production/loss rate cannot be found (through HEMCO) for
   ! any of the species. If set to .FALSE., only a warning is prompted and a
   ! value of 0.0 is used for every field that cannotbe found. 
@@ -151,7 +151,7 @@ MODULE Strat_Chem_Mod
   INTEGER               :: Strat_TrID_GMI(NTR_GMI) !Maps 1:NSCHEM to GMI index
                      ! (At most NTR_GMI species could overlap between G-C & GMI)
 
-  ! Tracer index of Bry species in GEOS-Chem STT (may differ from br_nos)
+  ! Species index of Bry species in GEOS-Chem species DB(may differ from br_nos)
   INTEGER               :: GC_Bry_TrID(6) 
 
   ! Variables used to calculate the strat-trop exchange flux
@@ -163,7 +163,7 @@ MODULE Strat_Chem_Mod
   REAL(f4), ALLOCATABLE :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
                                                !   (total P - L) [kg period-1]
 
-  ! Species ID flags (formerly in tracerid_mod.F)
+  ! Species ID flags
   INTEGER               :: id_Br2,   id_Br,     id_BrNO3
   INTEGER               :: id_BrO,   id_CHBr3,  id_CH2Br2
   INTEGER               :: id_CH3Br, id_HOBr,   id_HBr
@@ -285,7 +285,6 @@ CONTAINS
     LOGICAL           :: LBRGCCM
     LOGICAL           :: LRESET, LCYCLE
     LOGICAL           :: ISBR2 
-    INTEGER           :: N_TRACERS
 
     ! Arrays
     REAL(fp)          :: Spc0  (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
@@ -602,7 +601,7 @@ CONTAINS
                           / State_Chm%SpcData(GC_Bry_TrID(NN))%Info%emMW_g )
                 ENDIF
 
-                ! Special adjustment for G-C Br2 tracer, 
+                ! Special adjustment for G-C Br2, 
                 ! which is BrCl in the strat (ckeller, 1/2/15)
                 IF ( ISBR2 ) BryTmp = BryTmp / 2.0_fp
 
@@ -632,7 +631,7 @@ CONTAINS
     ! TAGGED O3 SIMULATION
     !
     ! Tagged O3 only makes use of Synoz or Linoz. We apply either to
-    ! the total Ox tracer, and the stratospheric Ox tracer.
+    ! the total O3 species, and the stratospheric O3 species.
     !======================================================================
     ELSE IF ( IT_IS_A_TAGO3_SIM ) THEN
 
@@ -711,7 +710,7 @@ CONTAINS
     ! OTHER SIMULATIONS
     !
     ! The code will need to be modified for other tagged simulations 
-    ! (e.g., CO). Simulations like CH4, CO2 with standard tracer names 
+    ! (e.g., CO). Simulations like CH4, CO2 with standard species names 
     ! should probably just work as is with the full chemistry code above, 
     ! but would need to be tested.
     !======================================================================
@@ -800,11 +799,11 @@ CONTAINS
     ! Do for every Bry species
     DO N = 1,6
 
-       ! Skip if tracer is not defined    
+       ! Skip if species is not defined    
        IF ( GC_Bry_TrID(N) <= 0 ) CYCLE
 
        ! Get Bry name
-       ThisName = Input_Opt%TRACER_NAME( GC_Bry_TrID(N) )
+       ThisName = State_Chm%SpcData(GC_Bry_TrID(N))%Info%Name
 
        ! Construct field name using Bry name
        PREFIX = 'GEOSCCM_'//TRIM(ThisName)
@@ -842,7 +841,7 @@ CONTAINS
 ! !IROUTINE: Set_PLVEC
 !
 ! !DESCRIPTION: Subroutine SET\_PLVEC gets the production and loss terms of
-! all strat chem tracers from HEMCO. The pointers only need to be established 
+! all strat chem species from HEMCO. The pointers only need to be established 
 ! once. Target data is automatically updated through HEMCO. 
 !\\
 !\\
@@ -902,14 +901,14 @@ CONTAINS
     ! Do for every species 
     DO N = 1,NSCHEM
 
-       ! Get GEOS-Chem tracer index
+       ! Get GEOS-Chem species index
        TRCID = Strat_TrID_GC(N)
 
-       ! Skip if tracer is not defined    
+       ! Skip if species is not defined    
        IF ( TRCID <= 0 ) CYCLE
 
        ! Get species name
-       ThisName = Input_Opt%TRACER_NAME( TRCID )
+       ThisName = State_Chm%SpcData(TRCID)%Info%Name
 
        ! ---------------------------------------------------------------
        ! Get pointers to fields
@@ -1151,7 +1150,6 @@ CONTAINS
        STE = (Tend-dStrat)/dt ! [kg a-1]
 
        ! Get info about this species from the species database
-       ! NOTE: This assumes 1:1 tracer index to species index mapping
        SpcInfo => State_Chm%SpcData(N)%Info
 
        ! Print to standard output
@@ -1294,7 +1292,7 @@ CONTAINS
     ! Assume success
     RC                       = GC_SUCCESS
 
-    ! TRACERID_MOD Replacement
+    ! Get species ID flags
     id_Br                    = Ind_('Br'     )
     id_Br2                   = Ind_('Br2'    )
     id_BrNO3                 = Ind_('BrNO3'  ) 
@@ -1331,12 +1329,12 @@ CONTAINS
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! Determine the mapping for the GMI to the GC variables based on
-    ! tracer name, which only needs to be done once per model run.
+    ! species name, which only needs to be done once per model run.
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    ! List of available tracers with archived monthly climatological
+    ! List of available species with archived monthly climatological
     ! production rates, loss frequencies, and mixing ratios from the 
-    ! GMI Combo model (tracer names here are as used in GMI).
+    ! GMI Combo model (species names here are as used in GMI).
     GMI_TrName = (/ &
              'A3O2',     'ACET',   'ACTA',   'ALD2',    'ALK4',  'ATO2', &
              'B3O2',       'Br',   'BrCl',    'BrO',  'BrONO2',  'C2H6', &
@@ -2002,10 +2000,10 @@ CONTAINS
                 PO3 = PO3 * H70mb / State_Met%BXHEIGHT(I,J,L) 
              ENDIF
 
-             ! Store O3 flux in the proper tracer number
+             ! Store O3 flux in the proper species number
              Spc(I,J,L,id_O3) = Spc(I,J,L,id_O3) + PO3 
 
-             ! Store O3 flux for strat O3 tracer (Tagged O3 only)
+             ! Store O3 flux for strat O3 species (Tagged O3 only)
              IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
                 Spc(I,J,L,id_O3Strat) = Spc(I,J,L,id_O3Strat) + PO3
              ENDIF

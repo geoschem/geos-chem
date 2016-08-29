@@ -92,7 +92,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! Species ID flags (formerly in tracerid_mod.F)
+      ! Species ID flags
       INTEGER :: id_Rn, id_Pb, id_Be7
 
       CONTAINS
@@ -201,6 +201,7 @@
       ! For netCDF diagnostics via HEMCO
       CHARACTER(LEN=255)       :: MSG
       CHARACTER(LEN=255)       :: LOC = 'CHEMRNPBBE (RnPbBe_mod.F)'
+      CHARACTER(LEN=31)        :: Spc_Name
       REAL(fp),      TARGET    :: PB_EMISS(IIPAR, JJPAR, LLPAR)
       REAL(fp),      TARGET    :: RN_DECAY(IIPAR, JJPAR, LLPAR)
       REAL(fp),      TARGET    :: PB_DECAY(IIPAR, JJPAR, LLPAR) 
@@ -268,7 +269,7 @@
       ! Species index for Rn222
       N = id_Rn
 
-      ! Make sure Rn222 is a defined tracer
+      ! Make sure Rn222 is a defined species
       IF ( N > 0 ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -299,13 +300,16 @@
 !$OMP END PARALLEL DO
 
 #if defined( NC_DIAG )
+         ! Get species name
+         Spc_Name = State_Chm%SpcData(N)%Info%Name
+
          ! Make sure ND02 is turned on
          IF ( Input_Opt%ND02 > 0 ) THEN
 
             ! Update ND02 diagnostic: Rn lost to decay [kg/s]
             CALL Diagn_RnPbBe_Update( am_I_Root,
      &                                'ND02', 
-     &                                Input_Opt%TRACER_NAME( id_Rn ), 
+     &                                Spc_Name, 
      &                                RN_DECAY, 
      &                                INput_Opt%DIAG_COLLECTION )
          ENDIF
@@ -320,7 +324,7 @@
       ! Species index for Pb210
       N = id_Pb
 
-      ! Make sure Pb210 is a defined tracer
+      ! Make sure Pb210 is a defined species
       IF ( N > 0 ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -378,13 +382,16 @@
 !$OMP END PARALLEL DO
 
 #if defined( NC_DIAG )
+         ! Get species name
+         Spc_Name = State_Chm%SpcData(N)%Info%Name
+
          ! Make sure ND02 is turned on
          IF ( Input_Opt%ND02 > 0 ) THEN
 
-         ! Update ND02 diagnostic: Pb lost to decay [kg/s]
+            ! Update ND02 diagnostic: Pb lost to decay [kg/s]
             CALL Diagn_RnPbBe_Update( am_I_Root,
      &                                'ND02', 
-     &                                Input_Opt%TRACER_NAME( id_Pb ), 
+     &                                Spc_Name, 
      &                                PB_DECAY, 
      &                                Input_Opt%DIAG_COLLECTION )
          ENDIF
@@ -395,7 +402,7 @@
             ! Update ND01 diagnostic: Pb emission [kg/s]
             CALL Diagn_RnPbBe_Update( am_I_Root,
      &                                'ND01', 
-     &                                Input_Opt%TRACER_NAME( id_Pb ), 
+     &                                Spc_Name, 
      &                                PB_EMISS, 
      &                                Input_Opt%DIAG_COLLECTION )
          ENDIF
@@ -408,10 +415,10 @@
       ! Radioactive decay of Be7
       !=================================================================
 
-      ! Tracer index
+      ! Species index for Be7
       N = id_Be7
 
-      ! Make sure Be7 is a defined tracer
+      ! Make sure Be7 is a defined species
       IF ( N > 0 ) THEN 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED ) 
@@ -441,13 +448,16 @@
 !$OMP END PARALLEL DO
 
 #if defined( NC_DIAG )
+         ! Get species name
+         Spc_Name = State_Chm%SpcData(N)%Info%Name
+
          ! Make sure ND02 is turned on
          IF ( Input_Opt%ND02 > 0 ) THEN
 
             ! Update ND02 diagnostic: Be lost to decay [kg/s]
             CALL Diagn_RnPbBe_Update( am_I_Root,
      &                                'ND02', 
-     &                                Input_Opt%TRACER_NAME( id_Be7 ), 
+     &                                Spc_Name, 
      &                                BE_DECAY, 
      &                                Input_Opt%DIAG_COLLECTION )
          ENDIF
@@ -477,7 +487,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Diagn_RnPbBe_Update( am_I_Root, NDxx, TracerName, 
+      SUBROUTINE Diagn_RnPbBe_Update( am_I_Root, NDxx, SpeciesName, 
      &                                DiagArray, ColNo )
 !
 ! !USES:
@@ -488,11 +498,11 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,            INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      CHARACTER(LEN=4),   INTENT(IN)  :: NDxx        ! Diagnostic id
-      CHARACTER(LEN=255), INTENT(IN)  :: TracerName  ! Tracer name
+      LOGICAL,            INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
+      CHARACTER(LEN=4),   INTENT(IN)  :: NDxx         ! Diagnostic id
+      CHARACTER(LEN=255), INTENT(IN)  :: SpeciesName  ! Species name
       REAL(fp), TARGET,   INTENT(IN)  :: DiagArray(:,:,:)
-      INTEGER,            INTENT(IN)  :: ColNo       ! Diag collection #
+      INTEGER,            INTENT(IN)  :: ColNo        ! Diag collection #
 !
 ! !REVISION HISTORY:
 !  30 Jan 2015 - E. Lundgren   - Initial version
@@ -518,9 +528,9 @@
       ! Define the diagnostic name
       SELECT CASE ( NDxx )
          CASE ( 'ND01' )
-            DiagnName = 'EMISS_' // TRIM( TracerName )
+            DiagnName = 'EMISS_' // TRIM( SpeciesName )
          CASE ( 'ND02' )
-            DiagnName = 'DECAY_' // TRIM( TracerName )
+            DiagnName = 'DECAY_' // TRIM( SpeciesName )
          CASE DEFAULT
             MSG = 'Undefined Rn/Pb/Be7 diagnostic: ' // NDxx
             CALL ERROR_STOP( TRIM( MSG ), LOC )

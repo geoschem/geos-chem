@@ -221,7 +221,7 @@
       !  IWATER    : ID #'s for Olson surface types that are water 
       !  IZO       : Roughness heights for each Olson surface type
       !  NDVZIND   : Index array for ordering drydep species in DEPVEL
-      !  NTRAIND   : Stores tracer numbers of drydep species
+      !  NTRAIND   : Stores species numbers of drydep species
       !  DEPSAV    : Array containing dry deposition frequencies [s-1]
       !  PBLFRAC   : Array for multiplicative factor for drydep freq
       !  DRYCOEFF  : Polynomial coefficients for dry deposition
@@ -267,7 +267,7 @@
       ! Arrays that hold information about the dry-depositing species
       LOGICAL,           ALLOCATABLE :: AIROSOL (:    ) ! Is Aerosol? (T/F)
       INTEGER,           ALLOCATABLE :: NDVZIND (:    ) ! Drydep index
-      INTEGER,           ALLOCATABLE :: NTRAIND (:    ) ! Tracer index
+      INTEGER,           ALLOCATABLE :: NTRAIND (:    ) ! Species index
       REAL(f8),          ALLOCATABLE :: HSTAR   (:    ) ! Henry's K0 [M/atm]
       REAL(f8),          ALLOCATABLE :: KOA     (:    ) ! POP's KOA
       REAL(f8),          ALLOCATABLE :: F0      (:    ) ! Reactivity factor [1]
@@ -412,7 +412,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER       :: I,   J,   L,   D,   N, NDVZ, N_TRACERS
+      INTEGER       :: I,   J,   L,   D,   N, NDVZ
       REAL(f8)      :: DVZ, THIK
 
       ! Arrays
@@ -511,10 +511,10 @@
          IF (PBL_DRYDEP) THIK = MAX( ZH(I,J), THIK )
 
          ! Loop over drydep species
-         DO D = 1, NUMDEP
+         DO D = 1, State_Chm%nDryDep
 
-            ! GEOS-CHEM tracer number
-            N      =  NTRAIND(D)
+            ! GEOS-CHEM species number
+            N       =  State_Chm%Map_DryDep(D)
 
             ! Get info about this species from the database
             SpcInfo => State_Chm%SpcData(N)%Info
@@ -536,7 +536,7 @@
                !-------------------------------------
                IF ( SpcInfo%DD_DvzAerSnow > 0.0_fp ) THEN
 
-                  ! For most aerosol tracers (basically everything
+                  ! For most aerosol species (basically everything
                   ! except sea salt and dust species), we just set
                   ! the deposition velocity over snow to a fixed value.
                   ! (Modification by Jenny Fisher, dated 8/1/11)
@@ -620,18 +620,20 @@
          HCRC = HCO_SUCCESS
 
          ! Loop over all depositing species
-         DO D = 1, NUMDEP
+         DO D = 1, State_Chm%nDryDep
 
-            ! Get the corresponding GEOS-Chem tracer number
-            N = NTRAIND(D)
+            ! Get the corresponding GEOS-Chem species number
+            N =  State_Chm%Map_DryDep(D)
 
             ! If this tracer number NN is scheduled for output in input.geos, 
             ! then archive the latest depvel data into the diagnostic structure
             IF ( ANY( Input_Opt%TINDEX(44,:) == N ) ) THEN
 
+               ! Get information for this species from the species database
+               SpcInfo => State_Chm%SpcData(N)%Info
+
                ! Construct diagnostic name
-               DryDepName =  Input_Opt%TRACER_NAME(N)
-               DiagnName  = 'DRYDEP_VEL_' // TRIM( DryDepName )
+               DiagnName  = 'DRYDEP_VEL_' // TRIM( SpcInfo%Name )
 
                ! Point to the proper slice of the DEPSAV array
                Ptr2D => SAVE_DEPVEL(:,:,D)
@@ -643,8 +645,9 @@
      &                            COL     = Input_Opt%DIAG_COLLECTION,
      &                            RC      = HCRC )
 
-               ! Free the pointer
-               Ptr2D => NULL()
+               ! Free the pointers
+               Ptr2D   => NULL()
+               SpcInfo => NULL()
 
                ! Stop with error if the diagnostics were unsuccessful
                IF ( HCRC /= HCO_SUCCESS ) THEN
@@ -1239,7 +1242,7 @@
       ! because at each box the aerosol size&density is different
       ! depending on the internally-mixed composition (win, 7/15/09)
       !
-      ! Now pass am_I_Root and RC to enable tracer unit conversion to 
+      ! Now pass am_I_Root and RC to enable species unit conversion to 
       ! [kg] in TOMAS code (ewl, 8/12/15)
       !=================================================================
 
@@ -1586,7 +1589,7 @@
 
                   !=====================================================
                   ! Replace original code to statement 160 here: only
-                  ! do this for non-size-resolved tracers where 
+                  ! do this for non-size-resolved species where 
                   ! AIROSOL(K)=T. (rjp, tdf, bec, bmy, 4/20/04)
                   !=====================================================
 !                  ! use Zhang et al for all aerosols (hotp 10/26/07)
@@ -2556,7 +2559,7 @@
 ! !IROUTINE: aero_sfcrsii
 !
 ! !DESCRIPTION: Function AERO\_SFCRSII computes the aerodynamic resistance of
-!  seasalt aerosol tracers according to Zhang et al 2001.  We account for
+!  seasalt aerosol species according to Zhang et al 2001.  We account for
 !  hygroscopic growth of the seasalt aerosol particles. (rjp, tdf, bec, bmy,
 !  4/1/04, 6/11/08)
 !\\
@@ -2572,7 +2575,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN) :: K     ! Drydep tracer index (range: 1-NUMDEP)
+      INTEGER,        INTENT(IN) :: K     ! Drydep species index (range: 1-NUMDEP)
       INTEGER,        INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
       REAL(f8),       INTENT(IN) :: PRESS ! Pressure [kPa] (1 mb=100 Pa=0.1 kPa)
       REAL(f8),       INTENT(IN) :: TEMP  ! Temperature [K]   
@@ -3138,7 +3141,7 @@
 ! !IROUTINE: dust_sfcrsi
 !
 ! !DESCRIPTION: Function DUST\_SFCRSI computes the aerodynamic resistance of
-!  dust aerosol tracers according to Seinfeld et al 96.  We do not consider
+!  dust aerosol species according to Seinfeld et al 96.  We do not consider
 !  hygroscopic growth of the dust aerosol particles. (rjp, tdf, bmy, bec, 
 !  4/1/04, 4/15/05)
 !\\
@@ -3325,7 +3328,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,  INTENT(IN) :: K     ! Drydep tracer index (range: 1-NUMDEP)
+      INTEGER,  INTENT(IN) :: K     ! Drydep species index (range: 1-NUMDEP)
       INTEGER,  INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
       REAL(f8), INTENT(IN) :: PRESS ! Pressure [kPa] (1 mb = 100 Pa = 0.1 kPa)
       REAL(f8), INTENT(IN) :: TEMP  ! Temperature [K]    
@@ -3596,7 +3599,7 @@
 ! !IROUTINE: dust_sfcrsii
 !
 ! !DESCRIPTION: Function DUST\_SFCRSII computes the aerodynamic resistance of
-!  dust aerosol tracers according to Zhang et al 2001.  We do not consider the
+!  dust aerosol species according to Zhang et al 2001.  We do not consider the
 !  hygroscopic growth of the aerosol particles. (rjp, tdf, bec, bmy, 4/1/04,
 !  4/15/05)
 !\\
@@ -3609,7 +3612,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,  INTENT(IN) :: K       ! Drydep tracer index (range: 1-NUMDEP)
+      INTEGER,  INTENT(IN) :: K       ! Drydep species index (range: 1-NUMDEP)
       INTEGER,  INTENT(IN) :: II      ! Surface type index of GEOS-CHEM
       REAL(f8), INTENT(IN) :: PRESS   ! Pressure [kPa]
       REAL(f8), INTENT(IN) :: TEMP    ! Temperature [K]    
@@ -4054,7 +4057,7 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'NDVZIND' )
          NDVZIND = 0
 
-         ! Tracer indices
+         ! Species indices
          ALLOCATE( NTRAIND( State_Chm%nDryDep ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'NTRAIND' )
          NTRAIND = 0
@@ -4067,13 +4070,13 @@
       ENDIF
 
       !=================================================================
-      ! First identify tracers that dry deposit and then initialize 
+      ! First identify species that dry deposit and then initialize 
       ! the dry deposition quantities accordingly:
       !
       ! Quantity  Description
       ! ----------------------------------------------------------------
       ! NUMDEP    Number of dry depositing species
-      ! NTRAIND   GEOS-Chem tracer ID number (advected index)
+      ! NTRAIND   GEOS-Chem species ID number (advected index)
       ! NDVZIND   Coresponding index in the DVEL drydep velocity array
       ! HSTAR     Henry's law solubility constant [M atm-1]
       ! F0        Reactivity (0.0 = not reactive, 1.0=very reactive)
@@ -4215,7 +4218,7 @@
          WRITE( 6, '(/,a)' ) TRIM( MSG )
 
          ! Line 2
-         MSG =  '  #   Name      Tracer DEPVEL Henry''s    React.'
+         MSG =  '  #   Name      Species DEPVEL Henry''s    React.'
      &       // '   Molec.   Aerosol?'
          WRITE( 6, '(/,a)'   ) TRIM( MSG )
 

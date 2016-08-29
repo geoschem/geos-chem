@@ -7,24 +7,24 @@
 ! !MODULE: tendencies_mod.F90
 !
 ! !DESCRIPTION: Module tendencies\_mod.F90 is a module to define, archive and
-! write tracer tendencies. This module is still under development and only
-! active if the DEVEL compiler flag is enabled. Also, the tracers to be
+! write species tendencies. This module is still under development and only
+! active if the DEVEL compiler flag is enabled. Also, the species to be
 ! diagnosed as well as the processes for which tendencies shall be calculated
 ! are currently hardcoded below. If enabled, this module will calculate 
 ! concentration tendencies for all defined species and processes and write 
 ! these into netCDF diagnostics. All tendencies are given as v/v/s.
 !\\
 !\\
-! Tracer tendencies can be archived for as many processes are desired. For 
+! Species tendencies can be archived for as many processes are desired. For 
 ! each tendency process, an own instance of a tendency class has to be 
-! defined (subroutine Tend\_CreateClass) and all active tracers for this class
+! defined (subroutine Tend\_CreateClass) and all active species for this class
 ! need be defined via subroutine Tend\_Add. Once a tendencies class is defined,
 ! the entry and exit 'checkpoint' of this tendency need be manually set in the
 ! code (subroutines Tend\_Stage1 and Tend\_Stage2).
 !\\
 !\\
 ! For example, suppose there is routine PROCESS in module example_mod.F90 and 
-! we are interested in the tracer tendencies of O3 and CO by this process. We
+! we are interested in the species tendencies of O3 and CO by this process. We
 ! can then define a new tendency class (named 'PROCESS') during initialization
 ! of the tendencies (i.e. in tend\_init):
 !
@@ -32,7 +32,7 @@
 !    CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'PROCESS', RC )
 !    IF ( RC /= GC_SUCCESS ) RETURN
 !
-! The second step is to assign the tracers of interest to this tendency class:
+! The second step is to assign the species of interest to this tendency class:
 !
 !    ! Add species to classes
 !    CALL Tend_Add ( am_I_Root, Input_Opt, 'PROCESS', id_O3, RC )
@@ -94,7 +94,7 @@ MODULE Tendencies_Mod
   ! maximum string length of tendency name
   INTEGER, PARAMETER   :: MAXSTR = 31 
 
-  ! Number of GEOS-Chem tracers
+  ! Number of GEOS-Chem species
   INTEGER              :: nSpc = 0
 
   ! vector of tendency arrays
@@ -496,7 +496,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tend_Add ( am_I_Root, Input_Opt, TendName, TrcID, RC, CreateClass )
+  SUBROUTINE Tend_Add ( am_I_Root, Input_Opt, State_Chm, TendName, &
+                        SpcID, RC, CreateClass )
 !
 ! !USES:
 !
@@ -506,8 +507,9 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   )           :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput),   INTENT(IN   )           :: Input_Opt   ! Input opts
+    TYPE(ChmState),   INTENT(IN   )           :: State_Chm   ! Chemistry State object
     CHARACTER(LEN=*), INTENT(IN   )           :: TendName    ! Tendency class name 
-    INTEGER,          INTENT(IN   )           :: TrcID       ! Tracer ID 
+    INTEGER,          INTENT(IN   )           :: SpcID       ! Species ID 
     LOGICAL,          INTENT(IN   ), OPTIONAL :: CreateClass ! Create class if missing?
 !
 ! !OUTPUT PARAMETERS:
@@ -547,8 +549,8 @@ CONTAINS
     ! Initialize
     ThisTend => NULL()
 
-    ! Ignore invalid tracer IDs
-    IF ( TrcID <= 0 ) RETURN
+    ! Ignore invalid species IDs
+    IF ( SpcID <= 0 ) RETURN
 
     ! Search for diagnostics class
     CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, ThisTend=ThisTend ) 
@@ -571,23 +573,23 @@ CONTAINS
     ! Return here if class not found
     IF ( .NOT. FOUND ) RETURN
 
-    ! Tracer ID must not exceed # of tendency tracers
-    IF ( TrcID > nSpc ) THEN
-       WRITE(MSG,*) 'Tracer ID exceeds number of tendency tracers: ', TrcID, ' > ', nSpc
+    ! Species ID must not exceed # of tendency species
+    IF ( SpcID > nSpc ) THEN
+       WRITE(MSG,*) 'Species ID exceeds number of tendency species: ', SpcID, ' > ', nSpc
        CALL ERROR_STOP( MSG, LOC ) 
        RETURN
     ENDIF 
  
     ! Name of diagnostics 
     DiagnName = 'TEND_' // TRIM(TendName) // '_' //   &
-                TRIM( Input_Opt%TRACER_NAME( TrcID ) )
+                TRIM( State_Chm%SpcData(SpcID)%Info%Name )
 
-    ! Mark tracer as being used
-    ThisTend%SpcInUse(TrcID) = 1
+    ! Mark species as being used
+    ThisTend%SpcInUse(SpcID) = 1
 
     ! Make sure array is allocated
-    IF ( .NOT. ASSOCIATED(ThisTend%Tendency(TrcID)%Arr) ) THEN
-       ALLOCATE(ThisTend%Tendency(TrcID)%Arr(IIPAR,JJPAR,LLPAR),STAT=AS)
+    IF ( .NOT. ASSOCIATED(ThisTend%Tendency(SpcID)%Arr) ) THEN
+       ALLOCATE(ThisTend%Tendency(SpcID)%Arr(IIPAR,JJPAR,LLPAR),STAT=AS)
        IF ( AS /= 0 ) THEN
           MSG = 'Tendency allocation error: ' // TRIM(DiagnName)
           CALL ERROR_STOP( MSG, LOC ) 
@@ -631,7 +633,7 @@ CONTAINS
 !
 ! !IROUTINE: Tend_Stage1
 !
-! !DESCRIPTION: Subroutine Tend\_Stage1 archives the current tracer 
+! !DESCRIPTION: Subroutine Tend\_Stage1 archives the current species 
 ! concentrations into the local tendency arrays.
 !\\
 !\\
@@ -699,7 +701,7 @@ CONTAINS
     ! Loop over # of tendencies species
     DO I = 1, nSpc 
 
-       ! Skip if tracer is not in use    
+       ! Skip if species is not in use    
        IF ( ThisTend%SpcInUse(I) <= 0 ) CYCLE
 
        ! Get pointer to 3D array to be filled 
@@ -756,7 +758,7 @@ CONTAINS
     TYPE(MetState),   INTENT(IN   ) :: State_Met  ! Met state
     TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! Chemistry state 
     CHARACTER(LEN=*), INTENT(IN   ) :: TendName   ! tendency name 
-    LOGICAL,          INTENT(IN   ) :: IsInvv     ! Is tracer in v/v? 
+    LOGICAL,          INTENT(IN   ) :: IsInvv     ! Is species in v/v? 
     REAL(fp),         INTENT(IN   ) :: DT         ! delta time, in seconds 
 !
 ! !OUTPUT PARAMETERS:
@@ -824,7 +826,7 @@ CONTAINS
 
        ! Name of diagnostics 
        DiagnName = 'TEND_' // TRIM(ThisTend%TendName) // '_' //   &
-                   TRIM( Input_Opt%TRACER_NAME(I) )
+                   TRIM( State_Chm%SpcData(I)%Info%Name )
 
        ! Get pointer to 3D array, define time interval
        Ptr3D => ThisTend%Tendency(I)%Arr 
@@ -875,12 +877,12 @@ CONTAINS
 ! !IROUTINE: Tend_Get
 !
 ! !DESCRIPTION: Subroutine Tend_Get returns the current tendency for the 
-! given tracer and tendency class. 
+! given species and tendency class. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tend_Get( am_I_Root, Input_Opt, TendName, TrcID, Stage, Tend, RC ) 
+  SUBROUTINE Tend_Get( am_I_Root, Input_Opt, TendName, SpcID, Stage, Tend, RC ) 
 !
 ! !USES:
 !
@@ -891,7 +893,7 @@ CONTAINS
     LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput),   INTENT(IN   ) :: Input_Opt   ! Input opts
     CHARACTER(LEN=*), INTENT(IN   ) :: TendName    ! tendency name 
-    INTEGER,          INTENT(IN   ) :: TrcID       ! Tracer ID 
+    INTEGER,          INTENT(IN   ) :: SpcID       ! Species ID 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -938,10 +940,10 @@ CONTAINS
     IF ( .NOT. FOUND .OR. .NOT. ASSOCIATED(ThisTend) ) RETURN
 
     ! Skip if not used    
-    IF ( ThisTend%SpcInUse(TrcID) <= 0 ) RETURN 
+    IF ( ThisTend%SpcInUse(SpcID) <= 0 ) RETURN 
 
     ! Get pointer to tendency
-    Tend  => ThisTend%Tendency(TrcID)%Arr
+    Tend  => ThisTend%Tendency(SpcID)%Arr
     Stage =  ThisTend%Stage
 
     ! Cleanup
