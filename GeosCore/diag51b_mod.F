@@ -78,7 +78,7 @@
 !
 !  ND51b tracer numbers:
 !  ============================================================================
-!  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v        ]
+!  1 - nAdvect   : GEOS-CHEM advected species               [v/v        ]
 !  151           : OH concentration                         [molec/cm3  ]
 !  152           : NOy concentration                        [v/v        ]
 !  153           : Relative Humidity                        [%          ]
@@ -694,7 +694,7 @@
             IF ( N <= nAdvect ) THEN
 
                !--------------------------------------
-               ! GEOS-CHEM tracers [v/v]
+               ! GEOS-CHEM advected species [v/v]
                !--------------------------------------
 
                ! Archive afternoon points
@@ -1371,7 +1371,6 @@
 
       ! For fields from Input_Opt
       LOGICAL             :: LND51b_HDF
-      INTEGER             :: N_TRACERS
 
       !=================================================================
       ! WRITE_DIAG51 begins here!
@@ -1503,7 +1502,7 @@
          IF ( N <= nAdvect ) THEN
 
             !---------------------
-            ! GEOS-CHEM tracers
+            ! GEOS-CHEM species
             !---------------------
             CATEGORY = 'IJ-AVG-$'
             UNIT     = ''              ! Let GAMAP pick unit

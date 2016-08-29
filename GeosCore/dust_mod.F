@@ -1935,7 +1935,6 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER             :: N_TRACERS
       INTEGER             :: IRH
       INTEGER             :: IBIN, ISBIN
       REAL(fp)            :: N1, KT1, KT1N
@@ -1984,9 +1983,6 @@
       !=================================================================
       ! GET_DUST_ALK begins here!
       !=================================================================
-
-      ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS = Input_Opt%N_TRACERS
 
       ! Initialize pointers
       Spc      => State_Chm%Species  ! GEOS-Chem species array [v/v dry]

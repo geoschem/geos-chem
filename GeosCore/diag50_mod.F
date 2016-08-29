@@ -40,7 +40,7 @@
 ! !REMARKS:
 !  ND50 tracer numbers:
 !  ============================================================================
-!  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v      ]
+!  1 - nAdvect   : GEOS-CHEM advected species               [v/v      ]
 !  151           : OH concentration                         [molec/cm3]
 !  152           : NOy concentration                        [v/v      ]
 !  153           : Relative Humidity                        [%        ]
@@ -336,7 +336,7 @@
       ! Scalars
       LOGICAL             :: IS_CHEM
       LOGICAL             :: LINTERP
-      INTEGER             :: H, I, J, K, L, M, N, NA, nAdvect
+      INTEGER             :: H, I, J, K, L, M, N, nAdvect
       INTEGER             :: PBLINT,  R, X, Y, W
       INTEGER             :: ISPC
       REAL(fp)            :: C1, C2, PBLDEC, TEMPBL, TMP, SCALEAODnm
@@ -479,7 +479,7 @@
             IF ( N <= nAdvect ) THEN
 
                !--------------------------------------
-               ! GEOS-CHEM TRACERS [v/v]
+               ! GEOS-CHEM advected species [v/v]
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( Spc(I,J,L,N) * 
      &                      ( AIRMW 
@@ -1125,7 +1125,7 @@
          IF ( N <= nAdvect ) THEN
 
             !---------------------
-            ! GEOS-CHEM tracers
+            ! GEOS-CHEM species
             !---------------------
             CATEGORY = 'IJ-AVG-$'
             UNIT     = ''              ! Let GAMAP pick unit

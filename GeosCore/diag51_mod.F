@@ -77,7 +77,7 @@
 !
 !  ND51 tracer numbers:
 !  ============================================================================
-!  1 - N_TRACERS : GEOS-CHEM transported species            [v/v        ]
+!  1 - nAdvect   : GEOS-CHEM advected species               [v/v        ]
 !  151           : OH concentration                         [molec/cm3  ]
 !  152           : NOy concentration                        [v/v        ]
 !  153           : Relative Humidity                        [%          ]
@@ -521,7 +521,7 @@
       ! Scalars
       LOGICAL           :: IS_CHEM,     IS_DIAG,   IS_EMIS
       LOGICAL           :: LINTERP
-      INTEGER           :: H, I, J, K, L, M, N, ISPC, NA, nAdvect
+      INTEGER           :: H, I, J, K, L, M, N, ISPC, nAdvect
       INTEGER           :: PBLINT,  R, X, Y, W, XMIN
       REAL(fp)          :: C1, C2, PBLDEC, TEMPBL, TMP, SCALEAODnm
       CHARACTER(LEN=16) :: STAMP
@@ -700,7 +700,7 @@
             IF ( N <= nAdvect ) THEN
 
                !--------------------------------------
-               ! GEOS-CHEM species [v/v]
+               ! GEOS-CHEM advected species [v/v]
                !--------------------------------------
 
                ! Archive afternoon points

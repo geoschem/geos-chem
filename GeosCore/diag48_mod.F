@@ -29,8 +29,8 @@
 !  (9 ) tracerid_mod.f : Module w/ pointers to tracers & emissions
 !
 !  ND48 tracer numbers:
-!  ==============================================h=============================
-!  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v      ]
+!  ============================================================================
+!  1 - nAdvect   : GEOS-CHEM advected species               [v/v      ]
 !  151           : OH concentration                         [molec/cm3]
 !  152           : NOy concentration                        [v/v      ]
 !  153           : Relative Humidity                        [%        ]
@@ -220,7 +220,7 @@
       LOGICAL, SAVE      :: IS_FULLCHEM, IS_NOy
       LOGICAL, SAVE      :: FIRST = .TRUE.
       LOGICAL            :: LINTERP
-      INTEGER            :: NA, nAdvect
+      INTEGER            :: nAdvect
       INTEGER            :: GMTRC, I, I0, J, J0, L, N, K, R, TMP, W,ISPC
       REAL(fp)           :: LT, Q(LLPAR), SCALEAODnm
       REAL(f8)           :: TAU
@@ -233,7 +233,6 @@
 
       ! For fields from Input_Opt
       LOGICAL            :: DO_DIAG_WRITE
-      INTEGER            :: N_TRACERS
 
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
@@ -250,7 +249,6 @@
 
       ! Copy values from Input_Opt
       DO_DIAG_WRITE = Input_Opt%DO_DIAG_WRITE
-      N_TRACERS     = Input_Opt%N_TRACERS
 
       ! Initialize pointers
       SPC          => State_Chm%Species
@@ -321,10 +319,10 @@
          ! Initialize
          Q(:) = 0
 
-         IF ( N <= N_TRACERS ) THEN
+         IF ( N <= nAdvect ) THEN
 
             !------------------------------------
-            ! GEOS-CHEM tracers [v/v]
+            ! GEOS-CHEM advected species [v/v]
             !------------------------------------
             CATEGORY = 'IJ-AVG-$'
             UNIT     = ''              ! Let GAMAP pick the unit

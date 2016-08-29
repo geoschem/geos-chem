@@ -75,7 +75,7 @@
 !
 !  ND49 tracer numbers:
 !  ============================================================================
-!  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v        ]
+!  1 - nAdvect   : GEOS-CHEM advected species               [v/v        ]
 !  151           : OH concentration                         [molec/cm3  ]
 !  152           : NOy concentration                        [v/v        ]
 !  153           : Relative Humidity                        [%          ]
@@ -322,7 +322,7 @@
 
       ! Scalars
       LOGICAL                  :: LINTERP
-      INTEGER                  :: NA,   nAdvect
+      INTEGER                  :: nAdvect
       INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
       INTEGER                  :: N,    R,     H,    W, X, Y
       INTEGER                  :: NYMD, NHMS,  TS_DIAG
@@ -348,7 +348,6 @@
       ! For fields from Input_Opt
       LOGICAL                  :: LSOILNOX
       LOGICAL                  :: DO_DIAG_WRITE
-      INTEGER                  :: N_TRACERS
  
       ! Pointers
       REAL(fp), POINTER        :: Spc(:,:,:,:)
@@ -363,10 +362,12 @@
       ! Assume success
       RC            =  GC_SUCCESS
 
+      ! Number of advected species
+      nAdvect       = State_Chm%nAdvect
+
       ! Copy values from Input_Opt
       LSOILNOX      = Input_Opt%LSOILNOX
       DO_DIAG_WRITE = Input_Opt%DO_DIAG_WRITE
-      N_TRACERS     = Input_Opt%N_TRACERS
 
 #if defined( MASSCONS )
       DO_MASSCONS   = .TRUE.
@@ -489,11 +490,10 @@
          ! Zero summing array
          Q = 0e+0_fp
 
-         ! Test by tracer number
-         IF ( N <= N_TRACERS ) THEN
+         IF ( N <= nAdvect ) THEN
 
             !-------------------------------------
-            ! GEOS-CHEM tracers [v/v]
+            ! GEOS-CHEM advected species [v/v]
             !-------------------------------------
             CATEGORY = 'IJ-AVG-$'
             UNIT     = ''           ! Let GAMAP pick the unit
