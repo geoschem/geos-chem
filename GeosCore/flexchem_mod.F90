@@ -934,11 +934,6 @@ CONTAINS
     write(*,'(a,I9)'   ) 'Flex LU Decompos.  : ', totnumLU
 #endif
 
-    !================================================================
-    ! Convert species from [molec/cm3] to [kg] (ewl, 8/16/16)
-    !================================================================
-    CALL ConvertSpc_MND_to_Kg( am_I_Root, State_Met, State_Chm, RC )
-
 #if defined( UCX )
     ! If using stratospheric chemistry, applying high-altitude
     ! active nitrogen partitioning and H2SO4 photolysis
@@ -979,6 +974,11 @@ CONTAINS
           CALL DEBUG_MSG( '### FLEX_CHEMDR: after DIAG20' )
        ENDIF
     ENDIF
+
+    !================================================================
+    ! Convert species from [molec/cm3] to [kg] (ewl, 8/16/16)
+    !================================================================
+    CALL ConvertSpc_MND_to_Kg( am_I_Root, State_Met, State_Chm, RC )
 
     ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step
     FIRSTCHEM = .FALSE.
