@@ -1862,14 +1862,6 @@ contains
     USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 7/27/16)
-!@@@ Need to use DEPNAME, NUMDEP, NTRAIND until we remove family tracers
-!@@@ becuase these are kludged properly for ISOPNB/ISOPND, MACRN/MVNK species.
-!@@@ (bmy, 7/27/16)
-!@@@
-    USE DRYDEP_MOD,         ONLY : NUMDEP, NTRAIND
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     implicit none
 !
@@ -2290,26 +2282,12 @@ contains
        ! PARANOX) were already added above.
        !----------------------------------------------------------------
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION (bmy, 7/27/16)
-!@@@ 
-!@@@
-!-----------------------------------------------------------------------------
-! Activate these lines once we remove family tracers (bmy, 7/27/16)
-!       ! Loop over only the drydep species
-!       ! If drydep is turned off, nDryDep=0 and the loop won't execute
-!       DO ND = 1, nDryDep
-!
-!          ! Get the species ID from the drydep ID
-!          N = State_Chm%Map_Drydep(ND)
-!-----------------------------------------------------------------------------
-! Remove this when family tracers are taken out (bmy, 7/27/16)
-       do ND = 1, NUMDEP 
-          
-          ! Species ID
-          N = NTRAIND(ND)
-!-----------------------------------------------------------------------------
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+       ! Loop over only the drydep species
+       ! If drydep is turned off, nDryDep=0 and the loop won't execute
+       DO ND = 1, nDryDep
+
+          ! Get the species ID from the drydep ID
+          N = State_Chm%Map_DryDep(ND)
 
           IF ( N <= 0 ) CYCLE
           
@@ -2478,24 +2456,12 @@ contains
        !----------------------------------------------------------------
        IF ( IS_Hg ) THEN
           
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION
-!@@@ Restore old code until after family tracer are removed (bmy, 7/27/18)
-!----------------------------------------------------------------------------
-! Activate these after family tracer removal (bmy, 7/27/16)
-!          ! Loop over only the drydep species
-!          ! If drydep is turned off, nDryDep=0 and the loop won't execute
-!          DO ND = 1, nDryDep
-!
-!             ! Get the species ID from the drydep ID
-!             N = State_Chm%Map_DryDep(ND)
-!----------------------------------------------------------------------------
-! Remove this code after family tracers are taken out (bmy, 7/27/16)
-          DO ND = 1, NUMDEP
+          ! Loop over only the drydep species
+          ! If drydep is turned off, nDryDep=0 and the loop won't execute
+          DO ND = 1, nDryDep
 
-             N = NTRAIND(ND)
-!----------------------------------------------------------------------------
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+             ! Get the species ID from the drydep ID
+             N = State_Chm%Map_DryDep(ND)
 
              ! Point to the Species Database entry for tracer N
              SpcInfo => State_Chm%SpcData(N)%Info
@@ -2597,25 +2563,12 @@ contains
     ! for aerosols -- 
     if (ND44 > 0 .or. LGTMM .or. LSOILNOX) then
 
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ REMOVE TRACERS MODIFICATION
-!@@@ Restore old code until after family tracer are removed (bmy, 7/27/18)
-!----------------------------------------------------------------------------
-! Activate these after family tracer removal (bmy, 7/27/16)
-!       ! Loop over only the drydep species
-!       ! If drydep is turned off, nDryDep=0 and the loop won't execute
-!       DO ND = 1, nDryDep       
-!
-!          ! Get the species ID from the drydep Id
-!          N = State_Chm%Map_DryDep(ND)
-!----------------------------------------------------------------------------
-! Remove this after family tracers are taken out (bmy, 7/27/16)
-       DO ND = 1, NUMDEP
+       ! Loop over only the drydep species
+       ! If drydep is turned off, nDryDep=0 and the loop won't execute
+       DO ND = 1, nDryDep
 
-          ! Species ID
-          N = NTRAIND(ND)
-!----------------------------------------------------------------------------
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+          ! Get the species ID from the drydep Id
+          N = State_Chm%Map_DryDep(ND)
 
           ! Skip if not a valid species
           IF ( N <= 0 ) CYCLE 
