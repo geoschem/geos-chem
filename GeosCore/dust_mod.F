@@ -287,7 +287,6 @@
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44
 #endif
-      USE DRYDEP_MOD,         ONLY : NUMDEP, NTRAIND
       USE ErrCode_Mod
       USE ERROR_MOD
       USE GRID_MOD,           ONLY : GET_AREA_CM2
@@ -396,7 +395,7 @@
       ! Calculate change in number to correspond with dust redistribution
       ! by gravitational settling
       DO BIN = 1, IBINS
-      NN = NUMDEP + (SRTDUST-1)*IBINS + BIN
+      NN = State_Chm%nDryDep + (SRTDUST-1)*IBINS + BIN
 
       DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -739,7 +738,7 @@
 
 #if defined( NC_DIAG )
       ! For netcdf diagnostics (ND44 drydep flux)
-      INTEGER               :: drydep_id, trc_id, HCRC
+      INTEGER               :: drydep_id, spc_id, HCRC
       CHARACTER(LEN=30)     :: DiagnName
       REAL(fp), TARGET      :: DryDepFlux( IIPAR, JJPAR, NDSTBIN ) 
       REAL(fp), POINTER     :: Ptr2D(:,:)
@@ -923,19 +922,18 @@
          DO N = 1, NDSTBIN
 
             ! Get drydep id
-!            drydep_id = Input_Opt%IDISP+N
             drydep_id = IDISP + N
 
-            ! Get dry deposition species ID
-            trc_id = Input_Opt%NTRAIND( drydep_id )
+            ! Get species ID
+            spc_id = State_Chm%Map_DryDep( drydep_id )
          
             ! If this species number NN is scheduled for output in input.geos, 
             ! then archive the latest depvel data into the diagnostic structure
-            IF ( ANY( Input_Opt%TINDEX(44,:) == trc_id ) ) THEN
+            IF ( ANY( Input_Opt%TINDEX(44,:) == spc_id ) ) THEN
          
                ! Define name of diagnostic
                DiagnName = 'DRYDEP_FLX_CHEM_' // 
-     &                     TRIM( Input_Opt%DEPNAME( drydep_id ) )
+     &                     TRIM( State_Chm%SpcData(spc_id)%Info%Name )
                
                ! Point to data
                Ptr2D => DryDepFlux(:,:,N)
@@ -2575,7 +2573,7 @@
 
          DO BIN = 1, IBINS
          DO N   = 1, State_Chm%nDryDep
-            IF ( Input_Opt%NTRAIND(N) == ( id_NK1-1+BIN ) )THEN
+            IF ( State_Chm%Map_DryDep(N) == ( id_NK1-1+BIN ) )THEN
                Input_Opt%IDDEP(BIN) = N
                GOTO 100
             ENDIF            

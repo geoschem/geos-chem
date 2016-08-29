@@ -280,7 +280,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: NA, nAdvect, NW
+      INTEGER            :: NA, nAdvect, nDryDep, NW
       INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, LMAX
       INTEGER            :: N, NN, NMAX, NTEST, N_TOT_TRC, T
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
@@ -319,10 +319,6 @@
       ! For ND60 TOMAS diagnostic, avoids an array temporary (bmy, 1/28/14)
       REAL(f4)           :: ARR2D(JJPAR,LLPAR)
 #endif
-
-      ! Define a local variable for dry depostion species name
-      ! This helps to avoid ambiguity for TOMAS simulations (bmy, 1/29/14)
-      CHARACTER(LEN=14)  :: DRYDEP_NAME
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -389,6 +385,9 @@
 
       ! Number of advected species
       nAdvect    = State_Chm%nAdvect
+
+      ! Number of dry-deposited species
+      nDryDep    = State_Chm%nDryDep
 
       ! Initialize
       SpcInfo    => NULL()
@@ -3941,28 +3940,17 @@
             ! Extend dry dep tracers if TOMAS aerosol is turned on
 #if   defined ( TOMAS )
             IF ( id_NK1 > 0 ) THEN
-               M = NUMDEP + ( ( ICOMP - IDIAG )* IBINS )
+               M = nDryDep + ( ( ICOMP - IDIAG )* IBINS )
             ELSE
-               M = NUMDEP
+               M = nDryDep
             ENDIF
 #else
-            M = NUMDEP
+            M = nDryDep
 #endif
          ENDIF
 
-         ! Loop over drydep tracers
+         ! Loop over drydep species
          DO N = 1, M
-
-            ! Save the dry deposition species name into DRYDEP_NAME.
-            ! For TOMAS simulations we loop over all size bins, but
-            ! because of the above statement, M can be greater than 
-            ! MAXDEP.  DEPNAME is sized to MAXDEP so this prevents
-            ! out of bounds errors in DEPNAME. (bmy, 1/29/14)
-            IF ( N > NUMDEP ) THEN 
-               DRYDEP_NAME = ''
-            ELSE
-               DRYDEP_NAME = DEPNAME(N)
-            ENDIF
 
             IF ( Input_Opt%ITS_A_RnPbBe_SIM .or. 
      &           Input_Opt%ITS_A_H2HD_SIM ) THEN
@@ -3971,7 +3959,7 @@
                ! simulations, including Rn-Pb-Be. (bmy, 6/16/15)
                ! Radon or H2/HD
                UNIT = 'molec/cm2/s'
-               NN   = NTRAIND(N)
+               NN   = State_Chm%Map_DryDep(N)
  
             ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM .or. 
      &                Input_Opt%ITS_A_MERCURY_SIM ) THEN
@@ -3988,19 +3976,19 @@
 #if   defined( TOMAS )
                ! For extended drydep tracers, assign tracer ID of the TOMAS
                ! aerosol mass (win, 7/14/09)
-               IF ( N <= NUMDEP ) THEN 
-                  NN  = NTRAIND(N)
+               IF ( N <= nDryDep ) THEN 
+                  NN  = State_Chm%Map_DryDep(N)
                   NN1 = NN
                ELSE
                   ! To calculate the id_xxx of the associated  
                   ! tracer. (ccc, 3/11/10) 
-                  NN  = MOD( N - NUMDEP-1, IBINS ) + id_NK1
+                  NN  = MOD( N - nDryDep-1, IBINS ) + id_NK1
 
                   ! Tracer number for bpch file
-                  NN1  = ( N - NUMDEP ) + ( id_NK1 + IBINS - 1 )
+                  NN1  = ( N - nDryDep ) + ( id_NK1 + IBINS - 1 )
                ENDIF
 #else
-               NN   = NTRAIND(N)
+               NN   = State_Chm%Map_DryDep(N)
 #endif
  
             ENDIF
@@ -4050,13 +4038,13 @@
          ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN  ! Ask Helen
             M = 2
          ELSE
-            M = NUMDEP
+            M = nDryDep
          ENDIF
 
          ! Loop over drydep tracers
          DO N = 1, M
 
-            NN           = NTRAIND(N)
+            NN  = State_Chm%Map_DryDep(N)
             ! To output only the species asked in input.geos 
             ! (ccc, 5/15/09)
             MM  = 1

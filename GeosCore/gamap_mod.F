@@ -1747,7 +1747,6 @@
       USE DIAG53_MOD,         ONLY : ND53, PD53
       USE DIAG56_MOD,         ONLY : ND56
       USE DIAG63_MOD,         ONLY:  DO_SAVE_DIAG63
-      USE DRYDEP_MOD,         ONLY : DEPNAME,     NUMDEP,    NTRAIND
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
@@ -6234,14 +6233,15 @@
             !%%%             FOR TAGGED SIMULATIONS ONLY             %%%
             !%%%                                                     %%%
             !%%%          Save drydep flux for all tracers           %%%
-            !%%%     but drydep velocity for only NUMDEP species     %%%
+            !%%%     but drydep velocity for only nDryDep species    %%%
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             ! Drydep flux (all tracers)
             DO T = 1, nAdvect
                SpcInfo     => State_Chm%SpcData(T)%Info
                NAME (T,44)  = TRIM( SpcInfo%Name ) // 'df'        
-               FNAME(T,44)  = TRIM( SpcInfo%Name ) // ' drydep flux'
+               FNAME(T,44)  = TRIM( SpcInfo%Name ) //
+     &                        ' drydep flux'
                UNIT (T,44)  = 'molec/cm2/s'
                MWT  (T,44)  = SpcInfo%emMW_g * 1.e-3_fp
                MOLC (T,44)  = SpcInfo%MolecRatio
@@ -6251,12 +6251,12 @@
             ENDDO
 
             ! Drydep velocity (only deposited species)
-            DO N = 1, NUMDEP
-               T            = NTRAIND(N)
+            DO N = 1, nDryDep
+               T            = State_Chm%Map_DryDep(N)
                SpcInfo     => State_Chm%SpcData(T)%Info
                NN           = N + nAdvect
-               NAME (NN,44) = TRIM( DEPNAME(N) ) // 'dv'        
-               FNAME(NN,44) = TRIM( DEPNAME(N) ) // 
+               NAME (NN,44) = TRIM( SpcInfo%Name ) // 'dv'        
+               FNAME(NN,44) = TRIM( SpcInfo%Name ) //
      &                        ' drydep velocity'
                UNIT (NN,44) = 'cm/s'
                MWT  (NN,44) = SpcInfo%emMW_g * 1.e-3_fp
@@ -6274,19 +6274,18 @@
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             ! Loop over # of dry depositing species
-            DO N = 1, NUMDEP + (ICOMP-IDIAG)* IBINS
+            DO N = 1, nDryDep + (ICOMP-IDIAG)* IBINS
                
-               IF ( N <= NUMDEP ) THEN 
+               IF ( N <= nDryDep ) THEN 
 
                   !-----------------------------------------------
                   ! Drydep flux
                   !-----------------------------------------------
-                  T             = NTRAIND(N)         
+                  T             = State_Chm%Map_DryDep(N)         
                   SpcInfo       => State_Chm%SpcData(T)%Info
-                  NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                            'df'
-                  FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                           ' drydep flux'
+                  NAME (N,44)   = TRIM( SpcInfo%Name ) // 'df'
+                  FNAME(N,44)   = TRIM( SpcInfo%Name ) //
+     &                            ' drydep flux'
                   MWT  (N,44)   = SpcInfo%emMW_g * 1.e-3_fp
                   MOLC (N,44)   = SpcInfo%MolecRatio
                   SCALE(N,44)   = 1.0e0
@@ -6303,9 +6302,9 @@
                   !-----------------------------------------------
                   ! Drydep velocity
                   !-----------------------------------------------
-                  NN            = N + NUMDEP  +(ICOMP-IDIAG)*IBINS
-                  NAME (NN,44)  = TRIM( DEPNAME(N) ) // 'dv'        
-                  FNAME(NN,44)  = TRIM( DEPNAME(N) ) // 
+                  NN            = N + nDryDep  +(ICOMP-IDIAG)*IBINS
+                  NAME (NN,44)  = TRIM( SpcInfo%Name ) // 'dv'        
+                  FNAME(NN,44)  = TRIM( SpcInfo%Name ) // 
      &                            ' drydep velocity'
                   MWT  (NN,44)  = SpcInfo%emMW_g * 1.e-3_fp
                   MOLC (NN,44)  = SpcInfo%MolecRatio
@@ -6319,12 +6318,13 @@
                   !-----------------------------------------------
                   ! Drydep flux: TOMAS aerosol tracers
                   !-----------------------------------------------
-                  T = id_NK1 + IBINS - 1 + ( N - NUMDEP )
+                  T = id_NK1 + IBINS - 1 + ( N - nDryDep )
                   SpcInfo       => State_Chm%SpcData(T)%Info
 
                   ! Drydep flux (extended deposited species)
                   NAME (N,44)  = TRIM( SpcInfo%Name ) // 'df'
-                  FNAME(N,44)  = TRIM( SpcInfo%Name ) // ' drydep flux'
+                  FNAME(N,44)  = TRIM( SpcInfo%Name ) //
+     &                           ' drydep flux'
                   UNIT (N,44)  = 'molec/cm2/s'
                   MWT  (N,44)  = SpcInfo%emMW_g * 1.e-3_fp
                   MOLC (N,44)  = SpcInfo%MolecRatio
@@ -6335,7 +6335,7 @@
                   !-----------------------------------------------
                   ! Drydep velocity all other G-C tracers
                   !-----------------------------------------------
-                  NN            = N + NUMDEP + (ICOMP-IDIAG)* IBINS
+                  NN            = N + nDryDep + (ICOMP-IDIAG)* IBINS
                   NAME (NN,44)  = TRIM( SpcInfo%Name ) // 'dv'        
                   FNAME(NN,44)  = TRIM( SpcInfo%Name ) // 
      &                            ' drydep velocity'
@@ -6359,12 +6359,11 @@
                !--------------------------------------------------
                ! Drydep flux
                !--------------------------------------------------
-               T             = NTRAIND(N)
+               T             = State_Chm%Map_DryDep(N)
                SpcInfo       => State_Chm%SpcData(T)%Info
-               NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                         'df'
-               FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
-     &                        ' drydep flux'
+               NAME (N,44)   = TRIM( SpcInfo%Name ) // 'df'
+               FNAME(N,44)   = TRIM( SpcInfo%Name ) //
+     &                         ' drydep flux'
                MWT  (N,44)   = SpcInfo%emMW_g * 1.e-3_fp
                MOLC (N,44)   = SpcInfo%MolecRatio
                SCALE(N,44)   = 1.0e0
@@ -6380,8 +6379,8 @@
                ! Drydep velocity
                !--------------------------------------------------
                NN            = N + nDryDep
-               NAME (NN,44)  = TRIM( DEPNAME(N) ) // 'dv'        
-               FNAME(NN,44)  = TRIM( DEPNAME(N) ) // 
+               NAME (NN,44)  = TRIM( SpcInfo%Name ) // 'dv'        
+               FNAME(NN,44)  = TRIM( SpcInfo%Name ) // 
      &                         ' drydep velocity'
                MWT  (NN,44)  = SpcInfo%emMW_g * 1.e-3_fp
                MOLC (NN,44)  = SpcInfo%MolecRatio

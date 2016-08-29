@@ -331,7 +331,7 @@ CONTAINS
 
 #if defined( NC_DIAG )
     ! For netCDF diagnostics
-    INTEGER                 :: cID, trc_id, HCRC
+    INTEGER                 :: cID, spc_id, HCRC
     CHARACTER(LEN=30)       :: DiagnName
     REAL(fp), TARGET        :: DryDepFlux( IIPAR, JJPAR, State_Chm%nDryDep ) 
     REAL(fp), TARGET        :: EMIS( IIPAR, JJPAR, LLPAR, State_Chm%nAdvect) 
@@ -748,14 +748,15 @@ CONTAINS
        DO D = 1, State_Chm%nDryDep
 
           ! Get the species ID from the drydep ID
-          trc_id = State_Chm%Map_DryDep(D)
+          spc_id = State_Chm%Map_DryDep(D)
       
           ! If this species number is scheduled for output in input.geos, 
           ! then archive the latest depvel data into the diagnostic structure
-          IF ( ANY( Input_Opt%TINDEX(44,:) == trc_id ) ) THEN
+          IF ( ANY( Input_Opt%TINDEX(44,:) == spc_id ) ) THEN
        
              ! Define diagnostic name
-             DiagnName = 'DRYDEP_FLX_MIX_' // TRIM( Input_Opt%DEPNAME(D) )
+             DiagnName = 'DRYDEP_FLX_MIX_' // &
+                         TRIM( State_Chm%SpcData(spc_id)%Info%Name )
 
              ! Point to data
              Ptr2D => DryDepFlux(:,:,D)

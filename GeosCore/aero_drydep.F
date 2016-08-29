@@ -24,7 +24,7 @@
       USE CMN_SIZE_MOD
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE DIAG_MOD,           ONLY : AD44
-      USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, NTRAIND 
+      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE DUST_MOD,           ONLY : SETTLEDUST   
       USE ErrCode_Mod
       USE ERROR_MOD
@@ -95,6 +95,7 @@
 
       ! Scalars
       LOGICAL            :: LPRT
+      INTEGER            :: nDryDep
       INTEGER            :: I,      J,        L
       INTEGER            :: N,      JC,       BIN,   ID
       REAL(fp)           :: DTCHEM, AREA_CM2, FLUX,  X,    Y
@@ -133,6 +134,9 @@
 
       ! Assume success
       RC        = GC_SUCCESS
+
+      ! Number of dry-deposited species
+      nDryDep    = State_Chm%nDryDep
 
       ! Check that species units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -184,11 +188,13 @@
       IF(FIRST) THEN
       DRYD = 0
       DO BIN = 1, IBINS
-         DO N = 1, NUMDEP
+         DO N = 1, nDryDep
             !just want to match only once (win, 5/24/06)
-            IF ( BIN == 1 .and. NTRAIND(N)==id_H2SO4 ) H2SO4ID = N
+            IF ( BIN == 1 .and. State_Chm%Map_DryDep(N)==id_H2SO4 ) THEN
+               H2SO4ID = N
 cdbg            print *, 'DRYDEP Species:',N
-            IF ( NTRAIND(N) == ( id_NK1-1+BIN ) )THEN
+            ENDIF
+            IF ( State_Chm%Map_DryDep(N) == ( id_NK1-1+BIN ) )THEN
 cdbg               print *,'Match species:',IDTNK1-1+bin,'Bin',bin
                DRYD( BIN ) = N
                GOTO 100
@@ -370,8 +376,8 @@ cdbg      print *, dryd(:)
                IF( JC == 1 ) THEN 
                   AD44(I,J,DRYD(BIN),1) = AD44(I,J,DRYD(BIN),1) + FLUX
                ELSE
-                  AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1) =  
-     &                 AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1) + FLUX
+                  AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1) =  
+     &                 AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1) + FLUX
                ENDIF
                  
             ENDIF
@@ -478,8 +484,8 @@ c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
                IF ( JC == 1 ) THEN 
                   AD44(I,J,DRYD(BIN),1) = AD44(I,J,DRYD(BIN),1)+ FLUX   
                ELSE
-                  AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1) =  
-     &                 AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1) + FLUX
+                  AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1) =  
+     &                 AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1) + FLUX
                ENDIF
                
             ENDIF
@@ -491,11 +497,11 @@ c     &           AD44(I,J,DRYD(BIN),1)
 c            if(i==ii .and. j==jj .and. 
 c     &           bin==bb .and. JC==2) 
 c     &           print *,'>',L, Spc(I,J,L,ID), X0(BIN,JC) - X, FLUX, 
-c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
+c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
 !debug            if(i==ix .and. j==jx .and. 
 c     &           bin==bb .and. JC==ICOMP) 
 c     &          print *, L, Spc(I,J,L,ID), X0(BIN,JC) - X, FLUX, 
-c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
+c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
 !debug------
 #endif
 

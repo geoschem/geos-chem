@@ -405,7 +405,7 @@
 
 #if defined( NC_DIAG )
       ! For netcdf diagnostics (ND44 drydep flux)
-      INTEGER                  :: drydep_id, trc_id, HCRC
+      INTEGER                  :: drydep_id, spc_id, HCRC
       CHARACTER(LEN=30)        :: DiagnName
       REAL(fp), TARGET         :: DryDepFlux( IIPAR, JJPAR ) 
       REAL(fp), POINTER        :: Ptr2D(:,:)
@@ -786,16 +786,16 @@
          ! Get the drydep id
          drydep_id = IDDEP(N)
 
-         ! Get tracer id from the drydep id IDDEP(N)
-         trc_id = Input_Opt%NTRAIND( drydep_id )
+         ! Get species id from the drydep id IDDEP(N)
+         spc_id = State_Chm%Map_DryDep( drydep_id )
          
          ! If this tracer number NN is scheduled for output in input.geos, 
          ! then archive the latest depvel data into the diagnostic structure
-         IF ( ANY( Input_Opt%TINDEX(44,:) == trc_id ) ) THEN
+         IF ( ANY( Input_Opt%TINDEX(44,:) == spc_id ) ) THEN
          
             ! Update diagnostic container
             DiagnName = 'DRYDEP_FLX_CHEM_' // 
-     &                  TRIM( Input_Opt%DEPNAME( drydep_id ) )
+     &                  TRIM( State_Chm%SpcData(spc_id)%Info%Name )
             Ptr2D => DryDepFlux
             CALL Diagn_Update( am_I_Root,                           
      &                         cName   = TRIM( DiagnName),         
