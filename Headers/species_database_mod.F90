@@ -47,8 +47,8 @@ MODULE Species_Database_Mod
 !------------------------------------------------------------------------------
 !BOC
 
-  ! Work array to hold the list of species names, which combines the tracers
-  ! from input.geos with the KPP species names (and removes duplicates)
+  ! Work array to hold the list of species names, which combines the advected
+  ! species from input.geos with the KPP species names (and removes duplicates)
   CHARACTER(LEN=31), ALLOCATABLE :: Species_Names(:)
 
   ! Work array to hold the list of all KPP species indices 
@@ -119,9 +119,6 @@ CONTAINS
 !  Hcp paramter to routine Spc_Create via the HENRY_K0 argument, we will
 !  multiply by the proper conversion factor (9.86923e-3) to convert
 !  [mol m-3 Pa-1] to [M atm-1].
-!
-!  ALSO NOTE: For now we are using this to define the tracers but we will
-!  eventually extend this to the number of species. (bmy, 7/22/15)
 !
 ! !REVISION HISTORY:
 !  22 Jul 2015 - R. Yantosca - Initial version
@@ -198,11 +195,11 @@ CONTAINS
     prtDebug      = ( Input_Opt%LPRT .and. am_I_Root )
 
     ! Store the list unique GEOS-Chem species names in work arrays for use
-    ! below.  This is the combined list of advected tracers (from input.geos) 
+    ! below.  This is the combined list of advected species (from input.geos) 
     ! plus KPP species (from SPC_NAMES in gckpp_Monitor.F90), with all 
     ! duplicates removed.  Also stores the corresponding indices in the
     ! KPP VAR and FIX arrays.  For simulations that do not use KPP, the 
-    ! unique species list is the list of advected tracers from input.geos.
+    ! unique species list is the list of advected species from input.geos.
     CALL Unique_Species_Names( am_I_Root, Input_Opt, nSpecies, RC )
 
     ! Initialize the species vector
@@ -215,8 +212,8 @@ CONTAINS
     ! Loop over all species
     DO N = 1, nSpecies
 
-       ! It's advected if it's in the tracer list in input.geos
-       Is_Advected = ANY( Input_Opt%TRACER_NAME == Species_Names(N) )
+       ! It's advected if it's in the advected species list in input.geos
+       Is_Advected = ANY( Input_Opt%AdvectSpc_Name == Species_Names(N) )
 
        ! Translate species name to uppercase
        NameAllCaps = TRIM( Species_Names(N) )
@@ -968,7 +965,7 @@ CONTAINS
                 'COBBNA', 'COBBOTH', 'COCH4',  'COBIOF', 'COISOP',          &
                 'COMONO', 'COMEOH',  'COACET'                       )
 
-             ! Set Name and LongName for the various CO tracers
+             ! Set Name and LongName for the various CO species
              SELECT CASE( TRIM( NameAllCaps ) )
                 CASE( 'CO'     ) 
                    Name     = 'CO'
@@ -2506,7 +2503,7 @@ CONTAINS
                 'O3PCBL', 'O3NABL',  'O3ATBL', 'O3EUBL', 'O3AFBL',          &
                 'O3ASBL', 'O3INIT',  'O3USA',  'O3STRT'            )
 
-             ! Now include both total and tagged ozone tracers (bmy, 10/5/15)
+             ! Now include both total and tagged ozone species (bmy, 10/5/15)
              ! All of these have identical properties except for the names
              SELECT CASE( TRIM( NameAllCaps ) )
                 CASE( 'O3' )
@@ -3336,7 +3333,7 @@ CONTAINS
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
                               Name          = 'PASV',                       &
-                              FullName      = 'Passive tracer',             &
+                              FullName      = 'Passive species',            &
                               MW_g          = 1.0_fp,                       &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -3355,7 +3352,7 @@ CONTAINS
                 'HG0_GEO', 'HG0_ATL', 'HG0_NAT', 'HG0_SAT', 'HG0_NPA',      &
                 'HG0_ARC', 'HG0_ANT', 'HG0_OCN', 'HG0_STR'   )
              
-             ! Standardize tagged Hg0 tracer names 
+             ! Standardize tagged Hg0 species names 
              SELECT CASE( TRIM( NameAllCaps ) ) 
                 CASE( 'HG0'     )
                    Name     = 'Hg0'
@@ -3468,7 +3465,7 @@ CONTAINS
                 'HG2_GEO', 'HG2_ATL', 'HG2_NAT', 'HG2_SAT', 'HG2_NPA',      &
                 'HG2_ARC', 'HG2_ANT', 'HG2_OCN', 'HG2_STR'   )
 
-             ! Standardize tagged Hg0 tracer names 
+             ! Standardize tagged Hg0 species names 
              SELECT CASE( TRIM( NameAllCaps ) ) 
                 CASE( 'HG2'     )
                    Name     = 'Hg2'
@@ -3589,7 +3586,7 @@ CONTAINS
                 'HGP_GEO', 'HGP_ATL', 'HGP_NAT', 'HGP_SAT', 'HGP_NPA',      &
                 'HGP_ARC', 'HGP_ANT', 'HGP_OCN', 'HGP_STR' )
 
-             ! Standardize tagged HgP tracer names 
+             ! Standardize tagged HgP species names 
              SELECT CASE( TRIM( NameAllCaps ) )
                  CASE( 'HGP'     )
                    Name     = 'HgP'
@@ -4960,7 +4957,7 @@ CONTAINS
 ! !IROUTINE: unique_species_names
 !
 ! !DESCRIPTION: Stores the list of unique species names (i.e. removing 
-!  duplicates from the list of advected tracers and the the list of KPP 
+!  duplicates from the list of advected species and the the list of KPP 
 !  species) for later use.  Also computes the corresponding indices for
 !  the KPP variable and fixed species arrays (VAR and FIX, respectively).
 !\\
@@ -5002,7 +4999,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                        :: nTracers, K, S
+    INTEGER                        :: nAdvect, K, S
 
     ! Arrays
     CHARACTER(LEN=15), ALLOCATABLE :: Tmp(:)
@@ -5020,11 +5017,11 @@ CONTAINS
     ! Assume success
     RC       = GC_SUCCESS
 
-    ! Number of Advected Tracers listed in input.geos
-    nTracers = Input_Opt%N_TRACERS
+    ! Number of advected species listed in input.geos
+    nAdvect  = Input_Opt%N_Advect
 
-    ! First set the # of species to the # of advected tracers
-    nSpecies = nTracers
+    ! First set the # of species to the # of advected species
+    nSpecies = nAdvect
 
     !=======================================================================
     ! For full-chemistry simulations with KPP, get the list of all of
@@ -5033,20 +5030,20 @@ CONTAINS
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN      
 
        ! Allocate a temporary array large enough to hold all of the
-       ! advected tracers listed in input.geos as well as all of the
+       ! advected species listed in input.geos as well as all of the
        ! KPP species names (listed in SPC_NAMES of gckpp_Monitor.F90)
-       ALLOCATE( Tmp( nTracers + NSPEC ), STAT=RC )
+       ALLOCATE( Tmp( nAdvect + NSPEC ), STAT=RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Tmp = ''
 
        !--------------------------------------------------------------------
        ! First determine the unique list of species in the KPP mechanism
-       ! (so that we don't duplicate storage for tracers & species)
+       ! (so that we don't duplicate storage for advected & chemical species)
        !--------------------------------------------------------------------
 
-       ! First, store advected tracers (from input.geos) in the TMP array
+       ! First, store advected species (from input.geos) in the TMP array
        DO S = 1, nSpecies
-          Tmp(S) = Input_Opt%Tracer_Name(S)
+          Tmp(S) = Input_Opt%AdvectSpc_Name(S)
        ENDDO
        
        ! Loop over KPP species
@@ -5057,8 +5054,8 @@ CONTAINS
           IF ( SpcName(1:2) == 'RR' ) CYCLE
 
           ! Next, add to the TMP array those KPP species that aren't already 
-          ! listed as advected tracers.  nSpecies is the # of unique species.
-          IF ( .not. ANY( Input_Opt%Tracer_Name == Spc_Names(K) ) ) THEN
+          ! listed as advected species.  nSpecies is the # of unique species.
+          IF ( .not. ANY( Input_Opt%AdvectSpc_Name == Spc_Names(K) ) ) THEN
              nSpecies      = nSpecies + 1
              Tmp(nSpecies) = Spc_Names(K)
           ENDIF
@@ -5135,13 +5132,13 @@ CONTAINS
        
     !=======================================================================
     ! For specialty simulations, we do not have KPP species.  Thus, the 
-    ! of species is just the list of advected tracers from input.geos
+    ! of species is just the list of advected species from input.geos
     !=======================================================================
     ELSE
 
        ! Initialize the species names array from Input_Opt
        ALLOCATE( Species_Names( nSpecies ), STAT=RC ) 
-       Species_Names = Input_Opt%Tracer_Name(1:nSpecies)
+       Species_Names = Input_Opt%AdvectSpc_Name(1:nSpecies)
 
        ! Set KppSpcId to missing value
        ALLOCATE( KppSpcId( nSpecies ), STAT=RC )
@@ -5167,7 +5164,7 @@ CONTAINS
 ! !IROUTINE: CleanUp_Work_Arrays
 !
 ! !DESCRIPTION: Stores the list of unique species names (i.e. removing
-!  duplicates from the list of advected tracers and the the list of KPP
+!  duplicates from the list of advected species and the the list of KPP
 !  species) for later use.  Also computes the indices for KPP variable
 !  and fixed indices.
 !\\

@@ -1428,17 +1428,17 @@
       ! Read the # of advected species
       !=================================================================
 
-      ! NTRACE
+      ! Number of advected species
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_adv_spec_menu:2' )
-      READ( SUBSTRS(1:N), * ) Input_Opt%N_TRACERS
+      READ( SUBSTRS(1:N), * ) Input_Opt%N_ADVECT
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_adv_spec_menu:3' )
 
       ! Input_Opt vectors are of length MAX_TRCS. Make sure that
-      ! # of tracers does not exceed length of these vectors.
-      IF ( Input_Opt%N_TRACERS > Input_Opt%MAX_TRCS ) THEN
-         CALL ERROR_STOP( 'Error: N_TRACERS > MAX_TRCS!', 
+      ! # of advected species does not exceed length of these vectors.
+      IF ( Input_Opt%N_ADVECT > Input_Opt%MAX_TRCS ) THEN
+         CALL ERROR_STOP( 'Error: N_ADVECT > MAX_TRCS!', 
      &                    'read_adv_spec_menu (input_mod.f)' )
          RC = GC_FAILURE
          RETURN
@@ -1447,13 +1447,13 @@
       !=================================================================
       ! Read advected species name
       !=================================================================
-      DO T = 1, Input_Opt%N_TRACERS
+      DO T = 1, Input_Opt%N_ADVECT
 
          ! Split line into substrings
          CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_adv_spec_menu:4' )
 
-         ! Save tracer name
-         Input_Opt%TRACER_NAME(T)  = TRIM( SUBSTRS(1) )
+         ! Save advected species name
+         Input_Opt%AdvectSpc_Name(T)  = TRIM( SUBSTRS(1) )
 
       ENDDO
 
@@ -1473,17 +1473,17 @@
       ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
          ! Need Hg0, Hg2, HgP for tagged Mercury
-         Input_Opt%LSPLIT = ( Input_Opt%N_TRACERS > 3 )
+         Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 3 )
          
       ELSE IF ( Input_Opt%ITS_A_HCN_SIM ) THEN
 
          ! Need HCN, CH3CN for HCN simulation
-         Input_Opt%LSPLIT = ( Input_Opt%N_TRACERS > 2 )
+         Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 2 )
 
       ELSE
 
          ! All other simulations: tagged if more than 1 species listed
-         Input_Opt%LSPLIT = ( Input_Opt%N_TRACERS > 1 )
+         Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 1 )
 
       ENDIF
 
@@ -1944,7 +1944,7 @@
       ENDIF
 
       ! Halt with error if dust aerosols are turned on.
-      ! TOMAS defines its own dust aerosol tracers.
+      ! TOMAS defines its own dust aerosol species.
 !      IF ( Ind_('DUST1') > 0 .AND. Input_Opt%LDUST ) THEN
 !         MSG = 'Need to turn off LDUST for TOMAS Dust to work'
 !         CALL ERROR_STOP( MSG, LOCATION )
@@ -2451,9 +2451,7 @@
          CALL ERROR_STOP( MSG, LOC )
       ENDIF
 
-      !=================================================================
-
-	! Use Fossil Fuel emissions?
+      ! Use Fossil Fuel emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:1' )
       READ( SUBSTRS(1:N), * ) LFOSSIL
 
@@ -2488,30 +2486,30 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:8' )
       READ( SUBSTRS(1:N), * ) LFFBKGRD
 
-      ! Turn on biosphere and ocean exchange region tagged tracers?
+      ! Turn on biosphere and ocean exchange region tagged species?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:9' )
       READ( SUBSTRS(1:N), * ) LBIOSPHTAG
 
-      ! Turn on fossil fuel emission region tagged tracers?
+      ! Turn on fossil fuel emission region tagged species?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:10' )
       READ( SUBSTRS(1:N), * ) LFOSSILTAG
 
-      ! Turn on global ship emissions tagged tracer?
+      ! Turn on global ship emissions tagged species?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:11' )
       READ( SUBSTRS(1:N), * ) LSHIPTAG
 
-      ! Turn on global aircraft emissions tagged tracer?
+      ! Turn on global aircraft emissions tagged species?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:12' )
       READ( SUBSTRS(1:N), * ) LPLANETAG
 
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
-	Input_Opt%LFOSSIL     = LFOSSIL
-	Input_Opt%LOCEAN      = LOCEAN
+      Input_Opt%LFOSSIL     = LFOSSIL
+      Input_Opt%LOCEAN      = LOCEAN
       Input_Opt%LBIODIURNAL = LBIODIURNAL
       Input_Opt%LBIONETCLIM = LBIONETCLIM
-	Input_Opt%LSHIP       = LSHIP
+      Input_Opt%LSHIP       = LSHIP
       Input_Opt%LPLANE      = LPLANE
       Input_Opt%LCHEMCO2    = LCHEMCO2
       Input_Opt%LFFBKGRD    = LFFBKGRD
@@ -3963,7 +3961,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: M,      N,     N_MAX, N_TMP,   N_TRACERS
+      INTEGER            :: M,      N,     N_MAX, N_TMP,   N_ADVECT
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION, BPCH_FILE
 
       !=================================================================
@@ -3971,7 +3969,7 @@
       !=================================================================
 
       ! Get fields from Input_Opt
-      N_TRACERS = Input_Opt%N_TRACERS
+      N_ADVECT = Input_Opt%N_ADVECT
       
       ! Location for ERROR_STOP
       LOCATION = 'READ_DIAGNOSTIC_MENU ("input_mod.f")'
@@ -3983,13 +3981,8 @@
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
-      ! Get max number of tracers
-!--------------------------------------------
-! Prior to 7/20/16:
-! Remove NNPAR (bmy, 7/20/16)
-!      N_MAX = MAX( N_TRACERS, NNPAR )
-!--------------------------------------------
-      N_MAX = N_TRACERS
+      ! Get max number of species
+      N_MAX = N_ADVECT
 
       IF ( .not. Input_Opt%LEMIS ) THEN
          WRITE( 6, '(a)' ) 'WARNING: Emissions are turned off. The'
@@ -4084,7 +4077,7 @@
       READ( SUBSTRS(1), * ) ND09
       ND09 = 0
       CALL SET_TINDEX( am_I_Root, 
-     &     09, ND09, SUBSTRS(2:N), N-1, N_TRACERS+PD09 )
+     &     09, ND09, SUBSTRS(2:N), N-1, N_ADVECT+PD09 )
 
       !--------------------------
       ! ND10: Free
@@ -4143,7 +4136,7 @@
       !--------------------------
       ! ND17: Rainout losses
       !--------------------------
-      N_TMP = N_TRACERS
+      N_TMP = N_ADVECT
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:19' )
       READ( SUBSTRS(1), * ) ND17
       IF ( .not. Input_Opt%LWETD ) ND17 = 0
@@ -4152,7 +4145,7 @@
       !--------------------------
       ! ND18: Washout losses
       !--------------------------
-      N_TMP = N_TRACERS
+      N_TMP = N_ADVECT
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:20' )
       READ( SUBSTRS(1), * ) ND18
       IF ( .not. Input_Opt%LWETD ) ND18 = 0
@@ -4255,7 +4248,7 @@
       CALL SET_TINDEX( am_I_Root, 32, ND32, SUBSTRS(2:N), N-1, 1 )
 
       !--------------------------
-      ! ND33: Column tracer
+      ! ND33: Column species
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:34' )
       READ( SUBSTRS(1), * ) ND33
@@ -4269,7 +4262,7 @@
       IF ( .not. Input_Opt%LEMIS ) ND34 = 0
 
       !--------------------------
-      ! ND35: 500 hPa tracer
+      ! ND35: 500 hPa species
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:36' )
       READ( SUBSTRS(1), * ) ND35
@@ -4282,12 +4275,12 @@
       READ( SUBSTRS(1), * ) ND36
       IF ( .not. Input_Opt%LEMIS ) ND36 = 0
       CALL SET_TINDEX( am_I_Root, 
-     &                 36, ND36, SUBSTRS(2:N), N-1, N_TRACERS )      
+     &                 36, ND36, SUBSTRS(2:N), N-1, N_ADVECT )
 
       !--------------------------
       ! ND37: Updraft scav frac
       !--------------------------
-      N_TMP = N_TRACERS
+      N_TMP = N_ADVECT
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:38' )
       READ( SUBSTRS(1), * ) ND37
       CALL SET_TINDEX( am_I_Root, 37, ND37, SUBSTRS(2:N), N-1, N_TMP )
@@ -4295,7 +4288,7 @@
       !--------------------------
       ! ND38: Cld conv losses
       !--------------------------
-      N_TMP = N_TRACERS
+      N_TMP = N_ADVECT
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:39' )
       READ( SUBSTRS(1), * ) ND38
       IF ( .not. Input_Opt%LWETD .and. .not. Input_Opt%LCONV ) THEN
@@ -4306,7 +4299,7 @@
       !--------------------------
       ! ND39: Wet scav losses
       !--------------------------
-      N_TMP = N_TRACERS
+      N_TMP = N_ADVECT
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:40' )
       READ( SUBSTRS(1), * ) ND39
       IF ( .not. Input_Opt%LWETD ) ND39 = 0
@@ -4342,9 +4335,9 @@
       ! ND44 drydep vel & flux
       !--------------------------
 
-      ! Number of tracers depends on simulation type
+      ! Number of species depends on simulation type
       IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
-         N_TMP = Input_Opt%N_TRACERS 
+         N_TMP = Input_Opt%N_ADVECT
       ELSE
          N_TMP = NUMDEP
       ENDIF
@@ -4355,9 +4348,9 @@
       CALL SET_TINDEX( am_I_Root, 44, ND44, SUBSTRS(2:N), N-1, N_TMP )
 
       !--------------------------
-      ! ND45: Tracer conc.
+      ! ND45: Species conc.
       !--------------------------
-      N_TMP = N_TRACERS
+      N_TMP = N_ADVECT
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:47' )
       READ( SUBSTRS(1), * ) ND45
       CALL SET_TINDEX( am_I_Root, 45, ND45, SUBSTRS(2:N), N-1, N_TMP )
@@ -4374,12 +4367,12 @@
       CALL SET_TINDEX( am_I_Root, 46, ND46, SUBSTRS(2:N), N-1, 26 )
 
       !--------------------------
-      ! ND47: 24h avg tracer
+      ! ND47: 24h avg species
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:50' )
       READ( SUBSTRS(1), * ) ND47
       CALL SET_TINDEX( am_I_Root, 
-     &                 47, ND47, SUBSTRS(2:N), N-1, N_TRACERS )
+     &                 47, ND47, SUBSTRS(2:N), N-1, N_ADVECT )
 
       !--------------------------
       ! ND52: GAMMA HO2
@@ -4459,7 +4452,7 @@
       !--------------------------
       ! ND62: Free
       !--------------------------
-      N_TMP = N_TRACERS
+      N_TMP = N_ADVECT
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:61' )
       READ( SUBSTRS(1), * ) ND62
       CALL SET_TINDEX( am_I_Root, 62, ND62, SUBSTRS(2:N), N-1, N_TMP )
@@ -4512,12 +4505,12 @@
       CALL SET_TINDEX( am_I_Root, 70, ND70, SUBSTRS(2:N), N-1, 0 )
      
       !--------------------------
-      ! ND71: Maximum tracer
+      ! ND71: Maximum species
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:69' )
       READ( SUBSTRS(1), * ) ND71
       CALL SET_TINDEX( am_I_Root, 
-     &                 71, ND71, SUBSTRS(2:N), N-1, N_TRACERS )
+     &                 71, ND71, SUBSTRS(2:N), N-1, N_ADVECT )
 
       !--------------------------
       ! ND72: Radiation output
@@ -5184,7 +5177,7 @@
       LOGICAL             :: DO_ND49
       INTEGER             :: N,    I,         AS
       ! Increased to 121 from 100 (mpb,2009)
-      INTEGER             :: ND49, N_TRACERS, TRACERS(121)
+      INTEGER             :: ND49, TRACERS(121)
       INTEGER             :: IMIN, IMAX,      FREQ
       INTEGER             :: JMIN, JMAX,      N_ND49
       INTEGER             :: LMIN, LMAX
@@ -5893,7 +5886,7 @@
 !
       LOGICAL             :: DO_ND63
       INTEGER             :: N,    I,         AS
-      INTEGER             :: ND63, N_TRACERS, TRACERS(121)
+      INTEGER             :: ND63, TRACERS(121)
       INTEGER             :: IMIN, IMAX,      FREQ
       INTEGER             :: JMIN, JMAX,      N_ND63
       CHARACTER(LEN=255)  :: SUBSTRS(MAXDIM), MSG
@@ -6155,7 +6148,7 @@
 
       ! Tagged O3
       IF ( DO_SAVE_PL .and. Input_Opt%ITS_A_TAGO3_SIM ) THEN
-         IF ( NFAM /= 2*Input_Opt%N_TRACERS ) THEN
+         IF ( NFAM /= 2*Input_Opt%N_ADVECT ) THEN
             MSG = 'Wrong number of P/L families for Tagged O3!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
@@ -6163,7 +6156,7 @@
 
       ! Tagged CO
       IF ( DO_SAVE_PL .and. Input_Opt%ITS_A_TAGCO_SIM ) THEN
-         IF ( NFAM /= Input_Opt%N_TRACERS+5 ) THEN
+         IF ( NFAM /= Input_Opt%N_ADVECT+5 ) THEN
             MSG = 'Wrong number of P/L families for Tagged CO!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
@@ -6634,10 +6627,10 @@
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'BENCHMARK MENU'
          WRITE( 6, '(  a)' ) '--------------'
-         WRITE( 6, 100     ) 'Save benchmark diag output? : ', LSTDRUN
-         WRITE( 6, 110     ) 'File for initial tracer mass: ',  
+         WRITE( 6, 100     ) 'Save benchmark diag output?  : ', LSTDRUN
+         WRITE( 6, 110     ) 'File for initial species mass: ',  
      &                        TRIM( INITIAL_FILE )
-         WRITE( 6, 110     ) 'File for final tracer mass  : ',  
+         WRITE( 6, 110     ) 'File for final species mass  : ',  
      &                        TRIM( FINAL_FILE )
       ENDIF
 
@@ -7818,10 +7811,10 @@
       ENDIF
 
       ! FORMAT strings
- 120  FORMAT( /, 'All tagged Hg2 tracers have the same dep velocity '
-     &           'as the total Hg2 tracer.' )
- 121  FORMAT( 'All tagged HgP tracers have the same dep velocity '
-     &        'as the total HgP tracer.' )
+ 120  FORMAT( /, 'All tagged Hg2 species have the same dep velocity '
+     &           'as the total Hg2 species.' )
+ 121  FORMAT( 'All tagged HgP species have the same dep velocity '
+     &        'as the total HgP species.' )
 
       ! We need to initialize the wetdep module if either wet deposition 
       ! or convection is turned on, so that we can do the large-scale and 
@@ -7844,7 +7837,7 @@
       IF ( RC /= GC_SUCCESS ) RETURN
 
       ! Call SET_VDIFF_VALUES so that we can pass several values from 
-      ! Input_Opt to the vdiff_mod.F90.  This replaces the funcitionality
+      ! Input_Opt to the vdiff_mod.F90.  This replaces the functionality
       ! of logical_mod.F and tracer_mod.F..  This has to be called
       ! after the input.geos file has been read from disk.
       CALL Set_Vdiff_Values( am_I_Root, Input_Opt, State_Chm, RC )
@@ -8123,7 +8116,7 @@
 
       ELSE
 
-         ! If LSULF=F but we have defined tracers, stop w/ error
+         ! If LSULF=F but we have defined species, stop w/ error
          IF ( I > 0 ) THEN
             MSG = 'Cannot use ONLINE SULFUR AEROSOLS if LSULF=F!'
             CALL ERROR_STOP( MSG, LOCATION )
@@ -8181,15 +8174,15 @@
       ENDIF
 
       ! SOAupdate: Error check (hotp 8/24/09)
-      ! OCPI and OCPO are the non-volatile POA tracers
-      ! POA (along w/ POG, OPOA, and OPOG) are the semivol POA tracers
+      ! OCPI and OCPO are the non-volatile POA species
+      ! POA (along w/ POG, OPOA, and OPOG) are the semivol POA species
       ! You can't have both!
       I = MAX( Ind_('OCPI'), 0 )  
      &  + MAX( Ind_('OCPO'), 0 )
 
       IF ( Ind_('POA1') > 0 ) THEN
          IF ( I > 0 ) THEN
-            MSG = 'Semivolatile POA tracer is defined in addition to
+            MSG = 'Semivolatile POA species is defined in addition to
      &             Nonvolatile POA'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
@@ -8201,7 +8194,7 @@
       ENDIF
 
       ! SOAupdate
-      ! Options for organic aerosol tracers:
+      ! Options for organic aerosol species:
       ! IF LSOA = F: only OCPI and OCPO
       ! IF LSOA = T:
       !   OCPI OCPO SOA (non-vol + original traditional)
@@ -8219,7 +8212,7 @@
 
       IF ( Input_Opt%LSVPOA ) THEN
          IF ( I < 8 ) THEN
-            MSG = 'Not enough semivolatile POA tracers!'
+            MSG = 'Not enough semivolatile POA species!'
                      CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
          IF ( Ind_('NAP','A') < 0 ) THEN
@@ -8270,10 +8263,10 @@
 
 ! JKODROS - Uncomment this if the dust fixes are back working. 
 #if defined( TOMAS )
-      ! For TOMAS only: If DUST1 is present, the other dust tracers are too
+      ! For TOMAS only: If DUST1 is present, the other dust species are too
       I = MAX( Ind_('DUST1'), 0 )
 #else
-      ! Non-TOMAS simulations: Need all DST1-DST4 tracers
+      ! Non-TOMAS simulations: Need all DST1-DST4 species
       I = MAX( Ind_('DST1'), 0 )
      &  + MAX( Ind_('DST2'), 0 )
      &  + MAX( Ind_('DST3'), 0 )
@@ -8352,7 +8345,7 @@
             Input_Opt%LSETCFC  = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'CFCs are emitted but CFC tracers are undefined.'
+     &            // 'CFCs are emitted but CFC species are undefined.'
             WRITE( 6, '(a)' ) 'Turning off CFC emissions.'
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
          ENDIF
@@ -8367,7 +8360,7 @@
             Input_Opt%LSETN2O  = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'N2O is emitted but N2O tracer is undefined.'
+     &            // 'N2O is emitted but N2O species is undefined.'
             WRITE( 6, '(a)' ) 'Turning off nitrous oxide emissions.'
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
          ENDIF
@@ -8381,7 +8374,7 @@
          IF (Ind_('H2O') < 0 ) THEN
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'H2O is set but H2O tracer is undefined.'
+     &            // 'H2O is set but H2O species is undefined.'
             Input_Opt%LSETH2O = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
          ENDIF
@@ -8399,7 +8392,7 @@
             Input_Opt%LSETCL  = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'Cl species emitted but Cl tracer is undefined.'
+     &            // 'Cl species emitted but Cl species is undefined.'
             WRITE( 6, '(a)' ) 'Turning off chlorine emissions.'
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
          ENDIF
@@ -8414,7 +8407,7 @@
             Input_Opt%LBRGCCM     = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'Br species emitted but Br2 tracer is undefined.'
+     &            // 'Br species emitted but Br2 species is undefined.'
             WRITE( 6, '(a)' ) 'Turning off bromine emissions.'
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
          ENDIF
@@ -8429,7 +8422,7 @@
             Input_Opt%LSETOCS  = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'OCS is emitted but OCS tracer is undefined.'
+     &            // 'OCS is emitted but OCS species is undefined.'
             WRITE( 6, '(a)' ) 'Turning off OCS emissions.'
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
          ENDIF
@@ -8453,7 +8446,7 @@
             Input_Opt%LCH4SBC  = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'CH4 is emitted but CH4 tracer is undefined.'
+     &            // 'CH4 is emitted but CH4 species is undefined.'
             WRITE( 6, '(a)' ) 'Turning off methane emissions.'
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
          ENDIF

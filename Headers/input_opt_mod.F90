@@ -79,10 +79,10 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: HcoConfigFile
 
      !----------------------------------------
-     ! TRACER MENU fields
+     ! ADVECTED SPECIES MENU fields
      !----------------------------------------
-     INTEGER                     :: N_TRACERS
-     CHARACTER(LEN=255), POINTER :: TRACER_NAME(:) 
+     INTEGER                     :: N_ADVECT
+     CHARACTER(LEN=255), POINTER :: AdvectSpc_Name(:) 
      INTEGER                     :: SIM_TYPE
      CHARACTER(LEN=255)          :: SIM_NAME
      LOGICAL                     :: LSPLIT
@@ -637,6 +637,9 @@ MODULE Input_Opt_Mod
 !  16 Aug 2016 - M. Sulprizio- Rename from gigc_input_opt_mod.F90 to
 !                              input_opt_mod.F90. The "gigc" nomenclature is
 !                              no longer used.
+!  29 Aug 2016 - M. Sulprizio- Rename N_TRACERS to N_ADVECT and TRACER_NAME to
+!                              AdvectSpc_Name to reflect that we now refer to
+!                              tracers as advected species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -779,12 +782,12 @@ CONTAINS
     Input_Opt%HcoConfigFile          = ''
      
     !----------------------------------------
-    ! TRACER MENU fields
+    ! ADVECTED SPECIES MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%TRACER_NAME   ( MAX_TRCS           ), STAT=RC )
+    ALLOCATE( Input_Opt%AdvectSpc_Name( MAX_TRCS ), STAT=RC )
 
-    Input_Opt%N_TRACERS              = 0
-    Input_Opt%TRACER_NAME            = ''
+    Input_Opt%N_ADVECT               = 0
+    Input_Opt%AdvectSpc_Name         = ''
     Input_Opt%SIM_TYPE               = 0
     Input_Opt%SIM_NAME               = ''
     Input_Opt%LSPLIT                 = .FALSE.
@@ -1426,8 +1429,8 @@ CONTAINS
     !======================================================================
     ! Deallocate fields of the Input Options object
     !======================================================================
-    IF ( ASSOCIATED( Input_Opt%TRACER_NAME ) ) THEN
-       DEALLOCATE( Input_Opt%TRACER_NAME )
+    IF ( ASSOCIATED( Input_Opt%AdvectSpc_Name ) ) THEN
+       DEALLOCATE( Input_Opt%AdvectSpc_Name )
     ENDIF
 
     IF ( ASSOCIATED( Input_Opt%SALA_REDGE_um ) ) THEN
