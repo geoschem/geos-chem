@@ -1795,7 +1795,7 @@
 !  computed by RAINOUT with the rainout efficiency for one of 3 temperature
 !  ranges: (1) T < 237 K; (2) 237 K <= T < 258 K; (3) T > 258 K. The rainout
 !  efficiencies for each aerosol species are defined in the species database
-!  object (i.e. State_Chm%SpcData(:)%Info).
+!  object (i.e. State\_Chm%SpcData(:)%Info).
 !\\
 !\\
 !  This allows us to apply the impaction scavenging of certain aerosol species
@@ -3396,7 +3396,7 @@
 !
 ! !IROUTINE: wetdep_merra
 !
-! !DESCRIPTION: Subroutine WETDEP_MERRA computes the downward mass flux of 
+! !DESCRIPTION: Subroutine WETDEP\_MERRA computes the downward mass flux of 
 !  species due to washout and rainout of aerosols and soluble species in a 
 !  column.  This subroutine implements a new algorithm in which the 
 !  precipitation fields come directly from the MERRA archive.
@@ -5123,7 +5123,7 @@
 !
 ! !IROUTINE: do_washout_at_sfc
 !
-! !DESCRIPTION: Subroutine DO\_WASHOUT_AT\_SFC washes out the species 
+! !DESCRIPTION: Subroutine DO\_WASHOUT\_AT\_SFC washes out the species 
 !  at the surface.
 !\\
 !\\

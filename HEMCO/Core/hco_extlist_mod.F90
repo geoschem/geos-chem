@@ -30,7 +30,7 @@
 ! or function HCO\_GetOpt. In fact, the HEMCO filename parser 
 ! (in hco\_chartools\_mod.F90) will attempt to find an option
 ! value for any HEMCO 'token' (a character starting with the 
-! HEMCO token sign (which is, the dollar sign '$'). This allows
+! HEMCO token sign (which is, the dollar sign '\$'). This allows
 ! the user to specify as many individual tokens as HEMCO 
 ! settings as needed.
 !\\

@@ -5,7 +5,7 @@
 !
 ! !IROUTINE: get_global_ch4
 !
-! !DESCRIPTION: Subroutine GET_GLOBAL_CH4 computes the latitudinal gradient 
+! !DESCRIPTION: Subroutine GET\_GLOBAL\_CH4 computes the latitudinal gradient 
 !  in CH4 corresponding to year.
 !\\
 !\\

@@ -9,7 +9,8 @@
 ! helper routines for extracting geographical information. These 
 ! routines are based upon GEOS-5 data and may need to be revised
 ! for other met. fields! 
-! \\
+!\\
+!\\
 ! !INTERFACE: 
 !
 MODULE HCO_GeoTools_Mod
@@ -184,6 +185,7 @@ CONTAINS
 ! !DESCRIPTION: Subroutine HCO\_ValidateLon\_Sp ensures that the passed 
 ! single precision longitude axis LON is steadily increasing.
 !\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE HCO_ValidateLon_Sp ( NLON, LON, RC )
@@ -261,6 +263,7 @@ CONTAINS
 ! !DESCRIPTION: Subroutine HCO\_ValidateLon\_Sp ensures that the passed 
 ! double precision longitude axis LON is steadily increasing.
 !\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE HCO_ValidateLon_Dp ( NLON, LON, RC )
@@ -335,6 +338,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine HCO\_GetSUNCOS calculates the solar zenith angle
 ! for the given date.
+!\\
 !\\
 ! !INTERFACE:
 !
@@ -685,7 +689,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !SUBROUTINE: HCO_CalcVertGrid
+! !IROUTINE: HCO_CalcVertGrid
 !
 ! !DESCRIPTION: Function HCO\_CalcVertGrid calculates the vertical grid 
 !  quantities surface pressure PSFC [Pa], surface geopotential height ZSFC

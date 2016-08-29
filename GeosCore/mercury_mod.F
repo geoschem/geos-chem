@@ -8,7 +8,7 @@
 ! !DESCRIPTION: Module MERCURY\_MOD contains variables and routines for the 
 !  GEOS-CHEM mercury simulation.  Many choices of reaction mechanism and 
 !  model processes can be selected with logical switches located in 
-!  INIT_MERCURY.
+!  INIT\_MERCURY.
 !\\
 !\\
 ! !INTERFACE:
@@ -1770,7 +1770,7 @@
 ! !IROUTINE: emithg
 !
 ! !DESCRIPTION: Subroutine EMITHG directs emission either to the chemical
-!  species array (State_Chm%Species) directly or to Hg_EMIS for use by the 
+!  species array (State\_Chm%Species) directly or to Hg\_EMIS for use by the 
 !  non-local PBL mixing. This is a programming convenience.
 !\\
 !\\
@@ -1870,7 +1870,6 @@
 ! !DESCRIPTION: Subroutine SRCHg0 is the subroutine for Hg(0) emissions.  
 !  Emissions of Hg(0) will be distributed throughout the boundary layer. 
 !  (eck, cdh, bmy, 1/21/05, 4/6/06)
- 
 !\\
 !\\
 ! !INTERFACE:
@@ -2643,7 +2642,6 @@
 !
 ! !DESCRIPTION: Subroutine SRCHg2 is the subroutine for Hg(II) emissions.  
 !  Emissions of Hg(II) will be distributed throughout the boundary layer. 
-
 !\\
 !\\
 ! !INTERFACE:
@@ -3565,7 +3563,6 @@
 !
 ! !DESCRIPTION: Function GET\_BR returns instantaneous Br concentration 
 !  calculated from the monthly mean and an imposed diurnal variation.
-
 !\\
 !\\
 ! !INTERFACE:
@@ -4405,7 +4402,7 @@
 !
 ! !IROUTINE: red_inplume_grid
 !
-! !DESCRIPTION: Subroutine RED\_INPLUME\_GRID conduct in plume reduction of 
+! !DESCRIPTION: Subroutine RED\_INPLUME\_GRID conducts in plume reduction of 
 !  Hg2 for selected grids
 !\\
 !\\
@@ -4456,7 +4453,7 @@
 !
 ! !IROUTINE: do_red_inplume
 !
-! !DESCRIPTION: Subroutine RED_INPLUME conduct in plume reduction of 
+! !DESCRIPTION: Subroutine DO\_RED\_INPLUME conducts in plume reduction of 
 !  Hg2 for selected grids.
 !\\
 !\\

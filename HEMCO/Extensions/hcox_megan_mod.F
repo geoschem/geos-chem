@@ -32,7 +32,7 @@
 ! updated at the end of the run sequence, e.g. they represent the 
 ! instantaneous running average. The e-folding times to be used when
 ! calculating the short=term and long-term running averages are defined 
-! as module parameter below (parameter TAU_HOURS and TAU_DAYS) 
+! as module parameter below (parameter TAU\_HOURS and TAU\_DAYS).
 !\\
 !\\
 ! A similar procedure is also applied to the leaf area index variables.
@@ -1718,7 +1718,7 @@
 !
 ! !IROUTINE: Get_Megan_Emissions
 !
-! !DESCRIPTION: Subroutine Get\_Megan\Emissions computes biogenic emissions in 
+! !DESCRIPTION: Subroutine Get\_Megan\_Emissions computes biogenic emissions in 
 !  units of [kgC/m2/s] or [kg/m2/s] using the MEGAN inventory. (dbm, 12/2012)
 !\\
 !\\
@@ -3124,7 +3124,7 @@
 ! !IROUTINE: CALC_NORM_FAC
 !
 ! !DESCRIPTION: Function CALC\_NORM\_FAC calculates the normalization factor 
-!  needed to compute emissions. Called from GET_MEGAN_EMISSIONS.
+!  needed to compute emissions. Called from GET\_MEGAN\_EMISSIONS.
 !\\
 !\\
 ! !INTERFACE:
