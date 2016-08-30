@@ -3109,6 +3109,7 @@ CONTAINS
        Lct%Dct%Dta%V2(1)%Val(1,1) = Vals(1)
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        DO I = 1, NT
+          If (I==1) Write(6,'(a)') 'Initializing VALS...'
           Lct%Dct%Dta%V2(I)%Val(1,1) = Vals(I)
        ENDDO
 
