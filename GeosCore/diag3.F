@@ -2239,9 +2239,6 @@
             N  = TINDEX(22,M)
             NN = N
 
-            ! Point to the species database entry for this species name
-            SpcInfo => State_Chm%SpcData(NN)%Info
-
             !-----------------------------------------------------------------
             ! NOTE: We can no longer select "all" in "input.geos", but we
             ! must specify the tracer #'s for ND22 explicitly:
@@ -2284,8 +2281,15 @@
             ! (ccc, bmy, 12/15/08; mps 5/27/14)
             !-----------------------------------------------------------------
             IF ( NN == -1 ) THEN
-               MM = 15   ! Write 'O2'
+
+               ! Write 'O2'
+               MM = 15
+
             ELSE
+
+               ! Point to the species database entry for this species
+               SpcInfo => State_Chm%SpcData(NN)%Info
+
                SELECT CASE ( TRIM( SpcInfo%Name ) )
                   CASE ( 'NO2', 'HCN', 'CH3I' )
                      MM = 1
@@ -2342,10 +2346,11 @@
                   CASE DEFAULT
                      MM = 0
                END SELECT
-            ENDIF
 
-            ! Free pointer
-            SpcInfo => NULL()
+               ! Free pointer
+               SpcInfo => NULL()
+
+            ENDIF
 
             ! Skip if not a valid index
             IF ( MM == 0 ) CYCLE
