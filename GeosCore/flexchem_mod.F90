@@ -500,22 +500,22 @@ CONTAINS
     ! statements below: C, VAR, FIX, RCONST, TIME, TEMP, NUMDEN, 
     ! H2O, PRESS, PHOTOL, HET, and CFACTOR. (bmy, 3/28/16)
     !-----------------------------------------------------------------
-    !$OMP PARALLEL DO                                        &
-    !$OMP DEFAULT  ( SHARED                                ) &
-    !$OMP PRIVATE  ( I,     J,        L,       N,     YLAT ) &
-    !$OMP PRIVATE  ( SCF,   SO4_FRAC, IERR,    RCNTRL      ) &
-    !$OMP PRIVATE  ( START, FINISH,   ISTATUS, RSTATE      ) &
-    !$OMP PRIVATE  ( PROD, LOSS,     DELTACHECK            ) &
-    !$OMP PRIVATE  ( NAME, COEF,     IND,    F,       M    ) &
-    !$OMP REDUCTION( +:ITIM                                ) &
-    !$OMP REDUCTION( +:RTIM                                ) &
-    !$OMP REDUCTION( +:TOTSTEPS                            ) &
-    !$OMP REDUCTION( +:TOTFUNCS                            ) &
-    !$OMP REDUCTION( +:TOTJACOB                            ) &
-    !$OMP REDUCTION( +:TOTACCEP                            ) &
-    !$OMP REDUCTION( +:TOTREJEC                            ) &
-    !$OMP REDUCTION( +:TOTNUMLU                            ) &
-    !$OMP SCHEDULE ( DYNAMIC, 1                            )
+    !$OMP PARALLEL DO                                           &
+    !$OMP DEFAULT  ( SHARED                                   ) &
+    !$OMP PRIVATE  ( I,     J,        L,          N,     YLAT ) &
+    !$OMP PRIVATE  ( SCF,   SO4_FRAC, IERR,       RCNTRL      ) &
+    !$OMP PRIVATE  ( START, FINISH,   ISTATUS,    RSTATE      ) &
+    !$OMP PRIVATE  ( PROD,  LOSS,     DELTACHECK, SpcId       ) &
+    !$OMP PRIVATE  ( NAME,  COEF,     IND,        F,     M    ) &
+    !$OMP REDUCTION( +:ITIM                                   ) &
+    !$OMP REDUCTION( +:RTIM                                   ) &
+    !$OMP REDUCTION( +:TOTSTEPS                               ) &
+    !$OMP REDUCTION( +:TOTFUNCS                               ) &
+    !$OMP REDUCTION( +:TOTJACOB                               ) &
+    !$OMP REDUCTION( +:TOTACCEP                               ) &
+    !$OMP REDUCTION( +:TOTREJEC                               ) &
+    !$OMP REDUCTION( +:TOTNUMLU                               ) &
+    !$OMP SCHEDULE ( DYNAMIC, 1                               )
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
