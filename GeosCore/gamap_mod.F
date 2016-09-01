@@ -6030,9 +6030,7 @@
       IF ( ND42 > 0 ) THEN
 
          ! Number of tracers
-         ! Add new diagnostics with SOA5. (ccc, 3/10/10)
-         !NTRAC(42) = 8
-         NTRAC(42) = 24
+         NTRAC(42) = 20
 
          ! Loop over tracers
          DO T = 1, NTRAC(42)
@@ -6099,12 +6097,12 @@
                CASE( 12 )
                   NAME (T,42) = 'OC'
                   FNAME(T,42) = 'OCPI + OCPO'
-                  UNIT (T,42) = 'ug C/m3'
+                  UNIT (T,42) = 'ugC/m3'
                   MWT  (T,42) = 12e-3
                CASE( 13 )
                   NAME (T,42) = 'BC'
                   FNAME(T,42) = 'BCPI + BCPO'
-                  UNIT (T,42) = 'ug C/m3'
+                  UNIT (T,42) = 'ugC/m3'
                   MWT  (T,42) = 12e-3
                CASE( 14 )
                   NAME (T,42) = 'SO4'
@@ -6126,6 +6124,11 @@
                   FNAME(T,42) = 'SALA + SALC'
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 36e-3
+               CASE( 18 )
+                  NAME (T,42) = 'PM25'
+                  FNAME(T,42) = 'PM2.5'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 1e-6
                CASE( 19 )
                   NAME (T,42) = 'SOAG'
                   FNAME(T,42) = 'SOAG'

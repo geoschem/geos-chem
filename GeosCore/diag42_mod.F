@@ -23,12 +23,7 @@
 ! !DEFINED PARAMETERS:
 !
       ! Maximum number of output:
-      ! SOA1, SOA2, SOA3, SOA4, SOA5, SUM(SOA1-3), SUM(SOA1-4), SUM(SOA1-5),
-      ! SUM(SOA1-5+OC), SUM(SOA1-5+OC), SUM(SOA1-5+OC), OC, BC, SOA4, NH4, NIT,
-      ! SSALT, SUM(aerosols), SOAG, SOAM, SUM(SOA1-5+SOAG+SOAM),
-      ! SUM(SOA1-5+SOAG+SOAM+OC), SUM(SOA1-5+SOAG+SOAM), 
-      ! SUM(SOA1-5+SOAG+SOAM+OC)
-      INTEGER, PUBLIC, PARAMETER   :: PD42 = 24
+      INTEGER, PUBLIC, PARAMETER   :: PD42 = 20
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -119,7 +114,7 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
-
+!  01 Sep 2016 - M. Sulprizio- Add PM2.5 concentrations to index 18
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -145,6 +140,7 @@
       INTEGER, SAVE       :: id_TSOA1, id_TSOA2
       INTEGER, SAVE       :: id_TSOA3, id_TSOA0
       INTEGER, SAVE       :: id_ISOA1, id_ISOA2, id_ISOA3
+      INTEGER, SAVE       :: id_DST1,  id_DST2
 
       ! SOAupdate: Logical SOA tracer flags (mpayer, 7/12/11)
       LOGICAL             :: IS_SOA1,  IS_SOA2,  IS_SOA3,  IS_SOA4
@@ -152,7 +148,7 @@
       LOGICAL             :: IS_OC,    IS_BC,    IS_SO4,   IS_NH4
       LOGICAL             :: IS_NIT,   IS_SAL,   IS_SOAG,  IS_SOAM
       LOGICAL             :: IS_TSOA,  IS_ISOA,  IS_ASOA
-      LOGICAL             :: IS_POA,   IS_OPOA 
+      LOGICAL             :: IS_POA,   IS_OPOA,  IS_DST
 !
 ! !DEFINED PARAMETERS:
 !
@@ -177,6 +173,8 @@
          id_SO4   = Ind_('SO4'  )
          id_NIT   = Ind_('NIT'  )
          id_NH4   = Ind_('NH4'  )
+         id_DST1  = Ind_('DST1' )
+         id_DST2  = Ind_('DST2' )
          id_SALA  = Ind_('SALA' )
          id_SALC  = Ind_('SALC' )
          id_BCPI  = Ind_('BCPI' )
@@ -190,7 +188,7 @@
          id_ASOA2 = Ind_('ASOA2')
          id_ASOA3 = Ind_('ASOA3')
          id_TSOA1 = Ind_('TSOA1')
-         id_TSOA1 = Ind_('TSOA2')
+         id_TSOA2 = Ind_('TSOA2')
          id_TSOA3 = Ind_('TSOA3')
          id_TSOA0 = Ind_('TSOA0')
          id_ISOA1 = Ind_('ISOA1')
@@ -209,6 +207,7 @@
       IS_SO4     = ( id_SO4   > 0 )
       IS_NH4     = ( id_NH4   > 0 )
       IS_NIT     = ( id_NIT   > 0 )
+      IS_DST     = ( id_DST1  > 0 .AND. id_DST2  > 0 )
       IS_SAL     = ( id_SALA  > 0 .AND. id_SALC  > 0 )
       IS_SOAG    = ( id_SOAG  > 0 )
       IS_SOAM    = ( id_SOAM  > 0 )
@@ -224,7 +223,6 @@
       ! Point to the 
       Spc => State_Chm%Species
 
-      ! SOAupdate: TEMPS need to be private!!!(hotp 10/14/09)
       ! Loop over grid boxes     
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
@@ -246,8 +244,10 @@
          ! (ewl, 3/25/15)
          FACTOR        = 1e+9_fp * State_Met%AIRDEN(I,J,L)
 
-         ! SOAupdate: AD42(1-11) updated (hotp 7/29/10)
-         ! TSOA (terpene SOA) (hotp 5/24/10)
+         !--------------------------------------------------------------
+         ! TSOA [ug/m3]
+         ! (terpene SOA)
+         !--------------------------------------------------------------
          IF ( IS_TSOA ) THEN
             AD42(I,J,L,1) = AD42(I,J,L,1)       + 
      &                  ( ( Spc(I,J,L,id_TSOA1) +
@@ -256,7 +256,10 @@
      &                      Spc(I,J,L,id_TSOA0) ) * FACTOR )
          ENDIF
 
-         ! ISOA (isoprene SOA) (hotp 5/24/10)
+         !--------------------------------------------------------------
+         ! ISOA [ug/m3]
+         ! (isoprene SOA)
+         !--------------------------------------------------------------
          IF ( IS_ISOA ) THEN
             AD42(I,J,L,2) = AD42(I,J,L,2)       + 
      &                  ( ( Spc(I,J,L,id_ISOA1) +
@@ -264,7 +267,10 @@
      &                      Spc(I,J,L,id_ISOA3) ) * FACTOR )
          ENDIF
 
-         ! ASOA (benz, tolu, xyle, + NAP/IVOC SOA) (hotp 5/24/10)
+         !--------------------------------------------------------------
+         ! ASOA [ug/m3]
+         ! (benz, tolu, xyle, + NAP/IVOC SOA)
+         !--------------------------------------------------------------
          IF ( IS_ASOA ) THEN
             AD42(I,J,L,3) = AD42(I,J,L,3)       + 
      &                  ( ( Spc(I,J,L,id_ASOAN) +
@@ -273,7 +279,9 @@
      &                      Spc(I,J,L,id_ASOA3) ) * FACTOR )
          ENDIF
 
-         ! POA hotp
+         !--------------------------------------------------------------
+         ! POA [ug/m3]
+         !--------------------------------------------------------------
          IF ( IS_POA ) THEN
             AD42(I,J,L,4) = AD42(I,J,L,4)      + 
      &                  ( ( Spc(I,J,L,id_POA1) +
@@ -284,7 +292,9 @@
      &                      Spc(I,J,L,id_OCPO) ) * OCFOPOA * FACTOR )
          ENDIF
 
-         ! OPOA hotp
+         !--------------------------------------------------------------
+         ! OPOA [ug/m3]
+         !--------------------------------------------------------------
          IF ( IS_OPOA ) THEN
             AD42(I,J,L,5) = AD42(I,J,L,5)       + 
      &                  ( ( Spc(I,J,L,id_OPOA1) +
@@ -292,8 +302,10 @@
      &                    * FACTOR )
          ENDIF
 
-         ! sum of all OA (hotp 5/24/10)
          IF ( IS_TSOA .AND. IS_ISOA .AND. IS_ASOA ) THEN
+            !-----------------------------------------------------------
+            ! Sum of all organic aerosol [ug/m3]
+            !-----------------------------------------------------------
             TEMP6 = Spc(I,J,L,id_TSOA1) +
      &              Spc(I,J,L,id_TSOA2) + 
      &              Spc(I,J,L,id_TSOA3) + 
@@ -323,7 +335,9 @@
 
             AD42(I,J,L,6) = AD42(I,J,L,6)  + ( TEMP6 * FACTOR )
 
-            ! sum of all OC (hotp 5/24/10)
+            !-----------------------------------------------------------
+            ! Sum of all organic carbon [ugC/m3]
+            !-----------------------------------------------------------
             TEMP7 = (  Spc(I,J,L,id_TSOA1) +
      &                 Spc(I,J,L,id_TSOA2) + 
      &                 Spc(I,J,L,id_TSOA3) + 
@@ -356,7 +370,9 @@
 
          ENDIF
 
-         ! sum of biogenic OC (hotp 5/24/10)
+         !--------------------------------------------------------------
+         ! Sum of biogenic aerosol [ug/m3]
+         !--------------------------------------------------------------
          IF ( IS_TSOA .AND. IS_ISOA ) THEN
             AD42(I,J,L,8) = AD42(I,J,L,8)       +
      &                  ( ( Spc(I,J,L,id_TSOA1) +
@@ -368,11 +384,15 @@
      &                      Spc(I,J,L,id_ISOA3) ) * FACTOR )
          ENDIF
           
-         ! NO branching ratio (hotp 5/24/10)
+         !--------------------------------------------------------------
+         ! NO branching ratio [dimless]
+         !--------------------------------------------------------------
          ! will have zero or junk values if not in troposphere
          AD42(I,J,L,9) = AD42(I,J,L,9) + BETANOSAVE(I,J,L)
 
-         ! POA (ugC/m3) hotp 7/28/10
+         !--------------------------------------------------------------
+         ! POA [ugC/m3]
+         !--------------------------------------------------------------
          IF ( IS_POA ) THEN
             AD42(I,J,L,10) = AD42(I,J,L,10)     + 
      &                   ( ( Spc(I,J,L,id_POA1) +
@@ -383,7 +403,9 @@
      &                       Spc(I,J,L,id_OCPO) )  * FACTOR )
          ENDIF
 
-         ! OPOA (ugC/m3) hotp 7/28/10
+         !--------------------------------------------------------------
+         ! OPOA [ugC/m3]
+         !--------------------------------------------------------------
          IF ( IS_OPOA ) THEN
             AD42(I,J,L,11) = AD42(I,J,L,11)      + 
      &                   ( ( Spc(I,J,L,id_OPOA1) +
@@ -391,7 +413,7 @@
          ENDIF
 
          !--------------------------------------------------------------
-         ! Additional aerosol tracers (hotp 10/26/07)
+         ! Additional aerosol tracers
          !--------------------------------------------------------------
 
          ! OC [ugC/m3]
@@ -434,9 +456,68 @@
          ENDIF
 
          !--------------------------------------------------------------
+         ! PM2.5 [ug/m3]
+         !
+         ! Randall Martin wrote on 6/29/16:
+         !
+         ! The PM2.5 calculation should account for aerosol water of
+         ! PM2.5 in a way that is consistent with the PM2.5 measurements.
+         ! The water content of PM2.5 is operationally defined. In the
+         ! US an RH of 35% is often used and would be appropriate for
+         ! the benchmark. In Europe an RH of 50% is often used.
+         !
+         ! Below are the factors that account for aerosol water in a
+         ! consistent manner as used in jv_spec.dat, as calculated by
+         ! Aaron van Donkelaar and Sajeev Philip.
+         !   At 35% RH:
+         !    1.33 for SO4, NIT, and NH4
+         !    1.12 for OCPI and SOA
+         !    1.86 for SALA
+         !
+         ! The DST2 bin includes aerosols with diameter both smaller
+         ! and larger than 2.5 um. [The Aerosols WG decided] that 38% of
+         ! the DST2 bin should be included in the calculation of PM2.5.
+         !
+         ! In summary, the PM2.5 benchmark should be
+         !
+         !   PM25 = 1.33 (NH4 + NIT  + SO4) + BCPI + BCPO +
+         !          2.1  (OCPO + 1.12 OCPI) + 1.12 SOA +
+         !          DST1 + 0.38 DST2 + 1.86 SALA
+         !
+         ! where the tracer units are in ug/m3 at STP, and the value of
+         ! 2.1 is the global mean OM/OC as recommended by the Aerosol WG. 
+         !--------------------------------------------------------------
+         IF ( IS_OC   .AND. IS_BC   .AND. IS_SO4  .AND. IS_NH4  .AND.
+     &        IS_NIT  .AND. IS_DST  .AND. IS_SAL  .AND. IS_TSOA .AND.
+     &        IS_ISOA .AND. IS_ASOA ) THEN
+            AD42(I,J,L,18) = AD42(I,J,L,18)                           + 
+     &                     ( 1.33e+0_fp*( Spc(I,J,L,id_NH4  )         + 
+     &                                    Spc(I,J,L,id_NIT  )         +
+     &                                    Spc(I,J,L,id_SO4  ) )       +
+     &                                    Spc(I,J,L,id_BCPI )         + 
+     &                                    Spc(I,J,L,id_BCPO )         +
+     &                       2.10e+0_fp*( Spc(I,J,L,id_OCPO )         +
+     &                       1.12e+0_fp * Spc(I,J,L,id_OCPI ) )       +
+     &                       1.12e+0_fp*( Spc(I,J,L,id_TSOA0)         +
+     &                                    Spc(I,J,L,id_TSOA1)         +
+     &                                    Spc(I,J,L,id_TSOA2)         +
+     &                                    Spc(I,J,L,id_TSOA3)         +
+     &                                    Spc(I,J,L,id_ISOA1)         + 
+     &                                    Spc(I,J,L,id_ISOA2)         + 
+     &                                    Spc(I,J,L,id_ISOA3)         + 
+     &                                    Spc(I,J,L,id_ASOAN)         + 
+     &                                    Spc(I,J,L,id_ASOA1)         + 
+     &                                    Spc(I,J,L,id_ASOA2)         + 
+     &                                    Spc(I,J,L,id_ASOA3) )       +
+     &                                    Spc(I,J,L,id_DST1)          +
+     &                       0.38e+0_fp * Spc(I,J,L,id_DST2)          +
+     &                       1.86e+0_fp * Spc(I,J,L,id_SALA) ) * FACTOR 
+         ENDIF
+
+         !--------------------------------------------------------------
          ! Additional diagnostics for SOAG, SOAM (tmf, 12/8/07) 
+         !
          ! Assume SOAG mass = GLYX mass, SOAM mass = MGLY mass
-         ! Test if SOAG and SOAM are simulated (ccc, 12/18/08)
          !--------------------------------------------------------------
          IF ( IS_SOAG .AND. IS_SOAM ) THEN
 
@@ -527,18 +608,6 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!
-! !REMARKS:
-!   # : Field    : Description                 : Units    : Scale factor
-!  -----------------------------------------------------------------------
-!  (1 ) IJ-SOA-$ : SOA1                        : ug/m3    : SCALE_OTH
-!  (2 ) IJ-SOA-$ : SOA2                        : ug/m3    : SCALE_OTH
-!  (3 ) IJ-SOA-$ : SOA3                        : ug/m3    : SCALE_OTH
-!  (4 ) IJ-SOA-$ : SOA4                        : ug/m3    : SCALE_OTH
-!  (5 ) IJ-SOA-$ : SOA1 + SOA2 + SOA3          : ug/m3    : SCALE_OTH
-!  (6 ) IJ-SOA-$ : SOA1 + SOA2 + SOA3 + SOA4   : ug/m3    : SCALE_OTH
-!  (7 ) IJ-SOA-$ : Sum of all Org Carbon       : ug C/m3  : SCALE_OTH
-!  (8 ) IJ-SOA-$ : Sum of all Org Carbon @ STP : ug C/sm3 : SCALE_OTH
 ! 
 ! !REVISION HISTORY: 
 !  22 May 2006 - D. Henze, R. Yantosca - Initial version
@@ -603,7 +672,7 @@
          ! Pick proper unit
          SELECT CASE ( N )
             ! SOAupdate: update units (hotp 5/24/10)
-            CASE( 7, 10, 11, 12, 13, 22 )
+            CASE( 7, 10, 11, 12, 13 )
                UNIT = 'ug C/m3'
             CASE( 9 )
                UNIT = 'dimless'
@@ -613,7 +682,6 @@
 
          ! Apply scale factor
          DO L = 1, LD42
-            !ARRAY(:,:,L) = AD42(:,:,L,N) / SCALE(:,:)
             ARRAY(:,:,L) = AD42(:,:,L,N) / SCALE
          ENDDO
 
