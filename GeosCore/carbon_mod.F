@@ -6049,12 +6049,17 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  23 Sep 2014 - M. Sulprizio- Now get OH for offline aerosol sim from HEMCO
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
+!  07 Sep 2016 - M. Sulprizio- Bug fix: Convert State_Chm%Species from kg to
+!                              molec/cm3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      REAL(fp) :: MolecRatio ! moles C / moles species
+      REAL(fp) :: OH_MW_kg   ! kg OH / mol
+
       !=================================================================
       ! GET_OH begins here!
       !=================================================================
@@ -6064,12 +6069,22 @@ ccc
          ! Coupled simulation
          !---------------------
 
-         ! Take OH from State_Chm%Species [molec/cm3]
          ! OH is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+
+            ! Get OH from State_Chm%Species [kg] and convert to [molec/cm3]
+            MolecRatio = State_Chm%SpcData(id_OH)%Info%MolecRatio
+            OH_MW_kg   = State_Chm%SpcData(id_OH)%Info%emMW_g * 1.e-3_fp
+
             OH_MOLEC_CM3 = State_Chm%Species(I,J,L,id_OH)
+     &                   * ( AVO / OH_MW_kg )
+     &                   / ( State_Met%AIRVOL(I,J,L)
+     &                   * 1e+6_fp * MolecRatio )
+
          ELSE
+
             OH_MOLEC_CM3 = 0e+0_fp
+
          ENDIF
 
       ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
@@ -6167,6 +6182,7 @@ ccc
 !  23 Sep 2014 - M. Sulprizio- Now get NO3 for offline aerosol sims from HEMCO
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !  28 Jul 2016 - R. Yantosca - Now convert NO3 from kg to molec/cm3
+!  07 Sep 2016 - M. Sulprizio- Get MolecRatio and NO3_MW_kg from species DB
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6177,6 +6193,8 @@ ccc
 !
 ! !LOCAL VARIABLES:
 !
+      REAL(fp)             :: MolecRatio ! moles C / moles species
+      REAL(fp)             :: NO3_MW_kg  ! kg NO3 / mol
       REAL(fp)             :: BOXVL
 
       !=================================================================
@@ -6188,19 +6206,22 @@ ccc
          ! Fullchem simulation
          !----------------------
 
-         ! Take NO3 from the State_Chm%Species [molec/cm3]
          ! NO3 is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
-            ! NO3 comes to us in [kg] at this point
-            NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO3)
+            ! Get NO3 from State_Chm%Species [kg] and convert to [molec/cm3]
+            MolecRatio  = State_Chm%SpcData(id_NO3)%Info%MolecRatio
+            NO3_MW_kg   = State_Chm%SpcData(id_NO3)%Info%emMW_g*1.e-3_fp
 
-            ! Convert from [kg] to [molec/cm3]
-            BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-            NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL
+            NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO3)
+     &                    * ( AVO / NO3_MW_kg )
+     &                    / ( State_Met%AIRVOL(I,J,L)
+     &                    * 1e+6_fp * MolecRatio )
 
          ELSE
+
             NO3_MOLEC_CM3 = 0e+0_fp
+
          ENDIF
 
       ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
@@ -6317,6 +6338,7 @@ ccc
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !  06 Jan 2016 - E. Lundgren - Use global physical parameter AVO
 !  28 Jul 2016 - R. Yantosca - Now convert O3 from kg to molec/cm3
+!  07 Sep 2016 - M. Sulprizio- Get MolecRatio and NO3_MW_kg from species DB
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6327,6 +6349,8 @@ ccc
 !
 ! !LOCAL VARIABLES:
 !
+      REAL(fp)             :: MolecRatio ! moles C / moles species
+      REAL(fp)             :: O3_MW_kg   ! kg O3 / mol
       REAL(fp)             :: BOXVL
 
       !=================================================================
@@ -6338,19 +6362,22 @@ ccc
          ! Coupled simulation
          !--------------------
 
-         ! Get O3 from State_Chm%Species [molec/cm3]
          ! O3 is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
             
-            ! NOTE: O3 is in [kg] at this point
-            O3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_O3)
+            ! Get O3 from State_Chm%Species [kg] and convert to [molec/cm3]
+            MolecRatio = State_Chm%SpcData(id_O3)%Info%MolecRatio
+            O3_MW_kg   = State_Chm%SpcData(id_O3)%Info%emMW_g * 1.e-3_fp
 
-            ! Convert from [kg] to [molec/cm3]
-            BOXVL        = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-            O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 / BOXVL
+            O3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_O3)
+     &                   * ( AVO / O3_MW_kg )
+     &                   / ( State_Met%AIRVOL(I,J,L)
+     &                   * 1e+6_fp * MolecRatio )
 
          ELSE
+
             O3_MOLEC_CM3 = 0e+0_fp
+
          ENDIF
          
       ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
@@ -6365,7 +6392,7 @@ ccc
 
             ! Get O3 [v/v] and convert it to [kg]
             O3_MOLEC_CM3 = O3(I,J,L) * State_Met%AD(I,J,L) *
-     &                     ( 48e+0_fp / AIRMW )
+     &                     ( 48e+0_fp / AIRMW )            ! hard-coded MW
                
             ! Convert O3 from [kg] to [molec/cm3]
             BOXVL        = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -6382,7 +6409,7 @@ ccc
             ! Impose a diurnal variation on OH during the day
             O3_MOLEC_CM3 = O3_MOLEC_CM3                             *  
      &                     ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) )   *
-     &                     ( 1440e+0_fp                / GET_TS_CHEM() )
+     &                     ( 1440e+0_fp            / GET_TS_CHEM() )
 
             ! Make sure OH is not negative
             O3_MOLEC_CM3 = MAX( O3_MOLEC_CM3, 0e+0_fp )
@@ -6455,23 +6482,26 @@ ccc
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Met%Species
 !  17 May 2016 - R. Yantosca - Now get MolecRatio from species database
 !  31 May 2016 - E. Lundgren - Now get molecular weight from species database
+!  07 Sep 2016 - M. Sulprizio- Bug fix: Convert State_Chm%Species from kg LARO2
+!                              to kg AROM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: ILARO2, IDTAROM
-      REAL(fp) :: ARO2CARB, AROM_MW_G
-
-      ! For values from Input_Opt
-      REAL(fp) :: MolecRatio                   ! Moles C / moles species
+      INTEGER  :: id_LARO2      ! Species ID for AROM lost to HO2 or NO
+      INTEGER  :: id_AROM       ! Species ID of the parent aromatic
+      REAL(fp) :: ARO2CARB      ! kg C of ARO2 / kg ARO2
+      REAL(fp) :: AROM_MW_kg    ! g C of AROM  / mol C
+      REAL(fp) :: LARO2_MW_kg   ! g C of LARO2 / mol C
+      REAL(fp) :: MolecRatio    ! moles C / moles species
 
       !=================================================================
       ! GET_DARO2 begins here!
       !=================================================================
 
-      !print*, ' get DARO2'
+      ! Initialize
       DARO2 = 0e+0_fp
 
       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
@@ -6494,9 +6524,9 @@ ccc
                ! (NOX = 1) while loss due to HO2 corresponds to 
                ! low NOX experiments (NOX = 2). 
                IF ( NOX == 1 ) THEN
-                  ILARO2 = id_LBRO2N
+                  id_LARO2 = id_LBRO2N
                ELSEIF ( NOX == 2 ) THEN
-                  ILARO2 = id_LBRO2H
+                  id_LARO2 = id_LBRO2H
                ELSE
                   CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
                ENDIF
@@ -6511,16 +6541,16 @@ ccc
      &                    ( 6e+0_fp * 12e+0_fp + 6e+0_fp )
 
                ! Species index of the parent aromatic
-               IDTAROM = id_BENZ
+               id_AROM = id_BENZ
 
             ! Toluene
             !ELSEIF ( JHC == 8 ) THEN ! hotp 5/13/10
             ELSEIF ( JHC == PARENTTOLU ) THEN
 
                IF ( NOX == 1 ) THEN
-                  ILARO2 = id_LTRO2N
+                  id_LARO2 = id_LTRO2N
                ELSEIF ( NOX == 2 ) THEN
-                  ILARO2 = id_LTRO2H
+                  id_LARO2 = id_LTRO2H
                ELSE
                   CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
                ENDIF
@@ -6537,16 +6567,16 @@ ccc
      &                    ( 7e+0_fp * 12e+0_fp + 8e+0_fp )
 
                ! Species index of the parent aromatic
-               IDTAROM = id_TOLU
+               id_AROM = id_TOLU
 
             ! XYLENE
             !ELSEIF ( JHC == 9 ) THEN ! hotp 5/13/10
             ELSEIF ( JHC == PARENTXYLE ) THEN
 
                IF ( NOX == 1 ) THEN
-                  ILARO2 = id_LXRO2N
+                  id_LARO2 = id_LXRO2N
                ELSEIF ( NOX == 2 ) THEN
-                  ILARO2 = id_LXRO2H
+                  id_LARO2 = id_LXRO2H
                ELSE
                   CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
                ENDIF
@@ -6564,16 +6594,16 @@ ccc
      &                    ( 8e+0_fp * 12e+0_fp + 10e+0_fp ) 
 
                ! Species index of the parent aromatic
-               IDTAROM = id_XYLE
+               id_AROM = id_XYLE
 
             ! NAPHTHALENE (IVOC surrogate) (hotp 7/22/09)
             !ELSEIF ( JHC == 12 ) THEN ! hotp 5/13/10
             ELSEIF ( JHC == PARENTNAP ) THEN
 
                IF ( NOX == 1 ) THEN
-                  ILARO2 = id_LNRO2N
+                  id_LARO2 = id_LNRO2N
                ELSEIF ( NOX == 2 ) THEN
-                  ILARO2 = id_LNRO2H
+                  id_LARO2 = id_LNRO2H
                ELSE
                   CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
                ENDIF
@@ -6586,7 +6616,7 @@ ccc
      &                    ( 12e+0_fp * 10e+0_fp + 8e+0_fp )
 
                ! Species index of the parent aromatic
-               IDTAROM = id_NAP
+               id_AROM = id_NAP
 
             ELSE
 
@@ -6595,30 +6625,26 @@ ccc
             ENDIF
 
             !-----------------------------------------------------------
-            ! Get DARO2 from State_Chm%Species [molec/cm3] and 
-            ! convert to [kg ARO2 / box]
+            ! Get LARO2 (AROM lost to HO2 or NO) from State_Chm%Species
+            ! [kg LARO2] and convert to [kg AROM]
             ! 
-            ! State_Chm%Species : molec ARO2 (lost to HO2 or NO ) / cm3
-            ! AROM_MW_G         : g C of ARO2 / mol C
-            ! MolecRatio        : atom C / molec ARO2
-            ! State_Met%AIRVOL  : m3 (converted here to cm3)
-            ! ARO2CARB          : kg C of ARO2 / kg ARO2
-            ! 
-            ! where we use XNUMOL and MolecRatio for the parent aromatic
-            ! hydrocarbon, Arom, because:
-            !   atom  C / molec ARO2  = atom C / molec AROM
-            !   kg C of ARO2 / atom C = kg C of AROM / atom C
+            ! We use MolecRatio for the parent aromatic hydrocarbon,
+            ! AROM, because:
+            !   atom  C / mol ARO2  = atom C / mol AROM
             !-----------------------------------------------------------
 
             ! Now get the species coefficient from the species database
             ! instead of from Input_Opt (bmy, 5/17/16)
-            MolecRatio = State_Chm%SpcData(IDTAROM)%Info%MolecRatio
-            AROM_MW_G  = State_Chm%SpcData(IDTAROM)%Info%emMW_g
+            MolecRatio  = State_Chm%SpcData(id_AROM)%Info%MolecRatio
+            AROM_MW_kg  = State_Chm%SpcData(id_AROM)%Info%emMW_g
+     &                    * 1.e-3_fp
+            LARO2_MW_kg = State_Chm%SpcData(id_LARO2)%Info%emMW_g
+     &                    * 1.e-3_fp
 
-            DARO2 = State_Chm%Species(I,J,L,ILARO2)
-     &            * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
-     &            * MolecRatio * AROM_MW_G * 1.e-3_fp / 
-     &            ( AVO * ARO2CARB )
+            DARO2 = State_Chm%Species(I,J,L,id_LARO2)
+     &            * ( AVO / LARO2_MW_kg )
+     &            / ( AVO / AROM_MW_kg  ) * MolecRatio
+     &            * ARO2CARB
 
          ELSE
 
@@ -6694,13 +6720,17 @@ ccc
 !  21 Dec 2015 - M. Sulprizio- Get grid box volume directly from State_Met
 !  17 May 2016 - R. Yantosca - Now get MolecRatio from species database
 !  31 May 2016 - E. Lundgren - Now get molecular weight from species database
+!  07 Sep 2016 - M. Sulprizio- Bug fix: Convert State_Chm%Species from kg ISOPOH
+!                              to kg ISOP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp) :: MolecRatio, ISOP_MW_G
+      REAL(fp) :: MolecRatio    ! moles C / moles ISOP
+      REAL(fp) :: ISOP_MW_kg    ! kg C ISOP    / mol C
+      REAL(fp) :: LISOPOH_MW_kg ! kg C LISOPOH / mol C
 
       !=================================================================
       ! GET_DOH begins here!
@@ -6716,20 +6746,18 @@ ccc
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN 
  
             !-----------------------------------------------------------
-            ! Get DOH from State_Chm%Species [molec/cm3] and 
-            ! convert to [kg C isop / box]
-            ! 
-            ! State_Chm%Species : molec isop (lost to OH) / cm3
-            ! ISOP_MW_G         : g C isop / mol C
-            ! MolecRatio        : atom C / molec isop
-            ! State_Met%AIRVOL  : m3 (converted here to cm3)
+            ! Get LISOPOH (ISOP lost to OH) from State_Chm%Species
+            ! [kg LISOPOH] and convert to [kg C ISOP]
             !-----------------------------------------------------------
-            MolecRatio = State_Chm%SpcData(id_ISOP)%Info%MolecRatio
-            ISOP_MW_G  = State_Chm%SpcData(id_ISOP)%Info%emMW_g
+            MolecRatio    = State_Chm%SpcData(id_ISOP)%Info%MolecRatio
+            ISOP_MW_kg    = State_Chm%SpcData(id_ISOP)%Info%emMW_g
+     &                      * 1.e-3_fp
+            LISOPOH_MW_kg = State_Chm%SpcData(id_LISOPOH)%Info%emMW_g
+     &                      * 1.e-3_fp
 
             DOH = State_Chm%Species(I,J,L,id_LISOPOH)
-     &          * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
-     &          * MolecRatio * ISOP_MW_G * 1.e-3_fp / AVO 
+     &          * ( AVO / LISOPOH_MW_kg )
+     &          / ( AVO / ISOP_MW_kg    ) * MolecRatio
  
          ELSE
 
@@ -8459,18 +8487,15 @@ ccc
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !  28 Jul 2016 - R. Yantosca - Now convert NO from kg to molec/cm3
+!  07 Sep 2016 - M. Sulprizio- Get MolecRatio and NO3_MW_kg from species DB
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !DEFINED PARAMETERS:
-!
-      ! NOTE: THIS IS TEMPORARY, REPLACE LATER
-      REAL(fp),  PARAMETER :: XNUMOL_NO = AVO / 30e-3_fp ! hard-coded MW
-!
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)             :: BOXVL
+      REAL(fp) :: MolecRatio ! moles C / moles species
+      REAL(fp) :: NO_MW_kg   ! kg NO / mol
 
       !=================================================================
       ! GET_NO begins here!
@@ -8481,19 +8506,22 @@ ccc
          ! Coupled simulation
          !---------------------
 
-         ! Take NO from State_Chm%Species [molec/cm3]
          ! NO is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
-            ! NOTE: NO comes to us as [kg] at this point
-            NO_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO)
+            ! Get NO from State_Chm%Species [kg] and convert to [molec/cm3]
+            MolecRatio = State_Chm%SpcData(id_NO)%Info%MolecRatio
+            NO_MW_kg   = State_Chm%SpcData(id_NO)%Info%emMW_g * 1.e-3_fp
 
-            ! Convert from [kg] to [molec/cm3]
-            BOXVL        = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-            NO_MOLEC_CM3 = NO_MOLEC_CM3 * XNUMOL_NO / BOXVL
+            NO_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO)
+     &                   * ( AVO / NO_MW_kg )
+     &                   / ( State_Met%AIRVOL(I,J,L)
+     &                   * 1e+6_fp * MolecRatio )
 
          ELSE
+
             NO_MOLEC_CM3 = 0e+0_fp
+
          ENDIF
 
       ELSE
@@ -8560,6 +8588,9 @@ ccc
 !
 ! !LOCAL VARIABLES:
 !
+      REAL(fp) :: MolecRatio ! moles C / moles species
+      REAL(fp) :: HO2_MW_kg  ! kg HO2 / mol
+
       !=================================================================
       ! GET_HO2 begins here!
       !=================================================================
@@ -8569,12 +8600,22 @@ ccc
          ! Coupled simulation
          !---------------------
 
-         ! Take HO2 from the State_Chm%Species [molec/cm3]
          ! HO2 is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+
+            ! Get HO2 from State_Chm%Species [kg] and convert to [molec/cm3]
+            MolecRatio = State_Chm%SpcData(id_HO2)%Info%MolecRatio
+            HO2_MW_kg  = State_Chm%SpcData(id_HO2)%Info%emMW_g*1.e-3_fp
+
             HO2_MOLEC_CM3 = State_Chm%Species(I,J,L,id_HO2)
+     &                    * ( AVO / HO2_MW_kg )
+     &                    / ( State_Met%AIRVOL(I,J,L)
+     &                    * 1e+6_fp * MolecRatio )
+
          ELSE
+
             HO2_MOLEC_CM3 = 0e+0_fp
+
          ENDIF
 
       ELSE
@@ -8641,13 +8682,17 @@ ccc
 !  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Met%Species
 !  17 May 2016 - R. Yantosca - Now get MolecRatio from species database
 !  31 May 2016 - E. Lundgren - Now get molecular weight from species database
+!  07 Sep 2016 - M. Sulprizio- Bug fix: Convert State_Chm%Species from kg ISOPOH
+!                              to kg ISOP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp) :: MolecRatio, ISOP_MW_G
+      REAL(fp) :: MolecRatio     ! molec C / moles ISOP
+      REAL(fp) :: ISOP_MW_kg     ! kg C ISOP      / mol C
+      REAL(fp) :: LISOPNO3_MW_kg ! kg C LISOPONO3 / mol Ckg
       
       !=================================================================
       ! GET_ISOPNO3 begins here!
@@ -8663,23 +8708,19 @@ ccc
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN 
  
             !-----------------------------------------------------------
-            ! Get ISOPNO3 from State_Chm%Species [molec/cm3] and 
-            ! convert to [kg C isop / box]
-            ! 
-            ! State_Chm%Species : molec isop (lost to NO3) / cm3
-            ! ISOP_MW_G         : g C isop / mol C
-            ! MolecRatio        : atom C / molec isop
-            ! State_Met%AIRVOL  : m3 (converted here to cm3)
+            ! Get ISOPNO3 (ISOP list to NO3) from State_Chm%Species
+            ! [kg ISOPNO3] and convert to [kg C ISOP]
             !-----------------------------------------------------------
-            
-            ! Moles C per moles species
-            MolecRatio = State_Chm%SpcData(id_ISOP)%Info%MolecRatio
-            ISOP_MW_G  = State_Chm%SpcData(id_ISOP)%Info%emMW_g
+            MolecRatio     = State_Chm%SpcData(id_ISOP)%Info%MolecRatio
+            ISOP_MW_kg     = State_Chm%SpcData(id_ISOP)%Info%emMW_g
+     &                       * 1.e-3_fp
+            LISOPNO3_MW_kg = State_Chm%SpcData(id_LISOPNO3)%Info%emMW_g
+     &                       * 1.e-3_fp
 
             ISOPNO3 = State_Chm%Species(I,J,L,id_LISOPNO3)
-     &              * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
-     &              * MolecRatio * ISOP_MW_G * 1.e-3_fp / AVO
- 
+     &              * ( AVO / LISOPNO3_MW_kg )
+     &              / ( AVO / ISOP_MW_kg     ) * MolecRatio
+
          ELSE
 
             ! Otherwise set ISOPNO3=0
