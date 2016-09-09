@@ -75,7 +75,7 @@ MODULE GCKPP_HETRATES
   ! Scalars
   INTEGER  :: NAERO
   LOGICAL  :: NATSURFACE,   PSCBOX,    STRATBOX
-  REAL(fp) :: TEMPK,        RELHUM,    TRC_NIT, SPC_SO4
+  REAL(fp) :: TEMPK,        RELHUM,    SPC_SO4
   REAL(fp) :: SPC_NIT,      GAMMA_HO2, XTEMP,   XDENA
   REAL(fp) :: CLD_BRNO3_RC, KI_HBR,    KI_HOBr, QLIQ
   REAL(fp) :: QICE
@@ -87,8 +87,8 @@ MODULE GCKPP_HETRATES
   REAL(fp) :: KHETI_SLA(11)
 
 !$OMP THREADPRIVATE( NAERO,        NATSURFACE, PSCBOX,   STRATBOX )
-!$OMP THREADPRIVATE( TEMPK,        RELHUM,     TRC_NIT,  SPC_SO4  )
-!$OMP THREADPRIVATE( SPC_NIT,      GAMMA_HO2,  XTEMP,    XDENA    )
+!$OMP THREADPRIVATE( TEMPK,        RELHUM,     SPC_NIT,  SPC_SO4  )
+!$OMP THREADPRIVATE( GAMMA_HO2,    XTEMP,      XDENA              )
 !$OMP THREADPRIVATE( CLD_BRNO3_RC, KI_HBR,     KI_HOBr,  QLIQ     )
 !$OMP THREADPRIVATE( QICE,         SCF2,       XAREA,    XRADI    )
 !$OMP THREADPRIVATE( KHETI_SLA                                    )
@@ -3196,7 +3196,7 @@ MODULE GCKPP_HETRATES
                  ( State_Chm%STATE_PSC(I,J,L) >= 2.0 ) .and. ( IS_STRAT ) )
 
       ! Check if there is surface NAT
-      IS_NAT   = ( ( IS_PSC ) .and. ( TRC_NIT .gt. TINY(1e+0_fp) ) )
+      IS_NAT   = ( ( IS_PSC ) .and. ( SPC_NIT .gt. TINY(1e+0_fp) ) )
 
     END SUBROUTINE CHECK_NAT
 !EOC
