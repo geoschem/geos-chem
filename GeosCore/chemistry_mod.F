@@ -368,12 +368,6 @@
             ! replay simulations in GEOS-5 (ckeller, 5/8/15)
             CALL READ_PSC_FILE( am_I_Root, State_Chm, RC )
             IF ( RC /= GC_SUCCESS ) RETURN
-
-            !### DEBUG PRINTOUT, we can remove it later
-            IF ( LPRT .and. am_I_Root )
-     &           WRITE(*,'(a,e12.4)') '<> CH4: ',
-     &           State_Chm%Species(10,10,10,69)
-
 #endif
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )

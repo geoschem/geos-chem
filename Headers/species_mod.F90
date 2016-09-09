@@ -1207,7 +1207,7 @@ CONTAINS
        WRITE( 6, 120 ) 'Emitted mol. wt [g]   ',  ThisSpc%EmMW_g
        WRITE( 6, 120 ) 'Molecular ratio       ',  ThisSpc%MolecRatio
        WRITE( 6, 130 ) 'Is it a gas?          ',  ThisSpc%Is_Gas
-       WRITE( 6, 130 ) 'Default bckgrnd [v/v] ',  ThisSpc%BackgroundVV
+       WRITE( 6, 120 ) 'Default bckgrnd [v/v] ',  ThisSpc%BackgroundVV
 
        !-------------------------
        ! Print density & radius
