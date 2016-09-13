@@ -524,7 +524,6 @@
       LWAIT               =  Input_Opt%LWAIT
       LWETD               =  Input_Opt%LWETD
       LWINDO              =  Input_Opt%LWINDO
-      USE_OLSON_2001      =  Input_Opt%USE_OLSON_2001
       N_TRACERS           =  Input_Opt%N_TRACERS  
 
       ! Set a flag to denote if we should print ND70 debug output
