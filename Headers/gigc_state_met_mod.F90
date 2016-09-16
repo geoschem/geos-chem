@@ -123,7 +123,6 @@ MODULE GIGC_State_Met_Mod
      !----------------------------------------------------------------------
      REAL(fp), POINTER :: AREA_M2   (:,:,:) ! Grid box surface area [cm2]
      REAL(fp), POINTER :: AIRDEN    (:,:,:) ! Dry air density [kg/m3]
-     REAL(fp), POINTER :: AIRDEN_OLD(:,:,:) ! (temp) Dry air density [kg/m3]
      REAL(fp), POINTER :: CLDF      (:,:,:) ! 3-D cloud fraction [1]
      REAL(fp), POINTER :: CMFMC     (:,:,:) ! Cloud mass flux [kg/m2/s]
      REAL(fp), POINTER :: DETRAINE  (:,:,:) ! Detrainment (entrain plume)[Pa/s]
@@ -197,7 +196,6 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: DELP      (:,:,:) ! Delta-P (wet) across box [hPa]
      REAL(fp), POINTER :: DELP_DRY  (:,:,:) ! Delta-P (dry) across box [hPa]
      REAL(fp), POINTER :: AD        (:,:,:) ! Dry air mass [kg] in grid box
-     REAL(fp), POINTER :: AD_OLD    (:,:,:) ! (temp) air mass [kg] in grid box
      REAL(fp), POINTER :: AIRVOL    (:,:,:) ! Grid box volume [m3] (dry air)
      REAL(fp), POINTER :: DELP_PREV (:,:,:) ! Previous State_Met%DELP
      REAL(fp), POINTER :: DP_DRY_PREV (:,:,:) ! Previous State_Met%DELP_DRY
@@ -662,18 +660,10 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%AD       = 0.0_fp
 
-    ALLOCATE( State_Met%AD_OLD    ( IM, JM, LM   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN           
-    State_Met%AD_OLD   = 0.0_fp
-                                               
     ALLOCATE( State_Met%AIRDEN    ( IM, JM, LM   ), STAT=RC )  
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%AIRDEN   = 0.0_fp
 
-    ALLOCATE( State_Met%AIRDEN_OLD ( IM, JM, LM   ), STAT=RC )  
-    IF ( RC /= GIGC_SUCCESS ) RETURN           
-    State_Met%AIRDEN_OLD = 0.0_fp
-    
     ALLOCATE( State_Met%MAIRDEN    ( IM, JM, LM   ), STAT=RC )  
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%MAIRDEN   = 0.0_fp
@@ -1079,9 +1069,7 @@ CONTAINS
 
     ! 3-D fields
     IF ( ASSOCIATED( State_Met%AD         )) DEALLOCATE( State_Met%AD         )
-    IF ( ASSOCIATED( State_Met%AD_OLD     )) DEALLOCATE( State_Met%AD_OLD     )
     IF ( ASSOCIATED( State_Met%AIRDEN     )) DEALLOCATE( State_Met%AIRDEN     )
-    IF ( ASSOCIATED( State_Met%AIRDEN_OLD )) DEALLOCATE( State_Met%AIRDEN_OLD )
     IF ( ASSOCIATED( State_Met%MAIRDEN    )) DEALLOCATE( State_Met%MAIRDEN    )
     IF ( ASSOCIATED( State_Met%AIRVOL     )) DEALLOCATE( State_Met%AIRVOL     )
     IF ( ASSOCIATED( State_Met%AREA_M2    )) DEALLOCATE( State_Met%AREA_M2    )

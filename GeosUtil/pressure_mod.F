@@ -29,10 +29,10 @@
       PUBLIC  :: GET_PEDGE                ! wet air P at lower grid edge
       PUBLIC  :: GET_PCENTER              ! wet air P at grid center
       PUBLIC  :: GET_PEDGE_FULLGRID
-      PUBLIC  :: GET_PEDGE_DRY            ! ** moisture fix **
-      PUBLIC  :: GET_DELP_DRY             ! ** moisture fix **
+      PUBLIC  :: GET_PEDGE_DRY     
+      PUBLIC  :: GET_DELP_DRY      
       PUBLIC  :: INIT_PRESSURE
-      PUBLIC  :: SET_FLOATING_PRESSURES   ! ** moisture fix **
+      PUBLIC  :: SET_FLOATING_PRESSURES
       PUBLIC  :: CLEANUP_PRESSURE
 
 
@@ -598,13 +598,13 @@
       ! GCAP met fields
       !-----------------------------
       ! Assume negligible humidity at top of atmosphere
-      PEDGE_DRY_BOT = AP(L) + ( BP(L) * ( PFLT_DRY(I,J) - PTOP ) ) 
+      PEDGE_DRY_BOT = AP(L)   + ( BP(L)   * ( PFLT_DRY(I,J) - PTOP ) ) 
       PEDGE_DRY_TOP = AP(L+1) + ( BP(L+1) * ( PFLT_DRY(I,J) - PTOP ) ) 
 #else
       !-------------------------------------------------------
       ! GEOS-4, GEOS-5, GEOS-FP, MERRA, and MERRA-2 met fields
       !-------------------------------------------------------
-      PEDGE_DRY_BOT = AP(L) + ( BP(L) * PFLT_DRY(I,J) )
+      PEDGE_DRY_BOT = AP(L)   + ( BP(L)   * PFLT_DRY(I,J) )
       PEDGE_DRY_TOP = AP(L+1) + ( BP(L+1) * PFLT_DRY(I,J) )
 #endif    
       DELP_DRY = PEDGE_DRY_BOT - PEDGE_DRY_TOP

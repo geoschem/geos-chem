@@ -35,7 +35,7 @@
       PUBLIC  :: IS_WATER
       PUBLIC  :: IS_ICE
       PUBLIC  :: IS_NEAR      
-      PUBLIC  :: SET_DRY_SURFACE_PRESSURE  ! ** moisture fix **
+      PUBLIC  :: SET_DRY_SURFACE_PRESSURE
 !
 ! !REVISION HISTORY:
 !  26 Jun 2010 - R. Yantosca - Initial version
@@ -639,7 +639,7 @@
          State_Met%PMID_DRY( I,J,L ) = State_Met%PMID(I,J,L) - Ev_mid
 
          !============================================================
-         ! Moisture fix (7/8/2016) - use only for unit conversions
+         ! Moisture fix variables - use only for unit conversions (ewl)
          !============================================================
 
          ! Set previous dry P difference to current dry P difference
@@ -653,7 +653,7 @@
          !===============================================================
          ! Set mass of dry air in grid box [kg]
          !==============================================================
-         !
+         
          ! AD = mass of dry air in grid box (I,J,L) 
          !
          ! given by:        
@@ -673,53 +673,65 @@
          !        (see SET_DRY_SURFACE_PRESSURE). It is not derived from
          !        the wet edge pressures. This distinction is important
          !        for mass conservation.
-         !==============================================================
-         ! Prior to 08 Jul 2016: 
-         ! (Calculate dry air mass from moist air mass)
-!         State_Met%AD(I,J,L) = ( ( State_Met%DELP(I,J,L) * G0_100 ) 
-!     &                       * AREA_M2 ) * ( 1.0e+0_fp - SPHU_kgkg )
-         
-         ! New definition
          State_Met%AD(I,J,L) = (State_Met%DELP_DRY(I,J,L) * G0_100)
      &                         * AREA_M2
 
-         ! Keep around the old for testing, in a temporary State_Met var
-         State_Met%AD_OLD(I,J,L) = ( ( State_Met%DELP(I,J,L) * G0_100 ) 
-     &                       * AREA_M2 ) * ( 1.0e+0_fp - SPHU_kgkg )
-
-         !---------------------------------------------------------
-         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-         !!! *** THE REST IS FOR AIRDEN - NOT YET COMPLETE ***  !!!
-         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-         !--------------------------------------------------------
+         ! Prior to 08 Jul 2016 (moisture fix): 
+         ! Calculate dry air mass from moist air mass
+!         State_Met%AD(I,J,L) = ( ( State_Met%DELP(I,J,L) * G0_100 ) 
+!     &                       * AREA_M2 ) * ( 1.0e+0_fp - SPHU_kgkg )
+         
+         !=============================================================
+         ! Set grid box dry air partial pressures at grid box 
+         ! altitude-weighted mean pressure [hPa]
+         ! Assume constant humidity across grid box.
+         !=============================================================  
 
          ! Mean altitude-weighted pressure in grid box [hPa] defined as   
          ! average P(z) over z. Use in the ideal gas law yields a         
          ! mean density equivalent to total mass per volume in grid box.  
          ! NOTE: Use of PMEAN is a temporary fix to preserve current      
          ! usage of AIRDEN as total mass per volume. 
-         ! *** Now make PMEAN a local variable rather than in State_Met ***
          PMEAN = State_Met%DELP(I,J,L) /               
      &                              log( State_Met%PEDGE(I,J,L) /         
      &                                   PEdge_Top )     
 
-         !=============================================================
-         ! Set grid box dry air partial pressures at grid box 
-         ! altitude-weighted mean pressure [hPa]
-         ! Assume constant humidity across grid box.
-         !=============================================================  
+
          Ev_mean = PMEAN * Ev_mid / State_Met%PMID(I,J,L)
 
          !===========================================================
-         ! Set grid box densities [kg/m3] using the ideal gas law.
-         !
+         ! Set grid box densities [kg/m3]
+         !=============================================================  
+         
          ! For now we will be consistent with the legacy definition of
          ! density as total grid box mass over volume and so must use the 
          ! altitude-weighted mean pressure (PMEAN) rather than the 
          ! arithmetic mean pressure (PMID). The density here is therefore 
          ! the altitude-weighted mean grid box density rather than the 
          ! local density at pressure level PMID.
-         !==========================================================
+
+         PMEAN_DRY = PMEAN - Ev_mean
+         ! NOTE: Try the below definition in the future with legacy
+         !       equation for AIRDEN to update equation to ideal gas law
+         !       thereby removing area-independence
+         !State_Met%PMEAN_DRY( I,J,L ) = State_Met%DELP_DRY(I,J,L) /
+         !&                              log( State_Met%PEDGE(I,J,L) /         
+         !&                                   PEdge_Top )     
+
+         ! Set grid box dry air density [kg/m3]
+         ! NOTE: Air density derived from dry surface pressure
+         ! following implementation of the moisture fix. Eventually
+         ! this will need to be calculated using the ideal gas law to
+         ! remove area dependency. (ewl, 9/16/16)
+         State_Met%AIRDEN(I,J,L) = State_Met%AD(I,J,L)  
+     &                             / State_Met%AIRVOL(I,J,L)
+
+         ! Prior to 08 Jul 2016 (moisture fix): 
+         ! Calculate dry air density from ideal gas law using moist P
+         !State_Met%AIRDEN(I,J,L) = PMEAN_DRY * AIRMW * PCONV * MCONV
+         !&                             / RSTARG / State_Met%T(I,J,L)
+
+         ! Set grid box moist air density [kg/m3]
          !
          !  MAIRDEN = density of moist air [kg/m^3],
          !  given by:
@@ -732,41 +744,11 @@
          ! Density    Universal gas constant * Temp * 1000  * 0.01
          !                   [J/K/mol]         [K]   [g/kg]   [hPa/Pa]
          !
-
-         ! ** Now make this a local variable rather than in State_Met ***
-         ! Altitude-weighted mean dry air partial pressure of grid box [hPa]
-         PMEAN_DRY = PMEAN - Ev_mean
-
-         ! Previous dry air density value (derived from wet surface 
-         ! pressure) is now stored in AIRDEN_OLD for testing
-         State_Met%AIRDEN_OLD(I,J,L) = PMEAN_DRY * AIRMW * PCONV * MCONV
-     &                             / RSTARG / State_Met%T(I,J,L)
-
-         ! ***UNCLEAR IF THIS WILL BE NEEDED IN SOME FORM FOR WETSCAV***
-         ! NOTE: MAIRDEN now used in wetscav_mod only. Need
-         !       to look closer at use in wetscave_mod. Can we remove?
+         ! NOTE: MAIRDEN is used in wetscav_mod only
          State_Met%MAIRDEN(I,J,L) = ( PMEAN_DRY 
      &                                * AIRMW + Ev_mean * H2OMW ) 
      &                                * PCONV * MCONV
      &                                / RSTARG / State_Met%T(I,J,L)
-
-
-         ! Eventually try this definition instead for moisture fix:
-         ! Mean altitude-weighted pressure in grid box [hPa] defined as   
-         ! average P(z) over z. Use in the ideal gas law yields a         
-         ! mean density equivalent to total mass per volume in grid box.  
-         ! NOTE: Use of PMEAN is a temporary fix to preserve current      
-         ! usage of AIRDEN as total mass per volume.                      
-!         State_Met%PMEAN_DRY( I,J,L ) = State_Met%DELP_DRY(I,J,L) /
-!     &                              log( State_Met%PEDGE(I,J,L) /         
-!     &                                   PEdge_Top )     
-
-
-         ! New air density value derived from dry surface pressure
-         ! Set grid box dry air density [kg/m3]
-         State_Met%AIRDEN(I,J,L) = State_Met%AD(I,J,L)  
-     &                             / State_Met%AIRVOL(I,J,L)
-
 
       ENDDO
       ENDDO
@@ -972,14 +954,14 @@
       ENDIF
 #endif
 
-      ! DEBUGGING
-      IF ( Input_Opt%LPRT ) THEN
-      PRINT *, " "
-      PRINT *, "In INTERP"
-      PRINT *, "   Old PSC2_WET(56,20):     ", State_Met%PSC2_WET(56,20)
-      PRINT *, "   Old PSC2_DRY(56,20): ", State_Met%PSC2_DRY(56,20)
-      ENDIF
-      ! END DEBUGGING
+      !! DEBUGGING
+      !IF ( Input_Opt%LPRT ) THEN
+      !PRINT *, " "
+      !PRINT *, "In INTERP"
+      !PRINT *, "   Old PSC2_WET(56,20):     ", State_Met%PSC2_WET(56,20)
+      !PRINT *, "   Old PSC2_DRY(56,20): ", State_Met%PSC2_DRY(56,20)
+      !ENDIF
+      !! END DEBUGGING
 
 #if   defined( GEOS_4 ) || defined( GCAP )
 
@@ -1201,13 +1183,13 @@
 !$OMP END PARALLEL DO
 #endif
 
-      ! DEBUGGING
-      IF ( Input_Opt%LPRT ) THEN
-      PRINT *, " "
-      PRINT *, "   New PSC2_WET(56,20):     ", State_Met%PSC2_WET(56,20)
-      PRINT *, "   New PSC2_DRY(56,20): ", State_Met%PSC2_DRY(56,20)
-      ENDIF
-      ! END DEBUGGING
+      !! DEBUGGING
+      !IF ( Input_Opt%LPRT ) THEN
+      !PRINT *, " "
+      !PRINT *, "   New PSC2_WET(56,20):     ", State_Met%PSC2_WET(56,20)
+      !PRINT *, "   New PSC2_DRY(56,20): ", State_Met%PSC2_DRY(56,20)
+      !ENDIF
+      !! END DEBUGGING
 
       END SUBROUTINE INTERP
 !EOC
@@ -1269,11 +1251,6 @@
       REAL(fp), POINTER  :: PS_WET(:,:) => NULL()
       REAL(fp), POINTER  :: PS_DRY(:,:) => NULL()
       REAL(fp), POINTER  :: SPHU(:,:,:) => NULL()
-
-      ! Variables used for reversibility test
-      REAL(fp)           :: PWET_REVERSE
-      REAL(fp)           :: P1, P2
-      INTEGER            :: I2, J2
 
       !=================================================================
       ! SET_DRY_SURFACE_PRESSURE begins here!
@@ -1358,20 +1335,6 @@
 !      ENDIF
 !      PRINT *, " "
 !      ! END DEBUGGING
-
-!      ! reversibility test (MML) - adapted by ewl
-!      I2   = 56
-!      J2   = 20
-!      PWET_REVERSE = 0.e+0_fp
-!      DO L = 1, LLPAR
-!        P1 = GET_AP(L) + GET_BP(L) * PS_DRY(I2,J2)
-!        P2 = GET_AP(L+1) + GET_BP(L+1) * PS_DRY(I2,J2)
-!        PWET_REVERSE = PWET_REVERSE + ( P1 - P2 ) / 
-!     &                ( 1.e+0_fp - SPHU(I2,J2,L) * 1.0e-3_fp )
-!      ENDDO
-!      PRINT *, "In SET_DRY_SURFACE_PRESSURE - reversibility test"
-!      PRINT *, "GMAO surface pressure:        ", PS_WET(I2,J2)
-!      PRINT *, "Re-derived wet surf pressure: ", PWET_REVERSE
 
       ! Nullify pointers
       PS_WET  => NULL()
