@@ -6124,11 +6124,15 @@
                   FNAME(T,42) = 'SALA + SALC'
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 36e-3
-               CASE( 18 )
-                  NAME (T,42) = 'PM25'
-                  FNAME(T,42) = 'PM2.5'
-                  UNIT (T,42) = 'ug/m3'
-                  MWT  (T,42) = 1e-6
+!=============================================================================
+! The PM2.5 diagnostic is still under development. See comments in
+! diag42_mod.F (mps, 9/16/16)
+!               CASE( 18 )
+!                  NAME (T,42) = 'PM25'
+!                  FNAME(T,42) = 'PM2.5'
+!                  UNIT (T,42) = 'ug/m3'
+!                  MWT  (T,42) = 1e-6
+!=============================================================================
                CASE( 19 )
                   NAME (T,42) = 'SOAG'
                   FNAME(T,42) = 'SOAG'

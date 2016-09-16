@@ -455,64 +455,73 @@
      &                        Spc(I,J,L,id_SALC) ) * FACTOR 
          ENDIF
 
-         !--------------------------------------------------------------
-         ! PM2.5 [ug/m3]
-         !
-         ! Randall Martin wrote on 6/29/16:
-         !
-         ! The PM2.5 calculation should account for aerosol water of
-         ! PM2.5 in a way that is consistent with the PM2.5 measurements.
-         ! The water content of PM2.5 is operationally defined. In the
-         ! US an RH of 35% is often used and would be appropriate for
-         ! the benchmark. In Europe an RH of 50% is often used.
-         !
-         ! Below are the factors that account for aerosol water in a
-         ! consistent manner as used in jv_spec.dat, as calculated by
-         ! Aaron van Donkelaar and Sajeev Philip.
-         !   At 35% RH:
-         !    1.33 for SO4, NIT, and NH4
-         !    1.12 for OCPI and SOA
-         !    1.86 for SALA
-         !
-         ! The DST2 bin includes aerosols with diameter both smaller
-         ! and larger than 2.5 um. [The Aerosols WG decided] that 38% of
-         ! the DST2 bin should be included in the calculation of PM2.5.
-         !
-         ! In summary, the PM2.5 benchmark should be
-         !
-         !   PM25 = 1.33 (NH4 + NIT  + SO4) + BCPI + BCPO +
-         !          2.1  (OCPO + 1.12 OCPI) + 1.12 SOA +
-         !          DST1 + 0.38 DST2 + 1.86 SALA
-         !
-         ! where the tracer units are in ug/m3 at STP, and the value of
-         ! 2.1 is the global mean OM/OC as recommended by the Aerosol WG. 
-         !--------------------------------------------------------------
-         IF ( IS_OC   .AND. IS_BC   .AND. IS_SO4  .AND. IS_NH4  .AND.
-     &        IS_NIT  .AND. IS_DST  .AND. IS_SAL  .AND. IS_TSOA .AND.
-     &        IS_ISOA .AND. IS_ASOA ) THEN
-            AD42(I,J,L,18) = AD42(I,J,L,18)                           + 
-     &                     ( 1.33e+0_fp*( Spc(I,J,L,id_NH4  )         + 
-     &                                    Spc(I,J,L,id_NIT  )         +
-     &                                    Spc(I,J,L,id_SO4  ) )       +
-     &                                    Spc(I,J,L,id_BCPI )         + 
-     &                                    Spc(I,J,L,id_BCPO )         +
-     &                       2.10e+0_fp*( Spc(I,J,L,id_OCPO )         +
-     &                       1.12e+0_fp * Spc(I,J,L,id_OCPI ) )       +
-     &                       1.12e+0_fp*( Spc(I,J,L,id_TSOA0)         +
-     &                                    Spc(I,J,L,id_TSOA1)         +
-     &                                    Spc(I,J,L,id_TSOA2)         +
-     &                                    Spc(I,J,L,id_TSOA3)         +
-     &                                    Spc(I,J,L,id_ISOA1)         + 
-     &                                    Spc(I,J,L,id_ISOA2)         + 
-     &                                    Spc(I,J,L,id_ISOA3)         + 
-     &                                    Spc(I,J,L,id_ASOAN)         + 
-     &                                    Spc(I,J,L,id_ASOA1)         + 
-     &                                    Spc(I,J,L,id_ASOA2)         + 
-     &                                    Spc(I,J,L,id_ASOA3) )       +
-     &                                    Spc(I,J,L,id_DST1)          +
-     &                       0.38e+0_fp * Spc(I,J,L,id_DST2)          +
-     &                       1.86e+0_fp * Spc(I,J,L,id_SALA) ) * FACTOR 
-         ENDIF
+!=============================================================================
+! The PM2.5 diagnostic is still under development. This code still needs
+! to be updated to work with the semivolatile POA simulation (it currently
+! uses the wrong OC/OM conversion) and to include glyoxal and methylglyoxal
+! if those species are defined. In addition, parameters for aerosol water
+! should be defined in a single place if possible (like the species database)
+! to avoid redundancies and inconsistencies with other aerosol code.
+! (mps, 9/16/16)
+!         !--------------------------------------------------------------
+!         ! PM2.5 [ug/m3]
+!         !
+!         ! Randall Martin wrote on 6/29/16:
+!         !
+!         ! The PM2.5 calculation should account for aerosol water of
+!         ! PM2.5 in a way that is consistent with the PM2.5 measurements.
+!         ! The water content of PM2.5 is operationally defined. In the
+!         ! US an RH of 35% is often used and would be appropriate for
+!         ! the benchmark. In Europe an RH of 50% is often used.
+!         !
+!         ! Below are the factors that account for aerosol water in a
+!         ! consistent manner as used in jv_spec.dat, as calculated by
+!         ! Aaron van Donkelaar and Sajeev Philip.
+!         !   At 35% RH:
+!         !    1.33 for SO4, NIT, and NH4
+!         !    1.12 for OCPI and SOA
+!         !    1.86 for SALA
+!         !
+!         ! The DST2 bin includes aerosols with diameter both smaller
+!         ! and larger than 2.5 um. [The Aerosols WG decided] that 38% of
+!         ! the DST2 bin should be included in the calculation of PM2.5.
+!         !
+!         ! In summary, the PM2.5 benchmark should be
+!         !
+!         !   PM25 = 1.33 (NH4 + NIT  + SO4) + BCPI + BCPO +
+!         !          2.1  (OCPO + 1.12 OCPI) + 1.12 SOA +
+!         !          DST1 + 0.38 DST2 + 1.86 SALA
+!         !
+!         ! where the tracer units are in ug/m3 at STP, and the value of
+!         ! 2.1 is the global mean OM/OC as recommended by the Aerosol WG. 
+!         !--------------------------------------------------------------
+!         IF ( IS_OC   .AND. IS_BC   .AND. IS_SO4  .AND. IS_NH4  .AND.
+!     &        IS_NIT  .AND. IS_DST  .AND. IS_SAL  .AND. IS_TSOA .AND.
+!     &        IS_ISOA .AND. IS_ASOA ) THEN
+!            AD42(I,J,L,18) = AD42(I,J,L,18)                           + 
+!     &                     ( 1.33e+0_fp*( Spc(I,J,L,id_NH4  )         + 
+!     &                                    Spc(I,J,L,id_NIT  )         +
+!     &                                    Spc(I,J,L,id_SO4  ) )       +
+!     &                                    Spc(I,J,L,id_BCPI )         + 
+!     &                                    Spc(I,J,L,id_BCPO )         +
+!     &                       2.10e+0_fp*( Spc(I,J,L,id_OCPO )         +
+!     &                       1.12e+0_fp * Spc(I,J,L,id_OCPI ) )       +
+!     &                       1.12e+0_fp*( Spc(I,J,L,id_TSOA0)         +
+!     &                                    Spc(I,J,L,id_TSOA1)         +
+!     &                                    Spc(I,J,L,id_TSOA2)         +
+!     &                                    Spc(I,J,L,id_TSOA3)         +
+!     &                                    Spc(I,J,L,id_ISOA1)         + 
+!     &                                    Spc(I,J,L,id_ISOA2)         + 
+!     &                                    Spc(I,J,L,id_ISOA3)         + 
+!     &                                    Spc(I,J,L,id_ASOAN)         + 
+!     &                                    Spc(I,J,L,id_ASOA1)         + 
+!     &                                    Spc(I,J,L,id_ASOA2)         + 
+!     &                                    Spc(I,J,L,id_ASOA3) )       +
+!     &                                    Spc(I,J,L,id_DST1)          +
+!     &                       0.38e+0_fp * Spc(I,J,L,id_DST2)          +
+!     &                       1.86e+0_fp * Spc(I,J,L,id_SALA) ) * FACTOR 
+!         ENDIF
+!=============================================================================
 
          !--------------------------------------------------------------
          ! Additional diagnostics for SOAG, SOAM (tmf, 12/8/07) 
