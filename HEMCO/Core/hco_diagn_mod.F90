@@ -845,7 +845,7 @@ CONTAINS
           IF ( FOUND ) THEN
              IF ( HCO_IsVerb(2) ) THEN
                 WRITE(MSG,*) 'Diagnostics already exists - ', &
-                             'will not added again: ', TRIM(cName) 
+                             'will not be added again: ', TRIM(cName) 
                 CALL HCO_MSG ( MSG )
              ENDIF
              RC = HCO_SUCCESS
@@ -1086,9 +1086,12 @@ CONTAINS
     CALL DiagnCont_Find( -1, -1, -1, -1, -1, &
                         Trim(cName), -1, FOUND, TmpDiagn, COL=PS )
     IF ( FOUND ) THEN
-       MSG = 'There is already a diagnostics with this name: ' // TRIM(cName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-       RETURN
+!       MSG = 'There is already a diagnostics with this name: ' // TRIM(cName)
+!       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       ThisDiagn%cName = trim(cName) // '_a'
+       MSG = 'Changed Diagn name to ' // trim(ThisDiagn%cName)
+       CALL HCO_MSG(MSG)
+!       RETURN
     ENDIF
 
     !-----------------------------------------------------------------------

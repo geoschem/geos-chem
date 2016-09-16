@@ -21,38 +21,38 @@
       !-----------------------------------------------------------------
       ! Parameters to define floating-point variables
       !-----------------------------------------------------------------
-      USE PRECISION_MOD, ONLY : fpp => fp  ! Flexible precision
-      USE PRECISION_MOD, ONLY : f4         ! 4-byte floating point
-      USE PRECISION_MOD, ONLY : f8         ! 8-byte floating point
+      USE PRECISION_MOD,   ONLY : fpp => fp  ! Flexible precision
+      USE PRECISION_MOD,   ONLY : f4         ! 4-byte floating point
+      USE PRECISION_MOD,   ONLY : f8         ! 8-byte floating point
 
       !-----------------------------------------------------------------
       ! Basic GEOS-Chem modules
       !-----------------------------------------------------------------
       USE CMN_SIZE_MOD          ! Size parameters
-      USE PHYSCONSTANTS         ! Physical constants
+      USE ErrCode_Mod           ! Error codes for success or failure
       USE ERROR_MOD             ! For error checking
       USE FILE_MOD              ! For file I/O
+      USE GEOS_TIMERS_MOD       ! For GEOS-Chem timers (optional)
+      USE GC_Environment_Mod    ! For allocating derived type objects
       USE GRID_MOD              ! For defining the lons/lats/areas of the grid
+      USE Input_Opt_Mod         ! Derived type for Input Options 
       USE INPUT_MOD             ! For reading settings from "input.geos"
       USE MAPPING_MOD           ! For regridding MODIS LAI
       USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
+      USE PhysConstants         ! Physical constants
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
-      USE RESTART_MOD           ! For restart file I/O
-      USE TIME_MOD              ! For computing date, time, and global mass 
-      USE TRACERID_MOD          ! Flags for G-C tracers & chemical species
-      USE TRACER_MOD            ! For error-checking the tracer array
       USE REGRID_A2A_MOD        ! For horizontal regridding
-      USE UNITCONV_MOD          ! For gas concentration unit conversion
-      USE GEOS_TIMERS_MOD       ! For GEOS-Chem timers (optional)
-      
+      USE RESTART_MOD           ! For restart file I/O
+      USE State_Chm_Mod         ! Derived type for Chemistry State object
+      USE State_Met_Mod         ! Derived type for Meteorology State object
+      USE TIME_MOD              ! For computing date & time 
+      USE UnitConv_Mod          ! For gas concentration unit conversion
+
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules
       !-----------------------------------------------------------------
       USE CARBON_MOD            ! For SOA simulation
       USE CHEMISTRY_MOD         ! Driver routines for chemistry
-      USE COMODE_MOD            ! Allocatable arrays for SMVGEAR solver
-      USE COMODE_LOOP_MOD       ! Formerly common-block arrays for SMVGEAR
-      USE GCKPP_COMODE_MOD      ! For the KPP chemical solver
       USE GLOBAL_CH4_MOD        ! For offline CH4 simulation
       USE MERCURY_MOD           ! For offline Hg simulation (driver)
       USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
@@ -83,26 +83,26 @@
       USE DIAG51b_MOD           ! For ND51b (satellite timeseries) diag
       USE DIAG63_MOD            ! For ND63  (PARANOX timeseries  ) diag
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
-      USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
       USE DIAGNOSTICS_MOD       ! NetCDF diagnostics module (C. Keller)
+      USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
 
       !-----------------------------------------------------------------
       ! GEOS-Chem dynamics modules
       !-----------------------------------------------------------------
+      USE CHEMGRID_MOD          ! For the dynamic tropopause
       USE CONVECTION_MOD        ! For deep cloud convection
       USE LINOZ_MOD             ! For LINOX linear strat chemistry
       USE PBL_MIX_MOD           ! To compute PBL height 
       USE TPCORE_BC_MOD         ! For nested-grid boundary conditions
       USE TRANSPORT_MOD         ! Driver routines for advection
-      USE CHEMGRID_MOD          ! For the dynamic tropopause
       USE VDIFF_MOD             ! For non-local PBL mixing (J. Lin)
 
       !-----------------------------------------------------------------
       ! GEOS-Chem emissions modules
       !-----------------------------------------------------------------
-      USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
       USE EMISSIONS_MOD         ! For interfacing with HEMCO emissions
       USE MIXING_MOD            ! performs tracer mixing
+      USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
 
       !-----------------------------------------------------------------
       ! GEOS-Chem met field I/O modules
@@ -143,15 +143,6 @@
       USE rrtmg_sw_init,  ONLY : rrtmg_sw_ini
 
 #endif
-
-      !-----------------------------------------------------------------
-      ! Modules for the Grid-Independent GEOS-Chem (aka "GIGC")
-      !-----------------------------------------------------------------
-      USE GIGC_ErrCode_Mod      ! Error codes for success or failure
-      USE GIGC_Environment_Mod  ! For allocating objects
-      USE GIGC_Input_Opt_Mod    ! Derived type for Input Options 
-      USE GIGC_State_Chm_Mod    ! Derived type for Chemistry State object    
-      USE GIGC_State_Met_Mod    ! Derived type for Meteorology State object
 
       IMPLICIT NONE
 !
@@ -285,6 +276,14 @@
 !  25 Jan 2016 - R. Yantosca - Call LINE_BUFFER to force PGI compiler to flush
 !                               STDOUT (unit=6) output to disk during a run
 !  03 Feb 2016 - E. Lundgren - Use routine MAKE_RESTART_FILES for all GC rsts
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  02 May 2016 - R. Yantosca - Now pass Input_Opt to cleanup_gigc_state_chm
+!  18 May 2016 - M. Sulprizio- Remove call to INIT_COMODE; it's obsolete
+!  06 Jun 2016 - M. Sulprizio- Remove call to FILL_CHEM_STATE_IDs; this routine
+!                              was made obsolete by the species database
+!  22 Jun 2016 - R. Yantosca - Add error checks to prevent calling UCX routines
+!                              when we are running specialty simulations
+!  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -304,26 +303,27 @@
       INTEGER                  :: NYMD,          NYMDb,       NHMS
       INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
       INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
-      INTEGER                  :: laiYYYY,       laiMM
+      INTEGER                  :: laiYYYY,       laiMM,       id_CLOCK
+      INTEGER                  :: id_H2O
       REAL(f8)                 :: TAU,           TAUb         
       CHARACTER(LEN=255)       :: ZTYPE
 
       ! Set cloud flag for RRTMG
-      INTEGER                   :: ICLD=0,ISEED=10
-      INTEGER                   :: RR
+      INTEGER                  :: ICLD=0,ISEED=10
+      INTEGER                  :: RR
 
       ! Arrays
       INTEGER                  :: DATE(2)
 
       ! Derived type objects
-      TYPE(MapWeight), POINTER :: mapping(:,:) => NULL()
+      TYPE(MapWeight), POINTER :: mapping(:,:)
 
       !-----------------------------------------------------------------
-      ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
+      ! %%%% REPLICATING GCHP FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
       !
       ! We must declare the Chemistry State (State_Chm), Meteorology
       ! State (State_Met), and Input Options (Input_Opt) objects
-      ! for use with the Grid-Independent GEOS-Chem code. 
+      ! for use with the GEOS-Chem High Performance code. 
       !
       TYPE(OptInput)           :: Input_Opt   ! Input Options object
       TYPE(ChmState)           :: State_Chm   ! Chemistry State object
@@ -368,15 +368,12 @@
       LOGICAL                  :: LDYNOCEAN
       LOGICAL                  :: LEMIS
       LOGICAL                  :: LGTMM
-      LOGICAL                  :: LKPP
       LOGICAL                  :: LLINOZ
       LOGICAL                  :: LNLPBL
       LOGICAL                  :: LPRT
       LOGICAL                  :: LSTDRUN
       LOGICAL                  :: LSCHEM
       LOGICAL                  :: LSETH2O
-      LOGICAL                  :: LSVCSPEC
-      LOGICAL                  :: LSVGLB
       LOGICAL                  :: LTRAN
       LOGICAL                  :: LTURB
       LOGICAL                  :: LUCX
@@ -386,8 +383,6 @@
       LOGICAL                  :: LWETD
       LOGICAL                  :: LWINDO
       LOGICAL                  :: USE_OLSON_2001
-      INTEGER                  :: N_TRACERS 
-      !-----------------------------------------------------------------
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
@@ -414,11 +409,11 @@
 #endif
 
       !-----------------------------------------------------------------
-      ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
+      ! %%%% REPLICATING GCHP FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
       !
       ! Assume a successful return until otherwise
       !
-      RC                      = GIGC_SUCCESS
+      RC                      = GC_SUCCESS
       !
       ! Define NI, NJ, NL dimensions for use below
       !
@@ -441,15 +436,15 @@
       Input_Opt%LINOZ_NFIELDS = 7
       Input_Opt%RootCPU       = .true.
       !
-      ! Call the routine GIGC_Allocate_All (located in module file
-      ! GeosCore/gigc_environment_mod.F90) to allocate all lat/lon
+      ! Call the routine GC_Allocate_All (located in module file
+      ! GeosCore/gc_environment_mod.F90) to allocate all lat/lon
       ! allocatable arrays used by GEOS-Chem, as well as the Input 
       ! Options object.  The IIPAR and JJPAR dimensions are not 
       ! declared as PARAMETERs, but are module variables that are 
       ! initialized in this call.
       !
-      CALL GIGC_Allocate_All( am_I_root, Input_Opt, RC )
-      IF ( RC /= GIGC_SUCCESS ) GOTO 9999
+      CALL GC_Allocate_All( am_I_root, Input_Opt, RC )
+      IF ( RC /= GC_SUCCESS ) GOTO 9999
       !-----------------------------------------------------------------
       
       ! Display current grid resolution and data set type
@@ -458,6 +453,9 @@
       !=================================================================
       !            ***** I N I T I A L I Z A T I O N *****
       !=================================================================
+
+      ! Initialize pointers
+      mapping => NULL()
 
 #if defined( USE_TIMERS )
       ! Call timer initilization
@@ -507,15 +505,12 @@
       LDYNOCEAN           =  Input_Opt%LDYNOCEAN
       LEMIS               =  Input_Opt%LEMIS
       LGTMM               =  Input_Opt%LGTMM
-      LKPP                =  Input_Opt%LKPP
       LLINOZ              =  Input_Opt%LLINOZ
       LNLPBL              =  Input_Opt%LNLPBL
       LPRT                =  Input_Opt%LPRT
       LSCHEM              =  Input_Opt%LSCHEM
       LSETH2O             =  Input_Opt%LSETH2O
       LSTDRUN             =  Input_Opt%LSTDRUN
-      LSVCSPEC            =  Input_Opt%LSVCSPEC
-      LSVGLB              =  Input_Opt%LSVGLB
       LTRAN               =  Input_Opt%LTRAN
       LTURB               =  Input_Opt%LTURB
       LUCX                =  Input_Opt%LUCX
@@ -525,7 +520,6 @@
       LWETD               =  Input_Opt%LWETD
       LWINDO              =  Input_Opt%LWINDO
       USE_OLSON_2001      =  Input_Opt%USE_OLSON_2001
-      N_TRACERS           =  Input_Opt%N_TRACERS  
 
       ! Set a flag to denote if we should print ND70 debug output
       prtDebug            = ( LPRT .and. am_I_Root )
@@ -542,11 +536,10 @@
       ! several individual data fields that need to be passed as 
       ! inputs to the chemistry routines.
       !
-      ! Eventually, the Meteorology State will replace all of the 
-      ! individual met field arrays contained in module dao_mod.F.
-      ! Likewise, the Chemistry State will replace the STT tracer array
-      ! and CSPEC chemical species array.  At present (25 Oct 2012),
-      ! we have not yet completed this conversion.
+      ! The Meteorology State has replaced all of the individual
+      ! met field arrays contained in module dao_mod.F. Likewise,
+      ! the Chemistry State has replaced the STT tracer array
+      ! and CSPEC chemical species array.
       !
       ! The Chemistry and Meteorology State objects facilitate using
       ! GEOS-Chem directly from the ESMF interface.  This is the main
@@ -556,7 +549,7 @@
       ! Initialize Input_Opt, State_Chem, State_Met, objects. 
       ! (bmy, 3/4/13)
       !
-      CALL GIGC_Init_All
+      CALL GC_Init_All
      &   ( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
       !
       ! Also allocate arrays in GEOS-Chem modules that have not yet
@@ -564,14 +557,7 @@
       ! SULFATE_MOD).  This removes the init calls from the run stage,
       ! which is required when connecting to the GEOS-5 GCM w/ ESMF.
       ! (bmy, 3/4/13)
-      CALL GIGC_Init_Extra( am_I_Root, Input_Opt, State_Chm, RC )
-      !
-      ! Assign values to the TRAC_NAME, TRAC_ID, SMVG_ID fields
-      ! of the State_Chm object.  NOTE: This has to be done after
-      ! the call to READ_INPUT_FILE, since we need the value of
-      ! N_TRACERS, which is obtained by reading the input.geos file.
-      !
-      CALL Fill_Chem_State_Name_IDs( am_I_Root, Input_Opt, State_Chm )
+      CALL GC_Init_Extra( am_I_Root, Input_Opt, State_Chm, RC )
       !
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
       ! to the State_Met%AREA_M2 field. (bmy, 8/22/14)
@@ -580,6 +566,9 @@
       ! completely removed for grid-independence (ewl, 9/10/15)
       State_Met%AREA_M2 =  AREA_M2
 
+      ! Define advected species ID flags for use below
+      id_CLOCK = Ind_('CLOCK','A')
+      id_H2O   = Ind_('H2O'  ,'A')
       !-----------------------------------------------------------------
 
 #if   defined( RRTMG )
@@ -614,22 +603,6 @@
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_TROPOPAUSE' )
       ENDIF
 
-      ! Initialize allocatable SMVGEAR/KPP arrays
-      IF ( LEMIS .or. LCHEM ) THEN
-         IF ( ITS_A_FULLCHEM_SIM   .or.
-     &        ITS_AN_AEROSOL_SIM ) THEN
-            CALL INIT_COMODE( am_I_Root, Input_Opt, RC )
-         ENDIF
-         IF ( LKPP ) THEN
-            CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,  JJPAR,   
-     &                              LLCHEM,    ITLOOP, NMTRATE, 
-     &                              IGAS,      RC )
-         ENDIF
-         IF ( RC == 1 )
-     $        CALL ERROR_STOP( "Alloc error", "INIT_GCKPP_COMODE" )
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_COMODE' )
-      ENDIF
-         
       ! Added to read input file for linoz strat (dbj, jliu, bmy, 10/16/09)
       IF ( LLINOZ ) THEN
          CALL LINOZ_READ( am_I_Root, Input_Opt, RC )
@@ -741,7 +714,7 @@
      &                     State_Met, State_Chm, RC )
 
       ! Stop the run if the HEMCO init sequence dies w/ an error
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP( 'Error in EMISSIONS_INIT!', 'main.F' )
       ENDIF
 
@@ -749,25 +722,32 @@
       CALL GEOS_Timer_End ( "HEMCO", RC )
 #endif
 
+#if defined( NC_DIAG )
+      ! Initialize diagnostics other than the default HEMCO diagnostics
+      ! initialized above (ckeller, 1/13/15).
+      CALL Diagnostics_Init( am_I_Root, Input_Opt, 
+     &                       State_Met, State_Chm, RC )
+#endif
+
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
       !=================================================================
 
-      ! Read initial tracer conditions
-      ! NOTE: Tracer concentrations are read in as [v/v dry air] and converted
-      ! to kg/kg dry air (ewl, 9/18/15)
+      ! Read initial species conditions
+      ! NOTE: Species concentrations are read in as [v/v dry air] 
+      ! and converted to [kg/kg dry air] (ewl, 8/4/16)
       CALL READ_GC_RESTART( am_I_Root, NYMDb,     NHMSb, 
      &                      Input_Opt, State_Met, State_Chm, RC )
-      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_GC_RESTART' )
 
       ! Initialize stratospheric routines
       IF ( LUCX ) THEN
 
-         !CALL INIT_UCX( am_I_Root, Input_Opt, NYMDb, NHMSb )
-         CALL INIT_UCX( am_I_Root, Input_Opt )
+         ! Initialize the UCX module
+         CALL INIT_UCX( am_I_Root, Input_Opt, State_Chm )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
 
-         ! Set simple initial tracer conditions
+         ! Set simple initial tracer conditions [kg/kg dry air]
          CALL SET_INITIAL_MIXRATIOS( am_I_Root, Input_Opt, State_Met,
      &                               State_Chm )
          IF ( prtDebug ) THEN
@@ -777,18 +757,19 @@
       ENDIF
 
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
-      ! NOTE: Tracer concentration units are converted locally to [v/v dry air]
-      ! for chemistry (ewl, 9/18/15)
+      ! NOTE: Species concentrations enter the subroutine in [kg/kg dry air]
+      ! and are converted locally [v/v dry air] for chemistry (ewl, 9/18/15)
       IF ( LSCHEM ) THEN
          CALL INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, 
      &                         State_Met, RC )
       ENDIF
 
-      ! Save initial tracer mixing ratios to disk for benchmark runs
+      ! Save initial tracer mixing ratios [kg/kg dry] to disk 
+      ! for Rn-Pb-Be and full-chem benchmark simulations
       IF ( LSTDRUN ) THEN 
          CALL STDRUN( Input_Opt, State_Chm, LBEGIN=.TRUE. )
       ENDIF
-
+ 
 !-----------------------------------------------------------------------------
 ! TWO-WAY NESTING OPTION
 ! This is only invoked when compiling GEOS-Chem with COUPLE=y
@@ -824,9 +805,7 @@
      &                       State_Met, State_Chm, RC )
 #endif 
 
-#if !defined( BPCH_RST_OUT )
-      CALL INIT_GC_RESTART_NC( am_I_Root, Input_Opt, RC )
-#endif
+      CALL INIT_GC_RESTART( am_I_Root, Input_Opt, State_Chm, RC )
 
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_End( "Initialization", RC )
@@ -877,7 +856,7 @@
       DO N_STEP = 1, N_DYN_STEPS
     
          IF ( prtDebug ) THEN
-            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
      &                                   "top of dyn loop")
          ENDIF
 
@@ -925,6 +904,11 @@
          CALL EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, 
      &                       State_Chm, ITS_TIME_FOR_EMIS(), 1, RC )
 
+         !### Debug
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### MAIN: a HEMCO PHASE 1' )
+         ENDIf
+
          !==============================================================
          !   ***** W R I T E   D I A G N O S T I C   F I L E S *****
          !==============================================================
@@ -935,7 +919,8 @@
          ! Write HEMCO diagnostics as well as new GEOS-Chem diagnostics
          ! (the latter is currently only defined in development mode)
          ! (ckeller, 4/1/15). 
-         CALL Diagnostics_Write( am_I_Root, Input_Opt, .FALSE., RC)
+         CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
+     &                           .FALSE.,   RC)
 
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_End( "HEMCO", RC )
@@ -948,46 +933,45 @@
 
             ! Write bpch file
             IF ( DO_DIAG_WRITE ) THEN
-               CALL DIAG3( am_I_Root, Input_Opt, State_Chm, RC )
 
+               CALL DIAG3
+     &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+ 
                ! Flush file units
                CALL CTM_FLUSH
+
             ENDIF
 
             !===========================================================
             !    *****  W R I T E   R E S T A R T   F I L E S  *****
             !===========================================================
-            IF ( LSVGLB ) THEN
-
-               ! Determine and print STE fluxes (ltm, 06/10/12)
-               IF ( LSCHEM ) THEN
-                  CALL CALC_STE( am_I_Root, Input_Opt, State_Chm, 
-     &                           State_Met, RC )
-               ENDIF
-               
-               ! Make atmospheric restart file
-               CALL WRITE_GC_RESTART( am_I_Root, Input_Opt, NYMD, 
-     &                                NHMS, TAU, State_Chm, State_Met,
-     &                                RC )
-
-               !### Debug
-               IF ( prtDebug ) THEN
-                  CALL DEBUG_MSG( '### MAIN: a WRITE_GC_RESTART_FILE' )
-               ENDIF
-
-#if defined( USE_TIMERS )
-               CALL GEOS_Timer_Start( "HEMCO", RC )
-#endif
-
-               ! Force the output of a HEMCO restart file. 
-               ! (ckeller, 4/1/15)
-               CALL Diagnostics_Write( am_I_Root, Input_Opt, .TRUE., RC)
-
-#if defined( USE_TIMERS )
-               CALL GEOS_Timer_End( "HEMCO", RC )
-#endif
-
+            ! Determine and print STE fluxes (ltm, 06/10/12)
+            IF ( LSCHEM ) THEN
+               CALL CALC_STE( am_I_Root, Input_Opt, State_Chm, 
+     &                        State_Met, RC )
             ENDIF
+
+            ! Make atmospheric restart file
+            CALL WRITE_GC_RESTART( am_I_Root, NYMD, NHMS, Input_Opt,
+     &                             State_Chm, State_Met, RC )
+
+            !### Debug
+            IF ( prtDebug ) THEN
+               CALL DEBUG_MSG( '### MAIN: a WRITE_GC_RESTART' )
+            ENDIF
+
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_Start( "HEMCO", RC )
+#endif
+
+            ! Force the output of a HEMCO restart file. 
+            ! (ckeller, 4/1/15)
+            CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
+     &                              .TRUE.,    RC)
+
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_End( "HEMCO", RC )
+#endif
 
             ! Set time at beginning of next diagnostic timestep
             CALL SET_DIAGb( TAU )
@@ -1013,16 +997,21 @@
          ! month but not start of the run.
          IF ( LGTMM .AND. ITS_A_NEW_MONTH() .AND. NYMD /= NYMDb ) THEN
             IF (.NOT.( ITS_TIME_FOR_BPCH() )) THEN
-               N = 1
-               NNN = GET_WETDEP_IDWETD( N )
-               DO WHILE( .NOT.(IS_Hg2( NNN )) )
-               
-                  N = N + 1
-                  ! Tracer number
-                  NNN = GET_WETDEP_IDWETD( N )
 
+               ! Get the species ID (NNN) from the wetdep ID (N)
+               N   = 1
+               NNN = State_Chm%Map_Wetdep(N)
+
+               DO
+                  ! Exit once we encounter Hg2
+                  If ( State_Chm%SpcData(NNN)%Info%Is_Hg2 ) THEN
+                     EXIT
+                  ENDIF
+
+                  ! Get the species ID (NNN) from the wetdep ID (N)
+                  N   = N + 1
+                  NNN = State_Chm%Map_Wetdep(N)
                ENDDO
-
                CALL UPDATE_DEP( N )
             ENDIF
             CALL MAKE_GTMM_RESTART( am_I_Root, Input_Opt, NYMD, 
@@ -1049,7 +1038,7 @@
          CALL READ_MET_FIELDS()
 
          IF ( prtDebug ) THEN
-            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
      &                                   "post-read met")
          ENDIF
 
@@ -1178,7 +1167,7 @@
          !==============================================================
 
          IF ( prtDebug ) THEN
-            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
      &                                   "pre-interp")
          ENDIF
 
@@ -1188,7 +1177,7 @@
      &                N_DYN, Input_Opt,     State_Met )
 
          IF ( prtDebug ) THEN
-            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
      &                                   "post-interp")
          ENDIF
 
@@ -1215,7 +1204,7 @@
          !============================================================
 
          IF ( prtDebug ) THEN
-            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
      &                                   "after set pflt")
          ENDIF
 
@@ -1226,7 +1215,7 @@
      &                update_mixing_ratio=.TRUE. )
 
          IF ( prtDebug ) THEN
-            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
      &                                   "post-airqnt")
          ENDIF
 
@@ -1237,7 +1226,7 @@
          ! NOTE: Specific humidity may change in SET_H2O_TRAC and
          ! therefore this routine may call AIRQNT again to update
          ! air quantities and tracer concentrations (ewl, 10/28/15)
-         IF (IDTH2O.ne.0) THEN
+         IF ( ITS_A_FULLCHEM_SIM .and. id_H2O > 0 ) THEN
             CALL SET_H2O_TRAC( am_I_Root, 
      &                         ( ( .not. LUCX ) .or. LSETH2O ),
      &                         Input_Opt, State_Met, State_Chm, RC )
@@ -1246,7 +1235,7 @@
          ENDIF
 
          IF ( prtDebug ) THEN
-            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
      &                                   "post-set h2o trac")
          ENDIF
 
@@ -1362,7 +1351,7 @@
 !-----------------------------------------------------------------------------
 
             IF ( prtDebug ) THEN
-               CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+               CALL Print_Global_Species_Kg( State_Chm, State_Met, 
      &                                      "pre-transport")
             ENDIF
 
@@ -1373,7 +1362,7 @@
             IF ( LTRAN ) THEN 
                CALL DO_TRANSPORT
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-               IF ( RC /= GIGC_SUCCESS ) THEN
+               IF ( RC /= GC_SUCCESS ) THEN
                   CALL ERROR_STOP('Error in DO_TRANSPORT!', 'main.F')
                ENDIF
 
@@ -1384,7 +1373,7 @@
             ENDIF
 
             IF ( prtDebug ) THEN
-               CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+               CALL Print_Global_Species_Kg( State_Chm, State_Met, 
      &                                      "post-transport")
             ENDIF
 
@@ -1418,7 +1407,7 @@
          ENDIF
 
          ! SDE 10/16/13: Set clock tracer if relevant
-         IF ( IDTCLOCK .ne. 0 ) THEN
+         IF ( id_CLOCK > 0 ) THEN
             CALL SET_CLOCK_TRAC( GET_TS_DYN(), State_Chm )
          ENDIF
 
@@ -1455,13 +1444,13 @@
 #endif
 
                IF ( prtDebug ) THEN
-                  CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+                  CALL Print_Global_Species_Kg( State_Chm, State_Met, 
      &                                         "pre-drydep")
                ENDIF
 
                CALL DO_DRYDEP( am_I_Root, Input_Opt, 
      &                         State_Met, State_Chm, RC )
-               IF ( RC /= GIGC_SUCCESS ) THEN
+               IF ( RC /= GC_SUCCESS ) THEN
                   CALL ERROR_STOP('Error in DO_DRYDEP!', 'main.F')
                ENDIF
 
@@ -1476,7 +1465,7 @@
             ENDIF
 
             IF ( prtDebug ) THEN
-               CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+               CALL Print_Global_Species_Kg( State_Chm, State_Met, 
      &                                      "pre-emissions")
             ENDIF
 
@@ -1502,22 +1491,26 @@
      &                          State_Chm, ITS_TIME_FOR_EMIS(), 2, RC )
 
             ! Stop the run if the HEMCO run sequence dies w/ an error
-            IF ( RC /= GIGC_SUCCESS ) THEN
+            IF ( RC /= GC_SUCCESS ) THEN
                CALL ERROR_STOP( 'Error in EMISSIONS_RUN after drydep!',
      &                          'main.F' )
+            ENDIF
+
+            !### Debug
+            IF ( prtDebug ) THEN 
+               CALL DEBUG_MSG( '### MAIN: a HEMCO PHASE 2' )
             ENDIF
 
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "HEMCO", RC )
 #endif
-
          ENDIF
 
          !-------------------------------
          ! Test for convection timestep
          !-------------------------------
          IF ( ITS_TIME_FOR_CONV() ) THEN
-
+            
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_Start( "Convection", RC )
 #endif
@@ -1526,7 +1519,7 @@
             CALL SET_CT_CONV( INCREMENT=.TRUE. )
 
             IF ( prtDebug ) THEN
-               CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+               CALL Print_Global_Species_Kg( State_Chm, State_Met, 
      &                                      "pre-mixing")
             ENDIF
 
@@ -1548,11 +1541,11 @@
             ! be updated to use [kg/kg total air] (ewl, 9/18/15)
             CALL DO_MIXING ( am_I_Root, Input_Opt, 
      &                       State_Met, State_Chm, RC )
-            IF ( RC /= GIGC_SUCCESS ) THEN
+            IF ( RC /= GC_SUCCESS ) THEN
                CALL ERROR_STOP('Error in DO_MIXING!', 'main.F')
             ENDIF
 
-            IF ( RC /= GIGC_SUCCESS ) THEN
+            IF ( RC /= GC_SUCCESS ) THEN
                CALL ERROR_STOP( 'Error in MIX_TRACERS!', 'main.F' )
             ENDIF
 
@@ -1563,18 +1556,18 @@
             !===========================================================
 
             IF ( prtDebug ) THEN
-               CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+               CALL Print_Global_Species_Kg( State_Chm, State_Met, 
      &                                      "pre-convection")
             ENDIF
 
             IF ( LCONV ) THEN
-            
+
                ! Call the appropriate convection routine
                ! NOTE: Tracer concentration units are converted locally
                ! to [kg/kg total air] for convection (ewl, 9/18/15)
                CALL DO_CONVECTION
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-               IF ( RC /= GIGC_SUCCESS ) THEN
+               IF ( RC /= GC_SUCCESS ) THEN
                   CALL ERROR_STOP('Error in DO_CONVECTION!', 'main.F')
                ENDIF
 
@@ -1589,86 +1582,11 @@
 #endif
 
             IF ( prtDebug ) THEN
-               CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+               CALL Print_Global_Species_Kg( State_Chm, State_Met, 
      &                                      "post-convection")
             ENDIF
 
          ENDIF 
-
-!         !-------------------------------
-!         ! Test for emission timestep
-!         !-------------------------------
-!         IF ( ( .NOT. LNLPBL ) .AND. ITS_TIME_FOR_EMIS() ) THEN
-!
-!            ! Increment emission counter
-!            CALL SET_CT_EMIS( INCREMENT=.TRUE. )
-!
-!            !===========================================================
-!            !         ***** D R Y   D E P O S I T I O N *****
-!            !===========================================================
-!            IF ( LDRYD ) THEN
-!               CALL DO_DRYDEP
-!     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-!            ENDIF
-!
-!            !===========================================================
-!            !             ***** E M I S S I O N S *****
-!            !===========================================================
-!!            IF ( LEMIS ) THEN
-!               
-!#if defined( USE_TIMERS )
-!               CALL GEOS_Timer_Start ( "HEMCO", RC )
-!#endif
-!
-!               ! Call the HEMCO emissions modules
-!               ! Always call HEMCO, even if LEMIS is set to FALSE. 
-!               ! This is to make sure that HEMCO can still be used to read
-!               ! non-emission data such as stratospheric Bry fields. 
-!               ! (ckeller, 1/12/15).
-!               CALL EMISSIONS_RUN ( am_I_Root, Input_Opt, 
-!     &                              State_Met, State_Chm, RC )
-!
-!               ! Return upon error in HEMCO
-!               IF ( RC /= GIGC_SUCCESS ) THEN
-!                  CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
-!               ENDIF
-!
-!#if defined( USE_TIMERS )
-!               CALL GEOS_Timer_End ( "HEMCO", RC )
-!#endif
-!
-!               !### Debug
-!               IF ( prtDebug ) THEN 
-!                  CALL DEBUG_MSG( '### MAIN: a DO_EMISSIONS' )
-!               ENDIF
-!!            ENDIF
-
-             ! --> now set in EMISSIONS_RUN (ckeller, 3/4/15)
-!            IF ( ITS_A_FULLCHEM_SIM ) THEN
-!               !========================================================
-!               !jpp, 2/12/08: putting a call to SET_CH3Br
-!               !              which is in bromocarb_mod.f
-!               !       ***** Fix CH3Br Concentration in PBL *****
-!               ! Kludge: eventually I want to keep the concentration
-!               !         entirely fixed! Ask around on how to...
-!               !========================================================
-!               IF ( LEMIS .and. ( IDTCH3Br > 0 ) ) THEN
-!                  CALL SET_CH3Br( am_I_Root, Input_Opt, State_Met, 
-!     &                            .FALSE.,   State_Chm, RC         )
-!
-!               ENDIF
-!
-!               ! ----------------------------------------------------
-!               ! If selected in input.geos, then set the MBL
-!               ! concentration of BrO equal to 1 pptv during daytime.
-!               ! ----------------------------------------------------
-!               IF ( LEMIS .and. ( IDTBrO > 0 ) ) THEN
-!                  CALL SET_BrO( am_I_Root, Input_Opt, State_Met, 
-!     &                          .FALSE.,   State_Chm, RC  )
-!               ENDIF
-!            ENDIF
-!
-!         ENDIF
 
          !==============================================================
          !               ***** C H E M I S T R Y *****
@@ -1693,11 +1611,9 @@
             CALL SET_CT_CHEM( INCREMENT=.TRUE. )
 
             ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant
-            IF (IDTH2O.ne.0) THEN
-
+            IF ( ITS_A_FULLCHEM_SIM .and. id_H2O > 0 ) THEN
                CALL SET_H2O_TRAC( am_I_Root, (.not. LUCX), Input_Opt ,
      &                            State_Met, State_Chm, RC )
-
             ENDIF
 
             ! Do GEOS-Chem chemistry
@@ -1706,7 +1622,7 @@
             ! once FlexChem is implemented (ewl, 9/18/15)
             CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
      &                         State_Chm, State_Met, RC ) 
-            IF ( RC /= GIGC_SUCCESS ) THEN
+            IF ( RC /= GC_SUCCESS ) THEN
                CALL ERROR_STOP('Error in DO_CHEMISTRY!', 'main.F')
             ENDIF
 
@@ -1714,7 +1630,7 @@
 
          ! Check State_Chm tracers (yxw)   
 #if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125 )
-         CALL CHECK_STT_NESTED( State_Chm, Input_Opt,
+         CALL CHECK_SPC_NESTED( State_Chm, Input_Opt,
      &                          'after chemistry' )
 #endif 
 
@@ -1723,7 +1639,7 @@
 #endif
 
          IF ( prtDebug ) THEN
-            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
      &                                   "post-chemistry")
          ENDIF
 
@@ -1742,7 +1658,7 @@
             ! along the column (ewl, 9/18/15)
             CALL DO_WETDEP
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-            IF ( RC /= GIGC_SUCCESS ) THEN
+            IF ( RC /= GC_SUCCESS ) THEN
                CALL ERROR_STOP('Error in DO_WETDEP!', 'main.F')
             ENDIF
 
@@ -1753,7 +1669,7 @@
          ENDIF
 
          IF ( prtDebug ) THEN
-            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
      &                                   "post-wetdep")
          ENDIF
 
@@ -1765,10 +1681,8 @@
          ! diagnostic and only on a chemistry timestep.
          ! (skim, 02/05/11)
          IF ( ITS_TIME_FOR_CHEM() ) THEN
-
             CALL RECOMPUTE_OD
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-
          ENDIF
 
 #if defined( RRTMG )
@@ -1827,7 +1741,7 @@
                ENDDO
 
                ! Stop the run if DO_RRTMG_RAD_TRANSFER returns an error
-               IF ( RC /= GIGC_SUCCESS ) THEN
+               IF ( RC /= GC_SUCCESS ) THEN
                   CALL ERROR_STOP('Error in DO_RRTMG_RAD_TRANSFER!',
      &                            'main.F')
                ENDIF
@@ -1850,7 +1764,7 @@
 #endif
 
          ! Eventually write dobson columns into diagnostics array
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
          CALL CalcDobsonColumn ( am_I_Root, Input_Opt,
      &                           State_Met, State_Chm, RC )
 #endif
@@ -1876,10 +1790,12 @@
                ! or if it's an offline simulation, call setup routine 
                IF ( ITS_A_FULLCHEM_SIM ) THEN
                   IF ( .not. LCHEM ) THEN
-                     CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, RC )
+                     CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt,
+     &                                       State_Chm, RC )
                   ENDIF
                ELSE
-                  CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, RC )
+                  CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, 
+     &                                    State_Chm, RC )
                ENDIF
             ENDIF
          ENDIF
@@ -1966,7 +1882,7 @@
 
          ! Ship timeseries
          IF ( ITS_TIME_FOR_DIAG63() ) THEN
-            CALL DIAG63( am_I_Root, Input_Opt, RC )
+            CALL DIAG63( am_I_Root, Input_Opt, State_Chm, RC )
          ENDIF
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG63' )
 
@@ -1992,7 +1908,8 @@
 !         ! Write diagnostic data to the GEOS-Chem diagnostics netCDF file.
 !         ! Each diagnostic has a specified averaging period specified 
 !         ! in Input_Opt. (ckeller, bmy, 1/15/15)
-!         CALL Diagnostics_Write( am_I_Root, Input_Opt, .FALSE., RC )
+!         CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
+!     &                           .FALSE.,    RC )
 !#endif
 
          !### After diagnostics
@@ -2008,14 +1925,15 @@
 
          ! Sometimes tracers in the stratosphere can be negative at 
          ! the nested-grid domain edges. Force them to be zero before
-         ! CHECK_STT (yxw)
+         ! CHECK_SPC. (yxw)
 #if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125)
-            CALL CHECK_STT_NESTED( State_Chm, Input_Opt,
+            CALL CHECK_SPC_NESTED( State_Chm, Input_Opt,
      &                             'End of Dynamic Loop' )
 #else
-            CALL CHECK_STT( State_Chm, Input_Opt, 
+            CALL CHECK_SPC( State_Chm, Input_Opt, 
      &                      'End of Dynamic Loop' )
 #endif
+
          ENDIF
 
 #if defined( USE_TIMERS )
@@ -2024,7 +1942,7 @@
 
 
          IF ( prtDebug ) THEN
-            CALL PRINT_GLOBAL_TRACER_KG( State_Chm, State_Met, 
+            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
      &                                   "dyn loop end")
          ENDIF
 
@@ -2073,11 +1991,12 @@
 !      ! Write diagnostic data to the GEOS-Chem restart netCDF file.
 !      ! Each diagnostic has a specified averaging period specified 
 !      ! in Input_Opt. (ckeller, bmy, 1/15/15)
-!      CALL Diagnostics_Write( am_I_Root, Input_Opt, .TRUE., RC )
+!      CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
+!     &                        .FALSE.,   RC )
 !#endif
 
-      ! For model benchmarking, save final masses of 
-      ! Rn,Pb,Be or Ox to a binary punch file 
+      ! For model benchmarking, save final concentrations of Rn,Pb,Be or Ox.
+      ! Species concentrations enter the subroutine in [kg/kg dry air].
       IF ( LSTDRUN ) THEN 
          CALL STDRUN( Input_Opt, State_Chm, LBEGIN=.FALSE. )
       ENDIF
@@ -2091,15 +2010,15 @@
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )
 
       ! Deallocate fields of the Input Options object
-      CALL Cleanup_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )
+      CALL Cleanup_Input_Opt( am_I_Root, Input_Opt, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup Input_Opt' )
 
       ! Deallocate fields of the Chemistry State object
-      CALL Cleanup_GIGC_State_Chm( am_I_Root, State_Chm, RC )
+      CALL Cleanup_State_Chm( am_I_Root, State_Chm, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup State_Chm' )
 
       ! Deallocate fields of the Meteorology State object
-      CALL Cleanup_GIGC_State_Met( am_I_Root, State_Met, RC )
+      CALL Cleanup_State_Met( am_I_Root, State_Met, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup State_met' )
 
       ! Deallocate dynamic module arrays
@@ -2268,12 +2187,12 @@
 #endif
 
       !-------------------------------------------------
-      ! Print msg if ISORROPIA is turned off for debug
+      ! Print msg if DEVEL is turned on for testing
       !-------------------------------------------------
 #if   defined( DEVEL ) 
-      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
-      WRITE( 6, '(a)' ) '# USING -DDEVEL FOR TESTING GCHP  #'
-      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
+      WRITE( 6, '(a)' ) REPEAT( '#', 34 )
+      WRITE( 6, '(a)' ) '# USING -DDEVEL FOR TESTING GCHP #'
+      WRITE( 6, '(a)' ) REPEAT( '#', 34 )
 #endif
 
       
@@ -3023,7 +2942,7 @@
       !================================================================
 
       ! Assume success
-      RC  = GIGC_SUCCESS
+      RC  = GC_SUCCESS
 
       ! Directory where netCDF ifles are found
       DIR = TRIM( Input_Opt%DATA_DIR ) // 'HEMCO/MAP_A2A/v2014-07/'

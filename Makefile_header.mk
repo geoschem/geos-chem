@@ -185,6 +185,8 @@
 #                              replaces the RRTMG_CLEAN variabe
 #  10 Feb 2016 - E. Lundgren - Add BPCH restart file input and output switches
 #  11 Feb 2016 - E. Lundgren - Change BPCH to BPCH_DIAG, NETCDF to NC_DIAG
+#  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
+#  19 Jul 2016 - R. Yantosca - Add more flags for enabling experimental code
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -270,16 +272,6 @@ ifndef TIMERS
  TIMERS              :=0
 endif
 
-# %%%%% Default to bpch input restart file disabled %%%%%
-ifndef BPCH_RST_IN
- BPCH_RST_IN         :=no
-endif
-
-# %%%%% Default to bpch output restart file disabled %%%%%
-ifndef BPCH_RST_OUT
- BPCH_RST_OUT        :=no
-endif
-
 # %%%%% Set default compiler %%%%%
 
 # %%%%% If COMPILER is not defined, default to the $(FC) variable, which %%%%%
@@ -309,50 +301,66 @@ ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
 endif
 
 #------------------------------------------------------------------------------
-# GEOS-Chem HP settings
+# Special flags for enabling experimental or development code
 #------------------------------------------------------------------------------
 
-# %%%%% DEVEL %%%%%
+# %%%%% DEVEL: Enable user-added experimental code %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(DEVEL)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DDEVEL
 endif
 
+# %%%%% DIAG_DEVEL: Enable experimental code specific to HEMCO %%%%%
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(DIAG_DEVEL)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DDIAG_DEVEL
+  NC_DIAG            :=yes
+  BPCH_DIAG          :=no
+endif
+
+# %%%%% HCO_DEVEL: Enable experimental code specific to HEMCO %%%%%
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(HCO_DEVEL)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DHCO_DEVEL
+endif
+
+# %%%%% HPC_DEVEL: Enable experimental code specific to GCHP %%%%%
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(HPC_DEVEL)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DHPC_DEVEL
+endif
+
+# %%%%% Turn on tendencies computation  %%%%%
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(USE_TEND)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DUSE_TEND
+  NC_DIAG            :=yes
+  BPCH_DIAG          :=no
+endif
+
+#------------------------------------------------------------------------------
+# GEOS-Chem HP settings
+#------------------------------------------------------------------------------
+
 # %%%%% ESMF %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(ESMF)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DESMF_
   NO_GRID_NEEDED     :=1
 endif
 
 # %%%%% EXTERNAL_GRID %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(EXTERNAL_GRID)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DEXTERNAL_GRID
   NO_GRID_NEEDED     :=1
 endif
 
 # %%%%% EXTERNAL_FORCING %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(EXTERNAL_FORCING)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DEXTERNAL_FORCING
   NO_GRID_NEEDED     :=1
-endif
-
-#------------------------------------------------------------------------------
-# Restart settings
-#------------------------------------------------------------------------------
-
-# %%%%% BPCH_RST_IN (for using bpch restart file as input ) %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(BPCH_RST_IN)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DBPCH_RST_IN
-endif
-
-# %%%%% BPCH_RST_OUT (for using bpch restart file as output ) %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(BPCH_RST_OUT)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DBPCH_RST_OUT
 endif
 
 #------------------------------------------------------------------------------
@@ -372,24 +380,43 @@ ifndef BPCH_DIAG
   endif
 endif
 
-# %%%%% ERROR CHECK!  Make sure only one diagnostic output type is selected %%%%%
-ifeq ($(BPCH_DIAG),y)
-  ifeq ($(NC_DIAG),y)
-    $(error $(ERR_DIAG))
-  endif
-endif 
-
 # %%%%% BPCH (for using old BPCH diagnostic output) %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DBPCH_DIAG
+  IS_BPCH_DIAG       :=1
 endif
 
 # %%%%% NETCDF (for using new netCDF diagnostic output) %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DNC_DIAG
+  IS_NC_DIAG         :=1
 endif
+
+# %%%%% Test if bpch diagnostics are activated %%%%%
+REGEXP               :=-DBPCH_DIAG
+ifeq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
+  IS_BPCH_DIAG       :=1
+else
+  IS_BPCH_DIAG       :=0
+endif
+
+# %%%%% Test if netCDF diagnostics are activated %%%%%
+REGEXP               :=-DNC_DIAG
+ifeq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
+  IS_NC_DIAG         :=1
+else
+  IS_NC_DIAG         :=0
+endif
+
+# %%%%% ERROR CHECK!  Make sure only one diagnostic output type is %%%%%
+# %%%%% selected.  Now use a numeric test which is more robust.    %%%%%
+ifeq ($(IS_BPCH_DIAG),1)
+  ifeq ($(IS_NC_DIAG),1)
+    $(error $(ERR_DIAG))
+  endif
+endif 
 
 #------------------------------------------------------------------------------
 # KPP settings chemistry solver settings.  NOTE: We can't redefine CHEM 
@@ -425,20 +452,26 @@ endif
 # %%%%% Test if CHEM=NOx_Ox_HC_Aer_Br %%%%%
 REGEXP               :=(^[Nn][Oo][Xx]_[Oo][Xx]_[Hh][Cc]_[Aa][Ee][Rr]_[Bb][Rr])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=NOx_Ox_HC_Aer_Br
+  KPP_CHEM           :=Tropchem
   IS_CHEM_SET        :=1
 endif
 
 # %%%%% Test if CHEM=tropchem (synonym for NOx_Ox_HC_Aer_Br) %%%%%
 REGEXP               :=(^[Tt][Rr][Oo][Pp][Cc][Hh][Ee][Mm])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=NOx_Ox_HC_Aer_Br
+  KPP_CHEM           :=Tropchem
   IS_CHEM_SET        :=1
 endif
 
-# %%%%%  Default setting: CHEM=benchmark %%%%%
+# %%%%%  Default setting: CHEM=standard (aka benchmark) %%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# NOTE: For clarify in the future, the default setting should be to not set
+# KPP_CHEM or IS_CHEM_SET if the CHEM compiler option is not passed. The default
+# option would be reserved for specialty simulations that do not require the KPP
+# code to be compiled. (mps, 4/22/16)
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ifeq ($(IS_CHEM_SET),0)
-  KPP_CHEM           :=benchmark
+  KPP_CHEM           :=Standard
   IS_CHEM_SET        :=1
 endif
 
@@ -947,11 +980,11 @@ LINK_HCO             :=$(LINK_HCO) -lNcUtils $(NC_LINK_CMD)
 # If we are building w/ the HPC target, then include GIGC.mk as well
 # Determine if we are building with the hpc target
 ifeq ($(HPC),yes)
-  ifneq ("$(wildcard $(CURDIR)/../GIGC/GIGC.mk)","")
-    include $(CURDIR)/../GIGC/GIGC.mk
+  ifneq ("$(wildcard $(CURDIR)/../GCHP/GIGC.mk)","")
+    include $(CURDIR)/../GCHP/GIGC.mk
   else
-  ifneq ("$(wildcard $(CURDIR)/../../GIGC/GIGC.mk)","")
-    include $(CURDIR)/../../GIGC/GIGC.mk
+  ifneq ("$(wildcard $(CURDIR)/../../GCHP/GIGC.mk)","")
+    include $(CURDIR)/../../GCHP/GIGC.mk
   else
     $(error $(ERR_GIGC))
   endif
@@ -1254,3 +1287,7 @@ export TIMERS
 #	@@echo "USERDEFS    : $(USER_DEFS)"
 #	@@echo "NC_INC_CMD  : $(NC_INC_CMD)"
 #	@@echo "NC_LINK_CMD : $(NC_LINK_CMD)"
+#	@@echo "NC_DIAG     : $(NC_DIAG)"
+#	@@echo "IS_NC_DIAG  : $(IS_NC_DIAG)"	
+#	@@echo "BPCH_DIAG   : $(BPCH_DIAG)"
+#	@@echo "IS_BPCH_DIAG: $(IS_BPCH_DIAG)"

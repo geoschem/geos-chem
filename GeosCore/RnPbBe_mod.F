@@ -88,9 +88,13 @@
 !  22 Aug 2014 - R. Yantosca - Remove XNUMOL_* parameters; these are obsolete
 !  04 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  30 Jan 2015 - E. Lundgren - Add new diagnostics stuctures for netCDF output.
+!  02 May 2016 - R. Yantosca - Now define IDTRn, IDTPb, IDTBe locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      ! Species ID flags
+      INTEGER :: id_Rn, id_Pb, id_Be7
+
       CONTAINS
 !EOC   
 !------------------------------------------------------------------------------
@@ -118,16 +122,12 @@
       USE DIAG_MOD,           ONLY : AD01
       USE DIAG_MOD,           ONLY : AD02
 #endif
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTRn
-      USE TRACERID_MOD,       ONLY : IDTPb
-      USE TRACERID_MOD,       ONLY : IDTBe7    
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-!      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
-!      USE HCO_Error_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -171,6 +171,12 @@
 !  04 Sep 2014 - R. Yantosca - Add minor changes for efficiency
 !  04 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp) 
 !  12 Dec 2014 - M. Yannetti - Changed Hemco REAL*8 to REAL(hp)
+!   2 May 2016 - R. Yantosca - Now define IDTRn, IDTPb, IDTBe locally
+!  22 Jun 2016 - R. Yantosca - Now use Ind_() to define species ID's
+!  22 Jun 2016 - R. Yantosca - Rename species ID's to id_Rn, id_Pb, id_Be7
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -178,58 +184,55 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER             :: I,        J,         L
-      INTEGER             :: LSTART,   N,         N_TRACERS            
-      REAL(fp)            :: ADD_Pb,   Be_LOST,   DTCHEM   
-      REAL(fp)            :: Pb_LOST,  XNUMOL_Rn, XNUMOL_Pb
-      REAL(fp)            :: XNUMOL_Be
+      INTEGER                  :: I,        J,         L
+      INTEGER                  :: N !,        NA,        nAdvect
+      REAL(fp)                 :: ADD_Pb,   Be_LOST,   DTCHEM   
+      REAL(fp)                 :: Pb_LOST,  Decay
 
-      ! Static scalars
-      LOGICAL,   SAVE     :: FIRSTCHEM = .TRUE.
-      REAL(fp),  SAVE     :: EXP_Rn,   EXP_Pb,    EXP_Be
+      ! SAVEd scalars
+      LOGICAL,       SAVE      :: FIRSTCHEM = .TRUE.
+      REAL(fp),      SAVE      :: EXP_Rn,   EXP_Pb,    EXP_Be
 
       ! Arrays
-      REAL(fp)            :: Rn_LOST(IIPAR,JJPAR,LLPAR)
+      REAL(fp)                 :: Rn_LOST(IIPAR,JJPAR,LLPAR)
 
       ! To calculate decay rate
-      REAL(fp)            :: Decay
 
       ! For netCDF diagnostics via HEMCO
-      CHARACTER(LEN=255) :: MSG
-      CHARACTER(LEN=255) :: LOC = 'CHEMRNPBBE (RnPbBe_mod.F)'
-      REAL(fp), TARGET   :: PB_EMISS(IIPAR, JJPAR, LLPAR)
-      REAL(fp), TARGET   :: RN_DECAY(IIPAR, JJPAR, LLPAR)
-      REAL(fp), TARGET   :: PB_DECAY(IIPAR, JJPAR, LLPAR) 
-      REAL(fp), TARGET   :: BE_DECAY(IIPAR, JJPAR, LLPAR)  
+      CHARACTER(LEN=255)       :: MSG
+      CHARACTER(LEN=255)       :: LOC = 'CHEMRNPBBE (RnPbBe_mod.F)'
+      CHARACTER(LEN=31)        :: Spc_Name
+      REAL(fp),      TARGET    :: PB_EMISS(IIPAR, JJPAR, LLPAR)
+      REAL(fp),      TARGET    :: RN_DECAY(IIPAR, JJPAR, LLPAR)
+      REAL(fp),      TARGET    :: PB_DECAY(IIPAR, JJPAR, LLPAR) 
+      REAL(fp),      TARGET    :: BE_DECAY(IIPAR, JJPAR, LLPAR)  
 
-!      ! To get HEMCO values
-!      ! NOTE: These are not commented out in NewDiag (ewl, 1/11/16)
-!      REAL(hp)              :: Emis
-!      LOGICAL             :: FOUND
+      ! Pointers
+      REAL(fp),      POINTER   :: Spc(:,:,:,:)
 !
 ! !DEFINED PARAMETERS
 !
       ! Ratio of molecular weights of 210Pb/222Rn
-      REAL(fp), PARAMETER :: Pb_Rn_RATIO = 210e+0_fp / 222e+0_fp
+      REAL(fp),      PARAMETER :: Pb_Rn_RATIO = 210e+0_fp / 222e+0_fp
 
       ! Ln 2
-      REAL(fp), PARAMETER :: ln2   = 0.693147181E+00_fp
+      REAL(fp),      PARAMETER :: ln2   = 0.693147181E+00_fp
 
       ! Lifetime of Radon-222 in days
-      REAL(fp), PARAMETER :: RnTau = 3.83E+00_fp
+      REAL(fp),      PARAMETER :: RnTau = 3.83E+00_fp
 
       !=================================================================
       ! CHEMRnPbBe begins here!
       !=================================================================
 
       ! Assume success
-      RC           =  GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
-      N_TRACERS    = Input_Opt%N_TRACERS
+      RC     =  GC_SUCCESS
 
       ! Chemistry timestep [s]
-      DTCHEM       =  GET_TS_CHEM() * 60e+0_fp
+      DTCHEM =  GET_TS_CHEM() * 60e+0_fp
+
+      ! Point to the species array
+      Spc    => State_Chm%Species
 
       ! Pre-compute exponential terms only on first timestep
       IF ( FIRSTCHEM ) THEN 
@@ -239,6 +242,11 @@
          EXP_Rn    = EXP( -DTCHEM * Decay        )
          EXP_Pb    = EXP( -DTCHEM * 9.725E-10_fp ) 
          EXP_Be    = EXP( -DTCHEM * 1.506E-7_fp  )
+
+         ! Species ID flags
+         id_Rn     = Ind_('Rn'  )
+         id_Pb     = Ind_('Pb'  )
+         id_Be7    = Ind_('Be7' )
 
          ! Reset FIRSTCHEM flag
          FIRSTCHEM = .FALSE.
@@ -252,57 +260,16 @@
             write(*,*) '    Rn decadence      : ', EXP_Rn
             write(*,*) ''
          ENDIF
-
       ENDIF
-
-       ! This is now all done in MIXING_MOD.F90 (ckeller, 3/4/15)
-!      !=================================================================
-!      ! Add emissions above the PBL to the tracer array. 
-!      ! For more information about emissions and PBL mixing, see:
-!      ! http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
-!      !=================================================================
-!      DO N = 1, N_TRACERS
-!
-!         ! Skip Pb210, it's source is from Rn decay
-!         IF ( N == IDTPb ) CYCLE
-!
-!         ! Loop over all grid boxes
-!         DO L = 1, LLPAR
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!
-!            ! If we are using the non-local PBL mixing scheme, then
-!            ! only add emissions above the PBL top.  All wmissions within
-!            ! the PBL are handled in routine VDIFFDR in vdiff_mod.F90.
-!            ! Skip if we have PBL mixing completely turned off, or if
-!            ! we are using the TURBDAY full-mixing scheme.
-!            IF ( Input_Opt%LNLPBL ) THEN
-!               IF ( L < State_Met%PBL_TOP_L(I,J) + 1 ) CYCLE
-!            ENDIF
-!
-!            ! Add emissions into the tracer array
-!            ! Convert from [kg/m2/s] to [kg]
-!            ! Now use GetHcoVal (ckeller, 10/21/2014)
-!            CALL GetHcoVal( N, I, J, L, FOUND, Emis=Emis )
-!            IF ( .NOT. FOUND ) CYCLE
-!            State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)
-!     &                                 + ( Emis
-!     &                                 *   State_Met%AREA_M2  (I,J,1  )
-!     &                                 *   DTCHEM                      )
-!
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!      ENDDO
 
       !=================================================================
       ! Radioactive decay of Rn222
       !=================================================================
       
-      ! Tracer index
-      N = IDTRn
+      ! Species index for Rn222
+      N = id_Rn
 
-      ! Make sure Rn222 is a defined tracer
+      ! Make sure Rn222 is a defined species
       IF ( N > 0 ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -312,14 +279,13 @@
          DO I = 1, IIPAR
 
             ! Rn_LOST = amount of 222Rn lost to decay [kg]
-            Rn_LOST(I,J,L)             = State_Chm%TRACERS(I,J,L,N) 
-     &                                 * ( 1e+0_fp - EXP_Rn )
+            Rn_LOST(I,J,L)     = Spc(I,J,L,N) * ( 1.0_fp - EXP_Rn )
 
             ! ND02 diag: 222Rn lost to decay [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
 #if defined( BPCH_DIAG )
-               AD02(I,J,L,1)           = AD02(I,J,L,1) 
-     &                                 + ( Rn_LOST(I,J,L) / DTCHEM )
+               AD02(I,J,L,1)   = AD02(I,J,L,1) 
+     &                         + ( Rn_LOST(I,J,L) / DTCHEM )
 #endif
 #if defined( NC_DIAG )
                RN_DECAY(I,J,L) = RN_LOST(I,J,L) / DTCHEM
@@ -327,21 +293,23 @@
             ENDIF
 
             ! Subtract Rn_LOST from STT [kg]
-            State_Chm%TRACERS(I,J,L,N) = 
-     &      State_Chm%TRACERS(I,J,L,N) - Rn_LOST(I,J,L)
+            Spc(I,J,L,N)       = Spc(I,J,L,N) - Rn_LOST(I,J,L)
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
 
 #if defined( NC_DIAG )
+         ! Get species name
+         Spc_Name = State_Chm%SpcData(N)%Info%Name
+
          ! Make sure ND02 is turned on
          IF ( Input_Opt%ND02 > 0 ) THEN
 
             ! Update ND02 diagnostic: Rn lost to decay [kg/s]
             CALL Diagn_RnPbBe_Update( am_I_Root,
      &                                'ND02', 
-     &                                Input_Opt%TRACER_NAME( IDTRn ), 
+     &                                Spc_Name, 
      &                                RN_DECAY, 
      &                                INput_Opt%DIAG_COLLECTION )
          ENDIF
@@ -353,10 +321,10 @@
       ! Radioactive decay of Pb210
       !=================================================================
       
-      ! Tracer index
-      N = IDTPb
+      ! Species index for Pb210
+      N = id_Pb
 
-      ! Make sure Pb210 is a defined tracer
+      ! Make sure Pb210 is a defined species
       IF ( N > 0 ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -375,35 +343,31 @@
             !%%%%% the Be7 source is computed.  This replicates the
             !%%%%% pre-HEMCO code. (bmy, 9/4/14)
             IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) THEN
-               ADD_Pb                  = ADD_Pb / 3.5e+0_fp
+               ADD_Pb          = ADD_Pb / 3.5e+0_fp
             ENDIF
 #endif
 
             ! ND01 diag: 210Pb emission from 222Rn decay [kg/s]
             IF ( ND01 > 0 .and. L <= LD01 ) THEN
 #if defined( BPCH_DIAG )
-               AD01(I,J,L)             = AD01(I,J,L) + 
-     &                                   ( ADD_Pb / DTCHEM )
+               AD01(I,J,L)     = AD01(I,J,L) + ( ADD_Pb / DTCHEM )
 #endif
-#if ( NETCDF )
+#if defined ( NC_DIAG )
                PB_EMISS(I,J,L) = ADD_Pb / DTCHEM
 #endif
             ENDIF
 
             ! Add 210Pb gained by decay from 222Rn into STT [kg]
-            State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) 
-     &                                 + ADD_Pb          
+            Spc(I,J,L,N)       = Spc(I,J,L,N) + ADD_Pb          
 
             ! Amount of 210Pb lost to radioactive decay [kg]
             ! NOTE: we've already added in the 210Pb gained from 222Rn
-            Pb_LOST                    = State_Chm%TRACERS(I,J,L,N) 
-     &                                 * ( 1e+0_fp - EXP_Pb )
+            Pb_LOST            = Spc(I,J,L,N) * ( 1.0_fp - EXP_Pb )
 
             ! ND02 diag: 210Pb lost to decay [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
 #if defined( BPCH_DIAG )
-               AD02(I,J,L,2)           = AD02(I,J,L,2) 
-     &                                 + ( Pb_LOST / DTCHEM )
+               AD02(I,J,L,2)   = AD02(I,J,L,2) + ( Pb_LOST / DTCHEM )
 #endif
 #if defined( NC_DIAG )
                PB_DECAY(I,J,L) = Pb_LOST / DTCHEM
@@ -411,21 +375,23 @@
             ENDIF
 
             ! Subtract 210Pb lost to decay from STT [kg]
-            State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) 
-     &                                 - Pb_LOST
+            Spc(I,J,L,N)       = Spc(I,J,L,N) - Pb_LOST
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
 
 #if defined( NC_DIAG )
+         ! Get species name
+         Spc_Name = State_Chm%SpcData(N)%Info%Name
+
          ! Make sure ND02 is turned on
          IF ( Input_Opt%ND02 > 0 ) THEN
 
-         ! Update ND02 diagnostic: Pb lost to decay [kg/s]
+            ! Update ND02 diagnostic: Pb lost to decay [kg/s]
             CALL Diagn_RnPbBe_Update( am_I_Root,
      &                                'ND02', 
-     &                                Input_Opt%TRACER_NAME( IDTPb ), 
+     &                                Spc_Name, 
      &                                PB_DECAY, 
      &                                Input_Opt%DIAG_COLLECTION )
          ENDIF
@@ -436,7 +402,7 @@
             ! Update ND01 diagnostic: Pb emission [kg/s]
             CALL Diagn_RnPbBe_Update( am_I_Root,
      &                                'ND01', 
-     &                                Input_Opt%TRACER_NAME( IDTPb ), 
+     &                                Spc_Name, 
      &                                PB_EMISS, 
      &                                Input_Opt%DIAG_COLLECTION )
          ENDIF
@@ -449,10 +415,10 @@
       ! Radioactive decay of Be7
       !=================================================================
 
-      ! Tracer index
-      N = IDTBe7
+      ! Species index for Be7
+      N = id_Be7
 
-      ! Make sure Be7 is a defined tracer
+      ! Make sure Be7 is a defined species
       IF ( N > 0 ) THEN 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED ) 
@@ -462,14 +428,12 @@
          DO I = 1, IIPAR
 
             ! Amount of 7Be lost to decay [kg]
-            Be_LOST                    = State_Chm%TRACERS(I,J,L,N) 
-     &                                 * ( 1d0 - EXP_Be )
+            Be_LOST            = Spc(I,J,L,N) * ( 1d0 - EXP_Be )
 
             ! ND02 diag: 7Be lost to decay [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
 #if defined( BPCH_DIAG )
-               AD02(I,J,L,3)           = AD02(I,J,L,3) 
-     &                                 + ( Be_LOST / DTCHEM )
+               AD02(I,J,L,3)   = AD02(I,J,L,3) + ( Be_LOST / DTCHEM )
 #endif
 #if defined( NC_DIAG )
                BE_DECAY(I,J,L) = Be_LOST / DTCHEM
@@ -477,27 +441,32 @@
             ENDIF
 
             ! Subtract amount of 7Be lost to decay from STT [kg]
-            State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) 
-     &                                 - Be_LOST
+            Spc(I,J,L,N)       = Spc(I,J,L,N) - Be_LOST
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
 
 #if defined( NC_DIAG )
+         ! Get species name
+         Spc_Name = State_Chm%SpcData(N)%Info%Name
+
          ! Make sure ND02 is turned on
          IF ( Input_Opt%ND02 > 0 ) THEN
 
             ! Update ND02 diagnostic: Be lost to decay [kg/s]
             CALL Diagn_RnPbBe_Update( am_I_Root,
      &                                'ND02', 
-     &                                Input_Opt%TRACER_NAME( IDTBe7 ), 
+     &                                Spc_Name, 
      &                                BE_DECAY, 
      &                                Input_Opt%DIAG_COLLECTION )
          ENDIF
 #endif
 
       ENDIF
+
+      ! Free pointer
+      Spc => NULL()
 
       END SUBROUTINE CHEMRnPbBe
 !EOC
@@ -518,7 +487,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Diagn_RnPbBe_Update( am_I_Root, NDxx, TracerName, 
+      SUBROUTINE Diagn_RnPbBe_Update( am_I_Root, NDxx, SpeciesName, 
      &                                DiagArray, ColNo )
 !
 ! !USES:
@@ -529,11 +498,11 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,            INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      CHARACTER(LEN=4),   INTENT(IN)  :: NDxx        ! Diagnostic id
-      CHARACTER(LEN=255), INTENT(IN)  :: TracerName  ! Tracer name
+      LOGICAL,            INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
+      CHARACTER(LEN=4),   INTENT(IN)  :: NDxx         ! Diagnostic id
+      CHARACTER(LEN=255), INTENT(IN)  :: SpeciesName  ! Species name
       REAL(fp), TARGET,   INTENT(IN)  :: DiagArray(:,:,:)
-      INTEGER,            INTENT(IN)  :: ColNo       ! Diag collection #
+      INTEGER,            INTENT(IN)  :: ColNo        ! Diag collection #
 !
 ! !REVISION HISTORY:
 !  30 Jan 2015 - E. Lundgren   - Initial version
@@ -559,9 +528,9 @@
       ! Define the diagnostic name
       SELECT CASE ( NDxx )
          CASE ( 'ND01' )
-            DiagnName = 'EMISS_' // TRIM( TracerName )
+            DiagnName = 'EMISS_' // TRIM( SpeciesName )
          CASE ( 'ND02' )
-            DiagnName = 'DECAY_' // TRIM( TracerName )
+            DiagnName = 'DECAY_' // TRIM( SpeciesName )
          CASE DEFAULT
             MSG = 'Undefined Rn/Pb/Be7 diagnostic: ' // NDxx
             CALL ERROR_STOP( TRIM( MSG ), LOC )
@@ -590,135 +559,6 @@
       END SUBROUTINE Diagn_RnPbBe_Update 
 !EOC
 #endif
-
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: slq
-!
-! !DESCRIPTION: Subroutine SLQ is an interpolation subroutine from a 
-!  Chinese reference book (says Hongyu Liu).
-!\\
-!\\
-! !INTERFACE:
-!
-!      SUBROUTINE SLQ( X, Y, Z, N, M, U, V, W )
-!
-! !INPUT PARAMETERS: 
-!
-!      INTEGER :: N        ! First dimension of Z
-!      INTEGER :: M        ! Second dimension of Z
-!      REAL(fp)  :: X(N)     ! X-axis coordinate on original grid
-!      REAL(fp)  :: Y(M)     ! Y-axis coordinate on original grid
-!      REAL(fp)  :: Z(N,M)   ! Array of data on original grid
-!      REAL(fp)  :: U        ! X-axis coordinate for desired interpolated value
-!      REAL(fp)  :: V        ! Y-axis coordinate for desired interpolated value
-!
-! !OUTPUT PARAMETERS:
-!
-!      REAL(fp)  :: W        ! Interpolated value of Z array, at coords (U,V) 
-!
-! !REMARKS:
-! 
-! 
-! !REVISION HISTORY: 
-!  17 Mar 1998 - H. Liu      - Initial version
-!  (1 ) Added to "RnPbBe_mod.f" (bmy, 7/16/01)
-!  (2 ) Removed duplicate definition of IQ.  Added comments. (bmy, 11/15/01)
-!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  04 Dec 2014 - M. Yannetti - Commented out, this function is
-!                              depreciated.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-!      REAL(fp)  :: B(3), HH
-!      INTEGER :: NN,   IP, I, J, L, IQ, K, MM
-!
-!      !=================================================================
-!      ! SLQ begins here!
-!      !=================================================================
-!      NN=3
-!      IF(N.LE.3) THEN
-!         IP=1
-!         NN=N
-!      ELSE IF (U.LE.X(2)) THEN
-!         IP=1
-!      ELSE IF (U.GE.X(N-1)) THEN
-!         IP=N-2
-!      ELSE
-!         I=1
-!         J=N
-! 10      IF (IABS(I-J).NE.1) THEN
-!            L=(I+J)/2
-!            IF (U.LT.X(L)) THEN
-!               J=L
-!            ELSE
-!               I=L
-!            END IF
-!            GOTO 10
-!         END IF
-!         IF (ABS(U-X(I)).LT.ABS(U-X(J))) THEN
-!            IP=I-1
-!         ELSE
-!            IP=I
-!         END IF
-!      END IF
-!      MM=3
-!      IF (M.LE.3) THEN
-!         IQ=1
-!         MM=N
-!      ELSE IF (V.LE.Y(2)) THEN
-!!         IQ=1
-!!      ELSE IF (V.GE.Y(M-1)) THEN
-!         IQ=M-2
-!      ELSE
-!         I=1
-!         J=M
-! 20      IF (IABS(J-I).NE.1) THEN
-!            L=(I+J)/2
-!            IF (V.LT.Y(L)) THEN
-!               J=L
-!            ELSE
-!               I=L
-!            END IF
-!            GOTO 20
-!         END IF
-!         IF (ABS(V-Y(I)).LT.ABS(V-Y(J))) THEN
-!            IQ=I-1
-!         ELSE
-!            IQ=I
-!         END IF
-!      END IF
-!      DO 50 I=1,NN
-!         B(I)=0.0
-!         DO 40 J=1,MM
-!            HH=Z(IP+I-1,IQ+J-1)
-!            DO 30 K=1,MM
-!               IF (K.NE.J) THEN
-!                  HH=HH*(V-Y(IQ+K-1))/(Y(IQ+J-1)-Y(IQ+K-1))
-!               END IF
-! 30         CONTINUE
-!            B(I)=B(I)+HH
-! 40      CONTINUE
-! 50   CONTINUE
-!      W=0.0
-!      DO 70 I=1,NN
-!         HH=B(I)
-!         DO 60 J=1,NN
-!            IF (J.NE.I) THEN
-!               HH=HH*(U-X(IP+J-1))/(X(IP+I-1)-X(IP+J-1))
-!            END IF
-! 60      CONTINUE
-!         W=W+HH
-! 70   CONTINUE
-!
-!      END SUBROUTINE SLQ
-!EOC
       END MODULE RnPbBe_MOD
 
 

@@ -448,10 +448,6 @@ CONTAINS
 
        ! Only write diagnostics if this is the first Diagn_Get call for
        ! this container and time step. 
-       IF ( ThisDiagn%nnGetCalls > 1 ) CYCLE
-
-       ! NOTE: This may have been left over by a Git merge (bmy, 3/5/15)
-       ! this container and time step.
        IF ( PRESENT( OnlyIfFirst ) ) THEN
           IF ( OnlyIfFirst .AND. ThisDiagn%nnGetCalls > 1 ) CYCLE
        ENDIF 

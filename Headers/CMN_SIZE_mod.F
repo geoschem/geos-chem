@@ -546,28 +546,6 @@
 #endif
 #endif
 
-!-----------------------------------------------------------------------------
-! Prior to 8/11/15:
-! HEMCO has rendered these parameters obsolete (bmy, 8/11/15)
-!      !-----------------------------------------------------------------
-!      ! For GEOS 1x1 files
-!      !-----------------------------------------------------------------
-!      INTEGER,    PARAMETER :: I1x1       = 360
-!      INTEGER,    PARAMETER :: J1x1       = 181
-!
-!      !-----------------------------------------------------------------
-!      ! For GEOS 05x0666 files
-!      !-----------------------------------------------------------------
-!      INTEGER,    PARAMETER :: I05x0666   = 540 
-!      INTEGER,    PARAMETER :: J05x0666   = 361
-!
-!      !-----------------------------------------------------------------
-!      ! For GFED3
-!      !-----------------------------------------------------------------
-!      INTEGER,    PARAMETER :: IGFED3     = 720 
-!      INTEGER,    PARAMETER :: JGFED3     = 360
-!-----------------------------------------------------------------------------
-
       !-----------------------------------------------------------------
       ! For stratospheric chemistry
       !-----------------------------------------------------------------
@@ -592,8 +570,6 @@
 # else
       INTEGER,    PARAMETER :: NNPAR   = 340   ! For TOMAS (win, bmy, sfarina 6/11/13)f
 # endif
-#elif defined( APM )
-      INTEGER,    PARAMETER :: NNPAR   = 154   ! For APM (G. Luo, 3/8/11)
 #else
       INTEGER,    PARAMETER :: NNPAR   = 150   ! For non-TOMAS simulations
 #endif
@@ -625,16 +601,6 @@
       INTEGER,    PARAMETER :: NTYPE    = 25
 #endif
       INTEGER,    PARAMETER :: NPOLY    = 20
-
-!-----------------------------------------------------------------------------
-! Prior to 8/11/15:
-! This is now obsolete (bmy, 8/11/15)
-!      ! NNSTA = max number of time series stations (in inptr.ctm)
-!      INTEGER,    PARAMETER :: NNSTA = 800
-!-----------------------------------------------------------------------------
-
-      ! MAXIJ - Maximum number of 1st level grid boxes
-      INTEGER               :: MAXIJ
 
       ! LLCONVM - Max number of layers for convection
       INTEGER               :: LLCONVM
@@ -670,13 +636,6 @@
 
       ! NRH -- number of relative humidity bins (rvm, bmy, 2/27/02)
       INTEGER,    PARAMETER :: NRH = 5
-
-      !NBIOMAX -- biomass burning
-      ! increase NBIOMAX to 20 (hotp 7/31/09)
-      ! increase NBIOMAX to 24 for dicarbonyls (ccc, 2/02/10)
-      ! increase NBIOMAX to 25 fppr CH4 (kjw)
-      ! SOAupdate: add 1 for naphthalene, now 26 (hotp 7/21/10)
-      INTEGER,    PARAMETER :: NBIOMAX = 26
 
 #if   defined( TOMAS )
       INTEGER,    PARAMETER :: TOMASSPEC = 8
@@ -793,6 +752,10 @@
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  22 May 2015 - R. Yantosca - Updated comments, cosmetic changes
 !  22 May 2015 - R. Yantosca - Removed variables made obsolete by HEMCO
+!  28 Jan 2016 - M. Sulprizio- Remove NBIOMAX made obsolete by HEMCO
+!  18 May 2016 - M. Sulprizio- Remove MAXIJ made obsolete by FlexChem
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -821,7 +784,7 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS: 
 ! 
@@ -995,7 +958,6 @@
 #endif   
 
       ! Set values for former variables declared as parameters
-      MAXIJ   = IIPAR * JJPAR      
       LLCONVM = LLPAR - 1
 
 
@@ -1005,16 +967,16 @@
 
       ! Delta-longitudes [degrees]
       ALLOCATE( DLON( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GC_SUCCESS ) RETURN
       DLON = 0e+0_fpp
 
       ! Delta-latitudes [degrees]
       ALLOCATE( DLAT( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GC_SUCCESS ) RETURN
       DLON = 0e+0_fpp
 
       ! Return w/ success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
       
       END SUBROUTINE Init_CMN_SIZE
 !EOC
@@ -1034,7 +996,7 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1054,7 +1016,7 @@
       IF ( ALLOCATED( DLAT ) ) DEALLOCATE( DLAT )
 
       ! Return successfully
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE Cleanup_CMN_SIZE
 !EOC

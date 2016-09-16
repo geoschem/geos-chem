@@ -35,16 +35,14 @@
 MODULE HCOI_GC_Diagn_Mod
 !
 ! !USES:
-!
-  USE HCO_Error_Mod
-  USE HCO_Diagn_Mod
- 
-  ! GEOS-Chem diagnostic switches and arrays
+! 
   USE CMN_SIZE_Mod
   USE CMN_DIAG_Mod
   USE DIAG_Mod
   USE DIAG53_Mod
   USE DIAG56_Mod
+  USE HCO_Diagn_Mod
+  USE HCO_Error_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -99,12 +97,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE HCO_ExtList_Mod,    ONLY : GetExtOpt
     USE HCO_State_Mod,      ONLY : HCO_GetHcoID
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
-    USE HCO_ExtList_Mod,    ONLY : GetExtOpt
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -472,10 +470,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -598,10 +596,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -768,11 +766,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
-    USE TRACERID_MOD,       ONLY : IDTPOA1, IDTPOG1
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      only : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -791,6 +789,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use carbon
+!  16 Jun 2016 - C. Miller   - Now define species ID's with Ind_ function 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -801,6 +800,7 @@ CONTAINS
     CHARACTER(LEN=31)  :: SpcName, SrcName, DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGN_CARBON (hcoi_gc_diagn_mod.F90)'
+    INTEGER            :: id_POA1, id_POG1
 
     !=======================================================================
     ! DIAGN_CARBON begins here!
@@ -814,7 +814,11 @@ CONTAINS
          ( .not. Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
        RETURN
     ENDIF
-   
+    
+    ! Define advected species ID's
+    id_POA1 = Ind_('POA1','A')
+    id_POG1 = Ind_('POG1','A')
+
     ! Define diagnostics
     IF ( ND07 > 0 .AND. Input_Opt%LCARB ) THEN
 
@@ -829,10 +833,10 @@ CONTAINS
                 SpcName = 'BCPO'
              CASE ( 3 )
                 SpcName = 'OCPI'
-                IF ( IDTPOA1 > 0 ) SpcName = 'POA1'
+                IF ( id_POA1 > 0 ) SpcName = 'POA1'
              CASE ( 4 ) 
                 SpcName = 'OCPO'
-                IF ( IDTPOG1 > 0 ) SpcName = 'POG1'
+                IF ( id_POG1 > 0 ) SpcName = 'POG1'
           END SELECT
 
           ! HEMCO species ID
@@ -896,10 +900,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1035,10 +1039,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1140,10 +1144,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1473,12 +1477,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCO_State_Mod,      ONLY : HCO_GetHcoID
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
-    USE TRACERID_MOD,       ONLY : IDTPOA1
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -1503,16 +1507,23 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use biomass
+!  17 Jun 2016 - R. Yantosca - Now define species ID's with Ind_ function
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: Cat, ExtNr, HcoID, N
+    INTEGER            :: Cat, ExtNr, HcoID, N, N_CO
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGN_BIOMASS (hcoi_gc_diagn_mod.F90)'
+
+    ! CO tracer names
+    INTEGER, PARAMETER :: N_BIOM_CO             = 7
+    CHARACTER(LEN=7)   :: CO_Tracers(N_BIOM_CO) =          &
+         (/ 'CO     ', 'CObbam ', 'CObbaf ', 'CObbas ' ,   &
+            'CObboc ', 'CObbeu ', 'CObboth'              /) 
 
     !=======================================================================
     ! DIAGN_BIOMASS begins here!
@@ -1524,7 +1535,7 @@ CONTAINS
     ! Exit if we are doing a specialty simulation w/o biomass
     IF ( Input_Opt%ITS_A_POPS_SIM   ) RETURN
     IF ( Input_Opt%ITS_A_RnPbBe_SIM ) RETURN
-    IF ( Input_Opt%ITS_A_TAGOX_SIM  ) RETURN
+    IF ( Input_Opt%ITS_A_TAGO3_SIM  ) RETURN
 
     ! First test if GFED is used.  If not, then test if FINN is used.
     ! If not, then use extension # 0 and the default biomass category.
@@ -1807,7 +1818,8 @@ CONTAINS
           !----------------------------------------
           ! %%%%% FOR POA SIMULATION %%%%%
           !----------------------------------------
-          IF ( IDTPOA1 > 0 ) THEN
+          IF ( Ind_('POA1','A') > 0 ) THEN
+
              ! HEMCO species ID
              HcoID = GetHemcoId( 'POA1', HcoState, LOC, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1931,29 +1943,64 @@ CONTAINS
     IF ( ND28 > 0 .OR. ND29 > 0 ) THEN
 
        ! CO is only defined for full chemistry and tagged CO simulations
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or.             &
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
             Input_Opt%ITS_A_TAGCO_SIM    ) THEN
 
-          ! HEMCO species ID
-          HcoID = GetHemcoId( 'CO', HcoState, LOC, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Loop over tagged CO tracers if necessary
+          IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+             N_CO = N_BIOM_CO
+          ELSE
+             N_CO = 1
+          ENDIF
 
-          ! Create diagnostic container
-          DiagnName = 'BIOMASS_CO'
-          CALL Diagn_Create( am_I_Root,                     & 
-                             HcoState  = HcoState,          &
-                             cName     = TRIM( DiagnName ), &
-                             ExtNr     = ExtNr,             &
-                             Cat       = Cat,               &
-                             Hier      = -1,                &
-                             HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
-                             LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
-                             AutoFill  = 1,                 &
-                             RC        = RC                  ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Loop over all CO tracers
+          DO N = 1, N_CO
+
+             ! Pick the various category names
+             SELECT CASE( TRIM( CO_Tracers(N) ) )
+                CASE( 'CO'      )
+                   HcoId     =  GetHemcoId( 'CO', HcoState, LOC, RC )
+                   DiagnName = 'BIOMASS_CO'
+                CASE( 'CObbam'  ) 
+                   HcoId     =  GetHemcoId( 'CObbam', HcoState, LOC, RC )
+                   DiagnName = 'BIOMASS_TAGCO_USA'
+                CASE( 'CObbaf'  ) 
+                   HcoId     =  GetHemcoId( 'CObbaf', HcoState, LOC, RC )
+                   DiagnName = 'BIOMASS_TAGCO_AFRICA'
+                CASE( 'CObbas'  ) 
+                   HcoId     =  GetHemcoId( 'CObbas', HcoState, LOC, RC )
+                   DiagnName = 'BIOMASS_TAGCO_ASIA'
+                CASE( 'CObboc'  ) 
+                   HcoId     =  GetHemcoId( 'CObboc', HcoState, LOC, RC )
+                   DiagnName = 'BIOMASS_TAGCO_OCEANIA'
+                CASE( 'CObbeu'  ) 
+                   HcoId     =  GetHemcoId( 'CObbeu', HcoState, LOC, RC )
+                   DiagnName = 'BIOMASS_TAGCO_EUROPE'
+                CASE( 'CObboth' ) 
+                   HcoId     =  GetHemcoId( 'CObboth', HcoState, LOC, RC )
+                   DiagnName = 'BIOMASS_TAGCO_OTHER'
+                CASE DEFAULT
+                   HcoId     = -1
+                   DiagnName = ''
+             END SELECT
+             
+             ! Define the diagnostic catetory if the HEMCO id is found
+             IF ( HcoId > 0 ) THEN
+                CALL Diagn_Create( am_I_Root,                       & 
+                                   HcoState  = HcoState,            &
+                                   cName     = TRIM( DiagnName ),   &
+                                   ExtNr     = ExtNr,               &
+                                   Cat       = CATEGORY_BIOMASS,    &
+                                   Hier      = -1,                  &
+                                   HcoID     = HcoID,               &
+                                   SpaceDim  = 2,                   &
+                                   LevIDx    = -1,                  &
+                                   OutUnit   = 'kg/m2/s',           &
+                                   COL       = HcoDiagnIDManual,    &
+                                   AutoFill  = 1,                   &
+                                   RC        = RC                  ) 
+             ENDIF
+          ENDDO
        ENDIF
     ENDIF
 
@@ -2033,11 +2080,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE HCO_State_Mod,      ONLY : HCO_State
-    USE HCOX_State_Mod,     ONLY : Ext_State
     USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_ExtList_Mod,    ONLY : GetExtOpt
+    USE HCO_State_Mod,      ONLY : HCO_State
+    USE HCOX_State_Mod,     ONLY : Ext_State
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2241,11 +2288,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE HCO_State_Mod,      ONLY : HCO_State
-    USE HCOX_State_Mod,     ONLY : Ext_State
     USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE HCO_State_Mod,      ONLY : HCO_State
     USE HCO_State_Mod,      ONLY : HCO_GetHcoId
+    USE HCOX_State_Mod,     ONLY : Ext_State
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2291,7 +2338,7 @@ CONTAINS
     ! Exit if we are doing a specialty simulation w/o biofuels
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) RETURN
     IF ( Input_Opt%ITS_A_POPS_SIM    ) RETURN
-    IF ( Input_Opt%ITS_A_TAGOX_SIM   ) RETURN
+    IF ( Input_Opt%ITS_A_TAGO3_SIM   ) RETURN
     IF ( Input_Opt%ITS_A_RnPbBe_SIM  ) RETURN
 
     ! Extension number
@@ -2444,10 +2491,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2479,11 +2526,20 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: ExtNr, HcoID, I, N
+    INTEGER            :: ExtNr, HcoID, I, N, N_CO
     CHARACTER(LEN=15)  :: SpcName
     CHARACTER(LEN=31)  :: DiagnName
+    CHARACTER(LEN=31)  :: DiagnName_AN
+    CHARACTER(LEN=31)  :: DiagnName_AC
+    CHARACTER(LEN=31)  :: DiagnName_BF
+    CHARACTER(LEN=31)  :: DiagnName_SH
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGN_ANTHRO (hcoi_gc_diagn_mod.F90)'
+
+    ! CO tracer names
+    INTEGER, PARAMETER :: N_ANTH_CO             = 5
+    CHARACTER(LEN=6)   :: CO_Tracers(N_ANTH_CO) =               &
+         (/ 'CO    ', 'COus  ', 'COeur ', 'COasia' , 'COoth ' /) 
 
     !=======================================================================
     ! DIAGN_Anthro begins here!
@@ -2503,7 +2559,7 @@ CONTAINS
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) RETURN
     IF ( Input_Opt%ITS_A_POPS_SIM    ) RETURN
     IF ( Input_Opt%ITS_A_RnPbBe_SIM  ) RETURN
-    IF ( Input_Opt%ITS_A_TAGOX_SIM   ) RETURN
+    IF ( Input_Opt%ITS_A_TAGO3_SIM   ) RETURN
 
     ! ND36 only: VOC's are only defined for fullchem (not tagged CO)
     IF ( ND36 > 0 .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
@@ -2741,34 +2797,132 @@ CONTAINS
     ENDIF
 
     !-------------------------------------------
-    ! %%%%% Anthropogenic CO %%%%%
+    ! %%%%% Anthropogenic CO sectors %%%%%
     !-------------------------------------------
     IF ( ND36 > 0 .OR. ND29 > 0 ) THEN
 
-       ! CO is only defined for the full-chemistry simulation
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM    .or.            &
-            Input_Opt%ITS_A_TAGCO_SIM     ) THEN
+       ! CO is only defined for the full-chemistry and tagged CO simulations
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or.   &
+            Input_Opt%ITS_A_TAGCO_SIM         ) THEN
 
-          ! HEMCO species ID
-          HcoID = GetHemcoId( 'CO', HcoState, LOC, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          
-          ! Create diagnostic container
-          DiagnName = 'ANTHROPOGENIC_CO'
-          CALL Diagn_Create( am_I_Root,                     & 
-                             HcoState  = HcoState,          &
-                             cName     = TRIM( DiagnName ), &
-                             ExtNr     = ExtNr,             &
-                             Cat       = CATEGORY_ANTHRO,   &
-                             Hier      = -1,                &
-                             HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
-                             LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
-                             AutoFill  = 1,                 &
-                             RC        = RC                  ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Loop over tagged CO tracers if necessary
+          IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+             N_CO = N_ANTH_CO
+          ELSE
+             N_CO = 1
+          ENDIF
+
+          ! Loop over all CO tracers
+          DO N = 1, N_CO
+
+             ! Pick the various category names
+             SELECT CASE( TRIM( CO_Tracers(N) ) )
+                CASE( 'CO'   )
+                   HcoId        =  GetHemcoId( 'CO', HcoState, LOC, RC )
+                   DiagnName_AN = 'ANTHROPOGENIC_CO'
+                   DiagnName_AC = 'AIRCRAFT_CO'
+                   DiagnName_BF = 'BIOFUEL_CO'    
+                   DiagnName_SH = 'SHIP_CO'
+                CASE( 'COus' )                 
+                   HcoId        =  GetHemcoId( 'COus', HcoState, LOC, RC )
+                   DiagnName_AN = 'ANTHRO_BIOFUEL_TAGCO_US'
+                   DiagnName_AC = 'AIRCRAFT_TAGCO_US'
+                   DiagnName_BF = ''
+                   DiagnName_SH = 'SHIP_TAGCO_US'
+                CASE( 'COeur'  )                 
+                   HcoId        =  GetHemcoId( 'COeur', HcoState, LOC, RC )
+                   DiagnName_AN = 'ANTHRO_BIOFUEL_TAGCO_EUR'
+                   DiagnName_AC = 'AIRCRAFT_TAGCO_EUR'
+                   DiagnName_BF = ''
+                   DiagnName_SH = 'SHIP_TAGCO_EUR'
+                CASE( 'COasia' )
+                   HcoId        =  GetHemcoId( 'COasia', HcoState, LOC, RC )
+                   DiagnName_AN = 'ANTHRO_BIOFUEL_TAGCO_ASIA'
+                   DiagnName_AC = 'AIRCRAFT_TAGCO_ASIA'
+                   DiagnName_BF = ''
+                   DiagnName_SH = 'SHIP_TAGCO_ASIA'
+                CASE( 'COoth'  )
+                   HcoId        =  GetHemcoId( 'COoth', HcoState, LOC, RC )
+                   DiagnName_AN = 'ANTHRO_BIOFUEL_TAGCO_OTHER'
+                   DiagnName_AC = 'AIRCRAFT_TAGCO_OTHER'
+                   DiagnName_BF = ''
+                   DiagnName_SH = 'SHIP_TAGCO_OTHER'
+                CASE DEFAULT
+                   HcoId        = -1
+                   DiagnName_AN = ''
+                   DiagnName_AC = ''
+                   DiagnName_BF = ''
+                   DiagnName_SH = ''
+             END SELECT
+             
+             ! If a valid tracer
+             IF ( HcoId > 0 ) THEN
+      
+                ! Anthropogenic
+                CALL Diagn_Create( am_I_Root,                             & 
+                                   HcoState  = HcoState,                  &
+                                   cName     = TRIM( DiagnName_AN ),      &
+                                   ExtNr     = ExtNr,                     &
+                                   Cat       = CATEGORY_ANTHRO,           &
+                                   Hier      = -1,                        &
+                                   HcoID     = HcoID,                     &
+                                   SpaceDim  = 2,                         &
+                                   LevIDx    = -1,                        &
+                                   OutUnit   = 'kg/m2/s',                 &
+                                   COL       = HcoDiagnIDManual,          &
+                                   AutoFill  = 1,                         &
+                                   RC        = RC                        ) 
+
+                ! Aircraft
+                CALL Diagn_Create( am_I_Root,                             & 
+                                   HcoState  = HcoState,                  &
+                                   cName     = TRIM( DiagnName_AC ),      &
+                                   ExtNr     = ExtNr,                     &
+                                   Cat       = CATEGORY_AIRCRAFT,         &
+                                   Hier      = -1,                        &
+                                   HcoID     = HcoID,                     &
+                                   SpaceDim  = 2,                         &
+                                   LevIDx    = -1,                        &
+                                   OutUnit   = 'kg/m2/s',                 &
+                                   COL       = HcoDiagnIDManual,          &
+                                   AutoFill  = 1,                         &
+                                   RC        = RC                        ) 
+
+                ! Biofuel
+                ! (NOTE: For tagged CO, biofuel is lumped in w/ anthro)
+                IF ( LEN_TRIM( DiagnName_BF ) > 0 ) THEN 
+                   CALL Diagn_Create( am_I_Root,                          & 
+                                      HcoState  = HcoState,               &
+                                      cName     = TRIM( DiagnName_BF ),   &
+                                      ExtNr     = ExtNr,                  &
+                                      Cat       = CATEGORY_BIOFUEL,       &
+                                      Hier      = -1,                     &
+                                      HcoID     = HcoID,                  &
+                                      SpaceDim  = 2,                      &
+                                      LevIDx    = -1,                     &
+                                      OutUnit   = 'kg/m2/s',              &
+                                      COL       = HcoDiagnIDManual,       &
+                                      AutoFill  = 1,                      &
+                                      RC        = RC                     ) 
+                ENDIF
+
+                ! Ship
+                CALL Diagn_Create( am_I_Root,                             & 
+                                   HcoState  = HcoState,                  &
+                                   cName     = TRIM( DiagnName_SH ),      &
+                                   ExtNr     = ExtNr,                     &
+                                   Cat       = CATEGORY_SHIP,             &
+                                   Hier      = -1,                        &
+                                   HcoID     = HcoID,                     &
+                                   SpaceDim  = 2,                         &
+                                   LevIDx    = -1,                        &
+                                   OutUnit   = 'kg/m2/s',                 &
+                                   COL       = HcoDiagnIDManual,          &
+                                   AutoFill  = 1,                         &
+                                   RC        = RC                        ) 
+
+             ENDIF
+          ENDDO
        ENDIF
     ENDIF
 
@@ -2791,13 +2945,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE HCO_ExtList_Mod,    ONLY : GetExtOpt
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCO_State_Mod,      ONLY : HCO_GetHcoId
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
-    USE HCO_ExtList_Mod,    ONLY : GetExtOpt
-    USE TRACERID_MOD,       ONLY : IDTPOA1
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2828,6 +2981,8 @@ CONTAINS
 !  10 Mar 2015 - R. Yantosca - Remove double-definition of BIOGENIC_LIMO
 !  30 Mar 2015 - R. Yantosca - Bug fix: Now test if Br2 is a HEMCO species
 !  22 Apr 2015 - M. Sulprizio- Now save out hydrocarbons in units kgC/m2/s
+!  02 Jun 2016 - R. Yantosca - Bug fix: only save seasalt Br2 diagnostics
+!                              for full-chemistry or aerosol-only simulations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2854,7 +3009,7 @@ CONTAINS
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) RETURN
     IF ( Input_Opt%ITS_A_POPS_SIM    ) RETURN
     IF ( Input_Opt%ITS_A_RnPbBe_SIM  ) RETURN
-    IF ( Input_Opt%ITS_A_TAGOX_SIM   ) RETURN
+    IF ( Input_Opt%ITS_A_TAGO3_SIM   ) RETURN
 
     ! Extension and category #'s for MEGAN
     ExtNr = GetExtNr('MEGAN')
@@ -3288,7 +3443,9 @@ CONTAINS
     !=======================================================================
     ! These diagnostics use the SeaSalt extension
     !=======================================================================
-    IF ( ND46 > 0 ) THEN
+    IF ( ( ND46 > 0                     )   .and. &
+         ( Input_Opt%ITS_A_FULLCHEM_SIM     .or.  &
+           Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
 
        ! Extension # of SeaSalt
        ExtNr = GetExtNr('SeaSalt')
@@ -3351,10 +3508,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -3515,10 +3672,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -3699,10 +3856,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -3899,12 +4056,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCO_State_Mod,      ONLY : HCO_GetHcoID
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
-    USE TRACERID_MOD,       ONLY : IDTCH4
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -3930,13 +4087,14 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  13 Sep 2014 - C. Keller   - Initial version
+!  16 Jun 2016 - C. Miller   - Now define species ID's with Ind_ funciton
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: ExtNr, IDCH4, Cat, HcoID, N
+    INTEGER            :: ExtNr, id_CH4, Cat, HcoID, N
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGN_CH4 (hcoi_gc_diagn_mod.F90)'
@@ -3949,10 +4107,10 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! Exit if the CH4 simulation is not selected
-    IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. IDTCH4 > 0 ) ) RETURN
+    IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. Ind_('CH4','A') > 0 ) ) RETURN
 
     ! Get default HEMCO species ID for CH4 
-    IDCH4 = HCO_GetHcoID( 'CH4', HcoState )
+    id_CH4 = HCO_GetHcoID( 'CH4', HcoState )
 
     ! Extension number is zero (HEMCO core) until defined otherwise
     ExtNr = 0
@@ -3968,7 +4126,7 @@ CONTAINS
     IF ( HcoID > 0 ) THEN
        Cat   = -1
     ELSE
-       HcoID = IDCH4
+       HcoID = id_CH4
        Cat   = 1
     ENDIF
 
@@ -4000,7 +4158,7 @@ CONTAINS
     IF ( HcoID > 0 ) THEN
        Cat   = -1
     ELSE
-       HcoID = IDCH4
+       HcoID = id_CH4
        Cat   = 2
     ENDIF
     IF ( HcoID > 0 ) THEN 
@@ -4031,7 +4189,7 @@ CONTAINS
     IF ( HcoID > 0 ) THEN
        Cat   = -1
     ELSE
-       HcoID = IDCH4
+       HcoID = id_CH4
        Cat   = 3
     ENDIF
     IF ( HcoID > 0 ) THEN 
@@ -4062,7 +4220,7 @@ CONTAINS
     IF ( HcoID > 0 ) THEN
        Cat   = -1
     ELSE
-       HcoID = IDCH4
+       HcoID = id_CH4
        Cat   = 4
     ENDIF
     IF ( HcoID > 0 ) THEN 
@@ -4093,7 +4251,7 @@ CONTAINS
     IF ( HcoID > 0 ) THEN
        Cat   = -1
     ELSE
-       HcoID = IDCH4
+       HcoID = id_CH4
        Cat   = 5
     ENDIF
     IF ( HcoID > 0 ) THEN 
@@ -4124,7 +4282,7 @@ CONTAINS
     IF ( HcoID > 0 ) THEN
        Cat   = -1
     ELSE
-       HcoID = IDCH4
+       HcoID = id_CH4
        Cat   = 6
     ENDIF
     IF ( HcoID > 0 ) THEN 
@@ -4155,7 +4313,7 @@ CONTAINS
     IF ( HcoID > 0 ) THEN
        Cat   = -1
     ELSE
-       HcoID = IDCH4
+       HcoID = id_CH4
        Cat   = 7
     ENDIF
     IF ( HcoID > 0 ) THEN 
@@ -4186,7 +4344,7 @@ CONTAINS
     IF ( HcoID > 0 ) THEN
        Cat   = -1
     ELSE
-       HcoID = IDCH4
+       HcoID = id_CH4
        Cat   = 8
     ENDIF
     IF ( HcoID > 0 ) THEN 
@@ -4224,10 +4382,10 @@ CONTAINS
        ENDIF
     ENDIF
     IF ( ExtNr > 0 ) THEN
-       IF ( IDCH4 < 0 ) THEN
+       IF ( id_CH4 < 0 ) THEN
           HcoID = HCO_GetHcoID( 'CH4_tot', HcoState )
        ELSE
-          HcoID = IDCH4
+          HcoID = id_CH4
        ENDIF
        IF ( HcoID > 0 ) THEN 
    
@@ -4264,10 +4422,10 @@ CONTAINS
        ENDIF
     ENDIF
     IF ( ExtNr > 0 ) THEN
-       IF ( IDCH4 < 0 ) THEN
+       IF ( id_CH4 < 0 ) THEN
           HcoID = HCO_GetHcoID( 'CH4_tot', HcoState )
        ELSE
-          HcoID = IDCH4
+          HcoID = id_CH4
        ENDIF
        IF ( HcoID > 0 ) THEN 
    
@@ -4331,10 +4489,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -4518,12 +4676,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCO_State_Mod,      ONLY : HCO_GetHcoID
     USE HCOX_State_Mod,     ONLY : Ext_State
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
-
+    USE Input_Opt_Mod,      ONLY : OptInput
+!
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
@@ -4540,7 +4698,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: ExtNr, Cat, HcoID, N
-    INTEGER            :: IDBCPI, IDBCPO, IDOCPI, IDOCPO
+    INTEGER            :: id_BCPI, id_BCPO, id_OCPI, id_OCPO
     INTEGER            :: IDSO4
     INTEGER            :: IDCO
     CHARACTER(LEN=31)  :: DiagnName
@@ -4554,14 +4712,14 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! Exit if the CH4 simulation is not selected
-    !IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. IDTCH4 > 0 ) ) RETURN
+    !IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. id_CH4 > 0 ) ) RETURN
     ! SOME SORT OF IF DEFINED TOMAS HERE
 
     ! Get default HEMCO species ID for BC/OC
-    IDBCPI = HCO_GetHcoID( 'BCPI', HcoState )
-    IDBCPO = HCO_GetHcoID( 'BCPO', HcoState )
-    IDOCPI = HCO_GetHcoID( 'OCPI', HcoState )
-    IDOCPO = HCO_GetHcoID( 'OCPO', HcoState )
+    id_BCPI = HCO_GetHcoID( 'BCPI', HcoState )
+    id_BCPO = HCO_GetHcoID( 'BCPO', HcoState )
+    id_OCPI = HCO_GetHcoID( 'OCPI', HcoState )
+    id_OCPO = HCO_GetHcoID( 'OCPO', HcoState )
 
     ! Extension number is zero (HEMCO core) until defined otherwise
     ExtNr = 0
@@ -4570,7 +4728,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
        Cat = CATEGORY_ANTHRO
-       HcoID = IDBCPI
+       HcoID = id_BCPI
        ! Create diagnostic container
        DiagnName = 'BCPI_ANTH'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4593,7 +4751,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
        Cat = CATEGORY_ANTHRO
-       HcoID = IDBCPO
+       HcoID = id_BCPO
        ! Create diagnostic container
        DiagnName = 'BCPO_ANTH'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4616,7 +4774,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
        Cat = CATEGORY_ANTHRO
-       HcoID = IDOCPI
+       HcoID = id_OCPI
        ! Create diagnostic container
        DiagnName = 'OCPI_ANTH'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4639,7 +4797,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
        Cat = CATEGORY_ANTHRO
-       HcoID = IDOCPO
+       HcoID = id_OCPO
        ! Create diagnostic container
        DiagnName = 'OCPO_ANTH'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4662,7 +4820,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
        Cat = CATEGORY_BIOFUEL
-       HcoID = IDBCPI
+       HcoID = id_BCPI
        ! Create diagnostic container
        DiagnName = 'BCPI_BF'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4685,7 +4843,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
        Cat = CATEGORY_BIOFUEL
-       HcoID = IDBCPO
+       HcoID = id_BCPO
        ! Create diagnostic container
        DiagnName = 'BCPO_BF'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4708,7 +4866,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
        Cat = CATEGORY_BIOFUEL
-       HcoID = IDOCPI
+       HcoID = id_OCPI
        ! Create diagnostic container
        DiagnName = 'OCPI_BF'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4731,7 +4889,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
        Cat = CATEGORY_BIOFUEL
-       HcoID = IDOCPO
+       HcoID = id_OCPO
        ! Create diagnostic container
        DiagnName = 'OCPO_BF'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4764,7 +4922,7 @@ CONTAINS
     ! %%%%% BPCI from BIOB (Category ? or species BCPI_bb)  %%%%%
     !-----------------------------------------------------------------
 
-       HcoID = IDBCPI
+       HcoID = id_BCPI
        ! Create diagnostic container
        DiagnName = 'BCPI_BB'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4786,7 +4944,7 @@ CONTAINS
     ! %%%%% BPCO from BIOB (Category ? or species BCPO_bb)  %%%%%
     !-----------------------------------------------------------------
 
-       HcoID = IDBCPO
+       HcoID = id_BCPO
        ! Create diagnostic container
        DiagnName = 'BCPO_BB'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4808,7 +4966,7 @@ CONTAINS
     ! %%%%% OCPI from BIOB (Category ? or species OCPI_bb)  %%%%%
     !-----------------------------------------------------------------
 
-       HcoID = IDOCPI
+       HcoID = id_OCPI
        ! Create diagnostic container
        DiagnName = 'OCPI_BB'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4831,7 +4989,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
 
-       HcoID = IDOCPO
+       HcoID = id_OCPO
        ! Create diagnostic container
        DiagnName = 'OCPO_BB'
        CALL Diagn_Create( am_I_Root,                     &
@@ -4945,8 +5103,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_State_Mod, ONLY : HCO_GetHcoID
     USE HCO_State_Mod, ONLY : HCO_State
+    USE HCO_State_Mod, ONLY : HCO_GetHcoID
 !
 ! !INPUT PARAMETERS: 
 !

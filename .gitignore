@@ -13,10 +13,11 @@ diffs
 bak
 misc
 test
+GCHP
 GIGC
 *.pp.*
 *.pdb
 *.inst.*
 *.continue.*
 *.ppk
-holding
+*.log

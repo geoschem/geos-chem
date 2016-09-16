@@ -18,6 +18,9 @@
 !
       ! References to F90 modules
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
+      USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_ICE, IS_WATER, IS_LAND
       USE DIAG_MOD,           ONLY : AD33, AD35, AD54 
       USE DIAG_MOD,           ONLY : AD47
@@ -29,39 +32,26 @@
       USE DIAG_MOD,           ONLY : AD71_DAY,   AD71_HR
       USE DIAG_MOD,           ONLY : AD71_LDAY,  AD71_LHR
       USE DIAG_MOD,           ONLY : AD71_COUNT, AD71_HRCT
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
-      USE TRACERID_MOD,       ONLY : ID_HG2, ID_HGP, ID_Hg_TOT
-      USE TRACERID_MOD,       ONLY : IDTPASV
       USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
-
-      ! For ND71
-      USE TIME_MOD,           ONLY : GET_DAY
-      USE TIME_MOD,           ONLY : GET_HOUR
-      USE ERROR_MOD,          ONLY : SAFE_DIV
-
-#if defined( APM )
-      USE TRACER_MOD,         ONLY : N_APMTRA
-#endif
-
-      USE CMN_SIZE_MOD
-      USE CMN_DIAG_MOD
-      USE PHYSCONSTANTS
-    
-      USE COMODE_LOOP_MOD,    ONLY : NAMEGAS, NTSPEC, NCSURBAN
-
-      USE PRECISION_MOD
-      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-      USE HCO_ERROR_MOD
-      USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
 #if defined( NC_DIAG ) 
       USE DIAGNOSTICS_MOD,    ONLY : DiagnSpec, DiagnUpdate_Met
 #endif
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : SAFE_DIV
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+      USE HCO_ERROR_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants
+      USE PRECISION_MOD
+      USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
+      USE TIME_MOD,           ONLY : GET_DAY
+      USE TIME_MOD,           ONLY : GET_HOUR
 
       IMPLICIT NONE
 !
@@ -78,6 +68,10 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  For a complete list of GEOS-Chem diagnostics, please see this web page:
+!     http://acmg.seas.harvard.edu/geos/doc/man/appendix_5.html
 !
 ! !REVISION HISTORY:
 !  (1 ) This subroutine was reconstructed from gmg's version of (10/10/97)
@@ -152,10 +146,20 @@
 !  19 Oct 2015 - C. Keller   - Now use Input_Opt%ND68 instead of ND68;
 !                              Rename AIRDEN diagnostics to AIRDENSITY to
 !                              avoid name conflict with GEOS-5 model.
-!
-! !REMARKS:
-!  For a complete list of GEOS-Chem diagnostics, please see this web page:
-!     http://acmg.seas.harvard.edu/geos/doc/man/appendix_5.html
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  02 May 2016 - R. Yantosca - Now declare IDTPASV locally
+!  31 May 2016 - E. Lundgren - Replace input_opt%TRACER_MW_G with species
+!                              database field emMW_g (emitted species g/mol)
+!  31 May 2016 - E. Lundgren - Remove usage of TCVV; replace with AIRMW/emMW_g
+!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
+!                              NAMEGAS with ThisSpc%Name from species database
+!  22 Jun 2016 - R. Yantosca - Now use Ind_() to define id_PASV species ID
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  16 Sep 2016 - E. Lundgren - Remove passive species that are per total air
+!                              since moisture fix corrects v/v dry
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -163,99 +167,115 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL            :: AVGW_ALLOCATED, IS_FULLCHEM, IS_CHEM
-      INTEGER            :: I, J, K, L, N, NN, IREF, JREF, LN45, N_TRC
+      INTEGER            :: I, J, K, L, N, NN, IREF, JREF, LN45
+      INTEGER            :: NA, nAdvect
       REAL(fp)           :: FDTT, XLOCTM, AREA_M2
-#if   defined( APM ) 
-      REAL(fp), TARGET   :: STT_VV(IIPAR,JJPAR,LLPAR,
-     &                             Input_Opt%N_TRACERS+N_APMTRA)
-#else 
-      REAL(fp), TARGET   :: STT_VV(IIPAR,JJPAR,LLPAR,
-     &                             Input_Opt%N_TRACERS+2)
-#endif 
+      REAL(fp), TARGET   :: Spc_VV(IIPAR,JJPAR,LLPAR,
+     &                             State_Chm%nAdvect+2)
 
       ! For FP potential temperature (hotp 7/31/09)
       REAL(fp)          :: P0
 
       ! For fields from Input_Opt
       LOGICAL            :: ITS_A_FULLCHEM_SIM
-      INTEGER            :: N_TRACERS
-      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! For netCDF diagnostics via HEMCO
       REAL(fp), TARGET   :: Landmap(IIPAR, JJPAR)
       INTEGER            :: TPL
       REAL(fp)           :: PRESS
-      REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
-      REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
+      REAL(fp), POINTER  :: Ptr3D(:,:,:)
+      REAL(fp), POINTER  :: Ptr2D(:,:)
       REAL(fp)           :: Arr3D(IIPAR,JJPAR,LLPAR)
       REAL(fp)           :: Arr2D(IIPAR,JJPAR)
       CHARACTER(LEN=255) :: DiagnName
+
+      ! For species ID's
+      TYPE(Species), POINTER :: SpcInfo
+      LOGICAL,       SAVE    :: FIRST = .TRUE.
+      INTEGER,       SAVE    :: id_PASV
+      INTEGER,       SAVE    :: id_Hg2
+      INTEGER,       SAVE    :: id_HgP
 
       !=================================================================
       ! DIAG1 begins here!
       !=================================================================
       
       ! Assume success
-      RC                 =  GIGC_SUCCESS
+      RC                 =  GC_SUCCESS
 
-      ! Copy values from Input_Opt
-      ITS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
-      N_TRACERS          = Input_Opt%N_TRACERS
-      TCVV               = Input_Opt%TCVV(1:N_TRACERS)
+      ! Initialize
+      Ptr3D              => NULL()
+      Ptr2D              => NULL()
+      SpcInfo            => NULL()
+      ITS_A_FULLCHEM_SIM =  Input_Opt%ITS_A_FULLCHEM_SIM
+      IS_FULLCHEM        =  ITS_A_FULLCHEM_SIM
+      IS_CHEM            =  ITS_TIME_FOR_CHEM()
+      nAdvect            =  State_Chm%nAdvect
 
-      ! Pick the proper # of tracers for diagnostics
-#if   defined( APM )
-      N_TRC = N_TRACERS + N_APMTRA    ! G-C advected tracers + APM tracers
-#else 
-      N_TRC = N_TRACERS               ! G-C advected tracers
-#endif
+      !---------------------------------------------
+      ! First-time setup
+      !---------------------------------------------
+      IF ( FIRST ) THEN 
 
-      ! Is it a fullchem run?
-      IS_FULLCHEM = ITS_A_FULLCHEM_SIM
-      IS_CHEM     = ITS_TIME_FOR_CHEM()
-      
+         ! Define species ID's  on the first call
+         id_Hg2  = Ind_('Hg2' )
+         id_HgP  = Ind_('HgP' )
+         id_PASV = Ind_('PASV')
+
+         ! Reset first-time flag
+         FIRST = .FALSE.
+      ENDIF
+
       ! Compute conc. in mixing ratio for ND35, ND45, ND47 diagnostics 
       IF ( ND35 > 0 .or. ND45 > 0 .or. ND47 > 0 .or. ND71 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRC
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, N, NA, SpcInfo )
+         DO NA = 1, nAdvect
 
-            ! Tracer conc. in v/v dry air
-            STT_VV(I,J,L,N) = 
-     &         MAX( State_Chm%Tracers(I,J,L,N) * TCVV(N),
-     &              0e+0_fp )
+            ! Species ID
+            N = State_Chm%Map_Advect(NA)
 
-            IF ( N == IDTPASV ) THEN
+            ! Get info about this species from the database
+            SpcInfo => State_Chm%SpcData(N)%Info
+            
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
-               ! Also express tracer conc. in v/v total air (mps, 11/18/15)
-               STT_VV(I,J,L,N+1) =
-!     &            MAX( State_Chm%Tracers(I,J,L,N) *
-!     &                 ( 1.0e+0_fp - State_Met%SPHU(I,J,L) * 1.e-3_fp ) 
-!     &                 * State_Met%MOISTMW(I,J,L) 
-!     &                 / Input_Opt%TRACER_MW_G(N),
-!     &                 0e+0_fp )
-! DEBUGGING (ewl, moisture fix)
-     &         0e+0_fp 
-! ! removed moistmw from state_met
-! END DEBUGGING
+               ! Species conc. in v/v dry air
+               Spc_VV(I,J,L,NA) = 
+     &              MAX( State_Chm%Species(I,J,L,N) * 
+     &                   AIRMW / SpcInfo%emMW_g, 0e+0_fp )
 
-               ! Also express tracer conc. in kg/kg total air (mps, 11/18/15)
-               STT_VV(I,J,L,N+2) =
-     &            MAX( State_Chm%Tracers(I,J,L,N) *
-     &                 ( 1.0e+0_fp - State_Met%SPHU(I,J,L) * 1.e-3_fp ),
-     &                 0e+0_fp )
+            ! Remove alternative units as part of moisture fix since v/v dry
+            ! air should be correct (ewl, 9/16/16)
+            ! IF ( N == id_PASV ) THEN
+            !
+            !   ! Also express species conc in v/v total air (mps, 11/18/15)
+            !   Spc_VV(I,J,L,NA+1) =
+            !  &        MAX( State_Chm%Species(I,J,L,N) *
+            !  &        ( 1.0e+0_fp - State_Met%SPHU(I,J,L) * 1.e-3_fp ) 
+            !  &        * State_Met%MOISTMW(I,J,L) 
+            !  &        / SpcInfo%emMW_g,
+            !  &        0e+0_fp )
+            !
+            !   ! Also express species conc in kg/kg total air (mps, 11/18/15!)
+            !   Spc_VV(I,J,L,NA+2) =
+            !  &        MAX( State_Chm%Species(I,J,L,N) *
+            !  &        ( 1.0e+0_fp - State_Met%SPHU(I,J,L) * 1.e-3_fp ),
+            !  &        0e+0_fp )
+            !
+            ! ENDIF
 
-            ENDIF
+            ENDDO
+            ENDDO
+            ENDDO
 
+            ! Free pointer
+            SpcInfo => NULL()
          ENDDO
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
       ENDIF
 
 ! H Amos, 25 Oct 2011--------------------------------------------------
@@ -269,31 +289,29 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L)
-        DO L = 1, LLPAR
-        DO J = 1, JJPAR
-        DO I = 1, IIPAR
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-          ! Reactive gaseous mercury, RGM
-!          AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
-!     &                      State_Chm%Tracers(I,J,L,ID_Hg2(ID_Hg_tot)) *
-!     &                      TCVV(ID_Hg2(ID_Hg_tot)) /
-!     &                      State_Met%AD(I,J,L) *1e+12_fp
-          AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
-     &                      State_Chm%Tracers(I,J,L,ID_Hg2(ID_Hg_tot)) *
-     &                      TCVV(ID_Hg2(ID_Hg_tot)) * 1e+12_fp
+            ! Reactive gaseous mercury, RGM
+            IF ( id_Hg2 > 0 ) THEN
+               AD03_RGM(I,J,L) = AD03_RGM(I,J,L) +
+     &              State_Chm%Species(I,J,L,id_Hg2) * AIRMW /
+     &              State_Chm%SpcData(id_Hg2)%Info%emMW_g * 
+     &              1e+12_fp
+            ENDIF
 
-          ! Reactive particulate mercury, PBM
-!          AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
-!     &                      State_Chm%Tracers(I,J,L,ID_HgP(ID_Hg_tot)) *
-!     &                      TCVV(ID_HgP(ID_Hg_tot)) / 
-!     &                      State_Met%AD(I,J,L) *1e+12_fp
-          AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
-     &                      State_Chm%Tracers(I,J,L,ID_HgP(ID_Hg_tot)) *
-     &                      TCVV(ID_HgP(ID_Hg_tot)) * 1e+12_fp
+            ! Reactive particulate mercury, PBM
+            IF ( id_HgP > 0 ) THEN
+               AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
+     &              State_Chm%Species(I,J,L,id_HgP) * AIRMW /
+     &              State_Chm%SpcData(id_HgP)%Info%emMW_g *
+     &              1e+12_fp
+            ENDIF
                                                        
-        ENDDO
-        ENDDO
-        ENDDO
+         ENDDO
+         ENDDO
+         ENDDO
 !$OMP END PARALLEL DO 
       ENDIF
 
@@ -335,21 +353,25 @@
       ENDIF
 #endif
       !================================================================= 
-      ! ND33: Atmospheric column sum of tracer [kg]
+      ! ND33: Atmospheric column sum of species [kg]
       !=================================================================  
       IF ( ND33 > 0 ) THEN   
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRC
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            AD33(I,J,N) = AD33(I,J,N) + State_Chm%Tracers(I,J,L,N)
-         ENDDO
-         ENDDO
-         ENDDO
+!$OMP+PRIVATE( I, J, L, N, NA )
+         DO NA = 1, nAdvect
+
+            ! Species ID
+            N = State_Chm%Map_Advect(NA)
+
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               AD33(I,J,N) = AD33(I,J,N) + State_Chm%Species(I,J,L,N)
+            ENDDO
+            ENDDO
+            ENDDO
          ENDDO  
 !$OMP END PARALLEL DO
 
@@ -366,11 +388,11 @@
          L = 9
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, N )
-         DO N = 1, N_TRACERS
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            AD35(I,J,N) = AD35(I,J,N) + STT_VV(I,J,L,N)
+!$OMP+PRIVATE( I, J, NA )
+         DO NA = 1, nAdvect
+         DO J  = 1, JJPAR
+         DO I  = 1, IIPAR
+            AD35(I,J,NA) = AD35(I,J,NA) + Spc_VV(I,J,L,NA)
          ENDDO
          ENDDO
          ENDDO
@@ -379,7 +401,7 @@
 
 #if defined( BPCH_DIAG )
       !================================================================= 
-      ! ND45: Tracer (V/V) at level 1 to level LD45, averaged over 
+      ! ND45: Species (V/V) at level 1 to level LD45, averaged over 
       !       the time period OTH_HR1 to OTH_HR2.  
       !
       !  NOTES: 
@@ -393,25 +415,32 @@
       IF ( ND45 > 0 ) THEN
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRC
-            DO L = 1, LD45  
-            DO J = 1, JJPAR 
-            DO I = 1, IIPAR
-               AD45(I,J,L,N) = AD45(I,J,L,N) + 
-     &                         STT_VV(I,J,L,N) * LTOTH(I,J)
+!$OMP+PRIVATE( I, J, L, N, NA )
+         DO NA = 1, nAdvect
+            
+            ! Species ID
+            N = State_Chm%Map_Advect(NA)
 
-               IF ( N == IDTPASV ) THEN
+            DO L  = 1, LD45  
+            DO J  = 1, JJPAR 
+            DO I  = 1, IIPAR
+               AD45(I,J,L,NA) = AD45  (I,J,L,NA) + 
+     &                          Spc_VV(I,J,L,NA) * LTOTH(I,J)
 
-                  ! Also save passive tracer in v/v total air (mps, 11/18/15)
-                  AD45(I,J,L,N+1) = AD45(I,J,L,N+1) + 
-     &                              STT_VV(I,J,L,N+1) * LTOTH(I,J)
-
-                  ! Also save passive tracer in kg/kg total air (mps, 11/18/15)
-                  AD45(I,J,L,N+2) = AD45(I,J,L,N+2) + 
-     &                              STT_VV(I,J,L,N+2) * LTOTH(I,J)
-
-               ENDIF
+               ! Remove alternative units as part of moisture fix since v/v
+               ! dry air should be correct (ewl, 9/16/16)
+               !IF ( N == id_PASV ) THEN
+               !
+               !   ! Also save passive species in v/v total air (mps, 11/18/15)
+               !   AD45(I,J,L,NA+1) = AD45  (I,J,L,NA+1) + 
+               !  &                    Spc_VV(I,J,L,NA+1) * LTOTH(I,J)
+               !
+               !   ! Also save passive species in kg/kg total air 
+               !   !  (mps, 11/18/15)
+               !   AD45(I,J,L,NA+2) = AD45  (I,J,L,NA+2) + 
+               !  &                    Spc_VV(I,J,L,NA+2) * LTOTH(I,J)
+               !
+               !ENDIF
 
             ENDDO
             ENDDO
@@ -422,7 +451,7 @@
 #endif
 
       !================================================================= 
-      ! ND47: Tracer (V/V) at level 1 to level LD45, 
+      ! ND47: Species (V/V) at level 1 to level LD45, 
       ! averaged from 0-24 hours
       !
       !  (1 ) Added parallel loop over tracers (bmy, 5/4/00)
@@ -432,22 +461,31 @@
       IF ( ND47 > 0 ) THEN
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRC
-            DO L = 1, LD47
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               AD47(I,J,L,N) = AD47(I,J,L,N) + STT_VV(I,J,L,N) 
+!$OMP+PRIVATE( I, J, L, N, NA )
+         DO NA = 1, nAdvect
 
-               IF ( N == IDTPASV ) THEN
+            ! Species ID
+            N = State_Chm%Map_Advect(NA)
 
-                  ! Also save passive tracer in v/v total air (mps, 11/18/15)
-                  AD47(I,J,L,N+1) = AD47(I,J,L,N+1) + STT_VV(I,J,L,N+1)
+            DO L  = 1, LD47
+            DO J  = 1, JJPAR
+            DO I  = 1, IIPAR
+               AD47(I,J,L,NA) = AD47(I,J,L,NA) + Spc_VV(I,J,L,NA) 
 
-                  ! Also save passive tracer in kg/kg total air (mps, 11/18/15)
-                  AD47(I,J,L,N+2) = AD47(I,J,L,N+2) + STT_VV(I,J,L,N+2)
-
-               ENDIF
+               ! Remove alternative units as part of moisture fix since v/v
+               ! dry air should be correct (ewl, 9/16/16)
+               !IF ( N == id_PASV ) THEN
+               !
+               !   ! Also save passive species in v/v total air (mps, 11/18/15)
+               !   AD47(I,J,L,NA+1) = AD47(I,J,L,NA+1) 
+               !  &                  + Spc_VV(I,J,L,NA+1)
+               !
+               !   ! Also save passive species in kg/kg total air 
+               !   ! (mps, 11/18/15)
+               !   AD47(I,J,L,NA+2) = AD47(I,J,L,NA+2)
+               !  &                  + Spc_VV(I,J,L,NA+2)
+               !
+               !ENDIF
 
             ENDDO   
             ENDDO
@@ -573,7 +611,7 @@
 #endif
       
       !================================================================= 
-      ! ND71: Tracer (V/V) at level 1, daily maximum hourly avg.
+      ! ND71: Species (V/V) at level 1, daily maximum hourly avg.
       !================================================================= 
       IF ( ND71 > 0 ) THEN
 
@@ -590,14 +628,14 @@
             ! Set daily max
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-            DO N = 1, N_TRC
-               DO J = 1, JJPAR
-               DO I = 1, IIPAR
-                  AD71_DAY(I,J,N) = MAX(AD71_DAY(I,J,N),
-     &                     (AD71_HR(I,J,N)/(AD71_HRCT)))
-               ENDDO   
-               ENDDO
+!$OMP+PRIVATE( I, J, L, NA )
+            DO NA = 1, nAdvect
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               AD71_DAY(I,J,NA) = MAX(AD71_DAY(I,J,NA),
+     &                            (AD71_HR(I,J,N)/(AD71_HRCT)))
+            ENDDO   
+            ENDDO
             ENDDO 
 !$OMP END PARALLEL DO
             AD71_HR = 0e0
@@ -607,13 +645,13 @@
          ! Set the tracking variables
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRC
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               AD71_HR(I,J,N) = AD71_HR(I,J,N) + STT_VV(I,J,1,N)
-            ENDDO   
-            ENDDO
+!$OMP+PRIVATE( I, J, L, NA )
+         DO NA = 1, nAdvect
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            AD71_HR(I,J,NA) = AD71_HR(I,J,NA) + Spc_VV(I,J,1,NA)
+         ENDDO   
+         ENDDO
          ENDDO
 !$OMP END PARALLEL DO   
 
@@ -679,30 +717,38 @@
       ENDIF
 
       !=================================================================
-      ! ND45: Tracer concentrations (netCDF diagnostic structure)
+      ! ND45: Species concentrations (netCDF diagnostic structure)
       !=================================================================
       IF ( Input_Opt%ND45 > 0 ) THEN
 
-         ! Loop over all tracers
-         DO N = 1, Input_Opt%N_TRACERS
+         ! Loop over all species
+         DO N = 1, State_Chm%nSpecies
 
-            ! If this tracer number NN is scheduled for output in input.geos,
-            ! then archive the latest concentration into the diagnostic structure
+            ! Entry in the species database
+            SpcInfo => State_Chm%SpcData(N)%Info
+
+            ! Only save out chemical species if DiagnSpec option is on
+            IF ( .not. DiagnSpec .and. .not. SpcInfo%Is_Advected ) THEN
+               CYCLE
+            ENDIF
+
+            ! If this species number NN is scheduled for output in input.geos,
+            ! then archive the latest concentration into the diagnostic
+            ! structure
             IF ( ANY( Input_Opt%TINDEX(45,:) == N ) ) THEN
 
-               IF ( N == IDTPASV ) THEN
+               IF ( N == id_PASV ) THEN
 
                   !-------------------------------------
-                  ! Passive tracer in v/v dry air
+                  ! Passive species in v/v dry air
                   !-------------------------------------
 
                   ! Construct diagnostic name
-                  DiagnName = 'TRACER_CONC_' // 
-     &                         TRIM( Input_Opt%TRACER_NAME(N) ) //
+                  DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name ) //
      &                        '_VVDry'
 
                   ! Point to the proper slice of the DEPSAV array
-                  Ptr3D => STT_VV(:,:,:,N)
+                  Ptr3D => Spc_VV(:,:,:,N)
 
                   ! Update the deposition velocity diagostics
                   CALL Diagn_Update( am_I_Root,
@@ -710,50 +756,47 @@
      &                               Array3D = Ptr3D,
      &                               RC      = RC )
 
-                  !-------------------------------------
-                  ! Passive tracer in v/v total air
-                  !-------------------------------------
-
-                  ! Construct diagnostic name
-                  DiagnName = 'TRACER_CONC_' // 
-     &                         TRIM( Input_Opt%TRACER_NAME(N) ) //
-     &                        '_VVTotal'
-
-                  ! Point to the proper slice of the DEPSAV array
-                  Ptr3D => STT_VV(:,:,:,N+1)
-
-                  ! Update the deposition velocity diagostics
-                  CALL Diagn_Update( am_I_Root,
-     &                               cName   = TRIM( DiagnName ),
-     &                               Array3D = Ptr3D,
-     &                               RC      = RC )
-
-                  !-------------------------------------
-                  ! Passive tracer in kg/kg total air
-                  !-------------------------------------
-
-                  ! Construct diagnostic name
-                  DiagnName = 'TRACER_CONC_' // 
-     &                         TRIM( Input_Opt%TRACER_NAME(N) ) //
-     &                        '_KgKgTotal'
-
-                  ! Point to the proper slice of the DEPSAV array
-                  Ptr3D => STT_VV(:,:,:,N+2)
-
-                  ! Update the deposition velocity diagostics
-                  CALL Diagn_Update( am_I_Root,
-     &                               cName   = TRIM( DiagnName ),
-     &                               Array3D = Ptr3D,
-     &                               RC      = RC )
+!                  !-------------------------------------
+!                  ! Passive species in v/v total air
+!                  !-------------------------------------
+!
+!                  ! Construct diagnostic name
+!                  DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name ) //
+!     &                        '_VVTotal'
+!
+!                  ! Point to the proper slice of the DEPSAV array
+!                  Ptr3D => Spc_VV(:,:,:,N+1)
+!
+!                  ! Update the deposition velocity diagostics
+!                  CALL Diagn_Update( am_I_Root,
+!     &                               cName   = TRIM( DiagnName ),
+!     &                               Array3D = Ptr3D,
+!     &                               RC      = RC )
+!
+!                  !-------------------------------------
+!                  ! Passive species in kg/kg total air
+!                  !-------------------------------------
+!
+!                  ! Construct diagnostic name
+!                  DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name ) //
+!     &                        '_KgKgTotal'
+!
+!                  ! Point to the proper slice of the DEPSAV array
+!                  Ptr3D => Spc_VV(:,:,:,N+2)
+!
+!                  ! Update the deposition velocity diagostics
+!                  CALL Diagn_Update( am_I_Root,
+!     &                               cName   = TRIM( DiagnName ),
+!     &                               Array3D = Ptr3D,
+!     &                               RC      = RC )
 
                ELSE
 
                   ! Construct diagnostic name
-                  DiagnName = 'TRACER_CONC_' // 
-     &                         TRIM( Input_Opt%TRACER_NAME(N) )
+                  DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name )
 
                   ! Point to the proper slice of the DEPSAV array
-                  Ptr3D => STT_VV(:,:,:,N)
+                  Ptr3D => Spc_VV(:,:,:,N)
 
                   ! Update the deposition velocity diagostics
                   CALL Diagn_Update( am_I_Root,
@@ -769,42 +812,16 @@
                ! STOP wieth error if the diagnostics were unsuccessful
                IF ( RC /= HCO_SUCCESS ) THEN
                   CALL ERROR_STOP(
-     &                 'Cannot update TRACER_CONC diag diagnostics',
+     &                 'Cannot update SPECIES_CONC diag diagnostics',
      &                 'DIAG1 (diag1.F)')
                ENDIF
             ENDIF
+
+            ! Free pointer
+            SpcInfo => NULL()
+
          ENDDO
 
-         IF ( DiagnSpec ) THEN
-
-            ! Loop over all species
-            DO N = 1, NTSPEC(NCSURBAN)
-   
-               ! Construct diagnostic name
-               IF ( TRIM(NAMEGAS(N)) == '' ) CYCLE
-               DiagnName = 'SPECIES_CONC_' // TRIM(NAMEGAS(N)) 
-         
-               ! Get value in #/cm3
-               Ptr3D => State_Chm%Species(:,:,:,N)
-   
-               ! Update the deposition velocity diagostics
-               CALL Diagn_Update( am_I_Root,
-     &                            cName   = TRIM( DiagnName ),
-     &                            Array3D = Ptr3D,
-     &                            RC      = RC )
-   
-               ! Free the pointer
-               Ptr3D => NULL()
-   
-               ! STOP wieth error if the diagnostics were unsuccessful
-               IF ( RC /= HCO_SUCCESS ) THEN
-                  CALL ERROR_STOP(
-     &                    'Cannot update SPECIES_CONC diag diagnostics',
-     &                    'DIAG1 (diag1.F)')
-               ENDIF
-            ENDDO
-   
-         ENDIF ! DiagnSpec
       ENDIF !ND45
    
 

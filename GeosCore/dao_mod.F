@@ -17,7 +17,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD           ! Size parameters
-      USE PHYSCONSTANTS          ! Physical constants
+      USE PhysConstants          ! Physical constants
       USE PRECISION_MOD          ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -260,13 +260,16 @@
 !
 ! !USES:
 !
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
-      USE GIGC_State_Met_Mod,   ONLY : MetState
-      USE GIGC_State_Chm_Mod,   ONLY : ChmState
       USE GRID_MOD,             ONLY : GET_AREA_M2
+      USE Input_Opt_Mod,        ONLY : OptInput
+      USE State_Met_Mod,        ONLY : MetState
+      USE State_Chm_Mod,        ONLY : ChmState
       USE PRESSURE_MOD    
+
+      ! Temporary fix for calculating air density (mps, 12/23/15)
+      USE PhysConstants,        ONLY : AIRMW, AVO
 !
 ! !INPUT PARAMETERS:
 !
@@ -367,6 +370,9 @@
 !                              MOISTMW, and ADMOIST
 !  28 Oct 2015 - E. Lundgren - Pass update_mixing_ratio flag, Input_Opt, and
 !                              State_Chm to optionally update tracer units
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  15 Aug 2016 - E. Lundgren - Update conc w/ RH for all species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -409,7 +415,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=============================================================
       ! Update air quantities
@@ -723,6 +729,10 @@
          ! following implementation of the moisture fix. Eventually
          ! this will need to be calculated using the ideal gas law to
          ! remove area dependency. (ewl, 9/16/16)
+         ! Prior to moisture fix:
+         !State_Met%AIRDEN(I,J,L) = PMEAN_DRY * AIRMW 
+         !&                          * PCONV * MCONV
+         !&                         / RSTARG / State_Met%T(I,J,L)
          State_Met%AIRDEN(I,J,L) = State_Met%AD(I,J,L)  
      &                             / State_Met%AIRVOL(I,J,L)
 
@@ -750,17 +760,29 @@
      &                                * PCONV * MCONV
      &                                / RSTARG / State_Met%T(I,J,L)
 
+         ! Set grid box dry air density [molec/cm3]
+         ! This is neeed for the chemistry routines
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! As a temporary fix, restore old method for calculating air density (from
+! RURALBOX) to remove any differences caused by the unit conversions. Once we
+! are satisfied with the FlexChem results, we can restore the AIRNUMDEN
+! calculation above using the ideal gas law (mps, 12/23/15)
+         State_Met%AIRNUMDEN(I,J,L) = (State_Met%AD(I,J,L)*1000.e+0_fp) 
+     &                              / (State_Met%AIRVOL(I,J,L)*1e+6_fp)
+     &                              *  AVO / AIRMW
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
       !=============================================================
-      ! Update tracer concentrations with updated air quantities
+      ! Update species concentrations with updated air quantities
       ! if update mixing ratio flag indicates to do so
       !=============================================================  
 
-      ! Update the mixing ratio with new air quantities such that tracer
+      ! Update the mixing ratio with new air quantities such that species
       ! mass is conserved if (1) update_mixing_ratio flag is not passed, 
       ! or (2) update_mixing_ratio flag is passed as true.
       ! NOTE: The only places where mixing ratio is not currently updated
@@ -771,14 +793,13 @@
 
          ! The concentration update formula works only for dry mixing ratios
          ! (kg/kg or v/v) so check if units are correct
-         IF ( State_Chm%Trac_units == 'kg/kg dry' .or.
-     &        State_Chm%Trac_units == 'v/v dry' ) THEN
+         IF ( State_Chm%Spc_units == 'kg/kg dry' .or.
+     &        State_Chm%Spc_units == 'v/v dry' ) THEN
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, SPHU_kgkg, SPHU_kgkg_prev )
-            
-            DO N = 1, Input_Opt%N_TRACERS
+            DO N = 1, State_Chm%nSpecies
             DO L = 1, LLPAR
             DO J = 1, JJPAR
             DO I = 1, IIPAR
@@ -788,20 +809,20 @@
                !============================================================
                ! Prior to 04 May 2016: 
                ! (Use specific humidity with DELP to get dry air mass)
-               !! Conver specific humidities from [g/kg] to [kg/kg]
+               !! Convert specific humidities from [g/kg] to [kg/kg]
                !SPHU_kgkg_prev = State_Met%SPHU_prev(I,J,L) * MCONV
                !SPHU_kgkg  = State_Met%SPHU(I,J,L) * MCONV
-               !
-               !! Update concentration by multiplying by previous air kg/m2
-               !! and dividing by new air kg/m2. Note that the acceleration
-               !! due to gravity and the dry air molecular wt cancel out.
-               !State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)
-      !&                           * ( ( 1.0e+0_fp - SPHU_kgkg_prev )      
-      !&                               * State_Met%DELP_prev(I,J,L) )           
-      !&                           / ( ( 1.0e+0_fp - SPHU_kgkg )      
-      !&                               * State_Met%DELP(I,J,L) )
+               ! 
+               ! Update concentration by multiplying by previous air kg/m2
+               ! and dividing by new air kg/m2. Note that the acceleration
+               ! due to gravity and the dry air molecular wt cancel out.
+               !State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)
+               !&                  * ( ( 1.0e+0_fp - SPHU_kgkg_prev )      
+               !&                      * State_Met%DELP_prev(I,J,L) )           
+               !&                  / ( ( 1.0e+0_fp - SPHU_kgkg )      
+               !&                      * State_Met%DELP(I,J,L) )
 
-               State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)
+               State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)
      &                                    * State_Met%DP_DRY_PREV(I,J,L)
      &                                    / State_Met%DELP_DRY(I,J,L) 
                 
@@ -813,9 +834,9 @@
 
          ELSE
             MSG = 'Incorrect tracer units: ' 
-     &              // TRIM(State_Chm%Trac_Units)
+     &              // TRIM(State_Chm%Spc_Units)
             LOC = 'DAO_MOD: AIRQNT'
-            CALL GIGC_Error( TRIM(MSG), RC, TRIM(LOC) )
+            CALL GC_Error( TRIM(MSG), RC, TRIM(LOC) )
          ENDIF
       ENDIF
 
@@ -839,9 +860,9 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YEDGE
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1213,7 +1234,7 @@
 !
       USE CMN_SIZE_MOD 
       USE ERROR_MOD,            ONLY : CHECK_VALUE
-      USE GIGC_State_Met_Mod,   ONLY : MetState
+      USE State_Met_Mod,        ONLY : MetState
       USE PRESSURE_MOD,         ONLY : GET_AP, GET_BP
 !
 ! !INPUT PARAMETERS: 
@@ -1360,7 +1381,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS: 
@@ -1446,7 +1467,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS: 
@@ -1532,7 +1553,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS: 
@@ -1599,7 +1620,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1743,7 +1764,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1840,10 +1861,10 @@
 !
 ! USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE JULDAY_MOD,         ONLY : JULDAY
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR
       USE TIME_MOD,           ONLY : GET_DAY
       USE TIME_MOD,           ONLY : GET_GMT
@@ -1888,7 +1909,7 @@
       !=================================================================
 
       ! Assume success
-      RC     = GIGC_SUCCESS
+      RC     = GC_SUCCESS
 
       ! Current time
       DOY    = GET_DAY_OF_YEAR()                       ! Current day of year
@@ -1943,8 +1964,8 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID_R
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MINUTE
       USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -1960,13 +1981,6 @@
       TYPE(MetState), INTENT(INOUT) :: State_Met    ! Meteorology State
 !
 ! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%  NOTE: The SUNCOS arrays of dimension MAXIJ are now deprecated.  We  %%%
-!  %%%  are replacing them with the SUNCOS fields of the State_Met object,  %%%
-!  %%%  which are of dimensions (IIPAR,JJPAR).   During the transition we   %%%
-!  %%%  will keep the old arrays. (bmy, 11/27/12)                           %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!                                                                             .
 !  Hour angle (AHR) is a function of longitude.  AHR is zero at solar noon, 
 !  and increases by 15 deg for every hour before or after solar noon.  Hour 
 !  angle can be thought of as the time in hours since the sun last passed
@@ -2022,7 +2036,7 @@
 !
 ! !LOCAL VARIABLES:
 !      
-      INTEGER              :: I,        IJLOOP,   J
+      INTEGER              :: I,        J
       INTEGER              :: MINUTE,   TS_SUN,   FACTOR
       REAL(fp)             :: TIMLOC,   DEC,      C_DEC
       REAL(fp)             :: S_DEC,    R,        YMID_R
@@ -2141,160 +2155,6 @@
 
       END SUBROUTINE COSSZA
 !EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: convert_units
-!!
-!! !DESCRIPTION: Subroutine CONVERT\_UNITS converts the units of STT from [kg] 
-!!  to [v/v] mixing ratio, or vice versa.  
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE CONVERT_UNITS( IFLAG, N_TRACERS, TCVV, AD, STT ) 
-!!
-!! !USES:
-!!
-!      USE ERROR_MOD,  ONLY : ERROR_STOP
-!!
-!! !INPUT PARAMETERS: 
-!!
-!
-!      ! =1 then convert from [kg ] --> [v/v]
-!      ! =2 then convert from [v/v] --> [kg ]
-!      INTEGER, INTENT(IN)    :: IFLAG
-!
-!      ! Number of tracers
-!      INTEGER, INTENT(IN)    :: N_TRACERS 
-!
-!      ! Array containing [Air MW / Tracer MW] for tracers
-!      REAL(fp),  INTENT(IN)    :: TCVV(N_TRACERS)
-!
-!      ! Array containing grid box air masses
-!      REAL(fp),  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!      !  Array containing tracer conc. [kg] or [v/v]
-!      REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
-!!
-!! !REMARKS
-!!  Most of the GEOS-Chem subroutines require the tracer array STT to be in 
-!!  units of [kg].  However, the cloud convection, PBL mixing, and transport
-!!  routines require STT to be in volume mixing ratio [v/v].   
-!!                                                                             .
-!!  Therefore, we need to call CONVERT_UNITS to convert STT from [kg] to [v/v]
-!!  before calling convection, PBL mixing, or transport.  We also need to
-!!  call CONVERT_UNITS after these routines to make the inverse conversion
-!!  from [v/v] to [kg].
-!
-!! !REVISION HISTORY: 
-!!  15 Jun 1998 - R. Yantosca - Initial version
-!!  (1 ) CONVERT_UNITS is written in Fixed-Form Fortran 90.
-!!  (2 ) Cosmetic changes, updated comments (bmy, 4/19/00)
-!!  (3 ) Now use SELECT CASE statement.  Also added parallel DO-loops
-!!        with the new Open-MP compiler directives. (bmy, 4/27/00)
-!!  (4 ) Bundled into "dao_mod.f".  Now pass NTRACE, TCVV, AD, STT as args.
-!!        Now use explicit DO-loops for I-J-L w/in parallel loops.  Updated
-!!        comments, cosmetic changes. (bmy, 3/29/02)
-!!  (5 ) Removed obsolete, commented-out code.  Also now use F90 intrinsic
-!!        REPEAT to write a line of "="'s to the screen. (bmy, 6/25/02)
-!!  (6 ) Updated comments.  Now reference ERROR_STOP from "error_mod.f" 
-!!        (bmy, 10/15/02)
-!!  (7 ) Renamed NTRACE to N_TRACERS for consistency (bmy, 7/19/04)
-!!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      INTEGER :: I, J, L, N
-!
-!      !=================================================================
-!      ! CONVERT_UNITS begins here!
-!      !=================================================================
-!      SELECT CASE ( IFLAG )
-!
-!         !==============================================================
-!         ! IFLAG = 1: Convert from [kg] -> [v/v] 
-!         !
-!         !  The conversion is as follows:
-!         !
-!         !   kg tracer(N)       1        Air mol wt     
-!         !   -----------  * -------- *  -------------   
-!         !        1          kg air     tracer mol wt   
-!         !
-!         !       moles tracer     volume tracer
-!         !   =   ------------  =  -------------
-!         !        moles air        volume air
-!         !
-!         ! Since the volume of a gas depends on the number of moles.
-!         ! Therefore, with:
-!         !
-!         !  TCMASS(N) = mol. wt. of tracer (AMU)
-!         !  TCVV(N)   = 28.97 / TCMASS(N)
-!         !            = mol. wt. of air (AMU) / mol. wt. of tracer (AMU)
-!         !  AD(I,J,L) = mass of air (kg) in grid box (I,J,L)
-!         !     
-!         ! the conversion is:
-!         ! 
-!         !  STT(I,J,L,N) [kg] * TCVV(N) / AD(I,J,L) = STT(I,J,L,N) [v/v]
-!         !==============================================================
-!         CASE ( 1 )
-!
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED ) 
-!!$OMP+PRIVATE( I, J, L, N ) 
-!            DO N = 1, N_TRACERS
-!            DO L = 1, LLPAR
-!            DO J = 1, JJPAR
-!            DO I = 1, IIPAR
-!               STT(I,J,L,N) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
-!            ENDDO
-!            ENDDO
-!            ENDDO
-!            ENDDO
-!!$OMP END PARALLEL DO
-!
-!         !==============================================================
-!         ! IFLAG = 2: Convert from [v/v] -> [kg] 
-!         !
-!         ! From the above discussion, the reverse unit conversion 
-!         ! is given by:
-!         !
-!         !  STT(I,J,L,N) [v/v] * AD(I,J,L) / TCVV(N) = STT(I,J,L,N) [kg]
-!         !==============================================================
-!         CASE ( 2 )
-!
-!!$OMP PARALLEL DO 
-!!$OMP+DEFAULT( SHARED ) 
-!!$OMP+PRIVATE( I, J, L, N )
-!            DO N = 1, N_TRACERS
-!            DO L = 1, LLPAR
-!            DO J = 1, JJPAR
-!            DO I = 1, IIPAR
-!               STT(I,J,L,N) = STT(I,J,L,N) * AD(I,J,L) / TCVV(N)
-!            ENDDO     
-!            ENDDO
-!            ENDDO
-!            ENDDO
-!!$OMP END PARALLEL DO
-!
-!         !==============================================================
-!         ! Otherwise halt with an error message
-!         !==============================================================
-!         CASE DEFAULT
-!            CALL ERROR_STOP( 'Invalid IFLAG value (must be 1 or 2)!', 
-!     &                       'CONVERT_UNITS (dao_mod.f)' )
-!      END SELECT
-!
-!      ! Return to calling program
-!      END SUBROUTINE CONVERT_UNITS
-!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2313,7 +2173,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod,   ONLY : MetState
+      USE State_Met_Mod,        ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !

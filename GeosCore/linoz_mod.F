@@ -15,8 +15,8 @@
 !
 ! !USES:
 !
-      USE PRECISION_MOD                ! For GEOS-Chem Precision (fp, f4, f8)
       USE ERROR_MOD, ONLY : DEBUG_MSG  ! Routine for debug output
+      USE PRECISION_MOD                ! For GEOS-Chem Precision (fp, f4, f8)
 
       IMPLICIT NONE
       PRIVATE
@@ -125,10 +125,10 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
@@ -172,7 +172,7 @@
       !=================================================================
 
       ! Assume success
-      RC    = GIGC_SUCCESS
+      RC    = GC_SUCCESS
 
       ! Current month
       MONTH = GET_MONTH()
@@ -212,14 +212,14 @@
 !
       USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL 
       USE CHEMGRID_MOD,       ONLY : GET_MAX_CHEMGRID_LEVEL
-      USE PHYSCONSTANTS,      ONLY : AIRMW, AVO ! Physical params
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ErrCode_Mod
       USE GRID_MOD,           ONLY : GET_AREA_CM2   
-      USE TRACERID_MOD                          
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : AIRMW, AVO
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -265,6 +265,12 @@
 !                              dependency on pressure_mod.
 !  19 Oct 2015 - C. Keller   - TLSTT is now 4D to work on curvilinear grids
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
+!  16 Jun 2016 - R. Silvern  - Now define species ID of O3 with Ind_ function
+!  17 Jun 2016 - R. Yantosca - Only look up species ID of O3 on first call
+!  22 Jun 2016 - M. Yannetti - Replace TCVV with spc db and physical constant
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  11 Jul 2016 - R. Yantosca - Bug fix: SPC now points to State_Chm%Species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -272,47 +278,53 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER  :: IM,      JM,         LM,   N_TRACERS
-      INTEGER  :: I,       J,          L,    N
+      INTEGER  :: IM,      JM,         LM,   nAdvect
+      INTEGER  :: I,       J,          L,    N,         NA
       INTEGER  :: K,       M,          LBOT, L_OVERWRLD
       INTEGER  :: NTRACER, NUM_TRACER, LPOS, ITRC
-      REAL(fp) :: CLIMO3,  CLIMPML,    DCO3, DERO3, DERTMP
+      REAL(fp) :: CLIMO3,  CLIMPML,    DCO3, DERO3,     DERTMP
       REAL(fp) :: DERCO3,  DMASS,      DTMP, SSO3
 
       ! Arrays
       REAL(fp) :: DCOLO3  (IIPAR,JJPAR,LLPAR                    )
       REAL(fp) :: COLO3   (IIPAR,JJPAR,LLPAR                    )
       REAL(fp) :: OUT_DATA(IIPAR,JJPAR,LLPAR                    )
-      REAL(fp) :: TCVV    (                  Input_Opt%N_TRACERS)
 
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       ! From Input_Opt
-      LOGICAL      :: LPRT
-      
+      LOGICAL       :: LPRT
+
+      ! SAVED scalars
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER, SAVE :: id_O3
+
       !=================================================================
       ! LINOZ_CHEM3 begins here!
       !=================================================================
 
       ! From Input_Opt
-      LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
-
+      LPRT       = ( Input_Opt%LPRT .and. am_I_Root )
 
       ! Assume success
-      RC         = GIGC_SUCCESS
+      RC         = GC_SUCCESS
 
       ! Dimensions
       IM         = IIPAR
       JM         = JJPAR
       LM         = LLPAR
-      N_TRACERS  = Input_Opt%N_TRACERS
-      TCVV       = Input_Opt%TCVV(1:N_TRACERS)
+      nAdvect    = State_Chm%nAdvect
 
-      ! Initialize GEOS-Chem tracer array [v/v dry air] from State_Chm object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [v/v dry air]
+      Spc        => State_Chm%Species
+
+      ! Look up the species ID of O3 only on the first call
+      IF ( FIRST ) THEN
+         id_O3   = Ind_('O3')
+         FIRST   = .FALSE.
+      ENDIF
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) 
       !-----------------------------------------------------------------
@@ -331,21 +343,21 @@
       ! Current practice in the std GEOS-Chem is to call function
       ! GET_MAX_TPAUSE_LEVEL (from tropopause_mod.F) to return the
       ! highest possible tropopause level.  This is only required
-      ! when doing a tagged Ox simulation. (bmy, 3/18/13)
+      ! when doing a tagged O3 simulation. (bmy, 3/18/13)
       !-----------------------------------------------------------------
       L_OVERWRLD = GET_MAX_CHEMGRID_LEVEL()
 #endif
 
       !=================================================================
       ! Select the proper tracer number to store O3 into, depending on
-      ! whether this is a full chemistry run or a tagged Ox run.
-      ! If tagged Ox, tracer 2 should be the stratospheric tracer.  (dbj)
+      ! whether this is a full chemistry run or a tagged O3 run.
+      ! If tagged O3, tracer 2 should be the stratospheric tracer.  (dbj)
       !=================================================================
       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
          NUM_TRACER = 1
       ELSE
-         IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
-            IF ( N_TRACERS > 1 ) THEN
+         IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
+            IF ( nAdvect > 1 ) THEN
                NUM_TRACER = 2
             ELSE
                NUM_TRACER = 1
@@ -370,12 +382,12 @@
       ! Perform stratospheric chemistry
       !=================================================================
 
-      ! **** note dbj: check STT(I,J,20:LLPAR,NTRACER) = with trop level
+      ! **** note dbj: check Spc(I,J,20:LLPAR,NTRACER) = with trop level
       ! ****         : check DMASS
       DO ITRC = 1, NUM_TRACER
 
          IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-            NTRACER = IDTO3
+            NTRACER = id_O3
          ELSE
             NTRACER = ITRC
          ENDIF
@@ -389,9 +401,9 @@
          !END IF
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,       J,     LBOT,   LPOS,   L    )
-!$OMP+PRIVATE( CLIMPML, DERO3, CLIMO3, DERCO3, DCO3 )
-!$OMP+PRIVATE( DERTMP,  DTMP,  SSO3,   DMASS        )
+!$OMP+PRIVATE( I,       J,     LBOT,   LPOS,   L      )
+!$OMP+PRIVATE( CLIMPML, DERO3, CLIMO3, DERCO3, DCO3   )
+!$OMP+PRIVATE( DERTMP,  DTMP,  SSO3,   DMASS )
          DO J = 1, JM
          DO I = 1, IM
 
@@ -426,49 +438,51 @@
             ! Current practice in the std GEOS-Chem is to call function
             ! GET_MAX_TPAUSE_LEVEL (from tropopause_mod.F) to return the
             ! highest possible tropopause level.  This is only required
-            ! when doing a tagged Ox simulation. (bmy, 3/18/13)
+            ! when doing a tagged O3 simulation. (bmy, 3/18/13)
             !-----------------------------------------------------------
 
             ! dbj: for now, set tagged stratospheric tracer to total 
             ! O3 in the overworld to avoid issues with spin ups
-            IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
-              STT(I,J,(L_OVERWRLD+1):LLPAR,NTRACER) =
-     &                STT(I,J,(L_OVERWRLD+1):LLPAR,1)
+            IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
+              Spc(I,J,(L_OVERWRLD+1):LLPAR,NTRACER) =
+     &                Spc(I,J,(L_OVERWRLD+1):LLPAR,1)
             ENDIF
 #endif
            ! IF ( LPRT ) CALL DEBUG_MSG( '### LINOZ_CHEM3: at LM, LBOT')
-          ! IF (LPRT) CALL DEBUG_MSG('DONE TAGOX')
+          ! IF (LPRT) CALL DEBUG_MSG('DONE TAGO3')
 
             ! Loop over levels
             DO L = LM, LBOT, -1
             ! IF ( LPRT ) THEN
-            !   PRINT*, '### STT: ', STT(I,J,L,NTRACER)
+            !   PRINT*, '### Spc: ', Spc(I,J,L,NTRACER)
             !   CALL FLUSH(6) 
             ! ENDIF
 
                ! Skip if tracer is negative
-               
-               IF ( STT(I,J,L,NTRACER) .LE. 0.e+0_fp ) CYCLE
+               ! SDE 2016-04-06: Changed from LE to LT
+               IF ( Spc(I,J,L,NTRACER) .LT. 0.e+0_fp ) CYCLE
 
                ! calculate ozone column above box (and save)
                ! dcolo3 = ozone column (in DU) in given layer
                ! colo3 =  ozone column above layer + half of
                ! column in layer
 
-               ! bdf stt is in v/v, make conversion to DU
+               ! bdf Spc is in v/v, make conversion to DU
                if (l.eq.lm) then !top model layer
-                  dcolo3(i,j,l) = (stt(i,j,l,NTRACER) *
-     &                 State_Met%AD(I,J,L) /
-     &                 TCVV(NTRACER))      / GET_AREA_CM2(I,J,L) *
-     &                 AVO / (AIRMW/TCVV(NTRACER)*1e-3_fp) / 
-     &                 2.687e+16_fp
+                  dcolo3(i,j,l) = (Spc(i,j,l,NTRACER) *
+     &                 State_Met%AD(I,J,L) / ( AIRMW 
+     &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )) 
+     &                 / GET_AREA_CM2(I,J,L) * AVO / (AIRMW / ( AIRMW 
+     &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )
+     &                 *1e-3_fp) / 2.687e+16_fp
                   colo3(i,j,l) = dcolo3(i,j,l)*0.5
                else
-                  dcolo3(i,j,l) = (stt(i,j,l,NTRACER) * 
-     &                 State_Met%AD(I,J,L) / 
-     &                 TCVV(NTRACER))      / GET_AREA_CM2(I,J,L) *
-     &                 AVO / (AIRMW/TCVV(NTRACER)*1e-3_fp) / 
-     &                 2.687e+16_fp
+                  dcolo3(i,j,l) = (Spc(i,j,l,NTRACER) * 
+     &                 State_Met%AD(I,J,L) / ( AIRMW 
+     &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )) 
+     &                 / GET_AREA_CM2(I,J,L) * AVO / (AIRMW / ( AIRMW 
+     &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )
+     &                 *1e-3_fp) / 2.687e+16_fp
                   colo3(i,j,l) = colo3(i,j,l+1) +
      &                 (dcolo3(i,j,l)+dcolo3(i,j,l+1))*0.5
                endif
@@ -495,18 +509,18 @@
 
                ! ++++++ change in ozone mass due to chemistry: ++++++
                !ssO3 = f^*
-               dmass=(sso3-STT(I,J,L,NTRACER))*(1.0-exp(dero3*dtchem))
+               dmass=(sso3-Spc(I,J,L,NTRACER))*(1.0-exp(dero3*dtchem))
 
                ! ++++++ update ozone mass ++++++ 
                ! LINOX valid only up to 58 km, so do not use above 0.3 hPa
                ! dbj: impose exponential fall off of mixing ratio 
                ! between 0.3 and 0.01 hPa (with fall off of a scale height)
                IF (State_Met%PEDGE(I,J,L) .LE. 0.3e+0_f8) THEN
-                  STT(I,J,L,NTRACER) = 
+                  Spc(I,J,L,NTRACER) = 
      &                (State_Met%PMID(I,J,L)/State_Met%PMID(I,J,LPOS-1)) 
-     &                * STT(I,J,LPOS-1,NTRACER)
+     &                * Spc(I,J,LPOS-1,NTRACER)
                ELSE
-                  STT(I,J,L,NTRACER) = STT(I,J,L,NTRACER)+DMASS 
+                  Spc(I,J,L,NTRACER) = Spc(I,J,L,NTRACER)+DMASS 
                ENDIF
 
             ENDDO       ! loop over L
@@ -521,8 +535,9 @@
 
       ENDDO
       IF (LPRT) CALL DEBUG_MSG('DONE LINOZ_CHEM3')
+
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE LINOZ_CHEM3
 !EOC
@@ -544,11 +559,11 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
       USE GRID_MOD,           ONLY : GET_YMID 
-      USE TIME_MOD,           ONLY : GET_MONTH
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PRESSURE_MOD
+      USE TIME_MOD,           ONLY : GET_MONTH
 !
 ! !INPUT PARAMETERS:
 !
@@ -798,8 +813,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -891,7 +906,7 @@
       !=================================================================
 
       ! Assume success
-      RC         = GIGC_SUCCESS
+      RC         = GC_SUCCESS
 
       ! Now make NX a local variable, since we already pass
       ! its value via the Input_Opt object (bmy, 3/13/18)
@@ -1077,9 +1092,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE InquireMod,         ONLY : findFreeLun
 !
 ! !INPUT PARAMETERS:
@@ -1133,7 +1148,7 @@
       !=================================================================
 
       ! Assume success
-      RC             = GIGC_SUCCESS
+      RC             = GC_SUCCESS
 
       ! Get fields from Input_Opt
       NFIELDS_LINOZ  = Input_Opt%LINOZ_NFIELDS
@@ -1309,9 +1324,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD 
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1333,7 +1348,7 @@
 !------------------------------------------------------------------------------
 !BOC
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Allocate TLSTT array
       ALLOCATE( TLSTT( IIPAR, 

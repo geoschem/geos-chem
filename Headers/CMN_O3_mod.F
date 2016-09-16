@@ -76,7 +76,7 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -100,7 +100,7 @@
 !------------------------------------------------------------------------------
 !BOC
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Allocate arrays
       ALLOCATE( SAVEOH ( IIPAR, JJPAR, LLPAR ), STAT=RC )
@@ -132,7 +132,7 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -152,7 +152,7 @@
 !------------------------------------------------------------------------------
 !BOC
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
       
       ! Deallocate arrays
       IF ( ALLOCATED( SAVEOH  ) ) DEALLOCATE( SAVEOH  )

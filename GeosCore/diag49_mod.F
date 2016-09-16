@@ -15,9 +15,9 @@
 !
 ! !USES:
 !
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-
-      USE inquireMod, ONLY : findFreeLUN ! (ewl, 6/16/15)
+      USE inquireMod,    ONLY : findFreeLUN ! (ewl, 6/16/15)
+      USE PhysConstants
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -75,7 +75,7 @@
 !
 !  ND49 tracer numbers:
 !  ============================================================================
-!  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v        ]
+!  1 - nAdvect   : GEOS-CHEM advected species               [v/v        ]
 !  151           : OH concentration                         [molec/cm3  ]
 !  152           : NOy concentration                        [v/v        ]
 !  153           : Relative Humidity                        [%          ]
@@ -133,6 +133,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  22 Jun 2016 - M. Yannetti - Replace TCVV with spec db and physical const
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -186,6 +187,12 @@
       ! Logical file unit for ND49 diagnostic
       INTEGER            :: IU_ND49
 
+      ! Species ID flags
+      INTEGER            :: id_HNO3, id_HNO4, id_N2O5, id_NO
+      INTEGER            :: id_PAN,  id_PMN,  id_PPN,  id_O3
+      INTEGER            :: id_R4N2, id_SALA, id_SALC, id_NO2
+      INTEGER            :: id_PASV
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -208,30 +215,26 @@
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
-      USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
+      USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
+      USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
+      USE CMN_O3_MOD	           ! SAVEOH
+      USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET,        GET_YOFFSET
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLun
+      USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
+      USE PhysConstants            ! XTRA2, XNUMOLAIR
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD,           GET_NHMS
       USE TIME_MOD,           ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
       USE TIME_MOD,           ONLY : GET_TAU,            GET_HOUR
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
-      USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
-      USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
-      USE TRACERID_MOD,       ONLY : IDTPASV
-
-      USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
-      USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE CMN_O3_MOD	           ! SAVEOH
-      USE PHYSCONSTANTS            ! XTRA2, XNUMOLAIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -296,17 +299,30 @@
 !  24 Jun 2015 - E. Lundgren - Add code to print out mass conservation output,
 !                              blocked off by #if defined( MASSCONS )
 !  17 Nov 2015 - E. Lundgren - Bug fix in masscons kg calculation: use AD
+!  16 Jun 2016 - K. Yu       - Now define species ID's with the Ind_ function
+!  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
+!  22 Jun 2016 - R. Yantosca - Now make species ID's module variables
+!  22 Jun 2016 - R. Yantosca - Rename IDTPASV to id_PASV.  Also move the 
+!                              initializations of the id_ flags before the
+!                              first mass conservation test.
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! SAVEd scalars
       LOGICAL, SAVE            :: FIRST  = .TRUE.
       LOGICAL, SAVE            :: IS_FULLCHEM
       LOGICAL, SAVE            :: IS_NOy,      IS_CLDTOPS, IS_OPTD
       LOGICAL, SAVE            :: IS_SEASALT,  IS_SLP
+
+      ! Scalars
       LOGICAL                  :: LINTERP
+      INTEGER                  :: nAdvect
       INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
       INTEGER                  :: N,    R,     H,    W, X, Y
       INTEGER                  :: NYMD, NHMS,  TS_DIAG
@@ -332,12 +348,9 @@
       ! For fields from Input_Opt
       LOGICAL                  :: LSOILNOX
       LOGICAL                  :: DO_DIAG_WRITE
-      INTEGER                  :: N_TRACERS
-      REAL(fp)                 :: TCVV(Input_Opt%N_TRACERS)
  
       ! Pointers
-      REAL(fp), POINTER          :: STT(:,:,:,:)
-      REAL(fp), POINTER          :: AD(:,:,:)
+      REAL(fp), POINTER        :: Spc(:,:,:,:)
 
       ! For mass conservation tests
       LOGICAL                  :: DO_MASSCONS
@@ -347,13 +360,14 @@
       !=================================================================
 
       ! Assume success
-      RC            =  GIGC_SUCCESS
+      RC            =  GC_SUCCESS
+
+      ! Number of advected species
+      nAdvect       = State_Chm%nAdvect
 
       ! Copy values from Input_Opt
       LSOILNOX      = Input_Opt%LSOILNOX
       DO_DIAG_WRITE = Input_Opt%DO_DIAG_WRITE
-      N_TRACERS     = Input_Opt%N_TRACERS
-      TCVV          = Input_Opt%TCVV(1:N_TRACERS)
 
 #if defined( MASSCONS )
       DO_MASSCONS   = .TRUE.
@@ -361,6 +375,42 @@
       DO_MASSCONS   = .FALSE.
 #endif
       
+      !----------------------------------------
+      ! First-time handling (bmy, 6/22/16)
+      !----------------------------------------
+      IF ( FIRST ) THEN
+
+         ! Define species ID flags
+         id_HNO3 = Ind_('HNO3')
+         id_HNO4 = Ind_('HNO4')
+         id_N2O5 = Ind_('N2O5')
+         id_NO   = Ind_('NO'  )
+         id_PAN  = Ind_('PAN' )
+         id_PMN  = Ind_('PMN' )
+         id_PPN  = Ind_('PPN' )
+         id_O3   = Ind_('O3'  )
+         id_R4N2 = Ind_('R4N2')
+         id_SALA = Ind_('SALA')
+         id_SALC = Ind_('SALC')
+         id_NO2  = Ind_('NO2' )
+         id_PASV = Ind_('PASV') 
+
+         ! Set logical flags on the first timestep
+         IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
+         IS_SLP      = ASSOCIATED( State_Met%SLP     )
+         IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
+         IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
+         IS_SEASALT  = ( id_SALA > 0 .and. id_SALC > 0 )
+         IS_NOy      = ( IS_FULLCHEM .and. id_NO   > 0 .and.
+     &                   id_NO2  > 0 .and. id_PAN  > 0 .and.
+     &                   id_HNO3 > 0 .and. id_PMN  > 0 .and.
+     &                   id_PPN  > 0 .and. id_R4N2 > 0 .and.
+     &                   id_N2O5 > 0 .and. id_HNO4 > 0 ) 
+
+         ! Reset first-time flag
+         FIRST = .FALSE.
+      ENDIF
+
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%%  MASS CONSERVATION TEST:                                  %%%
       !%%%  If we are just printing out mass conservation, we can    %%%
@@ -368,28 +418,12 @@
       !%%%  only interested in printing out the sum of tracers.      %%%
       !%%%  (ewl, 6/24/15)                                           %%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      IF ( DO_MASSCONS .or. IDTPASV > 0 ) THEN
+      IF ( DO_MASSCONS .or. id_PASV > 0 ) THEN
          DO_DIAG_WRITE = .FALSE.
       ENDIF
 
-      ! Initialize pointers
-      STT          => State_Chm%Tracers
-      AD           => State_Met%AD
-
-      ! Set logical flags on first timestep
-      IF ( FIRST ) THEN
-         IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
-         IS_SLP      = ASSOCIATED( State_Met%SLP     )
-         IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
-         IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
-         IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
-         IS_NOy      = ( IS_FULLCHEM .and. IDTNO   > 0 .and.
-     &                   IDTNO2  > 0 .and. IDTPAN  > 0 .and.
-     &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
-     &                   IDTPPN  > 0 .and. IDTR4N2 > 0 .and.
-     &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 ) 
-         FIRST       = .FALSE.
-      ENDIF
+      ! Point to
+      SPC => State_Chm%Species
 
       !=================================================================
       ! If it's a new day, open a new BPCH file and write file header
@@ -456,11 +490,10 @@
          ! Zero summing array
          Q = 0e+0_fp
 
-         ! Test by tracer number
-         IF ( N <= N_TRACERS ) THEN
+         IF ( N <= nAdvect ) THEN
 
             !-------------------------------------
-            ! GEOS-CHEM tracers [v/v]
+            ! GEOS-CHEM advected species [v/v]
             !-------------------------------------
             CATEGORY = 'IJ-AVG-$'
             UNIT     = ''           ! Let GAMAP pick the unit
@@ -471,7 +504,7 @@
             !%%%  MASS CONSERVATION TEST (ewl, 6/24/15)              %%%
             !%%%  Declare a variable for total mass of tracer.       %%%
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            IF ( DO_MASSCONS .or. IDTPASV > 0 ) THEN
+            IF ( DO_MASSCONS .or. id_PASV > 0 ) THEN
                TOTALMASS = 0.0e+0_fp
             ENDIF
 
@@ -489,11 +522,12 @@
                !%%%  MASS CONSERVATION TEST (ewl, 6/24/15)           %%%
                !%%%  Archive output in kg (not v/v) for printout     %%%
                !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-               IF ( DO_MASSCONS .or. IDTPASV > 0 ) THEN
-                  Q(X,Y,K) = STT(I,J,L,N) * State_Met%AD(I,J,L)
+               IF ( DO_MASSCONS .or. id_PASV > 0 ) THEN
+                  Q(X,Y,K) = SPC(I,J,L,N) * State_Met%AD(I,J,L)
                ELSE
                   ! Normal ND49 output, archive in v/v
-                  Q(X,Y,K) = STT(I,J,L,N) * TCVV(N)
+                  Q(X,Y,K) = SPC(I,J,L,N) * ( AIRMW 
+     &                       / State_Chm%SpcData(N)%Info%emMW_g )
                ENDIF
                
             ENDDO
@@ -506,7 +540,7 @@
             !%%%  Sum the mass and write out to an ASCII file        %%%
             !%%%  Use the filename from Input_Opt%ND49_FILE          %%%
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            IF ( DO_MASSCONS .or. IDTPASV > 0 ) THEN
+            IF ( DO_MASSCONS .or. id_PASV > 0 ) THEN
 
                ! Sum the mass of tracer in kg
                TOTALMASS = SUM( Q )
@@ -593,86 +627,50 @@
                ! Temp variable for accumulation
                TMP = 0e0_fp
             
-!               ! NO
-!               TMP = TMP + ( TCVV(IDTNO)         *
-!     &                       STT(I,J,L,IDTNO)    /
-!     &                       AD(I,J,L) )
-!
-!               ! NO2
-!               TMP = TMP + ( TCVV(IDTNO2)        *
-!     &                       STT(I,J,L,IDTNO2)   /
-!     &                       AD(I,J,L) )
-!
-!               ! PAN
-!               TMP = TMP + ( TCVV(IDTPAN)        * 
-!     &                       STT(I,J,L,IDTPAN)   / 
-!     &                       AD(I,J,L) )
-!
-!               ! HNO3
-!               TMP = TMP + ( TCVV(IDTHNO3)       *
-!     &                       STT(I,J,L,IDTHNO3)  / 
-!     &                       AD(I,J,L) )
-!            
-!               ! PMN
-!               TMP = TMP + ( TCVV(IDTPMN)        *
-!     &                       STT(I,J,L,IDTPMN)   / 
-!     &                       AD(I,J,L) )
-!
-!               ! PPN
-!               TMP = TMP + ( TCVV(IDTPPN)        * 
-!     &                       STT(I,J,L,IDTPPN)   / 
-!     &                       AD(I,J,L) )
-! 
-!               ! R4N2
-!               TMP = TMP + ( TCVV(IDTR4N2)       *
-!     &                       STT(I,J,L,IDTR4N2)  / 
-!     &                       AD(I,J,L) )
-!            
-!               ! N2O5
-!               TMP = TMP + ( 2e+0_fp * TCVV(IDTN2O5) *
-!     &                       STT(I,J,L,IDTN2O5)  / 
-!     &                       AD(I,J,L) )
-!                        
-!               ! HNO4
-!               TMP = TMP + ( TCVV(IDTHNO4)       *
-!     &                       STT(I,J,L,IDTHNO4)  / 
-!     &                       AD(I,J,L) )
-
                ! NO
-               TMP = TMP + ( TCVV(IDTNO)         *
-     &                       STT(I,J,L,IDTNO) )
+               TMP = TMP + ( ( AIRMW 
+     &               / State_Chm%SpcData(id_NO)%Info%emMW_g )      
+     &               * SPC(I,J,L,id_NO) )
 
                ! NO2
-               TMP = TMP + ( TCVV(IDTNO2)        *
-     &                       STT(I,J,L,IDTNO2) )  
+               TMP = TMP + ( ( AIRMW 
+     &               / State_Chm%SpcData(id_NO2)%Info%emMW_g )      
+     &               * SPC(I,J,L,id_NO2) )  
 
                ! PAN
-               TMP = TMP + ( TCVV(IDTPAN)        * 
-     &                       STT(I,J,L,IDTPAN) )
+               TMP = TMP + ( ( AIRMW 
+     &               / State_Chm%SpcData(id_PAN)%Info%emMW_g )       
+     &               * SPC(I,J,L,id_PAN) )
 
                ! HNO3
-               TMP = TMP + ( TCVV(IDTHNO3)       *
-     &                       STT(I,J,L,IDTHNO3) )
+               TMP = TMP + ( ( AIRMW
+     &               / State_Chm%SpcData(id_HNO3)%Info%emMW_g )     
+     &               * SPC(I,J,L,id_HNO3) )
             
                ! PMN
-               TMP = TMP + ( TCVV(IDTPMN)        *
-     &                       STT(I,J,L,IDTPMN) )
+               TMP = TMP + ( ( AIRMW 
+     &               / State_Chm%SpcData(id_PMN)%Info%emMW_g )      
+     &               * SPC(I,J,L,id_PMN) )
 
                ! PPN
-               TMP = TMP + ( TCVV(IDTPPN)        * 
-     &                       STT(I,J,L,IDTPPN) )
+               TMP = TMP + ( ( AIRMW 
+     &               / State_Chm%SpcData(id_PPN)%Info%emMW_g )      
+     &               * SPC(I,J,L,id_PPN) )
  
                ! R4N2
-               TMP = TMP + ( TCVV(IDTR4N2)       *
-     &                       STT(I,J,L,IDTR4N2) )
+               TMP = TMP + ( ( AIRMW 
+     &               / State_Chm%SpcData(id_R4N2)%Info%emMW_g )     
+     &               * SPC(I,J,L,id_R4N2) )
             
                ! N2O5
-               TMP = TMP + ( 2e+0_fp * TCVV(IDTN2O5) *
-     &                       STT(I,J,L,IDTN2O5) )
+               TMP = TMP + ( ( 2e+0_fp * AIRMW 
+     &               / State_Chm%SpcData(id_N2O5)%Info%emMW_g ) 
+     &               * SPC(I,J,L,id_N2O5) )
                         
                ! HNO4
-               TMP = TMP + ( TCVV(IDTHNO4)       *
-     &                       STT(I,J,L,IDTHNO4) )
+               TMP = TMP + ( ( AIRMW 
+     &               / State_Chm%SpcData(id_HNO4)%Info%emMW_g )     
+     &               * SPC(I,J,L,id_HNO4) )
 
                ! Save afternoon points
                Q(X,Y,K) = Q(X,Y,K) + TMP
@@ -823,10 +821,9 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-!               Q(X,Y,K) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
-!     &                      TCVV(IDTSALA)      / AD(I,J,L) 
-               Q(X,Y,K) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
-     &                      TCVV(IDTSALA)     
+              Q(X,Y,K) = ( SPC(I,J,L,id_SALA) + SPC(I,J,L,id_SALC) ) *
+     &                     ( AIRMW
+     &                       / State_Chm%SpcData(id_SALA)%Info%emMW_g )     
             ENDDO
             ENDDO
             ENDDO
@@ -1573,8 +1570,7 @@
       ENDIF
 
       ! Free pointers
-      NULLIFY( STT )
-!      NULLIFY( AD  )
+      Spc => NULL()
 
       END SUBROUTINE DIAG49
 !EOC
@@ -1647,9 +1643,9 @@
 !
 ! !USES:
 !
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,  ONLY : GET_ELAPSED_MIN
       USE TIME_MOD,  ONLY : GET_TS_DIAG
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 !
 ! !RETURN VALUE:
 !
@@ -1762,14 +1758,14 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD, ONLY : GET_MODELNAME
-      USE BPCH2_MOD, ONLY : GET_HALFPOLAR
-      USE GRID_MOD,  ONLY : GET_XOFFSET
-      USE GRID_MOD,  ONLY : GET_YOFFSET
-      USE GRID_MOD,  ONLY : ITS_A_NESTED_GRID
-      USE ERROR_MOD, ONLY : ERROR_STOP
+      USE BPCH2_MOD,    ONLY : GET_MODELNAME
+      USE BPCH2_MOD,    ONLY : GET_HALFPOLAR
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE GRID_MOD,     ONLY : GET_XOFFSET
+      USE GRID_MOD,     ONLY : GET_YOFFSET
+      USE GRID_MOD,     ONLY : ITS_A_NESTED_GRID
 
-      USE CMN_SIZE_MOD ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1808,7 +1804,7 @@
 ! !LOCAL VARIABLES:
 !
       CHARACTER(LEN=255) :: LOCATION
-      
+
       !=================================================================
       ! INIT_DIAG49 begins here!
       !=================================================================

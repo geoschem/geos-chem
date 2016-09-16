@@ -17,7 +17,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_FJX_MOD, ONLY : W_
+      USE CMN_FJX_MOD,   ONLY : W_
       USE PRECISION_MOD, ONLY : fpp => fp    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -83,8 +83,12 @@
       ! Change PD44 from 53 to 55 to include MOPO and MOPI (ewl, 7/7/15)
       ! Changed PD05 from 10 to 14 (tdf, 03/02/09)
       !=================================================================
-      INTEGER, PARAMETER :: PD01=3            
-      INTEGER, PARAMETER :: PD02=3
+!------------------------------------------------------------------------------
+! Prior to 7/21/16:
+! These parameters are now obsolete, so remove them (bmy, 7/21/16)
+!      INTEGER, PARAMETER :: PD01=3            
+!      INTEGER, PARAMETER :: PD02=3
+!------------------------------------------------------------------------------
       INTEGER, PARAMETER :: PD05=14
       INTEGER, PARAMETER :: PD06=NDSTBIN
       ! +3 for SEAC4RS SOA tracers (jaf, 6/25/13)
@@ -93,47 +97,63 @@
       INTEGER, PARAMETER :: PD09=6
       INTEGER, PARAMETER :: PD10=20            
       INTEGER, PARAMETER :: PD11=5
-      INTEGER, PARAMETER :: PD12=0     
-      INTEGER, PARAMETER :: PD13=1            
-      INTEGER, PARAMETER :: PD14=NNPAR       
-      INTEGER, PARAMETER :: PD15=NNPAR      
+!------------------------------------------------------------------------------
+! Prior to 7/21/16:
+! These parameters are now obsolete, so remove them (bmy, 7/21/16)
+!      INTEGER, PARAMETER :: PD12=0     
+!      INTEGER, PARAMETER :: PD13=1            
+!      INTEGER, PARAMETER :: PD14=NNPAR       
+!      INTEGER, PARAMETER :: PD15=NNPAR      
+!------------------------------------------------------------------------------
       INTEGER, PARAMETER :: PD16=2  
       INTEGER, PARAMETER :: PD17=8           
       INTEGER, PARAMETER :: PD18=8
-      INTEGER, PARAMETER :: PD19=0            
-      INTEGER, PARAMETER :: PD20=0 
+!------------------------------------------------------------------------------
+! Prior to 7/21/16:
+! These parameters are now obsolete, so remove them (bmy, 7/21/16)
+!      INTEGER, PARAMETER :: PD19=0            
+!      INTEGER, PARAMETER :: PD20=0 
+!------------------------------------------------------------------------------
       INTEGER, PARAMETER :: PD21=5+(NRHAER+NDUST)*3+(NRHAER*2)+
      &                           (NSTRATAER*3)
       INTEGER, PARAMETER :: PD22=28
-      INTEGER, PARAMETER :: PD23=0           
-      INTEGER, PARAMETER :: PD24=NNPAR        
-      INTEGER, PARAMETER :: PD25=NNPAR       
-      INTEGER, PARAMETER :: PD26=NNPAR
-      INTEGER, PARAMETER :: PD27=1            
-      INTEGER, PARAMETER :: PD28=0           
-      INTEGER, PARAMETER :: PD29=5
-      INTEGER, PARAMETER :: PD30=1           
-      INTEGER, PARAMETER :: PD31=1           
-      INTEGER, PARAMETER :: PD32=1
-      INTEGER, PARAMETER :: PD33=NNPAR        
-      INTEGER, PARAMETER :: PD34=2           
-      INTEGER, PARAMETER :: PD35=NNPAR 
-      INTEGER, PARAMETER :: PD36=NNPAR        
-      INTEGER, PARAMETER :: PD37=35        
-      INTEGER, PARAMETER :: PD38=35 
-      INTEGER, PARAMETER :: PD39=38      !jpp replaced 35
+!------------------------------------------------------------------------------
+! Prior to 7/21/16:
+! These parameters are now obsolete, so remove them (bmy, 7/21/16)
+!      INTEGER, PARAMETER :: PD23=0           
+!      INTEGER, PARAMETER :: PD24=NNPAR        
+!      INTEGER, PARAMETER :: PD25=NNPAR       
+!      INTEGER, PARAMETER :: PD26=NNPAR
+!      INTEGER, PARAMETER :: PD27=1            
+!      INTEGER, PARAMETER :: PD28=0           
+!      INTEGER, PARAMETER :: PD29=5
+!      INTEGER, PARAMETER :: PD30=1           
+!      INTEGER, PARAMETER :: PD31=1           
+!      INTEGER, PARAMETER :: PD32=1
+!      INTEGER, PARAMETER :: PD33=NNPAR        
+!      INTEGER, PARAMETER :: PD34=2           
+!      INTEGER, PARAMETER :: PD35=NNPAR 
+!      INTEGER, PARAMETER :: PD36=NNPAR        
+!      INTEGER, PARAMETER :: PD37=35        
+!      INTEGER, PARAMETER :: PD38=35 
+!      INTEGER, PARAMETER :: PD39=38      !jpp replaced 35
+!------------------------------------------------------------------------------
       INTEGER, PARAMETER :: PD40=4       
       INTEGER, PARAMETER :: PD43=7  
-      INTEGER, PARAMETER :: PD44=55     
-      INTEGER, PARAMETER :: PD45=NNPAR+1      
-      INTEGER, PARAMETER :: PD46=26
-      INTEGER, PARAMETER :: PD47=NNPAR+1
-      INTEGER, PARAMETER :: PD48=2            
-      INTEGER, PARAMETER :: PD49=0                
-      INTEGER, PARAMETER :: PD50=0            
-      INTEGER, PARAMETER :: PD51=0           
-      INTEGER, PARAMETER :: PD52=1          
-      INTEGER, PARAMETER :: PD54=0           
+!------------------------------------------------------------------------------
+! Prior to 7/21/16:
+! These parameters are now obsolete, so remove them (bmy, 7/21/16)
+!      INTEGER, PARAMETER :: PD44=55     
+!      INTEGER, PARAMETER :: PD45=NNPAR+1      
+!      INTEGER, PARAMETER :: PD46=26
+!      INTEGER, PARAMETER :: PD47=NNPAR+1
+!      INTEGER, PARAMETER :: PD48=2            
+!      INTEGER, PARAMETER :: PD49=0                
+!      INTEGER, PARAMETER :: PD50=0            
+!      INTEGER, PARAMETER :: PD51=0           
+!      INTEGER, PARAMETER :: PD52=1          
+!      INTEGER, PARAMETER :: PD54=0           
+!------------------------------------------------------------------------------
       INTEGER, PARAMETER :: PD55=3
       ! Potential temperature diagnostic (hotp 7/31/09)
       INTEGER, PARAMETER :: PD57=1           
@@ -149,16 +169,24 @@
       INTEGER, PARAMETER :: PD60=1
       INTEGER, PARAMETER :: PD61=0
 #endif
-      INTEGER, PARAMETER :: PD62=NNPAR        
-      INTEGER, PARAMETER :: PD63=0           
+!------------------------------------------------------------------------------
+! Prior to 7/21/16:
+! These parameters are now obsolete, so remove them (bmy, 7/21/16)
+!      INTEGER, PARAMETER :: PD62=NNPAR        
+!      INTEGER, PARAMETER :: PD63=0           
+!------------------------------------------------------------------------------
       INTEGER, PARAMETER :: PD64=W_
       INTEGER            :: PD65
       INTEGER, PARAMETER :: PD66=6           
       INTEGER, PARAMETER :: PD67=23 ! (Lin, 31/03/09)
       INTEGER, PARAMETER :: PD68=13     
       INTEGER, PARAMETER :: PD69=1
-      INTEGER, PARAMETER :: PD70=0
-      INTEGER, PARAMETER :: PD71=NNPAR+1
+!------------------------------------------------------------------------------
+! Prior to 7/21/16:
+! These parameters are now obsolete, so remove them (bmy, 7/21/16)
+!      INTEGER, PARAMETER :: PD70=0
+!      INTEGER, PARAMETER :: PD71=NNPAR+1
+!------------------------------------------------------------------------------
 
       !number of rad flux and optics output types
       !8 flux and 3*3=9 optics
@@ -181,8 +209,6 @@
 #endif
 #if   defined( TOMAS )
       INTEGER, PARAMETER :: MAX_TRACER = NNPAR+1   ! For TOMAS (win, 1/25/10)
-#elif defined( APM ) 
-      INTEGER, PARAMETER :: MAX_TRACER = NNPAR+100 ! For APM (G. Luo 3/8/11)
 #else
       INTEGER, PARAMETER :: MAX_TRACER = NNPAR+6   ! For non-TOMAS simulations 
 #endif
@@ -243,8 +269,12 @@
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%%  NOTE: THIS MODULE IS DEPRECATED.  MANY OF THE QUANTITIES STORED  %%%
 !  %%%  in CMN_DIAG_MOD ARE NOW INCLUDED IN THE INPUT OPTIONS OBJECT,    %%%
-!  %%%  BASED ON THE DERIVED TYPE IN Headers/gigc_input_opt_mod.F90.     %%%
+!  %%%  BASED ON THE DERIVED TYPE IN Headers/input_opt_mod.F90.          %%%
 !  %%%  (bmy, 11/19/12)                                                  %%%
+!  %%%                                                                   %%%
+!  %%%  ALSO NOTE: IN GEOS-CHEM v11-01, WE WILL BE RETIRING THE BPCH     %%%
+!  %%%  DIAGNOSTICS.  MANY OF THESE PARAMETERS CAN THEN BE REMOVED.      %%%
+!  %%%  (bmy, 6/24/16)                                                   %%%
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
@@ -292,6 +322,9 @@
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND72 to ND72 to
 !                              avoid conflicts with hourly max ppbv diagnostic.
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
+!  21 Jul 2016 - R. Yantosca - Remove instances of NNPAR & obsolete parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -314,7 +347,7 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -330,7 +363,7 @@
 !------------------------------------------------------------------------------
 !BOC
       ! Assume success
-      RC   = GIGC_SUCCESS
+      RC   = GC_SUCCESS
 
       ! Set PD65 (for backwards compatibility, for now)
       PD65 = LLPAR*MAXFAM 

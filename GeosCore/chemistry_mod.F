@@ -25,9 +25,6 @@
 !
       PUBLIC :: INIT_CHEMISTRY
       PUBLIC :: DO_CHEMISTRY
-#if defined( USE_REAL8 )
-      PUBLIC :: GCKPP_DRIVER
-#endif
       PUBLIC :: RECOMPUTE_OD
 !
 ! !REVISION HISTORY: 
@@ -87,22 +84,19 @@
 ! !USES:
 !
       USE AEROSOL_MOD,        ONLY : AEROSOL_CONC
-      USE AEROSOL_MOD,        ONLY : AEROSOL_RURALBOX
       USE AEROSOL_MOD,        ONLY : RDAER
       USE AEROSOL_MOD,        ONLY : SOILDUST
       USE C2H6_MOD,           ONLY : CHEMC2H6
       USE CARBON_MOD,         ONLY : CHEMCARBON
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
-      USE COMODE_LOOP_MOD     
       USE DUST_MOD,           ONLY : CHEMDUST
       USE DUST_MOD,           ONLY : RDUST_ONLINE
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE FlexChem_Mod,       ONLY : Do_FlexChem
       USE GLOBAL_CH4_MOD,     ONLY : CHEMCH4
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE ISOROPIAII_MOD,     ONLY : DO_ISOROPIAII
       USE MERCURY_MOD,        ONLY : CHEMMERCURY
       USE POPS_MOD,           ONLY : CHEMPOPS
@@ -110,25 +104,25 @@
       USE RPMARES_MOD,        ONLY : DO_RPMARES
       USE SEASALT_MOD,        ONLY : CHEMSEASALT
       USE SULFATE_MOD,        ONLY : CHEMSULFATE
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
       USE STRAT_CHEM_MOD,     ONLY : DO_STRAT_CHEM
       USE TAGGED_CO_MOD,      ONLY : CHEM_TAGGED_CO
-      USE TAGGED_OX_MOD,      ONLY : CHEM_TAGGED_OX
+      USE TAGGED_O3_MOD,      ONLY : CHEM_TAGGED_O3
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTISOP
-      USE TRACERID_MOD,       ONLY : IDTDST1
-#if defined( DEVEL )
+#if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
-      USE UNITCONV_MOD
+      USE UnitConv_Mod
 #if defined (UCX )
       USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
       USE UCX_MOD,            ONLY : READ_PSC_FILE
       USE UCX_MOD,            ONLY : WRITE_STATE_PSC
 #endif
-#if   defined( TOMAS )
+#if defined( TOMAS )
       USE TOMAS_MOD,          ONLY : DO_TOMAS  !(win, 7/14/09)
-      USE TRACERID_MOD,       ONLY : IDTNK1    !(win, 7/14/09)
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -146,11 +140,6 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REMARKS:
-!  (1) State_Chm%TRACERS needs to enter this routine w/ units of [kg].
-!  (2) State_Chm%SPECIES needs to enter this routine w/ units of [molec/cm3].
-!  (3) As of 25 Oct 2012, we have not replaced the met-field arrays from
-!       dao_mod.F with the fields in State_Met.  This will be done in a
-!       piecemeal fashion so as not to disrupt the existing G-C workflow.
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -230,57 +219,72 @@
 !  17 Mar 2016 - M. Sulprizio- Remove call to OPTDEPTH. The optical depth fields
 !                              are now saved into State_Met%OPTD in the routines
 !                              that read the met fields from disk.
+!  16 May 2016 - M. Sulprizio- Remove call to AEROSOL_RURALBOX. The FlexChem
+!                              implementation has rendered the routine obsolete.
+!  16 Jun 2016 - C. Miller   - Now use Ind_ function to define species ID's
+!  17 Jun 2016 - R. Yantosca - Now define species ID's only on first call
+!  17 Jun 2016 - R. Yantosca - Now reset first-time flag at end of routine
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.
+!  19 Jul 2016 - R. Yantosca - Now bracket DO_TEND calls with #ifdef USE_TEND
+!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  11 Aug 2016 - R. Yantosca - Clean up calls to error subroutines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER       :: N_TROP
-      INTEGER       :: MONTH
-      INTEGER       :: YEAR
-      INTEGER       :: WAVELENGTH
-      LOGICAL       :: IT_IS_A_C2H6_SIM
-      LOGICAL       :: IT_IS_A_CH3I_SIM
-      LOGICAL       :: IT_IS_A_CH4_SIM
-      LOGICAL       :: IT_IS_A_FULLCHEM_SIM
-      LOGICAL       :: IT_IS_A_H2HD_SIM
-      LOGICAL       :: IT_IS_A_HCN_SIM
-      LOGICAL       :: IT_IS_A_MERCURY_SIM
-      LOGICAL       :: IT_IS_A_RnPbBe_SIM
-      LOGICAL       :: IT_IS_A_TAGCO_SIM
-      LOGICAL       :: IT_IS_A_TAGOX_SIM
-      LOGICAL       :: IT_IS_AN_AEROSOL_SIM
-      LOGICAL       :: IT_IS_NOT_COPARAM_OR_CH4
-      LOGICAL       :: IT_IS_A_POPS_SIM
-      LOGICAL       :: LCARB
-      LOGICAL       :: LCHEM
-      LOGICAL       :: LCRYST
-      LOGICAL       :: LDUST
-      LOGICAL       :: LSCHEM
-      LOGICAL       :: LPRT
-      LOGICAL       :: LSSALT
-      LOGICAL       :: LSULF
-      LOGICAL       :: LSOA
-      LOGICAL       :: LNLPBL
+      ! Scalars
+      INTEGER            :: N_TROP, N
+      INTEGER            :: MONTH
+      INTEGER            :: YEAR
+      INTEGER            :: WAVELENGTH
+      LOGICAL            :: IT_IS_A_C2H6_SIM
+      LOGICAL            :: IT_IS_A_CH3I_SIM
+      LOGICAL            :: IT_IS_A_CH4_SIM
+      LOGICAL            :: IT_IS_A_FULLCHEM_SIM
+      LOGICAL            :: IT_IS_A_H2HD_SIM
+      LOGICAL            :: IT_IS_A_HCN_SIM
+      LOGICAL            :: IT_IS_A_MERCURY_SIM
+      LOGICAL            :: IT_IS_A_RnPbBe_SIM
+      LOGICAL            :: IT_IS_A_TAGCO_SIM
+      LOGICAL            :: IT_IS_A_TAGO3_SIM
+      LOGICAL            :: IT_IS_AN_AEROSOL_SIM
+      LOGICAL            :: IT_IS_NOT_COPARAM_OR_CH4
+      LOGICAL            :: IT_IS_A_POPS_SIM
+      LOGICAL            :: LCARB
+      LOGICAL            :: LCHEM
+      LOGICAL            :: LCRYST
+      LOGICAL            :: LDUST
+      LOGICAL            :: LSCHEM
+      LOGICAL            :: LPRT
+      LOGICAL            :: LSSALT
+      LOGICAL            :: LSULF
+      LOGICAL            :: LSOA
+      LOGICAL            :: LNLPBL
 
-      ! SAVEd variables
-      LOGICAL, SAVE :: FIRST = .TRUE.
+      ! SAVEd scalars
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      INTEGER, SAVE      :: id_DST1
+      INTEGER, SAVE      :: id_NK1
+#if defined( USE_TEND )
+      INTEGER, SAVE      :: id_O3 
+      INTEGER, SAVE      :: id_CO
+      REAL(fp)           :: DT_TEND
+#endif
 
-      ! Chemistry time step in seconds
-      REAL(fp)      :: DT_TEND
-
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      ! Strings
+      CHARACTER(LEN=255) :: MSG, LOC
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
       !=================================================================
 
+      ! Set the location for error messages
+      LOC = 'DO_CHEMISTRY (in module GeosCore/chemistry_mod.F)'
+
       ! Assume success
-      RC                       = GIGC_SUCCESS
+      RC                       = GC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LCARB                    = Input_Opt%LCARB                        
@@ -302,48 +306,45 @@
       IT_IS_A_MERCURY_SIM      = Input_Opt%ITS_A_MERCURY_SIM
       IT_IS_A_RnPbBe_SIM       = Input_Opt%ITS_A_RnPbBe_SIM
       IT_IS_A_TAGCO_SIM        = Input_Opt%ITS_A_TAGCO_SIM
-      IT_IS_A_TAGOX_SIM        = Input_Opt%ITS_A_TAGOX_SIM
+      IT_IS_A_TAGO3_SIM        = Input_Opt%ITS_A_TAGO3_SIM
       IT_IS_A_POPS_SIM         = Input_Opt%ITS_A_POPS_SIM
       IT_IS_AN_AEROSOL_SIM     = Input_Opt%ITS_AN_AEROSOL_SIM
       IT_IS_NOT_COPARAM_OR_CH4 = Input_Opt%ITS_NOT_COPARAM_OR_CH4
 
+      ! Save species ID"s on first call
+      IF ( FIRST ) THEN
+         id_DST1 = Ind_('DST1')
+         id_NK1  = Ind_('NK1' )
+#if defined( USE_TEND )
+         id_O3   = Ind_('O3'  )
+         id_CO   = Ind_('CO'  )
+#endif
+      ENDIF
+
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
-      ! NOTE (pre-8/14/15): State_Chm%TRACERS needs to enter this routine
-      ! with units of [kg].  If we are calling this routine from the 
-      ! traditional "main.F" driver, then the tracers are already in
-      ! [kg] and no further unit conversion is necessary.  If on the
-      ! other hand we are calling this routine from the ESMF interface,
-      ! then we need to convert State_Chm%TRACERS from [v/v] to [kg]
-      ! in the calling routine GIGC_Do_Chem (in ESMF/gigc_chemdr.F90).
-      ! (bmy, 4/4/13) 
-      !
-      ! (post-8/14/15) Now DO_CHEMISTRY is passed tracer concentration in 
+      ! DO_CHEMISTRY is passed species concentration in 
       ! units of kg/kg and must be converted to kg at the start of the
       ! routine. Units are then converted back to kg/kg at the end. To work
       ! in an ESMF environment, GIGC_Do_Chem (in ESMF/gigc_chemdr.F90)
-      ! will need to be updated to convert State_Chm%TRACERS from [v/v]
+      ! will need to be updated to convert State_Chm%Species from [v/v]
       ! to [kg/kg dry air]. (ewl, 8/13/15)
       !-----------------------------------------------------------------
 
-      ! Convert tracer units from [kg/kg] to [kg] for chemistry (ewl, 8/12/15)
-      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
-     &                            State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                      'DO_CHEMISTRY in chemistry_mod.F')
+      ! Convert species units from [kg/kg] to [kg] for chemistry (ewl, 8/12/15)
+      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, 
+     &                               State_Chm, RC         ) 
+      IF ( RC /= GC_SUCCESS ) THEN
+         MSG = 'Unit conversion error!'
+         CALL GC_Error( MSG, RC, LOC )
          RETURN
       ENDIF  
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT                      => State_Chm%Tracers
-
+#if defined( USE_TEND )
       !=================================================================
-      ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
+      ! Archive species concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
-#if defined( DEVEL )
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CHEM', .FALSE., RC )
 #endif
@@ -365,21 +366,21 @@
             ! data from w/in an !$OMP PARALLEL region. (bmy, 4/8/15)
             ! Now call READ_PSC_FILE on every time step to accomodate 
             ! replay simulations in GEOS-5 (ckeller, 5/8/15)
-            CALL READ_PSC_FILE( am_I_Root, RC )
-            IF ( RC /= GIGC_SUCCESS ) RETURN
+            CALL READ_PSC_FILE( am_I_Root, State_Chm, RC )
+            IF ( RC /= GC_SUCCESS ) RETURN
 #endif
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
 #endif
 
             ! Call gas-phase chemistry
-            CALL CHEMDR
+            CALL Do_FlexChem
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
             ! Check units (ewl, 10/5/15)
-            IF (TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-               CALL ERROR_STOP('Incorrect tracer units after CHEMDR', 
-     &                      'DO_CHEMISTRY in chemistry_mod.F')
+            IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+               MSG = 'Incorrect species units after FLEX_CHEMDR!'
+               CALL ERROR_STOP( MSG, LOC )
             ENDIF  
 
 #if defined( USE_TIMERS )
@@ -397,10 +398,9 @@
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
                ! Check units (ewl, 10/5/15)
-               IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-                  CALL ERROR_STOP('Incorrect tracer units after'
-     &                             // ' DO_STRAT_CHEM', 
-     &                      'DO_CHEMISTRY in chemistry_mod.F')
+               IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+                  MSG = 'Incorrect species units after DO_STRAT_CHEM!'
+                  CALL ERROR_STOP( MSG, LOC )
                ENDIF  
 
 #if defined( USE_TIMERS )
@@ -433,10 +433,9 @@
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
                ! Check units (ewl, 10/5/15)
-               IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-                  CALL ERROR_STOP('Incorrect tracer units after'
-     &                             // ' CHEMSULFATE', 
-     &                      'DO_CHEMISTRY in chemistry_mod.F')
+               IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+                  MSG =  'Incorrect species units after CHEMSULFATE!'
+                  CALL ERROR_STOP( MSG, LOC )
                ENDIF  
 
                ! Do aerosol thermodynamic equilibrium
@@ -465,24 +464,23 @@
             ENDIF
 
             ! Do dust aerosol chemistry
-            IF ( LDUST .AND. IDTDST1 > 0 ) THEN
+            IF ( LDUST .AND. id_DST1 > 0 ) THEN
                CALL CHEMDUST
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
  
 #if   defined( TOMAS )
             ! Do TOMAS aerosol microphysics and dry dep
-            IF ( IDTNK1 > 0 ) THEN 
+            IF ( id_NK1 > 0 ) THEN 
                CALL DO_TOMAS
      &             ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-               IF ( RC /= GIGC_SUCCESS ) RETURN
+               IF ( RC /= GC_SUCCESS ) RETURN
             ENDIF
 
             ! Check units (ewl, 10/5/15)
-            IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-               CALL ERROR_STOP('Incorrect tracer units after'
-     &                             // ' DO_TOMAS', 
-     &                      'DO_CHEMISTRY in chemistry_mod.F')
+            IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+               MSG = 'Incorrect species units after DO_TOMAS!' 
+               CALL ERROR_STOP( MSG, LOC )
             ENDIF  
 
 #endif
@@ -499,8 +497,8 @@
             ! need to be written to the internal state object on every time
             ! step (ckeller, 5/8/15). 
 #if defined( UCX )
-            CALL WRITE_STATE_PSC( am_I_Root, RC )
-            IF ( RC /= GIGC_SUCCESS ) RETURN
+            CALL WRITE_STATE_PSC( am_I_Root, State_Chm, RC )
+            IF ( RC /= GC_SUCCESS ) RETURN
 #endif
  
          !---------------------------------
@@ -512,42 +510,23 @@
             CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
 #endif
 
-            ! Define loop index and other SMVGEAR arrays
-            ! N_TROP, the # of trop boxes, is returned
-            CALL AEROSOL_RURALBOX( N_TROP,    am_I_Root, 
-     &                             Input_Opt, State_Met  )
-
-            ! Initialize FAST-JX quantities for computing AOD's
-            IF ( FIRST ) THEN
-
-               ! Reset NTLOOP and NTTLOOP after call to READER
-               ! with the actual # of boxes w/in the ann mean trop
-               NTLOOP  = N_TROP
-               NTTLOOP = N_TROP
- 
-               ! Reset first-time flag
-               FIRST = .FALSE.
-
-            ENDIF
- 
             ! Compute aerosol & dust concentrations [kg/m3]
             ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
             CALL AEROSOL_CONC
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
             ! Check units (ewl, 10/5/15)
-            IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-               CALL ERROR_STOP('Incorrect tracer units after'
-     &                             // ' AEROSOL_CONC', 
-     &                      'DO_CHEMISTRY in chemistry_mod.F')
+            IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+               MSG = 'Incorrect species units after AEROSOL_CONC!'             
+               CALL ERROR_STOP( MSG, LOC )
             ENDIF  
 
             ! Compute AOD's and surface areas at 999 nm
             MONTH      = 0
             YEAR       = 0
             WAVELENGTH = 0
-            CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
-     &                  MONTH,     YEAR,      WAVELENGTH      )
+            CALL RDAER( am_I_Root, Input_Opt, State_Met, State_Chm,
+     &                  RC,        MONTH,     YEAR,      WAVELENGTH )
 
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
             IF ( LSULF ) THEN
@@ -600,8 +579,8 @@
                ! Compute dust OD's & surface areas
                WAVELENGTH = 0
                CALL RDUST_ONLINE
-     &             ( am_I_Root, Input_Opt,  State_Met, 
-     &               SOILDUST,  WAVELENGTH, RC         )
+     &             ( am_I_Root, Input_Opt,  State_Met, State_Chm,
+     &               SOILDUST,  WAVELENGTH, RC )
             ENDIF
 
 #if defined( USE_TIMERS )
@@ -618,8 +597,8 @@
          !---------------------------------
          ! Tagged O3
          !---------------------------------
-         ELSE IF ( IT_IS_A_TAGOX_SIM ) THEN 
-            CALL CHEM_TAGGED_OX
+         ELSE IF ( IT_IS_A_TAGO3_SIM ) THEN 
+            CALL CHEM_TAGGED_O3
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
             ! Call linearized stratospheric scheme
@@ -683,393 +662,41 @@
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
-      ! ALSO NOTE: State_Chm%TRACERS needs to leave this routine with
-      ! units of [kg].  If we are calling this routine from the 
-      ! traditional "main.F" driver, then the tracers are already in
-      ! [kg] and no further unit conversion is necessary.  If on the
-      ! other hand we are calling this routine from the ESMF interface,
-      ! then we need to convert State_Chm%TRACERS from [kg] to [v/v]
-      ! in the calling routine GIGC_Do_Chem (in ESMF/gigc_chemdr.F90).
-      ! (bmy, 4/4/13) 
-      !
-      !
-      ! Now DO_CHEMISTRY is passed tracer concentration in units of 
+      ! DO_CHEMISTRY is passed species concentration in units of 
       ! kg/kg and is converted to kg at the start of the routine.
       ! Units are then converted back to kg/kg at the end. To work in
       ! an ESMF environment, GIGC_Do_Chem (in ESMF/gigc_chemdr.F90)
-      ! will need to be updated to convert State_Chm%TRACERS from [kg]
+      ! will need to be updated to convert State_Chm%Species from [kg]
       ! to [kg/kg dry air] at the end (not [v/v]). (ewl, 8/13/15)
       !-----------------------------------------------------------------
-      ! Convert tracer units back to [kg/kg] after chemistry (ewl, 8/12/15)
-      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
-     &                            State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                      'DO_CHEMISTRY in chemistry_mod.F')
+      ! Convert species units back to [kg/kg] after chemistry (ewl, 8/12/15)
+      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
+     &                               State_Chm, RC         ) 
+      IF ( RC /= GC_SUCCESS ) THEN
+         MSG = 'Unit conversion error!'
+         CALL GC_Error( MSG, RC, LOC )
          RETURN
       ENDIF  
 
+#if defined( USE_TEND )
       !=================================================================
       ! Calculate tendencies and write to diagnostics 
       ! (ckeller,7/15/2015)
       !=================================================================
-#if defined( DEVEL )
+
+      ! Chemistry timestep [s]
       DT_TEND = GET_TS_CHEM() * 60.0_fp
+
+      ! Compute tendencies
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CHEM', .FALSE., DT_TEND, RC )
+
 #endif
 
-      ! Free pointer
-      NULLIFY( STT )
-    
+      ! Reset first-time flag
+      FIRST = .FALSE.
+
       END SUBROUTINE DO_CHEMISTRY
-!EOC
-#if defined( USE_REAL8 )
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: gckpp_driver
-!
-! !DESCRIPTION: Subroutine GCKPP\_DRIVER is the driver routine to perform 
-!  integration with the full KPP chemistry mechanism.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE GCKPP_DRIVER( KTLOOP, JLOOPLO, R_KPP, NSPEC_GC,
-     &                         Input_Opt ) 
-!
-! !USES:
-!
-      USE COMODE_MOD,           ONLY : JLOP,   CSPEC
-      USE COMODE_MOD,           ONLY : IXSAVE, IYSAVE,    IZSAVE
-      USE GCKPP_COMODE_MOD,     ONLY : HSAVE_KPP 
-      USE TIME_MOD,             ONLY : GET_TS_CHEM
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
-      USE GCKPP_UTIL,           ONLY : SHUFFLE_KPP2USER
-      USE GCKPP_INITIALIZE,     ONLY : INITIALIZE
-      USE GCKPP_MODEL
-      USE GCKPP_GLOBAL    
-      USE GCKPP_RATES,          ONLY : UPDATE_RCONST
-      USE GCKPP_MONITOR,        ONLY : SPC_NAMES
-      USE GCKPP_FUNCTION
-      USE ERROR_MOD,            ONLY : ERROR_STOP
-      USE GCKPP_INTEGRATOR,     ONLY : NHNEW, NHEXIT, INTEGRATE
-      USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER,        INTENT(IN) :: KTLOOP       ! Local loop index
-      INTEGER,        INTENT(IN) :: JLOOPLO      ! JLOOPLO + KLOOP = JLOOP
-      REAL(fp),       INTENT(IN) :: R_KPP(:,:)   ! Array of reaction rates
-      INTEGER,        INTENT(IN) :: NSPEC_GC     ! # of active chemical species
-      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input Options object
-!
-! !REMARKS:
-!  ############################################################################
-!  ###   NOTE: THIS ROUTINE WILL BE REPLACED WHEN FLEXCHEM IS ADDED TO    #####
-!  ###   GEOS-CHEM IN THE VERSION FOLLOWING GEOS-CHEM v10-01!             #####
-!  ############################################################################
-!
-!  Variables used to pass the last/first step size b/w call 
-!                                                                             .
-!  For Rosenbrock:
-!  ----------------
-!      Nhexit=2, Nhnew = 3
-!  OUT    
-!      RSTATUS(2)  -> Hexit, last accepted step before exit
-!      RSTATUS(3)  -> Hnew, last predicted step (not yet taken)
-!      For multiple restarts, use Hnew as Hstart in the subsequent run
-!  IN
-!      RCNTRL(3)   -> Hstart, starting value for the integration step size
-!                                                                             .
-!                                                                             .
-!  For LSODE:
-!  ------------
-!  OUT
-!      RSTATUS(1)  -> Texit, the time corresponding to the
-!                     computed Y upon return
-!      RSTATUS(2)  -> Hexit, last predicted step before exit
-!      For multiple restarts, use Hexit as Hstart in the following run
-!
-!  IN      
-!      RCNTRL(3)  -> Hstart, starting value for the integration step size
-!                                                                             .
-!                                                                             .
-!  For RADAU5:
-!  ------------
-!  OUT
-!      RSTATUS(1)  -> final time     
-!  IN      
-!      RCNTRL(3)   -> not used
-!                                                                             .
-!                                                                             .
-! For RUNGE-KUTTA
-! ---------------
-! OUT
-!     same as Rosenbrock
-! 
-! !REVISION HISTORY: 
-!  24 Jan 2008 - Kumaresh    - Based on Daven Henze's GCKPP_DRIVER.
-!  16 Sep 2009 - R. Yantosca - Commented, and updated to call various 
-!  03 Dec 2009 - C. Carouge  - Use CSPEC instead of CSPEC_FOR_KPP 
-!                              to save memory space
-!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  20 Jan 2010 - C. Carouge  - Now call GCKPP_DRIVER from physproc.f to save 
-!                              memory. 
-!  20 Jan 2010 - C. Carouge  - Now use the # of active species from GC to 
-!                              update CSPEC and not the of variable species 
-!                              from KPP.
-!  12 Apr 2013 - R. Yantosca - If -DDEVEL is used, when the chemistry can't
-!                              converge, we shall increase the tolerances
-!                              by a factor of 2 and try again.  This is often
-!                              needed to run GEOS-Chem in the GEOS-5 GCM.
-!  01 Apr 2015 - R. Yantosca - Skip chemistry in the nested-grid buffer zone
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL(fp)        :: T, TIN, TOUT
-      INTEGER       :: ICNTRL(20)
-      REAL(kind=dp) :: RCNTRL(20)
-      INTEGER       :: ISTATUS(20)
-      INTEGER       :: I, J, L, N, KLOOP, IERR
-      REAL(kind=dp) :: RSTATE(20)
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      CHARACTER(LEN=255) :: ERR_MSG
-
-      !=================================================================
-
-      STEPMIN = 0.0e+0_fp
-      STEPMAX = 0.0e+0_fp
-
-      ! Suggested tolerance for Rosenbrock solvers
-      DO i=1,NVAR
-#if defined (UCX )
-         RTOL(i) = 2.e-2_fp
-#else
-         RTOL(i) = 2.e-1_fp
-#endif
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: This update was made in the SEAC4RS code.  Leave here in case we
-!%%% need to restore this. (bmy, 9/25/13)
-!         RTOL(i) = 5.d-2
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         ATOL(i) = 1.e-2_fp
-      END DO
-      
-      ! for LSODE
-!      DO i=1,NVAR
-!         RTOL(i) = 1.0d-3
-!         ATOL(i) = 1.0d6
-!      END DO
-
-      
-      ! Set parameters to default. See comments in Integrator module for
-      ! a list of the defaults.
-      ICNTRL(:) = 0
-      RCNTRL(:) = 0.e+0_fp
-
-      ! Change some parameters from the default to new values
-      ICNTRL(1) = 1             ! Autonomous
-      ICNTRL(2) = 0             ! Nonautonomous
-
-      ! Select Integrator
-      !    ICNTRL(3)  -> selection of a particular method.
-      !                  For Rosenbrock, options are:
-      !        = 0 :  default method is Rodas3
-      !        = 1 :  method is  Ros2
-      !        = 2 :  method is  Ros3 
-      !        = 3 :  method is  Ros4 
-      !        = 4 :  method is  Rodas3
-      !        = 5:   method is  Rodas4
-      ICNTRL(3) = 4    
-      ICNTRL(7) = 1 ! No adjoint
-
-      IF(FIRST)THEN
-
-         RSTATE(Nhexit) = 0e+0_fp
-
-         FIRST = .FALSE. 
-
-      ENDIF
-
-      ! GET TS_CHEM and convert it to seconds. 
-      DT = GET_TS_CHEM() * 60e+0_fp
-
-      ! Set time parameters. 
-      T = 0e+0_fp
-      TIN = T
-      TOUT = T + DT
-
-      !=================================================================
-      ! Solve Chemistry
-      !=================================================================
- 100  format('No. of function calls:', i6, /,
-     &       'No. of jacobian calls:', i6, /,
-     &       'No. of steps:         ', i6, /,
-     &       'No. of accepted steps:', i6, /,
-     &       'No. of rejected steps ', i6, /,
-     $       '       (except at very beginning)',          /,
-     &       'No. of LU decompositions:             ', i6, /,
-     &       'No. of forward/backward substitutions:', i6, /,
-     &       'No. of singular matrix decompositions:', i6, /,
-     &       /,
-     &       'Texit, the time corresponding to the      ',        /,
-     &       '       computed Y upon return:            ', f11.4, /,
-     &       'Hexit, last accepted step before exit:    ', f11.4, /,
-     &       'Hnew, last predicted step (not yet taken):', f11.4 )
-
-
-      DO KLOOP = 1, KTLOOP
-
-         ! 1D grid box index on the global grid
-         JLOOP         = JLOOPLO+KLOOP
-           
-         ! Get 3D coords from SMVGEAR's 1D coords
-         I = IXSAVE(JLOOP)
-         J = IYSAVE(JLOOP)
-         L = IZSAVE(JLOOP)
-
-         ! Skipping buffer zone (lzh, 08/10/2014)
-         IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
-           IF ( J <=         Input_Opt%NESTED_J0W ) CYCLE
-           IF ( J >  JJPAR - Input_Opt%NESTED_J0E ) CYCLE
-           IF ( I <=         Input_Opt%NESTED_I0W ) CYCLE
-           IF ( I >  IIPAR - Input_Opt%NESTED_I0E ) CYCLE
-         ENDIF
-
-         ! Pass tracer concentrations from CSPEC to KPP working vector V_CSPEC
-         DO N =1, NVAR
-            V_CSPEC(N) = CSPEC(JLOOP,N)
-         END DO
-
-         ! Pass tracer concentrations from V_CSPEC to KPP working vector VAR.
-         ! This also initializes the constant rate constants FIX.
-         CALL Initialize()
-
-
-         ! starting value for integration time step
-         RCNTRL(3) = HSAVE_KPP(I,J,L)
-
-         ! 1D grid box index in the KTLOOP subset.
-         ! R_KPP is only defined on KTLOOP boxes (ccc, 12/3/09)
-         JLOOP = KLOOP
-         CALL Update_RCONST(R_KPP)
-         
-         ! 1D grid box index on the global grid
-         JLOOP = JLOOPLO+KLOOP
-
-
-         ! Integrate FWD -- phs --
-         call integrate(TIN, TOUT, ICNTRL, RCNTRL, ISTATUS,
-     $        RSTATE, IERR)
-         
-         ! Try another time if it failed
-         IF ( IERR < 0 ) THEN
-#if defined( KPP_SOLVE_ALWAYS )
-            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            !%%% For KPP tolerance fix (mlong, 4/12/13) %%%
-            !%%% Re-entry point for non-convergence     %%%
-            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- 123        CONTINUE
-#endif
-            write(6,*) ''
-            write(6,100) istatus(1:8),rstate(1:3)
-            write(6,*) ''
-            write(ERR_MSG,'(a, i3)') 'Integrator error code :',IERR
-            write(6,*)  'JLOOP, I, J, L ', JLOOP, I, J, L
-
-            ! Reset first time step and start concentrations
-            RCNTRL(3)  = 0e+0_fp
-            CALL Initialize( )  ! v2.1 
-
-            ! 1D grid box index in the KTLOOP subset.
-            ! R_KPP is only defined on KTLOOP boxes (ccc, 12/3/09)
-            JLOOP = KLOOP
-            CALL Update_RCONST(R_KPP)
-
-            ! 1D grid box index on the global grid
-            JLOOP = JLOOPLO+KLOOP
-
-#if defined( KPP_SOLVE_ALWAYS )
-            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            !%%% FOR KPP TOLERANCE FIX (mlong, 4/13/12) %%%
-            !%%% Increase tolerances by factor of 2     %%%
-            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-           !RTOL = 2d0 * RTOL    ! Relative
-            ATOL = 2e+0_fp * ATOL    ! Absolute
-#endif
-
-            call Integrate( TIN,    TOUT,    ICNTRL, 
-     &                      RCNTRL, ISTATUS, RSTATE, IERR )
-            IF ( IERR < 0 ) THEN 
-#if defined( KPP_SOLVE_ALWAYS )
-               !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-               !%%% FOR KPP TOLERANCE FIX (mlong, 4/13/12) %%%
-               !%%% Try to solve again; don't quit the run %%%
-               !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-               GOTO 123
-#endif
-               print*, 'failed twice !!! '
-               CALL ERROR_STOP(ERR_MSG, 'INTEGRATE_KPP')
-            ENDIF
-                            
-         ENDIF
-
-!--------- using the adjoint integrator (limited to Rosenbrock)           
-!adj!           ! using adjoint integrator           
-!adj!           CALL INTEGRATE_ADJ( 1, VAR, VAR_ADJ, TIN, TOUT,ATOL, 
-!adj!     &        RTOL, ICNTRL, RCNTRL, ISTATUS, RSTATE)
-!adj!
-!adj!
-!adj!           ! Update the printout and functionality (dkh, 07/28/09)
-!adj!           IF ( ISTATUS(NIERR) < 0 ) THEN 
-!adj!              print*, 'KPP Integrator failed.  Trying again' 
-!adj!              print*, 'IERR = ', RSTATE(20)
-!adj!              print*, 'RSTAT = ', RSTATE
-!adj!              print*, 'ISTAT = ', ISTATUS
-!adj!              print*, 'RCNTRL = ', RCNTRL
-!adj!              print*, 'ICNTRL = ', ICNTRL
-!adj!              print*, 'JLOOP, I, J, L ', JLOOP, I, J, L
-!adj!              rcntrl(3)  = 0d0
-!adj!              CALL Initialize( ) ! v2.1 
-!adj!              CALL Update_RCONST()
-!adj!              CALL INTEGRATE_ADJ( 1, VAR, VAR_ADJ, TIN, TOUT,
-!adj!     &             ATOL, RTOL, ICNTRL, RCNTRL, ISTATUS, RSTATE)
-!adj!              IF ( ISTATUS(NIERR) < 0 ) THEN
-!adj!                 print*, 'failed twice !!! '
-!adj!                 CALL ERROR_STOP('IERR < 0 ', 'INTEGRATE_ADJ')
-!adj!              ENDIF
-!adj!           ENDIF
-!--------- using the adjoint integrator (limited to Rosenbrock)           
-
-
-         ! Set negative values to SMAL2
-         DO N = 1, NVAR
-            VAR(N) = MAX(VAR(N),SMAL2)
-         ENDDO
-
-         ! save next integration time step
-         HSAVE_KPP(I,J,L) = RSTATE(Nhnew)
-
-         ! Pass KPP concentrations from VAR to V_CSPEC
-         CALL Shuffle_kpp2user(VAR,V_CSPEC)  
-
-         ! Pass KPP concentrations V_CSPEC to geos-chem CSPEC
-         DO N =1, NSPEC_GC
-            CSPEC(JLOOP,N) = V_CSPEC(N)
-         ENDDO
-
-      ENDDO
-
-      ! Return to calling program
-      END SUBROUTINE GCKPP_DRIVER
-#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1095,11 +722,11 @@
       USE AEROSOL_MOD,        ONLY : SOILDUST
       USE DUST_MOD,           ONLY : RDUST_ONLINE
       USE DUST_MOD,           ONLY : RDUST_OFFLINE
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR
 !
@@ -1147,7 +774,7 @@
       YEAR                 = GET_YEAR()
 
       ! Assume success
-      RC                   = GIGC_SUCCESS
+      RC                   = GC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LCARB                = Input_Opt%LCARB 
@@ -1164,10 +791,10 @@
       ! First make sure chemistry is turned on
       IF ( LCHEM ) THEN
 
-         ! Then make sure that the simulations use aerosol tracers
+         ! Then make sure that the simulations use aerosol species
          IF ( IT_IS_A_FULLCHEM_SIM .or. IT_IS_AN_AEROSOL_SIM ) THEN
 
-            ! And then make sure that the aersol tracers are defined
+            ! And then make sure that the aersol species are defined
             IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
                ! Skip this section if all of these are turned off
@@ -1180,10 +807,9 @@
 
                ! Calculate the AOD at the wavelength specified in jv_spec_aod
                WAVELENGTH = 1
-              write(6,*) 'before RDAER, AOD'
-               CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
-     &                     MONTH,     YEAR,      WAVELENGTH      )
-               write(6,*) 'after RDAER, AOD'
+               CALL RDAER( am_I_Root, Input_Opt, State_Met, State_Chm,
+     &                     RC,        MONTH,     YEAR,      WAVELENGTH )
+
                !### Debug
                IF ( LPRT .and. am_I_Root ) THEN 
                   CALL DEBUG_MSG( '### RECOMPUTE_OD: after RDAER' )
@@ -1200,12 +826,12 @@
                !===============================================================
                IF ( LDUST ) THEN
                   CALL RDUST_ONLINE
-     &               ( am_I_Root, Input_Opt,  State_Met,
-     &                 SOILDUST,  WAVELENGTH, RC         )
+     &               ( am_I_Root, Input_Opt,  State_Met, State_Chm,
+     &                 SOILDUST,  WAVELENGTH, RC )
 #if  !defined( TOMAS )
                ELSE
                   CALL RDUST_OFFLINE
-     &               ( am_I_Root, Input_Opt, State_Met,
+     &               ( am_I_Root, Input_Opt, State_Met,  State_Chm,
      &                 MONTH,     YEAR,      WAVELENGTH, RC )
 #endif
                ENDIF
@@ -1239,55 +865,51 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE CMN_SIZE_MOD,       ONLY : LLTROP
-      USE TRACERID_MOD,       ONLY : SETTRACE
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ErrCode_Mod
       USE FAST_JX_MOD,        ONLY : INIT_FJX
-      USE COMODE_LOOP_MOD
+      USE FlexChem_Mod,       ONLY : Init_FlexChem
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)     :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)     :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
+      TYPE(OptInput), INTENT(INOUT)  :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(INOUT)  :: State_Chm   ! Chemistry State object
       INTEGER,        INTENT(INOUT)  :: RC          ! Success or failure?
-     
 !
 ! !REVISION HISTORY: 
-!  19 May 2014 - C. Keller - Initial version (stripped from do_chemistry
-!                            and chemdr.F)
+!  19 May 2014 - C. Keller   - Initial version (stripped from do_chemistry
+!                              and chemdr.F)
 !  20 Jun 2014 - R. Yantosca - Now pass Input_Opt to INIT_FJX
+!  23 Jun 2016 - R. Yantosca - Remove call to SETTRACE, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE   :: FIRST = .TRUE.
+      LOGICAL, SAVE :: FIRST = .TRUE.
 
       !=================================================================
       ! INIT_CHEMISTRY begins here!
       !=================================================================
 
       ! Assume success
-      RC                   = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       IF ( FIRST ) THEN
 
-         ! Init chem mechanism and photolysis
-         CALL READER  ( FIRST, am_I_Root                           )
-         CALL READCHEM(        am_I_Root, Input_Opt,            RC )
-         CALL INIT_FJX(        am_I_Root, Input_Opt,  RC           )
-         CALL SETTRACE(        am_I_Root, Input_Opt, State_Chm, RC )
+         ! Initialize FlexChem
+         CALL Init_FlexChem( am_I_Root, Input_Opt, RC )
 
-         ! Reset NCS with NCSURBAN
-         NCS     = NCSURBAN
-
+         ! Initialize Fast-JX photolysis
+         CALL INIT_FJX(      am_I_Root, Input_Opt, RC )
+         
          ! Adjust first flag
          FIRST = .FALSE.
       ENDIF

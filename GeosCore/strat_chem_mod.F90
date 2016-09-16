@@ -18,8 +18,8 @@
 !    PRPE, C3H8, CH2O, C2H6, HNO4, MP
 !  
 !  The updated code includes at least all of these, and many more. The code
-!  is flexible enough to automatically apply the rate to any new tracers
-!  for future simulations that share the name in tracer\_mod with the
+!  is flexible enough to automatically apply the rate to any new species
+!  for future simulations that share the name in species\_mod with the
 !  GMI name.  (See Documentation on wiki).
 !
 !  The prod rates and loss frequencies are now read via HEMCO. They are 
@@ -43,7 +43,7 @@
 !\\
 ! !INTERFACE:
 !
-MODULE STRAT_CHEM_MOD
+MODULE Strat_Chem_Mod
 !
 ! !USES:
 !
@@ -94,7 +94,7 @@ MODULE STRAT_CHEM_MOD
 !
 ! !DEFINED PARAMETERS:
 !
-  ! Tracer index of Bry species in input files
+  ! Species index of Bry species in input files
   ! 1:6 = (Br2, Br, BrO, HOBr, HBr, BrNO3) for both
   INTEGER,           PARAMETER :: br_nos(6)   = (/ 44, 45, 46, 47, 48, 50 /)
 
@@ -129,7 +129,7 @@ MODULE STRAT_CHEM_MOD
   TYPE(PL_Pointers), POINTER :: PLVEC(:) => NULL()
 
   ! Toggle to specify whether or not production/loss rates must be provided
-  ! for every strat chem tracer. If set to TRUE, the code will return with
+  ! for every strat chem species. If set to TRUE, the code will return with
   ! an error if the production/loss rate cannot be found (through HEMCO) for
   ! any of the species. If set to .FALSE., only a warning is prompted and a
   ! value of 0.0 is used for every field that cannotbe found. 
@@ -145,12 +145,13 @@ MODULE STRAT_CHEM_MOD
   INTEGER               :: NSCHEM          ! Number of species upon which to 
                                            ! apply P's & k's in GEOS-Chem
   ! Arrays
-  CHARACTER(LEN=16)     :: GMI_TrName(NTR_GMI)     ! Tracer names in GMI
-  INTEGER               :: Strat_TrID_GC(NTR_GMI)  ! Maps 1:NSCHEM to STT index
-  INTEGER               :: Strat_TrID_GMI(NTR_GMI) ! Maps 1:NSCHEM to GMI index
+  CHARACTER(LEN=16)     :: GMI_TrName    (NTR_GMI) !Tracer names in GMI
+  INTEGER               :: Strat_TrID_GC (NTR_GMI) !Maps 1:NSCHEM to species
+  INTEGER               :: Strat_TrId_TND(NTR_GMI) !Maps 1:NSCHEM to SCHEM_TEND
+  INTEGER               :: Strat_TrID_GMI(NTR_GMI) !Maps 1:NSCHEM to GMI index
                      ! (At most NTR_GMI species could overlap between G-C & GMI)
 
-  ! Tracer index of Bry species in GEOS-Chem STT (may differ from br_nos)
+  ! Species index of Bry species in GEOS-Chem species DB(may differ from br_nos)
   INTEGER               :: GC_Bry_TrID(6) 
 
   ! Variables used to calculate the strat-trop exchange flux
@@ -161,6 +162,12 @@ MODULE STRAT_CHEM_MOD
   REAL(f4), ALLOCATABLE :: MInit(:,:,:,:)      ! Init. atm. state for STE period
   REAL(f4), ALLOCATABLE :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
                                                !   (total P - L) [kg period-1]
+
+  ! Species ID flags
+  INTEGER               :: id_Br2,   id_Br,     id_BrNO3
+  INTEGER               :: id_BrO,   id_CHBr3,  id_CH2Br2
+  INTEGER               :: id_CH3Br, id_HOBr,   id_HBr
+  INTEGER               :: id_O3,    id_O3Strat 
 
   !=================================================================
   ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -185,24 +192,20 @@ CONTAINS
 !
 ! !USES:
 !
-    USE PHYSCONSTANTS,      ONLY : XNUMOLAIR
     USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE CMN_SIZE_MOD
+    USE ErrCode_Mod
     USE ERROR_MOD
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE LINOZ_MOD,          ONLY : DO_LINOZ
+    USE PhysConstants,      ONLY : XNUMOLAIR, AIRMW
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-    USE TRACERID_MOD,       ONLY : IDTO3
-    USE TRACERID_MOD,       ONLY : IDTCHBr3
-    USE TRACERID_MOD,       ONLY : IDTCH2Br2
-    USE TRACERID_MOD,       ONLY : IDTCH3Br
-    USE UNITCONV_MOD
+    USE UnitConv_Mod
 
     IMPLICIT NONE
 !
@@ -246,6 +249,14 @@ CONTAINS
 !  24 Mar 2015 - E. Lundgren - Replace dependency on tracer_mod with
 !                              CMN_GTCM_MOD for XNUMOLAIR
 !  30 Sep 2015 - E. Lundgren - Now use UNITCONV_MOD for unit conversion
+!  16 Jun 2016 - M. Yannetti - Replaced TRACERID_MOD.\
+!  20 Jun 2016 - R. Yantosca - Now make species ID flags module variables
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!  12 Jul 2016 - R. Yantosca - Bug fix: ISBR2 should be held !$OMP PRIVATE
+!  18 Jul 2016 - M. Yannetti - Replaced TCVV with spec db and phys constant
+!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -258,54 +269,49 @@ CONTAINS
 
     ! Flags for simulation types
     LOGICAL           :: IT_IS_A_FULLCHEM_SIM
-    LOGICAL           :: IT_IS_A_TAGOX_SIM
+    LOGICAL           :: IT_IS_A_TAGO3_SIM
     LOGICAL           :: IT_IS_A_H2HD_SIM
 
     ! Scalars
     LOGICAL           :: prtDebug
     CHARACTER(LEN=16) :: STAMP
-    INTEGER           :: I,    J,      L,   N,   NN
-    REAL(fp)          :: dt,   P,      k,   M0,  RC,     M
-    REAL(fp)          :: TK,   RDLOSS, T1L, mOH, BryTmp
+    INTEGER           :: I,    J,       L,   N
+    INTEGER           :: NN,   nAdvect, NA
+    REAL(fp)          :: dt,   P,       k,   M0,  RC,     M
+    REAL(fp)          :: TK,   RDLOSS,  T1L, mOH, BryTmp
     REAL(fp)          :: BOXVL
     LOGICAL           :: LLINOZ
     LOGICAL           :: LPRT
     LOGICAL           :: LBRGCCM
     LOGICAL           :: LRESET, LCYCLE
     LOGICAL           :: ISBR2 
-    INTEGER           :: N_TRACERS
 
     ! Arrays
-    REAL(fp)          :: STT0  (IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
-    REAL(fp)          :: BEFORE(IIPAR,JJPAR,LLPAR)
-    REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
+    REAL(fp)          :: Spc0  (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+    REAL(fp)          :: BEFORE(IIPAR,JJPAR,LLPAR                  )
 
     ! Pointers
-    REAL(fp), POINTER :: STT(:,:,:,:)
-    REAL(fp), POINTER :: AD(:,:,:)
-    REAL(fp), POINTER :: T(:,:,:)
+    REAL(fp), POINTER :: Spc(:,:,:,:)
+    REAL(fp), POINTER :: AD (:,:,:  )
+    REAL(fp), POINTER :: T  (:,:,:  )
 
-    !===============================
+    !=======================================================================
     ! DO_STRAT_CHEM begins here!
-    !===============================
+    !=======================================================================
 
     ! Assume Success
-    errCode              = GIGC_SUCCESS
+    errCode              = GC_SUCCESS
 
-    ! Save values from the Input Options object to local variables
-    N_TRACERS            = Input_Opt%N_TRACERS
+    ! Initialize
     LLINOZ               = Input_Opt%LLINOZ
     LPRT                 = Input_Opt%LPRT
     LBRGCCM              = Input_Opt%LBRGCCM
     IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
-    IT_IS_A_TAGOX_SIM    = Input_Opt%ITS_A_TAGOX_SIM  
+    IT_IS_A_TAGO3_SIM    = Input_Opt%ITS_A_TAGO3_SIM  
     IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
-    TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
-
-    ! Initialize pointers
-    STT                => State_Chm%Tracers
-    AD                 => State_Met%AD
-    T                  => State_Met%T
+    Spc                  => NULL()
+    AD                   => NULL()
+    T                    => NULL()
 
     ! Set a flag for debug printing
     prtDebug             = ( LPRT .and. am_I_Root )
@@ -316,15 +322,28 @@ CONTAINS
     ENDIF
 10  FORMAT( '     - DO_STRAT_CHEM: Linearized strat chemistry at ', a )
     
-    ! On first call, establish pointers to data fields read by HEMCO. These are
-    ! the stratospheric Bry fields as well as the production/loss rates.
+    !======================-================================================
+    ! On first call, establish pointers to data fields read by HEMCO. These 
+    ! are the stratospheric Bry fields as well as the production/loss rates.
     ! (ckeller, 12/30/2014)
+    !
+    ! If we are doing a tagO3 simulation, then we can skip this section,
+    ! since tagO3 only uses Linoz or Synoz, but doesn't read in any P/L
+    ! fields from disk. (bmy, 7/11/16)
+    !======================-================================================
     IF ( FIRST ) THEN
-       CALL Set_BryPointers ( am_I_Root, Input_Opt, State_Chm, State_Met, errCode )
-       IF ( errCode /= GIGC_SUCCESS ) RETURN
+       IF ( .not. IT_IS_A_TAGO3_SIM ) THEN
 
-       CALL Set_PLVEC ( am_I_Root, Input_Opt, State_Chm, State_Met, errCode )
-       IF ( errCode /= GIGC_SUCCESS ) RETURN
+          ! Get pointers to Bry fields via HEMCO
+          CALL Set_BryPointers ( am_I_Root, Input_Opt,          &
+                                 State_Chm, State_Met, errCode )
+          IF ( errCode /= GC_SUCCESS ) RETURN
+
+          ! Get pointers to prod/loss fields via HEMCO
+          CALL Set_PLVEC ( am_I_Root, Input_Opt,                &
+                           State_Chm, State_Met, errCode )
+          IF ( errCode /= GC_SUCCESS ) RETURN
+       ENDIF
     ENDIF
 
     ! SDE 2014-01-14: Allow the user to overwrite stratospheric
@@ -335,22 +354,31 @@ CONTAINS
        CALL DEBUG_MSG( '### STRAT_CHEM: at DO_STRAT_CHEM' )
     ENDIF
 
-    !======================>==========================================
-    ! Full chemistry simulations
-    !================================================================
+    !======================-================================================
+    ! FULL CHEMISTRY SIMULATIONS
+    !
+    ! %%% NOTE: For now, the algorithm assumes that the advected species
+    ! %%% are listed first.  We may have to also store the advected ID's
+    ! %%% in an array for SCHEM_TEND.
+    !=======================================================================
     IF ( IT_IS_A_FULLCHEM_SIM ) THEN
+
+       ! Initialize pointers
+       Spc         => State_Chm%Species
+       AD          => State_Met%AD
+       T           => State_Met%T
 
        ! Advance counter for number of times we've sampled the tropopause level
        TpauseL_CNT = TpauseL_CNT + 1e+0_fp
 
-       !=============================================================
+       !--------------------------------------------------------------------
        ! Do chemical production and loss for non-ozone species for
        ! which we have explicit prod/loss rates from GMI
-       !=============================================================
+       !--------------------------------------------------------------------
 
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, N, NN, k, P, dt, M0 )
+       !$OMP PRIVATE( I, J, L, N, NN, NA, k, P, dt, M0 )
        DO J=1,JJPAR
           DO I=1,IIPAR
 
@@ -364,17 +392,20 @@ CONTAINS
 
                 IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) CYCLE
 
-                DO N=1,NSCHEM ! Tracer index of active strat chem species
-                   NN = Strat_TrID_GC(N) ! Tracer index in STT
+                ! Loop over the # of active strat chem species
+                DO N = 1, NSCHEM
+
+                   ! Species ID (use this for State_Chm%Species)
+                   NN = Strat_TrID_GC(N)
+
+                   ! Advected species ID (use this for SCHEM_TEND)
+                   NA = Strat_TrID_TND(N)
 
                    ! Skip O3; we'll always use either Linoz or Synoz
-                   IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. IDTO3 ) CYCLE
+                   IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. id_O3 ) CYCLE
 
-                   dt = DTCHEM                              ! timestep [s]
-
-                   ! original code:
-!                   k = LOSS(I,J,L,N)                        ! loss freq [s-1]
-!                   P = PROD(I,J,L,N) * AD(I,J,L) / TCVV(NN) ! prod term [kg s-1]
+                   ! timestep [s]
+                   dt = DTCHEM
 
                    ! loss freq [s-1] 
                    IF ( .NOT. ASSOCIATED(PLVEC(N)%LOSS) ) THEN
@@ -387,24 +418,27 @@ CONTAINS
                    IF ( .NOT. ASSOCIATED(PLVEC(N)%PROD) ) THEN
                       P = 0.0_fp 
                    ELSE
-                      P = PLVEC(N)%PROD(I,J,L) * AD(I,J,L) / TCVV(NN) 
+                      P = PLVEC(N)%PROD(I,J,L) * AD(I,J,L) / ( AIRMW / &
+                          State_Chm%SpcData(NN)%Info%emMW_g )
                    ENDIF
 
-                   M0 = STT(I,J,L,NN)                       ! initial mass [kg]
+                   ! Initial mass [kg]
+                   M0 = Spc(I,J,L,NN)
 
                    ! No prod or loss at all
                    IF ( k .eq. 0e+0_fp .and. P .eq. 0e+0_fp ) CYCLE
 
                    ! Simple analytic solution to dM/dt = P - kM over [0,t]
                    IF ( k .gt. 0e+0_fp ) then
-                      STT(I,J,L,NN) = M0 * EXP(-k*dt) + (P/k)*(1e+0_fp-EXP(-k*dt))
+                      Spc(I,J,L,NN) = M0 * EXP(-k*dt) + &
+                                      (P/k)*(1e+0_fp-EXP(-k*dt))
                    ELSE
-                      STT(I,J,L,NN) = M0 + P*dt
+                      Spc(I,J,L,NN) = M0 + P*dt
                    ENDIF
 
                    ! Aggregate chemical tendency [kg box-1]
-                   SCHEM_TEND(I,J,L,NN) = SCHEM_TEND(I,J,L,NN) + &
-                                                       ( STT(I,J,L,NN) - M0 )
+                   SCHEM_TEND(I,J,L,NA) = SCHEM_TEND(I,J,L,NA) + &
+                                          ( Spc(I,J,L,NN) - M0 )
 
                 ENDDO ! N
              ENDDO ! L
@@ -412,15 +446,16 @@ CONTAINS
        ENDDO ! J
        !$OMP END PARALLEL DO
 
-       !===================================
+       !--------------------------------------------------------------------
        ! Ozone
-       !===================================
+       !--------------------------------------------------------------------
 
        ! Make note of inital state for determining tendency later
-       BEFORE = STT(:,:,:,IDTO3 )
+       BEFORE = Spc(:,:,:,id_O3)
 
-       ! Put ozone in v/v
-       STT(:,:,:,IDTO3) = STT(:,:,:,IDTO3) * TCVV( IDTO3 ) / AD
+       ! Put ozone in [v/v] for Linoz or Synoz
+       Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * ( AIRMW  &
+                          / State_Chm%SpcData(id_O3)%Info%emMW_g ) / AD
 
        ! Do Linoz or Synoz
        IF ( LLINOZ ) THEN
@@ -431,20 +466,21 @@ CONTAINS
                          State_Met, State_Chm, RC=errCode )
        ENDIF
  
-       ! Put ozone back to kg
-       STT(:,:,:,IDTO3) = STT(:,:,:,IDTO3) * AD / TCVV( IDTO3 )
+       ! Put ozone back to [kg]
+       Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * AD / ( AIRMW  &
+                          / State_Chm%SpcData(id_O3)%Info%emMW_g )
 
        ! Put tendency into diagnostic array [kg box-1]
-       SCHEM_TEND(:,:,:,IDTO3) = SCHEM_TEND(:,:,:,IDTO3) + &
-                                                  ( STT(:,:,:,IDTO3) - BEFORE )
+       SCHEM_TEND(:,:,:,id_O3) = SCHEM_TEND(:,:,:,id_O3) + &
+                                 ( Spc(:,:,:,id_O3) - BEFORE )
 
-       !========================================
+       !--------------------------------------------------------------------
        ! Reactions with OH
        ! Currently:
        !   (1) CHBr3  
        !   (2) CH2Br2  
        !   (3) CH3Br
-       !========================================
+       !--------------------------------------------------------------------
 
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
@@ -474,37 +510,37 @@ CONTAINS
                 !============!
                 ! CH3Br + OH !
                 !============!
-                IF ( IDTCH3Br .gt. 0 ) THEN
+                IF ( id_CH3Br .gt. 0 ) THEN
                    RC = 2.35e-12_fp * EXP ( - 1300.e+0_fp / TK ) 
                    RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
-                   T1L    = STT(I,J,L,IDTCH3Br) * RDLOSS
-                   STT(I,J,L,IDTCH3Br) = STT(I,J,L,IDTCH3Br) - T1L
-                   SCHEM_TEND(I,J,L,IDTCH3Br) = &
-                     SCHEM_TEND(I,J,L,IDTCH3Br) - T1L
+                   T1L    = Spc(I,J,L,id_CH3Br) * RDLOSS
+                   Spc(I,J,L,id_CH3Br) = Spc(I,J,L,id_CH3Br) - T1L
+                   SCHEM_TEND(I,J,L,id_CH3Br) = &
+                     SCHEM_TEND(I,J,L,id_CH3Br) - T1L
                 ENDIF
 
                 !============!
                 ! CHBr3 + OH !
                 !============!
-                IF ( IDTCHBr3 .gt. 0 ) THEN
+                IF ( id_CHBr3 .gt. 0 ) THEN
                    RC = 1.35e-12_fp * EXP ( - 600.e+0_fp / TK ) 
                    RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
-                   T1L    = STT(I,J,L,IDTCHBr3) * RDLOSS
-                   STT(I,J,L,IDTCHBr3) = STT(I,J,L,IDTCHBr3) - T1L
-                   SCHEM_TEND(I,J,L,IDTCHBr3) = &
-                     SCHEM_TEND(I,J,L,IDTCHBr3) - T1L
+                   T1L    = Spc(I,J,L,id_CHBr3) * RDLOSS
+                   Spc(I,J,L,id_CHBr3) = Spc(I,J,L,id_CHBr3) - T1L
+                   SCHEM_TEND(I,J,L,id_CHBr3) = &
+                     SCHEM_TEND(I,J,L,id_CHBr3) - T1L
                 ENDIF
 
                 !=============!
                 ! CH2Br2 + OH !
                 !=============!
-                IF ( IDTCH2Br2 .gt. 0 ) THEN
+                IF ( id_CH2Br2 .gt. 0 ) THEN
                    RC = 2.00e-12_fp * EXP ( -  840.e+0_fp / TK )
                    RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
-                   T1L    = STT(I,J,L,IDTCH2Br2) * RDLOSS
-                   STT(I,J,L,IDTCH2Br2) = STT(I,J,L,IDTCH2Br2) - T1L
-                   SCHEM_TEND(I,J,L,IDTCH2Br2) = &
-                     SCHEM_TEND(I,J,L,IDTCH2Br2) - T1L
+                   T1L    = Spc(I,J,L,id_CH2Br2) * RDLOSS
+                   Spc(I,J,L,id_CH2Br2) = Spc(I,J,L,id_CH2Br2) - T1L
+                   SCHEM_TEND(I,J,L,id_CH2Br2) = &
+                     SCHEM_TEND(I,J,L,id_CH2Br2) - T1L
                 ENDIF
 
              ENDDO ! J
@@ -513,15 +549,14 @@ CONTAINS
 
        !$OMP END PARALLEL DO
 
-       !===============================
+       !--------------------------------------------------------------------
        ! Prescribe Br_y concentrations
-       !===============================
+       !--------------------------------------------------------------------
 
-       !$OMP PARALLEL DO &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( NN, BEFORE, I, J, L, BryTmp ) &
-       !$OMP PRIVATE( LCYCLE )
-       DO NN=1,6
+       !$OMP PARALLEL DO                                           &
+       !$OMP DEFAULT( SHARED                                     ) &
+       !$OMP PRIVATE( NN, BEFORE, ISBR2, L, J, I, LCYCLE, BryTmp )
+       DO NN = 1,6
 
           IF ( GC_Bry_TrID(NN) > 0 ) THEN
 
@@ -529,10 +564,10 @@ CONTAINS
              ! NOTE: BEFORE has to be made PRIVATE to the DO loop since
              ! it only has IJL scope, but the loop is over IJLN!
              ! (bmy, 8/7/12)
-             BEFORE = STT(:,:,:,GC_Bry_TrID(NN))
+             BEFORE = Spc(:,:,:,GC_Bry_TrID(NN))
 
              ! Is this Br2?
-             ISBR2 = ( TRIM(Input_Opt%TRACER_NAME(Strat_TrID_GC(NN))) == 'Br2' )
+             ISBR2  = ( Gc_Bry_TrId(NN) == id_Br2 )
 
              ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
              ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
@@ -554,22 +589,24 @@ CONTAINS
                    BryTmp = BrPtrDay(NN)%MR(I,J,L)   &
                           * 1.e-12_fp                & ! convert from [ppt]
                           * AD(I,J,L)                &
-                          / TCVV(GC_Bry_TrID(NN))
+                          / ( AIRMW                  &
+                          / State_Chm%SpcData(GC_Bry_TrID(NN))%Info%emMW_g )
 
                 ELSE
                    ! nighttime [ppt] -> [kg]
                    BryTmp = BrPtrNight(NN)%MR(I,J,L) &
                           * 1.e-12_fp                & ! convert from [ppt]
                           * AD(I,J,L)                &
-                          / TCVV(GC_Bry_TrID(NN))
+                          /  ( AIRMW                 & 
+                          / State_Chm%SpcData(GC_Bry_TrID(NN))%Info%emMW_g )
                 ENDIF
 
-                ! Special adjustment for G-C Br2 tracer, 
+                ! Special adjustment for G-C Br2, 
                 ! which is BrCl in the strat (ckeller, 1/2/15)
                 IF ( ISBR2 ) BryTmp = BryTmp / 2.0_fp
 
-                ! Pass to STT array
-                STT(I,J,L, GC_Bry_TrID(NN) ) = BryTmp
+                ! Pass to Spc array
+                Spc(I,J,L, GC_Bry_TrID(NN) ) = BryTmp
 
              ENDDO
              ENDDO
@@ -578,34 +615,52 @@ CONTAINS
              ! Put tendency into diagnostic array [kg box-1]
              SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) = &
                 SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) + &
-                ( STT(:,:,:,GC_Bry_TrID(NN)) - BEFORE )
+                ( Spc(:,:,:,GC_Bry_TrID(NN)) - BEFORE )
           
           ENDIF
 
        ENDDO ! NN
        !$OMP END PARALLEL DO
 
-    !======================================================================
-    ! Tagged Ox simulation
-    !======================================================================
-    ELSE IF ( IT_IS_A_TAGOX_SIM ) THEN
+       ! Free pointers
+       Spc => NULL()
+       AD  => NULL()
+       T   => NULL()
 
-       ! Tagged Ox only makes use of Synoz or Linoz. We apply either to
-       ! the total Ox tracer, and the stratospheric Ox tracer.
+    !======================================================================
+    ! TAGGED O3 SIMULATION
+    !
+    ! Tagged O3 only makes use of Synoz or Linoz. We apply either to
+    ! the total O3 species, and the stratospheric O3 species.
+    !======================================================================
+    ELSE IF ( IT_IS_A_TAGO3_SIM ) THEN
 
-       ! Intial conditions
-       STT0(:,:,:,:) = STT(:,:,:,:)
+       ! Number of advected species
+       nAdvect = State_Chm%nAdvect
+
+       ! Loop over only the advected species
+       DO NA = 1, nAdvect
+
+          ! Get the species ID from the advected species ID
+          N                          = State_Chm%Map_Advect(NA)
+
+          ! Save initial conditions in Spc0 [kg]
+          Spc0(:,:,:,NA)             = State_Chm%Species(:,:,:,N)
+
+       ENDDO
 
        ! Convert units from [kg] to [v/v dry air] for Linoz and Synoz
        ! (ewl, 10/05/15)
-       CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,     &
-                                 State_Met, State_Chm, errCode )
-       IF ( errCode /= GIGC_SUCCESS ) THEN
-          CALL GIGC_Error('Unit conversion error', errCode,    &
-                          'DO_STRAT_CHEM in strat_chem_mod.F')
+       CALL ConvertSpc_Kg_to_VVDry( am_I_Root, State_Met, &
+                                    State_Chm, errCode      )
+       IF ( errCode /= GC_SUCCESS ) THEN
+          CALL GC_Error('Unit conversion error', errCode,    &
+                        'DO_STRAT_CHEM in strat_chem_mod.F')
           RETURN
        ENDIF
 
+       ! Call either LINOZ or SYNOZ
+       ! NOTE: If you don't want either, comment this block out
        IF ( LLINOZ ) THEN
           CALL Do_Linoz( am_I_Root, Input_Opt,             &
                          State_Met, State_Chm, errCode )
@@ -614,12 +669,13 @@ CONTAINS
                          State_Met, State_Chm, errCode )
        ENDIF
 
+
        ! Convert units back to [kg] after Linoz and Synoz (ewl, 10/05/15)
-       CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt,     &
-                                 State_Met, State_Chm, errCode )
-       IF ( errCode /= GIGC_SUCCESS ) THEN
-          CALL GIGC_Error('Unit conversion error', errCode,     &
-                          'DO_STRAT_CHEM in strat_chem_mod.F')
+       CALL ConvertSpc_VVDry_to_Kg( am_I_Root, State_Met,  &
+                                    State_Chm, errCode    )
+       IF ( errCode /= GC_SUCCESS ) THEN
+          CALL GC_Error('Unit conversion error', errCode,     &
+                        'DO_STRAT_CHEM in strat_chem_mod.F')
           RETURN
        ENDIF
 
@@ -636,26 +692,36 @@ CONTAINS
        ENDDO
        !$OMP END PARALLEL DO
 
-       ! Aggregate chemical tendency [kg box-1]
-       DO N=1,NSCHEM
+       ! Loop over the # of strat chem species
+       DO N = 1, NSCHEM
+
+          ! Species ID (use for State_Chm%Species)
           NN = Strat_TrID_GC(N)
-          SCHEM_TEND(:,:,:,N) = SCHEM_TEND(:,:,:,N) + &
-               ( STT(:,:,:,NN) - STT0(:,:,:,NN) )
+
+          ! Advected species ID (use for SCHEM_TEND)
+          NA = Strat_TrId_TND(N)
+
+          ! Aggregate chemical tendency [kg box-1]
+          SCHEM_TEND(:,:,:,NA) = SCHEM_TEND(:,:,:,NA) + &
+               ( State_Chm%Species(:,:,:,NN) - Spc0(:,:,:,NA) )
        ENDDO
 
+    !======================================================================
+    ! OTHER SIMULATIONS
+    !
+    ! The code will need to be modified for other tagged simulations 
+    ! (e.g., CO). Simulations like CH4, CO2 with standard species names 
+    ! should probably just work as is with the full chemistry code above, 
+    ! but would need to be tested.
+    !======================================================================
     ELSE
-
-       ! The code will need to be modified for other tagged simulations 
-       ! (e.g., CO). Simulations like CH4, CO2 with standard tracer names 
-       ! should probably just work as is with the full chemistry code above, 
-       ! but would need to be tested.
        IF ( am_I_Root ) THEN
           WRITE( 6, '(a)' ) 'Strat chemistry needs to be activated for ' // &
                             'your simulation type.'
           WRITE( 6, '(a)' ) 'Please see GeosCore/strat_chem_mod.F90' // &
                             'or disable in input.geos'
        ENDIF
-       CALL GEOS_CHEM_STOP
+       CALL GEOS_CHEM_STOP()
        
     ENDIF
 
@@ -663,11 +729,11 @@ CONTAINS
     FIRST = .FALSE.    
 
     ! Free pointer
-    NULLIFY( STT )
-    NULLIFY( AD  )
-    NULLIFY( T   )
+    Spc => NULL()
+    AD  => NULL()
+    T   => NULL()  
 
-  END SUBROUTINE DO_STRAT_CHEM
+  END SUBROUTINE Do_Strat_Chem
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -687,12 +753,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 
     IMPLICIT NONE
 !
@@ -733,11 +799,11 @@ CONTAINS
     ! Do for every Bry species
     DO N = 1,6
 
-       ! Skip if tracer is not defined    
+       ! Skip if species is not defined    
        IF ( GC_Bry_TrID(N) <= 0 ) CYCLE
 
        ! Get Bry name
-       ThisName = Input_Opt%TRACER_NAME( GC_Bry_TrID(N) )
+       ThisName = State_Chm%SpcData(GC_Bry_TrID(N))%Info%Name
 
        ! Construct field name using Bry name
        PREFIX = 'GEOSCCM_'//TRIM(ThisName)
@@ -763,7 +829,7 @@ CONTAINS
     ENDDO !N
 
     ! Return w/ success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
   END SUBROUTINE Set_BryPointers 
 !EOC
@@ -775,7 +841,7 @@ CONTAINS
 ! !IROUTINE: Set_PLVEC
 !
 ! !DESCRIPTION: Subroutine SET\_PLVEC gets the production and loss terms of
-! all strat chem tracers from HEMCO. The pointers only need to be established 
+! all strat chem species from HEMCO. The pointers only need to be established 
 ! once. Target data is automatically updated through HEMCO. 
 !\\
 !\\
@@ -785,12 +851,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
 
     IMPLICIT NONE
 !
@@ -825,7 +891,7 @@ CONTAINS
     !=================================================================
 
     ! Assume error until success
-    RC = GIGC_FAILURE
+    RC = GC_FAILURE
 
     ! Construct error message
     ERR = 'Cannot get pointer from HEMCO! GMI prod/loss data is '  // &
@@ -835,14 +901,14 @@ CONTAINS
     ! Do for every species 
     DO N = 1,NSCHEM
 
-       ! Get GEOS-Chem tracer index
+       ! Get GEOS-Chem species index
        TRCID = Strat_TrID_GC(N)
 
-       ! Skip if tracer is not defined    
+       ! Skip if species is not defined    
        IF ( TRCID <= 0 ) CYCLE
 
        ! Get species name
-       ThisName = Input_Opt%TRACER_NAME( TRCID )
+       ThisName = State_Chm%SpcData(TRCID)%Info%Name
 
        ! ---------------------------------------------------------------
        ! Get pointers to fields
@@ -893,7 +959,7 @@ CONTAINS
     ENDIF
 
     ! Return w/ success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
   END SUBROUTINE Set_PLVEC
 !EOC
@@ -915,15 +981,15 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ERROR_MOD,          ONLY : GIGC_ERROR
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-    USE TIME_MOD,   ONLY : GET_TAU, GET_NYMD, GET_NHMS, EXPAND_DATE
-
     USE CMN_SIZE_MOD
-    USE UNITCONV_MOD
+    USE ErrCode_Mod
+    USE ERROR_MOD,          ONLY : GC_Error
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
+    USE TIME_MOD,   ONLY : GET_TAU, GET_NYMD, GET_NHMS, EXPAND_DATE
+    USE UnitConv_Mod
 
     IMPLICIT NONE
 !
@@ -952,28 +1018,34 @@ CONTAINS
 !                              to avoid including code for nested-grid sims
 !  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm, RC arguments
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  10 Aug 2015 - E. Lundgren - Input tracer concentraiton units are now [kg/kg] 
+!  10 Aug 2015 - E. Lundgren - Input tracer concentraiton units are now [kg/kg]
+!  25 May 2016 - E. Lundgren - Replace input_opt%TRACER_MW_KG with species
+!                              database field emMW_g (emitted species g/mol)
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
+    ! Strings
+    CHARACTER(LEN=255)     :: dateStart, dateEnd
+
     ! Scalars
-    CHARACTER(LEN=255) :: dateStart, dateEnd
-    INTEGER            :: N,         I,      J,    L,      NN
-    REAL(fp)           :: dStrat,    STE,    Tend, tauEnd, dt
+    INTEGER                :: N,         I,       J,    L
+    INTEGER                :: nAdvect,   NA,      NN
+    REAL(fp)               :: dStrat,    STE,     Tend, tauEnd, dt
 
     ! Arrays
-    INTEGER            :: LTP(IIPAR,JJPAR      )
-    REAL(fp)           :: M1 (IIPAR,JJPAR,LLPAR)
-    REAL(fp)           :: M2 (IIPAR,JJPAR,LLPAR)
+    INTEGER                :: LTP(IIPAR,JJPAR      )
+    REAL(fp)               :: M1 (IIPAR,JJPAR,LLPAR)
+    REAL(fp)               :: M2 (IIPAR,JJPAR,LLPAR)
 
-    ! For fields from Input_Opt
-    INTEGER            :: N_TRACERS
 
     ! Pointers
-    ! We need to define local arrays to hold corresponding values 
-    ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-    REAL(fp), POINTER  :: STT(:,:,:,:)
+    REAL(fp),      POINTER :: Spc(:,:,:,:)
+    TYPE(Species), POINTER :: SpcInfo
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! By simple mass balance, dStrat/dt = P - L - STE,
@@ -988,7 +1060,10 @@ CONTAINS
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC      = GC_SUCCESS
+
+    ! Number of advected species
+    nAdvect = State_Chm%nAdvect
 
 #if defined( NESTED_NA ) || defined( NESTED_CH ) || defined( NESTED_EU )
     ! This method only works for a global domain.
@@ -997,22 +1072,17 @@ CONTAINS
     RETURN
 #else
 
-    ! Copy values from Input_Opt
-    N_TRACERS = Input_Opt%N_TRACERS
-
-    ! Create pointer to GEOS-Chem tracer array in Chemistry State object
-    ! [kg/kg dry air] (ewl, 8/10/15)
-    STT       => State_Chm%Tracers
-
-    ! Convert State_Chm%TRACERS from [kg/kg dry air] to [kg] so that
+    ! Convert State_Chm%SPECIES from [kg/kg dry air] to [kg] so that
     ! units are consistently mixing ratio in main (ewl, 8/10/15)
-    CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  &
-                                State_Chm, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL GIGC_Error('Unit conversion error', RC, &
-                        'Calc_STE in strat_chem_mod.F')
+    CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, State_Chm, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
+                     'Calc_STE in strat_chem_mod.F')
        RETURN
     ENDIF  
+
+    ! Point to chemical species array [kg]
+    Spc => State_Chm%Species
 
     ! Determine mean tropopause level for the period
     !$OMP PARALLEL DO                               &
@@ -1049,12 +1119,15 @@ CONTAINS
 100 FORMAT( 2x,a16,' to ',a16 )
 110 FORMAT( 2x,a8,':',4x,a11  ,4x,a9  ,4x,  a11 )
 
-    ! Loop through each species
-    DO N=1,N_TRACERS
+    ! Loop over only the advected species
+    DO NA = 1, nAdvect
 
+       ! Get the species ID from the advected species ID
+       N = State_Chm%Map_Advect(NA)
+    
        ! Populate before (M1) and after (M2) state for the species [kg]
-       M1 = MInit(:,:,:,N)             
-       M2 =   STT(:,:,:,N)
+       M1 = MInit(:,:,:,NA)             
+       M2 =   Spc(:,:,:,N )
 
        ! Zero out troposphere and determine total change in the stratospheric
        ! burden of species N (dStrat) [kg]
@@ -1076,13 +1149,16 @@ CONTAINS
        ! Calculate flux as STE = (P-L) - dStrat/dt
        STE = (Tend-dStrat)/dt ! [kg a-1]
 
+       ! Get info about this species from the species database
+       SpcInfo => State_Chm%SpcData(N)%Info
+
        ! Print to standard output
        IF ( am_I_Root ) THEN
-          WRITE(6,120) TRIM(Input_Opt%TRACER_NAME(N)),      &
-               STE/Input_Opt%TRACER_MW_KG(N),               & ! mol/a-1
-               Input_Opt%TRACER_MW_KG(N)*1e+3_fp,           & ! g/mol
-               STE*1e-9_fp                                    ! Tg a-1
-       ENDIF
+          WRITE(6,120) TRIM( SpcInfo%Name ),                  &
+               STE / (SpcInfo%emMW_g * 1.e-3_fp),             & ! mol/a-1
+               SpcInfo%emMW_g,                                & ! g/mol
+               STE * 1e-9_fp                                  ! Tg a-1
+       ENDIF 
     ENDDO
 
 120 FORMAT( 2x,a8,':',4x,e11.3,4x,f9.1,4x,f11.4 )
@@ -1100,20 +1176,30 @@ CONTAINS
     TPauseL_Cnt          = 0e+0_fp
     TPauseL(:,:)         = 0e+0_fp
     SChem_tend(:,:,:,:)  = 0e+0_fp
-    MInit(:,:,:,:)       = STT(:,:,:,:)
 
-    ! Convert State_Chm%TRACERS from [kg] back to [kg/kg dry air] 
+    ! Loop over only the advected species
+    DO NA = 1, nAdvect
+
+       ! Get the species ID from the advected species ID
+       N = State_Chm%Map_Advect(NA)
+       
+       ! Reset MINIT for next STE period
+       MInit(:,:,:,NA)  = Spc(:,:,:,N)
+
+    ENDDO
+
+    ! Convert State_Chm%SPECIESfrom [kg] back to [kg/kg dry air] 
     ! (ewl, 8/10/15)
-    CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  &
-                                State_Chm, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL GIGC_Error('Unit conversion error', RC, &
-                        'Calc_STE in strat_chem_mod.F')
+    CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, State_Chm, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
+                     'Calc_STE in strat_chem_mod.F')
        RETURN
     ENDIF  
 
-    ! Free pointer
-    NULLIFY( STT )
+    ! Free pointers
+    Spc     => NULL()
+    SpcInfo => NULL()
 #endif
   END SUBROUTINE Calc_STE
 !EOC
@@ -1135,19 +1221,18 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_MOD
-    USE ERROR_MOD,          ONLY : ALLOC_ERR, GIGC_ERROR
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE TRACERID_MOD,       ONLY : IDTCHBr3, IDTCH2Br2, IDTCH3Br
-    USE TRACERID_MOD,       ONLY : IDTBr2,   IDTBr,     IDTBrO
-    USE TRACERID_MOD,       ONLY : IDTHOBr,  IDTHBr,    IDTBrNO3
+    USE ErrCode_Mod
+    USE ERROR_MOD,          ONLY : ALLOC_ERR, GC_Error
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : Ind_
+    USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TAU
     USE TIME_MOD,           ONLY : GET_NYMD
     USE TIME_MOD,           ONLY : GET_NHMS
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE UNITCONV_MOD
+    USE UnitConv_Mod
 
     IMPLICIT NONE
 !
@@ -1155,7 +1240,7 @@ CONTAINS
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(MetState), INTENT(IN)  :: State_Met     ! Meteorology State object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1176,46 +1261,59 @@ CONTAINS
 !                              now REAL*4, so use 0e0 to initialize
 !  11 Aug 2015 - E. Lundgren - Tracer units are now kg/kg and are converted 
 !                              kg for assignment of MInit
+!  16 Jun 2016 - M. Yannetti - Replaced TRACERID_MOD.
+!  20 Jun 2016 - R. Yantosca - Now save species ID flags as module variables
+!                              and only define them in the INIT phase.
+!  12 Jul 2016 - R. Yantosca - Now also store advected species ID's
+!  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    ! Scalars
-    CHARACTER(LEN=16) :: sname
-    INTEGER           :: AS, N, NN
-    LOGICAL           :: IT_IS_A_FULLCHEM_SIM
-    LOGICAL           :: IT_IS_A_TAGOX_SIM
-    LOGICAL           :: LLINOZ
-    LOGICAL           :: LUCX
-    INTEGER           :: N_TRACERS
+    ! Strings
+    CHARACTER(LEN=16)      :: sname
 
-    ! Arrays
-    CHARACTER(LEN=14) :: TRACER_NAME(Input_Opt%N_TRACERS)
+    ! Scalars
+    INTEGER                :: AS, N, NN, NA, nAdvect
+    LOGICAL                :: IT_IS_A_FULLCHEM_SIM
+    LOGICAL                :: IT_IS_A_TAGO3_SIM
+    LOGICAL                :: LLINOZ
+    LOGICAL                :: LUCX
 
     ! Pointers
-    ! We need to define local arrays to hold corresponding values 
-    ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-    REAL(fp), POINTER :: STT(:,:,:,:)
+    TYPE(Species), POINTER :: SpcInfo
 
     !=================================================================
     ! INIT_STRAT_CHEM begins here!
     !=================================================================
 
     ! Assume success
-    RC                       = GIGC_SUCCESS
+    RC                       = GC_SUCCESS
+
+    ! Get species ID flags
+    id_Br                    = Ind_('Br'     )
+    id_Br2                   = Ind_('Br2'    )
+    id_BrNO3                 = Ind_('BrNO3'  ) 
+    id_BrO                   = Ind_('BrO'    )
+    id_CHBr3                 = Ind_('CHBr3'  )
+    id_CH2Br2                = Ind_('CH2Br2' ) 
+    id_CH3Br                 = Ind_('CH3Br'  )
+    id_HOBr                  = Ind_('HOBr'   )
+    id_HBr                   = Ind_('HBr'    )
+    id_O3                    = Ind_('O3'     )
+    id_O3Strat               = Ind_('O3Strat')   
+
 
     ! Save fields from the Input_Opt object to local variables
     LLINOZ                   = Input_Opt%LLINOZ
     LUCX                     = Input_Opt%LUCX
-    N_TRACERS                = Input_Opt%N_TRACERS
     IT_IS_A_FULLCHEM_SIM     = Input_Opt%ITS_A_FULLCHEM_SIM
-    IT_IS_A_TAGOX_SIM        = Input_Opt%ITS_A_TAGOX_SIM
-    TRACER_NAME(1:N_TRACERS) = Input_Opt%TRACER_NAME(1:N_TRACERS)
+    IT_IS_A_TAGO3_SIM        = Input_Opt%ITS_A_TAGO3_SIM
 
-    ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
-    STT => State_Chm%Tracers
+    ! Number of advected species
+    nAdvect                  = State_Chm%nAdvect
 
     ! Initialize counters, initial times, mapping arrays
     TpauseL_Cnt              = 0.e+0_fp
@@ -1231,12 +1329,12 @@ CONTAINS
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! Determine the mapping for the GMI to the GC variables based on
-    ! tracer name, which only needs to be done once per model run.
+    ! species name, which only needs to be done once per model run.
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    ! List of available tracers with archived monthly climatological
+    ! List of available species with archived monthly climatological
     ! production rates, loss frequencies, and mixing ratios from the 
-    ! GMI Combo model (tracer names here are as used in GMI).
+    ! GMI Combo model (species names here are as used in GMI).
     GMI_TrName = (/ &
              'A3O2',     'ACET',   'ACTA',   'ALD2',    'ALK4',  'ATO2', &
              'B3O2',       'Br',   'BrCl',    'BrO',  'BrONO2',  'C2H6', &
@@ -1283,74 +1381,77 @@ CONTAINS
               sname = 'CFC11'
           ENDIF
  
+          ! Loop over only the advected species
+          DO NA = 1, nAdvect
+          
+             ! Get the species ID from the advected species ID
+             N       = State_Chm%Map_Advect(NA)
 
-          DO N = 1, N_TRACERS
+             ! Get the corresponding entry in the species database
+             SpcInfo => State_Chm%SpcData(N)%Info
 
              ! For now, guarantee that GMI prod/loss rates are not used for any
              ! bromine species
-             IF ( TRIM(TRACER_NAME(N)) .eq.      'Br' .or. &
-                  TRIM(TRACER_NAME(N)) .eq.    'BrCl' .or. &
-                  TRIM(TRACER_NAME(N)) .eq.     'BrO' .or. &
-                  TRIM(TRACER_NAME(N)) .eq.  'BrONO2' .or. &
-                  TRIM(TRACER_NAME(N)) .eq.  'CF2Br2' .or. &
-                  TRIM(TRACER_NAME(N)) .eq. 'CF2ClBr' .or. &
-                  TRIM(TRACER_NAME(N)) .eq.   'CF3Br' .or. &
-                  TRIM(TRACER_NAME(N)) .eq.   'CH3Br' .or. &
-                  TRIM(TRACER_NAME(N)) .eq.     'HBr' .or. &
-                  TRIM(TRACER_NAME(N)) .eq.    'HOBr'        ) CYCLE
+             IF ( TRIM( SpcInfo%Name ) .eq.      'Br' .or. &
+                  TRIM( SpcInfo%Name ) .eq.    'BrCl' .or. &
+                  TRIM( SpcInfo%Name ) .eq.     'BrO' .or. &
+                  TRIM( SpcInfo%Name ) .eq.  'BrONO2' .or. &
+                  TRIM( SpcInfo%Name ) .eq.  'CF2Br2' .or. &
+                  TRIM( SpcInfo%Name ) .eq. 'CF2ClBr' .or. &
+                  TRIM( SpcInfo%Name ) .eq.   'CF3Br' .or. &
+                  TRIM( SpcInfo%Name ) .eq.   'CH3Br' .or. &
+                  TRIM( SpcInfo%Name ) .eq.     'HBr' .or. &
+                  TRIM( SpcInfo%Name ) .eq.    'HOBr'        ) CYCLE
 
              ! SDE 08/28/13: Full strat. has its own mesospheric NOy handling
              IF ( LUCX ) THEN
-                IF ( TRIM(TRACER_NAME(N)) .eq.    'NO' .or. &
-                     TRIM(TRACER_NAME(N)) .eq.   'NO2' .or. &
-                     TRIM(TRACER_NAME(N)) .eq.   'NO3' .or. &
-                     TRIM(TRACER_NAME(N)) .eq.   'NOx' .or. &
-                     TRIM(TRACER_NAME(N)) .eq.     'N' .or. &
-                     TRIM(TRACER_NAME(N)) .eq.   'N2O' ) CYCLE
+                IF ( TRIM( SpcInfo%Name ) .eq.    'NO' .or. &
+                     TRIM( SpcInfo%Name ) .eq.   'NO2' .or. &
+                     TRIM( SpcInfo%Name ) .eq.   'NO3' .or. &
+                     TRIM( SpcInfo%Name ) .eq.   'NOx' .or. &
+                     TRIM( SpcInfo%Name ) .eq.     'N' .or. &
+                     TRIM( SpcInfo%Name ) .eq.   'N2O' ) CYCLE
              ENDIF
 
-             IF ( TRIM(TRACER_NAME(N)) .eq. TRIM(sname) ) THEN
+             IF ( TRIM( SpcInfo%Name ) .eq. TRIM(sname) ) THEN
                 
-                IF ( LLINOZ .and. TRIM(TRACER_NAME(N)) .eq. 'O3' ) THEN
+                IF ( LLINOZ .and. TRIM( SpcInfo%Name ) .eq. 'O3' ) THEN
                    IF ( am_I_Root ) THEN
-                      WRITE( 6, '(a)' ) TRIM(TRACER_NAME(N)) // ' (via Linoz)'
+                      WRITE( 6, '(a)' ) TRIM( SpcInfo%Name ) // ' (via Linoz)'
                    ENDIF
-                ELSE IF ( TRIM(TRACER_NAME(N)) .eq. 'O3' ) THEN
+                ELSE IF ( TRIM( SpcInfo%Name ) .eq. 'O3' ) THEN
                    IF ( am_I_Root ) THEN
-                      WRITE( 6, '(a)' ) TRIM(TRACER_NAME(N)) // ' (via Synoz)'
+                      WRITE( 6, '(a)' ) TRIM( SpcInfo%Name ) // ' (via Synoz)'
                    ENDIF
                 ELSE
                    IF ( am_I_Root ) THEN
-                      WRITE( 6, '(a)' ) TRIM(TRACER_NAME(N))//' (via GMI rates)'
+                      WRITE( 6, '(a)' ) TRIM( SpcInfo%Name )//' (via GMI rates)'
                    ENDIF
                 ENDIF
 
                 NSCHEM                 = NSCHEM + 1
-                Strat_TrID_GC(NSCHEM)  = N  ! Maps 1:NSCHEM to STT index
+                Strat_TrID_GC (NSCHEM) = N  ! Maps 1:NSCHEM to species array
+                Strat_TrId_TND(NSCHEM) = NA ! Maps 1:NSCHEM to SCHEM_TEND
                 Strat_TrID_GMI(NSCHEM) = NN ! Maps 1:NSCHEM to GMI_TrName index
-
              ENDIF
 
+             ! Free pointer
+             SpcInfo => NULL()
           ENDDO
        ENDDO
 
        ! These are the reactions with which we will use OH fields
        ! to determine stratospheric loss.
        IF( am_I_Root ) THEN
-          IF ( IDTCHBr3  .gt. 0 ) WRITE(6,*) 'CHBr3 (from GMI OH)'
-          IF ( IDTCH2Br2 .gt. 0 ) WRITE(6,*) 'CH2Br2 (from GMI OH)'
-          IF ( IDTCH3Br  .gt. 0 ) WRITE(6,*) 'CH3Br (from GMI OH)'
+          IF ( id_CHBr3  .gt. 0 ) WRITE(6,*) 'CHBr3 (from GMI OH)'
+          IF ( id_CH2Br2 .gt. 0 ) WRITE(6,*) 'CH2Br2 (from GMI OH)'
+          IF ( id_CH3Br  .gt. 0 ) WRITE(6,*) 'CH3Br (from GMI OH)'
        ENDIF
 
-!       ! Allocate array to hold monthly mean OH mixing ratio
-!       ALLOCATE( STRAT_OH( IIPAR, JJPAR, LLPAR ), STAT=AS )
-!       IF ( AS /=0 ) CALL ALLOC_ERR( 'STRAT_OH' )
-!       STRAT_OH = 0e0
-
-       !===========!
-       ! Tagged Ox !
-       !===========!
-    ELSE IF ( IT_IS_A_TAGOX_SIM ) THEN
+    !===========!
+    ! Tagged O3 !
+    !===========!
+    ELSE IF ( IT_IS_A_TAGO3_SIM ) THEN
        IF ( LLINOZ ) THEN
           IF ( am_I_Root ) THEN
              WRITE(6,*) 'Linoz ozone performed on: '
@@ -1360,32 +1461,31 @@ CONTAINS
              WRITE(6,*) 'Synoz ozone performed on: '
           ENDIF
        ENDIF
-       DO N = 1, N_TRACERS
-          IF ( TRIM(TRACER_NAME(N)) .eq. 'O3'        .or. &
-               TRIM(TRACER_NAME(N)) .eq. 'O3Strt'    .or. &
-               TRIM(TRACER_NAME(N)) .eq. 'O3Strat' ) THEN
-             NSCHEM = NSCHEM + 1
-             Strat_TrID_GC(NSCHEM) = N
+
+       ! Loop over only the advected species
+       DO NA = 1, nAdvect
+          
+          ! Get the species ID from the advected species ID
+          N       = State_Chm%Map_Advect(NA)
+
+          ! Get the corresponding entry in the species database
+          SpcInfo => State_Chm%SpcData(N)%Info
+
+          IF ( TRIM( SpcInfo%Name ) .eq. 'O3'        .or. &
+               TRIM( SpcInfo%Name ) .eq. 'O3Strt'    .or. &
+               TRIM( SpcInfo%Name ) .eq. 'O3Strat' ) THEN
+             NSCHEM                 = NSCHEM + 1    ! Increment count
+             Strat_TrID_GC(NSCHEM)  = N             ! Use for Sc%Species
+             Strat_TrID_TND(NSCHEM) = NA            ! Use for SCHEM_TEND
              IF ( am_I_Root ) THEN
-                WRITE(6,*) TRIM(TRACER_NAME(N))
+                WRITE(6,*) TRIM( SpcInfo%Name )
              ENDIF
           ENDIF
+
+          ! Free pointer
+          SpcInfo => NULL()
        ENDDO
     ENDIF
-
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-    ! Allocate and initialize prod & loss arrays         !
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-
-!    ! Allocate PROD -- array for clim. production rates [v/v/s]
-!    ALLOCATE( PROD( IIPAR, JJPAR, LLPAR, NSCHEM ), STAT=AS )
-!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'PROD' )
-!    PROD = 0e0
-!
-!    ! Allocate LOSS -- array for clim. loss freq [s-1]
-!    ALLOCATE( LOSS( IIPAR, JJPAR, LLPAR, NSCHEM ), STAT=AS )
-!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'LOSS' )
-!    LOSS = 0e0
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
     ! Allocate and initialize prod/loss vector
@@ -1400,28 +1500,36 @@ CONTAINS
     ! Array to hold initial state of atmosphere at the beginning
     ! of the period over which to estimate STE. Populate with
     ! initial atm. conditions from restart file converted to [kg/kg].
-    ALLOCATE( MInit( IIPAR, JJPAR, LLPAR, N_TRACERS ), STAT=AS )
+    ALLOCATE( MInit( IIPAR, JJPAR, LLPAR, nAdvect ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'MInit' )
 
-    ! Convert State_Chm%TRACERS from [kg/kg dry air] to [kg] so
-    ! that initial state of atmosphere is in same units as
+    ! Convert species from [kg/kg dry air] to [kg] so
+    ! that initial state of atmosphere is in same units as 
     ! chemistry ([kg]), and then convert back after MInit is assigned 
     ! (ewl, 8/10/15)
-    CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  &
-                                State_Chm, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL GIGC_Error('Unit conversion error', RC, &
-                       'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
+    CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, State_Chm, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
+                     'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
        RETURN
     ENDIF 
-    
-    MInit = STT
-    
-    CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  &
-                                State_Chm, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL GIGC_Error('Unit conversion error', RC, &
-                       'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
+
+    ! Loop over only the advected species
+    DO NA = 1, nAdvect
+       
+       ! Get the species ID from the advected species ID
+       N = State_Chm%Map_Advect(NA)
+
+       ! Save initial conditions in MINIT
+       MInit(:,:,:,NA) = State_Chm%Species(:,:,:,N)
+
+    ENDDO
+
+    ! Convert species back to [kg/kg dry air]
+    CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, State_Chm, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
+                     'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
        RETURN
     ENDIF 
 
@@ -1432,15 +1540,12 @@ CONTAINS
     TPAUSEL = 0e+0_fp
 
     ! Array to aggregate the stratospheric chemical tendency [kg period-1]
-    ALLOCATE( SCHEM_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS), STAT=AS )
+    ALLOCATE( SCHEM_TEND(IIPAR,JJPAR,LLPAR,nAdvect), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'SCHEM_TEND' )
     SCHEM_TEND = 0e0
 
     ! Allocate and initialize bromine arrays
-    GC_Bry_TrID(1:6) = (/IDTBr2,IDTBr,IDTBrO,IDTHOBr,IDTHBr,IDTBrNO3/)
-
-    ! Free pointer
-    NULLIFY( STT )
+    GC_Bry_TrID(1:6) = (/id_Br2,id_Br,id_BrO,id_HOBr,id_HBr,id_BrNO3/)
 
   END SUBROUTINE INIT_STRAT_CHEM
 !EOC
@@ -1510,17 +1615,14 @@ CONTAINS
 ! !USES:
 !
     USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
+    USE CMN_SIZE_MOD
+    USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE TAGGED_Ox_MOD,      ONLY : ADD_STRAT_POX
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE PhysConstants
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_YEAR
-    USE TRACERID_MOD,       ONLY : IDTO3,       IDTO3Strt
-
-    USE CMN_SIZE_MOD             ! Size parameters
-    USE PHYSCONSTANTS            ! Rdg0
 
     IMPLICIT NONE
 !
@@ -1623,7 +1725,7 @@ CONTAINS
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  05 Nov 2013 - R. Yantosca - Rename IDTOxStrt to IDTO3Strt
+!  05 Nov 2013 - R. Yantosca - Rename IDTOxStrt to id_O3Strat
 !  23 Jan 2014 - M. Sulprizio- Linoz does not call UPBDFLX_O3. Synoz does. 
 !                              Now uncomment ADD_STRAT_POx (jtl,hyl,dbj,11/3/11)
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE and GET_PCENTER with
@@ -1631,18 +1733,29 @@ CONTAINS
 !                              dependency on pressure_mod.
 !  03 Mar 2015 - E. Lundgren - Use virtual temperature in hypsometric eqn
 !  12 Aug 2015 - R. Yantosca - Add placeholder values for 0.5 x 0.625 grids
+!  16 Jun 2016 - M. Yannetti - Replaced TRACERID_MOD.
+!  20 Jun 2016 - R. Yantosca - Now make species ID flags module variables
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  12 Jul 2016 - R. Yantosca - Remove references to ADD_STRAT_POX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    ! SAVEd scalars
     LOGICAL, SAVE        :: FIRST = .TRUE.
-    INTEGER              :: I, J, L, L70mb
-    REAL(fp)               :: P1, P2, P3, T1, T2, DZ, ZUP
-    REAL(fp)               :: DTCHEM, H70mb, PO3, PO3_vmr
-    REAL(fp)               :: STFLUX(IIPAR,JJPAR,LLPAR)
+    INTEGER              :: I, J, L, L70mb, N, NA, nAdvect
+    REAL(fp)             :: P1, P2, P3, T1, T2, DZ, ZUP
+    REAL(fp)             :: DTCHEM, H70mb, PO3, PO3_vmr
+    REAL(fp)             :: STFLUX(IIPAR,JJPAR,LLPAR)
 
+    ! Pointers
+    REAL(fp), POINTER    :: Spc(:,:,:,:)
+!
+! !DEFINED PARAMETERS:
+!
     ! Select the grid boxes at the edges of the O3 release region, 
     ! for the proper model resolution (qli, bmy, 12/1/04)
 #if defined( GRID4x5 ) && defined( GCAP )
@@ -1662,11 +1775,11 @@ CONTAINS
 
     !%%% ADD PLACEHOLDER VALUES, THESE AREN'T REALLY USED ANYMORE %%%
 #if   defined( NESTED_CH )
-      INTEGER, PARAMETER   :: J30S = 1,  J30N = 83
+      INTEGER, PARAMETER :: J30S = 1,  J30N = 83
 #elif   defined( NESTED_NA )
-      INTEGER, PARAMETER   :: J30S = 1,  J30N = 41
+      INTEGER, PARAMETER :: J30S = 1,  J30N = 41
 #elif   defined( NESTED_EU )
-      INTEGER, PARAMETER   :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
+      INTEGER, PARAMETER :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
 #endif
 
 
@@ -1674,11 +1787,11 @@ CONTAINS
 
 ! jtl, 10/26/11 
 #if   defined( NESTED_CH )
-      INTEGER, PARAMETER   :: J30S = 1,  J30N = 83
+      INTEGER, PARAMETER :: J30S = 1,  J30N = 83
 #elif   defined( NESTED_NA )
-      INTEGER, PARAMETER   :: J30S = 1,  J30N = 41
+      INTEGER, PARAMETER :: J30S = 1,  J30N = 41
 #elif   defined( NESTED_EU )
-      INTEGER, PARAMETER   :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
+      INTEGER, PARAMETER :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
 #endif
 
 #elif defined( GRID025x03125 )
@@ -1708,19 +1821,14 @@ CONTAINS
 
     ! Lower pressure bound for O3 release (unit: mb)
     ! REAL(fp),  PARAMETER   :: P70mb = 70e+0_fp !PHS
-    REAL(fp)  :: P70mb, PTP
-
-    ! Pointers
-    ! We need to define local arrays to hold corresponding values 
-    ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-    REAL(fp), POINTER :: STT(:,:,:,:)
+    REAL(fp)             :: P70mb, PTP
 
     !=================================================================
     ! Do_Synoz begins here!
     !=================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Chemical timestep [s]
     ! Originally, Synoz was in transport code, and used dynamic dT.
@@ -1732,9 +1840,8 @@ CONTAINS
     ! lower pressure !PHS
     P70mb = 70e+0_fp
 
-    ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
-    ! (mpayer, 12/6/12)
-    STT => State_Chm%Tracers
+    ! Point to chemical species array [v/v dry]
+    Spc => State_Chm%Species
 
     !=================================================================
     ! Compute the proper release rate of O3 coming down from the 
@@ -1893,14 +2000,12 @@ CONTAINS
                 PO3 = PO3 * H70mb / State_Met%BXHEIGHT(I,J,L) 
              ENDIF
 
-             ! Store O3 flux in the proper tracer number
-             STT(I,J,L,IDTO3) = STT(I,J,L,IDTO3) + PO3 
+             ! Store O3 flux in the proper species number
+             Spc(I,J,L,id_O3) = Spc(I,J,L,id_O3) + PO3 
 
-             ! Store O3 flux for strat Ox tracer (Tagged Ox only)
-             ! UPBDFLX_O3 and thus ADD_STRAT_POX is called only 
-             ! when Synoz is used (LLINOZ is FALSE) (jtl, hyl, dbj, 11/3/11)
-             IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
-                CALL ADD_STRAT_POX( I, J, L, PO3, State_Chm )
+             ! Store O3 flux for strat O3 species (Tagged O3 only)
+             IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
+                Spc(I,J,L,id_O3Strat) = Spc(I,J,L,id_O3Strat) + PO3
              ENDIF
 
              ! Archive stratospheric O3 for printout in [Tg/yr]
@@ -1915,7 +2020,7 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Free pointer
-    NULLIFY( STT )
+    Spc => NULL()
 
     !=================================================================
     ! Print amount of stratospheric O3 coming down
