@@ -586,9 +586,11 @@
       MODELNAME = GET_MODELNAME()
       TAU       = GET_TAU()
 
-      ! Point to chemical species array [kg/kg]
-      ! (mpayer, 12/6/12)
+      ! Point to species array [kg/kg]
       Spc => State_Chm%Species
+
+      ! Number of advected species
+      nAdvect   = State_Chm%nAdvect
 
       ! Loop over the possible combinations of nested grids
       DO IC = 1, 4
