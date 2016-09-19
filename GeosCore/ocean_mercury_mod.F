@@ -971,6 +971,7 @@
 !                              database field emMW_g (emitted species g/mol)
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  19 Sep 2016 - R. Yantosca - Cast IF expressions to LOGICAL for Gfortran
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1921,7 +1922,15 @@
                   Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + RIVER_HG *
      &                            A_M2 * DTSRCE * FRAC_O
 
-                  IF ( ND03 .and. NN == ID_Hg_tot )
+!-----------------------------------------------------------------------------
+! Prior to 9/19/16:
+! We need to wrap the NN == ID_Hg_Tot in parentheses, which will cast it to
+! LOGICAL type.  We also need to add the condition ( ND03 > 0 ), which will
+! evaluate to LOGICAL.  Gfortran will choke unless both arguments to AND are 
+! of type LOGICAL. (bmy, 9/19/16)
+!                  IF ( ND03 .and. NN == ID_Hg_tot )
+!-----------------------------------------------------------------------------
+                  IF ( ( ND03 > 0 ) .and. ( NN == ID_Hg_tot ) )
      &                AD03_riv(I,J) = AD03_riv(I,J) + RIVER_HG *
      &                                A_M2 * DTSRCE * FRAC_O
                ENDIF

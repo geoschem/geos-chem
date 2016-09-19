@@ -699,8 +699,8 @@
                ! dM/dln(Dw)/Dw
 	       ! Overall = dM/dDw = dV/dlnD * Rwet/Rdry * RHO /Rw
 	       ! 
-	       IF (DMID(ID) .ge. R0*2e+0_fp .and. DMID(ID) .le. R1*2e+0_fp) 
-     &          THEN
+	       IF ( DMID(ID) .ge. R0*2e+0_fp   .and. 
+     &              DMID(ID) .le. R1*2e+0_fp ) THEN
 	         DMIDW = DMID(ID) * RWET/REFF  ! wet radius [um]
 	         SALT_MASS = SALT_V(ID) * RWET/REFF * RHO 
      &                      / (DMIDW*0.5e+0_fp)

@@ -316,7 +316,12 @@ CONTAINS
        ! Check if this container holds data in the desired unit format,
        ! i.e. concentration data if UseConc is enabled, emission data
        ! otherwise.
-       IF ( UseConc /= Dct%Dta%IsConc ) THEN
+!----------------------------------------------------------------------------
+! Prior to 9/19/16:
+! Gfortran requires .eqv. for comparing logicals (bmy, 9/19/16)
+!       IF ( UseConc /= Dct%Dta%IsConc ) THEN
+!----------------------------------------------------------------------------
+       IF ( UseConc .eqv. Dct%Dta%IsConc ) THEN
           CALL EmisList_NextCont ( Lct, FLAG )
           CYCLE
        ENDIF 

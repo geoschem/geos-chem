@@ -1981,6 +1981,7 @@ CONTAINS
 !  29 Oct 2013 - R. Yantosca - Now read T_FULLGRID_2 for offline simulations
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  03 Dec 2015 - R. Yantosca - Now open file only once per day
+!  19 Sep 2016 - R. Yantosca - Rewrote IF statement to avoid Gfortran error
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2027,7 +2028,15 @@ CONTAINS
     !======================================================================
     ! Open the netCDF file
     !======================================================================
-    IF ( time_index == 1 .or. first ) THEN
+!-----------------------------------------------------------------------------
+! Prior to 9/19/16:
+! Rewrite for Gfortran
+!    IF ( time_index == 1 .or. first ) THEN
+!-----------------------------------------------------------------------------
+    ! NOTE: For Gfortran, we need to place the time_index == 1 in parentheses,
+    ! which will force the expression LOGICAL type.  Gfortran will choke if
+    ! both arguments to the OR operator are not logical types. (bmy, 9/9/16)
+    IF ( ( time_index == 1 ) .or. first ) THEN
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )

@@ -2245,7 +2245,12 @@ CONTAINS
           CALL GetExtOpt( ExtNr, 'Use fertilizer NOx', OptValBool=YesOrNo, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
    
-          IF ( YesOrNo == .FALSE. ) THEN
+!----------------------------------------------------------------------------
+! Prior to 9/19/16:
+! Rewrite IF statement so as to have Gfortran not choke (bmy, 9/19/16)
+!          IF ( YesOrNo == .FALSE. ) THEN
+!----------------------------------------------------------------------------
+          IF ( .not. YesOrNo ) THEN
              MSG = 'Fertilizer NOx disabled - diagnostics will be zero!'
              CALL HCO_Warning( MSG, RC, THISLOC=LOC )
           ENDIF
