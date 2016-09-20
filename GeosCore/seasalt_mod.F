@@ -204,7 +204,7 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
-
+!  20 Sep 2016 - R. Yantosca - Bug fix: rewrite invalid ( LMPOA > 0 ) test
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -269,7 +269,7 @@
       !=================================================================
       ! Do chemistry for marine organic aerosol tracers 
       !=================================================================
-      IF ( LMPOA > 0 ) THEN
+      IF ( LMPOA ) THEN
 
          ! Chemistry for hydrophobic MOA
          IF ( id_MOPO > 0 ) THEN

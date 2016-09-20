@@ -210,6 +210,8 @@
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
 !  20 Jul 2016 - R. Yantosca - Remove references to NNPAR (now use nAdvect)
+!  20 Sep 2016 - R. Yantosca - Bug fix for Gfortran: Make sure the IT_IS_*
+!                              variables are declared as LOGICAL, not INTEGER
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -217,11 +219,11 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: NMAX, AS, NEMISS, LMAX, nAdvect
-      INTEGER :: IT_IS_A_CH3I_SIM
-      INTEGER :: IT_IS_A_FULLCHEM_SIM
-      INTEGER :: IT_IS_A_MERCURY_SIM
-      INTEGER :: IT_IS_A_TAGO3_SIM
-      INTEGER :: IT_IS_A_H2HD_SIM
+      LOGICAL :: IT_IS_A_CH3I_SIM
+      LOGICAL :: IT_IS_A_FULLCHEM_SIM
+      LOGICAL :: IT_IS_A_MERCURY_SIM
+      LOGICAL :: IT_IS_A_TAGO3_SIM
+      LOGICAL :: IT_IS_A_H2HD_SIM
       LOGICAL :: LDUST
       LOGICAL :: LCARB
       LOGICAL :: LSSALT

@@ -1266,6 +1266,7 @@ CONTAINS
 !                              and only define them in the INIT phase.
 !  12 Jul 2016 - R. Yantosca - Now also store advected species ID's
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  20 Sep 2016 - R. Yantosca - Rewrote GMI_TrName statement for Gfortran
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1335,27 +1336,42 @@ CONTAINS
     ! List of available species with archived monthly climatological
     ! production rates, loss frequencies, and mixing ratios from the 
     ! GMI Combo model (species names here are as used in GMI).
-    GMI_TrName = (/ &
-             'A3O2',     'ACET',   'ACTA',   'ALD2',    'ALK4',  'ATO2', &
-             'B3O2',       'Br',   'BrCl',    'BrO',  'BrONO2',  'C2H6', &
-             'C3H8',     'CCl4', 'CF2Br2', 'CF2Cl2', 'CF2ClBr', 'CF3Br', &
-           'CFC113',   'CFC114', 'CFC115',  'CFCl3',    'CH2O', 'CH3Br', &
-          'CH3CCl3',    'CH3Cl',    'CH4',     'CO',      'Cl',   'Cl2', &
-            'Cl2O2',      'ClO', 'ClONO2',    'EOH',    'ETO2',   'ETP', &
-             'GCO3',     'GLYC',   'GLYX',     'GP',    'GPAN',     'H', &
-               'H2',    'H2402',    'H2O',   'H2O2',     'HAC',   'HBr', &
-         'HCFC141b', 'HCFC142b', 'HCFC22',  'HCOOH',     'HCl',  'HNO2', &
-             'HNO3',     'HNO4',    'HO2',   'HOBr',    'HOCl',  'IALD', &
-             'IAO2',      'IAP',   'INO2',   'INPN',    'ISN1',  'ISNP', &
-             'ISOP',      'KO2',   'MACR',   'MAN2',    'MAO3',  'MAOP', &
-              'MAP',     'MCO3',    'MEK',   'MGLY',     'MO2',   'MOH', &
-               'MP',     'MRO2',    'MRP',    'MVK',    'MVN2',     'N', &
-              'N2O',     'N2O5',     'NO',    'NO2',     'NO3',   'NOx', &
-                'O',      'O1D',     'O3',   'OClO',      'OH',    'Ox', &
-              'PAN',      'PMN',    'PO2',     'PP',     'PPN',  'PRN1', &
-             'PRPE',     'PRPN',   'R4N1',   'R4N2',    'R4O2',   'R4P', &
-             'RA3P',     'RB3P',   'RCHO',   'RCO3',   'RCOOH',  'RIO1', &
-             'RIO2',      'RIP',    'ROH',     'RP',    'VRO2',   'VRP'    /)
+    !
+    ! Rewrote the GMI_TrName array constructor so that all of the species
+    ! names have the same length.  This will prevent Gfortran from choking 
+    ! with an error.  This is OK since we trim GMI_TrName before using
+    ! it in any string comparisons. (bmy, 9/20/16)
+    GMI_TrName = (/ 'A3O2    ', 'ACET    ', 'ACTA    ', 'ALD2    ',   &
+                    'ALK4    ', 'ATO2    ', 'B3O2    ', 'Br      ',   &
+                    'BrCl    ', 'BrO     ', 'BrONO2  ', 'C2H6    ',   &
+                    'C3H8    ', 'CCl4    ', 'CF2Br2  ', 'CF2Cl2  ',   &
+                    'CF2ClBr ', 'CF3Br   ', 'CFC113  ', 'CFC114  ',   &
+                    'CFC115  ', 'CFCl3   ', 'CH2O    ', 'CH3Br   ',   &
+                    'CH3CCl3 ', 'CH3Cl   ', 'CH4     ', 'CO      ',   &
+                    'Cl      ', 'Cl2     ', 'Cl2O2   ', 'ClO     ',   &
+                    'ClONO2  ', 'EOH     ', 'ETO2    ', 'ETP     ',   &
+                    'GCO3    ', 'GLYC    ', 'GLYX    ', 'GP      ',   &
+                    'GPAN    ', 'H       ', 'H2      ', 'H2402   ',   &
+                    'H2O     ', 'H2O2    ', 'HAC     ', 'HBr     ',   &
+                    'HCFC141b', 'HCFC142b', 'HCFC22  ', 'HCOOH   ',   &
+                    'HCl     ', 'HNO2    ', 'HNO3    ', 'HNO4    ',   &
+                    'HO2     ', 'HOBr    ', 'HOCl    ', 'IALD    ',   &
+                    'IAO2    ', 'IAP     ', 'INO2    ', 'INPN    ',   &
+                    'ISN1    ', 'ISNP    ', 'ISOP    ', 'KO2     ',   &
+                    'MACR    ', 'MAN2    ', 'MAO3    ', 'MAOP    ',   &
+                    'MAP     ', 'MCO3    ', 'MEK     ', 'MGLY    ',   &
+                    'MO2     ', 'MOH     ', 'MP      ', 'MRO2    ',   &
+                    'MRP     ', 'MVK     ', 'MVN2    ', 'N       ',   &
+                    'N2O     ', 'N2O5    ', 'NO      ', 'NO2     ',   &
+                    'NO3     ', 'NOx     ', 'O       ', 'O1D     ',   &
+                    'O3      ', 'OClO    ', 'OH      ', 'Ox      ',   &
+                    'PAN     ', 'PMN     ', 'PO2     ', 'PP      ',   &
+                    'PPN     ', 'PRN1    ', 'PRPE    ', 'PRPN    ',   &
+                    'R4N1    ', 'R4N2    ', 'R4O2    ', 'R4P     ',   &
+                    'RA3P    ', 'RB3P    ', 'RCHO    ', 'RCO3    ',   &
+                    'RCOOH   ', 'RIO1    ', 'RIO2    ', 'RIP     ',   &
+                    'ROH     ', 'RP      ', 'VRO2    ', 'VRP     '  /)
+
 
     !===========================!
     ! Full chemistry simulation !

@@ -2229,6 +2229,7 @@
 !                              the advected species index NA
 !  07 Jul 2016 - R. Yantosca - DIAG14 and DIAG38 now are dimensioned with
 !                              of size State_Chm%nWetDep instead of N_TRACERS
+!  20 Sep 2016 - R. Yantosca - Rewrote IF test to avoid Gfortran compiler error
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2847,7 +2848,7 @@
      &                          State_Met, State_Chm, RC         )
 
                   ! Check if the species is an aerosol or not
-                  IF ( AER == .TRUE. ) THEN
+                  IF ( AER ) THEN
  
                      !---------------------------------------------------------
                      ! Washout of aerosol species

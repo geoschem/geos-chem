@@ -274,6 +274,7 @@
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !  18 Jul 2016 - R. Yantosca - Bug fix: look up TOMAS species ID's
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  20 Sep 2016 - R. Yantosca - Use .eqv. instead of .eq. to compare LOGICALs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6280,9 +6281,9 @@
              !or if we're doing the optics
              !but only output 2nd and 3rd sets of optics if they're
              !requested by user in input.geos.rad
-             IF (((N.LE.4).AND.(Input_Opt%LSKYRAD(2).EQ..TRUE.)).OR.
+             IF (((N.LE.4).AND.(Input_Opt%LSKYRAD(2).EQV..TRUE.)).OR.
      &           ((N.GT.4).AND.(N.LE.8).AND.
-     &                         (Input_Opt%LSKYRAD(1).EQ..TRUE.)).OR.
+     &                         (Input_Opt%LSKYRAD(1).EQV..TRUE.)).OR.
      &           ((N.GT.8).AND.(N.LE.11)).OR.                         !1st set of optics
      &           ((N.GT.11).AND.(N.LE.14).AND.(NWVSELECT.GT.1)).OR.   !2nd set of optics
      &           ((N.GT.14).AND.(N.LE.17).AND.(NWVSELECT.GT.2))) THEN !3rd set of optics

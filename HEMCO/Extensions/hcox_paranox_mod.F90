@@ -2208,6 +2208,8 @@ CONTAINS
 !                                directly from FAST-JX. In FlexChem, adjustment
 !                                of the photolysis rates are done in routine
 !                                PHOTRATE_ADJ (found in GeosCore/fast_jx_mod.F).
+!  20 Sep 2016 - R. Yantosca   - Replace non-standard ASIND function with ASIN,
+!                                and convert to degrees (divide by PI/180)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2300,14 +2302,6 @@ CONTAINS
    ! SEA5 = SEA at current model time, 5-h after emission from ship
    ! Note: Since SEA = 90 - SZA, then cos(SZA) = sin(SEA) and 
    ! thus SEA = arcsin( cos( SZA ) )
-!-----------------------------------------------------------------------------
-! Prior to 9/19/16:
-! Now use the Fortran 90 intrinsic ASIN (which returns results in radians),
-! then convert to degrees.  ASIND is not supported on all compilers,
-! especially GFORTRAN. (bmy, 9/19/16)
-!   VARS(4) = ASIND( SC5(I,J) )
-!   VARS(5) = ASIND( ExtState%SUNCOS%Arr%Val(I,J) )
-!-----------------------------------------------------------------------------
    VARS(4) = ASIN( SC5(I,J)                     ) / HcoState%Phys%PI_180
    VARS(5) = ASIN( ExtState%SUNCOS%Arr%Val(I,J) ) / HcoState%Phys%PI_180
 

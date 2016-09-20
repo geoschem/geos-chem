@@ -1038,6 +1038,7 @@ CONTAINS
 !                              values to restart_mod
 !  24 Aug 2016 - M. Sulprizio- Remove CSPECTOKPP array. State_Chm%Map_KppSpc is
 !                              now used instead.
+!  20 Sep 2016 - R. Yantosca - Use fixed integer with in WRITE statement
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1067,7 +1068,12 @@ CONTAINS
     IF ( prtDebug .and. am_I_Root ) THEN
        write(*,'(a)') ' KPP Reaction Reference '
        DO D = 1,NREACT
-          write(*,'(i,a3,a85)') D,' | ',EQN_NAMES(D)
+!------------------------------------------------------------------------------
+! Prior to 9/20/16:
+! Use a fixed integer width to avoid a Gfortran compiler error (bmy, 9/20/16)
+!          write(*,'(i,a3,a85)') D,' | ',EQN_NAMES(D)
+!------------------------------------------------------------------------------
+          WRITE( 6, '(i8,a3,a85)' ) D,' | ',EQN_NAMES(D)
        END DO
     ENDIF
 

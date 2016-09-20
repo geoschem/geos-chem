@@ -1981,7 +1981,7 @@ CONTAINS
 !  29 Oct 2013 - R. Yantosca - Now read T_FULLGRID_2 for offline simulations
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  03 Dec 2015 - R. Yantosca - Now open file only once per day
-!  19 Sep 2016 - R. Yantosca - Rewrote IF statement to avoid Gfortran error
+!  20 Sep 2016 - R. Yantosca - Bug fix: FIRST must be declared as LOGICAL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2000,7 +2000,7 @@ CONTAINS
     CHARACTER(LEN=255) :: caller                   ! Name of this routine
 
     ! SAVEd scalars
-    INTEGER, SAVE      :: first = .TRUE.           ! First time reading data?
+    LOGICAL, SAVE      :: first = .TRUE.           ! First time reading data?
                                     
     ! Arrays                                 
     INTEGER            :: st3d(3), ct3d(3)         ! Start & count indices
@@ -2028,15 +2028,7 @@ CONTAINS
     !======================================================================
     ! Open the netCDF file
     !======================================================================
-!-----------------------------------------------------------------------------
-! Prior to 9/19/16:
-! Rewrite for Gfortran
-!    IF ( time_index == 1 .or. first ) THEN
-!-----------------------------------------------------------------------------
-    ! NOTE: For Gfortran, we need to place the time_index == 1 in parentheses,
-    ! which will force the expression LOGICAL type.  Gfortran will choke if
-    ! both arguments to the OR operator are not logical types. (bmy, 9/9/16)
-    IF ( ( time_index == 1 ) .or. first ) THEN
+    IF ( time_index == 1 .or. first ) THEN
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )

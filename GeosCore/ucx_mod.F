@@ -6607,6 +6607,7 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GRID_MOD,           ONLY : GET_YEDGE
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : PI_180
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
       USE TIME_MOD,           ONLY : GET_YEAR
@@ -6617,14 +6618,13 @@
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
       TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
 !
-! !OUTPUT VARIABLES:
-!
-!
 ! !REVISION HISTORY: 
 !  04 Apr 2013 - S. D. Eastham - Initial version
 !  21 Jun 2016 - R. Yantosca   - Now declare species ID's during INIT phase
 !  21 Jun 2016 - R. Yantosca   - Remove reference to tracerid_mod.F
 !  24 Jun 2016 - R. Yantosca   - Bug fix: get advected species index for H2 
+!  20 Sep 2016 - R. Yantosca   - Now avoid using SIND, convert the argument
+!                                to radians and use the SIN function instead
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7076,7 +7076,8 @@
       DO JOUT=1,JJPAR
          JMIN_OUT = JMAX_OUT
          JMAX_OUT = GET_YEDGE(1,JOUT+1,1)
-         JDIF_OUT = SIND(JMAX_OUT)-SIND(JMIN_OUT)
+         JDIF_OUT = SIN( JMAX_OUT * PI_180 )
+     &            - SIN( JMIN_OUT * PI_180 )
          DEG_SUM = 0e+0_fp
          DO JIN=1,UCX_NLAT
             JMIN_IN = UCX_LATS(JIN)
@@ -7084,7 +7085,8 @@
             IF ((JMAX_OUT.ge.JMIN_IN).and.(JMIN_OUT.le.JMAX_IN)) THEN
                JMAX_TMP = MIN(JMAX_IN,JMAX_OUT)
                JMIN_TMP = MAX(JMIN_IN,JMIN_OUT)
-               JDIF_TMP = SIND(JMAX_TMP)-SIND(JMIN_TMP)
+               JDIF_TMP = SIN( JMAX_TMP * PI_180 )
+     &                  - SIN( JMIN_TMP * PI_180 )
                IF (IS_SAFE_DIV(JDIF_TMP,JDIF_OUT)) THEN
                   JRATIO = JDIF_TMP/JDIF_OUT
                   UCX_REGRID(JOUT,JIN) = JRATIO

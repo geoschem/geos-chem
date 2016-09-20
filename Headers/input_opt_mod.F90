@@ -403,7 +403,7 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      LOGICAL                     :: DO_ND51
      CHARACTER(LEN=255)          :: ND51_FILE
-     INTEGER                     :: LND51_HDF
+     LOGICAL                     :: LND51_HDF
      INTEGER,            POINTER :: ND51_TRACERS(:)
      REAL(fp)                    :: ND51_HR_WRITE
      REAL(fp)                    :: ND51_HR1
@@ -420,7 +420,7 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      LOGICAL                     :: DO_ND51b
      CHARACTER(LEN=255)          :: ND51b_FILE
-     INTEGER                     :: LND51b_HDF
+     LOGICAL                     :: LND51b_HDF
      INTEGER,            POINTER :: ND51b_TRACERS(:)
      REAL(fp)                    :: ND51b_HR_WRITE
      REAL(fp)                    :: ND51b_HR1
@@ -482,9 +482,9 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: TPBC_DIR_EU
      LOGICAL                     :: LWINDO_CH
      CHARACTER(LEN=255)          :: TPBC_DIR_CH
-     INTEGER                     :: LWINDO_SE
+     LOGICAL                     :: LWINDO_SE
      CHARACTER(LEN=255)          :: TPBC_DIR_SE
-     INTEGER                     :: LWINDO_CU
+     LOGICAL                     :: LWINDO_CU
      CHARACTER(LEN=255)          :: TPBC_DIR
      INTEGER                     :: NESTED_TS
      INTEGER                     :: NESTED_I1
@@ -640,6 +640,8 @@ MODULE Input_Opt_Mod
 !  29 Aug 2016 - M. Sulprizio- Rename N_TRACERS to N_ADVECT and TRACER_NAME to
 !                              AdvectSpc_Name to reflect that we now refer to
 !                              tracers as advected species
+!  20 Sep 2016 - R. Yantosca - LND51_HDF and LND51b_HDF are now declared
+!                              as LOGICAL, not INTEGER.  This chokes Gfortran.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
