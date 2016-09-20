@@ -6375,17 +6375,8 @@ c         SRTH2O = ICOMP
       IF ( TRIM( State_Chm%Spc_Units ) == 'kg/m2' ) THEN
          UNITFACTOR = State_Met%AREA_M2( I, J, 1 )
 
-      !============================================================
-      ! Moisture fix (7/8/2016):
-      !============================================================
-      ! Prior to 08 Jul 2016: 
-      ! (moist mixing ratio in convection)
-      !ELSE IF (  TRIM( State_Chm%Trac_Units ) == 'kg/kg total' ) THEN
-      !   UNITFACTOR = State_Met%ADMOIST( I, J, L )
-      
       ELSE IF (  TRIM( State_Chm%Spc_Units ) == 'kg/kg dry' ) THEN
          UNITFACTOR = State_Met%AD( I, J, L )
-      !============================================================
 
       ELSE 
          MSG = 'Unexpected species units: ' // TRIM(State_Chm%Spc_Units)

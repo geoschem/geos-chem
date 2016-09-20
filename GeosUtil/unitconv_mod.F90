@@ -50,7 +50,7 @@ MODULE UnitConv_Mod
   PUBLIC  :: ConvertSpc_kgm2_to_KgKgDry
 
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  ! KG/KG DRY <-> MOLEC/CM3 (not in moisture fix)
+  ! KG/KG DRY <-> MOLEC/CM3
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   PUBLIC  :: ConvertSpc_KgKgDry_to_MND
   PUBLIC  :: ConvertSpc_MND_to_KgKgDry
@@ -435,17 +435,6 @@ CONTAINS
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
-
-       ! Prior to moisture fix:
-       !! Convert specific humidity from [g/kg] to [kg/kg]
-       !SPHU_kgkg = State_Met%SPHU(I,J,L) * 1.0e-3_fp 
-       !
-       !! Area-independent conversion
-       !State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)          &
-       !                             * ( ( 1.0e+0_fp - SPHU_kgkg )       &
-       !                             * ( g0_100                          &
-       !                             * State_Met%DELP(I,J,L) ) )           
-
        State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)          &
                                     * ( g0_100                          &
                                     * State_Met%DELP_DRY(I,J,L) ) 
@@ -552,23 +541,10 @@ CONTAINS
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
-
-       ! Prior to moisture fix:
-       !! Convert specific humidity from [g/kg] to [kg/kg]
-       !SPHU_kgkg = State_Met%SPHU(I,J,L) * 1.0e-3_fp 
-       !
-       !! Area-independent conversion
-       !State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)          &
-       !                             * ( 1.0e+0_fp                       &      
-       !                             / ( ( 1.0e+0_fp - SPHU_kgkg )       &
-       !                             * ( g0_100                          &
-       !                             * State_Met%DELP(I,J,L) ) ) )          
-
        State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)          &
                                     * ( 1.0e+0_fp                       &      
                                     / ( g0_100                          &
                                     * State_Met%DELP_DRY(I,J,L) ) )
-
     ENDDO
     ENDDO
     ENDDO

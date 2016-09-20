@@ -269,21 +269,6 @@
       ! Number of advected species
       nAdvect = State_Chm%nAdvect
 
-      !============================================================
-      ! Moisture fix (7/6/2016):
-      !============================================================
-      ! Prior to: 
-      !! Convert State_Chm%Species from [kg/kg dry air] to 
-      !! [kg/kg total air] prior to convection (ewl, 8/10/15)
-      !CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
-      !&                                   State_Met, State_Chm, RC )
-      !IF ( RC /= GIGC_SUCCESS ) THEN
-      !   CALL GIGC_Error('Unit conversion error', RC, 
-      !&                   'DO_CONVECTION in convection_mod.F')
-      !   RETURN
-      !ENDIF  
-      !============================================================
-
       ! For netCDF diagnostics, archive old species concentration. At the 
       ! moment, the new ND38 diagnostics only returns the total column 
       ! loss due to convection. For these values, we don't need to 
@@ -393,12 +378,6 @@
          ! Grid box surface area [m2]
          AREA_M2     =  GET_AREA_M2( I, J, 1 ) 
 
-! moisture fix
-!         ! Pressure edges
-!         DO L = 1, LLPAR+1
-!            PEDGE_DRY(L) =  State_Met%PEDGE_DRY( I, J, L )
-!         ENDDO
-
          ! NOTE: For some reason the code chokes when we try
          ! to use a pointer, so we'll use a 2D array here.
          F           =  FSOL(I,J,:,:)
@@ -414,7 +393,6 @@
      &                             J          = J,
      &                             AREA_M2    = AREA_M2,
      &                             F          = F,
-!     &                             PEDGE_DRY  = PEDGE_DRY,
      &                             TS_DYN     = DT, 
      &                             USE_DIAG14 = DO_ND14,
      &                             DIAG14     = DIAG14,
@@ -499,18 +477,9 @@
                TMP3D = ( BEFORE(:,:,:,D) - 
      &                 State_Chm%Species(:,:,:,D)) / DTIME 
 
-               !============================================================
-               ! Moisture fix (7/6/2016):
-               !============================================================
-               ! Prior to 06 Jul 2016:
-               ! Convert to [kg/s]
-               ! Now use moist air mass rather than dry air mass (ewl, 6/23/15)
-               !TMP3D = TMP3D * ( State_Met%DELP(I,J,L) * G0_100 ) * AREA_M2
-
                ! Convert to [kg/s]
                TMP3D = TMP3D * State_Met%DELP_DRY(I,J,L) * 
      &                 G0_100 * AREA_M2
-               !============================================================
 
                ! Sum over the column
                TMP2D = SUM(TMP3D,DIM=3) 
@@ -541,21 +510,6 @@
          DEALLOCATE( BEFORE, TMP3D, TMP2D )
       ENDIF
 #endif
-
-      !============================================================
-      ! Moisture fix (7/6/2016):
-      !============================================================
-      ! Prior to: 
-      ! Convert species concentration from kg/kg total air to 
-      ! kg/kg dry air after convection (ewl, 8/10/15)
-      !CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
-      !&                                   State_Met, State_Chm, RC ) 
-      !IF ( RC /= GIGC_SUCCESS ) THEN
-      !   CALL GIGC_Error('Unit conversion error', RC, 
-      !&                   'DO_CONVECTION in convection_mod.F')
-      !   RETURN
-      !ENDIF  
-      !============================================================
 
 #if defined( USE_TEND )
       !=================================================================
@@ -2116,7 +2070,6 @@
      &                                J,
      &                                AREA_M2,    
      &                                F,          
-!     &                                PEDGE_DRY,      
      &                                TS_DYN,   
      &                                USE_DIAG14, 
      &                                DIAG14,
@@ -2478,14 +2431,7 @@
 
                   ! Compute QB, the weighted avg mixing ratio below
                   ! the cloud base [kg/kg dry air]
-                  !============================================================
-                  ! Moisture fix (5/4/2016):
-                  !============================================================
-                  ! Prior to 12 Jul 2016:
-                  ! (use dry edge pressures)
-                  !QB = QB_NUM / ( PEDGE_DRY(1) - PEDGE_DRY(CLDBASE) )
                   QB = QB_NUM / DELP_DRY_NUM
-                  !============================================================
 
                   ! Compute QC, the mixing ratio of the air that moved
                   ! in cumulus transport up to the next level [kg/kg]

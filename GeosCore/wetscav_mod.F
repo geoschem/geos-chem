@@ -454,18 +454,6 @@
             ! Is this a species selected for wetscav diagnostics?
             IF ( ANY( Input_Opt%TINDEX(38,:) == N ) ) THEN
 
-               !=========================================================
-               ! Moisture fix (7/26/2016):
-               !=========================================================
-               ! Prior to 26 July 2016:
-               ! (calculate dry air mass from wet delta pressure)
-               !! Convert [kg/kg/s] to [kg/m2/s] so that the vertical
-               !! sum makes physical sense (ewl, 8/14/15)
-               !TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Tracers(:,:,:,N) )
-               !&           * State_Met%DELP * 1.e+2_fp 
-               !&           * ( 1.e+0_fp - 1.e-3_fp * State_Met%SPHU ) 
-               !&           / ( G0_100 * DT )
-
                ! Convert [kg/kg/s] to [kg/m2/s] so that the vertical
                ! sum makes physical sense (ewl, 8/14/15)      
                TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Species(:,:,:,N) )
@@ -2091,16 +2079,6 @@
       UNITCHANGE_KGKG = .FALSE.
       UNITCHANGE_KGM2 = .FALSE.
 
-      !============================================================
-      ! MOISTURE FIX (ewl, 7/8/16)
-      !============================================================
-      ! Prior to 08 July 2016:
-      ! (units are moist mixing ratio in convection)
-      !IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/kg total' ) THEN
-      !   UNITCHANGE_KGKG = .TRUE.
-      !   CALL ConvertSpc_KgKgTotal_to_Kg( am_I_Root, I, J, L, 
-      !&                                    State_Met, State_Chm, RC )
-
       IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/kg dry' ) THEN
          UNITCHANGE_KGKG = .TRUE.
          CALL ConvertBox_KgKgDry_to_Kg( am_I_Root, I, J, L,  
@@ -2244,17 +2222,8 @@
       ! if conversion occurred at start of WASHOUT (ewl, 5/12/15)
       IF ( UNITCHANGE_KGKG ) THEN
 
-         !============================================================
-         ! MOISTURE FIX (ewl, 7/8/16)
-         !============================================================
-         ! Prior to 08 July 2016:
-         ! (units are moist mixing ratio in convection)
-         !CALL ConvertSpc_Kg_to_KgKgTotal( am_I_Root, I, J, L,
-         !&                                State_Met, State_Chm, RC )
-
          CALL ConvertBox_Kg_to_KgKgDry( am_I_Root, I, J, L, 
      &                                  State_Met, State_Chm, RC )
-         !============================================================
 
       ELSE IF ( UNITCHANGE_KGM2 ) THEN
          CALL ConvertBox_Kg_to_Kgm2( am_I_Root, I, J, L,

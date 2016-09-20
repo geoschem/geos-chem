@@ -437,22 +437,11 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         !============================================================
-         ! Moisture fix (5/4/2016):
-         !============================================================
-         ! Prior to 04 May 2016: 
-         ! (P_TP1 and P_TP2 include moisture)
-         !! True surface pressure at midpoint of dynamic timestep [hPa]
-         !P_TP1(I,J) = State_Met%PEDGE(I,J,1)
-         !! True surface pressure at end of dynamic timestep [hPa]
-         !P_TP2(I,J) = State_Met%PSC2(I,J)    
-
          ! Set true dry sfc pressure at midpoint of dynamic timestep [hPa]
          P_TP1(I,J) = GET_PEDGE_DRY(I,J,1)
 
          ! Set true dry sfc pressure at end of dynamic timestep [hPa]
          P_TP2(I,J) = State_Met%PSC2_DRY(I,J)    
-         !============================================================
    
       ENDDO
       ENDDO
@@ -501,22 +490,6 @@
       p_MFLUP   => MASSFLUP_NC
 #endif
 
-      !============================================================
-      ! Moisture fix (5/4/2016):
-      !============================================================
-      ! Prior to 04 May 2016: 
-      ! (convert to moist mixing ratio)
-      ! Convert species concentration from kg/kg dry air to 
-      ! kg/kg total  air before advection (ewl, 6/15/15, 8/3/16)
-      !CALL ConvertSpc_KgKgDry_to_KgKgTotal( am_I_Root, State_Met, 
-      !&                                      State_Chm, RC         )
-      !IF ( RC /= GC_SUCCESS ) THEN
-      !   CALL GC_Error('Unit conversion error', RC, 
-      !&                 'GEOS4_GEOS5_GLOBAL_ADV in transport_mod.F')
-      !   RETURN
-      !ENDIF 
-      !============================================================
-
       ! Do the advection
       CALL TPCORE_FVDAS( D_DYN,    Re,       IIPAR,    JJPAR,
      &                   LLPAR,    JFIRST,   JLAST,    NG,
@@ -535,22 +508,6 @@
       ENDIF
 #endif
 
-      !============================================================
-      ! Moisture fix (5/4/2016):
-      !============================================================
-      ! Prior to 04 May 2016: 
-      ! (convert back to dry mixing ratio)
-      ! Convert species concentration from kg/kg wet air to 
-      ! kg/kg dry air after advection (ewl, 6/15/15. 8/3/16)
-      !CALL ConvertSpc_KgKgTotal_to_KgKgDry( am_I_Root, State_Met,
-      !&                                      State_Chm, RC         ) 
-      !IF ( RC /= GC_SUCCESS ) THEN
-      !   CALL GC_Error('Unit conversion error', RC, 
-      !&                 'GEOS4_GEOS5_GLOBAL_ADV in transport_mod.F')
-      !   RETURN
-      !ENDIF 
-      !============================================================
-
       ! Free pointer memory
       p_UWND  => NULL()
       p_VWND  => NULL()
@@ -565,20 +522,10 @@
       ! Reset surface pressure and ensure mass conservation
       !=================================================================
 
-      !============================================================
-      ! Moisture fix (5/4/2016):
-      !============================================================
-      ! Prior to 04 May 2016: 
-      ! (floating pressure is wet)
-      !! Reset the floating surface pressure with P_TP2, the "true"
-      !! surface pressure at the end of the dynamic timestep.
-      !CALL SET_FLOATING_PRESSURE( P_TP2 )
-
       ! Update dry and wet floating pressures to the most recently 
       ! interpolated values (State_Met%PSC2_DRY and State_Met%PSC2)
       ! (ewl, 7/6/16)
       CALL SET_FLOATING_PRESSURES(  am_I_Root, State_Met, RC )
-      !============================================================
 
       ! Update State_Met air quantities with new pressures.
       ! Do not update tracer mixing ratio because after advection
@@ -779,16 +726,6 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         !============================================================
-         ! Moisture fix (5/4/2016):
-         !============================================================
-         ! Prior to 04 May 2016: 
-         ! (P_TP1 and P_TP2 include moisture)
-         !! Psurface - PTOP at midpoint of dynamic timestep [hPa]
-         !P_TP1(I,J) = State_Met%PEDGE(I,J,1) - PTOP
-         !! Psurface - PTOP at end of dynamic timestep [hPa]
-         !P_TP2(I,J) = State_Met%PSC2(I,J) - PTOP
-
          ! Set true dry sfc pressure at midpoint of dynamic timestep [hPa]
          ! NOTE: Still subtract PTOP? Come back to this.
          P_TP1(I,J) = GET_PEDGE_DRY(I,J,1) - PTOP
@@ -796,7 +733,6 @@
          ! Set true dry sfc pressure at end of dynamic timestep [hPa]
          ! NOTE: Still subtract PTOP? Come back to this.
          P_TP2(I,J) = State_Met%PSC2_DRY(I,J) - PTOP   
-         !============================================================
 
       ENDDO
       ENDDO
@@ -842,22 +778,6 @@
       p_MFLUP   => MASSFLUP_NC
 #endif
 
-      !============================================================
-      ! Moisture fix (5/4/2016):
-      !============================================================
-      ! Prior to 04 May 2016: 
-      ! (convert to moist mixing ratio)
-      ! Convert species concentration from kg/kg dry air to 
-      ! kg/kg total air before advection (ewl, 6/15/15, 8/3/16)
-      !CALL ConvertSpc_KgKgDry_to_KgKgTotal( am_I_Root, State_Met, 
-      !&                                      State_Chm, RC         )
-      !IF ( RC /= GC_SUCCESS ) THEN
-      !   CALL GC_Error('Unit conversion error', RC, 
-      !&                 'GCAP_GLOBAL_ADV in transport_mod.F')
-      !   RETURN
-      !ENDIF 
-      !============================================================
-
       ! Do the advection
       CALL TPCORE_FVDAS( D_DYN,   Re,      IIPAR,   JJPAR,
      &                   LLPAR,   JFIRST,  JLAST,   NG,
@@ -876,22 +796,6 @@
       ENDIF
 #endif
 
-      !============================================================
-      ! Moisture fix (5/4/2016):
-      !============================================================
-      ! Prior to 04 May 2016: 
-      ! (convert back to dry mixing ratio)
-      ! Convert species concentration from kg/kg total air to 
-      ! kg/kg dry air after advection (ewl, 6/15/15, 8/3/16)
-      !CALL ConvertSpc_KgKgTotal_to_KgKgDry( am_I_Root, State_Met, 
-      !&                                      State_Chm, RC         ) 
-      !IF ( RC /= GC_SUCCESS ) THEN
-      !   CALL GC_Error('Unit conversion error', RC, 
-      !&                 'GCAP_GLOBAL_ADV in transport_mod.F')
-      !   RETURN
-      !ENDIF 
-      !============================================================
-
       ! Free pointer memory
       p_UWND  => NULL()
       p_VWND  => NULL()
@@ -906,21 +810,11 @@
       ! Reset surface pressure and ensure mass conservation
       !=================================================================
 
-      !============================================================
-      ! Moisture fix (5/4/2016):
-      !============================================================
-      ! Prior to 04 May 2016: 
-      ! (floating pressure is wet)
-      !! Reset the floating surface pressure with P_TP2+PTOP, the "true"
-      !! surface pressure at the end of the dynamic timestep.
-      !CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
-
       ! Update dry and wet floating pressures to the most recently 
       ! interpolated values (State_Met%PSC2_DRY and State_Met%PSC2).
       ! NOTE: Currently does not add PTOP!!! Come back to this.
       ! (ewl, 7/6/16)
       CALL SET_FLOATING_PRESSURES(  am_I_Root, State_Met, RC )
-      !============================================================
 
       ! Update State_Met air quantities with new pressures.
       ! Do not update tracer mixing ratio because after advection
@@ -1143,22 +1037,11 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         !============================================================
-         ! Moisture fix (5/4/2016):
-         !============================================================
-         ! Prior to 04 May 2016: 
-         ! (P_TP1 and P_TP2 include moisture)
-         !! True surface pressure at midpoint of dynamic timestep [hPa]
-         !P_TP1(I,J) = State_Met%PEDGE(I,J,1)
-         !! True surface pressure at end of dynamic timestep [hPa]
-         !P_TP2(I,J) = State_Met%PSC2(I,J)    
-
          ! Set true dry sfc pressure at midpoint of dynamic timestep [hPa]
          P_TP1(I,J) = GET_PEDGE_DRY(I,J,1)
 
          ! Set true dry sfc pressure at end of dynamic timestep [hPa]
          P_TP2(I,J) = State_Met%PSC2_DRY(I,J)    
-         !============================================================
 
       ENDDO
       ENDDO
@@ -1249,21 +1132,6 @@
 
       p_A_M2  => A_M2( J0_W1+1 : J0_W1+JM_W1                     )
 
-      !============================================================
-      ! Moisture fix (5/4/2016):
-      !============================================================
-      ! Prior to 04 May 2016: 
-      ! (convert to moist mixing ratio)
-      ! Convert species concentration from kg/kg dry air to 
-      ! kg/kg moist air before advection (ewl, 6/15/15, 8/3/16)
-      !CALL ConvertSpc_KgKgDry_to_KgKgTotal( am_I_Root, State_Met, 
-      !&                                      State_Chm, RC         )
-      !IF ( RC /= GC_SUCCESS ) THEN
-      !   CALL GC_Error('Unit conversion error', RC, 
-      !&                 'DO_WINDOW_TRANSPORT in transport_mod.F')
-      !   RETURN
-      !ENDIF 
-
       ! Do the advection
       CALL TPCORE_WINDOW( 
      &      D_DYN,   Re,       IM_W1,   JM_W1,   LLPAR, 
@@ -1281,21 +1149,6 @@
      &                                    Input_Opt, State_Chm, RC )
       ENDIF
 #endif
-
-      !============================================================
-      ! Moisture fix (5/4/2016):
-      !============================================================
-      ! Prior to 04 May 2016: 
-      ! (convert back to dry mixing ratio)
-      !! Convert tracer concentration from kg/kg wet air to 
-      !! kg/kg dry air after advection (ewl, 6/15/15)
-      !CALL ConvertSpc_KgKgTotal_to_KgKgDry( am_I_Root, State_Met, 
-      !&                                      State_Chm, RC         ) 
-      !IF ( RC /= GC_SUCCESS ) THEN
-      !   CALL GC_Error('Unit conversion error', RC, 
-      !&                 'DO_WINDOW_TRANSPORT in transport_mod.F')
-      !   RETURN
-      !ENDIF 
 
       ! Free pointer memory
       p_UWND   => NULL()  
@@ -1315,20 +1168,10 @@
       ! Reset surface pressure and ensure mass conservation
       !=================================================================
 
-      !============================================================
-      ! Moisture fix (5/4/2016):
-      !============================================================
-      ! Prior to 04 May 2016: 
-      ! (floating pressure is wet)
-      !! Reset the floating surface pressure with P_TP2, the "true"
-      !! surface pressure at the end of the dynamic timestep.
-      !CALL SET_FLOATING_PRESSURE( P_TP2 )
-
       ! Update dry and wet floating pressures to the most recently 
       ! interpolated values (State_Met%PSC2_DRY and State_Met%PSC2)
       ! (ewl, 7/6/16)
       CALL SET_FLOATING_PRESSURES(  am_I_Root, State_Met, RC )
-      !============================================================
 
       ! Update State_Met air quantities with new pressures.
       ! Do not update tracer mixing ratio because after advection
