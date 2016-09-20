@@ -555,7 +555,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
  
     ! Return w/ success
-    RC = HCO_}SUCCESS
+    RC = HCO_SUCCESS
     
   END SUBROUTINE HcoDiagn_Init
 !EOC
