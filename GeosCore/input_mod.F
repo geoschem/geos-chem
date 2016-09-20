@@ -811,24 +811,18 @@
       Input_Opt%RES_DIR = 'GEOS_0.5x0.625_EU/'
 #elif defined( GRID05x0625 ) && defined( NESTED_NA )
       Input_Opt%RES_DIR = 'GEOS_0.5x0.625_NA/'
-#elif defined( GRID05x0625 ) && defined( NESTED_SE )
-      Input_Opt%RES_DIR = 'GEOS_0.5x0.625_SE/'
 #elif defined( GRID05x0666 ) && defined( NESTED_CH )
       Input_Opt%RES_DIR = 'GEOS_0.5x0.666_CH/'
 #elif defined( GRID05x0666 ) && defined( NESTED_EU )
       Input_Opt%RES_DIR = 'GEOS_0.5x0.666_EU/'
 #elif defined( GRID05x0666 ) && defined( NESTED_NA )
       Input_Opt%RES_DIR = 'GEOS_0.5x0.666_NA/'
-#elif defined( GRID05x0666 ) && defined( NESTED_SE )
-      Input_Opt%RES_DIR = 'GEOS_0.5x0.666_SE/'
 #elif defined( GRID025x03125 ) && defined( NESTED_CH ) 
       Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_CH/'
 #elif defined( GRID025x03125 ) && defined( NESTED_EU ) 
       Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_EU/'
 #elif defined( GRID025x03125 ) && defined( NESTED_NA ) 
       Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_NA/'
-#elif defined( GRID025x03125 ) && defined( NESTED_SE ) 
-      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_SE/'
 #endif
 
       !-----------------------------------------------------------------
@@ -945,7 +939,7 @@
       ! the settings of the C-preprocessor switches.  We have to set
       ! this here before the call to INITIALIZE_GEOS_GRID below.
       !=================================================================
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_AS ) || defined( NESTED_SE)
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_AS )
       Input_Opt%ITS_A_NESTED_GRID = .TRUE.
 #endif
       ! Return success
@@ -6416,7 +6410,7 @@
       ! Scalars
       LOGICAL            :: LWINDO,      LWINDO2x25,  LWINDO_CU
       LOGICAL            :: LWINDO_NA,   LWINDO_EU,   LWINDO_CH
-      LOGICAL            :: LWINDO_AS,   LWINDO_SE
+      LOGICAL            :: LWINDO_AS
       INTEGER            :: I0W,         J0W,         I1 
       INTEGER            :: I2,          J1,          J2
       INTEGER            :: N,           TS
@@ -6472,14 +6466,6 @@
       ! Directory where AS TPCORE BC's are stored (0.5x0.625 only)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:8' )
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%TPBC_DIR_AS
-
-      ! Save out TPCORE BC's over the SEAC4RS region
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:9' )
-      READ( SUBSTRS(1:N), * ) LWINDO_SE
-
-      ! Directory where SEAC4RS TPCORE BC's are stored
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:10' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%TPBC_DIR_SE
 
       ! Save out TPCORE BC's over Custom Region
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:11' )
@@ -6539,7 +6525,6 @@
       Input_Opt%LWINDO_EU  = LWINDO_EU
       Input_Opt%LWINDO_CH  = LWINDO_CH
       Input_Opt%LWINDO_AS  = LWINDO_AS
-      Input_Opt%LWINDO_SE  = LWINDO_SE
       Input_Opt%LWINDO_CU  = LWINDO_CU
       Input_Opt%NESTED_TS  = TS
       Input_Opt%NESTED_I1  = I1
@@ -6574,9 +6559,6 @@
          WRITE( 6, 100 ) 'Save BC''s over Asia         : ', LWINDO_AS
          WRITE( 6, 110 ) 'Directory with AS BC''s      : ', 
      &                    TRIM( Input_Opt%TPBC_DIR_AS )
-         WRITE( 6, 100 ) 'Save BC''s over SE Asia      : ', LWINDO_SE
-         WRITE( 6, 110 ) 'Directory  with SE BC''s     : ', 
-     &                    TRIM( Input_Opt%TPBC_DIR_SE )
          WRITE( 6, 100 ) 'Save BC''s over custom region: ', LWINDO_CU
          WRITE( 6, 110 ) 'Directory with custom BC''s  : ', 
      &                    TRIM( Input_Opt%TPBC_DIR )

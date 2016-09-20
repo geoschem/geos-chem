@@ -759,16 +759,17 @@
       ! compile GEOS-Chem with EXCHANGE=yes. (yanyy, 03/28/14)
       CALL INIT_EXCHANGE( am_I_Root )
 
-# if defined( GRID4x5 ) || defined( GRID2x25 )
+#if defined( GRID4x5 ) || defined( GRID2x25 )
 
       ! Initialize exchange of global boundary conditions
       CALL EXCHANGE_GLOBAL_INIT()
 
-#elif defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || defined( NESTED_AS ) || defined( NESTED_SE )
+#elif defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU )
       ! Initialize exchange of nested boundary conditions
       CALL EXCHANGE_NESTED_INIT()
 
-# endif
+#endif
+
 #endif
 
 !-----------------------------------------------------------------------------
@@ -1262,7 +1263,8 @@
 ! This is only invoked when compiling GEOS-Chem with COUPLE=y
 !
 #if defined( EXCHANGE )
-# if defined( GRID4x5 ) || defined( GRID2x25 )
+
+#if defined( GRID4x5 ) || defined( GRID2x25 )
 
             ! Exchange the position of POST (global simulations)
             IF ( ITS_TIME_FOR_EXCHANGE() ) THEN 
@@ -1270,7 +1272,7 @@
      &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
 
-# elif defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || deifned( NESTED_AS ) || defined( NESTED_SE )
+#elif defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU )
 
             ! Exchange the position of POST (nested-grid simulations)
             IF ( ITS_TIME_FOR_EXCHANGE() ) THEN
@@ -1278,7 +1280,8 @@
      &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
 
-# endif
+#endif
+
 #endif
 !-----------------------------------------------------------------------------
 

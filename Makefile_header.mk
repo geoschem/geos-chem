@@ -187,6 +187,8 @@
 #  11 Feb 2016 - E. Lundgren - Change BPCH to BPCH_DIAG, NETCDF to NC_DIAG
 #  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
 #  19 Jul 2016 - R. Yantosca - Add more flags for enabling experimental code
+#  20 Sep 2016 - M. Sulprizio- Remove NEST=se option. This grid was never fully
+#                              implemented.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -210,13 +212,12 @@ ERR_MET              :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=
 ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=05x0625, GRID=025x03125"
 
 # Error message for bad NEST input
-ERR_NEST             :="Select a nested grid: NEST=as, NEST=ch, NEST=eu, NEST=na, NEST=se, NEST=cu"
+ERR_NEST             :="Select a nested grid: NEST=as, NEST=ch, NEST=eu, NEST=na, NEST=cu"
 
 # Error message for bad two-way coupled model input (yanyy,6/18/14)
 ERR_COUPLECH         :="Select a coupled grid for China/SE Asia: COUPLECH=2x25ch, COUPLECH=4x5ch"
 ERR_COUPLENA         :="Select a coupled grid for North America: COUPLENA=2x25na, COUPLENA=4x5na"
 ERR_COUPLEEU         :="Select a coupled grid for Europe       : COUPLEEU=2x25eu, COUPLEEU=4x5eu"
-ERR_COUPLESE         :="Select a coupled grid for SE Asia      : COUPLESE=2x25se, COUPLEEU=4x5se"
 ERR_COUPLE           :="Select a coupled choice: COUPLE=yes"
 
 # Error message for bad GIGC config
@@ -708,12 +709,6 @@ ifndef NO_GRID_NEEDED
     USER_DEFS        += -DNESTED_NA
   endif
 
-  # %%%%% SE Asia (SE) %%%%%
-  REGEXP             :=(^[Ss][Ee])
-  ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DNESTED_SE
-  endif
-
   # %%%%% Custom (CU) %%%%%
   REGEXP             :=(^[Cc][Uu])
   ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
@@ -722,7 +717,7 @@ ifndef NO_GRID_NEEDED
 
   # %%%%% ERROR CHECK!  Make sure our NEST selection is valid! %%%%%
   ifdef NEST_NEEDED
-    REGEXP           :=((\-DNESTED_)?AS|CH|EU|NA|SE|CU)
+    REGEXP           :=((\-DNESTED_)?AS|CH|EU|NA|CU)
     ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
       $(error $(ERR_NEST))
     endif

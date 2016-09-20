@@ -147,8 +147,8 @@
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
-!  06 Aug 2012 - R. Yantosca - Now make IU_BC, IU_BC_NA, IU_BC_EU, IU_BC_CH,
-!                              and IU_BC_SE local variables for findFreeLUN
+!  06 Aug 2012 - R. Yantosca - Now make IU_BC, IU_BC_NA, IU_BC_EU, IU_BC_CH
+!                              local variables for findFreeLUN
 !  07 Sep 2012 - R. Yantosca - Minor fixes for numerical stability
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
@@ -197,8 +197,6 @@
       INTEGER              :: I2_BC_CH, J2_BC_CH, IM_BC_CH, JM_BC_CH
       INTEGER              :: I0_BC_AS, J0_BC_AS, I1_BC_AS, J1_BC_AS
       INTEGER              :: I2_BC_AS, J2_BC_AS, IM_BC_AS, JM_BC_AS
-      INTEGER              :: I0_BC_SE, J0_BC_SE, I1_BC_SE, J1_BC_SE
-      INTEGER              :: I2_BC_SE, J2_BC_SE, IM_BC_SE, JM_BC_SE
       INTEGER              :: TS_BC
 
       ! Logical unit numbers
@@ -208,7 +206,6 @@
       INTEGER              :: IU_BC_EU   ! LUN for output BC's, Europe grid
       INTEGER              :: IU_BC_CH   ! LUN for output BC's, China grid
       INTEGER              :: IU_BC_AS   ! LUN for output BC's, Asia grid
-      INTEGER              :: IU_BC_SE   ! LUN for output BC's, SEAC4RS grid
  
       ! Arrays
       INTEGER, ALLOCATABLE :: MAP1x1(:,:,:  )
@@ -568,7 +565,6 @@
       LOGICAL              :: LWINDO_CH
       LOGICAL              :: LWINDO_AS
       LOGICAL              :: LWINDO_EU
-      LOGICAL              :: LWINDO_SE
       INTEGER              :: HALFPOLAR
       INTEGER              :: I, IOS, J, L, N, IC, NA, nAdvect
       REAL(f4)             :: LONRES, LATRES
@@ -600,7 +596,6 @@
       LWINDO_CH = Input_Opt%LWINDO_CH
       LWINDO_AS = Input_Opt%LWINDO_AS
       LWINDO_EU = Input_Opt%LWINDO_EU
-      LWINDO_SE = Input_Opt%LWINDO_SE
 
       ! Return if it's not time to write data to disk
       IF ( .not. ITS_TIME_FOR_BC() ) RETURN
@@ -1091,7 +1086,6 @@
       LOGICAL :: LWINDO_CH
       LOGICAL :: LWINDO_AS
       LOGICAL :: LWINDO_CU
-      LOGICAL :: LWINDO_SE
 
       !=================================================================
       ! CLEAN_WINDOW_TPCORE_BC begins here!
@@ -1106,7 +1100,6 @@
       LWINDO_CH = Input_Opt%LWINDO_CH
       LWINDO_AS = Input_Opt%LWINDO_AS
       LWINDO_CU = Input_Opt%LWINDO_CU
-      LWINDO_SE = Input_Opt%LWINDO_SE
 
 #if   defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || defined( NESTED_AS ) || defined( NESTED_CU )
       BC = 0e+0_fp
@@ -1844,8 +1837,8 @@
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
 !  07 Sep 2012 - R. Yantosca - Now use 0e+0_fp instead of 0e0 to zero BC arrays
 !  17 Oct 2012 - M. Payer    - Bug fix: Define extent of coarse grid BC region
-!                              even if LWINDO_CH or LWINDO_SE = False to
-!                              avoid out-of-bounds errors in array BC
+!                              even if LWINDO_CH = False to avoid out-of-bounds
+!                              errors in array BC
 !  05 Jun 2013 - K. Yu       - Define BC boundaries for GEOS_57 0.25 NA grid
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Removed SEAC4RS C-preprocessor switch
@@ -1864,7 +1857,6 @@
       LOGICAL :: LWINDO,    LWINDO_NA,  LWINDO_CU
       LOGICAL :: LWINDO_EU, LWINDO_CH,  LWINDO_AS
       LOGICAL :: LWINDO2x25
-      LOGICAL :: LWINDO_SE
       INTEGER :: nAdvect
 
       !=================================================================
@@ -1878,7 +1870,6 @@
       LWINDO_EU  = Input_Opt%LWINDO_EU
       LWINDO_CH  = Input_Opt%LWINDO_CH
       LWINDO_AS  = Input_Opt%LWINDO_AS
-      LWINDO_SE  = Input_Opt%LWINDO_SE
       LWINDO2x25 = Input_Opt%LWINDO2x25
 
       ! Number of advected species
@@ -2133,19 +2124,9 @@
       J0_BC_AS = J1_BC_AS - 1
 
       !-----------------------------------------------------------------
-      !      ****** BC REGION FOR SE NESTED GRID ******
-      !-----------------------------------------------------------------
-
-      ! Extent of coarse-grid SEAC4RS BC REGION
-      IM_BC_SE = I2_BC_SE - I1_BC_SE + 1
-      JM_BC_SE = J2_BC_SE - J1_BC_SE + 1
- 
-      ! TPCORE SEAC4RS internal transport window offset
-      I0_BC_SE = I1_BC_SE - 1
-      J0_BC_SE = J1_BC_SE - 1
-
       ! Return if we are not saving 4x5 BC's
       ! or if it's not a nested grid simulation
+      !-----------------------------------------------------------------
       IF ( .not. ITS_A_NESTED_GRID() ) THEN
          IF ( .not. LWINDO ) RETURN
       ENDIF

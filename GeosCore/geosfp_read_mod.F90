@@ -117,7 +117,6 @@ CONTAINS
 !  10 Feb 2012 - R. Yantosca - Initial version
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocssor switch
-!  14 Jan 2014 - R. Yantosca - Now add NESTED_SE option
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -145,9 +144,6 @@ CONTAINS
 
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
     resString = '025x03125.NA.nc'
-
-#elif defined( GRID025x03125 ) && defined( NESTED_SE )
-    resString = '025x03125.SE.nc'
 
 #elif defined( GRID025x03125 )
     resString = '025x03125.nc'

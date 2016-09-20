@@ -5438,14 +5438,9 @@ c Fix up for negative argument, erf, etc.
       ! Copy the 05x0666 scale factors for now
       ! (skim, 5/20/12)
       FLX_MSS_FDG_FCT = 3.23d-4
-#elif defined(NESTED_SE)  
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%%       NOTE: NEED TO SCALE THIS FOR GEOS-FP nested SE!         %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! Copy the 05x0666 scale factors for now
-      ! (skim, 5/20/12)
-      FLX_MSS_FDG_FCT = 3.23d-4
+
 #elif defined(NESTED_NA)
+
       !----------------------------------------------------------------
       ! Based on results from GEOS-FP 0.25x0.3125 NA for 08/2012-08/2013
       ! compared to 2006 GEOS-5 0.5x0.666 NA
@@ -5465,6 +5460,7 @@ c Fix up for negative argument, erf, etc.
       !    -- M. Sulprizio, 15 Jan 2014
       !----------------------------------------------------------------
       FLX_MSS_FDG_FCT = 1.20d-4
+
 #endif
 
       ! Global mass flux tuning factor (a posteriori) [frc]

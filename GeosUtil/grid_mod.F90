@@ -382,7 +382,7 @@ CONTAINS
           ! Lat centers (radians)
           YMDR(I,J,L)   = ( PI_180 * YMD(I,J,L)  )
 
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_AS ) || defined( NESTED_SE )
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_AS )
 
           !----------------------------------------------------------------
           !              %%%%% FOR NESTED GRIDS ONLY %%%%%
@@ -1160,7 +1160,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_AS ) || defined( NESTED_SE )
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_AS )
 
     ! For nested grids, return the latitude center of the window
     ! region (in radians)
