@@ -805,8 +805,8 @@
       Input_Opt%RES_DIR = 'GEOS_1x1.25/'
 #elif defined( GRID1x1 ) 
       Input_Opt%RES_DIR = 'GEOS_1x1/'
-#elif defined( GRID05x0625 ) && defined( NESTED_CH )
-      Input_Opt%RES_DIR = 'GEOS_0.5x0.625_CH/'
+#elif defined( GRID05x0625 ) && defined( NESTED_AS )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.625_AS/'
 #elif defined( GRID05x0625 ) && defined( NESTED_EU )
       Input_Opt%RES_DIR = 'GEOS_0.5x0.625_EU/'
 #elif defined( GRID05x0625 ) && defined( NESTED_NA )
@@ -945,7 +945,7 @@
       ! the settings of the C-preprocessor switches.  We have to set
       ! this here before the call to INITIALIZE_GEOS_GRID below.
       !=================================================================
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_SE) || defined( SEAC4RS )
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_AS ) || defined( NESTED_SE)
       Input_Opt%ITS_A_NESTED_GRID = .TRUE.
 #endif
       ! Return success
@@ -6383,6 +6383,7 @@
 ! !USES:
 !
       USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
@@ -6415,11 +6416,12 @@
       ! Scalars
       LOGICAL            :: LWINDO,      LWINDO2x25,  LWINDO_CU
       LOGICAL            :: LWINDO_NA,   LWINDO_EU,   LWINDO_CH
-      LOGICAL            :: LWINDO_SE
+      LOGICAL            :: LWINDO_AS,   LWINDO_SE
       INTEGER            :: I0W,         J0W,         I1 
       INTEGER            :: I2,          J1,          J2
       INTEGER            :: N,           TS
       INTEGER            :: I0E,         J0E
+      CHARACTER(LEN=255) :: MSG,         LOCATION
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -6427,6 +6429,9 @@
       !=================================================================
       ! READ_NESTED_GRID_MENU begins here!
       !=================================================================
+
+      ! Location string for ERROR_STOP
+      LOCATION = 'READ_NESTED_GRID_MENU ("input_mod.f")'
 
       ! Save out TPCORE BC's at 4x5
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:1' )
@@ -6459,6 +6464,14 @@
       ! Directory where CH TPCORE BC's are stored
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:8' )
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%TPBC_DIR_CH
+
+      ! Save out TPCORE BC's over AS (0.5x0.625 only)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:7' )
+      READ( SUBSTRS(1:N), * ) LWINDO_AS
+
+      ! Directory where AS TPCORE BC's are stored (0.5x0.625 only)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:8' )
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%TPBC_DIR_AS
 
       ! Save out TPCORE BC's over the SEAC4RS region
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:9' )
@@ -6496,6 +6509,28 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:15' )
 
       !=================================================================
+      ! Error checks
+      !=================================================================
+#if !defined( MERRA2 ) && !defined( GEOS_FP) 
+      IF ( LWINDO_AS ) THEN
+         IF ( am_I_Root ) THEN
+            WRITE(6,*) REPEAT( '=', 79 )
+            WRITE(6,*) 'The nested AS grid only works with GEOS-FP and '
+            WRITE(6,*) 'MERRA-2 met fields! Setting LWINDO_AS to false!'
+            WRITE(6,*) REPEAT( '=', 79 )
+         ENDIF
+         LWINDO_AS = .FALSE.
+      ENDIF
+#endif
+#if defined( MERRA2 )
+      IF ( LWINDO_CH ) THEN
+         MSG = 'MERRA-2 is not set up for the nested CH grid, use ' //
+     &         'nested AS instead.'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+#endif
+
+      !=================================================================
       ! Set fields of Input Options object
       !=================================================================
       Input_Opt%LWINDO     = LWINDO
@@ -6503,6 +6538,7 @@
       Input_Opt%LWINDO_NA  = LWINDO_NA
       Input_Opt%LWINDO_EU  = LWINDO_EU
       Input_Opt%LWINDO_CH  = LWINDO_CH
+      Input_Opt%LWINDO_AS  = LWINDO_AS
       Input_Opt%LWINDO_SE  = LWINDO_SE
       Input_Opt%LWINDO_CU  = LWINDO_CU
       Input_Opt%NESTED_TS  = TS
@@ -6525,12 +6561,29 @@
          WRITE( 6, '(/,a)' ) 'NESTED GRID MENU'
          WRITE( 6, '(  a)' ) '----------------'
          WRITE( 6, 100 ) 'Save TPCORE BC''s at 4x5     : ', LWINDO
-         WRITE( 6, 110 ) 'Dir w/ archived OH files     : ', 
+         WRITE( 6, 100 ) 'Save TPCORE BC''s at 2x25    : ', LWINDO2x25
+         WRITE( 6, 100 ) 'Save BC''s over North America: ', LWINDO_NA
+         WRITE( 6, 110 ) 'Directory with NA BC''s      : ', 
+     &                    TRIM( Input_Opt%TPBC_DIR_NA )
+         WRITE( 6, 100 ) 'Save BC''s over Europe       : ', LWINDO_EU
+         WRITE( 6, 110 ) 'Directory with EU BC''s      : ', 
+     &                    TRIM( Input_Opt%TPBC_DIR_EU )
+         WRITE( 6, 100 ) 'Save BC''s over China/SE Asia: ', LWINDO_CH
+         WRITE( 6, 110 ) 'Directory with CH BC''s      : ', 
+     &                    TRIM( Input_Opt%TPBC_DIR_CH )
+         WRITE( 6, 100 ) 'Save BC''s over Asia         : ', LWINDO_AS
+         WRITE( 6, 110 ) 'Directory with AS BC''s      : ', 
+     &                    TRIM( Input_Opt%TPBC_DIR_AS )
+         WRITE( 6, 100 ) 'Save BC''s over SE Asia      : ', LWINDO_SE
+         WRITE( 6, 110 ) 'Directory  with SE BC''s     : ', 
+     &                    TRIM( Input_Opt%TPBC_DIR_SE )
+         WRITE( 6, 100 ) 'Save BC''s over custom region: ', LWINDO_CU
+         WRITE( 6, 110 ) 'Directory with custom BC''s  : ', 
      &                    TRIM( Input_Opt%TPBC_DIR )
-         WRITE( 6, 120 ) 'Timestep for 4x5 BC''s [min] : ', TS
-         WRITE( 6, 120 ) 'Bot left  box of 4x5 BC area : ', I1,  J1
-         WRITE( 6, 120 ) 'Top right box of 4x5 BC area : ', I2,  J2
-         WRITE( 6, 130 ) 'Nested grid window offsets   : ', I0W, J0W,
+         WRITE( 6, 120 ) 'Timestep for BC''s [min]     : ', TS
+         WRITE( 6, 120 ) 'LL box of BC region         : ', I1,  J1
+         WRITE( 6, 120 ) 'UR box of BC region         : ', I2,  J2
+         WRITE( 6, 130 ) 'Nested grid window offsets  : ', I0W, J0W,
      &                                                      I0E, J0E
       END IF
 
@@ -7217,6 +7270,8 @@
          CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_EU )
 #elif defined( NESTED_CH)
          CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_CH )
+#elif defined( NESTED_AS)
+         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_AS )
 #endif
 
       ENDIF
@@ -7231,6 +7286,9 @@
       ENDIF
       IF ( Input_Opt%LWINDO_CH ) THEN
          CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_CH )
+      ENDIF
+      IF ( Input_Opt%LWINDO_AS ) THEN
+         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_AS )
       ENDIF
 
 #if   defined( GEOS_4 )

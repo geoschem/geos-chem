@@ -127,17 +127,14 @@ CONTAINS
 #elif defined( GRID05x0666 )
     resString = '05x0666.nc4'
 
-#elif defined( GRID05x0625 ) && defined( NESTED_CH )
-    resString = '05x0625.CH.nc4'
+#elif defined( GRID05x0625 ) && defined( NESTED_AS )
+    resString = '05x0625.AS.nc4'
 
 #elif defined( GRID05x0625 ) && defined( NESTED_EU )
     resString = '05x0625.EU.nc4'
 
 #elif defined( GRID05x0625 ) && defined( NESTED_NA )
     resString = '05x0625.NA.nc4'
-
-#elif defined( GRID05x0625 ) && defined( NESTED_SE )
-    resString = '05x0625.SE.nc4'
 
 #elif defined( GRID05x0625 )
     resString = '05x0625.nc4'

@@ -8772,11 +8772,6 @@ ccc
       USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : Ind_
-!-----------------------------------------------------------------------------
-! Prior to 7/20/16:
-! HEMCO has now rendered this code obsolete (bmy, 7/20/16)
-!      USE GRID_MOD,           ONLY : GET_BOUNDING_BOX
-!-----------------------------------------------------------------------------
       USE TIME_MOD,           ONLY : GET_NYMDb, GET_NHMSb, GET_TAUb
 !
 ! !INPUT PARAMETERS:
@@ -9078,69 +9073,6 @@ ccc
          SPECSOAEVAP = 0e+0_fp
 
       ENDIF
-
-!-----------------------------------------------------------------------------
-! Prior to 7/20/16:
-! Emissions are now handled by HEMCO; these are now obsolete (bmy, 7/20/16)
-!     !=================================================================
-!     ! Compute indices which define the N. America region so that we 
-!     ! can overwrite T. Bond emissions w/ Cooke/RJP emissions 
-!     !=================================================================
-!
-!#if   defined( NESTED_NA )
-!      ! For 1x1 N. America nested grid: set indices to grid extent
-!      I1_NA = 1
-!      J1_NA = 1
-!      I2_NA = IIPAR
-!      J2_NA = JJPAR
-!
-!#elif defined( NESTED_CH )
-!      ! For China nested grids: we don't cover N. America region
-!      ! Setting these to zero will turn off Cooke/RJP emissions
-!      I1_NA = 0
-!      J1_NA = 0
-!      I2_NA = 0
-!      J2_NA = 0
-!
-!#elif defined( NESTED_EU )
-!      ! For EU nested grid: we don't cover N. America region
-!      ! Setting these to zero will turn off Cooke/RJP emissions
-!      I1_NA = 0
-!      J1_NA = 0
-!      I2_NA = 0
-!      J2_NA = 0
-!
-!#else
-!
-!      ! Definition of the N. American bounding box
-!      ! with LL corner (10N,165W) and UR corner (90N,40W)
-!      !            Lon_LL  Lat_LL  Lon_UR  Lat_UR
-!#if defined( DEVEL )
-!
-!      I1_NA = 0
-!      J1_NA = 0
-!      I2_NA = 0
-!      J2_NA = 0
-!
-!#else
-!
-!      ! Definition of the N. American bounding box
-!      ! with LL corner (10N,165W) and UR corner (90N,40W)
-!      !            Lon_LL  Lat_LL  Lon_UR  Lat_UR
-!      COORDS = (/ -165e+0_fp,  10e+0_fp,  -40e+0_fp,   90e+0_fp  /)
-!      
-!      ! Get the indices corresponding to the lon/lat values in COORDS
-!      CALL GET_BOUNDING_BOX( 1, IIPAR, 1, JJPAR, 1, COORDS, INDICES )
-!
-!      ! Copy values from INDEX array to scalars
-!      I1_NA = INDICES(1)
-!      J1_NA = INDICES(2)
-!      I2_NA = INDICES(3)
-!      J2_NA = INDICES(4)
-!
-!#endif
-!#endif
-!-----------------------------------------------------------------------------
 
       END SUBROUTINE INIT_CARBON
 !EOC

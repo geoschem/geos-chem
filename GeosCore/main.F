@@ -764,7 +764,7 @@
       ! Initialize exchange of global boundary conditions
       CALL EXCHANGE_GLOBAL_INIT()
 
-#elif defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || defined( NESTED_SE )
+#elif defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || defined( NESTED_AS ) || defined( NESTED_SE )
       ! Initialize exchange of nested boundary conditions
       CALL EXCHANGE_NESTED_INIT()
 
@@ -1270,7 +1270,7 @@
      &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
 
-# elif defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || defined( NESTED_SE )
+# elif defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || deifned( NESTED_AS ) || defined( NESTED_SE )
 
             ! Exchange the position of POST (nested-grid simulations)
             IF ( ITS_TIME_FOR_EXCHANGE() ) THEN

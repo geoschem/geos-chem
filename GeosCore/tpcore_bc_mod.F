@@ -181,6 +181,7 @@
       ! BC_NA    : Array containing NA tracers on coarse grid
       ! BC_EU    : Array containing EU tracers on coarse grid
       ! BC_CH    : Array containing CH tracers on coarse grid
+      ! BC_AS    : Array containing AS tracers on coarse grid
       ! MAP1x1   : Mapping array from 1x1 -> 4x5 grid
       !=================================================================
 
@@ -194,6 +195,8 @@
       INTEGER              :: I2_BC_EU, J2_BC_EU, IM_BC_EU, JM_BC_EU
       INTEGER              :: I0_BC_CH, J0_BC_CH, I1_BC_CH, J1_BC_CH
       INTEGER              :: I2_BC_CH, J2_BC_CH, IM_BC_CH, JM_BC_CH
+      INTEGER              :: I0_BC_AS, J0_BC_AS, I1_BC_AS, J1_BC_AS
+      INTEGER              :: I2_BC_AS, J2_BC_AS, IM_BC_AS, JM_BC_AS
       INTEGER              :: I0_BC_SE, J0_BC_SE, I1_BC_SE, J1_BC_SE
       INTEGER              :: I2_BC_SE, J2_BC_SE, IM_BC_SE, JM_BC_SE
       INTEGER              :: TS_BC
@@ -204,6 +207,7 @@
       INTEGER              :: IU_BC_NA   ! LUN for output BC's, N. Amer. grid
       INTEGER              :: IU_BC_EU   ! LUN for output BC's, Europe grid
       INTEGER              :: IU_BC_CH   ! LUN for output BC's, China grid
+      INTEGER              :: IU_BC_AS   ! LUN for output BC's, Asia grid
       INTEGER              :: IU_BC_SE   ! LUN for output BC's, SEAC4RS grid
  
       ! Arrays
@@ -213,6 +217,7 @@
       REAL*4,  ALLOCATABLE :: BC_NA (:,:,:,:)
       REAL*4,  ALLOCATABLE :: BC_EU (:,:,:,:)
       REAL*4,  ALLOCATABLE :: BC_CH (:,:,:,:)
+      REAL*4,  ALLOCATABLE :: BC_AS (:,:,:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -340,6 +345,8 @@
             FILENAME = TRIM( Input_Opt%TPBC_DIR_EU ) // 'BC.YYYYMMDD' ! Input file, EU
 #elif defined( NESTED_CH )
             FILENAME = TRIM( Input_Opt%TPBC_DIR_CH ) // 'BC.YYYYMMDD' ! Input file, CH
+#elif defined( NESTED_AS )
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_AS ) // 'BC.YYYYMMDD' ! Input file, AS
 #endif
          ELSEIF ( WINDOW .eq. 1 ) THEN
             FILENAME = TRIM( Input_Opt%TPBC_DIR )    // 'BC.YYYYMMDD' ! Output file, CU
@@ -349,6 +356,8 @@
             FILENAME = TRIM( Input_Opt%TPBC_DIR_EU ) // 'BC.YYYYMMDD' ! Output file, EU
          ELSEIF ( WINDOW .eq. 4 ) THEN
             FILENAME = TRIM( Input_Opt%TPBC_DIR_CH ) // 'BC.YYYYMMDD' ! Output file, CH
+         ELSEIF ( WINDOW .eq. 5 ) THEN
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_AS ) // 'BC.YYYYMMDD' ! Output file, AS
          ENDIF
          
          ! Replace YYYYMMDD with the actual date
@@ -453,6 +462,25 @@
                CALL OPEN_BPCH2_FOR_WRITE( IU_BC_CH, FILENAME )
             ENDIF
 
+         ELSE IF ( WINDOW .eq. 5 ) THEN
+
+            !----------------------------------------------------------
+            ! WINDOW == 5 : Save BC's to file (Asia window)
+            !----------------------------------------------------------
+            IF ( PRESENT( FOR_WRITE ) ) THEN
+
+               ! Close previously opened file
+               INQUIRE( IU_BC_AS, OPENED=IS_OPEN )
+               IF ( IS_OPEN ) CLOSE( IU_BC_AS )
+
+               ! Find a free LUN
+               IU_BC_AS = findFreeLun()
+
+               ! Open file for output
+               WRITE( 6, 100 ) TRIM( FILENAME ), IU_BC_AS
+               CALL OPEN_BPCH2_FOR_WRITE( IU_BC_AS, FILENAME )
+            ENDIF
+
          ENDIF
 
       ENDIF
@@ -538,6 +566,7 @@
       LOGICAL              :: LWINDO_CU
       LOGICAL              :: LWINDO_NA 
       LOGICAL              :: LWINDO_CH
+      LOGICAL              :: LWINDO_AS
       LOGICAL              :: LWINDO_EU
       LOGICAL              :: LWINDO_SE
       INTEGER              :: HALFPOLAR
@@ -569,6 +598,7 @@
       LWINDO_CU = Input_Opt%LWINDO_CU
       LWINDO_NA = Input_Opt%LWINDO_NA
       LWINDO_CH = Input_Opt%LWINDO_CH
+      LWINDO_AS = Input_Opt%LWINDO_AS
       LWINDO_EU = Input_Opt%LWINDO_EU
       LWINDO_SE = Input_Opt%LWINDO_SE
 
@@ -593,7 +623,7 @@
       nAdvect   = State_Chm%nAdvect
 
       ! Loop over the possible combinations of nested grids
-      DO IC = 1, 4
+      DO IC = 1, 5
          IF ((IC .eq. 1) .and. LWINDO_CU )THEN
 
             !----------------------------------------------------------
@@ -754,6 +784,46 @@
             STAMP = TIMESTAMP_STRING()
             WRITE( 6, 113 ) STAMP
             
+         ELSEIF ((IC .eq. 5) .and. LWINDO_AS )THEN
+
+            !----------------------------------------------------------
+            ! IC == 5 : Save BC's to file (Asia window)
+            !----------------------------------------------------------
+
+            ! Open file for writing, if necessary
+            CALL OPEN_BC_FILE( am_I_Root, Input_Opt, RC, 
+     &                         WINDOW=IC, FOR_WRITE=.TRUE. )
+
+            ! Loop over each advected species
+            DO NA = 1, nAdvect
+
+               ! Get the species ID from the advected species ID
+               N = State_Chm%Map_Advect(NA)
+
+               ! Save concentrations in WINDOW REGION to disk
+               DO L = 1, LLPAR
+                  BC_AS(1:IM_BC_AS,1:JM_BC_AS,L,N) =
+     &               Spc(I1_BC_AS:I2_BC_AS,J1_BC_AS:J2_BC_AS,L,N)
+               ENDDO
+
+               ! Write boundary conditions to binary punch file
+               CALL BPCH2( IU_BC_AS,  MODELNAME,
+     &                     LONRES,    LATRES,
+     &                     HALFPOLAR, CENTER180,
+     &                     CATEGORY,  N,
+     &                     UNIT,      TAU,
+     &                     TAU,       RESERVED,
+     &                     IM_BC_AS,  JM_BC_AS,
+     &                     LLPAR,     I1_BC_AS,
+     &                     J1_BC_AS,  1,
+     &                     BC_AS(1:IM_BC_AS, 1:JM_BC_AS,  1:LLPAR, N) )
+
+            ENDDO
+
+            ! Echo info
+            STAMP = TIMESTAMP_STRING()
+            WRITE( 6, 114 ) STAMP
+
          ENDIF
       ENDDO
 
@@ -761,10 +831,11 @@
       Spc => NULL()
 
       ! FORMAT statements
- 110  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote BC''s at ',    a )
+ 110  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote CU BC''s at ', a )
  111  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote NA BC''s at ', a )
  112  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote EU BC''s at ', a )
  113  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote CH BC''s at ', a )
+ 114  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote AS BC''s at ', a )
 
       END SUBROUTINE SAVE_GLOBAL_TPCORE_BC
 !EOC
@@ -839,8 +910,11 @@
       ! Copy values from Input_Opt
       LWINDO2x25 = Input_Opt%LWINDO2x25
       
-      ! Point to chemical species array [kg/kg]
+      ! Point to species array [kg/kg]
       Spc        => State_Chm%Species
+
+      ! Number of advected species
+      nAdvect    = State_Chm%nAdvect
 
       ! Either zero BC's or read them from disk
       IF ( CLEAN_BC ) THEN
@@ -1012,8 +1086,11 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL :: LWINDO_NA, LWINDO_EU
-      LOGICAL :: LWINDO_CH, LWINDO_CU
+      LOGICAL :: LWINDO_NA
+      LOGICAL :: LWINDO_EU
+      LOGICAL :: LWINDO_CH
+      LOGICAL :: LWINDO_AS
+      LOGICAL :: LWINDO_CU
       LOGICAL :: LWINDO_SE
 
       !=================================================================
@@ -1027,10 +1104,11 @@
       LWINDO_NA = Input_Opt%LWINDO_NA
       LWINDO_EU = Input_Opt%LWINDO_EU
       LWINDO_CH = Input_Opt%LWINDO_CH
+      LWINDO_AS = Input_Opt%LWINDO_AS
       LWINDO_CU = Input_Opt%LWINDO_CU
       LWINDO_SE = Input_Opt%LWINDO_SE
 
-#if   defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || defined( NESTED_CU )
+#if   defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || defined( NESTED_AS ) || defined( NESTED_CU )
       BC = 0e+0_fp
 #endif
 
@@ -1048,6 +1126,10 @@
  
       IF ( LWINDO_CH ) THEN
          BC_CH = 0e+0_fp
+      ENDIF
+
+      IF ( LWINDO_AS ) THEN
+         BC_AS = 0e+0_fp
       ENDIF
 
       END SUBROUTINE CLEAN_WINDOW_TPCORE_BC
@@ -1780,7 +1862,8 @@
 
       ! For values from Input_Opt
       LOGICAL :: LWINDO,    LWINDO_NA,  LWINDO_CU
-      LOGICAL :: LWINDO_EU, LWINDO_CH,  LWINDO2x25
+      LOGICAL :: LWINDO_EU, LWINDO_CH,  LWINDO_AS
+      LOGICAL :: LWINDO2x25
       LOGICAL :: LWINDO_SE
       INTEGER :: nAdvect
 
@@ -1794,6 +1877,7 @@
       LWINDO_CU  = Input_Opt%LWINDO_CU
       LWINDO_EU  = Input_Opt%LWINDO_EU
       LWINDO_CH  = Input_Opt%LWINDO_CH
+      LWINDO_AS  = Input_Opt%LWINDO_AS
       LWINDO_SE  = Input_Opt%LWINDO_SE
       LWINDO2x25 = Input_Opt%LWINDO2x25
 
@@ -1956,31 +2040,19 @@
 #if   defined( GRID4x5 ) || defined( NESTED_CH ) 
 
 #if   defined( GEOS_FP )
-
          !%%%%% 4x5 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
          !%%%%% NESTED CHINA GRID (GEOS-FP only)       %%%%%
          I1_BC_CH = 51                       ! 4x5 lon index, LL corner
          J1_BC_CH = 27                       ! 4x5 lat index, LL corner
          I2_BC_CH = 65                       ! 4x5 lon index, UR corner
          J2_BC_CH = 37                       ! 4x5 lat index, UR corner
-
-#elif defined( MERRA2 )
-         !%%%%% 4x5 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
-         !%%%%% NESTED CHINA GRID (MERRA2 only)        %%%%%
-         I1_BC_CH = 49                       ! 4x5 lon index, LL corner
-         J1_BC_CH = 21                       ! 4x5 lat index, LL corner
-         I2_BC_CH = 67                       ! 4x5 lon index, UR corner
-         J2_BC_CH = 37                       ! 4x5 lat index, UR corner
-
 #else
-
          !%%%%% 4x5 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
          !%%%%% GEOS-5 CHINA NESTED GRID (GEOS-5 only) %%%%%
          I1_BC_CH = 51                       ! 4x5 lon index, LL corner
          J1_BC_CH = 21                       ! 4x5 lat index, LL corner
          I2_BC_CH = 67                       ! 4x5 lon index, UR corner
          J2_BC_CH = 37                       ! 4x5 lat index, UR corner
-
 #endif
 
 #endif
@@ -1990,32 +2062,19 @@
 #if   defined( GRID2x25 ) || defined( NESTED_CH )
 
 #if   defined( GEOS_FP )
-
          !%%%%% 2x25 BC REGION FOR "GEOS-Chem CLASSIC" %%%%%
          !%%%%% NESTED CHINA GRID (GEOS-FP only)       %%%%%
          I1_BC_CH = 101                      ! 2x25 lon index, LL corner
          J1_BC_CH = 53                       ! 2x25 lat index, LL corner
          I2_BC_CH = 129                      ! 2x25 lon index, UR corner
          J2_BC_CH = 74                       ! 2x25 lat index, UR corner
-
-#elif defined( MERRA2 )
-
-         !%%%%% 2x25 BC REGION FOR "GEOS-Chem CLASSIC" %%%%%
-         !%%%%% NESTED CHINA GRID (MERRA2 only)       %%%%%
-         I1_BC_CH = 97                       ! 2x25 lon index, LL corner
-         J1_BC_CH = 41                       ! 2x25 lat index, LL corner
-         I2_BC_CH = 133                      ! 2x25 lon index, UR corner
-         J2_BC_CH = 74                       ! 2x25 lat index, UR corner
-
 #else
-
          !%%%%% 2x25 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
-         !%%%%% GEOS-5 CHINA NESTED GRID (GEOS_5 only)  %%%%%
+         !%%%%% GEOS-5 CHINA NESTED GRID (GEOS-5 only)  %%%%%
          I1_BC_CH = 101                      ! 2x25 lon index, LL corner
          J1_BC_CH = 40                       ! 2x25 lat index, LL corner
          I2_BC_CH = 133                      ! 2x25 lon index, UR corner
          J2_BC_CH = 74                       ! 2x25 lat index, UR corner
-
 #endif
 
 #endif
@@ -2029,6 +2088,53 @@
       ! TPCORE CH internal transport window offset
       I0_BC_CH = I1_BC_CH - 1
       J0_BC_CH = J1_BC_CH - 1
+
+      !-----------------------------------------------------------------
+      !      ****** BC REGION FOR ASIA NESTED GRID ******
+      !-----------------------------------------------------------------
+      IF (.not. LWINDO2x25 ) THEN 
+
+#if   defined( GRID4x5 ) || defined( NESTED_AS )
+
+#if   defined( MERRA2 )
+         !%%%%% 4x5 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
+         !%%%%% NESTED ASIA GRID (MERRA2 only)         %%%%%
+         I1_BC_AS = 49                       ! 4x5 lon index, LL corner
+         J1_BC_AS = 21                       ! 4x5 lat index, LL corner
+         I2_BC_AS = 67                       ! 4x5 lon index, UR corner
+         J2_BC_AS = 37                       ! 4x5 lat index, UR corner
+#endif
+
+#endif
+
+      ELSE
+
+#if   defined( GRID2x25 ) || defined( NESTED_AS )
+
+#if   defined( MERRA2 )
+         !%%%%% 2x25 BC REGION FOR "GEOS-Chem CLASSIC" %%%%%
+         !%%%%% NESTED ASIA GRID (MERRA2 only)         %%%%%
+         I1_BC_AS = 97                       ! 2x25 lon index, LL corner
+         J1_BC_AS = 41                       ! 2x25 lat index, LL corner
+         I2_BC_AS = 133                      ! 2x25 lon index, UR corner
+         J2_BC_AS = 74                       ! 2x25 lat index, UR corner
+#endif
+
+#endif
+
+      ENDIF
+
+      ! Extent of coarse-grid AS BC REGION
+      IM_BC_AS = I2_BC_AS - I1_BC_AS + 1
+      JM_BC_AS = J2_BC_AS - J1_BC_AS + 1
+
+      ! TPCORE AS internal transport window offset
+      I0_BC_AS = I1_BC_AS - 1
+      J0_BC_AS = J1_BC_AS - 1
+
+      !-----------------------------------------------------------------
+      !      ****** BC REGION FOR SE NESTED GRID ******
+      !-----------------------------------------------------------------
 
       ! Extent of coarse-grid SEAC4RS BC REGION
       IM_BC_SE = I2_BC_SE - I1_BC_SE + 1
@@ -2062,6 +2168,13 @@
          BC_CH = 0e+0_fp
       ENDIF
 
+      ! Boundary condition array for NESTED ASIA REGION
+      IF ( LWINDO_AS ) THEN
+         ALLOCATE( BC_AS( IM_BC_AS, JM_BC_AS, LLPAR, nAdvect ), STAT=AS)
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_AS' )
+         BC_AS = 0e+0_fp
+      ENDIF
+
       ! Boundary condition array for NESTED N. AMERICA REGION
       IF ( LWINDO_NA ) THEN
          ALLOCATE( BC_NA( IM_BC_NA, JM_BC_NA, LLPAR, nAdvect ), STAT=AS)
@@ -2089,6 +2202,18 @@
       JM_BC = JM_BC_CH
       I0_BC = I0_BC_CH
       J0_BC = J0_BC_CH
+
+#elif defined( NESTED_AS )
+
+      !%%%%% Define boundaries for NESTED ASIA GRID %%%%%
+      I1_BC = I1_BC_AS
+      J1_BC = J1_BC_AS
+      I2_BC = I2_BC_AS
+      J2_BC = J2_BC_AS
+      IM_BC = IM_BC_AS
+      JM_BC = JM_BC_AS
+      I0_BC = I0_BC_AS
+      J0_BC = J0_BC_AS
 
 #elif defined( NESTED_NA )
 
@@ -2157,6 +2282,7 @@
       IF ( ALLOCATED( BC_NA  ) ) DEALLOCATE( BC_NA  )
       IF ( ALLOCATED( BC_EU  ) ) DEALLOCATE( BC_EU  )
       IF ( ALLOCATED( BC_CH  ) ) DEALLOCATE( BC_CH  )
+      IF ( ALLOCATED( BC_AS  ) ) DEALLOCATE( BC_AS  )
       IF ( ALLOCATED( MAP1x1 ) ) DEALLOCATE( MAP1x1 )
 
       END SUBROUTINE CLEANUP_TPCORE_BC
