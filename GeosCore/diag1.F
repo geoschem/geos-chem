@@ -160,6 +160,7 @@
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  16 Sep 2016 - E. Lundgren - Remove passive species that are per total air
 !                              since moisture fix corrects v/v dry
+!  20 Sep 2016 - E. Lundgren - Simplify met fields included in ND68 (8 total)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -247,26 +248,6 @@
                Spc_VV(I,J,L,NA) = 
      &              MAX( State_Chm%Species(I,J,L,N) * 
      &                   AIRMW / SpcInfo%emMW_g, 0e+0_fp )
-
-            ! Remove alternative units as part of moisture fix since v/v dry
-            ! air should be correct (ewl, 9/16/16)
-            ! IF ( N == id_PASV ) THEN
-            !
-            !   ! Also express species conc in v/v total air (mps, 11/18/15)
-            !   Spc_VV(I,J,L,NA+1) =
-            !  &        MAX( State_Chm%Species(I,J,L,N) *
-            !  &        ( 1.0e+0_fp - State_Met%SPHU(I,J,L) * 1.e-3_fp ) 
-            !  &        * State_Met%MOISTMW(I,J,L) 
-            !  &        / SpcInfo%emMW_g,
-            !  &        0e+0_fp )
-            !
-            !   ! Also express species conc in kg/kg total air (mps, 11/18/15!)
-            !   Spc_VV(I,J,L,NA+2) =
-            !  &        MAX( State_Chm%Species(I,J,L,N) *
-            !  &        ( 1.0e+0_fp - State_Met%SPHU(I,J,L) * 1.e-3_fp ),
-            !  &        0e+0_fp )
-            !
-            ! ENDIF
 
             ENDDO
             ENDDO
@@ -427,21 +408,6 @@
                AD45(I,J,L,NA) = AD45  (I,J,L,NA) + 
      &                          Spc_VV(I,J,L,NA) * LTOTH(I,J)
 
-               ! Remove alternative units as part of moisture fix since v/v
-               ! dry air should be correct (ewl, 9/16/16)
-               !IF ( N == id_PASV ) THEN
-               !
-               !   ! Also save passive species in v/v total air (mps, 11/18/15)
-               !   AD45(I,J,L,NA+1) = AD45  (I,J,L,NA+1) + 
-               !  &                    Spc_VV(I,J,L,NA+1) * LTOTH(I,J)
-               !
-               !   ! Also save passive species in kg/kg total air 
-               !   !  (mps, 11/18/15)
-               !   AD45(I,J,L,NA+2) = AD45  (I,J,L,NA+2) + 
-               !  &                    Spc_VV(I,J,L,NA+2) * LTOTH(I,J)
-               !
-               !ENDIF
-
             ENDDO
             ENDDO
             ENDDO
@@ -471,22 +437,6 @@
             DO J  = 1, JJPAR
             DO I  = 1, IIPAR
                AD47(I,J,L,NA) = AD47(I,J,L,NA) + Spc_VV(I,J,L,NA) 
-
-               ! Remove alternative units as part of moisture fix since v/v
-               ! dry air should be correct (ewl, 9/16/16)
-               !IF ( N == id_PASV ) THEN
-               !
-               !   ! Also save passive species in v/v total air (mps, 11/18/15)
-               !   AD47(I,J,L,NA+1) = AD47(I,J,L,NA+1) 
-               !  &                  + Spc_VV(I,J,L,NA+1)
-               !
-               !   ! Also save passive species in kg/kg total air 
-               !   ! (mps, 11/18/15)
-               !   AD47(I,J,L,NA+2) = AD47(I,J,L,NA+2)
-               !  &                  + Spc_VV(I,J,L,NA+2)
-               !
-               !ENDIF
-
             ENDDO   
             ENDDO
             ENDDO
@@ -555,16 +505,11 @@
       ! ND68: 1:  BXHEIGHT     - box height [m] 
       !       2:  AD           - dry air mass [kg]
       !       3:  AVGW         - mol H2O / mol dry air [v/v]
-      !       4:  N_DRYAIR     - dry air number density [molecules/m3]
-      !       5:  MAIRDEN      - moist air mass density [kg/m3]
-      !       6:  T            - temperature [K]
-      !       7:  TV           - virtual temperature [K]
-      !       8:  PMID         - arithmetic mean pressure [hPa]
-      !!rm       9:  PMEAN        - altitude-weighted mean pressure [hPa]
-      !       10: PEDGE        - level pressure (bottom edge) [hPa]
-      !       11: RH           - relative humidity [%]
-      !       12: PMID_DRY     - dry air partial pressure at PMID [hPa]
-      !!rm       13: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
+      !       4:  AIRNUMDEN    - dry air number density [molecules/m3]
+      !       5:  T            - temperature [K]
+      !       6:  PMID         - arithmetic mean pressure [hPa]
+      !       7:  PEDGE        - level pressure (bottom edge) [hPa]
+      !       8:  RH           - relative humidity [%]
       !================================================================= 
       IF ( Input_Opt%ND68 > 0 ) THEN
 
@@ -574,20 +519,14 @@
          DO L = 1, LD68
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            AD68(I,J,L,1)  = AD68(I,J,L,1)  + State_Met%BXHEIGHT(I,J,L)
-            AD68(I,J,L,2)  = AD68(I,J,L,2)  + State_Met%AD(I,J,L)
-            AD68(I,J,L,3)  = AD68(I,J,L,3)  + State_Met%AVGW(I,J,L)
-            AD68(I,J,L,4)  = AD68(I,J,L,4)  + State_Met%AIRDEN(I,J,L) 
-     &                                        * XNUMOLAIR
-            AD68(I,J,L,5)  = AD68(I,J,L,5)  + State_Met%MAIRDEN(I,J,L) 
-            AD68(I,J,L,6)  = AD68(I,J,L,6)  + State_Met%T(I,J,L)
-            AD68(I,J,L,7)  = AD68(I,J,L,7)  + State_Met%TV(I,J,L)
-            AD68(I,J,L,8)  = AD68(I,J,L,8)  + State_Met%PMID(I,J,L)
-            AD68(I,J,L,9)  = AD68(I,J,L,9)  + 0.e+0_fp ! LL rm
-            AD68(I,J,L,10) = AD68(I,J,L,10) + State_Met%PEDGE(I,J,L)
-            AD68(I,J,L,11) = AD68(I,J,L,11) + State_Met%RH(I,J,L)
-            AD68(I,J,L,12) = AD68(I,J,L,12) + State_Met%PMID_DRY(I,J,L)
-            AD68(I,J,L,13) = AD68(I,J,L,13) + 0.e+0_fp ! LL rm
+            AD68(I,J,L,1) = AD68(I,J,L,1) + State_Met%BXHEIGHT(I,J,L)
+            AD68(I,J,L,2) = AD68(I,J,L,2) + State_Met%AD(I,J,L)
+            AD68(I,J,L,3) = AD68(I,J,L,3) + State_Met%AVGW(I,J,L)
+            AD68(I,J,L,4) = AD68(I,J,L,4) + State_Met%AIRNUMDEN(I,J,L) 
+            AD68(I,J,L,5) = AD68(I,J,L,5) + State_Met%T(I,J,L)
+            AD68(I,J,L,6) = AD68(I,J,L,6) + State_Met%PMID(I,J,L)
+            AD68(I,J,L,7) = AD68(I,J,L,7) + State_Met%PEDGE(I,J,L)
+            AD68(I,J,L,8) = AD68(I,J,L,8) + State_Met%RH(I,J,L)
          ENDDO
          ENDDO
          ENDDO

@@ -25,64 +25,6 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      !=================================================================
-      ! Maximum sizes of diagnostic arrays
-      !
-      ! Changed PD66 to 6  (bmy, 9/8/00)
-      ! Changed PD21 to 10 (bmy, 9/30/00)
-      ! Changed PD67 to 18 (bmy, 10/11/00)
-      ! Changed PD46 to 4  (bmy, 1/2/01)
-      ! Changed PD29 to 5  (bmy, 1/2/01)
-      ! Changed PD11 to 7  (bmy, 9/4/01)
-      ! Changed PD32 to 0  (bmy, 2/14/02)
-      ! Changed PD21 to 20 (bmy, 2/27/02)
-      ! Changed PD43 to 4  (bmy, 3/4/02) 
-      ! Changed PD05 to 10 (bmy, 10/18/02)
-      ! Changed PD44 to 30 (bmy, 11/19/02) 
-      ! Changed PD43 to 5  
-      ! Changed PD67 to 22 (bmy, 6/23/03)
-      ! Changed PD66 to 5  (bmy, 6/23/03)
-      ! Changed PD03 to 5  (bmy, 8/20/03)
-      ! Changed PD37 to 10 (bmy, 1/21/04)
-      ! Changed PD06 to NDSTBIN (bmy, 4/5/04)
-      ! Changed PD07 to 7  (bmy, 4/5/04)
-      ! Changed PD08 to 2  (bmy, 4/20/04)
-      ! Changed PD07 to 12 (bmy, 7/15/04)
-      ! Changed PD21 to 26 (bmy, 1/5/05)
-      ! Removed PD03 -- now in "diag03_mod.f" (bmy, 1/21/05)
-      ! Removed PD41 -- now in "diag41_mod.f" (bmy, 1/21/05)
-      ! Now set PD09 to 6 (bmy, 6/27/05)
-      ! Removed PD04 -- now in "diag04_mod.f" (bmy, 7/26/05)
-      ! Now set PD30 to 1 (bmy, 8/18/05)
-      ! Now set PD46 to 6 (tmf, 1/20/09)
-      ! Now set PD10 to 20 (phs, 9/18/07)
-      ! Changed PD17 to 8 (tmf, 1/7/09)
-      ! Changed PD18 to 8 (tmf, 1/7/09)
-      ! Changed PD22 to 8 (tmf, 1/7/09)
-      ! Changed PD37 to 35 (tmf, 1/7/09)
-      ! Changed PD38 to 35 (tmf, 1/7/09)
-      ! Changed PD39 to 35 (tmf, 1/7/09)
-      ! Changed PD44 to 41 (tmf, 1/7/09)
-      ! Now set PD52 to 1 (jaegle 2/26/09)
-      ! Increase PD46 from 6 to 13 (mpb, ccc, 11/19/09)
-      ! increase PD21 from 20 to 27 (clh, 05/06/10)
-      ! changed PD44 (drydep) to 53 (jpp, 6/13/09)
-      ! changed PD39 (wetdep) to 38 (jpp, 7/08/09)
-      ! Now set PD46 to 16 (jpp, 6/7/09)
-      ! Changed PD11 from 7 to 5 (efischer, mpayer, 3/19/12)
-      ! SOAupdate: PD46 increased from 16 to 20 (hotp 3/1/10)
-      ! Changed PD22 from 14 to 22 for strat-chem (SDE 04/13/13)
-      ! Changed PD21 from 27 to 33 for strat aerosols (SDE 04/17/13)
-      ! Changed PD43 from 5 to 7 for O1D/O3P (SDE 2013-07-15)
-      ! Added PD64 and set to W_ from FAST-JX (SDE 2013-10-25)
-      ! Changed PD22 from 22 to 23 for ACET (mps, 4/25/14)
-      ! Changed PD22 from 23 to 28 for ALD2, MVK, MACR, HAC, GLYC (mps, 5/27/14)
-      ! Changed PD21 to be dynamically related to NAER and NDUST (dar, 3/6/15)
-      ! Change PD68 from 4 to 13 to include new State_Met AirQnts (ewl, 4/30/15)
-      ! Change PD08 from 2 to 4 to include MOPO and MOPI (ewl, 7/7/15)
-      ! Change PD44 from 53 to 55 to include MOPO and MOPI (ewl, 7/7/15)
-      ! Changed PD05 from 10 to 14 (tdf, 03/02/09)
-      !=================================================================
 !------------------------------------------------------------------------------
 ! Prior to 7/21/16:
 ! These parameters are now obsolete, so remove them (bmy, 7/21/16)
@@ -179,7 +121,7 @@
       INTEGER            :: PD65
       INTEGER, PARAMETER :: PD66=6           
       INTEGER, PARAMETER :: PD67=23 ! (Lin, 31/03/09)
-      INTEGER, PARAMETER :: PD68=13     
+      INTEGER, PARAMETER :: PD68=8     
       INTEGER, PARAMETER :: PD69=1
 !------------------------------------------------------------------------------
 ! Prior to 7/21/16:
