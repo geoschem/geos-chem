@@ -630,25 +630,14 @@
       CALL GEOS_Timer_End( "Reading met fields",  RC )
 #endif
 
-      !============================================================
-      ! Moisture fix (5/4/2016):
-      !============================================================
       ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
       ! and compute avg surface pressures near polar caps
       CALL SET_DRY_SURFACE_PRESSURE( State_Met, 1 )
       CALL AVGPOLE( State_Met%PS1_DRY )
-      !============================================================
 
       ! Compute avg surface pressure near polar caps
       CALL AVGPOLE( State_Met%PS1_WET ) 
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a AVGPOLE' )
-
-      !============================================================
-      ! Moisture fix (5/4/2016):
-      !============================================================
-      ! Prior to 5/4/2016:
-      !CALL SET_FLOATING_PRESSURE( State_Met%PS1_WET )
-      !IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
 
       ! Initialize surface pressures prior to interpolation
       ! to allow initialization of floating pressures
@@ -656,7 +645,6 @@
       State_Met%PSC2_DRY = State_Met%PS1_DRY
       CALL SET_FLOATING_PRESSURES( am_I_Root, State_Met, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
-      !============================================================
 
       ! Call AIRQNT to compute initial air mass quantities
       ! Do not update initial tracer concentrations since not read 
@@ -855,11 +843,6 @@
       !=================================================================
       DO N_STEP = 1, N_DYN_STEPS
     
-         IF ( prtDebug ) THEN
-            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                   "top of dyn loop")
-         ENDIF
-
 #if defined( LINUX_PGI )
          ! Flush the buffer each timestep so we get output
          CALL FLUSH( 6 )
@@ -1037,11 +1020,6 @@
 
          CALL READ_MET_FIELDS()
 
-         IF ( prtDebug ) THEN
-            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                   "post-read met")
-         ENDIF
-
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_End( "Reading met fields",  RC )
 #endif
@@ -1166,20 +1144,10 @@
          !   ***** I N T E R P O L A T E   Q U A N T I T I E S *****   
          !==============================================================
 
-         IF ( prtDebug ) THEN
-            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                   "pre-interp")
-         ENDIF
-
          ! Interpolate I-6 fields to current dynamic timestep, 
          ! based on their values at NSEC and NSEC+N_DYN
          CALL INTERP( NSECb, ELAPSED_TODAY,
      &                N_DYN, Input_Opt,     State_Met )
-
-         IF ( prtDebug ) THEN
-            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                   "post-interp")
-         ENDIF
 
          ! Case of variable tropopause:
          ! Check LLTROP and set LMIN, LMAX, and LPAUSE
@@ -1187,25 +1155,11 @@
          ! (Need to double-check that LMIN, Lmax are not used before-phs) 
          IF ( LVARTROP ) CALL CHECK_VAR_TROP( State_Met )
 
-         !============================================================
-         ! Moisture fix (5/4/2016):
-         !============================================================
-         ! Prior to 5/4/2016:
-         !! If we are not doing transport, then make sure that
-         !! the floating pressure is set to PSC2 (bdf, bmy, 8/22/02)
-         !IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( State_Met%PSC2 )
-
          ! If we are not doing transport, then make sure that
          ! the floating pressure is set to PSC2_WET (bdf, bmy, 8/22/02)
          ! Now also includes PSC2_DRY (ewl, 5/4/16)
          IF ( .not. LTRAN ) THEN
             CALL SET_FLOATING_PRESSURES( am_I_Root, State_Met, RC )
-         ENDIF
-         !============================================================
-
-         IF ( prtDebug ) THEN
-            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                   "after set pflt")
          ENDIF
 
          ! Compute updated airmass quantities at each grid box 
@@ -1213,11 +1167,6 @@
          ! (ewl, 10/28/15)
          CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
      &                update_mixing_ratio=.TRUE. )
-
-         IF ( prtDebug ) THEN
-            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                   "post-airqnt")
-         ENDIF
 
          ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant and,
          ! if LUCX=T and LSETH2O=F and LACTIVEH2O=T, update specific humidity 
@@ -1232,11 +1181,6 @@
      &                         Input_Opt, State_Met, State_Chm, RC )
             ! Only force strat once if using UCX
             IF (LSETH2O) LSETH2O = .FALSE.
-         ENDIF
-
-         IF ( prtDebug ) THEN
-            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                   "post-set h2o trac")
          ENDIF
 
          ! Compute the cosine of the solar zenith angle array
@@ -1350,11 +1294,6 @@
 #endif
 !-----------------------------------------------------------------------------
 
-            IF ( prtDebug ) THEN
-               CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                      "pre-transport")
-            ENDIF
-
             ! Call the appropriate version of TPCORE
             ! NOTE: Tracer concentration units are converted locally
             ! within transport to [kg/kg total air] for advection 
@@ -1370,11 +1309,6 @@
                IF ( prtDebug ) THEN 
                   CALL DEBUG_MSG( '### MAIN: a DO_TRANSPORT' )
                ENDIF
-            ENDIF
-
-            IF ( prtDebug ) THEN
-               CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                      "post-transport")
             ENDIF
 
             ! Initialize wet scavenging and wetdep fields after
@@ -1443,11 +1377,6 @@
                CALL GEOS_Timer_Start( "Dry deposition", RC )
 #endif
 
-               IF ( prtDebug ) THEN
-                  CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                         "pre-drydep")
-               ENDIF
-
                CALL DO_DRYDEP( am_I_Root, Input_Opt, 
      &                         State_Met, State_Chm, RC )
                IF ( RC /= GC_SUCCESS ) THEN
@@ -1462,11 +1391,6 @@
                IF ( prtDebug ) THEN 
                   CALL DEBUG_MSG( '### MAIN: a DO_DRYDEP' )
                ENDIF
-            ENDIF
-
-            IF ( prtDebug ) THEN
-               CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                      "pre-emissions")
             ENDIF
 
             !===========================================================
@@ -1518,11 +1442,6 @@
             ! Increment the convection timestep
             CALL SET_CT_CONV( INCREMENT=.TRUE. )
 
-            IF ( prtDebug ) THEN
-               CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                      "pre-mixing")
-            ENDIF
-
             !===========================================================
             !      ***** M I X E D   L A Y E R   M I X I N G *****
             !===========================================================
@@ -1555,11 +1474,6 @@
             !        ***** C L O U D   C O N V E C T I O N *****
             !===========================================================
 
-            IF ( prtDebug ) THEN
-               CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                      "pre-convection")
-            ENDIF
-
             IF ( LCONV ) THEN
 
                ! Call the appropriate convection routine
@@ -1580,11 +1494,6 @@
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "Convection", RC )
 #endif
-
-            IF ( prtDebug ) THEN
-               CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                      "post-convection")
-            ENDIF
 
          ENDIF 
 
@@ -1638,11 +1547,6 @@
          CALL GEOS_Timer_End( "All chemistry", RC )
 #endif
 
-         IF ( prtDebug ) THEN
-            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                   "post-chemistry")
-         ENDIF
-
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
@@ -1666,11 +1570,6 @@
             CALL GEOS_Timer_End( "Wet deposition", RC )
 #endif
 
-         ENDIF
-
-         IF ( prtDebug ) THEN
-            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                   "post-wetdep")
          ENDIF
 
          !==============================================================
@@ -1939,12 +1838,6 @@
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_End( "Diagnostics", RC )
 #endif
-
-
-         IF ( prtDebug ) THEN
-            CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                   "dyn loop end")
-         ENDIF
 
       ENDDO
 
@@ -2598,14 +2491,10 @@
          D = GET_I3_TIME()
          CALL GEOSFP_READ_I3_2( D(1), D(2), Input_Opt, State_Met )
 
-         !============================================================
-         ! Moisture fix (5/4/2016):
-         !============================================================
          ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
          ! and average as polar caps
          CALL SET_DRY_SURFACE_PRESSURE( State_Met, 2 )
          CALL AVGPOLE( State_Met%PS2_DRY )
-         !============================================================
 
          ! Compute avg moist pressure at polar caps 
          CALL AVGPOLE( State_Met%PS2_WET )
@@ -2641,14 +2530,10 @@
          D = GET_I3_TIME()
          CALL MERRA2_READ_I3_2( D(1), D(2), Input_Opt, State_Met )
 
-         !============================================================
-         ! Moisture fix (5/4/2016):
-         !============================================================
          ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
          ! and average as polar caps
          CALL SET_DRY_SURFACE_PRESSURE( State_Met, 2 )
          CALL AVGPOLE( State_Met%PS2_DRY )
-         !============================================================
 
          ! Compute avg moist pressure at polar caps 
          CALL AVGPOLE( State_Met%PS2_WET )
@@ -2701,14 +2586,10 @@
          CALL OPEN_MERRA_I6_FIELDS ( D(1), D(2), Input_Opt            )
          CALL GET_MERRA_I6_FIELDS_2( D(1), D(2), Input_Opt, State_Met )
 
-         !============================================================
-         ! Moisture fix (5/4/2016):
-         !============================================================
          ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
          ! and average as polar caps
          CALL SET_DRY_SURFACE_PRESSURE( State_Met, 2 )
          CALL AVGPOLE( State_Met%PS2_DRY )
-         !============================================================
 
          ! Compute avg moist pressure at polar caps 
          CALL AVGPOLE( State_Met%PS2_WET )
@@ -2802,14 +2683,10 @@
          CALL OPEN_I6_FIELDS ( D(1), D(2), Input_Opt            )
          CALL GET_I6_FIELDS_2( D(1), D(2), Input_Opt, State_Met )
 
-         !============================================================
-         ! Moisture fix (5/4/2016):
-         !============================================================
          ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
          ! and average as polar caps
          CALL SET_DRY_SURFACE_PRESSURE( State_Met, 2 )
          CALL AVGPOLE( State_Met%PS2_DRY )
-         !============================================================
 
          ! Compute avg pressure at polar caps 
          CALL AVGPOLE( State_Met%PS2_WET )
