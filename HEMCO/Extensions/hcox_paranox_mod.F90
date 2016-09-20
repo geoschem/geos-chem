@@ -2302,13 +2302,14 @@ CONTAINS
    ! thus SEA = arcsin( cos( SZA ) )
 !-----------------------------------------------------------------------------
 ! Prior to 9/19/16:
-! Use The F90 intrinsic function ASIN instead of the old F77 function ASIND,
-! so that Gfortran won't choke (bmy, 9/19/16)
+! Now use the Fortran 90 intrinsic ASIN (which returns results in radians),
+! then convert to degrees.  ASIND is not supported on all compilers,
+! especially GFORTRAN. (bmy, 9/19/16)
 !   VARS(4) = ASIND( SC5(I,J) )
 !   VARS(5) = ASIND( ExtState%SUNCOS%Arr%Val(I,J) )
 !-----------------------------------------------------------------------------
-   VARS(4) = ASIN( SC5(I,J)                     )
-   VARS(5) = ASIN( ExtState%SUNCOS%Arr%Val(I,J) )
+   VARS(4) = ASIN( SC5(I,J)                     ) / HcoState%Phys%PI_180
+   VARS(5) = ASIN( ExtState%SUNCOS%Arr%Val(I,J) ) / HcoState%Phys%PI_180
 
    ! J(OH)/J(NO2), unitless
    ! Note J(OH) is the loss rate (1/s) of O3 to OH, which accounts for 

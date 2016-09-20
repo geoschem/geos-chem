@@ -318,10 +318,10 @@ CONTAINS
        ! otherwise.
 !----------------------------------------------------------------------------
 ! Prior to 9/19/16:
-! Gfortran requires .eqv. for comparing logicals (bmy, 9/19/16)
+! Gfortran requires .neqv. for comparing logicals (bmy, 9/19/16)
 !       IF ( UseConc /= Dct%Dta%IsConc ) THEN
 !----------------------------------------------------------------------------
-       IF ( UseConc .eqv. Dct%Dta%IsConc ) THEN
+       IF ( UseConc .neqv. Dct%Dta%IsConc ) THEN
           CALL EmisList_NextCont ( Lct, FLAG )
           CYCLE
        ENDIF 
