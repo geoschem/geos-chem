@@ -2231,7 +2231,7 @@
       ENDIF
 
       ! Check that species units are as expected (ewl, 9/29/15)
-      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg total' .AND.
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' .AND.
      &     TRIM( State_Chm%Spc_Units ) /= 'kg/m2' ) THEN
          CALL ERROR_STOP('Incorrect final species units:' // 
      &                    State_Chm%Spc_Units,  

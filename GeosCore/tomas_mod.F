@@ -3463,7 +3463,7 @@ Cjrp      endif
       UNITCHANGE_KGM2 = .FALSE.
       IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
          UNITCHANGE_KGM2 = .TRUE.
-         CALL ConvertBox_Kgm2_to_Kg( am_I_Root, I, J, L, Input_Opt,
+         CALL ConvertBox_Kgm2_to_Kg( am_I_Root, I, J, L,
      &                               State_Met, State_Chm, RC )
       ELSE IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
          MSG = 'Incorrect initial species units: ' 
@@ -3692,7 +3692,7 @@ Cjrp      endif
       ! Convert State_Chm%Species units back to original units 
       ! if conversion occurred at start of AQOXID (ewl, 9/30/15)
       IF ( UNITCHANGE_KGM2 ) THEN
-         CALL ConvertBox_Kg_to_Kgm2( am_I_Root, I, J, L, Input_Opt,
+         CALL ConvertBox_Kg_to_Kgm2( am_I_Root, I, J, L,
      &                               State_Met, State_Chm, RC )
       ENDIF
 
