@@ -5506,7 +5506,7 @@ c Fix up for negative argument, erf, etc.
 
 #elif defined( MERRA2 ) && defined( GRID05x0625 )
 
-#if defined(NESTED_CH)
+#if defined(NESTED_AS)
 
       !----------------------------------------------------------------
       ! Based on results from MERRA2 0.5x0.625 CH for 2011 compared to
