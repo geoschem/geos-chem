@@ -482,8 +482,8 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: TPBC_DIR_EU
      LOGICAL                     :: LWINDO_CH
      CHARACTER(LEN=255)          :: TPBC_DIR_CH
-     INTEGER                     :: LWINDO_SE
-     CHARACTER(LEN=255)          :: TPBC_DIR_SE
+     LOGICAL                     :: LWINDO_AS
+     CHARACTER(LEN=255)          :: TPBC_DIR_AS
      INTEGER                     :: LWINDO_CU
      CHARACTER(LEN=255)          :: TPBC_DIR
      INTEGER                     :: NESTED_TS
@@ -1268,8 +1268,8 @@ CONTAINS
     Input_Opt%TPBC_DIR_EU            = './'
     Input_Opt%LWINDO_CH              = .FALSE.
     Input_Opt%TPBC_DIR_CH            = './'
-    Input_Opt%LWINDO_SE              = .FALSE.
-    Input_Opt%TPBC_DIR_SE            = './'
+    Input_Opt%LWINDO_AS              = .FALSE.
+    Input_Opt%TPBC_DIR_AS            = './'
     Input_Opt%LWINDO_CU              = 0
     Input_Opt%TPBC_DIR               = './'
     Input_Opt%NESTED_TS              = 0

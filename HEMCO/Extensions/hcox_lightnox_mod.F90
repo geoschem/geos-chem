@@ -1595,7 +1595,7 @@ CONTAINS
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7167603d0
 
-#elif defined( GRID05x0625   ) && defined( NESTED_CH )
+#elif defined( GRID05x0625   ) && defined( NESTED_AS )
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 9.1040315d0
 
 #elif defined( GRID05x0625   ) && defined( NESTED_NA )
@@ -1721,10 +1721,10 @@ CONTAINS
     ! met fields become available (ltm, 2016-03-01).
     BETA = ANN_AVG_FLASHRATE / 256.00370d0
 
-#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_CH )
+#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_AS )
 
     !---------------------------------------
-    ! MERRA-2: Nested China simulation
+    ! MERRA-2: Nested Asia simulation
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for

@@ -438,7 +438,7 @@
 #endif
       REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 
-#elif defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_CH )
+#elif defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_AS )
 
       !-----------------------------------------------------------------
       ! MERRA2: Nested China Grid

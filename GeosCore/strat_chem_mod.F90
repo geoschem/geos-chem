@@ -1065,7 +1065,7 @@ CONTAINS
     ! Number of advected species
     nAdvect = State_Chm%nAdvect
 
-#if defined( NESTED_NA ) || defined( NESTED_CH ) || defined( NESTED_EU )
+#if defined( NESTED_NA ) || defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_AS )
     ! This method only works for a global domain.
     ! It could be modified for nested domains if the total mass flux across the
     ! boundaries during the period is taken into account.
@@ -1758,7 +1758,7 @@ CONTAINS
 !
     ! Select the grid boxes at the edges of the O3 release region, 
     ! for the proper model resolution (qli, bmy, 12/1/04)
-#if defined( GRID4x5 ) && defined( GCAP )
+#if   defined( GRID4x5 ) && defined( GCAP )
     ! GCAP has 45 latitudes, shift by 1/2 grid box (swu, bmy, 5/25/05)
     INTEGER, PARAMETER   :: J30S = 16, J30N = 30 
 
@@ -1774,11 +1774,11 @@ CONTAINS
 #elif defined( GRID05x0625 )
 
     !%%% ADD PLACEHOLDER VALUES, THESE AREN'T REALLY USED ANYMORE %%%
-#if   defined( NESTED_CH )
+#if   defined( NESTED_AS )
       INTEGER, PARAMETER :: J30S = 1,  J30N = 83
-#elif   defined( NESTED_NA )
+#elif defined( NESTED_NA )
       INTEGER, PARAMETER :: J30S = 1,  J30N = 41
-#elif   defined( NESTED_EU )
+#elif defined( NESTED_EU )
       INTEGER, PARAMETER :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
 #endif
 
@@ -1788,15 +1788,15 @@ CONTAINS
 ! jtl, 10/26/11 
 #if   defined( NESTED_CH )
       INTEGER, PARAMETER :: J30S = 1,  J30N = 83
-#elif   defined( NESTED_NA )
+#elif defined( NESTED_NA )
       INTEGER, PARAMETER :: J30S = 1,  J30N = 41
-#elif   defined( NESTED_EU )
+#elif defined( NESTED_EU )
       INTEGER, PARAMETER :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
 #endif
 
 #elif defined( GRID025x03125 )
 
-#if defined( NESTED_CH )
+#if   defined( NESTED_CH )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 #elif defined( NESTED_NA )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161 !I think it should be 202/Anna Prot
