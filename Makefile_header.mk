@@ -1031,8 +1031,9 @@ ifeq ($(COMPILER),gfortran)
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
     #-fcheck=all would be more comprehensive but would force bounds checking
-    FFLAGS           += -g -O0 -Wall -Wextra -Warray-temporaries 
-    FFLAGS           += -Wconversion -fcheck-array-temporaries
+    FFLAGS           += -g -gdwarf-2 -gstrict-dwarf -O0
+    FFLAGS           += -Wall -Wextra -Wconversion
+    FFLAGS           += -Warray-temporaries -fcheck-array-temporaries
     TRACEBACK        := yes
     USER_DEFS        += -DDEBUG
   else
