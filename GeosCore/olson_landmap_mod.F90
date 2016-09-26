@@ -36,34 +36,132 @@ MODULE Olson_LandMap_Mod
   PUBLIC  :: Cleanup_Olson_LandMap
 !
 ! !REMARKS:
-!  The Olson land types are as follows:
-!  ============================================================================
-!   0 Water              25 Deciduous           50 Desert
-!   1 Urban              26 Deciduous           51 Desert
-!   2 Shrub              27 Conifer             52 Steppe
-!   3 ---                28 Dwarf forest        53 Tundra
-!   4 ---                29 Trop. broadleaf     54 rainforest
-!   5 ---                30 Agricultural        55 mixed wood/open
-!   6 Trop. evergreen    31 Agricultural        56 mixed wood/open
-!   7 ---                32 Dec. woodland       57 mixed wood/open
-!   8 Desert             33 Trop. rainforest    58 mixed wood/open
-!   9 ---                34 ---                 59 mixed wood/open
-!  10 ---                35 ---                 60 conifers
-!  11 ---                36 Rice paddies        61 conifers
-!  12 ---                37 agric               62 conifers
-!  13 ---                38 agric               63 Wooded tundra
-!  14 ---                39 agric.              64 Moor
-!  15 ---                40 shrub/grass         65 coastal
-!  16 Scrub              41 shrub/grass         66 coastal
-!  17 Ice                42 shrub/grass         67 coastal
-!  18 ---                43 shrub/grass         68 coastal
-!  19 ---                44 shrub/grass         69 desert
-!  20 Conifer            45 wetland             70 ice
-!  21 Conifer            46 scrub               71 salt flats
-!  22 Conifer            47 scrub               72 wetland
-!  23 Conifer/Deciduous  48 scrub               73 water
-!  24 Deciduous/Conifer  49 scrub
-!                                                                             .
+!  Eloise Marais and the GEOS-Chem Support Team updated the Olson 2001 
+!  landcover dataset and corresponding GEOS-Chem modules in 2012. The Olson
+!  2001 landmap superceded the Olson 1992 landmap starting following v9-01-03. 
+!  The following text is taken from the data processing README:
+!
+!  "The Olson 2001 landcover map is at a native resolution of 1km x 1km. I've 
+!  identified the dominant vegetation types in each 0.25x0.25 degree gridbox 
+!  and use this as input to GEOS-Chem. 
+!  
+!  The Olson 2001 landcover map also has 96 vegetation types compared with 74 
+!  for Olson 1992. For the most part vegetation types 75-96 are either not 
+!  dominant vegetation types at 0.25x0.25 degrees or they are crop types that 
+!  I lump with other similar vegetation types (either crops or mixed 
+!  forest/field vegetation) so that the Olson 2001 landcover dataset at 
+!  0.25x0.25 degrees has 74 vegetation types).
+!  
+!  There are also new vegetation types that are defined in the Olson 2001 
+!  dataset from 1-74 that were previously listed as "not used" in 
+!  drydep.table. These are assigned appropriate deposition ID # and z0 values. 
+!  
+!  Vegetation types that are listed as "not used" in the updated drydep.table 
+!  dataset are those that are not dominant at 0.25x0.25, but may be present 
+!  in the 1kmx1km dataset."
+!  
+!   The following table shows the the translation between the Olson 2001 and 
+!   Olson 1992 land maps:
+!
+!   Olson 2001				        Olson 1992 	# in
+!   LC# Description    		                Equivalent      Dry deposition
+!   ==========================================================================
+!   1	Urban					1		2
+!   2	Low Sparse Grassland			2		3
+!   3	Coniferous Forest			3		4
+!   4	Deciduous Conifer Forest		4		5
+!   5	Deciduous Broadleaf Forest		5		6
+!   6	Evergreen Broadleaf Forests		6		7
+!   7	Tall Grasses and Shrubs			7		8
+!   8	Bare Desert				8		9
+!   9	Upland Tundra				9		10
+!   10	Irrigated Grassland			10		11
+!   11	Semi Desert				11		12
+!   12	Glacier Ice				12		13
+!   13	Wooded Wet Swamp			13		14
+!   14	Inland Water				0		1
+!   15	Sea Water				0		1
+!   16	Shrub Evergreen				16		17
+!   17	Shrub Deciduous				18		19
+!   18	Mixed Forest and Field			none present	
+!   19	Evergreen Forest and Fields		19		20
+!   20	Cool Rain Forest			20		21
+!   21	Conifer Boreal Forest			21		22
+!   22	Cool Conifer Forest			22		23
+!   23	Cool Mixed Forest			23		24
+!   24	Mixed Forest				24		25
+!   25	Cool Broadleaf Forest			25		26
+!   26	Deciduous Broadleaf Forest		26		27
+!   27	Conifer Forest				27		28
+!   28	Montane Tropical Forests		28		29
+!   29	Seasonal Tropical Forest		29		30
+!   30	Cool Crops and Towns			30		31
+!   31	Crops and Town				31		32
+!   32	Dry Tropical Woods			32		33
+!   33	Tropical Rainforest			33		34
+!   34	Tropical Degraded Forest		34		35
+!   35	Corn and Beans Cropland			35		36
+!   36	Rice Paddy and Field			36		37
+!   37	Hot Irrigated Cropland			37		38
+!   38	Cool Irrigated Cropland			38		39
+!   39	Cold Irrigated Cropland			none present	
+!   40	Cool Grasses and Shrubs			40		41
+!   41	Hot and Mild Grasses and Shrubs		41		42
+!   42	Cold Grassland				42		43
+!   43	Savanna (Woods)				43		44
+!   44	Mire, Bog, Fen				44		45
+!   45	Marsh Wetland				45		46
+!   46	Mediterranean Scrub			46		47
+!   47	Dry Woody Scrub				47		48
+!   48	Dry Evergreen Woods			none present	
+!   49	Volcanic Rock				none present	
+!   50	Sand Desert				none present	
+!   51	Semi Desert Shrubs			51		52
+!   52	Semi Desert Sage			52		53
+!   53	Barren Tundra				53		54
+!   54	Cool Southern Hemisphere Mixed Forests	54		55
+!   55	Cool Fields and Woods			55		56
+!   56	Forest and Field			56		57
+!   57	Cool Forest and Field			57		58
+!   58	Fields and Woody Savanna		58		59
+!   59	Succulent and Thorn Scrub		59		60
+!   60	Small Leaf Mixed Woods			60		61
+!   61	Deciduous and Mixed Boreal Forest	61		62
+!   62	Narrow Conifers				62		63
+!   63	Wooded Tundra				63		64
+!   64	Heath Scrub				64		65
+!   65	Coastal Wetland, NW			none present	
+!   66	Coastal Wetland, NE			none present	
+!   67	Coastal Wetland, SE			none present	
+!   68	Coastal Wetland, SW			none present	
+!   69	Polar and Alpine Desert			69		70
+!   70	Glacier Rock				none present	
+!   71	Salt Playas				none present	
+!   72	Mangrove				72		73
+!   73	Water and Island Fringe			none present	
+!   74	Land, Water, and Shore (see Note 1)	none present	
+!   75	Land and Water, Rivers (see Note 1)	none present	
+!   76	Crop and Water Mixtures			36		37
+!   77	Southern Hemisphere Conifers		none present	
+!   78	Southern Hemisphere Mixed Forest	32		33
+!   79	Wet Sclerophylic Forest			26		27
+!   80	Coastline Fringe			none present	
+!   81	Beaches and Dunes			none present	
+!   82	Sparse Dunes and Ridges			none present	
+!   83	Bare Coastal Dunes			none present	
+!   84	Residual Dunes and Beaches		none present	
+!   85	Compound Coastlines			none present	
+!   86	Rocky Cliffs and Slopes			none present	
+!   87	Sandy Grassland and Shrubs		none present	
+!   88	Bamboo					none present	
+!   89	Moist Eucalyptus			26		27
+!   90	Rain Green Tropical Forest		33		34
+!   91	Woody Savanna				43		44
+!   92	Broadleaf Crops				29		30
+!   93	Grass Crops				41		42
+!   94	Crops, Grass, Shrubs			41		42
+!   95	Evergreen Tree Crop			33		34
+!   96	Deciduous Tree Crop			33		34
 !                                                                             .
 !  Arrays computed by olson_landmap_mod.F90
 !  ============================================================================
@@ -162,8 +260,8 @@ MODULE Olson_LandMap_Mod
   INTEGER              :: I_OLSON       ! # of lons (0.5 x 0.5)
   INTEGER              :: J_OLSON       ! # of lats (0.5 x 0.5)
   INTEGER              :: N_OLSON       ! Number of Olson land types 
-  REAL(fp)               :: D_LON         ! Delta longitude, Olson grid [degrees]
-  REAL(fp)               :: D_LAT         ! Delta latitude,  Olson grid [degrees]
+  REAL(fp)             :: D_LON         ! Delta longitude, Olson grid [degrees]
+  REAL(fp)             :: D_LAT         ! Delta latitude,  Olson grid [degrees]
 
   ! Arrays
   REAL*4,  ALLOCATABLE :: lon  (:    )  ! Lon centers, Olson grid [degrees]
@@ -261,10 +359,10 @@ CONTAINS
     INTEGER :: ordOlson(IIPAR,    JJPAR, 0:N_OLSON-1) ! Order of land types
 
     ! Pointers
-    INTEGER, POINTER :: IREG(:,:)
-    INTEGER, POINTER :: ILAND(:,:,:)
-    INTEGER, POINTER :: IUSE(:,:,:)
-    REAL(fp),  POINTER :: FRCLND(:,:)
+    INTEGER,  POINTER :: IREG(:,:)
+    INTEGER,  POINTER :: ILAND(:,:,:)
+    INTEGER,  POINTER :: IUSE(:,:,:)
+    REAL(fp), POINTER :: FRCLND(:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -412,7 +510,7 @@ CONTAINS
              IF ( ABS( xedge_w - xedgeC_w ) > lonThresh ) CYCLE
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-             ! "Area" of the GEOS-CHEM GRID BOX in degrees (DLON * DLAT)
+             ! "Area" of the NATIVE GRID BOX in degrees (DLON * DLAT)
              dxdy       = ( xedge_e - xedge_w ) * ( yedge_n - yedge_s )
 
              ! Get the mapping weight (i.e. The fraction of the NATIVE 
