@@ -1990,7 +1990,7 @@ CONTAINS
                                    HcoState  = HcoState,            &
                                    cName     = TRIM( DiagnName ),   &
                                    ExtNr     = ExtNr,               &
-                                   Cat       = CATEGORY_BIOMASS,    &
+                                   Cat       = Cat,                 &
                                    Hier      = -1,                  &
                                    HcoID     = HcoID,               &
                                    SpaceDim  = 2,                   &
