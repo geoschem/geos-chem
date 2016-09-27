@@ -136,7 +136,7 @@
       RC        = GC_SUCCESS
 
       ! Number of dry-deposited species
-      nDryDep    = State_Chm%nDryDep
+      nDryDep   = State_Chm%nDryDep
 
       ! Check that species units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -144,6 +144,17 @@
          LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
          CALL GC_Error( MSG, RC, LOC )
       ENDIF
+
+      ! DTCHEM is the chemistry timestep in seconds
+      DTCHEM    = GET_TS_CHEM() * 60d0
+
+      ! Get logical values from Input_Opt
+      LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
+
+      ! Initialize pointers
+      Spc      => State_Chm%Species
+      BXHEIGHT => State_Met%BXHEIGHT
+      T        => State_Met%T
 
       ! First-time setup
       IF ( FIRST ) THEN
@@ -158,56 +169,42 @@
             LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
             CALL ERROR_STOP( MSG, LOC )
          ENDIF
-   
          IF ( id_NK1 < 0 ) THEN
             MSG = 'NK1 is not a defined species!'
             LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
             CALL ERROR_STOP( MSG, LOC )
          ENDIF
 
+         ! First identify if the size-resolved aerosol species have their
+         ! deposition velocity calculated.
+         ! dryd is an array that keeps the drydep species ID.  So if the 
+         ! aerosol component has dryd = 0, that means it was not included 
+         ! as a dry depositting species.
+         DRYD = 0
+         DO BIN = 1, IBINS
+            DO N   = 1, nDryDep
+               !just want to match only once (win, 5/24/06)
+               IF ( BIN == 1 .and.
+     &              State_Chm%Map_DryDep(N)==id_H2SO4 ) THEN
+                  H2SO4ID = N
+cdbg              print *, 'DRYDEP Species:',N
+               ENDIF
+               IF ( State_Chm%Map_DryDep(N) == ( id_NK1-1+BIN ) )THEN
+cdbg              print *,'Match species:',IDTNK1-1+bin,'Bin',bin
+                  DRYD( BIN ) = N
+                  GOTO 100
+               ENDIF
+            ENDDO
+ 100        CONTINUE
+         ENDDO
+
          ! Reset first-time falg
-         FIRST    = .FALSE.
+         FIRST = .FALSE.
+
       ENDIF
 
-      ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM    = GET_TS_CHEM() * 60d0
-
-      ! Get logical values from Input_Opt
-      LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
-
-      ! Initialize pointers
-      Spc      => State_Chm%Species
-      BXHEIGHT => State_Met%BXHEIGHT
-      T        => State_Met%T
-
-      ! First identify if the size-resolved aerosol species have their
-      ! deposition velocity calculated.
-      ! dryd is an array that keeps the drydep species ID.  So if the 
-      ! aerosol component has dryd = 0, that means it was not included 
-      ! as a dry depositting species.
-      IF(FIRST) THEN
-      DRYD = 0
-      DO BIN = 1, IBINS
-         DO N = 1, nDryDep
-            !just want to match only once (win, 5/24/06)
-            IF ( BIN == 1 .and. State_Chm%Map_DryDep(N)==id_H2SO4 ) THEN
-               H2SO4ID = N
-cdbg            print *, 'DRYDEP Species:',N
-            ENDIF
-            IF ( State_Chm%Map_DryDep(N) == ( id_NK1-1+BIN ) )THEN
-cdbg               print *,'Match species:',IDTNK1-1+bin,'Bin',bin
-               DRYD( BIN ) = N
-               GOTO 100
-            ENDIF            
-         ENDDO
- 100     CONTINUE
-      ENDDO
-      FIRST = .FALSE.
-      ENDIF !First
-
-
-cdbg      print *,'dryd(30)'
-cdbg      print *, dryd(:)
+cdbg  print *,'dryd(30)'
+cdbg  print *, dryd(:)
 
       !---------- GRAVITATIONAL SETTLING -------------
       !
