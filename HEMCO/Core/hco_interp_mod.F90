@@ -385,14 +385,8 @@ CONTAINS
           ENDIF
 
           ! REGR_4D are the remapped fractions.
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% KLUDGE BY SEB EASTHAM (9/21/16)
-!%%% GFortran does not like WHERE with differing array sizes
-!%%% so rewrite this with as a DO loop.  Also need to check
-!%%% if this has a different impact on IFORT. (sde, bmy, 9/21/16)
-#if defined( LINUX_GFORTRAN )
           DO T  = 1, NTIME
-          DO L  = 1 ,NLEV
+          DO L  = 1, NLEV
           DO J  = 1, HcoState%NY
           DO I2 = 1, HcoState%NX
              IF ( REGFRACS(I2,J,L,T) > MAXFRACS(I2,J,L,T) ) THEN
@@ -403,15 +397,17 @@ CONTAINS
           ENDDO
           ENDDO
           ENDDO
-#else
-          ! This code is preblematic in Gfortran.  Investigate rewriting
-          ! it for IFORT with the DO loops (sde, bmy, 9/21/16)
-          WHERE ( REGFRACS > MAXFRACS ) 
-             MAXFRACS = REGR_4D
-             INDECES  = IVAL
-          END WHERE 
-#endif
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+!------------------------------------------------------------------------------
+! Prior to 9/29/16:
+!          ! This code is preblematic in Gfortran.  Replace it with the
+!          ! explicit DO loops above.  Leave this here for reference.
+!          ! (sde, bmy, 9/21/16)
+!          WHERE ( REGFRACS > MAXFRACS ) 
+!             MAXFRACS = REGR_4D
+!             INDECES  = IVAL
+!          END WHERE 
+!------------------------------------------------------------------------------
        ENDIF
 
     ENDDO !I
