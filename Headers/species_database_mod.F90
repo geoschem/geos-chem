@@ -3258,6 +3258,508 @@ CONTAINS
                               RC            = RC )
 
           !==================================================================
+          ! Species for simulations including iodine
+          !==================================================================
+
+          CASE( 'CH3IT' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Methyl iodide',              &
+                              MW_g          = 142.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              RC            = RC )
+
+          CASE( 'CH2I2' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Diiodomethane',              &
+                              MW_g          = 268.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              RC            = RC )
+
+          CASE( 'CH2ICL' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Chloroiodomethane',          &
+                              MW_g          = 167.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              RC            = RC )
+
+          CASE( 'CH2IBR' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Bromoiodomethane',           &
+                              MW_g          = 221.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              RC            = RC )
+
+          CASE( 'HOI' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Hypoiodous acid',            &
+                              MW_g          = 144.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
+                              Henry_CR      = -1.0e+0_f8,                   &
+#else									    
+                              DD_Hstar_old  = 1.54e+4_f8,                   &
+                              Henry_K0      = 1.54e+4_f8,                   &
+                              Henry_CR      = 8.371e+3_f8,                  &
+#endif									    
+                              WD_RetFactor  = 2.0e-2_fp,                    &
+                              RC            = RC )
+
+          CASE( 'I2' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Molecular iodine',           &
+                              MW_g          = 254.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
+                              Henry_CR      = -1.0e+0_f8,                   &
+#else									    
+                              DD_Hstar_old  = 2.70e+0_fp,                   &
+                              Henry_K0      = 2.7e+0_f8,                    &
+                              Henry_CR      = 7.5074e+3_f8,                 &
+#endif									    
+                              WD_RetFactor  = 0.0_fp,                       &
+                              RC            = RC )
+
+          CASE( 'IBR' )
+             ! SDE 2016-09-28: Inconsistent Henry's Law constants in original
+             ! code. Should be rectified ASAP.
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Iodine monobromide',         &
+                              MW_g          = 207.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
+                              Henry_CR      = -1.0e+0_f8,                   &
+#else									    
+                              DD_Hstar_old  = 2.43e+1_fp,                   &
+                              Henry_K0      = 2.4e+1_f8,                    &
+                              Henry_CR      = 4.9167e+3_f8,                 &
+#endif									    
+                              WD_RetFactor  = 0.0_fp,                       &
+                              RC            = RC )
+
+          CASE( 'ICL' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Iodine monochloride',        &
+                              MW_g          = 162.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
+                              Henry_CR      = -1.0e+0_f8,                   &
+#else									    
+                              DD_Hstar_old  = 1.11e+2_f8,                   &
+                              Henry_K0      = 1.11e+2_f8,                   &
+                              Henry_CR      = 2.1055e+3_f8,                 &
+#endif									    
+                              WD_RetFactor  = 0.0_fp,                       &
+                              RC            = RC )
+
+          CASE( 'I' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Atomic iodine',              &
+                              MW_g          = 127.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              RC            = RC )
+
+          CASE( 'IO' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Iodine monoxide',            &
+                              MW_g          = 143.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              RC            = RC )
+
+          CASE( 'HI' )
+             ! SDE 2016-09-28: Inconsistent Henry's Law constants in original
+             ! code. Should be rectified ASAP.
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Hydrogen iodide',            &
+                              MW_g          = 128.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
+                              Henry_CR      = -1.0e+0_f8,                   &
+#else									    
+                              DD_Hstar_old  = 2.35e+16_fp,                  &
+                              Henry_K0      = 7.43e+13_f8,                  &
+                              Henry_CR      = 3.1872e+3_f8,                 &
+#endif									    
+                              WD_RetFactor  = 1.0_fp,                       &
+                              RC            = RC )
+
+          CASE( 'OIO' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Iodine dioxide',             &
+                              MW_g          = 159.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              RC            = RC )
+
+          CASE( 'INO' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Nitrosyl iodide',            &
+                              MW_g          = 157.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              RC            = RC )
+
+          CASE( 'IONO' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Nitryl iodide',              &
+                              MW_g          = 173.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
+                              Henry_CR      = -1.0e+0_f8,                   &
+#else									    
+                              DD_Hstar_old  = 3.0e-1_f8,                    &
+                              Henry_K0      = 3.0e-1_f8,                    &
+                              Henry_CR      = 7.2404e+3_f8,                 &
+#endif									    
+                              WD_RetFactor  = 2.0e-2_fp,                    &
+                              RC            = RC )
+
+          CASE( 'IONO2' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Iodine nitrate',             &
+                              MW_g          = 189.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
+                              Henry_CR      = -1.0e+0_f8,                   &
+#else									    
+                              DD_Hstar_old  = 1.0e+20_f8,                   &
+                              Henry_K0      = 1.0e+20_f8,                   &
+                              Henry_CR      = 3.98e+3_f8,                   &
+#endif									    
+                              WD_RetFactor  = 1.0_fp,                       &
+                              RC            = RC )
+
+          CASE( 'I2O2' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Diiodine dioxide',           &
+                              MW_g          = 286.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
+                              Henry_CR      = -1.0e+0_f8,                   &
+#else									    
+                              DD_Hstar_old  = 1.0e+20_f8,                   &
+                              Henry_K0      = 1.0e+20_f8,                   &
+                              Henry_CR      = 1.89e+4_f8,                   &
+#endif									    
+                              WD_RetFactor  = 1.0_fp,                       &
+                              RC            = RC )
+
+          CASE( 'I2O3' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Diiodine trioxide',          &
+                              MW_g          = 302.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
+                              Henry_CR      = -1.0e+0_f8,                   &
+#else									    
+                              DD_Hstar_old  = 1.0e+20_f8,                   &
+                              Henry_K0      = 1.0e+20_f8,                   &
+                              Henry_CR      = 1.34e+4_f8,                   &
+#endif									    
+                              WD_RetFactor  = 1.0_fp,                       &
+                              RC            = RC )
+
+          CASE( 'I2O4' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Diiodine tetraoxide',        &
+                              MW_g          = 318.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
+                              Henry_CR      = -1.0e+0_f8,                   &
+#else									    
+                              DD_Hstar_old  = 1.0e+20_f8,                   &
+                              Henry_K0      = 1.0e+20_f8,                   &
+                              Henry_CR      = 1.34e+4_f8,                   &
+#endif									    
+                              WD_RetFactor  = 1.0_fp,                       &
+                              RC            = RC )
+
+          CASE( 'ISALA' )
+             ! Mimic SALA
+             Radius   = ( Input_Opt%SALA_REDGE_um(1) +                      &
+                          Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Fine sea salt iodine',       &
+                              MW_g          = 127.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              Density       = 2200.0_fp,                    &
+                              Radius        = Radius,                       &
+                              DD_AeroDryDep = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_Old  = 0.0_fp,                       &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'ISALC' )
+             ! Mimic SALC
+             Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
+                          Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+ 
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /) 
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Coarse sea salt iodine',     &
+                              MW_g          = 127.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              Density       = 2200.0_fp,                    &
+                              Radius        = Radius,                       &
+                              DD_AeroDryDep = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_Old  = 0.0_fp,                       &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              WD_CoarseAer  = T,                            &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'AERI' )
+             ! Mimic SO4 (AERI is essentiall iodine dissolved in aerosol)
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale   = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff   = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
+             ! (cf. Mian Chin's GOCART model)
+             ! Minimum Vd over snow/ice : 0.01 cm/s
+             ! Minimum Vd over land     : 0.01 cm/s
+             DvzMinVal = (/ 0.01_fp, 0.01_fp /) 
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Dissolved iodine',           &
+                              MW_g          = 127.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_DvzMinVal  = DvzMinVal,                    &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_Old  = 0.0_fp,                       &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          !==================================================================
           ! Species for the Rn-Pb-Be specialty simulation
           !==================================================================
 
