@@ -3763,6 +3763,39 @@ CONTAINS
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
+          ! Short-lived iodine species
+          CASE( 'HIO3' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Iodic acid',                 &
+                              MW_g          = 176.0_fp,                     &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              RC            = RC )
+
+          CASE( 'I2O' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Diiodine monoxide',          &
+                              MW_g          = 270.0_fp,                     &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              RC            = RC )
+
           !==================================================================
           ! Species for the Rn-Pb-Be specialty simulation
           !==================================================================
