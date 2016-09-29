@@ -3261,7 +3261,7 @@ CONTAINS
           ! Species for simulations including iodine
           !==================================================================
 
-          CASE( 'CH3IT' )
+          CASE( 'CH3I' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -3275,6 +3275,10 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 0.0_fp,                       &
+                              Henry_K0      = 2.0e-3_f8 * To_M_atm,         &
+                              Henry_CR      = 3.6e+3_f8,                    &
                               RC            = RC )
 
           CASE( 'CH2I2' )
