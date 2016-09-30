@@ -516,6 +516,8 @@ CONTAINS
 !  15 Dec 2013 - C. Keller   - Initial version
 !  07 Oct 2014 - C. Keller   - Allow wind scale factor be set in config file
 !  09 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
+!  21 Sep 2016 - R. Yantosca - Bug fix: don't initialize SS_DEN before
+!                              it is allocated.  This causes a segfault.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -684,7 +686,7 @@ CONTAINS
        CALL HCO_ERROR( 'Cannot allocate NR', RC )
        RETURN
     ENDIF
-    SS_DEN = 2200.d0
+    NR = 0
 
     ALLOCATE ( SS_DEN  ( NSALT ), STAT=AS )
     IF ( AS/=0 ) THEN

@@ -1889,6 +1889,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  12 Aug 2015 - R. Yantosca - Initial version, based on geosfp_read_mod.F90
 !  03 Dec 2015 - R. Yantosca - Now open file only once per day
+!  20 Sep 2016 - R. Yantosca - Bug fix: FIRST must be declared as LOGICAL
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1907,7 +1909,7 @@ CONTAINS
     CHARACTER(LEN=255) :: caller                   ! Name of this routine
 
     ! SAVEd scalars
-    INTEGER, SAVE      :: first = .TRUE.           ! First time reading data?
+    LOGICAL, SAVE      :: first = .TRUE.           ! First time reading data?
                                     
     ! Arrays                                 
     INTEGER            :: st3d(3), ct3d(3)         ! Start & count indices

@@ -204,7 +204,7 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
-
+!  20 Sep 2016 - R. Yantosca - Bug fix: rewrite invalid ( LMPOA > 0 ) test
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -269,7 +269,7 @@
       !=================================================================
       ! Do chemistry for marine organic aerosol tracers 
       !=================================================================
-      IF ( LMPOA > 0 ) THEN
+      IF ( LMPOA ) THEN
 
          ! Chemistry for hydrophobic MOA
          IF ( id_MOPO > 0 ) THEN
@@ -699,8 +699,8 @@
                ! dM/dln(Dw)/Dw
 	       ! Overall = dM/dDw = dV/dlnD * Rwet/Rdry * RHO /Rw
 	       ! 
-	       IF (DMID(ID) .ge. R0*2e+0_fp .and. DMID(ID) .le. R1*2e+0_fp) 
-     &          THEN
+	       IF ( DMID(ID) .ge. R0*2e+0_fp   .and. 
+     &              DMID(ID) .le. R1*2e+0_fp ) THEN
 	         DMIDW = DMID(ID) * RWET/REFF  ! wet radius [um]
 	         SALT_MASS = SALT_V(ID) * RWET/REFF * RHO 
      &                      / (DMIDW*0.5e+0_fp)

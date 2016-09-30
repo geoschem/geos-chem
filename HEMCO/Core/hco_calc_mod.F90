@@ -155,6 +155,7 @@ CONTAINS
 !  03 Aug 2014 - C. Keller   - Bug fix for adding data to diagnostics. Now
 !                              explicitly check for new species OR category.
 !  21 Aug 2014 - C. Keller   - Added concentration.
+!  19 Sep 2016 - R. Yantosca - Use .neqv. for LOGICAL comparisons
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -316,7 +317,7 @@ CONTAINS
        ! Check if this container holds data in the desired unit format,
        ! i.e. concentration data if UseConc is enabled, emission data
        ! otherwise.
-       IF ( UseConc /= Dct%Dta%IsConc ) THEN
+       IF ( UseConc .neqv. Dct%Dta%IsConc ) THEN
           CALL EmisList_NextCont ( Lct, FLAG )
           CYCLE
        ENDIF 

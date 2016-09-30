@@ -785,14 +785,16 @@
 !  06 Jul 2007 - H. O. T. Pye - Initial version, in ISORROPIA II
 !  29 Jan 2010 - R. Yantosca  - Added ProTeX headers
 !  11 Jan 2015 - M. Yannetti  - Some precision edits, for safety.
+!  19 Sep 2016 - R. Yantosca  - Bug fix: #ifdef's should be lower case
+!  19 Sep 2016 - R. Yantosca  - Bug fix: elif should be else
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#IF !defined ( USE_REAL_8 )
+#if !defined( USE_REAL_8 )
       HNO3_sav(I,J,L) = SNGL(HNO3_UGM3) ! if we are not using real*8
-#ELIF
-      HNO3_sav(I,J,L) = HNO3_UGM3 ! if we are using real*8
-#ENDIF
+#else
+      HNO3_sav(I,J,L) = HNO3_UGM3       ! if we are using real*8
+#endif
 
       END SUBROUTINE SET_HNO3
 !EOC

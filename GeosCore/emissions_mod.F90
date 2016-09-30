@@ -163,6 +163,8 @@ CONTAINS
 !  13 Nov 2014 - C. Keller    - Added EMISSCARBON (for SESQ and POA)
 !  21 Nov 2014 - C. Keller    - Added EMISSVOC to prevent VOC build-up
 !                               above tropopause
+!  22 Sep 2016 - R. Yantosca  - Don't call EMISSCARBON unless we are doing
+!                               a fullchem or aerosol simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -189,8 +191,16 @@ CONTAINS
        ! emissions calculated in HEMCO (SESQ) are passed to the internal
        ! species array in carbon, as well as to ensure that POA emissions
        ! are correctly treated.
-       CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN 
+!-----------------------------------------------------------------------------
+! Prior to 9/22/16:
+!       CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, RC )
+!       IF ( RC /= GC_SUCCESS ) RETURN 
+!-----------------------------------------------------------------------------
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
+            Input_Opt%ITS_AN_AEROSOL_SIM ) THEN 
+          CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN 
+       ENDIF
 
     ! Call TOMAS emission routines (JKodros 6/2/15)
 #if defined ( TOMAS )

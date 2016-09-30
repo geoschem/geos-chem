@@ -271,7 +271,13 @@
       ENDIF
 
       ! Now we do some minor error checking
-      IF ( (SavedTimers(TimerLoc)%ENABLED) .eq. .true.) THEN
+!----------------------------------------------------------------------------
+! Prior to 9/17/16:
+! We don't need to compare a logical variable to TRUE; if it is true then the
+! IF block will execute normally; otherwise the ELSE block will (bmy, 9/19/16)
+!      IF ( (SavedTimers(TimerLoc)%ENABLED) .eq. .true.) THEN
+!----------------------------------------------------------------------------
+      IF ( SavedTimers(TimerLoc)%ENABLED ) THEN
          PRINT*, "** WARNING: Timer already running: ", TimerName
          RC = GC_FAILURE
          RETURN
@@ -326,6 +332,7 @@
 ! !REVISION HISTORY: 
 !  24 Jul 2015 - M. Yannetti - Initial version.
 !  27 Oct 2015 - M. Sulprizio- Change from a function to a subroutine
+!  19 Sep 2016 - R. Yantosca - Rewrite logic of IF statement using .not.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -353,7 +360,13 @@
       ENDIF
 
       ! Now we do some minor error checking
-      IF ( (SavedTimers(TimerLoc)%ENABLED) .eq. .false.) THEN
+!-------------------------------------------------------------------------
+! Prior to 9/19/16:
+! Rewrite IF statement to use the logical NOT function.  This will be
+! more robust for compilers like Gfortran (bmy, 9/19/16)
+!      IF ( (SavedTimers(TimerLoc)%ENABLED) .eq. .false.) THEN
+!-------------------------------------------------------------------------
+      IF ( .not. SavedTimers(TimerLoc)%ENABLED ) THEN
          PRINT*, "** WARNING: Timer not running: ", TimerName
          RC = GC_FAILURE
          RETURN

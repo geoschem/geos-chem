@@ -2389,6 +2389,10 @@ CONTAINS
     TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
+! !REMARKS:
+!  Gfortran will choke unless we use the .eqv. operator to compare LOGICAL 
+!  variables for equality (or .neqv. for inequality).
+
 ! !REVISION HISTORY:
 !  18 Feb 2015 - C. Keller   - Initial Version
 !  04 Mar 2015 - R. Yantosca - Now determine if we need to read UV albedo
@@ -2400,6 +2404,7 @@ CONTAINS
 !                              photo-reducible HgII(aq) to UV-B radiation is on
 !  11 Sep 2015 - E. Lundgren - Remove State_Met and State_Chm from passed args
 !  03 Dec 2015 - R. Yantosca - Bug fix: pass am_I_Root to AddExtOpt
+!  19 Sep 2016 - R. Yantosca - Now compare LOGICALs with .eqv. and .neqv.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2488,7 +2493,11 @@ CONTAINS
        CALL ERROR_STOP( 'GetExtOpt +STATE_PSC+', LOC )
     ENDIF
     IF ( FOUND ) THEN
-       IF ( Input_Opt%LUCX /= LTMP ) THEN
+!-----------------------------------------------------------------------------
+! Prior to 9/19/16:
+!       IF ( Input_Opt%LUCX /= LTMP ) THEN
+!-----------------------------------------------------------------------------
+       IF ( Input_Opt%LUCX .neqv. LTMP ) THEN
           WRITE(*,*) ' '
           WRITE(*,*) 'Setting +STATE_PSC+ in the HEMCO configuration'
           WRITE(*,*) 'file does not agree with stratospheric chemistry'
@@ -2527,7 +2536,12 @@ CONTAINS
 
        ! Print a warning if this collection is defined in the HEMCO config
        ! file, but is set to an value inconsistent with input.geos file.
-       IF ( Input_Opt%LSCHEM /= LTMP ) THEN
+       !
+!-----------------------------------------------------------------------------
+! Prior to 9/19/16:
+!       IF ( Input_Opt%LSCHEM /= LTMP ) THEN
+!-----------------------------------------------------------------------------
+       IF ( Input_Opt%LSCHEM .neqv. LTMP ) THEN
           WRITE(*,*) ' '
           WRITE(*,*) 'Setting +LinStratChem+ in the HEMCO configuration'
           WRITE(*,*) 'file does not agree with stratospheric chemistry'
@@ -2593,8 +2607,12 @@ CONTAINS
 
        ! Print a warning if this collection is defined in the HEMCO config
        ! file, but is set to a value inconsistent with input.geos file.
-       !
-       IF ( Input_Opt%LCHEM /= LTMP .and.                           &
+!-----------------------------------------------------------------------------
+! Prior to 9/19/16:
+!       IF ( Input_Opt%LCHEM /= LTMP .and.                           &
+!            .not. Input_Opt%ITS_A_MERCURY_SIM ) THEN
+!-----------------------------------------------------------------------------
+       IF ( Input_Opt%LCHEM .neqv. LTMP .and.                       &
             .not. Input_Opt%ITS_A_MERCURY_SIM ) THEN
           WRITE(*,*) ' '
           WRITE(*,*) 'Setting +TOMS_SBUV_O3+ in the HEMCO configuration'

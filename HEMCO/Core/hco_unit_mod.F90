@@ -48,6 +48,8 @@ MODULE HCO_Unit_Mod
 !  16 Mar 2015 - R. Yantosca - Add dobsons and dobsons/day units
 !  16 Jun 2015 - R. Yantosca - Add % and percent to the unitless list
 !  07 Jan 2016 - E. Lundgren - Update Avogadro's # to NIST 2014 value
+!  19 Sep 2016 - R. Yantosca - Make sure all strings are the same length in
+!                              the array constructor or Gfortran will choke
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -70,43 +72,43 @@ MODULE HCO_Unit_Mod
   ! in these units.
   ! All characters in this list should be lower case!
   INTEGER,           PARAMETER :: NUL = 37
-  CHARACTER(LEN=15), PARAMETER :: UL(NUL) = (/ '1',             &
-                                               'count',         &
-                                               'unitless',      &
-                                               'fraction',      &
-                                               'factor',        &
-                                               'scale',         &
-                                               'hours',         &
-                                               'v/v',           &
-                                               'v/v/s',         &
-                                               's-1',           &
-                                               's^-1',          &
-                                               'm2/m2',         & 
-                                               'm2m-2',         &
-                                               'kg/kg',         & 
-                                               'kgkg-1',        &
-                                               'mg/m3',         &
-                                               'mg/m2/d',       &
-                                               'k',             & 
-                                               'w/m2',          & 
-                                               'wm-2',          &
-                                               'pptv',          & 
-                                               'ppt',           & 
-                                               'ppbv',          & 
-                                               'ppb',           & 
-                                               'ppmv',          & 
-                                               'ppm',           & 
-                                               'm/s',           &
-                                               'ms-1',          &
-                                               'm',             &
-                                               'cm2cm-2',       &
-                                               'dobsons',       &
+  CHARACTER(LEN=15), PARAMETER :: UL(NUL) = (/ '1          ',   &
+                                               'count      ',   &
+                                               'unitless   ',   &
+                                               'fraction   ',   &
+                                               'factor     ',   &
+                                               'scale      ',   &
+                                               'hours      ',   &
+                                               'v/v        ',   &
+                                               'v/v/s      ',   &
+                                               's-1        ',   &
+                                               's^-1       ',   &
+                                               'm2/m2      ',   & 
+                                               'm2m-2      ',   &
+                                               'kg/kg      ',   & 
+                                               'kgkg-1     ',   &
+                                               'mg/m3      ',   &
+                                               'mg/m2/d    ',   &
+                                               'k          ',   & 
+                                               'w/m2       ',   & 
+                                               'wm-2       ',   &
+                                               'pptv       ',   & 
+                                               'ppt        ',   & 
+                                               'ppbv       ',   & 
+                                               'ppb        ',   & 
+                                               'ppmv       ',   & 
+                                               'ppm        ',   & 
+                                               'm/s        ',   &
+                                               'ms-1       ',   &
+                                               'm          ',   &
+                                               'cm2cm-2    ',   &
+                                               'dobsons    ',   &
                                                'dobsons/day',   &
-                                               'DU',            &
-                                               'pa',            &
-                                               'hpa',           &
-                                               '%',             &
-                                               'percent'      /)
+                                               'DU         ',   &
+                                               'pa         ',   &
+                                               'hpa        ',   &
+                                               '%          ',   &
+                                               'percent    '  /)
 
   ! Accepted units for data on HEMCO standard units. No unit conversion 
   ! is applied to data with any of these units.
@@ -114,17 +116,16 @@ MODULE HCO_Unit_Mod
 
   ! Emission units
   INTEGER,           PARAMETER :: NHE = 6
-  CHARACTER(LEN=15), PARAMETER :: HE(NHE) = (/ 'kg/m2/s',       &
-                                               'kgc/m2/s',      &
-                                               'kg(c)/m2/s',    &
-                                               'kgm-2s-1',      &
-                                               'kgcm-2s-1',     &
+  CHARACTER(LEN=15), PARAMETER :: HE(NHE) = (/ 'kg/m2/s    ',   &
+                                               'kgc/m2/s   ',   &
+                                               'kg(c)/m2/s ',   &
+                                               'kgm-2s-1   ',   &
+                                               'kgcm-2s-1  ',   &
                                                'kg(c)m-2s-1'  /)
-
   ! Concentration units
   INTEGER,           PARAMETER :: NHC = 3
-  CHARACTER(LEN=15), PARAMETER :: HC(NHC) = (/ 'kg/m3',         &
-                                               'kgm-3',         &
+  CHARACTER(LEN=15), PARAMETER :: HC(NHC) = (/ 'kg/m3 ',        &
+                                               'kgm-3 ',        &
                                                'kgm^-3'       /)
 
   ! Interfaces:

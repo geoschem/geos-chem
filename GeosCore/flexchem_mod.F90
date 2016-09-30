@@ -151,6 +151,7 @@ CONTAINS
 !  24 Aug 2016 - M. Sulprizio- Replace CSPECTOKPP with State_Chm%Map_KppSpc
 !  24 Aug 2016 - M. Sulprizio- Move this subroutine to flexchem_mod.F90 and
 !                              rename from FLEX_CHEMDR to Do_FlexChem
+!  22 Sep 2016 - R. Yantosca - Add extra debug printout after FAST_JX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -237,7 +238,7 @@ CONTAINS
     ENDIF
 
     ! Initialize variables
-    prtDebug  = Input_Opt%LPRT
+    prtDebug  = ( Input_Opt%LPRT .and. am_I_Root )
     LDUST     = Input_Opt%LDUST
 
     itim      = 0.0_fp
@@ -313,8 +314,9 @@ CONTAINS
 #if defined( UCX )
        ! Calculate stratospheric aerosol properties (SDE 04/18/13)
        CALL CALC_STRAT_AER( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-       IF ( prtDebug .and. am_I_Root ) &
+       IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### FLEX_CHEMDR: after CALC_PSC' )
+       ENDIF
 #endif
 
        ! Compute aerosol concentrations
@@ -372,7 +374,7 @@ CONTAINS
                 RC,        MONTH,     YEAR,       WAVELENGTH )
 
     !### Debug
-    IF ( prtDebug .and. am_I_Root ) THEN 
+    IF ( prtDebug ) THEN 
        CALL DEBUG_MSG( '### FLEX_CHEMDR: after RDAER' )
     ENDIF
 
@@ -399,7 +401,7 @@ CONTAINS
     ENDIF
 
     !### Debug
-    IF ( prtDebug .and. am_I_Root ) THEN
+    IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### FLEX_CHEMDR: after RDUST' )
     ENDIF
 
@@ -413,6 +415,11 @@ CONTAINS
     !=================================================================
     CALL FAST_JX( WAVELENGTH, am_I_Root,  Input_Opt, &
                   State_Met,  State_Chm,  RC         )
+
+    !### Debug
+    IF ( prtDebug ) THEN
+       CALL DEBUG_MSG( '### FLEX_CHEMDR: after FAST_JX' )
+    ENDIF
 
     !=================================================================
     ! Set up integration convergence conditions and timesteps
@@ -684,7 +691,7 @@ CONTAINS
        ENDIF
 
        !### Debug printout, we can remove it later
-       IF ( prtDebug .and. am_I_Root ) THEN
+       IF ( prtDebug ) THEN
           IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
              deltaCheck(1,1) = C(ind_OH)
              DO N = 1,NSPEC
@@ -825,7 +832,7 @@ CONTAINS
           State_Chm%Species(I,J,L,SpcID) = REAL( C(N), kind=fp )
 
           !### Debug output, we can remove it later
-          IF ( prtDebug .and. am_I_Root ) THEN
+          IF ( prtDebug ) THEN
              IF (I.eq.10.and.J.eq.10.and.L.eq.10.and.N.eq.ind_OH) THEN
                 write(*,'(a9,2es13.6)') 'SPC_OH : ', &
                    C(N), State_Chm%Species(I,J,L,SpcID)
@@ -906,7 +913,7 @@ CONTAINS
        ENDIF
 
        !### Debug output, we can remove it later
-       IF ( prtDebug .and. am_I_Root ) THEN
+       IF ( prtDebug ) THEN
           IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
              deltaCheck(1,1) = C(ind_OH) - deltaCheck(1,1)
              deltaCheck(2,1) = PROD(ind_OH)-LOSS(ind_OH)
@@ -939,12 +946,12 @@ CONTAINS
     ! active nitrogen partitioning and H2SO4 photolysis
     ! approximations  outside the chemgrid
     CALL UCX_NOX( Input_Opt, State_Met, State_Chm )
-    IF ( prtDebug .and. am_I_Root ) THEN
+    IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### CHEMDR: after UCX_NOX' )
     ENDIF
 
     CALL UCX_H2SO4PHOT( Input_Opt, State_Met, State_Chm )
-    IF ( prtDebug .and. am_I_Root ) THEN
+    IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
     ENDIF
 #endif
@@ -953,7 +960,7 @@ CONTAINS
     ! Call OHSAVE which saves info on OH AND HO2 concentrations
     !=================================================================
     CALL OHSAVE( State_Met, State_Chm )
-    IF ( prtDebug .and. am_I_Root ) THEN
+    IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### FLEX_CHEMDR: after OHSAVE' )
     ENDIF
 
@@ -961,7 +968,7 @@ CONTAINS
     ! Save quantities for computing mean OH lifetime
     !=================================================================
     CALL DO_DIAG_OH( State_Met, State_Chm )
-    IF ( prtDebug .and. am_I_Root ) THEN
+    IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### FLEX_CHEMDR: after DO_DIAG_OH' )
     ENDIF
 
@@ -970,7 +977,7 @@ CONTAINS
     !=================================================================
     IF ( Input_Opt%DO_SAVE_O3 ) THEN
        CALL DIAG20( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
-       IF ( prtDebug .and. am_I_Root ) THEN
+       IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### FLEX_CHEMDR: after DIAG20' )
        ENDIF
     ENDIF
@@ -1038,6 +1045,7 @@ CONTAINS
 !                              values to restart_mod
 !  24 Aug 2016 - M. Sulprizio- Remove CSPECTOKPP array. State_Chm%Map_KppSpc is
 !                              now used instead.
+!  20 Sep 2016 - R. Yantosca - Use fixed integer with in WRITE statement
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1067,7 +1075,7 @@ CONTAINS
     IF ( prtDebug .and. am_I_Root ) THEN
        write(*,'(a)') ' KPP Reaction Reference '
        DO D = 1,NREACT
-          write(*,'(i,a3,a85)') D,' | ',EQN_NAMES(D)
+          WRITE( 6, '(i8,a3,a85)' ) D,' | ',EQN_NAMES(D)
        END DO
     ENDIF
 

@@ -2069,6 +2069,7 @@
 !  24 Jun 2015 - R. Yantosca - Now always turn off emissions for mass cons test
 !  16 Jun 2016 - K. Travis   - Now define species ID's with the Ind_ function 
 !  22 Jun 2016 - R. Yantosca - Move some error checks to DO_ERROR_CHECKS
+!  20 Sep 2016 - R. Yantosca - Use "I4" format to read in CFCYEAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2205,7 +2206,7 @@
 
       ! Starting year for CFC emissions
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:73' )
-      READ( SUBSTRS(1:N), '(i)') CFCYEAR
+      READ( SUBSTRS(1:N), '(i4)') CFCYEAR
 
       ! Do we apply an offset?
       LFUTURECFC = (CFCYEAR .gt. 1950)
@@ -3169,6 +3170,7 @@
 !                              was used for GEOS-3, which has been retired.
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  20 Sep 2016 - R. Yantosca - Use "I8" format for write statement
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3301,7 +3303,7 @@
       ! If TS_DYN is greater than MAX_DYN, then stop w/ error
       IF ( .not. Input_Opt%HPC ) THEN
       IF ( Input_Opt%TS_DYN > MAX_DYN .and. LTRAN ) THEN
-         write(MSG,'(I,a,L)') '<>', Input_Opt%TS_DYN, Input_Opt%HPC
+         write(MSG,'(I8,a,L)') '<>', Input_Opt%TS_DYN, Input_Opt%HPC
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
       ENDIF
@@ -5872,6 +5874,8 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  20 Sep 2016 - R. Yantosca - Fixed typo (N_ND63 instead of ND63) when
+!                              saving to Input_Opt%ND63_TRACERS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5938,14 +5942,14 @@
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
-      Input_Opt%DO_ND63              = DO_ND63
-      Input_Opt%ND63_FILE            = FILE
-      Input_Opt%ND63_TRACERS(1:ND63) = TRACERS(1:N_ND63)
-      Input_Opt%ND63_FREQ            = FREQ
-      Input_Opt%ND63_IMIN            = IMIN
-      Input_Opt%ND63_IMAX            = IMAX
-      Input_Opt%ND63_JMIN            = JMIN
-      Input_Opt%ND63_JMAX            = JMAX
+      Input_Opt%DO_ND63                = DO_ND63
+      Input_Opt%ND63_FILE              = FILE
+      Input_Opt%ND63_TRACERS(1:N_ND63) = TRACERS(1:N_ND63)
+      Input_Opt%ND63_FREQ              = FREQ
+      Input_Opt%ND63_IMIN              = IMIN
+      Input_Opt%ND63_IMAX              = IMAX
+      Input_Opt%ND63_JMIN              = JMIN
+      Input_Opt%ND63_JMAX              = JMAX
 
       ! Return success
       RC = GC_SUCCESS
@@ -6877,6 +6881,7 @@
 !  19 Feb 2014 - R. Yantosca - Add warning for CH4 budget (which is now
 !                              controlled by an #ifdef in global_ch4_mod.F)
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
+!  20 Sep 2016 - R. Yantosca - Rewrote IF statement to avoid Gfortran error
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6969,7 +6974,7 @@
       END IF
 
       ! Error check (kjw)
-      IF ( LCH4BUD .EQ. .TRUE. ) THEN
+      IF ( LCH4BUD ) THEN
          MSG = 'To print CH4 budget information, be sure that ' //
      &         'USE_CH4_BUDGET_DIAG is defined at the beginning' //
      &         ' of global_ch4_mod.F'

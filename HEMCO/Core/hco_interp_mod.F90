@@ -149,7 +149,7 @@ CONTAINS
 !
     INTEGER                 :: nLonEdge, nLatEdge
     INTEGER                 :: NX, NY, NZ, NLEV, NTIME, NCELLS
-    INTEGER                 :: I, J, L, T, AS
+    INTEGER                 :: I, J, L, T, AS, I2
     INTEGER                 :: nIndex
     REAL(sp), ALLOCATABLE   :: LonEdgeI(:)
     REAL(sp), ALLOCATABLE   :: LatEdgeI(:)
@@ -385,10 +385,29 @@ CONTAINS
           ENDIF
 
           ! REGR_4D are the remapped fractions.
-          WHERE ( REGFRACS > MAXFRACS ) 
-             MAXFRACS = REGR_4D
-             INDECES  = IVAL
-          END WHERE 
+          DO T  = 1, NTIME
+          DO L  = 1, NLEV
+          DO J  = 1, HcoState%NY
+          DO I2 = 1, HcoState%NX
+             IF ( REGFRACS(I2,J,L,T) > MAXFRACS(I2,J,L,T) ) THEN
+                MAXFRACS(I2,J,L,T) = REGR_4D(I2,J,L,T)
+                INDECES (I2,J,L,T) = IVAL
+             ENDIf
+          ENDDO
+          ENDDO
+          ENDDO
+          ENDDO
+
+!------------------------------------------------------------------------------
+! Prior to 9/29/16:
+!          ! This code is preblematic in Gfortran.  Replace it with the
+!          ! explicit DO loops above.  Leave this here for reference.
+!          ! (sde, bmy, 9/21/16)
+!          WHERE ( REGFRACS > MAXFRACS ) 
+!             MAXFRACS = REGR_4D
+!             INDECES  = IVAL
+!          END WHERE 
+!------------------------------------------------------------------------------
        ENDIF
 
     ENDDO !I

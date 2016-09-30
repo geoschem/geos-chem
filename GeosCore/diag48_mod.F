@@ -181,6 +181,7 @@
 !  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod since
 !                              XNUMOLAIR now defined in CMN_GTCM_MOD
 !  22 Jun 2016 - M. Yannetti - Replace TCVV with spec db and physical const
+!  20 Sep 2016 - R. Yantosca - Define species flags here
 !******************************************************************************
 !
       ! References to F90 modules
@@ -194,7 +195,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
-      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : ChmState,           Ind_
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_LOCALTIME,      GET_NYMD
       USE TIME_MOD,           ONLY : GET_NHMS,           GET_TAU
@@ -259,6 +260,22 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN
+
+         ! Define species ID's
+         ! These have to be done on the first call to DIAG48 so that the
+         ! species database will have been already initialized (bmy, 9/20/16)
+         id_HNO3 = Ind_('HNO3')
+         id_N2O5 = Ind_('N2O5')
+         id_HNO4 = Ind_('HNO4')
+         id_NO   = Ind_('NO'  )
+         id_PAN  = Ind_('PAN' )
+         id_PMN  = Ind_('PMN' )
+         id_PPN  = Ind_('PPN' )
+         id_O3   = Ind_('O3'  )
+         id_R4N2 = Ind_('R4N2')
+         id_SALA = Ind_('SALA')
+         id_SALC = Ind_('SALC')
+         id_NO2  = Ind_('NO2' )
 
          ! Set logical flags on first timestep
          IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
@@ -1001,8 +1018,8 @@
 !  NOTES:
 !  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
-!  22 Jun 2016 - R. Yantosca -  Now define species ID's with IND()
-
+!  22 Jun 2016 - R. Yantosca - Now define species ID's with IND()
+!  20 Sep 2016 - R. Yantosca - Move species ID's initialization to DIAG48
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1032,20 +1049,6 @@
 
       ! Location string
       LOCATION         = 'INIT_DIAG48 ("diag48_mod.f")'
-     
-      ! Define species ID's
-      id_HNO3 = Ind_('HNO3')
-      id_N2O5 = Ind_('N2O5')
-      id_HNO4 = Ind_('HNO4')
-      id_NO   = Ind_('NO'  )
-      id_PAN  = Ind_('PAN' )
-      id_PMN  = Ind_('PMN' )
-      id_PPN  = Ind_('PPN' )
-      id_O3   = Ind_('O3'  )
-      id_R4N2 = Ind_('R4N2')
-      id_SALA = Ind_('SALA')
-      id_SALC = Ind_('SALC')
-      id_NO2  = Ind_('NO2' )
 
       !-----------------------------
       ! Get values from input_mod.f
