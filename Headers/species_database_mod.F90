@@ -3304,7 +3304,7 @@ CONTAINS
                               KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
+                              Name          = 'CH2ICl',                     &
                               FullName      = 'Chloroiodomethane',          &
                               MW_g          = 167.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
@@ -3320,7 +3320,7 @@ CONTAINS
                               KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
+                              Name          = 'CH2IBr',                     &
                               FullName      = 'Bromoiodomethane',           &
                               MW_g          = 221.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
@@ -3390,7 +3390,7 @@ CONTAINS
                               KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
+                              Name          = 'IBr',                        &
                               FullName      = 'Iodine monobromide',         &
                               MW_g          = 207.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
@@ -3416,7 +3416,7 @@ CONTAINS
                               KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
+                              Name          = 'ICl',                        &
                               FullName      = 'Iodine monochloride',        &
                               MW_g          = 162.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
