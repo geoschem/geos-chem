@@ -138,6 +138,7 @@ hcox_driver_mod.o           : hcox_driver_mod.F90             \
                               hcox_gc_POPs_mod.o              \
                               hcox_gc_RnPbBe_mod.o            \
                               hcox_gfed_mod.o                 \
+                              hcox_iodine_mod.o               \
                               hcox_paranox_mod.o              \
                               hcox_lightnox_mod.o             \
                               hcox_megan_mod.o                \
@@ -166,6 +167,9 @@ hcox_gfed_mod.o             : hcox_gfed_mod.F90               \
                               hcox_gfed_include_gfed4.H       \
                               hcox_state_mod.o		      \
                               hcox_tools_mod.o
+
+hcox_iodine_mod.o           : hcox_iodine_mod.F90             \
+                              hcox_state_mod.o		      
 
 hcox_finn_mod.o             : hcox_finn_mod.F90               \
                               hcox_finn_include.H             \
