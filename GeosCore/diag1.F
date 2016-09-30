@@ -171,8 +171,7 @@
       INTEGER            :: I, J, K, L, N, NN, IREF, JREF, LN45
       INTEGER            :: NA, nAdvect
       REAL(fp)           :: FDTT, XLOCTM, AREA_M2
-      REAL(fp), TARGET   :: Spc_VV(IIPAR,JJPAR,LLPAR,
-     &                             State_Chm%nAdvect+2)
+      REAL(fp), TARGET   :: Spc_VV(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
       ! For FP potential temperature (hotp 7/31/09)
       REAL(fp)          :: P0
@@ -193,7 +192,6 @@
       ! For species ID's
       TYPE(Species), POINTER :: SpcInfo
       LOGICAL,       SAVE    :: FIRST = .TRUE.
-      INTEGER,       SAVE    :: id_PASV
       INTEGER,       SAVE    :: id_Hg2
       INTEGER,       SAVE    :: id_HgP
 
@@ -221,7 +219,6 @@
          ! Define species ID's  on the first call
          id_Hg2  = Ind_('Hg2' )
          id_HgP  = Ind_('HgP' )
-         id_PASV = Ind_('PASV')
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -676,74 +673,17 @@
             ! structure
             IF ( ANY( Input_Opt%TINDEX(45,:) == N ) ) THEN
 
-               IF ( N == id_PASV ) THEN
+               ! Construct diagnostic name
+               DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name )
 
-                  !-------------------------------------
-                  ! Passive species in v/v dry air
-                  !-------------------------------------
+               ! Point to the proper slice of the DEPSAV array
+               Ptr3D => Spc_VV(:,:,:,N)
 
-                  ! Construct diagnostic name
-                  DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name ) //
-     &                        '_VVDry'
-
-                  ! Point to the proper slice of the DEPSAV array
-                  Ptr3D => Spc_VV(:,:,:,N)
-
-                  ! Update the deposition velocity diagostics
-                  CALL Diagn_Update( am_I_Root,
-     &                               cName   = TRIM( DiagnName ),
-     &                               Array3D = Ptr3D,
-     &                               RC      = RC )
-
-!                  !-------------------------------------
-!                  ! Passive species in v/v total air
-!                  !-------------------------------------
-!
-!                  ! Construct diagnostic name
-!                  DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name ) //
-!     &                        '_VVTotal'
-!
-!                  ! Point to the proper slice of the DEPSAV array
-!                  Ptr3D => Spc_VV(:,:,:,N+1)
-!
-!                  ! Update the deposition velocity diagostics
-!                  CALL Diagn_Update( am_I_Root,
-!     &                               cName   = TRIM( DiagnName ),
-!     &                               Array3D = Ptr3D,
-!     &                               RC      = RC )
-!
-!                  !-------------------------------------
-!                  ! Passive species in kg/kg total air
-!                  !-------------------------------------
-!
-!                  ! Construct diagnostic name
-!                  DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name ) //
-!     &                        '_KgKgTotal'
-!
-!                  ! Point to the proper slice of the DEPSAV array
-!                  Ptr3D => Spc_VV(:,:,:,N+2)
-!
-!                  ! Update the deposition velocity diagostics
-!                  CALL Diagn_Update( am_I_Root,
-!     &                               cName   = TRIM( DiagnName ),
-!     &                               Array3D = Ptr3D,
-!     &                               RC      = RC )
-
-               ELSE
-
-                  ! Construct diagnostic name
-                  DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name )
-
-                  ! Point to the proper slice of the DEPSAV array
-                  Ptr3D => Spc_VV(:,:,:,N)
-
-                  ! Update the deposition velocity diagostics
-                  CALL Diagn_Update( am_I_Root,
-     &                               cName   = TRIM( DiagnName ),
-     &                               Array3D = Ptr3D,
-     &                               RC      = RC )
-
-               ENDIF
+               ! Update the deposition velocity diagostics
+               CALL Diagn_Update( am_I_Root,
+     &                            cName   = TRIM( DiagnName ),
+     &                            Array3D = Ptr3D,
+     &                            RC      = RC )
 
                ! Free the pointer
                Ptr3D => NULL()
