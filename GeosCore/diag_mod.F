@@ -225,10 +225,10 @@
       REAL*4,  ALLOCATABLE :: AD71(:,:,:)      
       REAL*4,  ALLOCATABLE :: AD71_HR(:,:,:)
       REAL*4,  ALLOCATABLE :: AD71_DAY(:,:,:)
-      INTEGER, ALLOCATABLE :: AD71_COUNT
-      INTEGER, ALLOCATABLE :: AD71_HRCT
-      INTEGER, ALLOCATABLE :: AD71_LHR
-      INTEGER, ALLOCATABLE :: AD71_LDAY
+      INTEGER              :: AD71_COUNT
+      INTEGER              :: AD71_HRCT
+      INTEGER              :: AD71_LHR
+      INTEGER              :: AD71_LDAY
 
       ! For ND72 -- Radiation output diagnostic
       REAL*4,  ALLOCATABLE :: AD72(:,:,:)
@@ -308,6 +308,7 @@
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
 !  02 Aug 2016 - M. Sulprizio- Move AD65 array here from diag_pl_mod.F
+!  03 Oct 2016 - R. Yantosca - Bug fix: scalars cannot be ALLOCATABLE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -349,6 +350,7 @@
 !  (15) Now deallocate TOMAS related arrays (win, bmy, 1/25/10)
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM microphysics
 !  15 Aug 2014 - R. Yantosca - Remove diagnostics now tracked by HEMCO
+!   3 Oct 2016 - R. Yantosca - Bug fix: Don't deallocate ND71 scalar variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -427,10 +429,6 @@
       IF ( ALLOCATED( AD71        ) ) DEALLOCATE( AD71        )
       IF ( ALLOCATED( AD71_HR     ) ) DEALLOCATE( AD71_HR     )
       IF ( ALLOCATED( AD71_DAY    ) ) DEALLOCATE( AD71_DAY    )
-      IF ( ALLOCATED( AD71_COUNT  ) ) DEALLOCATE( AD71_COUNT  )
-      IF ( ALLOCATED( AD71_HRCT   ) ) DEALLOCATE( AD71_HRCT   )
-      IF ( ALLOCATED( AD71_LDAY   ) ) DEALLOCATE( AD71_LDAY   )
-      IF ( ALLOCATED( AD71_LHR    ) ) DEALLOCATE( AD71_LHR    )
       IF ( ALLOCATED( AD72        ) ) DEALLOCATE( AD72        )
       IF ( ALLOCATED( CONVFLUP    ) ) DEALLOCATE( CONVFLUP    )
       IF ( ALLOCATED( CT16        ) ) DEALLOCATE( CT16        )

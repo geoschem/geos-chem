@@ -484,7 +484,7 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: TPBC_DIR_CH
      LOGICAL                     :: LWINDO_AS
      CHARACTER(LEN=255)          :: TPBC_DIR_AS
-     INTEGER                     :: LWINDO_CU
+     LOGICAL                     :: LWINDO_CU
      CHARACTER(LEN=255)          :: TPBC_DIR
      INTEGER                     :: NESTED_TS
      INTEGER                     :: NESTED_I1
@@ -642,6 +642,7 @@ MODULE Input_Opt_Mod
 !                              tracers as advected species
 !  20 Sep 2016 - R. Yantosca - LND51_HDF and LND51b_HDF are now declared
 !                              as LOGICAL, not INTEGER.  This chokes Gfortran.
+!  03 Oct 2016 - R. Yantosca - LWINDO_CU has to be LOGICAL, not INTEGER
 !EOP
 !------------------------------------------------------------------------------
 !BOC

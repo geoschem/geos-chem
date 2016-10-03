@@ -212,6 +212,7 @@
 !  20 Jul 2016 - R. Yantosca - Remove references to NNPAR (now use nAdvect)
 !  20 Sep 2016 - R. Yantosca - Bug fix for Gfortran: Make sure the IT_IS_*
 !                              variables are declared as LOGICAL, not INTEGER
+!   3 Oct 2016 - R. Yantosca - Bug fix: don't allocate ND71 scalar variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1159,18 +1160,6 @@
 
          ALLOCATE( AD71_DAY( IIPAR, JJPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD71_DAY' )
-
-         ALLOCATE( AD71_COUNT, STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD71_COUNT' )
-
-         ALLOCATE( AD71_HRCT, STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD71_HRCT' )
-
-         ALLOCATE( AD71_LDAY, STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD71_LDAY' )
-
-         ALLOCATE( AD71_LHR, STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD71_LHR' )
 
       ENDIF
 

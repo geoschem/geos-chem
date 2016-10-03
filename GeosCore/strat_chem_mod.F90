@@ -87,7 +87,9 @@ MODULE Strat_Chem_Mod
 !  30 Dec 2014 - C. Keller   - Now read Bry data through HEMCO
 !  16 Jan 2015 - C. Keller   - Now read all prod/loss fields and OH conc.
 !                              through HEMCO.
-!   4 Mar 2015 - R. Yantosca - Declare pointer args for HCO_GetPtr as REAL(f4)
+!  04 Mar 2015 - R. Yantosca - Declare pointer args for HCO_GetPtr as REAL(f4)
+!  03 Oct 2016 - R. Yantosca - Now dynamically allocate BrPtrDay, BrPtrNight
+!  03 Oct 2016 - R. Yantosca - Dynamically allocate BrPtrDay, BrPtrNight
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -111,8 +113,11 @@ MODULE Strat_Chem_Mod
   ! 'GEOSCCM_XY_DAY' and 'GEOSCCM_XY_NIGHT', respectively, where 
   ! XY is the Bry species name. It is also assumed that the input
   ! data is in ppt.
-  TYPE(BrPointers)      :: BrPtrDay(6) 
-  TYPE(BrPointers)      :: BrPtrNight(6) 
+  !
+  ! NOTE: Need to dynamically allocate these to avoid having to 
+  ! declare these with the SAVE attribute (bmy, 10/3/16)
+  TYPE(BrPointers), POINTER :: BrPtrDay(:) 
+  TYPE(BrPointers), POINTER :: BrPtrNight(:) 
 
   ! PL_Pointers is a derived type to hold pointers to the production
   ! and loss fields 
@@ -333,6 +338,11 @@ CONTAINS
     !======================-================================================
     IF ( FIRST ) THEN
        IF ( .not. IT_IS_A_TAGO3_SIM ) THEN
+
+          ! BrPtrDay and BrPtrNight have to be allocated dynamically
+          ! because they are pointers (bmy, 10/3/16)
+          ALLOCATE( BrPtrDay  ( 6 ), STAT=errCode )
+          ALLOCATE( BrPtrNight( 6 ), STAT=errCode )
 
           ! Get pointers to Bry fields via HEMCO
           CALL Set_BryPointers ( am_I_Root, Input_Opt,          &
@@ -1585,7 +1595,8 @@ CONTAINS
     IMPLICIT NONE
 !
 ! !REVISION HISTORY: 
-!  1 Feb 2011 - L. Murray - Initial version
+!   1 Feb 2011 - L. Murray   - Initial version
+!   3 Oct 2016 - R. Yantosca - Deallocate BrPtrDay and BrPtrNight 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1599,7 +1610,9 @@ CONTAINS
     DO I = 1,6
        BrPtrDay(I)%MR   => NULL()
        BrPtrNight(I)%MR => NULL()
-    ENDDO
+    ENDDO          
+    IF ( ASSOCIATED( BrPtrDay   ) ) DEALLOCATE( BrPtrDay   )
+    IF ( ASSOCIATED( BrPtrNight ) ) DEALLOCATE( BrPtrNight )
 
     DO I = 1,NSCHEM
        PLVEC(I)%PROD => NULL()
