@@ -390,29 +390,30 @@ CONTAINS
 ! !IROUTINE: HCO_CharParse
 !
 ! !DESCRIPTION: Routine HCO\_CharParse parses the provided character string 
-! by searching for tokens such as $ROOT, $YYYY, etc., within the string and 
+! by searching for tokens such as \$ROOT, \$YYYY, etc., within the string and 
 ! replacing those values by the intendend characters. 
 !\\
 !\\
 ! The following list shows the 'default' HEMCO tokens. These are available
-! in any HEMCO simulation. Tokens $ROOT, $MET, and $RES are internally 
+! in any HEMCO simulation. Tokens \$ROOT, \$MET, and \$RES are internally 
 ! stored as a HEMCO option in module hco\_extlist\_mod.F90 (see subroutine
 ! HCO\_SetDefaultToken). 
-!\begin{itemize}
-!\item \$ROOT: will be replaced by the root path specified in the settings
+! \begin{itemize}
+! \item \$ROOT: will be replaced by the root path specified in the settings
 ! section of the configuration file.
-!\item \$MET: will be replaced by the met-field token. 
-!\item \$RES: will be replaced by the resolution token. 
-!\item \$YYYY: will be replaced by the (4-digit) year according to the 
+! \item \$MET: will be replaced by the met-field token. 
+! \item \$RES: will be replaced by the resolution token. 
+! \item \$YYYY: will be replaced by the (4-digit) year according to the 
 ! source time settings set in the configuration file.
-!\item \$MM: will be replaced by the (2-digit) month according to the
+! \item \$MM: will be replaced by the (2-digit) month according to the
 ! source time settings set in the configuration file.
-!\item \$DD: will be replaced by the (2-digit) day according to the
+! \item \$DD: will be replaced by the (2-digit) day according to the
 ! source time settings set in the configuration file.
-!\item \$HH: will be replaced by the (2-digit) hour according to the
+! \item \$HH: will be replaced by the (2-digit) hour according to the
 ! source time settings set in the configuration file.
-!\item \$MN: will be replaced by the (2-digit) minute.
-!\end{itemize}
+! \item \$MN: will be replaced by the (2-digit) minute.
+! \end{itemize}
+!
 ! !INTERFACE:
 !
   SUBROUTINE HCO_CharParse ( str, yyyy, mm, dd, hh, mn, RC )

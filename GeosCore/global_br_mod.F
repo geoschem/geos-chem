@@ -65,6 +65,8 @@
 !
       ! Pointers to fields in the HEMCO data structure.
       ! These need to be declared REAL(f4), aka REAL*4.
+      ! NOTE: These are globally SAVEd variables so we can
+      ! nullify these in the declaration statement (bmy, 4/29/16)
       REAL(f4), POINTER :: Br_GC     (:,:,:) => NULL()
       REAL(f4), POINTER :: BrO_GC    (:,:,:) => NULL()
       REAL(f4), POINTER :: Br_GMI    (:,:,:) => NULL()
@@ -96,12 +98,12 @@
 !
       USE CMN_SIZE_MOD
       USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE OCEAN_MERCURY_MOD,  ONLY : LGCBROMINE     !eds 4/19/12
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -154,7 +156,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Allocate BR array, if this is the first call
       IF ( FIRST ) THEN
@@ -170,7 +172,7 @@
 
          ! Get a pointer to the the GEOS-Chem Br from HEMCO (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root, 'Br_GC', Br_GC,  RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
+         IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to Br_GC', LOC )
          ENDIF
 
@@ -183,7 +185,7 @@
 
          ! Get a pointer to the GEOS-Chem BrO from HEMCO (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root, 'BrO_GC', BrO_GC, RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
+         IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to BrO_GC', LOC )
          ENDIF
 
@@ -198,7 +200,7 @@
 
          ! Get a pointer to the TOMCAT Br from HEMCO (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root, 'Br_TOMCAT', Br_TOMCAT, RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
+         IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to Br_TOMCAT', LOC )
          ENDIF
 
@@ -211,7 +213,7 @@
 
          ! Get a pointer to the TOMCAT Br from HEMCO (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root, 'BrO_TOMCAT', BrO_TOMCAT, RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
+         IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to Br_TOMCAT', LOC )
          ENDIF
 
@@ -226,7 +228,7 @@
 
       ! Get a pointer to the GMI Br from HEMCO (bmy, 3/11/15)
       CALL HCO_GetPtr( am_I_Root, 'Br_GMI', Br_GMI, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to Br_GMI', LOC )
       ENDIF
 
@@ -239,7 +241,7 @@
 
       ! Get a pointer to the GMI Br from HEMCO (bmy, 3/11/15)
       CALL HCO_GetPtr( am_I_Root, 'BrO_GMI', BrO_GMI, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to BrO_GMI', LOC )
       ENDIF
 
@@ -284,7 +286,7 @@
 
       ! Get a pointer to the GMI Br from HEMCO (bmy, 3/11/15)
       CALL HCO_GetPtr( am_I_Root, 'JBrO', JBrO, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to JBrO', LOC )
       ENDIF
 
@@ -310,9 +312,8 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
       USE CMN_SIZE_MOD 
+      USE ERROR_MOD, ONLY : ALLOC_ERR
 ! 
 ! !REVISION HISTORY: 
 !  05 Jul 2006 - C. Holmes   - Copied from "global_oh_mod.f"

@@ -15,9 +15,9 @@ MODULE Diagnostics_Mod
 ! !USES:
 !
   USE CMN_SIZE_Mod
+  USE ErrCode_Mod
   USE Error_Mod,          ONLY : Error_Stop
   USE HCO_Error_Mod
-  USE GIGC_ErrCode_Mod
   USE Precision_Mod
 
   IMPLICIT NONE
@@ -33,7 +33,7 @@ MODULE Diagnostics_Mod
   PUBLIC  :: Diagnostics_Final
   PUBLIC  :: DiagnUpdate_Met            ! ND31, 55, 57, 66, 67, and 68
   PUBLIC  :: DiagnUpdate_Transport_Flux ! ND24, ND25, ND26
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
   PUBLIC  :: CalcDobsonColumn           ! added by ck - no existing bpch diag
 #endif
 !
@@ -42,7 +42,7 @@ MODULE Diagnostics_Mod
 ! Benchmark diagnostic groups
   PRIVATE :: DiagnInit_WetScav          ! ND38 and 39 (add 37)
   PRIVATE :: DiagnInit_DryDep           ! ND44
-  PRIVATE :: DiagnInit_Tracer_Conc      ! ND45
+  PRIVATE :: DiagnInit_Species_Conc     ! ND45
   PRIVATE :: DiagnInit_Met              ! ND31, 55, 57, 66, 67, and 68
 
   !PRIVATE :: DiagnInit_Sulfate_ProdLoss ! ND05 (implementation not complete)
@@ -70,29 +70,34 @@ MODULE Diagnostics_Mod
   PRIVATE :: DiagnInit_Rain_Frac        ! ND17 init
   PRIVATE :: DiagnInit_Wash_Frac        ! ND18 init
   PRIVATE :: DiagnInit_Landmap          ! ND30 init
-#if defined( DEVEL )
-  PRIVATE :: DiagnInit_Tracer_Emis      ! added by ck
+#if defined( DIAG_DEVEL )
+  PRIVATE :: DiagnInit_Species_Emis     ! added by ck
 #endif
   !PRIVATE :: DiagnInit_HrlyMax_SurfConc ! ND71 init (impementation commented
                                          ! out pending decision on if to keep)
   !   to do: ND37 (updraft scav fraction)
   !          ND62 (instantaneous column maps)
 
-#if defined( DEVEL )
-  PRIVATE :: DiagnInit_Dobson        ! added by ck
+#if defined( DIAG_DEVEL )
+  PRIVATE :: DiagnInit_Dobson          ! added by ck
+#endif
+
+#if defined( DIAG_DEVEL )
+  ! Diagnostics for testing FlexChem (may be removed later)
+  PRIVATE :: DiagnInit_KPP_Rates
+  PRIVATE :: DiagnInit_KPP_Spec
 #endif
 !
 ! !DEFINED PARAMETERS:
 !
-  ! Prefix of restart file. This file will hold all diagnostics that are 
-  ! written out at the end of a simulation (either because their output 
-  ! frequency is set to 'End' or the run finishes and these diagnostics
-  ! haven't reached the end of their output interval yet).
-  CHARACTER(LEN=31), PARAMETER :: RST = 'GEOSCHEM_Restart'
+  ! Prefix of diagnostics file. This file will hold all diagnostics that 
+  ! are written out at the end of a simulation (either because their
+  ! output frequency is set to 'End' or the run finishes and these
+  ! diagnostics haven't reached the end of their output interval yet).
   CHARACTER(LEN=31), PARAMETER :: DGN = 'GEOSCHEM_Diagnostics_Hrly'
 
-  ! Toggle to enable species diagnostics. This will write out species 
-  ! concentrations (in addition to the tracers). Not recommended unless
+  ! Toggle to enable species diagnostics. This will write out chemical species 
+  ! concentrations (in addition to the advected species). Not recommended unless
   ! you have a good reason (ckeller, 8/11/2015).
   LOGICAL, PARAMETER, PUBLIC   :: DiagnSpec = .FALSE.
 
@@ -107,9 +112,16 @@ MODULE Diagnostics_Mod
 !  09 Jan 2015 - C. Keller   - Initial version. 
 !  14 Jan 2016 - E. Lundgren - Add several GEOS-Chem diagnostics
 !  29 Jan 2016 - E. Lundgren - Update diagnostics for recent HEMCO updates
+!  20 Jul 2016 - R. Yantosca - Replace #ifdef DEVEL with #ifdef DIAG_DEVEL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES:
+!
+  ! Species ID flags
+  INTEGER :: id_Rn, id_Pb, id_Be7
+
 CONTAINS
 #if defined( NC_DIAG )
 !EOC
@@ -131,13 +143,14 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GRID_MOD,           ONLY : AREA_M2
     USE HCO_DIAGN_MOD
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : Ind_
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-#if defined( DEVEL )
+#if defined( USE_TEND )
     USE TENDENCIES_MOD,     ONLY : TEND_INIT
 #endif
 !
@@ -145,10 +158,10 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   ) :: am_I_Root  ! Are we on the root CPU?
     TYPE(MetState),   INTENT(IN   ) :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! Chemistry state 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm  ! Chemistry state 
     TYPE(OptInput),   INTENT(INOUT) :: Input_Opt  ! Input opts
 !
 ! !OUTPUT PARAMETERS:
@@ -159,16 +172,28 @@ CONTAINS
 !  09 Jan 2015 - C. Keller   - Initial version 
 !  25 Mar 2015 - C. Keller   - Moved UCX initialization to UCX_mod.F
 !  06 Nov 2015 - C. Keller   - Added argument OutTimeStamp
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  22 Jun 2016 - R. Yantosca - Now use Ind_() to define id_Rn, id_Pb, id_Be7
+!  22 Jun 2016 - R. Yantosca - Remove reference to Species type
+!  01 Jul 2016 - R. Yantosca - Pass State_Chm to several other routines
+!  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
+!  19 Jul 2016 - R. Yantosca - Add missing nAdvect variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
+    INTEGER            :: N
     INTEGER            :: CollectionID
-    INTEGER            :: DeltaYMD, DeltaHMS 
+    INTEGER            :: DeltaYMD,    DeltaHMS 
     REAL(sp)           :: TS
-    REAL(fp), POINTER  :: AM2(:,:) => NULL()
+
+    ! Pointers
+    REAL(fp), POINTER  :: AM2(:,:)
+
+    ! Strings
     CHARACTER(LEN=255) :: LOC = 'Diagnostics_Init (diagnostics_mod.F90)'
 
     !=======================================================================
@@ -176,11 +201,20 @@ CONTAINS
     !=======================================================================
 
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC      =  GC_SUCCESS
 
     ! Define collection variables
-    AM2    => AREA_M2(:,:,1)
-    TS     =  GET_TS_CHEM() * 60.0_sp
+    AM2     => AREA_M2(:,:,1)
+    TS      =  GET_TS_CHEM() * 60.0_sp
+
+    !-----------------------------------------------------------------------
+    ! Store local diagnostic species ID flags
+    !-----------------------------------------------------------------------
+
+    ! Get species ID flags
+    id_Rn   =  Ind_('Rn' )
+    id_Pb   =  Ind_('Pb' )
+    id_Be7  =  Ind_('Be7')
 
     !-----------------------------------------------------------------------
     ! Create diagnostics collection for GEOS-Chem.  This will keep the
@@ -232,7 +266,7 @@ CONTAINS
 !   ! Sulfate prod/loss diagnostic (ND05)
 !   IF ( Input_Opt%ND05 > 0 ) THEN
 !      CALL DiagnInit_Sulfate_ProdLoss( am_I_Root, Input_Opt, RC )
-!      IF ( RC /= GIGC_SUCCESS ) THEN
+!      IF ( RC /= GC_SUCCESS ) THEN
 !         CALL ERROR_STOP( 'Error in DiagnInit_Sulfate_ProdLoss', LOC ) 
 !      ENDIF
 !   ENDIF
@@ -240,7 +274,7 @@ CONTAINS
 !   ! Carbon sources diagnostic (ND07)
 !   IF ( Input_Opt%ND07 > 0 ) THEN
 !      CALL DiagnInit_Carbon_Sources( am_I_Root, Input_Opt, RC )
-!      IF ( RC /= GIGC_SUCCESS ) THEN
+!      IF ( RC /= GC_SUCCESS ) THEN
 !         CALL ERROR_STOP( 'Error in DiagnInit_Carbon_Sources', LOC ) 
 !      ENDIF
 !   ENDIF
@@ -248,7 +282,7 @@ CONTAINS
 !   ! Cloud properties (ND21)
 !   IF ( Input_Opt%ND21 > 0 ) THEN
 !      CALL DiagnInit_Cloud_Properties( am_I_Root, Input_Opt, RC )
-!      IF ( RC /= GIGC_SUCCESS ) THEN
+!      IF ( RC /= GC_SUCCESS ) THEN
 !         CALL ERROR_STOP( 'Error in DiagnInit_Cloud_Properties', LOC ) 
 !      ENDIF
 !   ENDIF
@@ -256,7 +290,7 @@ CONTAINS
 !   ! Photolysis rates diagnostic (ND22)
 !   IF ( Input_Opt%ND22 > 0 ) THEN
 !      CALL DiagnInit_Photolysis_Rates( am_I_Root, Input_Opt, RC )
-!      IF ( RC /= GIGC_SUCCESS ) THEN
+!      IF ( RC /= GC_SUCCESS ) THEN
 !         CALL ERROR_STOP( 'Error in DiagnInit_Photolysis_Rates', LOC ) 
 !      ENDIF
 !   ENDIF
@@ -264,8 +298,8 @@ CONTAINS
     ! Transport fluxes diagnostic (ND24, ND25, and ND26)
     ! For now, use ND24 as indicator of whether to turn on diag group
     IF ( Input_Opt%ND24 > 0 ) THEN
-       CALL DiagnInit_Transport_Flux( am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL DiagnInit_Transport_Flux( am_I_Root, Input_Opt, State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_Transport_Flux', LOC ) 
        ENDIF
     ENDIF
@@ -274,24 +308,24 @@ CONTAINS
     ! Assume both ND38 and ND39 are on if ND38 is on
     IF ( Input_Opt%ND38 > 0 ) THEN
        CALL DiagnInit_WetScav( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_WetScav', LOC ) 
        ENDIF
     ENDIF
 
     ! Drydep diagnostic (ND44)
     IF ( Input_Opt%ND44 > 0 ) THEN
-       CALL DiagnInit_DryDep( am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL DiagnInit_DryDep( am_I_Root, Input_Opt, State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_DryDep', LOC ) 
        ENDIF
     ENDIF
 
-    ! Tracer concentration diagnostics (ND45)
+    ! Species concentration diagnostics (ND45)
     IF ( Input_Opt%ND45 > 0 ) THEN
-       CALL DiagnInit_Tracer_Conc( am_I_Root, Input_Opt, State_Chm, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
-          CALL ERROR_STOP( 'Error in DiagnInit_Tracer_Conc', LOC ) 
+       CALL DiagnInit_Species_Conc( am_I_Root, Input_Opt, State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL ERROR_STOP( 'Error in DiagnInit_Species_Conc', LOC ) 
        ENDIF
     ENDIF
 
@@ -299,17 +333,15 @@ CONTAINS
     ! For now, use ND68 as indicator for entire diagnostic group
     IF ( Input_Opt%ND68 > 0 ) THEN
        CALL DiagnInit_Met( am_I_Root, Input_Opt, State_Met, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_Met', LOC )
        ENDIF
     ENDIF
 
-
-
     ! Pb emissions diagnostic (ND01)
     IF ( Input_Opt%ND01 > 0 ) THEN
-       CALL DiagnInit_Pb_Emiss( am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL DiagnInit_Pb_Emiss( am_I_Root, Input_Opt, State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_Pb_Emiss', LOC ) 
        ENDIF
     ENDIF
@@ -317,7 +349,7 @@ CONTAINS
     ! Rn/Pb/Be decay diagnostic (ND02)
     IF ( Input_Opt%ND02 > 0 ) THEN
        CALL DiagnInit_Rn_Decay( am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_Rn_Decay', LOC ) 
        ENDIF
     ENDIF
@@ -325,23 +357,23 @@ CONTAINS
     ! Boundary layer fraction diagnostic (ND12)
     IF ( Input_Opt%ND12 > 0 ) THEN
        CALL DiagnInit_BL_Frac( am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_BL_Frac', LOC ) 
        ENDIF
     ENDIF
 
     ! Cloud convection mass flux diagnostic (ND14)
     IF ( Input_Opt%ND14 > 0 ) THEN
-       CALL DiagnInit_CldConv_Flx( am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL DiagnInit_CldConv_Flx( am_I_Root, Input_Opt, State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_CldConv_Flx', LOC ) 
        ENDIF
     ENDIF
 
     ! Boundary-layer mixing mass flux diagnostic (ND15)
     IF ( Input_Opt%ND15 > 0 ) THEN
-       CALL DiagnInit_BLMix_Flx( am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL DiagnInit_BLMix_Flx( am_I_Root, Input_Opt, State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_BLMix_Flx', LOC ) 
        ENDIF
     ENDIF
@@ -349,23 +381,23 @@ CONTAINS
     ! Areal fraction of precip diagnostic (ND16)
     IF ( Input_Opt%ND16 > 0 ) THEN
        CALL DiagnInit_Precip_Frac( am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_Precip_Frac', LOC ) 
        ENDIF
     ENDIF
 
     ! Rainout fraction diagnostic (ND17)
     IF ( Input_Opt%ND17 > 0 ) THEN
-       CALL DiagnInit_Rain_Frac( am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL DiagnInit_Rain_Frac( am_I_Root, Input_Opt, State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_Rain_Frac', LOC ) 
        ENDIF
     ENDIF
 
     ! Washout fraction diagnostic (ND18)
     IF ( Input_Opt%ND18 > 0 ) THEN
-       CALL DiagnInit_Wash_Frac( am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL DiagnInit_Wash_Frac( am_I_Root, Input_Opt, State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_Wash_Frac', LOC ) 
        ENDIF
     ENDIF
@@ -373,7 +405,7 @@ CONTAINS
     ! CH4 loss diagnostic (ND19)
     IF ( Input_Opt%ND19 > 0 ) THEN
        CALL DiagnInit_CH4_Loss(am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_CH4_Loss', LOC ) 
        ENDIF
     ENDIF
@@ -382,7 +414,7 @@ CONTAINS
     ! Land map diagnostic (ND30)
     IF ( Input_Opt%ND30 > 0 ) THEN
        CALL DiagnInit_LandMap( am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP( 'Error in DiagnInit_LandMap', LOC ) 
        ENDIF
     ENDIF
@@ -394,45 +426,62 @@ CONTAINS
     ! switch (ckeller, 3/25/2015). 
 !    ! UCX diagnostics
 !    IF ( Input_Opt%LUCX ) THEN
-!       CALL DiagnInit_UCX( am_I_Root, Input_Opt, RC )
-!       IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL DiagnInit_UCX( am_I_Root, Input_Opt, State_Chm, RC )
+!       IF ( RC /= GC_SUCCESS ) THEN
 !          CALL ERROR_STOP( 'Error in DiagnInit_UCX', LOC ) 
 !       ENDIF
 !    ENDIF
 
-    !! Houly-maximum tracer mixing ratio (IJ-MAX) at surface (ND71)
+    !! Houly-maximum species mixing ratio (IJ-MAX) at surface (ND71)
     !IF ( Input_Opt%ND71 > 0 ) THEN
     !   CALL DiagnInit_HrlyMax_SurfConc( am_I_Root, Input_Opt, RC )
-    !   IF ( RC /= GIGC_SUCCESS ) THEN
+    !   IF ( RC /= GC_SUCCESS ) THEN
     !      CALL ERROR_STOP( 'Error in DiagnInit_HrlyMax_SurfConc', LOC )
     !   ENDIF
     !ENDIF
 
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
     CALL DiagnInit_Dobson( am_I_Root, Input_Opt, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
+    IF ( RC /= GC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DiagnInit_Dobson', LOC ) 
     ENDIF
+#endif
 
+#if defined( USE_TEND )
     ! Initialize tendencies
     CALL Tend_Init( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
+    IF ( RC /= GC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in Tendencies_Init', LOC ) 
     ENDIF
+#endif
 
-    ! Tracer emission diagnostics (NEW) (added by Christoph)
+#if defined( DIAG_DEVEL )
+    ! Species emission diagnostics (NEW) (added by Christoph)
     ! NOTE: Currently this diagnostic must be initialized last since since
     ! container ids start at 10000 for routine TotalsToLogFile (ewl, 1/20/16)
     IF ( .FALSE. ) THEN
-       CALL DiagnInit_Tracer_Emis( am_I_Root, Input_Opt, State_Met, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
-          CALL ERROR_STOP( 'Error in DiagnInit_Tracer_Emis', LOC ) 
+       CALL DiagnInit_Species_Emis( am_I_Root, Input_Opt, State_Met, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL ERROR_STOP( 'Error in DiagnInit_Species_Emis', LOC ) 
        ENDIF
     ENDIF
 #endif
 
+#if defined( DIAG_DEVEL )
+    ! KPP diagnostics
+    CALL DiagnInit_KPP_Rates( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DiagnInit_KPP_Rates', LOC ) 
+    ENDIF
+
+    CALL DiagnInit_KPP_Spec( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DiagnInit_KPP_Spec', LOC ) 
+    ENDIF
+#endif
+
     ! Leave with success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
   END SUBROUTINE Diagnostics_Init
 !EOC
@@ -453,8 +502,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#if defined( DEVEL )
+    USE Input_Opt_Mod,      ONLY : OptInput
+#if defined( USE_TEND )
     USE TENDENCIES_MOD,     ONLY : TEND_CLEANUP
 #endif
 !
@@ -470,6 +519,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  09 Jan 2015 - C. Keller   - Initial version 
 !  15 Jan 2015 - R. Yantosca - Now accept Input_Opt, am_I_Root, RC arguments
+!  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -477,12 +527,12 @@ CONTAINS
 !    ! Finalize diagnostics
 !    CALL DiagnCollection_Cleanup( COL = Input_Opt%DIAG_COLLECTION )
 
-#if defined( DEVEL )
+#if defined( USE_TEND )
     CALL TEND_CLEANUP()
 #endif
 
     ! Return with success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
   END SUBROUTINE Diagnostics_Final
 !EOC
@@ -500,18 +550,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnInit_Transport_Flux( am_I_Root, Input_Opt, RC )
+  SUBROUTINE DiagnInit_Transport_Flux( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -519,25 +574,33 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  19 Jan 2016 - E. Lundgren - Initial version
+!  01 Jul 2016 - R. Yantosca - Use State_Chm%nAdvect to replace N_TRACERS
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER              :: Collection, N, M
-    CHARACTER(LEN=15)    :: OutOper
-    CHARACTER(LEN=60)    :: DiagnName
-    CHARACTER(LEN=30)    :: NamePrefix
-    CHARACTER(LEN=255)   :: MSG
-    CHARACTER(LEN=255)   :: LOC = 'DiagnInit_Transport_Flux (diagnostics_mod.F90)' 
+    ! Scalars
+    INTEGER                :: Collection, N, M, NA
+
+    ! Strings
+    CHARACTER(LEN=15)      :: OutOper
+    CHARACTER(LEN=60)      :: DiagnName
+    CHARACTER(LEN=30)      :: NamePrefix
+    CHARACTER(LEN=255)     :: MSG
+    CHARACTER(LEN=255)     :: LOC='DiagnInit_Transport_Flux (diagnostics_mod.F90)' 
+
+    ! Pointers
+    TYPE(Species), POINTER :: SpcInfo
 
     !=======================================================================
     ! DIAGNINIT_TRANSPORT_FLUX begins here!
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     ! For now, use ND24 for entire transport diagnostic group
@@ -547,12 +610,18 @@ CONTAINS
     ! Loop over 3 types of transport fluxes
     DO M = 1, 3
 
-       ! Loop over tracers
-       DO N = 1, Input_Opt%N_TRACERS
+       ! Loop over advected species
+       DO NA = 1, State_Chm%nAdvect
          
-          ! If this tracer number N is scheduled for output
+          ! Species ID
+          N = State_Chm%Map_Advect(NA)
+
+          ! Entry in the species database
+          SpcInfo => State_Chm%SpcData(N)%Info
+
+          ! If this species number N is scheduled for output
           ! then define the diagnostic containers for mass flux
-          ! NOTE: for now, use tracers indicated for ND24 only until 
+          ! NOTE: for now, use species indicated for ND24 only until 
           ! consolidation into one group in new netcdf diag input file
           IF ( ANY( Input_Opt%TINDEX(24,:) == N ) ) THEN
 
@@ -570,7 +639,7 @@ CONTAINS
              END SELECT
 
              ! Diagnostic container name and ID
-             DiagnName = TRIM( NamePrefix ) // TRIM( Input_Opt%TRACER_NAME(N) )
+             DiagnName = TRIM( NamePrefix ) // TRIM( SpcInfo%Name )
              cId = cId + 1
    
              ! Create container
@@ -588,6 +657,9 @@ CONTAINS
                 CALL ERROR_STOP( MSG, LOC ) 
              ENDIF  
           ENDIF
+
+          ! Free pointer
+          SpcInfo => NULL()
        ENDDO
     ENDDO
 
@@ -612,12 +684,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE WETSCAV_MOD,        ONLY : GET_WETDEP_IDWETD
-    USE Species_Mod, ONLY : Species   
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : Species   
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -631,43 +702,51 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
-!  21 Jan 2016 - E. Lundgren   - Initial version
+!  21 Jan 2016 - E. Lundgren - Initial version
+!  01 Jul 2016 - R. Yantosca - Use State_Chm%Map_WETDEP to get the wetdep ID's
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: N, D
-    INTEGER            :: Collection
-    CHARACTER(LEN=15)  :: OutOper
-    CHARACTER(LEN=60)  :: DiagnName
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DiagnInit_WetScav (diagnostics_mod.F90)' 
+    ! Scalars
+    INTEGER                :: N, NW
+    INTEGER                :: Collection
+
+    ! Strings
+    CHARACTER(LEN=15)      :: OutOper
+    CHARACTER(LEN=60)      :: DiagnName
+    CHARACTER(LEN=255)     :: MSG
+    CHARACTER(LEN=255)     :: LOC = 'DiagnInit_WetScav (diagnostics_mod.F90)' 
 
     ! Pointers
-!    TYPE(Species), POINTER :: ThisSpc
+    TYPE(Species), POINTER :: SpcInfo
 
     !=======================================================================
     ! DIAGNINIT_WETSCAV begins here!
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
-    ! Use same output frequency and operations as for tracer concentrations.
+    ! Use same output frequency and operations as for species concentrations.
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%WETSCAV_OUTPUT_TYPE ! Assume same for ND38 and ND39
 
     ! Loop over # of soluble species 
-    DO D = 1, State_Chm%nWetDep
+    DO NW = 1, State_Chm%nWetDep
 
-       ! Get GEOS-Chem tracer number
-       N = GET_WETDEP_IDWETD( D )
+       ! Get the species ID from the wetdep ID
+       N = State_Chm%Map_WetDep(NW)
 
-       ! Check if this tracer is turned on for this diagnostic
-       ! NOTE: Use ND38 tracers for entire group
+       ! Get info about the Nth species from the species database
+       SpcInfo => State_Chm%SpcData(N)%Info
+          
+       ! Check if this species is turned on for this diagnostic
+       ! NOTE: Use ND38 species for entire group
        IF ( ANY( Input_Opt%TINDEX(38,:) == N ) ) THEN
 
           !----------------------------------------------------------------
@@ -675,7 +754,7 @@ CONTAINS
           !----------------------------------------------------------------
 
           ! Diagnostic container name and id
-          DiagnName = 'WETSCAV_CONVLOSS_' // TRIM( Input_Opt%TRACER_NAME(N) )
+          DiagnName = 'WETSCAV_CONVLOSS_' // TRIM( SpcInfo%Name )
           cId = cId + 1
 
           ! Create container
@@ -697,14 +776,11 @@ CONTAINS
           ! Create container for wetdep loss (kg/s) (ND39)
           !----------------------------------------------------------------
 
-          ! Get info about the Nth species from the species database
-!          ThisSpc => State_Chm%SpcData(N)%Info
-          
           ! Skip if this is not a wet-depositing species
-          IF ( .not. State_Chm%SpcData(N)%Info%Is_WetDep ) CYCLE
+          IF ( .not. SpcInfo%Is_WetDep ) CYCLE
 
           ! Diagnostic container name and id
-          DiagnName = 'WETSCAV_DEPLOSS_' // TRIM( Input_Opt%TRACER_NAME(N) )
+          DiagnName = 'WETSCAV_DEPLOSS_' // TRIM( SpcInfo%Name )
           cId = cId + 1
 
           ! Create container
@@ -724,7 +800,7 @@ CONTAINS
        ENDIF
 
        ! Free pointer
-!       ThisSpc => NULL()
+       SpcInfo => NULL()
     ENDDO
 
   END SUBROUTINE DiagnInit_WetScav
@@ -742,18 +818,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnInit_DryDep( am_I_Root, Input_Opt, RC )
+  SUBROUTINE DiagnInit_DryDep( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE TRACERID_Mod,       ONLY : IDTISOPN, IDTMMN
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMTERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -762,24 +843,32 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  13 Jan 2015 - C. Keller   - Initial version 
 !  15 Jan 2015 - R. Yantosca - Init drydep velocity & flux diagnostics
+!  01 Jul 2016 - R. Yantosca - Use State_Chm%Map_Drydep to get the drydep ID's
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: Collection, D, N, M
-    CHARACTER(LEN=15)  :: OutOper
-    CHARACTER(LEN=60)  :: Prefix, Units, DiagnName
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DiagnInit_DruDep (diagnostics_mod.F)' 
+    ! Scalars
+    INTEGER                :: Collection, D, N, M
+
+    ! Strings
+    CHARACTER(LEN=15)      :: OutOper
+    CHARACTER(LEN=60)      :: Prefix, Units, DiagnName
+    CHARACTER(LEN=255)     :: MSG
+    CHARACTER(LEN=255)     :: LOC = 'DiagnInit_DryDep (diagnostics_mod.F)' 
     
+    ! Pointers
+    TYPE(Species), POINTER :: SpcInfo
+
     !=======================================================================
     ! DIAGNINIT_DRYDEP begins here!
     !=======================================================================
 
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -801,12 +890,15 @@ CONTAINS
        END SELECT
 
        ! Loop over # of depositing species
-       DO D = 1, Input_Opt%NUMDEP
+       DO D = 1, State_Chm%nDryDep
             
-          ! Corresponding GEOS-Chem tracer number
-          N = Input_Opt%NTRAIND(D)
+          ! Corresponding GEOS-Chem species number
+          N = State_Chm%Map_DryDep(D)
        
-          ! If this tracer number N is scheduled for output in input.geos, 
+          ! Entry in the species database
+          SpcInfo => State_Chm%SpcData(N)%Info
+
+          ! If this species number N is scheduled for output in input.geos, 
           ! then define the diagnostic containers for drydep velocity & flux
           IF ( ANY( Input_Opt%TINDEX(44,:) == N ) ) THEN
        
@@ -815,7 +907,7 @@ CONTAINS
              !----------------------------------------------------------------
        
              ! Diagnostic container name and id
-             DiagnName = TRIM( Prefix ) // TRIM( Input_Opt%DEPNAME(D) )
+             DiagnName = TRIM( Prefix ) // TRIM( SpcInfo%Name )
              cId = cId + 1
        
              ! Create container
@@ -834,6 +926,9 @@ CONTAINS
                 CALL ERROR_STOP( MSG, LOC ) 
              ENDIF
           ENDIF
+
+          ! Free pointer
+          SpcInfo => NULL()
        ENDDO
     ENDDO
 
@@ -844,23 +939,22 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: diagninit_tracer_conc
+! !IROUTINE: diagninit_species_conc
 !
-! !DESCRIPTION: Subroutine DIAGNINIT\_TRACER\_CONC initializes the tracer
+! !DESCRIPTION: Subroutine DIAGNINIT\_SPECIES\_CONC initializes the species
 !  concentration diagnostic (aka ND45).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnInit_Tracer_Conc( am_I_Root, Input_Opt, State_Chm, RC )
+  SUBROUTINE DiagnInit_Species_Conc( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
-    USE COMODE_LOOP_MOD,    ONLY : NAMEGAS, NTSPEC, NCSURBAN
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -875,42 +969,60 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Jan 2015 - R. Yantosca - Initial version
 !  13 Jan 2016 - E. Lundgren - Define diagnostic ID
+!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
+!                              NAMEGAS with ThisSpc%Name from species database
+!  01 Jul 2016 - R. Yantosca - Use module variable nAdvect to replace N_TRACERS
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: Collection, N
+    INTEGER            :: Collection, N, NA
     CHARACTER(LEN=15)  :: OutOper
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DIAGNINIT_TRACER_CONC (diagnostics_mod.F90)' 
+    CHARACTER(LEN=255) :: LOC = 'DIAGNINIT_SPECIES_CONC (diagnostics_mod.F90)' 
+
+    ! Objects
+    TYPE(Species), POINTER :: SpcInfo
 
     !=======================================================================
-    ! DIAGNINIT_TRACER_CONC begins here!
+    ! DIAGNINIT_SPECIES_CONC begins here!
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
+
+    ! Initialize pointer
+    SpcInfo => NULL()
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
-    OutOper    = Input_Opt%TRACER_CONC_OUTPUT_TYPE
+    OutOper    = Input_Opt%SPECIES_CONC_OUTPUT_TYPE
       
-    ! Loop over # of depositing species
-    DO N = 1, Input_Opt%N_TRACERS
+    ! Loop over all species
+    DO N = 1, State_Chm%nSpecies
          
-       ! If this tracer number N is scheduled for output in input.geos, 
+       ! Get info about this species from the species database
+       SpcInfo => State_Chm%SpcData(N)%Info
+
+       ! Only save out chemical species if DiagnSpec option is on
+       IF ( .not. DiagnSpec .and. .not. SpcInfo%Is_Advected ) THEN
+          CYCLE
+       ENDIF
+       
+       ! If this species number N is scheduled for output in input.geos, 
        ! then define the diagnostic containers for drydep velocity & flux
        IF ( ANY( Input_Opt%TINDEX(45,:) == N ) ) THEN
     
           !----------------------------------------------------------------
-          ! Create containers for tracer concentrations
+          ! Create containers for species concentrations
           !----------------------------------------------------------------
     
           ! Diagnostic container name and id
-          DiagnName = 'TRACER_CONC_' // TRIM( Input_Opt%TRACER_NAME(N) )
+          DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name )
           cId = cId + 1
     
           ! Create container
@@ -928,43 +1040,12 @@ CONTAINS
              CALL ERROR_STOP( MSG, LOC ) 
           ENDIF
        ENDIF
+
+       ! Free pointer
+       SpcInfo => NULL()
     ENDDO
-
-    ! To also write out all species concentrations (not tracers)
-    IF ( DiagnSpec ) THEN
-
-       ! Loop over species
-       DO N = 1, NTSPEC(NCSURBAN)
    
-          !----------------------------------------------------------------
-          ! Create containers for species concentrations in molec/cm3
-          !----------------------------------------------------------------
-   
-          ! Diagnostic container name and id
-          IF ( TRIM(NAMEGAS(N)) == '' ) CYCLE
-          DiagnName = 'SPECIES_CONC_' // TRIM(NAMEGAS(N)) 
-          cId = cId + 1
-  
-          ! Create container
-          CALL Diagn_Create( am_I_Root,                     &
-                             Col       = Collection,        &
-                             cId       = cId,               &
-                             cName     = TRIM( DiagnName ), &
-                             SpaceDim  =  3,                &
-                             OutUnit   = 'molec/cm3',       &
-                             OutOper   = TRIM( OutOper   ), &
-                             RC        = RC )
-   
-          IF ( RC /= HCO_SUCCESS ) THEN
-             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-             CALL ERROR_STOP( MSG, LOC )
-          ENDIF
-   
-       ENDDO
-   
-    ENDIF ! DiagnSpec
-   
-   END SUBROUTINE DiagnInit_Tracer_Conc
+   END SUBROUTINE DiagnInit_Species_Conc
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -983,10 +1064,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE PHYSCONSTANTS,      ONLY : XNUMOLAIR
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE PhysConstants,      ONLY : XNUMOLAIR
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1007,8 +1088,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER            :: Collection, N, Num2D, Num3D
     INTEGER            :: SpaceDim 
+
+    ! Strings
     CHARACTER(LEN=15)  :: OutOper, Units
     CHARACTER(LEN=30)  :: NameSuffix, DiagnName
     CHARACTER(LEN=255) :: MSG
@@ -1019,7 +1103,7 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -1225,25 +1309,29 @@ CONTAINS
 ! !IROUTINE: diagninit_pb_emiss
 !
 ! !DESCRIPTION: Subroutine DIAGNINIT\_PB\_EMISS initializes the Pb emissions 
-!  diagnostic (aka ND01). Other ND01 tracer emissions (Rn and Be7) are 
+!  diagnostic (aka ND01). Other ND01 species emissions (Rn and Be7) are 
 !  handled within HEMCO.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnInit_Pb_Emiss( am_I_Root, Input_Opt, RC )
+  SUBROUTINE DiagnInit_Pb_Emiss( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-
-    USE TRACERID_MOD,       ONLY : IDTPB   
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1251,13 +1339,20 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  21 Jan 2015 - E. Lundgren - Initial version
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the Ind_ function
+!  01 Jul 2016 - R. Yantosca - Remove reference to Input_Opt%TRACER_NAME
+!  19 Jul 2016 - R. Yantosca - Now pass State_Chm as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER            :: Collection
+    INTEGER            :: id_Pb
+
+    ! Strings
     CHARACTER(LEN=15)  :: OutOper
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
@@ -1268,22 +1363,25 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
+
+    ! Pb210 species ID
+    id_Pb      = Ind_('Pb')
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND01_OUTPUT_TYPE
     
-    ! If the tracer number for lead is scheduled for output in input.geos, 
+    ! If the species number for lead is scheduled for output in input.geos, 
     ! then define the diagnostic container for 210Pb emissions.
-    IF ( ANY ( Input_Opt%TINDEX(1,:) == IDTPB ) ) THEN
+    IF ( ANY ( Input_Opt%TINDEX(1,:) == id_Pb ) ) THEN
 
        !----------------------------------------------------------------
        ! Create containers for Pb emissions [kg/s]
        !----------------------------------------------------------------
-
+       
        ! Diagnostic container name and id
-       DiagnName = 'EMISS_' // TRIM( Input_Opt%TRACER_NAME( IDTPB ) )
+       DiagnName = 'EMISS_' // TRIM( State_Chm%SpcData(id_Pb)%Info%Name )
        cId = cId + 1
 
        ! Create container
@@ -1321,9 +1419,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE TRACERID_MOD,       ONLY : IDTPb, IDTRn, IDTBe7   
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1336,48 +1433,59 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  23 Jan 2015 - E. Lundgren - Initial version
+!  01 Jul 2016 - R. Yantosca - Remove references to Input_Opt%TRACER_NAME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
+! !DEFINED PARAMETERS:
+!
+    INTEGER, PARAMETER   :: NumSpecies = 3        ! Does a var exist for this
+!
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER              :: Collection, M
-    INTEGER, PARAMETER   :: NumTracers = 3        ! Does a var exist for this?
-    INTEGER              :: TracersN ( NumTracers ) 
+    
+    ! Strings
     CHARACTER(LEN=15)    :: OutOper
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGNINIT_RN_DECAY (diagnostics_mod.F90)' 
+
+    ! Arrays
+    INTEGER              :: SpeciesN   (NumSpecies) 
+    CHARACTER(LEN=3)     :: SpeciesName(NumSpecies)
+
 
     !=======================================================================
     ! DIAGNINIT_RN_DECAY begins here!
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND02_OUTPUT_TYPE
     
-    ! Assign array of tracer numbers corresponding to decaying species
-    TracersN = (/ IDTPb, IDTRN, IDTBe7 /)
+    ! Assign array of species numbers corresponding to decaying species
+    SpeciesN    = (/ id_Pb, id_Rn, id_Be7 /)
+    SpeciesName = (/ 'Pb',  'Rn',  'Be7'  /)
 
     ! Loop over # of radon decay diagnostics
-    DO M = 1, NumTracers
+    DO M = 1, NumSpecies
 
-       ! If the tracer number is scheduled for output in input.geos, 
-       ! then define the diagnostic container for that tracer.
-       IF ( ANY ( Input_Opt%TINDEX(2,:) == TracersN( M ) ) ) THEN
+       ! If the species number is scheduled for output in input.geos, 
+       ! then define the diagnostic container for that species.
+       IF ( ANY ( Input_Opt%TINDEX(2,:) == SpeciesN( M ) ) ) THEN
 
           !----------------------------------------------------------------
           ! Create containers for Rn/Pb/Be7 decay [kg/s]
           !----------------------------------------------------------------
 
           ! Diagnostic container name and id
-          DiagnName = 'DECAY_' //                           &
-                      TRIM( Input_Opt%TRACER_NAME( TracersN( M ) ) )
+          DiagnName = 'DECAY_' // TRIM( SpeciesName(M) )
           cId = cId + 1
           
           ! Create container
@@ -1416,9 +1524,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1448,13 +1555,13 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND12_OUTPUT_TYPE
 
-    ! Check if certain tracer(s) listed for ND12 in input.geos???
+    ! Check if certain species listed for ND12 in input.geos???
 
     !----------------------------------------------------------------
     ! Create containers for fraction of BL occupied by level L [.]
@@ -1495,18 +1602,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnInit_CldConv_Flx( am_I_Root, Input_Opt, RC )
+  SUBROUTINE DiagnInit_CldConv_Flx( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1514,36 +1626,47 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  26 Jan 2015 - E. Lundgren - Initial version
+!  01 Jul 2016 - R. Yantosca - Use State_Chm%nAdvect to replace N_TRACERS
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER              :: Collection, N
-    CHARACTER(LEN=15)    :: OutOper
-    CHARACTER(LEN=60)    :: DiagnName
-    CHARACTER(LEN=255)   :: MSG
-    CHARACTER(LEN=255)   :: LOC = 'DIAGNINIT_CLDCONV_FLX (diagnostics_mod.F90)' 
+    ! Scalars
+    INTEGER                :: Collection, N, NA
+    CHARACTER(LEN=15)      :: OutOper
+    CHARACTER(LEN=60)      :: DiagnName
+    CHARACTER(LEN=255)     :: MSG
+    CHARACTER(LEN=255)     :: LOC='DIAGNINIT_CLDCONV_FLX (diagnostics_mod.F90)'
+
+    ! Pointers
+    TYPE(Species), POINTER :: SpcInfo
 
     !=======================================================================
     ! DIAGNINIT_CLDCONV_FLX begins here!
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND14_OUTPUT_TYPE
 
-    ! Check if certain tracer(s) listed for ND14 in input.geos???
-    ! NEED TO ADD LOOP OVER TRACERS
+    ! Check if certain species listed for ND14 in input.geos???
     
-    ! Loop over tracers
-    DO N = 1, Input_Opt%N_TRACERS
+    ! Loop over advected species
+    DO NA = 1, State_Chm%nAdvect
          
-       ! If this tracer number N is scheduled for output in input.geos, 
+       ! Species ID 
+       N = State_Chm%Map_Advect(NA)
+
+       ! Entry in the species database
+       SpcInfo => State_Chm%SpcData(N)%Info
+
+       ! If this species number N is scheduled for output in input.geos, 
        ! then define the diagnostic containers for cloud convection mass change
        IF ( ANY( Input_Opt%TINDEX(14,:) == N ) ) THEN
 
@@ -1552,14 +1675,14 @@ CONTAINS
           !----------------------------------------------------------------
       
           ! Diagnostic container name and id
-          DiagnName = 'CLDCONV_FLX_' // TRIM( Input_Opt%TRACER_NAME(N) )
+          DiagnName = 'CLDCONV_FLX_' // TRIM( SpcInfo%Name )
           cId = cId + 1
 
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
                              Col       = Collection,        & 
                              cId       = cId,               &
-                             cName     = TRIM( DiagnName ),  &
+                             cName     = TRIM( DiagnName ), &
                              SpaceDim  =  3,                &
                              OutUnit   = 'kg/s' ,           &
                              OutOper   = TRIM( OutOper ),   &
@@ -1570,6 +1693,9 @@ CONTAINS
              CALL ERROR_STOP( MSG, LOC ) 
           ENDIF      
        ENDIF
+
+       ! Free pointer
+       SpcInfo => NULL()
     ENDDO   
 
   END SUBROUTINE DiagnInit_CldConv_Flx
@@ -1588,18 +1714,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnInit_BLMix_Flx( am_I_Root, Input_Opt, RC )
+  SUBROUTINE DiagnInit_BLMix_Flx( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1607,35 +1738,49 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  26 Jan 2015 - E. Lundgren - Initial version
+!  01 Jul 2016 - R. Yantosca - Use State_Chm%nAdvect to replace N_TRACERS
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER              :: Collection, N
-    CHARACTER(LEN=15)    :: OutOper
-    CHARACTER(LEN=60)    :: DiagnName
-    CHARACTER(LEN=255)   :: MSG
-    CHARACTER(LEN=255)   :: LOC = 'DIAGNINIT_BLMIX_FLX (diagnostics_mod.F90)' 
+    ! Scalars
+    INTEGER                :: Collection, N, NA
+
+    ! Strings
+    CHARACTER(LEN=15)      :: OutOper
+    CHARACTER(LEN=60)      :: DiagnName
+    CHARACTER(LEN=255)     :: MSG
+    CHARACTER(LEN=255)     :: LOC = 'DIAGNINIT_BLMIX_FLX (diagnostics_mod.F90)' 
+
+    ! Pointers
+    TYPE(Species), POINTER :: SpcInfo
 
     !=======================================================================
     ! DIAGNINIT_BLMIX_FLX begins here!
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND15_OUTPUT_TYPE
     
-    ! Check if certain tracer(s) listed for ND15 in input.geos???
+    ! Check if certain species listed for ND15 in input.geos???
 
-    ! Loop over tracers
-    DO N = 1, Input_Opt%N_TRACERS
+    ! Loop over only the advected species
+    DO NA = 1, State_Chm%nAdvect
+
+       ! Species ID
+       N = State_Chm%Map_Advect(NA)
+
+       ! Entry in the species database
+       SpcInfo => State_Chm%SpcData(N)%Info
          
-       ! If this tracer number N is scheduled for output in input.geos, 
+       ! If this species number N is scheduled for output in input.geos, 
        ! then define the diagnostic containers for BL mixing upward flux
        IF ( ANY( Input_Opt%TINDEX(15,:) == N ) ) THEN
 
@@ -1644,7 +1789,7 @@ CONTAINS
           !----------------------------------------------------------------
       
           ! Diagnostic container name and id
-          DiagnName = 'BLMIX_FLX_' // TRIM( Input_Opt%TRACER_NAME(N) )
+          DiagnName = 'BLMIX_FLX_' // TRIM( SpcInfo%Name )
           cId = cId + 1
 
           ! Create container
@@ -1662,6 +1807,9 @@ CONTAINS
              CALL ERROR_STOP( MSG, LOC ) 
           ENDIF
        ENDIF
+
+       ! Free pointer
+       SpcInfo => NULL()
     ENDDO   
 
   END SUBROUTINE DiagnInit_BLMix_Flx
@@ -1684,9 +1832,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1716,7 +1863,7 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -1779,18 +1926,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnInit_Rain_Frac( am_I_Root, Input_Opt, RC )
+  SUBROUTINE DiagnInit_Rain_Frac( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1798,34 +1950,50 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  26 Jan 2015 - E. Lundgren - Initial version
+!  01 Jul 2016 - R. Yantosca - Use module variable nAdvect to replace N_TRACERS
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!  19 Jul 2016 - R. Yantosca - Bug fix: now declare N, nAdvect variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER              :: Collection, N, M
-    CHARACTER(LEN=15)    :: OutOper
-    CHARACTER(LEN=60)    :: DiagnName
-    CHARACTER(LEN=255)   :: MSG
-    CHARACTER(LEN=255)   :: LOC = 'DIAGNINIT_RAIN_FRAC (diagnostics_mod.F90)' !
+    ! Scalars
+    INTEGER                :: Collection, M, NA, N
+
+    ! Strings
+    CHARACTER(LEN=15)      :: OutOper
+    CHARACTER(LEN=60)      :: DiagnName
+    CHARACTER(LEN=255)     :: MSG
+    CHARACTER(LEN=255)     :: LOC='DIAGNINIT_RAIN_FRAC (diagnostics_mod.F90)'
+
+    ! Pointers
+    TYPE(Species), POINTER :: SpcInfo
+
     !=======================================================================
     ! DIAGNINIT_RAIN_FRAC begins here!
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND17_OUTPUT_TYPE
     
-    ! Check if certain tracer(s) listed for ND17 in input.geos???
+    ! Check if certain species listed for ND17 in input.geos???
 
-    ! Loop over tracers
-    DO N = 1, Input_Opt%N_TRACERS
+    ! Loop over only the advected species
+    DO NA = 1, State_Chm%nAdvect
          
-       ! If this tracer number N is scheduled for output in input.geos, 
+       ! Species ID
+       N = State_Chm%Map_Advect(NA)
+
+       ! Entry in the species database
+       SpcInfo => State_Chm%SpcData(N)%Info
+
+       ! If this species number N is scheduled for output in input.geos, 
        ! then define the diagnostic containers for rainout fraction
        IF ( ANY( Input_Opt%TINDEX(17,:) == N ) ) THEN
 
@@ -1833,19 +2001,17 @@ CONTAINS
              SELECT CASE ( M )
                 CASE ( 1 )
                 !-----------------------------------------------------
-                ! Name container for the fraction of soluble tracer
+                ! Name container for the fraction of soluble species
                 ! lost to rainout (large-scale precipitation) [.]
                 !-----------------------------------------------------
-                DiagnName = 'RAIN_FRAC_LS_'                    &
-                     // TRIM( Input_Opt%TRACER_NAME(N) )
+                DiagnName = 'RAIN_FRAC_LS_' // TRIM( SpcInfo%Name )
                 CASE ( 2 )
                !------------------------------------------------------
-               ! Name container for the fraction of soluble tracer
+               ! Name container for the fraction of soluble species
                ! lost to rainout (convective precipitation) [.]
                !------------------------------------------------------
                ! Diagnostic name
-               DiagnName = 'RAIN_FRAC_CONV_'                   &
-                    // TRIM( Input_Opt%TRACER_NAME(N) )
+               DiagnName = 'RAIN_FRAC_CONV_' // TRIM( SpcInfo%Name )
                 CASE DEFAULT
                    IF ( RC /= HCO_SUCCESS ) THEN
                       MSG = 'ND17 diagnostic name not defined.'
@@ -1872,6 +2038,9 @@ CONTAINS
              ENDIF 
           ENDDO     
        ENDIF
+
+       ! Free pointer
+       SpcInfo => NULL()
     ENDDO     
 
   END SUBROUTINE DiagnInit_Rain_Frac
@@ -1890,18 +2059,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnInit_Wash_Frac( am_I_Root, Input_Opt, RC )
+  SUBROUTINE DiagnInit_Wash_Frac( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1909,35 +2083,49 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  26 Jan 2015 - E. Lundgren - Initial version
+!  01 Jul 2016 - R. Yantosca - Use module variable nAdvect to replace N_TRACERS
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER              :: Collection, N, M
-    CHARACTER(LEN=15)    :: OutOper
-    CHARACTER(LEN=60)    :: DiagnName
-    CHARACTER(LEN=255)   :: MSG
-    CHARACTER(LEN=255)   :: LOC = 'DiagnInit_Wash_Frac (diagnostics_mod.F90)' 
+    ! Scalars
+    INTEGER                :: Collection, M, NA, N
+
+    ! Strings
+    CHARACTER(LEN=15)      :: OutOper
+    CHARACTER(LEN=60)      :: DiagnName
+    CHARACTER(LEN=255)     :: MSG
+    CHARACTER(LEN=255)     :: LOC='DiagnInit_Wash_Frac (diagnostics_mod.F90)' 
+
+    ! Pointers
+    TYPE(Species), POINTER :: SpcInfo
 
     !=======================================================================
     ! DIAGNINIT_WASH_FRAC begins here!
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC         = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND18_OUTPUT_TYPE
  
-    ! Check if certain tracer(s) listed for ND18 in input.geos???
+    ! Check if certain species listed for ND18 in input.geos???
 
-    ! Loop over tracers
-    DO N = 1, Input_Opt%N_TRACERS
+    ! Loop over advected species
+    DO NA = 1, State_Chm%nAdvect
          
-       ! If this tracer number N is scheduled for output in input.geos, 
+       ! Species ID
+       N = State_Chm%Map_Advect(NA)
+
+       ! Entry in the species database
+       SpcInfo => State_Chm%SpcData(N)%Info
+
+       ! If this species number N is scheduled for output in input.geos, 
        ! then define the diagnostic containers for washout fraction
        IF ( ANY( Input_Opt%TINDEX(18,:) == N ) ) THEN
 
@@ -1945,18 +2133,16 @@ CONTAINS
              SELECT CASE ( M )
                 CASE ( 1 )
                    !-----------------------------------------------------
-                   ! Name container for the fraction of soluble tracer
+                   ! Name container for the fraction of soluble species
                    ! lost to washout (large-scale precipitation) [.]
                    !-----------------------------------------------------
-                   DiagnName = 'WASH_FRAC_LS'                  &
-                        // TRIM( Input_Opt%TRACER_NAME(N) )
+                   DiagnName = 'WASH_FRAC_LS' // TRIM( SpcInfo%Name )
                 CASE ( 2 )
                    !------------------------------------------------------
-                   ! Name container for the fraction of soluble tracer
+                   ! Name container for the fraction of soluble species
                    ! lost to washout (convective precipitation) [.]
                    !------------------------------------------------------
-                   DiagnName = 'WASH_FRAC_CONV_'               &
-                        // TRIM( Input_Opt%TRACER_NAME(N) )
+                   DiagnName = 'WASH_FRAC_CONV_' // TRIM( SpcInfo%Name )
                 CASE DEFAULT
                    IF ( RC /= HCO_SUCCESS ) THEN
                       MSG = 'ND18 diagnostic name not defined.'
@@ -1983,6 +2169,9 @@ CONTAINS
              ENDIF
           ENDDO
        ENDIF
+
+       ! Free pointer
+       SpcInfo => NULL()
     ENDDO
 
   END SUBROUTINE DiagnInit_Wash_Frac
@@ -2005,9 +2194,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2037,13 +2225,13 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND19_OUTPUT_TYPE
     
-    ! Check if certain tracer(s) listed for ND19 in input.geos???
+    ! Check if certain species listed for ND19 in input.geos???
 
     !----------------------------------------------------------------
     ! Create containers for CH4 removal by OH [kg CH4]
@@ -2087,8 +2275,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2118,7 +2306,7 @@ CONTAINS
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -2169,10 +2357,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Update
-    USE PHYSCONSTANTS,      ONLY : XNUMOLAIR, SCALE_HEIGHT
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE PhysConstants,      ONLY : XNUMOLAIR, SCALE_HEIGHT
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -2187,6 +2375,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  21 Jan 2015 - E. Lundgren - Initial version
 !  15 Jan 2016 - E. Lundgren - Revise for all MET-related diagnostics
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2199,15 +2388,19 @@ CONTAINS
     CHARACTER(LEN=255) :: LOC = 'DiagnUpdate_Met (diagnostics_mod.F90)'
     REAL(fp), TARGET   :: Temp2D( IIPAR, JJPAR )
     REAL(fp), TARGET   :: Temp3D( IIPAR, JJPAR, LLPAR )
-    REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
-    REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
+    REAL(fp), POINTER  :: Ptr2D(:,:)
+    REAL(fp), POINTER  :: Ptr3D(:,:,:)
 
     !=======================================================================
     ! DIAGNUPDATE_MET begins here!
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
+
+    ! Initialize pointers
+    Ptr2D => NULL()
+    Ptr3D => NULL()
 
     ! Get diagnostic parameters from the Input_Opt object
     ! This is not currently used, but keep for possible later use/editing
@@ -2443,62 +2636,79 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnUpdate_Transport_Flux( am_I_Root, FLUX_EW, FLUX_NS,  &
-                                         FLUX_VERT, Input_Opt, RC )
+  SUBROUTINE DiagnUpdate_Transport_Flux( am_I_Root, FLUX_EW,   FLUX_NS,       &
+                                         FLUX_VERT, Input_Opt, State_Chm, RC )
 
 !
 ! !USES:
 !
-   USE GIGC_Input_Opt_Mod, ONLY : OptInput    
    USE HCO_Diagn_Mod,      ONLY : Diagn_Update
+   USE Input_Opt_Mod,      ONLY : OptInput    
+   USE Species_Mod,        ONLY : Species
+   USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
-   LOGICAL,          INTENT(IN)  :: am_I_Root          ! Are we on root CPU?
-   REAL(fp),         INTENT(IN)  :: FLUX_EW(:,:,:,:)   ! zonal mass flux
-   REAL(fp),         INTENT(IN)  :: FLUX_NS(:,:,:,:)   ! meridional flux
-   REAL(fp),         INTENT(IN)  :: FLUX_VERT(:,:,:,:) ! vertical mass flux
-   TYPE(OptInput),   INTENT(IN)  :: Input_Opt          ! Input options object
+   LOGICAL,        INTENT(IN)    :: am_I_Root          ! Are we on root CPU?
+   REAL(fp),       INTENT(IN)    :: FLUX_EW(:,:,:,:)   ! zonal mass flux
+   REAL(fp),       INTENT(IN)    :: FLUX_NS(:,:,:,:)   ! meridional flux
+   REAL(fp),       INTENT(IN)    :: FLUX_VERT(:,:,:,:) ! vertical mass flux
+   TYPE(OptInput), INTENT(IN)    :: Input_Opt          ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+   TYPE(ChmState), INTENT(INOUT) :: State_Chm          ! Chemistry State object
+!
 !
 ! !OUTPUT PARAMETERS:
 !
-   INTEGER,          INTENT(OUT) :: RC               ! Success or failure
+   INTEGER,        INTENT(OUT)   :: RC                 ! Success or failure
 !
-! !REVISION HISTORY:
-!  12 Feb 2015 - E. Lundgren   - Initial version
-!  19 Jan 2016 - E. Lundgren   - Updated to include all transport flux diags
-! 
 ! !REMARKS:
 !
+! !REVISION HISTORY:
+!  12 Feb 2015 - E. Lundgren - Initial version
+!  19 Jan 2016 - E. Lundgren - Updated to include all transport flux diags
+!  30 Jun 2016 - R. Yantosca - Now get advected species IDs from State_Chm
+!  20 Jul 2016 - R. Yantosca - Remove references to NNPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-   INTEGER             :: N, M, NumLevels
-   CHARACTER(LEN=60)   :: DiagnPrefix, DiagnName
-   CHARACTER(LEN=255)  :: MSG
-   CHARACTER(LEN=255)  :: LOC = 'DiagnUpdate_Transport_Flux'  &
-                                 // ' (Transport_mod.F)'
+   ! Scalars
+   INTEGER                :: N, M, NumLevels, NA
+
+   ! Strings
+   CHARACTER(LEN=60)      :: DiagnPrefix, DiagnName
+   CHARACTER(LEN=255)     :: MSG
+   CHARACTER(LEN=255)     :: LOC = 'DiagnUpdate_Transport_Flux'  &
+                               // ' (Transport_mod.F)'
 
    ! Array to hold input mass flux array with reverse-order levels
    ! and only levels that have data (ie. less than LLPAR if input.geos
    ! levels for the diagnostic are less than LLPAR).
-   REAL(fp), TARGET  :: DiagnArray( IIPAR, JJPAR, Input_Opt%LD24, NNPAR )
+   REAL(fp), TARGET       :: DiagnArray( IIPAR, JJPAR, Input_Opt%LD24,    &
+                                                       State_Chm%nAdvect )
 
    ! Pointers
-   REAL(fp), POINTER :: Ptr3D(:,:,:)
+   REAL(fp),      POINTER :: Ptr3D(:,:,:)
+   TYPE(Species), POINTER :: SpcInfo
 
    !=================================================================
    ! DIAGNUPDATE_TRANSPORT_FULX begins here!
    !=================================================================
    
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC        =  GC_SUCCESS
 
     ! Get number of levels for transport diagnostics
-    NumLevels = Input_Opt%LD24
+    NumLevels =  Input_Opt%LD24
+
+    ! Initialize pointers
+    Ptr3d     => NULL()
+    SpcInfo   => NULL()
 
     ! Loop over diagnostics
     DO M = 1, 3
@@ -2517,10 +2727,13 @@ CONTAINS
              DiagnArray  = FLUX_VERT(:,:,LLPAR:LLPAR-NumLevels+1:-1,:)
        END SELECT
 
-       ! Loop over tracers
-       DO N = 1, Input_Opt%N_TRACERS
-       
-          ! If this tracer number N is scheduled for output in input.geos, 
+       ! Loop over only the advected species
+       DO NA = 1, State_Chm%nAdvect
+      
+          ! Get the species ID from the advected species ID
+          N = State_Chm%Map_Advect(NA)
+
+          ! If this species number N is scheduled for output in input.geos, 
           ! then update its diagnostic container for transport flux
           IF ( ANY( Input_Opt%TINDEX(24,:) == N ) ) THEN
             
@@ -2528,12 +2741,14 @@ CONTAINS
              ! Update diagnostic container
              !----------------------------------------------------------------
          
+             ! Point to the corresponding entry in the species database
+             SpcInfo   => State_Chm%SpcData(N)%Info
+
              ! Diagnostic container name
-             DiagnName = TRIM( DiagnPrefix )                      &
-                         // TRIM( Input_Opt%TRACER_NAME( N ) )
+             DiagnName =  TRIM( DiagnPrefix ) // TRIM( SpcInfo%Name )
        
              ! Point to the array with levels corrected
-             Ptr3D => DiagnArray(:,:,:,N)
+             Ptr3D     => DiagnArray(:,:,:,NA)
        
              ! Create container
              CALL Diagn_Update( am_I_Root,                        &
@@ -2541,43 +2756,47 @@ CONTAINS
                                 Array3D   = Ptr3D,                &
                                 RC        = RC )
        
-             ! Free the pointer 
-             Ptr3D => NULL()
+             ! Free the pointers
+             Ptr3D   => NULL()
+             SpcInfo => NULL()
        
              ! Stop with error if the diagnostics update was unsuccessful.
              IF ( RC /= HCO_SUCCESS ) THEN
                 MSG = 'Cannot update diagnostic: ' // TRIM( DiagnName )
                 CALL ERROR_STOP( MSG, LOC ) 
-             ENDIF  
+             ENDIF 
           ENDIF
        ENDDO
     ENDDO
 
    END SUBROUTINE DiagnUpdate_Transport_Flux
 !EOC
-#if defined( DEVEL )
+#if defined( DIAG_DEVEL )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: DiagnInit_Tracer_Emis
+! !IROUTINE: DiagnInit_Species_Emis
 !
-! !DESCRIPTION: Subroutine DiagnInit\_Tracer\_Emis initializes diagnostics for 
+! !DESCRIPTION: Subroutine DiagnInit\_Species\_Emis initializes diagnostics for 
 !  total species emissions diagnostics. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnInit_Tracer_Emis( am_I_Root, Input_Opt, State_Met, RC ) 
+  SUBROUTINE DiagnInit_Species_Emis( am_I_Root, Input_Opt,     &
+                                    State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
-    USE TRACERID_MOD
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : Ind_
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -2593,57 +2812,72 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  05 Mar 2015 - C. Keller   - Initial version
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the Ind_ function 
+!  01 Jul 2016 - R. Yantosca - Use State_Chm%nAdvect to replace N_TRACERS
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: ID
-    INTEGER            :: Collection, N
-    CHARACTER(LEN=15)  :: OutOper
-    CHARACTER(LEN=60)  :: DiagnName
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DiagnInit_Tracer_Emis (diagnostics_mod.F90)' 
+    ! Scalars
+    INTEGER                :: ID
+    INTEGER                :: Collection, N, NA
+
+    ! Strings
+    CHARACTER(LEN=15)      :: OutOper
+    CHARACTER(LEN=60)      :: DiagnName
+    CHARACTER(LEN=255)     :: MSG
+    CHARACTER(LEN=255)     :: LOC='DiagnInit_Species_Emis (diagnostics_mod.F90)'
+
+    ! Pointers
+    TYPE(Species), POINTER :: SpcInfo
 
     !=======================================================================
-    ! DIAGNINIT_TRACER_EMIS begins here!
+    ! DIAGNINIT_SPECIES_EMIS begins here!
     !=======================================================================
       
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Get diagnostic parameters from the Input_Opt object
-    ! Use same output frequency and operations as for tracer concentrations.
+    ! Use same output frequency and operations as for species concentrations.
     Collection = Input_Opt%DIAG_COLLECTION
-    OutOper    = Input_Opt%TRACER_EMIS_OUTPUT_TYPE
+    OutOper    = Input_Opt%SPECIES_EMIS_OUTPUT_TYPE
  
     ! Loop over # of species 
-    DO N = 1, Input_Opt%N_TRACERS
+    DO NA = 1, State_Chm%nAdvect
+
+       ! Species ID
+       N = State_Chm%Map_Advect(NA)
+
+       ! Entry in the species database
+       SpcInfo => State_Chm%SpcData(N)%Info
        
        ! HEMCO ID
-       ID = GetHcoID( TrcId = N )
+       ID = GetHcoID( SpcId = N )
  
        ! Restrict diagnostics to these species
-       IF ( N /= IDTNO    .AND. N /= IDTCO     .AND. &
-            N /= IDTALK4  .AND. N /= IDTISOP   .AND. &
-            N /= IDTHNO3  .AND. N /= IDTACET   .AND. &
-            N /= IDTMEK   .AND. N /= IDTALD2   .AND. &
-            N /= IDTPRPE  .AND. N /= IDTC3H8   .AND. &
-            N /= IDTC2H6  .AND. N /= IDTDMS    .AND. &
-            N /= IDTSO2   .AND. N /= IDTSO4    .AND. &
-            N /= IDTNH3   .AND. N /= IDTBCPI   .AND. &
-            N /= IDTOCPI  .AND. N /= IDTBCPO   .AND. &
-            N /= IDTOCPO  .AND. N /= IDTDST1   .AND. &
-            N /= IDTDST2  .AND. N /= IDTDST3   .AND. &
-            N /= IDTDST4  .AND. N /= IDTSALA   .AND. &
-            N /= IDTSALC  .AND. N /= IDTBr2    .AND. &
-            N /= IDTBrO   .AND. N /= IDTCH2Br2 .AND. &
-            N /= IDTCH3Br .AND. N /= IDTO3             ) THEN
+       IF ( N /= Ind_('NO'   ) .AND. N /= Ind_('CO'    ) .AND. &
+            N /= Ind_('ALK4' ) .AND. N /= Ind_('ISOP'  ) .AND. &
+            N /= Ind_('HNO3' ) .AND. N /= Ind_('ACET'  ) .AND. &
+            N /= Ind_('MEK'  ) .AND. N /= Ind_('ALD2'  ) .AND. &
+            N /= Ind_('PRPE' ) .AND. N /= Ind_('C3H8'  ) .AND. &
+            N /= Ind_('C2H6' ) .AND. N /= Ind_('DMS'   ) .AND. &
+            N /= Ind_('SO2'  ) .AND. N /= Ind_('SO4'   ) .AND. &
+            N /= Ind_('NH3'  ) .AND. N /= Ind_('BCPI'  ) .AND. &
+            N /= Ind_('OCPI' ) .AND. N /= Ind_('BCPO'  ) .AND. &
+            N /= Ind_('OCPO' ) .AND. N /= Ind_('DST1'  ) .AND. &
+            N /= Ind_('DST2' ) .AND. N /= Ind_('DST3'  ) .AND. &
+            N /= Ind_('DST4' ) .AND. N /= Ind_('SALA'  ) .AND. &
+            N /= Ind_('SALC' ) .AND. N /= Ind_('Br2'   ) .AND. &
+            N /= Ind_('BrO'  ) .AND. N /= Ind_('CH2Br2') .AND. &
+            N /= Ind_('CH3Br') .AND. N /= Ind_('O3'    )        ) THEN
           ID = -1
        ENDIF
  
-       ! If this is an emission tracer, add diagnostics for emissions. 
+       ! If this is an emission species, add diagnostics for emissions. 
        IF ( ID > 0 ) THEN 
 
           !----------------------------------------------------------------
@@ -2651,7 +2885,7 @@ CONTAINS
           !----------------------------------------------------------------
 
           ! Diagnostic container name and id
-          DiagnName = 'TRACER_EMIS_' // TRIM( Input_Opt%TRACER_NAME(N) )
+          DiagnName = 'SPECIES_EMIS_' // TRIM( SpcInfo%Name )
           cId = 10000 + ID
 
           ! Create container
@@ -2670,9 +2904,13 @@ CONTAINS
              CALL ERROR_STOP( MSG, LOC ) 
           ENDIF
        ENDIF
+
+       ! Free pointer
+       SpcInfo => NULL()
+       
     ENDDO
 
-  END SUBROUTINE DiagnInit_Tracer_Emis
+  END SUBROUTINE DiagnInit_Species_Emis
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2691,9 +2929,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE TRACERID_MOD, ONLY : IDTO3
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -2706,6 +2944,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  07 Jul 2015 - C. Keller   - Initial version 
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the Ind_ function 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2723,10 +2962,10 @@ CONTAINS
     !=======================================================================
 
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
-    ! Nothing to do if O3 is not a tracer
-    IF ( IDTO3 <= 0 ) RETURN
+    ! Nothing to do if O3 is not a species
+    IF ( Ind_('O3') <= 0 ) RETURN
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -2778,14 +3017,16 @@ CONTAINS
 !
 ! !USES:
 !
-    USE PHYSCONSTANTS,      ONLY : AIRMW, AVO,   g0
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE HCO_Diagn_Mod,      ONLY : Diagn_Update
-    USE TRACERID_MOD,       ONLY : IDTO3
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Update
+    USE HCO_Diagn_Mod,      ONLY : DiagnCont
+    USE HCO_Diagn_Mod,      ONLY : DiagnCont_Find
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE PhysConstants,      ONLY : AIRMW, AVO,   g0
     USE PRESSURE_MOD,       ONLY : GET_PEDGE
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -2800,18 +3041,21 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  07 Jul 2015 - C. Keller   - Initial version 
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the Ind_ function 
+!  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(DiagnCont), POINTER :: DgnPtr => NULL()
+    TYPE(DiagnCont), POINTER :: DgnPtr
 
-    INTEGER                  :: I, J, L
+    INTEGER                  :: I, J, L, id_O3
 
     REAL(fp)                 :: constant
-    REAL(fp)                 :: DP, O3vv, DU
+    REAL(fp)                 :: DP, O3vv, DU, MW_O3
     REAL(fp)                 :: TROPO3(IIPAR,JJPAR)
     REAL(fp)                 :: TOTO3 (IIPAR,JJPAR)
 
@@ -2821,16 +3065,21 @@ CONTAINS
 
     CHARACTER(LEN=255)       :: MSG
     CHARACTER(LEN=255)       :: LOC = 'CalcDobsonColumn (diagnostics_mod.F)' 
-    
+
     !=======================================================================
     ! CalcDobsonColumn begins here!
     !=======================================================================
 
     ! Assume successful return
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
-    ! Nothing to do if O3 is not a tracer
-    IF ( IDTO3 <= 0 ) RETURN
+    ! Initialize
+    DgnPtr => NULL()
+    id_O3  = Ind_('O3')
+    MW_O3  = State_Chm%SpcData(id_O3)%Info%emMW_g
+
+    ! Nothing to do if O3 is not a species
+    IF ( id_O3 <= 0 ) RETURN
 
     ! On first call, check if any of the two diagnostics is defined
     IF ( FIRST ) THEN
@@ -2867,7 +3116,9 @@ CONTAINS
        DP = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
 
        ! Ozone in v/v
-       O3vv = State_Chm%Tracers(I,J,L,IDTO3) * Input_Opt%TCVV(IDTO3) / State_Met%AD(I,J,L)
+       O3vv = State_Chm%Species(I,J,L,id_O3) &
+            * (AIRMW / MW_O3) &
+            / State_Met%AD(I,J,L)
 
        ! Calculate O3 in DU for this grid box 
        DU = O3vv * DP * constant / 2.69e16_fp
@@ -2896,13 +3147,247 @@ CONTAINS
     ENDIF
 
     ! Return w/ success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
    
   END SUBROUTINE CalcDobsonColumn
 !EOC
 #endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diagninit_KPP_rates
+!
+! !DESCRIPTION: Subroutine DIAGNINIT\_KPP_RATES initializes the KPP-based
+! diagnostics arrays. It is associated (at this point) with the
+! ND45 diagnostic.
+!
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagnInit_KPP_Rates( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE gckpp_Parameters
+    USE gckpp_Monitor
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE Input_Opt_Mod,      ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  09 Nov 2016 - M. Long     - Initial version, designed to output
+!                              ALL reaction rates (including Phot. & HET)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: cID,      Collection, D, N
+    CHARACTER(LEN=15)  :: OutOper
+    CHARACTER(LEN=155) :: DiagnName, DiagnNameBase
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DIAGNINIT_KPP_RATES (diagnostics_mod.F90)' 
+    
+    !=======================================================================
+    ! DIAGNINIT_KPP_RATES begins here!
+    !=======================================================================
+
+    ! Assume successful return
+    RC = GC_SUCCESS
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = 'Instantaneous'
+
+    ! Loop over # of rates
+    DO D = 1, NREACT
+       !----------------------------------------------------------------
+       ! Create containers for reaction rates (mcl/cc/s)
+       ! CURRENTLY initializes ALL rates.
+       !----------------------------------------------------------------
+
+       ! Diagnostic name
+       DiagnNameBase = TRIM( ADJUSTL(EQN_NAMES(D)) )
+       write(DiagnName,'(a)')'RR_' // TRIM(DiagnNameBase)
+       cId = cId + 1
+
+       ! Create container
+       CALL Diagn_Create( am_I_Root,                     &
+                          Col       = Collection,        & 
+                          cId       = cId,               &
+                          cName     = TRIM( DiagnName ), &
+                          SpaceDim  =  2,                &
+                          OutUnit   = 'cm-3 s-1',        &
+                          OutOper   = TRIM( OutOper   ), &
+                          RC        = RC )
+       
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+          CALL ERROR_STOP( MSG, LOC ) 
+       ENDIF
+       
+    ENDDO
+ 
+    ! Diagnostic name
+    DiagnName = 'T'
+    cId = cId + 1
+
+    ! Create container
+    CALL Diagn_Create( am_I_Root,       &
+                       Col       = Collection,        & 
+                       cId       = cId,               &
+                       cName     = TRIM( DiagnName ), &
+                       SpaceDim  =  3,                &
+                       OutUnit   = 'K',               &
+                       OutOper   = TRIM( OutOper   ), &
+                       RC        = RC )
+    
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+       CALL ERROR_STOP( MSG, LOC ) 
+    ENDIF
+
+    !--------------------------------------
+    ! Sticking coefficients from HetRates
+    !--------------------------------------
+    ! Create container
+    cId = cId + 1
+    CALL Diagn_Create( am_I_Root,          &
+         Col       = Collection,           & 
+         cId       = cId,                  &
+         cName     = TRIM( 'STK_N2O5' ),   &
+         SpaceDim  =  3,                   &
+         OutUnit   = '1',                  &
+         OutOper   = TRIM( OutOper   ),    &
+         RC        = RC )
+    
+    cId = cId + 1
+    CALL Diagn_Create( am_I_Root,          &
+         Col       = Collection,           & 
+         cId       = cId,                  &
+         cName     = TRIM( 'STK_HBr' ),    &
+         SpaceDim  =  3,                   &
+         OutUnit   = '1',                  &
+         OutOper   = TRIM( OutOper   ),    &
+         RC        = RC )
+    
+    cId = cId + 1
+    CALL Diagn_Create( am_I_Root,          &
+         Col       = Collection,           & 
+         cId       = cId,                  &
+         cName     = TRIM( 'STK_HBrICE' ), &
+         SpaceDim  =  3,                   &
+         OutUnit   = '1',                  &
+         OutOper   = TRIM( OutOper   ),    &
+         RC        = RC )
+    
+
+  END SUBROUTINE DiagnInit_KPP_Rates
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diagninit_KPP_Spec
+!
+! !DESCRIPTION: Subroutine DIAGNINIT\_KPP initializes the KPP-based
+! diagnostics arrays. It is associated (at this point) with the
+! ND45 diagnostic.
+!
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagnInit_KPP_Spec( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE gckpp_Parameters
+    USE gckpp_Monitor
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  09 Nov 2016 - M. Long     - Initial version, designed to output
+!                              ALL reaction rates (including Phot. & HET)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: Collection, D, N
+    CHARACTER(LEN=15)  :: OutOper
+    CHARACTER(LEN=155) :: DiagnName, DiagnNameBase
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DIAGNINIT_KPP_SPEC (diagnostics_mod.F90)' 
+    
+    !=======================================================================
+    ! DIAGNINIT_KPP_SPEC begins here!
+    !=======================================================================
+
+    ! Assume successful return
+    RC = GC_SUCCESS
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = 'Instantaneous'
+
+    ! Loop over # of rates
+    DO D = 1, NSPEC
+       !----------------------------------------------------------------
+       ! Create containers for reaction rates (mcl/cc/s)
+       ! CURRENTLY initializes ALL rates.
+       !----------------------------------------------------------------
+
+       ! Diagnostic name
+       DiagnNameBase = TRIM( ADJUSTL(SPC_NAMES(D)) )
+       write(DiagnName,'(a)')'SPC_' // TRIM(DiagnNameBase)
+       cId = cId + 1
+
+       ! Create container
+       CALL Diagn_Create( am_I_Root,                     &
+                          Col       = Collection,        & 
+                          cId       = cId,               &
+                          cName     = TRIM( DiagnName ), &
+                          SpaceDim  =  2,                &
+                          OutUnit   = 'cm-3',            &
+                          OutOper   = TRIM( OutOper   ), &
+                          RC        = RC )
+       
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+          CALL ERROR_STOP( MSG, LOC ) 
+       ENDIF
+       
+    ENDDO
+ 
+  END SUBROUTINE DiagnInit_KPP_Spec
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2914,30 +3399,33 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE TotalsToLogfile( am_I_Root, Input_Opt, RC ) 
+  SUBROUTINE TotalsToLogfile( am_I_Root, Input_Opt, State_Chm, RC ) 
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_TotalGet
-    USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH 
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH 
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt  ! Input opts
+    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt  ! Input Options object
+    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(OUT)    :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
-!  15 Mar 2015 - C. Keller    - Initial version 
+!  15 Mar 2015 - C. Keller   - Initial version 
+!  18 Aug 2016 - M. Sulprizio- Use State_Chm%nAdvect to replace N_TRACERS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    INTEGER       :: I, cId, HCRC
+    INTEGER       :: N, NA, cId, HCRC
     INTEGER       :: YEAR, MONTH 
     INTEGER, SAVE :: SAVEMONTH = -999
     REAL(sp)      :: TOTAL
@@ -2948,7 +3436,7 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Don't do anything if not root
     IF ( .NOT. Am_I_Root ) RETURN
@@ -2973,24 +3461,29 @@ CONTAINS
        WRITE(6,'(a)') REPEAT( '-', 79 )
        WRITE(6,100  ) MONTH, YEAR
 
-       ! Loop over all tracers
-       DO I = 1, Input_Opt%N_TRACERS
+       ! Loop over advected species
+       DO NA = 1, State_Chm%nAdvect
+
+          N = State_Chm%Map_Advect(NA)
+
+          ! Entry in the species database
+          SpcInfo => State_Chm%SpcData(N)%Info
 
           ! Only if it's a HEMCO species...
-          cId = GetHcoID( TrcId=I )
+          cId = GetHcoID( SpcId=N )
           IF ( cId <= 0 ) CYCLE
           
           ! Define diagnostics ID
           cId = 10000 + cId
 
           ! Get the total [kg] 
-          CALL Diagn_TotalGet( am_I_Root,                         & 
-                             cId     = cId,                       &
-                             Found   = Found,                     &
-                             Total   = Total,                     &
-                             COL     = Input_Opt%DIAG_COLLECTION, &
-                             Reset   = .TRUE.,                    &
-                             RC      = HCRC                        )
+          CALL Diagn_TotalGet( am_I_Root,                           & 
+                               cId     = cId,                       &
+                               Found   = Found,                     &
+                               Total   = Total,                     &
+                               COL     = Input_Opt%DIAG_COLLECTION, &
+                               Reset   = .TRUE.,                    &
+                               RC      = HCRC                       )
           IF ( .NOT. FOUND ) CYCLE
 
           ! Only if there have been any emissions...
@@ -3000,7 +3493,7 @@ CONTAINS
           Total = Total / 1000.0_fp
 
           ! Write out
-          WRITE(6,101) TRIM(Input_Opt%TRACER_NAME(I)), Total
+          WRITE(6,101) TRIM( SpcInfo%Name ), Total
        ENDDO
     ENDIF
     
@@ -3031,45 +3524,51 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagnostics_Write ( am_I_Root, Input_Opt, RESTART, RC ) 
+  SUBROUTINE Diagnostics_Write ( am_I_Root, Input_Opt, State_Chm, RESTART, RC ) 
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_STATE_MOD,      ONLY : HCO_STATE
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_WriteDiagn 
     USE HCOIO_Diagn_Mod,    ONLY : HCOIO_Diagn_WriteOut
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
     LOGICAL,          INTENT(IN   )  :: RESTART    ! Write restart file? 
-    TYPE(OptInput),   INTENT(IN )    :: Input_Opt  ! Input Options object
+    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt  ! Input Options object
+    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)      :: RC         ! Failure or success
+    INTEGER,          INTENT(OUT  )  :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
 !  09 Jan 2015 - C. Keller   - Initial version
 !  15 Jan 2015 - R. Yantosca - Now accept Input_Opt via the arg list
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(HCO_STATE), POINTER :: HcoState => NULL()
+    TYPE(HCO_STATE), POINTER :: HcoState
     CHARACTER(LEN=255)       :: LOC = 'Diagnostics_Write (diagnostics_mod.F90)'
 
     !=======================================================================
     ! Diagnostics_Write begins here 
     !=======================================================================
 
+    ! Initialize
+    HcoState => NULL()
+
     ! Write HEMCO diagnostics
     CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, RESTART, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Write netCDF GEOS-Chem diagnostics
 #if defined( NC_DIAG )
@@ -3082,8 +3581,8 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Eventually write out emission totals to GEOS-Chem logfile
     !-----------------------------------------------------------------------
-    CALL TotalsToLogfile( am_I_Root, Input_Opt, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN 
+    CALL TotalsToLogfile( am_I_Root, Input_Opt, State_Chm, RC )
+    IF ( RC /= GC_SUCCESS ) THEN 
        CALL ERROR_STOP ('Error in TotalsToLogfile', LOC ) 
     ENDIF
 
@@ -3096,7 +3595,7 @@ CONTAINS
 
        ! Do nothing. GEOS-Chem restart is written by call to routine
        ! WRITE_GC_RESTART in main.F. That routine is implemented in
-       ! GeosCore/restart_mod.F (ewl, 2/5/16_
+       ! GeosCore/restart_mod.F (ewl, 2/5/16)
 
     !-----------------------------------------------------------------------
     ! Not restart: write out regular diagnostics. Use current time stamp.
@@ -3120,7 +3619,7 @@ CONTAINS
 #endif
 
     ! Leave w/ success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
   END SUBROUTINE Diagnostics_Write
 !EOC
@@ -3145,9 +3644,9 @@ CONTAINS
 !! !USES:
 !!
 !    USE Error_Mod,          ONLY : Error_Stop
-!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
 !    USE HCO_Error_Mod
+!    USE Input_Opt_Mod,      ONLY : OptInput
 !!
 !! !INPUT PARAMETERS:
 !!
@@ -3177,7 +3676,7 @@ CONTAINS
 !    !=======================================================================
 !      
 !    ! Assume successful return
-!    RC = GIGC_SUCCESS
+!    RC = GC_SUCCESS
 !
 !    ! Get diagnostic parameters from the Input_Opt object
 !    Collection = Input_Opt%DIAG_COLLECTION
@@ -3186,8 +3685,8 @@ CONTAINS
 !    ! Loop over # of cloud OD and fractions diagnostics
 !    DO N = 1, NumDiagND21
 !
-!       ! If the tracer number is scheduled for output in input.geos, 
-!       ! then define the diagnostic container for that tracer.
+!       ! If the species number is scheduled for output in input.geos, 
+!       ! then define the diagnostic container for that species.
 !       IF ( ANY ( Input_Opt%TINDEX(21,:) == TRCN(N) ) ) THEN
 !
 !          !----------------------------------------------------------------
@@ -3235,9 +3734,9 @@ CONTAINS
 !! !USES:
 !!
 !    USE Error_Mod,          ONLY : Error_Stop
-!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
 !    USE HCO_Error_Mod
+!    USE Input_Opt_Mod,      ONLY : OptInput
 !!
 !! !INPUT PARAMETERS:
 !!
@@ -3267,7 +3766,7 @@ CONTAINS
 !    !=======================================================================
 !      
 !    ! Assume successful return
-!    RC = GIGC_SUCCESS
+!    RC = GC_SUCCESS
 !
 !    ! Get diagnostic parameters from the Input_Opt object
 !    Collection = Input_Opt%DIAG_COLLECTION
@@ -3276,8 +3775,8 @@ CONTAINS
 !    ! Loop over # of photolysis rate diagnostics
 !    DO N = 1, NumDiagND22 (NO2, HNO3, H2O2, CH2O, O3, OH source from O3)
 !
-!       ! If the tracer number is scheduled for output in input.geos, 
-!       ! then define the diagnostic container for that tracer.
+!       ! If the species number is scheduled for output in input.geos, 
+!       ! then define the diagnostic container for that species.
 !       IF ( ANY ( Input_Opt%TINDEX(22,:) == TRCN(N) ) ) THEN
 !
 !          !----------------------------------------------------------------
@@ -3327,10 +3826,9 @@ CONTAINS
 !! !USES:
 !!
 !    USE Error_Mod,          ONLY : Error_Stop
-!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
 !    USE HCO_Error_Mod
-!    USE TRACERID_MOD,        ONLY : ??? 
+!    USE Input_Opt_Mod,      ONLY : OptInput
 !!
 !! !INPUT PARAMETERS:
 !!
@@ -3362,13 +3860,13 @@ CONTAINS
 !    !=======================================================================
 !      
 !    ! Assume successful return
-!    RC = GIGC_SUCCESS
+!    RC = GC_SUCCESS
 !
 !    ! Get diagnostic parameters from the Input_Opt object
 !    Collection = Input_Opt%DIAG_COLLECTION
 !    OutOper    = Input_Opt%ND03_OUTPUT_TYPE
 !    
-!    ! Assign array of tracer numbers corresponding to decaying species
+!    ! Assign array of species numbers corresponding to decaying species
 !    TRCN(1) = IDTPB
 !    TRCN(2) = IDTRN
 !    TRCN(3) = IDTBE7
@@ -3376,8 +3874,8 @@ CONTAINS
 !    ! Loop over # of mercury diagnostics
 !    DO N = 1, NumDiagND03
 !
-!       ! If the tracer number is scheduled for output in input.geos, 
-!       ! then define the diagnostic container for that tracer.
+!       ! If the species number is scheduled for output in input.geos, 
+!       ! then define the diagnostic container for that species.
 !       IF ( ANY ( Input_Opt%TINDEX(3,:) == TRCN(N) ) ) THEN
 !
 !          !----------------------------------------------------------------
@@ -3424,8 +3922,8 @@ CONTAINS
 !!
 !! !USES:
 !!
-!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+!    USE Input_Opt_Mod,      ONLY : OptInput
 !!
 !! !INPUT PARAMETERS:
 !!
@@ -3455,7 +3953,7 @@ CONTAINS
 !    !=======================================================================
 !      
 !    ! Assume successful return
-!    RC = GIGC_SUCCESS
+!    RC = GC_SUCCESS
 !
 !    ! Get diagnostic parameters from the Input_Opt object
 !    Collection = Input_Opt%DIAG_COLLECTION
@@ -3464,8 +3962,8 @@ CONTAINS
 !    ! Loop over # of diagnostics (only ones with units kg S)
 !    DO N = 1, NumDiagND05
 !
-!       ! If the tracer number is scheduled for output in input.geos, 
-!       ! then define the diagnostic container for that tracer.
+!       ! If the species number is scheduled for output in input.geos, 
+!       ! then define the diagnostic container for that species.
 !       IF ( ANY ( Input_Opt%TINDEX(5,:) == TRCN(N) ) ) THEN
 !
 !          !----------------------------------------------------------------
@@ -3556,9 +4054,9 @@ CONTAINS
 !! !USES:
 !!
 !    USE Error_Mod,          ONLY : Error_Stop
-!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
 !    USE HCO_Error_Mod
+!    USE Input_Opt_Mod,      ONLY : OptInput
 !!
 !! !INPUT PARAMETERS:
 !!
@@ -3588,7 +4086,7 @@ CONTAINS
 !    !=======================================================================
 !      
 !    ! Assume successful return
-!    RC = GIGC_SUCCESS
+!    RC = GC_SUCCESS
 !
 !    ! Get diagnostic parameters from the Input_Opt object
 !    Collection = Input_Opt%DIAG_COLLECTION
@@ -3597,8 +4095,8 @@ CONTAINS
 !    ! Loop over # of diagnostics (NOTE: diags 10-23 only if SOA simulation)
 !    DO N = 1, NumDiagND07
 !
-!       ! If the tracer number is scheduled for output in input.geos, 
-!       ! then define the diagnostic container for that tracer.
+!       ! If the species number is scheduled for output in input.geos, 
+!       ! then define the diagnostic container for that species.
 !       IF ( ANY ( Input_Opt%TINDEX(7,:) == TRCN(N) ) ) THEN
 !
 !          !----------------------------------------------------------------
@@ -3635,22 +4133,25 @@ CONTAINS
 !! !IROUTINE: diagninit_hrlymax_surfconc
 !!
 !! !DESCRIPTION: Subroutine DIAGNINIT\_HRLYMAX\_SURFCONC initializes the 
-!!  diagnostics for hourly maximum tracer mixing ratio at the surface (aka ND71).
+!!  diagnostics for hourly maximum species mixing ratio at the surface (aka
+!!  ND71).
 !!\\
 !!\\
 !! !INTERFACE:
 !!
-!  SUBROUTINE DiagnInit_HrlyMax_SurfConc( am_I_Root, Input_Opt, RC )
+!  SUBROUTINE DiagnInit_HrlyMax_SurfConc( am_I_Root, Input_Opt, State_Chm, RC )
 !!
 !! !USES:
 !!
-!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+!    USE Input_Opt_Mod,      ONLY : OptInput
+!    USE State_Chm_Mod,      ONLY : ChmState
 !!
 !! !INPUT PARAMETERS:
 !!
 !    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
 !    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!    TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
 !!
 !! !INPUT/OUTPUT PARAMETERS:
 !!
@@ -3675,23 +4176,23 @@ CONTAINS
 !    !=======================================================================
 !
 !    ! Assume successful return
-!    RC = GIGC_SUCCESS
+!    RC = GC_SUCCESS
 !
 !    ! Get diagnostic parameters from the Input_Opt object
 !    Collection = Input_Opt%DIAG_COLLECTION
 !    OutOper    = Input_Opt%ND71_OUTPUT_TYPE
 !
-!    ! TODO Check if certain tracer(s) listed for ND71 in input.geos 
+!    ! TODO Check if certain species listed for ND71 in input.geos 
 !
 !    !----------------------------------------------------------------
-!    ! Create containers for Tracer Mixing Ratio
+!    ! Create containers for Species Mixing Ratio
 !    !----------------------------------------------------------------
 !
 !    ! Diagnostic name
 !    DiagnName = 'IJ-MAX'
 !    DO M = 1, Input_Opt%TMAX(71)
 !       N = Input_Opt%TINDEX(71,M)
-!       IF ( N > Input_Opt%N_TRACERS ) CYCLE
+!       IF ( N > State_Chm%nAdvect ) CYCLE
 !
 !!       ! line from diag3
 !!       ARRAY(:,:,1) = AD71(:,:,N)/AD71_COUNT

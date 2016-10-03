@@ -1115,7 +1115,7 @@ CONTAINS
                TK = ExtState%TK%Arr%Val(I,J,1)
 
                ! Get surface pressure at end of dynamic time step [hPa]
-               PRESS = ExtState%PSC2%Arr%Val(I,J)
+               PRESS = ExtState%PSC2_WET%Arr%Val(I,J)
 
                ! Convert to units of atm 
                PRESS = PRESS / 1013.25e+0_hp
@@ -1946,7 +1946,7 @@ CONTAINS
     ExtState%FRAC_OF_PBL%DoUse = .TRUE. 
     ExtState%FRLAKE%DoUse      = .TRUE.
     ExtState%LAI%DoUse         = .TRUE.
-    ExtState%PSC2%DoUse        = .TRUE. 
+    ExtState%PSC2_WET%DoUse    = .TRUE. 
     ExtState%SNOWHGT%DoUse     = .TRUE.
     ExtState%T2M%DoUse         = .TRUE. 
     ExtState%TK%DoUse          = .TRUE. 

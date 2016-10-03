@@ -16,10 +16,10 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD, ONLY : IIPAR,JJPAR,LLPAR, NDUST, NAER
       USE CMN_FJX_MOD,  ONLY : RTODAER, RTSSAER, RTASYMAER,
      &                         WVAA, SPECMASK, LSPECRADMENU,
      &                         NSPECRADMENU
+      USE CMN_SIZE_MOD, ONLY : IIPAR,JJPAR,LLPAR, NDUST, NAER
       USE DIAG_MOD,     ONLY : AD72 !RAD OUTPUT DIAGNOSTIC ARRAY
       USE OMP_LIB
       USE PARRRTM,      ONLY : NBNDLW
@@ -50,37 +50,40 @@
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CFC22CLIM(:,:,:)
 
       !MCICA cloud variables now stored for reuse
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDFMCL_LW(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CIWPMCL_LW(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLWPMCL_LW(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TAUCMCL_LW(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDFMCL_SW(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CIWPMCL_SW(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLWPMCL_SW(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TAUCMCL_SW(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SSACMCL(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ASMCMCL(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FSFCMCL(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: REICMCL(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RELQMCL(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDFMCL_LW(:,:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CIWPMCL_LW(:,:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLWPMCL_LW(:,:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TAUCMCL_LW(:,:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDFMCL_SW(:,:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CIWPMCL_SW(:,:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLWPMCL_SW(:,:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TAUCMCL_SW(:,:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SSACMCL(:,:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ASMCMCL(:,:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FSFCMCL(:,:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: REICMCL(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RELQMCL(:,:,:)
 !
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D.A. Ridley - Initial version
 !  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
+!  17 May 2016 - M. Sulprizio- Add extra dimension to MCICA cloud arrays to
+!                              allow for change from IIPAR*JJPAR to IIPAR,JJPAR
+!  27 Jun 2016 - R. Yantosca - Now save species ID's in module variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8,  ALLOCATABLE  :: LW_UFLUX(:,:)
-      REAL*8,  ALLOCATABLE  :: LW_DFLUX(:,:)
-      REAL*8,  ALLOCATABLE  :: SW_UFLUX(:,:)
-      REAL*8,  ALLOCATABLE  :: SW_DFLUX(:,:)
-      REAL*8,  ALLOCATABLE  :: LW_UFLUXC(:,:)
-      REAL*8,  ALLOCATABLE  :: LW_DFLUXC(:,:)
-      REAL*8,  ALLOCATABLE  :: SW_UFLUXC(:,:)
-      REAL*8,  ALLOCATABLE  :: SW_DFLUXC(:,:)
+      REAL*8,  ALLOCATABLE  :: LW_UFLUX (:,:,:)
+      REAL*8,  ALLOCATABLE  :: LW_DFLUX (:,:,:)
+      REAL*8,  ALLOCATABLE  :: SW_UFLUX (:,:,:)
+      REAL*8,  ALLOCATABLE  :: SW_DFLUX (:,:,:)
+      REAL*8,  ALLOCATABLE  :: LW_UFLUXC(:,:,:)
+      REAL*8,  ALLOCATABLE  :: LW_DFLUXC(:,:,:)
+      REAL*8,  ALLOCATABLE  :: SW_UFLUXC(:,:,:)
+      REAL*8,  ALLOCATABLE  :: SW_DFLUXC(:,:,:)
 
       REAL*8  :: RRTMG_LMB(NBNDLW+NBNDSW)
 
@@ -114,14 +117,14 @@
       !-----------------------------------------------------------------
       ! Modules from GeosRad
       !-----------------------------------------------------------------
+      USE MCICA_SUBCOL_GEN_LW, ONLY : MCICA_SUBCOL_LW
+      USE MCICA_SUBCOL_GEN_SW, ONLY : MCICA_SUBCOL_SW
       USE PARKIND,             ONLY : IM=>KIND_IM, RB=>KIND_RB
       USE RRLW_CON,            ONLY : GASCON, AVOGAD
       USE PARRRTM,             ONLY : NBNDLW, NGPTLW
       USE PARRRSW,             ONLY : NBNDSW, NGPTSW,NAEREC
       USE RRTMG_LW_RAD,        ONLY : RRTMG_LW
       USE RRTMG_SW_RAD,        ONLY : RRTMG_SW
-      USE MCICA_SUBCOL_GEN_LW, ONLY : MCICA_SUBCOL_LW
-      USE MCICA_SUBCOL_GEN_SW, ONLY : MCICA_SUBCOL_SW
 
       !-----------------------------------------------------------------
       ! GEOS-Chem modules
@@ -135,21 +138,19 @@
       USE CMN_FJX_MOD,         ONLY : ACOEF_RTWV, BCOEF_RTWV, CCOEF_RTWV 
       USE CMN_FJX_MOD,         ONLY : WVAA,       NWVAA
       USE CMN_FJX_MOD,         ONLY : NWVAA0
-      USE PHYSCONSTANTS,       ONLY : AIRMW, PI, AVO
-      USE COMODE_MOD,          ONLY : AIRDENS,        CSPEC,       JLOP
-      USE COMODE_LOOP_MOD,     ONLY : ICH4
       USE DIAG_MOD,            ONLY : AD72
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,  ONLY : OptInput
-      USE GIGC_State_Met_Mod,  ONLY : MetState
-      USE GIGC_State_Chm_Mod,  ONLY : ChmState
       USE GRID_MOD,            ONLY : GET_YMID
+      USE Input_Opt_Mod,       ONLY : OptInput
+      USE PhysConstants,       ONLY : AIRMW, PI, AVO
       USE PRESSURE_MOD,        ONLY : GET_PCENTER,      GET_PEDGE
+      USE State_Chm_Mod,       ONLY : ChmState
+      USE State_Chm_Mod,       ONLY : Ind_
+      USE State_Met_Mod,       ONLY : MetState
       USE TIME_MOD,            ONLY : GET_DAY_OF_YEAR, GET_HOUR
       USE TOMS_MOD,            ONLY : GET_OVERHEAD_O3
-      USE TRACERID_MOD
-      USE UNITCONV_MOD
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -194,8 +195,22 @@
 !  12 Aug 2015 - E. Lundgren - Incoming tracer units are now [kg/kg] and
 !                              are converted to [kg] for RRTMG
 !  12 Aug 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
+!  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met object
+!  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !  19 Jan 2016 - E. Lundgren - Use global physical constants from physconstants
 !                              rather than comode_loop_mod
+!  17 May 2016 - M. Sulprizio- Remove NCOL, IJLOOP and change dimensions of
+!                              arrays from IIPAR*JJPAR to IIPAR,JJPAR
+!  31 May 2016 - E. Lundgren - Replace Input_Opt%TRACER_MW_G with emMW_g from
+!                              species database (emitted species g/mol)
+!  16 Jun 2016 - K. Yu       - Now define species ID's with the Ind_ function
+!  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
+!  27 Jun 2016 - R. Yantosca - Bug fix: replace a couple of leftover IDO3
+!                              variables with the new id_O3 species ID
+!  30 Jun 2016 - M. Sulprizio- Replace ICH4 with id_CH4 to remove dependence
+!                              on comode_loop_mod.F
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -213,6 +228,11 @@
       INTEGER                :: ITIMEVALS(8)
       INTEGER                :: IDIAGOUT     ! INDEX OF SPECIES OPTICS FOR OUTPUT     
       REAL*8                 :: OLDSECS, NEWSECS
+      
+      ! SAVEd scalars
+      LOGICAL, SAVE          :: FIRST = .TRUE.
+      INTEGER, SAVE          :: id_O3,    id_CH4,  id_N2O, id_CFC11
+      INTEGER, SAVE          :: id_CFC12, id_CCL4, id_HCFC22
 
       !-----------------------------------------------------------------
       ! TEMPORARY AEROSOL VARIABLES
@@ -222,7 +242,7 @@
       !-----------------------------------------------------------------
       ! SCALARS
       !-----------------------------------------------------------------
-      INTEGER                :: I, J ,L, LL, N, NCOL, JLOOP, IJLOOP, W
+      INTEGER                :: I, J ,L, LL, N, W
       INTEGER                :: IL, OMPID, LCHEM
       INTEGER                :: OUTIDX,IOUTWV
       INTEGER                :: IB,IBX,IB_SW,IS,NBNDS,NSPEC
@@ -243,46 +263,46 @@
       !-----------------------------------------------------------------
       ! ARRAYS FROM GC
       !-----------------------------------------------------------------
-      REAL(KIND=RB)          :: PCENTER(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)          :: PEDGE  (IIPAR*JJPAR,LLPAR)
-      LOGICAL                :: INTROP (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: PCENTER(IIPAR,JJPAR,LLPAR)
+      REAL(KIND=RB)          :: PEDGE  (IIPAR,JJPAR,LLPAR)
+      LOGICAL                :: INTROP (IIPAR,JJPAR,LLPAR)
 
       !-----------------------------------------------------------------
       !ARRAYS FOR RRTMG
       !-----------------------------------------------------------------
-      REAL(KIND=RB)          :: O3VMR (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)          :: CH4VMR(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)          :: N2OVMR(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)          :: CFC11VMR(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)          :: CFC12VMR(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)          :: CFC22VMR(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)          :: CCL4VMR(IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: O3VMR (IIPAR,JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CH4VMR(IIPAR,JJPAR,LLPAR)
+      REAL(KIND=RB)          :: N2OVMR(IIPAR,JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CFC11VMR(IIPAR,JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CFC12VMR(IIPAR,JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CFC22VMR(IIPAR,JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CCL4VMR(IIPAR,JJPAR,LLPAR)
 
-      REAL(KIND=RB)          :: TAUCLD(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)          :: CLDFR (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)          :: RELIQ (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)          :: REICE (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)          :: CLIQWP (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)          :: CICEWP (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)          :: ALBVIS (IIPAR*JJPAR)
+      REAL(KIND=RB)          :: TAUCLD(IIPAR,JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CLDFR (IIPAR,JJPAR,LLPAR)
+      REAL(KIND=RB)          :: RELIQ (IIPAR,JJPAR,LLPAR)
+      REAL(KIND=RB)          :: REICE (IIPAR,JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CLIQWP (IIPAR,JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CICEWP (IIPAR,JJPAR,LLPAR)
+      REAL(KIND=RB)          :: ALBVIS (IIPAR,JJPAR)
 
-      REAL(KIND=RB)          :: TAUAER_LW (IIPAR*JJPAR,LLPAR,NBNDLW)
-      REAL(KIND=RB)          :: TAUAER_SW (IIPAR*JJPAR,LLPAR,NBNDSW)
-      REAL(KIND=RB)          :: SSAAER (IIPAR*JJPAR,LLPAR,NBNDSW)
-      REAL(KIND=RB)          :: ASMAER (IIPAR*JJPAR,LLPAR,NBNDSW)
+      REAL(KIND=RB)          :: TAUAER_LW (IIPAR,JJPAR,LLPAR,NBNDLW)
+      REAL(KIND=RB)          :: TAUAER_SW (IIPAR,JJPAR,LLPAR,NBNDSW)
+      REAL(KIND=RB)          :: SSAAER (IIPAR,JJPAR,LLPAR,NBNDSW)
+      REAL(KIND=RB)          :: ASMAER (IIPAR,JJPAR,LLPAR,NBNDSW)
 
       !-----------------------------------------------------------------
       !TO STORE THE OPTICS FOR THE AEROSOLS WE ARE INTERESTED IN
       !-----------------------------------------------------------------
-      REAL*8                 :: TAUAERDIAG (IIPAR*JJPAR,LLPAR,NBNDSW)
-      REAL*8                 :: SSAAERDIAG (IIPAR*JJPAR,LLPAR,NBNDSW)
-      REAL*8                 :: ASMAERDIAG (IIPAR*JJPAR,LLPAR,NBNDSW)
+      REAL*8                 :: TAUAERDIAG (IIPAR,JJPAR,LLPAR,NBNDSW)
+      REAL*8                 :: SSAAERDIAG (IIPAR,JJPAR,LLPAR,NBNDSW)
+      REAL*8                 :: ASMAERDIAG (IIPAR,JJPAR,LLPAR,NBNDSW)
 
-      REAL(KIND=RB)          :: H2OVMR   (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)          :: TLAY     (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)          :: PLAY     (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)          :: SUNCOS   (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)          :: TSFC     (IIPAR*JJPAR)
+      REAL(KIND=RB)          :: H2OVMR   (IIPAR,JJPAR,LLPAR)
+      REAL(KIND=RB)          :: TLAY     (IIPAR,JJPAR,LLPAR)
+      REAL(KIND=RB)          :: PLAY     (IIPAR,JJPAR,LLPAR)
+      REAL(KIND=RB)          :: SUNCOS   (IIPAR,JJPAR,LLPAR)
+      REAL(KIND=RB)          :: TSFC     (IIPAR,JJPAR)
 
       !-----------------------------------------------------------------
       !VARIABLES FOR OBTAINING STRATOSPHERIC VARIABLES
@@ -292,18 +312,18 @@
       !-----------------------------------------------------------------
       !SURFACE
       !-----------------------------------------------------------------
-      REAL(KIND=RB)          :: ALBDIRVIS (IIPAR*JJPAR)
-      REAL(KIND=RB)          :: ALBDIFVIS (IIPAR*JJPAR)
-      REAL(KIND=RB)          :: ALBDIRNIR (IIPAR*JJPAR)
-      REAL(KIND=RB)          :: ALBDIFNIR (IIPAR*JJPAR)
-      REAL(KIND=RB)          :: RTEMISS   (IIPAR*JJPAR,NBNDLW)
+      REAL(KIND=RB)          :: ALBDIRVIS (IIPAR,JJPAR)
+      REAL(KIND=RB)          :: ALBDIFVIS (IIPAR,JJPAR)
+      REAL(KIND=RB)          :: ALBDIRNIR (IIPAR,JJPAR)
+      REAL(KIND=RB)          :: ALBDIFNIR (IIPAR,JJPAR)
+      REAL(KIND=RB)          :: RTEMISS   (IIPAR,JJPAR,NBNDLW)
 
       REAL*8                 :: NUMER,DENOM
       REAL*4                 :: AODTMP,AODOUT,SSATMP,SSAOUT
       REAL*4                 :: ASYMTMP,ASYMOUT
-      INTEGER                :: FLG_FIRST_STRAT(IIPAR*JJPAR)
+      INTEGER                :: FLG_FIRST_STRAT(IIPAR,JJPAR)
       INTEGER                :: ONECOL
-      REAL*4                 :: CH4SCL(IIPAR*JJPAR)
+      REAL*4                 :: CH4SCL(IIPAR,JJPAR)
 
       !-----------------------------------------------------------------
       ! FROM RAD_DRIVER... TO BE MERGED
@@ -316,10 +336,10 @@
       !-----------------------------------------------------------------
       ! PROFILE VARIABLES
       !-----------------------------------------------------------------
-      REAL (KIND=RB)         :: PLEV(IIPAR*JJPAR,LLPAR+1)
-      REAL (KIND=RB)         :: TLEV(IIPAR*JJPAR,LLPAR+1)
-      REAL (KIND=RB)         :: CO2VMR(IIPAR*JJPAR,LLPAR)
-      REAL (KIND=RB)         :: O2VMR(IIPAR*JJPAR,LLPAR)
+      REAL (KIND=RB)         :: PLEV(IIPAR,JJPAR,LLPAR+1)
+      REAL (KIND=RB)         :: TLEV(IIPAR,JJPAR,LLPAR+1)
+      REAL (KIND=RB)         :: CO2VMR(IIPAR,JJPAR,LLPAR)
+      REAL (KIND=RB)         :: O2VMR(IIPAR,JJPAR,LLPAR)
       REAL (KIND=RB)         :: T_CTM(LLPAR+1)
       REAL (KIND=RB)         :: P_CTM(LLPAR+2)
       REAL (KIND=RB)         :: O3_CTM(LLPAR+1)
@@ -327,9 +347,6 @@
       REAL (KIND=RB)         :: O3_CLIM(LLPAR+1)
       REAL (KIND=RB)         :: Z_CLIM(LLPAR+2)
       REAL (KIND=RB)         :: AIR_CLIM(LLPAR+1)
-      INTEGER                :: N_TRACERS
-      REAL*8                 :: XNUMOL(Input_Opt%N_TRACERS)
-      REAL*8                 :: TRACER_MW_G(Input_Opt%N_TRACERS)
 
       !-----------------------------------------------------------------
       ! SW SOLAR VARIABLES
@@ -340,11 +357,11 @@
       !-----------------------------------------------------------------
       ! SW CLOUD VARIABLES
       !-----------------------------------------------------------------
-      REAL(KIND=RB)          :: TAUCLD_SW(NBNDSW,IIPAR*JJPAR,LLPAR) ! IN-CLOUD OPTICAL DEPTH
-      REAL(KIND=RB)          :: TAUCLD_LW(NBNDLW,IIPAR*JJPAR,LLPAR) ! NOT USED BUT PASSED TO MCICA_LW
-      REAL(KIND=RB)          :: SSACLD(NBNDSW,IIPAR*JJPAR,LLPAR)    ! IN-CLOUD SINGLE SCATTERING ALBEDO
-      REAL(KIND=RB)          :: ASMCLD(NBNDSW,IIPAR*JJPAR,LLPAR)    ! IN-CLOUD ASYMMETRY PARAMETER
-      REAL(KIND=RB)          :: FSFCLD(NBNDSW,IIPAR*JJPAR,LLPAR)    ! IN-CLOUD FORWARD SCATTERING FRACTION
+      REAL(KIND=RB)          :: TAUCLD_SW(NBNDSW,IIPAR,JJPAR,LLPAR) ! IN-CLOUD OPTICAL DEPTH
+      REAL(KIND=RB)          :: TAUCLD_LW(NBNDLW,IIPAR,JJPAR,LLPAR) ! NOT USED BUT PASSED TO MCICA_LW
+      REAL(KIND=RB)          :: SSACLD(NBNDSW,IIPAR,JJPAR,LLPAR)    ! IN-CLOUD SINGLE SCATTERING ALBEDO
+      REAL(KIND=RB)          :: ASMCLD(NBNDSW,IIPAR,JJPAR,LLPAR)    ! IN-CLOUD ASYMMETRY PARAMETER
+      REAL(KIND=RB)          :: FSFCLD(NBNDSW,IIPAR,JJPAR,LLPAR)    ! IN-CLOUD FORWARD SCATTERING FRACTION
       REAL(KIND=RB)          :: ECAER(1,LLPAR,NAEREC)               ! AEROSOL OPTICAL DEPTH AT 0.55UM (IAER=6 ONLY)
 
       !-----------------------------------------------------------------
@@ -478,19 +495,14 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
-      ! Get fields from Input_Opt
-      N_TRACERS   = Input_Opt%N_TRACERS
-      XNUMOL      = Input_Opt%XNUMOL
-      TRACER_MW_G = Input_Opt%TRACER_MW_G(1:N_TRACERS)
-
-      ! Convert tracer units to [kg] for RRTMG (ewl, 8/12/15)
-      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
-     &                            State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC,     
-     &                   'DO_RRTMG_RAD_TRANSFER')
+      ! Convert species units to [kg] for RRTMG (ewl, 8/12/15)
+      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,  
+     &                               State_Chm, RC ) 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC,     
+     &                 'DO_RRTMG_RAD_TRANSFER')
          RETURN
       ENDIF
 
@@ -506,15 +518,16 @@
       !=================================================================
 
       ! INITIALIZE
-      NSPEC              = NAER+NDUST+4
-      FLG_FIRST_STRAT(:) = 0 !FLAG TO DETERMINE IF THE FIRST STRATOSPHERIC LEVEL HAS BEEN REACHED
+      NSPEC                = NAER+NDUST+4
+      FLG_FIRST_STRAT(:,:) = 0 !FLAG TO DETERMINE IF THE FIRST STRATOSPHERIC
+                               ! LEVEL HAS BEEN REACHED
  
       !DETERMINE IF WE ARE RUNNING WITH AEROSOL
       !CREATE INDEX FOR AEROSOLS REQUIRED
-      LOUTPUTAERO        = .TRUE. !SET AEROSOL DIAG OUTPUT TO TRUE INITIALLY
-      DOAERAD            = .FALSE.
-      NASPECRAD_ON       = 0
-      IASPECRAD_ON(:)    = 0
+      LOUTPUTAERO     = .TRUE. !SET AEROSOL DIAG OUTPUT TO TRUE INITIALLY
+      DOAERAD         = .FALSE.
+      NASPECRAD_ON    = 0
+      IASPECRAD_ON(:) = 0
 
       DO N=1,NASPECRAD
        IF (SPECMASK(N).GT.0) THEN
@@ -526,37 +539,55 @@
        ENDIF
       ENDDO
 !      write(6,*) 'SPECMASK:',SPECMASK
-      
-      TAUCLD(:,:)        = 0.0
-      CLDFR(:,:)         = 0.0
-      RELIQ(:,:)         = 0.0
-      REICE(:,:)         = 0.0
-      CLIQWP(:,:)        = 0.0
-      CICEWP(:,:)        = 0.0
-      TAUAER_LW(:,:,:)   = 0.0
-      TAUAER_SW(:,:,:)   = 0.0
-      SSAAER(:,:,:)      = 0.0
-      ASMAER(:,:,:)      = 0.0
-      TAUAERDIAG(:,:,:)  = 0.0D0
-      SSAAERDIAG(:,:,:)  = 0.0D0
-      ASMAERDIAG(:,:,:)  = 0.0D0
-      UFLX(:,:)          = 0.0
-      DFLX(:,:)          = 0.0
-      HR(:,:)            = 0.0
-      UFLXC(:,:)         = 0.0
-      DFLXC(:,:)         = 0.0
-      HRC(:,:)           = 0.0
-      DUFLX_DT(:,:)      = 0.0
-      DUFLXC_DT(:,:)     = 0.0
-      SWUFLX(:,:)        = 0.0
-      SWDFLX(:,:)        = 0.0
-      SWHR(:,:)          = 0.0
-      SWUFLXC(:,:)       = 0.0
-      SWDFLXC(:,:)       = 0.0
-      SWHRC(:,:)         = 0.0
-      O3VMR(:,:)         = 0.0
-      CH4VMR(:,:)        = 0.0
-      NBNDS              = NBNDLW+NBNDSW
+
+      ! Initialize arrays
+      TAUCLD(:,:,:)       = 0.0
+      CLDFR(:,:,:)        = 0.0
+      RELIQ(:,:,:)        = 0.0
+      REICE(:,:,:)        = 0.0
+      CLIQWP(:,:,:)       = 0.0
+      CICEWP(:,:,:)       = 0.0
+      TAUAER_LW(:,:,:,:)  = 0.0
+      TAUAER_SW(:,:,:,:)  = 0.0
+      SSAAER(:,:,:,:)     = 0.0
+      ASMAER(:,:,:,:)     = 0.0
+      TAUAERDIAG(:,:,:,:) = 0.0D0
+      SSAAERDIAG(:,:,:,:) = 0.0D0
+      ASMAERDIAG(:,:,:,:) = 0.0D0
+      UFLX(:,:)           = 0.0
+      DFLX(:,:)           = 0.0
+      HR(:,:)             = 0.0
+      UFLXC(:,:)          = 0.0
+      DFLXC(:,:)          = 0.0
+      HRC(:,:)            = 0.0
+      DUFLX_DT(:,:)       = 0.0
+      DUFLXC_DT(:,:)      = 0.0
+      SWUFLX(:,:)         = 0.0
+      SWDFLX(:,:)         = 0.0
+      SWHR(:,:)           = 0.0
+      SWUFLXC(:,:)        = 0.0
+      SWDFLXC(:,:)        = 0.0
+      SWHRC(:,:)          = 0.0
+      O3VMR(:,:,:)        = 0.0
+      CH4VMR(:,:,:)       = 0.0
+      NBNDS               = NBNDLW+NBNDSW
+
+      ! First-time setup
+      IF ( FIRST ) THEN
+
+         ! Define species ID flags
+         id_O3     = Ind_('O3')
+         id_CH4    = Ind_('CH4')
+         id_N2O    = Ind_('N2O')
+         id_CFC11  = Ind_('CFC11')
+         id_CFC12  = Ind_('CFC12')
+         id_CCL4   = Ind_('CCL4')
+         id_HCFC22 = Ind_('HCFC22')
+
+         ! Reset first-time flag
+         FIRST = .FALSE.
+
+      ENDIF
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%%  This parallel loop gives identical results w/r/t to a RRTMG           %%%
@@ -564,40 +595,37 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IJLOOP, IB, IB_SW )
+!$OMP+PRIVATE( I, J, IB, IB_SW )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! 1-D INDEX
-         IJLOOP         = (J-1)*IIPAR+I
-
          !BROADBAND ALBEDO
-         ALBDIRVIS(IJLOOP) = ALBDIR(I,J,1)
-         ALBDIFVIS(IJLOOP) = ALBDIF(I,J,1)
-         ALBDIRNIR(IJLOOP) = ALBDIR(I,J,2)
-         ALBDIFNIR(IJLOOP) = ALBDIF(I,J,2)
-         IF ((ALBDIRVIS(IJLOOP).GT.0.999)  .OR.
-     &       (ALBDIRVIS(IJLOOP).LT.0.001)) THEN
-            WRITE(6,*) 'ALBEDO DRVIS OUT OF RANGE',I,J,ALBDIRVIS(IJLOOP)
+         ALBDIRVIS(I,J) = ALBDIR(I,J,1)
+         ALBDIFVIS(I,J) = ALBDIF(I,J,1)
+         ALBDIRNIR(I,J) = ALBDIR(I,J,2)
+         ALBDIFNIR(I,J) = ALBDIF(I,J,2)
+         IF ((ALBDIRVIS(I,J).GT.0.999)  .OR.
+     &       (ALBDIRVIS(I,J).LT.0.001)) THEN
+            WRITE(6,*) 'ALBEDO DRVIS OUT OF RANGE',I,J,ALBDIRVIS(I,J)
          ENDIF
-         IF ((ALBDIFVIS(IJLOOP).GT.0.999)  .OR.
-     &       (ALBDIFVIS(IJLOOP).LT.0.001)) THEN
-            WRITE(6,*) 'ALBEDO DFVIS OUT OF RANGE',I,J,ALBDIFVIS(IJLOOP)
+         IF ((ALBDIFVIS(I,J).GT.0.999)  .OR.
+     &       (ALBDIFVIS(I,J).LT.0.001)) THEN
+            WRITE(6,*) 'ALBEDO DFVIS OUT OF RANGE',I,J,ALBDIFVIS(I,J)
          ENDIF
-         IF ((ALBDIRNIR(IJLOOP).GT.0.999)  .OR.
-     &       (ALBDIRNIR(IJLOOP).LT.0.001)) THEN
-            WRITE(6,*) 'ALBEDO DRNIR OUT OF RANGE',I,J,ALBDIRNIR(IJLOOP)
+         IF ((ALBDIRNIR(I,J).GT.0.999)  .OR.
+     &       (ALBDIRNIR(I,J).LT.0.001)) THEN
+            WRITE(6,*) 'ALBEDO DRNIR OUT OF RANGE',I,J,ALBDIRNIR(I,J)
          ENDIF
-         IF ((ALBDIFNIR(IJLOOP).GT.0.999)  .OR.
-     &       (ALBDIFNIR(IJLOOP).LT.0.001)) THEN
-            WRITE(6,*) 'ALBEDO DFNIR OUT OF RANGE',I,J,ALBDIFNIR(IJLOOP)
+         IF ((ALBDIFNIR(I,J).GT.0.999)  .OR.
+     &       (ALBDIFNIR(I,J).LT.0.001)) THEN
+            WRITE(6,*) 'ALBEDO DFNIR OUT OF RANGE',I,J,ALBDIFNIR(I,J)
          ENDIF
 
          DO IB= 1, NBNDS
             IB_SW = IB-NBNDLW
             IF ( IB .LE. 16) THEN
-               RTEMISS(IJLOOP,IB)     = EMISS(I,J,IB)
+               RTEMISS(I,J,IB)     = EMISS(I,J,IB)
             ENDIF
          ENDDO
 
@@ -608,16 +636,15 @@
       !GET PCENTER, PEDGE AND DETERMINE IF IN TROP
       DO I = 1, IIPAR
       DO J = 1, JJPAR
-      IJLOOP         = (J-1)*IIPAR+I
       DO L = 1, LLPAR
-         PCENTER(IJLOOP,L) = GET_PCENTER( I, J, L )
-         PEDGE  (IJLOOP,L) = GET_PEDGE  ( I, J, L )
-         H2OVMR (IJLOOP,L) = State_Met%AVGW(I,J,L)
-         TLAY   (IJLOOP,L) = State_Met%T(I,J,L)
-         INTROP (IJLOOP,L) = ITS_IN_THE_TROP( I, J, L, State_Met )
-         SUNCOS (IJLOOP,L) = State_Met%SUNCOS(I,J)
+         PCENTER(I,J,L) = GET_PCENTER( I, J, L )
+         PEDGE  (I,J,L) = GET_PEDGE  ( I, J, L )
+         H2OVMR (I,J,L) = State_Met%AVGW(I,J,L)
+         TLAY   (I,J,L) = State_Met%T(I,J,L)
+         INTROP (I,J,L) = ITS_IN_THE_TROP( I, J, L, State_Met )
+         SUNCOS (I,J,L) = State_Met%SUNCOS(I,J)
       ENDDO
-      TSFC  (IJLOOP)   = State_Met%TSKIN(I,J)
+      TSFC  (I,J)   = State_Met%TSKIN(I,J)
       ENDDO
       ENDDO
 
@@ -629,16 +656,14 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,       J,      L,      IJLOOP,  JLOOP    )
+!$OMP+PRIVATE( I,       J,      L                         )
 !$OMP+PRIVATE( AIR_TMP, YLAT,   O3COL,  O3_CTM,  T_CTM    )
 !$OMP+PRIVATE( P_CTM,   T_CLIM, Z_CLIM, O3_CLIM, AIR_CLIM )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-       ! 1-D INDEX
-       IJLOOP         = (J-1)*IIPAR+I
-       ALBVIS(IJLOOP)   = State_Met%ALBD(I,J)
+       ALBVIS(I,J)   = State_Met%ALBD(I,J)
 
        ! Grid box latitude [degrees]
        YLAT            = GET_YMID( I, J, 1 )
@@ -671,12 +696,7 @@
        O3_CTM          = 0d0
        LCHEM           = GET_CHEMGRID_LEVEL(I,J,State_Met)
        DO L = 1, LCHEM
-          JLOOP        = JLOP(I,J,L)
-
-          ! Make sure JLOOP > 0 to avoid out-of-bounds errors  (bmy, 4/13/15)
-          IF ( JLOOP > 0 ) THEN
-             O3_CTM(L) = CSPEC(JLOOP,IDO3)
-          ENDIF
+          O3_CTM(L)    = State_Chm%Species(I,J,L,id_O3)
        ENDDO
        
       DO L = 1, LLPAR
@@ -689,31 +709,26 @@
 
             IF (ICLD.NE.0) THEN
              ! LIQUID
-             CLIQWP(IJLOOP,L) = 0.667*State_Met%TAUCLW(I,J,L)*
-     &                          RHOLIQ*REL_DEF
-             RELIQ(IJLOOP,L) = REL_DEF
+             CLIQWP(I,J,L) = 0.667*State_Met%TAUCLW(I,J,L)*
+     &                       RHOLIQ*REL_DEF
+             RELIQ(I,J,L)  = REL_DEF
              ! ICE
-             CICEWP(IJLOOP,L) = 0.667*State_Met%TAUCLI(I,J,L)*
-     &                          RHOICE*REI_DEF
-             REICE(IJLOOP,L) = REI_DEF
+             CICEWP(I,J,L) = 0.667*State_Met%TAUCLI(I,J,L)*
+     &                       RHOICE*REI_DEF
+             REICE(I,J,L)  = REI_DEF
              !TAUCLD DERIVED IN MCICA SUB, NOT NEEDED
-             CLDFR(IJLOOP,L)   = State_Met%CLDF(I,J,L)
+             CLDFR(I,J,L)  = State_Met%CLDF(I,J,L)
             ENDIF !CLOUDS
 
-       IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN 
+       IF (INTROP(I,J,L).EQ..TRUE.) THEN 
            !-----------------------------
             ! WE ARE IN THE TROPOSPHERE
             !-----------------------------
 
             ! SET O3, CH4, N2O AND CFC PROFILES
             ! G-C CHEMISTRY IS ONLY DONE IN THE TROP
-            ! THEREFORE CSPEC WILL ONLY BE DEFINED IN THE TROP
-            ! 1-D INDEX FOR CSPEC ARRAY
-            JLOOP = JLOP(I,J,L)
-!            write(6,*) 'JLOOP', JLOOP, I,J,L
-            IF (JLOOP.EQ.0) THEN 
-             JLOOP=1
-            ENDIF
+            ! THEREFORE State_Chm%Species WILL ONLY BE DEFINED IN THE TROP
+
             !IF O3 REQUESTED THEN SPECMASK WILL BE SET TO ZERO
             !SO THAT O3 WILL BE REMOVED RELATIVE TO THE BASELINE CASE
             !(WHEN SPECMASK DEFAULTS TO 1)
@@ -721,38 +736,57 @@
             !REQUESTED SO THAT WE CAN DIFFERENCE WITH THE BASELINE RUN
 #if defined( UCX )
             IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
-             O3VMR(IJLOOP,L)  = State_Chm%Tracers(I,J,L,IDTO3)*AIRMW /
-     &                     (TRACER_MW_G(IDTO3)*State_Met%AD(I,J,L))
+             O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3)*AIRMW /
+     &                       ( State_Chm%SpcData(id_O3)%Info%emMW_g *
+     &                         State_Met%AD(I,J,L) )
             ENDIF
+
             IF (SPECMASK(NASPECRAD+2).EQ.1) THEN
-             CH4VMR(IJLOOP,L) = State_Chm%Tracers(I,J,L,IDTCH4)*AIRMW /
-     &                     (TRACER_MW_G(IDTCH4)*State_Met%AD(I,J,L))
+             CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) * AIRMW /
+     &                       ( State_Chm%SpcData(id_CH4)%Info%emMW_g *
+     &                         State_Met%AD(I,J,L) )
             ENDIF
-            N2OVMR(IJLOOP,L) = State_Chm%Tracers(I,J,L,IDTN2O)*AIRMW /
-     &                     (TRACER_MW_G(IDTN2O)*State_Met%AD(I,J,L))
-            CFC11VMR(IJLOOP,L) = State_Chm%Tracers(I,J,L,IDTCFC11)*
-     &                 AIRMW/(TRACER_MW_G(IDTCFC11)*State_Met%AD(I,J,L))
-            CFC12VMR(IJLOOP,L) = State_Chm%Tracers(I,J,L,IDTCFC12)*
-     &                 AIRMW/(TRACER_MW_G(IDTCFC12)*State_Met%AD(I,J,L))
-            CCL4VMR(IJLOOP,L)  = State_Chm%Tracers(I,J,L,IDTCCL4)*
-     &                 AIRMW/(TRACER_MW_G(IDTCCL4)*State_Met%AD(I,J,L))
-            CFC22VMR(IJLOOP,L) =State_Chm%Tracers(I,J,L,IDTHCFC22)*
-     &                AIRMW/(TRACER_MW_G(IDTHCFC22)*State_Met%AD(I,J,L))
+
+            N2OVMR(I,J,L) = State_Chm%Species(I,J,L,id_N2O) * AIRMW /
+     &                       ( State_Chm%SpcData(id_N2O)%Info%emMW_g *
+     &                         State_Met%AD(I,J,L) )
+
+            CFC11VMR(I,J,L) = State_Chm%Species(I,J,L,id_CFC11) *
+     &                        AIRMW / 
+     &                       ( State_Chm%SpcData(id_CFC11)%Info%emMW_g *
+     &                         State_Met%AD(I,J,L) )
+
+            CFC12VMR(I,J,L) = State_Chm%Species(I,J,L,id_CFC12) *
+     &                        AIRMW /
+     &                       ( State_Chm%SpcData(id_CFC12)%Info%emMW_g *
+     &                         State_Met%AD(I,J,L) )
+
+            CCL4VMR(I,J,L)  = State_Chm%Species(I,J,L,id_CCL4) *
+     &                        AIRMW / 
+     &                       ( State_Chm%SpcData(id_CCL4)%Info%emMW_g *
+     &                         State_Met%AD(I,J,L) )
+
+            CFC22VMR(I,J,L) = State_Chm%Species(I,J,L,id_HCFC22) *
+     &                        AIRMW /
+     &                       ( State_Chm%SpcData(id_HCFC22)%Info%emMW_g *
+     &                         State_Met%AD(I,J,L) )
 
 #else
             IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
-             O3VMR(IJLOOP,L)  = CSPEC(JLOOP,IDO3)/AIRDENS(JLOOP)
+             O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3)/
+     &                          State_Met%AIRNUMDEN(I,J,L)
             ENDIF
             IF (SPECMASK(NASPECRAD+2).EQ.1) THEN
-             CH4VMR(IJLOOP,L) = CSPEC(JLOOP,ICH4)/AIRDENS(JLOOP)
+             CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4)/
+     &                          State_Met%AIRNUMDEN(I,J,L)
             ENDIF
-            N2OVMR(IJLOOP,L) = N2OCLIM(I,J,L)/1E9
+            N2OVMR(I,J,L) = N2OCLIM(I,J,L)/1E9
 
             !CFC CLIMATOLOGY FROM UARS AND MIPAS
-            CFC11VMR(IJLOOP,L) = CFC11CLIM(I,J,L)/1E9
-            CFC12VMR(IJLOOP,L) = CFC12CLIM(I,J,L)/1E9
-            CCL4VMR(IJLOOP,L)  = CCL4CLIM(I,J,L)/1E9
-            CFC22VMR(IJLOOP,L) = CFC22CLIM(I,J,L)/1E9
+            CFC11VMR(I,J,L) = CFC11CLIM(I,J,L)/1E9
+            CFC12VMR(I,J,L) = CFC12CLIM(I,J,L)/1E9
+            CCL4VMR(I,J,L)  = CCL4CLIM(I,J,L)/1E9
+            CFC22VMR(I,J,L) = CFC22CLIM(I,J,L)/1E9
 #endif
        ELSE
            !-----------------------------
@@ -762,30 +796,43 @@
 #if defined( UCX )
             !N.B. STRAT CH4 NOT CURRENTLY INCLUDED IN THE DRE OF CH4
             !N.B. STRAT O3  NOT CURRENTLY INCLUDED IN THE DRE OF O3
-             O3VMR(IJLOOP,L)  = State_Chm%Tracers(I,J,L,IDTO3)*AIRMW /
-     &                     (TRACER_MW_G(IDTO3)*State_Met%AD(I,J,L))
-             CH4VMR(IJLOOP,L) = State_Chm%Tracers(I,J,L,IDTCH4)*AIRMW /
-     &                     (TRACER_MW_G(IDTCH4)*State_Met%AD(I,J,L))
-            N2OVMR(IJLOOP,L) = State_Chm%Tracers(I,J,L,IDTN2O)*AIRMW /
-     &                     (TRACER_MW_G(IDTN2O)*State_Met%AD(I,J,L))
-            CFC11VMR(IJLOOP,L) =State_Chm%Tracers(I,J,L,IDTCFC11)*
-     &       AIRMW/(TRACER_MW_G(IDTCFC11)*State_Met%AD(I,J,L))
-            CFC12VMR(IJLOOP,L) =State_Chm%Tracers(I,J,L,IDTCFC12)*
-     &       AIRMW/(TRACER_MW_G(IDTCFC12)*State_Met%AD(I,J,L))
-            CCL4VMR(IJLOOP,L)  =State_Chm%Tracers(I,J,L,IDTCCL4)*
-     &       AIRMW/(TRACER_MW_G(IDTCCL4)*State_Met%AD(I,J,L))
-            CFC22VMR(IJLOOP,L) =State_Chm%Tracers(I,J,L,IDTHCFC22)*
-     &       AIRMW/(TRACER_MW_G(IDTHCFC22)*State_Met%AD(I,J,L))
+             O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3) * AIRMW /
+     &                       ( State_Chm%SpcData(id_O3)%Info%emMW_g *
+     &                         State_Met%AD(I,J,L) )  
+ 
+             CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) * AIRMW /
+     &                       ( State_Chm%SpcData(id_CH4)%Info%emMW_g *
+     &                         State_Met%AD(I,J,L) )   
+
+            N2OVMR(I,J,L) = State_Chm%Species(I,J,L,id_N2O) * AIRMW /
+     &                      ( State_Chm%SpcData(id_N2O)%Info%emMW_g *
+     &                        State_Met%AD(I,J,L) )   
+
+            CFC11VMR(I,J,L) =State_Chm%Species(I,J,L,id_CFC11) * AIRMW /
+     &                      ( State_Chm%SpcData(id_CFC11)%Info%emMW_g *
+     &                        State_Met%AD(I,J,L) )   
+
+            CFC12VMR(I,J,L) =State_Chm%Species(I,J,L,id_CFC12) * AIRMW /
+     &                      ( State_Chm%SpcData(id_CFC12)%Info%emMW_g *
+     &                        State_Met%AD(I,J,L) )   
+
+            CCL4VMR(I,J,L)  =State_Chm%Species(I,J,L,id_CCL4) * AIRMW /
+     &                      ( State_Chm%SpcData(id_CCL4)%Info%emMW_g *
+     &                        State_Met%AD(I,J,L) )   
+
+            CFC22VMR(I,J,L) =State_Chm%Species(I,J,L,id_HCFC22) * AIRMW/
+     &                      ( State_Chm%SpcData(id_HCFC22)%Info%emMW_g *
+     &                        State_Met%AD(I,J,L) )   
 
 
 ! TEST IMPACT OF STRAT CHEM
-!            O3VMR(IJLOOP,L)  = 0.0d0
-!            CH4VMR(IJLOOP,L) = 0.0d0
-!            N2OVMR(IJLOOP,L) = 0.0d0
-!            CFC11VMR(IJLOOP,L) = 0.0d0
-!            CFC12VMR(IJLOOP,L) = 0.0d0
-!            CCL4VMR(IJLOOP,L)  = 0.0d0
-!            CFC22VMR(IJLOOP,L) = 0.0d0
+!            O3VMR(I,J,L)  = 0.0d0
+!            CH4VMR(I,J,L) = 0.0d0
+!            N2OVMR(I,J,L) = 0.0d0
+!            CFC11VMR(I,J,L) = 0.0d0
+!            CFC12VMR(I,J,L) = 0.0d0
+!            CCL4VMR(I,J,L)  = 0.0d0
+!            CFC22VMR(I,J,L) = 0.0d0
 
 #else      
             !N.B. STRAT CH4 NOT CURRENTLY INCLUDED IN THE DRE OF CH4
@@ -801,26 +848,27 @@
      &                        T_CTM,  P_CTM,
      &                        O3_CTM, O3COL, T_CLIM,
      &                        O3_CLIM,  Z_CLIM,  AIR_CLIM, Input_Opt)
-            O3VMR(IJLOOP,L) = O3_CLIM(L)/AIR_TMP
+            O3VMR(I,J,L) = O3_CLIM(L)/AIR_TMP
 
             !GET SCALINGS IF THIS IS THE FIRST LEVEL IN THE STRAT
-            IF (FLG_FIRST_STRAT(IJLOOP).EQ.0) THEN
-                FLG_FIRST_STRAT(IJLOOP) = 1
-                CH4SCL(IJLOOP) = (CSPEC(JLOOP,ICH4)/AIRDENS(JLOOP))/
-     &             (CH4CLIM(I,J,L)/1E9)
+            IF (FLG_FIRST_STRAT(I,J).EQ.0) THEN
+                FLG_FIRST_STRAT(I,J) = 1
+                CH4SCL(I,J) = (State_Chm%Species(I,J,L,id_CH4)/
+     &                            State_Met%AIRNUMDEN(I,J,L))/
+     &                           (CH4CLIM(I,J,L)/1E9)
             ENDIF
             
             !TES PROFILES INTERPOLATED TO GC GRID WHEN SAVED
             !SO WE JUST NEED TO SCALE TO CURRENT CONC AT TOP OF TROP
               
-            CH4VMR(IJLOOP,L) = CH4SCL(IJLOOP)*CH4CLIM(I,J,L)/1E9
-            N2OVMR(IJLOOP,L) = N2OCLIM(I,J,L)/1E9
+            CH4VMR(I,J,L) = CH4SCL(I,J)*CH4CLIM(I,J,L)/1E9
+            N2OVMR(I,J,L) = N2OCLIM(I,J,L)/1E9
 
             !CFC CLIMATOLOGY FROM UARS AND MIPAS
-            CFC11VMR(IJLOOP,L) = CFC11CLIM(I,J,L)/1E9
-            CFC12VMR(IJLOOP,L) = CFC12CLIM(I,J,L)/1E9
-            CCL4VMR(IJLOOP,L)  = CCL4CLIM(I,J,L)/1E9
-            CFC22VMR(IJLOOP,L) = CFC22CLIM(I,J,L)/1E9
+            CFC11VMR(I,J,L) = CFC11CLIM(I,J,L)/1E9
+            CFC12VMR(I,J,L) = CFC12CLIM(I,J,L)/1E9
+            CCL4VMR(I,J,L)  = CCL4CLIM(I,J,L)/1E9
+            CFC22VMR(I,J,L) = CFC22CLIM(I,J,L)/1E9
 #endif
        ENDIF
       ENDDO
@@ -854,48 +902,45 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IJLOOP )
+!$OMP+PRIVATE( I, J, L )
 !$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-          ! 1-D INDEX
-          IJLOOP = (J-1)*IIPAR+I
-
 #if defined( UCX )
           !if UCX on, we need to go above the tropopause to get 
           !the strat AOD, but only for IS=8 and IS=9
-          IF ((INTROP(IJLOOP,L).EQ..TRUE.).OR.
+          IF ((INTROP(I,J,L).EQ..TRUE.).OR.
      &        ((IS.EQ.8).OR.(IS.EQ.9))) THEN
 #else
-          IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN
+          IF (INTROP(I,J,L).EQ..TRUE.) THEN
 #endif    
            !MAKE SURE WE HAVE SENSIBLE DATA
            !DONT WASTE TIME IF VIRTUALLY NO AEROSOL
            IF (RTODAER(I,J,L,IBX,IS).GT.1e-10) THEN
             IF (IB.LE.16) THEN !LW
              IF (SPECMASK(IS).EQ.1) THEN
-                   TAUAER_LW(IJLOOP,L,IB) = TAUAER_LW(IJLOOP,L,IB) +
+                   TAUAER_LW(I,J,L,IB) = TAUAER_LW(I,J,L,IB) +
      &                            RTODAER(I,J,L,IBX,IS)
              ENDIF
             ELSE !SW
              !IF SPECMASK(IS)=1 THEN WE AGGREGATE THAT SPECIES FOR RRTMG
              !IF SPECMASK(IS)>1 THEN WE SAVE THAT SPECIES FOR DIAG OUTPUT
              IF (SPECMASK(IS).EQ.1) THEN
-              TAUAER_SW(IJLOOP,L,IB_SW)=TAUAER_SW(IJLOOP,L,IB_SW)+
+              TAUAER_SW(I,J,L,IB_SW)=TAUAER_SW(I,J,L,IB_SW)+
      &                                  RTODAER(I,J,L,IBX,IS)
-              SSAAER(IJLOOP,L,IB_SW) =  SSAAER(IJLOOP,L,IB_SW) + 
+              SSAAER(I,J,L,IB_SW) =  SSAAER(I,J,L,IB_SW) + 
      &                       RTSSAER(I,J,L,IBX,IS)*RTODAER(I,J,L,IBX,IS)
-              ASMAER(IJLOOP,L,IB_SW) = ASMAER(IJLOOP,L,IB_SW) +
+              ASMAER(I,J,L,IB_SW) = ASMAER(I,J,L,IB_SW) +
      &                                 RTASYMAER(I,J,L,IBX,IS) *
      &                      RTODAER(I,J,L,IBX,IS)*RTSSAER(I,J,L,IBX,IS)
              ENDIF
              IF (SPECMASK(IS).GT.1) THEN
-              TAUAERDIAG(IJLOOP,L,IB_SW)=TAUAERDIAG(IJLOOP,L,IB_SW)+
+              TAUAERDIAG(I,J,L,IB_SW)=TAUAERDIAG(I,J,L,IB_SW)+
      &                        RTODAER(I,J,L,IBX,IS)
-              SSAAERDIAG(IJLOOP,L,IB_SW) = SSAAERDIAG(IJLOOP,L,IB_SW) +
+              SSAAERDIAG(I,J,L,IB_SW) = SSAAERDIAG(I,J,L,IB_SW) +
      &                       RTSSAER(I,J,L,IBX,IS)*RTODAER(I,J,L,IBX,IS)
-              ASMAERDIAG(IJLOOP,L,IB_SW) = ASMAERDIAG(IJLOOP,L,IB_SW) +
+              ASMAERDIAG(I,J,L,IB_SW) = ASMAERDIAG(I,J,L,IB_SW) +
      &                      RTASYMAER(I,J,L,IBX,IS) *
      &                      RTODAER(I,J,L,IBX,IS)*RTSSAER(I,J,L,IBX,IS)
 !              IF ((IS.EQ.9).AND.(L.GT.30).AND.(IB_SW.EQ.10).AND.
@@ -924,41 +969,40 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IJLOOP )
+!$OMP+PRIVATE( I, J, L )
 !$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         IJLOOP = (J-1)*IIPAR+I       
 #if defined( UCX )
           !if UCX on, we need to go above the tropopause to get
           !the strat AOD, but only for IS=8 and IS=9
-          IF ((INTROP(IJLOOP,L).EQ..TRUE.).OR.
+          IF ((INTROP(I,J,L).EQ..TRUE.).OR.
      &        ((IS.EQ.8).OR.(IS.EQ.9))) THEN
 #else
-          IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN
+          IF (INTROP(I,J,L).EQ..TRUE.) THEN
 #endif
 
-           IF ((TAUAER_SW(IJLOOP,L,IB_SW).GT.0).AND.
-     $        (    SSAAER(IJLOOP,L,IB_SW).GT.0)) THEN
+           IF ((TAUAER_SW(I,J,L,IB_SW).GT.0).AND.
+     $        (    SSAAER(I,J,L,IB_SW).GT.0)) THEN
               !DIVIDE SUM(ASYM*SSA*OD) BY SUM(SSA*OD) TO GET 
               !OD*SSA WEIGHTED ASYM
-              ASMAER(IJLOOP,L,IB_SW) = ASMAER(IJLOOP,L,IB_SW) /
-     &                                 SSAAER(IJLOOP,L,IB_SW)
+              ASMAER(I,J,L,IB_SW) = ASMAER(I,J,L,IB_SW) /
+     &                                 SSAAER(I,J,L,IB_SW)
               !DIVIDE SUM(SSA*OD) BY SUM(OD) TO GET OD WEIGHTED SSA
-              SSAAER(IJLOOP,L,IB_SW) = SSAAER(IJLOOP,L,IB_SW) / 
-     &                                 TAUAER_SW(IJLOOP,L,IB_SW)
+              SSAAER(I,J,L,IB_SW) = SSAAER(I,J,L,IB_SW) / 
+     &                                 TAUAER_SW(I,J,L,IB_SW)
            ENDIF
                 !AND DO THE SAME FOR THE SPECIES WE'RE INTERESTED IN
-           IF ((TAUAERDIAG(IJLOOP,L,IB_SW).GT.0).AND.
-     $        ( SSAAERDIAG(IJLOOP,L,IB_SW).GT.0)) THEN
+           IF ((TAUAERDIAG(I,J,L,IB_SW).GT.0).AND.
+     $        ( SSAAERDIAG(I,J,L,IB_SW).GT.0)) THEN
               !DIVIDE SUM(ASYM*SSA*OD) BY SUM(SSA*OD) TO GET
               !OD*SSA WEIGHTED ASYM
-              ASMAERDIAG(IJLOOP,L,IB_SW) = ASMAERDIAG(IJLOOP,L,IB_SW) /
-     &                                     SSAAERDIAG(IJLOOP,L,IB_SW)
+              ASMAERDIAG(I,J,L,IB_SW) = ASMAERDIAG(I,J,L,IB_SW) /
+     &                                     SSAAERDIAG(I,J,L,IB_SW)
               !DIVIDE SUM(SSA*OD) BY SUM(OD) TO GET OD WEIGHTED SSA
-              SSAAERDIAG(IJLOOP,L,IB_SW) = SSAAERDIAG(IJLOOP,L,IB_SW) /
-     &                                     TAUAERDIAG(IJLOOP,L,IB_SW)
+              SSAAERDIAG(I,J,L,IB_SW) = SSAAERDIAG(I,J,L,IB_SW) /
+     &                                     TAUAERDIAG(I,J,L,IB_SW)
            ENDIF
           ENDIF
          ENDDO
@@ -977,32 +1021,30 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IB, IJLOOP, IB_SW )
+!$OMP+PRIVATE( I, J, L, IB, IB_SW )
 !$OMP+SCHEDULE( DYNAMIC )
        DO IB= 1, NBNDS
         IB_SW = IB-NBNDLW
         DO L = 1, LLPAR
         DO J = 1, JJPAR
         DO I = 1, IIPAR
-         ! 1-D INDEX
-         IJLOOP = (J-1)*IIPAR+I       
 #if defined( UCX )
           !if UCX on, we need to go above the tropopause to get
           !the strat AOD, but only for IS=8 and IS=9
-          IF ((INTROP(IJLOOP,L).EQ..TRUE.).OR.
+          IF ((INTROP(I,J,L).EQ..TRUE.).OR.
      &        ((IS.EQ.8).OR.(IS.EQ.9))) THEN
 #else
-          IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN
+          IF (INTROP(I,J,L).EQ..TRUE.) THEN
 #endif
           IF (IB.LE.16) THEN
-           TAUAER_LW(IJLOOP,L,IB)    = 0.0
+           TAUAER_LW(I,J,L,IB)    = 0.0
           ELSE
-           TAUAER_SW(IJLOOP,L,IB_SW) = 0.0D0
-           SSAAER(IJLOOP,L,IB_SW)    = 0.99D0
-           ASMAER(IJLOOP,L,IB_SW)    = 0.2D0
-           TAUAERDIAG(IJLOOP,L,IB_SW) = 0.0D0
-           SSAAERDIAG(IJLOOP,L,IB_SW) = 0.99D0
-           ASMAERDIAG(IJLOOP,L,IB_SW) = 0.2D0
+           TAUAER_SW(I,J,L,IB_SW) = 0.0D0
+           SSAAER(I,J,L,IB_SW)    = 0.99D0
+           ASMAER(I,J,L,IB_SW)    = 0.2D0
+           TAUAERDIAG(I,J,L,IB_SW) = 0.0D0
+           SSAAERDIAG(I,J,L,IB_SW) = 0.99D0
+           ASMAERDIAG(I,J,L,IB_SW) = 0.2D0
           ENDIF
          ENDIF
         ENDDO
@@ -1019,33 +1061,31 @@
         DO L = 1, LLPAR
         DO J = 1, JJPAR
         DO I = 1, IIPAR
-         ! 1-D INDEX
-         IJLOOP = (J-1)*IIPAR+I
-              IF (ASMAER(IJLOOP,L,IB_SW).GT.0.999d0) THEN
-               ASMAER(IJLOOP,L,IB_SW) = 0.999d0
+              IF (ASMAER(I,J,L,IB_SW).GT.0.999d0) THEN
+               ASMAER(I,J,L,IB_SW) = 0.999d0
               ENDIF
-!              IF (ASMAER(IJLOOP,L,IB_SW).LT.0.001d0) THEN
-!               ASMAER(IJLOOP,L,IB_SW) = 0.001
+!              IF (ASMAER(I,J,L,IB_SW).LT.0.001d0) THEN
+!               ASMAER(I,J,L,IB_SW) = 0.001
 !              ENDIF
-              IF ((SSAAER(IJLOOP,L,IB_SW).LT.0.001d0).OR.
-     &            (SSAAER(IJLOOP,L,IB_SW).GT.1.0d0)) THEN
-               SSAAER(IJLOOP,L,IB_SW) = 0.99
+              IF ((SSAAER(I,J,L,IB_SW).LT.0.001d0).OR.
+     &            (SSAAER(I,J,L,IB_SW).GT.1.0d0)) THEN
+               SSAAER(I,J,L,IB_SW) = 0.99
               ENDIF
-              IF (TAUAER_SW(IJLOOP,L,IB_SW).GT.1.0) THEN
-               TAUAER_SW(IJLOOP,L,IB_SW) = 1.0
+              IF (TAUAER_SW(I,J,L,IB_SW).GT.1.0) THEN
+               TAUAER_SW(I,J,L,IB_SW) = 1.0
               ENDIF
-              IF (ASMAERDIAG(IJLOOP,L,IB_SW).GT.0.999d0) THEN
-               ASMAERDIAG(IJLOOP,L,IB_SW) = 0.999d0
+              IF (ASMAERDIAG(I,J,L,IB_SW).GT.0.999d0) THEN
+               ASMAERDIAG(I,J,L,IB_SW) = 0.999d0
               ENDIF
-!              IF (ASMAERDIAG(IJLOOP,L,IB_SW).LT.0.001d0) THEN
-!               ASMAERDIAG(IJLOOP,L,IB_SW) = 0.001
+!              IF (ASMAERDIAG(I,J,L,IB_SW).LT.0.001d0) THEN
+!               ASMAERDIAG(I,J,L,IB_SW) = 0.001
 !              ENDIF
-              IF ((SSAAERDIAG(IJLOOP,L,IB_SW).LT.0.001d0).OR.
-     &            (SSAAERDIAG(IJLOOP,L,IB_SW).GT.1.0d0)) THEN
-               SSAAERDIAG(IJLOOP,L,IB_SW) = 0.99
+              IF ((SSAAERDIAG(I,J,L,IB_SW).LT.0.001d0).OR.
+     &            (SSAAERDIAG(I,J,L,IB_SW).GT.1.0d0)) THEN
+               SSAAERDIAG(I,J,L,IB_SW) = 0.99
               ENDIF
-              IF (TAUAERDIAG(IJLOOP,L,IB_SW).GT.1.0) THEN
-               TAUAERDIAG(IJLOOP,L,IB_SW) = 1.0
+              IF (TAUAERDIAG(I,J,L,IB_SW).GT.1.0) THEN
+               TAUAERDIAG(I,J,L,IB_SW) = 1.0
               ENDIF
 
         ENDDO
@@ -1054,28 +1094,30 @@
        ENDDO
 
       DOY = GET_DAY_OF_YEAR()
-      NCOL = IIPAR*JJPAR
       ONECOL = 1
 
        ! GET LEVEL VALUES
        GCAIR = 1.0E-3*GASCON/AVOGAD
-       DO I=1,NCOL
-          PLEV(I,1) = PEDGE(I,1)     ! SET LOWEST LEVEL TO SURFACE PRESSURE
-          TLEV(I,1) = TLAY(I,1)     ! SET LOWEST LEVEL TO LAYER TEMPERATURE  (KLUDGE)
-          PLEV(I,LLPAR+1) = PCENTER(I,LLPAR)
-          TLEV(I,LLPAR+1) = TLAY(I,LLPAR)
+       DO J=1,JJPAR
+       DO I=1,IIPAR
+          PLEV(I,J,1) = PEDGE(I,J,1) ! SET LOWEST LEVEL TO SURFACE PRESSURE
+          TLEV(I,J,1) = TLAY(I,J,1)  ! SET LOWEST LEVEL TO LAYER TEMPERATURE  (KLUDGE)
+          PLEV(I,J,LLPAR+1) = PCENTER(I,J,LLPAR)
+          TLEV(I,J,LLPAR+1) = TLAY(I,J,LLPAR)
           DO L=2,LLPAR
-             RHOA = PCENTER(I,L-1)/(GCAIR*TLAY(I,L-1))
-             RHOB = PCENTER(I,L)/(GCAIR*TLAY(I,L))
+             RHOA = PCENTER(I,J,L-1)/(GCAIR*TLAY(I,J,L-1))
+             RHOB = PCENTER(I,J,L)/(GCAIR*TLAY(I,J,L))
              RHOSUM = RHOA+RHOB
-             PLEV(I,L) = (RHOA*PCENTER(I,L-1)+RHOB*PCENTER(I,L))/RHOSUM
-             TLEV(I,L) = (RHOA*TLAY(I,L-1)+RHOB*TLAY(I,L))/RHOSUM
+             PLEV(I,J,L) = (RHOA*PCENTER(I,J,L-1)+RHOB*PCENTER(I,J,L))/
+     &                      RHOSUM
+             TLEV(I,J,L) = (RHOA*TLAY(I,J,L-1)+RHOB*TLAY(I,J,L))/RHOSUM
           END DO
+       END DO
        END DO
 
        ! FILL CO2, N2O AND O2 ARRAYS WITH REASONABLE ATMOSPHERIC VALUES
-       CO2VMR(:,:) = 3.90E-4
-       O2VMR(:,:) =  0.209
+       CO2VMR(:,:,:) = 3.90E-4
+       O2VMR(:,:,:)  = 0.209
 
        SELECT CASE (ICLD)
        ! CLOUD SETUP FOR CLEAR
@@ -1084,8 +1126,8 @@
           ICLDMCL = 0
           INFLGLW = 0
           INFLGSW = 0
-          TAUCMCL_LW(:,:,:) = 0.0
-          TAUCMCL_SW(:,:,:) = 0.0
+          TAUCMCL_LW(:,:,:,:) = 0.0
+          TAUCMCL_SW(:,:,:,:) = 0.0
           ICEFLGLW = 0
           LIQFLGLW = 0
           ICEFLGSW = 0
@@ -1098,19 +1140,19 @@
           ICLDMCL = 2                  !MAXIMUM RANDOM OVERLAP
           INFLGLW = 2
           INFLGSW = 2
-          TAUCLD_LW(:,:,:) = 0.0    ! TAUCLD NOT USED
-          TAUCLD_SW(:,:,:) = 0.0
-          TAUCMCL_LW(:,:,:) = 0.0   ! USED ONLY AS A CHECK
-          TAUCMCL_SW(:,:,:) = 0.0
-          SSACLD(:,:,:) = 0.0
-          ASMCLD(:,:,:) = 0.0
-          FSFCLD(:,:,:) = 0.0
+          TAUCLD_LW(:,:,:,:)  = 0.0    ! TAUCLD NOT USED
+          TAUCLD_SW(:,:,:,:)  = 0.0
+          TAUCMCL_LW(:,:,:,:) = 0.0   ! USED ONLY AS A CHECK
+          TAUCMCL_SW(:,:,:,:) = 0.0
+          SSACLD(:,:,:,:) = 0.0
+          ASMCLD(:,:,:,:) = 0.0
+          FSFCLD(:,:,:,:) = 0.0
           ICEFLGLW = 2       !STREAMER
           LIQFLGLW = 1       !HU AND STAMNES
           ICEFLGSW = 2       !STREAMER
           LIQFLGSW = 1       !HU AND STAMNES
-          RELIQ(:,:) = REL_DEF
-          REICE(:,:) = REI_DEF
+          RELIQ(:,:,:) = REL_DEF
+          REICE(:,:,:) = REI_DEF
       END SELECT
 
       ! WE ONLY NEED TO CALC CLOUDS ONCE PER RT TIMESTEP
@@ -1130,7 +1172,7 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( IL,          PCENTER0,    CLDFR0                   )
+!$OMP+PRIVATE( I,           J,           PCENTER0,    CLDFR0      )
 !$OMP+PRIVATE( CLIQWP0,     CICEWP0,     REICE0,      RELIQ0      )
 !$OMP+PRIVATE( TAUCLD_SW0,  SSACLD0,     ASMCLD0,     FSFCLD0     )
 !$OMP+PRIVATE( CLDFMCL_LW0, CIWPMCL_LW0, CLWPMCL_LW0, REICMCL0    )
@@ -1140,16 +1182,17 @@
 !$OMP+PRIVATE( p_CLIQWP,    p_REICE,     p_RELIQ,     p_TAUCLD_LW )
 !$OMP+PRIVATE( p_TAUCLD_SW, p_SSACLD,    p_ASMCLD,    p_FSFCLD    )
 !$OMP+SCHEDULE( DYNAMIC )
-       DO IL=1, NCOL
+       DO J=1, JJPAR
+       DO I=1, IIPAR
 
           ! Avoid array temporaries in the subroutine call (bmy, 6/3/15)
           ! These arrays are used by both MCICA_SUBCOL_LW and MCICA_SUBCOL_SW
-          p_PCENTER = PCENTER(IL,:)
-          p_CLDFR   = CLDFR  (IL,:)
-          p_CICEWP  = CICEWP (IL,:)
-          p_CLIQWP  = CLIQWP (IL,:)
-          p_REICE   = REICE  (IL,:)
-          p_RELIQ   = RELIQ  (IL,:)
+          p_PCENTER = PCENTER(I,J,:)
+          p_CLDFR   = CLDFR  (I,J,:)
+          p_CICEWP  = CICEWP (I,J,:)
+          p_CLIQWP  = CLIQWP (I,J,:)
+          p_REICE   = REICE  (I,J,:)
+          p_RELIQ   = RELIQ  (I,J,:)
 
           !-------------------------------------------------------------
           ! Long-wave radiation
@@ -1158,7 +1201,7 @@
 
              ! Avoid array temporaries in the subroutine call (bmy, 6/3/15)
              ! These arrays are only used in MCICA_SUBCOL_LW
-             p_TAUCLD_LW = TAUCLD_LW(:,IL,:)
+             p_TAUCLD_LW = TAUCLD_LW(:,I,J,:)
 
              ! Call MCICA longwave
              CALL MCICA_SUBCOL_LW( 
@@ -1186,10 +1229,10 @@
      &                             TAUCMCL_LW0 )
 
              ! Copy back into 3-D arrays
-             CLDFMCL_LW(:,IL,:) = CLDFMCL_LW0(:,1,:)
-             CIWPMCL_LW(:,IL,:) = CIWPMCL_LW0(:,1,:)
-             CLWPMCL_LW(:,IL,:) = CLWPMCL_LW0(:,1,:)
-             TAUCMCL_LW(:,IL,:) = TAUCMCL_LW0(:,1,:)
+             CLDFMCL_LW(:,I,J,:) = CLDFMCL_LW0(:,1,:)
+             CIWPMCL_LW(:,I,J,:) = CIWPMCL_LW0(:,1,:)
+             CLWPMCL_LW(:,I,J,:) = CLWPMCL_LW0(:,1,:)
+             TAUCMCL_LW(:,I,J,:) = TAUCMCL_LW0(:,1,:)
 
           ENDIF
 
@@ -1200,10 +1243,10 @@
 
              ! Avoid array temporaries in the subroutine call (bmy, 6/3/15)
              ! These arrays are only used in MCICA_SUBCOL_SW
-             p_TAUCLD_SW = TAUCLD_SW(:,IL,:)
-             p_SSACLD    = SSACLD   (:,IL,:)
-             p_ASMCLD    = ASMCLD   (:,IL,:)
-             p_FSFCLD    = FSFCLD   (:,IL,:)
+             p_TAUCLD_SW = TAUCLD_SW(:,I,J,:)
+             p_SSACLD    = SSACLD   (:,I,J,:)
+             p_ASMCLD    = ASMCLD   (:,I,J,:)
+             p_FSFCLD    = FSFCLD   (:,I,J,:)
 
              ! Call MCICA shortwave
              CALL MCICA_SUBCOL_SW( 
@@ -1237,20 +1280,21 @@
      &                             FSFCMCL0  )
 
              ! Copy back into 3-D arrays
-             CLDFMCL_SW(:,IL,:) = CLDFMCL_SW0(:,1,:)
-             CIWPMCL_SW(:,IL,:) = CIWPMCL_SW0(:,1,:)
-             CLWPMCL_SW(:,IL,:) = CLWPMCL_SW0(:,1,:)
-             TAUCMCL_SW(:,IL,:) = TAUCMCL_SW0(:,1,:)
-             SSACMCL   (:,IL,:) = SSACMCL0   (:,1,:)
-             ASMCMCL   (:,IL,:) = ASMCMCL0   (:,1,:)
-             FSFCMCL   (:,IL,:) = FSFCMCL0   (:,1,:)
+             CLDFMCL_SW(:,I,J,:) = CLDFMCL_SW0(:,1,:)
+             CIWPMCL_SW(:,I,J,:) = CIWPMCL_SW0(:,1,:)
+             CLWPMCL_SW(:,I,J,:) = CLWPMCL_SW0(:,1,:)
+             TAUCMCL_SW(:,I,J,:) = TAUCMCL_SW0(:,1,:)
+             SSACMCL   (:,I,J,:) = SSACMCL0   (:,1,:)
+             ASMCMCL   (:,I,J,:) = ASMCMCL0   (:,1,:)
+             FSFCMCL   (:,I,J,:) = FSFCMCL0   (:,1,:)
 
           ENDIF
 
           ! these should be independent of LW and SW
           ! simply rearranged by the MCICA routine
-          REICMCL(IL,:) = REICMCL0(1,:)
-          RELQMCL(IL,:) = RELQMCL0(1,:)
+          REICMCL(I,J,:) = REICMCL0(1,:)
+          RELQMCL(I,J,:) = RELQMCL0(1,:)
+       ENDDO
        ENDDO
 !$OMP END PARALLEL DO
 
@@ -1266,7 +1310,7 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( IL,           UFLX,         DFLX,         HR           )
+!$OMP+PRIVATE( I,   J,       UFLX,         DFLX,         HR           )
 !$OMP+PRIVATE( UFLXC,        DFLXC,        HRC,          DUFLX_DT     )
 !$OMP+PRIVATE( DUFLXC_DT,    ECAER,        SWUFLX,       SWDFLX       )
 !$OMP+PRIVATE( SWHR,         SWUFLXC,      SWDFLXC,      SWHRC        )
@@ -1280,27 +1324,28 @@
 !$OMP+PRIVATE( p_CLWPMCL_SW, p_TAUAER_SW,  p_SSAAER,     p_ASMAER     )
 !$OMP+PRIVATE( p_SUNCOS                                               )
 !$OMP+SCHEDULE( DYNAMIC ) 
-      DO IL=1, NCOL
+      DO J=1, JJPAR
+      DO I=1, IIPAR
  
          ! Avoid arrray temporaries in subroutines (bmy, 6/3/15)
          ! These variables are used in both RRTMG_LW and RRTMG_SW
-         p_PCENTER  = PCENTER (IL,:)
-         p_PLEV     = PLEV    (IL,:)
-         p_TLAY     = TLAY    (IL,:)
-         p_TLEV     = TLEV    (IL,:)
-         p_H2OVMR   = H2OVMR  (IL,:)
-         p_O3VMR    = O3VMR   (IL,:)
-         p_CO2VMR   = CO2VMR  (IL,:)
-         p_CH4VMR   = CH4VMR  (IL,:)
-         p_N2OVMR   = N2OVMR  (IL,:)
-         p_O2VMR    = O2VMR   (IL,:) 
-         p_CFC11VMR = CFC11VMR(IL,:)
-         p_CFC12VMR = CFC12VMR(IL,:)
-         p_CFC22VMR = CFC22VMR(IL,:)
-         p_CCL4VMR  = CCL4VMR (IL,:)
-         p_RTEMISS  = RTEMISS (IL,:) 
-         p_REICMCL  = REICMCL (IL,:)
-         p_RELQMCL  = RELQMCL (IL,:)
+         p_PCENTER  = PCENTER (I,J,:)
+         p_PLEV     = PLEV    (I,J,:)
+         p_TLAY     = TLAY    (I,J,:)
+         p_TLEV     = TLEV    (I,J,:)
+         p_H2OVMR   = H2OVMR  (I,J,:)
+         p_O3VMR    = O3VMR   (I,J,:)
+         p_CO2VMR   = CO2VMR  (I,J,:)
+         p_CH4VMR   = CH4VMR  (I,J,:)
+         p_N2OVMR   = N2OVMR  (I,J,:)
+         p_O2VMR    = O2VMR   (I,J,:) 
+         p_CFC11VMR = CFC11VMR(I,J,:)
+         p_CFC12VMR = CFC12VMR(I,J,:)
+         p_CFC22VMR = CFC22VMR(I,J,:)
+         p_CCL4VMR  = CCL4VMR (I,J,:)
+         p_RTEMISS  = RTEMISS (I,J,:) 
+         p_REICMCL  = REICMCL (I,J,:)
+         p_RELQMCL  = RELQMCL (I,J,:)
 
          !--------------------------------------------------------------
          ! RRTMG - Longwave radiation
@@ -1309,11 +1354,11 @@
        
             ! Avoid array temporaries in subroutine calls (bmy, 6/3/15)
             ! These arrays are only used in RRTMG_LW
-            p_CLDFMCL_LW = CLDFMCL_LW(:,IL,:  )
-            p_TAUCMCL_LW = TAUCMCL_LW(:,IL,:  )
-            p_CIWPMCL_LW = CIWPMCL_LW(:,IL,:  )
-            p_CLWPMCL_LW = CLWPMCL_LW(:,IL,:  )
-            p_TAUAER_LW  = TAUAER_LW (  IL,:,:)
+            p_CLDFMCL_LW = CLDFMCL_LW(:,I,J,:  )
+            p_TAUCMCL_LW = TAUCMCL_LW(:,I,J,:  )
+            p_CIWPMCL_LW = CIWPMCL_LW(:,I,J,:  )
+            p_CLWPMCL_LW = CLWPMCL_LW(:,I,J,:  )
+            p_TAUAER_LW  = TAUAER_LW (  I,J,:,:)
 
             ! Call RRTMG for longwave radiation
             CALL RRTMG_LW( 
@@ -1327,7 +1372,7 @@
      &                     p_PLEV,
      &                     p_TLAY,
      &                     p_TLEV,
-     &                     TSFC(IL), 
+     &                     TSFC(I,J), 
      &                     p_H2OVMR,
      &                     p_O3VMR,
      &                     p_CO2VMR,
@@ -1361,10 +1406,10 @@
      &                     DUFLXC_DT )
 
             ! Copy back into 3-D arrays
-            LW_UFLUX (IL,:) = UFLX (1,:)
-            LW_DFLUX (IL,:) = DFLX (1,:)
-            LW_UFLUXC(IL,:) = UFLXC(1,:)
-            LW_DFLUXC(IL,:) = DFLXC(1,:)
+            LW_UFLUX (I,J,:) = UFLX (1,:)
+            LW_DFLUX (I,J,:) = DFLX (1,:)
+            LW_UFLUXC(I,J,:) = UFLXC(1,:)
+            LW_DFLUXC(I,J,:) = DFLXC(1,:)
             
          ENDIF                  !LW
 
@@ -1373,28 +1418,23 @@
          !--------------------------------------------------------------
          IF (Input_Opt%LSWRAD) THEN
 
-            ! 1-D INDEX
-            IJLOOP = (J-1)*IIPAR+I
-            I      = IL - (J-1)*IIPAR
-            I      = MOD(IL,IIPAR)
-
 !### Debug output
-!        write(6,*) 'SWSHIZ',TAUAER_SW(IL,1,5),SWUFLX(1,1),SWDFLX(1,1),
+!        write(6,*) 'SWSHIZ',TAUAER_SW(I,J,1,5),SWUFLX(1,1),SWDFLX(1,1),
 !     &         SWUFLXC(1,1),SWDFLXC(1,1)
 
             ! Avoid array temporaries in subroutine calls (bmy, 6/3/15)
             ! These arrays are only used in RRTMG_SW
-            p_SUNCOS     = SUNCOS    (  IL,:  )
-            p_CLDFMCL_SW = CLDFMCL_SW(:,IL,:  )
-            p_TAUCMCL_SW = TAUCMCL_SW(:,IL,:  )
-            p_SSACMCL    = SSACMCL   (:,IL,:  )
-            p_ASMCMCL    = ASMCMCL   (:,IL,:  )
-            p_FSFCMCL    = FSFCMCL   (:,IL,:  ) 
-            p_CIWPMCL_SW = CIWPMCL_SW(:,IL,:  )
-            p_CLWPMCL_SW = CLWPMCL_SW(:,IL,:  )
-            p_TAUAER_SW  = TAUAER_SW (  IL,:,:)
-            p_SSAAER     = SSAAER    (  IL,:,:)
-            p_ASMAER     = ASMAER    (  IL,:,:)
+            p_SUNCOS     = SUNCOS    (  I,J,:  )
+            p_CLDFMCL_SW = CLDFMCL_SW(:,I,J,:  )
+            p_TAUCMCL_SW = TAUCMCL_SW(:,I,J,:  )
+            p_SSACMCL    = SSACMCL   (:,I,J,:  )
+            p_ASMCMCL    = ASMCMCL   (:,I,J,:  )
+            p_FSFCMCL    = FSFCMCL   (:,I,J,:  ) 
+            p_CIWPMCL_SW = CIWPMCL_SW(:,I,J,:  )
+            p_CLWPMCL_SW = CLWPMCL_SW(:,I,J,:  )
+            p_TAUAER_SW  = TAUAER_SW (  I,J,:,:)
+            p_SSAAER     = SSAAER    (  I,J,:,:)
+            p_ASMAER     = ASMAER    (  I,J,:,:)
 
             ! Call RRTMG for shortwave radiation
             CALL RRTMG_SW( 
@@ -1407,17 +1447,17 @@
      &                     p_PLEV,
      &                     p_TLAY,
      &                     p_TLEV,
-     &                     TSFC(IL), 
+     &                     TSFC(I,J), 
      &                     p_H2OVMR,
      &                     p_O3VMR,
      &                     p_CO2VMR,
      &                     p_CH4VMR,
      &                     p_N2OVMR,
      &                     p_O2VMR, 
-     &                     ALBDIRVIS(IL),
-     &                     ALBDIFVIS(IL),
-     &                     ALBDIRNIR(IL),
-     &                     ALBDIFNIR(IL), 
+     &                     ALBDIRVIS(I,J),
+     &                     ALBDIFVIS(I,J),
+     &                     ALBDIRNIR(I,J),
+     &                     ALBDIFNIR(I,J), 
      &                     p_SUNCOS,
      &                     ADJES,
      &                     DOY,
@@ -1448,13 +1488,14 @@
      &                     SWHRC    )
 
             ! Copy back into 3-D arrays
-            SW_UFLUX (IL,:) = SWUFLX (1,:)
-            SW_DFLUX (IL,:) = SWDFLX (1,:)
-            SW_UFLUXC(IL,:) = SWUFLXC(1,:)
-            SW_DFLUXC(IL,:) = SWDFLXC(1,:)
+            SW_UFLUX (I,J,:) = SWUFLX (1,:)
+            SW_DFLUX (I,J,:) = SWDFLX (1,:)
+            SW_UFLUXC(I,J,:) = SWUFLXC(1,:)
+            SW_DFLUXC(I,J,:) = SWDFLXC(1,:)
 
          ENDIF !SW
-      ENDDO !NCOL
+      ENDDO !IIPAR
+      ENDDO !JJPAR
 !$OMP END PARALLEL DO
 
       
@@ -1483,42 +1524,41 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, LL, W, IJLOOP )
+!$OMP+PRIVATE( I, J, LL, W )
 !$OMP+PRIVATE( AODTMP, SSATMP, ASYMTMP)
 !$OMP+PRIVATE( AODOUT, SSAOUT, ASYMOUT)
 !$OMP+SCHEDULE( DYNAMIC )
       DO J=1,JJPAR
       DO I=1,IIPAR
-       IJLOOP   = (J-1)*IIPAR+I
        IF (ICLD.GT.0) THEN
         !ALL-SKY (WE GET CLEAR-SKY WITH THIS TOO)
         !N.B. UPWELLING SHOULD BE NEGATIVE AS DOWN IS +VE
         AD72(I,J,OUTIDX) = AD72(I,J,OUTIDX) -  
-     &                     SNGL(SW_UFLUX(IJLOOP,LLPAR+1))
+     &                     SNGL(SW_UFLUX(I,J,LLPAR+1))
         AD72(I,J,OUTIDX+NAD72) = AD72(I,J,OUTIDX+NAD72) +
-     &                     SNGL(SW_DFLUX(IJLOOP,1))
+     &                     SNGL(SW_DFLUX(I,J,1))
         AD72(I,J,OUTIDX+2*NAD72) = AD72(I,J,OUTIDX+2*NAD72) -
-     &                     SNGL(LW_UFLUX(IJLOOP,LLPAR+1))
+     &                     SNGL(LW_UFLUX(I,J,LLPAR+1))
         AD72(I,J,OUTIDX+3*NAD72) = AD72(I,J,OUTIDX+3*NAD72) +
-     &                     SNGL(LW_DFLUX(IJLOOP,1))
+     &                     SNGL(LW_DFLUX(I,J,1))
         AD72(I,J,OUTIDX+4*NAD72) = AD72(I,J,OUTIDX+4*NAD72) -
-     &                     SNGL(SW_UFLUXC(IJLOOP,LLPAR+1))
+     &                     SNGL(SW_UFLUXC(I,J,LLPAR+1))
         AD72(I,J,OUTIDX+5*NAD72) = AD72(I,J,OUTIDX+5*NAD72) +
-     &                     SNGL(SW_DFLUXC(IJLOOP,1))
+     &                     SNGL(SW_DFLUXC(I,J,1))
         AD72(I,J,OUTIDX+6*NAD72) = AD72(I,J,OUTIDX+6*NAD72) -
-     &                     SNGL(LW_UFLUXC(IJLOOP,LLPAR+1))
+     &                     SNGL(LW_UFLUXC(I,J,LLPAR+1))
         AD72(I,J,OUTIDX+7*NAD72) = AD72(I,J,OUTIDX+7*NAD72) +
-     &                     SNGL(LW_DFLUXC(IJLOOP,1))
+     &                     SNGL(LW_DFLUXC(I,J,1))
        ELSE
         !CLEAR-SKY (RUNNING WITH CLOUDS OFF)
         AD72(I,J,OUTIDX+4*NAD72) = AD72(I,J,OUTIDX+4*NAD72) -
-     &                     SNGL(SW_UFLUX(IJLOOP,LLPAR+1))
+     &                     SNGL(SW_UFLUX(I,J,LLPAR+1))
         AD72(I,J,OUTIDX+5*NAD72) = AD72(I,J,OUTIDX+5*NAD72) +
-     &                     SNGL(SW_DFLUX(IJLOOP,1))
+     &                     SNGL(SW_DFLUX(I,J,1))
         AD72(I,J,OUTIDX+6*NAD72) = AD72(I,J,OUTIDX+6*NAD72) -
-     &                     SNGL(LW_UFLUX(IJLOOP,LLPAR+1))
+     &                     SNGL(LW_UFLUX(I,J,LLPAR+1))
         AD72(I,J,OUTIDX+7*NAD72) = AD72(I,J,OUTIDX+7*NAD72) +
-     &                     SNGL(LW_DFLUX(IJLOOP,1))
+     &                     SNGL(LW_DFLUX(I,J,1))
        ENDIF
        !OUTPUT OPTICS FOR EACH AEROSOL...
        !CHECK THAT WE HAVE SOME AEROSOL TO OUTPUT 
@@ -1534,20 +1574,20 @@
          ASYMOUT = 0.0D0
          DO LL=1,LLPAR
           !CHECK AOD IS NON-ZERO BEFORE LOG...
-          IF((TAUAERDIAG(IJLOOP,LL,IRTWVSELECT(2,W)).GT.0).AND.
-     &       (TAUAERDIAG(IJLOOP,LL,IRTWVSELECT(1,W)).GT.0)) THEN
-           AODTMP=SNGL(TAUAERDIAG(IJLOOP,LL,IRTWVSELECT(2,W))*
+          IF((TAUAERDIAG(I,J,LL,IRTWVSELECT(2,W)).GT.0).AND.
+     &       (TAUAERDIAG(I,J,LL,IRTWVSELECT(1,W)).GT.0)) THEN
+           AODTMP=SNGL(TAUAERDIAG(I,J,LL,IRTWVSELECT(2,W))*
      &            ACOEF_RTWV(W)**(BCOEF_RTWV(W)*
-     &            LOG(TAUAERDIAG(IJLOOP,LL,IRTWVSELECT(1,W))/
-     &             TAUAERDIAG(IJLOOP,LL,IRTWVSELECT(2,W)))))
+     &            LOG(TAUAERDIAG(I,J,LL,IRTWVSELECT(1,W))/
+     &             TAUAERDIAG(I,J,LL,IRTWVSELECT(2,W)))))
            SSATMP=SNGL( CCOEF_RTWV(W)*
-     &            SSAAERDIAG(IJLOOP,LL,IRTWVSELECT(2,W))+
+     &            SSAAERDIAG(I,J,LL,IRTWVSELECT(2,W))+
      &            (1.0D0-CCOEF_RTWV(W))*
-     &            SSAAERDIAG(IJLOOP,LL,IRTWVSELECT(1,W)))
+     &            SSAAERDIAG(I,J,LL,IRTWVSELECT(1,W)))
            ASYMTMP=SNGL( CCOEF_RTWV(W)*
-     &            ASMAERDIAG(IJLOOP,LL,IRTWVSELECT(2,W))+
+     &            ASMAERDIAG(I,J,LL,IRTWVSELECT(2,W))+
      &            (1.0D0-CCOEF_RTWV(W))*
-     &            ASMAERDIAG(IJLOOP,LL,IRTWVSELECT(1,W)))
+     &            ASMAERDIAG(I,J,LL,IRTWVSELECT(1,W)))
            AODOUT=AODOUT+AODTMP
            SSAOUT=SSAOUT+SSATMP*AODTMP
            ASYMOUT=ASYMOUT+ASYMTMP*SSATMP*AODTMP
@@ -1573,12 +1613,12 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Convert tracer units back to [kg/kg] after RRTMG (ewl, 8/12/15)
-      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
-     &                            State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC,     
-     &                   'DO_RRTMG_RAD_TRANSFER')
+      ! Convert species units back to [kg/kg] after RRTMG (ewl, 8/12/15)
+      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
+     &                               State_Chm, RC ) 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC,     
+     &                 'DO_RRTMG_RAD_TRANSFER')
          RETURN
       ENDIF
 
@@ -1610,7 +1650,7 @@
 ! !USES:
 !
       USE CMN_FJX_MOD,   ONLY :  SPECMASK,NSPECRAD,NASPECRAD,
-     &                          LSPECRADMENU,NSPECRADMENU
+     &                           LSPECRADMENU,NSPECRADMENU
 !
 ! !INPUT PARAMETERS:
 !
@@ -1732,7 +1772,7 @@
       USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD             ! SIZE PARAMETERS
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE JULDAY_MOD,         ONLY : JULDAY, CALDATE
       USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH 
       USE TIME_MOD,           ONLY : GET_DAY,  GET_DAY_OF_YEAR  
@@ -1939,7 +1979,7 @@
       USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD             ! SIZE PARAMETERS
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH
       USE TIME_MOD,           ONLY : GET_DAY,  GET_DAY_OF_YEAR
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
@@ -2099,35 +2139,35 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMISS' )
       EMISS = 0D0
 
-      ALLOCATE( LW_UFLUX(IIPAR*JJPAR,LLPAR+1), STAT=AS )
+      ALLOCATE( LW_UFLUX(IIPAR,JJPAR,LLPAR+1), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'LW_UFLUX' )
       LW_UFLUX = 0D0
 
-      ALLOCATE( LW_DFLUX(IIPAR*JJPAR,LLPAR+1), STAT=AS )
+      ALLOCATE( LW_DFLUX(IIPAR,JJPAR,LLPAR+1), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'LW_DFLUX' )
       LW_DFLUX = 0D0
 
-      ALLOCATE( SW_UFLUX(IIPAR*JJPAR,LLPAR+1), STAT=AS )
+      ALLOCATE( SW_UFLUX(IIPAR,JJPAR,LLPAR+1), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SW_UFLUX' )
       SW_UFLUX = 0D0
 
-      ALLOCATE( SW_DFLUX(IIPAR*JJPAR,LLPAR+1), STAT=AS )
+      ALLOCATE( SW_DFLUX(IIPAR,JJPAR,LLPAR+1), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SW_DFLUX' )
       SW_DFLUX = 0D0
 
-      ALLOCATE( LW_UFLUXC(IIPAR*JJPAR,LLPAR+1), STAT=AS )
+      ALLOCATE( LW_UFLUXC(IIPAR,JJPAR,LLPAR+1), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'LW_UFLUXC' )
       LW_UFLUXC = 0D0
 
-      ALLOCATE( LW_DFLUXC(IIPAR*JJPAR,LLPAR+1), STAT=AS )
+      ALLOCATE( LW_DFLUXC(IIPAR,JJPAR,LLPAR+1), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'LW_DFLUXC' )
       LW_DFLUXC = 0D0
 
-      ALLOCATE( SW_UFLUXC(IIPAR*JJPAR,LLPAR+1), STAT=AS )
+      ALLOCATE( SW_UFLUXC(IIPAR,JJPAR,LLPAR+1), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SW_UFLUXC' )
       SW_UFLUXC = 0D0
 
-      ALLOCATE( SW_DFLUXC(IIPAR*JJPAR,LLPAR+1), STAT=AS )
+      ALLOCATE( SW_DFLUXC(IIPAR,JJPAR,LLPAR+1), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SW_DFLUXC' )
       SW_DFLUXC = 0D0
 
@@ -2221,6 +2261,8 @@
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D.A. Ridley - Initial version
 !  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
+!  17 May 2016 - M. Sulprizio- Change array dimensions from IIPAR*JJPAR to
+!                              IIPAR,JJPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2233,55 +2275,55 @@
       ! INIT_MCICA_CLOUDS begins here!
       !=================================================================
 
-      ALLOCATE( CLDFMCL_LW( NGPTLW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( CLDFMCL_LW( NGPTLW, IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFMCL_LW' )
       CLDFMCL_LW = 0D0
 
-      ALLOCATE( CIWPMCL_LW( NGPTLW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( CIWPMCL_LW( NGPTLW, IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CIWPMCL_LW' )
       CIWPMCL_LW = 0D0
 
-      ALLOCATE( CLWPMCL_LW( NGPTLW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( CLWPMCL_LW( NGPTLW, IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLWPMCL_LW' )
       CLWPMCL_LW = 0D0
 
-      ALLOCATE( TAUCMCL_LW( NGPTLW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( TAUCMCL_LW( NGPTLW, IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCMCL_LW' )
       TAUCMCL_LW = 0D0
 
-      ALLOCATE( CLDFMCL_SW( NGPTSW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( CLDFMCL_SW( NGPTSW, IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFMCL_SW' )
       CLDFMCL_SW = 0D0
 
-      ALLOCATE( CIWPMCL_SW( NGPTSW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( CIWPMCL_SW( NGPTSW, IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CIWPMCL_SW' )
       CIWPMCL_SW = 0D0
 
-      ALLOCATE( CLWPMCL_SW( NGPTSW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( CLWPMCL_SW( NGPTSW, IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLWPMCL_SW' )
       CLWPMCL_SW = 0D0
 
-      ALLOCATE( TAUCMCL_SW( NGPTSW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( TAUCMCL_SW( NGPTSW, IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCMCL_SW' )
       TAUCMCL_SW = 0D0
 
-      ALLOCATE( SSACMCL( NGPTSW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( SSACMCL( NGPTSW, IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SSACMCL' )
       SSACMCL = 0D0
 
-      ALLOCATE( ASMCMCL( NGPTSW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( ASMCMCL( NGPTSW, IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ASMCMCL' )
       ASMCMCL = 0D0
 
-      ALLOCATE( FSFCMCL( NGPTSW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( FSFCMCL( NGPTSW, IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FSFCMCL' )
       FSFCMCL = 0D0
 
-      ALLOCATE( RELQMCL( IIPAR*JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( RELQMCL( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RELQMCL' )
       RELQMCL = 0D0
 
-      ALLOCATE( REICMCL( IIPAR*JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( REICMCL( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'REICMCL' )
       REICMCL = 0D0
 

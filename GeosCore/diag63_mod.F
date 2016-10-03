@@ -109,31 +109,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG63 ( am_I_Root, Input_Opt, RC )
+      SUBROUTINE DIAG63 ( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,    ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
-      USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
-      USE inquireMod,   ONLY : findFreeLUN
-      USE TIME_MOD,     ONLY : EXPAND_DATE
-      USE TIME_MOD,     ONLY : GET_NYMD,           GET_NHMS
-      USE TIME_MOD,     ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
-      USE TIME_MOD,     ONLY : GET_TAU,            GET_HOUR
-      USE TIME_MOD,     ONLY : ITS_A_NEW_DAY,      TIMESTAMP_STRING
-      USE TIME_MOD,     ONLY : GET_TAUb
-      USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE ERROR_MOD,    ONLY : SAFE_DIV, ERROR_STOP
-
-      USE CMN_O3_MOD	     ! Pure O3, SAVENO2
-      USE PHYSCONSTANTS      ! XTRA2
-
-      ! Connect to HEMCO diagnostics
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTNO
+      USE BPCH2_MOD,     ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
+      USE CMN_O3_MOD	      ! Pure O3, SAVENO2
+      USE ErrCode_Mod
+      USE ERROR_MOD,     ONLY : SAFE_DIV, ERROR_STOP
+      USE GRID_MOD,      ONLY : GET_XOFFSET,        GET_YOFFSET
       USE HCO_DIAGN_MOD
       USE HCO_ERROR_MOD
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE inquireMod,    ONLY : findFreeLUN
+      USE PhysConstants
+      USE PBL_MIX_MOD,   ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
+      USE State_Chm_Mod, ONLY : ChmState
+      USE State_Chm_Mod, ONLY : Ind_
+      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE TIME_MOD,      ONLY : GET_NYMD,           GET_NHMS
+      USE TIME_MOD,      ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
+      USE TIME_MOD,      ONLY : GET_TAU,            GET_HOUR
+      USE TIME_MOD,      ONLY : ITS_A_NEW_DAY,      TIMESTAMP_STRING
+      USE TIME_MOD,      ONLY : GET_TAUb
 !
 ! !INPUT ARGUMENTS
 !
@@ -142,6 +140,8 @@
 !
 ! !INPUT/OUTPUT ARGUMENTS
 !
+      TYPE(ChmState), INTENT(INOUT)       :: State_Chm  ! Chemistry State object
+
       INTEGER,        INTENT(INOUT)       :: RC
 !
 ! !REVISION HISTORY:
@@ -151,6 +151,10 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  26 Feb 2015 - E. Lundgren - Remove pressure_mod from use list (not used)
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  31 May 2016 - E. Lundgren - Use TCVV instead of XNUMOL for molecular wts
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV, now takes in
+!                              State_Chm for spec db access
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -162,6 +166,7 @@
       INTEGER                       :: NHMS, TS_DIAG
       REAL(f8)                      :: TAU1, TAU0
       REAL(fp)                      :: Q( ND63_NI, ND63_NJ, 1)
+      REAL(fp)                      :: MW_NO
       CHARACTER(LEN=16)             :: STAMP
       CHARACTER(LEN=40)             :: CATEGORY
       CHARACTER(LEN=40)             :: UNIT
@@ -172,8 +177,11 @@
       INTEGER                       :: AF
       CHARACTER(LEN= 63)            :: DiagnName
       CHARACTER(LEN=255)            :: MSG
-      TYPE(DiagnCont), POINTER      :: DiagnCnt => NULL()
+      TYPE(DiagnCont), POINTER      :: DiagnCnt
       REAL(f8)                      :: FACTOR
+
+      ! Species ID flag
+      INTEGER                       :: id_NO
 !
 ! !DEFINED PARAMETERS:
 !
@@ -183,6 +191,9 @@
       !=================================================================
       ! DIAG63 begins here!
       !=================================================================
+
+      ! Initialize
+      DiagnCnt => NULL()
 
       !=================================================================
       ! If it's a new day, open a new BPCH file and write file header
@@ -219,6 +230,16 @@
       !=================================================================
       ! Save tracers to timeseries file
       !=================================================================
+
+      ! Get the species ID of NO
+      id_NO = Ind_('NO')
+      IF ( id_NO < 0 ) THEN
+         MSG = 'PARANOX is active but NO is not defined!'
+         CALL ERROR_STOP ( MSG, LOC )
+      ENDIF
+
+      ! Get MW from species database
+      MW_NO = State_Chm%SpcData(id_NO)%Info%emMW_g
 
       ! Echo info
       STAMP = TIMESTAMP_STRING()
@@ -260,17 +281,20 @@
                DiagnName = 'PARANOX_OX_PRODUCTION'
                UNIT      = 'molec/cm2/s'
                AF        = 0
-               FACTOR    = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 
+               FACTOR    = AVO * ( AIRMW / MW_NO ) / 
+     &                     ( CM2PERM2 * AIRMW * 1.e-3_fp ) 
             CASE ( 4 ) 
                DiagnName = 'PARANOX_NOX_REMAINING'
                UNIT      = 'molec/cm2/s'
                AF        = 0
-               FACTOR    = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 
+               FACTOR    = AVO * ( AIRMW / MW_NO ) / 
+     &                     ( CM2PERM2 * AIRMW * 1.e-3_fp ) 
             CASE ( 5 ) 
                DiagnName = 'SHIP_NO'
                UNIT      = 'molec/cm2/s'
                AF        = 1
-               FACTOR    = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 
+               FACTOR    = AVO * ( AIRMW / MW_NO ) /
+     &                     ( CM2PERM2 * AIRMW * 1.e-3_fp )  
             CASE DEFAULT
                MSG = 'Only 5 diagnostics expected!'
                CALL ERROR_STOP ( MSG, LOC )
@@ -328,7 +352,7 @@
 
       ! Return w/ success
       DiagnCnt => NULL()
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE DIAG63
 !EOC
@@ -401,9 +425,9 @@
 !
 ! !USES:
 !
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,  ONLY : GET_ELAPSED_MIN
       USE TIME_MOD,  ONLY : GET_TS_DIAG
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 !
 ! !RETURN VALUE:
 !
@@ -515,14 +539,13 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD, ONLY : GET_MODELNAME
-      USE BPCH2_MOD, ONLY : GET_HALFPOLAR
-      USE GRID_MOD,  ONLY : GET_XOFFSET
-      USE GRID_MOD,  ONLY : GET_YOFFSET
-      USE GRID_MOD,  ONLY : ITS_A_NESTED_GRID
-      USE ERROR_MOD, ONLY : ERROR_STOP
-
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE BPCH2_MOD,   ONLY : GET_MODELNAME
+      USE BPCH2_MOD,   ONLY : GET_HALFPOLAR
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE GRID_MOD,    ONLY : GET_XOFFSET
+      USE GRID_MOD,    ONLY : GET_YOFFSET
+      USE GRID_MOD,    ONLY : ITS_A_NESTED_GRID
+      USE ERROR_MOD,   ONLY : ERROR_STOP
 !
 ! !INPUT PARAMETERS: 
 !

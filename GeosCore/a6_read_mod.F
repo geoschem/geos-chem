@@ -15,7 +15,7 @@
 !
 ! !USES:
 !
-      USE inquireMod, ONLY : findFreeLUN
+      USE inquireMod,    ONLY : findFreeLUN
       USE PRECISION_MOD
 
       IMPLICIT NONE
@@ -97,7 +97,7 @@
       USE BPCH2_MOD,          ONLY : GET_RES_EXT
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -339,7 +339,7 @@
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR, FILE_EXISTS
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -493,8 +493,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -531,6 +531,8 @@
 !                              the GEOS-4 U and V wind fields
 !  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
 !  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
+!  17 Mar 2016 - M. Sulprizio- Read optical depth into State_Met%OPTD instead of
+!                              State_Met%OPTDEP (obsolete).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -569,7 +571,7 @@
      &              HKBETA     = State_Met%HKBETA,   
      &              HKETA      = State_Met%HKETA,   
      &              MOISTQ     = State_Met%MOISTQ, 
-     &              OPTDEPTH   = State_Met%OPTDEP, 
+     &              OPTDEPTH   = State_Met%OPTD, 
      &              Q          = State_Met%SPHU,        
      &              T          = State_Met%T,           
      &              U          = State_Met%U,          
@@ -596,7 +598,7 @@
      &              DQVDTMST   = State_Met%DQVDTMST,
      &              DTRAIN     = State_Met%DTRAIN,     
      &              MOISTQ     = State_Met%MOISTQ,      
-     &              OPTDEPTH   = State_Met%OPTDEP, 
+     &              OPTDEPTH   = State_Met%OPTD, 
      &              PV         = State_Met%PV,              
      &              RH         = State_Met%RH,             
      &              Q          = State_Met%SPHU,             
@@ -624,7 +626,7 @@
      &              DNDN       = State_Met%DNDN,         
      &              ENTRAIN    = State_Met%ENTRAIN,    
      &              MOISTQ     = State_Met%MOISTQ,
-     &              OPTDEPTH   = State_Met%OPTDEP,    
+     &              OPTDEPTH   = State_Met%OPTD,    
      &              Q          = State_Met%SPHU,            
      &              T          = State_Met%T,                
      &              U          = State_Met%U,
@@ -843,14 +845,15 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE PHYSCONSTANTS
+      USE PhysConstants
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD21
       USE DIAG_MOD,           ONLY : AD66
       USE DIAG_MOD,           ONLY : AD67
 #endif
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_A6
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D_Lp1
@@ -984,7 +987,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                        :: I, IJLOOP, J, K, L
+      INTEGER                        :: I, J, K, L
       INTEGER                        :: IOS, NFOUND, N_A6
       REAL*4                         :: D(IIPAR,JJPAR,LGLOB)       
       REAL*4                         :: D1(IIPAR,JJPAR,LGLOB+1)       
@@ -1673,6 +1676,14 @@
 
 #if defined( BPCH_DIAG )
       !=================================================================
+      !          %%%%% ND21 diagnostic: OPTD and CLDF %%%%%
+      !=================================================================
+      IF ( ND21 > 0 ) THEN
+         AD21(:,:,1:LD21,1) = AD21(:,:,1:LD21,1) + OPTDEPTH(:,:,1:LD21)
+         AD21(:,:,1:LD21,2) = AD21(:,:,1:LD21,2) + CLDF(:,:,1:LD21)
+      ENDIF
+
+      !=================================================================
       ! ND66 diagnostic: A-6 fields
       !
       ! (1 ) UWND   : 6-h average U-winds             [m/s]
@@ -1789,7 +1800,7 @@
  120     FORMAT( 'There are ', i2, ' fields but only ', i2 ,
      &           ' were found!' )
 
-         WRITE( 6, '(a)' ) '### STOP in A6_CHECK (dao_read_mod.f)'
+         WRITE( 6, '(a)' ) '### STOP in A6_CHECK (a6_read_mod.f)'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
          ! Deallocate arrays and stop (bmy, 10/15/02)

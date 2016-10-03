@@ -203,8 +203,8 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -379,9 +379,9 @@
 !
       USE BPCH2_MOD,            ONLY : GET_RES_EXT, GET_NAME_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,    READ_BPCH2
+      USE CMN_SIZE_MOD               ! Size parameters
       USE FILE_MOD,             ONLY : FILE_EXISTS
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE Input_Opt_Mod,        ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1307,9 +1307,8 @@
 !******************************************************************************
 !
       ! References to F90 modules
+      USE CMN_SIZE_MOD    ! Size parameters
       USE ERROR_MOD, ONLY : ALLOC_ERR
-
-      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Local variables
       INTEGER            :: AS

@@ -70,11 +70,11 @@ CONTAINS
 !
 ! !USES:
 !
+    USE ErrCode_Mod
     USE Error_Mod,          ONLY : Error_Stop
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr 
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 !
 ! !INPUT PARAMETERS:
@@ -92,6 +92,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -102,14 +103,14 @@ CONTAINS
     LOGICAL :: FND
 
     ! Pointers
-    REAL(f4), POINTER :: Ptr2D(:,:) => NULL()
+    REAL(f4), POINTER :: Ptr2D(:,:)
 
     !=======================================================================
     ! READ_UVALBEDO begins here!
     !=======================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Skip unless we are doing a fullchem or aerosol-only simulation
     IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) .and. &
@@ -124,7 +125,7 @@ CONTAINS
     CALL HCO_GetPtr( am_I_Root, 'UV_ALBEDO', Ptr2D, RC, FOUND=FND )
 
       ! Stop with error message
-    IF ( RC /= GIGC_SUCCESS .or. ( .not. FND ) ) THEN
+    IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN
        CALL ERROR_STOP ( 'Could not find UV_ALBEDO in HEMCO data list!', & 
                          'READ_UVALBEDO (uvalbedo_mod.F90)' )
     ENDIF

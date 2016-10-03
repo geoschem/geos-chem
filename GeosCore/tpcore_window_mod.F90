@@ -467,7 +467,7 @@ CONTAINS
 !----------------------------------------------------------------------------
 
 ! Uses:
-    USE PHYSCONSTANTS  ! Physical constants g0_100 and AIRMW
+    USE PhysConstants  ! Physical constants g0_100 and AIRMW
 
  implicit none
 
@@ -610,7 +610,7 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if defined( BPCH_DIAG ) || defined ( NETCDF )
+#if defined( BPCH_DIAG ) || defined( NC_DIAG )
 ! Local arrays for mass fluxes to save memory if diagnostics not used.
 ! (ccc, 9/9/10)
  real MFLEW(im, jm), MFLNS(im, jm)
@@ -1367,7 +1367,7 @@ CONTAINS
                 AREA_M2, ND24, ND25, DT )
 
 ! Uses:
-    USE PHYSCONSTANTS  ! Physical constants g0_100
+    USE PhysConstants  ! Physical constants g0_100
 
  implicit none
 

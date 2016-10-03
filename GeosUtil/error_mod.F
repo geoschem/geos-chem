@@ -14,10 +14,9 @@
 ! 
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -30,7 +29,7 @@
       PUBLIC  :: ALLOC_ERR
       PUBLIC  :: CHECK_VALUE
       PUBLIC  :: DEBUG_MSG
-      PUBLIC  :: GIGC_ERROR
+      PUBLIC  :: GC_ERROR
       PUBLIC  :: ERROR_STOP
       PUBLIC  :: GEOS_CHEM_STOP
       PUBLIC  :: IS_SAFE_DIV
@@ -43,6 +42,9 @@
       PUBLIC  :: SAFE_LOG10
       PUBLIC  :: INIT_ERROR
       PUBLIC  :: CLEANUP_ERROR
+      PUBLIC  :: PRINT_GLOBAL_SPECIES_KG
+      PUBLIC  :: CHECK_SPC
+      PUBLIC  :: CHECK_SPC_NESTED
 
       ! Interface for NaN-check routines
       INTERFACE IT_IS_NAN
@@ -135,6 +137,9 @@
 !  13 Aug 2015 - E. Lundgren - Add GIGC_ERROR which sets RC to GIGC_FAILURE
 !                              and print msg and location to log
 !  22 Jan 2016 - R. Yantosca - Remove SPARC, IBM #ifdefs
+!  17 Aug 2016 - M. Sulprizio- Move CHECK_SPC and CHECK_SPC_NESTED here from
+!                              obsolete tracer_mod.F
+!  16 Sep 2016 - E. Lundgren - Add routine to print global species mass to log
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -550,16 +555,16 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GIGC_Error
+! !IROUTINE: GC_Error
 !
-! !DESCRIPTION: Subroutine GIGC\_Error prints an error message and sets RC to 
-! GIGC\_FAILURE. Note that this routine does not stop a run, but it will cause 
-! a stop at a higher level if you add a catch for RC /= GIGC_SUCCESS. 
+! !DESCRIPTION: Subroutine GC\_Error prints an error message and sets RC to 
+!  GC\_FAILURE. Note that this routine does not stop a run, but it will cause 
+!  a stop at a higher level if you add a catch for RC /= GC\_SUCCESS. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GIGC_Error( ErrMsg, RC, ThisLoc )
+      SUBROUTINE GC_Error( ErrMsg, RC, ThisLoc )
 !
 ! !INPUT PARAMETERS:
 !
@@ -572,13 +577,14 @@
 !
 ! !REVISION HISTORY:
 !  13 Aug 2015 - E. Lundgren - Initial version, based on C. Keller's HCO_ERROR
+!  16 Aug 2016 - M. Sulprizio- Rename from GIGC_ERROR to GC_ERROR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       CHARACTER(LEN=255) :: MSG
 
       !======================================================================
-      ! GIGC_ERROR begins here 
+      ! GC_ERROR begins here 
       !======================================================================
 
       ! Print error message to log
@@ -592,9 +598,9 @@
       ENDIF
       
       ! Return with error
-      RC = GIGC_FAILURE 
+      RC = GC_FAILURE 
 
-      END SUBROUTINE GIGC_Error
+      END SUBROUTINE GC_Error
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -656,8 +662,8 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE GEOS_TIMERS_MOD
 #if defined( ESMF_ )
       !-----------------------------------------------------------------
@@ -678,6 +684,8 @@
 !  12 Mar 2013 - R. Yantosca - Now use GEOS-5 style traceback when using ESMF
 !   8 Jul 2014 - R. Yantosca - Now call cleanup.F with shadow variables
 !  11 Aug 2015 - M. Yannetti - Now calls all timers to stop.
+!  26 Mar 2016 - S.D.Eastham - Re-ordered to allow __Iam__ to contain
+!                              variable declarations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -686,14 +694,6 @@
 !
       INTEGER :: RC          ! Success / Failure
       LOGICAL :: am_I_Root   ! Is this the root CPU? 
-
-      ! Only write to stdout if we are on the root CPU
-      am_I_Root = .TRUE. 
-
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_StopAll( RC )
-      CALL GEOS_Timer_PrintAll( am_I_Root, RC )  
-#endif
 
 #if defined( ESMF_ )
 
@@ -704,10 +704,27 @@
       ! GCM via the ESMF interface (bmy, 3/12/13)
       !-----------------------------------------------------------------
       __Iam__('GEOSCHEMSTOP')
+
+      ! Only write to stdout if we are on the root CPU
+      am_I_Root = .TRUE. 
+
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_StopAll( RC )
+      CALL GEOS_Timer_PrintAll( am_I_Root, RC )  
+#endif
+
       STATUS = -1
       VERIFY_(STATUS)
 
 #else
+      ! Only write to stdout if we are on the root CPU
+      am_I_Root = .TRUE. 
+
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_StopAll( RC )
+      CALL GEOS_Timer_PrintAll( am_I_Root, RC )  
+#endif
+
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
@@ -1258,6 +1275,264 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: check_spc
+!
+! !DESCRIPTION: Subroutine CHECK\_SPC checks the species array for negative
+!  values, NaN values, or Infinity values.  If any of these are found, the code
+!  will stop with an error message.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CHECK_SPC( State_Chm, Input_Opt, LOCATION )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*), INTENT(IN) :: LOCATION
+      TYPE(ChmState),   INTENT(IN) :: State_Chm   ! Chemistry State object
+      TYPE(OptInput),   INTENT(IN) :: Input_Opt   ! Input Options object
+! 
+! !REVISION HISTORY:
+!  (1 ) CHECK_STT uses the interfaces defined above -- these will do the
+!        proper error checking for either SGI or DEC/Compaq platforms.
+!        (bmy, 3/8/01)
+!  (2 ) Now call GEOS_CHEM_STOP to shutdown safely.  Now use logicals LNAN,
+!        LNEG, LINF to flag if we have error conditions, and then stop the
+!        run outside of the parallel DO-loop. (bmy, 11/27/02)
+!  (3 ) Bug fix in FORMAT statement: replace missing commas (bmy, 3/23/03)
+!  (4 ) Moved from "error_mod.f" to "tracer_mod.f" (bmy, 7/15/04)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  17 Aug 2016 - M. Sulprizio- Rename from CHECK_STT to CHECK_SPC and
+!                              move from tracer_mod.F to error_mod.F
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL           :: LNEG, LNAN, LINF
+      INTEGER           :: I,    J,    L,   N,  NA
+      
+      ! Pointers
+      REAL(fp), POINTER :: Spc(:,:,:,:)
+
+      !=================================================================
+      ! CHECK_SPC begins here!
+      !=================================================================
+
+      ! Point to GEOS-Chem species [kg/kg]
+      Spc => State_Chm%Species
+
+      ! Initialize
+      LNEG = .FALSE.
+      LNAN = .FALSE.
+      LINF = .FALSE.
+
+      ! Loop over the advected species
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, NA )
+      DO NA = 1, State_Chm%nAdvect
+         
+         ! Advected species ID
+         N = State_Chm%Map_Advect(NA)
+
+         ! Loop over grid boxes
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            !---------------------------
+            ! Check for Negatives
+            !---------------------------
+            Spc(I,J,L,N) = ABS(Spc(I,J,L,N))
+            IF ( Spc(I,J,L,N) < 0e+0_fp ) THEN 
+!$OMP CRITICAL
+               LNEG = .TRUE.
+               WRITE( 6, 100 ) I, J, L, N, Spc(I,J,L,N)
+               PRINT*, Spc(I,J,L,N)
+!$OMP END CRITICAL
+
+            !---------------------------
+            ! Check for NaN's
+            !---------------------------
+            ELSE IF ( IT_IS_NAN( Spc(I,J,L,N) ) ) THEN
+!$OMP CRITICAL
+               LNAN = .TRUE.
+               WRITE( 6, 100 ) I, J, L, N, Spc(I,J,L,N)
+!$OMP END CRITICAL
+
+            !----------------------------
+            ! Check Spc's for Infinities
+            !----------------------------
+            ELSE IF ( .not. IT_IS_FINITE( Spc(I,J,L,N) ) ) THEN
+!$OMP CRITICAL
+               LINF = .TRUE.
+               WRITE( 6, 100 ) I, J, L, N, Spc(I,J,L,N)
+!$OMP END CRITICAL            
+
+            ENDIF
+         ENDDO
+         ENDDO
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Free pointer
+      Spc => NULL()
+
+      !=================================================================
+      ! Stop the run if any of LNEG, LNAN, LINF is true
+      !=================================================================
+      IF ( LNEG .or. LNAN .or. LINF ) THEN
+         WRITE( 6, 120 ) TRIM( LOCATION ), LNEG, LNAN, LINF
+         CALL GEOS_CHEM_STOP
+      ENDIF
+
+      !=================================================================
+      ! FORMAT statements
+      !=================================================================
+ 100  FORMAT( 'CHECK_SPC: SPC(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
+ 120  FORMAT( 'CHECK_SPC: STOP at ', a , 3L2 )
+
+      END SUBROUTINE CHECK_SPC
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: check_spc_nested
+!
+! !DESCRIPTION: Subroutine CHECK\_SPC\_NESTED checks the species array for
+!  negative values, NaN values, or Infinity values.  If any of these are found,
+!  the species will be set to a specified value.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CHECK_SPC_NESTED( State_Chm, Input_Opt, LOCATION )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*), INTENT(IN)    :: LOCATION
+      TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !REVISION HISTORY:
+!  05 Mar 2012 - M. Payer    - Initial version based on CHECK_STT and updates
+!                              for nested grid by Yuxuan Wang.
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!  26 Oct 2015 - M. Sulprizio- Rename from CHECK_STT_05x0666 to CHECK_STT_NESTED
+!                              for use with all nested grids
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  17 Aug 2016 - M. Sulprizio- Rename from CHECK_STT_NESTED to CHECK_SPC_NESTED
+!                              and move from tracer_mod.F to error_mod.F
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: I, J, L, N, NA
+      
+      ! Pointers
+      REAL(fp), POINTER :: Spc(:,:,:,:)
+
+      !=================================================================
+      ! CHECK_SPC_NESTED begins here!
+      !=================================================================
+
+      ! Point to chemical species array [kg/kg]
+      Spc => State_Chm%Species
+
+      ! Loop over advected species
+      ! Loop over grid boxes
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, NA )
+      DO NA = 1, State_Chm%nAdvect
+
+         ! Advected species ID
+         N = State_Chm%Map_Advect(NA)
+
+         ! Loop over grid boxes
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            !---------------------------
+            ! Check for Negatives
+            !---------------------------
+            IF ( Spc(I,J,L,N) < 0e+0_fp ) THEN 
+!$OMP CRITICAL
+               WRITE( 6, 100 ) I, J, L, N, Spc(I,J,L,N)
+               PRINT*, 'Neg Spc ' // TRIM( LOCATION ) //
+     &                 '. SET Spc TO BE ZERO.'
+               Spc(I,J,L,N) = 0e+0_fp
+!$OMP END CRITICAL
+
+            !---------------------------
+            ! Check for NaN's
+            !---------------------------
+            ELSE IF ( IT_IS_NAN( Spc(I,J,L,N) ) ) THEN 
+!$OMP CRITICAL
+               WRITE( 6, 100 ) I, J, L, N, Spc(I,J,L,N)
+               PRINT*, 'NaN Spc ' // TRIM( LOCATION ) //
+     &              '. SET Spc TO BE LOWER LEVEL.'
+               Spc(I,J,L,N) = Spc(I,J,L-1,N)
+!$OMP END CRITICAL
+
+            !----------------------------
+            ! Check Spc's for Infinities
+            !----------------------------
+            ELSE IF ( .not. IT_IS_FINITE( Spc(I,J,L,N) ) ) THEN
+!$OMP CRITICAL
+               WRITE( 6, 100 ) I, J, L, N, Spc(I,J,L,N)
+               PRINT*, 'Inf Spc ' // TRIM( LOCATION ) //
+     &                 '. SET Spc TO BE LOWER LEVEL.'
+               Spc(I,J,L,N) =  Spc(I,J,L-1,N)
+!$OMP END CRITICAL
+
+            ENDIF
+         ENDDO
+         ENDDO
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Free pointer
+      Spc => NULL()
+
+ 100  FORMAT( ' Spc(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
+
+      END SUBROUTINE CHECK_SPC_NESTED
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: init_error
 !
 ! !DESCRIPTION: Subroutine INIT\_ERROR stores shadow copies of am\_I\_Root
@@ -1292,7 +1567,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Assume success
-      RC               =  GIGC_SUCCESS
+      RC               =  GC_SUCCESS
 
       ! Store a shadow copy of am_I_Root
       SHADOW_am_I_Root =  am_I_Root
@@ -1325,5 +1600,74 @@
       NULLIFY( SHADOW_Input_Opt )
 
       END SUBROUTINE CLEANUP_ERROR
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Print_Global_Species_Kg
+!
+! !DESCRIPTION: Subroutine Print\_Global\_Species\_Kg sums up the total 
+!   global species mass for tracer #1 and prints it to log along with
+!   a user-defined location
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Print_Global_Species_Kg( State_Chm, State_Met, LOC )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE State_Chm_Mod, ONLY : ChmState
+      USE State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*), INTENT(IN)    :: LOC
+      TYPE(ChmState),   INTENT(IN)    :: State_Chm 
+      TYPE(MetState),   INTENT(IN)    :: State_Met 
+! 
+! !REMARKS:
+!  This routine is for debugging purposes to trace where species
+!  mass is not conserved 
+!
+! !REVISION HISTORY: 
+!  22 Jun 2016 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!     
+      INTEGER      :: I, J, L
+      REAL(fp)     :: Species_Kg(IIPAR,JJPAR,LLPAR)
+      REAL(fp)     :: Sum_Species_Kg
+
+      !================================================================
+      ! Print_Global_Species_Kg begins here!
+      !================================================================
+      PRINT *, " "
+      PRINT *, TRIM( LOC )
+      Sum_Species_Kg = 0.e+0_fp
+      Species_Kg      = 0.e+0_fp
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         Species_Kg(I,J,L) =
+     &            State_Chm%Species(I,J,L,1) * State_Met%AD(I,J,L)
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+      Sum_Species_Kg = SUM( Species_Kg(:,:,:) )
+      PRINT *, "Global species Kg: ", Sum_Species_Kg      
+      PRINT *, " "
+
+      END SUBROUTINE Print_Global_Species_Kg
 !EOC
       END MODULE ERROR_MOD

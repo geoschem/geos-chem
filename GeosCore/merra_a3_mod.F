@@ -15,9 +15,8 @@
 !
 ! !USES:
 !
-      USE inquireMod, ONLY : findFreeLUN
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE inquireMod,    ONLY : findFreeLUN
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -141,7 +140,7 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : FILE_EXISTS
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -260,8 +259,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -281,6 +280,8 @@
 !  23 Oct 2013 - R. Yantosca - Now accept Input_Opt as an argument
 !  23 Oct 2013 - R. Yantosca - Now read T_FULLGRID for specialty (offline) sims
 !  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
+!  17 Mar 2016 - M. Sulprizio- Read optical depth into State_Met%OPTD instead of
+!                              State_Met%OPTDEP (obsolete).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -318,7 +319,7 @@
      &              DQVDTMST   = State_Met%DQVDTMST,  
      &              DTRAIN     = State_Met%DTRAIN,     
      &              MOISTQ     = State_Met%MOISTQ,     
-     &              OPTDEPTH   = State_Met%OPTDEP, 
+     &              OPTDEPTH   = State_Met%OPTD, 
      &              PFICU      = State_Met%PFICU,             
      &              PFILSAN    = State_Met%PFILSAN,             
      &              PFLCU      = State_Met%PFLCU,
@@ -367,11 +368,12 @@
       USE CMN_SIZE_MOD
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD21
       USE DIAG_MOD,           ONLY : AD66
       USE DIAG_MOD,           ONLY : AD67
 #endif
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_A3
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D_Lp1
@@ -823,6 +825,14 @@
       WHERE( QL < 0e+0_fp ) QL = 0e+0_fp
 
 #if defined( BPCH_DIAG )
+      !=================================================================
+      !          %%%%% ND21 diagnostic: OPTD and CLDF %%%%%
+      !=================================================================
+      IF ( ND21 > 0 ) THEN
+         AD21(:,:,1:LD21,1) = AD21(:,:,1:LD21,1) + OPTDEPTH(:,:,1:LD21)
+         AD21(:,:,1:LD21,2) = AD21(:,:,1:LD21,2) + CLOUD(:,:,1:LD21)
+      ENDIF
+
       !=================================================================
       !          %%%%% ND66 diagnostic: 3-D met fields %%%%%
       !

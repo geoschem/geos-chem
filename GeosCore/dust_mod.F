@@ -15,8 +15,8 @@
 !
 ! !USES:
 !
-      USE inquireMod, ONLY : findFreeLUN
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE inquireMod,    ONLY : findFreeLUN
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -70,15 +70,26 @@
 !  20 Jun 2014 - R. Yantosca - Remove obsolete emissions code; we now use HEMCO
 !  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  01 Apr 2015 - R. Yantosca - Remove obsolete DUSTMIX, DRY_DEPOSITION routines
+!  16 Jun 2016 - J. Kaiser   - Move tracerIDs into variable names
+!  20 Jun 2016 - R. Yantosca - Rename IDT* species ID's to id_*
+!  20 Jun 2016 - R. Yantosca - Now only define species ID's in the INIT phase
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
-      INTEGER               :: DRYDST1,  DRYDST2,   DRYDST3,  DRYDST4
-      INTEGER               :: DRYDAL1,  DRYDAL2,   DRYDAL3,  DRYDAL4
-      INTEGER               :: DRYSO4D1, DRYSO4D2,  DRYSO4D3, DRYSO4D4
+      ! Species ID flags
+      INTEGER               :: id_DST1,  id_DST2,  id_DST3,   id_DST4  
+      INTEGER               :: id_DAL1,  id_DAL2,  id_DAL3,   id_DAL4  
+      INTEGER               :: id_DUST1, id_NK1
+
+      ! Drydep ID flags (mostly obsolete, keep for now)
+      INTEGER               :: dd_DST1,  dd_DST2,   dd_DST3,  dd_DST4
+      INTEGER               :: dd_DAL1,  dd_DAL2,   dd_DAL3,  dd_DAL4
+      INTEGER               :: dd_SO4D1, dd_SO4D2,  dd_SO4D3, dd_SO4D4
+
+      ! Arrays
       REAL(fp), ALLOCATABLE :: FRAC_S(:)
       REAL(fp), ALLOCATABLE :: SRCE_FUNC(:,:,:)
 
@@ -104,19 +115,12 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,       ONLY : IDTDST1
-      USE TRACERID_MOD,       ONLY : IDTDST2
-      USE TRACERID_MOD,       ONLY : IDTDST3
-      USE TRACERID_MOD,       ONLY : IDTDST4
-      ! Include dust alkalinity tracer IDs               tdf 04/10/08
-      USE TRACERID_MOD,       ONLY : IDTDAL1,  IDTDAL2
-      USE TRACERID_MOD,       ONLY : IDTDAL3,  IDTDAL4
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -149,6 +153,9 @@
 !                              aerosols (T.D. Fairlie)
 !  01 Apr 2015 - R. Yantosca - Remove call to DRY_DEPOSITION, this is now
 !                              done in mixing_mod.F90.
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -169,14 +176,14 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! CHEMDUST begins here!
       !=================================================================
 
       ! Assume success
-      RC    = GIGC_SUCCESS
+      RC    = GC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LDRYD  = Input_Opt%LDRYD
@@ -189,11 +196,17 @@
       ! Execute on first call only
       IF ( FIRST ) THEN
  
-         ! Stop w/ error if dust tracer flags are undefined
-         IF ( IDTDST1 + IDTDST2 + IDTDST3 + IDTDST4 == 0 ) THEN
+         ! Stop w/ error if dust species flags are undefined
+         ! NOTE: Ind_() returns -1 for species not found, so for the
+         ! algorithm below to work, we need to make sure all id's are
+         ! not less than zero (bmy, 7/5/16)
+         IF ( MAX( id_DST1, 0 )  + 
+     &        MAX( id_DST2, 0 )  + 
+     &        MAX( id_DST3, 0 )  + 
+     &        MAX( id_DST4, 0 ) == 0 ) THEN 
             IF ( LDUST ) THEN 
                CALL ERROR_STOP( 
-     &              'LDUST=T but dust tracers are undefined!',
+     &              'LDUST=T but dust species are undefined!',
      &              'EMISSDUST ("dust_mod.f")' )
             ENDIF
          ENDIF
@@ -206,25 +219,34 @@
       ! Do dust settling & deposition
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [kg]
+      Spc => State_Chm%Species
 
-      !----------------------
-      ! Dust settling
-      !----------------------
+      !-------------------------------------------------------------
+      ! Dust settling for regular dust species
+      !
+      ! NOTE: Assumes that id_DST1, id_DST2, id_DST3, id_DST4 are 
+      ! contiguous in the species list.  This is usually correct,
+      ! but we may have to update this later. (bmy, 7/5/16)
+      !-------------------------------------------------------------
       IDISP = 0
-      CALL DRY_SETTLING(  am_I_Root, Input_Opt,  
-     &                    State_Met, STT(:,:,:,IDTDST1:IDTDST4), RC,
-     &                    IDTDST1,   IDISP )
-
+      CALL DRY_SETTLING(  am_I_Root, Input_Opt, State_Met,
+     &                    State_Chm, Spc(:,:,:,id_DST1:id_DST4),
+     &                    RC,        id_DST1,  IDISP             )
+   
+      !-------------------------------------------------------------
+      ! Dust settling for acid uptake on dust species
+      !
+      ! NOTE: Assumes that id_DAL1, id_DAL2, id_DAL3, id_DAL4 are 
+      ! contiguous in the species list.  This is usually correct,
+      ! but we may have to update this later. (bmy, 7/5/16)
+      !-------------------------------------------------------------
       IF ( LDSTUP ) THEN
          ! Include dust alkalinity settling                 tdf 04/10/08
          IDISP = 4
-         CALL DRY_SETTLING(  am_I_Root, Input_Opt,  
-     &                       State_Met, STT(:,:,:,IDTDAL1:IDTDAL4), RC,
-     &                       IDTDAL1,   IDISP )
-
+         CALL DRY_SETTLING( am_I_Root, Input_Opt, State_Met, 
+     &                     State_Chm,  Spc(:,:,:,id_DAL1:id_DAL4), 
+     &                     RC,         id_DAL1,  IDISP             )
          ! Note: DRY SETTLING of DSTNIT, DSTSO4 occurs in GRAV_SETTLING
          !       called from CHEMSULFATE in SULFATE_MOD.    tdf 04/10/08
       ENDIF
@@ -235,9 +257,10 @@
       ENDIF
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE CHEMDUST
+!EOC
 #if   defined( TOMAS )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -259,22 +282,20 @@
 !
 ! !USES:
 ! 
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND44
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44
 #endif
-      USE DRYDEP_MOD,         ONLY : NUMDEP, NTRAIND
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : AVO
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TOMAS_MOD,          ONLY : IBINS, Xk, SRTDUST
-      USE TRACERID_MOD
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND44
 !
 ! !INPUT PARAMETERS:
 !
@@ -296,6 +317,11 @@
 !  13 Dec 2012 - M. Payer    - Add am_I_Root, Input_Opt, RC as arguments
 !  31 May 2013 - R. Yantosca - Now pass State_Chm via the arg list
 !  16 Jul 2015 - R. Yantosca - Now pass INDEX and IDISP to DRY_SETTLING
+!  31 May 2016 - E. Lundgren - Replace Input_Opt%XNUMOL with AVO/(emMW_g*1e-3)
+!                              where emMW_g is from species database
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -316,36 +342,25 @@
       data                 ii,jj, ix, jx, bb /37, 24, 58, 34, 30 /
       CHARACTER(LEN=255) :: MSG, LOC
 
-      ! For values from Input_Opt
-      INTEGER           :: N_TRACERS
-      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
-
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! SETTLEDUST begins here!
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
-      ! Check that tracer units are in [kg] (ewl, 8/13/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+      ! Check that species units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine SETTLEDUST in dust_mod.F'
-         CALL GIGC_Error( MSG, RC, LOC )
+         CALL GC_Error( MSG, RC, LOC )
       ENDIF
 
-      ! Copy values from Input_Opt
-      N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT       => State_Chm%Tracers
+      ! Point to chemical species array [kg]
+      Spc       => State_Chm%Species
 
       !=================================================================
       ! Do dust settling & deposition
@@ -359,7 +374,7 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         DU0(I,J,L,BIN) = STT(I,J,L,IDTDUST1-1+BIN) 
+         DU0(I,J,L,BIN) = Spc(I,J,L,id_DUST1-1+BIN) 
       ENDDO
       ENDDO
       ENDDO
@@ -370,16 +385,17 @@
       CALL DRY_SETTLING( am_I_Root,
      &                   Input_Opt,  
      &                   State_Met,
-     &                   STT(:,:,:,IDTDUST1:IDTDUST1-1+IBINS),
+     &                   State_Chm,
+     &                   Spc(:,:,:,id_DUST1:id_DUST1-1+IBINS),
      &                   RC,
-     &                   IDTDUST1,
+     &                   id_DUST1,
      &                   IDISP )
 
 
       ! Calculate change in number to correspond with dust redistribution
       ! by gravitational settling
       DO BIN = 1, IBINS
-      NN = NUMDEP + (SRTDUST-1)*IBINS + BIN
+      NN = State_Chm%nDryDep + (SRTDUST-1)*IBINS + BIN
 
       DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -397,16 +413,22 @@
 !     &           'FLUXD  AD44' 
 !debug-----
             DO L = 1, LLPAR
-               DIF = DU0(I,J,L,BIN) - STT(I,J,L,IDTDUST1-1+BIN)
+               DIF = DU0(I,J,L,BIN) - Spc(I,J,L,id_DUST1-1+BIN)
 
-               STT(I,J,L,IDTNK1-1+BIN) = STT(I,J,L,IDTNK1-1+BIN) - 
+               Spc(I,J,L,id_NK1-1+BIN) = Spc(I,J,L,id_NK1-1+BIN) - 
      &                                DIF/(SQRT( Xk(BIN)*Xk(BIN+1)))
             
                ! Convert flux from [kg/s] to [molec/cm2/s]
-               FLUXD = FLUXD + 
-     &              DIF / DT_SETTL * XNUMOL(IDTDUST1-1+BIN) / AREA_CM2
+               FLUXD = FLUXD +                                                 
+     &                 DIF / DT_SETTL * AVO / ( 1.e-3_fp *                     
+     &                 State_Chm%SpcData(id_DUST1-1+BIN)%Info%emMW_g ) /        
+     &                 AREA_CM2                                                
+           
+               
                FLUXN = FLUXN + DIF/(SQRT( Xk(BIN)*Xk(BIN+1))) /
-     &                      DT_SETTL * XNUMOL(IDTNK1-1+BIN) / AREA_CM2
+     &                 DT_SETTL * AVO / ( 1.e-3_fp *
+     &                 State_Chm%SpcData(id_NK1-1+BIN)%Info%emMW_g ) / 
+     &                 AREA_CM2
 
 !debug               if(i==ii .and. j==jj .and. bin==bb) then
 !                  print *,L, DU0(I,J,L,BIN), DIF , FLUXD, AD44(I,J,NN,1)
@@ -433,7 +455,7 @@
       ENDDO
 
       ! Free pointer memory
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE SETTLEDUST
 !EOC
@@ -458,20 +480,16 @@
 !
       USE CMN_DIAG_MOD             ! ND59
       USE CMN_SIZE_MOD             ! Size parameters
+      USE DIAG_MOD,           ONLY : AD59_DUST, AD59_NUMB  !(win, 7/17/09)
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTDST1
-      USE TRACERID_MOD,       ONLY : IDTDST2
-      USE TRACERID_MOD,       ONLY : IDTDST3
-      USE TRACERID_MOD,       ONLY : IDTDST4
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
-      USE TRACERID_MOD,       ONLY : IDTDUST1, IDTNK1      !(win, 7/17/09)
       USE TOMAS_MOD,          ONLY : IBINS, XK             !(win, 7/17/09)
-      USE DIAG_MOD,           ONLY : AD59_DUST, AD59_NUMB  !(win, 7/17/09)
 !
 ! !INPUT PARAMETERS:
 !
@@ -500,6 +518,12 @@
 !  26 Feb 2013 - R. Yantosca - Changed INPUT_OPT to INTENT(IN), since we are
 !                              now no longer calling INIT_DUST from here,
 !                              it is now called in the init stage
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -507,43 +531,39 @@
 ! !LOCAL VARIABLES:
 !
       ! SAVEd scalars
-      LOGICAL, SAVE :: FIRST = .TRUE.
+      LOGICAL,  SAVE    :: FIRST = .TRUE.
       
       ! Non-SAVEd scalars
-      INTEGER       :: N_TRACERS
-      LOGICAL       :: LDEAD
-      LOGICAL       :: LDUST
-      LOGICAL       :: LPRT
-      LOGICAL       :: LINTERP 
-      INTEGER       :: I, J, K                            !(win, 7/17/09)
-      REAL(fp)        :: MEMIS, MINIT(IIPAR,JJPAR,1,IBINS)  !(win, 7/17/09)
+      LOGICAL           :: LDEAD
+      LOGICAL           :: LDUST
+      LOGICAL           :: LPRT
+      LOGICAL           :: LINTERP 
+      INTEGER           :: I, J, K
+      REAL(fp)          :: MEMIS, MINIT(IIPAR,JJPAR,1,IBINS)
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:) => NULL()
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! EMISSDUST begins here!
       !=================================================================
-
+     
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
-      ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS = Input_Opt%N_TRACERS
-      LDEAD     = Input_Opt%LDEAD
-      LDUST     = Input_Opt%LDUST
-      LPRT      = Input_Opt%LPRT
+      ! Initialize
+      LDEAD     =  Input_Opt%LDEAD
+      LDUST     =  Input_Opt%LDUST
+      LPRT      =  Input_Opt%LPRT
 
       ! Execute on first-call only
       IF ( FIRST ) THEN
 
          ! Return if dust ID flags are not defined
-         IF ( IDTDUST1 == 0 ) THEN
+         IF ( id_DUST1 == 0 ) THEN
             IF ( LDUST ) THEN 
                CALL ERROR_STOP( 
-     &              'LDUST=T but dust tracers are undefined!',
+     &              'LDUST=T but dust species are undefined!',
      &              'EMISSDUST ("dust_mod.f")' )
             ENDIF
          ENDIF
@@ -556,16 +576,15 @@
       ! Call appropriate emissions routine
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [kg]
+      Spc => State_Chm%Species
 
       !=================================================================
       ! For TOMAS microphysics
       !=================================================================
-      IF ( IDTNK1 > 0 .and. IDTDUST1 > 0 ) THEN
+      IF ( id_NK1 > 0 .and. id_DUST1 > 0 ) THEN
 
-         MINIT(:,:,1,1:IBINS) = STT(:,:,1,IDTDUST1:IDTDUST1-1+IBINS)
+         MINIT(:,:,1,1:IBINS) = Spc(:,:,1,id_DUST1:id_DUST1-1+IBINS)
 
          IF ( LDEAD ) THEN
             ! still didn't figure out why run would crash w/ this option (win, 7/17/09)
@@ -584,11 +603,11 @@
             DO K = 1, IBINS
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-               MEMIS = STT(I,J,1,IDTDUST1-1+K) - MINIT(I,J,1,K)
+               MEMIS = Spc(I,J,1,id_DUST1-1+K) - MINIT(I,J,1,K)
                IF ( MEMIS == 0.e+0_fp ) GOTO 10
 
                AD59_DUST(I,J,1,K) = AD59_DUST(I,J,1,K) + MEMIS ! kg ????
-               STT(I,J,1,IDTNK1-1+K) = STT(I,J,1,IDTNK1-1+K) +
+               Spc(I,J,1,id_NK1-1+K) = Spc(I,J,1,id_NK1-1+K) +
      &                                 MEMIS / (sqrt(Xk(K)*Xk(K+1)))
 
                AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + 
@@ -601,7 +620,7 @@
       ENDIF
 
       ! Free pointers
-      STT => NULL()
+      Spc => NULL()
 
       END SUBROUTINE EMISSDUST
 !EOC
@@ -614,27 +633,29 @@
 ! !IROUTINE: dry_settling 
 !
 ! !DESCRIPTION: Subroutine DRY\_SETTLING computes the dry settling of 
-!  dust tracers.
+!  dust species.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DRY_SETTLING( am_I_Root, Input_Opt, State_Met, TC, RC,
-     &                         INDEX,     IDISP )
+      SUBROUTINE DRY_SETTLING( am_I_Root, Input_Opt, State_Met,
+     &                         State_Chm, TC, RC, INDEX, IDISP )
 !
 ! !USES:
 !
       USE CMN_DIAG_MOD
-      USE PHYSCONSTANTS,      ONLY : g0          ! Accel due to gravity [m/s2]
       USE CMN_SIZE_MOD
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD44
 #endif
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ErrCode_Mod
       USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE Species_Mod,        ONLY : Species
 #if defined( NC_DIAG )
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
@@ -646,13 +667,14 @@
       LOGICAL,        INTENT(IN)   :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)   :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)   :: State_Met   ! Meteorology State object
-      INTEGER,        INTENT(IN)   :: INDEX       ! Tracer index for XNUMOL
+      INTEGER,        INTENT(IN)   :: INDEX       ! Species index
       INTEGER,        INTENT(IN)   :: IDISP       ! Displacement index for IIDEP
 
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS
 ! 
-      REAL(fp),      INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN) ! Dust [kg]
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN) ! Dust [kg]
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -674,13 +696,16 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
 !                              remove dependency on pressure_mod
 !  25 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostic
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  31 May 2016 - E. Lundgren - Use TCVV instead of XNUMOL for molecular weights
+!  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: I, J, L, N, N_TRACERS
+      INTEGER               :: I, J, L, N
       REAL(fp)              :: DT_SETTL, DELZ,  DELZ1
       REAL(fp)              :: REFF,     DEN,   CONST   
       REAL(fp)              :: NUM,      LAMDA, FLUX
@@ -708,15 +733,15 @@
       ! Settling velocity of particle (m/s)
       REAL(fp)              :: VTS(LLPAR)  
 
-      ! Molecules tracer / kg tracer, from Input Options
-      REAL(fp)              :: XNUMOL(Input_Opt%N_TRACERS) 
+      ! Pointers
+      TYPE(Species),    POINTER :: ThisSpc
 
 #if defined( NC_DIAG )
       ! For netcdf diagnostics (ND44 drydep flux)
-      INTEGER               :: drydep_id, trc_id, HCRC
+      INTEGER               :: drydep_id, spc_id, HCRC
       CHARACTER(LEN=30)     :: DiagnName
       REAL(fp), TARGET      :: DryDepFlux( IIPAR, JJPAR, NDSTBIN ) 
-      REAL(fp), POINTER     :: Ptr2D(:,:) => NULL()
+      REAL(fp), POINTER     :: Ptr2D(:,:)
 #endif
 !
 ! !DEFINED PARAMETERS:
@@ -731,11 +756,15 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
-      ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+      ! Initialize pointers
+      ThisSpc     => NULL()
+
+      ! Initialize
+#if defined( NC_DIAG )
+      Ptr2D     => NULL()
+#endif
 
       ! Dust settling timestep [s]
       DT_SETTL  = GET_TS_CHEM() * 60e+0_fp
@@ -857,7 +886,9 @@
 
                   ! Convert dust flux from [kg/s] to [molec/cm2/s]
                   FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
-                  FLUX = FLUX * XNUMOL(INDEX) / AREA_CM2 
+                  FLUX = FLUX * AVO * ( AIRMW / 
+     &                   State_Chm%SpcData(INDEX)%Info%emMW_g ) / 
+     &                   ( AIRMW * 1.e-3_fp ) / AREA_CM2 
 
 #if defined( BPCH_DIAG )
                   ! For bpch diagnostic, save in global array AD44
@@ -877,6 +908,10 @@
       ENDDO       
 !$OMP END PARALLEL DO
 
+      ! Nullify pointer
+      ThisSpc => NULL()
+
+
 #if defined( NC_DIAG )
       !========================================================      
       ! ND44: Dry deposition diagnostic [molec/cm2/s] (netcdf) 
@@ -887,18 +922,18 @@
          DO N = 1, NDSTBIN
 
             ! Get drydep id
-            drydep_id = Input_Opt%IDDEP(N+IDISP)
+            drydep_id = IDISP + N
 
-            ! Get tracer id
-            trc_id = Input_Opt%NTRAIND( drydep_id )
+            ! Get species ID
+            spc_id = State_Chm%Map_DryDep( drydep_id )
          
-            ! If this tracer number NN is scheduled for output in input.geos, 
+            ! If this species number NN is scheduled for output in input.geos, 
             ! then archive the latest depvel data into the diagnostic structure
-            IF ( ANY( Input_Opt%TINDEX(44,:) == trc_id ) ) THEN
+            IF ( ANY( Input_Opt%TINDEX(44,:) == spc_id ) ) THEN
          
                ! Define name of diagnostic
                DiagnName = 'DRYDEP_FLX_CHEM_' // 
-     &                     TRIM( Input_Opt%DEPNAME( drydep_id ) )
+     &                     TRIM( State_Chm%SpcData(spc_id)%Info%Name )
                
                ! Point to data
                Ptr2D => DryDepFlux(:,:,N)
@@ -941,23 +976,21 @@
 ! !INTERFACE:
 !
       SUBROUTINE RDUST_ONLINE( am_I_Root, Input_Opt,  State_Met, 
-     &                         DUST,      ODSWITCH,   RC         )
+     &                         State_Chm, DUST,       ODSWITCH,
+     &                         RC )
 !
 ! !USES:
 !
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE COMODE_MOD,         ONLY : ERADIUS, IXSAVE, IYSAVE 
-      USE COMODE_MOD,         ONLY : IZSAVE,  JLOP,   TAREA
-      USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
-      USE COMODE_LOOP_MOD
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE DIAG_MOD,           ONLY : AD21
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 !
 ! !INPUT PARAMETERS: 
@@ -967,6 +1000,10 @@
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
       REAL(fp),       INTENT(IN)  :: DUST(IIPAR,JJPAR,LLPAR,NDUST) !Dust [kg/m3]
       INTEGER,        INTENT(IN)  :: ODSWITCH
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -992,6 +1029,11 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. ERADIUS,
+!                              TAREA, WERADIUS, WTAREA are now pointers that
+!                              point to 3D fields in State_Chm.
+!  16 May 2016 - M. Sulprizio- Remove JLOOP entirely and loop over LLPAR, JJPAR,
+!                              IIPAR instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -999,7 +1041,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL            :: LINTERP
-      INTEGER            :: I, J, JLOOP, L, N, NOUT, W
+      INTEGER            :: I, J, L, N, NOUT, W
       INTEGER            :: IWV, IIWV, NWVS, IDST
       REAL(fp)           :: MSDENS(NDUST), XTAU
       ! Added to calculate aqueous dust surface area (WTAREA, WERADIUS)
@@ -1011,12 +1053,24 @@
       INTEGER            :: IWV1,  IWV2
       REAL(fp)           :: ACOEF, BCOEF, LOGTERM
 
+      ! Pointers
+      REAL(fp), POINTER   :: ERADIUS(:,:,:,:)
+      REAL(fp), POINTER   :: TAREA(:,:,:,:)
+      REAL(fp), POINTER   :: WERADIUS(:,:,:,:)
+      REAL(fp), POINTER   :: WTAREA(:,:,:,:)
+
       !=================================================================
       ! RDUST_ONLINE begins here!
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
+
+      ! Initialize pointers
+      ERADIUS   => State_Chm%AeroRadi     ! Aerosol Radius     [cm]
+      TAREA     => State_Chm%AeroArea     ! Aerosol Area       [cm2/cm3]
+      WERADIUS  => State_Chm%WetAeroRadi  ! Wet Aerosol Radius [cm]
+      WTAREA    => State_Chm%WetAeroArea  ! Wet Aerosol Area   [cm2/cm3]
 
       ! Index for dust in ODAER and LUT arrays
       IDST      = 6 
@@ -1147,31 +1201,33 @@
       !==============================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L, N, XRH )
-      DO N     = 1, NDUST
-      DO JLOOP = 1, NTTLOOP
+!$OMP+PRIVATE( I, J, L, N, XRH )
+      DO N = 1, NDUST
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-         ! Compute 3-D grid box indices
-         I = IXSAVE(JLOOP)
-         J = IYSAVE(JLOOP)
-         L = IZSAVE(JLOOP)
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
-         ERADIUS(JLOOP,N) = RDAA(N,6) * 1.0e-4_fp
-
-         TAREA(JLOOP,N)   = 3.e+0_fp / ERADIUS(JLOOP,N) *
+         ERADIUS(I,J,L,N) = RDAA(N,6) * 1.0e-4_fp
+         
+         TAREA(I,J,L,N)   = 3.e+0_fp / ERADIUS(I,J,L,N) *
      &                      DUST(I,J,L,N) / MSDENS(N)  
 
          ! Archive WTAREA and WERADIUS when RH > 35%  (tmf, 6/13/07) 
          ! Get RH  
          XRH                = State_Met%RH( I, J, L )  ! [%]
-         WTAREA(JLOOP, N)   = 0.e+0_fp
-         WERADIUS(JLOOP, N) = 0.e+0_fp
+         WTAREA(I,J,L, N)   = 0.e+0_fp
+         WERADIUS(I,J,L, N) = 0.e+0_fp
 
          IF ( XRH >= CRITRH ) THEN
-            WTAREA(JLOOP, N)   = TAREA(JLOOP, N)
-            WERADIUS(JLOOP, N) = ERADIUS(JLOOP, N)
+            WTAREA(I,J,L, N)   = TAREA(I,J,L, N)
+            WERADIUS(I,J,L, N) = ERADIUS(I,J,L, N)
          ENDIF
 
+      ENDDO
+      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -1200,7 +1256,7 @@
 !###
 !###!$OMP PARALLEL DO
 !###!$OMP+DEFAULT( SHARED )
-!###!$OMP+PRIVATE( I, J, JLOOP, L, N, W, NOUT, LINTERP )
+!###!$OMP+PRIVATE( I, J, L, N, W, NOUT, LINTERP )
 !#############################################################################
          DO N=1, NDUST
          DO W = 1, NWVSELECT !loop over required number of wavelengths
@@ -1265,15 +1321,9 @@
                ! ND21 tracer #5: Dust surface areas
                !--------------------------------------
                IF ( L <= LLCHEM ) THEN
-              
-                  ! Convert 3-D indices to 1-D index
-                  ! JLOP is only defined in the tropopause
-                  JLOOP = JLOP(I,J,L)
-             
+                           
                   ! Add to AD21
-                  IF ( JLOOP > 0 ) THEN
-                     AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(JLOOP,N)
-                  ENDIF
+                  AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(I,J,L,N)
 
                ENDIF
             ENDDO
@@ -1294,6 +1344,12 @@
 
       ENDIF 
 
+      ! Free pointers
+      ERADIUS  => NULL()
+      TAREA    => NULL()
+      WERADIUS => NULL()
+      WTAREA   => NULL()
+
       END SUBROUTINE RDUST_ONLINE
 !EOC
 !------------------------------------------------------------------------------
@@ -1311,23 +1367,22 @@
 ! !INTERFACE:
 !
       SUBROUTINE RDUST_OFFLINE( am_I_Root, Input_Opt, State_Met,
-     &                          THISMONTH, THISYEAR,  ODSWITCH,  RC )
+     &                          State_Chm, THISMONTH, THISYEAR,
+     &                          ODSWITCH,  RC )
 !
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_FJX_MOD
-      USE COMODE_MOD,         ONLY : ERADIUS, IXSAVE, IYSAVE
-      USE COMODE_MOD,         ONLY : IZSAVE,  JLOP,   TAREA
-      USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
-      USE COMODE_LOOP_MOD
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD21
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
       IMPLICIT NONE
@@ -1341,6 +1396,10 @@
       INTEGER,        INTENT(IN)  :: THISYEAR   ! Current year  (YYYY format)
       INTEGER,        INTENT(IN)  :: ODSWITCH   ! Determine which wavelength to
                                                 !  use for optical properties
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1420,6 +1479,11 @@
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
 !  23 Oct 2015 - E. Lundgren - Fix index for dust in ODAER/LUT arrays if UCX on
+!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. ERADIUS,
+!                              TAREA, WERADIUS, WTAREA are now pointers that
+!                              point to 3D fields in State_Chm.
+!  16 May 2016 - M. Sulprizio- Remove JLOOP entirely and loop over LLPAR, JJPAR,
+!                              IIPAR instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1427,7 +1491,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL             :: LINTERP
-      INTEGER             :: I, J, JLOOP, L, N, NOUT, W
+      INTEGER             :: I, J, L, N, NOUT, W
       INTEGER             :: IWV, IIWV, NWVS, IDST
       INTEGER, SAVE       :: MONTH_LAST = -999
       LOGICAL, SAVE       :: DO_DIAG = .FALSE.
@@ -1443,9 +1507,24 @@
       REAL(fp)            :: CRITRH      ! Critical RH [%], above which 
                                          !  heteorogeneous chem takes place
 
+      ! Pointers
+      REAL(fp), POINTER   :: ERADIUS(:,:,:,:)
+      REAL(fp), POINTER   :: TAREA(:,:,:,:)
+      REAL(fp), POINTER   :: WERADIUS(:,:,:,:)
+      REAL(fp), POINTER   :: WTAREA(:,:,:,:)
+
       !=================================================================
       ! RDUST begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GC_SUCCESS
+ 
+      ! Initialize pointers
+      ERADIUS   => State_Chm%AeroRadi     ! Aerosol Radius     [cm]
+      TAREA     => State_Chm%AeroArea     ! Aerosol Area       [cm2/cm3]
+      WERADIUS  => State_Chm%WetAeroRadi  ! Wet Aerosol Radius [cm]
+      WTAREA    => State_Chm%WetAeroArea  ! Wet Aerosol Area   [cm2/cm3]
 
       ! Index for dust in ODAER and LUT arrays
       IDST      = 6 
@@ -1618,31 +1697,33 @@
       !==============================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L, N, XRH )
-      DO N     = 1, NDUST
-      DO JLOOP = 1, NTTLOOP
+!$OMP+PRIVATE( I, J, L, N, XRH )
+      DO N = 1, NDUST
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-         ! Compute 3-D grid box indices
-         I = IXSAVE(JLOOP)
-         J = IYSAVE(JLOOP)
-         L = IZSAVE(JLOOP)
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
-         ERADIUS(JLOOP,N) = RDAA(N,6) * 1.0e-4_fp
+         ERADIUS(I,J,L,N) = RDAA(N,6) * 1.0e-4_fp
 
-         TAREA(JLOOP,N)   = 3.e+0_fp / ERADIUS(JLOOP,N) *
+         TAREA(I,J,L,N)   = 3.e+0_fp / ERADIUS(I,J,L,N) *
      &                      DUST(I,J,L,N) / MSDENS(N)  
 
          ! Archive WTAREA and WERADIUS when RH > 35% (tmf, 6/13/07) 
          ! Get RH  
-         XRH                = State_Met%RH( I, J, L )  ! [%]
-         WTAREA(JLOOP, N)   = 0.e+0_fp
-         WERADIUS(JLOOP, N) = 0.e+0_fp
+         XRH               = State_Met%RH(I,J,L)  ! [%]
+         WTAREA(I,J,L,N)   = 0.e+0_fp
+         WERADIUS(I,J,L,N) = 0.e+0_fp
 
          IF ( XRH >= CRITRH ) THEN
-            WTAREA(JLOOP, N)   = TAREA(JLOOP, N)
-            WERADIUS(JLOOP, N) = ERADIUS(JLOOP, N)
+            WTAREA(I,J,L,N)   = TAREA(I,J,L,N)
+            WERADIUS(I,J,L,N) = ERADIUS(I,J,L,N)
          ENDIF
 
+      ENDDO
+      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -1660,7 +1741,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L, N, W, NOUT, LINTERP )
+!$OMP+PRIVATE( I, J, L, N, W, NOUT, LINTERP )
          DO N=1, NDUST
          DO W = 1, NWVSELECT !different to NWVSELECT if interp
             IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
@@ -1730,14 +1811,8 @@
                !--------------------------------------
                IF ( L <= LLTROP ) THEN
 
-                  ! Convert 3-D indices to 1-D index
-                  ! JLOP is only defined in the tropopause
-                  JLOOP = JLOP(I,J,L)
-
                   ! Add to AD21
-                  IF ( JLOOP > 0 ) THEN
-                     AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(JLOOP,N)
-                  ENDIF
+                  AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(I,J,L,N)
 
                ENDIF
             ENDDO
@@ -1759,6 +1834,12 @@
          
       ENDIF
       
+      ! Free pointers
+      ERADIUS  => NULL()
+      TAREA    => NULL()
+      WERADIUS => NULL()
+      WTAREA   => NULL()
+
       END SUBROUTINE RDUST_OFFLINE
 !EOC
 !-----------------------------------------------------------------------------
@@ -1783,21 +1864,12 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS,      ONLY : PI
       USE CMN_SIZE_MOD             ! Size parameters
-      USE COMODE_MOD,         ONLY : ERADIUS, JLOP,   TAREA
       USE ERROR_MOD,          ONLY : IT_IS_NAN
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      ! Include dust tracers                            tdf 04/10/08
-      USE TRACERID_MOD,       ONLY : IDTDST1, IDTDST2
-      USE TRACERID_MOD,       ONLY : IDTDST3, IDTDST4
-      ! Include dust alkalinity tracers                 tdf 04/10/08
-      USE TRACERID_MOD,       ONLY : IDTDAL1, IDTDAL2
-      USE TRACERID_MOD,       ONLY : IDTDAL3, IDTDAL4
-
-
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : PI, AIRMW
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1828,6 +1900,12 @@
 !  14 Nov 2013 - M. Sulprizio- Bug fix: Avoid div-by-zero in calculation of
 !                              gas-to-particle rate constants for SO2 and HNO3
 !  05 Jan 2016 - E. Lundgren - Use global PI
+!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. ERADIUS,
+!                              TAREA, are now pointers that point to 3D fields
+!                              fields in State_Chm.
+!  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1855,7 +1933,6 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER             :: JLOOP,       N_TRACERS
       INTEGER             :: IRH
       INTEGER             :: IBIN, ISBIN
       REAL(fp)            :: N1, KT1, KT1N
@@ -1893,24 +1970,29 @@
       ! Dust size-weighted Surface Areas for sub-bins 1-4 ! tdf 08/20/09
       REAL(fp)            :: DF_AREA_sd1(4)               ! [1/s]
 
-      ! For fields from Input_Opt
-      REAL(fp)            :: TCVV(Input_Opt%N_TRACERS)
+      ! Molecular weights
+      REAL(fp)            :: MW_DST1, MW_DST2, MW_DST3, MW_DST4
 
       ! Pointers
-      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: Spc(:,:,:,:)
+      REAL(fp), POINTER   :: ERADIUS(:,:,:,:)
+      REAL(fp), POINTER   :: TAREA(:,:,:,:)
 
       !=================================================================
       ! GET_DUST_ALK begins here!
       !=================================================================
 
-      ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+      ! Initialize pointers
+      Spc      => State_Chm%Species  ! GEOS-Chem species array [v/v dry]
+      ERADIUS  => State_Chm%AeroRadi ! Aerosol Radius [cm]
+      TAREA    => State_Chm%AeroArea ! Aerosol Area [cm2/cm3]
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
-
+      ! Get MWs from species database 
+      MW_DST1 = State_Chm%SpcData(id_DST1)%Info%emMW_g
+      MW_DST2 = State_Chm%SpcData(id_DST2)%Info%emMW_g
+      MW_DST3 = State_Chm%SpcData(id_DST3)%Info%emMW_g
+      MW_DST4 = State_Chm%SpcData(id_DST4)%Info%emMW_g
+     
       ! Zero variables
       DO IBIN = 1, NDSTBIN
          ALK_d (IBIN)  = 0.0e+0_fp
@@ -1924,33 +2006,32 @@
       ! Air density [kg/m3]
       AIR_DENS = State_Met%AD(I,J,L) / State_Met%AIRVOL(I,J,L) 
 
-      ! Retrieve Dust Alkalinity [v/v] from STT array
-      ALK_d(1) = STT(I,J,L,IDTDAL1)
-      ALK_d(2) = STT(I,J,L,IDTDAL2)
-      ALK_d(3) = STT(I,J,L,IDTDAL3)
-      ALK_d(4) = STT(I,J,L,IDTDAL4)
+      ! Retrieve Dust Alkalinity [v/v dry from Spc array
+      ALK_d(1) = Spc(I,J,L,id_DAL1)
+      ALK_d(2) = Spc(I,J,L,id_DAL2)
+      ALK_d(3) = Spc(I,J,L,id_DAL3)
+      ALK_d(4) = Spc(I,J,L,id_DAL4)
 
-      ! Dust [kg/m3] from STT, used to compute dust surface area
+      ! Dust [kg/m3] from Spc, used to compute dust surface area
       ! Units: (moles/mole).(kg(air)/m3).(kg(dust)/mole)/(kg(air)/mole)
-      DST_d(1) = STT(I,J,L,IDTDST1) * AIR_DENS/TCVV(IDTDST1)
-      DST_d(2) = STT(I,J,L,IDTDST2) * AIR_DENS/TCVV(IDTDST2)
-      DST_d(3) = STT(I,J,L,IDTDST3) * AIR_DENS/TCVV(IDTDST3)
-      DST_d(4) = STT(I,J,L,IDTDST4) * AIR_DENS/TCVV(IDTDST4)
+      DST_d(1) = Spc(I,J,L,id_DST1) * AIR_DENS / ( AIRMW / MW_DST1 )
+      DST_d(2) = Spc(I,J,L,id_DST2) * AIR_DENS / ( AIRMW / MW_DST2 )
+      DST_d(3) = Spc(I,J,L,id_DST3) * AIR_DENS / ( AIRMW / MW_DST3 )
+      DST_d(4) = Spc(I,J,L,id_DST4) * AIR_DENS / ( AIRMW / MW_DST4 )
 
       ! tdf Now get aerosol surface area from TAREA (cm2/cm3)
-      JLOOP = JLOP(I,J,L)
-      SULF_AREA = TAREA(JLOOP,NDUST+1)
-      BC_AREA   = TAREA(JLOOP,NDUST+2)
-      OC_AREA   = TAREA(JLOOP,NDUST+3)
-      SSA_AREA  = TAREA(JLOOP,NDUST+4)
-      SSC_AREA  = TAREA(JLOOP,NDUST+5)
+      SULF_AREA = TAREA(I,J,L,NDUST+1)
+      BC_AREA   = TAREA(I,J,L,NDUST+2)
+      OC_AREA   = TAREA(I,J,L,NDUST+3)
+      SSA_AREA  = TAREA(I,J,L,NDUST+4)
+      SSC_AREA  = TAREA(I,J,L,NDUST+5)
 
       ! tdf Now get aerosol effective radius from ERADIUS (cm)
-      SULF_RAD  = ERADIUS(JLOOP,NDUST+1)
-      BC_RAD    = ERADIUS(JLOOP,NDUST+2)
-      OC_RAD    = ERADIUS(JLOOP,NDUST+3)
-      SSA_RAD   = ERADIUS(JLOOP,NDUST+4)
-      SSC_RAD   = ERADIUS(JLOOP,NDUST+5)
+      SULF_RAD  = ERADIUS(I,J,L,NDUST+1)
+      BC_RAD    = ERADIUS(I,J,L,NDUST+2)
+      OC_RAD    = ERADIUS(I,J,L,NDUST+3)
+      SSA_RAD   = ERADIUS(I,J,L,NDUST+4)
+      SSC_RAD   = ERADIUS(I,J,L,NDUST+5)
 
       ! tdf Quotients [s/cm] used to weight surface area for H2SO4 uptake
       SULF_FAC = (SULF_RAD / DG + 4.e+0_fp/(V*GAMMA_H2SO4) )
@@ -1961,8 +2042,8 @@
 
       !tdf Surface areas and effective radii for sub-bins 1-4 of dust bin 1
       DO ISBIN = 1, 4
-         T1 = TAREA  (JLOOP,ISBIN)
-         R1 = ERADIUS(JLOOP,ISBIN)
+         T1 = TAREA  (I,J,L,ISBIN)
+         R1 = ERADIUS(I,J,L,ISBIN)
          AREA_sd1    (ISBIN) = T1
          RD_sd1      (ISBIN) = R1
          !tdf surface area for sub bins 1-4 in bin 1, weighted by gas-phase
@@ -1978,7 +2059,7 @@
       ! TAREA computed   in RDUST_ONLINE - Units: cm^2(dust) / cm^3(air) 
       ! ERADIUS computed in RDUST_ONLINE - Units: cm
       ! NB: I am now subdividing the submicron dust size bin 
-      !     using TAREA (JLKOOP,1->4), and ERADIUS (JLOOP,1->4).
+      !     using TAREA (I,J,L,1->4), and ERADIUS (I,J,L,1->4).
       !-----------------------------------------------------------------------
 
       !-------------------------------------------------------------------------
@@ -2004,8 +2085,8 @@
             DF_AREA_d(IBIN) = DF_AREA_sd1(1) + DF_AREA_sd1(3)  ! [1/s]
      &                      + DF_AREA_sd1(2) + DF_AREA_sd1(4)
          ELSE
-            T1 = TAREA(JLOOP,3+IBIN)      ! [cm^2/cm^3]
-            R1 = ERADIUS(JLOOP,3+IBIN)    ! [cm]
+            T1 = TAREA(I,J,L,3+IBIN)      ! [cm^2/cm^3]
+            R1 = ERADIUS(I,J,L,3+IBIN)    ! [cm]
 !tdf 11/25/2013
             RD_d     (IBIN) = R1
 !tdf 11/25/2013
@@ -2241,8 +2322,10 @@
       ! tdf End Loop over size bins
       END DO
 
-      ! Free pointer
-      NULLIFY( STT )
+      ! Free pointers
+      Spc     => NULL()
+      ERADIUS => NULL()
+      TAREA   => NULL()
 
       END SUBROUTINE GET_DUST_ALK
 !EOC
@@ -2262,18 +2345,17 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS,      ONLY : PI
       USE CMN_SIZE_MOD
-!      USE DRYDEP_MOD,         ONLY : NTRAIND
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE Species_Mod,        ONLY : Species
-#if   defined( TOMAS )
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : PI, AIRMW
+      USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+#if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS, Xk
-      USE TRACERID_MOD,       ONLY : IDTNK1
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -2301,6 +2383,10 @@
 !  30 Sep 2015 - R. Yantosca - DD_A_Density is now renamed to Density
 !  30 Sep 2015 - R. Yantosca - DD_A_Radius is now renamed to Radius
 !  05 Jan 2016 - E. Lundgren - Use global parameter PI
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  16 Jun 2016 - J. Kaiser   - Now define species ID's with Ind_() function
+!  20 Jun 2016 - R. Yantosca - Only define species ID's in the INIT phase
+!  24 Jun 2016 - R. Yantosca - Add error checks for dust uptake species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2316,23 +2402,126 @@
 #endif
 
       ! Objects
-      TYPE(Species), POINTER :: ThisSpc => NULL()
+      TYPE(Species), POINTER :: SpcInfo
 
       !=================================================================
       ! INIT_DUST begins here!
       !=================================================================
 
       ! Assume success
-      RC    = GIGC_SUCCESS
+      RC      = GC_SUCCESS
 
-      ! Copy fields from INPUT_OPT to local variables for use below
-      LDEAD  = Input_Opt%LDEAD
-      LDSTUP = Input_Opt%LDSTUP
+      ! Initialize
+      SpcInfo => NULL()
+      LDEAD   = Input_Opt%LDEAD
+      LDSTUP  = Input_Opt%LDSTUP
+
+      !=================================================================
+      ! INITIALIZATION SECTION FOR STANDARD GEOS-CHEM SIMULATION
+      !=================================================================
+     
+      !-----------------------------------------------------------------
+      ! DST1 - DST4 species (most fullchem + aerosol simulations)
+      !
+      ! NOTE: We can consider removing DUSTDEN and DUSTREFF from 
+      ! the Input_Opt object at a later point.  These can be directly
+      ! obtained from the species database object now. (bmy, 6/20/16)
+      !-----------------------------------------------------------------
+
+      id_DST1                  =  Ind_('DST1'    )
+      dd_DST1                  =  Ind_('DST1','D')
+
+      IF ( id_DST1 > 0 ) THEN
+         SpcInfo               => State_Chm%SpcData(id_DST1)%Info
+         Input_Opt%DUSTDEN (1) =  SpcInfo%Density
+         Input_Opt%DUSTREFF(1) =  SpcInfo%Radius
+         SpcInfo               => NULL()
+      ENDIF
+
+      id_DST2                  =  Ind_('DST2'    )
+      dd_DST2                  =  Ind_('DST2','D')
+      IF ( id_DST2 > 0 ) THEN
+         SpcInfo               => State_Chm%SpcData(id_DST2)%Info
+         Input_Opt%DUSTDEN (2) =  SpcInfo%Density
+         Input_Opt%DUSTREFF(2) =  SpcInfo%Radius
+         SpcInfo               => NULL()
+      ENDIF
+
+      id_DST3                  =  Ind_('DST3'    )
+      dd_DST3                  =  Ind_('DST3','D')
+      IF ( id_DST3 > 0 ) THEN
+         SpcInfo               => State_Chm%SpcData(id_DST3)%Info
+         Input_Opt%DUSTDEN (3) =  SpcInfo%Density
+         Input_Opt%DUSTREFF(3) =  SpcInfo%Radius
+         SpcInfo               => NULL()
+      ENDIF
+
+      id_DST4                  =  Ind_('DST4'    )
+      dd_DST4                  =  Ind_('DST4','D')
+      IF ( id_DST4 > 0 ) THEN
+         SpcInfo               => State_Chm%SpcData(id_DST4)%Info
+         Input_Opt%DUSTDEN (4) =  SpcInfo%Density
+         Input_Opt%DUSTREFF(4) =  SpcInfo%Radius
+         SpcInfo               => NULL()
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! DAL1 - DAL4 and SO4d1 - SO4d4 species (acid uptake sims only)
+      !-----------------------------------------------------------------
+
+      id_DAL1                  =  Ind_('DSTAL1'    )
+      dd_DAL1                  =  Ind_('DSTAL1','D')
+
+      id_DAL2                  =  Ind_('DSTAL2'    )
+      dd_DAL2                  =  Ind_('DSTAL2','D')
+
+      id_DAL3                  =  Ind_('DSTAL3'    )
+      dd_DAL3                  =  Ind_('DSTAL3','D')
+
+      id_DAL4                  =  Ind_('DSTAL4'    )
+      dd_DAL4                  =  Ind_('DSTAL4','D')
+
+      ! Error check the dust uptake species
+      IF ( Input_Opt%LDSTUP ) THEN
+         IF ( id_DAL1 < 0 .or. id_DAL2 < 0   .or.  
+     &        id_DAL3 < 0 .or. id_DAL4 < 0 ) THEN
+            CALL ERROR_STOP( 'Dust uptake species are undefined!', 
+     &                       'INIT_DUST (GeosCore/dust_mod.F'      )
+         ENDIF
+      ENDIF
+
+      !%%%% NOTE: Input_Opt%IDDEP is obsolete and is only used in the
+      !%%%% bpch_diag section for ND44 in this module.  We can consider
+      !%%%% removing it later (bmy, 6/20/16)
+
+      ! Find drydep species in DEPSAV
+      IF( Input_Opt%LDRYD ) THEN
+
+         ! This may lead to out of bounds errors
+         Input_Opt%IDDEP(1) = dd_DST1
+         Input_Opt%IDDEP(2) = dd_DST2
+         Input_Opt%IDDEP(3) = dd_DST3
+         Input_Opt%IDDEP(4) = dd_DST4
+
+         IF ( LDSTUP  ) THEN
+            ! Include dust alkalinity species                  tdf 04/10/08
+            Input_Opt%IDDEP(5) = dd_DAL1
+            Input_Opt%IDDEP(6) = dd_DAL2
+            Input_Opt%IDDEP(7) = dd_DAL3
+            Input_Opt%IDDEP(8) = dd_DAL4
+         ENDIF
+      ENDIF
+
 
 #if defined( TOMAS )
       !=================================================================
       ! INITIALIZATION SECTION FOR TOMAS MICROPHYSICS
       !=================================================================
+
+      ! TOMAS species ID flags
+      id_DUST1 = Ind_('DUST1')
+      id_NK1   = Ind_('NK1'  ) 
+
 
       !-------------------------------
       ! Set up dust density
@@ -2382,10 +2571,9 @@
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       IF ( .not. LDEAD ) THEN
 
-         ! Match dry depositing tracer in drydep list with NK1-NK30
          DO BIN = 1, IBINS
-         DO N   = 1, Input_Opt%NUMDEP
-            IF ( Input_Opt%NTRAIND(N) == ( IDTNK1-1+BIN ) )THEN
+         DO N   = 1, State_Chm%nDryDep
+            IF ( State_Chm%Map_DryDep(N) == ( id_NK1-1+BIN ) )THEN
                Input_Opt%IDDEP(BIN) = N
                GOTO 100
             ENDIF            
@@ -2395,82 +2583,10 @@
 
       ENDIF
 
-#else
-
-      !=================================================================
-      ! INITIALIZATION SECTION FOR STANDARD GEOS-CHEM SIMULATION
-      !=================================================================
-
-      ! Loop over all species  
-      DO N = 1, State_Chm%nSpecies
-
-         ! Get info about this species from the species database
-         ThisSpc => State_Chm%SpcData(N)%Info
-
-         ! Assign eahc species parameters from the species database
-         SELECT CASE( TRIM( ThisSpc%Name ) )
-            CASE( 'DST1' )
-               Input_Opt%DUSTDEN (1) = ThisSpc%Density
-               Input_Opt%DUSTREFF(1) = ThisSpc%Radius
-               DRYDST1               = ThisSpc%DryDepId
-            CASE( 'DST2' )
-               Input_Opt%DUSTDEN (2) = ThisSpc%Density
-               Input_Opt%DUSTREFF(2) = ThisSpc%Radius
-               DRYDST2               = ThisSpc%DryDepId
-            CASE( 'DST3' )
-               Input_Opt%DUSTDEN (3) = ThisSpc%Density
-               Input_Opt%DUSTREFF(3) = ThisSpc%Radius
-               DRYDST3               = ThisSpc%DryDepId
-            CASE( 'DST4' )
-               Input_Opt%DUSTDEN (4) = ThisSpc%Density
-               Input_Opt%DUSTREFF(4) = ThisSpc%Radius
-               DRYDST4               = ThisSpc%DryDepId
-            CASE( 'DSTAL1' )
-               DRYDAL1               = ThisSpc%DryDepId
-            CASE( 'DSTAL2' )
-               DRYDAL2               = ThisSpc%DryDepId
-            CASE( 'DSTAL3' )
-               DRYDAL3               = ThisSpc%DryDepId
-            CASE( 'DSTAL4' )
-               DRYDAL4               = ThisSpc%DryDepId
-            CASE( 'SO4D1'  )
-               DRYSO4D1              = ThisSpc%DryDepId
-            CASE( 'SO4D2'  )
-               DRYSO4D1              = ThisSpc%DryDepId
-            CASE( 'SO4D3'  )
-               DRYSO4D1              = ThisSpc%DryDepId
-            CASE( 'SO4D4'  )
-               DRYSO4D1              = ThisSpc%DryDepId
-            CASE DEFAULT
-               ! Nothing
-         END SELECT
-
-         ! Free pointers
-         ThisSpc => NULL()
-         
-      ENDDO
-
-      ! Find drydep species in DEPSAV
-      IF( Input_Opt%LDRYD ) THEN
-
-         ! This may lead to out of bounds errors
-         Input_Opt%IDDEP(1) = DRYDST1
-         Input_Opt%IDDEP(2) = DRYDST2
-         Input_Opt%IDDEP(3) = DRYDST3
-         Input_Opt%IDDEP(4) = DRYDST4
-
-         IF ( LDSTUP  ) THEN
-            ! Include dust alkalinity tracers                  tdf 04/10/08
-            Input_Opt%IDDEP(5) = DRYDAL1
-            Input_Opt%IDDEP(6) = DRYDAL2
-            Input_Opt%IDDEP(7) = DRYDAL3
-            Input_Opt%IDDEP(8) = DRYDAL4
-         ENDIF
-      ENDIF
 #endif 
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) || defined( TOMAS )
-      ! EXPERIMENTAL: For archiving the dust source for GIGC
+      ! EXPERIMENTAL: For archiving the dust source for GCHP
       ALLOCATE( SRCE_FUNC(IIPAR,JJPAR,3), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )
       SRCE_FUNC = 0.e+0_fp
@@ -2502,8 +2618,10 @@
       !=================================================================
       ! CLEANUP_DUST begins here!
       !=================================================================
-      IF ( ALLOCATED( FRAC_S   ) ) DEALLOCATE( FRAC_S   )
+      IF ( ALLOCATED( FRAC_S    ) ) DEALLOCATE( FRAC_S    )
+      IF ( ALLOCATED( SRCE_FUNC ) ) DEALLOCATE( SRCE_FUNC )
 
       END SUBROUTINE CLEANUP_DUST
 !EOC
       END MODULE DUST_MOD
+

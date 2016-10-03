@@ -23,13 +23,14 @@ MODULE GeosFp_Read_Mod
 
   ! GEOS-Chem modules
   USE CMN_SIZE_MOD                        ! Size parameters
-  USE PHYSCONSTANTS                       ! Physical constants
 #if defined( BPCH_DIAG )
   USE CMN_DIAG_MOD                        ! Diagnostic arrays & counters
+  USE DIAG_MOD,      ONLY : AD21          ! Array for ND21 diagnostic  
   USE DIAG_MOD,      ONLY : AD66          ! Array for ND66 diagnostic  
   USE DIAG_MOD,      ONLY : AD67          ! Array for ND67 diagnostic
 #endif
   USE ERROR_MOD,     ONLY : ERROR_STOP    ! Stop w/ error message
+  USE PhysConstants                       ! Physical constants
   USE TIME_MOD                            ! Date & time routines
   USE TRANSFER_MOD                        ! Routines for casting 
 
@@ -116,7 +117,6 @@ CONTAINS
 !  10 Feb 2012 - R. Yantosca - Initial version
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocssor switch
-!  14 Jan 2014 - R. Yantosca - Now add NESTED_SE option
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -144,9 +144,6 @@ CONTAINS
 
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
     resString = '025x03125.NA.nc'
-
-#elif defined( GRID025x03125 ) && defined( NESTED_SE )
-    resString = '025x03125.SE.nc'
 
 #elif defined( GRID025x03125 )
     resString = '025x03125.nc'
@@ -260,8 +257,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -415,8 +412,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -510,6 +507,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_A1 (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 10000 ) + 1
 
@@ -524,9 +524,6 @@ CONTAINS
     ! Open the netCDF file only when necessary
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN 
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_A1 (geosfp_read_mod.F90)"
 
        ! replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -874,8 +871,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -957,8 +954,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -991,6 +988,8 @@ CONTAINS
 !  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_A3Cld
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_A6 with TRANSFER_3D
 !  03 Dec 2015 - R. Yantosca - Now open file only once per day
+!  17 Mar 2016 - M. Sulprizio- Read optical depth into State_Met%OPTD instead of
+!                              State_Met%OPTDEP (obsolete).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1018,6 +1017,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_A3cld (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1032,9 +1034,6 @@ CONTAINS
     ! Open the netCDF file only when necessary
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_A3cld (geosfp_read_mod.F90)"
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -1081,7 +1080,7 @@ CONTAINS
     ! Read OPTDEPTH
     v_name = "OPTDEPTH"
     CALL NcRd( Q, fA3cld, TRIM(v_name), st4d, ct4d )
-    CALL TRANSFER_3d( Q, State_Met%OPTDEP )
+    CALL TRANSFER_3d( Q, State_Met%OPTD )
 
     ! Read QI
     v_name = "QI"
@@ -1112,6 +1111,14 @@ CONTAINS
     ! Diagnostics, cleanup, and quit
     !======================================================================
 
+#if defined( BPCH_DIAG )
+    ! ND21 diagnostic: OPTD and CLDF
+    IF ( ND21 > 0 ) THEN
+       AD21(:,:,1:LD21,1) = AD21(:,:,1:LD21,1) + State_Met%OPTD(:,:,1:LD21)
+       AD21(:,:,1:LD21,2) = AD21(:,:,1:LD21,2) + State_Met%CLDF(:,:,1:LD21)
+    ENDIF
+#endif
+
     ! If it's the last time slice, then close the netCDF file
     ! and set the file ID to -1 to indicate that it's closed.
     IF ( time_index == 8 ) THEN
@@ -1138,8 +1145,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput  
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput  
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1202,6 +1209,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_A3dyn (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1209,16 +1219,13 @@ CONTAINS
     IF ( time_index < 1 .or. time_index > 8 ) THEN
        WRITE( 6, 100 ) time_index
  100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
-       CALL ERROR_STOP( errMsg, 'GEOS57_READ_A1 (geos57_read_mod.F90)' )
+       CALL ERROR_STOP( errMsg, caller )
     ENDIF
 
     !======================================================================
     ! Open the netCDF file only when necessary
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_A3dyn (geosfp_read_mod.F90)"
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -1335,8 +1342,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1395,6 +1402,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_A3mstC (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1409,9 +1419,6 @@ CONTAINS
     ! Open the netCDF file only when necessary
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_A3mstC (geosfp_read_mod.F90)"
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -1506,8 +1513,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1568,6 +1575,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_A3mstE (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1582,9 +1592,6 @@ CONTAINS
     ! Open the netCDF file only when necessary
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_A3mstE (geosfp_read_mod.F90)"
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -1703,8 +1710,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1773,6 +1780,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_I3_1 (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1787,9 +1797,6 @@ CONTAINS
     ! Open the netCDF file only when necessary
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_I3_1 (geosfp_read_mod.F90)"
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -1835,7 +1842,7 @@ CONTAINS
     ! Read PS
     v_name = "PS"
     CALL NcRd( Q2, fI3_1, TRIM(v_name), st3d, ct3d )
-    State_Met%PS1 = Q2
+    State_Met%PS1_WET = Q2
 
     !-------------------------------------------------
     ! Read 4D data (3D spatial + 1D time)
@@ -1935,8 +1942,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -2000,6 +2007,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_I3_2 (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -2014,9 +2024,6 @@ CONTAINS
     ! Open the netCDF file
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_I3_2 (geosfp_read_mod.F90)"
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -2062,7 +2069,7 @@ CONTAINS
     ! Read PS
     v_name = "PS"
     CALL NcRd( Q2, fI3_2, TRIM(v_name), st3d, ct3d )
-    State_Met%PS2 = Q2
+    State_Met%PS2_WET = Q2
 
     !-------------------------------------------------
     ! Read 4D data (3D spatial + 1D time)

@@ -147,14 +147,16 @@
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
-!  06 Aug 2012 - R. Yantosca - Now make IU_BC, IU_BC_NA, IU_BC_EU, IU_BC_CH,
-!                              and IU_BC_SE local variables for findFreeLUN
+!  06 Aug 2012 - R. Yantosca - Now make IU_BC, IU_BC_NA, IU_BC_EU, IU_BC_CH
+!                              local variables for findFreeLUN
 !  07 Sep 2012 - R. Yantosca - Minor fixes for numerical stability
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  01 Apr 2015 - R. Yantosca - Now add I0_E and J0_E
 !  03 Aug 2015 - M. Sulprizio- Now make BC and BC_CU separate arrays to avoid
 !                              confusion and error
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -179,6 +181,7 @@
       ! BC_NA    : Array containing NA tracers on coarse grid
       ! BC_EU    : Array containing EU tracers on coarse grid
       ! BC_CH    : Array containing CH tracers on coarse grid
+      ! BC_AS    : Array containing AS tracers on coarse grid
       ! MAP1x1   : Mapping array from 1x1 -> 4x5 grid
       !=================================================================
 
@@ -192,8 +195,8 @@
       INTEGER              :: I2_BC_EU, J2_BC_EU, IM_BC_EU, JM_BC_EU
       INTEGER              :: I0_BC_CH, J0_BC_CH, I1_BC_CH, J1_BC_CH
       INTEGER              :: I2_BC_CH, J2_BC_CH, IM_BC_CH, JM_BC_CH
-      INTEGER              :: I0_BC_SE, J0_BC_SE, I1_BC_SE, J1_BC_SE
-      INTEGER              :: I2_BC_SE, J2_BC_SE, IM_BC_SE, JM_BC_SE
+      INTEGER              :: I0_BC_AS, J0_BC_AS, I1_BC_AS, J1_BC_AS
+      INTEGER              :: I2_BC_AS, J2_BC_AS, IM_BC_AS, JM_BC_AS
       INTEGER              :: TS_BC
 
       ! Logical unit numbers
@@ -202,7 +205,7 @@
       INTEGER              :: IU_BC_NA   ! LUN for output BC's, N. Amer. grid
       INTEGER              :: IU_BC_EU   ! LUN for output BC's, Europe grid
       INTEGER              :: IU_BC_CH   ! LUN for output BC's, China grid
-      INTEGER              :: IU_BC_SE   ! LUN for output BC's, SEAC4RS grid
+      INTEGER              :: IU_BC_AS   ! LUN for output BC's, Asia grid
  
       ! Arrays
       INTEGER, ALLOCATABLE :: MAP1x1(:,:,:  )
@@ -211,6 +214,7 @@
       REAL*4,  ALLOCATABLE :: BC_NA (:,:,:,:)
       REAL*4,  ALLOCATABLE :: BC_EU (:,:,:,:)
       REAL*4,  ALLOCATABLE :: BC_CH (:,:,:,:)
+      REAL*4,  ALLOCATABLE :: BC_AS (:,:,:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -271,11 +275,11 @@
 !
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_WRITE
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_READ
+      USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
       USE inquireMod,    ONLY : findFreeLUN
       USE TIME_MOD,      ONLY : EXPAND_DATE,  GET_NYMD
       USE TIME_MOD,      ONLY : ITS_A_NEW_DAY
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
@@ -325,7 +329,7 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Only open file if it's a new day
       IF ( ITS_A_NEW_DAY(.TRUE.) ) THEN
@@ -338,6 +342,8 @@
             FILENAME = TRIM( Input_Opt%TPBC_DIR_EU ) // 'BC.YYYYMMDD' ! Input file, EU
 #elif defined( NESTED_CH )
             FILENAME = TRIM( Input_Opt%TPBC_DIR_CH ) // 'BC.YYYYMMDD' ! Input file, CH
+#elif defined( NESTED_AS )
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_AS ) // 'BC.YYYYMMDD' ! Input file, AS
 #endif
          ELSEIF ( WINDOW .eq. 1 ) THEN
             FILENAME = TRIM( Input_Opt%TPBC_DIR )    // 'BC.YYYYMMDD' ! Output file, CU
@@ -347,6 +353,8 @@
             FILENAME = TRIM( Input_Opt%TPBC_DIR_EU ) // 'BC.YYYYMMDD' ! Output file, EU
          ELSEIF ( WINDOW .eq. 4 ) THEN
             FILENAME = TRIM( Input_Opt%TPBC_DIR_CH ) // 'BC.YYYYMMDD' ! Output file, CH
+         ELSEIF ( WINDOW .eq. 5 ) THEN
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_AS ) // 'BC.YYYYMMDD' ! Output file, AS
          ENDIF
          
          ! Replace YYYYMMDD with the actual date
@@ -451,6 +459,25 @@
                CALL OPEN_BPCH2_FOR_WRITE( IU_BC_CH, FILENAME )
             ENDIF
 
+         ELSE IF ( WINDOW .eq. 5 ) THEN
+
+            !----------------------------------------------------------
+            ! WINDOW == 5 : Save BC's to file (Asia window)
+            !----------------------------------------------------------
+            IF ( PRESENT( FOR_WRITE ) ) THEN
+
+               ! Close previously opened file
+               INQUIRE( IU_BC_AS, OPENED=IS_OPEN )
+               IF ( IS_OPEN ) CLOSE( IU_BC_AS )
+
+               ! Find a free LUN
+               IU_BC_AS = findFreeLun()
+
+               ! Open file for output
+               WRITE( 6, 100 ) TRIM( FILENAME ), IU_BC_AS
+               CALL OPEN_BPCH2_FOR_WRITE( IU_BC_AS, FILENAME )
+            ENDIF
+
          ENDIF
 
       ENDIF
@@ -478,15 +505,12 @@
 !
       USE BPCH2_MOD
       USE CMN_SIZE_MOD 
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_NYMD,  GET_NHMS
       USE TIME_MOD,           ONLY : GET_TAU,   TIMESTAMP_STRING
-      USE UNITCONV_MOD
-#if   defined( APM )
-      USE TRACER_MOD,         ONLY : N_APMTRA
-#endif
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -519,59 +543,59 @@
 !  17 Feb 2014 - E. Lundgren - Move temporary unit change to vol/vol to within
 !                              this subroutine
 !  13 Aug 2015 - E. Lundgren - Tracer units are now [kg/kg dry air]
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  03 Aug 2016 - R. Yantosca - Remove temporary tracer removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
+! !DEFINED PARAMETERS:
+!
+      INTEGER, PARAMETER   :: CENTER180 =  1
+!
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE      :: FIRST     = .TRUE.
-      INTEGER            :: HALFPOLAR
-      INTEGER, PARAMETER :: CENTER180 =  1
-      INTEGER            :: I, IOS, J, L, N, IC, N_TOT_TRC
-      REAL(f4)           :: LONRES, LATRES
-      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LLPAR)
-      REAL(f8)           :: TAU
-      CHARACTER(LEN=16)  :: STAMP
-      CHARACTER(LEN=20)  :: MODELNAME 
-      CHARACTER(LEN=40)  :: CATEGORY  = 'IJ-AVG-$'
-      CHARACTER(LEN=40)  :: UNIT      = 'v/v'
-      CHARACTER(LEN=40)  :: RESERVED  = ''
+      ! SAVEd scalars
+      LOGICAL, SAVE        :: FIRST     = .TRUE.
 
-      ! For fields from Input_Opt
-      LOGICAL            :: LWINDO_CU
-      LOGICAL            :: LWINDO_NA 
-      LOGICAL            :: LWINDO_CH
-      LOGICAL            :: LWINDO_EU
-      LOGICAL            :: LWINDO_SE
-      INTEGER            :: N_TRACERS
+      ! Scalars
+      LOGICAL              :: LWINDO_CU
+      LOGICAL              :: LWINDO_NA 
+      LOGICAL              :: LWINDO_CH
+      LOGICAL              :: LWINDO_AS
+      LOGICAL              :: LWINDO_EU
+      INTEGER              :: HALFPOLAR
+      INTEGER              :: I, IOS, J, L, N, IC, NA, nAdvect
+      REAL(f4)             :: LONRES, LATRES
+      REAL(f8)             :: TAU
+
+      ! Strings
+      CHARACTER(LEN=16)    :: STAMP
+      CHARACTER(LEN=20)    :: MODELNAME 
+      CHARACTER(LEN=40)    :: CATEGORY  = 'IJ-AVG-$'
+      CHARACTER(LEN=40)    :: UNIT      = 'v/v'
+      CHARACTER(LEN=40)    :: RESERVED  = ''
+
+      ! Arrays
+      REAL(f4)             :: ARRAY(IIPAR,JJPAR,LLPAR)
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER    :: STT(:,:,:,:)
+      REAL(fp), POINTER    :: Spc(:,:,:,:)
 
       !=================================================================
       ! SAVE_GLOBAL_TPCORE_BC begins here!
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Copy values from Input_Opt
       LWINDO_CU = Input_Opt%LWINDO_CU
       LWINDO_NA = Input_Opt%LWINDO_NA
       LWINDO_CH = Input_Opt%LWINDO_CH
+      LWINDO_AS = Input_Opt%LWINDO_AS
       LWINDO_EU = Input_Opt%LWINDO_EU
-      LWINDO_SE = Input_Opt%LWINDO_SE
-      N_TRACERS = Input_Opt%N_TRACERS
-
-      ! Pick the proper # of tracers
-#if   defined( APM )
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
-#else
-      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
-#endif
 
       ! Return if it's not time to write data to disk
       IF ( .not. ITS_TIME_FOR_BC() ) RETURN
@@ -587,12 +611,14 @@
       MODELNAME = GET_MODELNAME()
       TAU       = GET_TAU()
 
-      ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to species array [kg/kg]
+      Spc => State_Chm%Species
+
+      ! Number of advected species
+      nAdvect   = State_Chm%nAdvect
 
       ! Loop over the possible combinations of nested grids
-      DO IC = 1, 4
+      DO IC = 1, 5
          IF ((IC .eq. 1) .and. LWINDO_CU )THEN
 
             !----------------------------------------------------------
@@ -603,13 +629,16 @@
             CALL OPEN_BC_FILE( am_I_Root, Input_Opt, RC,
      &                         WINDOW=IC, FOR_WRITE=.TRUE. )
 
-            ! Loop over each tracer
-            DO N = 1, N_TOT_TRC
+            ! Loop over each advected species
+            DO NA = 1, nAdvect
+
+               ! Get the species ID from the advected species ID
+               N = State_Chm%Map_Advect(NA)
 
                ! Save concentrations in WINDOW REGION to disk
                DO L = 1, LLPAR
                   BC_CU(1:IM_BC,1:JM_BC,L,N) = 
-     &               STT(I1_BC:I2_BC,J1_BC:J2_BC,L,N) 
+     &               Spc(I1_BC:I2_BC,J1_BC:J2_BC,L,N) 
                ENDDO
 
                ! Write boundary conditions to binary punch file
@@ -640,13 +669,16 @@
             CALL OPEN_BC_FILE( am_I_Root, Input_Opt, RC, 
      &                         WINDOW=IC, FOR_WRITE=.TRUE. )
 
-            ! Loop over each tracer
-            DO N = 1, N_TOT_TRC
+            ! Loop over each advected species
+            DO NA = 1, nAdvect
+
+               ! Get the species ID from the advected species ID
+               N = State_Chm%Map_Advect(NA)
 
                ! Save concentrations in WINDOW REGION to disk
                DO L = 1, LLPAR
                   BC_NA(1:IM_BC_NA,1:JM_BC_NA,L,N) = 
-     &               STT(I1_BC_NA:I2_BC_NA,J1_BC_NA:J2_BC_NA,L,N)
+     &               Spc(I1_BC_NA:I2_BC_NA,J1_BC_NA:J2_BC_NA,L,N)
                ENDDO
 
                ! Write boundary conditions to binary punch file
@@ -677,13 +709,16 @@
             CALL OPEN_BC_FILE( am_I_Root, Input_Opt, RC, 
      &                         WINDOW=IC, FOR_WRITE=.TRUE. )
 
-            ! Loop over each tracer
-            DO N = 1, N_TOT_TRC
+            ! Loop over each advected species
+            DO NA = 1, nAdvect
+
+               ! Get the species ID from the advected species ID
+               N = State_Chm%Map_Advect(NA)
 
                ! Save concentrations in WINDOW REGION to disk
                DO L = 1, LLPAR
                   BC_EU(1:IM_BC_EU,1:JM_BC_EU,L,N) =
-     &               STT(I1_BC_EU:I2_BC_EU,J1_BC_EU:J2_BC_EU,L,N)
+     &               Spc(I1_BC_EU:I2_BC_EU,J1_BC_EU:J2_BC_EU,L,N)
                ENDDO
  
                ! Write boundary conditions to binary punch file
@@ -714,13 +749,16 @@
             CALL OPEN_BC_FILE( am_I_Root, Input_Opt, RC, 
      &                         WINDOW=IC, FOR_WRITE=.TRUE. )
 
-            ! Loop over each tracer
-            DO N = 1, N_TOT_TRC
+            ! Loop over each advected species
+            DO NA = 1, nAdvect
+
+               ! Get the species ID from the advected species ID
+               N = State_Chm%Map_Advect(NA)
 
                ! Save concentrations in WINDOW REGION to disk
                DO L = 1, LLPAR
                   BC_CH(1:IM_BC_CH,1:JM_BC_CH,L,N) =
-     &               STT(I1_BC_CH:I2_BC_CH,J1_BC_CH:J2_BC_CH,L,N)
+     &               Spc(I1_BC_CH:I2_BC_CH,J1_BC_CH:J2_BC_CH,L,N)
                ENDDO
  
                ! Write boundary conditions to binary punch file
@@ -741,17 +779,58 @@
             STAMP = TIMESTAMP_STRING()
             WRITE( 6, 113 ) STAMP
             
+         ELSEIF ((IC .eq. 5) .and. LWINDO_AS )THEN
+
+            !----------------------------------------------------------
+            ! IC == 5 : Save BC's to file (Asia window)
+            !----------------------------------------------------------
+
+            ! Open file for writing, if necessary
+            CALL OPEN_BC_FILE( am_I_Root, Input_Opt, RC, 
+     &                         WINDOW=IC, FOR_WRITE=.TRUE. )
+
+            ! Loop over each advected species
+            DO NA = 1, nAdvect
+
+               ! Get the species ID from the advected species ID
+               N = State_Chm%Map_Advect(NA)
+
+               ! Save concentrations in WINDOW REGION to disk
+               DO L = 1, LLPAR
+                  BC_AS(1:IM_BC_AS,1:JM_BC_AS,L,N) =
+     &               Spc(I1_BC_AS:I2_BC_AS,J1_BC_AS:J2_BC_AS,L,N)
+               ENDDO
+
+               ! Write boundary conditions to binary punch file
+               CALL BPCH2( IU_BC_AS,  MODELNAME,
+     &                     LONRES,    LATRES,
+     &                     HALFPOLAR, CENTER180,
+     &                     CATEGORY,  N,
+     &                     UNIT,      TAU,
+     &                     TAU,       RESERVED,
+     &                     IM_BC_AS,  JM_BC_AS,
+     &                     LLPAR,     I1_BC_AS,
+     &                     J1_BC_AS,  1,
+     &                     BC_AS(1:IM_BC_AS, 1:JM_BC_AS,  1:LLPAR, N) )
+
+            ENDDO
+
+            ! Echo info
+            STAMP = TIMESTAMP_STRING()
+            WRITE( 6, 114 ) STAMP
+
          ENDIF
       ENDDO
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       ! FORMAT statements
- 110  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote BC''s at ',    a )
+ 110  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote CU BC''s at ', a )
  111  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote NA BC''s at ', a )
  112  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote EU BC''s at ', a )
  113  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote CH BC''s at ', a )
+ 114  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote AS BC''s at ', a )
 
       END SUBROUTINE SAVE_GLOBAL_TPCORE_BC
 !EOC
@@ -763,7 +842,7 @@
 ! !IROUTINE: do_window_tpcore_bc
 !
 ! !DESCRIPTION: Subroutine DO\_WINDOW\_TPCORE\_BC is a driver routine for 
-!  assigning TPCORE boundary conditions to the tracer array STT. 
+!  assigning TPCORE boundary conditions to the tracer array Spc. 
 !\\
 !\\
 ! !INTERFACE:
@@ -774,12 +853,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-#if   defined( APM )
-      USE TRACER_MOD,         ONLY : N_APMTRA
-#endif
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -802,101 +878,100 @@
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  13 Aug 2014 - E. Lundgren - Tracer units are now [kg/kg dry air]
+!  03 Aug 2016 - R. Yantosca - Remove temporary tracer removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE   :: FIRST = .TRUE.
-      INTEGER         :: I, J, L, N, N_TOT_TRC
+      ! SAVEd scalars
+      LOGICAL, SAVE     :: FIRST = .TRUE.
 
-      ! For fields from Input_Opt
-      LOGICAL         :: LWINDO2x25
-      INTEGER         :: N_TRACERS
+      ! Scalars
+      LOGICAL           :: LWINDO2x25
+      INTEGER           :: I, J, L, N, NA, nAdvect
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! DO_WINDOW_TPCORE_BC begins here!
       !=================================================================
 
       ! Assume success
-      RC         =  GIGC_SUCCESS
+      RC         =  GC_SUCCESS
 
       ! Copy values from Input_Opt
       LWINDO2x25 = Input_Opt%LWINDO2x25
-      N_TRACERS  = Input_Opt%N_TRACERS
       
-      ! Pick the proper # of tracers
-#if   defined( APM )
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
-#else
-      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
-#endif
+      ! Point to species array [kg/kg]
+      Spc        => State_Chm%Species
 
-      ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Number of advected species
+      nAdvect    = State_Chm%nAdvect
 
       ! Either zero BC's or read them from disk
       IF ( CLEAN_BC ) THEN
          CALL CLEAN_WINDOW_TPCORE_BC( am_I_Root, Input_Opt, RC )
       ELSE
-         CALL READ_WINDOW_TPCORE_BC( am_I_Root, Input_Opt, RC )
+         CALL READ_WINDOW_TPCORE_BC( am_I_Root, Input_Opt, 
+     &                               State_Chm, RC )
       ENDIF
 
       !=================================================================
-      ! Copy the BC data into the proper elements of STT
+      ! Copy the BC data into the proper elements of Spc
       !
       ! NOTE: We assume that we have saved 4x5 BC's from a global 
       ! GEOS-CHEM run.  It takes too long to save the 2x25 BC's.  
       ! One may always another subroutine for 2x25 BC's later.
       !=================================================================
-
       IF ( .not. LWINDO2x25 ) THEN
 
          ! On first call, initialize 4x5 to 1x1 mapping indeces. Do this now
          ! outside of do loop (ckeller, 11/10/2014)
-         IF ( FIRST ) CALL GET_4x5_BC_INIT
+         IF ( FIRST ) CALL GET_4x5_BC_INIT()
 
+         ! Loop over advected species
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TOT_TRC
-         DO L = 1, LLPAR
+!$OMP+PRIVATE( I, J, L, N, NA )
+         DO NA = 1, nAdvect
 
-           ! First loop over all latitudes (WINDOW REGION)
-           DO J = 1, JJPAR
+            ! Get the species ID from the advected species ID
+            N = State_Chm%Map_Advect(NA)
 
-              ! West BC
-              DO I = 1, I0_W
-                 STT(I,J,L,N) = GET_4x5_BC(I,J,L,N)
-              ENDDO
+            ! Loop over levels
+            DO L = 1, LLPAR
 
-              ! East BC
-              DO I = IIPAR-I0_E+1, IIPAR
-                 STT(I,J,L,N) = GET_4x5_BC(I,J,L,N)
-              ENDDO
-           ENDDO
+               ! First loop over all latitudes (WINDOW REGION)
+               DO J = 1, JJPAR
 
-           ! Now loop over the longitudes of the TPCORE REGION
-           DO I = 1+I0_W, IM_W+I0_W
+                  ! West BC
+                  DO I = 1, I0_W
+                     Spc(I,J,L,N) = GET_4x5_BC(I,J,L,N)
+                  ENDDO
+
+                  ! East BC
+                  DO I = IIPAR-I0_E+1, IIPAR
+                     Spc(I,J,L,N) = GET_4x5_BC(I,J,L,N)
+                  ENDDO
+               ENDDO
+
+               ! Now loop over the longitudes of the TPCORE REGION
+               DO I = 1+I0_W, IM_W+I0_W
               
-              ! South BC
-              DO J = 1, J0_W
-                 STT(I,J,L,N) = GET_4x5_BC(I,J,L,N)
-              ENDDO
+                 ! South BC
+                  DO J = 1, J0_W
+                     Spc(I,J,L,N) = GET_4x5_BC(I,J,L,N)
+                  ENDDO
 
-              ! North BC
-              DO J = JJPAR-J0_E+1, JJPAR
-                 STT(I,J,L,N) = GET_4x5_BC(I,J,L,N)
-              ENDDO
-           ENDDO
-         ENDDO
+                  ! North BC
+                  DO J = JJPAR-J0_E+1, JJPAR
+                     Spc(I,J,L,N) = GET_4x5_BC(I,J,L,N)
+                  ENDDO
+               ENDDO
+            ENDDO
          ENDDO
 !$OMP END PARALLEL DO
 
@@ -905,42 +980,47 @@
 
          ! On first call, initialize 4x5 to 1x1 mapping indeces. Do this now
          ! outside of do loop (ckeller, 11/10/2014)
-         IF ( FIRST ) CALL GET_2x25_BC_INIT
-
+         IF ( FIRST ) CALL GET_2x25_BC_INIT()
+         
+         ! Loop over only the advected species
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TOT_TRC
-         DO L = 1, LLPAR
+!$OMP+PRIVATE( I, J, L, N, NA )
+         DO NA = 1, nAdvect
 
-           ! First loop over all latitudes (WINDOW REGION)
-           DO J = 1, JJPAR
+            ! Get the species ID from the advected species ID
+            N = State_Chm%Map_Advect(NA)
+            
+            DO L = 1, LLPAR
 
-              ! West BC
-              DO I = 1, I0_W
-                 STT(I,J,L,N) = GET_2x25_BC(I,J,L,N)
-              ENDDO
+               ! First loop over all latitudes (WINDOW REGION)
+               DO J = 1, JJPAR
 
-              ! East BC
-              DO I = IIPAR-I0_E+1, IIPAR
-                 STT(I,J,L,N) = GET_2x25_BC(I,J,L,N)
-              ENDDO
-           ENDDO
+                  ! West BC
+                  DO I = 1, I0_W
+                     Spc(I,J,L,N) = GET_2x25_BC(I,J,L,N)
+                  ENDDO
 
-           ! Now loop over the longitudes of the TPCORE REGION
-           DO I = 1+I0_W, IM_W+I0_W
+                  ! East BC
+                  DO I = IIPAR-I0_E+1, IIPAR
+                     Spc(I,J,L,N) = GET_2x25_BC(I,J,L,N)
+                  ENDDO
+               ENDDO
+
+               ! Now loop over the longitudes of the TPCORE REGION
+               DO I = 1+I0_W, IM_W+I0_W
    
-              ! South BC
-              DO J = 1, J0_W
-                 STT(I,J,L,N) = GET_2x25_BC(I,J,L,N)
-              ENDDO
+                  ! South BC
+                  DO J = 1, J0_W
+                     Spc(I,J,L,N) = GET_2x25_BC(I,J,L,N)
+                  ENDDO
 
-              ! North BC
-              DO J = JJPAR-J0_E+1, JJPAR
-                 STT(I,J,L,N) = GET_2x25_BC(I,J,L,N)
-              ENDDO
-           ENDDO
-         ENDDO
+                  ! North BC
+                  DO J = JJPAR-J0_E+1, JJPAR
+                     Spc(I,J,L,N) = GET_2x25_BC(I,J,L,N)
+                  ENDDO
+               ENDDO
+            ENDDO
          ENDDO
 !$OMP END PARALLEL DO
 
@@ -950,7 +1030,7 @@
       FIRST = .FALSE.
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE DO_WINDOW_TPCORE_BC
 !EOC
@@ -972,8 +1052,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD  
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1000,30 +1080,28 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, L, N, N_TOT_TRC
-
-      ! For fields from Input_Opt
-      LOGICAL :: LWINDO_NA, LWINDO_EU
-      LOGICAL :: LWINDO_CH, LWINDO_CU
-      LOGICAL :: LWINDO_SE
-      INTEGER :: N_TRACERS
+      ! Scalars
+      LOGICAL :: LWINDO_NA
+      LOGICAL :: LWINDO_EU
+      LOGICAL :: LWINDO_CH
+      LOGICAL :: LWINDO_AS
+      LOGICAL :: LWINDO_CU
 
       !=================================================================
       ! CLEAN_WINDOW_TPCORE_BC begins here!
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Copy values from Input_Opt
       LWINDO_NA = Input_Opt%LWINDO_NA
       LWINDO_EU = Input_Opt%LWINDO_EU
       LWINDO_CH = Input_Opt%LWINDO_CH
+      LWINDO_AS = Input_Opt%LWINDO_AS
       LWINDO_CU = Input_Opt%LWINDO_CU
-      LWINDO_SE = Input_Opt%LWINDO_SE
-      N_TRACERS = Input_Opt%N_TRACERS
 
-#if   defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || defined( NESTED_CU )
+#if   defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || defined( NESTED_AS ) || defined( NESTED_CU )
       BC = 0e+0_fp
 #endif
 
@@ -1043,6 +1121,10 @@
          BC_CH = 0e+0_fp
       ENDIF
 
+      IF ( LWINDO_AS ) THEN
+         BC_AS = 0e+0_fp
+      ENDIF
+
       END SUBROUTINE CLEAN_WINDOW_TPCORE_BC
 !EOC
 !------------------------------------------------------------------------------
@@ -1060,24 +1142,30 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_WINDOW_TPCORE_BC( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_WINDOW_TPCORE_BC( am_I_Root, Input_Opt, 
+     &                                  State_Chm, RC         )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD 
+      USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TAU, TIMESTAMP_STRING
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  07 Mar 2003 - R. Yantosca - Initial version
@@ -1094,13 +1182,15 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       INTEGER           :: I,      IOS,     J,         L      
       INTEGER           :: NI,     NJ,      NL,        NT
       INTEGER           :: NFOUND, IFIRST,  JFIRST,    LFIRST
       INTEGER           :: NSKIP,  NTRACER, HALFPOLAR, CENTER180
       REAL*4            :: LONRES, LATRES
-      REAL*4            :: ARRAY(IIPAR,JJPAR,LLPAR)
-      REAL(fp)            :: ZTAU0,  ZTAU1
+      REAL(fp)          :: ZTAU0,  ZTAU1
+
+      ! Strings
       CHARACTER(LEN=20) :: S = 'read_window_boundary'  
       CHARACTER(LEN=20) :: MODELNAME 
       CHARACTER(LEN=40) :: CATEGORY  
@@ -1110,18 +1200,16 @@
       ! For LINUX fix
       CHARACTER(LEN=16) :: STAMP
 
-      ! For fields from Input_Opt
-      INTEGER           :: N_TRACERS
+      ! Arrays
+      REAL*4            :: ARRAY(IIPAR,JJPAR,LLPAR)
+
 
       !=================================================================
       ! READ_WINDOW_TPCORE_BC begins here!
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
-      N_TRACERS = Input_Opt%N_TRACERS
+      RC        =  GC_SUCCESS
 
       IF ( ITS_TIME_FOR_BC() ) THEN
 
@@ -1182,12 +1270,12 @@
             !===========================================================
             ! Exit if we've found all tracers for this TAU value
             !===========================================================
-            IF ( NFOUND == N_TRACERS ) THEN
+            IF ( NFOUND == State_Chm%nAdvect ) THEN
 
                ! Echo output
                STAMP = TIMESTAMP_STRING()
                IF ( am_I_Root ) THEN
-                  WRITE( 6, 100 ) N_TRACERS, STAMP
+                  WRITE( 6, 100 ) State_Chm%nAdvect, STAMP
  100              FORMAT( '     - READ_WINDOW_TPCORE_BC: Found all ',
      &                       i3, ' BC''s at ', a )
                ENDIF
@@ -1718,21 +1806,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TPCORE_BC( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_TPCORE_BC( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
       USE GRID_MOD,           ONLY : ITS_A_NESTED_GRID
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1747,8 +1837,8 @@
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
 !  07 Sep 2012 - R. Yantosca - Now use 0e+0_fp instead of 0e0 to zero BC arrays
 !  17 Oct 2012 - M. Payer    - Bug fix: Define extent of coarse grid BC region
-!                              even if LWINDO_CH or LWINDO_SE = False to
-!                              avoid out-of-bounds errors in array BC
+!                              even if LWINDO_CH = False to avoid out-of-bounds
+!                              errors in array BC
 !  05 Jun 2013 - K. Yu       - Define BC boundaries for GEOS_57 0.25 NA grid
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Removed SEAC4RS C-preprocessor switch
@@ -1765,9 +1855,9 @@
 
       ! For values from Input_Opt
       LOGICAL :: LWINDO,    LWINDO_NA,  LWINDO_CU
-      LOGICAL :: LWINDO_EU, LWINDO_CH,  LWINDO2x25
-      LOGICAL :: LWINDO_SE
-      INTEGER :: N_TRACERS
+      LOGICAL :: LWINDO_EU, LWINDO_CH,  LWINDO_AS
+      LOGICAL :: LWINDO2x25
+      INTEGER :: nAdvect
 
       !=================================================================
       ! INIT_TPCORE_BC begins here!
@@ -1779,9 +1869,11 @@
       LWINDO_CU  = Input_Opt%LWINDO_CU
       LWINDO_EU  = Input_Opt%LWINDO_EU
       LWINDO_CH  = Input_Opt%LWINDO_CH
-      LWINDO_SE  = Input_Opt%LWINDO_SE
+      LWINDO_AS  = Input_Opt%LWINDO_AS
       LWINDO2x25 = Input_Opt%LWINDO2x25
-      N_TRACERS  = Input_Opt%N_TRACERS
+
+      ! Number of advected species
+      nAdvect    = State_Chm%nAdvect
 
       ! Timestep for BC's [min]
       TS_BC      = Input_Opt%NESTED_TS
@@ -1939,31 +2031,19 @@
 #if   defined( GRID4x5 ) || defined( NESTED_CH ) 
 
 #if   defined( GEOS_FP )
-
          !%%%%% 4x5 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
          !%%%%% NESTED CHINA GRID (GEOS-FP only)       %%%%%
          I1_BC_CH = 51                       ! 4x5 lon index, LL corner
          J1_BC_CH = 27                       ! 4x5 lat index, LL corner
          I2_BC_CH = 65                       ! 4x5 lon index, UR corner
          J2_BC_CH = 37                       ! 4x5 lat index, UR corner
-
-#elif defined( MERRA2 )
-         !%%%%% 4x5 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
-         !%%%%% NESTED CHINA GRID (MERRA2 only)        %%%%%
-         I1_BC_CH = 49                       ! 4x5 lon index, LL corner
-         J1_BC_CH = 21                       ! 4x5 lat index, LL corner
-         I2_BC_CH = 67                       ! 4x5 lon index, UR corner
-         J2_BC_CH = 37                       ! 4x5 lat index, UR corner
-
 #else
-
          !%%%%% 4x5 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
          !%%%%% GEOS-5 CHINA NESTED GRID (GEOS-5 only) %%%%%
          I1_BC_CH = 51                       ! 4x5 lon index, LL corner
          J1_BC_CH = 21                       ! 4x5 lat index, LL corner
          I2_BC_CH = 67                       ! 4x5 lon index, UR corner
          J2_BC_CH = 37                       ! 4x5 lat index, UR corner
-
 #endif
 
 #endif
@@ -1973,32 +2053,19 @@
 #if   defined( GRID2x25 ) || defined( NESTED_CH )
 
 #if   defined( GEOS_FP )
-
          !%%%%% 2x25 BC REGION FOR "GEOS-Chem CLASSIC" %%%%%
          !%%%%% NESTED CHINA GRID (GEOS-FP only)       %%%%%
          I1_BC_CH = 101                      ! 2x25 lon index, LL corner
          J1_BC_CH = 53                       ! 2x25 lat index, LL corner
          I2_BC_CH = 129                      ! 2x25 lon index, UR corner
          J2_BC_CH = 74                       ! 2x25 lat index, UR corner
-
-#elif defined( MERRA2 )
-
-         !%%%%% 2x25 BC REGION FOR "GEOS-Chem CLASSIC" %%%%%
-         !%%%%% NESTED CHINA GRID (MERRA2 only)       %%%%%
-         I1_BC_CH = 97                       ! 2x25 lon index, LL corner
-         J1_BC_CH = 41                       ! 2x25 lat index, LL corner
-         I2_BC_CH = 133                      ! 2x25 lon index, UR corner
-         J2_BC_CH = 74                       ! 2x25 lat index, UR corner
-
 #else
-
          !%%%%% 2x25 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
-         !%%%%% GEOS-5 CHINA NESTED GRID (GEOS_5 only)  %%%%%
+         !%%%%% GEOS-5 CHINA NESTED GRID (GEOS-5 only)  %%%%%
          I1_BC_CH = 101                      ! 2x25 lon index, LL corner
          J1_BC_CH = 40                       ! 2x25 lat index, LL corner
          I2_BC_CH = 133                      ! 2x25 lon index, UR corner
          J2_BC_CH = 74                       ! 2x25 lat index, UR corner
-
 #endif
 
 #endif
@@ -2013,16 +2080,53 @@
       I0_BC_CH = I1_BC_CH - 1
       J0_BC_CH = J1_BC_CH - 1
 
-      ! Extent of coarse-grid SEAC4RS BC REGION
-      IM_BC_SE = I2_BC_SE - I1_BC_SE + 1
-      JM_BC_SE = J2_BC_SE - J1_BC_SE + 1
- 
-      ! TPCORE SEAC4RS internal transport window offset
-      I0_BC_SE = I1_BC_SE - 1
-      J0_BC_SE = J1_BC_SE - 1
+      !-----------------------------------------------------------------
+      !      ****** BC REGION FOR ASIA NESTED GRID ******
+      !-----------------------------------------------------------------
+      IF (.not. LWINDO2x25 ) THEN 
 
+#if   defined( GRID4x5 ) || defined( NESTED_AS )
+
+#if   defined( MERRA2 )
+         !%%%%% 4x5 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
+         !%%%%% NESTED ASIA GRID (MERRA2 only)         %%%%%
+         I1_BC_AS = 49                       ! 4x5 lon index, LL corner
+         J1_BC_AS = 21                       ! 4x5 lat index, LL corner
+         I2_BC_AS = 67                       ! 4x5 lon index, UR corner
+         J2_BC_AS = 37                       ! 4x5 lat index, UR corner
+#endif
+
+#endif
+
+      ELSE
+
+#if   defined( GRID2x25 ) || defined( NESTED_AS )
+
+#if   defined( MERRA2 )
+         !%%%%% 2x25 BC REGION FOR "GEOS-Chem CLASSIC" %%%%%
+         !%%%%% NESTED ASIA GRID (MERRA2 only)         %%%%%
+         I1_BC_AS = 97                       ! 2x25 lon index, LL corner
+         J1_BC_AS = 41                       ! 2x25 lat index, LL corner
+         I2_BC_AS = 133                      ! 2x25 lon index, UR corner
+         J2_BC_AS = 74                       ! 2x25 lat index, UR corner
+#endif
+
+#endif
+
+      ENDIF
+
+      ! Extent of coarse-grid AS BC REGION
+      IM_BC_AS = I2_BC_AS - I1_BC_AS + 1
+      JM_BC_AS = J2_BC_AS - J1_BC_AS + 1
+
+      ! TPCORE AS internal transport window offset
+      I0_BC_AS = I1_BC_AS - 1
+      J0_BC_AS = J1_BC_AS - 1
+
+      !-----------------------------------------------------------------
       ! Return if we are not saving 4x5 BC's
       ! or if it's not a nested grid simulation
+      !-----------------------------------------------------------------
       IF ( .not. ITS_A_NESTED_GRID() ) THEN
          IF ( .not. LWINDO ) RETURN
       ENDIF
@@ -2033,31 +2137,35 @@
       
       ! Boundary condition array for CUSTOM NESTED REGION
       IF ( LWINDO_CU ) THEN
-         ALLOCATE( BC_CU( IM_BC, JM_BC, LLPAR, N_TRACERS ), STAT=AS )
+         ALLOCATE( BC_CU( IM_BC, JM_BC, LLPAR, nAdvect ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_CU' )
          BC_CU = 0e+0_fp
       ENDIF
 
       ! Boundary condition array for NESTED CHINA/SE ASIA REGION
       IF ( LWINDO_CH ) THEN
-         ALLOCATE( BC_CH( IM_BC_CH, JM_BC_CH, 
-     &                    LLPAR,    N_TRACERS ), STAT=AS )
+         ALLOCATE( BC_CH( IM_BC_CH, JM_BC_CH, LLPAR, nAdvect ), STAT=AS)
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_CH' )
          BC_CH = 0e+0_fp
       ENDIF
 
+      ! Boundary condition array for NESTED ASIA REGION
+      IF ( LWINDO_AS ) THEN
+         ALLOCATE( BC_AS( IM_BC_AS, JM_BC_AS, LLPAR, nAdvect ), STAT=AS)
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_AS' )
+         BC_AS = 0e+0_fp
+      ENDIF
+
       ! Boundary condition array for NESTED N. AMERICA REGION
       IF ( LWINDO_NA ) THEN
-         ALLOCATE( BC_NA( IM_BC_NA, JM_BC_NA, 
-     &                    LLPAR, N_TRACERS ), STAT=AS )
+         ALLOCATE( BC_NA( IM_BC_NA, JM_BC_NA, LLPAR, nAdvect ), STAT=AS)
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_NA' )
          BC_NA = 0e+0_fp
       ENDIF
 
       ! Boundary condition array for NESTED EUROPE REGION
       IF ( LWINDO_EU ) THEN
-         ALLOCATE( BC_EU( IM_BC_EU, JM_BC_EU, 
-     &                    LLPAR,    N_TRACERS ), STAT=AS )
+         ALLOCATE( BC_EU( IM_BC_EU, JM_BC_EU, LLPAR, nAdvect ), STAT=AS)
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_EU' )
          BC_EU = 0e+0_fp
       ENDIF
@@ -2075,6 +2183,18 @@
       JM_BC = JM_BC_CH
       I0_BC = I0_BC_CH
       J0_BC = J0_BC_CH
+
+#elif defined( NESTED_AS )
+
+      !%%%%% Define boundaries for NESTED ASIA GRID %%%%%
+      I1_BC = I1_BC_AS
+      J1_BC = J1_BC_AS
+      I2_BC = I2_BC_AS
+      J2_BC = J2_BC_AS
+      IM_BC = IM_BC_AS
+      JM_BC = JM_BC_AS
+      I0_BC = I0_BC_AS
+      J0_BC = J0_BC_AS
 
 #elif defined( NESTED_NA )
 
@@ -2102,7 +2222,7 @@
 
 #endif
 
-      ALLOCATE( BC( IM_BC, JM_BC, LLPAR, N_TRACERS ), STAT=AS )
+      ALLOCATE( BC( IM_BC, JM_BC, LLPAR, nAdvect ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC' )
       BC = 0e+0_fp
 
@@ -2111,7 +2231,7 @@
       MAP1x1 = 0
 
       ! Return 
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE INIT_TPCORE_BC
 !EOC
@@ -2143,6 +2263,7 @@
       IF ( ALLOCATED( BC_NA  ) ) DEALLOCATE( BC_NA  )
       IF ( ALLOCATED( BC_EU  ) ) DEALLOCATE( BC_EU  )
       IF ( ALLOCATED( BC_CH  ) ) DEALLOCATE( BC_CH  )
+      IF ( ALLOCATED( BC_AS  ) ) DEALLOCATE( BC_AS  )
       IF ( ALLOCATED( MAP1x1 ) ) DEALLOCATE( MAP1x1 )
 
       END SUBROUTINE CLEANUP_TPCORE_BC

@@ -32,7 +32,7 @@
 ! updated at the end of the run sequence, e.g. they represent the 
 ! instantaneous running average. The e-folding times to be used when
 ! calculating the short=term and long-term running averages are defined 
-! as module parameter below (parameter TAU_HOURS and TAU_DAYS) 
+! as module parameter below (parameter TAU\_HOURS and TAU\_DAYS).
 !\\
 !\\
 ! A similar procedure is also applied to the leaf area index variables.
@@ -365,6 +365,10 @@
 !  30 Sep 2015 - C. Keller   - Now add OCPI flux to BIOGENIC_OCPI diagnostics.
 !  12 Dec 2015 - C. Keller   - Apply e-folding times to past conditions.
 !  07 Jan 2016 - E. Lundgren - Update Avogadro's # to NIST 2014
+!  01 Jun 2016 - R. Yantosca - Bug fix: Now use ExtNrMono in the call to
+!                              Hco_EmisAdd for the MONX (in order to make MONX
+!                              show up as nonzero in HEMCO diagnostics).
+!EOP
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -763,7 +767,6 @@
 
             ! Add to tracer tendency array [kg C/m2/s]
             FLUXMONO(I,J) = EMIS_MONO
-
          ELSE
             EMIS_MONO = 0.0_hp
             EMIS_MBOX = 0.0_hp
@@ -1310,9 +1313,19 @@
       IF ( ExtNrMono > 0 ) THEN
 
          IF ( IDTMONX > 0 ) THEN
+
             ! Add flux to emission array
             CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMONO, IDTMONX, 
-     &                        RC,        ExtNr=ExtNr )
+!----------------------------------------------------------------------------
+! Prior to 6/1/16:
+! MONX belongs to the MEGAN_Mono extension, so we should pass ExtNrMono
+! to HCO_EMISADD.  This will not change the emissions (which get added to
+! HcoState anyway), but it will make  MONX show up properly in diagnostics.
+! (bmy, 6/1/16)
+!     &                        RC,        ExtNr=ExtNr )
+!----------------------------------------------------------------------------
+     &                        RC,        ExtNr=ExtNrMono )
+
             IF ( RC /= HCO_SUCCESS ) THEN
                CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMONO', RC )
                RETURN 
@@ -1705,7 +1718,7 @@
 !
 ! !IROUTINE: Get_Megan_Emissions
 !
-! !DESCRIPTION: Subroutine Get\_Megan\Emissions computes biogenic emissions in 
+! !DESCRIPTION: Subroutine Get\_Megan\_Emissions computes biogenic emissions in 
 !  units of [kgC/m2/s] or [kg/m2/s] using the MEGAN inventory. (dbm, 12/2012)
 !\\
 !\\
@@ -3111,7 +3124,7 @@
 ! !IROUTINE: CALC_NORM_FAC
 !
 ! !DESCRIPTION: Function CALC\_NORM\_FAC calculates the normalization factor 
-!  needed to compute emissions. Called from GET_MEGAN_EMISSIONS.
+!  needed to compute emissions. Called from GET\_MEGAN\_EMISSIONS.
 !\\
 !\\
 ! !INTERFACE:

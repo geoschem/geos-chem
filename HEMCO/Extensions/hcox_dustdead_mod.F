@@ -5444,14 +5444,6 @@ c Fix up for negative argument, erf, etc.
       ! Copy the 05x0666 scale factors for now (skim, 5/20/12)
       FLX_MSS_FDG_FCT = 3.23d-4
 
-#elif defined(NESTED_SE)
-
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%%       NOTE: NEED TO SCALE THIS FOR GEOS-FP nested SE!         %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! Copy the 05x0666 scale factors for now (skim, 5/20/12)
-      FLX_MSS_FDG_FCT = 3.23d-4
-
 #elif defined(NESTED_NA)
 
       !----------------------------------------------------------------
@@ -5514,7 +5506,7 @@ c Fix up for negative argument, erf, etc.
 
 #elif defined( MERRA2 ) && defined( GRID05x0625 )
 
-#if defined(NESTED_CH)
+#if defined(NESTED_AS)
 
       !----------------------------------------------------------------
       ! Based on results from MERRA2 0.5x0.625 CH for 2011 compared to
@@ -5567,12 +5559,11 @@ c Fix up for negative argument, erf, etc.
 
 #elif defined( MERRA2 ) && defined( GRID2x25 )
 
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% NOTE: RETUNING FOR MERRA2 2x25 IS NEEDED ONCE MET IS AVAILABLE %%%
-      !%%%       Add placeholder value for now (bmy, 8/12/15)             %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! Use GEOS-5 value for now (mps, 1/6/16)
-      FLX_MSS_FDG_FCT = 4.9d-4
+      !----------------------------------------------------------------
+      ! Based on results from MERRA2 2x2.5 for 2012 (Chi Li, 7/8/16)
+      !----------------------------------------------------------------
+      FLX_MSS_FDG_FCT = 4.9d-4 * 0.971141
+
 
 #elif defined( MERRA2 ) && defined( GRID4x5 )
 

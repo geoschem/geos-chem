@@ -180,7 +180,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD    ! Size parameters
-      USE PHYSCONSTANTS   ! Physical constants
+      USE PhysConstants   ! Physical constants
 !
 ! !INPUT PARAMETERS: 
 !
@@ -422,7 +422,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD   ! Size parameters
-      USE PHYSCONSTANTS  ! Physical constants
+      USE PhysConstants  ! Physical constants
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1200,7 +1200,7 @@ c     --------------------------------------
 ! !USES:
 !
       USE CMN_SIZE_MOD ! Size parameters
-      USE PHYSCONSTANTS! Re, PI
+      USE PhysConstants! Re, PI
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1380,7 +1380,7 @@ c     --------------------------------------
 ! !USES:
 !
       USE CMN_SIZE_MOD ! Size parameters
-      USE PHYSCONSTANTS! Re, Pi
+      USE PhysConstants! Re, Pi
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1918,7 +1918,7 @@ c     --------------------------------------
       USE PRESSURE_MOD, ONLY : GET_AP,      GET_BP
 
       USE CMN_SIZE_MOD  ! Size parameters
-      USE PHYSCONSTANTS ! Re, PI, etc...
+      USE PhysConstants ! Re, PI, etc...
 ! 
 !
 ! !AUTHOR:
