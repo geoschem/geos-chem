@@ -139,7 +139,7 @@
       INTEGER :: id_MEK,   id_MGLY,  id_MTPA
       INTEGER :: id_MTPO,  id_NAP,   id_NH3,   id_NK1   
       INTEGER :: id_NO,    id_OCPI,  id_OCPO,  id_OPOA1 
-      INTEGER :: id_OPOG1, id_PASV,  id_POA1,  id_PRPE  
+      INTEGER :: id_OPOG1, id_POA1,  id_PRPE  
       INTEGER :: id_SOAG,  id_SOAM,  id_SO2,   id_TSOA1 
       INTEGER :: id_TOLU,  id_XYLE  
 
@@ -1921,40 +1921,10 @@
             SCALE(T,45) = 1.0e+12
          ENDIF
 
-         ! For passive tracer (mps, 11/18/15)
-         IF ( TRIM( SpcInfo%Name ) == 'PASV' ) THEN
-
-            ! Set units for first passive tracer unit, conc in dry air
-            UNIT (T,  45) = 'ppbv dry air'
-
-            ! Store quantities for second passive tracer unit, conc in wet air
-            NAME (T+1,45) = NAME (T,45)
-            FNAME(T+1,45) = FNAME(T,45)
-            MOLC (T+1,45) = MOLC (T,45)
-            SCALE(T+1,45) = SCALE(T,45)
-            INDEX(T+1,45) = INDEX(T,45)
-            MWT  (T+1,45) = MWT  (T,45)
-            UNIT (T+1,45) = 'ppbv total air'
-
-            ! Store quantities for 3rd passive tracer unit, mixing ratio
-            NAME (T+2,45) = NAME (T,45)
-            FNAME(T+2,45) = FNAME(T,45)
-            MOLC (T+2,45) = MOLC (T,45)
-            SCALE(T+2,45) = SCALE(T,45)
-            INDEX(T+2,45) = INDEX(T,45)
-            MWT  (T+2,45) = MWT  (T,45)
-            UNIT (T+2,45) = 'kg/kg total air'
-
-         ENDIF
-
       ENDDO
 
       ! Number of ND45 tracers 
-      IF ( id_PASV > 0 ) THEN
-         NTRAC(45) = nAdvect+2
-      ELSE
-         NTRAC(45) = nAdvect
-      ENDIF
+      NTRAC(45) = nAdvect
 
       !-------------------------------------
       ! Hg source, production & loss (ND03)
@@ -7703,7 +7673,6 @@
       id_OCPO  = Ind_('OCPO' )
       id_OPOA1 = Ind_('OPOA1')
       id_OPOG1 = Ind_('OPOG1')
-      id_PASV  = Ind_('PASV' )
       id_POA1  = Ind_('POA1' )
       id_PRPE  = Ind_('PRPE' )
       id_SOAG  = Ind_('SOAG' )

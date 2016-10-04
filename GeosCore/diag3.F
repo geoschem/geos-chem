@@ -355,7 +355,7 @@
       ! tracerid_mod.F to facilitate FlexChem implementation (bmy, 5/2/16)
       LOGICAL, SAVE            :: FIRST = .TRUE.
       INTEGER, SAVE            :: id_Rn,       id_Pb
-      INTEGER, SAVE            :: id_Be7,      id_PASV
+      INTEGER, SAVE            :: id_Be7
       INTEGER, SAVE            :: id_POPG
       INTEGER, SAVE            :: id_POPPOCPO, id_POPPOCPI
       INTEGER, SAVE            :: id_POPPBCPO, id_POPPBCPI
@@ -424,7 +424,6 @@
          id_Rn        = Ind_('Rn'      )
          id_Pb        = Ind_('Pb'      )
          id_Be7       = Ind_('Be7'     )
-         id_PASV      = Ind_('PASV'    )
          id_POPG      = Ind_('POPG'    )
          id_POPPOCPO  = Ind_('POPPOCPO')
          id_POPPOCPI  = Ind_('POPPOCPI')
@@ -4109,32 +4108,6 @@
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     LD45,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD45) )
-
-            IF ( N == id_PASV ) THEN
-
-               ! Also save out passive tracer in v/v total air (mps, 11/18/15)
-               DO L = 1, LD45
-                  ARRAY(:,:,L) = AD45(:,:,L,N+1) / SCALE_TMP(:,:)
-               ENDDO
-
-               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, NN+1,    
-     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                     IIPAR,     JJPAR,     LD45,     IFIRST,     
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD45) )
-
-               ! Also save out passive tracer in kg/kg total air (mps, 11/18/15)
-               DO L = 1, LD45
-                  ARRAY(:,:,L) = AD45(:,:,L,N+2) / SCALE_TMP(:,:)
-               ENDDO
-
-               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, NN+2,    
-     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                     IIPAR,     JJPAR,     LD45,     IFIRST,     
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD45) )
-
-            ENDIF
 
          ENDDO
 

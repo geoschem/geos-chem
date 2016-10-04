@@ -858,7 +858,7 @@
       !=================================================================
       IF ( ND45 > 0 ) THEN
          LD45 = MIN( ND45, LLPAR )
-         NMAX = nAdvect+2
+         NMAX = nAdvect
 
 #if defined( BPCH_DIAG )
          ! Accumulating diagnostic array
@@ -885,7 +885,7 @@
       !=================================================================
       IF ( ND47 > 0 ) THEN
          LD47 = MIN( ND47, LLPAR   )
-         NMAX = nAdvect+2
+         NMAX = nAdvect
 
          ! Resize to NMAX to save memory (bmy, 10/18/00)
          ALLOCATE( AD47( IIPAR, JJPAR, LD47, NMAX ), STAT=AS )
