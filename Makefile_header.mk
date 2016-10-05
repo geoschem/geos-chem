@@ -1017,8 +1017,9 @@ ifeq ($(COMPILER),gfortran)
   FFLAGS             :=-cpp -w -std=legacy -fautomatic -fno-align-commons
   FFLAGS             += -fconvert=big-endian
   FFLAGS             += -fno-range-check
+  FFLAGS             += -march=native
 
-  # Default optimization level for all routines (-O2)
+  # Default optimization level for all routines (-O3)
   ifndef OPT
     # Options of interest
     #  -limf                Intel math libraries - machine must have them
