@@ -29,10 +29,15 @@ MODULE Olson_LandMap_Mod
   IMPLICIT NONE
   PRIVATE
 !
-! !PUBLIC MEMBER FUNCTIONS:
+! !PUBLIC MEMBER FUNCT
+IONS:
 !
   PUBLIC  :: Init_Olson_Landmap
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+  PUBLIC  :: Compute_Olson_Landmap_GCHP
+#else
   PUBLIC  :: Compute_Olson_Landmap
+#endifl
   PUBLIC  :: Cleanup_Olson_LandMap
 !
 ! !REMARKS:
@@ -652,6 +657,188 @@ CONTAINS
 
   END SUBROUTINE Compute_Olson_LandMap
 !EOC
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: compute_olson_landmap_gchp
+!
+! !DESCRIPTION: Subroutine COMPUTE\_OLSON\_LANDMAP\_GCHP computes the 
+!  GEOS-Chem State_Met variables that are dependent on the Olson Landmap, 
+!  specifically IREG, ILAND, IUSE, and FRCLND, using the Olson Landmap data
+!  regridded by ExtData in High Performance GEOS-Chem (GCHP).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Compute_Olson_Landmap_GCHP( am_I_Root, State_Met )
+!
+! !USES:
+!
+    USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState),  INTENT(INOUT) :: State_Met    ! Meteorology State object
+!
+! !REMARKS:
+!  This routine supplies arrays that are required for legacy code routines:
+!    (1) IREG, ILAND, and IUSE are used by the dry deposition routine DEPVEL
+!    (2) FRCLND is used by several GEOS-Chem modules
+! 
+!  The variables are defined as follows:
+!      State_Met%IREG(I,J)    : # of land types in horizontal grid cell (I,J)
+!      State_Met%ILAND(I,J,T) : Land type ID for land types T=1,IREG(I,J)
+!      State_Met%IUSE(I,J,T)  : Fraction area (per mil) occupied by land types
+!                               T=1,IREG(I,J) 
+!      State_Met%FRCLND(I,J)  : Fraction area occupied by land for cell (I,J)
+! 
+! !REVISION HISTORY: 
+!  27 Sep 2016 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER :: I, J, T
+    INTEGER :: typeNum, maxIUse
+    REAL*4  :: sumFrac
+
+    
+    ! Arrays
+    REAL(fp) :: Olson_Landmap_GCHP(IIPAR, JJPAR, 0:N_OLSON-1) 
+
+    ! Pointers
+    INTEGER,  POINTER :: IREG(:,:)
+    INTEGER,  POINTER :: ILAND(:,:,:)
+    INTEGER,  POINTER :: IUSE(:,:,:)
+    REAL(fp), POINTER :: FRCLND(:,:)
+    REAL(fp), POINTER :: Ptr2D(:,:)
+    REAL(fp), POINTER :: Ptr3D(:,:)
+
+    !======================================================================
+    ! Initialize
+    !======================================================================
+
+    State_Met%IREG     = 0
+    State_Met%ILAND    = 0
+    State_Met%IUSE     = 0
+    State_Met%FRCLND   = 1e+3_fp
+    Ptr2D => NULL()
+    Ptr3D => NULL()
+
+    !======================================================================
+    ! Read data from ESMF
+    !======================================================================
+    ! Point to ESMF IMPORT object
+    IMPORT => HcoState%IMPORT
+    IF ( .NOT. ASSOCIATED(IMPORT) ) RETURN 
+
+    ! Set Olson Landmap values (read/regridded via ExtData)
+    DO T = 0, N_OLSON-1
+       IF ( T < 10 ) THEN
+          varname = 'OLSON0' // T ! need to make sure first is OLSON00 in mapl
+       ELSE
+          varname = 'OLSON' // T
+       ENDIF
+       CALL MAPL_GetPointer( IMPORT, Ptr2D, TRIM(varname),  &
+                             notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr2D) ) THEN
+          Olson_Landmap_GCHP(:,:,T) = Ptr2D(:,:)
+       ENDIF
+       Ptr2D => NULL()
+    ENDDO
+
+    !======================================================================
+    ! Loop over all GEOS-CHEM GRID BOXES and initialize variables
+    !======================================================================
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
+
+       typeNum = 0
+       sumFrac = 0e+0_fp
+       maxIUse = 0
+
+       DO T = 0, N_OLSON-1
+          ! State_Met%FRCLND
+          ! Keep cumulative variable of FRCLND - fraction land
+          ! Loop over OLSON 3D array (I,J,T)
+          ! If type is not land, FRCLND = FRCLND - OLSON(I,J,T)
+          ! Q: is OLSON a decimal? If yes, multiply by 1000
+          ! however, might be complication if does not add up to 1000
+          ! since legacy code does round to force it do so.
+          ! Q: how do you know which are land?
+          ! Q: where should OLSON be put into 3D var? worth it?
+          
+          ! State_Met%IREG = # land types in this box
+          ! State_MET%ILAND = types in this box
+          ! State_Met%IUSE = fractional area (mil) per type in this box
+          ! loop over all land types T
+          IF ( OLSON(I,J,T) > 0.0 ) THEN
+             typeNum = typeNum + 1
+             State_Met%IREG(I,J) = typeNum
+             State_Met%ILAND(I,J,typeNum) = T
+             State_Met%IUSE(I,J,typeNum) = OLSON(I,J,T)
+             ! need to make IUSE be mil
+             sumFrac = sumFrac + State_Met%IUSE(I,J,typeNum)
+             ! this keeps a tally of the total
+             maxIUse ! legacy, but need to add it back in for below use
+          ENDIF
+       ENDDO
+       
+       ! Make sure everything adds up to 1000.  If not, then adjust
+       ! the land type w/ the largest coverage accordingly.
+       ! This follows the algorithm from "regridh_lai.pro".
+       IF ( sumIUse /= 1000 ) THEN
+          State_Met%IUSE(I,J,maxIUse) = State_Met%IUSE(I,J,maxIUse) &
+                            + ( 1000 - sumIUse )
+       ENDIF
+       
+       ! Loop over land types in the GEOS-CHEM GRID BOX
+       DO T = 1, State_Met%IREG(I,J)
+       
+          ! If the current Olson land type is water (type 0),
+          ! subtract the coverage fraction (State_Met%IUSE) from FRCLND.
+          ! This can't be done in the earlier loop since the fraction
+          ! might have been rounded, and that can't happen until
+          ! after all of them are done being tracked since only the
+          ! largest one is rounded.
+          IF ( State_Met%ILAND(I,J,T) == 0 ) THEN
+             State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J)   &
+                                     - State_Met%IUSE(I,J,T)
+          ENDIF
+       ENDDO
+       
+       ! Normalize FRCLND into the range of 0-1
+       ! NOTE: Use REAL*4 for backwards compatibility w/ existing code!
+       State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J) / 1000e0
+
+    ENDDO
+    ENDDO
+
+!### Save code here for debugging
+!###    do j = 1, jjpar
+!###    do i = 1, iipar
+!###       write( 800, '(2i5, f13.6)' ) i, j, frclnd(i,j)
+!###       
+!###       write( 810, '(25i4)'       ) i, j, ireg(i,j),                 &
+!###                                    ( iland(i,j,t), t=1,ireg(i,j) ), &
+!###                                    ( iuse (i,j,t), t=1,ireg(i,j) )
+!###    enddo
+!###    enddo
+
+  END SUBROUTINE Compute_Olson_Landmap_GCHP
+!EOC
+#endif
+
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

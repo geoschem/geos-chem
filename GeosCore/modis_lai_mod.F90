@@ -133,13 +133,13 @@ MODULE Modis_Lai_Mod
 !                                                                             .
 !  LAI arrays and where they are (or will be) used in GEOS-Chem:
 !  ===========================================================================
-!  (1) State_Met%XLAI  --> Used in dry deposition routine DEPVEL
-!  (2) State_Met%XLAI2 --> Used to compute XLAI
-!  (3) XYLAI           --> %%% OBSOLETE: REMOVED, NOW REPLACED BY XLAI %%%
-!  (4) GC_LAI          --> Intended replacement for ISOLAI   (from lai_mod.F)
-!  (5) GC_LAI_PM       --> Intended replacement for PMISOLAI (from lai_mod.F)
-!  (6) GC_LAI_CM       --> Intended replacement for MISOLAI  (from lai_mod.F)
-!  (7) GC_LAI_NM       --> Intended replacement for NMISOLAI (from lai_mod.F)
+!  (1) State_Met%XLAI  --> LAI per land type, this month, used in dry dep DEPVEL
+!  (2) State_Met%XLAI2 --> LAI per land type, next month, used to compute XLAI
+!  (3) GC_LAI          --> Intended replacement for ISOLAI   (from lai_mod.F)
+!  (4) XYLAI           --> %%% OBSOLETE: REMOVED, NOW REPLACED BY XLAI
+!  (5) GC_LAI_PM       --> %%% OBSOLETE: REMOVED, NO LONGER NEEDED BY MEGAN
+!  (6) GC_LAI_CM       --> %%% OBSOLETE: REMOVED, NO LONGER NEEDED BY MEGAN
+!  (7) GC_LAI_NM       --> %%% OBSOLETE: REMOVED, NO LONGER NEEDED BY MEGAN
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
@@ -1095,18 +1095,6 @@ CONTAINS
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI' )
     GC_LAI = 0e+0_fp
 
-!    ALLOCATE( GC_LAI_PM( IIPAR, JJPAR ), STAT=RC ) 
-!    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI_PM' )
-!    GC_LAI_PM = 0e+0_fp
-!
-!    ALLOCATE( GC_LAI_CM( IIPAR, JJPAR ), STAT=RC ) 
-!    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI_CM' )
-!    GC_LAI_CM = 0e+0_fp
-!
-!    ALLOCATE( GC_LAI_NM( IIPAR, JJPAR ), STAT=RC ) 
-!    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI_NM' )
-!    GC_LAI_NM = 0e+0_fp
-
     ALLOCATE( GC_CHLR( IIPAR, JJPAR ), STAT=RC ) 
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_CHLR' )
     GC_LAI = 0e+0_fp
@@ -1135,10 +1123,6 @@ CONTAINS
     ALLOCATE( MODIS_LAI( I_MODIS, J_MODIS ), STAT=RC ) 
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI' )
     MODIS_LAI = 0e+0_fp
-
-!    ALLOCATE( MODIS_LAI_PM( I_MODIS, J_MODIS ), STAT=RC ) 
-!    IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_PM' )
-!    MODIS_LAI_PM = 0e+0_fp
 
     ALLOCATE( MODIS_LAI_CM( I_MODIS, J_MODIS ), STAT=RC ) 
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_CM' )
@@ -1183,11 +1167,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
     IF ( ALLOCATED( GC_LAI       ) ) DEALLOCATE( GC_LAI       )
-!    IF ( ALLOCATED( GC_LAI_PM    ) ) DEALLOCATE( GC_LAI_PM    )
-!    IF ( ALLOCATED( GC_LAI_CM    ) ) DEALLOCATE( GC_LAI_CM    )
-!    IF ( ALLOCATED( GC_LAI_NM    ) ) DEALLOCATE( GC_LAI_NM    )
     IF ( ALLOCATED( MODIS_LAI    ) ) DEALLOCATE( MODIS_LAI    )
-!    IF ( ALLOCATED( MODIS_LAI_PM ) ) DEALLOCATE( MODIS_LAI_PM )
     IF ( ALLOCATED( MODIS_LAI_CM ) ) DEALLOCATE( MODIS_LAI_CM )
     IF ( ALLOCATED( MODIS_LAI_NM ) ) DEALLOCATE( MODIS_LAI_NM )
     IF ( ALLOCATED( GC_CHLR    ) ) DEALLOCATE( GC_CHLR    )
