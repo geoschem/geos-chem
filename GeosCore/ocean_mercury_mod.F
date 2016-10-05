@@ -2563,7 +2563,12 @@
 
       ! Set FLOWNOW first time (jaf, 12/8/11)
       IF ( FIRST ) THEN
-         FLOWNOW = RIVERFLOW(LASTMONTH) + dFLOW *
+!------------------------------------------------------------------------
+! Prior to 10/5/16:
+! This should probably be DFLOW1.  DFLOW is not set at this time.
+!         FLOWNOW = RIVERFLOW(LASTMONTH) + dFLOW *
+!------------------------------------------------------------------------
+         FLOWNOW = RIVERFLOW(LASTMONTH) + dFLOW1 *
      &             SEC_PER_DAY * ( DAYS_IN_LAST_MONTH - 15 )
          FIRST = .FALSE.
       ENDIF
