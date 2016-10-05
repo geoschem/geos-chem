@@ -314,6 +314,7 @@ CONTAINS
 !  05 Nov 2014 - R. Yantosca - Now use 0.0_fp instead of 0d0
 !  06 Nov 2014 - R. Yantosca - Now make all fields (IM,JM,LM) instead of 
 !                              (LM,JM,IM), to facilitate use w/in GEOS-5 GCM
+!  05 Oct 2016 - R. Yantosca - Swapped order of HKETA and HKBETA allocation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -857,11 +858,11 @@ CONTAINS
     ! GEOS-4 met fields
     !=======================================================================
 
-    ALLOCATE( State_Met%HKBETA    ( IM, JM, LM   ), STAT=RC )
+    ALLOCATE( State_Met%HKETA     ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%HKETA    = 0.0_fp
 
-    ALLOCATE( State_Met%HKETA     ( IM, JM, LM   ), STAT=RC )
+    ALLOCATE( State_Met%HKBETA    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%HKBETA   = 0.0_fp
 
