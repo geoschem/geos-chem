@@ -1595,30 +1595,43 @@ CONTAINS
     IMPLICIT NONE
 !
 ! !REVISION HISTORY: 
-!   1 Feb 2011 - L. Murray   - Initial version
-!   3 Oct 2016 - R. Yantosca - Deallocate BrPtrDay and BrPtrNight 
+!  01 Feb 2011 - L. Murray   - Initial version
+!  03 Oct 2016 - R. Yantosca - Deallocate BrPtrDay and BrPtrNight
+!  05 Oct 2016 - R. Yantosca - Now make deallocations more robust
 !EOP
 !------------------------------------------------------------------------------
 !BOC
     INTEGER :: I
 
+    ! Deallocate arrays
     IF ( ALLOCATED( MInit      ) ) DEALLOCATE( MInit      )
     IF ( ALLOCATED( TPAUSEL    ) ) DEALLOCATE( TPAUSEL    )
     IF ( ALLOCATED( SCHEM_TEND ) ) DEALLOCATE( SCHEM_TEND )
 
-    ! Cleanup pointer vectors
-    DO I = 1,6
-       BrPtrDay(I)%MR   => NULL()
-       BrPtrNight(I)%MR => NULL()
-    ENDDO          
-    IF ( ASSOCIATED( BrPtrDay   ) ) DEALLOCATE( BrPtrDay   )
-    IF ( ASSOCIATED( BrPtrNight ) ) DEALLOCATE( BrPtrNight )
+    ! Cleanup BrPtrDay array of pointers
+    IF ( ASSOCIATED( BrPtrDay ) ) THEN
+       DO I = 1, 6
+          BrPtrDay(I)%MR => NULL()
+       ENDDO
+       DEALLOCATE( BrPtrDay )
+    ENDIF
 
-    DO I = 1,NSCHEM
-       PLVEC(I)%PROD => NULL()
-       PLVEC(I)%LOSS => NULL()
-    ENDDO
-    IF ( ASSOCIATED(PLVEC) ) DEALLOCATE(PLVEC)
+    ! Cleanup BrPtrNight array of pointers
+    IF ( ASSOCIATED( BrPtrNight ) ) THEN
+       DO I = 1, 6
+          BrPtrNight(I)%MR => NULL()
+       ENDDO
+       DEALLOCATE( BrPtrNight )
+    ENDIF
+
+    ! Cleanup PLVEC array of pointers
+    IF ( ASSOCIATED( PLVEC ) ) THEN
+       DO I = 1, NSCHEM
+          PLVEC(I)%PROD => NULL()
+          PLVEC(I)%LOSS => NULL()
+       ENDDO
+       DEALLOCATE( PLVEC )
+    ENDIF
 
     ! Cleanup pointer to strat. OH
     STRAT_OH => NULL()
