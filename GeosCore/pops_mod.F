@@ -421,6 +421,7 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  10 Aug 2016 - R. Yantosca - Removed temporary tracer-removal code
+!  06 Oct 2016 - R. Yantosca - Now zero C_NO3 to avoid floating-point error
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -723,6 +724,12 @@
          ! Kahan:
          K_O3_BC  = (AK * C_O3) / (BK + C_O3)
          
+         ! Bug fix: Zero C_NO3 to avoid a floating-point exception error.
+         ! K_POPP_NO3 is already set to zero, so this will already cause
+         ! K_NO3_BC to be set to zero.  We think that C_NO3 once was
+         ! assigned a value but was later taken out. (bmy, 10/6/16)
+         C_NO3 = 0.0_fp
+
          ! Define K for oxidation of POPP by NO3  [/s]
          K_NO3_BC = K_POPP_NO3 * C_NO3 
 
