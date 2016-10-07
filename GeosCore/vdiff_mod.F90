@@ -1850,7 +1850,7 @@ contains
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
     USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
+    USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS, GET_TS_CHEM
 #if defined( USE_TEND )
     USE TENDENCIES_MOD
 #endif
@@ -2589,7 +2589,7 @@ contains
              ! For bpch diagnostic output, save flux in global ADD 44 array
 	     AD44(:,:,ND,1) = AD44(:,:,ND,1) + dflx(:,:,N)        &
                              /  (SpcInfo%emMW_g * 1.e-3_fp) * AVO      &
-                             * 1.e-4_fp * GET_TS_CONV() / GET_TS_EMIS() 
+                             * 1.e-4_fp * GET_TS_CONV() / GET_TS_CHEM() 
           ENDIF
 #endif
 #if defined( NC_DIAG )
@@ -2602,7 +2602,7 @@ contains
              ! passing to HEMCO
              DryDepFlux = dflx(:,:,N)                    &
                           / (SpcInfo%emMW_g * 1.e-3_fp)  &
-                          * AVO * 1.e-4_fp * GET_TS_CONV() / GET_TS_EMIS()
+                          * AVO * 1.e-4_fp * GET_TS_CONV() / GET_TS_CHEM()
              
              ! If this tracer is scheduled for output in 
              ! input.geos, then update the diagnostic

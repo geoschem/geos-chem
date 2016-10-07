@@ -259,7 +259,7 @@ CONTAINS
     USE Species_Mod,        ONLY : Species
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
-    USE TIME_MOD,           ONLY : GET_TS_DYN
+    USE TIME_MOD,           ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
     USE State_Chm_Mod,      ONLY : Ind_
     USE UnitConv_Mod
 #if defined( BPCH_DIAG )
@@ -630,12 +630,12 @@ CONTAINS
                    RKT  = FRQ * TS
                    FRAC = EXP(-RKT)
 
+                   ! Loss in kg/m2
+                   FLUX = ( 1.0_fp - FRAC ) * State_Chm%Species(I,J,L,N) 
+
                    ! Apply dry deposition
                    State_Chm%Species(I,J,L,N) = FRAC *    &
                                                 State_Chm%Species(I,J,L,N)
-
-                   ! Loss in kg/m2
-                   FLUX = ( 1.0_fp - FRAC ) * State_Chm%Species(I,J,L,N) 
 
                    ! Eventually add PARANOX loss. PNOXLOSS is in kg/m2/s. 
                    IF ( PNOXLOSS > 0 ) THEN
@@ -677,7 +677,8 @@ CONTAINS
                    IF ( ND44 > 0 .and. DryDepID > 0 ) THEN
 #if defined( BPCH_DIAG )
                       ! For bpch diagnostic, store data in global AD44 array
-                      AD44(I,J,DryDepID,1) = AD44(I,J,DryDepID,1) + FLUX
+                      AD44(I,J,DryDepID,1) = AD44(I,J,DryDepID,1) + FLUX &
+                                             * GET_TS_CONV() / GET_TS_CHEM() 
 #endif
 #if defined( NC_DIAG )
                       ! For netcdf diagnostic, store data in local array
