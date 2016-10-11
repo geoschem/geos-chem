@@ -270,6 +270,8 @@
 !                              ACET, MONX non-advected species are all found
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  11 Oct 2016 - R. Yantosca - If emissions are turned off, do not update
+!                              the SUM*CO arrays, they will remain zeroed out.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -404,46 +406,52 @@
       ! vertical because the code expects SUMACETCO, SUMISOPCO, and
       ! SUMMONOCO to be 2-D arrays.  We may change that later.
       ! (bmy, 6/1/16)
+      !
+      ! Also note, skip this section if emissions are turned off,
+      ! which will keep the SUM*CO arrays zeroed out. (bmy, 10/11/16)
       !=================================================================
+      IF ( Input_Opt%LEMIS ) THEN
 
-      ! Get HEMCO state object
-      CALL GetHcoState( HcoState )
-      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
-         CALL ERROR_STOP( 'HcoState not associated!', LOC )
-      ENDIF 
+         ! Get HEMCO state object
+         CALL GetHcoState( HcoState )
+         IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+            CALL ERROR_STOP( 'HcoState not associated !', LOC )
+         ENDIF 
 
-      ! Conversion factor from [kg/s] --> [atoms C]
-      ! (atoms C /mole C) / (kg C /mole C) * chemistry timestep [s]
-      kgs_to_atomsC = ( AVO / 12e-3_fp ) * DTCHEM
+         ! Conversion factor from [kg/s] --> [atoms C]
+         ! (atoms C /mole C) / (kg C /mole C) * chemistry timestep [s]
+         kgs_to_atomsC = ( AVO / 12e-3_fp ) * DTCHEM
 
-      ! SUMACETCO (convert [kgC/m2/s] to [atoms C])
-      HcoId = GetHcoId( 'ACET' )
-      IF ( HcoId > 0 ) THEN
-         SUMACETCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    ! kgC/m2/s
-         SUMACETCO = SUMACETCO * HcoState%Grid%AREA_M2%Val     ! kgC/s
-         SUMACETCO = SUMACETCO * kgs_to_atomsC                 ! atoms C
-      ELSE
-         CALL ERROR_STOP( 'ACET not turned on in MEGAN!', LOC )
-      ENDIF
+         ! SUMACETCO (convert [kgC/m2/s] to [atoms C])
+         HcoId = GetHcoId( 'ACET' )
+         IF ( HcoId > 0 ) THEN
+            SUMACETCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    ! kgC/m2/s
+            SUMACETCO = SUMACETCO * HcoState%Grid%AREA_M2%Val     ! kgC/s
+            SUMACETCO = SUMACETCO * kgs_to_atomsC                 ! atoms C
+         ELSE
+            CALL ERROR_STOP( 'ACET not turned on in MEGAN !', LOC )
+         ENDIF
 
-      ! SUMISOPCO (convert [kgC/m2/s] to [atoms C])
-      HcoId = GetHcoId( 'ISOP' )
-      IF ( HcoId > 0 ) THEN
-         SUMISOPCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    ! kgC/m2/s
-         SUMISOPCO = SUMISOPCO * HcoState%Grid%AREA_M2%Val     ! kgC/s
-         SUMISOPCO = SUMISOPCO * kgs_to_atomsC                 ! atoms C
-      ELSE
-         CALL ERROR_STOP( 'ISOP not turned on in MEGAN!', LOC )
-      ENDIF
+         ! SUMISOPCO (convert [kgC/m2/s] to [atoms C])
+         HcoId = GetHcoId( 'ISOP' )
+         IF ( HcoId > 0 ) THEN
+            SUMISOPCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    ! kgC/m2/s
+            SUMISOPCO = SUMISOPCO * HcoState%Grid%AREA_M2%Val     ! kgC/s
+            SUMISOPCO = SUMISOPCO * kgs_to_atomsC                 ! atoms C
+         ELSE
+            CALL ERROR_STOP( 'ISOP not turned on in MEGAN !', LOC )
+         ENDIF
 
-      ! SUMMONOCO (convert [kgC/m2/s] to [atoms C])
-      HcoId = GetHcoId( 'MONX' )
-      IF ( HcoId > 0 ) THEN
-         SUMMONOCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    ! kgC/m2/s
-         SUMMONOCO = SUMMONOCO * HcoState%Grid%AREA_M2%Val     ! kgC/s
-         SUMMONOCO = SUMMONOCO * kgs_to_atomsC                 ! atoms C
-      ELSE
-         CALL ERROR_STOP( 'MONX not turned on in Megan_MONO!', LOC )
+         ! SUMMONOCO (convert [kgC/m2/s] to [atoms C])
+         HcoId = GetHcoId( 'MONX' )
+         IF ( HcoId > 0 ) THEN
+            SUMMONOCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    ! kgC/m2/s
+            SUMMONOCO = SUMMONOCO * HcoState%Grid%AREA_M2%Val     ! kgC/s
+            SUMMONOCO = SUMMONOCO * kgs_to_atomsC                 ! atoms C
+         ELSE
+            CALL ERROR_STOP( 'MONX not turned on in Megan_MONO !', LOC )
+         ENDIF
+
       ENDIF
 
       !=================================================================
